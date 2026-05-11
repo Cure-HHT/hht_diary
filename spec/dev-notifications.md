@@ -69,7 +69,7 @@ J. A row SHALL transition from `pending` to `failed` only on an unrecoverable ch
 
 K. A row SHALL transition to `delivered` only when the polling endpoint returns the row to the patient's mobile, and the `delivered_at` column SHALL be set to `now()` in the same update.
 
-_End_ _Notifications Table Envelope Schema_ | **Hash**: 00000000
+*End* *Notifications Table Envelope Schema* | **Hash**: 636e4c55
 
 ---
 
@@ -99,7 +99,7 @@ G. The `FcmChannel` SHALL authenticate to FCM using Application Default Credenti
 
 H. The `FcmChannel` SHALL emit a `comms.fcm.dispatch` metric tagged with `result={success|failed|unregistered}` for every dispatch call.
 
-_End_ _Comms FCM Channel Transport_ | **Hash**: 00000000
+*End* *Comms FCM Channel Transport* | **Hash**: f2ef743a
 
 ---
 
@@ -121,7 +121,7 @@ C. The FCM data payload SHALL NOT contain any clinical content including questio
 
 D. A `PayloadGuard` component SHALL run before the `FcmChannel` dispatches a message and SHALL reject any payload whose serialized form matches a configured PHI pattern.
 
-E. The `PayloadGuard` SHALL match at minimum: SubjectKey format (`\d{3}-\d{3}-\d{3}`), email address format, and configured common-name patterns.
+E. The `PayloadGuard` SHALL match at minimum: SubjectKey format (`\d{3}-\d{3}-\d{3}`), *Email Address* format, and configured common-name patterns.
 
 F. The `PayloadGuard` SHALL also run before insertion into the `notifications` table, applied to `title`, `body`, and the serialized `payload` columns.
 
@@ -129,7 +129,7 @@ G. A `PayloadGuard` rejection SHALL raise an exception that aborts the dispatch 
 
 H. The `PayloadGuard` SHALL NOT be bypassable by production code; bypass SHALL be permitted only inside test fixtures via an explicit test-only flag.
 
-_End_ _PHI-Safe FCM Payload_ | **Hash**: 00000000
+*End* *PHI-Safe FCM Payload* | **Hash**: 46afc78d
 
 ---
 
@@ -165,7 +165,7 @@ J. The Mobile Application SHALL deduplicate envelopes by `notification_id` acros
 
 K. The Mobile Application SHALL clear the `lastSeen` cursor on logout and on patient unlink.
 
-_End_ _Mobile Envelope Polling_ | **Hash**: 00000000
+*End* *Mobile Envelope Polling* | **Hash**: de792236
 
 ---
 
@@ -187,13 +187,13 @@ C. The System SHALL NOT navigate the Participant to any destination other than t
 
 D. The Push Notification SHALL NOT include any inline response actions, quick-reply buttons, or tap-target deep links other than the application launch itself.
 
-_End_ _Notification Tap Routes To Main Screen_ | **Hash**: 00000000
+*End* *Notification Tap Routes To Main Screen* | **Hash**: 0788d843
 
 ---
 
 # REQ-d00171: Outbox-Write-Then-Dispatch Sequencing
 
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p20078, REQ-p01018
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01018
 
 ## Rationale
 
@@ -215,7 +215,7 @@ F. The `notifications` row SHALL serve as the audit record for the dispatch atte
 
 G. The outbox dispatch invocation SHALL NOT be attempted from inside the triggering transaction.
 
-_End_ _Outbox-Write-Then-Dispatch Sequencing_ | **Hash**: 00000000
+*End* *Outbox-Write-Then-Dispatch Sequencing* | **Hash**: ef482c01
 
 ---
 
@@ -234,7 +234,7 @@ B. Tasks SHALL be added to or removed from the Task List when their respective t
 
 C. Updates to the Task List SHALL be applied within one second of the underlying state change becoming visible to the Mobile Application.
 
-_End_ _Reactive Task List Updates_ | **Hash**: 00000000
+*End* *Reactive Task List Updates* | **Hash**: 62ae725c
 
 ---
 
@@ -260,7 +260,7 @@ D. The notification's `notification_type` SHALL be `questionnaire_update` and th
 
 E. The Mobile Application SHALL receive the notification on next connectivity if it is offline at dispatch time, via the polling endpoint defined in REQ-d00169.
 
-_End_ _Send Handler Trigger And Suppression_ | **Hash**: 00000000
+*End* *Send Handler Trigger And Suppression* | **Hash**: 2bcf40fa
 
 ---
 
@@ -290,7 +290,7 @@ F. The platform SHALL expose a `Yesterday Reminder Time` configuration parameter
 
 G. The notification's `notification_type` SHALL be `reminder` and `payload.action` SHALL be `yesterday_entry`.
 
-_End_ _Yesterday Reminder Daily Scheduling, Timezone-Aware_ | **Hash**: 00000000
+*End* *Yesterday Reminder Daily Scheduling, Timezone-Aware* | **Hash**: c54ba935
 
 ---
 
@@ -304,6 +304,6 @@ A. The Yesterday Entry Reminder job SHALL skip any Participant for whom a Daily 
 
 B. The skip evaluation SHALL be performed at the moment the job evaluates the Participant, immediately before the outbox write.
 
-_End_ _Yesterday Reminder Suppression_ | **Hash**: 00000000
+*End* *Yesterday Reminder Suppression* | **Hash**: 2a548f43
 
 ---

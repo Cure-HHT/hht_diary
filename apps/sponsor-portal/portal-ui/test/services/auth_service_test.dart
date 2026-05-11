@@ -12,7 +12,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:fake_async/fake_async.dart';
-import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
+import 'package:firebase_auth/firebase_auth.dart'
+    show FirebaseAuthException, UserMetadata;
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -1628,6 +1629,72 @@ void main() {
       });
     });
 
+    // CUR-1312: defense-in-depth — the restore-validity branch must NOT
+    // fire for an event whose lastSignInTime is recent. That class of
+    // event is, by definition, a fresh sign-in (whether via
+    // AuthService.signIn() or a caller bypassing it — see the
+    // CUR-1312 retrospective on the activation page). If the gate fires
+    // anyway, force-refreshing the just-issued token races the in-flight
+    // sign-in and silently signs the user out, which was the original
+    // bug. This test PROVES the gate skipped getIdToken: we use a hung
+    // mock user (default behavior would 5s-time-out and signOut), but
+    // wire the metadata to "sign-in just happened". If the gate is
+    // honored the test settles immediately; if it isn't the .timeout()
+    // would clearStorage and the assertion below would fail.
+    test('CUR-1312: fresh sign-in (recent lastSignInTime) bypasses '
+        'restore-validity even with _sessionUid == null', () {
+      fakeAsync((fake) {
+        var clearStorageCalled = false;
+        final freshUser = _ForceRefreshHangingMockUser(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          displayName: 'Test User',
+          metadata: UserMetadata(
+            DateTime.now()
+                .subtract(const Duration(days: 1))
+                .millisecondsSinceEpoch,
+            DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: freshUser,
+          signedIn: true,
+        );
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          clearStorage: () async {
+            clearStorageCalled = true;
+          },
+          isPageRefresh: false,
+        );
+
+        // Settle without advancing past the 5s budget. If the gate
+        // erroneously fires, getIdToken hangs and the test would need
+        // `fake.elapse(Duration(seconds: 6))` to see clearStorage. We
+        // deliberately don't elapse — proving the gate skipped getIdToken.
+        fake.flushMicrotasks();
+
+        expect(
+          clearStorageCalled,
+          isFalse,
+          reason:
+              'CUR-1312: a fresh sign-in (lastSignInTime within '
+              '_freshSignInWindow) MUST skip the restore-validity branch. '
+              'Calling getIdToken(true) on a just-issued token races the '
+              'sign-in and was the silent-signOut root cause.',
+        );
+        expect(
+          authService.isAuthenticated,
+          isTrue,
+          reason:
+              'A fresh sign-in must end up authenticated — the restore '
+              'branch was correctly skipped and /portal/me succeeded.',
+        );
+      });
+    });
+
     // CUR-1280 (issue 6): the user's question that drove the gate fix was
     // explicitly about multi-tab same-user behavior. The two tests above
     // cover the gate in isolation. This test exercises the higher-level
@@ -1955,5 +2022,26 @@ class _HangingMockUser extends MockUser {
   Future<String> getIdToken([bool forceRefresh = false]) {
     // Never completes — caller must rely on the gate's `.timeout()`.
     return Completer<String>().future;
+  }
+}
+
+/// CUR-1312: a [MockUser] whose force-refresh hangs but whose ordinary
+/// token reads (the ones [_fetchPortalUser] makes for its auth header)
+/// succeed. Lets a test prove that the restore-validity gate skipped
+/// `getIdToken(true)` — if the gate fired, the hang would be observable;
+/// if the gate skipped it, `_fetchPortalUser` proceeds as normal.
+// ignore: must_be_immutable
+class _ForceRefreshHangingMockUser extends MockUser {
+  _ForceRefreshHangingMockUser({
+    super.uid,
+    super.email,
+    super.displayName,
+    super.metadata,
+  });
+
+  @override
+  Future<String> getIdToken([bool forceRefresh = false]) {
+    if (forceRefresh) return Completer<String>().future;
+    return super.getIdToken(forceRefresh);
   }
 }

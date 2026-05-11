@@ -23,7 +23,7 @@ on:
         options:
           - dev
           - qa
-          - prod
+          - uat
       deployment:
         description: "Deployment target"
         required: true
@@ -47,6 +47,14 @@ concurrency:
 
 jobs:
   build:
+    # Skip auto-deploy on Dependabot-merge commits. Their PRs come in waves
+    # and each squash-merge would otherwise trigger an App Store Connect /
+    # TestFlight upload for a small dep bump. The merge commit's message
+    # preserves the PR title ("[Dependabot](deps): Bump …"), so a startsWith
+    # check is the most reliable signal across squash-merge / rebase /
+    # human-merger paths. `workflow_dispatch` and non-push events have no
+    # head_commit, so the `|| ''` fallback lets manual triggers always run.
+    if: ${{ !startsWith(github.event.head_commit.message || '', '[Dependabot]') }}
     runs-on: macos-26
 
     steps:
@@ -93,7 +101,7 @@ jobs:
           cache: true
 
       - name: Cache pub dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pub-cache
           key: pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
@@ -104,7 +112,7 @@ jobs:
         run: flutter pub get
 
       - name: Cache CocoaPods
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: apps/daily-diary/clinical_diary/ios/Pods
           key: pods-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/ios/Podfile.lock') }}
@@ -182,6 +190,24 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Resolve Slack channel from flavor
+        id: slack-chan
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+        run: |
+          # Per-flavor routing — mirrors callisto's .github/slack-channels.yml
+          # (deploy-success: dev->#dev, qa->#qa, uat->#devops). Channel
+          # names are not secrets; hardcoded here for simplicity until/
+          # unless a slack-channels.yml lands in this repo too.
+          case "$FLAVOR" in
+            dev)  CHANNEL="#dev" ;;
+            qa)   CHANNEL="#qa" ;;
+            uat)  CHANNEL="#devops" ;;
+            *)    CHANNEL="#devops" ;;
+          esac
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "Slack channel for flavor '$FLAVOR': $CHANNEL"
+
       - name: Notify Slack on success
         if: success()
         uses: slackapi/slack-github-action@v3.0.3
@@ -190,7 +216,7 @@ jobs:
           token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
           errors: true
           payload: |
-            channel: "${{ secrets.SLACK_CHANNEL_DEVOPS }}"
+            channel: "${{ steps.slack-chan.outputs.channel }}"
             text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Deployment:* ${{ steps.inputs.outputs.deployment }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
 
       - name: Resolve Slack user for failure DM

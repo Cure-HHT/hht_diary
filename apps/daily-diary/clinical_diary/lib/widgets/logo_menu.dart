@@ -17,6 +17,7 @@ class LogoMenu extends StatefulWidget {
     required this.onEndClinicalTrial,
     required this.onInstructionsAndFeedback,
     this.showDevTools = true,
+    this.showResetData = true,
     this.isEnrolled,
     this.sponsorLogo,
     super.key,
@@ -31,9 +32,14 @@ class LogoMenu extends StatefulWidget {
   final bool? isEnrolled;
   final String? sponsorLogo;
 
-  /// Whether to show developer tools (Reset All Data, Import/Export Data, Feature Flags).
+  /// Whether to show developer tools (Import/Export Data, Feature Flags).
   /// Should be false in production and UAT environments.
   final bool showDevTools;
+
+  /// Whether to show the "Reset All Data" item (independent of showDevTools).
+  /// True in local/dev/qa/uat; false in prod. Defaults to true so existing
+  /// tests that omit it (which model the dev experience) keep working.
+  final bool showResetData;
 
   @override
   State<LogoMenu> createState() => _LogoMenuState();
@@ -170,6 +176,23 @@ class _LogoMenuState extends State<LogoMenu> {
             ),
           ),
           PopupMenuItem<String>(
+            value: 'feature_flags',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.science_outlined,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                const SizedBox(width: 12),
+                Flexible(child: Text(l10n.featureFlagsTitle)),
+              ],
+            ),
+          ),
+        ],
+
+        if (widget.showResetData) ...[
+          PopupMenuItem<String>(
             value: 'reset_all_data',
             child: Row(
               children: [
@@ -190,26 +213,13 @@ class _LogoMenuState extends State<LogoMenu> {
               ],
             ),
           ),
-          PopupMenuItem<String>(
-            value: 'feature_flags',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.science_outlined,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 12),
-                Flexible(child: Text(l10n.featureFlagsTitle)),
-              ],
-            ),
-          ),
         ],
 
         // Clinical Trial section (only if linked)
         if (widget.onEndClinicalTrial != null) ...[
-          // Only add divider if dev tools section was shown
-          if (widget.showDevTools) const PopupMenuDivider(),
+          // Only add divider if dev tools or reset section was shown
+          if (widget.showDevTools || widget.showResetData)
+            const PopupMenuDivider(),
           PopupMenuItem<String>(
             enabled: false,
             child: Text(
@@ -238,7 +248,9 @@ class _LogoMenuState extends State<LogoMenu> {
 
         // External links section
         // Only add divider if there was content above
-        if (widget.showDevTools || widget.onEndClinicalTrial != null)
+        if (widget.showDevTools ||
+            widget.showResetData ||
+            widget.onEndClinicalTrial != null)
           const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'instructions_feedback',

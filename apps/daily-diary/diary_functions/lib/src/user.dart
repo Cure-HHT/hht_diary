@@ -371,8 +371,6 @@ Future<Response> enrollHandler(Request request) async {
 /// POST /api/v1/user/sync
 /// Authorization: Bearer <jwt>
 /// Body: { events: [...] }
-///
-/// Events from append_only_datastore are written to record_audit
 Future<Response> syncHandler(Request request) async {
   if (request.method != 'POST') {
     return _jsonResponse({'error': 'Method not allowed'}, 405);

@@ -57,7 +57,7 @@ A sponsor-scoped section at the bottom captures the concrete configuration value
 
 # REQ-d00192: Notifications Table Envelope Schema
 
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p20078, REQ-p01018
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01018
 
 ## Rationale
 
@@ -89,7 +89,7 @@ K. A row SHALL transition to `delivered` only when the polling endpoint returns 
 
 L. Once any timestamp column (`sent_at`, `delivered_at`) is non-null, subsequent updates SHALL NOT overwrite it.
 
-_End_ _Notifications Table Envelope Schema_ | **Hash**: 00000000
+*End* *Notifications Table Envelope Schema* | **Hash**: 36d3e0c1
 
 ---
 
@@ -119,13 +119,13 @@ G. The `FcmChannel` SHALL authenticate to FCM using Application Default Credenti
 
 H. The `FcmChannel` SHALL emit a `comms.fcm.dispatch` metric tagged with `result={success|failed|unregistered}` for every dispatch call.
 
-_End_ _Comms FCM Channel Transport_ | **Hash**: 00000000
+*End* *Comms FCM Channel Transport* | **Hash**: efe5a3eb
 
 ---
 
 # REQ-d00194: PHI-Safe FCM Payload
 
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p20078, REQ-p00016, REQ-p00017
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p00016, REQ-p00017
 
 ## Rationale
 
@@ -135,13 +135,13 @@ FCM traffic crosses Google's infrastructure outside the sponsor project boundary
 
 A. The FCM data payload SHALL contain only the opaque `notification_id` and a generic, sponsor-neutral title key.
 
-B. The FCM data payload SHALL NOT contain any `patient_id`, SubjectKey, participant name, email address, date of birth, or any other identifier that resolves to a specific participant.
+B. The FCM data payload SHALL NOT contain any `patient_id`, SubjectKey, participant name, *Email Address*, date of birth, or any other identifier that resolves to a specific participant.
 
 C. The FCM data payload SHALL NOT contain any clinical content including questionnaire titles bound to a specific participant, dates of medical events, or response data.
 
 D. A `PayloadGuard` component SHALL run before the `FcmChannel` dispatches a message and SHALL reject any payload whose serialized form matches a configured PHI pattern.
 
-E. The `PayloadGuard` SHALL match at minimum: SubjectKey format (`\d{3}-\d{3}-\d{3}`), email address format, and configured common-name patterns.
+E. The `PayloadGuard` SHALL match at minimum: SubjectKey format (`\d{3}-\d{3}-\d{3}`), *Email Address* format, and configured common-name patterns.
 
 F. The `PayloadGuard` SHALL also run before insertion into the `notifications` table, applied to `title`, `body`, and the serialized `payload` columns.
 
@@ -149,7 +149,7 @@ G. A `PayloadGuard` rejection SHALL raise an exception that aborts the dispatch 
 
 H. The `PayloadGuard` SHALL NOT be bypassable by production code; bypass SHALL be permitted only inside test fixtures via an explicit test-only flag.
 
-_End_ _PHI-Safe FCM Payload_ | **Hash**: 00000000
+*End* *PHI-Safe FCM Payload* | **Hash**: 8e4a991e
 
 ---
 
@@ -185,7 +185,7 @@ J. The Mobile Application SHALL deduplicate envelopes by `notification_id` acros
 
 K. The Mobile Application SHALL clear the `lastSeen` cursor on logout and on patient unlink.
 
-_End_ _Mobile Envelope Polling_ | **Hash**: 00000000
+*End* *Mobile Envelope Polling* | **Hash**: de792236
 
 ---
 
@@ -207,13 +207,13 @@ C. The System SHALL NOT navigate the Participant to any destination other than t
 
 D. The Push Notification SHALL NOT include any inline response actions, quick-reply buttons, or tap-target deep links other than the application launch itself.
 
-_End_ _Notification Tap Routes To Main Screen_ | **Hash**: 00000000
+*End* *Notification Tap Routes To Main Screen* | **Hash**: 0788d843
 
 ---
 
 # REQ-d00197: Outbox-Write-Then-Dispatch Sequencing
 
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p20078, REQ-p01018
+**Level**: dev | **Status**: Draft | **Implements**: REQ-p01018
 
 ## Rationale
 
@@ -235,7 +235,7 @@ F. The `notifications` row SHALL serve as the audit record for the dispatch atte
 
 G. The outbox dispatch invocation SHALL NOT be attempted from inside the triggering transaction.
 
-_End_ _Outbox-Write-Then-Dispatch Sequencing_ | **Hash**: 00000000
+*End* *Outbox-Write-Then-Dispatch Sequencing* | **Hash**: e4d9296f
 
 ---
 
@@ -264,7 +264,7 @@ E. A task SHALL be removed from the Task List when its removal predicate evaluat
 
 F. The Task List SHALL be derived from local state only and SHALL NOT depend on a network round-trip for its render.
 
-_End_ _Task Domain Model And Priority Ordering_ | **Hash**: 00000000
+*End* *Task Domain Model And Priority Ordering* | **Hash**: 58099754
 
 ---
 
@@ -287,7 +287,7 @@ E. The `IncompleteRecordsTask` SHALL persist regardless of the age of the contai
 
 F. The `IncompleteRecordsTask` SHALL be removed from the Task List only when the count of incomplete entries reaches zero.
 
-_End_ _Incomplete Records Task Source_ | **Hash**: 00000000
+*End* *Incomplete Records Task Source* | **Hash**: ea5b2e53
 
 ---
 
@@ -316,7 +316,7 @@ F. After submission and before finalization, the `QuestionnaireTask` SHALL rende
 
 G. While in the completed visual state, selection of the `QuestionnaireTask` SHALL allow the Participant to review and edit submitted answers.
 
-_End_ _Portal Questionnaire Task Source And State_ | **Hash**: 00000000
+*End* *Portal Questionnaire Task Source And State* | **Hash**: 068c8ebf
 
 ---
 
@@ -339,7 +339,7 @@ E. Selection of `Yes` SHALL navigate the Participant to the nosebleed recording 
 
 F. The `YesterdayReminderTask` SHALL NOT be displayed when a Daily Status has already been recorded for the previous day.
 
-_End_ _Yesterday Reminder Task Source And Actions_ | **Hash**: 00000000
+*End* *Yesterday Reminder Task Source And Actions* | **Hash**: 87727808
 
 ---
 
@@ -356,7 +356,7 @@ B. Tasks SHALL be added to or removed from the Task List when their respective t
 
 C. Updates to the Task List SHALL be applied within one second of the underlying state change becoming visible to the Mobile Application.
 
-_End_ _Reactive Task List Updates_ | **Hash**: 00000000
+*End* *Reactive Task List Updates* | **Hash**: 62ae725c
 
 ---
 
@@ -382,7 +382,7 @@ D. The Disconnection Notification SHALL be removed from the Main Screen when the
 
 E. The Disconnection Notification SHALL re-render reactively from the participant-status state without requiring a navigation event or manual refresh.
 
-_End_ _Disconnected State Notice Rendering_ | **Hash**: 00000000
+*End* *Disconnected State Notice Rendering* | **Hash**: 9fa6e086
 
 ---
 
@@ -398,7 +398,7 @@ B. When no sponsor-specific message text is configured, the Mobile Application S
 
 C. The sponsor-configured message text SHALL be applied without requiring a Mobile Application code change.
 
-_End_ _Sponsor-Configurable Disconnection Copy_ | **Hash**: 00000000
+*End* *Sponsor-Configurable Disconnection Copy* | **Hash**: 194894cf
 
 ---
 
@@ -429,7 +429,7 @@ F. The badge SHALL re-render automatically when the Participant's status changes
 
 G. The display of the sponsor logo when the Participant's status is `Not Participating` SHALL be controlled by a sponsor configuration parameter.
 
-_End_ _Badge State Machine And Variant Rendering_ | **Hash**: 00000000
+*End* *Badge State Machine And Variant Rendering* | **Hash**: 3e8edf40
 
 ---
 
@@ -459,7 +459,7 @@ F. Per-record dispatch state SHALL survive process restarts; the absence of the 
 
 G. The notification's `payload.action` SHALL be `lock_warning` and the `payload` SHALL contain the originating `incomplete_record_id`.
 
-_End_ _Lock Warning Scheduling Job And Idempotency_ | **Hash**: 00000000
+*End* *Lock Warning Scheduling Job And Idempotency* | **Hash**: 4da1fb77
 
 ---
 
@@ -479,7 +479,7 @@ D. When the configured `Lock Warning Offset` is greater than or equal to the con
 
 E. The `Lock Warning Notification Text` SHALL be applied to the `title`/`body` of the notification at outbox-write time.
 
-_End_ _Lock Warning Configuration Slot_ | **Hash**: 00000000
+*End* *Lock Warning Configuration Slot* | **Hash**: b4d5ea6c
 
 ---
 
@@ -507,7 +507,7 @@ E. The notification's `payload` SHALL contain the `questionnaire_instance_id` an
 
 F. The Mobile Application SHALL receive the notification on next connectivity if it is offline at dispatch time, via the polling endpoint defined in REQ-d00195.
 
-_End_ _Send Handler Trigger And Suppression_ | **Hash**: 00000000
+*End* *Send Handler Trigger And Suppression* | **Hash**: b0408dab
 
 ---
 
@@ -539,7 +539,7 @@ G. The notification's `notification_type` SHALL be `reminder` and `payload.actio
 
 H. The notification SHALL be persisted via the outbox sequencing defined in REQ-d00197.
 
-_End_ _Yesterday Reminder Daily Scheduling, Timezone-Aware_ | **Hash**: 00000000
+*End* *Yesterday Reminder Daily Scheduling, Timezone-Aware* | **Hash**: 76700618
 
 ---
 
@@ -553,7 +553,7 @@ A. The Yesterday Entry Reminder job SHALL skip any Participant for whom a Daily 
 
 B. The skip evaluation SHALL be performed at the moment the job evaluates the Participant, immediately before the outbox write.
 
-_End_ _Yesterday Reminder Suppression_ | **Hash**: 00000000
+*End* *Yesterday Reminder Suppression* | **Hash**: 2a548f43
 
 ---
 
@@ -581,7 +581,7 @@ E. Per-record dispatch state SHALL survive process restarts; the count of `remin
 
 F. The notification's `notification_type` SHALL be `reminder` and `payload.action` SHALL be `epistaxis_ongoing`, with the originating `incomplete_record_id` in the payload.
 
-_End_ _Reminder Schedule Engine_ | **Hash**: 00000000
+*End* *Reminder Schedule Engine* | **Hash**: 073b9613
 
 ---
 
@@ -601,7 +601,7 @@ D. Reset and termination SHALL take effect within one minute of the triggering a
 
 E. A reset SHALL be implemented as a marker that subsequent interval evaluations measure their offset from the reset time, not from the most recent prior dispatch.
 
-_End_ _Reset On Interaction And Termination_ | **Hash**: 00000000
+*End* *Reset On Interaction And Termination* | **Hash**: baa702f5
 
 ---
 
@@ -625,7 +625,7 @@ F. When no sponsor-configured Reminder Schedule is in effect, the System SHALL a
 
 G. When no sponsor-configured Reminder Schedule is in effect and the Participant has not configured a personal schedule, the System SHALL apply the empty default and no reminders SHALL fire.
 
-_End_ _Sponsor Overrides Personal Schedule_ | **Hash**: 00000000
+*End* *Sponsor Overrides Personal Schedule* | **Hash**: e17d8a7a
 
 ---
 
@@ -651,7 +651,7 @@ D. The System SHALL enqueue at most one Historical Gap Reminder per Participant 
 
 E. The notification's `notification_type` SHALL be `reminder` and `payload.action` SHALL be `historical_gap`.
 
-_End_ _Gap Evaluation And Once-Per-Day Delivery_ | **Hash**: 00000000
+*End* *Gap Evaluation And Once-Per-Day Delivery* | **Hash**: 24d69742
 
 ---
 
@@ -667,7 +667,7 @@ B. In linked use mode, the Historical Gap evaluation SHALL exclude any calendar 
 
 C. The Historical Gap evaluation SHALL exclude the current calendar day and the previous calendar day from the gap set.
 
-_End_ _Editable Window Exclusion_ | **Hash**: 00000000
+*End* *Editable Window Exclusion* | **Hash**: f113dd46
 
 ---
 
@@ -685,7 +685,7 @@ C. In linked use mode, the Historical Gap Reminder SHALL be enabled by default.
 
 D. In linked use mode, the personal-use enable/disable setting SHALL NOT apply.
 
-_End_ _Mode-Dependent Default And User Override_ | **Hash**: 00000000
+*End* *Mode-Dependent Default And User Override* | **Hash**: e0f8501d
 
 ---
 
@@ -703,7 +703,7 @@ C. When no `Historical Gap Reminder Time` is configured, the System SHALL defaul
 
 D. When no `Historical Gap Reminder Text` is configured, the Mobile Application SHALL render a platform-default text supplied at compile time.
 
-_End_ _Sponsor-Configurable Time And Text_ | **Hash**: 00000000
+*End* *Sponsor-Configurable Time And Text* | **Hash**: c7a12215
 
 ---
 
@@ -726,7 +726,7 @@ B. The Callisto sponsor configuration SHALL set the `Lock Warning Notification T
 
 C. The configuration values SHALL be loaded by the platform mechanism defined in REQ-d00207.
 
-_End_ _Callisto Lock Warning Notification Configuration_ | **Hash**: 00000000
+*End* *Callisto Lock Warning Notification Configuration* | **Hash**: 00000000
 
 ---
 
@@ -743,7 +743,7 @@ B. The Callisto sponsor configuration SHALL set the sponsor-configured Reminder 
 
 C. The configuration values SHALL be loaded by the platform mechanisms defined in REQ-d00209 and REQ-d00213.
 
-_End_ _Callisto Yesterday Entry And Epistaxis Reminder Configuration_ | **Hash**: 00000000
+*End* *Callisto Yesterday Entry And Epistaxis Reminder Configuration* | **Hash**: 00000000
 
 ---
 
@@ -764,4 +764,4 @@ B. The Callisto sponsor configuration SHALL set the `Historical Gap Reminder Tex
 
 C. The configuration values SHALL be loaded by the platform mechanism defined in REQ-d00217.
 
-_End_ _Callisto Historical Gap Reminder Configuration_ | **Hash**: 00000000
+*End* *Callisto Historical Gap Reminder Configuration* | **Hash**: 00000000

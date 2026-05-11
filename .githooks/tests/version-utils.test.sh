@@ -112,8 +112,8 @@ assert portal-ui "apps/sponsor-portal/portal-ui/macos/Runner/Info.plist" "none" 
 
 # ---- Dependency cascade: trial_data_types/lib/ change ---------------
 # trial_data_types itself: semver+build. Direct + transitive dependents
-# (7 downstream projects): build-only. Unrelated library (rave-integration
-# and append_only_datastore): none.
+# (7 downstream projects): build-only. Unrelated library
+# (rave-integration): none.
 echo ""
 echo "  -- trial_data_types/lib/ cascade --"
 CASCADE_CHANGE="apps/common-dart/trial_data_types/lib/x.dart"
@@ -125,7 +125,6 @@ assert portal_server     "$CASCADE_CHANGE" "build-only"   "cascade downstream"
 assert diary_functions   "$CASCADE_CHANGE" "build-only"   "cascade downstream"
 assert portal_functions  "$CASCADE_CHANGE" "build-only"   "cascade downstream"
 assert eq                "$CASCADE_CHANGE" "build-only"   "cascade downstream"
-assert append_only_datastore "$CASCADE_CHANGE" "none"     "non-dependent"
 assert rave-integration      "$CASCADE_CHANGE" "none"     "non-dependent"
 
 # ---- trial_data_types/test/ non-source: no cascade ------------------

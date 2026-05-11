@@ -365,6 +365,37 @@
 | REQ-d00168 | Pre-authorized email uniqueness                                 | dev-portal-api.md               | 0ce7ff6e |
 | REQ-d00169 | Pending row cleanup endpoint                                    | dev-portal-api.md               | f8d99d20 |
 | REQ-d00170 | Local-stack uid stamping                                        | dev-portal-api.md               | e8bd0d01 |
+| REQ-d00171 | Outbox-Write-Then-Dispatch Sequencing                           | dev-notifications.md            | ef482c01 |
+| REQ-d00172 | Reactive Task List Updates                                      | dev-notifications.md            | 62ae725c |
+| REQ-d00173 | Send Handler Trigger And Suppression                            | dev-notifications.md            | 2bcf40fa |
+| REQ-d00174 | Yesterday Reminder Daily Scheduling, Timezone-Aware             | dev-notifications.md            | c54ba935 |
+| REQ-d00175 | Yesterday Reminder Suppression                                  | dev-notifications.md            | 2a548f43 |
+| REQ-d00192 | Notifications Table Envelope Schema                             | dev-notifications-v2.md         | 36d3e0c1 |
+| REQ-d00193 | Comms FCM Channel Transport                                     | dev-notifications-v2.md         | efe5a3eb |
+| REQ-d00194 | PHI-Safe FCM Payload                                            | dev-notifications-v2.md         | 8e4a991e |
+| REQ-d00195 | Mobile Envelope Polling                                         | dev-notifications-v2.md         | de792236 |
+| REQ-d00196 | Notification Tap Routes To Main Screen                          | dev-notifications-v2.md         | 0788d843 |
+| REQ-d00197 | Outbox-Write-Then-Dispatch Sequencing                           | dev-notifications-v2.md         | e4d9296f |
+| REQ-d00198 | Task Domain Model And Priority Ordering                         | dev-notifications-v2.md         | 58099754 |
+| REQ-d00199 | Incomplete Records Task Source                                  | dev-notifications-v2.md         | ea5b2e53 |
+| REQ-d00200 | Portal Questionnaire Task Source And State                      | dev-notifications-v2.md         | 068c8ebf |
+| REQ-d00201 | Yesterday Reminder Task Source And Actions                      | dev-notifications-v2.md         | 87727808 |
+| REQ-d00202 | Reactive Task List Updates                                      | dev-notifications-v2.md         | 62ae725c |
+| REQ-d00203 | Disconnected State Notice Rendering                             | dev-notifications-v2.md         | 9fa6e086 |
+| REQ-d00204 | Sponsor-Configurable Disconnection Copy                         | dev-notifications-v2.md         | 194894cf |
+| REQ-d00205 | Badge State Machine And Variant Rendering                       | dev-notifications-v2.md         | 3e8edf40 |
+| REQ-d00206 | Lock Warning Scheduling Job And Idempotency                     | dev-notifications-v2.md         | 4da1fb77 |
+| REQ-d00207 | Lock Warning Configuration Slot                                 | dev-notifications-v2.md         | b4d5ea6c |
+| REQ-d00208 | Send Handler Trigger And Suppression                            | dev-notifications-v2.md         | b0408dab |
+| REQ-d00209 | Yesterday Reminder Daily Scheduling, Timezone-Aware             | dev-notifications-v2.md         | 76700618 |
+| REQ-d00210 | Yesterday Reminder Suppression                                  | dev-notifications-v2.md         | 2a548f43 |
+| REQ-d00211 | Reminder Schedule Engine                                        | dev-notifications-v2.md         | 073b9613 |
+| REQ-d00212 | Reset On Interaction And Termination                            | dev-notifications-v2.md         | baa702f5 |
+| REQ-d00213 | Sponsor Overrides Personal Schedule                             | dev-notifications-v2.md         | e17d8a7a |
+| REQ-d00214 | Gap Evaluation And Once-Per-Day Delivery                        | dev-notifications-v2.md         | 24d69742 |
+| REQ-d00215 | Editable Window Exclusion                                       | dev-notifications-v2.md         | f113dd46 |
+| REQ-d00216 | Mode-Dependent Default And User Override                        | dev-notifications-v2.md         | e0f8501d |
+| REQ-d00217 | Sponsor-Configurable Time And Text                              | dev-notifications-v2.md         | c7a12215 |
 | REQ-d80064 | Questionnaire Version Integrity Enforcement                     | dev-questionnaire.md            | dd2e9ea1 |
 
 ## User Journeys

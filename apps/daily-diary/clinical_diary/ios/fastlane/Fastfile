@@ -9,12 +9,14 @@ FLUTTER_DIR = File.expand_path("../../", __dir__)
 PROFILE_NAMES = {
   "dev"  => "ClinicalDiary_DEV_AppStore",
   "qa"   => "ClinicalDiary_QA_AppStore",
+  "uat"  => "ClinicalDiary_UAT_AppStore",
   "prod" => "ClinicalDiary_PROD_AppStore"
 }
 
 APP_IDENTIFIERS = {
   "dev"  => "org.anspar.curehht.app.dev",
   "qa"   => "org.anspar.curehht.app.qa",
+  "uat"  => "org.anspar.curehht.app.uat",
   "prod" => "org.anspar.curehht.app"
 }
 
@@ -31,6 +33,11 @@ platform :ios do
   desc "Build QA IPA"
   lane :build_qa do
     build_flavor(flavor: "qa")
+  end
+
+  desc "Build UAT IPA"
+  lane :build_uat do
+    build_flavor(flavor: "uat")
   end
 
   desc "Build PROD IPA"

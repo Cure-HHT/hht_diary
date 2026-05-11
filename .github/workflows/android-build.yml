@@ -55,6 +55,14 @@ concurrency:
 
 jobs:
   build:
+    # Skip auto-deploy on Dependabot-merge commits. Their PRs come in waves
+    # and each squash-merge would otherwise trigger a Play Store upload for
+    # a small dep bump. The merge commit's message preserves the PR title
+    # ("[Dependabot](deps): Bump …"), so a startsWith check is the most
+    # reliable signal across squash-merge / rebase / human-merger paths.
+    # `workflow_dispatch` and non-push events have no head_commit, so the
+    # `|| ''` fallback lets manual triggers always run.
+    if: ${{ !startsWith(github.event.head_commit.message || '', '[Dependabot]') }}
     runs-on: ubuntu-latest
 
     steps:
@@ -76,6 +84,13 @@ jobs:
             # push to main → continuous deployment defaults
             FLAVOR="dev"
             TRACK="internal"
+            STATUS="draft"
+          fi
+          # UAT Play Console listing is in "Draft app" state; the API rejects
+          # any release whose status isn't "draft" while the listing is unpublished.
+          # Remove this override once the UAT listing is published past Draft.
+          if [ "$FLAVOR" = "uat" ] && [ "$STATUS" != "draft" ]; then
+            echo "::notice::Coercing status '$STATUS' -> 'draft' for UAT (Play Console listing is still Draft)"
             STATUS="draft"
           fi
           if [ -z "$FLAVOR" ] || [ -z "$TRACK" ] || [ -z "$STATUS" ]; then
@@ -104,7 +119,7 @@ jobs:
           cache: true
 
       - name: Cache pub dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.pub-cache
           key: pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
@@ -161,6 +176,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           SHORT_SHA: ${{ steps.sha.outputs.short }}
         run: |
+          # UAT Play Store listing requires AAB; dev/qa accept APK.
           if [ "$FLAVOR" = "uat" ]; then
             echo "path=apps/daily-diary/clinical_diary/build/app/outputs/bundle/uatRelease/app-uat-release.aab" >> "$GITHUB_OUTPUT"
             echo "name=clinical-diary-uat-${VERSION}-${SHORT_SHA}.aab" >> "$GITHUB_OUTPUT"
@@ -181,11 +197,7 @@ jobs:
         env:
           FLAVOR: ${{ steps.inputs.outputs.flavor }}
         run: |
-          if [ "$FLAVOR" = "uat" ]; then
-            echo "name=org.anspar.curehht.app" >> "$GITHUB_OUTPUT"
-          else
-            echo "name=org.anspar.curehht.app.${FLAVOR}" >> "$GITHUB_OUTPUT"
-          fi
+          echo "name=org.anspar.curehht.app.${FLAVOR}" >> "$GITHUB_OUTPUT"
 
       - name: Authenticate to Google Cloud
         id: gcp-auth
@@ -229,6 +241,24 @@ jobs:
             echo "| **Triggered by** | $ACTOR |"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Resolve Slack channel from flavor
+        id: slack-chan
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+        run: |
+          # Per-flavor routing — mirrors callisto's .github/slack-channels.yml
+          # (deploy-success: dev->#dev, qa->#qa, uat->#devops). Channel
+          # names are not secrets; hardcoded here for simplicity until/
+          # unless a slack-channels.yml lands in this repo too.
+          case "$FLAVOR" in
+            dev)  CHANNEL="#dev" ;;
+            qa)   CHANNEL="#qa" ;;
+            uat)  CHANNEL="#devops" ;;
+            *)    CHANNEL="#devops" ;;
+          esac
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "Slack channel for flavor '$FLAVOR': $CHANNEL"
+
       - name: Notify Slack on success
         if: success()
         uses: slackapi/slack-github-action@v3.0.3
@@ -237,7 +267,7 @@ jobs:
           token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
           errors: true
           payload: |
-            channel: "${{ secrets.SLACK_CHANNEL_DEVOPS }}"
+            channel: "${{ steps.slack-chan.outputs.channel }}"
             text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ steps.inputs.outputs.track }} track (${{ steps.inputs.outputs.status }})\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
 
       - name: Resolve Slack user for failure DM

@@ -172,9 +172,15 @@ jobs:
 
   # ─── Apply: sponsor-envs dev (post-merge) ────────────────────
   apply-sponsor-envs-dev:
+    # Skip auto-apply on Dependabot-merge commits — their PRs come in waves
+    # and each squash-merge would otherwise terraform-apply against dev for a
+    # small dep bump. Merge commit message preserves the PR title
+    # ("[Dependabot](deps): …"). `workflow_dispatch` keeps the manual escape
+    # hatch (via promote-sponsor-env, which doesn't gate on this).
     if: >-
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
+      !startsWith(github.event.head_commit.message, '[Dependabot]') &&
       (needs.detect-changes.outputs.sponsor_envs == 'true' ||
        needs.detect-changes.outputs.modules == 'true')
     needs: detect-changes

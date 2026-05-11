@@ -23,7 +23,7 @@ class MissingConfigException implements Exception {
 /// For mobile builds, --flavor dev also works (sets FLUTTER_APP_FLAVOR).
 /// For web builds, use --dart-define=APP_FLAVOR=dev.
 ///
-/// All other configuration (apiBase, showDevTools, showBanner) is derived
+/// All other configuration (apiBase, showDevTools, showBanner, showResetData) is derived
 /// from the flavor via [FlavorConfig].
 class AppConfig {
   // Private constructor - this is a static utility class
@@ -135,7 +135,13 @@ class AppConfig {
   // Convenience Getters
   // ============================================================
 
-  /// Whether to show dev tools menu items (Reset All Data, Add Example Data).
-  /// Determined by flavor - only shown in dev and test environments.
+  /// Whether to show the developer-tools menu section (Export/Import,
+  /// Feature Flags, Add Example Data). Determined by flavor — shown in
+  /// local/dev/qa, hidden in uat/prod. Reset All Data is gated separately
+  /// via `showResetData`.
   static bool get showDevTools => F.showDevTools;
+
+  /// Whether to show the Reset All Data feature.
+  /// Determined by flavor - only enabled in dev, qa, uat, and local.
+  static bool get showResetData => F.showResetData;
 }
