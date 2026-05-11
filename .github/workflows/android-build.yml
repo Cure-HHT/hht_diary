@@ -64,13 +64,6 @@ jobs:
     # `|| ''` fallback lets manual triggers always run.
     if: ${{ !startsWith(github.event.head_commit.message || '', '[Dependabot]') }}
     runs-on: ubuntu-latest
-    env:
-      # Resolved into job env so the Slack notify steps can guard on it.
-      # In Dependabot-triggered runs the secret evaluates to empty (Actions
-      # secrets are invisible to Dependabot context); pre-resolving here lets
-      # `if: env.SLACK_CHANNEL != ''` skip the notify gracefully instead of
-      # failing the whole workflow with `channel_not_found`.
-      SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL_DEVOPS }}
 
     steps:
       - name: Checkout repository
@@ -248,15 +241,34 @@ jobs:
             echo "| **Triggered by** | $ACTOR |"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Resolve Slack channel from flavor
+        id: slack-chan
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+        run: |
+          # Per-flavor routing — mirrors callisto's .github/slack-channels.yml
+          # (deploy-success: dev->#dev, qa->#qa, uat->#devops). Channel
+          # names are not secrets; hardcoded here for simplicity until/
+          # unless a slack-channels.yml lands in this repo too.
+          case "$FLAVOR" in
+            dev)  CHANNEL="#dev" ;;
+            qa)   CHANNEL="#qa" ;;
+            uat)  CHANNEL="#devops" ;;
+            prod) CHANNEL="#devops" ;;
+            *)    CHANNEL="#devops" ;;
+          esac
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "Slack channel for flavor '$FLAVOR': $CHANNEL"
+
       - name: Notify Slack on success
-        if: success() && env.SLACK_CHANNEL != ''
+        if: success()
         uses: slackapi/slack-github-action@v3.0.3
         with:
           method: chat.postMessage
           token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
           errors: true
           payload: |
-            channel: "${{ env.SLACK_CHANNEL }}"
+            channel: "${{ steps.slack-chan.outputs.channel }}"
             text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ steps.inputs.outputs.track }} track (${{ steps.inputs.outputs.status }})\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
 
       - name: Resolve Slack user for failure DM

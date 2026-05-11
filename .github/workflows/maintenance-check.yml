@@ -27,13 +27,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      # Resolved into job env so the Slack notify step can guard on it.
-      # In Dependabot-triggered runs the secret evaluates to empty (Actions
-      # secrets are invisible to Dependabot context); pre-resolving here lets
-      # `if: env.SLACK_CHANNEL != ''` skip the notify gracefully instead of
-      # failing the whole workflow with `channel_not_found`.
-      SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL_DEVOPS }}
 
     steps:
       - name: Checkout code
@@ -203,12 +196,12 @@ jobs:
           cat "$REPORT_FILE"
 
       - name: Notify Slack if maintenance overdue
-        if: failure() && github.event_name == 'schedule' && env.SLACK_CHANNEL != ''
+        if: failure() && github.event_name == 'schedule'
         uses: slackapi/slack-github-action@v3.0.3
         with:
           method: chat.postMessage
           token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
           errors: true
           payload: |
-            channel: "${{ env.SLACK_CHANNEL }}"
+            channel: "#devops"
             text: ":warning: *Maintenance Overdue: Docker Environment Review Required*\n\nOne or more Docker environment files have not been reviewed in the required timeframe.\n\n*FDA 21 CFR Part 11 Compliance*\n- Quarterly (90 days): Role-specific Dockerfiles, warning baselines\n- Annual (365 days): Base image configuration\n\n*Required Actions*\n1. Review files listed in the workflow run\n2. Check for updated tool versions\n3. Test any necessary updates\n4. Commit with: `[MAINTENANCE] Quarterly review - <date>`\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
