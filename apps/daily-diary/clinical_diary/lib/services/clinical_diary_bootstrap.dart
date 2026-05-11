@@ -13,9 +13,12 @@ import 'package:clinical_diary/services/triggers.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:flutter/widgets.dart'; // includes visibleForTesting
 import 'package:http/http.dart' as http;
 import 'package:sembast/sembast.dart';
+import 'package:sembast/sembast_io.dart' show databaseFactoryIo;
+import 'package:sembast_web/sembast_web.dart' show databaseFactoryWeb;
 
 /// The collaborators downstream code needs from the bootstrap.
 class ClinicalDiaryRuntime {
@@ -67,6 +70,41 @@ class ClinicalDiaryRuntime {
     _disposed = true;
     await triggerHandles.dispose();
     await _database.close();
+  }
+
+  /// Close the database and delete its backing file (native) or IndexedDB
+  /// object store (web). After this returns the runtime is unusable and
+  /// must not be re-used; the next cold start re-bootstraps from empty
+  /// storage. Idempotent — safe to call after [dispose] or after a prior
+  /// [deleteDatabaseFiles].
+  ///
+  /// `databaseFactoryForTest` is for unit-tests that inject a
+  /// `databaseFactoryMemory` factory; production calls leave it null and
+  /// the platform default (`sembast_web` on web, `sembast_io` elsewhere)
+  /// is used.
+  ///
+  /// REQ-d00004 (local-first persistence): wipes the only physical store
+  /// REQ-d00013 (UUID on fresh installation): next cold start mints a new UUID
+  /// because the surrounding ResetDataService also clears flutter_secure_storage.
+  Future<void> deleteDatabaseFiles({
+    @visibleForTesting DatabaseFactory? databaseFactoryForTest,
+  }) async {
+    final dbPath = _database.path;
+    await dispose();
+    final factory =
+        databaseFactoryForTest ??
+        (kIsWeb ? databaseFactoryWeb : databaseFactoryIo);
+    try {
+      await factory.deleteDatabase(dbPath);
+    } catch (e, st) {
+      // deleteDatabase throws if the file is already gone — that is the
+      // idempotent success case. Log unexpected errors (disk full,
+      // permissions, IndexedDB blocked-deletion) so they are visible in
+      // debug/profile builds without blocking the reset flow.
+      debugPrint(
+        '[ClinicalDiaryRuntime] deleteDatabase($dbPath) ignored: $e\n$st',
+      );
+    }
   }
 }
 

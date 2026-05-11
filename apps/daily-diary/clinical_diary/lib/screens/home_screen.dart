@@ -21,12 +21,14 @@ import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
+import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/diary_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/file_read_service.dart';
 import 'package:clinical_diary/services/file_save_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/reset_data_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
@@ -613,15 +615,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
 
     if (confirmed ?? false) {
-      // The event-sourcing datastore is append-only; resetting all data is
-      // a dev-only feature in the legacy stack. Show a message instead and
-      // leave the underlying records untouched.
-      unawaited(_loadRecords());
+      final service = ResetDataService(
+        // Option (b): construct a local AuthService instance here rather than
+        // adding authService to the HomeScreen constructor — avoids touching
+        // main.dart and multiple test call sites. AuthService is stateless
+        // beyond its FlutterSecureStorage field, so a fresh instance is safe.
+        authService: AuthService(),
+        taskService: widget.taskService,
+        runtime: widget.runtime,
+      );
+      try {
+        await service.resetEverything();
+      } catch (e, st) {
+        debugPrint('[HomeScreen] Reset All Data failed: $e\n$st');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Reset failed: $e'),
+              duration: const Duration(seconds: 4),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+        return;
+      }
+      // Datastore is now closed/deleted; do NOT call _loadRecords here.
+      // Fire _checkEnrollmentStatus without awaiting (matches the
+      // _handleEndClinicalTrial pattern) so the snackbar renders before
+      // any navigation away from the home screen.
+      unawaited(_checkEnrollmentStatus());
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).allDataReset),
+            content: Text(l10n.allDataReset),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -1281,6 +1308,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                     showDevTools: AppConfig.showDevTools,
+                    showResetData: AppConfig.showResetData,
                   ),
                   // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens.
                   // CUR-1292: tap the title to manually trigger a task-sync. This is

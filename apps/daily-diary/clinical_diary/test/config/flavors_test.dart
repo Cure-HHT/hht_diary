@@ -126,6 +126,33 @@ void main() {
       });
     });
 
+    group('showResetData', () {
+      test('returns true for local flavor', () {
+        F.appFlavor = Flavor.local;
+        expect(F.showResetData, true);
+      });
+
+      test('returns true for dev flavor', () {
+        F.appFlavor = Flavor.dev;
+        expect(F.showResetData, true);
+      });
+
+      test('returns true for qa flavor', () {
+        F.appFlavor = Flavor.qa;
+        expect(F.showResetData, true);
+      });
+
+      test('returns true for uat flavor', () {
+        F.appFlavor = Flavor.uat;
+        expect(F.showResetData, true);
+      });
+
+      test('returns false for prod flavor', () {
+        F.appFlavor = Flavor.prod;
+        expect(F.showResetData, false);
+      });
+    });
+
     group('showBanner', () {
       test('returns true for dev flavor', () {
         F.appFlavor = Flavor.dev;
@@ -151,6 +178,10 @@ void main() {
 
   group('FlavorConfig', () {
     group('static constants', () {
+      test('local has correct showResetData', () {
+        expect(FlavorConfig.local.showResetData, true);
+      });
+
       test('dev has correct values', () {
         expect(FlavorConfig.dev.name, 'dev');
         expect(
@@ -159,6 +190,7 @@ void main() {
         );
         expect(FlavorConfig.dev.environment, 'dev');
         expect(FlavorConfig.dev.showDevTools, true);
+        expect(FlavorConfig.dev.showResetData, true);
         expect(FlavorConfig.dev.showBanner, true);
         expect(FlavorConfig.dev.sponsorBackends['CA'], isNotNull);
       });
@@ -171,6 +203,7 @@ void main() {
         );
         expect(FlavorConfig.qa.environment, 'qa');
         expect(FlavorConfig.qa.showDevTools, true);
+        expect(FlavorConfig.qa.showResetData, true);
         expect(FlavorConfig.qa.showBanner, true);
         expect(FlavorConfig.qa.sponsorBackends['CA'], isNotNull);
       });
@@ -183,6 +216,7 @@ void main() {
         );
         expect(FlavorConfig.uat.environment, 'uat');
         expect(FlavorConfig.uat.showDevTools, false);
+        expect(FlavorConfig.uat.showResetData, true);
         expect(FlavorConfig.uat.showBanner, false);
         expect(FlavorConfig.uat.sponsorBackends['CA'], isNotNull);
       });
@@ -195,6 +229,7 @@ void main() {
         );
         expect(FlavorConfig.prod.environment, 'prod');
         expect(FlavorConfig.prod.showDevTools, false);
+        expect(FlavorConfig.prod.showResetData, false);
         expect(FlavorConfig.prod.showBanner, false);
         expect(FlavorConfig.prod.sponsorBackends['CA'], isNotNull);
       });
@@ -250,6 +285,7 @@ void main() {
         apiBase: 'https://test.api.com',
         environment: 'testing',
         showDevTools: true,
+        showResetData: true,
         showBanner: false,
         sponsorBackends: {'CA': 'https://test-sponsor.example.com'},
       );
@@ -258,6 +294,7 @@ void main() {
       expect(values.apiBase, 'https://test.api.com');
       expect(values.environment, 'testing');
       expect(values.showDevTools, true);
+      expect(values.showResetData, true);
       expect(values.showBanner, false);
       expect(values.sponsorBackends['CA'], 'https://test-sponsor.example.com');
     });
