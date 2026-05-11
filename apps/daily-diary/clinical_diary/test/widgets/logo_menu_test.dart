@@ -529,5 +529,90 @@ void main() {
       // Callback should have been called
       expect(called, true);
     });
+
+    group('showResetData gating', () {
+      testWidgets(
+        'uat-style menu (showDevTools=false, showResetData=true) shows only Reset',
+        (tester) async {
+          await tester.pumpWidget(
+            wrapWithScaffold(
+              LogoMenu(
+                onExportData: () {},
+                onImportData: () {},
+                onResetAllData: () {},
+                onFeatureFlags: () {},
+                onEndClinicalTrial: null,
+                onInstructionsAndFeedback: () {},
+                showDevTools: false,
+                showResetData: true,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byType(Image));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Reset All Data?'), findsOneWidget);
+          expect(find.text('Data Management'), findsNothing);
+          expect(find.text('Export Data'), findsNothing);
+          expect(find.text('Import Data'), findsNothing);
+          expect(find.text('Feature Flags'), findsNothing);
+        },
+      );
+
+      testWidgets('prod-style menu (both false) hides Reset entirely', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          wrapWithScaffold(
+            LogoMenu(
+              onExportData: () {},
+              onImportData: () {},
+              onResetAllData: () {},
+              onFeatureFlags: () {},
+              onEndClinicalTrial: null,
+              onInstructionsAndFeedback: () {},
+              showDevTools: false,
+              showResetData: false,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(Image));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Reset All Data?'), findsNothing);
+        expect(find.text('Data Management'), findsNothing);
+      });
+
+      testWidgets(
+        'dev-style menu (both true) shows full Data Management plus Reset',
+        (tester) async {
+          await tester.pumpWidget(
+            wrapWithScaffold(
+              LogoMenu(
+                onExportData: () {},
+                onImportData: () {},
+                onResetAllData: () {},
+                onFeatureFlags: () {},
+                onEndClinicalTrial: null,
+                onInstructionsAndFeedback: () {},
+                showDevTools: true,
+                showResetData: true,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byType(Image));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Data Management'), findsOneWidget);
+          expect(find.text('Export Data'), findsOneWidget);
+          expect(find.text('Import Data'), findsOneWidget);
+          expect(find.text('Feature Flags'), findsOneWidget);
+          expect(find.text('Reset All Data?'), findsOneWidget);
+        },
+      );
+    });
   });
 }
