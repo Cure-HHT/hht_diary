@@ -383,6 +383,12 @@ class _AppRootState extends State<AppRoot> {
             displayName: _displayNameForSurveyEntryType(entryType),
           );
         },
+        // Adaptive 2s/5s/15min Trigger B for non-prod flavors so
+        // questionnaire-cancellation tombstones reach the patient
+        // within seconds while they're actively using the app
+        // (especially important in local-stack where FCM is absent).
+        // Reset to 2s tier by the root-level pointer listener below.
+        adaptive: F.adaptiveSync,
       );
 
       // The legacy-shim destinations stay dormant until the portal
@@ -633,17 +639,26 @@ class _AppRootState extends State<AppRoot> {
     if (runtime == null || deviceId == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    return HomeScreen(
-      runtime: runtime,
-      deviceId: deviceId,
-      enrollmentService: _enrollmentService,
-      taskService: _taskService,
-      onLocaleChanged: widget.onLocaleChanged,
-      onThemeModeChanged: widget.onThemeModeChanged,
-      onLargerTextChanged: widget.onLargerTextChanged,
-      onFontChanged: widget.onFontChanged,
-      preferencesService: widget.preferencesService,
-      onEnrolled: _onPostEnrollment,
+    // Pointer-down listener resets the adaptive Trigger B backoff to the
+    // 2s tier on every user touch. In fixed-interval mode (prod) the
+    // noteActivity() call is a no-op. HitTestBehavior.translucent lets
+    // the Listener observe every pointer event while still allowing
+    // children to handle them normally.
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => runtime.triggerHandles.noteActivity(),
+      child: HomeScreen(
+        runtime: runtime,
+        deviceId: deviceId,
+        enrollmentService: _enrollmentService,
+        taskService: _taskService,
+        onLocaleChanged: widget.onLocaleChanged,
+        onThemeModeChanged: widget.onThemeModeChanged,
+        onLargerTextChanged: widget.onLargerTextChanged,
+        onFontChanged: widget.onFontChanged,
+        preferencesService: widget.preferencesService,
+        onEnrolled: _onPostEnrollment,
+      ),
     );
   }
 }

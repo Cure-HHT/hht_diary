@@ -80,14 +80,27 @@ Stream<RemoteMessage> _defaultFcmOnOpenedStream() =>
 /// Handle returned by [installTriggers]. Call [dispose] to cancel every
 /// subscription, timer, and lifecycle observer that was installed.
 class TriggerHandles {
-  /// Creates a [TriggerHandles] with the given [dispose] callback.
-  TriggerHandles({required Future<void> Function() dispose})
-    : _dispose = dispose;
+  /// Creates a [TriggerHandles] with the given [dispose] callback. The
+  /// optional [noteActivity] hook is supplied by adaptive-mode installs;
+  /// fixed-interval installs leave it null and [TriggerHandles.noteActivity]
+  /// becomes a no-op.
+  TriggerHandles({
+    required Future<void> Function() dispose,
+    void Function()? noteActivity,
+  }) : _dispose = dispose,
+       _noteActivity = noteActivity;
 
   final Future<void> Function() _dispose;
+  final void Function()? _noteActivity;
 
   /// Cancels all installed triggers. Safe to call multiple times.
   Future<void> dispose() => _dispose();
+
+  /// Records a user-activity event. In adaptive mode this resets the
+  /// periodic timer's backoff to the 2s tier; in fixed-interval mode it
+  /// is a no-op. Safe to call from any context (e.g. a root-level
+  /// pointer-down listener).
+  void noteActivity() => _noteActivity?.call();
 }
 
 /// Installs all foreground-only sync triggers for the clinical diary app.
@@ -98,7 +111,10 @@ class TriggerHandles {
 ///
 /// Trigger sources:
 /// - **A. Lifecycle**: [AppLifecycleState.resumed] fires [onTrigger].
-/// - **B. Periodic timer**: fires every [periodicInterval] while in foreground.
+/// - **B. Periodic timer**: fires every [periodicInterval] while in foreground
+///   (fixed-interval mode). When [adaptive] is true, the interval depends on
+///   recency of activity reported via [TriggerHandles.noteActivity]: 2s for
+///   the first 60s, 5s for the next 60s, 15min thereafter.
 /// - **C. Connectivity**: fires when network transitions from no-connectivity
 ///   to any connected state.
 /// - **D. FCM onMessage**: fires on every foreground FCM push message.
@@ -106,7 +122,8 @@ class TriggerHandles {
 ///   app from background.
 ///
 /// Returns a [TriggerHandles] whose [TriggerHandles.dispose] cancels all
-/// sources.
+/// sources. In adaptive mode [TriggerHandles.noteActivity] resets the
+/// backoff to the 2s tier; in fixed-interval mode it is a no-op.
 ///
 /// Optional parameters annotated `@visibleForTesting` allow tests to inject
 /// controllable streams and a fake timer factory instead of the real OS /
@@ -114,6 +131,7 @@ class TriggerHandles {
 Future<TriggerHandles> installTriggers({
   required Future<void> Function() onTrigger,
   Duration periodicInterval = const Duration(minutes: 15),
+  bool adaptive = false,
   // --- test seams (use production defaults when omitted) ---
   // The named parameters accept values typed by the @visibleForTesting
   // typedefs above; the parameters themselves are not restricted so that
@@ -124,6 +142,7 @@ Future<TriggerHandles> installTriggers({
   ConnectivityStreamFactory? connectivityStreamFactory,
   FcmOnMessageStreamFactory? fcmOnMessageStreamFactory,
   FcmOnOpenedStreamFactory? fcmOnOpenedStreamFactory,
+  DateTime Function()? clock,
 }) async {
   final resolvedLifecycleFactory =
       lifecycleObserverFactory ?? _defaultLifecycleObserverFactory;
@@ -174,11 +193,58 @@ Future<TriggerHandles> installTriggers({
   WidgetsBinding.instance.addObserver(observer);
 
   // ---- B. Periodic timer ----
-  final timer = resolvedTimerFactory(periodicInterval, () {
-    if (inForeground) {
-      fireTrigger();
+  // Two modes:
+  //   - Fixed interval (default, prod): Timer.periodic(periodicInterval).
+  //     Matches REQ-d00164-B: 15min default cadence while in foreground.
+  //   - Adaptive (F.adaptiveSync, non-prod flavors): self-rescheduling
+  //     one-shot Timer whose interval is a pure function of time since
+  //     last activity (set by TriggerHandles.noteActivity). 2s for the
+  //     first 60s, 5s for the next 60s, 15min thereafter. Any activity
+  //     event cancels the current Timer and immediately re-arms at 2s.
+  Timer? periodicTimer;
+  void Function()? noteActivityHook;
+
+  if (adaptive) {
+    final resolvedClock = clock ?? DateTime.now;
+    var lastActivityAt = resolvedClock();
+
+    Duration intervalFor(Duration since) {
+      if (since < const Duration(minutes: 1)) {
+        return const Duration(seconds: 2);
+      }
+      if (since < const Duration(minutes: 2)) {
+        return const Duration(seconds: 5);
+      }
+      return const Duration(minutes: 15);
     }
-  });
+
+    void scheduleNext() {
+      if (disposed) return;
+      final since = resolvedClock().difference(lastActivityAt);
+      periodicTimer = Timer(intervalFor(since), () {
+        if (disposed) return;
+        if (inForeground) {
+          fireTrigger();
+        }
+        scheduleNext();
+      });
+    }
+
+    noteActivityHook = () {
+      if (disposed) return;
+      lastActivityAt = resolvedClock();
+      periodicTimer?.cancel();
+      scheduleNext();
+    };
+
+    scheduleNext();
+  } else {
+    periodicTimer = resolvedTimerFactory(periodicInterval, () {
+      if (inForeground) {
+        fireTrigger();
+      }
+    });
+  }
 
   // ---- C. Connectivity ----
   List<ConnectivityResult>? previousConnectivity;
@@ -206,13 +272,13 @@ Future<TriggerHandles> installTriggers({
   Future<void> doDispose() async {
     disposed = true;
     WidgetsBinding.instance.removeObserver(observer);
-    timer.cancel();
+    periodicTimer?.cancel();
     await connectivitySub.cancel();
     await fcmMessageSub.cancel();
     await fcmOpenedSub.cancel();
   }
 
-  return TriggerHandles(dispose: doDispose);
+  return TriggerHandles(dispose: doDispose, noteActivity: noteActivityHook);
 }
 
 // ---------------------------------------------------------------------------

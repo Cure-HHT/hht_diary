@@ -139,6 +139,11 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   // [TaskService.notifyQuestionnaireCancelled] so the patient sees a
   // passive notification.
   void Function(String aggregateId, String entryType)? onSurveyTombstoned,
+  // When true, Trigger B uses the adaptive 2s/5s/15min backoff keyed off
+  // user activity (driven by [TriggerHandles.noteActivity]) instead of
+  // the fixed 15min interval. Gated upstream by F.adaptiveSync — true
+  // for local/dev/qa/uat, false for prod.
+  bool adaptive = false,
   // --- test seams for trigger factories (use production defaults when omitted) ---
   // These use the concrete function-type signatures (not the @visibleForTesting
   // typedefs from triggers.dart) so this production file avoids @visibleForTesting
@@ -268,6 +273,7 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
 
   final triggerHandles = await installTriggers(
     onTrigger: fullSync,
+    adaptive: adaptive,
     lifecycleObserverFactory: lifecycleObserverFactory,
     periodicTimerFactory: periodicTimerFactory,
     connectivityStreamFactory: connectivityStreamFactory,

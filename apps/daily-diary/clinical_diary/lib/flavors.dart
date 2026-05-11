@@ -102,6 +102,34 @@ class F {
         return false;
     }
   }
+
+  /// Whether Trigger B (the foreground periodic sync timer) should run in
+  /// adaptive-backoff mode instead of the canonical 15-min interval:
+  ///
+  ///   - 2s   when within 60s of the last user touch
+  ///   - 5s   when 60s–120s since last touch
+  ///   - 15m  thereafter
+  ///
+  /// Any pointer-down event at the app root resets to the 2s tier. Designed
+  /// for environments where FCM is unreliable or absent (Linux desktop
+  /// local-stack, demo sessions) so questionnaire-cancellation tombstones
+  /// reach the patient within seconds while they're actively in the app,
+  /// without the 15-min floor of the production timer.
+  ///
+  /// Prod stays on the 15-min fixed interval (REQ-d00164-B). The cost model
+  /// for prod is the production diary-server's concurrent-user load, which
+  /// the 2s tier would multiply ~450x per active patient — not acceptable.
+  static bool get adaptiveSync {
+    switch (appFlavor) {
+      case Flavor.local:
+      case Flavor.dev:
+      case Flavor.qa:
+      case Flavor.uat:
+        return true;
+      case Flavor.prod:
+        return false;
+    }
+  }
 }
 
 /// Flavor definitions with their dart-define values.
