@@ -415,6 +415,73 @@ void main() {
   );
 
   // -----------------------------------------------------------------------
+  // CUR-1154: discoverTasks hook fires on every full-sync tick
+  // -----------------------------------------------------------------------
+  test(
+    'discoverTasks hook fires on trigger and is skipped while disconnected',
+    () async {
+      final db = await _openDb();
+      final client = MockClient(
+        (req) async => http.Response('{"messages":[]}', 200),
+      );
+
+      final connectivity = StreamController<List<ConnectivityResult>>();
+      var disconnected = false;
+      var discoverCalls = 0;
+
+      final runtime = await bootstrapClinicalDiary(
+        sembastDatabase: db,
+        authToken: () async => 'test-token',
+        resolveBaseUrl: () async => Uri.parse(_baseUrl),
+        deviceId: _deviceId,
+        softwareVersion: _softwareVersion,
+        userId: _userId,
+        httpClient: client,
+        isDisconnected: () => disconnected,
+        discoverTasks: () async {
+          discoverCalls++;
+        },
+        lifecycleObserverFactory: _silentLifecycleFactory,
+        periodicTimerFactory: _silentTimerFactory,
+        connectivityStreamFactory: () => connectivity.stream,
+        fcmOnMessageStreamFactory: _silentFcmMessageFactory,
+        fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
+      );
+
+      // Seed with 'none' so the next emit is a meaningful transition
+      // that fires fireTrigger().
+      connectivity.add([ConnectivityResult.none]);
+      await Future<void>.delayed(Duration.zero);
+
+      // Connected transition → fullSync runs → discoverTasks invoked.
+      connectivity.add([ConnectivityResult.wifi]);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(
+        discoverCalls,
+        1,
+        reason: 'discoverTasks fires once per online-transition trigger',
+      );
+
+      // Flip to disconnected: another transition should be gated out.
+      disconnected = true;
+      connectivity.add([ConnectivityResult.none]);
+      await Future<void>.delayed(Duration.zero);
+      connectivity.add([ConnectivityResult.wifi]);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(
+        discoverCalls,
+        1,
+        reason: 'discoverTasks suppressed while isDisconnected returns true',
+      );
+
+      await connectivity.close();
+      await runtime.dispose();
+    },
+  );
+
+  // -----------------------------------------------------------------------
   // ClinicalDiaryRuntime.deleteDatabaseFiles
   // -----------------------------------------------------------------------
   group('ClinicalDiaryRuntime.deleteDatabaseFiles', () {

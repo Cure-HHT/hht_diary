@@ -389,6 +389,13 @@ class _AppRootState extends State<AppRoot> {
         // (especially important in local-stack where FCM is absent).
         // Reset to 2s tier by the root-level pointer listener below.
         adaptive: F.adaptiveSync,
+        // Discover newly-scheduled questionnaires on the same cadence
+        // as tombstones. portalInboundPoll only translates the
+        // /tasks response's `cancelled` array; the `tasks` array is
+        // TaskService.syncTasks's responsibility. Without this, new
+        // questionnaires never arrive in local-stack between boot and
+        // a manual title-tap because FCM is absent.
+        discoverTasks: () => _taskService.syncTasks(_enrollmentService),
       );
 
       // The legacy-shim destinations stay dormant until the portal

@@ -144,6 +144,16 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   // the fixed 15min interval. Gated upstream by F.adaptiveSync — true
   // for local/dev/qa/uat, false for prod.
   bool adaptive = false,
+  // CUR-1154: invoked on every full-sync tick after [portalInboundPoll]
+  // so newly-scheduled questionnaires arrive on the same cadence as
+  // tombstones. Caller (main.dart) wires this to
+  // [TaskService.syncTasks], which parses both `tasks` (new) and
+  // `cancelled` from the /tasks response. portalInboundPoll continues
+  // to handle the canonical tombstone path because it also emits the
+  // REQ-d00165-B audit event on record failure — a contract
+  // syncTasks's catch-and-debugPrint does not preserve. Gated by the
+  // same [isDisconnected] predicate as the rest of fullSync.
+  Future<void> Function()? discoverTasks,
   // --- test seams for trigger factories (use production defaults when omitted) ---
   // These use the concrete function-type signatures (not the @visibleForTesting
   // typedefs from triggers.dart) so this production file avoids @visibleForTesting
@@ -256,8 +266,12 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   // 7. DiaryEntryReader — pure read facade over the materialized view.
   final reader = DiaryEntryReader(backend: backend);
 
-  // 8. Install triggers. Each tick: drain FIFO → inbound poll.
-  //    Skip both when the caller's predicate reports disconnected (CUR-1164).
+  // 8. Install triggers. Each tick: drain FIFO → inbound poll →
+  //    discover new tasks. All three are skipped when the caller's
+  //    predicate reports disconnected (CUR-1164). The discoverTasks
+  //    hook runs after portalInboundPoll so the canonical tombstone
+  //    path lands first; if syncTasks redundantly re-applies an
+  //    already-recorded tombstone, EntryService.record is idempotent.
   Future<void> fullSync() async {
     if (isDisconnected != null && isDisconnected()) return;
     await syncCycle();
@@ -269,6 +283,9 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
       authToken: authToken,
       onSurveyTombstoned: onSurveyTombstoned,
     );
+    if (discoverTasks != null) {
+      await discoverTasks();
+    }
   }
 
   final triggerHandles = await installTriggers(
