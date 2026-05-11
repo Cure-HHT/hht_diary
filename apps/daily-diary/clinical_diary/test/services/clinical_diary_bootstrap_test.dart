@@ -415,6 +415,69 @@ void main() {
   );
 
   // -----------------------------------------------------------------------
+  // ClinicalDiaryRuntime.deleteDatabaseFiles
+  // -----------------------------------------------------------------------
+  group('ClinicalDiaryRuntime.deleteDatabaseFiles', () {
+    test(
+      'closes the database and removes it from the in-memory factory',
+      () async {
+        final factory = newDatabaseFactoryMemory();
+        const dbPath = 'test_diary.db';
+        final db = await factory.openDatabase(dbPath);
+        final runtime = await bootstrapClinicalDiary(
+          sembastDatabase: db,
+          authToken: () async => null,
+          resolveBaseUrl: () async => null,
+          deviceId: _deviceId,
+          softwareVersion: _softwareVersion,
+          userId: _userId,
+          lifecycleObserverFactory: _silentLifecycleFactory,
+          periodicTimerFactory: _silentTimerFactory,
+          connectivityStreamFactory: _silentConnectivityFactory,
+          fcmOnMessageStreamFactory: _silentFcmMessageFactory,
+          fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
+        );
+
+        // Sanity: factory has the database open.
+        expect(await factory.databaseExists(dbPath), isTrue);
+
+        await runtime.deleteDatabaseFiles(
+          // Inject the in-memory factory so the test does not depend on
+          // platform-resolved sembast_io / sembast_web.
+          databaseFactoryForTest: factory,
+        );
+
+        expect(await factory.databaseExists(dbPath), isFalse);
+      },
+    );
+
+    test('is idempotent — second call after delete does not throw', () async {
+      final factory = newDatabaseFactoryMemory();
+      const dbPath = 'test_diary_idem.db';
+      final db = await factory.openDatabase(dbPath);
+      final runtime = await bootstrapClinicalDiary(
+        sembastDatabase: db,
+        authToken: () async => null,
+        resolveBaseUrl: () async => null,
+        deviceId: _deviceId,
+        softwareVersion: _softwareVersion,
+        userId: _userId,
+        lifecycleObserverFactory: _silentLifecycleFactory,
+        periodicTimerFactory: _silentTimerFactory,
+        connectivityStreamFactory: _silentConnectivityFactory,
+        fcmOnMessageStreamFactory: _silentFcmMessageFactory,
+        fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
+      );
+
+      await runtime.deleteDatabaseFiles(databaseFactoryForTest: factory);
+      // Second call should be a no-op, not a throw.
+      await runtime.deleteDatabaseFiles(databaseFactoryForTest: factory);
+
+      expect(await factory.databaseExists(dbPath), isFalse);
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // Test 4: dispose() completes without error
   // Verifies: REQ-d00134-A — dispose() cancels triggers cleanly.
   // -----------------------------------------------------------------------
