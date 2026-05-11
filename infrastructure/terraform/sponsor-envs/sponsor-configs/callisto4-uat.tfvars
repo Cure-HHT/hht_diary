@@ -77,9 +77,6 @@ container_cpu    = "2"
 # CI/CD service account email (from bootstrap output)
 # cicd_service_account = "example-cicd@cure-hht-example-dev.iam.gserviceaccount.com"
 
-github_org  = "Cure-HHT"
-github_repo = "hht_diary"
-
 # Disable public access due to organization policy restrictions
 allow_public_access = true
 

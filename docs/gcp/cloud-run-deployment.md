@@ -13,8 +13,8 @@
 
 The Clinical Trial Diary Platform deploys two Cloud Run services per sponsor:
 
-1. **diary-server**: Dart backend handling database operations, authentication, and business logic
-2. **portal-server**: Flutter web application for investigators and administrators
+1. **diary-service**: Dart backend handling database operations, authentication, and business logic
+2. **portal-service**: Flutter web application for investigators and administrators
 
 **Ownership model**:
 
@@ -37,15 +37,15 @@ Terraform explicitly **ignores container image changes** (`lifecycle.ignore_chan
                     │           GCP Project (per sponsor/env)         │
                     │                                                 │
  Users ─────────────┼──▶ Cloud Run                                   │
- (HTTPS)            │    ├─ diary-server (Dart)                      │
+ (HTTPS)            │    ├─ diary-service (Dart)                     │
                     │    │   ├─ Runtime SA (least-privilege)          │
                     │    │   ├─▶ Cloud SQL (private IP via VPC)      │
                     │    │   ├─▶ Doppler (runtime secret fetch)      │
                     │    │   └─▶ Identity Platform (verify JWT)      │
                     │    │                                            │
-                    │    └─ portal-server (Flutter/nginx)             │
+                    │    └─ portal-service (Flutter/nginx)            │
                     │        ├─ Runtime SA (least-privilege)          │
-                    │        └─▶ diary-server (internal)              │
+                    │        └─▶ diary-service (internal)             │
                     │                                                 │
                     │  Secret Manager                                 │
                     │    └─ DOPPLER_TOKEN (single bootstrap secret)   │
@@ -214,7 +214,7 @@ CI/CD manages the **container image** — the thing that changes on every deploy
 
 ```yaml
 # .github/workflows/deploy-run-service.yml
-gcloud run deploy diary-server \
+gcloud run deploy diary-service \
   --image="$GAR_PATH" \          # ← CI/CD sets this
   --set-env-vars="DOPPLER_PROJECT_ID=...,DOPPLER_CONFIG_NAME=...,SPONSOR_ID=..."
 ```
@@ -354,10 +354,10 @@ The `-backend-config` approach allows the same Terraform code to be used across 
 gcloud run services list --region=europe-west9 --project=$PROJECT_ID
 
 # Describe a service
-gcloud run services describe diary-server --region=europe-west9 --project=$PROJECT_ID
+gcloud run services describe diary-service --region=europe-west9 --project=$PROJECT_ID
 
 # View recent revisions
-gcloud run revisions list --service=diary-server --region=europe-west9 --project=$PROJECT_ID
+gcloud run revisions list --service=diary-service --region=europe-west9 --project=$PROJECT_ID
 ```
 
 ### View Logs
@@ -365,7 +365,7 @@ gcloud run revisions list --service=diary-server --region=europe-west9 --project
 ```bash
 # Recent errors
 gcloud logging read \
-  "resource.type=cloud_run_revision AND resource.labels.service_name=diary-server AND severity>=ERROR" \
+  "resource.type=cloud_run_revision AND resource.labels.service_name=diary-service AND severity>=ERROR" \
   --limit=20 --project=$PROJECT_ID
 
 # Structured log query
@@ -410,8 +410,8 @@ done
 ### Cloud Run Service Creation (Terraform: `modules/cloud-run/main.tf`)
 
 ```bash
-# What Terraform does for diary-server:
-gcloud run deploy diary-server \
+# What Terraform does for diary-service:
+gcloud run deploy diary-service \
   --image=$DIARY_SERVER_IMAGE \
   --region=europe-west9 \
   --project=$PROJECT_ID \

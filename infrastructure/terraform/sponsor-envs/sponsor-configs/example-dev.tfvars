@@ -56,9 +56,6 @@ container_cpu    = "1"
 # CI/CD service account email (from bootstrap output)
 # cicd_service_account = "example-cicd@cure-hht-example-dev.iam.gserviceaccount.com"
 
-github_org  = "Cure-HHT"
-github_repo = "hht_diary"
-
 # -----------------------------------------------------------------------------
 # Optional: Identity Platform (HIPAA/GDPR-compliant authentication)
 # For portal users (investigators, admins)

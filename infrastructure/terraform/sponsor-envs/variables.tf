@@ -208,18 +208,6 @@ variable "cicd_service_account" {
   default     = ""
 }
 
-variable "github_org" {
-  description = "GitHub organization for Cloud Build triggers"
-  type        = string
-  default     = "Cure-HHT"
-}
-
-variable "github_repo" {
-  description = "GitHub repository for Cloud Build triggers"
-  type        = string
-  default     = "hht_diary"
-}
-
 # -----------------------------------------------------------------------------
 # Optional: Cross-Project Gmail SA Impersonation
 # -----------------------------------------------------------------------------

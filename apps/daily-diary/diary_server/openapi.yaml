@@ -33,7 +33,7 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local development server
-  - url: https://diary-server-{region}-run.app
+  - url: https://diary-service-{region}-run.app
     description: Google Cloud Run (Production)
     variables:
       region:

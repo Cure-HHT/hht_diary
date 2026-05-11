@@ -344,7 +344,7 @@ db.connection_pool.idle            {}
 - Compliance dashboard (audit checks, retention status)
 
 #### 7C. Uptime checks (Terraform)
-- `/health` endpoint for both diary-server and portal-server
+- `/health` endpoint for both diary-service and portal-service
 - Multi-region (Oregon, Virginia, Belgium)
 
 **Files to create**:
@@ -425,7 +425,7 @@ Every phase must enforce:
 | -------- | ----- | --------- |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Cloud Run env |
 | `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | Cloud Run env |
-| `OTEL_SERVICE_NAME` | `diary-server` / `portal-server` | Cloud Run env |
+| `OTEL_SERVICE_NAME` | `diary-service` / `portal-service` | Cloud Run env |
 | `OTEL_RESOURCE_ATTRIBUTES` | `deployment.environment=prod,...` | Cloud Run env |
 | `OTEL_TRACES_SAMPLER` | `parentbased_traceidratio` | Cloud Run env |
 | `OTEL_TRACES_SAMPLER_ARG` | `0.1` (10% in prod) | Cloud Run env |

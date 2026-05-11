@@ -19,7 +19,7 @@
 This runbook defines procedures for detecting, responding to, and resolving production incidents for the HHT Diary Platform running on GCP Cloud Run.
 
 **Production Stack**:
-- **Compute**: Cloud Run (diary-server, portal-server) in europe-west9
+- **Compute**: Cloud Run (diary-service, portal-service) in europe-west9
 - **Database**: Cloud SQL PostgreSQL 17 (private VPC)
 - **Auth**: GCP Identity Platform (portal), JWT (diary)
 - **Secrets**: Doppler
@@ -57,23 +57,23 @@ These check health endpoints, version verification, HTTPS, API smoke tests, Clou
 gcloud run services list --region=europe-west9 --project=$PROJECT_ID
 
 # Describe a specific service
-gcloud run services describe portal-server --region=europe-west9 --project=$PROJECT_ID
+gcloud run services describe portal-service --region=europe-west9 --project=$PROJECT_ID
 
 # Check recent revisions
-gcloud run revisions list --service=portal-server --region=europe-west9 --project=$PROJECT_ID --limit=5
+gcloud run revisions list --service=portal-service --region=europe-west9 --project=$PROJECT_ID --limit=5
 ```
 
 ### Cloud Logging (Structured Logs + OTel Traces)
 
 ```bash
-# Recent errors for portal-server (last 1 hour)
+# Recent errors for portal-service (last 1 hour)
 gcloud logging read \
-  'resource.type="cloud_run_revision" AND resource.labels.service_name="portal-server" AND severity>=ERROR' \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="portal-service" AND severity>=ERROR' \
   --project=$PROJECT_ID --limit=20 --format='table(timestamp,jsonPayload.message)'
 
-# Recent errors for diary-server
+# Recent errors for diary-service
 gcloud logging read \
-  'resource.type="cloud_run_revision" AND resource.labels.service_name="diary-server" AND severity>=ERROR' \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="diary-service" AND severity>=ERROR' \
   --project=$PROJECT_ID --limit=20 --format='table(timestamp,jsonPayload.message)'
 
 # Trace-correlated logs (find all logs for a specific trace)
@@ -317,7 +317,7 @@ SQL
 **1. Container won't start (image pull failure)**
 ```bash
 # Check if the latest revision is healthy
-gcloud run revisions list --service=portal-server --region=europe-west9 --project=$PROJECT_ID --limit=3
+gcloud run revisions list --service=portal-service --region=europe-west9 --project=$PROJECT_ID --limit=3
 
 # Check revision logs for startup errors
 gcloud logging read \
@@ -337,7 +337,7 @@ gcloud secrets list --project=cure-hht-admin --filter="name:ghcr"
 **2. Cold start failure (min-instances=0)**
 ```bash
 # Temporarily set min instances to 1 to keep service warm
-gcloud run services update portal-server \
+gcloud run services update portal-service \
   --region=europe-west9 --project=$PROJECT_ID \
   --min-instances=1
 ```
@@ -355,11 +355,11 @@ gcloud compute networks vpc-access connectors describe $CONNECTOR_NAME \
 **4. Rollback to previous revision**
 ```bash
 # List recent healthy revisions
-gcloud run revisions list --service=portal-server --region=europe-west9 \
+gcloud run revisions list --service=portal-service --region=europe-west9 \
   --project=$PROJECT_ID --format='table(name,active,created)'
 
 # Route 100% traffic to a known-good revision
-gcloud run services update-traffic portal-server \
+gcloud run services update-traffic portal-service \
   --region=europe-west9 --project=$PROJECT_ID \
   --to-revisions=REVISION_NAME=100
 ```
@@ -473,7 +473,7 @@ doppler secrets set KEY=NEW_VALUE --project=hht-diary --config=ENVIRONMENT
 ```bash
 # Check structured logs for the specific handler
 gcloud logging read \
-  'resource.type="cloud_run_revision" AND resource.labels.service_name="portal-server" AND jsonPayload.message:"sendQuestionnaireHandler" AND severity>=WARNING' \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="portal-service" AND jsonPayload.message:"sendQuestionnaireHandler" AND severity>=WARNING' \
   --project=$PROJECT_ID --limit=20 --format='table(timestamp,jsonPayload.message,jsonPayload.error)'
 
 # Check FCM notification failures
@@ -539,7 +539,7 @@ gcloud logging read \
 **Investigation**:
 ```bash
 # Check Cloud Run instance count and CPU
-gcloud run services describe portal-server --region=europe-west9 --project=$PROJECT_ID \
+gcloud run services describe portal-service --region=europe-west9 --project=$PROJECT_ID \
   --format='json(status.traffic,spec.template.spec.containers[0].resources)'
 
 # Check database performance

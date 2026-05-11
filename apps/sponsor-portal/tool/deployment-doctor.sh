@@ -16,7 +16,7 @@
 set -euo pipefail
 
 # ── Configuration ──────────────────────────────────────────────────
-SERVICE_NAME="portal-server"
+SERVICE_NAME="portal-service"
 REGION="${GCP_REGION:-}"
 PROJECT="${GCP_PROJECT:-}"
 SERVICE_URL=""
