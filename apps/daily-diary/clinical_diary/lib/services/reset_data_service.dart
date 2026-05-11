@@ -36,16 +36,20 @@ class ResetDataService {
   final ClinicalDiaryRuntime _runtime;
   final FlutterSecureStorage _secureStorage;
 
-  /// Wipe everything. Ordering matters — auth logout MUST precede the
-  /// storage wipes so any auth library that writes state during shutdown
-  /// has already flushed before we delete the underlying stores. Catch-all
-  /// wipes (`secureStorage.deleteAll`, `prefs.clear`) run at the end so
-  /// anything the per-service clears write is also caught.
+  /// Wipe everything. `AuthService.logout` (a flag flip in secure storage)
+  /// runs first as a defensive flush in case future auth wiring adds
+  /// shutdown writes; today it is redundant with the later
+  /// `secureStorage.deleteAll`. Catch-all wipes (`secureStorage.deleteAll`,
+  /// `prefs.clear`) run at the end so anything the per-service clears
+  /// write is also caught.
   ///
   /// On web, `platform_reset.wipeWebOnlyState()` additionally deletes the
   /// `firebaseLocalStorageDb` IndexedDB and clears localStorage /
   /// sessionStorage — state that survives flutter_secure_storage.deleteAll()
-  /// and SharedPreferences.clear() in the browser.
+  /// and SharedPreferences.clear() in the browser. This is where Firebase
+  /// Core/Messaging session state (the design spec's original "Firebase
+  /// signOut" framing) is actually evicted in this codebase, since the app
+  /// has no firebase_auth dependency.
   Future<void> resetEverything() async {
     await _authService.logout();
     await _taskService.clearAll();
