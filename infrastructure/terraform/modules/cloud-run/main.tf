@@ -89,12 +89,12 @@ resource "google_project_iam_member" "cloud_run_roles" {
 # -----------------------------------------------------------------------------
 
 resource "google_cloud_run_v2_service" "diary_server" {
-  name     = "diary-server"
+  name     = "diary-service"
   location = var.region
   project  = var.project_id
 
   labels = merge(local.common_labels, {
-    service = "diary-server"
+    service = "diary-service"
   })
 
   template {
@@ -210,12 +210,12 @@ resource "google_cloud_run_v2_service" "diary_server" {
 # -----------------------------------------------------------------------------
 
 resource "google_cloud_run_v2_service" "portal_server" {
-  name     = "portal-server"
+  name     = "portal-service"
   location = var.region
   project  = var.project_id
 
   labels = merge(local.common_labels, {
-    service = "portal-server"
+    service = "portal-service"
   })
 
   template {

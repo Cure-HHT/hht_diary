@@ -585,7 +585,11 @@ components:
           description: Cloud Run region
         service:
           type: string
-          description: Service name
+          description: |
+            Application identifier (the OpenTelemetry `service.name`
+            set by the binary at startup — see bin/server.dart). This
+            is independent of the deployed Cloud Run service name
+            (the URL host), which may differ. Stable across redeploys.
 
     RegisterRequest:
       type: object
