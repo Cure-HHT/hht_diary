@@ -220,12 +220,6 @@ variable "github_repo" {
   default     = "hht_diary"
 }
 
-variable "enable_cloud_build_triggers" {
-  description = "[DEPRECATED] Create Cloud Build triggers for CI/CD. Use GitHub Actions instead."
-  type        = bool
-  default     = false
-}
-
 # -----------------------------------------------------------------------------
 # Optional: Cross-Project Gmail SA Impersonation
 # -----------------------------------------------------------------------------

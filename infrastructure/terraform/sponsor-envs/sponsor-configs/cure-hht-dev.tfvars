@@ -65,9 +65,6 @@ container_cpu    = "1"
 github_org  = "Cure-HHT"
 github_repo = "hht_diary"
 
-# Enable Cloud Build triggers (DEPRECATED - use GitHub Actions)
-enable_cloud_build_triggers = false
-
 # Disable public access due to organization policy restrictions
 allow_public_access = false
 

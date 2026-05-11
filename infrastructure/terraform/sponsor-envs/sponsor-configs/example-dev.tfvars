@@ -59,9 +59,6 @@ container_cpu    = "1"
 github_org  = "Cure-HHT"
 github_repo = "hht_diary"
 
-# Enable Cloud Build triggers
-enable_cloud_build_triggers = true
-
 # -----------------------------------------------------------------------------
 # Optional: Identity Platform (HIPAA/GDPR-compliant authentication)
 # For portal users (investigators, admins)
