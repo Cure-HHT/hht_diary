@@ -47,6 +47,14 @@ concurrency:
 
 jobs:
   build:
+    # Skip auto-deploy on Dependabot-merge commits. Their PRs come in waves
+    # and each squash-merge would otherwise trigger an App Store Connect /
+    # TestFlight upload for a small dep bump. The merge commit's message
+    # preserves the PR title ("[Dependabot](deps): Bump …"), so a startsWith
+    # check is the most reliable signal across squash-merge / rebase /
+    # human-merger paths. `workflow_dispatch` and non-push events have no
+    # head_commit, so the `|| ''` fallback lets manual triggers always run.
+    if: ${{ !startsWith(github.event.head_commit.message || '', '[Dependabot]') }}
     runs-on: macos-26
     env:
       # Resolved into job env so the Slack notify steps can guard on it.
