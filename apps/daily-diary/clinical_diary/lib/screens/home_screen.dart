@@ -149,6 +149,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
     );
+    // CUR-1292 followup: reload entries when TaskService changes.
+    // A background portal-inbound-poll tick can land a tombstone that
+    // both adds a "cancelled" notification (via TaskService) AND flips
+    // the underlying DiaryEntry's isDeleted bit. Without this listener
+    // the entry data (_completedQuestionnaireEntries etc.) stays at
+    // its last-loaded snapshot and continues rendering the now-cancelled
+    // questionnaire in the timeline. Title-tap was previously the only
+    // path that re-triggered _loadRecords; this generalizes it.
+    widget.taskService.addListener(_onTasksChanged);
+  }
+
+  void _onTasksChanged() {
+    if (!mounted) return;
+    unawaited(_loadRecords());
   }
 
   @override
@@ -183,6 +197,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.disconnectedNotifier.removeListener(
       _onDisconnectionChanged,
     );
+    widget.taskService.removeListener(_onTasksChanged);
     _scrollController.dispose();
     super.dispose();
   }
@@ -1772,8 +1787,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // /tasks drops finalized rows server-side, and the
                   // next syncTasks removes the matching local task —
                   // so absence in TaskService is the correct test.
+                  //
+                  // !entry.isDeleted guard: a tombstoned questionnaire
+                  // (coordinator cancelled it after the patient had
+                  // already submitted) is ALSO absent from the active
+                  // task list, but it is NOT finalized — it's cancelled.
+                  // Showing it as "View Only" alongside the
+                  // "this questionnaire was cancelled" notification at
+                  // the top is confusing. Without this guard the heuristic
+                  // collapses "finalized" and "cancelled" into the same
+                  // visual state.
                   isFinalized:
                       entry.entryType.endsWith('_survey') &&
+                      !entry.isDeleted &&
                       !widget.taskService.tasks.any(
                         (t) => (t.targetId ?? t.id) == entry.entryId,
                       ),
