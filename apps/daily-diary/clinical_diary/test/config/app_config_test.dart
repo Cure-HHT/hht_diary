@@ -242,6 +242,28 @@ void main() {
         F.appFlavor = Flavor.prod;
         expect(AppConfig.showBanner, false);
       });
+
+      test('showResetData mirrors F.showResetData for each flavor', () {
+        for (final flavor in Flavor.values) {
+          F.appFlavor = flavor;
+          expect(
+            AppConfig.showResetData,
+            F.showResetData,
+            reason:
+                'AppConfig.showResetData must equal F.showResetData for $flavor',
+          );
+        }
+      });
+
+      test('showResetData is true for uat', () {
+        F.appFlavor = Flavor.uat;
+        expect(AppConfig.showResetData, true);
+      });
+
+      test('showResetData is false for prod', () {
+        F.appFlavor = Flavor.prod;
+        expect(AppConfig.showResetData, false);
+      });
     });
 
     group('app metadata', () {
