@@ -231,15 +231,73 @@ main() {
             if [[ -n "${user_emails}" ]]; then
                 log_info "Found portal users to seed: ${user_emails}"
 
+                # CUR-1296 (REQ-d00170-A,B): tee stdout so we can pluck the
+                # email->uid map seed_identity_users.js emits between the
+                # ---SEED_IDENTITY_USERS_MAP_BEGIN--- / END markers, then
+                # stamp portal_users.firebase_uid from it. Without this
+                # step, portal_users.firebase_uid stays NULL after a reset
+                # and uid-only auth (post CUR-1296 / REQ-d00167) returns
+                # 401 uid_not_bound for every login attempt. The local-stack
+                # db-schema-job has had this stamping step since CUR-1296;
+                # this is the prod port (omitted at the time, surfaced by
+                # the first full UAT reset on 2026-05-10).
+                local seed_log=/tmp/seed_identity_users.log
                 if node /app/seed_identity_users.js \
                     --project="${SPONSOR}" \
                     --env="${ENVIRONMENT}" \
                     --password="${DEFAULT_USER_PWD}" \
                     --users="${user_emails}" \
-                    --user-names="${user_names}"; then
+                    --user-names="${user_names}" 2>&1 | tee "${seed_log}"; then
                     log_info "Identity Platform users seeded successfully"
                 else
                     log_warn "Identity Platform user seeding failed (non-fatal)"
+                fi
+
+                local seed_map
+                seed_map=$(awk '/---SEED_IDENTITY_USERS_MAP_BEGIN---/,/---SEED_IDENTITY_USERS_MAP_END---/' \
+                              "${seed_log}" \
+                           | grep -v 'SEED_IDENTITY_USERS_MAP' || true)
+
+                if [[ -z "${seed_map}" || "${seed_map}" == "[]" ]]; then
+                    log_warn "No email->uid map emitted; portal_users.firebase_uid will stay NULL (login will fail with uid_not_bound)"
+                else
+                    # Parse + validate the map up front. Process substitution
+                    # (done < <(... | jq ...)) swallows jq's exit code even
+                    # under `set -e`, so a malformed map would silently produce
+                    # a zero-iteration loop and quietly leave firebase_uid NULL
+                    # — defeating the whole stamping step. Capture with explicit
+                    # error handling instead and iterate via a here-string.
+                    local parsed_rows
+                    if ! parsed_rows=$(echo "${seed_map}" | jq -c '.[]' 2>/tmp/jq_err); then
+                        log_error "Failed to parse email->uid map as JSON: $(cat /tmp/jq_err 2>/dev/null || echo '?')"
+                        log_error "Raw seed_map: ${seed_map}"
+                        exit 5
+                    fi
+
+                    log_info "Stamping portal_users.firebase_uid from seed map"
+                    local attempted=0 updated=0
+                    while IFS= read -r row; do
+                        local row_email row_uid hit
+                        row_email=$(echo "${row}" | jq -r '.email')
+                        row_uid=$(echo "${row}" | jq -r '.uid')
+                        # psql -c does NOT expand :'name' substitutions
+                        # (client-side parser feature); feed via stdin so
+                        # psql substitutes before sending to the server.
+                        # `RETURNING 1` distinguishes "row updated" from
+                        # "no matching email" — a seed map entry may not
+                        # have a corresponding portal_users row.
+                        hit=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" \
+                                   -tA -v ON_ERROR_STOP=1 \
+                                   -v email="${row_email}" -v uid="${row_uid}" <<'EOF'
+UPDATE portal_users SET firebase_uid = :'uid' WHERE LOWER(email) = LOWER(:'email') RETURNING 1;
+EOF
+                        )
+                        attempted=$((attempted + 1))
+                        if [[ -n "${hit}" ]]; then
+                            updated=$((updated + 1))
+                        fi
+                    done <<< "${parsed_rows}"
+                    log_info "Stamped firebase_uid on ${updated}/${attempted} portal_users rows from seed map"
                 fi
             else
                 log_warn "No portal users found in database - skipping Identity Platform seeding"
