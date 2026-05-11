@@ -15,11 +15,29 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Orchestrates a "fresh install" wipe across every state store the app
-/// touches. See docs/superpowers/specs/2026-05-10-cur-1315-reset-all-data-design.md
-/// for the cleanup matrix and ordering rationale.
+/// touches. Tracking ticket: CUR-1315.
 ///
-/// Dev/qa/uat only — gated upstream by `F.showResetData`. Not safe to call
-/// while a sync is in flight (Tier 3 of CUR-1315 will add a queue check).
+/// Cleanup order:
+///   1. `AuthService.logout()` (defensive flush of in-memory auth flag).
+///   2. `TaskService.clearAll()` (clears in-memory task list + its
+///      SharedPreferences key).
+///   3. `ClinicalDiaryRuntime.deleteDatabaseFiles()` (closes + deletes
+///      the sembast event-sourcing datastore; file on native, IndexedDB
+///      object store on web).
+///   4. `FlutterSecureStorage().deleteAll()` (catch-all incl. `app_uuid`,
+///      `auth_jwt`, `user_enrollment`).
+///   5. `SharedPreferences.clear()` (catch-all).
+///   6. Web only: `wipeWebOnlyState()` deletes `firebaseLocalStorageDb`
+///      IndexedDB + clears localStorage / sessionStorage. This is where
+///      Firebase Core/Messaging session state is evicted on web (the
+///      app has no firebase_auth dependency, so step 1 is not the
+///      Firebase signOut the name might suggest).
+///
+/// Dev/qa/uat only — gated upstream by `F.showResetData`. Not safe to
+/// call while a sync is in flight (Tier 3 of CUR-1315 will add a queue
+/// check). After a successful reset the runtime is unusable; the caller
+/// must navigate to onboarding before any further widget.runtime access
+/// (Tier 1.5 of CUR-1315 will add an explicit runtime re-bootstrap).
 class ResetDataService {
   ResetDataService({
     required AuthService authService,

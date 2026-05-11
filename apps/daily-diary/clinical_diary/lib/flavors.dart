@@ -60,7 +60,9 @@ class F {
     }
   }
 
-  /// Whether dev tools (Reset Data, Add Example Data) should be shown.
+  /// Whether the developer-tools menu section (Export/Import/Feature Flags
+  /// + the "Add Example Data" affordance) should be shown. Independent of
+  /// `showResetData` — uat hides this section but still surfaces Reset.
   static bool get showDevTools {
     switch (appFlavor) {
       case Flavor.local:

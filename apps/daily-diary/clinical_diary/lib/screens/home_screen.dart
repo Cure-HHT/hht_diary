@@ -624,7 +624,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         taskService: widget.taskService,
         runtime: widget.runtime,
       );
-      await service.resetEverything();
+      try {
+        await service.resetEverything();
+      } catch (e, st) {
+        debugPrint('[HomeScreen] Reset All Data failed: $e\n$st');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Reset failed: $e'),
+              duration: const Duration(seconds: 4),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+        return;
+      }
       // Datastore is now closed/deleted; do NOT call _loadRecords here.
       // Fire _checkEnrollmentStatus without awaiting (matches the
       // _handleEndClinicalTrial pattern) so the snackbar renders before

@@ -70,6 +70,7 @@ Future<void> _deleteIndexedDb(String name) async {
           // for a "Reset All Data" tap in our single-tab flow. Log via
           // debugPrint so test output captures it; do not throw.
           debugPrint('[ResetDataService] IndexedDB delete of $name timed out');
+          if (!completer.isCompleted) completer.complete();
         },
       )
       .catchError((Object e) {
