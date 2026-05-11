@@ -410,14 +410,18 @@ void main() {
     );
 
     fx.handler.impl = (req) async {
-      if (req.method == 'GET' && req.url.path.endsWith('inbound')) {
+      // PR #589 switched portalInboundPoll from /inbound to /tasks and
+      // translates the response's `cancelled` array into tombstones.
+      // The questionnaire_type stripped of the `_survey` suffix matches
+      // the wire convention TaskService.syncTasks uses.
+      if (req.method == 'GET' && req.url.path.endsWith('tasks')) {
         return http.Response(
           jsonEncode({
-            'messages': [
+            'tasks': <Map<String, Object?>>[],
+            'cancelled': [
               {
-                'type': 'tombstone',
-                'entry_id': 'agg-s5',
-                'entry_type': 'nose_hht_survey',
+                'questionnaire_instance_id': 'agg-s5',
+                'questionnaire_type': 'nose_hht',
               },
             ],
           }),
