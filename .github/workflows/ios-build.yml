@@ -203,7 +203,6 @@ jobs:
             dev)  CHANNEL="#dev" ;;
             qa)   CHANNEL="#qa" ;;
             uat)  CHANNEL="#devops" ;;
-            prod) CHANNEL="#devops" ;;
             *)    CHANNEL="#devops" ;;
           esac
           echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
