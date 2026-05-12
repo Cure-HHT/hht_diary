@@ -8,22 +8,49 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 
 **Key Characteristics**:
 - Multi-sponsor deployment model (shared core + sponsor-specific customization)
-- Strict requirement traceability (every change must link to REQ-{p|o|d}NNNNN)
+- Strict requirement traceability — REQ ID format varies by repo (see §1)
 - FDA compliance (21 CFR Part 11, ALCOA+ principles)
 - Plugin-based workflow enforcement via Claude Code marketplace plugins
 
 ## Critical Rules
 
 ### 1. Requirement Traceability (MANDATORY)
-- **PR titles** must include `[CUR-XXX]` — this is enforced by CI and becomes the squash-merge commit on main
-- Commit messages have **no enforced format** for CUR-XXX or REQ-XXX references (enforcement disabled via `ENFORCE_CUR_IN_COMMITS` / `ENFORCE_REQ_IN_COMMITS` flags)
-- Requirement format: `REQ-{type}{number}` where type is `p` (PRD), `o` (Ops), or `d` (Dev), and number is 5 digits (e.g., `REQ-d00027`)
-- Implementation files must include requirement headers, e.g.:
-  ```sql
-  -- IMPLEMENTS REQUIREMENTS:
-  --   REQ-d00027: Workflow plugin state management
-  --   REQ-p00042: Event sourcing audit trail
+
+- **PR titles** must include `[CUR-XXX]` — enforced by CI; becomes the squash-merge commit on main.
+- **Commit messages**: no enforced format for CUR-XXX or REQ-XXX references (`ENFORCE_CUR_IN_COMMITS` / `ENFORCE_REQ_IN_COMMITS` disabled).
+- **REQ ID conventions vary by repo.** Use the convention of the repo whose spec defines the REQ being cited:
+
+  | Repo | REQ ID format | Example |
+  | ---- | ------------- | ------- |
+  | `hht_diary` (this repo, legacy) | `REQ-{p\|o\|d}{NNNNN}` (5 digits) | `REQ-d00027`, `REQ-p01018` |
+  | `hht_admin` (named, no elspais) | `HHT-{PRD\|OPS\|DEV}-{kebab-name}` | `HHT-OPS-storage-rules` |
+  | `event_sourcing` (named) | `EVS-{PRD\|OPS\|DEV}-{kebab-name}` | `EVS-DEV-provenance-entry-schema` |
+  | `hht_workflows` (public CI) | no own REQs; consumes from `hht_admin` (e.g. `HHT-OPS-composite-action-library`) | — |
+
+  Named REQ IDs are **stable**: renaming is a breaking change for every reference (annotations, `Refines:`/`Satisfies:` metadata, Rationale prose). Coordinate sweeps; call out renames explicitly in the commit.
+
+- **Annotate functions / script steps with specific Assertions — NOT file-header `IMPLEMENTS REQUIREMENTS:` blocks.** The unit of traceability is the assertion (A, B, C, ...), not the whole REQ. Cite by appending the assertion label(s):
+
+  ```dart
+  // Implements: EVS-DEV-provenance-entry-schema/A,B
+  String canonicalize(Map<String, Object?> entry) { ... }
   ```
+
+  ```yaml
+  # Implements: HHT-OPS-identity-over-keys/A
+  - name: Authenticate to Google Cloud
+    uses: google-github-actions/auth@<sha>
+    ...
+  ```
+
+  ```bash
+  # Verifies: HHT-OPS-no-secrets-in-tf-state/B
+  assert_no_secret_in_state "$TF_STATE_PATH"
+  ```
+
+  Format: `<REQ-id>/<assertion-list>`. Single assertion: `/A`. Multiple assertions of one REQ on one unit: `/A,B,D`. Multiple REQs on one unit: stack the annotations as separate comment lines. Use `// Implements:` (or `# Implements:`) on production-code units; use `// Verifies:` (or `# Verifies:`) on test units. Cross-repo refs use the foreign repo's format (e.g. a `hht_diary` file may carry `// Implements: HHT-OPS-identity-over-keys/B` to cite hht_admin's spec).
+
+- **Legacy `REQ-{p|o|d}NNNNN` file-header `IMPLEMENTS REQUIREMENTS:` blocks** in pre-existing `hht_diary` source files are historical. Leave them alone unless you're touching the surrounding code; when you do, migrate to function/step-level annotations on the units that actually implement each assertion.
 
 ### 2. Workflow Enforcement
 - You MUST claim a ticket using the `workflow:workflow` sub-agent
@@ -58,15 +85,19 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 they should report to the orchestrator any messages they want to pass to another sub-agent
 
 ### 7. Phase Design Spec Requirements
-Every new phase design spec at `docs/superpowers/specs/*-design.md` MUST include a `## Requirements` section that:
-- Lists existing applicable REQs (use `discover_requirements` via the elspais MCP to find candidates).
-- Drafts new REQ entries (title, rationale, assertion list A/B/C/...) for any new functionality, with intent that the implementation plan will claim REQ-d numbers and write them into `spec/dev-*.md`.
-- Identifies the per-class `// Implements: REQ-X-A+B — prose` and per-test `// Verifies: REQ-X-A` annotations the plan must enforce on every implementation/test file it touches.
-- References the required `spec/dev-*.md` and `spec/INDEX.md` updates.
+
+This rule applies to `hht_diary`'s own design specs at `docs/superpowers/specs/*-design.md`. (The repo's pre-commit hook enforces it. `docs/superpowers/` is gitignored — these files are working artifacts and the hook only triggers if you `git add -f`.)
+
+Every new design spec MUST include a `## Requirements` section that:
+
+- Lists existing applicable REQs. For `hht_diary` REQs, use `discover_requirements` via the elspais MCP. For cross-repo REQs (`HHT-*` in `hht_admin`, `EVS-*` in `event_sourcing`), cite by name with the file path of the authoritative spec.
+- Drafts new REQ entries (title, rationale, assertion list A/B/C/...) for any new functionality. New `hht_diary` REQs claim `REQ-d{NNNNN}` numbers and land in `spec/dev-*.md` via the implementation plan; new `HHT-*` / `EVS-*` REQs land in the relevant sibling repo's `spec/`.
+- Identifies the function-level `// Implements: <REQ-id>/<assertion-list>` (production code) and `// Verifies: <REQ-id>/<assertion-list>` (tests) annotations the plan must apply on every code unit it touches. **No file-header `IMPLEMENTS REQUIREMENTS:` blocks** — see §1.
+- References the required `spec/dev-*.md` and `spec/INDEX.md` updates (or, for cross-repo REQs, the sibling repo's spec update).
 
 For stub files at `docs/superpowers/specs/*-stub.md`: a single line "Requirements: deferred until full design" suffices — the obligation lands when the stub is upgraded to a full design spec.
 
-This rule is enforced by `.githooks/pre-commit` (section 6 — Phase Design Spec Requirements Check). Commits that introduce a non-compliant spec are blocked. To bypass (NOT RECOMMENDED): `git commit --no-verify`.
+Pre-commit hook enforcement: `.githooks/pre-commit` section 6 checks that `*-design.md` files include `## Requirements` and at least one `REQ-[pod]NNNNN` reference. The legacy ID format in the hook check applies because this repo's own design specs always reference at least one local REQ; cross-repo REQs may also appear but are not what the hook is checking. To bypass (NOT RECOMMENDED): `git commit --no-verify`.
 
 
 ## Project Structure
