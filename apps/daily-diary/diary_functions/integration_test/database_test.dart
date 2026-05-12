@@ -10,7 +10,7 @@ library;
 
 import 'dart:io';
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' show OTel;
 import 'package:diary_functions/diary_functions.dart';
 import 'package:test/test.dart';
 
