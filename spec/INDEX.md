@@ -133,6 +133,12 @@
 | REQ-p01086 | Deprecated Requirements Registry                    | prd-deprecated.md                   | 2418fb15 |
 | REQ-p01087 | UI Stability During User Interaction                | prd-system.md                       | 11950574 |
 | REQ-p05004 | Disconnection Notification                          | prd-diary-gui.md                    | a5c5984b |
+| REQ-p05015 | Lock Warning Notification                           | prd-notifications.md                | d3ac3f6a |
+| REQ-p05016 | Yesterday Entry Reminder Notification               | prd-notifications.md                | 58983ef7 |
+| REQ-p05017 | Ongoing Epistaxis Reminder Notification             | prd-notifications.md                | 048fc945 |
+| REQ-p05018 | Portal-Sent Questionnaire Notification              | prd-notifications.md                | 18d22171 |
+| REQ-p05019 | Historical Gap Reminder Notification                | prd-notifications.md                | 72097d72 |
+| REQ-p20078 | Push Notification Platform                          | prd-notifications.md                | 574f1f8d |
 | REQ-p70000 | Local Data Storage                                  | prd-diary-app.md                    | 937511be |
 | REQ-p70001 | Sponsor Portal Application                          | prd-portal.md                       | 08b8f03a |
 | REQ-p70005 | Customizable Role-Based Access Control              | prd-portal.md                       | d0617ddb |
@@ -143,6 +149,7 @@
 | REQ-p70010 | Patient Disconnection Workflow                      | prd-portal.md                       | 79bc39eb |
 | REQ-p70011 | Patient Reconnection Workflow                       | prd-portal.md                       | c386824f |
 | REQ-p70012 | Portal Data Acceptance and Rejection                | prd-portal.md                       | 2f615ddb |
+| REQ-p70020 | Sponsor Notification Configuration                  | prd-notifications.md                | b77b800b |
 
 ## OPERATIONS
 
