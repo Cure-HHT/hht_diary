@@ -7,7 +7,7 @@
 
 name: diary_functions
 description: Clinical Daily Diary Server Side Functions
-version: 0.1.15+27
+version: 0.1.16+28
 publish_to: none
 
 environment:
@@ -22,6 +22,7 @@ dependencies:
 
   # Utilities
   crypto: ^3.0.7
+  meta: ^1.16.0
 
   # Observability
   otel_common:
@@ -34,6 +35,13 @@ dependencies:
   # Shared server-side utilities
   shared_functions:
     path: ../../common-dart/shared_functions
+
+  # Shared communication primitives — provides Envelope, the
+  # NotificationRepository interface, and the shelf handler factories
+  # for /api/v1/notifications. Phase 1B.4 mounts the read-side endpoints
+  # on diary_server.
+  comms:
+    path: ../../common-dart/comms
 
 dev_dependencies:
   test: ^1.25.15

@@ -12,6 +12,7 @@
 //
 // Route definitions for diary server
 
+import 'package:comms/comms.dart';
 import 'package:shelf_router/shelf_router.dart';
 
 import 'package:diary_functions/diary_functions.dart';
@@ -46,6 +47,27 @@ Router createRouter() {
   router.post(
     '/api/v1/user/questionnaires/<instanceId>/submit',
     submitQuestionnaireHandler,
+  );
+
+  // CUR-1311 (Phase 1B.4): notifications polling endpoints (REQ-d00169).
+  // Mobile fetches envelopes here on cold start / resume / FCM-arrival
+  // wake-up. The fetch handler idempotently stamps delivered_at on
+  // first read; the since handler returns a cursor-paged window of
+  // envelopes created after the supplied timestamp.
+  final notificationRepo = DiaryNotificationRepository();
+  router.get(
+    '/api/v1/notifications/<id>',
+    envelopeFetchHandler(
+      repo: notificationRepo,
+      patientResolver: jwtPatientResolver,
+    ),
+  );
+  router.get(
+    '/api/v1/notifications',
+    envelopeSinceHandler(
+      repo: notificationRepo,
+      patientResolver: jwtPatientResolver,
+    ),
   );
 
   return router;

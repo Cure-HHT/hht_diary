@@ -352,6 +352,116 @@ void main() {
         });
         expect(service.taskCount, equals(0));
       });
+
+      // CUR-1311: FCM is treated as a wake-up signal — dispatcher cases for
+      // patient_status_update / questionnaire_unlocked / questionnaire_finalized
+      // pull /tasks instead of trusting the payload, so mobile state mirrors
+      // server truth without per-action sub-routing.
+      test(
+        'patient_status_update triggers /tasks pull and fires status notifiers',
+        () async {
+          var requestCount = 0;
+          final client = MockClient((request) async {
+            requestCount++;
+            expect(request.url.path, equals('/api/v1/user/tasks'));
+            return http.Response(
+              jsonEncode({
+                'tasks': <Map<String, dynamic>>[],
+                'isDisconnected': true,
+                'isNotParticipating': true,
+              }),
+              200,
+            );
+          });
+
+          TaskService(
+            httpClient: client,
+            enrollmentService: mockEnrollment,
+          ).handleFcmMessage({
+            'type': 'patient_status_update',
+            'action': 'disconnect',
+          });
+
+          // syncTasks is fired-and-forgotten; drain pending microtasks.
+          await pumpEventQueue();
+
+          expect(requestCount, equals(1));
+          expect(mockEnrollment.disconnectedNotifier.value, isTrue);
+          expect(mockEnrollment.notParticipatingNotifier.value, isTrue);
+        },
+      );
+
+      test('questionnaire_unlocked triggers /tasks pull', () async {
+        var requestCount = 0;
+        final client = MockClient((request) async {
+          requestCount++;
+          return http.Response(
+            jsonEncode({
+              'tasks': <Map<String, dynamic>>[],
+              'isDisconnected': false,
+            }),
+            200,
+          );
+        });
+
+        TaskService(
+          httpClient: client,
+          enrollmentService: mockEnrollment,
+        ).handleFcmMessage({
+          'type': 'questionnaire_unlocked',
+          'questionnaire_instance_id': 'inst-123',
+        });
+        await pumpEventQueue();
+
+        expect(requestCount, equals(1));
+      });
+
+      test('questionnaire_finalized triggers /tasks pull', () async {
+        var requestCount = 0;
+        final client = MockClient((request) async {
+          requestCount++;
+          return http.Response(
+            jsonEncode({
+              'tasks': <Map<String, dynamic>>[],
+              'isDisconnected': false,
+            }),
+            200,
+          );
+        });
+
+        TaskService(
+          httpClient: client,
+          enrollmentService: mockEnrollment,
+        ).handleFcmMessage({
+          'type': 'questionnaire_finalized',
+          'questionnaire_instance_id': 'inst-456',
+        });
+        await pumpEventQueue();
+
+        expect(requestCount, equals(1));
+      });
+
+      test(
+        'patient_status_update no-ops when EnrollmentService missing',
+        () async {
+          var requestCount = 0;
+          final client = MockClient((request) async {
+            requestCount++;
+            return http.Response('', 200);
+          });
+
+          // No enrollmentService passed — older test wiring / non-prod usage.
+          TaskService(httpClient: client).handleFcmMessage({
+            'type': 'patient_status_update',
+            'action': 'disconnect',
+          });
+          await pumpEventQueue();
+
+          // Dispatcher must not blow up nor fire a request without an
+          // EnrollmentService to feed syncTasks.
+          expect(requestCount, equals(0));
+        },
+      );
     });
 
     // CUR-1292 / REQ-CAL-p00079: trial-start activation signal.

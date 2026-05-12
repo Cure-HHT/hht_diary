@@ -82,8 +82,9 @@ Future<Response> registerFcmTokenHandler(Request request) async {
     // Optional: app version for tracking
     final appVersion = body['app_version'] as String?;
 
-    // Upsert: deactivate any existing active token for this patient+platform,
-    // then insert the new one. This handles token rotation cleanly.
+    // Upsert: deactivate any existing active token for this patient+platform
+    // (handles token rotation when the same patient's device generates a new
+    // FCM token).
     await db.execute(
       '''
       UPDATE patient_fcm_tokens
@@ -93,6 +94,22 @@ Future<Response> registerFcmTokenHandler(Request request) async {
         AND is_active = true
       ''',
       parameters: {'patientId': patientId, 'platform': platform},
+    );
+
+    // Also deactivate any other-patient rows that share this exact fcm_token.
+    // A single device produces one fcm_token; if it shows up against a
+    // different patient_id (re-linked device, shared device), the prior row
+    // must be deactivated to prevent FCM sends for the old patient from
+    // routing to the new patient's device.
+    await db.execute(
+      '''
+      UPDATE patient_fcm_tokens
+      SET is_active = false, updated_at = now()
+      WHERE fcm_token = @fcmToken
+        AND patient_id <> @patientId
+        AND is_active = true
+      ''',
+      parameters: {'fcmToken': fcmToken, 'patientId': patientId},
     );
 
     await db.execute(

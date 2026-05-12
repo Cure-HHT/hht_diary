@@ -10,10 +10,12 @@
 
 import 'dart:convert';
 
+import 'package:comms/comms.dart';
 import 'package:otel_common/otel_common.dart';
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 import 'package:trial_data_types/trial_data_types.dart';
+import 'package:uuid/uuid.dart';
 
 import 'database.dart';
 import 'notification_service.dart';
@@ -229,6 +231,171 @@ Future<NextCycleResult> _computeNextCycleInfo(
 
   // Prompt SC for starting cycle
   return const NextCycleNeedsSelection();
+}
+
+/// CUR-1311 (Phase 1B.3): outcome of a questionnaire push dispatch.
+/// Same shape as the patient_status helper — both ids surface in the
+/// admin_action_log so an auditor can pivot to the notifications row.
+typedef _QuestionnairePushResult = ({
+  String? fcmMessageId,
+  String? notificationId,
+});
+
+/// CUR-1311 (Phase 1B.3): one of the four questionnaire-lifecycle
+/// actions. Drives title/body/userVisible defaults and the legacy-path
+/// dispatch method choice. Sub-actions live in `payload.action`
+/// (mobile sub-routes on it); the [NotificationType] is always
+/// `questionnaireUpdate`.
+enum _QuestionnaireAction {
+  sent('new_task', 'questionnaire_sent'),
+  deleted('remove_task', 'questionnaire_deleted'),
+  unlocked('unlock_task', 'questionnaire_unlocked'),
+  finalized('lock_task', 'questionnaire_finalized');
+
+  const _QuestionnaireAction(this.payloadAction, this.fcmType);
+  final String payloadAction;
+
+  /// Wire `data.type` value used by the legacy
+  /// sendQuestionnaire*Notification methods. Distinct from
+  /// [NotificationType.questionnaireUpdate] which is the
+  /// envelope/protocol-level vocabulary.
+  final String fcmType;
+}
+
+/// CUR-1311 (Phase 1B.3): unified send path for the
+/// `questionnaireUpdate` family of notifications. Mirrors
+/// `_dispatchPatientStatusPush` in patient_linking.dart but for the
+/// questionnaire-specific payload shape (carries
+/// `questionnaire_instance_id` instead of `new_status`).
+///
+/// `deleted` is the only silent action — userVisible is forced false
+/// and title/body are not sent over FCM. Every other action is an
+/// alert (priority 10, lock-screen visible).
+Future<_QuestionnairePushResult> _dispatchQuestionnairePush({
+  required String fcmToken,
+  required String patientId,
+  required String questionnaireInstanceId,
+  required _QuestionnaireAction action,
+  required bool useEnvelope,
+  required String logPrefix,
+  String? questionnaireType, // populated for `sent`; null otherwise
+}) async {
+  final isUserVisible = action != _QuestionnaireAction.deleted;
+  final title = switch (action) {
+    _QuestionnaireAction.sent => 'New Questionnaire Available',
+    _QuestionnaireAction.deleted => null,
+    _QuestionnaireAction.unlocked => 'Questionnaire Unlocked',
+    _QuestionnaireAction.finalized => 'Questionnaire Finalized',
+  };
+  final body = switch (action) {
+    _QuestionnaireAction.sent => 'You have a new questionnaire to complete.',
+    _QuestionnaireAction.deleted => null,
+    _QuestionnaireAction.unlocked =>
+      'A questionnaire has been unlocked for editing.',
+    _QuestionnaireAction.finalized => 'Your questionnaire has been finalized.',
+  };
+
+  if (useEnvelope) {
+    final outboxWriter = NotificationService.outboxWriter;
+    if (outboxWriter != null) {
+      final envelope = Envelope(
+        notificationId: const Uuid().v4(),
+        patientId: patientId,
+        type: NotificationType.questionnaireUpdate,
+        // The envelope still stores a title for audit / UI fallback,
+        // even on silent actions — it just isn't sent over FCM.
+        title: title ?? 'Questionnaire Removed',
+        body: body,
+        userVisible: isUserVisible,
+        payload: <String, dynamic>{
+          'action': action.payloadAction,
+          'questionnaire_instance_id': questionnaireInstanceId,
+          if (questionnaireType != null)
+            'questionnaire_type': questionnaireType,
+        },
+        status: EnvelopeStatus.pending,
+        createdAt: DateTime.now().toUtc(),
+      );
+      try {
+        final notificationId = await outboxWriter.send(
+          envelope,
+          fcmToken: fcmToken,
+        );
+        final stored = await outboxWriter.repo.findById(
+          notificationId,
+          patientId: patientId,
+        );
+        if (stored?.status == EnvelopeStatus.failed) {
+          logWithTrace(
+            'WARNING',
+            '[$logPrefix] Envelope dispatch failed for ${action.fcmType}',
+            labels: {
+              'instance_id': questionnaireInstanceId,
+              'error': stored?.error ?? 'unknown',
+            },
+          );
+        }
+        return (
+          fcmMessageId: stored?.messageId,
+          notificationId: notificationId,
+        );
+      } on PhiLeakException catch (e) {
+        logWithTrace(
+          'ERROR',
+          '[$logPrefix] PHI guard rejected ${action.fcmType} envelope',
+          labels: {'error': e.toString()},
+        );
+        return (fcmMessageId: null, notificationId: null);
+      }
+    }
+    logWithTrace(
+      'INFO',
+      '[$logPrefix] OutboxWriter not initialised; falling back to legacy FCM',
+      labels: {'action': action.fcmType},
+    );
+  }
+
+  // Legacy direct-FCM path (S2 behaviour). Each questionnaire action
+  // maps to a dedicated NotificationService method — switch is bounded
+  // to four cases.
+  final result = switch (action) {
+    _QuestionnaireAction.sent =>
+      await NotificationService.instance.sendQuestionnaireNotification(
+        fcmToken: fcmToken,
+        questionnaireType: questionnaireType ?? '',
+        questionnaireInstanceId: questionnaireInstanceId,
+        patientId: patientId,
+      ),
+    _QuestionnaireAction.deleted =>
+      await NotificationService.instance.sendQuestionnaireDeletedNotification(
+        fcmToken: fcmToken,
+        questionnaireInstanceId: questionnaireInstanceId,
+        patientId: patientId,
+      ),
+    _QuestionnaireAction.unlocked =>
+      await NotificationService.instance.sendQuestionnaireUnlockedNotification(
+        fcmToken: fcmToken,
+        questionnaireInstanceId: questionnaireInstanceId,
+        patientId: patientId,
+      ),
+    _QuestionnaireAction.finalized =>
+      await NotificationService.instance.sendQuestionnaireFinalizedNotification(
+        fcmToken: fcmToken,
+        questionnaireInstanceId: questionnaireInstanceId,
+        patientId: patientId,
+      ),
+  };
+  if (!result.success) {
+    logWithTrace(
+      'WARNING',
+      '[$logPrefix] FCM send failed for ${action.fcmType}',
+      labels: {
+        'instance_id': questionnaireInstanceId,
+        'error': result.error ?? 'unknown',
+      },
+    );
+  }
+  return (fcmMessageId: result.messageId, notificationId: null);
 }
 
 /// GET /api/v1/portal/patients/questionnaires (X-Patient-Id header)
@@ -652,6 +819,25 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
 
   final instanceId = insertResult.first[0] as String;
 
+  // REQ-d00182-B/C: suppress the push if the questionnaire is already
+  // submitted or has been called back. Defensive — for a fresh INSERT
+  // these columns are always null, so the check is a no-op for
+  // sendQuestionnaireHandler today. Kept so a future cron-based
+  // resender that reaches the same notification site cannot dispatch
+  // a stale "you have a new questionnaire" alert.
+  final suppressionCheck = await db.executeWithContext(
+    '''
+    SELECT submitted_at, deleted_at
+    FROM questionnaire_instances
+    WHERE id = @instanceId::uuid
+    ''',
+    parameters: {'instanceId': instanceId},
+    context: serviceContext,
+  );
+  final shouldSuppress =
+      suppressionCheck.isNotEmpty &&
+      (suppressionCheck.first[0] != null || suppressionCheck.first[1] != null);
+
   // Send FCM notification to patient's device
   final fcmTokenResult = await db.executeWithContext(
     '''
@@ -665,29 +851,26 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
   );
 
   String? fcmMessageId;
-  if (fcmTokenResult.isNotEmpty) {
-    final fcmToken = fcmTokenResult.first[0] as String;
-    final notificationResult = await NotificationService.instance
-        .sendQuestionnaireNotification(
-          fcmToken: fcmToken,
-          questionnaireType: questionnaireType,
-          questionnaireInstanceId: instanceId,
-          patientId: patientId,
-        );
-    fcmMessageId = notificationResult.messageId;
-
-    if (!notificationResult.success) {
-      logWithTrace(
-        'WARNING',
-        'FCM send failed for questionnaire',
-        labels: {
-          'instance_id': instanceId,
-          'error': notificationResult.error ?? 'unknown',
-        },
-      );
-      // Don't fail the request - the questionnaire is still created.
-      // Patient can discover it via sync.
-    }
+  String? notificationEnvelopeId;
+  if (shouldSuppress) {
+    logWithTrace(
+      'INFO',
+      'questionnaire_sent suppressed (already-submitted or called-back)',
+      labels: {'instance_id': instanceId},
+    );
+  } else if (fcmTokenResult.isNotEmpty) {
+    final pushResult = await _dispatchQuestionnairePush(
+      fcmToken: fcmTokenResult.first[0] as String,
+      patientId: patientId,
+      questionnaireInstanceId: instanceId,
+      action: _QuestionnaireAction.sent,
+      questionnaireType: questionnaireType,
+      useEnvelope:
+          NotificationConfig.fromEnvironment().useEnvelopeQuestionnaireSent,
+      logPrefix: 'QUESTIONNAIRE_SEND',
+    );
+    fcmMessageId = pushResult.fcmMessageId;
+    notificationEnvelopeId = pushResult.notificationId;
   } else {
     logWithTrace(
       'INFO',
@@ -721,6 +904,8 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
         'sent_by_email': user.email,
         'sent_by_name': user.name,
         'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': '$questionnaireType questionnaire sent to patient',
       'ipAddress': clientIp,
@@ -902,25 +1087,20 @@ Future<Response> deleteQuestionnaireHandler(
     context: serviceContext,
   );
 
+  String? fcmMessageId;
+  String? notificationEnvelopeId;
   if (fcmTokenResult.isNotEmpty) {
-    final fcmToken = fcmTokenResult.first[0] as String;
-    final notificationResult = await NotificationService.instance
-        .sendQuestionnaireDeletedNotification(
-          fcmToken: fcmToken,
-          questionnaireInstanceId: instanceId,
-          patientId: patientId,
-        );
-
-    if (!notificationResult.success) {
-      logWithTrace(
-        'WARNING',
-        'FCM delete notification failed',
-        labels: {
-          'instance_id': instanceId,
-          'error': notificationResult.error ?? 'unknown',
-        },
-      );
-    }
+    final pushResult = await _dispatchQuestionnairePush(
+      fcmToken: fcmTokenResult.first[0] as String,
+      patientId: patientId,
+      questionnaireInstanceId: instanceId,
+      action: _QuestionnaireAction.deleted,
+      useEnvelope:
+          NotificationConfig.fromEnvironment().useEnvelopeQuestionnaireDeleted,
+      logPrefix: 'QUESTIONNAIRE_DELETE',
+    );
+    fcmMessageId = pushResult.fcmMessageId;
+    notificationEnvelopeId = pushResult.notificationId;
   }
 
   // REQ-CAL-p00023-U: Log to audit trail
@@ -948,6 +1128,9 @@ Future<Response> deleteQuestionnaireHandler(
         'deleted_at': now.toIso8601String(),
         'deleted_by_email': user.email,
         'deleted_by_name': user.name,
+        'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': 'Questionnaire deleted: ${reason.trim()}',
       'ipAddress': clientIp,
@@ -1076,25 +1259,20 @@ Future<Response> unlockQuestionnaireHandler(
     context: serviceContext,
   );
 
+  String? fcmMessageId;
+  String? notificationEnvelopeId;
   if (fcmTokenResult.isNotEmpty) {
-    final fcmToken = fcmTokenResult.first[0] as String;
-    final notificationResult = await NotificationService.instance
-        .sendQuestionnaireUnlockedNotification(
-          fcmToken: fcmToken,
-          questionnaireInstanceId: instanceId,
-          patientId: patientId,
-        );
-
-    if (!notificationResult.success) {
-      logWithTrace(
-        'WARNING',
-        'FCM unlock notification failed',
-        labels: {
-          'instance_id': instanceId,
-          'error': notificationResult.error ?? 'unknown',
-        },
-      );
-    }
+    final pushResult = await _dispatchQuestionnairePush(
+      fcmToken: fcmTokenResult.first[0] as String,
+      patientId: patientId,
+      questionnaireInstanceId: instanceId,
+      action: _QuestionnaireAction.unlocked,
+      useEnvelope:
+          NotificationConfig.fromEnvironment().useEnvelopeQuestionnaireUnlocked,
+      logPrefix: 'QUESTIONNAIRE_UNLOCK',
+    );
+    fcmMessageId = pushResult.fcmMessageId;
+    notificationEnvelopeId = pushResult.notificationId;
   }
 
   // REQ-CAL-p00023-U: Log to audit trail
@@ -1122,6 +1300,9 @@ Future<Response> unlockQuestionnaireHandler(
         'unlocked_at': now.toIso8601String(),
         'unlocked_by_email': user.email,
         'unlocked_by_name': user.name,
+        'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': 'Questionnaire unlocked for patient re-edit',
       'ipAddress': clientIp,
@@ -1274,6 +1455,34 @@ Future<Response> finalizeQuestionnaireHandler(
     context: serviceContext,
   );
 
+  // Notify the patient device that the questionnaire is locked.
+  final fcmTokenResult = await db.executeWithContext(
+    '''
+    SELECT fcm_token FROM patient_fcm_tokens
+    WHERE patient_id = @patientId AND is_active = true
+    ORDER BY updated_at DESC
+    LIMIT 1
+    ''',
+    parameters: {'patientId': patientId},
+    context: serviceContext,
+  );
+
+  String? fcmMessageId;
+  String? notificationEnvelopeId;
+  if (fcmTokenResult.isNotEmpty) {
+    final pushResult = await _dispatchQuestionnairePush(
+      fcmToken: fcmTokenResult.first[0] as String,
+      patientId: patientId,
+      questionnaireInstanceId: instanceId,
+      action: _QuestionnaireAction.finalized,
+      useEnvelope: NotificationConfig.fromEnvironment()
+          .useEnvelopeQuestionnaireFinalized,
+      logPrefix: 'QUESTIONNAIRE_FINALIZE',
+    );
+    fcmMessageId = pushResult.fcmMessageId;
+    notificationEnvelopeId = pushResult.notificationId;
+  }
+
   // REQ-CAL-p00023-U: Log to audit trail
   await db.executeWithContext(
     '''
@@ -1301,6 +1510,9 @@ Future<Response> finalizeQuestionnaireHandler(
         'finalized_at': now.toIso8601String(),
         'finalized_by_email': user.email,
         'finalized_by_name': user.name,
+        'fcm_message_id': fcmMessageId,
+        if (notificationEnvelopeId != null)
+          'notification_id': notificationEnvelopeId,
       }),
       'justification': endEvent != null
           ? 'Questionnaire finalized as ${StudyEvent.endEventDisplayLabel(endEvent)}'

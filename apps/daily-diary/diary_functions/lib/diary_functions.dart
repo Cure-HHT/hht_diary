@@ -18,6 +18,8 @@ export 'src/diary_metrics.dart';
 export 'src/fcm_token.dart';
 export 'src/health.dart';
 export 'src/jwt.dart';
+export 'src/notifications/diary_notification_repository.dart';
+export 'src/notifications/patient_resolver.dart';
 export 'src/questionnaire_submit.dart';
 export 'src/sponsor.dart';
 export 'src/tasks.dart';

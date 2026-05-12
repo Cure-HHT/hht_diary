@@ -7,7 +7,7 @@
 
 name: portal_functions
 description: CureHHT Sponsor Portal Server Side Functions
-version: 0.1.29+48
+version: 0.1.30+49
 publish_to: none
 
 environment:
@@ -24,6 +24,7 @@ dependencies:
   # Utilities
   crypto: ^3.0.7
   meta: ^1.16.0
+  uuid: ^4.5.1
 
   # JWT/Identity Platform
   jose: ^0.3.4
@@ -35,6 +36,13 @@ dependencies:
   # OpenTelemetry instrumentation
   otel_common:
     path: ../../common-dart/otel_common
+
+  # Shared communication primitives (channels, FCM transport, PHI guard,
+  # notifications domain protocol). Phase 1A.4 wires the FCM transport
+  # through this package; the notifications/ domain code lights up in
+  # Phase 1B when the envelope+poll path replaces direct dispatch.
+  comms:
+    path: ../../common-dart/comms
 
   # Shared server-side utilities
   shared_functions:

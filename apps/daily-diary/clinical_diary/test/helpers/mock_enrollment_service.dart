@@ -18,6 +18,11 @@ class MockEnrollmentService implements EnrollmentService {
   bool _isNotParticipating = false;
   DateTime? _notParticipatingAt;
 
+  // CUR-1311: Mirror the real service's not-participating notifier so
+  // listeners under test fire when status flips.
+  @override
+  final ValueNotifier<bool> notParticipatingNotifier = ValueNotifier(false);
+
   @override
   Future<String?> getJwtToken() async => jwtToken;
 
@@ -68,6 +73,11 @@ class MockEnrollmentService implements EnrollmentService {
     final isNotParticipating = response['isNotParticipating'] as bool? ?? false;
     _isDisconnected = isDisconnected;
     _isNotParticipating = isNotParticipating;
+    // CUR-1311: fire notifiers so listeners under test observe the
+    // status flip — matches the real EnrollmentService which routes
+    // through setDisconnected / setNotParticipating.
+    disconnectedNotifier.value = isDisconnected;
+    notParticipatingNotifier.value = isNotParticipating;
     if (isNotParticipating && _notParticipatingAt == null) {
       _notParticipatingAt = DateTime.now();
     } else if (!isNotParticipating) {
@@ -86,6 +96,7 @@ class MockEnrollmentService implements EnrollmentService {
     DateTime? at,
   }) async {
     _isNotParticipating = notParticipating;
+    notParticipatingNotifier.value = notParticipating;
     if (notParticipating) {
       _notParticipatingAt ??= at ?? DateTime.now();
     } else {

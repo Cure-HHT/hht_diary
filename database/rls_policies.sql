@@ -1027,6 +1027,41 @@ CREATE POLICY fcm_tokens_service_all ON patient_fcm_tokens
 
 GRANT ALL ON patient_fcm_tokens TO service_role;
 
+-- =====================================================
+-- NOTIFICATIONS RLS (REQ-d00168, REQ-d00169) — Phase 1B
+-- =====================================================
+-- Server (service_role) writes envelopes via OutboxWriter; mobile
+-- (authenticated, scoped by app.current_patient_id) polls. Defense
+-- in depth — every repository query already filters by patient_id,
+-- but RLS guarantees a forgotten predicate cannot leak another
+-- patient's rows.
+
+-- Patients SELECT their own envelopes only. The session variable
+-- app.current_patient_id is set by Database.executeWithContext when
+-- called with UserContext.patient(patientId).
+CREATE POLICY notifications_patient_select ON notifications
+    FOR SELECT
+    TO authenticated
+    USING (patient_id = current_setting('app.current_patient_id', true));
+
+-- Patients UPDATE their own envelopes — the envelopeFetchHandler
+-- stamps delivered_at on first read. INSERT is server-side only.
+CREATE POLICY notifications_patient_update ON notifications
+    FOR UPDATE
+    TO authenticated
+    USING (patient_id = current_setting('app.current_patient_id', true))
+    WITH CHECK (patient_id = current_setting('app.current_patient_id', true));
+
+-- Service role: full access for OutboxWriter inserts + status updates.
+CREATE POLICY notifications_service_all ON notifications
+    FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
+GRANT SELECT, UPDATE ON notifications TO authenticated;
+GRANT ALL ON notifications TO service_role;
+
 -- Service role needs full access for triggers
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
 

@@ -7,7 +7,7 @@
 
 import 'dart:io';
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' show OTel;
 import 'package:portal_functions/portal_functions.dart';
 import 'package:portal_server/portal_server.dart';
 

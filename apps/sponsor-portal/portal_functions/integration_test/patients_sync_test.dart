@@ -14,7 +14,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:portal_functions/portal_functions.dart';
 import 'package:rave_integration/rave_integration.dart';
 import 'package:test/test.dart';
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' show OTel;
 
 // Mock classes for integration tests with real DB
 class MockRaveClient extends Mock implements RaveClient {}

@@ -17,7 +17,7 @@ import 'dart:io';
 import 'package:portal_functions/portal_functions.dart';
 import 'package:postgres/postgres.dart' show Sql;
 import 'package:test/test.dart';
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' show OTel;
 
 void main() {
   setUpAll(() async {
