@@ -26,10 +26,10 @@ BEGIN;
 DROP POLICY IF EXISTS notifications_patient_select ON notifications;
 DROP POLICY IF EXISTS notifications_patient_update ON notifications;
 
--- Step 2: Drop the index (cascades from DROP TABLE but listed for symmetry).
-DROP INDEX IF EXISTS notifications_patient_pending_idx;
-
--- Step 3: Drop the table.
+-- Step 2: Drop the table. The patient_pending index is dropped implicitly
+-- as part of the table drop (an explicit DROP INDEX even with CONCURRENTLY
+-- adds no value here and would also conflict with this transaction block).
+-- squawk-ignore ban-drop-table
 DROP TABLE IF EXISTS notifications;
 
 -- Step 4: Drop the enum type. Must come after the table since the
