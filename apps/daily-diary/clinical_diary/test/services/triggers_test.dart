@@ -45,8 +45,10 @@ class _FakeTimer implements Timer {
 /// can drive it.
 class _FakeTimerFactory {
   _FakeTimer? lastTimer;
+  final List<Duration> intervals = [];
 
-  Timer call(Duration _, VoidCallback onTick) {
+  Timer call(Duration interval, VoidCallback onTick) {
+    intervals.add(interval);
     lastTimer = _FakeTimer(onTick);
     return lastTimer!;
   }
@@ -516,6 +518,180 @@ void main() {
 
         expect(triggerCount, 0, reason: 'no trigger should fire after dispose');
 
+        await connectivityController.close();
+        await fcmMessageController.close();
+        await fcmOpenedController.close();
+      },
+    );
+  });
+
+  // ---- Dynamic periodic interval (CUR-1311) -------------------------------
+
+  group('Dynamic periodic interval', () {
+    test(
+      // Verifies: REQ-d00164-B (refined — interval is dynamic when FCM
+      // permission is denied).
+      'interval change after onTrigger cancels timer and reinstalls at new cadence',
+      () async {
+        final lifecycleCapture = _LifecycleCapture();
+        final timerFactory = _FakeTimerFactory();
+        final connectivityController =
+            StreamController<List<ConnectivityResult>>();
+        final fcmMessageController = StreamController<RemoteMessage>();
+        final fcmOpenedController = StreamController<RemoteMessage>();
+
+        // Starts denied = false (long cadence), flips to true mid-test to
+        // simulate the bootstrap probe noticing a permission revocation
+        // during fullSync.
+        var denied = false;
+
+        final handles = await installTriggers(
+          onTrigger: () async {
+            triggerCount++;
+            denied = true;
+          },
+          periodicInterval: () =>
+              denied ? const Duration(minutes: 2) : const Duration(minutes: 15),
+          lifecycleObserverFactory: lifecycleCapture.call,
+          periodicTimerFactory: timerFactory.call,
+          connectivityStreamFactory: () => connectivityController.stream,
+          fcmOnMessageStreamFactory: () => fcmMessageController.stream,
+          fcmOnOpenedStreamFactory: () => fcmOpenedController.stream,
+        );
+
+        expect(timerFactory.intervals, [const Duration(minutes: 15)]);
+        final initialTimer = timerFactory.lastTimer!;
+
+        // Fire a trigger via FCM onMessage — the onTrigger sets denied=true,
+        // and after the chain settles installTriggers should rotate the timer.
+        fcmMessageController.add(_fakeMessage());
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(triggerCount, 1);
+        expect(
+          initialTimer.isActive,
+          isFalse,
+          reason: 'old timer should be cancelled when interval changes',
+        );
+        expect(
+          timerFactory.intervals,
+          [const Duration(minutes: 15), const Duration(minutes: 2)],
+          reason: 'a new timer should be created at the shortened cadence',
+        );
+        expect(timerFactory.lastTimer, isNot(same(initialTimer)));
+
+        await handles.dispose();
+        await connectivityController.close();
+        await fcmMessageController.close();
+        await fcmOpenedController.close();
+      },
+    );
+
+    test(
+      // Verifies: REQ-d00164-B — same interval across consecutive triggers
+      // does not churn the timer (regression guard against per-tick reset).
+      'unchanged interval does not recreate the timer',
+      () async {
+        final lifecycleCapture = _LifecycleCapture();
+        final timerFactory = _FakeTimerFactory();
+        final connectivityController =
+            StreamController<List<ConnectivityResult>>();
+        final fcmMessageController = StreamController<RemoteMessage>();
+        final fcmOpenedController = StreamController<RemoteMessage>();
+
+        final handles = await installTriggers(
+          onTrigger: onTrigger,
+          periodicInterval: () => const Duration(minutes: 15),
+          lifecycleObserverFactory: lifecycleCapture.call,
+          periodicTimerFactory: timerFactory.call,
+          connectivityStreamFactory: () => connectivityController.stream,
+          fcmOnMessageStreamFactory: () => fcmMessageController.stream,
+          fcmOnOpenedStreamFactory: () => fcmOpenedController.stream,
+        );
+
+        final initialTimer = timerFactory.lastTimer!;
+
+        fcmMessageController
+          ..add(_fakeMessage())
+          ..add(_fakeMessage());
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(triggerCount, 2);
+        expect(
+          timerFactory.intervals.length,
+          1,
+          reason: 'no rotation expected when interval value is unchanged',
+        );
+        expect(identical(timerFactory.lastTimer, initialTimer), isTrue);
+
+        await handles.dispose();
+        await connectivityController.close();
+        await fcmMessageController.close();
+        await fcmOpenedController.close();
+      },
+    );
+
+    test(
+      // Verifies: REQ-d00164-B — re-granted permission swings the cadence
+      // back to the long interval. Symmetric counterpart to the denial test
+      // above; without this, a future refactor could leave the system stuck
+      // on 2 min after the user re-enables notifications in Settings.
+      'permission re-granted after denial returns timer to long cadence',
+      () async {
+        final lifecycleCapture = _LifecycleCapture();
+        final timerFactory = _FakeTimerFactory();
+        final connectivityController =
+            StreamController<List<ConnectivityResult>>();
+        final fcmMessageController = StreamController<RemoteMessage>();
+        final fcmOpenedController = StreamController<RemoteMessage>();
+
+        // Sequence the probe simulation: denied → denied → granted.
+        // The first fcm trigger flips to denied (short); the second flips
+        // back to granted (long). Asserting both transitions in one test
+        // documents the full state machine in one place.
+        var denied = true;
+
+        final handles = await installTriggers(
+          onTrigger: () async {
+            triggerCount++;
+            // After the first trigger, simulate the user opening Settings
+            // and re-enabling notifications.
+            if (triggerCount == 1) denied = false;
+          },
+          periodicInterval: () =>
+              denied ? const Duration(minutes: 2) : const Duration(minutes: 15),
+          lifecycleObserverFactory: lifecycleCapture.call,
+          periodicTimerFactory: timerFactory.call,
+          connectivityStreamFactory: () => connectivityController.stream,
+          fcmOnMessageStreamFactory: () => fcmMessageController.stream,
+          fcmOnOpenedStreamFactory: () => fcmOpenedController.stream,
+        );
+
+        // Initial creation is on the short cadence (denied=true at install).
+        expect(timerFactory.intervals, [const Duration(minutes: 2)]);
+        final shortTimer = timerFactory.lastTimer!;
+
+        // Trigger once: onTrigger flips denied=false; rotation should swap
+        // the timer to the long cadence after the chain settles.
+        fcmMessageController.add(_fakeMessage());
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(triggerCount, 1);
+        expect(
+          shortTimer.isActive,
+          isFalse,
+          reason: 'short-cadence timer should be cancelled',
+        );
+        expect(timerFactory.intervals, [
+          const Duration(minutes: 2),
+          const Duration(minutes: 15),
+        ], reason: 'rotated to long cadence on re-grant');
+        expect(timerFactory.lastTimer, isNot(same(shortTimer)));
+
+        await handles.dispose();
         await connectivityController.close();
         await fcmMessageController.close();
         await fcmOpenedController.close();

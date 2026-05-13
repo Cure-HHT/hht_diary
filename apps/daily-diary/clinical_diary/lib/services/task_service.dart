@@ -10,6 +10,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:comms/comms.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -168,6 +169,25 @@ class TaskService extends ChangeNotifier {
         _triggerSync();
       default:
         debugPrint('[TaskService] Unknown message type: $type');
+    }
+  }
+
+  /// CUR-1311 P1B.5: Route an envelope-fetched questionnaire notification.
+  ///
+  /// Accepts both legacy verbs (`new_task`, `remove_task`) and spec-compliant
+  /// verbs (`sent`, `deleted`) per handoff deviation #3.
+  void handleEnvelopeQuestionnaireUpdate(Envelope envelope) {
+    final action = envelope.payload['action'] as String?;
+    switch (action) {
+      case 'new_task' || 'sent':
+        _handleQuestionnaireSent(envelope.payload);
+      case 'remove_task' || 'deleted':
+        _handleQuestionnaireDeleted(envelope.payload);
+      case 'unlock_task' || 'unlocked':
+      case 'lock_task' || 'finalized':
+        _triggerSync();
+      default:
+        debugPrint('[TaskService] Unknown questionnaire action: $action');
     }
   }
 
