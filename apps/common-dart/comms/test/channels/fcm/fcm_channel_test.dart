@@ -274,7 +274,12 @@ void main() {
           );
 
           final apns = sentMessage['apns'] as Map<String, dynamic>;
-          expect(apns['headers'], equals({'apns-priority': '10'}));
+          expect(
+            apns['headers'],
+            equals({'apns-priority': '10', 'apns-push-type': 'alert'}),
+            reason:
+                'apns-push-type=alert required on iOS 13+ for user-visible push',
+          );
           expect(apns.containsKey('payload'), isFalse);
           // notification block present (system tray).
           expect(sentMessage.containsKey('notification'), isTrue);
@@ -305,7 +310,13 @@ void main() {
           );
 
           final apns = sentMessage['apns'] as Map<String, dynamic>;
-          expect(apns['headers'], equals({'apns-priority': '5'}));
+          expect(
+            apns['headers'],
+            equals({'apns-priority': '5', 'apns-push-type': 'background'}),
+            reason:
+                'apns-push-type=background required on iOS 13+ — without it '
+                'APNs silently drops the message even though FCM returns 200',
+          );
           final apnsPayload = apns['payload'] as Map<String, dynamic>;
           final aps = apnsPayload['aps'] as Map<String, dynamic>;
           expect(aps['content-available'], equals(1));
