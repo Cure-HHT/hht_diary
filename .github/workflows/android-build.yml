@@ -84,7 +84,7 @@ jobs:
             # push to main → continuous deployment defaults
             FLAVOR="dev"
             TRACK="internal"
-            STATUS="draft"
+            STATUS="completed"
           fi
           # UAT Play Console listing is in "Draft app" state; the API rejects
           # any release whose status isn't "draft" while the listing is unpublished.

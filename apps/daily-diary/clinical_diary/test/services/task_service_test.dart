@@ -441,6 +441,62 @@ void main() {
         expect(requestCount, equals(1));
       });
 
+      // CUR-1311 Phase 1B: envelope-path wire values. The 3-value
+      // NotificationType enum collapses every questionnaire sub-action
+      // (sent / deleted / unlocked / finalized) into `questionnaire_update`
+      // — the mobile must trigger a sync to reconcile via /tasks. Without
+      // this case, a silent `questionnaire_deleted` envelope would leave
+      // the local task stuck on screen until the next periodic sync.
+      test('questionnaire_update (envelope wire) triggers /tasks pull — '
+          'covers the silent-delete case', () async {
+        var requestCount = 0;
+        final client = MockClient((request) async {
+          requestCount++;
+          return http.Response(
+            jsonEncode({
+              'tasks': <Map<String, dynamic>>[],
+              'isDisconnected': false,
+            }),
+            200,
+          );
+        });
+
+        TaskService(
+          httpClient: client,
+          enrollmentService: mockEnrollment,
+        ).handleFcmMessage({
+          'type': 'questionnaire_update',
+          'action': 'remove_task',
+          'notification_id': 'env-1',
+          'questionnaire_instance_id': 'inst-789',
+        });
+        await pumpEventQueue();
+
+        expect(requestCount, equals(1));
+      });
+
+      test('reminder (envelope wire) triggers /tasks pull', () async {
+        var requestCount = 0;
+        final client = MockClient((request) async {
+          requestCount++;
+          return http.Response(
+            jsonEncode({
+              'tasks': <Map<String, dynamic>>[],
+              'isDisconnected': false,
+            }),
+            200,
+          );
+        });
+
+        TaskService(
+          httpClient: client,
+          enrollmentService: mockEnrollment,
+        ).handleFcmMessage({'type': 'reminder', 'notification_id': 'env-r1'});
+        await pumpEventQueue();
+
+        expect(requestCount, equals(1));
+      });
+
       test(
         'patient_status_update no-ops when EnrollmentService missing',
         () async {
