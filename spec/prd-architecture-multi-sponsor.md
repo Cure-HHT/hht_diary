@@ -1,9 +1,9 @@
 ## REQ-p00008: Single Mobile App for All Sponsors
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00001, REQ-p00001-A, REQ-p00001-G, REQ-p00001-J
+**Refines**: REQ-p00001, REQ-p00001-A+G+J
 
-## Assertions
+### Assertions
 
 A. The platform SHALL publish exactly one mobile application listing in the iOS App Store.
 
@@ -29,7 +29,7 @@ K. The mobile application package size SHALL remain within reasonable limits for
 
 L. The system SHALL NOT allow configuration or data from one sponsor to be accessible to patients enrolled with a different sponsor.
 
-## Rationale
+### Rationale
 
 This requirement establishes a unified mobile application architecture that simplifies the patient experience while maintaining strict sponsor isolation. By publishing a single app under sponsor branding, patients can easily find and download one application regardless of which pharmaceutical sponsor's trial they are enrolled in. This approach eliminates confusion from multiple app listings, ensures consistent quality and security updates across all sponsors simultaneously, and reduces maintenance overhead. Dynamic configuration loading based on enrollment links allows the app to serve multiple sponsors without exposing sponsor participation or allowing cross-sponsor data access. This design aligns with multi-sponsor isolation requirements (REQ-p00001) while optimizing operational efficiency and user experience.
 
@@ -38,9 +38,9 @@ This requirement establishes a unified mobile application architecture that simp
 ## REQ-p00009: Sponsor-Specific Portals
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00001, REQ-p00001-A, REQ-p00001-B, REQ-p00001-F
+**Refines**: REQ-p00001, REQ-p00001-A+B+F
 
-## Assertions
+### Assertions
 
 A. The platform SHALL provide a dedicated web portal for each sponsor at a unique URL.
 
@@ -58,7 +58,7 @@ G. Each sponsor portal SHALL support independent customization without affecting
 
 H. The portal SHALL NOT be capable of querying database records belonging to other sponsors.
 
-## Rationale
+### Rationale
 
 Web portals serve clinical staff and require strong isolation guarantees beyond those needed for patient-facing mobile apps. While patients naturally access only their own data through mobile interfaces, portal users could potentially access multiple trials across different sponsors. Dedicated web portals at unique URLs provide organizational and technical isolation to ensure sponsors never access each other's data, supporting the multi-sponsor deployment model defined in REQ-p00001. This isolation extends to authentication, data queries, navigation, and customization capabilities.
 
@@ -67,9 +67,9 @@ Web portals serve clinical staff and require strong isolation guarantees beyond 
 ## REQ-p00018: Multi-Site Support Per Sponsor
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p70001-D, REQ-p70001-E
+**Refines**: REQ-p70001-D+E
 
-## Assertions
+### Assertions
 
 A. The system SHALL support multiple clinical trial sites within each sponsor's isolated environment.
 
@@ -99,7 +99,7 @@ M. The system SHALL track site assignments in the audit trail.
 
 N. The system SHALL include site information in data exports for regulatory submission.
 
-## Rationale
+### Rationale
 
 Clinical trials typically involve multiple sites (hospitals, clinics, research centers) coordinating under one sponsor. Each site needs independent operation while contributing to the sponsor's unified trial. Site-level access control prevents investigators at one site from accessing another site's data, maintaining data integrity and regulatory compliance. This requirement ensures proper isolation between sites while enabling sponsor-level oversight and reporting across the entire trial.
 
@@ -108,9 +108,9 @@ Clinical trials typically involve multiple sites (hospitals, clinics, research c
 ## REQ-p01054: Complete Infrastructure Isolation Per Sponsor
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00001, REQ-p00001-A, REQ-p00001-B, REQ-p00001-D
+**Refines**: REQ-p00001, REQ-p00001-A+B+D
 
-## Assertions
+### Assertions
 
 A. The platform SHALL provide completely isolated cloud infrastructure for each sponsor.
 
@@ -130,7 +130,7 @@ H. Serverless functions SHALL NOT access resources belonging to other sponsors.
 
 J. The platform SHALL implement network isolation to prevent cross-sponsor traffic.
 
-## Rationale
+### Rationale
 
 Complete infrastructure isolation ensures data security, regulatory compliance, and prevents any possibility of data leakage between sponsors. This supports FDA 21 CFR Part 11 requirements for data integrity and access control by ensuring that each sponsor's electronic records and signatures remain completely segregated at the infrastructure level, eliminating any technical possibility of unauthorized cross-sponsor data access.
 
@@ -141,7 +141,7 @@ Complete infrastructure isolation ensures data security, regulatory compliance, 
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009-G
 
-## Assertions
+### Assertions
 
 A. The platform SHALL use a mono repository architecture for core platform code.
 
@@ -169,7 +169,7 @@ L. The system SHALL require approval from authorized Developer personnel for all
 
 M. Access control mechanisms SHALL enforce sponsor repository isolation.
 
-## Rationale
+### Rationale
 
 This requirement establishes a mono repository architecture that balances centralized platform development with sponsor-specific customization needs. The mono repository pattern enables efficient sharing of core platform improvements, dependency management, and coordinated releases while maintaining strict isolation between sponsors. Each sponsor receives a dedicated repository for their configurations, branding assets, and customizations, allowing them to review and approve changes specific to their implementation without exposing them to core platform code or other sponsors' proprietary customizations. This architecture supports the multi-sponsor deployment model required for clinical trial platforms where multiple organizations may be running trials simultaneously while maintaining data and configuration isolation for regulatory compliance and competitive separation.
 
@@ -180,7 +180,7 @@ This requirement establishes a mono repository architecture that balances centra
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00008-J
 
-## Assertions
+### Assertions
 
 A. The system SHALL require approval from all Sponsors currently collecting data before releasing any version of the shared Diary App.
 
@@ -200,7 +200,7 @@ H. Each Sponsor SHALL maintain an agreement with the Operator regarding waiver c
 
 I. The release process SHALL document approval status from all active Sponsors for each release.
 
-## Rationale
+### Rationale
 
 The unified deployment model requires that all sponsors share the same production software version, creating a dependency where changes affecting any sponsor could impact all sponsors. This necessitates collective approval before releases to ensure the shared platform meets each sponsor's clinical trial requirements. The multi-sponsor UAT process balances operational efficiency with risk management, allowing emergency overrides when system stability is at risk while maintaining transparency through post-release validation and notification requirements.
 
@@ -211,7 +211,7 @@ The unified deployment model requires that all sponsors share the same productio
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00045-A
 
-## Assertions
+### Assertions
 
 A. The system SHALL NOT permit changes to patient application logic during the active trial period for users enrolled in that trial without documented justification and approval.
 
@@ -223,7 +223,7 @@ D. UX change requests during active trials SHALL require Sponsor approval before
 
 E. The system SHALL require a documented change impact assessment before implementing any patient UX modifications during the trial period.
 
-## Rationale
+### Rationale
 
 Changes to the patient user experience during active trials can affect the data collected, potentially compromising data integrity and regulatory compliance. Trial protocol consistency is essential for FDA 21 CFR Part 11 compliance. Maintaining consistent UX throughout a trial period ensures that all enrolled participants experience the same application behavior, preventing confounding variables that could invalidate trial results or violate regulatory requirements.
 
@@ -234,7 +234,7 @@ Changes to the patient user experience during active trials can affect the data 
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00001, REQ-p00001-A
 
-## Assertions
+### Assertions
 
 A. The system SHALL allow sponsors to request modifications ("Customizations") to the standard UX to support their trial protocol.
 
@@ -258,7 +258,7 @@ J. The system SHALL require both customer and operator approval for changes to s
 
 K. The system SHALL document custom features in the sponsor repository.
 
-## Rationale
+### Rationale
 
 Minimizing customization reduces maintenance burden and code divergence as sponsor count grows. The system embodies best-practices for Diary data collection, therefore gratuitous changes are counter to this objective. A clear policy defines when customizations are allowed, how they are governed, and ensures sponsor-specific modifications remain confidential and isolated.
 
@@ -267,9 +267,9 @@ Minimizing customization reduces maintenance burden and code divergence as spons
 ## REQ-p01055: Sponsor Confidentiality
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00001, REQ-p00001-A, REQ-p00001-J
+**Refines**: REQ-p00001, REQ-p00001-A+J
 
-## Assertions
+### Assertions
 
 A. The operator SHALL NOT divulge the participation of any sponsor publicly or privately without written agreement from that sponsor.
 
@@ -295,7 +295,7 @@ K. The system SHALL NOT include sponsor identifiers in app metadata or store lis
 
 L. The system SHALL require valid enrollment credentials for configuration download.
 
-## Rationale
+### Rationale
 
 Clinical trial activity is proprietary business information. Using a shared multi-sponsor application platform creates inherent confidentiality risks for sponsors, as competitors or the public could potentially identify their clinical trial activities, therapeutic areas, or strategic initiatives. This requirement protects sponsor confidentiality by ensuring the base diary application contains no sponsor-identifying information until a participant has been explicitly linked to a specific sponsor through authenticated enrollment credentials. This isolation prevents inadvertent disclosure of sponsor participation and allows sponsors to maintain competitive confidentiality around their clinical programs while still benefiting from a shared platform infrastructure.
 
@@ -304,9 +304,9 @@ Clinical trial activity is proprietary business information. Using a shared mult
 ## REQ-p01056: Confidentiality Sufficiency
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p01055, REQ-p01055-A, REQ-p01055-B
+**Refines**: REQ-p01055, REQ-p01055-A+B
 
-## Assertions
+### Assertions
 
 A. The Operator and Sponsor contract SHALL state that REQ-p01055 constitutes sufficient protection against unwanted exposure of the Sponsor's trial.
 
@@ -318,7 +318,7 @@ D. The contract SHALL reference REQ-p01055 protections explicitly.
 
 E. The contract SHALL include Sponsor acknowledgment of the limitations of technical protections.
 
-## Rationale
+### Rationale
 
 This requirement establishes contractual acknowledgment of the inherent limitations in protecting sponsor confidentiality in a clinical trial system. While the system implements technical protections (REQ-p01055) to restrict information sharing between the Operator and Users, it cannot control what information Users choose to share externally after receiving it. The contract creates a legal framework that sets realistic expectations about the scope of confidentiality protections the Operator can provide, clarifying that technical measures address operator-side risks but cannot prevent User-initiated disclosure. This contractual clarity is essential for informed consent and risk allocation between parties.
 

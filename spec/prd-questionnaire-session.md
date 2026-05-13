@@ -79,10 +79,11 @@ Q. When the app is resumed after being closed by the OS, if a questionnaire is i
 
 ## Changelog
 
+- 2026-05-13 | 109eef11 | - | Michael Lewis (michael@anspar.org) | Auto-fix: update hash
 - 2026-05-02 | 994067e9 | - | Michael Lewis (michael@anspar.org) | Auto-fix: update hash
 - 2026-04-24 | 3ab0f2f1 | - | Developer (dev@example.com) | Auto-fix: add missing changelog section
 
-*End* *Questionnaire Session Management* | **Hash**: 994067e9
+*End* *Questionnaire Session Management* | **Hash**: 109eef11
 
 ---
 

@@ -117,7 +117,7 @@
 | REQ-p01070 | NOSE HHT User Interface                             | prd-questionnaire-nose-hht.md       | 84fa171d |
 | REQ-p01071 | HHT Quality of Life User Interface                  | prd-questionnaire-qol.md            | a231a942 |
 | REQ-p01072 | Mobile App Linking Status and History               | prd-diary-app.md                    | cf32de6c |
-| REQ-p01073 | Questionnaire Session Management                    | prd-questionnaire-session.md        | 994067e9 |
+| REQ-p01073 | Questionnaire Session Management                    | prd-questionnaire-session.md        | 109eef11 |
 | REQ-p01074 | User-Facing State Change Communication              | prd-system.md                       | ec6b0b1d |
 | REQ-p01075 | Top Navigation Bar                                  | prd-diary-gui.md                    | 027debad |
 | REQ-p01076 | User Menu                                           | prd-diary-gui.md                    | 9c51b097 |
