@@ -122,12 +122,17 @@ class FcmChannel implements Channel<FcmMessage> {
     // wake the app regardless.
     payload['android'] = const <String, dynamic>{'priority': 'high'};
 
+    // apns-push-type is REQUIRED on iOS 13+. FCM v1 does NOT auto-add
+    // it (contrary to older Firebase docs). Without `background` on a
+    // silent push, APNs drops the message even though FCM returns 200.
+    // Alert pushes get `alert`; silent get `background`. See
+    // https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns#Add-headers-to-the-notification-request
     payload['apns'] = message.userVisible
         ? const <String, dynamic>{
-            'headers': {'apns-priority': '10'},
+            'headers': {'apns-priority': '10', 'apns-push-type': 'alert'},
           }
         : const <String, dynamic>{
-            'headers': {'apns-priority': '5'},
+            'headers': {'apns-priority': '5', 'apns-push-type': 'background'},
             'payload': {
               'aps': {'content-available': 1},
             },
