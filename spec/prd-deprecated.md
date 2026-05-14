@@ -86,19 +86,6 @@ This requirement was removed.
 *End* *Password Complexity* | **Hash**: 93a09d35
 ---
 
-# REQ-p01043: Web Diary Authentication via Linking Code
-
-**Level**: prd | **Status**: Deprecated | **Implements**: -
-**Refines**: REQ-p01086
-
-## Assertions
-
-A. This requirement has been deprecated and SHALL NOT be implemented.
-This requirement was removed. See spec/roadmap/prd-diary-web.md.
-
-*End* *Web Diary Authentication via Linking Code* | **Hash**: 7cf5512f
----
-
 # REQ-p01062: GDPR Data Portability
 
 **Level**: prd | **Status**: Deprecated | **Implements**: -

@@ -70,7 +70,7 @@ skip = ["node_modules", ".git", "__pycache__", "*.pyc", ".venv", ".env"]
 [scanning.spec] # Spec file scanning
 directories = ["spec"]
 file_patterns = ["*.md"]
-skip_files = ["README.md", "requirements-format.md", "INDEX.md"]
+skip_files = ["README.md", "requirements-format.md", "INDEX.md", "EXAMPLE-requirement.md"]
 # NFR/ contains sponsor-shared governance / authoring guidance (style guide,
 # review checklist, glossary, SDLC SOP) imported from the platform repo. Its
 # requirements use a different namespace (REQ-CAL-*) and are intentionally not
