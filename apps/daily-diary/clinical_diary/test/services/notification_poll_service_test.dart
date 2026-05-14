@@ -6,6 +6,7 @@
 
 import 'dart:convert';
 
+import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/services/notification_poll_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -469,7 +470,13 @@ void main() {
       expect(await mockEnrollment.isDisconnected(), isTrue);
     });
 
-    test('patient_status_update + reconnect → clears disconnected', () async {
+    // CUR-1343 / REQ-p70011/F: A `reconnect` envelope means the portal has
+    // issued a NEW linking code; mobile must hold the disconnected flag until
+    // the patient enters the new code. The status notifier flips to
+    // linkingInProgress so the banner and profile badge swap their copy.
+    // Verifies: REQ-p70011/F
+    test('patient_status_update + reconnect → holds disconnected and flips '
+        'linking status to linkingInProgress', () async {
       await mockEnrollment.setDisconnected(true);
 
       final envelopes = [
@@ -488,7 +495,11 @@ void main() {
       );
 
       await service.poll();
-      expect(await mockEnrollment.isDisconnected(), isFalse);
+      expect(await mockEnrollment.isDisconnected(), isTrue);
+      expect(
+        mockEnrollment.linkingStatusNotifier.value,
+        MobileLinkingStatus.linkingInProgress,
+      );
     });
 
     test(

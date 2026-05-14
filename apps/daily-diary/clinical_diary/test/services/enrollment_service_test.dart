@@ -7,8 +7,10 @@
 
 import 'dart:convert';
 
+import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:comms/comms.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -644,6 +646,140 @@ void main() {
 
         final result = await service.isDisconnected();
         expect(result, true);
+      });
+
+      // CUR-1343 / REQ-p70011/F: Patient reconnection workflow tests.
+      Envelope buildStatusEnvelope(String action) {
+        return Envelope.fromJson({
+          'notification_id': 'env-test',
+          'patient_id': 'patient-1',
+          'type': 'patient_status_update',
+          'title': 'status',
+          'payload': {'action': action},
+          'status': 'sent',
+          'created_at': DateTime.now().toUtc().toIso8601String(),
+        });
+      }
+
+      // Verifies: REQ-p70011/F
+      test('reconnect envelope sets status to linkingInProgress and '
+          'keeps disconnected true', () async {
+        await service.setDisconnected(true);
+        service.linkingStatusNotifier.value = MobileLinkingStatus.disconnected;
+
+        service.handleEnvelopeStatusUpdate(buildStatusEnvelope('reconnect'));
+
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(
+          service.linkingStatusNotifier.value,
+          MobileLinkingStatus.linkingInProgress,
+        );
+        expect(service.disconnectedNotifier.value, true);
+        expect(await service.isDisconnected(), true);
+      });
+
+      // Verifies: REQ-p70011/F
+      test('reconnect envelope forces disconnected true even if previously '
+          'false (push-delivery race guard)', () async {
+        await service.setDisconnected(false);
+        service.linkingStatusNotifier.value = MobileLinkingStatus.connected;
+
+        service.handleEnvelopeStatusUpdate(buildStatusEnvelope('reconnect'));
+
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(
+          service.linkingStatusNotifier.value,
+          MobileLinkingStatus.linkingInProgress,
+        );
+        expect(service.disconnectedNotifier.value, true);
+      });
+
+      // Verifies: REQ-p70011/F
+      test('disconnect envelope sets status to disconnected, not '
+          'linkingInProgress', () async {
+        service.linkingStatusNotifier.value = MobileLinkingStatus.connected;
+
+        service.handleEnvelopeStatusUpdate(buildStatusEnvelope('disconnect'));
+
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(
+          service.linkingStatusNotifier.value,
+          MobileLinkingStatus.disconnected,
+        );
+        expect(service.disconnectedNotifier.value, true);
+      });
+
+      // Verifies: REQ-p70011/F
+      test('processDisconnectionStatus with linking_in_progress flips '
+          'disconnected on and sets status to linkingInProgress', () async {
+        final response = {
+          'isDisconnected': false,
+          'mobileLinkingStatus': 'linking_in_progress',
+        };
+
+        final result = service.processDisconnectionStatus(response);
+
+        expect(result, true);
+        expect(
+          service.linkingStatusNotifier.value,
+          MobileLinkingStatus.linkingInProgress,
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(await service.isDisconnected(), true);
+      });
+
+      // Verifies: REQ-p70011/G
+      test('processDisconnectionStatus with connected clears disconnected '
+          'and sets status to connected', () async {
+        await service.setDisconnected(true);
+        service.linkingStatusNotifier.value =
+            MobileLinkingStatus.linkingInProgress;
+
+        final response = {
+          'isDisconnected': false,
+          'mobileLinkingStatus': 'connected',
+        };
+        final result = service.processDisconnectionStatus(response);
+
+        expect(result, false);
+        expect(
+          service.linkingStatusNotifier.value,
+          MobileLinkingStatus.connected,
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        expect(await service.isDisconnected(), false);
+      });
+
+      // Verifies: REQ-p70011/F
+      test('parseMobileLinkingStatus round-trips every server enum value', () {
+        expect(
+          parseMobileLinkingStatus('connected'),
+          MobileLinkingStatus.connected,
+        );
+        expect(
+          parseMobileLinkingStatus('linking_in_progress'),
+          MobileLinkingStatus.linkingInProgress,
+        );
+        expect(
+          parseMobileLinkingStatus('disconnected'),
+          MobileLinkingStatus.disconnected,
+        );
+        expect(
+          parseMobileLinkingStatus('not_participating'),
+          MobileLinkingStatus.notParticipating,
+        );
+        expect(
+          parseMobileLinkingStatus('not_connected'),
+          MobileLinkingStatus.notConnected,
+        );
+        expect(
+          parseMobileLinkingStatus(null),
+          MobileLinkingStatus.notConnected,
+        );
+        expect(
+          parseMobileLinkingStatus('garbage'),
+          MobileLinkingStatus.notConnected,
+        );
       });
     });
 
