@@ -11,9 +11,7 @@ void main() {
     testWidgets('displays child widget', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: ResponsiveWebFrame(
-            child: Text('Test Content'),
-          ),
+          home: ResponsiveWebFrame(child: Text('Test Content')),
         ),
       );
 
@@ -21,18 +19,13 @@ void main() {
     });
 
     testWidgets('default maxWidth is 540', (tester) async {
-      const frame = ResponsiveWebFrame(
-        child: SizedBox(),
-      );
+      const frame = ResponsiveWebFrame(child: SizedBox());
 
       expect(frame.maxWidth, 540);
     });
 
     testWidgets('accepts custom maxWidth', (tester) async {
-      const frame = ResponsiveWebFrame(
-        maxWidth: 800,
-        child: SizedBox(),
-      );
+      const frame = ResponsiveWebFrame(maxWidth: 800, child: SizedBox());
 
       expect(frame.maxWidth, 800);
     });
@@ -47,9 +40,7 @@ void main() {
     });
 
     testWidgets('backgroundColor defaults to null', (tester) async {
-      const frame = ResponsiveWebFrame(
-        child: SizedBox(),
-      );
+      const frame = ResponsiveWebFrame(child: SizedBox());
 
       expect(frame.backgroundColor, isNull);
     });
@@ -87,9 +78,7 @@ void main() {
 
     testWidgets('child is required', (tester) async {
       // Verify that child is a required parameter
-      const frame = ResponsiveWebFrame(
-        child: Text('Required'),
-      );
+      const frame = ResponsiveWebFrame(child: Text('Required'));
 
       expect(frame.child, isA<Text>());
     });

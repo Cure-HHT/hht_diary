@@ -129,7 +129,10 @@ void main() {
       test('values are in severity order', () {
         expect(NosebleedIntensity.values[0], NosebleedIntensity.spotting);
         expect(NosebleedIntensity.values[1], NosebleedIntensity.dripping);
-        expect(NosebleedIntensity.values[2], NosebleedIntensity.drippingQuickly);
+        expect(
+          NosebleedIntensity.values[2],
+          NosebleedIntensity.drippingQuickly,
+        );
         expect(NosebleedIntensity.values[3], NosebleedIntensity.steadyStream);
         expect(NosebleedIntensity.values[4], NosebleedIntensity.pouring);
         expect(NosebleedIntensity.values[5], NosebleedIntensity.gushing);

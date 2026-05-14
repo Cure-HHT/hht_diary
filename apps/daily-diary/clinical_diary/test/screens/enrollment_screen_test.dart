@@ -50,10 +50,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestWidget(
-          enrollmentService: service,
-          onEnrolled: () {},
-        ),
+        buildTestWidget(enrollmentService: service, onEnrolled: () {}),
       );
       await tester.pumpAndSettle();
 
@@ -70,10 +67,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestWidget(
-          enrollmentService: service,
-          onEnrolled: () {},
-        ),
+        buildTestWidget(enrollmentService: service, onEnrolled: () {}),
       );
       await tester.pumpAndSettle();
 
@@ -89,10 +83,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestWidget(
-          enrollmentService: service,
-          onEnrolled: () {},
-        ),
+        buildTestWidget(enrollmentService: service, onEnrolled: () {}),
       );
       await tester.pumpAndSettle();
 
@@ -108,10 +99,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestWidget(
-          enrollmentService: service,
-          onEnrolled: () {},
-        ),
+        buildTestWidget(enrollmentService: service, onEnrolled: () {}),
       );
       await tester.pumpAndSettle();
 
@@ -131,10 +119,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestWidget(
-          enrollmentService: service,
-          onEnrolled: () {},
-        ),
+        buildTestWidget(enrollmentService: service, onEnrolled: () {}),
       );
       await tester.pumpAndSettle();
 
@@ -154,10 +139,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestWidget(
-          enrollmentService: service,
-          onEnrolled: () {},
-        ),
+        buildTestWidget(enrollmentService: service, onEnrolled: () {}),
       );
       await tester.pumpAndSettle();
 
@@ -178,10 +160,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestWidget(
-          enrollmentService: service,
-          onEnrolled: () {},
-        ),
+        buildTestWidget(enrollmentService: service, onEnrolled: () {}),
       );
       await tester.pumpAndSettle();
 
@@ -208,10 +187,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestWidget(
-          enrollmentService: service,
-          onEnrolled: () {},
-        ),
+        buildTestWidget(enrollmentService: service, onEnrolled: () {}),
       );
       await tester.pumpAndSettle();
 
@@ -237,10 +213,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestWidget(
-          enrollmentService: service,
-          onEnrolled: () {},
-        ),
+        buildTestWidget(enrollmentService: service, onEnrolled: () {}),
       );
       await tester.pumpAndSettle();
 
@@ -301,10 +274,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestWidget(
-          enrollmentService: service,
-          onEnrolled: () {},
-        ),
+        buildTestWidget(enrollmentService: service, onEnrolled: () {}),
       );
       await tester.pumpAndSettle();
 

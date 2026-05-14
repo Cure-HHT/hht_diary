@@ -33,10 +33,7 @@ void main() {
   group('CompactDatePicker', () {
     testWidgets('displays formatted date', (tester) async {
       await tester.pumpWidget(
-        buildTestWidget(
-          date: DateTime(2024, 12, 25),
-          onChange: (_) {},
-        ),
+        buildTestWidget(date: DateTime(2024, 12, 25), onChange: (_) {}),
       );
 
       // Should display date in MMM d format (e.g., "Dec 25")
@@ -46,10 +43,7 @@ void main() {
 
     testWidgets('displays calendar icon', (tester) async {
       await tester.pumpWidget(
-        buildTestWidget(
-          date: DateTime(2024, 1, 15),
-          onChange: (_) {},
-        ),
+        buildTestWidget(date: DateTime(2024, 1, 15), onChange: (_) {}),
       );
 
       expect(find.byIcon(Icons.calendar_today), findsOneWidget);
@@ -167,10 +161,7 @@ void main() {
 
     testWidgets('applies correct styling', (tester) async {
       await tester.pumpWidget(
-        buildTestWidget(
-          date: DateTime(2024, 3, 14),
-          onChange: (_) {},
-        ),
+        buildTestWidget(date: DateTime(2024, 3, 14), onChange: (_) {}),
       );
 
       // Find the container with border
@@ -190,19 +181,13 @@ void main() {
     testWidgets('displays different months correctly', (tester) async {
       // Test January
       await tester.pumpWidget(
-        buildTestWidget(
-          date: DateTime(2024, 1, 1),
-          onChange: (_) {},
-        ),
+        buildTestWidget(date: DateTime(2024, 1, 1), onChange: (_) {}),
       );
       expect(find.textContaining('Jan'), findsOneWidget);
 
       // Test July
       await tester.pumpWidget(
-        buildTestWidget(
-          date: DateTime(2024, 7, 4),
-          onChange: (_) {},
-        ),
+        buildTestWidget(date: DateTime(2024, 7, 4), onChange: (_) {}),
       );
       await tester.pumpAndSettle();
       expect(find.textContaining('Jul'), findsOneWidget);

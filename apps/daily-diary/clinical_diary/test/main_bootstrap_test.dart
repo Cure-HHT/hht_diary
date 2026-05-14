@@ -52,9 +52,7 @@ void main() {
     });
 
     test('handles empty string as no device ID', () async {
-      SharedPreferences.setMockInitialValues({
-        deviceIdKey: '',
-      });
+      SharedPreferences.setMockInitialValues({deviceIdKey: ''});
 
       final prefs = await SharedPreferences.getInstance();
       var existing = prefs.getString(deviceIdKey);
@@ -216,11 +214,7 @@ void main() {
       // Before runtime is initialized, should show loading
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          ),
+          home: Scaffold(body: Center(child: CircularProgressIndicator())),
         ),
       );
 

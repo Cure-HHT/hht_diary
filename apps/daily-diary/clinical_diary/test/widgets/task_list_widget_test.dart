@@ -21,10 +21,7 @@ void main() {
   }) {
     return MaterialApp(
       home: Scaffold(
-        body: TaskListWidget(
-          taskService: taskService,
-          onTaskTap: onTaskTap,
-        ),
+        body: TaskListWidget(taskService: taskService, onTaskTap: onTaskTap),
       ),
     );
   }
@@ -33,9 +30,7 @@ void main() {
     testWidgets('shows nothing when task list is empty', (tester) async {
       final taskService = TaskService();
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       expect(find.byType(TaskListWidget), findsOneWidget);
       // Should render SizedBox.shrink when no tasks
@@ -55,9 +50,7 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       expect(find.text('Complete Questionnaire'), findsOneWidget);
 
@@ -76,9 +69,7 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       expect(find.text('Questionnaire'), findsOneWidget);
       expect(find.text('Due today'), findsOneWidget);
@@ -105,9 +96,7 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       expect(find.text('Task One'), findsOneWidget);
       expect(find.text('Task Two'), findsOneWidget);
@@ -153,16 +142,16 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       expect(find.byIcon(Icons.assignment), findsOneWidget);
 
       taskService.dispose();
     });
 
-    testWidgets('shows correct icon for incomplete record task', (tester) async {
+    testWidgets('shows correct icon for incomplete record task', (
+      tester,
+    ) async {
       final taskService = TaskService();
       taskService.addTask(
         Task(
@@ -173,16 +162,16 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
 
       taskService.dispose();
     });
 
-    testWidgets('shows correct icon for yesterday reminder task', (tester) async {
+    testWidgets('shows correct icon for yesterday reminder task', (
+      tester,
+    ) async {
       final taskService = TaskService();
       taskService.addTask(
         Task(
@@ -193,9 +182,7 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       expect(find.byIcon(Icons.today), findsOneWidget);
 
@@ -213,9 +200,7 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       expect(find.byIcon(Icons.calendar_today), findsOneWidget);
 
@@ -233,9 +218,7 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
 
@@ -245,9 +228,7 @@ void main() {
     testWidgets('updates when task service changes', (tester) async {
       final taskService = TaskService();
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       expect(find.text('New Task'), findsNothing);
 
@@ -268,7 +249,9 @@ void main() {
       taskService.dispose();
     });
 
-    testWidgets('applies correct color scheme for questionnaire', (tester) async {
+    testWidgets('applies correct color scheme for questionnaire', (
+      tester,
+    ) async {
       final taskService = TaskService();
       taskService.addTask(
         Task(
@@ -279,9 +262,7 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(
-        buildTestWidget(taskService: taskService),
-      );
+      await tester.pumpWidget(buildTestWidget(taskService: taskService));
 
       // Find the container with decoration
       final containers = tester.widgetList<Container>(find.byType(Container));

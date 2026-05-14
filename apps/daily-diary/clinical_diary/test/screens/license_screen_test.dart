@@ -66,11 +66,11 @@ void main() {
       expect(find.byType(ListTile), findsAtLeast(2));
     });
 
-    testWidgets('tapping license entry navigates to PDF viewer', (tester) async {
+    testWidgets('tapping license entry navigates to PDF viewer', (
+      tester,
+    ) async {
       final observer = _PushObserver();
-      await tester.pumpWidget(
-        buildTestWidget(navigatorObservers: [observer]),
-      );
+      await tester.pumpWidget(buildTestWidget(navigatorObservers: [observer]));
       await tester.pumpAndSettle();
       final initialPushes = observer.pushed.length;
 

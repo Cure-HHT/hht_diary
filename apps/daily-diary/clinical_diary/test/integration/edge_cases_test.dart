@@ -19,10 +19,12 @@ void main() {
       });
 
       try {
-        await mockClient.post(
-          Uri.parse('https://api.example.com/events'),
-          body: '{"events": []}',
-        ).timeout(const Duration(milliseconds: 100));
+        await mockClient
+            .post(
+              Uri.parse('https://api.example.com/events'),
+              body: '{"events": []}',
+            )
+            .timeout(const Duration(milliseconds: 100));
         fail('Should have thrown');
       } on TimeoutException {
         // Expected
@@ -88,24 +90,21 @@ void main() {
       );
 
       // Parsing should fail
-      expect(
-        () => jsonDecode(response.body),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => jsonDecode(response.body), throwsA(isA<FormatException>()));
     });
 
     test('handles large message batch (>1000)', () async {
-      final largeBatch = List.generate(1500, (i) => {
-        'id': 'msg-$i',
-        'type': 'entry',
-        'payload': {'value': i},
-      });
+      final largeBatch = List.generate(
+        1500,
+        (i) => {
+          'id': 'msg-$i',
+          'type': 'entry',
+          'payload': {'value': i},
+        },
+      );
 
       final mockClient = MockClient((request) async {
-        return http.Response(
-          jsonEncode({'messages': largeBatch}),
-          200,
-        );
+        return http.Response(jsonEncode({'messages': largeBatch}), 200);
       });
 
       final response = await mockClient.get(
@@ -119,10 +118,7 @@ void main() {
 
     test('handles empty message batch', () async {
       final mockClient = MockClient((request) async {
-        return http.Response(
-          jsonEncode({'messages': []}),
-          200,
-        );
+        return http.Response(jsonEncode({'messages': []}), 200);
       });
 
       final response = await mockClient.get(
@@ -139,10 +135,7 @@ void main() {
     test('handles corrupt JSON on import', () {
       const corruptJson = '{"entries": [{"id": broken}]}';
 
-      expect(
-        () => jsonDecode(corruptJson),
-        throwsA(isA<FormatException>()),
-      );
+      expect(() => jsonDecode(corruptJson), throwsA(isA<FormatException>()));
     });
 
     test('handles valid but unexpected JSON structure', () {
@@ -160,12 +153,17 @@ void main() {
     });
 
     test('handles very large export data', () {
-      final largeEntries = List.generate(5000, (i) => {
-        'id': 'entry-$i',
-        'type': 'nosebleed',
-        'timestamp': DateTime.now().subtract(Duration(days: i)).toIso8601String(),
-        'data': {'duration': i * 60},
-      });
+      final largeEntries = List.generate(
+        5000,
+        (i) => {
+          'id': 'entry-$i',
+          'type': 'nosebleed',
+          'timestamp': DateTime.now()
+              .subtract(Duration(days: i))
+              .toIso8601String(),
+          'data': {'duration': i * 60},
+        },
+      );
 
       final exportData = jsonEncode({
         'entries': largeEntries,
