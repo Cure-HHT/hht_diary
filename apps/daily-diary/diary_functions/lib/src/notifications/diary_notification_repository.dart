@@ -40,7 +40,7 @@ class DiaryNotificationRepository implements NotificationRepository {
   Future<void> insertPending(Envelope envelope) {
     throw UnsupportedError(
       'DiaryNotificationRepository is read-only. Envelope writes happen on '
-      'the portal side via PgNotificationRepository (REQ-d00193).',
+      'the portal side via PgNotificationRepository (REQ-d00197).',
     );
   }
 
