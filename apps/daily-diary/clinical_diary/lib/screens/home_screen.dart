@@ -143,9 +143,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    widget.enrollmentService.getEnrollment().then(
-      (enr) => debugPrint('Patient userId: ${enr?.patientId}'),
-    );
     _loadRecords();
     _loadPreferences();
     _checkEnrollmentStatus();
