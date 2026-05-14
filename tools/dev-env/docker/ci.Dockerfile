@@ -239,7 +239,7 @@ RUN wget -q https://github.com/sbdchd/squawk/releases/download/v${SQUAWK_VERSION
 FROM ci-cloud-tools AS ci-test-tools
 
 ARG GITLEAKS_VERSION=8.29.0
-ARG ELSPAIS_VERSION=0.115.17
+ARG ELSPAIS_VERSION=0.115.21
 ARG MARKDOWNLINT_CLI_VERSION=0.46.0
 
 # Gitleaks (secret scanning)
