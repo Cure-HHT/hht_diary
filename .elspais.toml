@@ -97,14 +97,17 @@ reference_keyword = "Verifies"
 reference_patterns = []
 
 [scanning.result] # Test result file scanning
-# Disabled: PR validation (.github/scripts/validate-pr.sh) runs `elspais
-# checks` before any test phase emits JUnit/pytest result files, and no
-# downstream workflow generates them into build-reports/ either. Leaving
-# patterns configured causes elspais >=0.115 to fail tests.results on
-# every PR. Re-enable once a test-results-producing step lands ahead of
-# elspais in the validate-pr flow.
+# Patterns describe where the report-phase `elspais checks` looks for
+# JUnit / pytest results. The PR-validation readiness gate
+# (.github/scripts/validate-pr.sh) calls `elspais checks --spec --code
+# --terms`, which skips the TESTS category so this check doesn't fail
+# before any test phase has run. A separate report-phase invocation
+# (full `elspais checks`, run after the CI test workflows write JUnit
+# XML into build-reports/) is the gate that enforces tests.results.
+# Wiring JUnit emission into each test workflow + the report-phase
+# step is tracked as a follow-up under CUR-1329.
 directories = ["build-reports"]
-file_patterns = []
+file_patterns = ["**/TEST-*.xml", "pytest-results.json"]
 skip_files = []
 skip_dirs = []
 run_meta_file = ""
