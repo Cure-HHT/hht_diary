@@ -1,9 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00168: PHI-Safe FCM Payload (envelope is the persisted form,
+//   REQ-d00194: PHI-Safe FCM Payload (envelope is the persisted form,
 //               PayloadGuard runs before insert)
-//   REQ-d00169: Mobile Notifications Polling (Envelope is the wire
+//   REQ-d00195: Mobile Notifications Polling (Envelope is the wire
 //               format mobile fetches via /notifications/{id})
-//   REQ-d00170: Notification Behaviour (userVisible drives the
+//   REQ-d00196: Notification Behaviour (userVisible drives the
 //               alert vs. silent split downstream in FcmChannel)
 //
 // Persisted notification record + on-the-wire JSON shape consumed by

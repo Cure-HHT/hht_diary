@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00167: FCM Dispatch via cure-hht-admin Project (durability)
-//   REQ-d00168: PHI-Safe FCM Payload (rows go through PayloadGuard
+//   REQ-d00193: FCM Dispatch via cure-hht-admin Project (durability)
+//   REQ-d00194: PHI-Safe FCM Payload (rows go through PayloadGuard
 //               before reaching the repo via OutboxWriter)
-//   REQ-d00169: Mobile Notifications Polling (findSince + markDelivered)
+//   REQ-d00195: Mobile Notifications Polling (findSince + markDelivered)
 //
 // Postgres implementation of `comms.NotificationRepository` for the
 // sponsor portal (envelope writer side). Inserts and status updates

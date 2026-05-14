@@ -244,7 +244,7 @@ F. The server SHALL enforce device UUID verification independently of token vali
 
 ## REQ-d00166: Server-owned portal activation
 
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p01018, REQ-p20078
+**Level**: dev | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009
 
 ### Assertions
@@ -264,7 +264,7 @@ F. Identity Platform mutations SHALL precede DB mutations; failure of either SHA
 *End* *Server-owned portal activation* | **Hash**: 73193945
 ## REQ-d00167: Identity Platform binding is set only at activation
 
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p20078
+**Level**: dev | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009
 
 ### Assertions
@@ -278,7 +278,7 @@ C. VerificationResult.isValid SHALL be uid != null && error == null. No emailVer
 *End* *Identity Platform binding is set only at activation* | **Hash**: 7a932bb7
 ## REQ-d00168: Pre-authorized email uniqueness
 
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p00016, REQ-p00017, REQ-p20078
+**Level**: dev | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009
 
 ### Assertions
@@ -290,7 +290,7 @@ B. On hit, the handler SHALL return 409 with code: email_already_known. No row S
 *End* *Pre-authorized email uniqueness* | **Hash**: 0ce7ff6e
 ## REQ-d00169: Pending row cleanup endpoint
 
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p20078
+**Level**: dev | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009
 
 ### Assertions
@@ -304,7 +304,7 @@ C. Deletion SHALL cascade through portal_user_roles and portal_user_site_access.
 *End* *Pending row cleanup endpoint* | **Hash**: f8d99d20
 ## REQ-d00170: Local-stack uid stamping
 
-**Level**: dev | **Status**: Draft | **Implements**: REQ-p20078
+**Level**: dev | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009
 
 ### Assertions

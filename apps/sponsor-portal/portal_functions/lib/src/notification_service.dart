@@ -2,7 +2,7 @@
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //   REQ-CAL-p00082: Patient Alert Delivery
 //   REQ-p00049: Ancillary Platform Services (push notifications)
-//   REQ-d00167: FCM Dispatch via cure-hht-admin Project
+//   REQ-d00193: FCM Dispatch via cure-hht-admin Project
 //
 // Server-side FCM orchestrator. Phase 1A.4: the actual transport
 // (HTTP POST + ADC client + APNS payload split) moved into the
@@ -155,7 +155,7 @@ class NotificationResult {
 
 /// FCM orchestrator singleton. Sends data-only / alert push messages to
 /// patient devices. PHI is rejected by `PayloadGuard` inside the channel
-/// before any network egress (REQ-d00168).
+/// before any network egress (REQ-d00194).
 class NotificationService {
   NotificationService._();
 

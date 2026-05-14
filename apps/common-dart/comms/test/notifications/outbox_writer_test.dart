@@ -1,8 +1,8 @@
 // VERIFIES REQUIREMENTS:
-//   REQ-d00167: UNREGISTERED triggers onUnregistered callback
-//   REQ-d00168: PayloadGuard runs before persistence — a tripped guard
+//   REQ-d00193: UNREGISTERED triggers onUnregistered callback
+//   REQ-d00194: PayloadGuard runs before persistence — a tripped guard
 //               must not leave a pending row behind
-//   REQ-d00169: state machine pending → sent / failed
+//   REQ-d00195: state machine pending → sent / failed
 
 import 'package:comms/comms.dart';
 import 'package:test/test.dart';

@@ -372,11 +372,6 @@
 | REQ-d00168 | Pre-authorized email uniqueness                                 | dev-portal-api.md               | 0ce7ff6e |
 | REQ-d00169 | Pending row cleanup endpoint                                    | dev-portal-api.md               | f8d99d20 |
 | REQ-d00170 | Local-stack uid stamping                                        | dev-portal-api.md               | e8bd0d01 |
-| REQ-d00171 | Outbox-Write-Then-Dispatch Sequencing                           | dev-notifications.md            | ef482c01 |
-| REQ-d00172 | Reactive Task List Updates                                      | dev-notifications.md            | 62ae725c |
-| REQ-d00173 | Send Handler Trigger And Suppression                            | dev-notifications.md            | 2bcf40fa |
-| REQ-d00174 | Yesterday Reminder Daily Scheduling, Timezone-Aware             | dev-notifications.md            | c54ba935 |
-| REQ-d00175 | Yesterday Reminder Suppression                                  | dev-notifications.md            | 2a548f43 |
 | REQ-d00192 | Notifications Table Envelope Schema                             | dev-notifications-v2.md         | 36d3e0c1 |
 | REQ-d00193 | Comms FCM Channel Transport                                     | dev-notifications-v2.md         | efe5a3eb |
 | REQ-d00194 | PHI-Safe FCM Payload                                            | dev-notifications-v2.md         | 8e4a991e |

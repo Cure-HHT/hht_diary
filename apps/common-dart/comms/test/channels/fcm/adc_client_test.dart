@@ -1,5 +1,5 @@
 // VERIFIES REQUIREMENTS:
-//   REQ-d00167: FCM Dispatch via cure-hht-admin Project (token rotation
+//   REQ-d00193: FCM Dispatch via cure-hht-admin Project (token rotation
 //               must keep a long-running dispatcher authenticated)
 
 import 'package:comms/comms.dart';

@@ -1028,7 +1028,7 @@ CREATE POLICY fcm_tokens_service_all ON patient_fcm_tokens
 GRANT ALL ON patient_fcm_tokens TO service_role;
 
 -- =====================================================
--- NOTIFICATIONS RLS (REQ-d00168, REQ-d00169) — Phase 1B
+-- NOTIFICATIONS RLS (REQ-d00194, REQ-d00195) — Phase 1B
 -- =====================================================
 -- Server (service_role) writes envelopes via OutboxWriter; mobile
 -- (authenticated, scoped by app.current_patient_id) polls. Defense

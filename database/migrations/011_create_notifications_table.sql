@@ -9,12 +9,12 @@
 --   row from migration 010), and the polling source (mobile app fetches
 --   /api/v1/notifications?since=<cursor> to reconcile state).
 --
---   Compliance / REQ-d00168: payload column never carries PHI — it is
+--   Compliance / REQ-d00194: payload column never carries PHI — it is
 --   structured opaque IDs. PayloadGuard runs before any insert in the
 --   `comms` package's OutboxWriter.
 --
 --   Mobile fetches via the EnvelopeFetcher. The fetch handler stamps
---   delivered_at idempotently on first read (REQ-d00169) — fetching IS
+--   delivered_at idempotently on first read (REQ-d00195) — fetching IS
 --   acknowledgement; no separate /ack endpoint.
 --
 --   (Linear: CUR-1311)
@@ -22,9 +22,9 @@
 -- Reference: docs/comms-implementation-plan.md (Phase 1B), spec/dev-notifications.md
 --
 -- IMPLEMENTS REQUIREMENTS:
---   REQ-d00167: FCM Dispatch via cure-hht-admin Project
---   REQ-d00168: PHI-Safe FCM Payload
---   REQ-d00169: Mobile Notifications Polling
+--   REQ-d00193: FCM Dispatch via cure-hht-admin Project
+--   REQ-d00194: PHI-Safe FCM Payload
+--   REQ-d00195: Mobile Notifications Polling
 --   REQ-p00010: FDA 21 CFR Part 11 Compliance
 --   REQ-p00011: ALCOA+ Data Integrity Principles
 -- =====================================================
@@ -127,7 +127,7 @@ GRANT SELECT, UPDATE ON notifications TO authenticated;
 GRANT ALL ON notifications TO service_role;
 
 COMMENT ON TABLE notifications IS
-    'Outbox / envelope record for push notifications. Written by server before FCM dispatch (REQ-d00168), polled by mobile via GET /api/v1/notifications (REQ-d00169).';
+    'Outbox / envelope record for push notifications. Written by server before FCM dispatch (REQ-d00194), polled by mobile via GET /api/v1/notifications (REQ-d00195).';
 COMMENT ON COLUMN notifications.patient_id IS
     'FK to patients (RAVE SubjectKey). RLS scope key.';
 COMMENT ON COLUMN notifications.notification_type IS
