@@ -3,11 +3,11 @@
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00044, REQ-p00044-E
 
-## Assertions
+### Assertions
 
 A. System components SHALL use common design patterns to ensure consistency
 
-## Rationale
+### Rationale
 
 Clinical trial systems must comply with multiple regulatory frameworks depending on geographic scope and data types processed. This requirement establishes the platform's overarching regulatory compliance posture, ensuring that all applicable regulations are systematically addressed through dedicated child requirements. By centralizing regulatory compliance under a single framework requirement, the platform maintains clear traceability from the top-level system definition down to specific regulatory implementations.
 
@@ -18,7 +18,7 @@ Clinical trial systems must comply with multiple regulatory frameworks depending
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00048
 
-## Assertions
+### Assertions
 
 A. The system SHALL retain clinical trial data for a minimum of 7 years after study completion or product approval when specific regulatory requirements are not defined.
 
@@ -40,7 +40,7 @@ I. Exported data SHALL be readable without proprietary systems.
 
 J. The system SHALL prevent premature deletion by enforcing retention period requirements.
 
-## Rationale
+### Rationale
 
 Regulatory agencies require long-term retention of clinical trial data to support product approvals, post-market surveillance, and potential future investigations. Data must remain accessible and readable despite technology changes over the retention period. FDA 21 CFR Part 11 and ICH GCP guidelines mandate preservation of complete trial records including audit trails for periods typically extending 7+ years after study completion or product approval, depending on jurisdiction.
 
@@ -51,7 +51,7 @@ Regulatory agencies require long-term retention of clinical trial data to suppor
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00044-E, REQ-p00045
 
-## Assertions
+### Assertions
 
 A. The platform SHALL use libraries for common operations.
 

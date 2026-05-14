@@ -1,9 +1,9 @@
 ## REQ-p00013: Complete Data Change History
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00004-A, REQ-p00004-E
+**Refines**: REQ-p00004-A+E
 
-## Assertions
+### Assertions
 
 A. The system SHALL store the original value when a record is first created.
 
@@ -15,7 +15,7 @@ D. The system SHALL record session information for each change.
 
 E. The system SHALL store all modifications as separate historical records.
 
-## Rationale
+### Rationale
 
 FDA 21 CFR Part 11 compliance requires complete, tamper-proof audit trails for all clinical data modifications in electronic records. This requirement ensures that original values are permanently preserved to prove data integrity and enable detection of improper modifications. The change history supports regulatory inspections by providing a complete timeline of who made what changes, when, why, and from which device. This implements the event sourcing architecture pattern where all changes are captured as immutable events rather than overwriting existing data.
 
@@ -26,7 +26,7 @@ FDA 21 CFR Part 11 compliance requires complete, tamper-proof audit trails for a
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00001
 
-## Assertions
+### Assertions
 
 A. The platform SHALL provision each pharmaceutical sponsor with a dedicated database instance.
 
@@ -50,7 +50,7 @@ K. Backup operations SHALL be scoped to a single sponsor database.
 
 L. Restore operations SHALL be scoped to a single sponsor database.
 
-## Rationale
+### Rationale
 
 This requirement extends the multi-sponsor isolation principle (REQ-p00001) to the database infrastructure layer. Physical database separation is necessary for regulatory compliance in independent clinical trials, ensuring that each pharmaceutical sponsor's trial data is completely isolated from other sponsors. This architecture eliminates any technical possibility of data cross-contamination, provides clear audit boundaries for FDA 21 CFR Part 11 compliance, and ensures that database-level operations (queries, backups, recovery) cannot accidentally or intentionally access another sponsor's data. The physical separation also provides independent operational control and supports sponsor-specific compliance requirements.
 
@@ -61,7 +61,7 @@ This requirement extends the multi-sponsor isolation principle (REQ-p00001) to t
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p01085
 
-## Assertions
+### Assertions
 
 A. The system SHALL store all clinical trial data changes as immutable events.
 
@@ -81,7 +81,7 @@ I. The system SHALL prevent tampering with events through database constraints.
 
 L. The system SHALL update the current view automatically when new events are created.
 
-## Rationale
+### Rationale
 
 FDA 21 CFR Part 11 requires complete audit trails for electronic records in clinical trials. Event sourcing is the architectural approach that makes audit trails automatic and tamper-proof by design - it is impossible to modify data without creating an event, and events cannot be altered after creation. This directly supports ALCOA+ principles (Attributable, Legible, Contemporaneous, Original, Accurate) by ensuring every data change is recorded with full context. Unlike traditional database updates that overwrite values and lose history, event sourcing preserves the complete chronological sequence of all changes, enabling time-travel queries to reconstruct data state at any point and providing tamper evidence through the immutable event log.
 
