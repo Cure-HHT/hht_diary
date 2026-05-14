@@ -2,7 +2,7 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: "none"
 
-version: 0.9.28+54
+version: 0.9.29+55
 
 environment:
   sdk: ^3.10.7
@@ -22,6 +22,8 @@ dependencies:
     path: ../../common-flutter/eq
   common_widgets:
     path: ../../common-flutter/common_widgets
+  comms:
+    path: ../../common-dart/comms
 
   # Sembast is required in main deps because clinical_diary_bootstrap.dart
   # accepts a sembast Database parameter (caller opens the database).

@@ -22,6 +22,7 @@ import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/debug_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/notification_poll_service.dart';
 import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
@@ -300,6 +301,13 @@ class _AppRootState extends State<AppRoot> {
     }
   }
 
+  /// CUR-1311 P1B.5: Envelope-based notification polling service.
+  late final NotificationPollService _notificationPollService =
+      NotificationPollService(
+        enrollmentService: _enrollmentService,
+        taskService: _taskService,
+      );
+
   ClinicalDiaryRuntime? _runtime;
 
   /// Persistent device install UUID, minted on first launch and reused
@@ -384,6 +392,8 @@ class _AppRootState extends State<AppRoot> {
             displayName: _displayNameForSurveyEntryType(entryType),
           );
         },
+        // CUR-1311 P1B.5: Hook notification poll into the trigger chain.
+        onAfterSync: () => _notificationPollService.poll(),
       );
 
       // The legacy-shim destinations stay dormant until the portal
@@ -460,6 +470,8 @@ class _AppRootState extends State<AppRoot> {
 
     // REQ-CAL-p00081: Poll for tasks on app start (FCM fallback)
     unawaited(_taskService.syncTasks(_enrollmentService));
+    // CUR-1311 P1B.5: Envelope poll on cold start (runs alongside syncTasks).
+    unawaited(_notificationPollService.poll());
 
     _notificationService = MobileNotificationService(
       onDataMessage: _taskService.handleFcmMessage,
