@@ -1,3 +1,4 @@
+import 'package:rave_integration/src/models/exceptions.dart';
 import 'package:rave_integration/src/models/rws_error.dart';
 import 'package:test/test.dart';
 
@@ -52,6 +53,29 @@ void main() {
       final err = parseRwsError(body);
       expect(err!.reasonCode, equals('RWS00008'));
       expect(err.message, equals('msg with no quote'));
+    });
+  });
+
+  group('RaveAuthenticationException', () {
+    test('defaults reasonCode and serverMessage to null', () {
+      const e = RaveAuthenticationException();
+      expect(e.reasonCode, isNull);
+      expect(e.serverMessage, isNull);
+      expect(e.statusCode, equals(401));
+      expect(e.message, equals('Authentication failed'));
+    });
+
+    test('carries reasonCode and serverMessage when provided', () {
+      const e = RaveAuthenticationException(
+        reasonCode: 'RWS00008',
+        serverMessage: 'Incorrect login and password combination',
+      );
+      expect(e.reasonCode, equals('RWS00008'));
+      expect(
+        e.serverMessage,
+        equals('Incorrect login and password combination'),
+      );
+      expect(e.statusCode, equals(401));
     });
   });
 }

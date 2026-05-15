@@ -10,9 +10,20 @@ sealed class RaveException implements Exception {
 }
 
 /// Thrown when authentication fails (401 response).
+///
+/// [reasonCode] and [serverMessage] capture Medidata's `ReasonCode` and
+/// `ErrorClientResponseMessage` from the response body when present.
+/// Both are null when Medidata returned a body that didn't include these
+/// attributes (e.g., plain-text 401 from an upstream proxy).
 class RaveAuthenticationException extends RaveException {
-  const RaveAuthenticationException([super.message = 'Authentication failed'])
-    : super(statusCode: 401);
+  final String? reasonCode;
+  final String? serverMessage;
+
+  const RaveAuthenticationException({
+    this.reasonCode,
+    this.serverMessage,
+    String message = 'Authentication failed',
+  }) : super(message, statusCode: 401);
 }
 
 /// Thrown when the server returns an error response.
