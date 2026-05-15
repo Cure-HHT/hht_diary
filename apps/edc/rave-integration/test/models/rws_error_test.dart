@@ -97,5 +97,38 @@ void main() {
         equals('RaveAuthenticationException: Authentication failed'),
       );
     });
+
+    group('detailSuffix', () {
+      test('returns empty string when both fields are null', () {
+        const e = RaveAuthenticationException();
+        expect(e.detailSuffix, equals(''));
+      });
+
+      test('returns " [code: message]" when both are present', () {
+        const e = RaveAuthenticationException(
+          reasonCode: 'RWS00008',
+          serverMessage: 'Incorrect login and password combination',
+        );
+        expect(
+          e.detailSuffix,
+          equals(' [RWS00008: Incorrect login and password combination]'),
+        );
+      });
+
+      test('returns " [code]" when only reasonCode is present', () {
+        const e = RaveAuthenticationException(reasonCode: 'RWS00008');
+        expect(e.detailSuffix, equals(' [RWS00008]'));
+      });
+
+      test('returns " [message]" when only serverMessage is present', () {
+        const e = RaveAuthenticationException(
+          serverMessage: 'Account locked due to repeated failures',
+        );
+        expect(
+          e.detailSuffix,
+          equals(' [Account locked due to repeated failures]'),
+        );
+      });
+    });
   });
 }

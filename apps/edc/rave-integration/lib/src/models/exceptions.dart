@@ -25,6 +25,19 @@ class RaveAuthenticationException extends RaveException {
     this.serverMessage,
   }) : super(message, statusCode: 401);
 
+  /// Bracketed detail suffix for operator-facing error messages, with a
+  /// leading space so it can be appended directly to a sentence. Returns
+  /// the empty string when both fields are null; otherwise includes
+  /// whichever of `reasonCode` / `serverMessage` are non-null.
+  String get detailSuffix {
+    if (reasonCode != null && serverMessage != null) {
+      return ' [$reasonCode: $serverMessage]';
+    }
+    if (reasonCode != null) return ' [$reasonCode]';
+    if (serverMessage != null) return ' [$serverMessage]';
+    return '';
+  }
+
   @override
   String toString() {
     if (reasonCode == null && serverMessage == null) {

@@ -267,11 +267,9 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
 
     return result;
   } on RaveAuthenticationException catch (e) {
-    final detail = e.reasonCode != null
-        ? ' [${e.reasonCode}: ${e.serverMessage ?? "(no message)"}]'
-        : '';
     final errorMessage =
-        'RAVE authentication failed - invalid credentials or locked account$detail';
+        'RAVE authentication failed - invalid credentials or locked account'
+        '${e.detailSuffix}';
     if (!skipLogging) {
       logWithTrace(
         'ERROR',
