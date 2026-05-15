@@ -61,6 +61,11 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
     setState(() {
       _isSendingCode = true;
       _error = null;
+      // Start the cooldown optimistically so the resend button is locked
+      // the moment the request goes out — covers the page-load auto-send
+      // and any race where the server reply is slow. Adjusted below based
+      // on the response.
+      _startResendCooldown(_successCooldownSeconds);
     });
 
     final authService = context.read<AuthService>();
@@ -71,9 +76,9 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
     setState(() {
       _isSendingCode = false;
       if (result.success) {
-        _startResendCooldown(_successCooldownSeconds);
+        // Optimistic cooldown already running — nothing more to do.
       } else if (result.retryAfter != null && result.retryAfter! > 0) {
-        // Rate limited: lock the button for the actual server-reported wait
+        // Rate limited: extend the cooldown to the server-reported wait
         // and tell the user how long that is, so they don't try again early.
         final waitSeconds = result.retryAfter!;
         final baseError = result.error ?? 'Too many OTP requests.';
@@ -82,8 +87,9 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
             'before trying again.';
         _startResendCooldown(waitSeconds);
       } else {
-        // Transient failure (network, 5xx, etc.): surface the error but
-        // leave the button enabled so the user can retry immediately.
+        // Transient failure (network, 5xx, etc.): keep the optimistic
+        // cooldown so the user doesn't hammer the button while we're in
+        // an unknown state, and surface the error.
         _error = result.error ?? 'Failed to send verification code';
       }
     });
@@ -117,13 +123,19 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
   }
 
   /// Formats the wait time for the human-readable error message.
-  ///   < 60s    → "45 seconds"
-  ///   exactly 1 min → "1 minute"
-  ///   else     → "N minutes" (rounded)
+  ///   < 60s            → "45 seconds" (or "1 second")
+  ///   whole minutes    → "1 minute" / "5 minutes"
+  ///   minutes+seconds  → "5 minutes 20 seconds" / "1 minute 1 second"
   String _formatWaitDuration(int seconds) {
-    if (seconds < 60) return '$seconds seconds';
-    final minutes = (seconds / 60).round();
-    return minutes == 1 ? '1 minute' : '$minutes minutes';
+    if (seconds < 60) {
+      return seconds == 1 ? '1 second' : '$seconds seconds';
+    }
+    final minutes = seconds ~/ 60;
+    final remainder = seconds % 60;
+    final minutesPart = minutes == 1 ? '1 minute' : '$minutes minutes';
+    if (remainder == 0) return minutesPart;
+    final secondsPart = remainder == 1 ? '1 second' : '$remainder seconds';
+    return '$minutesPart $secondsPart';
   }
 
   Future<void> _verifyCode() async {
