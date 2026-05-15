@@ -20,10 +20,21 @@ class RaveAuthenticationException extends RaveException {
   final String? serverMessage;
 
   const RaveAuthenticationException({
+    String message = 'Authentication failed',
     this.reasonCode,
     this.serverMessage,
-    String message = 'Authentication failed',
   }) : super(message, statusCode: 401);
+
+  @override
+  String toString() {
+    if (reasonCode == null && serverMessage == null) {
+      return 'RaveAuthenticationException: $message';
+    }
+    final parts = <String>[];
+    if (reasonCode != null) parts.add('reasonCode: $reasonCode');
+    if (serverMessage != null) parts.add('serverMessage: $serverMessage');
+    return 'RaveAuthenticationException: $message (${parts.join(', ')})';
+  }
 }
 
 /// Thrown when the server returns an error response.

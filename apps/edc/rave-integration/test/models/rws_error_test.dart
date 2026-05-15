@@ -77,5 +77,25 @@ void main() {
       );
       expect(e.statusCode, equals(401));
     });
+
+    test('toString includes reasonCode and serverMessage when present', () {
+      const eFull = RaveAuthenticationException(
+        reasonCode: 'RWS00008',
+        serverMessage: 'Incorrect login and password combination',
+      );
+      expect(
+        eFull.toString(),
+        equals(
+          'RaveAuthenticationException: Authentication failed '
+          '(reasonCode: RWS00008, serverMessage: Incorrect login and password combination)',
+        ),
+      );
+
+      const eEmpty = RaveAuthenticationException();
+      expect(
+        eEmpty.toString(),
+        equals('RaveAuthenticationException: Authentication failed'),
+      );
+    });
   });
 }
