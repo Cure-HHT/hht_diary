@@ -493,11 +493,12 @@ fi
 #
 #   docs/superpowers/specs/*-design.md
 #       MUST contain a "## Requirements" section header
-#       AND at least one REQ-[pod]NNNNN reference.
+#       AND at least one REQ reference (DIARY-, CAL-, HHT-, EVS-,
+#       or legacy REQ-[pod]NNNNN).
 #
 #   docs/superpowers/specs/*-stub.md
 #       MUST contain "Requirements: deferred ..." line
-#       OR at least one REQ-[pod]NNNNN reference.
+#       OR at least one REQ reference.
 #
 # Failure blocks the commit. To bypass (NOT RECOMMENDED):
 #   git commit --no-verify
@@ -513,9 +514,10 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
 
         case "$spec" in
             *-stub.md)
-                if ! grep -qE '([Rr]equirements?.{0,60}[Dd]eferred|REQ-[pod][0-9]{5})' "$spec"; then
+                if ! grep -qE '([Rr]equirements?.{0,60}[Dd]eferred|REQ-[pod][0-9]{5}|(DIARY|CAL|HHT|EVS)-(PRD|GUI|OPS|DEV)-[a-z][a-z0-9-]+)' "$spec"; then
                     echo "❌ $spec"
-                    echo "   stub must include a 'Requirements: deferred ...' line OR a REQ-[pod] reference."
+                    echo "   stub must include a 'Requirements: deferred ...' line OR a REQ reference"
+                    echo "   (DIARY-/CAL-/HHT-/EVS- kebab or legacy REQ-[pod]NNNNN)."
                     echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
                     SPEC_CHECK_FAILED=1
                 fi
@@ -527,9 +529,10 @@ if [ -n "$SPEC_FILES_CHANGED" ]; then
                     echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
                     SPEC_CHECK_FAILED=1
                 fi
-                if ! grep -qE 'REQ-[pod][0-9]{5}' "$spec"; then
+                if ! grep -qE '(REQ-[pod][0-9]{5}|(DIARY|CAL|HHT|EVS)-(PRD|GUI|OPS|DEV)-[a-z][a-z0-9-]+)' "$spec"; then
                     echo "❌ $spec"
-                    echo "   design spec missing required REQ-[pod]NNNNN reference."
+                    echo "   design spec missing required REQ reference"
+                    echo "   (DIARY-/CAL-/HHT-/EVS- kebab or legacy REQ-[pod]NNNNN)."
                     echo "   See CLAUDE.md §\"Phase Design Spec Requirements\"."
                     SPEC_CHECK_FAILED=1
                 fi
