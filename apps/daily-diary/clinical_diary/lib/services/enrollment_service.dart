@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'package:clinical_diary/config/sponsor_registry.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
+import 'package:comms/comms.dart';
 import 'package:flutter/foundation.dart' show ValueNotifier, debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -402,6 +403,28 @@ class EnrollmentService {
     }
 
     return isDisconnected;
+  }
+
+  /// CUR-1311 P1B.5: Route an envelope-fetched patient status notification.
+  ///
+  /// Sub-action is in `payload.action`. `start_trial` is a no-op here —
+  /// it is handled by the /tasks path.
+  void handleEnvelopeStatusUpdate(Envelope envelope) {
+    final action = envelope.payload['action'] as String?;
+    switch (action) {
+      case 'disconnect':
+        setDisconnected(true);
+      case 'reconnect':
+        setDisconnected(false);
+      case 'mark_not_participating':
+        setNotParticipating(true, at: DateTime.now());
+      case 'reactivate':
+        setNotParticipating(false);
+      case 'start_trial':
+        break; // no-op — handled by /tasks path
+      default:
+        debugPrint('[EnrollmentService] Unknown status action: $action');
+    }
   }
 
   /// Dispose resources

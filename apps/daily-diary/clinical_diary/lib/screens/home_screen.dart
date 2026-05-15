@@ -27,6 +27,7 @@ import 'package:clinical_diary/services/diary_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/file_read_service.dart';
 import 'package:clinical_diary/services/file_save_service.dart';
+import 'package:clinical_diary/services/notification_poll_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/reset_data_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
@@ -710,6 +711,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (confirmed ?? false) {
       await widget.enrollmentService.clearEnrollment();
       await widget.taskService.clearAll();
+      // CUR-1311 P1B.5 / REQ-d00169-K: Clear notification cursor on
+      // lifecycle reset so the next enrollment starts with a fresh window.
+      await NotificationPollService.clearCursor();
       unawaited(_checkEnrollmentStatus());
 
       if (mounted) {

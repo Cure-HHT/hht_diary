@@ -156,6 +156,13 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   @visibleForTesting
   Stream<RemoteMessage> Function()? fcmOnMessageStreamFactory,
   @visibleForTesting Stream<RemoteMessage> Function()? fcmOnOpenedStreamFactory,
+  // CUR-1311: injectable for unit tests that don't initialize Firebase. When
+  // null, the production probe (which calls FirebaseMessaging.instance) is
+  // used.
+  @visibleForTesting NotificationAuthProbe? notificationAuthProbe,
+  // CUR-1311 P1B.5: Hook notification poll into the trigger chain.
+  // Called at the end of fullSync() after portalInboundPoll completes.
+  Future<void> Function()? onAfterSync,
 }) async {
   final client = httpClient ?? http.Client();
 
@@ -253,8 +260,20 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
 
   // 8. Install triggers. Each tick: drain FIFO → inbound poll.
   //    Skip both when the caller's predicate reports disconnected (CUR-1164).
+  //
+  // CUR-1311: re-probe FCM authorization status at the start of every tick.
+  // FCM permission is the only real-time wake-up source (triggers D + E); if
+  // the user has denied notifications the periodic timer becomes the only
+  // path that surfaces server-side state, so we shorten its cadence from the
+  // default 15 min down to 2 min. The probe is reused by installTriggers'
+  // periodicInterval callback below.
+  final fcmAuthProbe =
+      notificationAuthProbe ?? NotificationAuthProbe.firebase();
+  await fcmAuthProbe.refresh();
+
   Future<void> fullSync() async {
     if (isDisconnected != null && isDisconnected()) return;
+    await fcmAuthProbe.refresh();
     await syncCycle();
     await portalInboundPoll(
       entryService: entryService,
@@ -264,10 +283,14 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
       authToken: authToken,
       onSurveyTombstoned: onSurveyTombstoned,
     );
+    await onAfterSync?.call();
   }
 
   final triggerHandles = await installTriggers(
     onTrigger: fullSync,
+    periodicInterval: () => fcmAuthProbe.isDenied
+        ? const Duration(minutes: 2)
+        : const Duration(minutes: 15),
     lifecycleObserverFactory: lifecycleObserverFactory,
     periodicTimerFactory: periodicTimerFactory,
     connectivityStreamFactory: connectivityStreamFactory,
@@ -287,4 +310,52 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
     destinations: datastore.destinations,
     database: sembastDatabase,
   );
+}
+
+/// CUR-1311: caches the latest FCM authorization status so the trigger
+/// installer can ask synchronously whether to use the short or long poll
+/// cadence. Refreshed at bootstrap and at the start of every `fullSync` —
+/// the OS gives no native change-callback for permission revocation, so the
+/// fast path is "user opens the app or the network comes back".
+///
+/// Treats `denied` as denied and everything else (`authorized`,
+/// `provisional`, `notDetermined`) as authorized: pre-prompt users see the
+/// default cadence so we don't churn them with extra polls before they've
+/// answered the OS prompt, and provisional (iOS quiet delivery) still gets
+/// silent push so it doesn't need the fallback.
+class NotificationAuthProbe {
+  NotificationAuthProbe._({required this.getSettings});
+
+  /// Production probe — reads `FirebaseMessaging.instance.getNotificationSettings()`.
+  factory NotificationAuthProbe.firebase() => NotificationAuthProbe._(
+    getSettings: () => FirebaseMessaging.instance.getNotificationSettings(),
+  );
+
+  /// Test seam — caller provides the settings future.
+  @visibleForTesting
+  factory NotificationAuthProbe.forTest(
+    Future<NotificationSettings> Function() getSettings,
+  ) => NotificationAuthProbe._(getSettings: getSettings);
+
+  final Future<NotificationSettings> Function() getSettings;
+
+  // Starts at `notDetermined` (treated as not-denied below) so a first-launch
+  // user does not get the shortened 2-min cadence in the brief window between
+  // app start and the first `refresh()`. Bootstrap awaits refresh() before
+  // installTriggers, so production reads always see a real OS-reported value.
+  AuthorizationStatus _last = AuthorizationStatus.notDetermined;
+
+  /// Re-reads the OS permission. Swallows errors (treating "unknown" as
+  /// "not-denied") so a Firebase initialization gap never breaks the
+  /// sync loop.
+  Future<void> refresh() async {
+    try {
+      final settings = await getSettings();
+      _last = settings.authorizationStatus;
+    } catch (_) {
+      // Leave _last unchanged; preserves last-known state if any.
+    }
+  }
+
+  bool get isDenied => _last == AuthorizationStatus.denied;
 }

@@ -10,6 +10,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:comms/comms.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -153,21 +154,50 @@ class TaskService extends ChangeNotifier {
     debugPrint('[TaskService] Handling FCM message type: $type');
 
     switch (type) {
+      // Legacy direct-FCM wire values — emitted when the per-handler
+      // envelope flag is OFF on the server. Direct payload-based
+      // mutation (sent/deleted) and sync-trigger (unlocked/finalized).
       case 'questionnaire_sent':
         _handleQuestionnaireSent(data);
       case 'questionnaire_deleted':
         _handleQuestionnaireDeleted(data);
       case 'questionnaire_unlocked':
       case 'questionnaire_finalized':
+      // Envelope-path wire values (CUR-1311 Phase 1B). The 3-value
+      // NotificationType enum collapses every questionnaire sub-action
+      // into `questionnaire_update` and every patient-status sub-action
+      // into `patient_status_update`. The mobile treats the FCM as a
+      // wake-up signal — sync re-pulls /tasks (replace-merge removes
+      // deleted/finalized tasks; new questionnaires get added) and the
+      // server-state-driven notifiers (disconnectedNotifier, etc.)
+      // surface the change on the home screen. Without this case, the
+      // silent `questionnaire_deleted` envelope falls to default and
+      // the local task lingers until the next periodic sync.
+      case 'questionnaire_update':
       case 'patient_status_update':
-        // CUR-1311: FCM is just a wake-up. Re-pull /tasks so the task
-        // list, disconnection state, not-participating state, and
-        // trial-started timestamp all reflect the server's truth. The
-        // notifiers fired inside processDisconnectionStatus then drive
-        // the home-screen UI without per-action sub-routing here.
+      case 'reminder':
         _triggerSync();
       default:
         debugPrint('[TaskService] Unknown message type: $type');
+    }
+  }
+
+  /// CUR-1311 P1B.5: Route an envelope-fetched questionnaire notification.
+  ///
+  /// Accepts both legacy verbs (`new_task`, `remove_task`) and spec-compliant
+  /// verbs (`sent`, `deleted`) per handoff deviation #3.
+  void handleEnvelopeQuestionnaireUpdate(Envelope envelope) {
+    final action = envelope.payload['action'] as String?;
+    switch (action) {
+      case 'new_task' || 'sent':
+        _handleQuestionnaireSent(envelope.payload);
+      case 'remove_task' || 'deleted':
+        _handleQuestionnaireDeleted(envelope.payload);
+      case 'unlock_task' || 'unlocked':
+      case 'lock_task' || 'finalized':
+        _triggerSync();
+      default:
+        debugPrint('[TaskService] Unknown questionnaire action: $action');
     }
   }
 

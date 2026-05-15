@@ -61,27 +61,15 @@ class NotificationConfig {
       projectId: Platform.environment['FCM_PROJECT_ID'] ?? 'cure-hht-admin',
       enabled: Platform.environment['FCM_ENABLED'] != 'false',
       consoleMode: Platform.environment['FCM_CONSOLE_MODE'] == 'true',
-      useEnvelopeDisconnect:
-          Platform.environment['FCM_USE_ENVELOPE_DISCONNECT'] == 'true',
-      useEnvelopeNotParticipating:
-          Platform.environment['FCM_USE_ENVELOPE_NOT_PARTICIPATING'] == 'true',
-      useEnvelopeReactivate:
-          Platform.environment['FCM_USE_ENVELOPE_REACTIVATE'] == 'true',
-      useEnvelopeReconnect:
-          Platform.environment['FCM_USE_ENVELOPE_RECONNECT'] == 'true',
-      useEnvelopeStartTrial:
-          Platform.environment['FCM_USE_ENVELOPE_START_TRIAL'] == 'true',
-      useEnvelopeQuestionnaireSent:
-          Platform.environment['FCM_USE_ENVELOPE_QUESTIONNAIRE_SENT'] == 'true',
-      useEnvelopeQuestionnaireDeleted:
-          Platform.environment['FCM_USE_ENVELOPE_QUESTIONNAIRE_DELETED'] ==
-          'true',
-      useEnvelopeQuestionnaireUnlocked:
-          Platform.environment['FCM_USE_ENVELOPE_QUESTIONNAIRE_UNLOCKED'] ==
-          'true',
-      useEnvelopeQuestionnaireFinalized:
-          Platform.environment['FCM_USE_ENVELOPE_QUESTIONNAIRE_FINALIZED'] ==
-          'true',
+      useEnvelopeDisconnect: true,
+      useEnvelopeNotParticipating: true,
+      useEnvelopeReactivate: true,
+      useEnvelopeReconnect: true,
+      useEnvelopeStartTrial: true,
+      useEnvelopeQuestionnaireSent: true,
+      useEnvelopeQuestionnaireDeleted: true,
+      useEnvelopeQuestionnaireUnlocked: true,
+      useEnvelopeQuestionnaireFinalized: true,
     );
   }
 

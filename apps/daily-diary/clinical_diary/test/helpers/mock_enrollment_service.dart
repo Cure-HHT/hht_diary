@@ -1,5 +1,6 @@
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:comms/comms.dart';
 import 'package:flutter/foundation.dart';
 
 /// Mock EnrollmentService for testing
@@ -106,4 +107,24 @@ class MockEnrollmentService implements EnrollmentService {
 
   @override
   Future<DateTime?> getNotParticipatingAt() async => _notParticipatingAt;
+
+  // CUR-1311 P1B.5: Envelope-based status update handler.
+  @override
+  void handleEnvelopeStatusUpdate(Envelope envelope) {
+    final action = envelope.payload['action'] as String?;
+    switch (action) {
+      case 'disconnect':
+        setDisconnected(true);
+      case 'reconnect':
+        setDisconnected(false);
+      case 'mark_not_participating':
+        setNotParticipating(true, at: DateTime.now());
+      case 'reactivate':
+        setNotParticipating(false);
+      case 'start_trial':
+        break;
+      default:
+        debugPrint('[MockEnrollmentService] Unknown status action: $action');
+    }
+  }
 }
