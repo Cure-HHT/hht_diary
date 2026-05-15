@@ -266,11 +266,18 @@ end_group
 # Tier 3: Conditional checks (only when relevant files changed)
 # ============================================================================
 
-# --- 4. Elspais - requirement validation ---
+# --- 4. Elspais - requirement validation (readiness phase) ---
 # Triggered whenever any file under an elspais scan path changes (see
 # Change Detection above). Catches broken REQ references introduced
 # from code, tests, journeys, or docs — not just spec edits (CUR-1246).
-begin_group "Requirement Validation (elspais v${ELSPAIS_VERSION})"
+#
+# This is the *readiness* phase: spec/code/terms validation only. We
+# skip the TESTS and UAT categories with --spec --code --terms because
+# no test workflow has emitted JUnit/pytest result files yet at this
+# point in the pipeline, so the tests.results check would always fail.
+# A separate report-phase invocation (full `elspais checks`) runs
+# after the CI test workflows write results into build-reports/.
+begin_group "Requirement Validation - readiness (elspais v${ELSPAIS_VERSION})"
 
 if [ "$ELSPAIS_RELEVANT_CHANGED" = "true" ]; then
   elspais --version
@@ -281,7 +288,7 @@ if [ "$ELSPAIS_RELEVANT_CHANGED" = "true" ]; then
   # deactivates `set -e` for the elspais call so we can run the
   # annotation pass before re-asserting the exit code.
   elspais_exit=0
-  if elspais_output=$(elspais checks 2>&1); then
+  if elspais_output=$(elspais checks --spec --code --terms 2>&1); then
     elspais_exit=0
   else
     elspais_exit=$?
@@ -301,12 +308,48 @@ if [ "$ELSPAIS_RELEVANT_CHANGED" = "true" ]; then
   elspais summary trace --format markdown \
     -o build-reports/combined/traceability/traceability_matrix.md
 
-  echo "Requirement validation passed"
+  echo "Requirement validation (readiness) passed"
 else
   echo "Skipped - no changes under elspais scan paths [Passed]"
 fi
 
 end_group
+
+# --- 4b. Elspais - requirement validation (report phase) [TODO: CUR-1329 follow-up] ---
+# The report phase runs the full `elspais checks` (no category filter)
+# so the TESTS and UAT categories are evaluated against JUnit/pytest
+# result files written by the CI test workflows into build-reports/.
+# This gate enforces tests.results, tests.results_stale, and the
+# coverage-based tested/verified/uat checks.
+#
+# Not enabled yet: needs (1) each test-running workflow
+# (diary-server-ci.yml, sponsor-portal-ci.yml, clinical_diary-ci.yml,
+# trial_data_types-ci.yml, qa-automation.yml, ios-build.yml,
+# android-build.yml) to emit JUnit XML into build-reports/, and
+# (2) those workflows to upload build-reports/ as an artifact that this
+# job downloads before the report-phase call. Tracked under CUR-1329.
+#
+# When enabled, the block looks like:
+#
+#   begin_group "Requirement Validation - report (elspais v${ELSPAIS_VERSION})"
+#   if [ "$ELSPAIS_RELEVANT_CHANGED" = "true" ]; then
+#     elspais_exit=0
+#     if elspais_output=$(elspais checks 2>&1); then
+#       elspais_exit=0
+#     else
+#       elspais_exit=$?
+#     fi
+#     printf '%s\n' "$elspais_output"
+#     source "$REPO_ROOT/.github/scripts/lib/elspais-annotations.sh"
+#     emit_suppressed_warnings "$elspais_output"
+#     if [ "$elspais_exit" -ne 0 ]; then
+#       exit "$elspais_exit"
+#     fi
+#     echo "Requirement validation (report) passed"
+#   else
+#     echo "Skipped - no changes under elspais scan paths [Passed]"
+#   fi
+#   end_group
 
 # --- 5. Migration headers (if database changed) ---
 if [ "$DB_CHANGED" = "true" ]; then

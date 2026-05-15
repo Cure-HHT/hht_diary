@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling (envelope state machine)
+//   REQ-d00195: Mobile Notifications Polling (envelope state machine)
 //
 // State machine for a single envelope:
 //

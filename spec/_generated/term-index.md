@@ -7,7 +7,6 @@
 **root:**
 - REQ-d00194-B
 - REQ-d00194-E
-- REQ-d00168-E
 - REQ-p01083-C
 - REQ-p01032-A
 - REQ-p01032-G
@@ -18,12 +17,12 @@
 ## Full Name
 
 **root:**
-- rem:spec/_generated/term-index.md:18
+- rem:spec/_generated/term-index.md:17
 
 ## ISO/IEC 24760-1
 
 **root:**
-- rem:spec/_generated/term-index.md:23
+- rem:spec/_generated/term-index.md:22
 
 ## Three Letter Acryonym (TLA)
 
@@ -32,7 +31,7 @@
 
 **root:**
 - REQ-d00082-G
-- rem:spec/_generated/term-index.md:31
+- rem:spec/_generated/term-index.md:30
 - rem:spec/dev-compliance-practices.md:414
 - rem:spec/ops-github-access-control.md:373
 - rem:spec/ops-github-access-control.md:381

@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling — auth-to-patient bridge
+//   REQ-d00195: Mobile Notifications Polling — auth-to-patient bridge
 //
 // JWT → patient_id resolver for the comms `envelopeFetchHandler` and
 // `envelopeSinceHandler` factories. The handlers know nothing about

@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling
-//   REQ-d00169-K: Lifecycle reset (clearCursor)
+//   REQ-d00195: Mobile Notifications Polling
+//   REQ-d00195-K: Lifecycle reset (clearCursor)
 //
 // Envelope-based polling service. FCM is treated as a wake-up hint;
 // the truth comes from GET /api/v1/notifications?since=...&limit=50.
@@ -106,7 +106,7 @@ class NotificationPollService {
     }
   }
 
-  /// REQ-d00169-K: Clear cursor + dedupe set on lifecycle reset
+  /// REQ-d00195-K: Clear cursor + dedupe set on lifecycle reset
   /// (end clinical trial). Static so callers don't need to thread
   /// the service instance through the widget tree.
   static Future<void> clearCursor() async {

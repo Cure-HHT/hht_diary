@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling
+//   REQ-d00195: Mobile Notifications Polling
 //     (repository defines the surface every persistence backend must
 //     expose to the OutboxWriter and the server handler factories)
 //
