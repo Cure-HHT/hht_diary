@@ -1,7 +1,17 @@
+import 'package:http/http.dart' as http;
+import 'package:mocktail/mocktail.dart';
 import 'package:rave_integration/rave_integration.dart';
 import 'package:test/test.dart';
 
+class _MockHttpClient extends Mock implements http.Client {}
+
+class _FakeUri extends Fake implements Uri {}
+
 void main() {
+  setUpAll(() {
+    registerFallbackValue(_FakeUri());
+  });
+
   group('OdmParser', () {
     group('validateComplete', () {
       test('accepts valid complete ODM', () {
@@ -412,6 +422,93 @@ void main() {
 
       expect(site1, equals(site2));
       expect(site1, isNot(equals(site3)));
+    });
+  });
+
+  group('RaveClient 401 body parsing', () {
+    late _MockHttpClient mockHttp;
+    late RaveClient client;
+
+    setUp(() {
+      mockHttp = _MockHttpClient();
+      client = RaveClient(
+        baseUrl: 'https://example.mdsol.com',
+        username: 'u',
+        password: 'p',
+        httpClient: mockHttp,
+      );
+    });
+
+    test('getStudies: 401 with RWS body throws enriched exception', () async {
+      const xml =
+          '<Response IsTransactionSuccessful="0" '
+          'ReasonCode="RWS00008" '
+          'ErrorClientResponseMessage="Incorrect login and password combination"/>';
+      when(
+        () => mockHttp.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((_) async => http.Response(xml, 401));
+
+      try {
+        await client.getStudies();
+        fail('expected RaveAuthenticationException');
+      } on RaveAuthenticationException catch (e) {
+        expect(e.reasonCode, equals('RWS00008'));
+        expect(
+          e.serverMessage,
+          equals('Incorrect login and password combination'),
+        );
+        expect(e.statusCode, equals(401));
+      }
+    });
+
+    test(
+      'getStudies: 401 with plain-text body throws exception with null fields',
+      () async {
+        when(
+          () => mockHttp.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async => http.Response('Unauthorized', 401));
+
+        try {
+          await client.getStudies();
+          fail('expected RaveAuthenticationException');
+        } on RaveAuthenticationException catch (e) {
+          expect(e.reasonCode, isNull);
+          expect(e.serverMessage, isNull);
+          expect(e.statusCode, equals(401));
+        }
+      },
+    );
+
+    test('getSites: 401 with RWS body throws enriched exception', () async {
+      const xml =
+          '<Response ReasonCode="RWS00008" '
+          'ErrorClientResponseMessage="Incorrect login and password combination"/>';
+      when(
+        () => mockHttp.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((_) async => http.Response(xml, 401));
+
+      try {
+        await client.getSites();
+        fail('expected RaveAuthenticationException');
+      } on RaveAuthenticationException catch (e) {
+        expect(e.reasonCode, equals('RWS00008'));
+      }
+    });
+
+    test('getSubjects: 401 with RWS body throws enriched exception', () async {
+      const xml =
+          '<Response ReasonCode="RWS00008" '
+          'ErrorClientResponseMessage="Incorrect login and password combination"/>';
+      when(
+        () => mockHttp.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((_) async => http.Response(xml, 401));
+
+      try {
+        await client.getSubjects(studyOid: 'TEST-STUDY');
+        fail('expected RaveAuthenticationException');
+      } on RaveAuthenticationException catch (e) {
+        expect(e.reasonCode, equals('RWS00008'));
+      }
     });
   });
 }

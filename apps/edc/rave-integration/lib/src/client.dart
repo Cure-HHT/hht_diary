@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import 'models/exceptions.dart';
+import 'models/rws_error.dart';
 import 'models/site.dart';
 import 'models/subject.dart';
 import 'odm_parser.dart';
@@ -111,7 +112,11 @@ class RaveClient {
       }
 
       if (response.statusCode == 401) {
-        throw const RaveAuthenticationException();
+        final rws = parseRwsError(response.body);
+        throw RaveAuthenticationException(
+          reasonCode: rws?.reasonCode,
+          serverMessage: rws?.message,
+        );
       }
 
       throw RaveApiException(
@@ -151,7 +156,11 @@ class RaveClient {
       );
 
       if (response.statusCode == 401) {
-        throw const RaveAuthenticationException();
+        final rws = parseRwsError(response.body);
+        throw RaveAuthenticationException(
+          reasonCode: rws?.reasonCode,
+          serverMessage: rws?.message,
+        );
       }
 
       if (response.statusCode != 200) {
@@ -201,7 +210,11 @@ class RaveClient {
       );
 
       if (response.statusCode == 401) {
-        throw const RaveAuthenticationException();
+        final rws = parseRwsError(response.body);
+        throw RaveAuthenticationException(
+          reasonCode: rws?.reasonCode,
+          serverMessage: rws?.message,
+        );
       }
 
       if (response.statusCode != 200) {
