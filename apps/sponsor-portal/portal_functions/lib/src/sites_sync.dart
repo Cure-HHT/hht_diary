@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:otel_common/otel_common.dart';
 import 'package:rave_integration/rave_integration.dart';
 
 import 'database.dart';
@@ -496,13 +497,29 @@ Future<SitesSyncResult> syncSitesFromEdc({
     }
 
     return result;
-  } on RaveAuthenticationException {
+  } on RaveAuthenticationException catch (e) {
+    final detail = e.reasonCode != null
+        ? ' [${e.reasonCode}: ${e.serverMessage ?? "(no message)"}]'
+        : '';
+    final errorMessage =
+        'RAVE authentication failed - invalid credentials or locked account$detail';
+    if (!skipLogging) {
+      logWithTrace(
+        'ERROR',
+        'RAVE authentication failed',
+        labels: {
+          'rave_auth_failed': 'true',
+          'rave_reason_code': e.reasonCode ?? 'unknown',
+          'source': 'sites_sync',
+        },
+      );
+    }
     final result = SitesSyncResult(
       sitesUpdated: 0,
       sitesCreated: 0,
       sitesDeactivated: 0,
       syncedAt: DateTime.now().toUtc(),
-      error: 'RAVE authentication failed - check credentials',
+      error: errorMessage,
     );
     if (!skipLogging) {
       await _logSyncResult(result, contentHash, startTime, studyOid: studyOid);

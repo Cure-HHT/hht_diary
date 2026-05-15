@@ -267,7 +267,12 @@ void main() {
     test('handles RaveAuthenticationException', () async {
       when(
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
-      ).thenThrow(RaveAuthenticationException('Invalid credentials'));
+      ).thenThrow(
+        const RaveAuthenticationException(
+          reasonCode: 'RWS00008',
+          serverMessage: 'Invalid credentials',
+        ),
+      );
 
       final result = await syncPatientsFromEdc(
         testClient: mockClient,
@@ -276,10 +281,7 @@ void main() {
       );
 
       expect(result.hasError, isTrue);
-      expect(
-        result.error,
-        equals('RAVE authentication failed - check credentials'),
-      );
+      expect(result.error, contains('RAVE authentication failed'));
     });
 
     test('handles RaveNetworkException', () async {
@@ -427,7 +429,7 @@ void main() {
     test('attempts logging on auth error with skipLogging false', () async {
       when(
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
-      ).thenThrow(RaveAuthenticationException('Bad creds'));
+      ).thenThrow(const RaveAuthenticationException());
 
       final result = await syncPatientsFromEdc(
         testClient: mockClient,
