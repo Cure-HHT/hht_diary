@@ -6,6 +6,7 @@
 
 import 'dart:io';
 
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:rave_integration/rave_integration.dart';
 import 'package:test/test.dart';
@@ -270,7 +271,7 @@ void main() {
       ).thenThrow(
         const RaveAuthenticationException(
           reasonCode: 'RWS00008',
-          serverMessage: 'Invalid credentials',
+          serverMessage: 'Incorrect login and password combination',
         ),
       );
 
@@ -281,8 +282,36 @@ void main() {
       );
 
       expect(result.hasError, isTrue);
-      expect(result.error, contains('RAVE authentication failed'));
+      expect(
+        result.error,
+        equals(
+          'RAVE authentication failed - invalid credentials or locked account'
+          ' [RWS00008: Incorrect login and password combination]',
+        ),
+      );
     });
+
+    test(
+      'formats auth error without RWS detail when reasonCode is null',
+      () async {
+        when(
+          () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
+        ).thenThrow(const RaveAuthenticationException());
+
+        final result = await syncPatientsFromEdc(
+          testClient: mockClient,
+          testStudyOid: 'TEST-STUDY',
+          skipLogging: true,
+        );
+
+        expect(
+          result.error,
+          equals(
+            'RAVE authentication failed - invalid credentials or locked account',
+          ),
+        );
+      },
+    );
 
     test('handles RaveNetworkException', () async {
       when(
@@ -393,11 +422,26 @@ void main() {
   });
 
   group('syncPatientsFromEdc logging paths (skipLogging: false)', () {
-    // These tests exercise the _logPatientSyncResult code paths.
+    // These tests exercise the _logPatientSyncResult and logWithTrace code paths.
+    // OTel must be initialized for logWithTrace to work.
     // Without a database, the logging function catches its own errors,
     // so these tests complete normally while exercising the logging branches.
 
     late MockRaveClient mockClient;
+
+    setUpAll(() async {
+      await OTel.reset();
+      await OTel.initialize(
+        serviceName: 'portal-functions-test',
+        serviceVersion: '0.0.1-test',
+        enableMetrics: false,
+      );
+    });
+
+    tearDownAll(() async {
+      await OTel.shutdown();
+      await OTel.reset();
+    });
 
     setUp(() {
       mockClient = MockRaveClient();
