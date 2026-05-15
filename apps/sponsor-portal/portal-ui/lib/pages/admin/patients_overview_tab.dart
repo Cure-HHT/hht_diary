@@ -75,7 +75,7 @@ class _PatientsTabState extends State<PatientsTab> {
     final authService = context.read<AuthService>();
     final apiClient = ApiClient(authService);
 
-    final response = await apiClient.get('/api/v1/portal/patients');
+    final response = await apiClient.get('/api/v1/portal/participants');
 
     if (!mounted) return;
 

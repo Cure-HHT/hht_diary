@@ -164,7 +164,7 @@ if [ -z "$PATIENT_ID" ]; then
 
     # Use the patients endpoint to find a trial-active patient
     PATIENTS_RESPONSE=$(curl -s -X GET \
-        "$PORTAL_URL/api/v1/portal/patients" \
+        "$PORTAL_URL/api/v1/portal/participants" \
         -H "Authorization: Bearer $ID_TOKEN" \
         -H "Content-Type: application/json")
 
@@ -199,7 +199,7 @@ case $MODE in
         log_info "Fetching questionnaire status for patient $PATIENT_ID..."
 
         STATUS_RESPONSE=$(curl -s -X GET \
-            "$PORTAL_URL/api/v1/portal/patients/$PATIENT_ID/questionnaires" \
+            "$PORTAL_URL/api/v1/portal/participants/$PATIENT_ID/questionnaires" \
             -H "Authorization: Bearer $ID_TOKEN" \
             -H "Content-Type: application/json")
 
@@ -215,7 +215,7 @@ case $MODE in
         log_info ""
 
         SEND_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "$PORTAL_URL/api/v1/portal/patients/$PATIENT_ID/questionnaires/$QUESTIONNAIRE_TYPE/send" \
+            "$PORTAL_URL/api/v1/portal/participants/$PATIENT_ID/questionnaires/$QUESTIONNAIRE_TYPE/send" \
             -H "Authorization: Bearer $ID_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"study_event": "Test Event"}')
@@ -267,7 +267,7 @@ case $MODE in
         log_info "Deleting questionnaire $INSTANCE_ID for patient $PATIENT_ID..."
 
         DELETE_RESPONSE=$(curl -s -w "\n%{http_code}" -X DELETE \
-            "$PORTAL_URL/api/v1/portal/patients/$PATIENT_ID/questionnaires/$INSTANCE_ID" \
+            "$PORTAL_URL/api/v1/portal/participants/$PATIENT_ID/questionnaires/$INSTANCE_ID" \
             -H "Authorization: Bearer $ID_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"reason": "Test revocation"}')

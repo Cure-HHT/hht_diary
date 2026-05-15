@@ -104,7 +104,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
         ? _selectedReason!.label
         : _reasonTextController.text.trim();
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/disconnect',
+      '/api/v1/portal/participants/disconnect',
       {'patientId': widget.patientId, 'reason': reason},
     );
 

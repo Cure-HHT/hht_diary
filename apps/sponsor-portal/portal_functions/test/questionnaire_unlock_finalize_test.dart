@@ -156,9 +156,7 @@ void main() {
     test('GET returns 401 when no authorization header', () async {
       final request = Request(
         'GET',
-        Uri.parse(
-          'http://localhost/api/v1/portal/patients/questionnairesuestionnaires',
-        ),
+        Uri.parse('http://localhost/api/v1/portal/participants/questionnaires'),
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -172,7 +170,7 @@ void main() {
       final request = Request(
         'POST',
         Uri.parse(
-          'http://localhost/api/v1/portal/patients/questionnairesuestionnaires/nose_hht/send',
+          'http://localhost/api/v1/portal/participants/questionnaires/nose_hht/send',
         ),
       );
 
@@ -185,7 +183,7 @@ void main() {
       final request = Request(
         'DELETE',
         Uri.parse(
-          'http://localhost/api/v1/portal/patients/questionnairesuestionnaires/q1',
+          'http://localhost/api/v1/portal/participants/questionnaires/q1',
         ),
       );
 
@@ -198,7 +196,7 @@ void main() {
       final request = Request(
         'POST',
         Uri.parse(
-          'http://localhost/api/v1/portal/patients/questionnairesuestionnaires/q1/unlock',
+          'http://localhost/api/v1/portal/participants/questionnaires/q1/unlock',
         ),
       );
 
@@ -211,7 +209,7 @@ void main() {
       final request = Request(
         'POST',
         Uri.parse(
-          'http://localhost/api/v1/portal/patients/questionnairesuestionnaires/q1/finalize',
+          'http://localhost/api/v1/portal/participants/questionnaires/q1/finalize',
         ),
       );
 
@@ -225,14 +223,16 @@ void main() {
         () => getQuestionnaireStatusHandler(
           Request(
             'GET',
-            Uri.parse('http://localhost/api/v1/portal/patients/questionnaires'),
+            Uri.parse(
+              'http://localhost/api/v1/portal/participants/questionnaires',
+            ),
           ),
         ),
         () => sendQuestionnaireHandler(
           Request(
             'POST',
             Uri.parse(
-              'http://localhost/api/v1/portal/patients/questionnaires/send',
+              'http://localhost/api/v1/portal/participants/questionnaires/send',
             ),
           ),
         ),
@@ -264,7 +264,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
       );
 
       final response = await sendQuestionnaireHandler(request);
@@ -342,7 +342,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/questionnaires',
+        '/api/v1/portal/participants/questionnaires',
         headers: {'x-patient-id': _testPatientId},
       );
 
@@ -369,7 +369,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/questionnaires',
+        '/api/v1/portal/participants/questionnaires',
         headers: {'x-patient-id': _testPatientId},
       );
 
@@ -430,7 +430,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/questionnaires',
+        '/api/v1/portal/participants/questionnaires',
         headers: {'x-patient-id': _testPatientId},
       );
 
@@ -458,7 +458,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/questionnaires',
+        '/api/v1/portal/participants/questionnaires',
         headers: {'x-patient-id': 'nonexistent'},
       );
 
@@ -478,7 +478,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/questionnaires',
+        '/api/v1/portal/participants/questionnaires',
         headers: {'x-patient-id': _testPatientId},
       );
 
@@ -541,7 +541,7 @@ void main() {
 
       final request = _request(
         'GET',
-        '/api/v1/portal/patients/questionnaires',
+        '/api/v1/portal/participants/questionnaires',
         headers: {'x-patient-id': _testPatientId},
       );
 
@@ -598,7 +598,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -625,7 +625,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'invalid_type',
@@ -665,7 +665,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/questionnaires/send',
+          '/api/v1/portal/participants/questionnaires/send',
           body: jsonEncode({
             'patientId': _testPatientId,
             'questionnaireType': type,
@@ -690,7 +690,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
           'patientId': 'nonexistent',
           'questionnaireType': 'nose_hht',
@@ -712,7 +712,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -742,7 +742,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -766,7 +766,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -806,7 +806,7 @@ void main() {
       // CUR-856: study_event required per REQ-CAL-p00080
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -861,7 +861,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -953,7 +953,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/questionnaires/send',
+          '/api/v1/portal/participants/questionnaires/send',
           body: jsonEncode({
             'patientId': _testPatientId,
             'questionnaireType': 'nose_hht',
@@ -1020,7 +1020,7 @@ void main() {
 
           final request = _request(
             'POST',
-            '/api/v1/portal/patients/questionnaires/send',
+            '/api/v1/portal/participants/questionnaires/send',
             body: jsonEncode({
               'patientId': _testPatientId,
               'questionnaireType': 'nose_hht',
@@ -1266,7 +1266,7 @@ void main() {
 
       final request = _request(
         'DELETE',
-        '/api/v1/portal/patients/questionnaires/nonexistent',
+        '/api/v1/portal/participants/questionnaires/nonexistent',
         body: jsonEncode({'reason': 'Test'}),
       );
 
@@ -1522,7 +1522,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/nonexistent/unlock',
+        '/api/v1/portal/participants/questionnaires/nonexistent/unlock',
       );
 
       final response = await unlockQuestionnaireHandler(request, 'nonexistent');
@@ -1720,7 +1720,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/nonexistent/finalize',
+        '/api/v1/portal/participants/questionnaires/nonexistent/finalize',
       );
 
       final response = await finalizeQuestionnaireHandler(
@@ -2120,7 +2120,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -2173,7 +2173,7 @@ void main() {
 
       final request = _request(
         'POST',
-        '/api/v1/portal/patients/questionnaires/send',
+        '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
           'patientId': _testPatientId,
           'questionnaireType': 'nose_hht',
@@ -2240,7 +2240,7 @@ void main() {
           // No study_event in the request — system must auto-compute it
           final request = _request(
             'POST',
-            '/api/v1/portal/patients/questionnaires/send',
+            '/api/v1/portal/participants/questionnaires/send',
             body: jsonEncode({
               'patientId': _testPatientId,
               'questionnaireType': 'nose_hht',
@@ -2302,7 +2302,7 @@ void main() {
 
           final request = _request(
             'POST',
-            '/api/v1/portal/patients/questionnaires/send',
+            '/api/v1/portal/participants/questionnaires/send',
             body: jsonEncode({
               'patientId': _testPatientId,
               'questionnaireType': 'nose_hht',
@@ -2372,7 +2372,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/questionnaires/send',
+          '/api/v1/portal/participants/questionnaires/send',
           body: jsonEncode({
             'patientId': _testPatientId,
             'questionnaireType': 'nose_hht',

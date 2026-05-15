@@ -124,7 +124,7 @@ class _ManageQuestionnairesDialogState
     });
 
     final response = await widget.apiClient.get(
-      '/api/v1/portal/patients/questionnaires',
+      '/api/v1/portal/participants/questionnaires',
       extraHeaders: {'X-Patient-Id': widget.patientId},
     );
 
@@ -222,7 +222,7 @@ class _ManageQuestionnairesDialogState
         ? {'study_event': studyEvent}
         : <String, dynamic>{};
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/questionnaires/send',
+      '/api/v1/portal/participants/questionnaires/send',
       {...body, 'patientId': widget.patientId, 'questionnaireType': type},
     );
 

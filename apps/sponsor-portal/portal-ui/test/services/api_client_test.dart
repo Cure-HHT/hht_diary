@@ -158,9 +158,9 @@ void main() {
         httpClient: mockHttpClient,
       );
 
-      await apiClient.get('/api/v1/portal/patients');
+      await apiClient.get('/api/v1/portal/participants');
 
-      final headers = capturedHeaders['/api/v1/portal/patients']!;
+      final headers = capturedHeaders['/api/v1/portal/participants']!;
       expect(headers['x-active-role'], 'Investigator');
     });
 
@@ -180,9 +180,10 @@ void main() {
         httpClient: mockHttpClient,
       );
 
-      await apiClient.post('/api/v1/portal/patients/p1/link-code', {});
+      await apiClient.post('/api/v1/portal/participants/p1/link-code', {});
 
-      final headers = capturedHeaders['/api/v1/portal/patients/p1/link-code']!;
+      final headers =
+          capturedHeaders['/api/v1/portal/participants/p1/link-code']!;
       expect(headers['x-active-role'], 'Investigator');
     });
 
@@ -202,10 +203,12 @@ void main() {
         httpClient: mockHttpClient,
       );
 
-      await apiClient.delete('/api/v1/portal/patients/p1/questionnaires/q1');
+      await apiClient.delete(
+        '/api/v1/portal/participants/p1/questionnaires/q1',
+      );
 
       final headers =
-          capturedHeaders['/api/v1/portal/patients/p1/questionnaires/q1']!;
+          capturedHeaders['/api/v1/portal/participants/p1/questionnaires/q1']!;
       expect(headers['x-active-role'], 'Investigator');
     });
 
@@ -308,9 +311,9 @@ void main() {
       await setup.authService.switchRole(UserRole.investigator);
 
       // Next request should use Investigator
-      await apiClient.get('/api/v1/portal/patients');
+      await apiClient.get('/api/v1/portal/participants');
       expect(
-        capturedHeaders['/api/v1/portal/patients']!['x-active-role'],
+        capturedHeaders['/api/v1/portal/participants']!['x-active-role'],
         'Investigator',
       );
     });
@@ -365,7 +368,7 @@ void main() {
       final apiClient = ApiClient(authService, httpClient: mockHttpClient);
 
       final response = await apiClient.delete(
-        '/api/v1/portal/patients/p1/questionnaires/q1',
+        '/api/v1/portal/participants/p1/questionnaires/q1',
         body: {'reason': 'Test reason'},
       );
 

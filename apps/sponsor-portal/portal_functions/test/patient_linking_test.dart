@@ -113,7 +113,7 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -127,7 +127,7 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
           headers: {'authorization': ''},
           body: jsonEncode({'patientId': 'p1'}),
         );
@@ -142,7 +142,7 @@ void main() {
         () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+            Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
             headers: {'authorization': 'some-token'},
             body: jsonEncode({'patientId': 'p1'}),
           );
@@ -156,7 +156,7 @@ void main() {
       test('returns JSON content type on error', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -172,7 +172,7 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'GET',
-          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
           headers: {'x-patient-id': 'p1'},
         );
 
@@ -186,7 +186,7 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'GET',
-          Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+          Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
           headers: {'authorization': '', 'x-patient-id': 'p1'},
         );
 
@@ -495,7 +495,7 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
           body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
         );
 
@@ -509,7 +509,7 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
           headers: {'authorization': ''},
           body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
         );
@@ -524,7 +524,7 @@ void main() {
         () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
+            Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
             headers: {'authorization': 'some-token'},
             body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
           );
@@ -538,7 +538,7 @@ void main() {
       test('returns JSON content type on error', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -554,7 +554,7 @@ void main() {
         // through the response format test instead
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/disconnect'),
+          Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -721,7 +721,7 @@ void main() {
           // and returns JSON (auth error, but valid JSON)
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+            Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
             body: jsonEncode({
               'patientId': 'p1',
               'reconnect_reason': 'Patient got new device',
@@ -742,7 +742,9 @@ void main() {
           () async {
             final request = Request(
               'POST',
-              Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+              Uri.parse(
+                'http://localhost/api/v1/portal/participants/link-code',
+              ),
               body: jsonEncode({'patientId': 'p1'}),
             );
 
@@ -757,7 +759,7 @@ void main() {
         test('handles invalid JSON body gracefully', () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/link-code'),
+            Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
             body: 'not valid json',
             headers: {'content-type': 'application/json'},
           );
@@ -831,7 +833,7 @@ void main() {
       test('returns 401 when no authorization header', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
+          Uri.parse('http://localhost/api/v1/portal/participants/start-trial'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -845,7 +847,7 @@ void main() {
       test('returns 401 when authorization header is empty', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
+          Uri.parse('http://localhost/api/v1/portal/participants/start-trial'),
           headers: {'authorization': ''},
           body: jsonEncode({'patientId': 'p1'}),
         );
@@ -860,7 +862,9 @@ void main() {
         () async {
           final request = Request(
             'POST',
-            Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
+            Uri.parse(
+              'http://localhost/api/v1/portal/participants/start-trial',
+            ),
             headers: {'authorization': 'some-token'},
             body: jsonEncode({'patientId': 'p1'}),
           );
@@ -874,7 +878,7 @@ void main() {
       test('returns JSON content type on error', () async {
         final request = Request(
           'POST',
-          Uri.parse('http://localhost/api/v1/portal/patients/start-trial'),
+          Uri.parse('http://localhost/api/v1/portal/participants/start-trial'),
           body: jsonEncode({'patientId': 'p1'}),
         );
 
@@ -1040,7 +1044,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -1061,7 +1065,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -1080,7 +1084,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           body: jsonEncode({'patientId': 'nonexistent'}),
         );
 
@@ -1099,7 +1103,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -1120,7 +1124,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -1159,7 +1163,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -1197,7 +1201,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reconnect_reason': 'New device',
@@ -1282,7 +1286,7 @@ void main() {
 
             final request = _request(
               'POST',
-              '/api/v1/portal/patients/link-code',
+              '/api/v1/portal/participants/link-code',
               body: jsonEncode({
                 'patientId': _testPatientId,
                 'reconnect_reason': 'New device',
@@ -1334,7 +1338,7 @@ void main() {
 
             final request = _request(
               'POST',
-              '/api/v1/portal/patients/link-code',
+              '/api/v1/portal/participants/link-code',
               body: jsonEncode({'patientId': _testPatientId}),
             );
 
@@ -1376,7 +1380,7 @@ void main() {
 
         final request = _request(
           'GET',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           headers: {'x-patient-id': _testPatientId},
         );
 
@@ -1404,7 +1408,7 @@ void main() {
 
         final request = _request(
           'GET',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           headers: {'x-patient-id': _testPatientId},
         );
 
@@ -1443,7 +1447,7 @@ void main() {
 
           final request = _request(
             'GET',
-            '/api/v1/portal/patients/link-code',
+            '/api/v1/portal/participants/link-code',
             headers: {'x-patient-id': _testPatientId},
           );
 
@@ -1477,7 +1481,7 @@ void main() {
 
           final request = _request(
             'GET',
-            '/api/v1/portal/patients/link-code',
+            '/api/v1/portal/participants/link-code',
             headers: {'x-patient-id': _testPatientId},
           );
 
@@ -1514,7 +1518,7 @@ void main() {
 
           final request = _request(
             'GET',
-            '/api/v1/portal/patients/link-code',
+            '/api/v1/portal/participants/link-code',
             headers: {'x-patient-id': _testPatientId},
           );
 
@@ -1532,7 +1536,7 @@ void main() {
 
         final request = _request(
           'GET',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           headers: {'x-patient-id': _testPatientId},
         );
 
@@ -1549,7 +1553,7 @@ void main() {
 
         final request = _request(
           'GET',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           headers: {'x-patient-id': 'nonexistent'},
         );
 
@@ -1570,7 +1574,7 @@ void main() {
 
         final request = _request(
           'GET',
-          '/api/v1/portal/patients/link-code',
+          '/api/v1/portal/participants/link-code',
           headers: {'x-patient-id': _testPatientId},
         );
 
@@ -1603,7 +1607,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/disconnect',
+          '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reason': 'Device Issues',
@@ -1626,7 +1630,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/disconnect',
+          '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reason': 'Device Issues',
@@ -1645,7 +1649,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/disconnect',
+          '/api/v1/portal/participants/disconnect',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -1659,7 +1663,7 @@ void main() {
       test('returns 400 for invalid reason value', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/disconnect',
+          '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reason': 'Not a valid reason',
@@ -1684,7 +1688,7 @@ void main() {
 
           final request = _request(
             'POST',
-            '/api/v1/portal/patients/disconnect',
+            '/api/v1/portal/participants/disconnect',
             body: jsonEncode({'patientId': _testPatientId, 'reason': 'Other'}),
           );
 
@@ -1705,7 +1709,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/disconnect',
+          '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
             'patientId': 'nonexistent',
             'reason': 'Device Issues',
@@ -1727,7 +1731,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/disconnect',
+          '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reason': 'Device Issues',
@@ -1749,7 +1753,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/disconnect',
+          '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reason': 'Device Issues',
@@ -1766,7 +1770,7 @@ void main() {
       test('returns 400 for invalid JSON body', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/disconnect',
+          '/api/v1/portal/participants/disconnect',
           body: 'not json',
         );
 
@@ -1794,7 +1798,7 @@ void main() {
 
             final request = _request(
               'POST',
-              '/api/v1/portal/patients/disconnect',
+              '/api/v1/portal/participants/disconnect',
               body: jsonEncode({
                 'patientId': _testPatientId,
                 'reason': 'Custom free text reason',
@@ -1832,7 +1836,7 @@ void main() {
 
             final request = _request(
               'POST',
-              '/api/v1/portal/patients/disconnect',
+              '/api/v1/portal/participants/disconnect',
               body: jsonEncode({
                 'patientId': _testPatientId,
                 'reason': 'Custom free text reason',
@@ -1863,7 +1867,7 @@ void main() {
 
             final request = _request(
               'POST',
-              '/api/v1/portal/patients/disconnect',
+              '/api/v1/portal/participants/disconnect',
               body: jsonEncode({'patientId': _testPatientId, 'reason': ''}),
             );
 
@@ -1962,7 +1966,7 @@ void main() {
 
           final request = _request(
             'POST',
-            '/api/v1/portal/patients/disconnect',
+            '/api/v1/portal/participants/disconnect',
             body: jsonEncode({
               'patientId': _testPatientId,
               'reason': 'Device Issues',
@@ -2039,7 +2043,7 @@ void main() {
 
             final request = _request(
               'POST',
-              '/api/v1/portal/patients/disconnect',
+              '/api/v1/portal/participants/disconnect',
               body: jsonEncode({
                 'patientId': _testPatientId,
                 'reason': 'Device Issues',
@@ -2087,7 +2091,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/not-participating',
+          '/api/v1/portal/participants/not-participating',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reason': 'Subject Withdrawal',
@@ -2109,7 +2113,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/not-participating',
+          '/api/v1/portal/participants/not-participating',
           body: jsonEncode({'patientId': _testPatientId, 'reason': 'Death'}),
         );
 
@@ -2121,7 +2125,7 @@ void main() {
       test('returns 400 for invalid reason', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/not-participating',
+          '/api/v1/portal/participants/not-participating',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reason': 'Invalid reason',
@@ -2136,7 +2140,7 @@ void main() {
       test('returns 400 when Other reason has no notes', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/not-participating',
+          '/api/v1/portal/participants/not-participating',
           body: jsonEncode({'patientId': _testPatientId, 'reason': 'Other'}),
         );
 
@@ -2155,7 +2159,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/not-participating',
+          '/api/v1/portal/participants/not-participating',
           body: jsonEncode({'patientId': 'nonexistent', 'reason': 'Death'}),
         );
 
@@ -2174,7 +2178,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/not-participating',
+          '/api/v1/portal/participants/not-participating',
           body: jsonEncode({'patientId': _testPatientId, 'reason': 'Death'}),
         );
 
@@ -2193,7 +2197,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/not-participating',
+          '/api/v1/portal/participants/not-participating',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reason': 'Subject Withdrawal',
@@ -2208,7 +2212,7 @@ void main() {
       test('returns 400 for invalid JSON body', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/not-participating',
+          '/api/v1/portal/participants/not-participating',
           body: 'not json',
         );
 
@@ -2283,7 +2287,7 @@ void main() {
 
             final request = _request(
               'POST',
-              '/api/v1/portal/patients/not-participating',
+              '/api/v1/portal/participants/not-participating',
               body: jsonEncode({
                 'patientId': _testPatientId,
                 'reason': 'Subject Withdrawal',
@@ -2328,7 +2332,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/reactivate',
+          '/api/v1/portal/participants/reactivate',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reason': 'Patient changed mind',
@@ -2350,7 +2354,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/reactivate',
+          '/api/v1/portal/participants/reactivate',
           body: jsonEncode({
             'patientId': _testPatientId,
             'reason': 'Changed mind',
@@ -2365,7 +2369,7 @@ void main() {
       test('returns 400 when reason is missing', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/reactivate',
+          '/api/v1/portal/participants/reactivate',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -2382,7 +2386,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/reactivate',
+          '/api/v1/portal/participants/reactivate',
           body: jsonEncode({'patientId': 'nonexistent', 'reason': 'Test'}),
         );
 
@@ -2403,7 +2407,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/reactivate',
+          '/api/v1/portal/participants/reactivate',
           body: jsonEncode({'patientId': _testPatientId, 'reason': 'Test'}),
         );
 
@@ -2422,7 +2426,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/reactivate',
+          '/api/v1/portal/participants/reactivate',
           body: jsonEncode({'patientId': _testPatientId, 'reason': 'Test'}),
         );
 
@@ -2434,7 +2438,7 @@ void main() {
       test('returns 400 for invalid JSON body', () async {
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/reactivate',
+          '/api/v1/portal/participants/reactivate',
           body: 'not json',
         );
 
@@ -2510,7 +2514,7 @@ void main() {
 
             final request = _request(
               'POST',
-              '/api/v1/portal/patients/reactivate',
+              '/api/v1/portal/participants/reactivate',
               body: jsonEncode({
                 'patientId': _testPatientId,
                 'reason': 'Patient Request',
@@ -2558,7 +2562,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/start-trial',
+          '/api/v1/portal/participants/start-trial',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -2576,7 +2580,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/start-trial',
+          '/api/v1/portal/participants/start-trial',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -2593,7 +2597,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/start-trial',
+          '/api/v1/portal/participants/start-trial',
           body: jsonEncode({'patientId': 'nonexistent'}),
         );
 
@@ -2612,7 +2616,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/start-trial',
+          '/api/v1/portal/participants/start-trial',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -2631,7 +2635,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/start-trial',
+          '/api/v1/portal/participants/start-trial',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -2650,7 +2654,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/start-trial',
+          '/api/v1/portal/participants/start-trial',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -2682,7 +2686,7 @@ void main() {
 
         final request = _request(
           'POST',
-          '/api/v1/portal/patients/start-trial',
+          '/api/v1/portal/participants/start-trial',
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
@@ -2765,7 +2769,7 @@ void main() {
 
             final request = _request(
               'POST',
-              '/api/v1/portal/patients/start-trial',
+              '/api/v1/portal/participants/start-trial',
               body: jsonEncode({'patientId': _testPatientId}),
             );
 

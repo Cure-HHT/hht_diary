@@ -992,7 +992,7 @@ Future<Response> getPortalSitesHandler(Request request) async {
 }
 
 /// Get patients synced from EDC (RAVE)
-/// GET /api/v1/portal/patients
+/// GET /api/v1/portal/participants
 ///
 /// Automatically syncs patients from EDC if:
 /// - No patients exist in the database
