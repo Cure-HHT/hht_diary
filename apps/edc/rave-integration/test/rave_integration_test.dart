@@ -425,6 +425,11 @@ void main() {
     });
   });
 
+  // Verifies the _throwIf401 helper produces enriched exceptions. The
+  // getStudies tests cover the full assertion matrix (reasonCode +
+  // serverMessage + statusCode + plain-text fallback); getSites and
+  // getSubjects are smoke tests that the helper is wired at those call
+  // sites.
   group('RaveClient 401 body parsing', () {
     late _MockHttpClient mockHttp;
     late RaveClient client;

@@ -111,13 +111,7 @@ class RaveClient {
         return response.body;
       }
 
-      if (response.statusCode == 401) {
-        final rws = parseRwsError(response.body);
-        throw RaveAuthenticationException(
-          reasonCode: rws?.reasonCode,
-          serverMessage: rws?.message,
-        );
-      }
+      _throwIf401(response);
 
       throw RaveApiException(
         'Studies endpoint returned status ${response.statusCode}',
@@ -155,13 +149,7 @@ class RaveClient {
         headers: {'Authorization': _authHeader},
       );
 
-      if (response.statusCode == 401) {
-        final rws = parseRwsError(response.body);
-        throw RaveAuthenticationException(
-          reasonCode: rws?.reasonCode,
-          serverMessage: rws?.message,
-        );
-      }
+      _throwIf401(response);
 
       if (response.statusCode != 200) {
         throw RaveApiException(
@@ -209,13 +197,7 @@ class RaveClient {
         headers: {'Authorization': _authHeader},
       );
 
-      if (response.statusCode == 401) {
-        final rws = parseRwsError(response.body);
-        throw RaveAuthenticationException(
-          reasonCode: rws?.reasonCode,
-          serverMessage: rws?.message,
-        );
-      }
+      _throwIf401(response);
 
       if (response.statusCode != 200) {
         throw RaveApiException(
@@ -239,6 +221,18 @@ class RaveClient {
     } on RaveException {
       rethrow;
     }
+  }
+
+  /// Throws a [RaveAuthenticationException] if the response is HTTP 401,
+  /// enriched with Medidata's RWS error code and message parsed from the
+  /// response body when available.
+  void _throwIf401(http.Response response) {
+    if (response.statusCode != 401) return;
+    final rwsError = parseRwsError(response.body);
+    throw RaveAuthenticationException(
+      reasonCode: rwsError?.reasonCode,
+      serverMessage: rwsError?.message,
+    );
   }
 
   /// Closes the underlying HTTP client.
