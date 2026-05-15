@@ -43,7 +43,10 @@ void main() {
       expect(err.message, equals('Something went wrong'));
     });
 
-    test('handles attribute values containing escaped quotes safely', () {
+    test('parses single-line inline response (no multi-line formatting)', () {
+      // RWS responses are usually multi-line XML, but the parser must also
+      // accept compact single-line bodies; verify the regex doesn't depend
+      // on whitespace formatting.
       const body =
           '<Response ReasonCode="RWS00008" ErrorClientResponseMessage="msg with no quote">';
       final err = parseRwsError(body);
