@@ -1,0 +1,164 @@
+% URS-shaped PDF template — derived from the bundled elspais template,
+% with the page header rewritten to match URS-v1.0's per-page identity
+% block (Sponsor / Protocol / Version) and the footer rewritten to the
+% "CONFIDENTIAL  Page N of M" form.
+%
+% Consumed by elspais pdf via --template <this file>.
+
+\documentclass[12pt,letterpaper]{report}
+
+% Page geometry
+\usepackage[margin=1in,top=1.25in]{geometry}
+
+% Font — Verdana preferred (FDA recommendation), Arial as a closer-to-URS-v1
+% secondary fallback (the original Google-doc export used Arial), DejaVu
+% Sans as the final fallback for systems lacking both.
+\usepackage{fontspec}
+\IfFontExistsTF{Verdana}{
+  \setmainfont{Verdana}
+}{
+  \IfFontExistsTF{Arial}{
+    \setmainfont{Arial}
+  }{
+    \setmainfont{DejaVu Sans}
+  }
+}
+\setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase]
+
+\usepackage{microtype}
+\usepackage{amssymb}
+\usepackage[dvipsnames]{xcolor}
+
+% Hyperlinks - clickable TOC and index
+\usepackage[
+  colorlinks=true,
+  linkcolor=NavyBlue,
+  urlcolor=NavyBlue,
+  bookmarks=true,
+  bookmarksnumbered=true,
+  pdfstartview=FitH
+]{hyperref}
+
+\usepackage{enumitem}
+
+% Graphics support — constrain images to page dimensions
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+
+\usepackage{longtable,booktabs}
+
+% Code blocks and syntax highlighting
+\usepackage{fancyvrb}
+\usepackage{framed}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\},fontsize=\small}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\definecolor{shadecolor}{RGB}{248,248,248}
+
+% Pandoc syntax-highlighting tokens
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{\textbf{#1}}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
+
+% URS-style header and footer
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+
+\pagestyle{fancy}
+\fancyhf{}
+
+% Three-line right-aligned header mirroring URS-v1.0 identity block
+\fancyhead[R]{%
+  \begin{tabular}{r@{}}
+    \small \textbf{eCOA User Requirements Specification}\\
+    \small Sponsor: Terremoto Biosciences\\
+    \small Protocol: TER-4480-C01 \quad Version: 1.0
+  \end{tabular}%
+}
+
+% CONFIDENTIAL marker left, "Page N of M" right
+\fancyfoot[L]{\small Specific to Protocol TER-4480-C01}
+\fancyfoot[C]{\small CONFIDENTIAL}
+\fancyfoot[R]{\small Page \thepage{} of \pageref{LastPage}}
+
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\setlength{\headheight}{42pt}
+
+% TOC number width — accommodate deep numbering like 3.11.18
+\usepackage[titles]{tocloft}
+\setlength{\cftchapnumwidth}{2em}
+\setlength{\cftsecnumwidth}{3.5em}
+\setlength{\cftsubsecnumwidth}{5.5em}
+\setlength{\cftsecindent}{2em}
+\setlength{\cftsubsecindent}{5.5em}
+
+% Chapter/section formatting - remove "Chapter N" prefix
+\usepackage{titlesec}
+\titleformat{\chapter}[hang]{\Huge\bfseries}{}{0pt}{}
+\titlespacing*{\chapter}{0pt}{-20pt}{20pt}
+\titleformat{\paragraph}[hang]{\normalfont\normalsize\bfseries}{}{0pt}{}
+\titlespacing*{\paragraph}{0pt}{10pt}{4pt}
+
+% Paragraph spacing
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+% Tight list support (pandoc)
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+% Title page
+\title{$title$}
+\date{\today}
+
+\begin{document}
+
+% Cover page: when --cover is provided, \input the LaTeX file; otherwise \maketitle.
+$if(cover-tex)$
+\input{$cover-tex$}
+$else$
+\maketitle
+$endif$
+\clearpage
+
+% Table of contents
+$if(toc)$
+\tableofcontents
+\clearpage
+$endif$
+
+$body$
+
+\end{document}

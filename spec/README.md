@@ -104,3 +104,13 @@ Sibling repos in the Cure-HHT org:
 | `event_sourcing` | `EVS-{PRD\|OPS\|DEV}-{kebab}` | `EVS-DEV-provenance-entry-schema` |
 
 When citing a foreign-repo REQ, use the foreign repo's convention. Link sibling repos via `elspais associate <path>`.
+
+### Federation convention (asymmetric `.elspais.local.toml`)
+
+**Only `hht_diary_callisto` declares `.elspais.local.toml` (pointing at hht_diary).** hht_diary does NOT declare a callisto associate. The reverse — both sides declaring each other — produces an elspais "Associate X declares its own associates" error because of the nested-associates restriction.
+
+Practical effects:
+
+- `elspais` run from the **callisto** worktree sees both repos' REQs (federation works; cross-repo Refines/Satisfies resolve cleanly).
+- `elspais` run from the **hht_diary** worktree sees only hht_diary REQs. Cross-repo refs from `DIARY-*` to `CAL-*` appear as "presumed cross-repo" and are suppressed by `[validation].allow_unresolved_cross_repo = true` in `.elspais.toml`.
+- `tools/compile-urs.sh` runs `elspais pdf` in each repo independently and `pdfunite`s the halves; the convention works because the script doesn't rely on federation for content lookup.

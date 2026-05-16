@@ -29,19 +29,26 @@ trap "rm -f '$DIARY_PDF' '$CAL_PDF'" EXIT
 # associates when pdf-compiling. Move the other side's .elspais.local.toml
 # out of the way during each compile.
 
-echo "[compile-urs] Building hht_diary PDF..."
-mv "$CAL_ROOT/.elspais.local.toml" "$CAL_ROOT/.elspais.local.toml.bak" 2>/dev/null || true
+COVER="$DIARY_ROOT/docs/urs-cover.tex"
+TEMPLATE="$DIARY_ROOT/docs/urs-template.latex"
+
+# Federation convention: only the callisto repo declares .elspais.local.toml
+# associating hht_diary. hht_diary does NOT declare a callisto associate
+# (would create a circular nested-associates error). This keeps elspais
+# happy without the toggle dance the script previously needed.
+
+echo "[compile-urs] Building hht_diary PDF (with URS cover + template)..."
 elspais -C "$DIARY_ROOT" pdf \
     --output "$DIARY_PDF" \
-    --title "eCOA User Requirements Specification" 2>&1 | tail -3
-mv "$CAL_ROOT/.elspais.local.toml.bak" "$CAL_ROOT/.elspais.local.toml" 2>/dev/null || true
+    --title "eCOA User Requirements Specification" \
+    --cover "$COVER" \
+    --template "$TEMPLATE" 2>&1 | tail -3
 
-echo "[compile-urs] Building hht_diary_callisto PDF..."
-mv "$DIARY_ROOT/.elspais.local.toml" "$DIARY_ROOT/.elspais.local.toml.bak" 2>/dev/null || true
+echo "[compile-urs] Building hht_diary_callisto PDF (template only, no cover)..."
 elspais -C "$CAL_ROOT" pdf \
     --output "$CAL_PDF" \
-    --title "eCOA URS — Callisto Sponsor Overlays" 2>&1 | tail -3
-mv "$DIARY_ROOT/.elspais.local.toml.bak" "$DIARY_ROOT/.elspais.local.toml" 2>/dev/null || true
+    --title "eCOA User Requirements Specification — Callisto Overlays" \
+    --template "$TEMPLATE" 2>&1 | tail -3
 
 echo "[compile-urs] Merging halves into $OUT..."
 pdfunite "$DIARY_PDF" "$CAL_PDF" "$OUT"
