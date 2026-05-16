@@ -95,7 +95,7 @@
 
 | ID                                                        | Title                                                     | File                               | Hash     |
 | --------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------- | -------- |
-| CAL-PRD-administrator-settings-inventory                  | Administrator Settings Configuration Inventory            | prd-administrator-settings.md      |          |
+| CAL-PRD-administrator-settings-inventory                  | Administrator Settings Configuration Inventory            | prd-administrator-settings.md      | bf0ea5e3 |
 | CAL-PRD-application-lock-configuration                    | Application Lock Configuration                            | prd-mobile-app.md                  | 7c6cbaea |
 | CAL-PRD-audit-log-view-scope                              | Audit Log View Scope                                      | prd-audit-log.md                   | e43fc08c |
 | CAL-PRD-entry-duration-check-configuration                | Duration Reasonableness Check Configuration               | prd-diary-entry-rules.md           | 9a298a25 |
@@ -163,6 +163,8 @@
 
 ## OPERATIONS
 
+### Callisto/spec
+
 | ID                                          | Title                                                                           | File                      | Hash     |
 | ------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------- | -------- |
 | CAL-OPS-ci-change-appropriate-validation    | Change-Appropriate CI Validation (placeholder)                                  | ops-ci-validation.md      | 339feadd |
@@ -189,6 +191,19 @@
 | CAL-OPS-secrets-doppler-cloud-run           | Per-environment Doppler service tokens for Cloud Run runtime                    | ops-deployment-secrets.md | 6ccecb17 |
 | CAL-OPS-secrets-github-actions-routing      | GitHub Actions deployment environments route per-env secrets                    | ops-deployment-secrets.md | aca006c3 |
 | CAL-OPS-secrets-sponsor-agnostic-automation | Sponsor-agnostic deployment automation reads sponsor name from base-config.json | ops-deployment-secrets.md | ace2c978 |
+
+### callisto
+
+| ID                                                            | Title                                | File | Hash     |
+| ------------------------------------------------------------- | ------------------------------------ | ---- | -------- |
+| CAL-OPS-deploy-notification-dev::CAL-OPS-deploy-notification  | Per-environment notification routing |      | 2078e9c4 |
+| CAL-OPS-deploy-notification-prod::CAL-OPS-deploy-notification | Per-environment notification routing |      | 2078e9c4 |
+| CAL-OPS-deploy-notification-qa::CAL-OPS-deploy-notification   | Per-environment notification routing |      | 2078e9c4 |
+| CAL-OPS-deploy-notification-uat::CAL-OPS-deploy-notification  | Per-environment notification routing |      | 2078e9c4 |
+| CAL-OPS-deploy-permission-dev::CAL-OPS-deploy-permission      | Per-environment permission scoping   |      | 68ee2a74 |
+| CAL-OPS-deploy-permission-prod::CAL-OPS-deploy-permission     | Per-environment permission scoping   |      | 68ee2a74 |
+| CAL-OPS-deploy-permission-qa::CAL-OPS-deploy-permission       | Per-environment permission scoping   |      | 68ee2a74 |
+| CAL-OPS-deploy-permission-uat::CAL-OPS-deploy-permission      | Per-environment permission scoping   |      | 68ee2a74 |
 
 ## DEVELOPMENT
 
