@@ -50,8 +50,11 @@ elspais -C "$CAL_ROOT" pdf \
     --title "eCOA User Requirements Specification — Callisto Overlays" \
     --template "$TEMPLATE" 2>&1 | tail -3
 
-echo "[compile-urs] Merging halves into $OUT..."
-pdfunite "$DIARY_PDF" "$CAL_PDF" "$OUT"
+echo "[compile-urs] Merging halves into $OUT (pypdf, preserves links)..."
+# pdfunite + ghostscript both strip named destinations during concat,
+# which leaves hyperlinks visually present but jumping nowhere. pypdf's
+# PdfWriter.append() preserves destinations across the merge boundary.
+/usr/bin/python3 "$DIARY_ROOT/tools/pdf-merge-with-links.py" "$OUT" "$DIARY_PDF" "$CAL_PDF" 2>&1 | grep -v "Annotation sizes differ" || true
 
 PAGES=$(pdfinfo "$OUT" 2>/dev/null | awk '/^Pages:/{print $2}')
 SIZE=$(stat -c%s "$OUT" 2>/dev/null || stat -f%z "$OUT")

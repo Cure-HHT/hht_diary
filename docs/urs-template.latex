@@ -10,15 +10,17 @@
 % Page geometry
 \usepackage[margin=1in,top=1.25in]{geometry}
 
-% Font — Verdana preferred (FDA recommendation), Arial as a closer-to-URS-v1
-% secondary fallback (the original Google-doc export used Arial), DejaVu
-% Sans as the final fallback for systems lacking both.
+% Font — Arial primary (matches URS-v1.0 Google-doc export, which was the
+% deliverable shape the URS team produced and reviewed). Verdana available
+% as a secondary fallback for systems without Arial (Verdana was the FDA-
+% recommended sans-serif at one time; both are now acceptable for
+% regulatory submission). DejaVu Sans final fallback for headless boxes.
 \usepackage{fontspec}
-\IfFontExistsTF{Verdana}{
-  \setmainfont{Verdana}
+\IfFontExistsTF{Arial}{
+  \setmainfont{Arial}
 }{
-  \IfFontExistsTF{Arial}{
-    \setmainfont{Arial}
+  \IfFontExistsTF{Verdana}{
+    \setmainfont{Verdana}
   }{
     \setmainfont{DejaVu Sans}
   }
