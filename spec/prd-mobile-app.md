@@ -1,6 +1,6 @@
 # Mobile Application Foundation
 
-This file groups the foundational platform-level requirements that define the **Mobile Application** itself: the dual-mode (personal vs. linked) operating model, offline-first data entry, the **Diary Start Day** invariant, the sponsor-configurable **Clinical Trial Privacy Policy**, and the **Application Lock**. Sponsor-side configuration overlays (`CAL-PRD-privacy-policy-configuration`, `CAL-PRD-application-lock-configuration`) live in the `hht_diary_callisto` repo and refine the PRDs in this file.
+The **Mobile Application** foundation comprises the dual-mode (personal vs. linked) operating model, offline-first data entry, the **Diary Start Day** invariant, the sponsor-configurable **Clinical Trial Privacy Policy**, and the **Application Lock**.
 
 ## DIARY-PRD-mobile-application: Diary Mobile Application
 

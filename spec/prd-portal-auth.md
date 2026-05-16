@@ -1,6 +1,6 @@
 # Sponsor Portal Authentication
 
-This file groups the platform-side authentication requirements for the **Sponsor Portal**: password composition and reuse rules, two-factor authentication, forgot-password recovery (PRD plus the workflow GUI), and session management. Sponsor-specific configuration values (the chosen second-factor method, code expiry, login rate-limit thresholds) live in the corresponding `hht_diary_callisto` file (`spec/prd-portal-auth.md`).
+**Sponsor Portal** authentication comprises password composition and reuse rules, two-factor authentication, forgot-password recovery (PRD plus the workflow GUI), and session management.
 
 ## DIARY-PRD-password-requirements: Password Requirements
 

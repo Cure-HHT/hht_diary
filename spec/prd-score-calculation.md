@@ -1,8 +1,6 @@
 # Score Calculation
 
-This file defines the platform's score-calculation obligations: the general rule that scores are computed per a validated algorithm and stored with the questionnaire record, plus the specific algorithm bindings for the **HHT-QoL** and **NOSE HHT** instruments. The corresponding questionnaire definitions live in `prd-questionnaire-overview.md` (assertions B in each REQ cite the validated source documents the algorithms come from).
-
-> Authoring note: the URS source uses defective section numbering inside §6.5 (the body repeats `6.4.1`, `6.4.2`, `6.4.3` from §6.4). This file treats them as `§6.5.1`, `§6.5.2`, `§6.5.3` respectively, matching the §6.5 chapter heading.
+The platform's score-calculation obligations comprise the general rule that scores are computed per a validated algorithm and stored with the questionnaire record, plus the specific algorithm bindings for the **HHT-QoL** and **NOSE HHT** instruments.
 
 ## DIARY-PRD-questionnaire-score-calculation: Questionnaire Score Calculation
 

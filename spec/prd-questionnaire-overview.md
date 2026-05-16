@@ -1,6 +1,6 @@
 # Questionnaires Overview
 
-This file enumerates the three clinical questionnaires the platform implements: the **Daily Epistaxis Record** (the daily eDiary instrument), the **NOSE HHT** survey, and the **HHT-QoL** survey. Each requirement binds the instrument to its validated source document and to the computer-readable data file that is the single implementation reference. The participant-facing workflow over these instruments (Preamble, Question Screen, Review Screen, Submission, Finalization) is defined in `prd-questionnaire-participant-workflow.md`; the daily-eDiary recording flow is defined in `prd-epistaxis.md`; the scoring algorithms are defined in `prd-score-calculation.md`.
+The platform implements three clinical questionnaires: the **Daily Epistaxis Record** (the daily eDiary instrument), the **NOSE HHT** survey, and the **HHT-QoL** survey. Each requirement binds the instrument to its validated source document and to the computer-readable data file that is the single implementation reference.
 
 ## DIARY-PRD-questionnaire-daily-epistaxis: Daily Epistaxis Record Questionnaire
 

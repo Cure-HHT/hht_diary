@@ -1,6 +1,6 @@
 # Device Linking
 
-This file defines the participant-side linking flow: the platform-level rules for error handling and rate limiting on linking-code entry, the **Join the Study** screen the participant uses to enter a code and consent to the **Clinical Trial Privacy Policy**, and the Successful Linking Confirmation that completes the transition from **User** to **Participant**. Sponsor-side configuration of the rate-limit values and error message text lives in the `hht_diary_callisto` repo (`CAL-PRD-linking-code-entry-errors-configuration`).
+The participant-side linking flow comprises the platform-level rules for error handling and rate limiting on linking-code entry, the **Join the Study** screen the participant uses to enter a code and consent to the **Clinical Trial Privacy Policy**, and the **Successful Linking Confirmation** that completes the transition from **User** to **Participant**.
 
 ## DIARY-PRD-linking-code-entry-errors: Linking Code Entry Error Handling
 

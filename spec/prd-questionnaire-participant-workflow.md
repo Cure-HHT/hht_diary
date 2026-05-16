@@ -1,6 +1,6 @@
 # Participant Questionnaire Workflow
 
-This file defines the participant-facing workflow over **Portal-Sent Questionnaires** — the rules that govern how a participant moves through Preamble, questions, Review, and Submission, the corresponding interface behavior, and the Session Timeout / Session Expiry mechanism that bounds how long an in-progress questionnaire can be left idle. The instruments these workflows operate over are defined in `prd-questionnaire-overview.md`. The sponsor-side call-back behavior overlay (`CAL-GUI-questionnaire-call-back-participant`) lives in the `hht_diary_callisto` repo.
+The participant-facing workflow over **Portal-Sent Questionnaires** comprises the rules that govern how a participant moves through Preamble, questions, Review, and Submission, the corresponding interface behavior, and the Session Timeout / Session Expiry mechanism that bounds how long an in-progress questionnaire can be left idle.
 
 ## DIARY-PRD-questionnaire-portal-sent-rules: Portal-Sent Questionnaire Rules
 

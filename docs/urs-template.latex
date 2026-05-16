@@ -147,13 +147,17 @@
 
 \begin{document}
 
-% Cover page: when --cover is provided, \input the LaTeX file; otherwise \maketitle.
+% Cover page: when --cover is provided, \input the LaTeX file. When no
+% cover is provided, NO title page renders — the document opens directly
+% on the TOC (if any) or the body. This supports the multi-stage compile
+% in tools/compile-urs.sh, which generates the cover-and-frontmatter
+% half via pandoc directly and produces the diary / callisto bodies via
+% elspais pdf WITHOUT --cover so they don't render interstitial title
+% pages when merged.
 $if(cover-tex)$
 \input{$cover-tex$}
-$else$
-\maketitle
-$endif$
 \clearpage
+$endif$
 
 % Table of contents
 $if(toc)$

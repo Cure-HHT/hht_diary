@@ -1,6 +1,6 @@
 # Daily eDiary: HHT Epistaxis Data Capture
 
-This file defines the daily eDiary data-capture flow for **Epistaxis Events**: the platform-level data capture standard, the participant-facing recording flow (Start, Max Intensity, End), and the deletion flow (in-flight during recording and post-save from event history). The questionnaire-instrument definition for the Daily Epistaxis Record itself lives in `prd-questionnaire-overview.md` as `DIARY-PRD-questionnaire-daily-epistaxis`; this file is about the eDiary flow over that instrument.
+The daily eDiary data-capture flow for **Epistaxis Events** comprises the platform-level data capture standard, the participant-facing recording flow (Start, Max Intensity, End), and the deletion flow (in-flight during recording and post-save from event history).
 
 ## DIARY-PRD-epistaxis-capture-standard: HHT Epistaxis Data Capture Standard
 

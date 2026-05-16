@@ -6,6 +6,8 @@
 
 ## PRODUCT
 
+### Cure-HHT Diary Platform/spec
+
 | ID                                               | Title                                               | File                                      | Hash     |
 | ------------------------------------------------ | --------------------------------------------------- | ----------------------------------------- | -------- |
 | DIARY-PRD-action-inventory                       | Action Inventory                                    | prd-rbac.md                               | f17b676a |
@@ -89,7 +91,37 @@
 | DIARY-PRD-user-account-reactivate                | Reactivate User Account                             | prd-user-account.md                       | c36b760f |
 | DIARY-PRD-user-account-site-assignment           | Site Assignment                                     | prd-user-account.md                       | 3aa95698 |
 
+### Callisto/spec
+
+| ID                                                        | Title                                                     | File                               | Hash     |
+| --------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------- | -------- |
+| CAL-PRD-administrator-settings-inventory                  | Administrator Settings Configuration Inventory            | prd-administrator-settings.md      | bf0ea5e3 |
+| CAL-PRD-application-lock-configuration                    | Application Lock Configuration                            | prd-mobile-app.md                  | 7c6cbaea |
+| CAL-PRD-audit-log-view-scope                              | Audit Log View Scope                                      | prd-audit-log.md                   | e43fc08c |
+| CAL-PRD-entry-duration-check-configuration                | Duration Reasonableness Check Configuration               | prd-diary-entry-rules.md           | 9a298a25 |
+| CAL-PRD-entry-time-restrictions-configuration             | Time-Based Entry Restrictions Configuration               | prd-diary-entry-rules.md           | 58dc3e04 |
+| CAL-PRD-linking-code-entry-errors-configuration           | Linking Code Entry Error Handling Configuration           | prd-device-linking.md              | 859c5872 |
+| CAL-PRD-linking-code-lifecycle-configuration              | Linking Code Lifecycle Configuration                      | prd-participant.md                 | 522755f6 |
+| CAL-PRD-login-rate-limiting-configuration                 | Login Attempt Rate Limiting Configuration                 | prd-portal-auth.md                 | 2a54a478 |
+| CAL-PRD-nose-hht-qol-workflow                             | NOSE HHT and HHT-QoL Questionnaire Workflow               | prd-questionnaire-management.md    | 0efabf1b |
+| CAL-PRD-notification-historical-gap-configuration         | Historical Gap Reminder Configuration                     | prd-mobile-notifications.md        | 56b66860 |
+| CAL-PRD-notification-incomplete-record-lock-configuration | Incomplete Record Lock Warning Notification Configuration | prd-mobile-notifications.md        | 7f7d231e |
+| CAL-PRD-notification-reminder-configuration               | Notification & Reminder Configuration                     | prd-mobile-notifications.md        | dff44029 |
+| CAL-PRD-participant-disconnection-reason-options          | Disconnection Reason Options                              | prd-participant.md                 | af779b05 |
+| CAL-PRD-participant-not-participating-reason-options      | Mark as Not Participating Reason Options                  | prd-participant.md                 | ad090ba1 |
+| CAL-PRD-participant-registration-configuration            | Participant Registration Configuration                    | prd-participant.md                 | 1abf676e |
+| CAL-PRD-permissions-table                                 | Permissions Table                                         | prd-rbac.md                        | b59776a6 |
+| CAL-PRD-privacy-policy-configuration                      | Clinical Trial Privacy Policy Configuration               | prd-mobile-app.md                  | afe92245 |
+| CAL-PRD-questionnaire-cycle-tracking                      | Questionnaire Cycle Tracking                              | prd-questionnaire-management.md    | 8fba1131 |
+| CAL-PRD-questionnaire-score-display-prohibition           | Questionnaire Score Display Prohibition                   | prd-questionnaire-score-display.md | 23d84761 |
+| CAL-PRD-questionnaire-session-resume-timeout              | Questionnaire Session Resume and Timeout                  | prd-questionnaire-management.md    | 9431d100 |
+| CAL-PRD-site-view-scope                                   | Site View Scope                                           | prd-rbac.md                        | 6ea645cb |
+| CAL-PRD-trial-start-workflow                              | Start Trial Workflow                                      | prd-questionnaire-management.md    | d1421617 |
+| CAL-PRD-two-factor-authentication-configuration           | Two-Factor Authentication Configuration                   | prd-portal-auth.md                 | d8e3f0ab |
+
 ## INTERFACE
+
+### Cure-HHT Diary Platform/spec
 
 | ID                                           | Title                                     | File                                      | Hash     |
 | -------------------------------------------- | ----------------------------------------- | ----------------------------------------- | -------- |
@@ -118,3 +150,92 @@
 | DIARY-GUI-user-account-reactivate            | Reactivate User Account                   | prd-user-account.md                       | f9ae8a4f |
 | DIARY-GUI-user-information-modal             | User Information Modal                    | prd-user-account.md                       | 3a130783 |
 | DIARY-GUI-user-management-tabs               | User Management Tabs                      | prd-user-account.md                       | c1ab4c55 |
+
+### Callisto/spec
+
+| ID                                          | Title                                                        | File                                      | Hash     |
+| ------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------- | -------- |
+| CAL-GUI-manage-questionnaires-modal         | Manage Questionnaires Modal                                  | prd-questionnaire-management.md           | 9cb05bc8 |
+| CAL-GUI-participant-dashboard-configuration | Participant Dashboard Configuration                          | prd-participant.md                        | 15d19d33 |
+| CAL-GUI-questionnaire-call-back-participant | Portal-Sent Questionnaire Call-Back — Participant Experience | prd-questionnaire-participant-workflow.md | 7bc60d78 |
+| CAL-GUI-questionnaire-finalization-workflow | Questionnaire Finalization Workflow                          | prd-questionnaire-management.md           | 79ad946c |
+| CAL-GUI-trial-start-workflow                | Start Trial Workflow Interface                               | prd-questionnaire-management.md           | a3809678 |
+
+## OPERATIONS
+
+### Callisto/spec
+
+| ID                                          | Title                                                                           | File                      | Hash     |
+| ------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------- | -------- |
+| CAL-OPS-ci-change-appropriate-validation    | Change-Appropriate CI Validation (placeholder)                                  | ops-ci-validation.md      | 339feadd |
+| CAL-OPS-ci-code-quality-static-analysis     | Code Quality and Static Analysis (placeholder)                                  | ops-ci-validation.md      | 9e617957 |
+| CAL-OPS-ci-secret-vulnerability-scanning    | Secret and Vulnerability Scanning (placeholder)                                 | ops-ci-validation.md      | 8273f96a |
+| CAL-OPS-ci-traceability-pipeline            | CI/CD Pipeline for Requirement Traceability (placeholder)                       | ops-ci-validation.md      | e90b3229 |
+| CAL-OPS-deploy-audit-trail                  | Regulatory audit trail for deploys, secrets, and schema                         | ops-deployment.md         | 560d57d5 |
+| CAL-OPS-deploy-cloud-run-verification       | Cloud Run deploy verification gates                                             | ops-deployment.md         | 31b96204 |
+| CAL-OPS-deploy-concurrency-locks            | Deploy concurrency and safety locks                                             | ops-deployment.md         | 7a20af36 |
+| CAL-OPS-deploy-cross-repo-image-trigger     | Cross-repo image-refresh trigger                                                | ops-deployment.md         | 88449aa6 |
+| CAL-OPS-deploy-notification                 | Per-environment notification routing                                            | ops-deployment.md         | 2078e9c4 |
+| CAL-OPS-deploy-notification-dev             | Notification routing — dev                                                      | ops-deployment.md         | ab29f35b |
+| CAL-OPS-deploy-notification-prod            | Notification routing — prod                                                     | ops-deployment.md         | 88b52b13 |
+| CAL-OPS-deploy-notification-qa              | Notification routing — qa                                                       | ops-deployment.md         | 0bd1fa75 |
+| CAL-OPS-deploy-notification-uat             | Notification routing — uat                                                      | ops-deployment.md         | 2d3f7eba |
+| CAL-OPS-deploy-permission                   | Per-environment permission scoping                                              | ops-deployment.md         | 68ee2a74 |
+| CAL-OPS-deploy-permission-dev               | Permission gating — dev                                                         | ops-deployment.md         | 37e59910 |
+| CAL-OPS-deploy-permission-prod              | Permission gating — prod                                                        | ops-deployment.md         | 68860323 |
+| CAL-OPS-deploy-permission-qa                | Permission gating — qa                                                          | ops-deployment.md         | 9e6df3e3 |
+| CAL-OPS-deploy-permission-uat               | Permission gating — uat                                                         | ops-deployment.md         | 0f9ccabb |
+| CAL-OPS-deploy-provenance-traceability      | Deploy provenance and traceability                                              | ops-deployment.md         | 06ad47b1 |
+| CAL-OPS-deploy-rollback-canary              | One-command rollback and canary traffic split                                   | ops-deployment.md         | a5a19b96 |
+| CAL-OPS-deploy-runbooks-failure-modes       | Runbooks and failure-mode documentation                                         | ops-deployment.md         | 27b81f29 |
+| CAL-OPS-secrets-doppler-cloud-run           | Per-environment Doppler service tokens for Cloud Run runtime                    | ops-deployment-secrets.md | 6ccecb17 |
+| CAL-OPS-secrets-github-actions-routing      | GitHub Actions deployment environments route per-env secrets                    | ops-deployment-secrets.md | aca006c3 |
+| CAL-OPS-secrets-sponsor-agnostic-automation | Sponsor-agnostic deployment automation reads sponsor name from base-config.json | ops-deployment-secrets.md | ace2c978 |
+
+### callisto
+
+| ID                                                            | Title                                | File | Hash     |
+| ------------------------------------------------------------- | ------------------------------------ | ---- | -------- |
+| CAL-OPS-deploy-notification-dev::CAL-OPS-deploy-notification  | Per-environment notification routing |      | 2078e9c4 |
+| CAL-OPS-deploy-notification-prod::CAL-OPS-deploy-notification | Per-environment notification routing |      | 2078e9c4 |
+| CAL-OPS-deploy-notification-qa::CAL-OPS-deploy-notification   | Per-environment notification routing |      | 2078e9c4 |
+| CAL-OPS-deploy-notification-uat::CAL-OPS-deploy-notification  | Per-environment notification routing |      | 2078e9c4 |
+| CAL-OPS-deploy-permission-dev::CAL-OPS-deploy-permission      | Per-environment permission scoping   |      | 68ee2a74 |
+| CAL-OPS-deploy-permission-prod::CAL-OPS-deploy-permission     | Per-environment permission scoping   |      | 68ee2a74 |
+| CAL-OPS-deploy-permission-qa::CAL-OPS-deploy-permission       | Per-environment permission scoping   |      | 68ee2a74 |
+| CAL-OPS-deploy-permission-uat::CAL-OPS-deploy-permission      | Per-environment permission scoping   |      | 68ee2a74 |
+
+## DEVELOPMENT
+
+| ID                                         | Title                              | File                      | Hash     |
+| ------------------------------------------ | ---------------------------------- | ------------------------- | -------- |
+| CAL-DEV-database-minimize-deleted-records  | Minimize Deleted Records           | dev-database.md           | 5bc520a6 |
+| CAL-DEV-database-no-implicit-field-changes | No Implicit Field Changes          | dev-database.md           | e54e9d7a |
+| CAL-DEV-database-proxy-purpose             | Proxy Database Purpose             | dev-database.md           | a4a5f2f2 |
+| CAL-DEV-database-survey-response-storage   | Survey Response Storage Format     | dev-database.md           | 1701c36a |
+| CAL-DEV-edc-audit-context-structure        | Audit Context Field Structure      | dev-edc-schema.md         | cff75d38 |
+| CAL-DEV-edc-audit-location-format          | Audit Location Field Format        | dev-edc-schema.md         | 39b68d8e |
+| CAL-DEV-edc-audit-reason-values            | Audit Reason Field Values          | dev-edc-schema.md         | 8ce83605 |
+| CAL-DEV-edc-audit-timestamp-format         | Audit Timestamp Format             | dev-edc-schema.md         | b7604c5a |
+| CAL-DEV-edc-audit-user-values              | Audit User Field Values            | dev-edc-schema.md         | a54dee5a |
+| CAL-DEV-edc-callisto-transforms            | Callisto Transformation Rules      | dev-edc-schema.md         | 9d3d0997 |
+| CAL-DEV-edc-change-history-via-eventstore  | Change History via EventStore      | dev-edc-schema.md         | d9ee256c |
+| CAL-DEV-edc-data-source-trace              | Data Source Traceability           | dev-edc-schema.md         | 5efe8e1c |
+| CAL-DEV-edc-date-field-format              | Date Field Format                  | dev-edc-schema.md         | 58b2f49d |
+| CAL-DEV-edc-duration-calculation           | Duration Field Calculation         | dev-edc-schema.md         | 0c76ed17 |
+| CAL-DEV-edc-incomplete-entry-flag          | Incomplete Entry Flag              | dev-edc-schema.md         | b1e9f94f |
+| CAL-DEV-edc-no-nosebleeds-flag             | No Nosebleeds Event Flag           | dev-edc-schema.md         | c278cf17 |
+| CAL-DEV-edc-notes-field-handling           | Notes Field Handling               | dev-edc-schema.md         | c162113d |
+| CAL-DEV-edc-patient-id-format              | Patient ID Format                  | dev-edc-schema.md         | d28af884 |
+| CAL-DEV-edc-requester-id                   | Requester ID Field                 | dev-edc-schema.md         | 45bef36a |
+| CAL-DEV-edc-requester-name                 | Requester Name Field               | dev-edc-schema.md         | 95edc730 |
+| CAL-DEV-edc-severity-field-format          | Severity Field Format              | dev-edc-schema.md         | 9bfdd635 |
+| CAL-DEV-edc-site-id-format                 | Site ID Format                     | dev-edc-schema.md         | f9398120 |
+| CAL-DEV-edc-survey-name                    | Survey Name Field                  | dev-edc-schema.md         | 0e4fa43a |
+| CAL-DEV-edc-survey-response-storage        | Survey Response Storage            | dev-edc-schema.md         | 2f4e6520 |
+| CAL-DEV-edc-survey-version                 | Survey Version Field               | dev-edc-schema.md         | 3d9457ea |
+| CAL-DEV-edc-time-field-format              | Time Field Format                  | dev-edc-schema.md         | de99e024 |
+| CAL-DEV-edc-unknown-event-flag             | Unknown Event Flag                 | dev-edc-schema.md         | 40380c25 |
+| CAL-DEV-edc-uuid-field-format              | UUID Field Format                  | dev-edc-schema.md         | 0fef1aa4 |
+| CAL-DEV-edc-uuid-table-prefix              | UUID Table Prefix Format           | dev-edc-schema.md         | 189341f5 |
+| CAL-DEV-push-notifications-fcm-delivery    | Push Notification Delivery via FCM | dev-push-notifications.md | 51613c24 |

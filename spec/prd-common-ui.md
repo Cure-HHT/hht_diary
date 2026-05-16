@@ -1,8 +1,6 @@
 # Common UI Elements, Actions, and Status Registry
 
-This file holds the named element, action, interaction, dialog, and status registries used as shorthand throughout the rest of the spec. It contains no requirement blocks of its own; every entry below is an authoritative vocabulary table referenced by other PRD/GUI requirements. Where subsequent requirements name a *Button*, *UI Element*, *Action*, *Interaction Pattern*, *Dialog Pattern*, or *Status* value, the behavior shall be interpreted according to the definition provided here unless that requirement explicitly states otherwise.
-
-The tables transcribe the URS §4.1 (Common User Interface Elements and Actions) and §4.2 (Status Registry) content verbatim.
+The system shall use a consistent set of commonly displayed elements, buttons, and interaction patterns across the Sponsor Portal and Mobile Application. Where these terms are used in subsequent requirements, their behavior shall be interpreted according to the definitions provided in this section, unless specified otherwise.
 
 ## Buttons
 

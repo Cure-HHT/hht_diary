@@ -1,6 +1,6 @@
 # Role-Based Access Control
 
-This file groups the platform-side role-based access control (RBAC) requirements: the customizable RBAC foundation, the master Action Inventory, the generic Role Definitions, and the interface behavior for switching between assigned roles. The sponsor-specific permissions table (binding roles to actions) and the per-role site-view scope live in the `hht_diary_callisto` repo (`CAL-PRD-permissions-table`, `CAL-PRD-site-view-scope`) and `Refines` the requirements established here.
+This section defines the role model used across the solution: the generic role templates provided by the platform, the inventory of actions subject to access control, and the sponsor portal deployment's role assignments and permissions. All functional requirements that reference roles or permissions depend on the definitions established here.
 
 ## DIARY-PRD-rbac-customizable: Customizable Role-Based Access Control
 

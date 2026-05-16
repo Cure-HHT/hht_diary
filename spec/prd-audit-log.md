@@ -1,6 +1,6 @@
 # Audit Log Visibility and Presentation
 
-This file holds the platform-side audit-log GUI templates: the common presentation shared across all roles, and the role-specific refinements for Study Coordinator, CRA, and Administrator audit log views. The per-role visibility scope (which entries each role is authorized to see) is enforced by the callisto-side `CAL-PRD-audit-log-view-scope`, which the common GUI template refines cross-repo.
+This section defines per-role visibility scope of audit log records and the user interface presentation of the **Audit Log View**. The content captured in each **Audit Log Entry**.
 
 ## DIARY-GUI-audit-log-common: Audit Log View — Common Presentation
 

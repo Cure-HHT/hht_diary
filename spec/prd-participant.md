@@ -1,6 +1,6 @@
 # Participant Workflows
 
-This file groups the platform-side requirements that govern the **Participant** lifecycle in the sponsor portal: linking-code generation and use, participant registration, the link/disconnect/reconnect/mark-not-participating/reactivate workflows, and the **Participant Dashboard** GUI that the Study Coordinator uses to operate them. Sponsor-specific overlays — disconnection reason lists, mark-as-not-participating reason lists, linking-code expiry configuration, participant-registration source binding, and the participant dashboard configuration — live in the corresponding `hht_diary_callisto` file (`spec/prd-participant.md`).
+The **Participant** lifecycle in the **Sponsor Portal** is governed by linking-code generation and use, participant registration, the link / disconnect / reconnect / mark-not-participating / reactivate workflows, and the **Participant Dashboard** GUI through which the **Study Coordinator** operates them.
 
 ## DIARY-PRD-linking-code-lifecycle: Linking Code Lifecycle Management
 

@@ -1,6 +1,6 @@
 # Mobile Application Navigation and Screens
 
-This file defines the foundational navigation surfaces of the **Mobile Application**: the **Main Screen** layout (zones, task area, content area, fixed bottom actions), the two top-navigation-bar menus (User Menu, Application Menu) and their dependent screens, and the Calendar / Day View pair the participant uses to navigate to any past date. The participant-tasks and notifications surface — which displays inside the Main Screen's task area — is defined in `prd-mobile-notifications.md`.
+The foundational navigation surfaces of the **Mobile Application** comprise the **Main Screen** layout (zones, task area, content area, fixed bottom actions), the two top-navigation-bar menus (User Menu, Application Menu) and their dependent screens, and the Calendar / Day View pair the participant uses to navigate to any past date.
 
 ## DIARY-GUI-main-screen-layout: Main Screen Layout
 

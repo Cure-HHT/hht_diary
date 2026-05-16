@@ -1,6 +1,6 @@
 # Questionnaire Management
 
-This file groups the platform-side requirements that establish the **Questionnaire** system: the clinical questionnaire foundation, sponsor-specific configuration surfaces, the controlled submission gate that enforces approved structures, and the change-control discipline that keeps questionnaires stable within a trial. Sponsor-specific workflows (Start Trial, NOSE HHT and HHT-QoL administration, cycle tracking, session timing) live in the corresponding `hht_diary_callisto` file (`spec/prd-questionnaire-management.md`) and reference the foundation defined here.
+The platform's **Questionnaire** system rests on a clinical questionnaire foundation, sponsor-specific configuration surfaces, a controlled submission gate that enforces approved structures, and change-control discipline that keeps questionnaires stable within a trial.
 
 ## DIARY-PRD-questionnaire-system: Clinical Questionnaire System
 

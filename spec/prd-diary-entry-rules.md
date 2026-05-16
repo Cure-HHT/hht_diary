@@ -1,6 +1,6 @@
 # Diary Entry Rules
 
-This file groups the platform-level validation rules that apply to every diary entry: the two-tier (justification, lock) time-based restrictions, the duration reasonableness check, and the overlapping-event detection-and-resolution flow. Sponsor-side configuration overlays (`CAL-PRD-entry-time-restrictions-configuration`, `CAL-PRD-entry-duration-check-configuration`) live in the `hht_diary_callisto` repo and refine the PRDs in this file with specific threshold values.
+The platform-level validation rules that apply to every diary entry comprise the two-tier (justification, lock) time-based restrictions, the duration reasonableness check, and the overlapping-event detection-and-resolution flow.
 
 ## DIARY-PRD-entry-time-restrictions: Time-Based Entry Restrictions
 

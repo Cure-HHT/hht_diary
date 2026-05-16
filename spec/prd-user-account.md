@@ -1,6 +1,6 @@
 # User Account Management
 
-This file groups all platform-side user-account lifecycle requirements (administration in §5.1 of the URS) and their corresponding sponsor portal interface surfaces (user interface in §5.2). The PRD-level requirements define what the platform supports for **User Account** creation, activation, site assignment, email-resend, edit, deactivation, and reactivation; the GUI requirements specify how the sponsor portal exposes these capabilities through tabs, modals, and the Administrator Dashboard. The shared **Reason Field Constraints** template governs every free-text reason input across this surface and is consumed by the Reason Dialog appendix entries.
+The Sponsor Portal supports the full **User Account** lifecycle: creation, activation, site assignment, activation-email resend, edit, deactivation, and reactivation. A consistent user-management interface — tabs, modals, the Administrator Dashboard, and the shared **Reason Field Constraints** that govern every free-text reason input — exposes these capabilities to the Administrator role.
 
 ## DIARY-PRD-user-account-create: Create User Account
 

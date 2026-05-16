@@ -1,6 +1,6 @@
 # Administrator Settings
 
-This file groups the platform-side requirements that establish the **Administrator Settings** surface — a read-only view available to **Administrators** that displays the current values of sponsor-configured platform parameters. The PRD requirement defines the surface; the GUI requirement specifies its presentation. The sponsor-specific inventory of which **Configuration Parameters** are surfaced and how they are grouped lives in the corresponding `hht_diary_callisto` file (`spec/prd-administrator-settings.md`).
+This section defines the **Administrator Settings** surface, a read-only view available to Administrators that displays the current values of sponsor-configured platform parameters. The surface provides Administrators with visibility into how the deployment is configured without granting modification capability.
 
 ## DIARY-PRD-administrator-settings: Administrator Settings Surface
 

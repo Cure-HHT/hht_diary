@@ -1,6 +1,6 @@
 # Participant Tasks and Notifications
 
-This file groups every notification and reminder the **Mobile Application** delivers to the **Participant**, together with the on-screen Task List and Participation Status Badge that surface task-state information in the app itself. The seven push notifications defined here all conform to the cross-cutting `DIARY-PRD-notification-behavior` template (tap behavior, no in-notification actions, offline-deferred delivery). Sponsor-side configuration of the trigger offsets and notification text live in the `hht_diary_callisto` repo (`CAL-PRD-notification-incomplete-record-lock-configuration`, `CAL-PRD-notification-reminder-configuration`, `CAL-PRD-notification-historical-gap-configuration`).
+The **Mobile Application** delivers a set of push notifications and reminders to the **Participant**, together with the on-screen **Task List** and **Participation Status Badge** that surface task-state information in the app itself. The push notifications defined here all conform to the cross-cutting `DIARY-PRD-notification-behavior` template (tap behavior, no in-notification actions, offline-deferred delivery).
 
 ## DIARY-GUI-participant-task-list: Participant Task List
 
