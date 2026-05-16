@@ -6,47 +6,176 @@
 
 ## PRODUCT
 
-| ID                                          | Title                                               | File                            | Hash     |
-| ------------------------------------------- | --------------------------------------------------- | ------------------------------- | -------- |
-| DIARY-PRD-action-inventory                  | Action Inventory                                    | prd-rbac.md                     | f17b676a |
-| DIARY-PRD-ancillary-platform-services       | Ancillary Platform Services                         | prd-platform-services.md        | ff326529 |
-| DIARY-PRD-architecture-decision-docs        | Architecture Decision Documentation                 | prd-requirements-management.md  | 76c82ce6 |
-| DIARY-PRD-configuration-precedence          | Configuration Precedence                            | prd-configuration.md            | f5372beb |
-| DIARY-PRD-data-backup-and-archival          | Data Backup and Archival                            | prd-data-backup.md              | 4e9501e4 |
-| DIARY-PRD-evidence-bitcoin-timestamp        | Bitcoin-Based Timestamp Implementation              | prd-evidence-records.md         | 94499ad5 |
-| DIARY-PRD-evidence-device-fingerprint       | Device Fingerprinting                               | prd-evidence-records.md         | 8e10b85a |
-| DIARY-PRD-evidence-email-identity           | Hashed Email Identity Verification                  | prd-evidence-records.md         | 92c5e2b7 |
-| DIARY-PRD-evidence-geolocation              | Optional Geolocation Tagging                        | prd-evidence-records.md         | f9a69607 |
-| DIARY-PRD-evidence-patient-authentication   | Patient Authentication for Data Attribution         | prd-evidence-records.md         | fc02cd59 |
-| DIARY-PRD-evidence-timestamp-archival       | Timestamp Proof Archival                            | prd-evidence-records.md         | 69a49395 |
-| DIARY-PRD-evidence-timestamp-attestation    | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md         | f2ab1f17 |
-| DIARY-PRD-evidence-timestamp-verification   | Timestamp Verification Interface                    | prd-evidence-records.md         | 9956bd94 |
-| DIARY-PRD-help-resources                    | Help and Resources                                  | prd-help-resources.md           | 66c10c7b |
-| DIARY-PRD-notification-behavior             | Notification Behavior                               | prd-notification-behavior.md    | 8f7b4f54 |
-| DIARY-PRD-platform-operations-monitoring    | Platform Operations and Monitoring                  | prd-platform-operations.md      | af349286 |
-| DIARY-PRD-questionnaire-localization        | Questionnaire Localization and Translation Tracking | prd-questionnaire-versioning.md | 4218237c |
-| DIARY-PRD-questionnaire-sponsor-eligibility | Sponsor Questionnaire Eligibility Configuration     | prd-questionnaire-versioning.md | ac2f2aac |
-| DIARY-PRD-questionnaire-versioning          | Questionnaire Versioning Model                      | prd-questionnaire-versioning.md | 6d08845d |
-| DIARY-PRD-rbac-customizable                 | Customizable Role-Based Access Control              | prd-rbac.md                     | 099e2eb7 |
-| DIARY-PRD-role-definitions                  | Role Definitions                                    | prd-rbac.md                     | 1f0ab3a3 |
-| DIARY-PRD-sla-chronic-failure-escalation    | Chronic Failure Escalation                          | prd-sla.md                      | 63205737 |
-| DIARY-PRD-sla-corrective-preventive         | Corrective and Preventive Action                    | prd-sla.md                      | f2c78d76 |
-| DIARY-PRD-sla-customer-notification         | Customer Incident Notification                      | prd-sla.md                      | 3ca3df0f |
-| DIARY-PRD-sla-data-recovery                 | Data Recovery Guarantee                             | prd-sla.md                      | 5909fb2b |
-| DIARY-PRD-sla-disaster-recovery             | Disaster Recovery Objectives                        | prd-sla.md                      | 6b076a50 |
-| DIARY-PRD-sla-incident-response-times       | Incident Response Times                             | prd-sla.md                      | 40fb577e |
-| DIARY-PRD-sla-incident-severity             | Incident Severity Classification                    | prd-sla.md                      | d1734735 |
-| DIARY-PRD-sla-regulatory-event-support      | Regulatory Event Support                            | prd-sla.md                      | f62f5e4d |
-| DIARY-PRD-sla-root-cause-analysis           | Root Cause Analysis                                 | prd-sla.md                      | 0778e3bb |
-| DIARY-PRD-sla-service-availability          | Service Availability Commitment                     | prd-sla.md                      | d39861a9 |
-| DIARY-PRD-system-validation-traceability    | System Validation and Traceability                  | prd-requirements-management.md  | 7d81caf7 |
+### Cure-HHT Diary Platform/spec
+
+| ID                                            | Title                                               | File                            | Hash     |
+| --------------------------------------------- | --------------------------------------------------- | ------------------------------- | -------- |
+| DIARY-PRD-action-inventory                    | Action Inventory                                    | prd-rbac.md                     | f17b676a |
+| DIARY-PRD-administrator-settings              | Administrator Settings Surface                      | prd-administrator-settings.md   | 318dd00f |
+| DIARY-PRD-ancillary-platform-services         | Ancillary Platform Services                         | prd-platform-services.md        | ff326529 |
+| DIARY-PRD-architecture-decision-docs          | Architecture Decision Documentation                 | prd-requirements-management.md  | 76c82ce6 |
+| DIARY-PRD-configuration-precedence            | Configuration Precedence                            | prd-configuration.md            | f5372beb |
+| DIARY-PRD-data-backup-and-archival            | Data Backup and Archival                            | prd-data-backup.md              | 4e9501e4 |
+| DIARY-PRD-evidence-bitcoin-timestamp          | Bitcoin-Based Timestamp Implementation              | prd-evidence-records.md         | 94499ad5 |
+| DIARY-PRD-evidence-device-fingerprint         | Device Fingerprinting                               | prd-evidence-records.md         | 8e10b85a |
+| DIARY-PRD-evidence-email-identity             | Hashed Email Identity Verification                  | prd-evidence-records.md         | 92c5e2b7 |
+| DIARY-PRD-evidence-geolocation                | Optional Geolocation Tagging                        | prd-evidence-records.md         | f9a69607 |
+| DIARY-PRD-evidence-patient-authentication     | Patient Authentication for Data Attribution         | prd-evidence-records.md         | fc02cd59 |
+| DIARY-PRD-evidence-timestamp-archival         | Timestamp Proof Archival                            | prd-evidence-records.md         | 69a49395 |
+| DIARY-PRD-evidence-timestamp-attestation      | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md         | f2ab1f17 |
+| DIARY-PRD-evidence-timestamp-verification     | Timestamp Verification Interface                    | prd-evidence-records.md         | 9956bd94 |
+| DIARY-PRD-help-resources                      | Help and Resources                                  | prd-help-resources.md           | 66c10c7b |
+| DIARY-PRD-linking-code-lifecycle              | Linking Code Lifecycle Management                   | prd-participant.md              | 15ed4111 |
+| DIARY-PRD-notification-behavior               | Notification Behavior                               | prd-notification-behavior.md    | 8f7b4f54 |
+| DIARY-PRD-participant-disconnection           | Participant Disconnection Workflow                  | prd-participant.md              | c133a6be |
+| DIARY-PRD-participant-link-new                | Link New Participant Workflow                       | prd-participant.md              | eb666103 |
+| DIARY-PRD-participant-mark-not-participating  | Mark as Not Participating                           | prd-participant.md              | fb1a6056 |
+| DIARY-PRD-participant-reactivate              | Reactivate Participant                              | prd-participant.md              | 50b09295 |
+| DIARY-PRD-participant-reconnection            | Participant Reconnection Workflow                   | prd-participant.md              | b7eec931 |
+| DIARY-PRD-participant-registration            | Participant Registration                            | prd-participant.md              | e262998e |
+| DIARY-PRD-password-forgot                     | Forgot Password                                     | prd-portal-auth.md              | 4ad0d3fa |
+| DIARY-PRD-password-requirements               | Password Requirements                               | prd-portal-auth.md              | 61dd6125 |
+| DIARY-PRD-platform-operations-monitoring      | Platform Operations and Monitoring                  | prd-platform-operations.md      | af349286 |
+| DIARY-PRD-questionnaire-change-control        | Questionnaire Change Control                        | prd-questionnaire-management.md | e1e119e4 |
+| DIARY-PRD-questionnaire-localization          | Questionnaire Localization and Translation Tracking | prd-questionnaire-versioning.md | 4218237c |
+| DIARY-PRD-questionnaire-sponsor-configuration | Sponsor Questionnaire Configuration                 | prd-questionnaire-management.md | 1c0e5f61 |
+| DIARY-PRD-questionnaire-sponsor-eligibility   | Sponsor Questionnaire Eligibility Configuration     | prd-questionnaire-versioning.md | ac2f2aac |
+| DIARY-PRD-questionnaire-submission-control    | Clinical Data Submission Control                    | prd-questionnaire-management.md | 62ccbb18 |
+| DIARY-PRD-questionnaire-system                | Clinical Questionnaire System                       | prd-questionnaire-management.md | 306eeb1a |
+| DIARY-PRD-questionnaire-versioning            | Questionnaire Versioning Model                      | prd-questionnaire-versioning.md | 6d08845d |
+| DIARY-PRD-rbac-customizable                   | Customizable Role-Based Access Control              | prd-rbac.md                     | 099e2eb7 |
+| DIARY-PRD-reason-field-constraints            | Reason Field Constraints                            | prd-user-account.md             | 602a83b1 |
+| DIARY-PRD-role-definitions                    | Role Definitions                                    | prd-rbac.md                     | 1f0ab3a3 |
+| DIARY-PRD-session-management                  | Session Management                                  | prd-portal-auth.md              | 10331e8d |
+| DIARY-PRD-sla-chronic-failure-escalation      | Chronic Failure Escalation                          | prd-sla.md                      | 63205737 |
+| DIARY-PRD-sla-corrective-preventive           | Corrective and Preventive Action                    | prd-sla.md                      | f2c78d76 |
+| DIARY-PRD-sla-customer-notification           | Customer Incident Notification                      | prd-sla.md                      | 3ca3df0f |
+| DIARY-PRD-sla-data-recovery                   | Data Recovery Guarantee                             | prd-sla.md                      | 5909fb2b |
+| DIARY-PRD-sla-disaster-recovery               | Disaster Recovery Objectives                        | prd-sla.md                      | 6b076a50 |
+| DIARY-PRD-sla-incident-response-times         | Incident Response Times                             | prd-sla.md                      | 40fb577e |
+| DIARY-PRD-sla-incident-severity               | Incident Severity Classification                    | prd-sla.md                      | d1734735 |
+| DIARY-PRD-sla-regulatory-event-support        | Regulatory Event Support                            | prd-sla.md                      | f62f5e4d |
+| DIARY-PRD-sla-root-cause-analysis             | Root Cause Analysis                                 | prd-sla.md                      | 0778e3bb |
+| DIARY-PRD-sla-service-availability            | Service Availability Commitment                     | prd-sla.md                      | d39861a9 |
+| DIARY-PRD-system-validation-traceability      | System Validation and Traceability                  | prd-requirements-management.md  | 7d81caf7 |
+| DIARY-PRD-two-factor-authentication           | Two-Factor Authentication                           | prd-portal-auth.md              | 71195321 |
+| DIARY-PRD-user-account-activation-resend      | Resend Activation Email                             | prd-user-account.md             | fb61a75a |
+| DIARY-PRD-user-account-activation-workflow    | Account Activation Workflow                         | prd-user-account.md             | d66d0ab7 |
+| DIARY-PRD-user-account-create                 | Create User Account                                 | prd-user-account.md             | e92dfa41 |
+| DIARY-PRD-user-account-deactivate             | Deactivate User Account                             | prd-user-account.md             | 6f0247b3 |
+| DIARY-PRD-user-account-edit                   | Edit User Account                                   | prd-user-account.md             | c4d1c981 |
+| DIARY-PRD-user-account-reactivate             | Reactivate User Account                             | prd-user-account.md             | c36b760f |
+| DIARY-PRD-user-account-site-assignment        | Site Assignment                                     | prd-user-account.md             | 3aa95698 |
+
+### Callisto/spec
+
+| ID                                                   | Title                                          | File                               | Hash     |
+| ---------------------------------------------------- | ---------------------------------------------- | ---------------------------------- | -------- |
+| CAL-PRD-administrator-settings-inventory             | Administrator Settings Configuration Inventory | prd-administrator-settings.md      |          |
+| CAL-PRD-audit-log-view-scope                         | Audit Log View Scope                           | prd-audit-log.md                   | e43fc08c |
+| CAL-PRD-linking-code-lifecycle-configuration         | Linking Code Lifecycle Configuration           | prd-participant.md                 | 522755f6 |
+| CAL-PRD-login-rate-limiting-configuration            | Login Attempt Rate Limiting Configuration      | prd-portal-auth.md                 | 2a54a478 |
+| CAL-PRD-nose-hht-qol-workflow                        | NOSE HHT and HHT-QoL Questionnaire Workflow    | prd-questionnaire-management.md    | 0efabf1b |
+| CAL-PRD-participant-disconnection-reason-options     | Disconnection Reason Options                   | prd-participant.md                 | af779b05 |
+| CAL-PRD-participant-not-participating-reason-options | Mark as Not Participating Reason Options       | prd-participant.md                 | ad090ba1 |
+| CAL-PRD-participant-registration-configuration       | Participant Registration Configuration         | prd-participant.md                 | 1abf676e |
+| CAL-PRD-permissions-table                            | Permissions Table                              | prd-rbac.md                        | b59776a6 |
+| CAL-PRD-questionnaire-cycle-tracking                 | Questionnaire Cycle Tracking                   | prd-questionnaire-management.md    | 8fba1131 |
+| CAL-PRD-questionnaire-score-display-prohibition      | Questionnaire Score Display Prohibition        | prd-questionnaire-score-display.md | 23d84761 |
+| CAL-PRD-questionnaire-session-resume-timeout         | Questionnaire Session Resume and Timeout       | prd-questionnaire-management.md    | 9431d100 |
+| CAL-PRD-site-view-scope                              | Site View Scope                                | prd-rbac.md                        | 6ea645cb |
+| CAL-PRD-trial-start-workflow                         | Start Trial Workflow                           | prd-questionnaire-management.md    | d1421617 |
+| CAL-PRD-two-factor-authentication-configuration      | Two-Factor Authentication Configuration        | prd-portal-auth.md                 | d8e3f0ab |
 
 ## INTERFACE
 
-| ID                                    | Title                                | File             | Hash     |
-| ------------------------------------- | ------------------------------------ | ---------------- | -------- |
-| DIARY-GUI-audit-log-administrator     | Administrator Audit Log View         | prd-audit-log.md | 1f44ba79 |
-| DIARY-GUI-audit-log-common            | Audit Log View — Common Presentation | prd-audit-log.md | f9158ab1 |
-| DIARY-GUI-audit-log-cra               | CRA Audit Log View                   | prd-audit-log.md | 108a69db |
-| DIARY-GUI-audit-log-study-coordinator | Study Coordinator Audit Log View     | prd-audit-log.md | 5311961d |
-| DIARY-GUI-role-switching              | Role Switching — Interface Behavior  | prd-rbac.md      | 8d6caff0 |
+### Cure-HHT Diary Platform/spec
+
+| ID                                    | Title                                | File                          | Hash     |
+| ------------------------------------- | ------------------------------------ | ----------------------------- | -------- |
+| DIARY-GUI-administrator-dashboard     | Administrator Dashboard              | prd-user-account.md           | 8f0fa6a0 |
+| DIARY-GUI-administrator-settings      | Administrator Settings Interface     | prd-administrator-settings.md | f10caf2f |
+| DIARY-GUI-audit-log-administrator     | Administrator Audit Log View         | prd-audit-log.md              | 1f44ba79 |
+| DIARY-GUI-audit-log-common            | Audit Log View — Common Presentation | prd-audit-log.md              | f9158ab1 |
+| DIARY-GUI-audit-log-cra               | CRA Audit Log View                   | prd-audit-log.md              | 108a69db |
+| DIARY-GUI-audit-log-study-coordinator | Study Coordinator Audit Log View     | prd-audit-log.md              | 5311961d |
+| DIARY-GUI-participant-dashboard       | Participant Dashboard                | prd-participant.md            | e3a5efed |
+| DIARY-GUI-password-forgot-workflow    | Forgot Password Workflow Interface   | prd-portal-auth.md            | b845f181 |
+| DIARY-GUI-role-switching              | Role Switching — Interface Behavior  | prd-rbac.md                   | 8d6caff0 |
+| DIARY-GUI-user-account-deactivate     | Deactivate User Account              | prd-user-account.md           | 864d7776 |
+| DIARY-GUI-user-account-reactivate     | Reactivate User Account              | prd-user-account.md           | f9ae8a4f |
+| DIARY-GUI-user-information-modal      | User Information Modal               | prd-user-account.md           | 3a130783 |
+| DIARY-GUI-user-management-tabs        | User Management Tabs                 | prd-user-account.md           | c1ab4c55 |
+
+### Callisto/spec
+
+| ID                                          | Title                               | File                            | Hash     |
+| ------------------------------------------- | ----------------------------------- | ------------------------------- | -------- |
+| CAL-GUI-manage-questionnaires-modal         | Manage Questionnaires Modal         | prd-questionnaire-management.md | 9cb05bc8 |
+| CAL-GUI-participant-dashboard-configuration | Participant Dashboard Configuration | prd-participant.md              | 15d19d33 |
+| CAL-GUI-questionnaire-finalization-workflow | Questionnaire Finalization Workflow | prd-questionnaire-management.md | 79ad946c |
+| CAL-GUI-trial-start-workflow                | Start Trial Workflow Interface      | prd-questionnaire-management.md | a3809678 |
+
+## OPERATIONS
+
+| ID                                          | Title                                                                           | File                      | Hash     |
+| ------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------- | -------- |
+| CAL-OPS-ci-change-appropriate-validation    | Change-Appropriate CI Validation (placeholder)                                  | ops-ci-validation.md      | 339feadd |
+| CAL-OPS-ci-code-quality-static-analysis     | Code Quality and Static Analysis (placeholder)                                  | ops-ci-validation.md      | 9e617957 |
+| CAL-OPS-ci-secret-vulnerability-scanning    | Secret and Vulnerability Scanning (placeholder)                                 | ops-ci-validation.md      | 8273f96a |
+| CAL-OPS-ci-traceability-pipeline            | CI/CD Pipeline for Requirement Traceability (placeholder)                       | ops-ci-validation.md      | e90b3229 |
+| CAL-OPS-deploy-audit-trail                  | Regulatory audit trail for deploys, secrets, and schema                         | ops-deployment.md         | 560d57d5 |
+| CAL-OPS-deploy-cloud-run-verification       | Cloud Run deploy verification gates                                             | ops-deployment.md         | 31b96204 |
+| CAL-OPS-deploy-concurrency-locks            | Deploy concurrency and safety locks                                             | ops-deployment.md         | 7a20af36 |
+| CAL-OPS-deploy-cross-repo-image-trigger     | Cross-repo image-refresh trigger                                                | ops-deployment.md         | 88449aa6 |
+| CAL-OPS-deploy-notification                 | Per-environment notification routing                                            | ops-deployment.md         | 2078e9c4 |
+| CAL-OPS-deploy-notification-dev             | Notification routing — dev                                                      | ops-deployment.md         | ab29f35b |
+| CAL-OPS-deploy-notification-prod            | Notification routing — prod                                                     | ops-deployment.md         | 88b52b13 |
+| CAL-OPS-deploy-notification-qa              | Notification routing — qa                                                       | ops-deployment.md         | 0bd1fa75 |
+| CAL-OPS-deploy-notification-uat             | Notification routing — uat                                                      | ops-deployment.md         | 2d3f7eba |
+| CAL-OPS-deploy-permission                   | Per-environment permission scoping                                              | ops-deployment.md         | 68ee2a74 |
+| CAL-OPS-deploy-permission-dev               | Permission gating — dev                                                         | ops-deployment.md         | 37e59910 |
+| CAL-OPS-deploy-permission-prod              | Permission gating — prod                                                        | ops-deployment.md         | 68860323 |
+| CAL-OPS-deploy-permission-qa                | Permission gating — qa                                                          | ops-deployment.md         | 9e6df3e3 |
+| CAL-OPS-deploy-permission-uat               | Permission gating — uat                                                         | ops-deployment.md         | 0f9ccabb |
+| CAL-OPS-deploy-provenance-traceability      | Deploy provenance and traceability                                              | ops-deployment.md         | 06ad47b1 |
+| CAL-OPS-deploy-rollback-canary              | One-command rollback and canary traffic split                                   | ops-deployment.md         | a5a19b96 |
+| CAL-OPS-deploy-runbooks-failure-modes       | Runbooks and failure-mode documentation                                         | ops-deployment.md         | 27b81f29 |
+| CAL-OPS-secrets-doppler-cloud-run           | Per-environment Doppler service tokens for Cloud Run runtime                    | ops-deployment-secrets.md | 6ccecb17 |
+| CAL-OPS-secrets-github-actions-routing      | GitHub Actions deployment environments route per-env secrets                    | ops-deployment-secrets.md | aca006c3 |
+| CAL-OPS-secrets-sponsor-agnostic-automation | Sponsor-agnostic deployment automation reads sponsor name from base-config.json | ops-deployment-secrets.md | ace2c978 |
+
+## DEVELOPMENT
+
+| ID                                         | Title                              | File                      | Hash     |
+| ------------------------------------------ | ---------------------------------- | ------------------------- | -------- |
+| CAL-DEV-database-minimize-deleted-records  | Minimize Deleted Records           | dev-database.md           | 5bc520a6 |
+| CAL-DEV-database-no-implicit-field-changes | No Implicit Field Changes          | dev-database.md           | e54e9d7a |
+| CAL-DEV-database-proxy-purpose             | Proxy Database Purpose             | dev-database.md           | a4a5f2f2 |
+| CAL-DEV-database-survey-response-storage   | Survey Response Storage Format     | dev-database.md           | 1701c36a |
+| CAL-DEV-edc-audit-context-structure        | Audit Context Field Structure      | dev-edc-schema.md         | cff75d38 |
+| CAL-DEV-edc-audit-location-format          | Audit Location Field Format        | dev-edc-schema.md         | 39b68d8e |
+| CAL-DEV-edc-audit-reason-values            | Audit Reason Field Values          | dev-edc-schema.md         | 8ce83605 |
+| CAL-DEV-edc-audit-timestamp-format         | Audit Timestamp Format             | dev-edc-schema.md         | b7604c5a |
+| CAL-DEV-edc-audit-user-values              | Audit User Field Values            | dev-edc-schema.md         | a54dee5a |
+| CAL-DEV-edc-callisto-transforms            | Callisto Transformation Rules      | dev-edc-schema.md         | 9d3d0997 |
+| CAL-DEV-edc-change-history-via-eventstore  | Change History via EventStore      | dev-edc-schema.md         | d9ee256c |
+| CAL-DEV-edc-data-source-trace              | Data Source Traceability           | dev-edc-schema.md         | 5efe8e1c |
+| CAL-DEV-edc-date-field-format              | Date Field Format                  | dev-edc-schema.md         | 58b2f49d |
+| CAL-DEV-edc-duration-calculation           | Duration Field Calculation         | dev-edc-schema.md         | 0c76ed17 |
+| CAL-DEV-edc-incomplete-entry-flag          | Incomplete Entry Flag              | dev-edc-schema.md         | b1e9f94f |
+| CAL-DEV-edc-no-nosebleeds-flag             | No Nosebleeds Event Flag           | dev-edc-schema.md         | c278cf17 |
+| CAL-DEV-edc-notes-field-handling           | Notes Field Handling               | dev-edc-schema.md         | c162113d |
+| CAL-DEV-edc-patient-id-format              | Patient ID Format                  | dev-edc-schema.md         | d28af884 |
+| CAL-DEV-edc-requester-id                   | Requester ID Field                 | dev-edc-schema.md         | 45bef36a |
+| CAL-DEV-edc-requester-name                 | Requester Name Field               | dev-edc-schema.md         | 95edc730 |
+| CAL-DEV-edc-severity-field-format          | Severity Field Format              | dev-edc-schema.md         | 9bfdd635 |
+| CAL-DEV-edc-site-id-format                 | Site ID Format                     | dev-edc-schema.md         | f9398120 |
+| CAL-DEV-edc-survey-name                    | Survey Name Field                  | dev-edc-schema.md         | 0e4fa43a |
+| CAL-DEV-edc-survey-response-storage        | Survey Response Storage            | dev-edc-schema.md         | 2f4e6520 |
+| CAL-DEV-edc-survey-version                 | Survey Version Field               | dev-edc-schema.md         | 3d9457ea |
+| CAL-DEV-edc-time-field-format              | Time Field Format                  | dev-edc-schema.md         | de99e024 |
+| CAL-DEV-edc-unknown-event-flag             | Unknown Event Flag                 | dev-edc-schema.md         | 40380c25 |
+| CAL-DEV-edc-uuid-field-format              | UUID Field Format                  | dev-edc-schema.md         | 0fef1aa4 |
+| CAL-DEV-edc-uuid-table-prefix              | UUID Table Prefix Format           | dev-edc-schema.md         | 189341f5 |
+| CAL-DEV-push-notifications-fcm-delivery    | Push Notification Delivery via FCM | dev-push-notifications.md | 51613c24 |
