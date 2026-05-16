@@ -171,7 +171,11 @@ no_traceability_severity = "warning"
 
 [rules.format.status_roles]
 active = ["Active"]
-provisional = ["Draft", "Proposed"]
+# `Legacy` marks REQs retained from the pre-URS spec tree (migrated on
+# 2026-05-15) that have not yet been reconciled with the URS-v1
+# authoritative content. Lifecycle: Legacy -> Draft (when reconciliation
+# starts) -> Active.
+provisional = ["Draft", "Proposed", "Legacy"]
 aspirational = ["Roadmap", "Future", "Idea"]
 retired = ["Deprecated", "Superseded", "Rejected"]
 

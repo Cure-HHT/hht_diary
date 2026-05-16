@@ -4,8 +4,8 @@ Service-level commitments the Diary Platform makes to sponsors regarding availab
 
 ## DIARY-PRD-sla-service-availability: Service Availability Commitment
 
-**Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-OPS-platform-operations-monitoring-G+H
+**Level**: prd | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-PRD-platform-operations-monitoring-G+H
 
 ### Rationale
 
@@ -47,8 +47,8 @@ O. Historical uptime data SHALL be retained for 2 years.
 
 ## DIARY-PRD-sla-incident-severity: Incident Severity Classification
 
-**Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-OPS-platform-operations-monitoring-E+F
+**Level**: prd | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-PRD-platform-operations-monitoring-E+F
 
 ### Rationale
 
@@ -90,7 +90,7 @@ O. The system SHALL allow severity levels to be downgraded with documented justi
 
 ## DIARY-PRD-sla-incident-response-times: Incident Response Times
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-incident-severity-A+K
 
 ### Rationale
@@ -143,7 +143,7 @@ T. The system SHALL trigger escalation when approaching response or resolution d
 
 ## DIARY-PRD-sla-disaster-recovery: Disaster Recovery Objectives
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 
 ### Rationale
 
@@ -181,7 +181,7 @@ L. The platform SHALL notify sponsors within 1 hour of disaster declaration.
 
 ## DIARY-PRD-sla-customer-notification: Customer Incident Notification
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-incident-severity-M
 
 ### Rationale
@@ -232,7 +232,7 @@ S. The system SHALL provide subscriber management functionality for status updat
 
 ## DIARY-PRD-sla-root-cause-analysis: Root Cause Analysis
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-incident-response-times-N+O
 
 ### Rationale
@@ -275,7 +275,7 @@ O. The system SHALL archive RCAs for 7 years.
 
 ## DIARY-PRD-sla-corrective-preventive: Corrective and Preventive Action
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-root-cause-analysis-I+J
 
 ### Rationale
@@ -320,7 +320,7 @@ P. The system SHALL perform an annual CAPA effectiveness review.
 
 ## DIARY-PRD-sla-data-recovery: Data Recovery Guarantee
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-disaster-recovery-A+B+C
 
 ### Rationale
@@ -359,7 +359,7 @@ M. Recovery documentation SHALL be suitable for regulatory submission.
 
 ## DIARY-PRD-sla-chronic-failure-escalation: Chronic Failure Escalation
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-service-availability-A
 
 ### Rationale
@@ -394,7 +394,7 @@ K. The platform SHALL provide service remedies when uptime commitments are not m
 
 ## DIARY-PRD-sla-regulatory-event-support: Regulatory Event Support
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-root-cause-analysis-A+B
 
 ### Rationale

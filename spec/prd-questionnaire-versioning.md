@@ -6,7 +6,7 @@ The URS v1.0 §5.3 (Questionnaire Management) will refine and supersede portions
 
 ## DIARY-PRD-questionnaire-versioning: Questionnaire Versioning Model
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 
 ### Rationale
 
@@ -62,7 +62,7 @@ T. Once a questionnaire version has been used to capture patient data, that vers
 
 ## DIARY-PRD-questionnaire-localization: Questionnaire Localization and Translation Tracking
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-versioning
 
 ### Rationale
@@ -101,7 +101,7 @@ L. The system SHALL support management of translation versions independently of 
 
 ## DIARY-PRD-questionnaire-sponsor-eligibility: Sponsor Questionnaire Eligibility Configuration
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-versioning
 
 ### Rationale

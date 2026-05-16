@@ -1,7 +1,7 @@
 # DIARY-PRD-ancillary-platform-services: Ancillary Platform Services
 
-**Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-OPS-platform-operations-monitoring-A+C
+**Level**: prd | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-PRD-platform-operations-monitoring-A+C
 
 ## Rationale
 

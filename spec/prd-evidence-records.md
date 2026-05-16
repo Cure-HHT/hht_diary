@@ -4,7 +4,7 @@ Data-provenance commitments establishing the **when**, **how**, and **who** of c
 
 ## DIARY-PRD-evidence-timestamp-attestation: Third-Party Timestamp Attestation Capability
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 
 > **TODO (URS-Phase-3 reconciliation):** Original Refines target REQ-p01085 (Compliance Systems) is in URS-replaced prd-clinical-trials.md. Re-parent to the URS-derived compliance REQ when that lands.
 
@@ -42,7 +42,7 @@ Self-asserted timestamps can be questioned during regulatory audits. Independent
 
 ## DIARY-PRD-evidence-bitcoin-timestamp: Bitcoin-Based Timestamp Implementation
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-evidence-timestamp-attestation-A+B+F
 
 ### Assertions
@@ -75,7 +75,7 @@ This requirement establishes Bitcoin blockchain as the cryptographic timestamp m
 
 ## DIARY-PRD-evidence-timestamp-verification: Timestamp Verification Interface
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-evidence-timestamp-attestation-H+K
 
 ### Assertions
@@ -110,7 +110,7 @@ Timestamp proofs provide cryptographic evidence of when data existed, but this e
 
 ## DIARY-PRD-evidence-timestamp-archival: Timestamp Proof Archival
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-evidence-timestamp-attestation-G
 
 > **TODO (URS-Phase-3 reconciliation):** Additional Refines targets REQ-p00012-C, REQ-p00012-E, REQ-p00012-F (Clinical Data Retention Requirements) were in URS-replaced prd-clinical-trials.md. Re-parent to the URS-derived clinical-data-retention REQ when that lands.
@@ -145,7 +145,7 @@ Clinical trial data must be retained for 15-25 years per regulatory requirements
 
 ## DIARY-PRD-evidence-device-fingerprint: Device Fingerprinting
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-evidence-timestamp-attestation-B
 
 ### Assertions
@@ -176,7 +176,7 @@ Device fingerprinting establishes how data was collected by binding each submiss
 
 ## DIARY-PRD-evidence-patient-authentication: Patient Authentication for Data Attribution
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-evidence-timestamp-attestation-B
 
 ### Assertions
@@ -215,7 +215,7 @@ This requirement establishes the authentication framework for attributing clinic
 
 ## DIARY-PRD-evidence-geolocation: Optional Geolocation Tagging
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-evidence-timestamp-attestation-B
 
 ### Assertions
@@ -256,7 +256,7 @@ Geolocation provides additional evidence of data collection context, strengtheni
 
 ## DIARY-PRD-evidence-email-identity: Hashed Email Identity Verification
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: prd | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-evidence-timestamp-attestation-B
 
 ### Assertions

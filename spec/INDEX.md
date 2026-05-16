@@ -9,6 +9,8 @@
 | ID                                          | Title                                               | File                            | Hash     |
 | ------------------------------------------- | --------------------------------------------------- | ------------------------------- | -------- |
 | DIARY-PRD-ancillary-platform-services       | Ancillary Platform Services                         | prd-platform-services.md        | ff326529 |
+| DIARY-PRD-architecture-decision-docs        | Architecture Decision Documentation                 | prd-requirements-management.md  | 76c82ce6 |
+| DIARY-PRD-data-backup-and-archival          | Data Backup and Archival                            | prd-data-backup.md              | 4e9501e4 |
 | DIARY-PRD-evidence-bitcoin-timestamp        | Bitcoin-Based Timestamp Implementation              | prd-evidence-records.md         | 94499ad5 |
 | DIARY-PRD-evidence-device-fingerprint       | Device Fingerprinting                               | prd-evidence-records.md         | 8e10b85a |
 | DIARY-PRD-evidence-email-identity           | Hashed Email Identity Verification                  | prd-evidence-records.md         | 92c5e2b7 |
@@ -17,6 +19,7 @@
 | DIARY-PRD-evidence-timestamp-archival       | Timestamp Proof Archival                            | prd-evidence-records.md         | 69a49395 |
 | DIARY-PRD-evidence-timestamp-attestation    | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md         | f2ab1f17 |
 | DIARY-PRD-evidence-timestamp-verification   | Timestamp Verification Interface                    | prd-evidence-records.md         | 9956bd94 |
+| DIARY-PRD-platform-operations-monitoring    | Platform Operations and Monitoring                  | prd-platform-operations.md      | af349286 |
 | DIARY-PRD-questionnaire-localization        | Questionnaire Localization and Translation Tracking | prd-questionnaire-versioning.md | 4218237c |
 | DIARY-PRD-questionnaire-sponsor-eligibility | Sponsor Questionnaire Eligibility Configuration     | prd-questionnaire-versioning.md | ac2f2aac |
 | DIARY-PRD-questionnaire-versioning          | Questionnaire Versioning Model                      | prd-questionnaire-versioning.md | 6d08845d |
@@ -30,12 +33,4 @@
 | DIARY-PRD-sla-regulatory-event-support      | Regulatory Event Support                            | prd-sla.md                      | f62f5e4d |
 | DIARY-PRD-sla-root-cause-analysis           | Root Cause Analysis                                 | prd-sla.md                      | 0778e3bb |
 | DIARY-PRD-sla-service-availability          | Service Availability Commitment                     | prd-sla.md                      | d39861a9 |
-
-## OPERATIONS
-
-| ID                                       | Title                               | File                           | Hash     |
-| ---------------------------------------- | ----------------------------------- | ------------------------------ | -------- |
-| DIARY-OPS-architecture-decision-docs     | Architecture Decision Documentation | ops-requirements-management.md | 76c82ce6 |
-| DIARY-OPS-data-backup-and-archival       | Data Backup and Archival            | ops-data-backup.md             | 4e9501e4 |
-| DIARY-OPS-platform-operations-monitoring | Platform Operations and Monitoring  | ops-platform-operations.md     | af349286 |
-| DIARY-OPS-system-validation-traceability | System Validation and Traceability  | ops-requirements-management.md | 7d81caf7 |
+| DIARY-PRD-system-validation-traceability    | System Validation and Traceability                  | prd-requirements-management.md  | 7d81caf7 |

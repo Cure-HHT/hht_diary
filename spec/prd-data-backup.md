@@ -1,7 +1,6 @@
-# DIARY-OPS-data-backup-and-archival: Data Backup and Archival
+# DIARY-PRD-data-backup-and-archival: Data Backup and Archival
 
-**Level**: ops | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-OPS-platform-operations-monitoring-G
+**Level**: PRD | **Status**: Legacy | **Refines**: DIARY-PRD-platform-operations-monitoring-G
 
 ## Rationale
 

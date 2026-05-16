@@ -31,7 +31,7 @@ This repo uses four requirement levels:
 
 - **PRD** (`DIARY-PRD-...`) — Product-level obligations: what the platform provides to its users (clinical staff, participants, sponsors).
 - **GUI** (`DIARY-GUI-...`) — Presentation obligations: interface behavior, layout, interaction patterns. A GUI requirement typically `Refines` a PRD parent.
-- **OPS** (`DIARY-OPS-...`) — Operational obligations: deployment, monitoring, secret rotation, and similar.
+- **OPS** (`DIARY-OPS-...`) — Operational obligations: deployment, monitoring runbooks, secret rotation, and similar that operators (not sponsors) consume.
 - **DEV** (`DIARY-DEV-...`) — Implementation obligations: how the platform realizes the PRD/GUI/OPS requirements.
 
 The component name (the kebab-case slug after the level) is **stable**: once a requirement has been authored under a given name, renaming it is a breaking change to every reference in code, tests, results, and other requirements.

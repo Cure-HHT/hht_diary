@@ -1,10 +1,10 @@
 # Requirements Management
 
-Operational obligations governing how the Diary Platform maintains formal requirements, traceability, and architectural decision records throughout the system's regulated lifetime. These obligations support FDA 21 CFR Part 11 validation by ensuring every capability is specified, traceable, and auditable, and that significant design decisions are documented for future maintainers and regulatory review.
+Obligations governing how the Diary Platform maintains formal requirements, traceability, and architectural decision records throughout the system's regulated lifetime. These obligations support FDA 21 CFR Part 11 validation by ensuring every capability is specified, traceable, and auditable, and that significant design decisions are documented for future maintainers and regulatory review.
 
-## DIARY-OPS-system-validation-traceability: System Validation and Traceability
+## DIARY-PRD-system-validation-traceability: System Validation and Traceability
 
-**Level**: ops | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Refines**: -
 
 > **TODO (URS-Phase-3 reconciliation):** Original Refines target REQ-p01085 (Compliance Systems) is in URS-replaced prd-clinical-trials.md. Re-parent to the URS-derived compliance REQ when that lands.
 
@@ -50,10 +50,9 @@ FDA 21 CFR Part 11 requires validated systems for electronic records in clinical
 
 *End* *System Validation and Traceability* | **Hash**: 7d81caf7
 
-## DIARY-OPS-architecture-decision-docs: Architecture Decision Documentation
+## DIARY-PRD-architecture-decision-docs: Architecture Decision Documentation
 
-**Level**: ops | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-OPS-platform-operations-monitoring-M
+**Level**: PRD | **Status**: Legacy | **Refines**: DIARY-PRD-platform-operations-monitoring-M
 
 ### Assertions
 

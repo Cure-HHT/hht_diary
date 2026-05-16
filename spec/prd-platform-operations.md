@@ -1,6 +1,6 @@
-# DIARY-OPS-platform-operations-monitoring: Platform Operations and Monitoring
+# DIARY-PRD-platform-operations-monitoring: Platform Operations and Monitoring
 
-**Level**: ops | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Refines**: -
 
 ## Rationale
 
