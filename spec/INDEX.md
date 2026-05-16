@@ -8,113 +8,158 @@
 
 ### Cure-HHT Diary Platform/spec
 
-| ID                                            | Title                                               | File                            | Hash     |
-| --------------------------------------------- | --------------------------------------------------- | ------------------------------- | -------- |
-| DIARY-PRD-action-inventory                    | Action Inventory                                    | prd-rbac.md                     | f17b676a |
-| DIARY-PRD-administrator-settings              | Administrator Settings Surface                      | prd-administrator-settings.md   | 318dd00f |
-| DIARY-PRD-ancillary-platform-services         | Ancillary Platform Services                         | prd-platform-services.md        | ff326529 |
-| DIARY-PRD-architecture-decision-docs          | Architecture Decision Documentation                 | prd-requirements-management.md  | 76c82ce6 |
-| DIARY-PRD-configuration-precedence            | Configuration Precedence                            | prd-configuration.md            | f5372beb |
-| DIARY-PRD-data-backup-and-archival            | Data Backup and Archival                            | prd-data-backup.md              | 4e9501e4 |
-| DIARY-PRD-evidence-bitcoin-timestamp          | Bitcoin-Based Timestamp Implementation              | prd-evidence-records.md         | 94499ad5 |
-| DIARY-PRD-evidence-device-fingerprint         | Device Fingerprinting                               | prd-evidence-records.md         | 8e10b85a |
-| DIARY-PRD-evidence-email-identity             | Hashed Email Identity Verification                  | prd-evidence-records.md         | 92c5e2b7 |
-| DIARY-PRD-evidence-geolocation                | Optional Geolocation Tagging                        | prd-evidence-records.md         | f9a69607 |
-| DIARY-PRD-evidence-patient-authentication     | Patient Authentication for Data Attribution         | prd-evidence-records.md         | fc02cd59 |
-| DIARY-PRD-evidence-timestamp-archival         | Timestamp Proof Archival                            | prd-evidence-records.md         | 69a49395 |
-| DIARY-PRD-evidence-timestamp-attestation      | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md         | f2ab1f17 |
-| DIARY-PRD-evidence-timestamp-verification     | Timestamp Verification Interface                    | prd-evidence-records.md         | 9956bd94 |
-| DIARY-PRD-help-resources                      | Help and Resources                                  | prd-help-resources.md           | 66c10c7b |
-| DIARY-PRD-linking-code-lifecycle              | Linking Code Lifecycle Management                   | prd-participant.md              | 15ed4111 |
-| DIARY-PRD-notification-behavior               | Notification Behavior                               | prd-notification-behavior.md    | 8f7b4f54 |
-| DIARY-PRD-participant-disconnection           | Participant Disconnection Workflow                  | prd-participant.md              | c133a6be |
-| DIARY-PRD-participant-link-new                | Link New Participant Workflow                       | prd-participant.md              | eb666103 |
-| DIARY-PRD-participant-mark-not-participating  | Mark as Not Participating                           | prd-participant.md              | fb1a6056 |
-| DIARY-PRD-participant-reactivate              | Reactivate Participant                              | prd-participant.md              | 50b09295 |
-| DIARY-PRD-participant-reconnection            | Participant Reconnection Workflow                   | prd-participant.md              | b7eec931 |
-| DIARY-PRD-participant-registration            | Participant Registration                            | prd-participant.md              | e262998e |
-| DIARY-PRD-password-forgot                     | Forgot Password                                     | prd-portal-auth.md              | 4ad0d3fa |
-| DIARY-PRD-password-requirements               | Password Requirements                               | prd-portal-auth.md              | 61dd6125 |
-| DIARY-PRD-platform-operations-monitoring      | Platform Operations and Monitoring                  | prd-platform-operations.md      | af349286 |
-| DIARY-PRD-questionnaire-change-control        | Questionnaire Change Control                        | prd-questionnaire-management.md | e1e119e4 |
-| DIARY-PRD-questionnaire-localization          | Questionnaire Localization and Translation Tracking | prd-questionnaire-versioning.md | 4218237c |
-| DIARY-PRD-questionnaire-sponsor-configuration | Sponsor Questionnaire Configuration                 | prd-questionnaire-management.md | 1c0e5f61 |
-| DIARY-PRD-questionnaire-sponsor-eligibility   | Sponsor Questionnaire Eligibility Configuration     | prd-questionnaire-versioning.md | ac2f2aac |
-| DIARY-PRD-questionnaire-submission-control    | Clinical Data Submission Control                    | prd-questionnaire-management.md | 62ccbb18 |
-| DIARY-PRD-questionnaire-system                | Clinical Questionnaire System                       | prd-questionnaire-management.md | 306eeb1a |
-| DIARY-PRD-questionnaire-versioning            | Questionnaire Versioning Model                      | prd-questionnaire-versioning.md | 6d08845d |
-| DIARY-PRD-rbac-customizable                   | Customizable Role-Based Access Control              | prd-rbac.md                     | 099e2eb7 |
-| DIARY-PRD-reason-field-constraints            | Reason Field Constraints                            | prd-user-account.md             | 602a83b1 |
-| DIARY-PRD-role-definitions                    | Role Definitions                                    | prd-rbac.md                     | 1f0ab3a3 |
-| DIARY-PRD-session-management                  | Session Management                                  | prd-portal-auth.md              | 10331e8d |
-| DIARY-PRD-sla-chronic-failure-escalation      | Chronic Failure Escalation                          | prd-sla.md                      | 63205737 |
-| DIARY-PRD-sla-corrective-preventive           | Corrective and Preventive Action                    | prd-sla.md                      | f2c78d76 |
-| DIARY-PRD-sla-customer-notification           | Customer Incident Notification                      | prd-sla.md                      | 3ca3df0f |
-| DIARY-PRD-sla-data-recovery                   | Data Recovery Guarantee                             | prd-sla.md                      | 5909fb2b |
-| DIARY-PRD-sla-disaster-recovery               | Disaster Recovery Objectives                        | prd-sla.md                      | 6b076a50 |
-| DIARY-PRD-sla-incident-response-times         | Incident Response Times                             | prd-sla.md                      | 40fb577e |
-| DIARY-PRD-sla-incident-severity               | Incident Severity Classification                    | prd-sla.md                      | d1734735 |
-| DIARY-PRD-sla-regulatory-event-support        | Regulatory Event Support                            | prd-sla.md                      | f62f5e4d |
-| DIARY-PRD-sla-root-cause-analysis             | Root Cause Analysis                                 | prd-sla.md                      | 0778e3bb |
-| DIARY-PRD-sla-service-availability            | Service Availability Commitment                     | prd-sla.md                      | d39861a9 |
-| DIARY-PRD-system-validation-traceability      | System Validation and Traceability                  | prd-requirements-management.md  | 7d81caf7 |
-| DIARY-PRD-two-factor-authentication           | Two-Factor Authentication                           | prd-portal-auth.md              | 71195321 |
-| DIARY-PRD-user-account-activation-resend      | Resend Activation Email                             | prd-user-account.md             | fb61a75a |
-| DIARY-PRD-user-account-activation-workflow    | Account Activation Workflow                         | prd-user-account.md             | d66d0ab7 |
-| DIARY-PRD-user-account-create                 | Create User Account                                 | prd-user-account.md             | e92dfa41 |
-| DIARY-PRD-user-account-deactivate             | Deactivate User Account                             | prd-user-account.md             | 6f0247b3 |
-| DIARY-PRD-user-account-edit                   | Edit User Account                                   | prd-user-account.md             | c4d1c981 |
-| DIARY-PRD-user-account-reactivate             | Reactivate User Account                             | prd-user-account.md             | c36b760f |
-| DIARY-PRD-user-account-site-assignment        | Site Assignment                                     | prd-user-account.md             | 3aa95698 |
+| ID                                               | Title                                               | File                                      | Hash     |
+| ------------------------------------------------ | --------------------------------------------------- | ----------------------------------------- | -------- |
+| DIARY-PRD-action-inventory                       | Action Inventory                                    | prd-rbac.md                               | f17b676a |
+| DIARY-PRD-administrator-settings                 | Administrator Settings Surface                      | prd-administrator-settings.md             | 318dd00f |
+| DIARY-PRD-ancillary-platform-services            | Ancillary Platform Services                         | prd-platform-services.md                  | ff326529 |
+| DIARY-PRD-application-lock                       | Application Lock                                    | prd-mobile-app.md                         | cca93728 |
+| DIARY-PRD-architecture-decision-docs             | Architecture Decision Documentation                 | prd-requirements-management.md            | 76c82ce6 |
+| DIARY-PRD-configuration-precedence               | Configuration Precedence                            | prd-configuration.md                      | f5372beb |
+| DIARY-PRD-data-backup-and-archival               | Data Backup and Archival                            | prd-data-backup.md                        | 4e9501e4 |
+| DIARY-PRD-diary-start-day                        | Diary Start Day Definition                          | prd-mobile-app.md                         | 6550e619 |
+| DIARY-PRD-entry-duration-check                   | Duration Reasonableness Check                       | prd-diary-entry-rules.md                  | 4c885aa4 |
+| DIARY-PRD-entry-overlap-resolution               | Overlapping Event Detection and Resolution          | prd-diary-entry-rules.md                  | bce7cb5b |
+| DIARY-PRD-entry-time-restrictions                | Time-Based Entry Restrictions                       | prd-diary-entry-rules.md                  | 73c1e562 |
+| DIARY-PRD-epistaxis-capture-standard             | HHT Epistaxis Data Capture Standard                 | prd-epistaxis.md                          | b38359f8 |
+| DIARY-PRD-evidence-bitcoin-timestamp             | Bitcoin-Based Timestamp Implementation              | prd-evidence-records.md                   | 94499ad5 |
+| DIARY-PRD-evidence-device-fingerprint            | Device Fingerprinting                               | prd-evidence-records.md                   | 8e10b85a |
+| DIARY-PRD-evidence-email-identity                | Hashed Email Identity Verification                  | prd-evidence-records.md                   | 92c5e2b7 |
+| DIARY-PRD-evidence-geolocation                   | Optional Geolocation Tagging                        | prd-evidence-records.md                   | f9a69607 |
+| DIARY-PRD-evidence-patient-authentication        | Patient Authentication for Data Attribution         | prd-evidence-records.md                   | fc02cd59 |
+| DIARY-PRD-evidence-timestamp-archival            | Timestamp Proof Archival                            | prd-evidence-records.md                   | 69a49395 |
+| DIARY-PRD-evidence-timestamp-attestation         | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md                   | f2ab1f17 |
+| DIARY-PRD-evidence-timestamp-verification        | Timestamp Verification Interface                    | prd-evidence-records.md                   | 9956bd94 |
+| DIARY-PRD-help-resources                         | Help and Resources                                  | prd-help-resources.md                     | 66c10c7b |
+| DIARY-PRD-linking-code-entry-errors              | Linking Code Entry Error Handling                   | prd-device-linking.md                     | 2c1deb9d |
+| DIARY-PRD-linking-code-lifecycle                 | Linking Code Lifecycle Management                   | prd-participant.md                        | 15ed4111 |
+| DIARY-PRD-mobile-application                     | Diary Mobile Application                            | prd-mobile-app.md                         | f8e5cbb6 |
+| DIARY-PRD-mobile-offline-first                   | Offline-First Data Entry                            | prd-mobile-app.md                         | d9631250 |
+| DIARY-PRD-notification-behavior                  | Notification Behavior                               | prd-notification-behavior.md              | 8f7b4f54 |
+| DIARY-PRD-notification-disconnection             | Disconnection Notification                          | prd-mobile-notifications.md               | dd326d38 |
+| DIARY-PRD-notification-historical-gap            | Historical Gap Reminder                             | prd-mobile-notifications.md               | afad7d55 |
+| DIARY-PRD-notification-incomplete-record-lock    | Incomplete Record Lock Warning Notification         | prd-mobile-notifications.md               | f3bfa7b3 |
+| DIARY-PRD-notification-ongoing-epistaxis         | Ongoing Epistaxis Event Reminder                    | prd-mobile-notifications.md               | 197fcd05 |
+| DIARY-PRD-notification-portal-sent-questionnaire | Portal-Sent Questionnaire Notification              | prd-mobile-notifications.md               | 0346a456 |
+| DIARY-PRD-notification-yesterday-entry           | Yesterday Entry Reminder Notification               | prd-mobile-notifications.md               | 85edd14a |
+| DIARY-PRD-participant-disconnection              | Participant Disconnection Workflow                  | prd-participant.md                        | c133a6be |
+| DIARY-PRD-participant-link-new                   | Link New Participant Workflow                       | prd-participant.md                        | eb666103 |
+| DIARY-PRD-participant-mark-not-participating     | Mark as Not Participating                           | prd-participant.md                        | fb1a6056 |
+| DIARY-PRD-participant-reactivate                 | Reactivate Participant                              | prd-participant.md                        | 50b09295 |
+| DIARY-PRD-participant-reconnection               | Participant Reconnection Workflow                   | prd-participant.md                        | b7eec931 |
+| DIARY-PRD-participant-registration               | Participant Registration                            | prd-participant.md                        | e262998e |
+| DIARY-PRD-password-forgot                        | Forgot Password                                     | prd-portal-auth.md                        | 4ad0d3fa |
+| DIARY-PRD-password-requirements                  | Password Requirements                               | prd-portal-auth.md                        | 61dd6125 |
+| DIARY-PRD-platform-operations-monitoring         | Platform Operations and Monitoring                  | prd-platform-operations.md                | af349286 |
+| DIARY-PRD-privacy-policy                         | Clinical Trial Privacy Policy                       | prd-mobile-app.md                         | 8f74043e |
+| DIARY-PRD-questionnaire-change-control           | Questionnaire Change Control                        | prd-questionnaire-management.md           | e1e119e4 |
+| DIARY-PRD-questionnaire-daily-epistaxis          | Daily Epistaxis Record Questionnaire                | prd-questionnaire-overview.md             | 153ee0cf |
+| DIARY-PRD-questionnaire-hht-qol                  | HHT-QoL Questionnaire                               | prd-questionnaire-overview.md             | f9b343f7 |
+| DIARY-PRD-questionnaire-localization             | Questionnaire Localization and Translation Tracking | prd-questionnaire-versioning.md           | 4218237c |
+| DIARY-PRD-questionnaire-nose-hht                 | NOSE HHT Questionnaire                              | prd-questionnaire-overview.md             | 3aaee714 |
+| DIARY-PRD-questionnaire-portal-sent-rules        | Portal-Sent Questionnaire Rules                     | prd-questionnaire-participant-workflow.md | aff8012d |
+| DIARY-PRD-questionnaire-score-calculation        | Questionnaire Score Calculation                     | prd-score-calculation.md                  | 85a0d5dd |
+| DIARY-PRD-questionnaire-session-timeout          | Questionnaire Session Timeout                       | prd-questionnaire-participant-workflow.md | 88870c17 |
+| DIARY-PRD-questionnaire-sponsor-configuration    | Sponsor Questionnaire Configuration                 | prd-questionnaire-management.md           | 1c0e5f61 |
+| DIARY-PRD-questionnaire-sponsor-eligibility      | Sponsor Questionnaire Eligibility Configuration     | prd-questionnaire-versioning.md           | ac2f2aac |
+| DIARY-PRD-questionnaire-submission-control       | Clinical Data Submission Control                    | prd-questionnaire-management.md           | 62ccbb18 |
+| DIARY-PRD-questionnaire-system                   | Clinical Questionnaire System                       | prd-questionnaire-management.md           | 306eeb1a |
+| DIARY-PRD-questionnaire-versioning               | Questionnaire Versioning Model                      | prd-questionnaire-versioning.md           | 6d08845d |
+| DIARY-PRD-rbac-customizable                      | Customizable Role-Based Access Control              | prd-rbac.md                               | 099e2eb7 |
+| DIARY-PRD-reason-field-constraints               | Reason Field Constraints                            | prd-user-account.md                       | 602a83b1 |
+| DIARY-PRD-role-definitions                       | Role Definitions                                    | prd-rbac.md                               | 1f0ab3a3 |
+| DIARY-PRD-score-hht-qol                          | HHT-QoL Score Calculation                           | prd-score-calculation.md                  | 175ac62e |
+| DIARY-PRD-score-nose-hht                         | NOSE HHT Score Calculation                          | prd-score-calculation.md                  | 7610ed55 |
+| DIARY-PRD-session-management                     | Session Management                                  | prd-portal-auth.md                        | 10331e8d |
+| DIARY-PRD-sla-chronic-failure-escalation         | Chronic Failure Escalation                          | prd-sla.md                                | 63205737 |
+| DIARY-PRD-sla-corrective-preventive              | Corrective and Preventive Action                    | prd-sla.md                                | f2c78d76 |
+| DIARY-PRD-sla-customer-notification              | Customer Incident Notification                      | prd-sla.md                                | 3ca3df0f |
+| DIARY-PRD-sla-data-recovery                      | Data Recovery Guarantee                             | prd-sla.md                                | 5909fb2b |
+| DIARY-PRD-sla-disaster-recovery                  | Disaster Recovery Objectives                        | prd-sla.md                                | 6b076a50 |
+| DIARY-PRD-sla-incident-response-times            | Incident Response Times                             | prd-sla.md                                | 40fb577e |
+| DIARY-PRD-sla-incident-severity                  | Incident Severity Classification                    | prd-sla.md                                | d1734735 |
+| DIARY-PRD-sla-regulatory-event-support           | Regulatory Event Support                            | prd-sla.md                                | f62f5e4d |
+| DIARY-PRD-sla-root-cause-analysis                | Root Cause Analysis                                 | prd-sla.md                                | 0778e3bb |
+| DIARY-PRD-sla-service-availability               | Service Availability Commitment                     | prd-sla.md                                | d39861a9 |
+| DIARY-PRD-system-validation-traceability         | System Validation and Traceability                  | prd-requirements-management.md            | 7d81caf7 |
+| DIARY-PRD-two-factor-authentication              | Two-Factor Authentication                           | prd-portal-auth.md                        | 71195321 |
+| DIARY-PRD-user-account-activation-resend         | Resend Activation Email                             | prd-user-account.md                       | fb61a75a |
+| DIARY-PRD-user-account-activation-workflow       | Account Activation Workflow                         | prd-user-account.md                       | d66d0ab7 |
+| DIARY-PRD-user-account-create                    | Create User Account                                 | prd-user-account.md                       | e92dfa41 |
+| DIARY-PRD-user-account-deactivate                | Deactivate User Account                             | prd-user-account.md                       | 6f0247b3 |
+| DIARY-PRD-user-account-edit                      | Edit User Account                                   | prd-user-account.md                       | c4d1c981 |
+| DIARY-PRD-user-account-reactivate                | Reactivate User Account                             | prd-user-account.md                       | c36b760f |
+| DIARY-PRD-user-account-site-assignment           | Site Assignment                                     | prd-user-account.md                       | 3aa95698 |
 
 ### Callisto/spec
 
-| ID                                                   | Title                                          | File                               | Hash     |
-| ---------------------------------------------------- | ---------------------------------------------- | ---------------------------------- | -------- |
-| CAL-PRD-administrator-settings-inventory             | Administrator Settings Configuration Inventory | prd-administrator-settings.md      |          |
-| CAL-PRD-audit-log-view-scope                         | Audit Log View Scope                           | prd-audit-log.md                   | e43fc08c |
-| CAL-PRD-linking-code-lifecycle-configuration         | Linking Code Lifecycle Configuration           | prd-participant.md                 | 522755f6 |
-| CAL-PRD-login-rate-limiting-configuration            | Login Attempt Rate Limiting Configuration      | prd-portal-auth.md                 | 2a54a478 |
-| CAL-PRD-nose-hht-qol-workflow                        | NOSE HHT and HHT-QoL Questionnaire Workflow    | prd-questionnaire-management.md    | 0efabf1b |
-| CAL-PRD-participant-disconnection-reason-options     | Disconnection Reason Options                   | prd-participant.md                 | af779b05 |
-| CAL-PRD-participant-not-participating-reason-options | Mark as Not Participating Reason Options       | prd-participant.md                 | ad090ba1 |
-| CAL-PRD-participant-registration-configuration       | Participant Registration Configuration         | prd-participant.md                 | 1abf676e |
-| CAL-PRD-permissions-table                            | Permissions Table                              | prd-rbac.md                        | b59776a6 |
-| CAL-PRD-questionnaire-cycle-tracking                 | Questionnaire Cycle Tracking                   | prd-questionnaire-management.md    | 8fba1131 |
-| CAL-PRD-questionnaire-score-display-prohibition      | Questionnaire Score Display Prohibition        | prd-questionnaire-score-display.md | 23d84761 |
-| CAL-PRD-questionnaire-session-resume-timeout         | Questionnaire Session Resume and Timeout       | prd-questionnaire-management.md    | 9431d100 |
-| CAL-PRD-site-view-scope                              | Site View Scope                                | prd-rbac.md                        | 6ea645cb |
-| CAL-PRD-trial-start-workflow                         | Start Trial Workflow                           | prd-questionnaire-management.md    | d1421617 |
-| CAL-PRD-two-factor-authentication-configuration      | Two-Factor Authentication Configuration        | prd-portal-auth.md                 | d8e3f0ab |
+| ID                                                        | Title                                                     | File                               | Hash     |
+| --------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------- | -------- |
+| CAL-PRD-administrator-settings-inventory                  | Administrator Settings Configuration Inventory            | prd-administrator-settings.md      |          |
+| CAL-PRD-application-lock-configuration                    | Application Lock Configuration                            | prd-mobile-app.md                  | 7c6cbaea |
+| CAL-PRD-audit-log-view-scope                              | Audit Log View Scope                                      | prd-audit-log.md                   | e43fc08c |
+| CAL-PRD-entry-duration-check-configuration                | Duration Reasonableness Check Configuration               | prd-diary-entry-rules.md           | 9a298a25 |
+| CAL-PRD-entry-time-restrictions-configuration             | Time-Based Entry Restrictions Configuration               | prd-diary-entry-rules.md           | 58dc3e04 |
+| CAL-PRD-linking-code-entry-errors-configuration           | Linking Code Entry Error Handling Configuration           | prd-device-linking.md              | 859c5872 |
+| CAL-PRD-linking-code-lifecycle-configuration              | Linking Code Lifecycle Configuration                      | prd-participant.md                 | 522755f6 |
+| CAL-PRD-login-rate-limiting-configuration                 | Login Attempt Rate Limiting Configuration                 | prd-portal-auth.md                 | 2a54a478 |
+| CAL-PRD-nose-hht-qol-workflow                             | NOSE HHT and HHT-QoL Questionnaire Workflow               | prd-questionnaire-management.md    | 0efabf1b |
+| CAL-PRD-notification-historical-gap-configuration         | Historical Gap Reminder Configuration                     | prd-mobile-notifications.md        | 56b66860 |
+| CAL-PRD-notification-incomplete-record-lock-configuration | Incomplete Record Lock Warning Notification Configuration | prd-mobile-notifications.md        | 7f7d231e |
+| CAL-PRD-notification-reminder-configuration               | Notification & Reminder Configuration                     | prd-mobile-notifications.md        | dff44029 |
+| CAL-PRD-participant-disconnection-reason-options          | Disconnection Reason Options                              | prd-participant.md                 | af779b05 |
+| CAL-PRD-participant-not-participating-reason-options      | Mark as Not Participating Reason Options                  | prd-participant.md                 | ad090ba1 |
+| CAL-PRD-participant-registration-configuration            | Participant Registration Configuration                    | prd-participant.md                 | 1abf676e |
+| CAL-PRD-permissions-table                                 | Permissions Table                                         | prd-rbac.md                        | b59776a6 |
+| CAL-PRD-privacy-policy-configuration                      | Clinical Trial Privacy Policy Configuration               | prd-mobile-app.md                  | afe92245 |
+| CAL-PRD-questionnaire-cycle-tracking                      | Questionnaire Cycle Tracking                              | prd-questionnaire-management.md    | 8fba1131 |
+| CAL-PRD-questionnaire-score-display-prohibition           | Questionnaire Score Display Prohibition                   | prd-questionnaire-score-display.md | 23d84761 |
+| CAL-PRD-questionnaire-session-resume-timeout              | Questionnaire Session Resume and Timeout                  | prd-questionnaire-management.md    | 9431d100 |
+| CAL-PRD-site-view-scope                                   | Site View Scope                                           | prd-rbac.md                        | 6ea645cb |
+| CAL-PRD-trial-start-workflow                              | Start Trial Workflow                                      | prd-questionnaire-management.md    | d1421617 |
+| CAL-PRD-two-factor-authentication-configuration           | Two-Factor Authentication Configuration                   | prd-portal-auth.md                 | d8e3f0ab |
 
 ## INTERFACE
 
 ### Cure-HHT Diary Platform/spec
 
-| ID                                    | Title                                | File                          | Hash     |
-| ------------------------------------- | ------------------------------------ | ----------------------------- | -------- |
-| DIARY-GUI-administrator-dashboard     | Administrator Dashboard              | prd-user-account.md           | 8f0fa6a0 |
-| DIARY-GUI-administrator-settings      | Administrator Settings Interface     | prd-administrator-settings.md | f10caf2f |
-| DIARY-GUI-audit-log-administrator     | Administrator Audit Log View         | prd-audit-log.md              | 1f44ba79 |
-| DIARY-GUI-audit-log-common            | Audit Log View — Common Presentation | prd-audit-log.md              | f9158ab1 |
-| DIARY-GUI-audit-log-cra               | CRA Audit Log View                   | prd-audit-log.md              | 108a69db |
-| DIARY-GUI-audit-log-study-coordinator | Study Coordinator Audit Log View     | prd-audit-log.md              | 5311961d |
-| DIARY-GUI-participant-dashboard       | Participant Dashboard                | prd-participant.md            | e3a5efed |
-| DIARY-GUI-password-forgot-workflow    | Forgot Password Workflow Interface   | prd-portal-auth.md            | b845f181 |
-| DIARY-GUI-role-switching              | Role Switching — Interface Behavior  | prd-rbac.md                   | 8d6caff0 |
-| DIARY-GUI-user-account-deactivate     | Deactivate User Account              | prd-user-account.md           | 864d7776 |
-| DIARY-GUI-user-account-reactivate     | Reactivate User Account              | prd-user-account.md           | f9ae8a4f |
-| DIARY-GUI-user-information-modal      | User Information Modal               | prd-user-account.md           | 3a130783 |
-| DIARY-GUI-user-management-tabs        | User Management Tabs                 | prd-user-account.md           | c1ab4c55 |
+| ID                                           | Title                                     | File                                      | Hash     |
+| -------------------------------------------- | ----------------------------------------- | ----------------------------------------- | -------- |
+| DIARY-GUI-administrator-dashboard            | Administrator Dashboard                   | prd-user-account.md                       | 8f0fa6a0 |
+| DIARY-GUI-administrator-settings             | Administrator Settings Interface          | prd-administrator-settings.md             | f10caf2f |
+| DIARY-GUI-audit-log-administrator            | Administrator Audit Log View              | prd-audit-log.md                          | 1f44ba79 |
+| DIARY-GUI-audit-log-common                   | Audit Log View — Common Presentation      | prd-audit-log.md                          | f9158ab1 |
+| DIARY-GUI-audit-log-cra                      | CRA Audit Log View                        | prd-audit-log.md                          | 108a69db |
+| DIARY-GUI-audit-log-study-coordinator        | Study Coordinator Audit Log View          | prd-audit-log.md                          | 5311961d |
+| DIARY-GUI-calendar-day-view                  | Calendar and Day View                     | prd-mobile-navigation.md                  | 94a60ea6 |
+| DIARY-GUI-entry-overlap-resolution           | Overlapping Event Resolution Flow         | prd-diary-entry-rules.md                  | a78fddfa |
+| DIARY-GUI-epistaxis-delete                   | Nosebleed Event Delete                    | prd-epistaxis.md                          | cd171380 |
+| DIARY-GUI-epistaxis-record                   | Record Nosebleed Event                    | prd-epistaxis.md                          | fa583a47 |
+| DIARY-GUI-join-study-screen                  | Join the Study Screen                     | prd-device-linking.md                     | 4cf97153 |
+| DIARY-GUI-linking-confirmation               | Successful Linking Confirmation           | prd-device-linking.md                     | 495858e9 |
+| DIARY-GUI-main-screen-layout                 | Main Screen Layout                        | prd-mobile-navigation.md                  | 8fccd69d |
+| DIARY-GUI-mobile-navigation                  | Mobile Application Navigation and Screens | prd-mobile-navigation.md                  | 6830db90 |
+| DIARY-GUI-participant-dashboard              | Participant Dashboard                     | prd-participant.md                        | e3a5efed |
+| DIARY-GUI-participant-task-list              | Participant Task List                     | prd-mobile-notifications.md               | a070f8d5 |
+| DIARY-GUI-participation-status-badge         | Participation Status Badge                | prd-mobile-notifications.md               | a6b22a5f |
+| DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface        | prd-portal-auth.md                        | b845f181 |
+| DIARY-GUI-questionnaire-portal-sent-workflow | Portal-Sent Questionnaire Workflow        | prd-questionnaire-participant-workflow.md | 34a7c378 |
+| DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry              | prd-questionnaire-participant-workflow.md | c596cbb7 |
+| DIARY-GUI-role-switching                     | Role Switching — Interface Behavior       | prd-rbac.md                               | 8d6caff0 |
+| DIARY-GUI-user-account-deactivate            | Deactivate User Account                   | prd-user-account.md                       | 864d7776 |
+| DIARY-GUI-user-account-reactivate            | Reactivate User Account                   | prd-user-account.md                       | f9ae8a4f |
+| DIARY-GUI-user-information-modal             | User Information Modal                    | prd-user-account.md                       | 3a130783 |
+| DIARY-GUI-user-management-tabs               | User Management Tabs                      | prd-user-account.md                       | c1ab4c55 |
 
 ### Callisto/spec
 
-| ID                                          | Title                               | File                            | Hash     |
-| ------------------------------------------- | ----------------------------------- | ------------------------------- | -------- |
-| CAL-GUI-manage-questionnaires-modal         | Manage Questionnaires Modal         | prd-questionnaire-management.md | 9cb05bc8 |
-| CAL-GUI-participant-dashboard-configuration | Participant Dashboard Configuration | prd-participant.md              | 15d19d33 |
-| CAL-GUI-questionnaire-finalization-workflow | Questionnaire Finalization Workflow | prd-questionnaire-management.md | 79ad946c |
-| CAL-GUI-trial-start-workflow                | Start Trial Workflow Interface      | prd-questionnaire-management.md | a3809678 |
+| ID                                          | Title                                                        | File                                      | Hash     |
+| ------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------- | -------- |
+| CAL-GUI-manage-questionnaires-modal         | Manage Questionnaires Modal                                  | prd-questionnaire-management.md           | 9cb05bc8 |
+| CAL-GUI-participant-dashboard-configuration | Participant Dashboard Configuration                          | prd-participant.md                        | 15d19d33 |
+| CAL-GUI-questionnaire-call-back-participant | Portal-Sent Questionnaire Call-Back — Participant Experience | prd-questionnaire-participant-workflow.md | 7bc60d78 |
+| CAL-GUI-questionnaire-finalization-workflow | Questionnaire Finalization Workflow                          | prd-questionnaire-management.md           | 79ad946c |
+| CAL-GUI-trial-start-workflow                | Start Trial Workflow Interface                               | prd-questionnaire-management.md           | a3809678 |
 
 ## OPERATIONS
 

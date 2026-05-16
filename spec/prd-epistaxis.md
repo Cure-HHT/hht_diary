@@ -1,0 +1,153 @@
+# Daily eDiary: HHT Epistaxis Data Capture
+
+This file defines the daily eDiary data-capture flow for **Epistaxis Events**: the platform-level data capture standard, the participant-facing recording flow (Start, Max Intensity, End), and the deletion flow (in-flight during recording and post-save from event history). The questionnaire-instrument definition for the Daily Epistaxis Record itself lives in `prd-questionnaire-overview.md` as `DIARY-PRD-questionnaire-daily-epistaxis`; this file is about the eDiary flow over that instrument.
+
+## DIARY-PRD-epistaxis-capture-standard: HHT Epistaxis Data Capture Standard
+
+**Level**: prd | **Status**: Legacy | **Implements**: -
+
+### Overview
+
+The HHT Epistaxis Data Capture Standard defines the requirements for participant-reported nosebleed event collection in HHT clinical trials. Epistaxis frequency, duration, and severity are primary outcome measures for evaluating treatment efficacy. Timezone-aware timestamps ensure precise duration calculation regardless of participant location.
+
+### Definitions
+
+**Daily Status**: The participant's self-reported summary of nosebleed activity for a given day. Valid values are Had Nosebleed, No Nosebleed, and Don't Remember.
+
+**Intensity**: A participant-reported measure of nosebleed severity captured on a defined six-level scale ordered from least to most severe.
+
+**Incomplete Record**: An **Epistaxis Event** that has been saved but is missing one or more required fields: start time, **Intensity**, or end time.
+
+### Assertions
+
+A. The System SHALL require a participant to record a **Daily Status** for each calendar day within the diary period.
+
+B. The System SHALL enforce mutual exclusivity of the three **Daily Status** values — a participant SHALL NOT record more than one **Daily Status** per diary entry.
+
+C. When a participant records a **Daily Status** of Had Nosebleed, the System SHALL require the participant to provide start time and end time for the **Epistaxis Event** with timezone information.
+
+D. The System SHALL calculate the duration of an **Epistaxis Event** from the recorded start time and end time, accounting for timezone differences.
+
+E. The System SHALL require the participant to record an **Intensity** value for each **Epistaxis Event**.
+
+F. The System SHALL present notes options from a predefined list (defined in CAL-PRD-entry-time-restrictions-configuration) for each **Epistaxis Event**; the available options SHALL be sponsor-configurable per study protocol.
+
+G. The System SHALL classify an **Epistaxis Event** as an **Incomplete Record** when it has been saved with one or more required fields not recorded.
+
+### Rationale
+
+The Daily Status / Epistaxis Event two-level structure exists because the clinical question is two-leveled: "Did anything happen today?" (a daily-grain answer that can be Had Nosebleed, No Nosebleed, or Don't Remember) and, when something did happen, "What were the events?" (per-event start, end, intensity). Mutually exclusive **Daily Status** values prevent contradictory records (a participant cannot simultaneously have had a nosebleed and not had one). Required start, end, and **Intensity** on each **Epistaxis Event** capture the three primary outcome measures (frequency by count, duration by interval, severity by intensity); allowing any of these to be missing without an explicit incomplete-record state would silently downgrade dataset quality. Timezone-aware capture is essential because participants travel and durations computed from naive timestamps across a DST boundary or international move can be off by an hour or more. The **Incomplete Record** classification lets the platform distinguish "in progress, missing data" from "fully captured" so the participant can be prompted to finish and the dataset can flag what is not yet complete.
+
+*End* *HHT Epistaxis Data Capture Standard* | **Hash**: b38359f8
+
+## DIARY-GUI-epistaxis-record: Record Nosebleed Event
+
+**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-PRD-epistaxis-capture-standard
+
+### Overview
+
+The nosebleed recording flow walks the participant through three steps — **Start** time, **Max Intensity**, **End** time — visible at all times in a persistent **Progress Indicator** at the top of every screen. The participant can revisit any completed step. Validation at the End Time step prevents impossible records (end before start, end after current real time) and prompts for confirmation on entries that look like they may have been recorded too quickly after the event.
+
+### Definitions
+
+**Progress Indicator**: The persistent bar displayed at the top of every screen in the recording flow showing the three steps — Start, Max Intensity, and End — and their completion state.
+
+**Time Picker**: The time selection component presenting the current time as default, a date selector, a timezone selector, and minute adjustment controls of -15, -5, -1, +1, +5, and +15 minutes.
+
+### Assertions
+
+**Flow Structure**
+
+A. The interface SHALL display the **Progress Indicator** on every screen throughout the recording flow showing the Start, Max Intensity, and End steps.
+
+B. The interface SHALL highlight the active step in the **Progress Indicator** and show the recorded value for each completed step.
+
+C. The interface SHALL allow the participant to navigate to any previously completed step by tapping it in the **Progress Indicator**.
+
+D. The interface SHALL present a Back navigation action on every screen throughout the recording flow.
+
+**Nosebleed Start Time**
+
+E. The interface SHALL present a **Time Picker** for the participant to set the nosebleed start time.
+
+F. The interface SHALL present a Set Start Time button that confirms the start time and advances to the Max Intensity screen.
+
+**Max Intensity**
+
+G. The interface SHALL present the six intensity options as a selectable grid: Spotting, Dripping, Dripping quickly, Steady stream, Pouring, and Gushing.
+
+H. The interface SHALL NOT advance to the End Time screen until the participant has selected one of the intensity options.
+
+I. When the participant selects an intensity option, the interface SHALL highlight the selected option and automatically advance to the End Time screen.
+
+**Nosebleed End Time**
+
+J. The interface SHALL present a **Time Picker** for the participant to set the nosebleed end time.
+
+K. When the participant selects Set End Time, the interface SHALL save the record and return the participant to the home screen.
+
+L. The System SHALL validate that end time is greater than or equal to start time.
+
+M. The System SHALL restrict end time selection to times not exceeding the current real time.
+
+N. The System SHALL require confirmation when creating entries less than 2 minutes old.
+
+### Rationale
+
+The three-step structure (Start, Max Intensity, End) matches the clinical model of an event (when it began, how bad it got, when it ended); making the **Progress Indicator** persistent across every screen of the flow keeps the participant oriented and allows direct navigation to any completed step without back-tracking. The **Time Picker**'s minute-adjustment chips (-15/-5/-1/+1/+5/+15) target the realistic adjustment granularity for recording a recently-completed event and avoid the precision-mismatch of a free-text time entry. The auto-advance on intensity selection (vs. requiring a separate Next tap) shaves friction from the most common path (set start, pick intensity, set end) while still letting the participant revisit via the **Progress Indicator** if they want to change their intensity choice. End-time validation (no earlier than start, no later than now) catches the two impossible-time inputs at the GUI layer rather than relying on later data validation. The two-minute confirmation prompt is a soft-stop against premature finalization — a participant who is still actively having a nosebleed when they set the end time is reminded to check before committing.
+
+> **Follow-up — configurability**: This requirement currently encodes
+> the only option implemented in code. Future sponsors may require
+> different rules; introduce a configurable seam (e.g. a parameter on
+> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
+> Satisfies) when the need arises. Until that seam exists, this REQ is
+> normative for the Callisto deployment.
+
+*End* *Record Nosebleed Event* | **Hash**: fa583a47
+
+## DIARY-GUI-epistaxis-delete: Nosebleed Event Delete
+
+**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-PRD-epistaxis-capture-standard
+
+### Overview
+
+Deletion of a nosebleed event can happen in two contexts: in-flight during the recording flow (before the record has been saved) and post-save from event history. Both paths require a **Reason Dialog — Predefined List** before the deletion is applied, and the participant may cancel at any point.
+
+### Assertions
+
+**Delete During Recording Flow**
+
+A. The interface SHALL present a delete action on every screen throughout the recording flow.
+
+B. When the participant selects the delete action during the recording flow, the interface SHALL display a **Reason Dialog — Predefined List** before proceeding.
+
+C. When the participant confirms the delete reason, the interface SHALL discard the in-progress record and return the participant to the home screen.
+
+D. When the participant cancels the Reason Dialog, the interface SHALL return the participant to the screen they were on.
+
+**Delete From Event History**
+
+E. When the participant selects the delete action on a saved **Epistaxis Event**, the interface SHALL display a **Reason Dialog — Predefined List** before proceeding.
+
+F. When the participant confirms the delete reason, the interface SHALL remove the event from the participant's diary and return the participant to the previous screen.
+
+G. When the participant cancels the Reason Dialog, the **Epistaxis Event** SHALL remain unchanged.
+
+### Rationale
+
+The delete action is exposed on every screen of the recording flow because the participant may realize partway through that they started the record by mistake (wrong date, wrong event, accidental tap) and there is no benefit to forcing them to complete the flow before deleting. Routing both in-flight delete and post-save delete through a **Reason Dialog — Predefined List** keeps the audit trail's deletion-reason capture consistent across both contexts — a deletion at any point produces a categorized reason record. Predefined-list (rather than free-text) reasons match the dataset analyzability goal: deletion reasons are the kind of metadata downstream analysis aggregates over, and a controlled vocabulary makes that analysis tractable. The cancel path on either delete returns the participant to where they were (in-flight: the same screen; post-save: the previous screen, with the record unchanged) so an accidental delete-tap is fully recoverable.
+
+> **Follow-up — configurability**: This requirement currently encodes
+> the only option implemented in code. Future sponsors may require
+> different rules; introduce a configurable seam (e.g. a parameter on
+> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
+> Satisfies) when the need arises. Until that seam exists, this REQ is
+> normative for the Callisto deployment.
+
+### Screen reference
+
+See: ![Delete Record — Reason Dialog](../docs/urs-extracted-images/image-18.jpg)
+
+*End* *Nosebleed Event Delete* | **Hash**: cd171380
