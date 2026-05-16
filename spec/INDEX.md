@@ -8,8 +8,10 @@
 
 | ID                                          | Title                                               | File                            | Hash     |
 | ------------------------------------------- | --------------------------------------------------- | ------------------------------- | -------- |
+| DIARY-PRD-action-inventory                  | Action Inventory                                    | prd-rbac.md                     | f17b676a |
 | DIARY-PRD-ancillary-platform-services       | Ancillary Platform Services                         | prd-platform-services.md        | ff326529 |
 | DIARY-PRD-architecture-decision-docs        | Architecture Decision Documentation                 | prd-requirements-management.md  | 76c82ce6 |
+| DIARY-PRD-configuration-precedence          | Configuration Precedence                            | prd-configuration.md            | f5372beb |
 | DIARY-PRD-data-backup-and-archival          | Data Backup and Archival                            | prd-data-backup.md              | 4e9501e4 |
 | DIARY-PRD-evidence-bitcoin-timestamp        | Bitcoin-Based Timestamp Implementation              | prd-evidence-records.md         | 94499ad5 |
 | DIARY-PRD-evidence-device-fingerprint       | Device Fingerprinting                               | prd-evidence-records.md         | 8e10b85a |
@@ -19,10 +21,14 @@
 | DIARY-PRD-evidence-timestamp-archival       | Timestamp Proof Archival                            | prd-evidence-records.md         | 69a49395 |
 | DIARY-PRD-evidence-timestamp-attestation    | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md         | f2ab1f17 |
 | DIARY-PRD-evidence-timestamp-verification   | Timestamp Verification Interface                    | prd-evidence-records.md         | 9956bd94 |
+| DIARY-PRD-help-resources                    | Help and Resources                                  | prd-help-resources.md           | 66c10c7b |
+| DIARY-PRD-notification-behavior             | Notification Behavior                               | prd-notification-behavior.md    | 8f7b4f54 |
 | DIARY-PRD-platform-operations-monitoring    | Platform Operations and Monitoring                  | prd-platform-operations.md      | af349286 |
 | DIARY-PRD-questionnaire-localization        | Questionnaire Localization and Translation Tracking | prd-questionnaire-versioning.md | 4218237c |
 | DIARY-PRD-questionnaire-sponsor-eligibility | Sponsor Questionnaire Eligibility Configuration     | prd-questionnaire-versioning.md | ac2f2aac |
 | DIARY-PRD-questionnaire-versioning          | Questionnaire Versioning Model                      | prd-questionnaire-versioning.md | 6d08845d |
+| DIARY-PRD-rbac-customizable                 | Customizable Role-Based Access Control              | prd-rbac.md                     | 099e2eb7 |
+| DIARY-PRD-role-definitions                  | Role Definitions                                    | prd-rbac.md                     | 1f0ab3a3 |
 | DIARY-PRD-sla-chronic-failure-escalation    | Chronic Failure Escalation                          | prd-sla.md                      | 63205737 |
 | DIARY-PRD-sla-corrective-preventive         | Corrective and Preventive Action                    | prd-sla.md                      | f2c78d76 |
 | DIARY-PRD-sla-customer-notification         | Customer Incident Notification                      | prd-sla.md                      | 3ca3df0f |
@@ -34,3 +40,13 @@
 | DIARY-PRD-sla-root-cause-analysis           | Root Cause Analysis                                 | prd-sla.md                      | 0778e3bb |
 | DIARY-PRD-sla-service-availability          | Service Availability Commitment                     | prd-sla.md                      | d39861a9 |
 | DIARY-PRD-system-validation-traceability    | System Validation and Traceability                  | prd-requirements-management.md  | 7d81caf7 |
+
+## INTERFACE
+
+| ID                                    | Title                                | File             | Hash     |
+| ------------------------------------- | ------------------------------------ | ---------------- | -------- |
+| DIARY-GUI-audit-log-administrator     | Administrator Audit Log View         | prd-audit-log.md | 1f44ba79 |
+| DIARY-GUI-audit-log-common            | Audit Log View — Common Presentation | prd-audit-log.md | f9158ab1 |
+| DIARY-GUI-audit-log-cra               | CRA Audit Log View                   | prd-audit-log.md | 108a69db |
+| DIARY-GUI-audit-log-study-coordinator | Study Coordinator Audit Log View     | prd-audit-log.md | 5311961d |
+| DIARY-GUI-role-switching              | Role Switching — Interface Behavior  | prd-rbac.md      | 8d6caff0 |
