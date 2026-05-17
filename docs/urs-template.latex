@@ -96,6 +96,8 @@
 % URS-style header and footer
 \usepackage{fancyhdr}
 \usepackage{lastpage}
+\usepackage{colortbl}  % for bordered + shaded tables in frontmatter
+\usepackage{array}      % for >{\centering\arraybackslash} columns
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -117,6 +119,26 @@
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0.4pt}
 \setlength{\headheight}{42pt}
+
+% LaTeX uses \thispagestyle{plain} on chapter-start pages by default, which
+% drops the fancyhdr header/footer. Override `plain` to use the same URS-
+% identity header + CONFIDENTIAL footer so the branding is continuous from
+% page 2 onward (cover is the only \thispagestyle{empty} page).
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyhead[R]{%
+    \begin{tabular}{r@{}}
+      \small \textbf{eCOA User Requirements Specification}\\
+      \small Sponsor: Terremoto Biosciences\\
+      \small Protocol: TER-4480-C01 \quad Version: 1.0
+    \end{tabular}%
+  }%
+  \fancyfoot[L]{\small Specific to Protocol TER-4480-C01}%
+  \fancyfoot[C]{\small CONFIDENTIAL}%
+  \fancyfoot[R]{\small Page \thepage{} of \pageref{LastPage}}%
+  \renewcommand{\headrulewidth}{0.4pt}%
+  \renewcommand{\footrulewidth}{0.4pt}%
+}
 
 % TOC number width — accommodate deep numbering like 3.11.18
 \usepackage[titles]{tocloft}

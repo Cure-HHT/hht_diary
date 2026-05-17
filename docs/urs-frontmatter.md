@@ -6,9 +6,18 @@ The Sponsor Portal is the web-based interface used by clinical staff — Study C
 
 # Document Revision History
 
-| Version | Date | Author | Description of Changes |
-| ----- | ----- | ----- | ----- |
-| 1.0 | 25-Mar-2026 | Elvira Koliadina | Initial draft |
+```{=latex}
+\begin{center}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\rowcolor{gray!20}
+\textbf{Version} & \textbf{Date} & \textbf{Author} & \textbf{Description of Changes} \\
+\hline
+1.0 & 25-Mar-2026 & Elvira Koliadina & Initial draft \\
+\hline
+\end{tabular}
+\end{center}
+```
 
 # Signatures
 
@@ -16,19 +25,46 @@ The Sponsor Portal is the web-based interface used by clinical staff — Study C
 
 By my signature below I confirm that the settings have been reviewed and approved within the Trial Sponsor organization.
 
-| Approver | Signature |
-| :---: | :---: |
-| First Name Last Name — Study Manager |  |
-| First Name Last Name — Quality Assurance |  |
-| First Name Last Name — Data Management |  |
-| Print Name & Title | Signature / Date |
+```{=latex}
+\begin{center}
+\renewcommand{\arraystretch}{2.5}
+\begin{tabular}{|>{\centering\arraybackslash}p{0.45\textwidth}|>{\centering\arraybackslash}p{0.45\textwidth}|}
+\hline
+\rowcolor{gray!20}
+\textbf{Approver} & \textbf{Signature} \\
+\hline
+First Name Last Name \newline Study Manager & \\
+\hline
+First Name Last Name \newline Quality Assurance & \\
+\hline
+First Name Last Name \newline Data Management & \\
+\hline
+Print Name \& Title & Signature / Date \\
+\hline
+\end{tabular}
+\end{center}
+\renewcommand{\arraystretch}{1.0}
+```
 
 **CureHHT Personnel Agreement**
 
 By my signature below I confirm the information contained herein will be implemented as appropriate by CureHHT on behalf of the Trial Sponsor.
 
-| Approver | Signature |
-| :---: | :---: |
-| First Name Last Name — Lead Developer |  |
-| Elvira Koliadina — Project Manager |  |
-| Print Name & Title | Signature / Date |
+```{=latex}
+\begin{center}
+\renewcommand{\arraystretch}{2.5}
+\begin{tabular}{|>{\centering\arraybackslash}p{0.45\textwidth}|>{\centering\arraybackslash}p{0.45\textwidth}|}
+\hline
+\rowcolor{gray!20}
+\textbf{Approver} & \textbf{Signature} \\
+\hline
+First Name Last Name \newline Lead Developer & \\
+\hline
+Elvira Koliadina \newline Project Manager & \\
+\hline
+Print Name \& Title & Signature / Date \\
+\hline
+\end{tabular}
+\end{center}
+\renewcommand{\arraystretch}{1.0}
+```

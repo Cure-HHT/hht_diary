@@ -1,26 +1,26 @@
 # Appendices
 
-## 7.1 Screens
+## 7.1 Screens {-}
 
-### 7.1.1 Questionnaire Review Screen
+### 7.1.1 Questionnaire Review Screen {-}
 
 *Trigger:* **Participant** answers the final question of a **Portal-Sent Questionnaire**, before **Submission**.   
 *Displays:* **Questionnaire Display Name**, every question in original order, the **Participant**'s selected response beneath each question, an Edit affordance per question, and a **Submit** action.   
 *Outcome:* Selecting **Submit** completes **Submission**.   
 *Reference:* GUI-p00001.
 
-![Appendix screenshot](image-01.png)
+![](image-01.png)
 
-### 7.1.2 Questionnaire Preamble Screen
+### 7.1.2 Questionnaire Preamble Screen {-}
 
 *Trigger:* **Participant** opens a **Portal-Sent Questionnaire**.   
 *Displays:* **Questionnaire Display Name**, estimated time to complete.
 
 *Actions:* **I'm Ready** (proceed to first question), **Not Now** (return to **Main Screen**). *Reference:* REQ-p02065, GUI-p00001.
 
-### **![Appendix screenshot](image-02.png)**
+### **![](image-02.png)**
 
-### 7.1.3 Resolve Conflict — Resolution Screen
+### 7.1.3 Resolve Conflict — Resolution Screen {-}
 
 *Trigger:* New or edited entry **Overlaps** with one or more **Conflicting Records**. **Displays:** New entry and **Conflicting Record** side by side, showing time range, duration, and severity for each.
 
@@ -33,11 +33,11 @@
 
 *Reference:* REQ-p05008, GUI-p05009.
 
-![Appendix screenshot](image-03.png)
+![](image-03.png)
 
 ## 
 
-### 7.1.4 Troubleshooting Popover
+### 7.1.4 Troubleshooting Popover {-}
 
 *Trigger:* **Study Coordinator** selects the information icon adjacent to the **Status Badge** on a **Questionnaire Card** in **Delivery Failed** status. 
 
@@ -47,11 +47,11 @@
 
 *Reference:* GUI-CAL-p00006.
 
-![Appendix screenshot](image-04.png)
+![](image-04.png)
 
-## 7.2 Modals
+## 7.2 Modals {-}
 
-### 7.2.1 User Information Modal
+### 7.2.1 User Information Modal {-}
 
 *Trigger:* **Administrator** selects a **User Account** row from the User Management interface.  
 *Target identification:* **Full Name**, **Email Address**, **Status**.   
@@ -59,11 +59,11 @@
 *Actions (Inactive Users tab):* **Reactivate User**, **Close**.   
 *Reference:* GUI-p00033.
 
-![Appendix screenshot](image-05.png)
+![](image-05.png)
 
 ### 
 
-### 7.2.2 Show Linking Code
+### 7.2.2 Show Linking Code {-}
 
 *Trigger:* **Study Coordinator** selects **Show Linking Code** for a **Participant**.   
 *Target identification:* **Participant** ID. 
@@ -78,13 +78,13 @@
 
 Pending Status
 
-![Appendix screenshot](image-06.png)
+![](image-06.png)
 
 After Participant was linked to the Mobile Application
 
-![Appendix screenshot](image-07.png)
+![](image-07.png)
 
-### 7.2.3 Manage Questionnaires Modal
+### 7.2.3 Manage Questionnaires Modal {-}
 
 *Trigger:* **Study Coordinator** selects **Manage Questionnaires** for a **Participant** with **Trial Active** status. 
 
@@ -96,11 +96,11 @@ After Participant was linked to the Mobile Application
 
 *Reference:* GUI-CAL-p00006.
 
-![Appendix screenshot](image-08.png)
+![](image-08.png)
 
-## 7.3 Dialogs
+## 7.3 Dialogs {-}
 
-### 7.3.1 Deactivate User Account — Reason Dialog (Free Text)
+### 7.3.1 Deactivate User Account — Reason Dialog (Free Text) {-}
 
 *Trigger:* **Administrator** initiates deactivation of a **User Account** from the **Active Users** tab. *Target identification:* **Full Name**. 
 
@@ -110,9 +110,9 @@ After Participant was linked to the Mobile Application
 
 *Reference:* REQ-p20031, GUI-p00031.
 
-![Appendix screenshot](image-09.png)
+![](image-09.png)
 
-### 7.3.2 Reactivate User Account — Reason Dialog (Free Text)
+### 7.3.2 Reactivate User Account — Reason Dialog (Free Text) {-}
 
 *Trigger:* **Administrator** initiates reactivation of a **User Account** from the **Inactive Users** tab. 
 
@@ -124,9 +124,9 @@ After Participant was linked to the Mobile Application
 
 *Reference:* REQ-p20032, GUI-p00032.
 
-![Appendix screenshot](image-10.png)
+![](image-10.png)
 
-### 7.3.3 Link Participant — Confirmation Dialog
+### 7.3.3 Link Participant — Confirmation Dialog {-}
 
 *Trigger:* **Study Coordinator** initiates **Link Participant** for a **Participant** with **Not Connected** status. 
 
@@ -138,11 +138,11 @@ After Participant was linked to the Mobile Application
 
 *Reference:* REQ-p70009, GUI-p03001.
 
-![Appendix screenshot](image-11.png)
+![](image-11.png)
 
 ### 
 
-### 7.3.4 Linking Code Generated — Acknowledgement Dialog
+### 7.3.4 Linking Code Generated — Acknowledgement Dialog {-}
 
 *Trigger:* **Study Coordinator** confirms generation of a **Mobile Linking Code** from the Link Participant Confirmation Dialog (§7.3.3). 
 
@@ -154,9 +154,9 @@ After Participant was linked to the Mobile Application
 
 *Reference:* GUI-p03001.
 
-![Appendix screenshot](image-12.png)
+![](image-12.png)
 
-### 7.3.5 Start Trial — Confirmation Dialog
+### 7.3.5 Start Trial — Confirmation Dialog {-}
 
 *Trigger:* **Study Coordinator** selects **Start Trial** for a **Participant** with **Linked \- Awaiting Start** status. 
 
@@ -168,11 +168,11 @@ After Participant was linked to the Mobile Application
 
 *Reference:* REQ-CAL-p00022, GUI-CAL-p00005.
 
-![Appendix screenshot](image-13.png)
+![](image-13.png)
 
 ### 
 
-### 7.3.6 Disconnect Participant — Reason Dialog
+### 7.3.6 Disconnect Participant — Reason Dialog {-}
 
 *Trigger:* **Study Coordinator** selects **Disconnect Participant** from the **Participant Actions Modal** for a **Participant** with **Linked \- Awaiting Start** or **Trial Active** status. 
 
@@ -186,11 +186,11 @@ After Participant was linked to the Mobile Application
 
 *Reference:* REQ-p70010, REQ-CAL-p00020.
 
-![Appendix screenshot](image-14.png)
+![](image-14.png)
 
 ### 
 
-### 7.3.7 Reconnect Participant — Reason Dialog (Free Text)
+### 7.3.7 Reconnect Participant — Reason Dialog (Free Text) {-}
 
 *Trigger:* **Study Coordinator** selects **Reconnect Participant** from the **Participant Actions Modal** for a **Participant** with **Disconnected** status. 
 
@@ -202,9 +202,9 @@ After Participant was linked to the Mobile Application
 
 *Reference:* REQ-p70011.
 
-![Appendix screenshot](image-15.png)
+![](image-15.png)
 
-### 7.3.8 Mark as Not Participating — Reason Dialog (Predefined)
+### 7.3.8 Mark as Not Participating — Reason Dialog (Predefined) {-}
 
 *Trigger:* **Study Coordinator** selects **Mark as Not Participating** for a **Participant** with **Disconnected** status. 
 
@@ -216,11 +216,11 @@ After Participant was linked to the Mobile Application
 
 *Reference:* REQ-p70017, REQ-CAL-p00064.
 
-### **![Appendix screenshot](image-16.png)**
+### **![](image-16.png)**
 
 ### 
 
-### 7.3.9 Reactivate Participant — Reason Dialog (Free Text)
+### 7.3.9 Reactivate Participant — Reason Dialog (Free Text) {-}
 
 *Trigger:* **Study Coordinator** selects **Reactivate Participant** from the **Participant Actions Modal** for a **Participant** with **Not Participating** status. 
 
@@ -232,25 +232,25 @@ After Participant was linked to the Mobile Application
 
 *Reference:* REQ-p70016.
 
-### **![Appendix screenshot](image-17.png)**
+### **![](image-17.png)**
 
-### 7.3.10 Delete Record — Reason Dialog — Predefined List
+### 7.3.10 Delete Record — Reason Dialog — Predefined List {-}
 
 *Trigger:* **Participant** initiates the delete action on an **Epistaxis Event**, either during the recording flow or from event history.   
 *Consequence summary:* The **Epistaxis Event** will be removed from the **Participant**'s diary. *Reason options:* Entered by mistake, Duplicate entry, Incorrect information, Other.   
 *Pattern:* Reason Dialog — Predefined List (see §4.1).   
 *Reference:* GUI-p00003.
 
-![Appendix screenshot](image-18.jpg)
+![](image-18.jpg)
 
-### 7.3.11 Post-Submission Acknowledgement Dialog
+### 7.3.11 Post-Submission Acknowledgement Dialog {-}
 
 *Trigger:* **Participant** confirms **Submission** of a **Portal-Sent Questionnaire**.   
 *Consequence summary:* Confirms the **Questionnaire** has been submitted and informs the **Participant** that the **Study Coordinator** will review the responses.   
 *Pattern:* Acknowledgement Dialog (see §4.1).   
 *Reference:* GUI-p00001.
 
-### **![Appendix screenshot](image-19.png)**
+### **![](image-19.png)**
 
 ### 
 
@@ -262,9 +262,9 @@ After Participant was linked to the Mobile Application
 *Pattern:* Acknowledgement Dialog (see §4.1).   
 *Reference:* REQ-p01073, GUI-p00004.
 
-### **![Appendix screenshot](image-20.png)**
+### **![](image-20.png)**
 
-### 7.3.13 Questionnaire Finalization Dialog
+### 7.3.13 Questionnaire Finalization Dialog {-}
 
 *Trigger:* Study Coordinator selects **Finalize** on a **Questionnaire Card** with **Delivery Failed** or **Ready to Review** status.  
 *Consequence summary:* Finalizes the Questionnaire — locks all Participant responses permanently, calculates the score, transmits it to Rave EDC, and prevents the Participant from editing their answers in the Mobile Application.  
@@ -274,9 +274,9 @@ After Participant was linked to the Mobile Application
 *Pattern:* Confirmation Dialog (see §4.1).  
 *Reference:* REQ-CAL-p00023 I–M, GUI-CAL-p00007 A–F.
 
-### **![Appendix screenshot](image-21.png)**
+### **![](image-21.png)**
 
-### 7.3.14 Terminal Cycle Warning Dialog
+### 7.3.14 Terminal Cycle Warning Dialog {-}
 
 *Trigger:* **Study Coordinator** confirms finalization of a **Questionnaire** with a **Terminal Cycle** value (**End of Treatment** or **End of Study**) selected in the **Finalization Dialog**.   
 *Target identification:* **Participant** ID, **Questionnaire Type**, **Terminal Cycle** being assigned. *Consequence summary:* The **Participant**'s answers will be locked, the score will be transmitted to **Rave EDC**, and the **Questionnaire Type** will be closed for the **Participant** so no further **Questionnaires** of that type may be sent.   
@@ -284,9 +284,9 @@ After Participant was linked to the Mobile Application
 *Pattern:* Confirmation Dialog (see §4.1).   
 *Reference:* GUI-CAL-p00007.
 
-![Appendix screenshot](image-22.png)
+![](image-22.png)
 
-### 7.3.15 Call Back Questionnaire — Reason Dialog (Free Text)
+### 7.3.15 Call Back Questionnaire — Reason Dialog (Free Text) {-}
 
 *Trigger:* **Study Coordinator** initiates the call back action on a **Questionnaire** with **Sent**, **Delivery Failed**, or **Ready to Review** status.   
 *Target identification:* **Participant** ID, **Questionnaire Type**.   
@@ -294,9 +294,9 @@ After Participant was linked to the Mobile Application
 *Pattern:* Reason Dialog — Free Text (see §4.1).   
 *Reference:* REQ-CAL-p00023, GUI-CAL-p00006.
 
-## **![Appendix screenshot](image-23.png)**
+## **![](image-23.png)**
 
-### 7.3.16 Call Back Notice
+### 7.3.16 Call Back Notice {-}
 
 *Trigger:* A **Portal-Sent Questionnaire** assigned to the **Participant** has been called back by the **Study Coordinator**.   
 *Consequence summary:* Informs the **Participant** that the **Questionnaire** is no longer active and any answers entered will not be saved.   
@@ -310,62 +310,62 @@ After Participant was linked to the Mobile Application
 *Pattern:* Acknowledgement Dialog (see §4.1).   
 *Reference:* GUI-CAL-p07002.
 
-![Appendix screenshot](image-24.png)
+![](image-24.png)
 
-### 7.3.17 Successful Linking Confirmation
+### 7.3.17 Successful Linking Confirmation {-}
 
 *Trigger:* A **Participant** successfully submits a valid **Mobile Linking Code** on the **Join the Study** screen.   
 *Consequence summary:* Confirms to the **Participant** that the device has been linked to the study and transitions the **Participant** from personal use mode into linked use mode. 
 
 *Behavior:* On acknowledgement, the **Participant** is navigated to the **User Profile** screen.  
 *Pattern:* Acknowledgement Dialog (see §4.1).   
-*Reference:* GUI-p05015.![Appendix screenshot](image-25.png)
+*Reference:* GUI-p05015.![](image-25.png)
 
-## 7.4 Notifications
+## 7.4 Notifications {-}
 
-### 7.4.1 Timeout Warning Notification
+### 7.4.1 Timeout Warning Notification {-}
 
 A push notification delivered to the Participant when a configured Questionnaire Session Timeout is approaching expiry. Tapping the notification opens the questionnaire in the Mobile Application. The wording is sponsor-configurable per Questionnaire definition; the default text is *\["Your \[Questionnaire Display Name\] session is about to expire. Open the app to continue and submit your answers."\]*
 
-![Appendix screenshot](image-26.png)
+![](image-26.png)
 
 ### 
 
-### 7.4.2 Session Expiry Notification
+### 7.4.2 Session Expiry Notification {-}
 
 A push notification delivered to the Participant when the configured Session Timeout has been exceeded for an in-progress Questionnaire and the Participant's previously entered answers have been discarded. Tapping the notification opens the Mobile Application; if the Participant returns to the Questionnaire, the Session Expiry Dialog is displayed. The wording is sponsor-configurable per Questionnaire definition; the default text is *\["Your \[Questionnaire Display Name\] session has expired and your answers were not saved. Open the app to start again."\]*
 
-![Appendix screenshot](image-27.png)
+![](image-27.png)
 
 ### 
 
-### 7.4.3 Disconnection Notification
+### 7.4.3 Disconnection Notification {-}
 
 A persistent, non-dismissible in-app notification displayed in the System Notice Area at the top of the Main Screen when the Participant's status is Disconnected. The notification persists until the Participant is reconnected to the Sponsor Portal. The wording is sponsor-configurable; the default text is *\["Your connection with the study has been interrupted. Please contact your study site for assistance."\]*
 
-![Appendix screenshot](image-28.png)
+![](image-28.png)
 
-### 7.4.4 Portal-Sent Questionnaire Notification
+### 7.4.4 Portal-Sent Questionnaire Notification {-}
 
 A push notification delivered to the Participant when a Study Coordinator sends a Portal-Sent Questionnaire from the Sponsor Portal. Tapping the notification opens the Mobile Application; the Participant accesses the Questionnaire from the Questionnaire Task on the Main Screen. The wording is sponsor-configurable; the default text is *\["A \[Questionnaire Display Name\] questionnaire is ready for you to complete. Open the app to begin."\]*
 
-![Appendix screenshot](image-29.png)
+![](image-29.png)
 
-### 7.4.5 Yesterday Entry Reminder Notification
+### 7.4.5 Yesterday Entry Reminder Notification {-}
 
 A push notification delivered to the Participant at the configured Reminder Time when no Daily Status has been recorded for the previous calendar day. Tapping the notification opens the Mobile Application; the Participant accesses the Yesterday Reminder Task on the Main Screen. The wording is sponsor-configurable; the default text is *\["Did you have a nosebleed yesterday? Take a moment to record yesterday's status in your diary."\]*
 
-![Appendix screenshot](image-30.png)
+![](image-30.png)
 
-### 7.4.6 Ongoing Epistaxis Event Reminder
+### 7.4.6 Ongoing Epistaxis Event Reminder {-}
 
 A push notification delivered to the Participant when an Incomplete Record has not been interacted with for the configured Reminder Interval. Tapping the notification opens the Mobile Application; the Participant returns to the Incomplete Record to either complete it or confirm the event is still ongoing. The wording is sponsor-configurable; the default text is *\["Is your nosebleed still going? You started recording a nosebleed but haven't finished. Tap to update.”*
 
-![Appendix screenshot](image-31.png)
+![](image-31.png)
 
-### 7.4.7 Historical Gap Reminder
+### 7.4.7 Historical Gap Reminder {-}
 
 A push notification delivered to the **Participant** at the configured Reminder Time when one or more Historical Gaps exist within the editable window. Tapping the notification opens the Mobile Application; the Participant accesses the missing days via the Calendar. The wording is sponsor-configurable; the default text is *\["You have one day without a recorded entry. Tap to review and complete your diary."\]*
 
-![Appendix screenshot](image-32.png)
+![](image-32.png)
 
