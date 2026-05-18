@@ -57,3 +57,35 @@ class Graph:
         for cid in file_node.children:
             if cid in self._nodes:
                 yield self._nodes[cid]
+
+    def requirements_for_source_file(self, relpath: str) -> list[GraphNode]:
+        """Return REQUIREMENT nodes whose `source_file` matches `relpath`.
+
+        elspais federation merges FILE nodes that share a relative_path
+        (only one FILE node survives, biased to one repo). The REQUIREMENT
+        nodes themselves carry their own `source_file` field, so when we
+        need cross-repo REQ lookups for a section we go through this method
+        instead of `files_for_relative_path` -> children.
+        """
+        return [
+            n for n in self._nodes.values()
+            if n.kind == "REQUIREMENT" and n.content.get("source_file") == relpath
+        ]
+
+    def remainders_for_source_file(self, relpath: str) -> list[GraphNode]:
+        """Return REMAINDER nodes attached to FILE nodes for `relpath`.
+
+        REMAINDERs are accessible only via FILE node children today; there
+        is no `source_file` on REMAINDER content. Callers that need both
+        REQs and REMAINDERs combine this with `files_for_relative_path` to
+        get the surviving FILE's REMAINDERs.
+        """
+        out: list[GraphNode] = []
+        for n in self._nodes.values():
+            if n.kind != "FILE" or n.content.get("relative_path") != relpath:
+                continue
+            for cid in n.children:
+                child = self._nodes.get(cid)
+                if child and child.kind == "REMAINDER":
+                    out.append(child)
+        return out

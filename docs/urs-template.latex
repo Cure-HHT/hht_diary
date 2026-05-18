@@ -51,6 +51,13 @@
 \makeatother
 \setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
 
+% Force figures to render where declared in source. Pandoc wraps images in
+% \begin{figure} which LaTeX treats as floats — by default they migrate to
+% the "best" page and frequently leak into the front matter / TOC region.
+% The `H` placement option from the `float` package is strictly non-floating.
+\usepackage{float}
+\floatplacement{figure}{H}
+
 \usepackage{longtable,booktabs}
 
 % Code blocks and syntax highlighting
@@ -140,13 +147,17 @@
   \renewcommand{\footrulewidth}{0.4pt}%
 }
 
-% TOC number width — accommodate deep numbering like 3.11.18
+% TOC number width — accommodate deep numbering like 3.11.18, but keep the
+% nested indentation tight. Previous values (sec 2em / subsec 5.5em) pushed
+% subsection titles far across the page; reviewers found the wraps awkward.
 \usepackage[titles]{tocloft}
 \setlength{\cftchapnumwidth}{2em}
-\setlength{\cftsecnumwidth}{3.5em}
-\setlength{\cftsubsecnumwidth}{5.5em}
-\setlength{\cftsecindent}{2em}
-\setlength{\cftsubsecindent}{5.5em}
+\setlength{\cftsecnumwidth}{2.5em}
+\setlength{\cftsubsecnumwidth}{3em}
+\setlength{\cftsubsubsecnumwidth}{3.5em}
+\setlength{\cftsecindent}{1em}
+\setlength{\cftsubsecindent}{1.5em}
+\setlength{\cftsubsubsecindent}{3em}
 
 % Chapter/section formatting - remove "Chapter N" prefix
 \usepackage{titlesec}

@@ -23,10 +23,10 @@ def test_assemble_markdown_emits_chapter_section_headings_and_content(
 
     out = mod.assemble_markdown(graph, manifest)
 
-    # Chapter heading
-    assert "# 4. SYSTEM-WIDE STANDARDS" in out
-    # Section heading
-    assert "## 4.3 User Roles and Permissions" in out
+    # Chapter heading — LaTeX numbers chapters automatically; we emit titles only.
+    assert "# SYSTEM-WIDE STANDARDS" in out
+    # Section heading — same: title only, LaTeX numbers as 4.3 etc.
+    assert "## User Roles and Permissions" in out
     # DIARY content
     assert "Customizable Role-Based Access Control" in out
     # CAL content (interleaved after DIARY pair)

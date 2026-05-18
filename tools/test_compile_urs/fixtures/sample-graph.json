@@ -74,10 +74,41 @@
       "label": "Customizable Role-Based Access Control",
       "content": {
         "title": "Customizable Role-Based Access Control",
-        "body": "Body prose for RBAC.",
-        "assertions": [
-          {"label": "A", "text": "The System SHALL support customizable roles."}
-        ]
+        "rationale": "Body prose for RBAC.",
+        "level": "prd",
+        "status": "Active",
+        "source_file": "spec/prd-rbac.md",
+        "parse_line": 5
+      },
+      "children": [
+        "DIARY-PRD-rbac:section:0",
+        "DIARY-PRD-rbac-A"
+      ],
+      "edges": [
+        {"target": "DIARY-PRD-rbac:section:0", "kind": "STRUCTURES"},
+        {"target": "DIARY-PRD-rbac-A", "kind": "STRUCTURES"}
+      ]
+    },
+    "DIARY-PRD-rbac:section:0": {
+      "id": "DIARY-PRD-rbac:section:0",
+      "kind": "REMAINDER",
+      "label": "Overview",
+      "content": {
+        "heading": "Overview",
+        "text": "Section prose.",
+        "order": 0,
+        "heading_level": 3
+      },
+      "children": [],
+      "edges": []
+    },
+    "DIARY-PRD-rbac-A": {
+      "id": "DIARY-PRD-rbac-A",
+      "kind": "ASSERTION",
+      "label": "The System SHALL support customizable roles.",
+      "content": {
+        "label": "A",
+        "parse_line": 10
       },
       "children": [],
       "edges": []
@@ -88,8 +119,24 @@
       "label": "Action Inventory",
       "content": {
         "title": "Action Inventory",
-        "body": "",
-        "assertions": [{"label": "A", "text": "Inventory all actions."}]
+        "rationale": "",
+        "level": "prd",
+        "status": "Active",
+        "source_file": "spec/prd-rbac.md",
+        "parse_line": 15
+      },
+      "children": ["DIARY-PRD-action-inventory-A"],
+      "edges": [
+        {"target": "DIARY-PRD-action-inventory-A", "kind": "STRUCTURES"}
+      ]
+    },
+    "DIARY-PRD-action-inventory-A": {
+      "id": "DIARY-PRD-action-inventory-A",
+      "kind": "ASSERTION",
+      "label": "Inventory all actions.",
+      "content": {
+        "label": "A",
+        "parse_line": 20
       },
       "children": [],
       "edges": []
@@ -100,8 +147,24 @@
       "label": "Role Definitions",
       "content": {
         "title": "Role Definitions",
-        "body": "",
-        "assertions": [{"label": "A", "text": "Define roles."}]
+        "rationale": "",
+        "level": "prd",
+        "status": "Active",
+        "source_file": "spec/prd-rbac.md",
+        "parse_line": 25
+      },
+      "children": ["DIARY-PRD-role-definitions-A"],
+      "edges": [
+        {"target": "DIARY-PRD-role-definitions-A", "kind": "STRUCTURES"}
+      ]
+    },
+    "DIARY-PRD-role-definitions-A": {
+      "id": "DIARY-PRD-role-definitions-A",
+      "kind": "ASSERTION",
+      "label": "Define roles.",
+      "content": {
+        "label": "A",
+        "parse_line": 30
       },
       "children": [],
       "edges": []
@@ -112,8 +175,24 @@
       "label": "Role Switching",
       "content": {
         "title": "Role Switching",
-        "body": "",
-        "assertions": [{"label": "A", "text": "Switch roles."}]
+        "rationale": "",
+        "level": "gui",
+        "status": "Active",
+        "source_file": "spec/prd-rbac.md",
+        "parse_line": 40
+      },
+      "children": ["DIARY-GUI-role-switching-A"],
+      "edges": [
+        {"target": "DIARY-GUI-role-switching-A", "kind": "STRUCTURES"}
+      ]
+    },
+    "DIARY-GUI-role-switching-A": {
+      "id": "DIARY-GUI-role-switching-A",
+      "kind": "ASSERTION",
+      "label": "Switch roles.",
+      "content": {
+        "label": "A",
+        "parse_line": 40
       },
       "children": [],
       "edges": []
@@ -124,13 +203,29 @@
       "label": "Role Definitions (Callisto Permissions Table)",
       "content": {
         "title": "Role Definitions",
-        "body": "The Callisto sponsor's specific permissions matrix.",
-        "assertions": [
-          {"label": "A", "text": "Permissions matrix as defined in the table below."}
-        ]
+        "rationale": "The Callisto sponsor's specific permissions matrix.",
+        "level": "prd",
+        "status": "Active",
+        "source_file": "spec/prd-rbac.md",
+        "parse_line": 10,
+        "refines_refs": ["DIARY-PRD-role-definitions"]
+      },
+      "children": ["CAL-PRD-role-definitions-A"],
+      "edges": [
+        {"target": "CAL-PRD-role-definitions-A", "kind": "STRUCTURES"},
+        {"target": "DIARY-PRD-role-definitions", "kind": "REFINES"}
+      ]
+    },
+    "CAL-PRD-role-definitions-A": {
+      "id": "CAL-PRD-role-definitions-A",
+      "kind": "ASSERTION",
+      "label": "Permissions matrix as defined in the table below.",
+      "content": {
+        "label": "A",
+        "parse_line": 5
       },
       "children": [],
-      "edges": [{"target": "DIARY-PRD-role-definitions", "kind": "REFINES"}]
+      "edges": []
     }
   },
   "roots": ["file:spec/prd-rbac.md", "file:spec/prd-rbac.md@callisto"],

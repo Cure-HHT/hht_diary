@@ -1,4 +1,4 @@
-## {{ node.label }}  {{ '{#' }}{{ node.id }}}
+### {{ node.label }}  {{ '{#' }}{{ node.id }}}
 
 **REQ ID:** `{{ node.id }}`
 
@@ -11,20 +11,4 @@
 {%- if satisfies_edges -%}
 **Satisfies:** {% for e in satisfies_edges %}`{{ e.target }}`{{ ", " if not loop.last }}{% endfor %}
 
-{% endif -%}
-
-{% if node.content.body -%}
-### Rationale
-
-{{ node.content.body }}
-
-{% endif -%}
-
-{% if node.content.assertions -%}
-### Assertions
-
-{% for a in node.content.assertions -%}
-**{{ a.label }}.** {{ a.text }}
-
-{% endfor -%}
 {% endif -%}

@@ -15,6 +15,7 @@ Pipeline:
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -23,29 +24,96 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from urs_compile.graph_loader import Graph  # noqa: E402
-from urs_compile.interleave import interleave_section  # noqa: E402
+from urs_compile.interleave import interleave_section_by_path  # noqa: E402
 from urs_compile.manifest import Manifest  # noqa: E402
 from urs_compile.render import render_node  # noqa: E402
+
+
+_HEADING_RE = re.compile(r"^(#{1,5})(\s+)", re.MULTILINE)
+_LEADING_H1_RE = re.compile(r"\A\s*#\s+[^\n]*\n+")
+
+
+def demote_headings(md: str, levels: int = 1) -> str:
+    """Demote every ATX heading in `md` by `levels` (capped at H6)."""
+    def repl(match: re.Match) -> str:
+        hashes = match.group(1)
+        new = "#" * min(6, len(hashes) + levels)
+        return new + match.group(2)
+    return _HEADING_RE.sub(repl, md)
+
+
+def strip_leading_h1(md: str) -> str:
+    """Remove the first top-level (`# ...`) heading from `md`.
+
+    Spec files start with a `# File Title` that the URS manifest already
+    surfaces as `## X.Y Section Title`. Drop the redundant heading before
+    demoting so the section flows straight from URS heading into content.
+    """
+    return _LEADING_H1_RE.sub("", md, count=1)
 
 
 def assemble_markdown(graph: Graph, manifest: Manifest) -> str:
     """Build the full assembled markdown document body (no frontmatter / appendices)."""
     parts: list[str] = []
     for chapter in manifest.chapters:
-        parts.append(f"\n\n# {chapter.number}. {chapter.title}\n")
+        # LaTeX adds the chapter/section numbers; we just emit titles.
+        parts.append(f"\n\n# {chapter.title}\n")
+        prev_section_num: int | None = None
         for section in chapter.sections:
-            parts.append(f"\n## {section.number} {section.title}\n")
-            file_nodes: list = []
+            # Parse the manifest section number ("5.3" -> 3) and inject a raw
+            # \setcounter when the manifest skips a slot (e.g. 5.1 -> 5.3 to
+            # preserve a deliberate "User Interface" gap). LaTeX numbers
+            # sections sequentially otherwise, which would silently re-number
+            # 5.3+ to 5.2+ and confuse reviewers comparing to the manifest.
+            try:
+                section_idx = int(section.number.split(".")[-1])
+            except (ValueError, IndexError):
+                section_idx = None
+            if (
+                section_idx is not None
+                and prev_section_num is not None
+                and section_idx > prev_section_num + 1
+            ):
+                parts.append(
+                    f"\n```{{=latex}}\n\\setcounter{{section}}{{{section_idx - 1}}}\n```\n"
+                )
+            prev_section_num = section_idx
+            parts.append(f"\n## {section.title}\n")
+            # Run interleave per manifest path: source_file-based lookup
+            # surfaces CAL siblings even when federation collapsed FILE nodes.
+            # We collect (kind, rendered_text) so we can demote only REMAINDER
+            # output — REQ output is already at the final heading level
+            # (### title / #### subsections) and must not be demoted.
+            rendered_chunks: list[tuple[str, str]] = []
+            emitted_any = False
             for relpath in section.files:
-                file_nodes.extend(graph.files_for_relative_path(relpath))
-            if not file_nodes:
+                for _kind, node in interleave_section_by_path(graph, relpath):
+                    rendered_chunks.append((node.kind, render_node(node, graph)))
+                    rendered_chunks.append(("SEP", "\n"))
+                    emitted_any = True
+            if not emitted_any:
                 parts.append(
                     f"\n*(No content found for {section.number} — manifest references {section.files})*\n"
                 )
                 continue
-            for _kind, node in interleave_section(graph, file_nodes):
-                parts.append(render_node(node))
-                parts.append("\n")
+            # Drop the redundant `# File Title` heading the first REMAINDER
+            # carries from the spec file; URS section heading already labels it.
+            first_rem_idx = next(
+                (i for i, (k, _) in enumerate(rendered_chunks) if k == "REMAINDER"),
+                None,
+            )
+            if first_rem_idx is not None:
+                kind, text = rendered_chunks[first_rem_idx]
+                rendered_chunks[first_rem_idx] = (kind, strip_leading_h1(text))
+            # Demote spec-file REMAINDER headings by one level so spec H1 ->
+            # H2 subsections under the URS section. REQ chunks are already
+            # at the correct level (### / ####) and pass through unchanged.
+            final_chunks: list[str] = []
+            for kind, text in rendered_chunks:
+                if kind == "REMAINDER":
+                    text = demote_headings(text, levels=1)
+                final_chunks.append(text)
+            parts.append("".join(final_chunks))
     return "".join(parts)
 
 
@@ -66,8 +134,13 @@ def assemble_full_document(
         if path_str:
             full = repo_root / path_str
             if full.exists():
-                chunks.append(f"\n\n# {key.title()}\n\n")
-                chunks.append(full.read_text())
+                text = full.read_text()
+                # Only inject a chapter heading when the file doesn't already
+                # provide one; appendices and glossary commonly start with
+                # `# Appendices` / `# Glossary`.
+                if not _LEADING_H1_RE.match(text):
+                    chunks.append(f"\n\n# {key.title()}\n\n")
+                chunks.append(text)
     return "\n\n".join(chunks)
 
 
@@ -85,9 +158,17 @@ def run_pandoc(
         "-o", str(output_path),
         "--pdf-engine", engine,
         "--template", str(template),
-        "--include-before-body", str(cover),
+        # Cover is consumed by the template's `$cover-tex$` slot, which
+        # places it before the TOC and applies `\thispagestyle{empty}`.
+        # `--include-before-body` would land it BETWEEN TOC and body, hiding
+        # the cover behind the contents page; use `--variable` instead.
+        f"--variable=cover-tex:{cover}",
         "--toc",
         "--toc-depth=3",
+        # report class: map `#` -> \chapter so URS chapter numbering (4, 5, 6)
+        # survives. pandoc 2.x defaults to \section without this flag, which
+        # collapses our chapter headings down a level and yields 0.x numbering.
+        "--top-level-division=chapter",
         "--resource-path=" + ":".join(str(p) for p in resource_paths),
     ]
     subprocess.run(cmd, check=True)
@@ -127,9 +208,12 @@ def main() -> int:
         return 0
 
     cal_root = args.cal_root.resolve() if args.cal_root.exists() else None
-    resource_paths = [repo_root]
+    resource_paths = [repo_root, repo_root / "docs" / "urs-extracted-images"]
     if cal_root:
         resource_paths.append(cal_root)
+        cal_images = cal_root / "docs" / "urs-extracted-images"
+        if cal_images.exists():
+            resource_paths.append(cal_images)
 
     run_pandoc(
         markdown_path=args.output_md,
