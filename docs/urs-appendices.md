@@ -35,8 +35,6 @@
 
 ![](image-03.png)
 
-## 
-
 ### 7.1.4 Troubleshooting Popover {-}
 
 *Trigger:* **Study Coordinator** selects the information icon adjacent to the **Status Badge** on a **Questionnaire Card** in **Delivery Failed** status. 
@@ -60,8 +58,6 @@
 *Reference:* GUI-p00033.
 
 ![](image-05.png)
-
-### 
 
 ### 7.2.2 Show Linking Code {-}
 
@@ -140,8 +136,6 @@ After Participant was linked to the Mobile Application
 
 ![](image-11.png)
 
-### 
-
 ### 7.3.4 Linking Code Generated — Acknowledgement Dialog {-}
 
 *Trigger:* **Study Coordinator** confirms generation of a **Mobile Linking Code** from the Link Participant Confirmation Dialog (§7.3.3). 
@@ -170,8 +164,6 @@ After Participant was linked to the Mobile Application
 
 ![](image-13.png)
 
-### 
-
 ### 7.3.6 Disconnect Participant — Reason Dialog {-}
 
 *Trigger:* **Study Coordinator** selects **Disconnect Participant** from the **Participant Actions Modal** for a **Participant** with **Linked \- Awaiting Start** or **Trial Active** status. 
@@ -187,8 +179,6 @@ After Participant was linked to the Mobile Application
 *Reference:* REQ-p70010, REQ-CAL-p00020.
 
 ![](image-14.png)
-
-### 
 
 ### 7.3.7 Reconnect Participant — Reason Dialog (Free Text) {-}
 
@@ -217,8 +207,6 @@ After Participant was linked to the Mobile Application
 *Reference:* REQ-p70017, REQ-CAL-p00064.
 
 ![](image-16.png)
-
-### 
 
 ### 7.3.9 Reactivate Participant — Reason Dialog (Free Text) {-}
 
@@ -252,9 +240,7 @@ After Participant was linked to the Mobile Application
 
 ![](image-19.png)
 
-### 
-
-### **7.3.12 Session Expiry Dialog** 
+### 7.3.12 Session Expiry Dialog {-}
 
 *Trigger:* **Participant** opens a **Portal-Sent Questionnaire** that has reached **Session Expiry**.   
 *Consequence summary:* Informs the **Participant** that the session has expired and previous answers were not saved.   
@@ -319,7 +305,9 @@ After Participant was linked to the Mobile Application
 
 *Behavior:* On acknowledgement, the **Participant** is navigated to the **User Profile** screen.  
 *Pattern:* Acknowledgement Dialog (see §4.1).   
-*Reference:* GUI-p05015.![](image-25.png)
+*Reference:* GUI-p05015.
+
+![](image-25.png)
 
 ## 7.4 Notifications {-}
 
@@ -329,15 +317,11 @@ A push notification delivered to the Participant when a configured Questionnaire
 
 ![](image-26.png)
 
-### 
-
 ### 7.4.2 Session Expiry Notification {-}
 
 A push notification delivered to the Participant when the configured Session Timeout has been exceeded for an in-progress Questionnaire and the Participant's previously entered answers have been discarded. Tapping the notification opens the Mobile Application; if the Participant returns to the Questionnaire, the Session Expiry Dialog is displayed. The wording is sponsor-configurable per Questionnaire definition; the default text is *\["Your \[Questionnaire Display Name\] session has expired and your answers were not saved. Open the app to start again."\]*
 
 ![](image-27.png)
-
-### 
 
 ### 7.4.3 Disconnection Notification {-}
 
