@@ -130,6 +130,11 @@ CDISC (Clinical Data Interchange Standards Consortium)
   exported in CDISC-compliant formats for regulatory submission.
 : Indexed: false
 
+CDISC Glossary
+: Reference
+: Title: Clinical Data Interchange Standards Consortium — Glossary
+: URL: <https://www.cdisc.org/standards/glossary>
+
 CQRS (Command Query Responsibility Segregation)
 : An architectural pattern separating write operations (commands that
   create events) from read operations (queries that read current state).
@@ -373,6 +378,12 @@ FDA 21 CFR Part 11
 : See: REQ-p00010 (FDA 21 CFR Part 11 Compliance),
   prd-clinical-trials.md.
 
+FDA 21 CFR Part 11 (Regulation)
+: Reference
+: Title: Electronic Records; Electronic Signatures
+: Version: 21 CFR Part 11 (current Code of Federal Regulations)
+: URL: <https://www.fda.gov/regulatory-information/search-fda-guidance-documents/electronic-records-electronic-signatures-scope-and-application>
+
 GCP (Good Clinical Practice)
 : International ethical and scientific quality standards governing
   clinical trial conduct, including data collection, management, and
@@ -450,6 +461,18 @@ ICH-GCP / ICH E6(R2)
 : See: REQ-p00011 (ALCOA+ Data Integrity Principles).
 : Indexed: false
 
+ICH E6(R2) (Guideline)
+: Reference
+: Title: Integrated Addendum to ICH E6(R1) — Guideline for Good Clinical Practice
+: Version: ICH E6(R2), Step 4, 2016-11-09
+: URL: <https://www.ich.org/page/efficacy-guidelines>
+
+ISO/IEC 24760-1
+: Reference
+: Title: IT Security and Privacy — A framework for identity management
+: Version: ISO/IEC 24760-1:2019
+: URL: <https://www.iso.org/standard/77582.html>
+
 IMP (Investigational Medicinal Product)
 : The drug, biological product, or device being tested in a clinical
   trial. Diary entries help assess the IMP's efficacy and potential side
@@ -513,6 +536,12 @@ Multi-Sponsor Isolation
 : See: REQ-p00001 (Complete Multi-Sponsor Data Separation), REQ-p00008
   (Single Mobile App for All Sponsors),
   prd-architecture-multi-sponsor.md.
+
+NIST SP 800-63
+: Reference
+: Title: Digital Identity Guidelines
+: Version: NIST Special Publication 800-63-3 (with revisions 800-63A/B/C)
+: URL: <https://pages.nist.gov/800-63-3/>
 
 NOSE-HHT (Nasal Outcome Score for Epistaxis in HHT)
 : Validated patient-reported outcome measure for assessing nosebleed
