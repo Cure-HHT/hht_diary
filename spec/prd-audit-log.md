@@ -5,7 +5,6 @@ This section defines per-role visibility scope of audit log records and the user
 ## DIARY-GUI-audit-log-common: Audit Log View — Common Presentation
 
 **Level**: GUI | **Status**: Legacy | **Implements**: -
-**Refines**: CAL-PRD-audit-log-view-scope
 
 ### Overview
 
