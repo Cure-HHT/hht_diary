@@ -70,9 +70,14 @@ Future<Response> getPortalUsersHandler(Request request) async {
       pu.activation_code,
       pu.created_at,
       string_agg(DISTINCT pur.role::text, ',' ORDER BY pur.role::text) as roles,
+      -- CUR-1124: DISTINCT + jsonb_build_object dedupes sites that the
+      -- portal_user_roles × portal_user_site_access cartesian product
+      -- would otherwise repeat once per role. Mirrors the single-user
+      -- query below (getPortalUserHandler). `json_build_object` lacks
+      -- the equality operator required for DISTINCT, so use jsonb here.
       COALESCE(
         json_agg(
-          json_build_object(
+          DISTINCT jsonb_build_object(
             'site_id', s.site_id,
             'site_name', s.site_name,
             'site_number', s.site_number

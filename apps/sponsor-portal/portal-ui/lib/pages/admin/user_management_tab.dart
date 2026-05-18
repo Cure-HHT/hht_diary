@@ -22,6 +22,30 @@ import '../../widgets/error_message.dart';
 import '../../widgets/role_badge.dart';
 import '../../widgets/status_badge.dart';
 
+/// Deduplicates a user's `sites` array by `site_id`.
+///
+/// The list endpoint historically returned duplicates because the
+/// `portal_user_roles × portal_user_site_access` cartesian product
+/// inflated the JSON aggregate (CUR-1124). The backend now does
+/// `DISTINCT jsonb_build_object(...)` so duplicates should not appear,
+/// but this defensive client-side pass survives:
+///   - stale list responses cached in memory after a hot reload
+///   - any future query path that re-introduces a similar bug
+///   - mocked test fixtures that intentionally pass duplicates
+/// Preserves first-seen order so the visual order is stable.
+List<Map<String, dynamic>> _dedupeSitesById(List<dynamic> rawSites) {
+  final seen = <String>{};
+  final result = <Map<String, dynamic>>[];
+  for (final raw in rawSites) {
+    if (raw is! Map) continue;
+    final site = raw.cast<String, dynamic>();
+    final id = site['site_id'] as String?;
+    if (id == null || !seen.add(id)) continue;
+    result.add(site);
+  }
+  return result;
+}
+
 class UserManagementTab extends StatefulWidget {
   /// Optional API client for dependency injection (used in tests).
   @visibleForTesting
@@ -377,8 +401,10 @@ class _UserManagementTabState extends State<UserManagementTab>
             .map(UserRole.fromString)
             .any((r) => r.requiresSiteAssignment);
 
-        // Get sites
-        final sitesList = (user['sites'] as List<dynamic>?) ?? [];
+        // Get sites (dedupe defensively — CUR-1124)
+        final sitesList = _dedupeSitesById(
+          (user['sites'] as List<dynamic>?) ?? const [],
+        );
         final sitesDisplay = sitesList.isEmpty
             ? 'No sites'
             : sitesList.length == 1
@@ -1335,8 +1361,10 @@ class UserInfoDialog extends StatelessWidget {
       systemRoles.add(user['role'] as String);
     }
 
-    // Get sites
-    final sitesList = (user['sites'] as List<dynamic>?) ?? [];
+    // Get sites (dedupe defensively — CUR-1124)
+    final sitesList = _dedupeSitesById(
+      (user['sites'] as List<dynamic>?) ?? const [],
+    );
 
     return AlertDialog(
       title: Column(

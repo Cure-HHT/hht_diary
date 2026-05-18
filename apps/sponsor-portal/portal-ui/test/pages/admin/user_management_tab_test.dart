@@ -1905,4 +1905,174 @@ void main() {
       },
     );
   });
+
+  // CUR-1124: UserInfoDialog must dedupe sites by site_id before
+  // counting and rendering. Defensive against the pre-fix list endpoint
+  // (which returned N*M duplicates for a user with N roles × M sites)
+  // and any future regression.
+  group('UserInfoDialog - site dedup (CUR-1124)', () {
+    // The Jira ticket's worked example: a user with 3 roles and 3 sites,
+    // each site repeated 3 times in the array. Pre-fix this rendered as
+    // "Assigned Sites (9)" with 9 list entries.
+    final duplicatedSites = <Map<String, dynamic>>[
+      {
+        'site_id': 's1',
+        'site_name': '001 - Memorial Hospital',
+        'site_number': '001',
+      },
+      {'site_id': 's2', 'site_name': '002 - Stanford', 'site_number': '002'},
+      {
+        'site_id': 's3',
+        'site_name': '003 - Johns Hopkins',
+        'site_number': '003',
+      },
+      {
+        'site_id': 's1',
+        'site_name': '001 - Memorial Hospital',
+        'site_number': '001',
+      },
+      {'site_id': 's2', 'site_name': '002 - Stanford', 'site_number': '002'},
+      {
+        'site_id': 's3',
+        'site_name': '003 - Johns Hopkins',
+        'site_number': '003',
+      },
+      {
+        'site_id': 's1',
+        'site_name': '001 - Memorial Hospital',
+        'site_number': '001',
+      },
+      {'site_id': 's2', 'site_name': '002 - Stanford', 'site_number': '002'},
+      {
+        'site_id': 's3',
+        'site_name': '003 - Johns Hopkins',
+        'site_number': '003',
+      },
+    ];
+
+    Future<void> pumpInfoDialogWithSites(
+      WidgetTester tester, {
+      required List<Map<String, dynamic>> sites,
+    }) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'admin@example.com',
+        displayName: 'Test Admin',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = _createMockHttpClient();
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+        enableInactivityTimer: false,
+      );
+      await authService.signIn('admin@example.com', 'password');
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+      final roleMappings = [
+        const SponsorRoleMapping(
+          sponsorName: 'Admin',
+          systemRole: 'Administrator',
+        ),
+        const SponsorRoleMapping(sponsorName: 'CRA', systemRole: 'Auditor'),
+        const SponsorRoleMapping(
+          sponsorName: 'Study Coordinator',
+          systemRole: 'Investigator',
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserInfoDialog(
+              user: {
+                'id': 'multi-role-1',
+                'name': 'Multi-Role User',
+                'email': 'multi@example.com',
+                'status': 'active',
+                'roles': const ['Administrator', 'Auditor', 'Investigator'],
+                'sites': sites,
+              },
+              sites: const [],
+              roleMappings: roleMappings,
+              toSponsorName: (systemRole) {
+                final m = roleMappings.firstWhere(
+                  (r) => r.systemRole == systemRole,
+                  orElse: () => SponsorRoleMapping(
+                    sponsorName: systemRole,
+                    systemRole: systemRole,
+                  ),
+                );
+                return m.sponsorName;
+              },
+              onEdit: () {},
+              onDeactivate: () {},
+              apiClient: apiClient,
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets(
+      'counts unique sites (3, not 9) for a multi-role user with duplicated sites',
+      (tester) async {
+        await pumpInfoDialogWithSites(tester, sites: duplicatedSites);
+        expect(find.text('Assigned Sites (3)'), findsOneWidget);
+        expect(find.text('Assigned Sites (9)'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'renders each unique site once even when input contains duplicates',
+      (tester) async {
+        await pumpInfoDialogWithSites(tester, sites: duplicatedSites);
+        expect(find.text('001 - 001 - Memorial Hospital'), findsOneWidget);
+        expect(find.text('002 - 002 - Stanford'), findsOneWidget);
+        expect(find.text('003 - 003 - Johns Hopkins'), findsOneWidget);
+      },
+    );
+
+    testWidgets('preserves first-seen order when deduplicating', (
+      tester,
+    ) async {
+      // Reverse + duplicated input. Expected order: s3, s2, s1 (first-seen).
+      final shuffled = [
+        duplicatedSites[2], // s3 first
+        duplicatedSites[1], // s2
+        duplicatedSites[0], // s1
+        duplicatedSites[2], // s3 dup
+        duplicatedSites[1], // s2 dup
+        duplicatedSites[0], // s1 dup
+      ];
+      await pumpInfoDialogWithSites(tester, sites: shuffled);
+      expect(find.text('Assigned Sites (3)'), findsOneWidget);
+
+      // Pin order by reading the rendered text widgets in document order
+      // and matching against the expected first-seen sequence.
+      final renderedSites = find
+          .textContaining(RegExp(r'^00\d - 00\d -'))
+          .evaluate()
+          .map((e) => (e.widget as Text).data!)
+          .toList();
+      expect(
+        renderedSites,
+        equals([
+          '003 - 003 - Johns Hopkins',
+          '002 - 002 - Stanford',
+          '001 - 001 - Memorial Hospital',
+        ]),
+      );
+    });
+  });
 }
