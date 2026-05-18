@@ -1,11 +1,11 @@
 // VERIFIES REQUIREMENTS:
-//   REQ-d00167: FCM Dispatch via cure-hht-admin Project
+//   REQ-d00193: FCM Dispatch via cure-hht-admin Project
 //     B — POST to /v1/projects/<projectId>/messages:send
 //     C — 200 maps to success with messageId
 //     D — 404 / UNREGISTERED maps to unregisteredToken
 //     F — APNS payload split by user-visibility
 //     G — non-200, non-404 maps to failure
-//   REQ-d00168-D: PayloadGuard runs before network egress
+//   REQ-d00194-D: PayloadGuard runs before network egress
 
 import 'dart:convert';
 
@@ -247,7 +247,7 @@ void main() {
       );
     });
 
-    group('APNS payload split (REQ-d00167-F / REQ-d00170)', () {
+    group('APNS payload split (REQ-d00193-F / REQ-d00196)', () {
       test(
         'userVisible=true sends priority=10 with no content-available',
         () async {

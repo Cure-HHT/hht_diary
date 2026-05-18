@@ -49,7 +49,7 @@ Router createRouter() {
     submitQuestionnaireHandler,
   );
 
-  // CUR-1311 (Phase 1B.4): notifications polling endpoints (REQ-d00169).
+  // CUR-1311 (Phase 1B.4): notifications polling endpoints (REQ-d00195).
   // Mobile fetches envelopes here on cold start / resume / FCM-arrival
   // wake-up. The fetch handler idempotently stamps delivered_at on
   // first read; the since handler returns a cursor-paged window of

@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00167: FCM Dispatch via cure-hht-admin Project
+//   REQ-d00193: FCM Dispatch via cure-hht-admin Project
 //
 // Universal transport contract. Each communication channel (FCM today;
 // email and Slack in Phase 3) implements [Channel] with a

@@ -1,11 +1,9 @@
 ## REQ-p00042: HHT Epistaxis Data Capture Standard
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p01065-D
+**Refines**: REQ-p01065-D, REQ-p01085
 
-**Refines**: REQ-p01085
-
-## Assertions
+### Assertions
 
 A. The system SHALL capture epistaxis events using the HHT-specific terminology standard defined in this requirement.
 
@@ -59,7 +57,7 @@ Y. The system SHALL store date_recorded as a system-generated timestamp in UTC f
 
 Z. The system SHALL display the actual user-entered timezone when loading stored data, not just the timezone offset.
 
-## Rationale
+### Rationale
 
 This requirement establishes the HHT-specific data capture standard for epistaxis (nosebleed) events in clinical trials. The six-level intensity scale uses patient-friendly language that maps to clinical severity while remaining intuitive for self-reporting, reducing inter-patient variability compared to numeric scales. Timezone-aware timestamps enable accurate duration calculation for patients who travel or experience daylight saving time changes during events. The three-state daily status model (had nosebleed, no nosebleed, don't remember) supports ALCOA+ principles by allowing honest uncertainty rather than forcing fabricated data. This standard was developed specifically for HHT clinical studies to ensure consistent, accurate data collection across all participating sites.
 

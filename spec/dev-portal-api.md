@@ -247,7 +247,7 @@ F. The server SHALL enforce device UUID verification independently of token vali
 **Level**: dev | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009
 
-## Assertions
+### Assertions
 
 A. POST /api/v1/portal/activate SHALL accept {code, password} with no bearer authentication.
 
@@ -267,7 +267,7 @@ F. Identity Platform mutations SHALL precede DB mutations; failure of either SHA
 **Level**: dev | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009
 
-## Assertions
+### Assertions
 
 A. portalMeHandler and requirePortalAuth SHALL SELECT portal_users keyed only on firebase_uid. The handlers MUST NOT reference email in any auth-path SQL.
 
@@ -281,7 +281,7 @@ C. VerificationResult.isValid SHALL be uid != null && error == null. No emailVer
 **Level**: dev | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009
 
-## Assertions
+### Assertions
 
 A. createPortalUserHandler SHALL perform a case-insensitive SELECT id FROM portal_users WHERE LOWER(email) = LOWER(@email) before INSERT.
 
@@ -293,7 +293,7 @@ B. On hit, the handler SHALL return 409 with code: email_already_known. No row S
 **Level**: dev | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009
 
-## Assertions
+### Assertions
 
 A. DELETE /api/v1/portal/users/:id SHALL be reachable to Administrator + Developer Admin roles.
 
@@ -307,7 +307,7 @@ C. Deletion SHALL cascade through portal_user_roles and portal_user_site_access.
 **Level**: dev | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00009
 
-## Assertions
+### Assertions
 
 A. seed_identity_users.js SHALL emit [{email, uid}, ...] to stdout after seeding completes.
 

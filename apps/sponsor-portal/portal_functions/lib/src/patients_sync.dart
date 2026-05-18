@@ -8,6 +8,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:otel_common/otel_common.dart';
 import 'package:rave_integration/rave_integration.dart';
 
 import 'database.dart';
@@ -265,12 +266,26 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
     }
 
     return result;
-  } on RaveAuthenticationException {
+  } on RaveAuthenticationException catch (e) {
+    final errorMessage =
+        'RAVE authentication failed - invalid credentials or locked account'
+        '${e.detailSuffix}';
+    if (!skipLogging) {
+      logWithTrace(
+        'ERROR',
+        'RAVE authentication failed',
+        labels: {
+          'rave_auth_failed': 'true',
+          'rave_reason_code': e.reasonCode ?? 'unknown',
+          'source': 'patients_sync',
+        },
+      );
+    }
     final result = PatientsSyncResult(
       patientsCreated: 0,
       patientsUpdated: 0,
       syncedAt: DateTime.now().toUtc(),
-      error: 'RAVE authentication failed - check credentials',
+      error: errorMessage,
     );
     if (!skipLogging) {
       await _logPatientSyncResult(

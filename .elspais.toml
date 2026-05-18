@@ -70,7 +70,7 @@ skip = ["node_modules", ".git", "__pycache__", "*.pyc", ".venv", ".env"]
 [scanning.spec] # Spec file scanning
 directories = ["spec"]
 file_patterns = ["*.md"]
-skip_files = ["README.md", "requirements-format.md", "INDEX.md"]
+skip_files = ["README.md", "requirements-format.md", "INDEX.md", "EXAMPLE-requirement.md"]
 # NFR/ contains sponsor-shared governance / authoring guidance (style guide,
 # review checklist, glossary, SDLC SOP) imported from the platform repo. Its
 # requirements use a different namespace (REQ-CAL-*) and are intentionally not
@@ -97,6 +97,15 @@ reference_keyword = "Verifies"
 reference_patterns = []
 
 [scanning.result] # Test result file scanning
+# Patterns describe where the report-phase `elspais checks` looks for
+# JUnit / pytest results. The PR-validation readiness gate
+# (.github/scripts/validate-pr.sh) calls `elspais checks --spec --code
+# --terms`, which skips the TESTS category so this check doesn't fail
+# before any test phase has run. A separate report-phase invocation
+# (full `elspais checks`, run after the CI test workflows write JUnit
+# XML into build-reports/) is the gate that enforces tests.results.
+# Wiring JUnit emission into each test workflow + the report-phase
+# step is tracked as a follow-up under CUR-1329.
 directories = ["build-reports"]
 file_patterns = ["**/TEST-*.xml", "pytest-results.json"]
 skip_files = []

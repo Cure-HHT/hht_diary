@@ -3,7 +3,7 @@
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The module SHALL provide a type-safe client interface for creating events in an event-sourced PostgreSQL database.
 
@@ -35,7 +35,7 @@ N. The module SHALL provide runtime validation of event data against schema.
 
 O. The interface SHALL support custom event types via extension.
 
-## Rationale
+### Rationale
 
 This requirement establishes a type-safe client interface for event sourcing operations in a PostgreSQL database. Event sourcing is critical for FDA 21 CFR Part 11 compliance as it provides immutable audit trails and complete historical reconstruction. The interface abstracts database complexity while ensuring type safety reduces runtime errors during clinical trial data collection. Schema versioning enables system evolution without compromising historical data integrity.
 
@@ -46,7 +46,7 @@ This requirement establishes a type-safe client interface for event sourcing ope
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The module SHALL queue events locally when network is unavailable.
 
@@ -76,7 +76,7 @@ M. The module SHALL log failed synchronization events with detailed error messag
 
 N. The module SHALL NOT lose data even if the application is force-closed.
 
-## Rationale
+### Rationale
 
 Client applications in clinical trials frequently operate in environments with intermittent connectivity, such as patient homes or remote clinical sites. Offline queuing ensures that no clinical data is lost during network outages and that FDA 21 CFR Part 11 compliant audit trails remain complete and tamper-evident. This requirement addresses the need for reliable data capture in adverse network conditions while maintaining data integrity and providing transparency to users about synchronization status.
 
@@ -87,7 +87,7 @@ Client applications in clinical trials frequently operate in environments with i
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The system SHALL implement optimistic concurrency control to handle conflicting events from multiple clients editing the same data simultaneously.
 
@@ -109,7 +109,7 @@ I. The audit trail SHALL record all conflict resolution actions.
 
 J. The event log SHALL retain all conflicting events without deletion or modification.
 
-## Rationale
+### Rationale
 
 In distributed systems with offline support, multiple users may edit the same data concurrently. Optimistic concurrency control ensures data integrity while maintaining the complete audit trail required for FDA 21 CFR Part 11 compliance. This approach allows local editing with conflict detection at synchronization time, rather than preventing concurrent access through locking mechanisms.
 
@@ -120,7 +120,7 @@ In distributed systems with offline support, multiple users may edit the same da
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The system SHALL enforce event immutability through database constraints.
 
@@ -138,7 +138,7 @@ G. The system SHALL derive current state by replaying events through materialize
 
 H. Materialized views SHALL always remain consistent with the event log.
 
-## Rationale
+### Rationale
 
 FDA 21 CFR Part 11 requires secure, computer-generated, time-stamped audit trails to ensure the integrity and reliability of electronic records in clinical trials. Immutable event storage provides tamper-proof audit trails by design, making it impossible to alter historical records without detection. This append-only architecture ensures regulatory compliance while enabling full reconstruction of system state at any point in time through event replay. The cryptographic integrity mechanisms provide mathematically verifiable proof that audit records have not been tampered with, which is critical for regulatory inspections and data integrity audits.
 
@@ -149,7 +149,7 @@ FDA 21 CFR Part 11 requires secure, computer-generated, time-stamped audit trail
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The system SHALL maintain a current database schema version identifier accessible to server applications.
 
@@ -173,7 +173,7 @@ J. Client applications SHALL reject data operations when the server schema versi
 
 K. The system SHALL display clear upgrade instructions to users when version incompatibility is detected.
 
-## Rationale
+### Rationale
 
 Long-lived clinical trial applications require schema evolution over multiple years of deployment. Version management ensures clients and servers remain compatible during phased rollouts, prevents data corruption from version mismatches, and supports safe rollbacks when migrations fail. This is critical for FDA 21 CFR Part 11 compliance where system validation must account for schema changes across the validated system lifecycle.
 
@@ -184,7 +184,7 @@ Long-lived clinical trial applications require schema evolution over multiple ye
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The system SHALL support real-time subscriptions to event streams for notifying clients when new events occur.
 
@@ -210,7 +210,7 @@ K. The system SHALL NOT lose events during brief network interruptions when auto
 
 L. The system SHALL prevent memory leaks by ensuring proper disposal of subscription resources.
 
-## Rationale
+### Rationale
 
 Real-time event subscriptions enhance user experience by providing immediate feedback on data changes and enable collaborative features where multiple users interact with shared clinical trial data. In FDA-regulated clinical trials, timely visibility of data changes is critical for research coordinators and clinical staff to respond to patient-reported events. The requirement addresses network reliability concerns in healthcare settings by ensuring continuity of event delivery despite transient connectivity issues.
 
@@ -221,7 +221,7 @@ Real-time event subscriptions enhance user experience by providing immediate fee
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The module SHALL provide type-safe query interfaces for all materialized views that represent current state derived from events.
 
@@ -251,7 +251,7 @@ M. Query interfaces SHALL support complex WHERE clauses with multiple conditions
 
 N. Query interfaces SHALL support ordering of results by specified fields.
 
-## Rationale
+### Rationale
 
 Querying event-sourced systems by replaying entire event streams for every read operation creates unacceptable performance bottlenecks. Materialized views provide pre-computed, optimized read models that represent the current state derived from the immutable event log. This requirement ensures type-safe access to these views while maintaining performance through caching and efficient querying. The strongly-typed interfaces prevent runtime errors and enable compile-time validation of query logic, which is critical for FDA-validated systems where production failures have regulatory consequences.
 
@@ -262,7 +262,7 @@ Querying event-sourced systems by replaying entire event streams for every read 
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The module SHALL provide structured exception types for network failures.
 
@@ -282,7 +282,7 @@ H. The module SHALL provide a debug mode that logs all events in the event strea
 
 I. The module SHALL provide a debug mode that logs all state transitions.
 
-## Rationale
+### Rationale
 
 Comprehensive error handling and diagnostics are essential for maintaining system reliability and reducing mean time to resolution (MTTR) in production environments. Proper error classification, contextual logging, and integration with monitoring services enable developers to quickly identify root causes during development and operations teams to respond effectively to production incidents. This requirement supports FDA 21 CFR Part 11 compliance by ensuring that system failures are documented with complete audit context.
 
@@ -293,7 +293,7 @@ Comprehensive error handling and diagnostics are essential for maintaining syste
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004-E
 
-## Assertions
+### Assertions
 
 A. The system SHALL provide an API to replay events up to a specific timestamp.
 
@@ -313,7 +313,7 @@ H. The system SHALL provide functionality to export event streams to CSV format.
 
 I. The system SHALL implement efficient replay using snapshots combined with incremental events.
 
-## Rationale
+### Rationale
 
 Time travel debugging capabilities enable developers to reconstruct application state at any point in time for investigating bugs and understanding how data evolved. This is essential for regulatory audits requiring historical data reconstruction, allowing auditors to trace how clinical trial data reached its current state. The capability supports both development debugging and compliance investigations by providing mechanisms to replay events, compare states across time, and export event streams for detailed analysis.
 
@@ -324,7 +324,7 @@ Time travel debugging capabilities enable developers to reconstruct application 
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00043
 
-## Assertions
+### Assertions
 
 A. The system SHALL encrypt all events stored in the offline queue before writing to on-device storage.
 
@@ -342,7 +342,7 @@ G. The system SHALL complete encryption operations with less than 50 millisecond
 
 H. The system SHALL support automatic rotation of encryption keys without data loss.
 
-## Rationale
+### Rationale
 
 Healthcare and clinical trial data often includes Protected Health Information (PHI) and Personally Identifiable Information (PII). Encrypting the offline queue provides defense-in-depth protection for sensitive data when devices are lost, stolen, or otherwise compromised. This requirement supports FDA 21 CFR Part 11 compliance by ensuring data integrity and confidentiality at rest. The encryption strategy balances security requirements with performance considerations to maintain usable application responsiveness.
 
@@ -353,7 +353,7 @@ Healthcare and clinical trial data often includes Protected Health Information (
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00043-N
 
-## Assertions
+### Assertions
 
 A. The system SHALL support connection to multiple isolated databases from a single client instance.
 
@@ -375,7 +375,7 @@ J. The configuration system SHALL support definitions for multiple tenants.
 
 K. The offline synchronization system SHALL maintain queue isolation per tenant with no cross-tenant queue access.
 
-## Rationale
+### Rationale
 
 This requirement enables the clinical trial platform to serve multiple sponsors or organizations from a single codebase deployment while maintaining complete data isolation between tenants. In the context of FDA-regulated clinical trials, strict tenant isolation is critical to prevent cross-contamination of trial data between different sponsors. Multi-tenancy reduces operational overhead by allowing a single application instance to manage multiple isolated sponsor databases, each with independent schema versions and offline synchronization queues. This architecture supports the platform's multi-sponsor deployment model while ensuring regulatory compliance and data integrity.
 
@@ -386,7 +386,7 @@ This requirement enables the clinical trial platform to serve multiple sponsors 
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The system SHALL maintain a registry of event types that provides a single source of truth for available event schemas, their versions, and relationships.
 
@@ -420,7 +420,7 @@ O. The system SHALL reject events with unregistered versioned_type values during
 
 P. The system SHALL support sponsor-specific type enablement configurable per tenant.
 
-## Rationale
+### Rationale
 
 Without an explicit type registry, the relationship between versioned schemas (e.g., survey-v1.0 and survey-v1.2) is implicit and derived by string parsing. This creates risks: typos silently create new types, no standard way to discover available types, and no formal tracking of version lifecycles. A registry provides a single source of truth that enables validation, discovery, and governance of the event type portfolio, supporting proper schema evolution and multi-tenant customization.
 
@@ -486,7 +486,7 @@ T. Once a questionnaire version has been used to capture patient data, that vers
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p01065-D
 
-## Assertions
+### Assertions
 
 A. The platform SHALL support localized questionnaires with independent translation versioning.
 
@@ -512,7 +512,7 @@ K. The system SHALL enable reconstruction of the audit trail showing the exact l
 
 L. The system SHALL support management of translation versions independently of source content versions.
 
-## Rationale
+### Rationale
 
 International clinical trials require validated translations of instruments, where each translation has its own validation status and version lifecycle independent of the source content. For ALCOA+ compliance, the audit trail must show exactly what question text the patient saw in their language. For analysis purposes, responses must be normalized to a common language. Storing both the original patient response and canonical normalized response preserves the complete audit trail while enabling consistent cross-site analysis.
 
@@ -523,7 +523,7 @@ International clinical trials require validated translations of instruments, whe
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p01050-P, REQ-p01051-A
 
-## Assertions
+### Assertions
 
 A. The system SHALL allow each sponsor to configure which questionnaire types are enabled for their clinical trial.
 
@@ -553,7 +553,7 @@ M. Configuration changes SHALL NOT invalidate existing historical questionnaire 
 
 N. The system SHALL support addition of new questionnaire types whose content conforms to an existing renderer class through catalog entry creation and sponsor configuration update, without requiring renderer code changes.
 
-## Rationale
+### Rationale
 
 Multi-sponsor deployments require sponsor-specific questionnaire portfolios to accommodate varying study designs. One sponsor may use only epistaxis tracking while another includes quality-of-life assessments. Version constraints enable patients in ongoing studies to continue using validated instrument versions while new enrollments can use updated versions, ensuring data consistency within study cohorts. Language enablement ensures only properly validated translations are offered to participants. This configuration-driven approach allows questionnaire changes to be managed deliberately, preventing unintended mid-study modifications that could impact response patterns and data quality. The platform enforces these constraints at data capture time to maintain study protocol compliance and data integrity across the multi-sponsor environment.
 
@@ -562,9 +562,9 @@ Multi-sponsor deployments require sponsor-specific questionnaire portfolios to a
 ## REQ-p01011: Event Transformation and Migration
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p01050-A, REQ-p01050-C
+**Refines**: REQ-p01050-A+C
 
-## Assertions
+### Assertions
 
 A. The system SHALL support event transformation/upcasting to automatically convert old event formats to new formats.
 
@@ -584,7 +584,7 @@ H. The system SHALL automatically transform old events on read operations.
 
 I. Migration test framework SHALL validate that transformations do not lose data.
 
-## Rationale
+### Rationale
 
 As clinical trial applications evolve over time, event structures and business logic change to accommodate new features, regulatory requirements, and data models. Event transformation (also called upcasting) enables the system to interpret historical events using current business logic without requiring backfills or data migrations. This maintains the integrity of the immutable event store while ensuring that all event consumers can work with a consistent, current event schema. This capability is essential for FDA 21 CFR Part 11 compliance, as it preserves the complete audit trail while adapting to evolving regulatory and clinical requirements.
 
@@ -595,7 +595,7 @@ As clinical trial applications evolve over time, event structures and business l
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The system SHALL provide an API to create batch event operations.
 
@@ -613,7 +613,7 @@ G. The system SHALL rollback optimistic updates if the batch operation fails.
 
 H. The system SHALL provide error handling for partial batch failures.
 
-## Rationale
+### Rationale
 
 Some business operations naturally generate multiple events that should be atomic. For example, a transfer operation consists of both a withdrawal and a deposit that must either both succeed or both fail to maintain data consistency. Batch operations reduce network overhead by transmitting multiple events in a single request while preserving causal relationships between events.
 
@@ -624,7 +624,7 @@ Some business operations naturally generate multiple events that should be atomi
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The module SHALL provide observability hooks for monitoring module health, performance, and errors in production.
 
@@ -644,7 +644,7 @@ H. The system SHALL export metrics via standard interfaces compliant with OpenTe
 
 I. The distributed tracing system SHALL propagate context through event flows.
 
-## Rationale
+### Rationale
 
 Production systems require visibility into module behavior for debugging, capacity planning, and incident response. This requirement ensures comprehensive observability for event-driven modules in FDA-regulated clinical trial environments, enabling operators to detect issues, diagnose root causes, and maintain system reliability without compromising audit trail integrity.
 
@@ -655,7 +655,7 @@ Production systems require visibility into module behavior for debugging, capaci
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The module SHALL include testing utilities to support unit, integration, and end-to-end testing of applications using the module.
 
@@ -677,7 +677,7 @@ I. The module SHALL include documentation of testing best practices.
 
 J. The module SHALL include example test suites demonstrating usage.
 
-## Rationale
+### Rationale
 
 Testable code is maintainable code in FDA-regulated systems where validation is critical. Providing comprehensive test utilities encourages proper testing practices, reduces integration friction, and enables validation of event sourcing behaviors. This supports FDA 21 CFR Part 11 validation requirements by making system behavior verifiable through automated testing.
 
@@ -688,7 +688,7 @@ Testable code is maintainable code in FDA-regulated systems where validation is 
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The system SHALL complete event creation and local persistence operations in less than 10 milliseconds at the 95th percentile.
 
@@ -710,7 +710,7 @@ I. The system SHALL provide documentation describing performance characteristics
 
 J. The system SHALL provide profiling guides for optimizing specific performance scenarios.
 
-## Rationale
+### Rationale
 
 Client applications must be responsive and efficient to provide good user experience and avoid user frustration. Performance benchmarks establish quantifiable targets for critical operations including event persistence, synchronization, querying, and resource consumption. These targets ensure the system remains usable across varying network conditions and device capabilities while maintaining acceptable battery and memory usage.
 
@@ -721,7 +721,7 @@ Client applications must be responsive and efficient to provide good user experi
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The module SHALL maintain backward compatibility for public APIs across minor versions.
 
@@ -741,7 +741,7 @@ H. The system SHALL provide comprehensive migration guides for all major version
 
 I. The system SHALL include automated compatibility tests that verify compatibility against previous versions.
 
-## Rationale
+### Rationale
 
 Forcing breaking changes on consumers creates upgrade friction and technical debt. Backward compatibility enables continuous improvement without disruption. This requirement ensures that the clinical trial platform can evolve while minimizing impact on deployed applications and sponsor-specific implementations. By following semantic versioning and providing clear deprecation paths, the system allows sponsors to upgrade dependencies on their own timeline while maintaining stability.
 
@@ -752,7 +752,7 @@ Forcing breaking changes on consumers creates upgrade friction and technical deb
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p01085
 
-## Assertions
+### Assertions
 
 A. The system SHALL undergo security review to identify and remediate vulnerabilities.
 
@@ -782,7 +782,7 @@ M. The system SHALL provide documentation of the security architecture.
 
 N. The system SHALL validate compliance against FDA 21 CFR Part 11 requirements.
 
-## Rationale
+### Rationale
 
 Healthcare applications handle sensitive Protected Health Information (PHI) and must meet stringent security standards to protect patient privacy and maintain regulatory compliance. FDA 21 CFR Part 11 requires electronic record systems to implement controls to ensure authenticity, integrity, and confidentiality. This requirement establishes a defense-in-depth security posture through multiple layers: proactive vulnerability prevention, secure data handling, automated continuous scanning, third-party validation, and comprehensive documentation. Together, these measures reduce risk of data breaches, ensure compliance with healthcare regulations (HIPAA, FDA), and maintain trust with patients and sponsors.
 
@@ -793,7 +793,7 @@ Healthcare applications handle sensitive Protected Health Information (PHI) and 
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The system SHALL implement event creation and local storage in Phase 1.
 
@@ -831,7 +831,7 @@ Q. Phase 2 deliverables SHALL be ready for production use.
 
 R. Phase 3 deliverables SHALL add enterprise features.
 
-## Rationale
+### Rationale
 
 This requirement establishes a phased development approach for the event sourcing module to reduce implementation risk and enable early validation. The incremental delivery strategy allows the team to validate core assumptions with a minimal viable product (Phase 1), harden the implementation for production environments (Phase 2), and optionally add advanced enterprise features (Phase 3). This approach enables course correction based on real-world usage patterns and ensures each phase delivers measurable value before proceeding to the next.
 

@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00167: FCM Dispatch via cure-hht-admin Project
-//   REQ-d00168: PHI-Safe FCM Payload (data field constraints)
+//   REQ-d00193: FCM Dispatch via cure-hht-admin Project
+//   REQ-d00194: PHI-Safe FCM Payload (data field constraints)
 //
 // Channel-specific message for the FCM transport. Carries everything
 // FcmChannel needs to build the HTTP v1 API payload — no domain-level
@@ -15,7 +15,7 @@ import 'package:comms/src/channel.dart';
 /// driven by the caller, not inferred from [notificationTitle]. iOS
 /// treats the two as mutually exclusive (priority 10 + alert vs.
 /// priority 5 + content-available); FcmChannel maps `userVisible` to
-/// the matching APNS headers/payload (see REQ-d00170 and the S3.3
+/// the matching APNS headers/payload (see REQ-d00196 and the S3.3
 /// commit for context).
 class FcmMessage extends ChannelMessage {
   const FcmMessage({

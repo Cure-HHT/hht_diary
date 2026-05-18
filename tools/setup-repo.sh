@@ -102,7 +102,7 @@ setup_python_tools() {
     fi
 
     # elspais - requirement validation and traceability
-    install_pip_package "elspais" "${ELSPAIS_VERSION:-0.57.0}"
+    install_pip_package "elspais" "${ELSPAIS_VERSION:-0.115.21}"
 
     # anspar-wf - hook generation, plugins, MCP servers
     install_pip_package "anspar-wf" "${ANSPAR_WF_VERSION:-0.1.0}"

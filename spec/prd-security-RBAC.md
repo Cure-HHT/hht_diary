@@ -3,7 +3,7 @@
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00001
 
-## Assertions
+### Assertions
 
 A. The system SHALL enforce role-based access control (RBAC) ensuring users can only access data and perform actions appropriate to their assigned role.
 
@@ -25,7 +25,7 @@ I. The system SHALL include role context in the audit log for all data access ev
 
 J. The system SHALL NOT allow role permissions to be bypassed.
 
-## Rationale
+### Rationale
 
 Clinical trial data access must be tightly controlled to protect patient privacy, ensure data integrity, and comply with HIPAA and FDA regulations. Role-Based Access Control (RBAC) provides systematic, auditable access control by assigning specific permissions to defined roles (Patient, Investigator, Sponsor, Auditor, Analyst, Administrator) and enforcing the principle of least privilege. This ensures that users can only access data and perform actions appropriate to their assigned role, with all role-related activities captured in the audit trail for regulatory compliance and security analysis.
 
@@ -34,9 +34,9 @@ Clinical trial data access must be tightly controlled to protect patient privacy
 ## REQ-p00014: Least Privilege Access
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: REQ-p00005-A, REQ-p00005-F, REQ-p00005-G
+**Refines**: REQ-p00005-A+F+G
 
-## Assertions
+### Assertions
 
 A. The system SHALL grant users the minimum permissions necessary to perform their assigned job functions.
 
@@ -60,7 +60,7 @@ K. The system SHALL capture all permission grant events in the audit log.
 
 L. The system SHALL capture all permission revoke events in the audit log.
 
-## Rationale
+### Rationale
 
 Least privilege access is a fundamental security principle that minimizes the risk of accidental or intentional data misuse in clinical trial systems. This requirement supports the role-based access control framework and FDA 21 CFR Part 11 compliance by ensuring users can only access data necessary for their specific clinical trial role. By limiting permissions to the minimum required for each job function, the system reduces the potential impact of compromised accounts, prevents unauthorized access to sensitive patient data, and maintains clear accountability for all data access activities. This approach is particularly critical in multi-site clinical trials where staff should only access data from their assigned clinical sites.
 
