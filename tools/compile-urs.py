@@ -30,7 +30,7 @@ from urs_compile.render import render_node  # noqa: E402
 
 
 _HEADING_RE = re.compile(r"^(#{1,5})(\s+)", re.MULTILINE)
-_LEADING_H1_RE = re.compile(r"\A\s*#\s+[^\n]*\n+")
+_LEADING_H1_RE = re.compile(r"\A\s*#\s+[^\n]*(\n+|\Z)")
 
 
 def demote_headings(md: str, levels: int = 1) -> str:
@@ -117,6 +117,17 @@ def assemble_markdown(graph: Graph, manifest: Manifest) -> str:
     return "".join(parts)
 
 
+def _rewrite_image_paths(text: str) -> str:
+    """Rewrite spec-relative image paths so pandoc resolves them from repo root.
+
+    Spec files at `spec/prd-*.md` reference images via `../docs/urs-extracted-images/`,
+    which is correct relative to the spec file but wrong when pandoc reads the
+    assembled markdown from `build/`. Strip the `../` prefix so the path is
+    relative to the repo root (which is on `--resource-path`).
+    """
+    return text.replace("../docs/urs-extracted-images/", "docs/urs-extracted-images/")
+
+
 def assemble_full_document(
     graph: Graph,
     manifest: Manifest,
@@ -141,7 +152,7 @@ def assemble_full_document(
                 if not _LEADING_H1_RE.match(text):
                     chunks.append(f"\n\n# {key.title()}\n\n")
                 chunks.append(text)
-    return "\n\n".join(chunks)
+    return _rewrite_image_paths("\n\n".join(chunks))
 
 
 def run_pandoc(

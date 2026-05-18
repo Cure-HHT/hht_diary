@@ -18,7 +18,7 @@
 
 *Actions:* **I'm Ready** (proceed to first question), **Not Now** (return to **Main Screen**). *Reference:* REQ-p02065, GUI-p00001.
 
-### **![](image-02.png)**
+![](image-02.png)
 
 ### 7.1.3 Resolve Conflict — Resolution Screen {-}
 
@@ -216,7 +216,7 @@ After Participant was linked to the Mobile Application
 
 *Reference:* REQ-p70017, REQ-CAL-p00064.
 
-### **![](image-16.png)**
+![](image-16.png)
 
 ### 
 
@@ -232,7 +232,7 @@ After Participant was linked to the Mobile Application
 
 *Reference:* REQ-p70016.
 
-### **![](image-17.png)**
+![](image-17.png)
 
 ### 7.3.10 Delete Record — Reason Dialog — Predefined List {-}
 
@@ -250,7 +250,7 @@ After Participant was linked to the Mobile Application
 *Pattern:* Acknowledgement Dialog (see §4.1).   
 *Reference:* GUI-p00001.
 
-### **![](image-19.png)**
+![](image-19.png)
 
 ### 
 
@@ -262,7 +262,7 @@ After Participant was linked to the Mobile Application
 *Pattern:* Acknowledgement Dialog (see §4.1).   
 *Reference:* REQ-p01073, GUI-p00004.
 
-### **![](image-20.png)**
+![](image-20.png)
 
 ### 7.3.13 Questionnaire Finalization Dialog {-}
 
@@ -274,7 +274,7 @@ After Participant was linked to the Mobile Application
 *Pattern:* Confirmation Dialog (see §4.1).  
 *Reference:* REQ-CAL-p00023 I–M, GUI-CAL-p00007 A–F.
 
-### **![](image-21.png)**
+![](image-21.png)
 
 ### 7.3.14 Terminal Cycle Warning Dialog {-}
 
