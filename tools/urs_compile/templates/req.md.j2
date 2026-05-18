@@ -1,0 +1,30 @@
+## {{ node.label }}  {{ '{#' }}{{ node.id }}}
+
+**REQ ID:** `{{ node.id }}`
+
+{% set refines_edges = node.edges | selectattr('kind', 'eq', 'REFINES') | list -%}
+{%- set satisfies_edges = node.edges | selectattr('kind', 'eq', 'SATISFIES') | list -%}
+{%- if refines_edges -%}
+**Refines:** {% for e in refines_edges %}`{{ e.target }}`{{ ", " if not loop.last }}{% endfor %}
+
+{% endif -%}
+{%- if satisfies_edges -%}
+**Satisfies:** {% for e in satisfies_edges %}`{{ e.target }}`{{ ", " if not loop.last }}{% endfor %}
+
+{% endif -%}
+
+{% if node.content.body -%}
+### Rationale
+
+{{ node.content.body }}
+
+{% endif -%}
+
+{% if node.content.assertions -%}
+### Assertions
+
+{% for a in node.content.assertions -%}
+**{{ a.label }}.** {{ a.text }}
+
+{% endfor -%}
+{% endif -%}
