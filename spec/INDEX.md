@@ -104,6 +104,7 @@
 | DIARY-GUI-epistaxis-delete                   | Nosebleed Event Delete                    | prd-epistaxis.md                          | cd171380 |
 | DIARY-GUI-epistaxis-record                   | Record Nosebleed Event                    | prd-epistaxis.md                          | fa583a47 |
 | DIARY-GUI-join-study-screen                  | Join the Study Screen                     | prd-device-linking.md                     | 4cf97153 |
+| DIARY-GUI-link-participant-flow              | Link Participant Flow                     | prd-participant.md                        | 1359bc4a |
 | DIARY-GUI-linking-confirmation               | Successful Linking Confirmation           | prd-device-linking.md                     | 495858e9 |
 | DIARY-GUI-main-screen-layout                 | Main Screen Layout                        | prd-mobile-navigation.md                  | 8fccd69d |
 | DIARY-GUI-mobile-navigation                  | Mobile Application Navigation and Screens | prd-mobile-navigation.md                  | 6830db90 |
@@ -114,6 +115,7 @@
 | DIARY-GUI-questionnaire-portal-sent-workflow | Portal-Sent Questionnaire Workflow        | prd-questionnaire-participant-workflow.md | 34a7c378 |
 | DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry              | prd-questionnaire-participant-workflow.md | c596cbb7 |
 | DIARY-GUI-role-switching                     | Role Switching — Interface Behavior       | prd-rbac.md                               | 8d6caff0 |
+| DIARY-GUI-show-linking-code                  | Show Linking Code                         | prd-participant.md                        | 94cdc709 |
 | DIARY-GUI-user-account-deactivate            | Deactivate User Account                   | prd-user-account.md                       | 864d7776 |
 | DIARY-GUI-user-account-reactivate            | Reactivate User Account                   | prd-user-account.md                       | f9ae8a4f |
 | DIARY-GUI-user-information-modal             | User Information Modal                    | prd-user-account.md                       | 3a130783 |

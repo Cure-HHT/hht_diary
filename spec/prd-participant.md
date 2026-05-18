@@ -257,3 +257,57 @@ O. The interface SHALL display the primary action in the Action column and the s
 The **Participant Dashboard** is the Study Coordinator's daily working surface, and its design choices favor speed and accuracy over visual variety. Tab-by-status organisation keeps the candidate set for any given action small and self-consistent — a Coordinator looking to disconnect a **Participant** finds them under the Active tab, never mixed with **Not Connected** rows. Cross-tab partial-match search supports the recurring "find this specific **Participant** ID" workflow without forcing the Coordinator to first guess which tab they live under. Tab counts that update with the search reflect the same scoping rule, so the Coordinator can see at a glance whether the search matched within each status grouping. Row selection opens the modal rather than navigating away because the dashboard context (other **Participants**, current tab, search state) must remain visible behind the modal for the common workflow of consecutive lookups.
 
 *End* *Participant Dashboard* | **Hash**: e3a5efed
+
+## DIARY-GUI-show-linking-code: Show Linking Code
+
+**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-GUI-participant-dashboard
+
+### Overview
+
+Show Linking Code is not a new Action — **Participant** linking-code visibility is already governed by the view-participant permission. This requirement specifies how the **Participant Dashboard** surfaces that visibility as a pseudo-action and what the interface displays when a Study Coordinator selects it.
+
+### Assertions
+
+**Linking Code Display**
+
+A. When a Study Coordinator selects Show Linking Code for a **Participant** with **Pending** status, the interface SHALL display the **Mobile Linking Code** with a Copy action and a Save as PDF action.
+
+B. The Save as PDF action SHALL generate a PDF containing the **Mobile Linking Code** and participant instructions.
+
+C. When a Study Coordinator selects Show Linking Code for a **Participant** with any status other than **Pending**, the interface SHALL display the **Participant Linking Code**.
+
+### Rationale
+
+Show Linking Code is a pseudo-action: it does not change participant state, it surfaces the existing view-participant permission in a place the Coordinator already works. The split between **Mobile Linking Code** (Pending) and **Participant Linking Code** (every other status) reflects the linking-code lifecycle — Pending participants need the active code to complete linking; everyone else gets the historical reference for troubleshooting per `DIARY-PRD-linking-code-lifecycle` assertion H. The Save-as-PDF affordance supports the common workflow of giving the participant a physical copy of their linking code at a site visit.
+
+*End* *Show Linking Code* | **Hash**: 94cdc709
+
+## DIARY-GUI-link-participant-flow: Link Participant Flow
+
+**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-GUI-participant-dashboard
+
+### Overview
+
+This requirement declares the Link Participant Action (`ACT-PAT-001`) and specifies the dialog flow a Study Coordinator follows to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status.
+
+### Definitions
+
+**ACT-PAT-001 — Link Participant**: The Action a Study Coordinator performs to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status, transitioning the **Participant** to **Pending**.
+
+### Assertions
+
+**Link Participant Flow**
+
+A. When a Study Coordinator selects Link Participant, the interface SHALL display a Confirmation Dialog showing the **Participant** ID and the configured **Mobile Linking Code** expiry duration.
+
+B. When the Study Coordinator confirms, the interface SHALL display an Acknowledgement Dialog showing the generated **Mobile Linking Code**, a Copy action, and the remaining time until expiry.
+
+C. When the Study Coordinator dismisses the Acknowledgement Dialog, the interface SHALL update the **Participant**'s **Status Badge** to **Pending**.
+
+### Rationale
+
+The Confirmation/Acknowledgement two-step captures both halves of what the Coordinator must accomplish in a single workflow: the Confirmation Dialog records the Coordinator's deliberate intent to issue a code (with the expiry duration shown so they can set participant expectations), and the Acknowledgement Dialog gives the visible delivery of the generated code together with a Copy affordance and a live expiry timer. Splitting the two means the code is only generated after explicit confirmation, and the Coordinator cannot leave the dashboard without having seen the code at least once.
+
+*End* *Link Participant Flow* | **Hash**: 1359bc4a
