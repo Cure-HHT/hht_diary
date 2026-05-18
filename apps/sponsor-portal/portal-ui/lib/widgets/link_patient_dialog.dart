@@ -74,7 +74,7 @@ class _LinkPatientDialogState extends State<LinkPatientDialog> {
     setState(() => _state = _DialogState.loading);
 
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/link-code',
+      '/api/v1/portal/participants/link-code',
       {'patientId': widget.patientId},
     );
 
@@ -421,7 +421,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
 
   Future<void> _fetchCode() async {
     final response = await widget.apiClient.get(
-      '/api/v1/portal/patients/link-code/active',
+      '/api/v1/portal/participants/link-code/active',
       extraHeaders: {'X-Patient-Id': widget.patientId},
     );
 
@@ -452,7 +452,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
     });
 
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/link-code',
+      '/api/v1/portal/participants/link-code',
       {'patientId': widget.patientId},
     );
 

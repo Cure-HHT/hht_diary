@@ -150,7 +150,7 @@ Future<_StatusPushResult> _dispatchPatientStatusPush({
 }
 
 /// Generate a patient linking code
-/// POST /api/v1/portal/patients/:patientId/link-code
+/// POST /api/v1/portal/participants/link-code (patientId in body, CUR-1064)
 /// Authorization: Bearer <Identity Platform ID token>
 /// Body (optional): { "reconnect_reason": "..." } for reconnecting disconnected patients
 ///
@@ -437,7 +437,7 @@ Future<Response> generatePatientLinkingCodeHandler(Request request) async {
 }
 
 /// Get active linking code for patient (if any)
-/// GET /api/v1/portal/patients/:patientId/link-code
+/// GET /api/v1/portal/participants/link-code/active (X-Patient-Id header, CUR-1064)
 ///
 /// Returns the current active (unused, not expired, not revoked) linking code.
 /// Per REQ-p70007.J, the code should only be displayed once at generation,
@@ -596,7 +596,7 @@ String hashLinkingCode(String code) {
 const validDisconnectReasons = ['Device Issues', 'Technical Issues', 'Other'];
 
 /// Disconnect a patient from the mobile app
-/// POST /api/v1/portal/patients/:patientId/disconnect
+/// POST /api/v1/portal/participants/disconnect (patientId in body, CUR-1064)
 /// Authorization: Bearer <Identity Platform ID token>
 /// Body: { "reason": "Device Issues" | "Technical Issues" | "Other" }
 ///   When sponsor config disconnectReasonDropdown=false: reason may be any non-empty string.
@@ -849,7 +849,7 @@ const validNotParticipatingReasons = [
 ];
 
 /// Mark a patient as not participating in the study
-/// POST /api/v1/portal/patients/:patientId/not-participating
+/// POST /api/v1/portal/participants/not-participating (patientId in body, CUR-1064)
 /// Authorization: Bearer <Identity Platform ID token>
 /// Body: { "reason": "Subject Withdrawal" | "Death" | "Protocol treatment/study complete" | "Other", "notes": "..." }
 ///
@@ -1072,7 +1072,7 @@ Future<Response> markPatientNotParticipatingHandler(Request request) async {
 }
 
 /// Reactivate a patient who was marked as not participating
-/// POST /api/v1/portal/patients/:patientId/reactivate
+/// POST /api/v1/portal/participants/reactivate (patientId in body, CUR-1064)
 /// Authorization: Bearer <Identity Platform ID token>
 /// Body: { "reason": "..." }
 ///
@@ -1276,7 +1276,7 @@ Future<Response> reactivatePatientHandler(Request request) async {
 }
 
 /// Start trial for a patient
-/// POST /api/v1/portal/patients/:patientId/start-trial
+/// POST /api/v1/portal/participants/start-trial (patientId in body, CUR-1064)
 /// Authorization: Bearer <Identity Platform ID token>
 /// Body: {} (empty body)
 ///
