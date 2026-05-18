@@ -143,28 +143,48 @@ void main() {
       },
     );
 
-    testWidgets('transient failure (no retry_after) leaves button enabled', (
-      tester,
-    ) async {
-      fakeAuthService.setNextSendResult(
-        EmailOtpResult.failure('Failed to send verification code'),
-      );
+    testWidgets(
+      'transient failure (no retry_after) keeps optimistic cooldown active',
+      (tester) async {
+        fakeAuthService.setNextSendResult(
+          EmailOtpResult.failure('Failed to send verification code'),
+        );
 
-      await tester.pumpWidget(buildTestApp(fakeAuthService));
-      await tester.pump();
-      await tester.pump(Duration.zero);
+        await tester.pumpWidget(buildTestApp(fakeAuthService));
+        await tester.pump();
+        await tester.pump(Duration.zero);
 
-      // No countdown text → label is just "Resend code".
-      final resendFinder = find.widgetWithText(TextButton, 'Resend code');
-      expect(resendFinder, findsOneWidget);
-      final TextButton resendButton = tester.widget<TextButton>(resendFinder);
-      expect(
-        resendButton.onPressed,
-        isNotNull,
-        reason:
-            'On a transient failure the user should be able to retry '
-            'immediately — no cooldown should be applied',
-      );
-    });
+        // The optimistic 60-second cooldown started when the send was
+        // dispatched. On a transient failure (no retry_after) the page
+        // intentionally keeps it running so the user can't hammer the
+        // button while the actual server state is unknown — see the
+        // comment at email_otp_page.dart `_sendOtpCode` else-branch.
+        // _formatCooldown(60) → "1:00".
+        final resendFinder = find.widgetWithText(
+          TextButton,
+          'Resend code in 1:00',
+        );
+        expect(
+          resendFinder,
+          findsOneWidget,
+          reason:
+              'Optimistic 60-second cooldown must remain in effect after a '
+              'transient failure to prevent retry storms.',
+        );
+        final TextButton resendButton = tester.widget<TextButton>(resendFinder);
+        expect(
+          resendButton.onPressed,
+          isNull,
+          reason:
+              'Button must stay disabled while the optimistic cooldown runs',
+        );
+
+        // The transient error message should still be surfaced to the user.
+        expect(
+          find.textContaining('Failed to send verification code'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }
