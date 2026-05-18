@@ -4,7 +4,7 @@ This section defines the **Administrator Settings** surface, a read-only view av
 
 ## DIARY-PRD-administrator-settings: Administrator Settings Surface
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -50,7 +50,7 @@ Sponsor-configured parameters (session timeouts, code expiries, threshold values
 
 ## DIARY-GUI-administrator-settings: Administrator Settings Interface
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-administrator-settings
 
 ### Overview

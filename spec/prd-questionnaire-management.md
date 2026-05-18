@@ -4,7 +4,7 @@ The platform's **Questionnaire** system rests on a clinical questionnaire founda
 
 ## DIARY-PRD-questionnaire-system: Clinical Questionnaire System
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -54,7 +54,7 @@ The questionnaire subsystem is the principal source of trial-grade clinical data
 
 ## DIARY-PRD-questionnaire-sponsor-configuration: Sponsor Questionnaire Configuration
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-system
 
 ### Overview
@@ -81,7 +81,7 @@ The five configuration axes named here — enablement, reminder behavior, post-s
 
 ## DIARY-PRD-questionnaire-submission-control: Clinical Data Submission Control
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-system
 
 ### Overview
@@ -102,7 +102,7 @@ A clinical trial's evidence chain begins at the data-ingest boundary: every subm
 
 ## DIARY-PRD-questionnaire-change-control: Questionnaire Change Control
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-system
 
 ### Overview

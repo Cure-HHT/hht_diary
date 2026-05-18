@@ -4,7 +4,7 @@ This section defines per-role visibility scope of audit log records and the user
 
 ## DIARY-GUI-audit-log-common: Audit Log View — Common Presentation
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -46,7 +46,7 @@ A consistent audit log presentation across roles reduces training overhead, allo
 
 ## DIARY-GUI-audit-log-study-coordinator: Study Coordinator Audit Log View
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-GUI-audit-log-common
 
 ### Overview
@@ -71,7 +71,7 @@ A Study Coordinator's investigative workflow centers on individual participants 
 
 ## DIARY-GUI-audit-log-cra: CRA Audit Log View
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-GUI-audit-log-common
 
 ### Overview
@@ -102,7 +102,7 @@ CRAs perform site monitoring — verifying that Study Coordinator activity at a 
 
 ## DIARY-GUI-audit-log-administrator: Administrator Audit Log View
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-GUI-audit-log-common
 
 ### Overview

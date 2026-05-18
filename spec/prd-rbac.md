@@ -4,7 +4,7 @@ This section defines the role model used across the solution: the generic role t
 
 ## DIARY-PRD-rbac-customizable: Customizable Role-Based Access Control
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -26,8 +26,7 @@ Clinical trial sponsor portals are routinely staffed by individuals who hold mor
 
 ## DIARY-PRD-action-inventory: Action Inventory
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
-**Refines**: DIARY-PRD-rbac-customizable
+**Level**: prd | **Status**: Draft | **Template**
 
 ### Overview
 
@@ -85,7 +84,7 @@ The Action Inventory is the single source of truth for what operations the platf
 
 ## DIARY-PRD-role-definitions: Role Definitions
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-rbac-customizable
 
 ### Overview
@@ -118,7 +117,7 @@ The sponsor portal's named roles are deployment-facing labels chosen for clarity
 
 ## DIARY-GUI-role-switching: Role Switching — Interface Behavior
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-rbac-customizable
 
 ### Overview

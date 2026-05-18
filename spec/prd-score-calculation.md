@@ -4,7 +4,7 @@ The platform's score-calculation obligations comprise the general rule that scor
 
 ## DIARY-PRD-questionnaire-score-calculation: Questionnaire Score Calculation
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -26,7 +26,7 @@ Scores are the analytical artifact downstream clinical research derives outcomes
 
 ## DIARY-PRD-score-hht-qol: HHT-QoL Score Calculation
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-score-calculation
 
 ### Assertions
@@ -41,7 +41,7 @@ The **HHT-QoL** scoring algorithm is fully specified by the cited Blood Advances
 
 ## DIARY-PRD-score-nose-hht: NOSE HHT Score Calculation
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-score-calculation
 
 ### Assertions

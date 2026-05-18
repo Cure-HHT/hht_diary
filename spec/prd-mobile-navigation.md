@@ -4,7 +4,7 @@ The foundational navigation surfaces of the **Mobile Application** comprise the 
 
 ## DIARY-GUI-main-screen-layout: Main Screen Layout
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -61,7 +61,7 @@ The five-zone structure (System Notice Area, top navigation bar, Task List, cont
 
 ## DIARY-GUI-mobile-navigation: Mobile Application Navigation and Screens
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -124,7 +124,7 @@ The two-menu split (User Menu on the right, Application Menu on the left) groups
 
 ## DIARY-GUI-calendar-day-view: Calendar and Day View
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 
 ### Overview
 

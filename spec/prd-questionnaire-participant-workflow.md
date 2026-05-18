@@ -4,7 +4,7 @@ The participant-facing workflow over **Portal-Sent Questionnaires** comprises th
 
 ## DIARY-PRD-questionnaire-portal-sent-rules: Portal-Sent Questionnaire Rules
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -72,7 +72,7 @@ See: ![Questionnaire Preamble Screen](../docs/urs-extracted-images/image-02.png)
 
 ## DIARY-GUI-questionnaire-portal-sent-workflow: Portal-Sent Questionnaire Workflow
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-portal-sent-rules
 
 ### Overview
@@ -162,7 +162,7 @@ See:
 
 ## DIARY-PRD-questionnaire-session-timeout: Questionnaire Session Timeout
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-portal-sent-rules
 
 ### Overview
@@ -229,7 +229,7 @@ See:
 
 ## DIARY-GUI-questionnaire-session-expiry: Questionnaire Session Expiry
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-session-timeout
 
 ### Overview

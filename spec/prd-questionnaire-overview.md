@@ -4,7 +4,7 @@ The platform implements three clinical questionnaires: the **Daily Epistaxis Rec
 
 ## DIARY-PRD-questionnaire-daily-epistaxis: Daily Epistaxis Record Questionnaire
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -34,7 +34,7 @@ The **Daily Epistaxis Record** is the primary instrument the diary platform exis
 
 ## DIARY-PRD-questionnaire-nose-hht: NOSE HHT Questionnaire
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -68,7 +68,7 @@ The **NOSE HHT** is a validated clinical instrument; its interpretive validity d
 
 ## DIARY-PRD-questionnaire-hht-qol: HHT-QoL Questionnaire
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 

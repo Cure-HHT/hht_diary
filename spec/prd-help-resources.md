@@ -1,6 +1,6 @@
 # DIARY-PRD-help-resources: Help and Resources
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ## Overview
 

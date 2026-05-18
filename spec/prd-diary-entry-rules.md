@@ -4,7 +4,7 @@ The platform-level validation rules that apply to every diary entry comprise the
 
 ## DIARY-PRD-entry-time-restrictions: Time-Based Entry Restrictions
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -60,7 +60,7 @@ The two-tier model exists because two distinct integrity concerns argue for two 
 
 ## DIARY-PRD-entry-duration-check: Duration Reasonableness Check
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -110,7 +110,7 @@ Duration outliers are a common data-entry-error signal: a typo or wrong-timezone
 
 ## DIARY-PRD-entry-overlap-resolution: Overlapping Event Detection and Resolution
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -180,7 +180,7 @@ See: ![Resolve Conflict — Resolution Screen](../docs/urs-extracted-images/imag
 
 ## DIARY-GUI-entry-overlap-resolution: Overlapping Event Resolution Flow
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-entry-overlap-resolution
 
 ### Overview

@@ -4,7 +4,7 @@ The Sponsor Portal supports the full **User Account** lifecycle: creation, activ
 
 ## DIARY-PRD-user-account-create: Create User Account
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -34,7 +34,7 @@ A **User Account** is the unit of authorization and audit attribution in the **S
 
 ## DIARY-PRD-user-account-activation-workflow: Account Activation Workflow
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-create
 
 ### Overview
@@ -83,7 +83,7 @@ Account activation is the boundary at which a candidate **User Account** (create
 
 ## DIARY-PRD-user-account-site-assignment: Site Assignment
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-create
 
 ### Overview
@@ -112,7 +112,7 @@ D. The system SHALL allow an **Administrator** to assign any **Site** to a **Use
 
 ## DIARY-PRD-user-account-activation-resend: Resend Activation Email
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-activation-workflow
 
 ### Overview
@@ -135,7 +135,7 @@ The activation email is the only delivery channel for the **Activation Webpage**
 
 ## DIARY-PRD-user-account-edit: Edit User Account
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-create
 
 ### Overview
@@ -166,7 +166,7 @@ User edits encode three risks the platform contains structurally. First, an Admi
 
 ## DIARY-PRD-user-account-deactivate: Deactivate User Account
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-create
 
 ### Overview
@@ -199,7 +199,7 @@ Deactivation is the standard off-boarding mechanism for users who should no long
 
 ## DIARY-PRD-user-account-reactivate: Reactivate User Account
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-deactivate
 
 ### Assertions
@@ -220,7 +220,7 @@ Reactivation is the inverse of deactivation and serves the case where a previous
 
 ## DIARY-PRD-reason-field-constraints: Reason Field Constraints
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -240,7 +240,7 @@ Free-text reason inputs accompany high-impact, irreversible actions (deactivatio
 
 ## DIARY-GUI-user-management-tabs: User Management Tabs
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-create, DIARY-PRD-user-account-edit
 
 ### Overview
@@ -297,7 +297,7 @@ Active and inactive accounts are operationally distinct surfaces: actions availa
 
 ## DIARY-GUI-user-account-deactivate: Deactivate User Account
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-deactivate
 
 ### Overview
@@ -328,7 +328,7 @@ The deactivation surface is anchored to the **Active Users** tab because that is
 
 ## DIARY-GUI-user-account-reactivate: Reactivate User Account
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-reactivate
 
 ### Overview
@@ -359,7 +359,7 @@ Reactivation is anchored to the **Inactive Users** tab to mirror the deactivatio
 
 ## DIARY-GUI-user-information-modal: User Information Modal
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-create, DIARY-PRD-user-account-edit
 
 ### Overview
@@ -406,7 +406,7 @@ The **User Information Modal** is the per-account hub: every lifecycle action (e
 
 ## DIARY-GUI-administrator-dashboard: Administrator Dashboard
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 
 ### Overview
 

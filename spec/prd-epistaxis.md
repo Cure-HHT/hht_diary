@@ -4,7 +4,7 @@ The daily eDiary data-capture flow for **Epistaxis Events** comprises the platfo
 
 ## DIARY-PRD-epistaxis-capture-standard: HHT Epistaxis Data Capture Standard
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -42,7 +42,7 @@ The Daily Status / Epistaxis Event two-level structure exists because the clinic
 
 ## DIARY-GUI-epistaxis-record: Record Nosebleed Event
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-epistaxis-capture-standard
 
 ### Overview
@@ -108,7 +108,7 @@ The three-step structure (Start, Max Intensity, End) matches the clinical model 
 
 ## DIARY-GUI-epistaxis-delete: Nosebleed Event Delete
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-epistaxis-capture-standard
 
 ### Overview

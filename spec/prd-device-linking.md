@@ -4,7 +4,7 @@ The participant-side linking flow comprises the platform-level rules for error h
 
 ## DIARY-PRD-linking-code-entry-errors: Linking Code Entry Error Handling
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -50,7 +50,7 @@ Linking codes are short, human-typeable secrets that confer access to a clinical
 
 ## DIARY-GUI-join-study-screen: Join the Study Screen
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-linking-code-entry-errors
 
 ### Overview
@@ -88,7 +88,7 @@ The **Join the Study** screen has to do two things at once: capture the linking 
 
 ## DIARY-GUI-linking-confirmation: Successful Linking Confirmation
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-linking-code-entry-errors
 
 ### Overview

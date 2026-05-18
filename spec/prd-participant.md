@@ -4,7 +4,7 @@ The **Participant** lifecycle in the **Sponsor Portal** is governed by linking-c
 
 ## DIARY-PRD-linking-code-lifecycle: Linking Code Lifecycle Management
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -52,7 +52,7 @@ The **Mobile Linking Code** is the bridge between two systems that otherwise do 
 
 ## DIARY-PRD-participant-registration: Participant Registration
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -76,7 +76,7 @@ B. When a **Participant** record is added to the **Sponsor Portal**, the System 
 
 ## DIARY-PRD-participant-link-new: Link New Participant Workflow
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -98,7 +98,7 @@ The first-link workflow has two halves separated by a human-physical handoff: th
 
 ## DIARY-PRD-participant-disconnection: Participant Disconnection Workflow
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -126,7 +126,7 @@ Disconnection sits between linking (the **Participant** is in trial) and mark-as
 
 ## DIARY-PRD-participant-reconnection: Participant Reconnection Workflow
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -154,7 +154,7 @@ Reconnection re-uses the link-code mechanism deliberately: the same unguessable,
 
 ## DIARY-PRD-participant-mark-not-participating: Mark as Not Participating
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -178,7 +178,7 @@ Mark-as-not-participating is the off-trial state: the **Participant** has either
 
 ## DIARY-PRD-participant-reactivate: Reactivate Participant
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -200,7 +200,7 @@ Reactivation is the inverse of mark-as-not-participating: the **Participant** is
 
 ## DIARY-GUI-participant-dashboard: Participant Dashboard
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -260,7 +260,7 @@ The **Participant Dashboard** is the Study Coordinator's daily working surface, 
 
 ## DIARY-GUI-show-linking-code: Show Linking Code
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-GUI-participant-dashboard
 
 ### Overview
@@ -285,7 +285,7 @@ Show Linking Code is a pseudo-action: it does not change participant state, it s
 
 ## DIARY-GUI-link-participant-flow: Link Participant Flow
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-GUI-participant-dashboard
 
 ### Overview

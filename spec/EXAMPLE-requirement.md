@@ -20,7 +20,8 @@ This is an example requirement demonstrating the proper format. Delete this file
 - **Assertions**: Labeled A–Z, each using SHALL for required behavior.
 - **Rationale**: Optional explanation section (non-normative).
 - **Footer**: `*End* *Title* | **Hash**: XXXXXXXX` — hash computed by `elspais hash update`.
-- **`Implements:` is deprecated for REQ→REQ relationships in spec headers.** Use `Refines:` (default) for hierarchy / elaboration, or `Satisfies:` for template / registry instantiation. The deprecation does not apply to per-class `// Implements:` annotations in production code.
+- **`Implements:` is deprecated for REQ→REQ relationships in spec headers.** Use `**Refines**:` (default) for hierarchy / elaboration, or `**Satisfies**:` for template / registry instantiation. The deprecation does not apply to per-class `// Implements:` annotations in production code.
+- **Templates** — REQs that accept incoming `**Satisfies**:` edges MUST be marked with the no-value `**Template**` flag on the metadata line (e.g. `**Level**: PRD | **Status**: Active | **Template**`). Satisfiers can be in this repo or in an associated sibling repo. Code/test evidence annotated against the template assertions flows to every satisfier automatically — write the contract test once.
 
 Run `elspais example` for more templates and `elspais checks` to validate.
 

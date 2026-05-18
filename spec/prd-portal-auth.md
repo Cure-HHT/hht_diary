@@ -4,7 +4,7 @@
 
 ## DIARY-PRD-password-requirements: Password Requirements
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Definitions
 
@@ -34,7 +34,7 @@ The composition rules (length, character classes) and the common-password reject
 
 ## DIARY-PRD-two-factor-authentication: Two-Factor Authentication
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -80,7 +80,7 @@ The single password is no longer a sufficient credential for clinical trial port
 
 ## DIARY-PRD-password-forgot: Forgot Password
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -122,7 +122,7 @@ Self-service password reset is a usability requirement (users who lose their **P
 
 ## DIARY-GUI-password-forgot-workflow: Forgot Password Workflow Interface
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-password-forgot
 
 ### Overview
@@ -191,7 +191,7 @@ The four-screen structure mirrors the four states the workflow can reach: reques
 
 ## DIARY-PRD-session-management: Session Management
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 

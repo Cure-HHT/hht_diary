@@ -4,7 +4,7 @@ The **Mobile Application** foundation comprises the dual-mode (personal vs. link
 
 ## DIARY-PRD-mobile-application: Diary Mobile Application
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -38,7 +38,7 @@ The dual-mode design serves two distinct populations from a single codebase: ind
 
 ## DIARY-PRD-mobile-offline-first: Offline-First Data Entry
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-mobile-application
 
 ### Overview
@@ -65,7 +65,7 @@ Diary entries are time-sensitive: a nosebleed event must be captured as it occur
 
 ## DIARY-PRD-diary-start-day: Diary Start Day Definition
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -103,7 +103,7 @@ The **Diary Start Day** is the single boundary the **Mobile Application** uses t
 
 ## DIARY-PRD-privacy-policy: Clinical Trial Privacy Policy
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -131,7 +131,7 @@ Two privacy policies coexist in the **Mobile Application** because two distinct 
 
 ## DIARY-PRD-application-lock: Application Lock
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 

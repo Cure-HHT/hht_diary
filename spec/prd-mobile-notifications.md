@@ -4,7 +4,7 @@ The **Mobile Application** delivers a set of push notifications and reminders to
 
 ## DIARY-GUI-participant-task-list: Participant Task List
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -89,7 +89,7 @@ The three task types correspond to the three categories of follow-up the platfor
 
 ## DIARY-PRD-notification-disconnection: Disconnection Notification
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -123,7 +123,7 @@ See: ![Disconnection Notification](../docs/urs-extracted-images/image-28.png)
 
 ## DIARY-GUI-participation-status-badge: Participation Status Badge
 
-**Level**: GUI | **Status**: Legacy | **Implements**: -
+**Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-notification-disconnection
 
 ### Overview
@@ -177,7 +177,7 @@ The badge consolidates "where do I stand with this study" into a single visual t
 
 ## DIARY-PRD-notification-incomplete-record-lock: Incomplete Record Lock Warning Notification
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -215,7 +215,7 @@ The **Lock Threshold** produces an irreversible state — once exceeded, the **I
 
 ## DIARY-PRD-notification-portal-sent-questionnaire: Portal-Sent Questionnaire Notification
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -249,7 +249,7 @@ See: ![Portal-Sent Questionnaire Notification](../docs/urs-extracted-images/imag
 
 ## DIARY-PRD-notification-yesterday-entry: Yesterday Entry Reminder Notification
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -293,7 +293,7 @@ See: ![Yesterday Entry Reminder Notification](../docs/urs-extracted-images/image
 
 ## DIARY-PRD-notification-ongoing-epistaxis: Ongoing Epistaxis Event Reminder
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
@@ -347,7 +347,7 @@ See: ![Ongoing Epistaxis Event Reminder](../docs/urs-extracted-images/image-31.p
 
 ## DIARY-PRD-notification-historical-gap: Historical Gap Reminder
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: prd | **Status**: Draft | **Implements**: -
 
 ### Overview
 
