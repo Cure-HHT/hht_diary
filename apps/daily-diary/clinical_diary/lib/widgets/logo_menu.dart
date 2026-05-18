@@ -19,6 +19,8 @@ class LogoMenu extends StatefulWidget {
     this.showDevTools = true,
     this.showResetData = true,
     this.isEnrolled,
+    this.isDisconnected = false,
+    this.isNotParticipating = false,
     this.sponsorLogo,
     super.key,
   });
@@ -30,6 +32,10 @@ class LogoMenu extends StatefulWidget {
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
   final bool? isEnrolled;
+  // CUR-1342: When disconnected or not-participating, the header logo falls
+  // back to the default CureHHT logo instead of the sponsor logo.
+  final bool isDisconnected;
+  final bool isNotParticipating;
   final String? sponsorLogo;
 
   /// Whether to show developer tools (Import/Export Data, Feature Flags).
@@ -80,7 +86,9 @@ class _LogoMenuState extends State<LogoMenu> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            if (widget.isEnrolled ?? false)
+            if ((widget.isEnrolled ?? false) &&
+                !widget.isDisconnected &&
+                !widget.isNotParticipating)
               (widget.sponsorLogo != null)
                   ? Image.network(
                       widget.sponsorLogo!,

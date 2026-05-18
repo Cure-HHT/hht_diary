@@ -1,3 +1,4 @@
+import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:comms/comms.dart';
@@ -23,6 +24,11 @@ class MockEnrollmentService implements EnrollmentService {
   // listeners under test fire when status flips.
   @override
   final ValueNotifier<bool> notParticipatingNotifier = ValueNotifier(false);
+
+  // CUR-1343 / REQ-p70011/F: Mirror the linking-status notifier.
+  @override
+  final ValueNotifier<MobileLinkingStatus> linkingStatusNotifier =
+      ValueNotifier(MobileLinkingStatus.connected);
 
   @override
   Future<String?> getJwtToken() async => jwtToken;
@@ -72,19 +78,26 @@ class MockEnrollmentService implements EnrollmentService {
   bool processDisconnectionStatus(Map<String, dynamic> response) {
     final isDisconnected = response['isDisconnected'] as bool? ?? false;
     final isNotParticipating = response['isNotParticipating'] as bool? ?? false;
-    _isDisconnected = isDisconnected;
+    final status = response['mobileLinkingStatus'] as String?;
+    final parsedStatus = parseMobileLinkingStatus(status);
+    // CUR-1343 / REQ-p70011/F: treat linking_in_progress as disconnected so
+    // the test surface mirrors the real service's recovery path.
+    final effectiveDisconnected =
+        isDisconnected || parsedStatus == MobileLinkingStatus.linkingInProgress;
+    _isDisconnected = effectiveDisconnected;
     _isNotParticipating = isNotParticipating;
     // CUR-1311: fire notifiers so listeners under test observe the
     // status flip — matches the real EnrollmentService which routes
     // through setDisconnected / setNotParticipating.
-    disconnectedNotifier.value = isDisconnected;
+    disconnectedNotifier.value = effectiveDisconnected;
     notParticipatingNotifier.value = isNotParticipating;
+    linkingStatusNotifier.value = parsedStatus;
     if (isNotParticipating && _notParticipatingAt == null) {
       _notParticipatingAt = DateTime.now();
     } else if (!isNotParticipating) {
       _notParticipatingAt = null;
     }
-    return isDisconnected;
+    return effectiveDisconnected;
   }
 
   // CUR-1165: Not participating mock methods
@@ -114,9 +127,14 @@ class MockEnrollmentService implements EnrollmentService {
     final action = envelope.payload['action'] as String?;
     switch (action) {
       case 'disconnect':
+        linkingStatusNotifier.value = MobileLinkingStatus.disconnected;
         setDisconnected(true);
       case 'reconnect':
-        setDisconnected(false);
+        // CUR-1343 / REQ-p70011/F: A new linking code has been issued; mobile
+        // must hold the disconnected state until the patient enters the new
+        // code, so the test surface matches the real service.
+        linkingStatusNotifier.value = MobileLinkingStatus.linkingInProgress;
+        setDisconnected(true);
       case 'mark_not_participating':
         setNotParticipating(true, at: DateTime.now());
       case 'reactivate':

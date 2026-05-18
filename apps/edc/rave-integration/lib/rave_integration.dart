@@ -27,6 +27,7 @@ library;
 
 export 'src/client.dart' show RaveClient;
 export 'src/models/exceptions.dart';
+export 'src/models/rws_error.dart' show RwsError;
 export 'src/models/site.dart' show RaveSite;
 export 'src/models/subject.dart' show RaveSubject;
 export 'src/odm_parser.dart' show OdmParser;

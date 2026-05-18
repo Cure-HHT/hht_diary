@@ -10,9 +10,44 @@ sealed class RaveException implements Exception {
 }
 
 /// Thrown when authentication fails (401 response).
+///
+/// [reasonCode] and [serverMessage] capture Medidata's `ReasonCode` and
+/// `ErrorClientResponseMessage` from the response body when present.
+/// Both are null when Medidata returned a body that didn't include these
+/// attributes (e.g., plain-text 401 from an upstream proxy).
 class RaveAuthenticationException extends RaveException {
-  const RaveAuthenticationException([super.message = 'Authentication failed'])
-    : super(statusCode: 401);
+  final String? reasonCode;
+  final String? serverMessage;
+
+  const RaveAuthenticationException({
+    String message = 'Authentication failed',
+    this.reasonCode,
+    this.serverMessage,
+  }) : super(message, statusCode: 401);
+
+  /// Bracketed detail suffix for operator-facing error messages, with a
+  /// leading space so it can be appended directly to a sentence. Returns
+  /// the empty string when both fields are null; otherwise includes
+  /// whichever of `reasonCode` / `serverMessage` are non-null.
+  String get detailSuffix {
+    if (reasonCode != null && serverMessage != null) {
+      return ' [$reasonCode: $serverMessage]';
+    }
+    if (reasonCode != null) return ' [$reasonCode]';
+    if (serverMessage != null) return ' [$serverMessage]';
+    return '';
+  }
+
+  @override
+  String toString() {
+    if (reasonCode == null && serverMessage == null) {
+      return 'RaveAuthenticationException: $message';
+    }
+    final parts = <String>[];
+    if (reasonCode != null) parts.add('reasonCode: $reasonCode');
+    if (serverMessage != null) parts.add('serverMessage: $serverMessage');
+    return 'RaveAuthenticationException: $message (${parts.join(', ')})';
+  }
 }
 
 /// Thrown when the server returns an error response.

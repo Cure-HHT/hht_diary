@@ -13,6 +13,7 @@ import 'dart:convert';
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
@@ -125,8 +126,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // REQ-CAL-p00077: Disconnection banner state
   bool _isDisconnected = false;
+  // CUR-1342: Mirror of EnrollmentService.notParticipatingNotifier so the
+  // header LogoMenu can swap to the default CureHHT logo in not-participating.
+  bool _isNotParticipating = false;
   String? _siteName;
   String? _sitePhoneNumber;
+
+  // CUR-1343 / REQ-p70011/F: Fine-grained mobile linking status, used to
+  // distinguish a fully disconnected patient from one with a freshly issued
+  // linking code waiting to be entered.
+  MobileLinkingStatus _linkingStatus = MobileLinkingStatus.connected;
 
   // CUR-464: Track record to flash/highlight after save
   String? _flashRecordId;
@@ -156,6 +165,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.notParticipatingNotifier.addListener(
       _onNotParticipatingChanged,
     );
+    // CUR-1343 / REQ-p70011/F: React when the linking status changes so the
+    // banner copy and tap behavior flip between "Disconnected" and
+    // "New linking code issued" without requiring a navigation.
+    widget.enrollmentService.linkingStatusNotifier.addListener(
+      _onLinkingStatusChanged,
+    );
+    _linkingStatus = widget.enrollmentService.linkingStatusNotifier.value;
   }
 
   @override
@@ -193,8 +209,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.notParticipatingNotifier.removeListener(
       _onNotParticipatingChanged,
     );
+    widget.enrollmentService.linkingStatusNotifier.removeListener(
+      _onLinkingStatusChanged,
+    );
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // Implements: REQ-p70011/F
+  void _onLinkingStatusChanged() {
+    if (!mounted) return;
+    setState(() {
+      _linkingStatus = widget.enrollmentService.linkingStatusNotifier.value;
+    });
   }
 
   Future<void> _checkEnrollmentStatus() async {
@@ -262,7 +289,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// alone — they re-hydrate from sponsor config on next launch.
   void _onNotParticipatingChanged() {
     if (!mounted) return;
-    if (widget.enrollmentService.notParticipatingNotifier.value) {
+    final value = widget.enrollmentService.notParticipatingNotifier.value;
+    setState(() => _isNotParticipating = value);
+    if (value) {
       FeatureFlagService.instance.resetToDefaults();
     }
   }
@@ -284,6 +313,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _checkNotParticipatingStatus() async {
     final isNotParticipating = await widget.enrollmentService
         .isNotParticipating();
+    if (mounted) {
+      setState(() => _isNotParticipating = isNotParticipating);
+    }
     if (isNotParticipating) {
       FeatureFlagService.instance.resetToDefaults();
     }
@@ -734,6 +766,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// CUR-1343 / REQ-p70011/F: Shared navigation into the enrollment screen.
+  /// Called from the menu "Enroll" action and from the disconnection banner's
+  /// "tap to enter your new code" CTA. Refreshes enrollment/disconnect state
+  /// after the user returns so the home screen reflects the new linking.
+  Future<void> _openEnrollmentScreen() async {
+    final wasEnrolled = _isEnrolled;
+    await Navigator.push(
+      context,
+      AppPageRoute<void>(
+        builder: (context) => ClinicalTrialEnrollmentScreen(
+          enrollmentService: widget.enrollmentService,
+        ),
+      ),
+    );
+    await _checkEnrollmentStatus();
+    if (_isEnrolled) {
+      widget.onEnrolled?.call();
+    }
+    await _checkDisconnectionStatus();
+    // CUR-1114: Open profile only if enrollment state changed
+    if (!wasEnrolled && _isEnrolled && mounted) {
+      await _handleShowProfile();
+    }
+  }
+
   /// REQ-CAL-p00076: Navigate to profile screen with participation status badge
   Future<void> _handleShowProfile() async {
     // Read all values fresh from the service to avoid stale cached state
@@ -795,6 +852,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           isEnrolledInTrial: _isEnrolled,
           isDisconnected: isDisconnected,
           isNotParticipating: isNotParticipating,
+          linkingStatus: _linkingStatus,
           enrollmentStatus: _isEnrolled ? 'active' : 'none',
           isSharingWithCureHHT: false,
           sponsorLogo: sponsorBranding.appLogoUrl,
@@ -1328,6 +1386,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     onResetAllData: _handleResetAllData,
                     onFeatureFlags: _handleFeatureFlags,
                     isEnrolled: _isEnrolled,
+                    isDisconnected: _isDisconnected,
+                    isNotParticipating: _isNotParticipating,
                     onEndClinicalTrial: _isEnrolled
                         ? _handleEndClinicalTrial
                         : null,
@@ -1405,24 +1465,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                         );
                       } else if (value == 'enroll') {
-                        final wasEnrolled = _isEnrolled;
-                        await Navigator.push(
-                          context,
-                          AppPageRoute<void>(
-                            builder: (context) => ClinicalTrialEnrollmentScreen(
-                              enrollmentService: widget.enrollmentService,
-                            ),
-                          ),
-                        );
-                        await _checkEnrollmentStatus();
-                        if (_isEnrolled) {
-                          widget.onEnrolled?.call();
-                        }
-                        await _checkDisconnectionStatus();
-                        // CUR-1114: Open profile only if enrollment state changed
-                        if (!wasEnrolled && _isEnrolled && mounted) {
-                          await _handleShowProfile();
-                        }
+                        await _openEnrollmentScreen();
                       }
                     },
                     itemBuilder: (context) {
@@ -1487,11 +1530,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               // the app to drain it.
               if (_hasWedgedFifo) const _SyncWedgedBanner(),
 
-              // REQ-CAL-p00077: Disconnection banner (red, persistent, non-dismissible per REQ-p05004)
-              if (_isDisconnected)
+              // REQ-CAL-p00077 / REQ-p70011/F: Banner is shown for both
+              // `disconnected` (contact site) and `linkingInProgress` (new
+              // code issued, tap to enter it). The widget switches copy and
+              // tap behavior based on `status`.
+              if (_isDisconnected ||
+                  _linkingStatus == MobileLinkingStatus.linkingInProgress)
                 DisconnectionBanner(
+                  status: _linkingStatus,
                   siteName: _siteName,
                   sitePhoneNumber: _sitePhoneNumber,
+                  onTapReconnect: _openEnrollmentScreen,
                 ),
 
               // Incomplete records banner (orange)
