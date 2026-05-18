@@ -22,6 +22,13 @@ ISO/IEC 24760-1
 <!-- design notes:
   __terms__ are defined in a Reference Document
   **terms** are defined in the System Glossary
-  : Reference is keyword, like : Collected, that triggers special handling
+  : Reference a is keyword, like : Collected, that triggers special handling
+  Note that `: Reference` replaces the definition, because the definition for a reference is in the document cited.
+
   Title, Version and URL are just text fields
+  Text fields are arbitrary name:value pairs.
+
+  Note that multi-line definitions are indicated by hanging indent. The Defined Term ends with a blank line. Everything is should be part of the definition. 
+  Text which does not conform the the above syntax has undefined behavior, but should cause a parse-time error.
+
 -->

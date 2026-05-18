@@ -102,13 +102,16 @@ skip = ["node_modules", ".git", "__pycache__", "*.pyc", ".venv", ".env", ".dart_
 directories = ["spec"]
 file_patterns = ["*.md"]
 # Authoring infrastructure files; not normative requirements.
-skip_files = ["README.md", "requirements-spec.md", "EXAMPLE-requirement.md", "INDEX.md", "glossary.md"]
+skip_files = ["README.md", "requirements-spec.md", "EXAMPLE-requirement.md", "INDEX.md"]
 # spec-archive/ holds the pre-URS-v1 spec tree (legacy REQ-pNNNNN ids).
 # Kept for cherry-pick reference during the migration; not scanned.
 # _generated/ holds elspais build artifacts (INDEX, glossary, term index).
-# regulations/, NFR/, roadmap/ are sponsor-shared governance content with
-# their own conventions, intentionally not part of the local graph.
-skip_dirs = ["_generated", "roadmap", "regulations", "NFR"]
+# governance/ holds sponsor-shared governance content (style-guide,
+# change-control, SDLC-SOP, etc.) with its own conventions, intentionally
+# not part of the local requirement graph but mined for terms via
+# glossary-core.md at the spec/ root.
+# regulations/, roadmap/, and the legacy NFR/ entry are also skipped.
+skip_dirs = ["_generated", "roadmap", "regulations", "NFR", "governance"]
 
 [scanning.code]
 directories = ["src", "apps", "packages"]

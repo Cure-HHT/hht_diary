@@ -1,4 +1,4 @@
-# Participant Tasks and Notifications
+# *Participant* Tasks and Notifications
 
 The **Mobile Application** delivers a set of push notifications and reminders to the **Participant**, together with the on-screen **Task List** and **Participation Status Badge** that surface task-state information in the app itself. The push notifications defined here all conform to the cross-cutting `DIARY-PRD-notification-behavior` template (tap behavior, no in-notification actions, offline-deferred delivery).
 
@@ -8,17 +8,20 @@ The **Mobile Application** delivers a set of push notifications and reminders to
 
 ### Overview
 
-The task list provides **Participants** with a prioritized set of actions requiring their attention. Displaying tasks prominently on the **Main Screen** and linking directly to the relevant flows reduces friction and encourages timely data entry. Tasks are automatically resolved as the **Participant** addresses them, keeping the list current.
+The *Task List* provides **Participants** with a prioritized set of actions requiring their attention. Displaying tasks prominently on the **Main Screen** and linking directly to the relevant flows reduces friction and encourages timely data entry. Tasks are automatically resolved as the **Participant** addresses them, keeping the list current.
 
-### Definitions
 
-**Task List**: The prioritized set of actionable items displayed on the **Participant's** **Main Screen** requiring **Participant** attention.
+Task List
+: The prioritized set of actionable items displayed on the **Participant's** **Main Screen** requiring **Participant** attention.
 
-**Incomplete Records Task**: A task indicating the **Participant** has one or more saved entries with missing required data.
+Incomplete Records Task
+: A task indicating the **Participant** has one or more saved entries with missing required data.
 
-**Questionnaire Task**: A task indicating a **Portal-Sent Questionnaire** has been sent to the **Participant** and has not yet been submitted.
+Questionnaire Task
+: A task indicating a **Portal-Sent Questionnaire** has been sent to the **Participant** and has not yet been submitted.
 
-**Yesterday Reminder Task**: A task prompting the **Participant** to record a **Daily Status** for the previous day.
+Yesterday Reminder Task
+: A task prompting the **Participant** to record a **Daily Status** for the previous day.
 
 ### Assertions
 
@@ -29,7 +32,7 @@ A. The **Task List** SHALL support the following task types, displayed in the pr
 | Priority | Task Type | Trigger | Removal |
 | :---- | :---- | :---- | :---- |
 | 1 | **Incomplete Records Task** | **Participant** has one or more saved entries with missing required data | All incomplete entries are completed or deleted |
-| 2 | **Questionnaire Task** | Study Coordinator sends a **Portal-Sent Questionnaire** | Sponsor finalizes the questionnaire |
+| 2 | **Questionnaire Task** | *Study Coordinator* sends a **Portal-Sent **Questionnaire**** | *Sponsor* finalizes the *Questionnaire* |
 | 3 | **Yesterday Reminder Task** | New day begins and the **Participant** has not recorded a **Daily Status** for the previous day | **Participant** records a **Daily Status** for the previous day |
 
 **Incomplete Records Task**
@@ -44,17 +47,17 @@ E. The **Incomplete Records Task** SHALL persist regardless of the age of the in
 
 **Questionnaire Task**
 
-F. The interface SHALL display one **Questionnaire Task** per **Questionnaire Type**.
+F. The interface SHALL display one **Questionnaire Task** per ****Questionnaire** Type**.
 
-G. When the **Participant** selects a **Questionnaire Task**, the interface SHALL navigate to the questionnaire flow for that **Portal-Sent Questionnaire**.
+G. When the **Participant** selects a **Questionnaire Task**, the interface SHALL navigate to the *Questionnaire* flow for that **Portal-Sent **Questionnaire****.
 
-H. After the Participant submits a **Portal-Sent Questionnaire**, the questionnaire SHALL be accessible as a record on the day it was submitted via the **Calendar**.
+H. After the *Participant* submits a **Portal-Sent **Questionnaire****, the *Questionnaire* SHALL be accessible as a record on the day it was submitted via the **Calendar**.
 
-I. After the sponsor finalizes the **Portal-Sent Questionnaire**, the **Questionnaire Task** SHALL be removed from the **Task List**.
+I. After the *Sponsor* finalizes the **Portal-Sent **Questionnaire****, the **Questionnaire Task** SHALL be removed from the **Task List**.
 
-J. After **Submission**, the **Questionnaire Task** SHALL display a completed visual state indicating the questionnaire has been submitted and is awaiting sponsor review.
+J. After **Submission**, the **Questionnaire Task** SHALL display a completed visual state indicating the *Questionnaire* has been submitted and is awaiting *Sponsor* review.
 
-K. While the **Questionnaire Task** is in a submitted state, the Participant SHALL be able to select it to review and edit their answers.
+K. While the **Questionnaire Task** is in a submitted state, the *Participant* SHALL be able to select it to review and edit their answers.
 
 **Yesterday Reminder Task**
 
@@ -76,7 +79,7 @@ R. The **Task List** SHALL update as conditions change without requiring the **P
 
 ### Rationale
 
-The three task types correspond to the three categories of follow-up the platform needs to surface to the participant: data the participant already entered that is missing required fields (**Incomplete Records Task**), questionnaires the **Study Coordinator** has assigned that have not been submitted (**Questionnaire Task**), and the daily-status prompt for yesterday (**Yesterday Reminder Task**). The priority ordering reflects intervention urgency: incomplete records are at risk of becoming permanently locked (highest priority), questionnaires are due but not yet on a hard deadline (middle), and yesterday's status is a soft prompt that auto-resolves over time (lowest). The **Yesterday Reminder Task**'s three-action surface (Yes / No / Don't Remember) lets the participant resolve the task without leaving the Main Screen for the common case (Yes navigates to recording; No and Don't Remember commit the **Daily Status** in place). Removing tasks the moment their removal condition is met (and not requiring a refresh) keeps the list honest — a participant who completes their incomplete records sees the task disappear immediately, rather than being told to refresh or re-open the app. **Incomplete Records Task** persistence regardless of age (assertion E) is the operational counterpart of the **Lock Threshold**: even after the underlying record is locked and can no longer be completed, the task stays visible so the participant is aware of the now-permanently-incomplete state.
+The three task types correspond to the three categories of follow-up the platform needs to surface to the *Participant*: data the *Participant* already entered that is missing required fields (**Incomplete Records Task**), questionnaires the **Study Coordinator** has assigned that have not been submitted (**Questionnaire Task**), and the daily-status prompt for yesterday (**Yesterday Reminder Task**). The priority ordering reflects intervention urgency: incomplete records are at risk of becoming permanently locked (highest priority), questionnaires are due but not yet on a hard deadline (middle), and yesterday's status is a soft prompt that auto-resolves over time (lowest). The **Yesterday Reminder Task**'s three-*Action* surface (Yes / No / Don't Remember) lets the *Participant* resolve the task without leaving the *Main Screen* for the common case (Yes navigates to recording; No and Don't Remember commit the **Daily Status** in place). Removing tasks the moment their removal condition is met (and not requiring a refresh) keeps the list honest — a *Participant* who completes their incomplete records sees the task disappear immediately, rather than being told to refresh or re-open the app. **Incomplete Records Task** persistence regardless of age (assertion E) is the operational counterpart of the **Lock Threshold**: even after the underlying record is locked and can no longer be completed, the task stays visible so the *Participant* is aware of the now-permanently-incomplete state.
 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
@@ -85,41 +88,41 @@ The three task types correspond to the three categories of follow-up the platfor
 > Satisfies) when the need arises. Until that seam exists, this REQ is
 > normative for the Callisto deployment.
 
-*End* *Participant Task List* | **Hash**: a070f8d5
+*End* *Participant Task List* | **Hash**: ea2daf89
 
 ## DIARY-PRD-notification-disconnection: Disconnection Notification
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Implements**: -
 
 ### Overview
 
-**Participants** need immediate, clear notification when their mobile Application is disconnected from the sponsor portal. A persistent, non-dismissible notification ensures the **Participant** is always aware of their disconnected state and cannot accidentally or intentionally hide it.
+**Participants** need immediate, clear notification when their *Mobile Application* is disconnected from the *Sponsor* portal. A persistent, non-dismissible notification ensures the **Participant** is always aware of their disconnected state and cannot accidentally or intentionally hide it.
 
-### Definitions
 
-**Disconnection Notification**: A persistent, non-dismissible notification displayed to the **Participant** when their mobile Application is disconnected from the **Sponsor Portal**.
+Disconnection Notification
+: A persistent, non-dismissible notification displayed to the **Participant** when their mobile Application is disconnected from the **Sponsor Portal**.
 
 ### Assertions
 
-A. When a **Participant's** status is **Disconnected**, the System SHALL display a **Disconnection Notification** on the **Main Screen**.
+A. When a ****Participant**'s** status is **Disconnected**, the System SHALL display a **Disconnection Notification** on the **Main Screen**.
 
-B. The **Disconnection Notification** SHALL persist until the **Participant** is reconnected to the **Sponsor Portal**.
+B. The **Disconnection Notification** SHALL persist until the **Participant** is reconnected to the ****Sponsor** Portal**.
 
 C. The **Disconnection Notification** SHALL NOT be dismissible by the **Participant**.
 
-D. The System SHALL support sponsor-configurable message content for the **Disconnection Notification**.
+D. The System SHALL support *Sponsor*-configurable message content for the **Disconnection Notification**.
 
-E. When no sponsor-specific message content is configured, the **Disconnection Notification** SHALL display the following default message: "Your connection with the study has been interrupted. Please contact your study site for assistance."
+E. When no *Sponsor*-specific message content is configured, the **Disconnection Notification** SHALL display the following default message: "Your connection with the study has been interrupted. Please contact your study *Site* for assistance."
 
 ### Rationale
 
-Disconnection is an operational state with clinical-data consequences: data the participant enters while disconnected does not reach the sponsor and may sit unsynced for an indeterminate period. The participant needs to know they are disconnected so they can either resolve it (contact their site for a new linking code) or at minimum understand why their data is not visible to the sponsor. Persistent + non-dismissible is the only display mode that survives the participant's natural impulse to clear unfamiliar notifications: a dismissible disconnection banner would be cleared within minutes by most participants, and the disconnection would then be invisible to them on every subsequent app open. The sponsor-configurable message + default text lets each deployment customize the language (e.g. site contact phone numbers, terminology consistent with the sponsor's other communications) while keeping a working default for deployments that don't configure it.
+Disconnection is an operational state with clinical-data consequences: data the *Participant* enters while disconnected does not reach the *Sponsor* and may sit unsynced for an indeterminate period. The *Participant* needs to know they are disconnected so they can either resolve it (contact their *Site* for a new *Linking Code*) or at minimum understand why their data is not visible to the *Sponsor*. Persistent + non-dismissible is the only display mode that survives the *Participant*'s natural impulse to clear unfamiliar notifications: a dismissible disconnection banner would be cleared within minutes by most participants, and the disconnection would then be invisible to them on every subsequent app open. The *Sponsor*-configurable message + default text lets each deployment customize the language (e.g. *Site* contact phone numbers, terminology consistent with the *Sponsor*'s other communications) while keeping a working default for deployments that don't configure it.
 
 ### Screen reference
 
-See: ![Disconnection Notification](../docs/urs-extracted-images/image-28.png)
+See: ![*Disconnection Notification*](../docs/urs-extracted-images/image-28.png)
 
-*End* *Disconnection Notification* | **Hash**: dd326d38
+*End* *Disconnection Notification* | **Hash**: 8bfa6e58
 
 ## DIARY-GUI-participation-status-badge: Participation Status Badge
 
@@ -128,43 +131,43 @@ See: ![Disconnection Notification](../docs/urs-extracted-images/image-28.png)
 
 ### Overview
 
-The **Participation Status Badge** gives **Participants** a persistent, at-a-glance view of their clinical trial involvement. The badge adapts its display based on the **Participant's** current status so they always know whether they are connected, disconnected, or no longer participating in a study.
+The **Participation Status Badge** gives **Participants** a persistent, at-a-glance view of their clinical *Trial* involvement. The badge adapts its display based on the ****Participant**'s** current status so they always know whether they are connected, disconnected, or no longer participating in a study.
 
-### Definitions
 
-**Participation Status Badge**: The visual component displayed in the Clinical Trial section of the user profile screen showing the **Participant's** current study participation state and associated details.
+Participation Status Badge
+: The visual component displayed in the Clinical Trial section of the user profile screen showing the **Participant's** current study participation state and associated details.
 
 ### Assertions
 
 **Placement**
 
-A. The interface SHALL display the **Participation Status Badge** in the Clinical Trial section of the user profile screen.
+A. The interface SHALL display the **Participation Status Badge** in the Clinical *Trial* section of the *User* profile screen.
 
 **Linked State**
 
-B. When the **Participant's** status is **Linked - Awaiting Start** or **Trial Active**, the **Participation Status Badge** SHALL display the sponsor logo, the **Participant's** linking code, and the date and time the **Participant** joined.
+B. When the ****Participant**'s** status is **Linked - Awaiting Start** or ****Trial** Active**, the **Participation Status Badge** SHALL display the *Sponsor* logo, the ****Participant**'s** *Linking Code*, and the date and time the **Participant** joined.
 
-C. The **Participation Status Badge** SHALL include a link to the **Clinical Trial Privacy Policy** from the moment the Participant links to the study, and the link SHALL remain available thereafter regardless of subsequent status changes.
+C. The **Participation Status Badge** SHALL include a link to the **Clinical Trial Privacy Policy** from the moment the *Participant* links to the study, and the link SHALL remain available thereafter regardless of subsequent status changes.
 
 **Disconnected State**
 
-D. When the **Participant's** status is **Disconnected**, the **Participation Status Badge** SHALL display a warning indicator, the **Participant's** current linking code, and a message that the connection has been interrupted.
+D. When the ****Participant**'s** status is **Disconnected**, the **Participation Status Badge** SHALL display a warning indicator, the ****Participant**'s** current *Linking Code*, and a message that the connection has been interrupted.
 
-E. When the **Participant's** status is **Disconnected**, the **Participation Status Badge** SHALL present an Enter New Linking Code action that navigates the **Participant** to the linking code entry screen.
+E. When the ****Participant**'s** status is **Disconnected**, the **Participation Status Badge** SHALL present an Enter New *Linking Code* *Action* that navigates the **Participant** to the *Linking Code* entry screen.
 
 **Not Participating State**
 
-F. When the **Participant's** status is **Not Participating**, the **Participation Status Badge** SHALL display in an inactive visual style with the end date of participation.
+F. When the ****Participant**'s** status is **Not Participating**, the **Participation Status Badge** SHALL display in an inactive visual style with the end date of participation.
 
 **Automatic Update**
 
-G. The **Participation Status Badge** SHALL update automatically when the **Participant's** status changes.
+G. The **Participation Status Badge** SHALL update automatically when the ****Participant**'s** status changes.
 
-H. The System SHALL support sponsor-configurable display of the sponsor logo on the **Participation Status Badge** when the **Participant's** status is **Not Participating**.
+H. The System SHALL support *Sponsor*-configurable display of the *Sponsor* logo on the **Participation Status Badge** when the ****Participant**'s** status is **Not Participating**.
 
 ### Rationale
 
-The badge consolidates "where do I stand with this study" into a single visual the participant always finds in the same place (Clinical Trial section of the User Profile). Three state variants cover the three operational situations: actively-linked (sponsor logo, linking code, join date — full participation context), disconnected (warning indicator, linking code, Enter New Linking Code action — the recovery path is reachable from the badge itself), and not-participating (inactive style with end date — the badge persists as historical evidence of past participation without competing for attention against current state). The Clinical Trial Privacy Policy link persists across status changes because the policy version the participant consented to is part of their permanent record, and they have a continuing right to retrieve it. Automatic update on status change is the standard freshness guarantee; sponsor-configurable logo display in the Not Participating state lets the deployment decide whether the badge in its end-of-participation state still carries sponsor branding (an end-of-trial communication preference).
+The badge consolidates "where do I stand with this study" into a single visual the *Participant* always finds in the same place (Clinical *Trial* section of the *User* Profile). Three state variants cover the three operational situations: actively-linked (*Sponsor* logo, *Linking Code*, join date — full participation context), disconnected (warning indicator, *Linking Code*, Enter New *Linking Code* *Action* — the recovery path is reachable from the badge itself), and not-participating (inactive style with end date — the badge persists as historical evidence of past participation without competing for attention against current state). The *Clinical *Trial* Privacy Policy* link persists across status changes because the policy version the *Participant* consented to is part of their permanent record, and they have a continuing right to retrieve it. Automatic update on status change is the standard freshness guarantee; *Sponsor*-configurable logo display in the Not Participating state lets the deployment decide whether the badge in its end-of-participation state still carries *Sponsor* branding (an end-of-*Trial* communication preference).
 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
@@ -173,137 +176,137 @@ The badge consolidates "where do I stand with this study" into a single visual t
 > Satisfies) when the need arises. Until that seam exists, this REQ is
 > normative for the Callisto deployment.
 
-*End* *Participation Status Badge* | **Hash**: a6b22a5f
+*End* *Participation Status Badge* | **Hash**: da3fa454
 
 ## DIARY-PRD-notification-incomplete-record-lock: Incomplete Record Lock Warning Notification
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Implements**: -
 
 ### Overview
 
-Once an **Incomplete Record** reaches the Lock Threshold defined in DIARY-PRD-entry-time-restrictions, the Participant cannot complete, edit, or delete it — the record is permanently retained in its incomplete state. To give Participants a final opportunity to act before this irreversible lock, the **System** sends a push notification at a configurable time before the lock fires. This requirement defines the platform mechanism; the trigger offset and notification text are sponsor-configurable.
+Once an **Incomplete Record** reaches the *Lock Threshold* defined in *Diary*-PRD-entry-time-restrictions, the *Participant* cannot complete, edit, or delete it — the record is permanently retained in its incomplete state. To give Participants a final opportunity to act before this irreversible lock, the **System** sends a push notification at a configurable time before the lock fires. This requirement defines the platform mechanism; the trigger offset and notification text are *Sponsor*-configurable.
 
-### Definitions
 
-**Lock Warning Offset**: The configurable elapsed time before the Lock Threshold at which the **System** sends a push notification to the Participant about an **Incomplete Record** that has not been completed or deleted.
+Lock Warning Offset
+: The configurable elapsed time before the Lock Threshold at which the **System** sends a push notification to the Participant about an **Incomplete Record** that has not been completed or deleted.
 
 ### Assertions
 
 **Notification Behavior**
 
-A. The **System** SHALL send a push notification to the Participant when an **Incomplete Record** reaches the Lock Warning Offset before the Lock Threshold defined in DIARY-PRD-entry-time-restrictions.
+A. The **System** SHALL send a push notification to the *Participant* when an **Incomplete Record** reaches the *Lock Warning Offset* before the *Lock Threshold* defined in *Diary*-PRD-entry-time-restrictions.
 
 B. The **System** SHALL send the notification only once per **Incomplete Record**.
 
-C. When a Participant completes or deletes an **Incomplete Record** before the Lock Warning Offset is reached, the **System** SHALL NOT send the notification for that record.
+C. When a *Participant* completes or deletes an **Incomplete Record** before the *Lock Warning Offset* is reached, the **System** SHALL NOT send the notification for that record.
 
 **Configuration**
 
-D. The **System** SHALL support a sponsor-configurable Lock Warning Offset per deployment.
+D. The **System** SHALL support a *Sponsor*-configurable *Lock Warning Offset* per deployment.
 
-E. The **System** SHALL support sponsor-configurable notification text per deployment.
+E. The **System** SHALL support *Sponsor*-configurable notification text per deployment.
 
-F. When the Lock Warning Offset is not configured for a deployment, the **System** SHALL NOT send the notification.
+F. When the *Lock Warning Offset* is not configured for a deployment, the **System** SHALL NOT send the notification.
 
-G. The Lock Warning Offset SHALL be less than the Lock Threshold defined in DIARY-PRD-entry-time-restrictions.
+G. The *Lock Warning Offset* SHALL be less than the *Lock Threshold* defined in *Diary*-PRD-entry-time-restrictions.
 
 ### Rationale
 
-The **Lock Threshold** produces an irreversible state — once exceeded, the **Incomplete Record** is permanently retained in its missing-field state and cannot be completed, edited, or deleted. The lock-warning notification exists because that irreversible outcome benefits from one final participant nudge before it lands; without the warning, a participant who simply forgot about an incomplete record discovers the permanent lock only on next app open, long after they could have done anything about it. Once-per-record (assertion B) prevents notification spam from a single long-lingering record; suppression on completion or deletion before the warning offset (assertion C) avoids notifying about records the participant has already resolved. The opt-out semantics (not configured = no notification) and the Lock-Warning-less-than-Lock-Threshold invariant compose with the parent **Entry Time Restrictions** REQ — if a deployment hasn't configured the parent thresholds, the warning has no boundary to anchor to and is therefore not sent.
+The **Lock Threshold** produces an irreversible state — once exceeded, the **Incomplete Record** is permanently retained in its missing-field state and cannot be completed, edited, or deleted. The lock-warning notification exists because that irreversible outcome benefits from one final *Participant* nudge before it lands; without the warning, a *Participant* who simply forgot about an *Incomplete Record* discovers the permanent lock only on next app open, long after they could have done anything about it. Once-per-record (assertion B) prevents notification spam from a single long-lingering record; suppression on completion or deletion before the warning offset (assertion C) avoids notifying about records the *Participant* has already resolved. The opt-out semantics (not configured = no notification) and the Lock-Warning-less-than-Lock-Threshold invariant compose with the parent **Entry Time Restrictions** REQ — if a deployment hasn't configured the parent thresholds, the warning has no boundary to anchor to and is therefore not sent.
 
-*End* *Incomplete Record Lock Warning Notification* | **Hash**: f3bfa7b3
+*End* *Incomplete Record Lock Warning Notification* | **Hash**: 304d6ab8
 
 ## DIARY-PRD-notification-portal-sent-questionnaire: Portal-Sent Questionnaire Notification
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Implements**: -
 
 ### Overview
 
-When a **Study Coordinator** sends a **Portal-Sent Questionnaire** from the Sponsor Portal, the **Participant** must be made aware that a new questionnaire is available for completion. A push notification serves as the awareness mechanism. The Questionnaire Task on the **Main Screen** provides the **Participant**'s entry point into the questionnaire flow once the application is open.
+When a **Study Coordinator** sends a **Portal-Sent **Questionnaire**** from the *Sponsor* Portal, the **Participant** must be made aware that a new *Questionnaire* is available for completion. A push notification serves as the awareness mechanism. The ***Questionnaire** Task* on the **Main Screen** provides the **Participant**'s entry point into the *Questionnaire* flow once the application is open.
 
 ### Assertions
 
 **Trigger**
 
-A. When a **Portal-Sent Questionnaire** is successfully delivered to the **Mobile Application**, the System SHALL deliver a **Push Notification** to the **Participant**.
+A. When a **Portal-Sent **Questionnaire**** is successfully delivered to the **Mobile Application**, the System SHALL deliver a **Push Notification** to the **Participant**.
 
 **Offline Delivery**
 
-B. When the **Mobile Application** is offline at the time a **Portal-Sent Questionnaire** is sent, the System SHALL deliver the **Push Notification** when the **Mobile Application** next establishes connectivity.
+B. When the **Mobile Application** is offline at the time a **Portal-Sent **Questionnaire**** is sent, the System SHALL deliver the **Push Notification** when the **Mobile Application** next establishes connectivity.
 
 **Suppression**
 
-C. The System SHALL NOT deliver a **Push Notification** for a **Portal-Sent Questionnaire** that has already been submitted by the **Participant**.
+C. The System SHALL NOT deliver a **Push Notification** for a **Portal-Sent **Questionnaire**** that has already been submitted by the **Participant**.
 
-D. The System SHALL NOT deliver a **Push Notification** for a **Portal-Sent Questionnaire** that has been called back by the **Study Coordinator**.
+D. The System SHALL NOT deliver a **Push Notification** for a **Portal-Sent **Questionnaire**** that has been called back by the **Study Coordinator**.
 
 ### Rationale
 
-The push notification is the participant's awareness signal that a new **Portal-Sent Questionnaire** is waiting; without it, the participant would discover the questionnaire only when they happen to open the app, which can extend the response window beyond what the **Study Coordinator** intended. Trigger-on-delivery (rather than trigger-on-send-from-portal) is the correct boundary because delivery is what actually puts the questionnaire on the participant's device; sending from the portal to an offline device is a sponsor-side action that has no participant-side effect yet. Offline-deferred delivery follows the cross-cutting notification template — the OS deferred-delivery mechanism is sufficient for the nudge purpose. Submission and call-back suppression closes the two cases where the notification would be misleading: a questionnaire already submitted no longer needs the participant's attention, and a called-back questionnaire is no longer assigned to them and a notification would invite wasted effort on an inactive questionnaire.
+The push notification is the *Participant*'s awareness signal that a new **Portal-Sent **Questionnaire**** is waiting; without it, the *Participant* would discover the *Questionnaire* only when they happen to open the app, which can extend the response window beyond what the **Study Coordinator** intended. Trigger-on-delivery (rather than trigger-on-send-from-portal) is the correct boundary because delivery is what actually puts the *Questionnaire* on the *Participant*'s device; sending from the portal to an offline device is a *Sponsor*-side *Action* that has no *Participant*-side effect yet. Offline-deferred delivery follows the cross-cutting notification template — the OS deferred-delivery mechanism is sufficient for the nudge purpose. *Submission* and call-back suppression closes the two cases where the notification would be misleading: a *Questionnaire* already submitted no longer needs the *Participant*'s attention, and a called-back *Questionnaire* is no longer assigned to them and a notification would invite wasted effort on an inactive *Questionnaire*.
 
 ### Screen reference
 
-See: ![Portal-Sent Questionnaire Notification](../docs/urs-extracted-images/image-29.png)
+See: ![Portal-Sent *Questionnaire* Notification](../docs/urs-extracted-images/image-29.png)
 
-*End* *Portal-Sent Questionnaire Notification* | **Hash**: 0346a456
+*End* *Portal-Sent Questionnaire Notification* | **Hash**: 9aa01b76
 
 ## DIARY-PRD-notification-yesterday-entry: Yesterday Entry Reminder Notification
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Implements**: -
 
 ### Overview
 
-Clinical trial data completeness under ALCOA+ principles requires a **Daily Status** for each calendar day in the diary period. A daily reminder fired at a configured time of day prompts the **Participant** to review the previous day and respond via the Yesterday Reminder Task on the **Main Screen**.
+Clinical *Trial* data completeness under ALCOA+ principles requires a **Daily Status** for each *Calendar* day in the *Diary* period. A daily reminder fired at a configured time of day prompts the **Participant** to review the previous day and respond via the *Yesterday Reminder Task* on the **Main Screen**.
 
-### Definitions
 
-**Reminder Time**: The configurable time of day, in the **Participant**'s local timezone, at which the Yesterday Entry Reminder Notification is delivered.
+Reminder Time
+: The configurable time of day, in the **Participant**'s local timezone, at which the Yesterday Entry Reminder Notification is delivered.
 
 ### Assertions
 
 **Trigger**
 
-A. The System SHALL deliver a **Push Notification** at the **Reminder Time** when no **Daily Status** has been recorded for the previous calendar day.
+A. The System SHALL deliver a **Push Notification** at the **Reminder Time** when no **Daily Status** has been recorded for the previous *Calendar* day.
 
 **Timezone**
 
 B. The System SHALL evaluate the **Reminder Time** against the **Participant**'s device local timezone.
 
-C. The System SHALL evaluate "the previous calendar day" against the **Participant**'s device local timezone.
+C. The System SHALL evaluate "the previous *Calendar* day" against the **Participant**'s device local timezone.
 
 **Suppression**
 
-D. The System SHALL NOT deliver the **Push Notification** when a **Daily Status** has been recorded for the previous calendar day.
+D. The System SHALL NOT deliver the **Push Notification** when a **Daily Status** has been recorded for the previous *Calendar* day.
 
-E. The System SHALL deliver at most one Yesterday Entry Reminder Notification per calendar day.
+E. The System SHALL deliver at most one Yesterday Entry Reminder Notification per *Calendar* day.
 
 **Configuration**
 
-F. The System SHALL support sponsor-configurable **Reminder Time** per deployment.
+F. The System SHALL support *Sponsor*-configurable **Reminder Time** per deployment.
 
 ### Rationale
 
-ALCOA+ Complete principle requires a **Daily Status** for every day in the diary period; the Yesterday Entry Reminder is the platform's mechanism for prompting participants to maintain completeness day-by-day rather than discovering large gaps weeks later. Local-timezone evaluation (both for the **Reminder Time** and for "previous calendar day") is essential because participants travel — a UTC-anchored reminder would fire at unpredictable local times for a participant who has moved across timezones, undermining the time-of-day intent. Sponsor-configurable **Reminder Time** lets each deployment select a delivery time appropriate to its participant population (e.g. morning for a working-age population). Once-per-day cap (assertion E) prevents pathological repeat-fires; suppression-on-status-recorded prevents the notification from arriving after the participant has already addressed the yesterday gap via the Task List or Calendar.
+ALCOA+ Complete principle requires a **Daily Status** for every day in the *Diary* period; the Yesterday Entry Reminder is the platform's mechanism for prompting participants to maintain completeness day-by-day rather than discovering large gaps weeks later. Local-timezone evaluation (both for the **Reminder Time** and for "previous *Calendar* day") is essential because participants travel — a UTC-anchored reminder would fire at unpredictable local times for a *Participant* who has moved across timezones, undermining the time-of-day intent. *Sponsor*-configurable **Reminder Time** lets each deployment select a delivery time appropriate to its *Participant* population (e.g. morning for a working-age population). Once-per-day cap (assertion E) prevents pathological repeat-fires; suppression-on-status-recorded prevents the notification from arriving after the *Participant* has already addressed the yesterday gap via the *Task List* or *Calendar*.
 
 ### Screen reference
 
 See: ![Yesterday Entry Reminder Notification](../docs/urs-extracted-images/image-30.png)
 
-*End* *Yesterday Entry Reminder Notification* | **Hash**: 85edd14a
+*End* *Yesterday Entry Reminder Notification* | **Hash**: 7c39d944
 
 ## DIARY-PRD-notification-ongoing-epistaxis: Ongoing Epistaxis Event Reminder
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Implements**: -
 
 ### Overview
 
 A **Participant** who starts recording an **Epistaxis Event** but does not complete the record may forget to return and capture the end time, resulting in inaccurate duration data. A configured sequence of escalating reminders prompts the **Participant** to complete the record or confirm it is still ongoing. Once the sequence has fired, no further reminders are sent.
 
-The **Participant** may configure their own reminder schedule for personal use. A sponsor-configured schedule overrides the personal setting for the duration of a clinical trial.
+The **Participant** may configure their own *Reminder Schedule* for personal use. A *Sponsor*-configured schedule overrides the personal setting for the duration of a clinical *Trial*.
 
-### Definitions
 
-**Reminder Schedule**: An ordered list of elapsed-time intervals defining the timing of successive reminder notifications for an Incomplete Record. Each interval is measured from the time of the previous notification, with the first interval measured from the Participant's most recent interaction with the record.
+Reminder Schedule
+: An ordered list of elapsed-time intervals defining the timing of successive reminder notifications for an Incomplete Record. Each interval is measured from the time of the previous notification, with the first interval measured from the Participant's most recent interaction with the record.
 
 ### Assertions
 
@@ -331,70 +334,71 @@ G. The default **Reminder Schedule** for the **Mobile Application** SHALL be emp
 
 H. The **System** SHALL allow a **Participant** to configure their own **Reminder Schedule** in **Mobile Application** settings.
 
-I. The **System** SHALL support sponsor-configurable **Reminder Schedule** per deployment.
+I. The **System** SHALL support *Sponsor*-configurable **Reminder Schedule** per deployment.
 
-J. When a sponsor-configured **Reminder Schedule** is in effect, the **System** SHALL apply the sponsor-configured schedule and SHALL NOT apply the **Participant**'s personally configured schedule.
+J. When a *Sponsor*-configured **Reminder Schedule** is in effect, the **System** SHALL apply the *Sponsor*-configured schedule and SHALL NOT apply the **Participant**'s personally configured schedule.
 
 ### Rationale
 
-A nosebleed event captured with an accurate start time but a missing or wildly-late end time produces unreliable duration data — one of the three primary outcome measures. The Ongoing Epistaxis Event Reminder addresses the natural failure mode where the participant starts the record at the moment the nosebleed begins, then forgets to return when it stops because their attention has moved on. An escalating schedule (intervals measured from previous notification) gives the participant a reasonable chance to respond without saturating their notification surface — once the final interval has fired and no response landed, further nudging is unlikely to help and the data will be flagged via the **Incomplete Records Task** anyway. Reset-on-interaction (assertion D) restarts the schedule when the participant touches the record, on the inference that they are now engaged again and a fresh sequence is the right cadence. Sponsor override of the participant's personal schedule (assertion J) reflects the clinical-trial priority: while participating in a study, the sponsor's clinical protocol drives the reminder cadence; outside a trial, the participant controls their own experience. Empty default (assertion G) is the right "no policy yet" state — a deployment that has not configured a schedule produces no reminders rather than guessing at intervals.
+A nosebleed event captured with an accurate start time but a missing or wildly-late end time produces unreliable duration data — one of the three primary outcome measures. The Ongoing *Epistaxis Event* Reminder addresses the natural failure mode where the *Participant* starts the record at the moment the nosebleed begins, then forgets to return when it stops because their attention has moved on. An escalating schedule (intervals measured from previous notification) gives the *Participant* a reasonable chance to respond without saturating their notification surface — once the final interval has fired and no response landed, further nudging is unlikely to help and the data will be flagged via the **Incomplete Records Task** anyway. Reset-on-interaction (assertion D) restarts the schedule when the *Participant* touches the record, on the inference that they are now engaged again and a fresh sequence is the right cadence. *Sponsor* override of the *Participant*'s personal schedule (assertion J) reflects the clinical-*Trial* priority: while participating in a study, the *Sponsor*'s clinical protocol drives the reminder cadence; outside a *Trial*, the *Participant* controls their own experience. Empty default (assertion G) is the right "no policy yet" state — a deployment that has not configured a schedule produces no reminders rather than guessing at intervals.
 
 ### Screen reference
 
-See: ![Ongoing Epistaxis Event Reminder](../docs/urs-extracted-images/image-31.png)
+See: ![Ongoing *Epistaxis Event* Reminder](../docs/urs-extracted-images/image-31.png)
 
-*End* *Ongoing Epistaxis Event Reminder* | **Hash**: 197fcd05
+*End* *Ongoing Epistaxis Event Reminder* | **Hash**: 8b8197fb
 
 ## DIARY-PRD-notification-historical-gap: Historical Gap Reminder
 
-**Level**: prd | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Implements**: -
 
 ### Overview
 
-The Historical Gap Reminder addresses missing **Daily Status** entries on days older than yesterday but still within the editable window.
+The *Historical Gap* Reminder addresses missing **Daily Status** entries on days older than yesterday but still within the editable window.
 
-### Definitions
 
-**Historical Gap**: A calendar day between the **Diary Start Day** and the current day, exclusive of the current day and the previous day, for which the **Participant** has not recorded a **Daily Status**.
+Historical Gap
+: A calendar day between the **Diary Start Day** and the current day, exclusive of the current day and the previous day, for which the **Participant** has not recorded a **Daily Status**.
 
-**Historical Gap Reminder**: A daily **Push Notification** delivered to the **Participant** prompting them to address one or more **Historical Gaps**.
+Historical Gap Reminder
+: A daily **Push Notification** delivered to the **Participant** prompting them to address one or more **Historical Gaps**.
 
 ### Assertions
 
 **Trigger**
 
-A. The **System** SHALL evaluate, once per calendar day at the configured **Reminder Time**, whether the **Participant** has any **Historical Gap** within the editable window.
+A. The **System** SHALL evaluate, once per *Calendar* day at the configured **Reminder Time**, whether the **Participant** has any **Historical Gap** within the editable window.
 
-B. When the **Participant** has at least one **Historical Gap** within the editable window, the **System** SHALL deliver a **Historical Gap Reminder** to the **Participant**.
+B. When the **Participant** has at least one **Historical Gap** within the editable window, the **System** SHALL deliver a ****Historical Gap** Reminder** to the **Participant**.
 
-C. The **System** SHALL deliver at most one **Historical Gap Reminder** per calendar day.
+C. The **System** SHALL deliver at most one ****Historical Gap** Reminder** per *Calendar* day.
 
 **Editable Window**
 
 D. The **System** SHALL exclude from the **Historical Gap** evaluation any day for which the elapsed time has exceeded the **Lock Threshold**.
 
-E. In linked use mode, the **System** SHALL exclude from the **Historical Gap** evaluation any day before the trial start date.
+E. In linked use mode, the **System** SHALL exclude from the **Historical Gap** evaluation any day before the ***Trial** Start* date.
 
 **Mode-Dependent Default**
 
-F. In personal use mode, the **Historical Gap Reminder** SHALL be disabled by default.
+F. In personal use mode, the ****Historical Gap** Reminder** SHALL be disabled by default.
 
-G. In personal use mode, the **System** SHALL allow the **User** to enable or disable the **Historical Gap Reminder** from the Mobile Application settings.
+G. In personal use mode, the **System** SHALL allow the **User** to enable or disable the ****Historical Gap** Reminder** from the *Mobile Application* settings.
 
-H. In linked use mode, the **Historical Gap Reminder** SHALL be enabled by default.
+H. In linked use mode, the ****Historical Gap** Reminder** SHALL be enabled by default.
 
 **Configuration**
 
-I. The **System** SHALL support sponsor-configurable **Reminder Time** per deployment.
+I. The **System** SHALL support *Sponsor*-configurable **Reminder Time** per deployment.
 
-J. The **System** SHALL support sponsor-configurable notification text per deployment.
+J. The **System** SHALL support *Sponsor*-configurable notification text per deployment.
 
 ### Rationale
 
-Historical gaps (days within the diary period that have no **Daily Status**) accumulate when a participant misses the Yesterday Entry Reminder window across multiple days; without a separate prompt, those gaps stay invisible to the participant unless they happen to open the Calendar. The Historical Gap Reminder is the platform's once-daily nudge to address them, evaluated at the same configured **Reminder Time** as the Yesterday reminder so the participant gets a coherent daily reminder cadence. The editable-window exclusion (assertions D and E) prevents the reminder from prompting action on dates the participant can no longer modify — locked dates and pre-trial-start dates have no action available. The mode-dependent default (disabled in personal use, enabled in linked use) reflects the difference in motivation: a personal-use user has no external party expecting their data and may not want pressure to backfill; a linked **Participant** is held to a clinical-trial completeness standard. The participant retains the ability to override the default in personal mode (assertion G), while linked mode applies the sponsor-configured behavior.
+Historical gaps (days within the *Diary* period that have no **Daily Status**) accumulate when a *Participant* misses the Yesterday Entry Reminder window across multiple days; without a separate prompt, those gaps stay invisible to the *Participant* unless they happen to open the *Calendar*. The *Historical Gap* Reminder is the platform's once-daily nudge to address them, evaluated at the same configured **Reminder Time** as the Yesterday reminder so the *Participant* gets a coherent daily reminder cadence. The editable-window exclusion (assertions D and E) prevents the reminder from prompting *Action* on dates the *Participant* can no longer modify — locked dates and pre-*Trial*-start dates have no *Action* available. The mode-dependent default (disabled in personal use, enabled in linked use) reflects the difference in motivation: a personal-use *User* has no external party expecting their data and may not want pressure to backfill; a linked **Participant** is held to a clinical-*Trial* completeness standard. The *Participant* retains the ability to override the default in personal mode (assertion G), while linked mode applies the *Sponsor*-configured behavior.
 
 ### Screen reference
 
-See: ![Historical Gap Reminder](../docs/urs-extracted-images/image-32.png)
+See: ![*Historical Gap* Reminder](../docs/urs-extracted-images/image-32.png)
 
-*End* *Historical Gap Reminder* | **Hash**: afad7d55
+*End* *Historical Gap Reminder* | **Hash**: b6094130

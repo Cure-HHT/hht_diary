@@ -1,15 +1,15 @@
 # Service Level Agreement
 
-Service-level commitments the Diary Platform makes to sponsors regarding availability, incident handling, disaster recovery, and regulatory event support. These obligations are sponsor-visible (PRD-level audience) and underpinned by operational obligations in `ops-platform-operations.md` and related OPS-level specs.
+Service-level commitments the *Diary* Platform makes to sponsors regarding availability, incident handling, disaster recovery, and regulatory event support. These obligations are *Sponsor*-visible (PRD-level audience) and underpinned by operational obligations in `ops-platform-operations.md` and related OPS-level specs.
 
 ## DIARY-PRD-sla-service-availability: Service Availability Commitment
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-platform-operations-monitoring-G+H
 
 ### Rationale
 
-99.9% uptime (~43 minutes monthly downtime) is industry standard for healthcare SaaS platforms requiring 24/7 availability. This commitment balances reliability with operational feasibility for a clinical trial platform. The requirement establishes clear service level expectations for sponsors and participants, ensuring the platform maintains sufficient availability for clinical trial operations while allowing for necessary maintenance windows and circumstances beyond operational control.
+99.9% uptime (~43 minutes monthly downtime) is industry standard for healthcare SaaS platforms requiring 24/7 availability. This commitment balances reliability with operational feasibility for a clinical *Trial* platform. The requirement establishes clear service level expectations for sponsors and participants, ensuring the platform maintains sufficient availability for clinical *Trial* operations while allowing for necessary maintenance windows and circumstances beyond operational control.
 
 ### Assertions
 
@@ -21,7 +21,7 @@ C. The availability commitment SHALL include mobile app synchronization API avai
 
 D. The availability commitment SHALL include authentication service availability.
 
-E. The availability commitment SHALL include database connectivity for read/write operations.
+E. The availability commitment SHALL include *Database* connectivity for read/write operations.
 
 F. Uptime percentage SHALL be calculated as (Total Minutes in Month - Downtime Minutes) / Total Minutes in Month × 100.
 
@@ -31,11 +31,11 @@ H. Force majeure events, including natural disasters and widespread internet out
 
 I. Customer-caused outages or failures SHALL be excluded from downtime calculation.
 
-J. Beta or trial services SHALL be excluded from downtime calculation.
+J. Beta or *Trial* services SHALL be excluded from downtime calculation.
 
-K. The system SHALL measure uptime monthly per sponsor.
+K. The system SHALL measure uptime monthly per *Sponsor*.
 
-L. The system SHALL report uptime monthly per sponsor.
+L. The system SHALL report uptime monthly per *Sponsor*.
 
 M. The system SHALL perform automated uptime monitoring with 60-second check intervals.
 
@@ -43,22 +43,22 @@ N. Uptime reports SHALL be available to sponsors on request.
 
 O. Historical uptime data SHALL be retained for 2 years.
 
-*End* *Service Availability Commitment* | **Hash**: d39861a9
+*End* *Service Availability Commitment* | **Hash**: 927e10e8
 
 ## DIARY-PRD-sla-incident-severity: Incident Severity Classification
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-platform-operations-monitoring-E+F
 
 ### Rationale
 
-Standardized severity classification ensures consistent prioritization, appropriate resource allocation, and clear customer expectations for incident handling. This requirement establishes a four-tier severity model that aligns response timelines, escalation procedures, and customer communications with the actual business and patient safety impact of service incidents. The classification system enables operational teams to make rapid triage decisions while providing stakeholders with predictable expectations for incident resolution.
+Standardized severity classification ensures consistent prioritization, appropriate resource allocation, and clear customer expectations for incident handling. This requirement establishes a four-tier severity model that aligns response timelines, escalation procedures, and customer communications with the actual business and *Patient* safety impact of service incidents. The classification system enables operational teams to make rapid triage decisions while providing stakeholders with predictable expectations for incident *Resolution*.
 
 ### Assertions
 
 A. The system SHALL classify all service incidents by severity level.
 
-B. The system SHALL support a Critical (P0) severity level for complete service loss or security events with active exploitation, data breach, or risk to patient safety where no workaround is available.
+B. The system SHALL support a Critical (P0) severity level for complete service loss or security events with active exploitation, data breach, or risk to *Patient* safety where no workaround is available.
 
 C. The system SHALL support a High (P1) severity level for significant service degradation or security events with high exploitation likelihood where partial workarounds may exist.
 
@@ -66,7 +66,7 @@ D. The system SHALL support a Medium (P2) severity level for moderate impact to 
 
 E. The system SHALL support a Low (P3) severity level for minor impact, cosmetic issues, or negligible security risk with no immediate operational threat.
 
-F. Critical (P0) severity SHALL include incidents such as database down, authentication failure, data corruption, or active security breach.
+F. Critical (P0) severity SHALL include incidents such as *Database* down, authentication failure, data corruption, or active security breach.
 
 G. High (P1) severity SHALL include incidents such as slow response times exceeding 10 seconds, sync failures for subset of users, or elevated error rates.
 
@@ -86,16 +86,16 @@ N. The system SHALL allow severity levels to be upgraded with documented justifi
 
 O. The system SHALL allow severity levels to be downgraded with documented justification.
 
-*End* *Incident Severity Classification* | **Hash**: d1734735
+*End* *Incident Severity Classification* | **Hash**: 7df14fc7
 
 ## DIARY-PRD-sla-incident-response-times: Incident Response Times
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-incident-severity-A+K
 
 ### Rationale
 
-Defined response times set clear expectations for customers and ensure appropriate urgency in incident handling. Resolution timelines account for complexity while maintaining accountability. This requirement establishes service level commitments for incident management, ensuring that incidents are acknowledged and resolved within timeframes appropriate to their severity. The tiered approach balances customer expectations with practical considerations of incident complexity, while tracking and reporting mechanisms ensure organizational accountability.
+Defined response times set clear expectations for customers and ensure appropriate urgency in incident handling. *Resolution* timelines account for complexity while maintaining accountability. This requirement establishes service level commitments for incident management, ensuring that incidents are acknowledged and resolved within timeframes appropriate to their severity. The tiered approach balances customer expectations with practical considerations of incident complexity, while tracking and reporting mechanisms ensure organizational accountability.
 
 ### Assertions
 
@@ -123,31 +123,31 @@ K. Initial response SHALL include a preliminary impact assessment.
 
 L. Initial response SHALL include the timeline for next communication.
 
-M. Resolution SHALL include restoration of service to normal operation.
+M. *Resolution* SHALL include restoration of service to normal operation.
 
-N. Resolution SHALL include identification of root cause for Critical (P0) incidents.
+N. *Resolution* SHALL include identification of root cause for Critical (P0) incidents.
 
-O. Resolution SHALL include identification of root cause for High (P1) incidents.
+O. *Resolution* SHALL include identification of root cause for High (P1) incidents.
 
-P. Resolution SHALL include preventive measures that are either implemented or scheduled.
+P. *Resolution* SHALL include preventive measures that are either implemented or scheduled.
 
 Q. The system SHALL track response time from incident detection to first customer communication.
 
-R. The system SHALL track resolution time from incident detection to service restoration.
+R. The system SHALL track *Resolution* time from incident detection to service restoration.
 
 S. The platform SHALL report SLA compliance monthly.
 
-T. The system SHALL trigger escalation when approaching response or resolution deadlines.
+T. The system SHALL trigger escalation when approaching response or *Resolution* deadlines.
 
-*End* *Incident Response Times* | **Hash**: 40fb577e
+*End* *Incident Response Times* | **Hash**: 4dd5aa45
 
 ## DIARY-PRD-sla-disaster-recovery: Disaster Recovery Objectives
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Implements**: -
 
 ### Rationale
 
-This requirement ensures business continuity for clinical trial operations through defined disaster recovery capabilities. The 4-hour RPO (Recovery Point Objective) aligns with backup frequency to minimize data loss in FDA-regulated environments, while the 24-hour RTO (Recovery Time Objective) allows for thorough recovery verification required for regulated systems. Regular drills and documented procedures ensure preparedness for actual disaster scenarios, and timely sponsor communication maintains transparency during incidents.
+This requirement ensures business continuity for clinical *Trial* operations through defined disaster recovery capabilities. The 4-hour RPO (Recovery Point Objective) aligns with backup frequency to minimize data loss in FDA-regulated environments, while the 24-hour RTO (Recovery Time Objective) allows for thorough recovery verification required for regulated systems. Regular drills and documented procedures ensure preparedness for actual disaster scenarios, and timely *Sponsor* communication maintains transparency during incidents.
 
 > **TODO (URS-Phase-3 reconciliation):** Original Refines target REQ-p00012 (Clinical Data Retention Requirements) is in URS-replaced prd-clinical-trials.md. Re-parent to the URS-derived clinical-trials REQ when that lands.
 
@@ -157,7 +157,7 @@ A. The platform SHALL maintain a Recovery Time Objective (RTO) of 24 hours for f
 
 B. The platform SHALL maintain a Recovery Point Objective (RPO) of 4 hours representing the maximum acceptable data loss window.
 
-C. The platform SHALL support point-in-time database recovery within the RPO window.
+C. The platform SHALL support point-in-time *Database* recovery within the RPO window.
 
 D. The platform SHALL support service restoration to alternate infrastructure when needed.
 
@@ -177,16 +177,16 @@ K. Recovery procedures SHALL be documented.
 
 L. The platform SHALL notify sponsors within 1 hour of disaster declaration.
 
-*End* *Disaster Recovery Objectives* | **Hash**: 6b076a50
+*End* *Disaster Recovery Objectives* | **Hash**: 7f50d1de
 
 ## DIARY-PRD-sla-customer-notification: Customer Incident Notification
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-incident-severity-M
 
 ### Rationale
 
-Proactive customer communication maintains trust and allows sponsors to inform their study teams about system incidents. Transparent incident notification is essential for FDA-regulated clinical trial environments where sponsors have regulatory oversight responsibilities and must maintain awareness of any issues affecting data collection or system availability. Timely and structured notifications enable sponsors to take appropriate actions, such as informing study coordinators or documenting potential impacts on trial conduct.
+Proactive customer communication maintains trust and allows sponsors to inform their study teams about system incidents. Transparent incident notification is essential for FDA-regulated clinical *Trial* environments where sponsors have regulatory oversight responsibilities and must maintain awareness of any issues affecting data collection or system availability. Timely and structured notifications enable sponsors to take appropriate actions, such as informing study coordinators or documenting potential impacts on *Trial* conduct.
 
 ### Assertions
 
@@ -212,7 +212,7 @@ J. Incident notifications SHALL include the impact scope identifying affected fu
 
 K. Incident notifications SHALL include the current status as one of: investigating, identified, monitoring, or resolved.
 
-L. Incident notifications SHALL include the estimated time to resolution when such estimate is known.
+L. Incident notifications SHALL include the estimated time to *Resolution* when such estimate is known.
 
 M. Incident notifications SHALL include the timeline for the next update.
 
@@ -228,16 +228,16 @@ R. The system SHALL report on notification timing metrics.
 
 S. The system SHALL provide subscriber management functionality for status update notifications.
 
-*End* *Customer Incident Notification* | **Hash**: 3ca3df0f
+*End* *Customer Incident Notification* | **Hash**: 93c0d962
 
 ## DIARY-PRD-sla-root-cause-analysis: Root Cause Analysis
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-incident-response-times-N+O
 
 ### Rationale
 
-Root cause analysis prevents recurring incidents and demonstrates due diligence for regulatory compliance. The systematic investigation of significant incidents ensures that underlying causes are identified and addressed, reducing the likelihood of recurrence. This documentation supports sponsor audit requirements, demonstrates continuous improvement efforts, and maintains compliance with FDA 21 CFR Part 11 record retention requirements.
+Root cause analysis prevents recurring incidents and demonstrates due diligence for regulatory compliance. The systematic investigation of significant incidents ensures that underlying causes are identified and addressed, reducing the likelihood of recurrence. This documentation supports *Sponsor* audit requirements, demonstrates continuous improvement efforts, and maintains compliance with *FDA 21 CFR Part 11* record retention requirements.
 
 ### Assertions
 
@@ -249,7 +249,7 @@ C. The system SHALL support summary RCA documentation for Medium (P2) incidents 
 
 D. The system SHALL NOT require RCA documentation for Low (P3) incidents.
 
-E. RCA documentation SHALL include an incident timeline from detection to resolution.
+E. RCA documentation SHALL include an incident timeline from detection to *Resolution*.
 
 F. RCA documentation SHALL include root cause identification.
 
@@ -271,24 +271,24 @@ N. The system SHALL track RCA delivery against defined timelines.
 
 O. The system SHALL archive RCAs for 7 years.
 
-*End* *Root Cause Analysis* | **Hash**: 0778e3bb
+*End* *Root Cause Analysis* | **Hash**: 87437223
 
 ## DIARY-PRD-sla-corrective-preventive: Corrective and Preventive Action
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-root-cause-analysis-I+J
 
 ### Rationale
 
-CAPA (Corrective and Preventive Action) processes are a cornerstone of FDA quality management systems for regulated software. By establishing formal processes to respond to incidents affecting data integrity or regulatory compliance, the system demonstrates a commitment to continuous improvement and proactive risk management. This requirement aligns with FDA expectations for quality systems under 21 CFR Part 820 (Quality System Regulation) and ICH Q9 (Quality Risk Management). CAPA processes provide sponsors with confidence that issues are systematically addressed through root cause analysis, implementation of corrective actions, and verification of effectiveness. The documentation and tracking requirements ensure transparency and accountability throughout the remediation lifecycle.
+CAPA (Corrective and Preventive *Action*) processes are a cornerstone of FDA quality management systems for regulated software. By establishing formal processes to respond to incidents affecting data integrity or regulatory compliance, the system demonstrates a commitment to continuous improvement and proactive risk management. This requirement aligns with FDA expectations for quality systems under 21 CFR Part 820 (Quality System Regulation) and ICH Q9 (Quality Risk Management). CAPA processes provide sponsors with confidence that issues are systematically addressed through root cause analysis, implementation of corrective actions, and verification of effectiveness. The documentation and tracking requirements ensure transparency and accountability throughout the remediation lifecycle.
 
 ### Assertions
 
-A. The system SHALL trigger a Corrective and Preventive Action (CAPA) process for all incidents affecting data integrity or regulatory compliance.
+A. The system SHALL trigger a Corrective and Preventive *Action* (CAPA) process for all incidents affecting data integrity or regulatory compliance.
 
 B. The system SHALL initiate CAPA within 72 hours of incident confirmation.
 
-C. CAPA documentation SHALL be made available to the sponsor for audit purposes.
+C. CAPA documentation SHALL be made available to the *Sponsor* for audit purposes.
 
 D. The system SHALL document effectiveness verification within 30 days of CAPA implementation.
 
@@ -312,20 +312,20 @@ M. The system SHALL initiate CAPA for all P1 incidents affecting data integrity.
 
 N. The system SHALL maintain a CAPA tracking system.
 
-O. CAPA status SHALL be visible to the sponsor upon request.
+O. CAPA status SHALL be visible to the *Sponsor* upon request.
 
 P. The system SHALL perform an annual CAPA effectiveness review.
 
-*End* *Corrective and Preventive Action* | **Hash**: f2c78d76
+*End* *Corrective and Preventive Action* | **Hash**: 168ba70d
 
 ## DIARY-PRD-sla-data-recovery: Data Recovery Guarantee
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-disaster-recovery-A+B+C
 
 ### Rationale
 
-Data recovery guarantees are critical for maintaining clinical trial integrity and regulatory compliance when disaster scenarios occur. This requirement ensures that sponsors can fulfill their obligations to regulatory authorities (FDA, EMA) to maintain complete and accurate trial records, even after data loss or corruption events. The no-cost guarantee protects sponsors from financial exposure during recovery operations. Clear communication protocols support sponsor responsibilities under 21 CFR Part 11 and ICH-GCP to document and report data integrity incidents. Recovery procedures must be tested and documented to demonstrate preparedness during regulatory audits.
+Data recovery guarantees are critical for maintaining clinical *Trial* integrity and regulatory compliance when disaster scenarios occur. This requirement ensures that sponsors can fulfill their obligations to regulatory authorities (FDA, EMA) to maintain complete and accurate *Trial* records, even after data loss or corruption events. The no-cost guarantee protects sponsors from financial exposure during recovery operations. Clear communication protocols support *Sponsor* responsibilities under 21 CFR Part 11 and ICH-GCP to document and report data integrity incidents. Recovery procedures must be tested and documented to demonstrate preparedness during regulatory audits.
 
 ### Assertions
 
@@ -345,7 +345,7 @@ G. Recovery communication SHALL include the recovery actions taken.
 
 H. Recovery communication SHALL include data verification results.
 
-I. Recovery communication SHALL include recommendations for sponsor regulatory notification.
+I. Recovery communication SHALL include recommendations for *Sponsor* regulatory notification.
 
 J. Recovery procedures SHALL be documented.
 
@@ -353,18 +353,18 @@ K. Recovery procedures SHALL be tested.
 
 L. The platform SHALL use a recovery verification checklist post-recovery.
 
-M. Recovery documentation SHALL be suitable for regulatory submission.
+M. Recovery documentation SHALL be suitable for regulatory *Submission*.
 
-*End* *Data Recovery Guarantee* | **Hash**: 5909fb2b
+*End* *Data Recovery Guarantee* | **Hash**: 963e3dde
 
 ## DIARY-PRD-sla-chronic-failure-escalation: Chronic Failure Escalation
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-service-availability-A
 
 ### Rationale
 
-Chronic failure provisions protect sponsors from persistent service degradation and provide clear accountability for sustained reliability issues. This requirement establishes contractual safeguards when service reliability consistently falls below acceptable thresholds, defining specific uptime criteria that trigger escalation processes, mandatory remediation timelines, and sponsor exit rights. The provisions ensure that sponsors have recourse when platform reliability problems persist over extended periods, preventing situations where individual incidents meet SLA requirements but cumulative degradation creates unacceptable risk to clinical trial operations.
+Chronic failure provisions protect sponsors from persistent service degradation and provide clear accountability for sustained reliability issues. This requirement establishes contractual safeguards when service reliability consistently falls below acceptable thresholds, defining specific uptime criteria that trigger escalation processes, mandatory remediation timelines, and *Sponsor* exit rights. The provisions ensure that sponsors have recourse when platform reliability problems persist over extended periods, preventing situations where individual incidents meet SLA requirements but cumulative degradation creates unacceptable risk to clinical *Trial* operations.
 
 ### Assertions
 
@@ -378,28 +378,28 @@ D. The platform SHALL provide a written remediation plan with milestones within 
 
 E. The platform SHALL grant sponsors the right to terminate without penalty upon 60 days written notice if remediation is unsuccessful.
 
-F. The system SHALL track monthly uptime for each sponsor.
+F. The system SHALL track monthly uptime for each *Sponsor*.
 
-G. The system SHALL report monthly uptime metrics to each sponsor.
+G. The system SHALL report monthly uptime metrics to each *Sponsor*.
 
 H. The system SHALL automatically notify sponsors when approaching the chronic failure threshold.
 
 I. The platform SHALL maintain a remediation plan template for chronic failure scenarios.
 
-J. The system SHALL document escalation contacts per sponsor.
+J. The system SHALL document escalation contacts per *Sponsor*.
 
 K. The platform SHALL provide service remedies when uptime commitments are not met, as defined in operational specifications.
 
-*End* *Chronic Failure Escalation* | **Hash**: 63205737
+*End* *Chronic Failure Escalation* | **Hash**: 18eb2eed
 
 ## DIARY-PRD-sla-regulatory-event-support: Regulatory Event Support
 
-**Level**: prd | **Status**: Legacy | **Implements**: -
+**Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-sla-root-cause-analysis-A+B
 
 ### Rationale
 
-SLA failures in FDA-regulated clinical trial systems may trigger sponsor obligations for regulatory notification, inspection responses, or audit findings under FDA 21 CFR Part 11 and ICH-GCP guidelines. Provider support ensures sponsors can meet their regulatory responsibilities by providing timely documentation, technical expertise, and corrective action implementation without imposing additional financial burden during regulatory events.
+SLA failures in FDA-regulated clinical *Trial* systems may trigger *Sponsor* obligations for regulatory notification, inspection responses, or audit findings under *FDA 21 CFR Part 11* and ICH-GCP guidelines. Provider support ensures sponsors can meet their regulatory responsibilities by providing timely documentation, technical expertise, and corrective *Action* implementation without imposing additional financial burden during regulatory events.
 
 ### Assertions
 
@@ -407,17 +407,17 @@ A. The system SHALL provide support services when an SLA failure results in a re
 
 B. The system SHALL provide all relevant documentation within 5 business days of a regulatory request.
 
-C. The system SHALL participate in regulatory responses at no additional cost to the sponsor.
+C. The system SHALL participate in regulatory responses at no additional cost to the *Sponsor*.
 
 D. The system SHALL implement required corrective actions within agreed timelines.
 
-E. The system SHALL support the sponsor in preparing regulatory submissions.
+E. The system SHALL support the *Sponsor* in preparing regulatory submissions.
 
 F. Documentation packages SHALL include incident timeline and root cause analysis.
 
 G. Documentation packages SHALL include system validation documentation.
 
-H. Documentation packages SHALL include audit trail exports.
+H. Documentation packages SHALL include *Audit Trail* exports.
 
 I. Documentation packages SHALL include CAPA documentation.
 
@@ -425,8 +425,8 @@ J. Documentation packages SHALL be prepared within 5 business days of a regulato
 
 K. Technical staff SHALL be available for regulatory calls.
 
-L. Corrective action timelines SHALL be negotiated in good faith.
+L. Corrective *Action* timelines SHALL be negotiated in good faith.
 
 M. The system SHALL NOT impose additional charges for regulatory support services.
 
-*End* *Regulatory Event Support* | **Hash**: f62f5e4d
+*End* *Regulatory Event Support* | **Hash**: c2a14b48
