@@ -125,6 +125,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // REQ-CAL-p00077: Disconnection banner state
   bool _isDisconnected = false;
+  // CUR-1342: Mirror of EnrollmentService.notParticipatingNotifier so the
+  // header LogoMenu can swap to the default CureHHT logo in not-participating.
+  bool _isNotParticipating = false;
   String? _siteName;
   String? _sitePhoneNumber;
 
@@ -262,7 +265,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// alone — they re-hydrate from sponsor config on next launch.
   void _onNotParticipatingChanged() {
     if (!mounted) return;
-    if (widget.enrollmentService.notParticipatingNotifier.value) {
+    final value = widget.enrollmentService.notParticipatingNotifier.value;
+    setState(() => _isNotParticipating = value);
+    if (value) {
       FeatureFlagService.instance.resetToDefaults();
     }
   }
@@ -284,6 +289,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _checkNotParticipatingStatus() async {
     final isNotParticipating = await widget.enrollmentService
         .isNotParticipating();
+    if (mounted) {
+      setState(() => _isNotParticipating = isNotParticipating);
+    }
     if (isNotParticipating) {
       FeatureFlagService.instance.resetToDefaults();
     }
@@ -1328,6 +1336,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     onResetAllData: _handleResetAllData,
                     onFeatureFlags: _handleFeatureFlags,
                     isEnrolled: _isEnrolled,
+                    isDisconnected: _isDisconnected,
+                    isNotParticipating: _isNotParticipating,
                     onEndClinicalTrial: _isEnrolled
                         ? _handleEndClinicalTrial
                         : null,

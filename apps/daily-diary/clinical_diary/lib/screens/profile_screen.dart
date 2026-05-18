@@ -345,7 +345,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       statusMessage = l10n.participationStatusDisconnectedMessage;
     } else if (isNotParticipating) {
       // CUR-1165: Not participating state — grey/inactive styling (GUI-p00076)
-      bgColor = const Color(0xFFF9FAFB);
+      bgColor = const Color(0xffe4e4e4).withValues(alpha: 0.7);
       borderColor = const Color(0xFFE7E8EC);
       iconColor = const Color(0xFF586170);
       subtextColor = const Color(0xFF586170);
@@ -409,14 +409,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Image.network(
                         widget.sponsorLogo!,
                         height: 60,
+                        width: 120,
                         errorBuilder: (context, _, _) =>
                             const SizedBox(height: 60),
                       ),
                     )
                   else
                     const SizedBox(),
-                  const SizedBox(height: 16),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         height: 40,
@@ -433,51 +434,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Text(
-                          statusMessage,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF212C3B),
-                          ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              statusMessage,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF212C3B),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (widget.enrollmentCode != null)
+                              Text(
+                                l10n.linkingCode(
+                                  _formatEnrollmentCode(widget.enrollmentCode!),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF586170),
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            if (widget.enrollmentDateTime != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.joinedDate(
+                                  _formatEnrollmentDateTime(
+                                    widget.enrollmentDateTime!,
+                                  ),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF586170),
+                                ),
+                              ),
+                            ],
+                            if (widget.enrollmentEndDateTime != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.endedDate(
+                                  _formatEnrollmentDateTime(
+                                    widget.enrollmentEndDateTime!,
+                                  ),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF586170),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  if (widget.enrollmentCode != null)
-                    Text(
-                      l10n.linkingCode(
-                        _formatEnrollmentCode(widget.enrollmentCode!),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  if (widget.enrollmentDateTime != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.joinedDate(
-                        _formatEnrollmentDateTime(widget.enrollmentDateTime!),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                      ),
-                    ),
-                  ],
-                  if (widget.enrollmentEndDateTime != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.endedDate(
-                        _formatEnrollmentDateTime(
-                          widget.enrollmentEndDateTime!,
-                        ),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                      ),
-                    ),
-                  ],
                 ] else ...[
                   // Active / disconnected states: existing layout
                   if (widget.sponsorLogo != null)
