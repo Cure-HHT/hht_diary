@@ -29,6 +29,7 @@ class Manifest:
     frontmatter: str | None
     appendices: str | None
     glossary: str | None
+    term_index: str | None
     chapters: list[Chapter]
 
     @classmethod
@@ -55,6 +56,7 @@ class Manifest:
             frontmatter=d.get("frontmatter"),
             appendices=d.get("appendices"),
             glossary=d.get("glossary"),
+            term_index=d.get("term_index"),
             chapters=chapters,
         )
 

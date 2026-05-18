@@ -133,25 +133,33 @@ def assemble_full_document(
     manifest: Manifest,
     repo_root: Path,
 ) -> str:
-    """Assemble the full markdown including frontmatter, body, appendices, glossary."""
+    """Assemble the full markdown including frontmatter, body, appendices, glossary, term-index."""
     chunks: list[str] = []
     if manifest.frontmatter:
         path = repo_root / manifest.frontmatter
         if path.exists():
             chunks.append(path.read_text())
     chunks.append(assemble_markdown(graph, manifest))
-    for key in ("appendices", "glossary"):
+    # Each back-matter section carries an explicit heading label so
+    # "term_index" renders as "Term Index" (not "Term_index" from .title()).
+    for key, heading in (
+        ("appendices", "Appendices"),
+        ("glossary", "Glossary"),
+        ("term_index", "Term Index"),
+    ):
         path_str = getattr(manifest, key)
-        if path_str:
-            full = repo_root / path_str
-            if full.exists():
-                text = full.read_text()
-                # Only inject a chapter heading when the file doesn't already
-                # provide one; appendices and glossary commonly start with
-                # `# Appendices` / `# Glossary`.
-                if not _LEADING_H1_RE.match(text):
-                    chunks.append(f"\n\n# {key.title()}\n\n")
-                chunks.append(text)
+        if not path_str:
+            continue
+        full = repo_root / path_str
+        if not full.exists():
+            continue
+        text = full.read_text()
+        # Only inject a chapter heading when the file doesn't already
+        # provide one; appendices/glossary/term-index commonly start with
+        # `# Appendices` / `# Glossary` / `# Term Index`.
+        if not _LEADING_H1_RE.match(text):
+            chunks.append(f"\n\n# {heading}\n\n")
+        chunks.append(text)
     return _rewrite_image_paths("\n\n".join(chunks))
 
 

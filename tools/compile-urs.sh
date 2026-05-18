@@ -2,6 +2,12 @@
 # tools/compile-urs.sh — wraps tools/compile-urs.py.
 # 1) Generate federated elspais graph JSON (run from callisto side so both repos are aggregated).
 # 2) Run the Python orchestrator.
+#
+# PREREQUISITE: spec/_generated/glossary.md and spec/_generated/term-index.md
+# must be up to date. These are committed to the repo and refreshed by
+# `elspais fix` (which the pre-commit hook runs automatically). If you've
+# edited spec/ files outside the normal commit flow, run `elspais fix`
+# manually before invoking this script.
 
 set -euo pipefail
 

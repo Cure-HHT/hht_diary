@@ -32,7 +32,8 @@ document:
 
 frontmatter: docs/urs-frontmatter.md
 appendices:  docs/urs-appendices.md
-glossary:    spec/glossary.md
+glossary:    spec/_generated/glossary.md
+term_index:  spec/_generated/term-index.md
 
 chapters:
   - number: 4

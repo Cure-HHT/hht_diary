@@ -27,3 +27,16 @@ def test_section_has_files(sample_manifest_dict):
 def test_validation_rejects_missing_required_field():
     with pytest.raises(ValueError, match="number"):
         Manifest.from_dict({"chapters": [{"title": "X", "sections": []}]})
+
+
+def test_term_index_field():
+    m = Manifest.from_dict({
+        "chapters": [],
+        "term_index": "spec/_generated/term-index.md",
+    })
+    assert m.term_index == "spec/_generated/term-index.md"
+
+
+def test_term_index_defaults_none(sample_manifest_dict):
+    m = Manifest.from_dict(sample_manifest_dict)
+    assert m.term_index is None
