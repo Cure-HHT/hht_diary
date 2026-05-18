@@ -73,7 +73,7 @@ Conventions:
 - Multi-requirement files: `#` is file title; `##` are chapters (some are requirement blocks `## DIARY-PRD-...`, others are remainder sections `## Overview`); `###` are subsections.
 - A multi-REQ topic file SHOULD include orienting remainder sections.
 - **Filename = section heading**: the file's `#` title is the section heading that appears in the compiled URS-style PDF. Section structure is derivable from the filename + `#` title; no separate "section heading" convention is enforced. Where a section title and a REQ title coincide verbatim, that is acceptable (one is a chapter, the other a requirement inside it).
-- **PDF compile interleaving**: when the compiled URS PDF is regenerated, REQ blocks across files are interleaved by the URS-aligned ordinal of the REQ ID stripped of its namespace and level prefix (e.g. `DIARY-PRD-action-inventory` sorts as `action-inventory`; `CAL-PRD-permissions-table` sorts as `permissions-table`). This produces a single document ordered by topic kebab regardless of repo or audience tier, mirroring URS reading order. Implementation lives in the Phase-5 pdf template.
+- **PDF compile interleaving**: when the compiled URS PDF is regenerated, REQ blocks across files are interleaved by the URS-aligned ordinal of the REQ ID stripped of its namespace and level prefix (e.g. `DIARY-PRD-action-inventory` sorts as `action-inventory`; `CAL-PRD-role-definitions` sorts as `role-definitions`). This produces a single document ordered by topic kebab regardless of repo or audience tier, mirroring URS reading order. Implementation lives in the Phase-5 pdf template.
 
 ### "Only option in code today" follow-up
 
@@ -99,7 +99,7 @@ Sibling repos in the Cure-HHT org:
 | Repo | Namespace | Example |
 | ---- | --------- | ------- |
 | `hht_diary` (this repo) | `DIARY-{PRD\|GUI\|OPS\|DEV}-{kebab}` | `DIARY-PRD-action-inventory` |
-| `hht_diary_callisto` | `CAL-{PRD\|GUI\|OPS\|DEV}-{kebab}` | `CAL-PRD-permissions-table` |
+| `hht_diary_callisto` | `CAL-{PRD\|GUI\|OPS\|DEV}-{kebab}` | `CAL-PRD-role-definitions` |
 | `hht_admin` | `HHT-{PRD\|OPS\|DEV}-{kebab}` | `HHT-OPS-storage-rules` |
 | `event_sourcing` | `EVS-{PRD\|OPS\|DEV}-{kebab}` | `EVS-DEV-provenance-entry-schema` |
 
