@@ -5,6 +5,7 @@
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -24,6 +25,7 @@ class ProfileScreen extends StatefulWidget {
     required this.onUpdateUserName,
     this.isDisconnected = false,
     this.isNotParticipating = false,
+    this.linkingStatus = MobileLinkingStatus.connected,
     this.enrollmentCode,
     this.enrollmentDateTime,
     this.enrollmentEndDateTime,
@@ -42,6 +44,9 @@ class ProfileScreen extends StatefulWidget {
   final bool isDisconnected;
   // CUR-1165: True when sponsor portal has marked patient as not participating
   final bool isNotParticipating;
+  // CUR-1343 / REQ-p70011/F: Fine-grained linking status used to render
+  // the "reconnection required" badge variant.
+  final MobileLinkingStatus linkingStatus;
   final String? enrollmentCode;
   final DateTime? enrollmentDateTime;
   final DateTime? enrollmentEndDateTime;
@@ -324,9 +329,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Determine status and colors
     final isNotParticipating = widget.isNotParticipating;
     final isDisconnected = widget.isDisconnected;
+    final isAwaitingReconnect =
+        widget.linkingStatus == MobileLinkingStatus.linkingInProgress;
     // CUR-1165: not_participating is distinct from active — exclude it explicitly
     final isActive =
-        widget.isEnrolledInTrial && !isDisconnected && !isNotParticipating;
+        widget.isEnrolledInTrial &&
+        !isDisconnected &&
+        !isNotParticipating &&
+        !isAwaitingReconnect;
 
     Color bgColor;
     Color borderColor;
@@ -335,7 +345,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     IconData statusIcon;
     String statusMessage;
 
-    if (isDisconnected) {
+    if (isAwaitingReconnect) {
+      // CUR-1343 / REQ-p70011/F: A new linking code has been issued by the
+      // portal; the patient must enter it. Reuses the amber disconnected
+      // styling to maintain the "attention required" affordance, but with
+      // its own message that tells the patient what to do next.
+      bgColor = const Color(0xFFFFFBEA);
+      borderColor = Colors.amber.shade300;
+      iconColor = Colors.amber.shade700;
+      subtextColor = const Color(0xFF7B3306);
+      statusIcon = Icons.refresh;
+      statusMessage = l10n.participationStatusAwaitingReconnectMessage;
+    } else if (isDisconnected) {
       // Disconnected state - exact brand colors
       bgColor = const Color(0xFFFFFBEA);
       borderColor = Colors.amber.shade300;
