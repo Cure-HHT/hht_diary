@@ -33,11 +33,26 @@ _HEADING_RE = re.compile(r"^(#{1,5})(\s+)", re.MULTILINE)
 _LEADING_H1_RE = re.compile(r"\A\s*#\s+[^\n]*(\n+|\Z)")
 _LEADING_COMMENTS_RE = re.compile(r"\A(?:\s*<!--.*?-->\s*\n?)+", re.DOTALL)
 _LATEX_BLOCK_RE = re.compile(r"```\{=latex\}\n.*?\n```\n?", re.DOTALL)
+_H2_HEADING_RE = re.compile(r"^(## )(?!.*\{\.)(.+?)$", re.MULTILINE)
 
 
 def _strip_latex_blocks(text: str) -> str:
     """Remove raw LaTeX fenced blocks (`{=latex}`) — for non-LaTeX targets."""
     return _LATEX_BLOCK_RE.sub("", text)
+
+
+def _exclude_h2_from_toc(text: str) -> str:
+    """Mark every H2 heading as `{.unnumbered .unlisted}` so pandoc skips it
+    in the TOC and omits the auto-numbering.
+
+    Used on `_generated/term-index.md` where each defined term is an H2 —
+    listing 130+ of those in the TOC would bloat the front matter by
+    several pages. The `# Term Index` chapter heading is left untouched
+    (still numbered, still in TOC); only the per-term entries are hidden.
+    The negative lookahead `(?!.*\\{\\.)` avoids double-tagging if a
+    heading already carries an attribute block.
+    """
+    return _H2_HEADING_RE.sub(r"\1\2 {.unnumbered .unlisted}", text)
 
 
 def _has_leading_h1(text: str) -> bool:
@@ -185,6 +200,11 @@ def assemble_full_document(
         if not full.exists():
             continue
         text = full.read_text()
+        # The term-index file lists every defined term as an H2 (130+ of
+        # them). Without this rewrite, pandoc inflates the TOC with every
+        # term — flag each H2 as unnumbered + unlisted.
+        if key == "term_index":
+            text = _exclude_h2_from_toc(text)
         # Only inject a chapter heading when the file doesn't already
         # provide one; appendices/glossary/term-index commonly start with
         # `# Appendices` / `# Glossary` / `# Term Index`, possibly after

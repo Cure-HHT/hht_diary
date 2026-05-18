@@ -294,7 +294,7 @@ After Participant was linked to the Mobile Application
 *Pattern:* Reason Dialog — Free Text (see §4.1).   
 *Reference:* REQ-CAL-p00023, GUI-CAL-p00006.
 
-## **![](image-23.png)**
+![](image-23.png)
 
 ### 7.3.16 Call Back Notice {-}
 
