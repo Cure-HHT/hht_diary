@@ -43,25 +43,39 @@ def interleave_section_by_path(
                    "trailing-cal-req".
     """
     # Bucket every REQ that names `relpath` as source_file, by namespace.
-    # Two indices for pairing CAL -> DIARY:
-    #   - by_name: kebab-stripped name match (e.g. role-definitions)
-    #   - by_refines: CAL's refines_refs target id
     diary_reqs_in_order: list[GraphNode] = []
-    cal_reqs_by_name: dict[str, list[GraphNode]] = {}
-    cal_reqs_by_refines: dict[str, list[GraphNode]] = {}
     cal_reqs_in_order: list[GraphNode] = []
     for req in graph.requirements_for_source_file(relpath):
         ns = _id_namespace(req.id)
         if ns == "CAL":
-            cal_reqs_by_name.setdefault(kebab_stripped_name(req.id), []).append(req)
-            for ref in (req.content.get("refines_refs") or []):
-                cal_reqs_by_refines.setdefault(ref, []).append(req)
             cal_reqs_in_order.append(req)
         else:
             diary_reqs_in_order.append(req)
     # Sort by parse_line for deterministic in-file ordering.
     diary_reqs_in_order.sort(key=lambda n: n.content.get("parse_line") or 0)
     cal_reqs_in_order.sort(key=lambda n: n.content.get("parse_line") or 0)
+
+    # Pre-compute each CAL REQ's anchor DIARY REQ id.
+    # Priority: kebab-name match (canonical URS pair signal) > first
+    # refines_refs target that is a DIARY REQ in this section. Each CAL
+    # REQ pairs at most once, at its canonical anchor.
+    diary_ids_in_section: set[str] = {r.id for r in diary_reqs_in_order}
+    diary_by_name: dict[str, GraphNode] = {
+        kebab_stripped_name(r.id): r for r in diary_reqs_in_order
+    }
+    cal_by_anchor: dict[str, list[GraphNode]] = {}
+    for cal_req in cal_reqs_in_order:
+        key = kebab_stripped_name(cal_req.id)
+        anchor_id: str | None = None
+        if key in diary_by_name:
+            anchor_id = diary_by_name[key].id
+        else:
+            for ref in (cal_req.content.get("refines_refs") or []):
+                if ref in diary_ids_in_section:
+                    anchor_id = ref
+                    break
+        if anchor_id is not None:
+            cal_by_anchor.setdefault(anchor_id, []).append(cal_req)
 
     # REMAINDERs: walk the surviving FILE node's children in original order.
     # FILE nodes from federation collisions may point to either repo; using
@@ -72,13 +86,8 @@ def interleave_section_by_path(
     cal_emitted: set[str] = set()
 
     def _emit_cal_pair(diary_req: GraphNode) -> Iterator[tuple[str, GraphNode]]:
-        """Yield CAL siblings paired with `diary_req` (REFINES > kebab name)."""
-        candidates: list[GraphNode] = list(cal_reqs_by_refines.get(diary_req.id, []))
-        key = kebab_stripped_name(diary_req.id)
-        for cand in cal_reqs_by_name.get(key, []):
-            if cand not in candidates:
-                candidates.append(cand)
-        for cal_req in candidates:
+        """Yield CAL REQs anchored to `diary_req` (precomputed map)."""
+        for cal_req in cal_by_anchor.get(diary_req.id, []):
             if cal_req.id in cal_emitted:
                 continue
             yield ("cal-req", cal_req)
@@ -102,6 +111,12 @@ def interleave_section_by_path(
 
     ordered_children: list[GraphNode] = list(graph.iter_children(file_node))
     diary_reqs_by_id: dict[str, GraphNode] = {r.id: r for r in diary_reqs_in_order}
+    # Reverse-index: each CAL id -> its precomputed anchor (or None).
+    cal_anchor_by_id: dict[str, str] = {
+        cal.id: anchor
+        for anchor, cals in cal_by_anchor.items()
+        for cal in cals
+    }
 
     seen_diary_ids: set[str] = set()
     for child in ordered_children:
@@ -116,11 +131,11 @@ def interleave_section_by_path(
                 yield from _emit_cal_pair(child)
             elif ns == "CAL":
                 # Surviving FILE was CAL: emit its REQs in source order,
-                # prepending the DIARY refines target if present and unseen.
-                refines = child.content.get("refines_refs") or []
-                paired_diary = next(
-                    (diary_reqs_by_id[r] for r in refines if r in diary_reqs_by_id),
-                    None,
+                # prepending the precomputed anchor DIARY REQ if unseen
+                # (kebab match wins over refines target).
+                anchor_id = cal_anchor_by_id.get(child.id)
+                paired_diary = (
+                    diary_reqs_by_id.get(anchor_id) if anchor_id else None
                 )
                 if paired_diary and paired_diary.id not in seen_diary_ids:
                     yield ("diary-req", paired_diary)

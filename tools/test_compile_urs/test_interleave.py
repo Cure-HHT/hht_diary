@@ -3,6 +3,7 @@ import pytest
 from urs_compile.graph_loader import Graph
 from urs_compile.interleave import (
     interleave_section,
+    interleave_section_by_path,
     kebab_stripped_name,
 )
 
@@ -91,3 +92,35 @@ def test_trailing_unpaired_cal_appended():
     cal = g.get_node("file:spec/foo.md@cal")
     ids = [n.id for _, n in interleave_section(g, [diary, cal])]
     assert ids == ["DIARY-PRD-foo", "CAL-PRD-cal-only"]
+
+
+def test_kebab_name_match_wins_over_refines():
+    """When a CAL REQ has both a kebab-pair AND a refines-pair to different
+    DIARY REQs in the same section, kebab pairing wins."""
+    g = Graph.from_dict({
+        "nodes": {
+            "DIARY-PRD-foo": {
+                "id": "DIARY-PRD-foo", "kind": "REQUIREMENT", "label": "Foo",
+                "content": {"source_file": "spec/x.md", "parse_line": 10,
+                            "refines_refs": []},
+                "children": [], "edges": [],
+            },
+            "DIARY-PRD-bar": {
+                "id": "DIARY-PRD-bar", "kind": "REQUIREMENT", "label": "Bar",
+                "content": {"source_file": "spec/x.md", "parse_line": 20,
+                            "refines_refs": []},
+                "children": [], "edges": [],
+            },
+            "CAL-PRD-bar": {
+                # Refines DIARY-PRD-foo but kebab matches DIARY-PRD-bar.
+                # Kebab should win — paired with DIARY-PRD-bar.
+                "id": "CAL-PRD-bar", "kind": "REQUIREMENT", "label": "Bar Overlay",
+                "content": {"source_file": "spec/x.md", "parse_line": 30,
+                            "refines_refs": ["DIARY-PRD-foo"]},
+                "children": [], "edges": [],
+            },
+        },
+        "roots": [], "metadata": {},
+    })
+    ids = [n.id for _kind, n in interleave_section_by_path(g, "spec/x.md")]
+    assert ids == ["DIARY-PRD-foo", "DIARY-PRD-bar", "CAL-PRD-bar"]
