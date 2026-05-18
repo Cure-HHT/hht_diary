@@ -1787,4 +1787,122 @@ void main() {
       expect(find.text('Previous deactivation reason'), findsNothing);
     });
   });
+
+  // REQ-CAL-p00033: UserInfoDialog exposes a Resend Activation Email action
+  // for pending users (and only for pending users).
+  group('UserInfoDialog - resend activation', () {
+    Future<void> pumpInfoDialog(
+      WidgetTester tester, {
+      required String status,
+      VoidCallback? onResendActivation,
+    }) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'admin@example.com',
+        displayName: 'Test Admin',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = _createMockHttpClient();
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+        enableInactivityTimer: false,
+      );
+      await authService.signIn('admin@example.com', 'password');
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+      final roleMappings = [
+        const SponsorRoleMapping(
+          sponsorName: 'Study Coordinator',
+          systemRole: 'Investigator',
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserInfoDialog(
+              user: {
+                'id': 'pending-1',
+                'name': 'Jennifer Martinez',
+                'email': 'jennifer@example.com',
+                'status': status,
+                'roles': const ['Investigator'],
+                'sites': const <dynamic>[],
+              },
+              sites: const [],
+              roleMappings: roleMappings,
+              toSponsorName: (systemRole) => 'Study Coordinator',
+              onEdit: () {},
+              onDeactivate: () {},
+              onResendActivation: onResendActivation,
+              apiClient: apiClient,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Verifies: REQ-CAL-p00033/<UI assertion>
+    testWidgets('shows Resend Activation Email button for pending user', (
+      tester,
+    ) async {
+      await pumpInfoDialog(
+        tester,
+        status: 'pending',
+        onResendActivation: () {},
+      );
+      expect(find.text('Resend Activation Email'), findsOneWidget);
+    });
+
+    testWidgets('hides Resend button for active user', (tester) async {
+      await pumpInfoDialog(tester, status: 'active', onResendActivation: () {});
+      expect(find.text('Resend Activation Email'), findsNothing);
+    });
+
+    testWidgets('hides Resend button for revoked user', (tester) async {
+      await pumpInfoDialog(
+        tester,
+        status: 'revoked',
+        onResendActivation: () {},
+      );
+      expect(find.text('Resend Activation Email'), findsNothing);
+    });
+
+    testWidgets('Resend button invokes onResendActivation callback', (
+      tester,
+    ) async {
+      var called = false;
+      await pumpInfoDialog(
+        tester,
+        status: 'pending',
+        onResendActivation: () {
+          called = true;
+        },
+      );
+
+      await tester.tap(find.text('Resend Activation Email'));
+      await tester.pumpAndSettle();
+
+      expect(called, isTrue);
+    });
+
+    testWidgets(
+      'Resend button is omitted when callback not provided (defensive)',
+      (tester) async {
+        await pumpInfoDialog(tester, status: 'pending');
+        expect(find.text('Resend Activation Email'), findsNothing);
+      },
+    );
+  });
 }

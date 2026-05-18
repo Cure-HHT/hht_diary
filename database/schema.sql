@@ -810,7 +810,8 @@ CREATE TABLE portal_user_audit_log (
     changed_by UUID NOT NULL REFERENCES portal_users(id),
     action TEXT NOT NULL CHECK (action IN (
         'update_name', 'update_email', 'update_roles',
-        'update_sites', 'update_status', 'revoke_sessions'
+        'update_sites', 'update_status', 'revoke_sessions',
+        'resend_activation'
     )),
     before_value JSONB,           -- State before the change
     after_value JSONB,            -- State after the change

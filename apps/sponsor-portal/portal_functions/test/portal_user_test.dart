@@ -407,6 +407,254 @@ void main() {
         },
       );
     });
+
+    /// Resend Activation Email (REQ-CAL-p00033). The `regenerate_activation`
+    /// branch must (a) rotate the code with a fresh 14-day expiry, (b) try
+    /// to send the activation email via EmailService, and (c) write an
+    /// immutable audit row with action='resend_activation'. In unit-test
+    /// scope EmailService is not initialized so the send returns failure
+    /// — the response surfaces email_sent=false plus email_error, and the
+    /// caller must still get a 200 with the new code so the admin can
+    /// share it manually.
+    group('updatePortalUserHandler — resend activation', () {
+      const targetId = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+      const adminId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+      setUp(() {
+        requirePortalAuthOverride = (_) async => PortalUser(
+          id: adminId,
+          email: 'admin@example.com',
+          name: 'Test Admin',
+          roles: ['Administrator'],
+          activeRole: 'Administrator',
+          status: 'active',
+        );
+      });
+
+      tearDown(() {
+        requirePortalAuthOverride = null;
+        databaseQueryOverride = null;
+      });
+
+      /// Stubs every query updatePortalUserHandler issues on the
+      /// regenerate_activation path, captures whether the audit-log INSERT
+      /// fired with action='resend_activation', and returns the response.
+      ///
+      /// [targetRoles] controls whether the target row carries the
+      /// Administrator/Developer Admin role — used by the carve-out
+      /// tests that pin "Administrator can resend for pending admin
+      /// target without 403".
+      ///
+      /// Verifies: REQ-CAL-p00033/<audit-trail assertion>
+      Future<({Response response, bool auditLogged, String? auditAction})>
+      callResend({
+        required String fromStatus,
+        List<String> targetRoles = const ['Investigator'],
+      }) async {
+        bool auditLogged = false;
+        String? auditAction;
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains(
+            'SELECT id, name, email, status FROM portal_users',
+          )) {
+            return [
+              [targetId, 'Target', 'target@example.com', fromStatus],
+            ];
+          }
+          if (query.contains('FROM portal_user_roles')) {
+            return [
+              [targetRoles],
+            ];
+          }
+          if (query.contains('FROM portal_user_site_access')) {
+            return [
+              [<String>[]],
+            ];
+          }
+          // UPDATE portal_users ... RETURNING id — non-empty means success.
+          if (query.contains('UPDATE portal_users') &&
+              query.contains('RETURNING id')) {
+            return [
+              [targetId],
+            ];
+          }
+          // INSERT INTO portal_user_audit_log — capture the action label.
+          if (query.contains('INSERT INTO portal_user_audit_log')) {
+            auditLogged = true;
+            auditAction = parameters?['action'] as String?;
+            return [];
+          }
+          return [];
+        };
+
+        final response = await updatePortalUserHandler(
+          createPatchRequest(
+            '/api/v1/portal/users/$targetId',
+            {'regenerate_activation': true},
+            headers: {'authorization': 'Bearer test'},
+          ),
+          targetId,
+        );
+        return (
+          response: response,
+          auditLogged: auditLogged,
+          auditAction: auditAction,
+        );
+      }
+
+      test(
+        'pending user: rotates code, returns activation_url + expires_at',
+        () async {
+          final result = await callResend(fromStatus: 'pending');
+          expect(result.response.statusCode, equals(200));
+          final body = await getResponseJson(result.response);
+          expect(body['success'], isTrue);
+          // Code in XXXXX-XXXXX format
+          expect(
+            body['activation_code'],
+            matches(RegExp(r'^[A-Z2-9]{5}-[A-Z2-9]{5}$')),
+          );
+          expect(body['activation_url'], isA<String>());
+          expect(body['activation_url'] as String, contains('/activate?code='));
+          expect(body['expires_at'], isA<String>());
+        },
+      );
+
+      test('writes audit row with action=resend_activation', () async {
+        final result = await callResend(fromStatus: 'pending');
+        expect(result.response.statusCode, equals(200));
+        expect(result.auditLogged, isTrue);
+        expect(result.auditAction, equals('resend_activation'));
+      });
+
+      test('email_sent=false surfaces in response when EmailService is not '
+          'initialized (manual-share fallback)', () async {
+        final result = await callResend(fromStatus: 'pending');
+        expect(result.response.statusCode, equals(200));
+        final body = await getResponseJson(result.response);
+        expect(body['email_sent'], isFalse);
+        expect(body['email_error'], isNotNull);
+      });
+
+      test(
+        'revoked user: re-invite path also rotates + audits (revoked->pending)',
+        () async {
+          final result = await callResend(fromStatus: 'revoked');
+          expect(result.response.statusCode, equals(200));
+          expect(result.auditLogged, isTrue);
+          expect(result.auditAction, equals('resend_activation'));
+        },
+      );
+
+      // Carve-out: Administrator can resend activation for a *pending*
+      // Administrator target. The role assignment is unchanged; only the
+      // activation code rotates. Without this carve-out the isTargetAdmin
+      // guard would 403 the resend, breaking REQ-CAL-p00033 for the very
+      // case the Figma mockup illustrates (Jennifer Martinez —
+      // Administrator, Pending).
+      test(
+        'Administrator can resend for pending Administrator target (no 403)',
+        () async {
+          final result = await callResend(
+            fromStatus: 'pending',
+            targetRoles: ['Administrator'],
+          );
+          expect(result.response.statusCode, equals(200));
+          expect(result.auditAction, equals('resend_activation'));
+        },
+      );
+
+      // Mirror security guard: re-inviting a *revoked* admin would
+      // restore access, so peer admins must not be able to do it.
+      // Developer Admin is still required for that path.
+      test(
+        'Administrator CANNOT re-invite a revoked Administrator (403)',
+        () async {
+          final result = await callResend(
+            fromStatus: 'revoked',
+            targetRoles: ['Administrator'],
+          );
+          expect(result.response.statusCode, equals(403));
+          final body = await getResponseJson(result.response);
+          expect(body['error'], contains('Developer Admin'));
+        },
+      );
+    });
+
+    /// Carve-out applies only when the body is *exclusively* a resend.
+    /// A request that mixes regenerate_activation with role/site/status
+    /// changes must still trip the isTargetAdmin guard so an Administrator
+    /// cannot piggyback privilege changes on the resend bypass.
+    group('updatePortalUserHandler — resend bypass scope guard', () {
+      const targetId = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+      const adminId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+      setUp(() {
+        requirePortalAuthOverride = (_) async => PortalUser(
+          id: adminId,
+          email: 'admin@example.com',
+          name: 'Test Admin',
+          roles: ['Administrator'],
+          activeRole: 'Administrator',
+          status: 'active',
+        );
+      });
+
+      tearDown(() {
+        requirePortalAuthOverride = null;
+        databaseQueryOverride = null;
+      });
+
+      Future<Response> callMixed(Map<String, dynamic> body) {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains(
+            'SELECT id, name, email, status FROM portal_users',
+          )) {
+            return [
+              [targetId, 'Target', 'target@example.com', 'pending'],
+            ];
+          }
+          if (query.contains('FROM portal_user_roles')) {
+            return [
+              [
+                <String>['Administrator'],
+              ],
+            ];
+          }
+          if (query.contains('FROM portal_user_site_access')) {
+            return [
+              [<String>[]],
+            ];
+          }
+          return [];
+        };
+        return updatePortalUserHandler(
+          createPatchRequest(
+            '/api/v1/portal/users/$targetId',
+            body,
+            headers: {'authorization': 'Bearer test'},
+          ),
+          targetId,
+        );
+      }
+
+      test('rejects regenerate_activation + roles update (403)', () async {
+        final response = await callMixed({
+          'regenerate_activation': true,
+          'roles': ['Investigator'],
+        });
+        expect(response.statusCode, equals(403));
+      });
+
+      test('rejects regenerate_activation + name update (403)', () async {
+        final response = await callMixed({
+          'regenerate_activation': true,
+          'name': 'Hijacked Name',
+        });
+        expect(response.statusCode, equals(403));
+      });
+    });
   });
 
   group('getPortalSitesHandler', () {

@@ -989,6 +989,115 @@ void main() {
     },
   );
 
+  // REQ-CAL-p00033: Resend Activation Email. End-to-end via the
+  // updatePortalUserHandler regenerate_activation path against a real DB.
+  group('updatePortalUserHandler - resend activation', () {
+    // Verifies: REQ-CAL-p00033/<rotation + audit assertions>
+    test(
+      'rotates code, sets ~14-day expiry, and writes resend_activation audit',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final db = Database.instance;
+
+        // Flip the target to pending with a known prior code so we can
+        // verify the new code differs from the previous one.
+        const priorCode = 'AAAAA-AAAAA';
+        await db.execute(
+          '''
+          UPDATE portal_users
+          SET status = 'pending',
+              activation_code = @code,
+              activation_code_expires_at = now() + interval '1 day'
+          WHERE id = @id::uuid
+          ''',
+          parameters: {'id': testTargetId, 'code': priorCode},
+        );
+
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+        final request = createPatchRequest(
+          '/api/v1/portal/users/$testTargetId',
+          {'regenerate_activation': true},
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await updatePortalUserHandler(request, testTargetId);
+
+        expect(response.statusCode, equals(200));
+        final json = await getResponseJson(response);
+        expect(json['success'], isTrue);
+        expect(json['activation_code'], isA<String>());
+        expect(json['activation_code'], isNot(equals(priorCode)));
+        expect(json['expires_at'], isA<String>());
+
+        // Verify DB row state — code rotated, expiry ~14 days out.
+        final row = await db.execute(
+          '''
+          SELECT activation_code, activation_code_expires_at, status
+          FROM portal_users WHERE id = @id::uuid
+          ''',
+          parameters: {'id': testTargetId},
+        );
+        expect(row.first[0], equals(json['activation_code']));
+        expect(row.first[0], isNot(equals(priorCode)));
+        final expiresAt = row.first[1] as DateTime;
+        final daysOut = expiresAt.difference(DateTime.now()).inDays;
+        // Allow ±1 day for clock skew / scheduling.
+        expect(daysOut, greaterThanOrEqualTo(13));
+        expect(daysOut, lessThanOrEqualTo(14));
+        expect(row.first[2], equals('pending'));
+
+        // Verify the immutable audit row was written.
+        final audit = await db.execute(
+          '''
+          SELECT action, changed_by FROM portal_user_audit_log
+          WHERE user_id = @userId::uuid AND action = 'resend_activation'
+          ORDER BY created_at DESC LIMIT 1
+          ''',
+          parameters: {'userId': testTargetId},
+        );
+        expect(audit.length, equals(1));
+        expect(audit.first[0], equals('resend_activation'));
+        expect((audit.first[1] as String).toLowerCase(), equals(testAdminId));
+      },
+    );
+
+    test(
+      'rejects regenerate_activation on an active user (409)',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final db = Database.instance;
+
+        // Reset target to active (cleanup from prior test or default state).
+        await db.execute(
+          '''
+          UPDATE portal_users
+          SET status = 'active', activation_code = NULL,
+              activation_code_expires_at = NULL
+          WHERE id = @id::uuid
+          ''',
+          parameters: {'id': testTargetId},
+        );
+
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+        final request = createPatchRequest(
+          '/api/v1/portal/users/$testTargetId',
+          {'regenerate_activation': true},
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await updatePortalUserHandler(request, testTargetId);
+
+        expect(response.statusCode, equals(409));
+        final json = await getResponseJson(response);
+        expect(json['code'], equals('already_active'));
+      },
+    );
+  });
+
   group('verifyEmailChangeHandler', () {
     test(
       'rejects pending change when target email collides case-insensitively',
