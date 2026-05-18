@@ -1,0 +1,115 @@
+# tools/urs-section-map.yaml
+#
+# Maps spec files to URS chapter/section structure. Drives compile-urs.py.
+#
+# The compile pipeline reads `elspais graph` JSON (run from callisto side to
+# capture the federated graph) and emits content for each section by walking
+# FILE nodes whose relative_path matches `files` below — across both repos.
+# REQ interleaving uses the auto-rule (pair DIARY+CAL by kebab-stripped name,
+# trailing-CAL fallback).
+#
+# Empty `files:` arrays are intentional placeholders for URS sections without
+# a current spec-tree file; compile-urs.py renders them as gap markers.
+#
+# Sections without a current dedicated spec file (verified 2026-05-17):
+#   - 4.2 Status Registry: content currently lives inline in prd-common-ui.md
+#     (no standalone prd-status-registry.md on either repo side). Left as
+#     placeholder so the chapter outline still surfaces the section heading.
+#   - 5.2 User Interface: OMITTED from the manifest by design. The original
+#     URS PDF carved out a "5.2 User Interface" subsection under
+#     Administration, but in the current spec tree the GUI/portal UI REQs
+#     live inside prd-user-account.md (section 5.1) and the manifest cannot
+#     split a single file across two sections. The URS reader will see
+#     5.1 → 5.3 with the UI content embedded in 5.1.
+
+document:
+  title: "User Requirements Specification"
+  subtitle: "Diary Platform"
+  sponsor: "Cure HHT"
+  protocol: "Diary Platform"
+  version: "1.0"
+  status: "Draft"
+
+frontmatter: docs/urs-frontmatter.md
+appendices:  docs/urs-appendices.md
+glossary:    spec/glossary.md
+
+chapters:
+  - number: 4
+    title: "SYSTEM-WIDE STANDARDS"
+    sections:
+      - number: "4.1"
+        title: "Common User Interface Elements and Actions"
+        files: [spec/prd-common-ui.md]
+      - number: "4.2"
+        title: "Status Registry"
+        files: []  # Content currently embedded in prd-common-ui.md; no standalone file.
+      - number: "4.3"
+        title: "User Roles and Permissions"
+        files: [spec/prd-rbac.md]
+      - number: "4.4"
+        title: "Questionnaire Score Display"
+        files: [spec/prd-questionnaire-score-display.md]  # CAL-only file; federated lookup resolves it.
+      - number: "4.5"
+        title: "Audit Log Visibility"
+        files: [spec/prd-audit-log.md]
+      - number: "4.6"
+        title: "Notification Behavior"
+        files: [spec/prd-notification-behavior.md]
+      - number: "4.7"
+        title: "Help and Resources"
+        files: [spec/prd-help-resources.md]
+      - number: "4.8"
+        title: "Configuration"
+        files: [spec/prd-configuration.md]
+
+  - number: 5
+    title: "PRODUCT REQUIREMENTS"
+    sections:
+      - number: "5.1"
+        title: "Administration"
+        files: [spec/prd-user-account.md]
+      # 5.2 User Interface intentionally omitted — see header comment.
+      - number: "5.3"
+        title: "Questionnaire Management"
+        files: [spec/prd-questionnaire-management.md]
+      - number: "5.4"
+        title: "Participant Workflows"
+        files: [spec/prd-participant.md]
+      - number: "5.5"
+        title: "Sponsor Portal Authentication"
+        files: [spec/prd-portal-auth.md]
+      - number: "5.6"
+        title: "Administrator Settings"
+        files: [spec/prd-administrator-settings.md]
+
+  - number: 6
+    title: "MOBILE APPLICATION"
+    sections:
+      - number: "6.1"
+        title: "Mobile Application Foundation"
+        files: [spec/prd-mobile-app.md]
+      - number: "6.2"
+        title: "Questionnaires Overview"
+        files: [spec/prd-questionnaire-overview.md]
+      - number: "6.3"
+        title: "Participant Questionnaire Workflow"
+        files: [spec/prd-questionnaire-participant-workflow.md]
+      - number: "6.4"
+        title: "Daily eDiary: HHT Epistaxis Data Capture"
+        files: [spec/prd-epistaxis.md]
+      - number: "6.5"
+        title: "Score Calculation"
+        files: [spec/prd-score-calculation.md]
+      - number: "6.6"
+        title: "Diary Entry Rules"
+        files: [spec/prd-diary-entry-rules.md]
+      - number: "6.7"
+        title: "Mobile Application Navigation and Screens"
+        files: [spec/prd-mobile-navigation.md]
+      - number: "6.8"
+        title: "Participant Tasks and Notifications"
+        files: [spec/prd-mobile-notifications.md]
+      - number: "6.9"
+        title: "Device Linking"
+        files: [spec/prd-device-linking.md]
