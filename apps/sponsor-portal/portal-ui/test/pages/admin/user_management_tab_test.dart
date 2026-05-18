@@ -284,28 +284,6 @@ void main() {
       expect(find.text('Bob Investigator'), findsOneWidget);
     });
 
-    testWidgets('edit button uses primary colored filled icon', (tester) async {
-      await _pumpUserManagementTab(tester);
-
-      // Find edit buttons (only for non-revoked users: Alice and Bob)
-      final editIcons = find.byIcon(Icons.edit);
-      expect(editIcons, findsNWidgets(2));
-
-      // Verify icon uses primary color
-      final iconWidget = tester.widget<Icon>(editIcons.first);
-      final colorScheme = Theme.of(tester.element(editIcons.first)).colorScheme;
-      expect(iconWidget.color, equals(colorScheme.primary));
-    });
-
-    testWidgets('Active tab shows edit buttons for active users only', (
-      tester,
-    ) async {
-      await _pumpUserManagementTab(tester);
-
-      // Active tab: Alice + Bob each get edit icons
-      expect(find.byIcon(Icons.edit), findsNWidgets(2));
-    });
-
     testWidgets('shows create user and refresh buttons', (tester) async {
       await _pumpUserManagementTab(tester);
       expect(find.text('Create User'), findsOneWidget);
@@ -313,27 +291,37 @@ void main() {
       expect(find.byIcon(Icons.refresh), findsOneWidget);
     });
 
-    testWidgets('active non-pending users show deactivate button', (
+    // Per CUR-1123, the user table has no Actions column. Inline edit /
+    // deactivate / reactivate / activation-code icons were removed; all
+    // actions are reached by tapping the row to open UserInfoDialog.
+    testWidgets('Active user table has exactly 5 columns (no Actions)', (
       tester,
     ) async {
       await _pumpUserManagementTab(tester);
 
-      // Active tab: Alice and Bob are both active (non-pending) → both show block icon
-      expect(find.byIcon(Icons.block), findsNWidgets(2));
+      final table = tester.widget<DataTable>(find.byType(DataTable));
+      expect(table.columns.length, equals(5));
+      final labels = table.columns.map((c) => (c.label as Text).data).toList();
+      expect(labels, equals(['Name', 'Email', 'Roles', 'Sites', 'Status']));
     });
 
-    testWidgets('Inactive tab shows reactivate button for revoked users', (
+    testWidgets('Active user table does not render Actions header', (
       tester,
     ) async {
       await _pumpUserManagementTab(tester);
+      // Belt-and-suspenders alongside the column-count assertion: pins
+      // that the literal header is gone from the rendered tree.
+      expect(find.text('Actions'), findsNothing);
+    });
 
-      // Switch to Inactive Users tab
-      await tester.tap(find.text('Inactive Users'));
+    testWidgets('tapping a row opens UserInfoDialog', (tester) async {
+      await _pumpUserManagementTab(tester);
+
+      // Tap Alice's row (active Administrator)
+      await tester.tap(find.text('Alice Admin'));
       await tester.pumpAndSettle();
 
-      // Carol is revoked → shows check_circle_outline for reactivate
-      expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
-      expect(find.text('Carol Auditor'), findsOneWidget);
+      expect(find.text('User Information'), findsOneWidget);
     });
 
     testWidgets('shows role badges with sponsor display names on Active tab', (
