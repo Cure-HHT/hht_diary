@@ -1,0 +1,138 @@
+{
+  "nodes": {
+    "file:spec/prd-rbac.md": {
+      "id": "file:spec/prd-rbac.md",
+      "kind": "FILE",
+      "label": "prd-rbac.md",
+      "content": {
+        "file_type": "spec",
+        "absolute_path": "/fake/diary/spec/prd-rbac.md",
+        "relative_path": "spec/prd-rbac.md",
+        "repo": null,
+        "git_branch": "URS-1",
+        "git_commit": "fixture"
+      },
+      "children": [
+        "rem:spec/prd-rbac.md:1",
+        "DIARY-PRD-rbac",
+        "DIARY-PRD-action-inventory",
+        "DIARY-PRD-role-definitions",
+        "rem:spec/prd-rbac.md:2",
+        "DIARY-GUI-role-switching"
+      ],
+      "edges": []
+    },
+    "file:spec/prd-rbac.md@callisto": {
+      "id": "file:spec/prd-rbac.md@callisto",
+      "kind": "FILE",
+      "label": "prd-rbac.md",
+      "content": {
+        "file_type": "spec",
+        "absolute_path": "/fake/cal/spec/prd-rbac.md",
+        "relative_path": "spec/prd-rbac.md",
+        "repo": "callisto"
+      },
+      "children": [
+        "rem:cal:spec/prd-rbac.md:1",
+        "CAL-PRD-role-definitions"
+      ],
+      "edges": []
+    },
+    "rem:spec/prd-rbac.md:1": {
+      "id": "rem:spec/prd-rbac.md:1",
+      "kind": "REMAINDER",
+      "label": "# User Roles and Permissions",
+      "content": {
+        "text": "# User Roles and Permissions\n\nIntro prose for the section."
+      },
+      "children": [],
+      "edges": []
+    },
+    "rem:spec/prd-rbac.md:2": {
+      "id": "rem:spec/prd-rbac.md:2",
+      "kind": "REMAINDER",
+      "label": "### Role Switching",
+      "content": {
+        "text": "### Role Switching\n\nProse between REQs."
+      },
+      "children": [],
+      "edges": []
+    },
+    "rem:cal:spec/prd-rbac.md:1": {
+      "id": "rem:cal:spec/prd-rbac.md:1",
+      "kind": "REMAINDER",
+      "label": "# RBAC (callisto)",
+      "content": {
+        "text": "CAL-side intro prose."
+      },
+      "children": [],
+      "edges": []
+    },
+    "DIARY-PRD-rbac": {
+      "id": "DIARY-PRD-rbac",
+      "kind": "REQUIREMENT",
+      "label": "Customizable Role-Based Access Control",
+      "content": {
+        "title": "Customizable Role-Based Access Control",
+        "body": "Body prose for RBAC.",
+        "assertions": [
+          {"label": "A", "text": "The System SHALL support customizable roles."}
+        ]
+      },
+      "children": [],
+      "edges": []
+    },
+    "DIARY-PRD-action-inventory": {
+      "id": "DIARY-PRD-action-inventory",
+      "kind": "REQUIREMENT",
+      "label": "Action Inventory",
+      "content": {
+        "title": "Action Inventory",
+        "body": "",
+        "assertions": [{"label": "A", "text": "Inventory all actions."}]
+      },
+      "children": [],
+      "edges": []
+    },
+    "DIARY-PRD-role-definitions": {
+      "id": "DIARY-PRD-role-definitions",
+      "kind": "REQUIREMENT",
+      "label": "Role Definitions",
+      "content": {
+        "title": "Role Definitions",
+        "body": "",
+        "assertions": [{"label": "A", "text": "Define roles."}]
+      },
+      "children": [],
+      "edges": []
+    },
+    "DIARY-GUI-role-switching": {
+      "id": "DIARY-GUI-role-switching",
+      "kind": "REQUIREMENT",
+      "label": "Role Switching",
+      "content": {
+        "title": "Role Switching",
+        "body": "",
+        "assertions": [{"label": "A", "text": "Switch roles."}]
+      },
+      "children": [],
+      "edges": []
+    },
+    "CAL-PRD-role-definitions": {
+      "id": "CAL-PRD-role-definitions",
+      "kind": "REQUIREMENT",
+      "label": "Role Definitions (Callisto Permissions Table)",
+      "content": {
+        "title": "Role Definitions",
+        "body": "The Callisto sponsor's specific permissions matrix.",
+        "assertions": [
+          {"label": "A", "text": "Permissions matrix as defined in the table below."}
+        ]
+      },
+      "children": [],
+      "edges": [{"target": "DIARY-PRD-role-definitions", "kind": "REFINES"}]
+    }
+  },
+  "roots": ["file:spec/prd-rbac.md", "file:spec/prd-rbac.md@callisto"],
+  "metadata": {"federated": true, "repos": ["diary", "callisto"]}
+}
