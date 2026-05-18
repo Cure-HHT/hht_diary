@@ -49,9 +49,9 @@
 
 ## Plan provenance — pre-spec baseline vs spec-driven additions
 
-This plan started from the FCM redesign work in `docs/fcm-notification-redesign-plan.md` and `docs/fcm-notification-implementation-plan.md` (the **pre-spec baseline**). After cross-checking against `spec/dev-notifications.md`, gaps were identified and the plan was extended (the **spec-driven additions**). This section surfaces that diff so reviewers know which decisions came from where, and ties the additions to a unified implementation order.
+This plan started from the FCM redesign work in `docs/fcm-notification-redesign-plan.md` and `docs/fcm-notification-implementation-plan.md` (the **pre-spec baseline**). After cross-checking against `spec/dev-notifications-v2.md`, gaps were identified and the plan was extended (the **spec-driven additions**). This section surfaces that diff so reviewers know which decisions came from where, and ties the additions to a unified implementation order.
 
-### Pre-spec baseline (what was already planned before `dev-notifications.md` was reviewed)
+### Pre-spec baseline (what was already planned before `dev-notifications-v2.md` was reviewed)
 
 | Item | Source | Scope |
 |------|--------|-------|
@@ -65,18 +65,18 @@ This plan started from the FCM redesign work in `docs/fcm-notification-redesign-
 | Phase 3 — `EmailChannel` + `SlackChannel` (future) | architectural decision in this plan | Move `email_service.dart` into `comms`; add Slack |
 | Phase 4 — Terraform / IaC (future) | implementation plan | Codify IAM grants |
 
-### Spec-driven additions (what got added after `dev-notifications.md` review)
+### Spec-driven additions (what got added after `dev-notifications-v2.md` review)
 
 #### A) Patches inside baseline phases (small changes, no new phase)
 
 | # | Patch | REQ source | Where it lands |
 |---|-------|------------|----------------|
-| 1 | Cold-start: no deep-link on tap; always Main Screen | REQ-d00170 | Phase 1B.5 |
-| 2 | `comms.fcm.dispatch` metric with `result` + `notification_type` tags | REQ-d00167-H | Phase 1A.2 |
-| 3 | Hive `lastSeen` + `recent_ids` cleared on logout / unlink; 30-day bootstrap | REQ-d00169-K | Phase 1B.5 |
-| 4 | `DispatchResult.unregisteredToken()` + `OutboxWriter.onUnregistered` callback | REQ-d00167-C | Phase 1A.2 + 1A.3 |
-| 5 | Explicit `PayloadGuard` regex set (strict + extended SubjectKey, email, configurable name list) | REQ-d00168-E | Phase 1A.1 |
-| 6 | Dedupe by `notification_id` across FCM + polling (Hive 500-cap FIFO set) | REQ-d00169-J | Phase 1B.5 |
+| 1 | Cold-start: no deep-link on tap; always Main Screen | REQ-d00196 | Phase 1B.5 |
+| 2 | `comms.fcm.dispatch` metric with `result` + `notification_type` tags | REQ-d00193-H | Phase 1A.2 |
+| 3 | Hive `lastSeen` + `recent_ids` cleared on logout / unlink; 30-day bootstrap | REQ-d00195-K | Phase 1B.5 |
+| 4 | `DispatchResult.unregisteredToken()` + `OutboxWriter.onUnregistered` callback | REQ-d00193-C | Phase 1A.2 + 1A.3 |
+| 5 | Explicit `PayloadGuard` regex set (strict + extended SubjectKey, email, configurable name list) | REQ-d00194-E | Phase 1A.1 |
+| 6 | Dedupe by `notification_id` across FCM + polling (Hive 500-cap FIFO set) | REQ-d00195-J | Phase 1B.5 |
 | 7 | Send-handler suppression (already-submitted, called-back) | REQ-d00182-B,C | Phase 1B.3 |
 
 These add roughly +0.5 days to Phase 1A (regex set + UNREGISTERED handling + metric), +0.5 days to P1B.3 (suppression), and +0.5 days to P1B.5 (cold-start rewrite + dedupe + lifecycle reset). They are all in the patched Phase 1A and Phase 1B sections of this doc.
@@ -85,7 +85,7 @@ These add roughly +0.5 days to Phase 1A (regex set + UNREGISTERED handling + met
 
 | Phase | REQs covered | Why it wasn't in the baseline |
 |-------|-------------|-------------------------------|
-| **Phase 1C — Yesterday Reminder scheduler** | REQ-d00174 (Yesterday Reminder timezone-aware scheduling, A–G); REQ-d00175 (suppression, A–B); plus `device_timezone` migration 012 and the `Yesterday Reminder Time` sponsor config slot | The redesign focused on transport + envelope + polling. The Yesterday Reminder is a server-side scheduled job that depends on participant timezone — not part of the FCM-redesign scope. |
+| **Phase 1C — Yesterday Reminder scheduler** | REQ-d00200 (Yesterday Reminder timezone-aware scheduling, A–G); REQ-d00201 (suppression, A–B); plus `device_timezone` migration 012 and the `Yesterday Reminder Time` sponsor config slot | The redesign focused on transport + envelope + polling. The Yesterday Reminder is a server-side scheduled job that depends on participant timezone — not part of the FCM-redesign scope. |
 
 This adds ~3 days of work — the baseline estimate was ~10 days remaining, the post-spec estimate is ~13 days remaining.
 
@@ -95,10 +95,10 @@ The spec was narrowed since the previous gap analysis. The following phases were
 
 | Previously | Reqs that drove it | Status now |
 |-----------|---------------------|-----------|
-| Lock Warning scheduler | REQ-d00180, d00181 | Removed from `spec/dev-notifications.md` |
+| Lock Warning scheduler | REQ-d00180, d00181 | Removed from `spec/dev-notifications-v2.md` |
 | Epistaxis Reminder scheduler | REQ-d00185, d00186, d00187 | Removed from spec |
 | Historical Gap Reminder scheduler | REQ-d00188–d00191 | Removed from spec |
-| Task List domain model + rendering (3 task kinds, priority order) | REQ-d00172–d00175 (old numbering) | Removed from spec; only the reactivity assertion (new REQ-d00172) remains, satisfied by P1B.5 |
+| Task List domain model + rendering (3 task kinds, priority order) | REQ-d00198–d00175 (old numbering) | Removed from spec; only the reactivity assertion (new REQ-d00198) remains, satisfied by P1B.5 |
 | Disconnection Notification mobile surface | REQ-d00177, d00178 | Removed from spec |
 | Participation Status Badge | REQ-d00179 | Removed from spec |
 | Sponsor config slots (full set) and Callisto values | REQ-CAL-d00001 / d00002 / d00003 | Removed from spec; only one slot (`Yesterday Reminder Time`) remains, folded into Phase 1C |
@@ -129,7 +129,7 @@ Phase 4 — Terraform / IaC                                       [baseline, fut
 | 4 | P1B.2 — Route `disconnectPatientHandler` through `OutboxWriter` (proof of concept) | baseline | P1B.1 |
 | 5 | P1B.3 — Migrate remaining 7 senders + suppression rules | baseline + patch A.7 | P1B.2 |
 | 6 | P1B.4 — Mount API on `diary_server` | baseline | P1B.1 |
-| 7 | P1B.5 — Mobile polling client (dedupe, lifecycle reset, no deep-link, reactive within 1s per REQ-d00172) | baseline + patches A.1, A.3, A.6 | P1B.4 |
+| 7 | P1B.5 — Mobile polling client (dedupe, lifecycle reset, no deep-link, reactive within 1s per REQ-d00198) | baseline + patches A.1, A.3, A.6 | P1B.4 |
 | 8 | P1C — Yesterday Reminder (cron infra + job + migration 012 + mobile timezone + config slot) | spec-driven | P1B.1, P1B.5 |
 | 9 | P1B.6 — Cleanup + retire old direct-FCM path | baseline | 2 weeks soak after P1B.3 |
 
@@ -508,7 +508,7 @@ Bootstrapping the full protocol now (not just FCM transport) means Phase 1B does
 
 **Workspace registration:** add `comms` to root `pubspec.yaml` workspace list (mirror `trial_data_types`).
 
-**`PayloadGuard` regex set** (REQ-d00168-E — "at minimum"):
+**`PayloadGuard` regex set** (REQ-d00194-E — "at minimum"):
 
 | Pattern name | Regex | Matches |
 |--------------|-------|---------|
@@ -517,7 +517,7 @@ Bootstrapping the full protocol now (not just FCM transport) means Phase 1B does
 | `email` | `\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b` | RFC-lite email |
 | `common_name` | (per-sponsor configured list, default empty) | Names known to appear in clinical workflows (e.g. coordinator names from sponsor config) |
 
-**Bypass policy (REQ-d00168-H):** production code SHALL NOT bypass. Test fixtures may set `PayloadGuard.testOnlyDisable = true` — checked at runtime via assertion that fails when running with `--release`.
+**Bypass policy (REQ-d00194-H):** production code SHALL NOT bypass. Test fixtures may set `PayloadGuard.testOnlyDisable = true` — checked at runtime via assertion that fails when running with `--release`.
 
 **Test plan:** `dart analyze` clean; `payload_guard_test.dart` covers:
 - Each pattern matches a known PHI string
@@ -541,7 +541,7 @@ Bootstrapping the full protocol now (not just FCM transport) means Phase 1B does
 
 **`FcmChannel` calls `PayloadGuard.assertSafeFcm(message)` before the network call** — fail-closed PHI check.
 
-**Response classification (REQ-d00167-C, D):**
+**Response classification (REQ-d00193-C, D):**
 
 | HTTP status | FCM error | Result | Tag for metric |
 |-------------|-----------|--------|----------------|
@@ -551,7 +551,7 @@ Bootstrapping the full protocol now (not just FCM transport) means Phase 1B does
 
 `DispatchResult.unregistered=true` flows up to `OutboxWriter`, which calls `onUnregistered(fcmToken)` so the app can deactivate the stale token row in `patient_fcm_tokens`.
 
-**Metric emission (REQ-d00167-H):**
+**Metric emission (REQ-d00193-H):**
 
 ```dart
 metric.increment('comms.fcm.dispatch', tags: {
@@ -830,14 +830,14 @@ router.get('/api/v1/notifications',
 
 **Uses `EnvelopeFetcher` from `comms`** — mobile doesn't reimplement the wire format or URL paths.
 
-**Triggers (REQ-d00169-F, G):**
+**Triggers (REQ-d00195-F, G):**
 1. App startup (cold start, after auth init).
 2. App resume from background (lifecycle observer).
 3. FCM arrival (foreground or via background-handler outbox replay) — trigger an immediate poll. The FCM payload's `notification_id` is treated as a **hint to poll**, not a navigation target.
-4. Periodic background poll while app foregrounded (every 60 s) — REQ-d00169-G default; sponsor-configurable.
+4. Periodic background poll while app foregrounded (every 60 s) — REQ-d00195-G default; sponsor-configurable.
 5. Pull-to-refresh on the main task list.
 
-**Cold-start sequence (REQ-d00170 — always Main Screen, no deep-link):**
+**Cold-start sequence (REQ-d00196 — always Main Screen, no deep-link):**
 
 ```
 1. Flutter init
@@ -851,16 +851,16 @@ router.get('/api/v1/notifications',
 
 If launched from a notification tap: `FirebaseMessaging.getInitialMessage()` is consumed only to confirm a poll is needed (which it always is on cold start anyway). The `notification_id` in the tap payload is **not** used for navigation. `payload.action` is used to mutate local state (e.g. `lock_task` for `questionnaire_finalized`) but never to navigate.
 
-**Cursor storage and lifecycle (REQ-d00169-H, I, K):**
+**Cursor storage and lifecycle (REQ-d00195-H, I, K):**
 
 | Key | Storage | When written | When read |
 |-----|---------|--------------|-----------|
 | `notification_lastSeen` | Hive | After every successful poll → set to `server_time` from response | On every poll → sent as `since=` |
-| `notification_recent_ids` | Hive (Set, rolling 500 entries) | When an envelope is applied to local state | Before applying — if id already present, skip (REQ-d00169-J dedupe across FCM + polling) |
+| `notification_recent_ids` | Hive (Set, rolling 500 entries) | When an envelope is applied to local state | Before applying — if id already present, skip (REQ-d00195-J dedupe across FCM + polling) |
 
 **Bootstrap (first launch ever):** `notification_lastSeen` is null → poll uses `since = now() - 30 days`. Bounded fetch; older notifications are stale in clinical-trial context.
 
-**Lifecycle reset (REQ-d00169-K):** clear both `notification_lastSeen` and `notification_recent_ids` on:
+**Lifecycle reset (REQ-d00195-K):** clear both `notification_lastSeen` and `notification_recent_ids` on:
 - `AuthService.signOut()` — explicit logout
 - `PatientLinkingService.unlink()` — patient unlinked from device (covered by `disconnect` and `mark_not_participating` actions)
 
@@ -869,7 +869,7 @@ If launched from a notification tap: `FirebaseMessaging.getInitialMessage()` is 
 - `patientStatusUpdate` → `enrollment_service.handleEnvelope(envelope)`
 - `reminder` → reminder service
 
-**Reactivity (REQ-d00172):** the mobile state-management layer (the existing reactive store in `clinical_diary`) MUST propagate state changes triggered by an applied envelope within 1 second. No artificial debounce on the apply path. Verified via integration test: insert a row server-side, observe Task List updates in ≤ 1 s on the device.
+**Reactivity (REQ-d00198):** the mobile state-management layer (the existing reactive store in `clinical_diary`) MUST propagate state changes triggered by an applied envelope within 1 second. No artificial debounce on the apply path. Verified via integration test: insert a row server-side, observe Task List updates in ≤ 1 s on the device.
 
 **Test plan:**
 - Integration test on emulator — start app, no notifications visible. Server-side: insert a row directly. Mobile: verify it appears within 60 s without any FCM.
@@ -903,7 +903,7 @@ After 2 weeks of envelope-on in production with no incidents:
 
 ### Goal
 
-Implement the one server-side scheduled job currently in spec scope: the Yesterday Entry Reminder (REQ-d00174, REQ-d00175). The job evaluates each active participant once per local calendar day at the configured Reminder Time, suppresses if a Daily Status already exists for the previous local day, and idempotently writes a `notifications` row via `OutboxWriter`. Phase 1B's polling delivers it to the device.
+Implement the one server-side scheduled job currently in spec scope: the Yesterday Entry Reminder (REQ-d00200, REQ-d00201). The job evaluates each active participant once per local calendar day at the configured Reminder Time, suppresses if a Daily Status already exists for the previous local day, and idempotently writes a `notifications` row via `OutboxWriter`. Phase 1B's polling delivers it to the device.
 
 ### Scope
 
@@ -913,14 +913,14 @@ Implement the one server-side scheduled job currently in spec scope: the Yesterd
 
 **Cron cadence:** every 5 minutes (a participant whose local 09:00 falls in any 5-minute bucket gets evaluated when that bucket's job fires).
 
-**Eligibility (REQ-d00174 A–D, REQ-d00175):** for each active patient with a registered `device_timezone`:
+**Eligibility (REQ-d00200 A–D, REQ-d00201):** for each active patient with a registered `device_timezone`:
 1. Compute `now()` in that timezone.
 2. If the participant's local clock is currently in the configured `Yesterday Reminder Time` window (e.g. 09:00–09:04 for cadence 5 min) — proceed; otherwise skip.
-3. If a `daily_status` row exists for the participant's previous local calendar day — skip (REQ-d00175-A).
-4. If a `notifications` row already exists with `reminder_kind='yesterday_entry'` and `payload.for_date` equal to the previous local calendar day — skip (idempotency, REQ-d00174-D).
+3. If a `daily_status` row exists for the participant's previous local calendar day — skip (REQ-d00201-A).
+4. If a `notifications` row already exists with `reminder_kind='yesterday_entry'` and `payload.for_date` equal to the previous local calendar day — skip (idempotency, REQ-d00200-D).
 5. Otherwise: write to outbox.
 
-**Outbox payload (REQ-d00174-G):**
+**Outbox payload (REQ-d00200-G):**
 ```json
 {
   "notification_type": "reminder",
@@ -941,10 +941,10 @@ Implement the one server-side scheduled job currently in spec scope: the Yesterd
 - `apps/sponsor-portal/portal_functions/lib/src/scheduler/yesterday_reminder_job.dart`
 - `apps/sponsor-portal/portal_functions/test/scheduler/yesterday_reminder_job_test.dart`
 - `database/migrations/012_add_device_timezone_to_fcm_tokens.sql` — adds `device_timezone text NOT NULL DEFAULT 'UTC'` to `patient_fcm_tokens`
-- `apps/daily-diary/diary_functions/lib/src/fcm_token.dart` — accept + persist `device_timezone` on registration (REQ-d00174-E)
+- `apps/daily-diary/diary_functions/lib/src/fcm_token.dart` — accept + persist `device_timezone` on registration (REQ-d00200-E)
 - `apps/daily-diary/clinical_diary/lib/services/fcm_token_registration.dart` — include current IANA timezone (`flutter_timezone` package) on every registration and on timezone change
 
-**Sponsor config slot (REQ-d00174-F):** `Yesterday Reminder Time` — `LocalTime` (HH:MM). Sourced from the existing sponsor-config interface in `apps/common-dart/shared_functions/`. When unset, the job no-ops (and logs WARN once at startup).
+**Sponsor config slot (REQ-d00200-F):** `Yesterday Reminder Time` — `LocalTime` (HH:MM). Sourced from the existing sponsor-config interface in `apps/common-dart/shared_functions/`. When unset, the job no-ops (and logs WARN once at startup).
 
 The cron infrastructure (`cron_routes.dart`, `cron_auth.dart`, `eligibility_helper.dart`) is built generically so future scheduler jobs (Lock Warning, Epistaxis Reminder, Historical Gap Reminder, etc.) can plug in without re-architecting. Currently only the Yesterday Reminder consumes it.
 
@@ -1124,12 +1124,12 @@ Plus 2 weeks of soak time before P1B.6.
 12. **Cloud Tasks for outbox retry (Phase 2) vs cron-based reconciler?** Cloud Tasks is more accurate but adds infra. Cron is simpler. Decide when we get to Phase 2.
 13. **Does `comms` need `otel_common` dep, or should observability be injected by the consumer?** Initial proposal: depend directly (matches what `notification_service.dart` does today). Revisit if `comms` is consumed outside the GCP/OTel-instrumented services.
 14. **`FcmChannel` lifecycle.** Singleton-per-app or instance-per-call? Today's `NotificationService` is a singleton. Recommendation: instance-per-app (one per server boot); the package itself doesn't enforce singleton — consumer manages lifecycle.
-15. **`PayloadGuard` regex tuning** (Gap 5 / REQ-d00168-E). The spec mandates `\d{3}-\d{3}-\d{3}` for SubjectKey, but real-world IDs include a letter (e.g. `999-001A-125`). Plan ships both the strict spec regex AND an extended regex that covers the real format. Open: should `common_name` patterns be configured per-sponsor (proposed), or is a platform-default name list sufficient?
-16. **Dedupe set size and eviction** (Gap 6 / REQ-d00169-J). Plan uses a Hive `Set<String>` capped at 500 entries with FIFO eviction. Alternative: time-based eviction (drop ids older than 7 days). 500 entries comfortably covers a high-volume month for one patient. Revisit if patients accumulate >500 notifications between launches.
+15. **`PayloadGuard` regex tuning** (Gap 5 / REQ-d00194-E). The spec mandates `\d{3}-\d{3}-\d{3}` for SubjectKey, but real-world IDs include a letter (e.g. `999-001A-125`). Plan ships both the strict spec regex AND an extended regex that covers the real format. Open: should `common_name` patterns be configured per-sponsor (proposed), or is a platform-default name list sufficient?
+16. **Dedupe set size and eviction** (Gap 6 / REQ-d00195-J). Plan uses a Hive `Set<String>` capped at 500 entries with FIFO eviction. Alternative: time-based eviction (drop ids older than 7 days). 500 entries comfortably covers a high-volume month for one patient. Revisit if patients accumulate >500 notifications between launches.
 17. **Bootstrap window for first-launch `lastSeen`** (Gap 3). Plan uses 30 days. Could go 90 days (more historical recovery) or epoch (full backfill). 30 is a reasonable clinical-trial default; revisit if patients report missed historical notifications.
 18. **Cron mechanism for Phase 1C.** Plan proposes Cloud Scheduler → HTTPS → portal_server cron route group, OIDC-authenticated. Alternative: an in-process scheduler in portal_server (simpler, no GCP dependency for local dev) but loses durability across deploys. Recommendation stays with Cloud Scheduler.
-19. **Suppression rules in P1B.3** (REQ-d00173-B, C). Plan adds two pre-flight checks (already-submitted, called-back) inside the same transaction as the outbox insert. Open: define the exact "called-back" predicate against the current questionnaire schema before P1B.3 lands.
-20. **Deferred scope in dev-notifications.md.** The spec has been narrowed since the previous gap analysis: Lock Warning, Epistaxis Reminder, Historical Gap Reminder, Task List domain, Disconnection Notification, Participation Status Badge, and most sponsor config slots have been removed. If they return, Phase 1C's cron infrastructure is reusable for the schedulers; the mobile UI work would need its own planning pass.
+19. **Suppression rules in P1B.3** (REQ-d00199-B, C). Plan adds two pre-flight checks (already-submitted, called-back) inside the same transaction as the outbox insert. Open: define the exact "called-back" predicate against the current questionnaire schema before P1B.3 lands.
+20. **Deferred scope in dev-notifications-v2.md.** The spec has been narrowed since the previous gap analysis: Lock Warning, Epistaxis Reminder, Historical Gap Reminder, Task List domain, Disconnection Notification, Participation Status Badge, and most sponsor config slots have been removed. If they return, Phase 1C's cron infrastructure is reusable for the schedulers; the mobile UI work would need its own planning pass.
 
 ---
 

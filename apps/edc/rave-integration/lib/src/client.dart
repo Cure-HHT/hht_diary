@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import 'models/exceptions.dart';
+import 'models/rws_error.dart';
 import 'models/site.dart';
 import 'models/subject.dart';
 import 'odm_parser.dart';
@@ -110,9 +111,7 @@ class RaveClient {
         return response.body;
       }
 
-      if (response.statusCode == 401) {
-        throw const RaveAuthenticationException();
-      }
+      _throwIf401(response);
 
       throw RaveApiException(
         'Studies endpoint returned status ${response.statusCode}',
@@ -150,9 +149,7 @@ class RaveClient {
         headers: {'Authorization': _authHeader},
       );
 
-      if (response.statusCode == 401) {
-        throw const RaveAuthenticationException();
-      }
+      _throwIf401(response);
 
       if (response.statusCode != 200) {
         throw RaveApiException(
@@ -200,9 +197,7 @@ class RaveClient {
         headers: {'Authorization': _authHeader},
       );
 
-      if (response.statusCode == 401) {
-        throw const RaveAuthenticationException();
-      }
+      _throwIf401(response);
 
       if (response.statusCode != 200) {
         throw RaveApiException(
@@ -226,6 +221,18 @@ class RaveClient {
     } on RaveException {
       rethrow;
     }
+  }
+
+  /// Throws a [RaveAuthenticationException] if the response is HTTP 401,
+  /// enriched with Medidata's RWS error code and message parsed from the
+  /// response body when available.
+  void _throwIf401(http.Response response) {
+    if (response.statusCode != 401) return;
+    final rwsError = parseRwsError(response.body);
+    throw RaveAuthenticationException(
+      reasonCode: rwsError?.reasonCode,
+      serverMessage: rwsError?.message,
+    );
   }
 
   /// Closes the underlying HTTP client.

@@ -1,9 +1,9 @@
 ## REQ-p00016: Separation of Identity and Clinical Data
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p01085
+**Refines**: REQ-p01085
 
-## Assertions
+### Assertions
 
 A. The system SHALL store patient identity information separately from clinical trial data.
 
@@ -33,7 +33,7 @@ M. Clinical data exports SHALL NOT contain real patient identities.
 
 N. A data breach of the clinical database SHALL NOT expose patient identities.
 
-## Rationale
+### Rationale
 
 Privacy by design protects patient confidentiality by ensuring that clinical trial data cannot be directly linked to patient identities. This architectural separation means that even if the clinical database is accessed or breached, patient identities remain protected. The requirement supports HIPAA privacy requirements and reduces the impact of potential privacy breaches. Clinical staff can review trial data without unnecessary exposure to personal information, maintaining the minimum necessary principle for data access.
 
@@ -42,9 +42,9 @@ Privacy by design protects patient confidentiality by ensuring that clinical tri
 ## REQ-p00017: Data Encryption
 
 **Level**: prd | **Status**: Draft | **Implements**: -
-**Refines**: p00016-A, p00016-N
+**Refines**: REQ-p00016-A+N
 
-## Assertions
+### Assertions
 
 A. The system SHALL encrypt sensitive data at rest in database storage.
 
@@ -68,7 +68,7 @@ J. The system SHALL rotate encryption keys according to security policy.
 
 K. The system SHALL NOT allow encryption to be disabled.
 
-## Rationale
+### Rationale
 
 This requirement protects patient privacy (p00016) and clinical trial confidentiality during transmission and storage. Encryption provides an additional protection layer beyond access controls, ensuring data remains protected even if storage media or network traffic is intercepted. The multi-sponsor architecture requires sponsor-specific encryption keys to maintain data isolation. Industry best practices for key management ensure long-term security and compliance with FDA 21 CFR Part 11 requirements for electronic record protection.
 

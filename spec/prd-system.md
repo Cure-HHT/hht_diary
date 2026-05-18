@@ -2,7 +2,7 @@
 
 **Level**: prd | **Status**: Active | **Implements**: -
 
-## Assertions
+### Assertions
 
 A. The system SHALL deploy a digital health technology (DHT) mobile app that allows the patient to collect and track information for their own use.
 
@@ -14,11 +14,11 @@ D. The system SHALL enable sponsor access to trial data via web-based interfaces
 
 E. The system SHALL operate in a manner compliant with applicable regulations.
 
-## Rationale
+### Rationale
 
 This requirement defines the existence, scope, and regulatory nature of the platform without constraining internal design or implementation mechanisms.
 
-## Changelog
+### Changelog
 
 - 2026-04-24 | 94b86e26 | - | Developer (dev@example.com) | Auto-fix: add missing changelog section
 
@@ -28,7 +28,7 @@ This requirement defines the existence, scope, and regulatory nature of the plat
 
 **Level**: prd | **Status**: Draft | **Implements**: -
 
-## Assertions
+### Assertions
 
 A. The Veritite core codebase SHALL be licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
 
@@ -36,7 +36,7 @@ B. Sponsor-specific extensions and customizations SHALL be permitted to remain p
 
 C. Platform documentation SHALL be distributed under an open documentation license compatible with redistribution and modification.
 
-## Rationale
+### Rationale
 
 Open-source licensing ensures transparency, encourages collaboration, and prevents
 closed proprietary forks of the core platform while preserving sponsor IP boundaries.
@@ -48,7 +48,7 @@ closed proprietary forks of the core platform while preserving sponsor IP bounda
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p01041
 
-## Assertions
+### Assertions
 
 A. Each application SHALL display the full text of the license for any included code or content.
 
@@ -60,7 +60,7 @@ D. The license display SHALL scroll license text when necessary to allow viewing
 
 E. The license display SHALL provide a way to return to the previous screen or page.
 
-## Rationale
+### Rationale
 
 Open-source license compliance requires that applications display the full text of all applicable licenses to end users. This platform-wide requirement ensures every application in the system provides a dedicated location for license viewing, regardless of the specific deployment target.
 
@@ -71,7 +71,7 @@ Open-source license compliance requires that applications display the full text 
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p01085
 
-## Assertions
+### Assertions
 
 A. When a user action is rejected because the target resource was modified or removed by another actor, the system SHALL display a clear, specific message explaining that the resource is no longer available.
 
@@ -81,7 +81,7 @@ C. When a user's in-progress work cannot be accepted due to a server-side state 
 
 D. After displaying a state-change error, the system SHALL return the user to a navigable screen where the invalidated resource no longer appears as actionable.
 
-## Rationale
+### Rationale
 
 Multi-user clinical systems allow staff actions (deletion, reassignment, protocol changes) that may invalidate work a patient is actively performing. Without a platform-wide principle, each feature invents its own error handling, leading to inconsistent messaging, silent data loss, or error text that blames the patient. This requirement establishes a baseline contract: when the system cannot accept user work because of a state change initiated by another actor, the user is told clearly, respectfully, and without loss of navigational context.
 
@@ -92,7 +92,7 @@ Multi-user clinical systems allow staff actions (deletion, reassignment, protoco
 **Level**: prd | **Status**: Draft | **Implements**: -
 **Refines**: REQ-p00044-A
 
-## Assertions
+### Assertions
 
 A. The visible appearance, position, label, and tap target of an interactive element SHALL remain stable from the moment the element becomes visible to the user until the user completes or abandons the interaction.
 
@@ -106,7 +106,7 @@ E. Skeleton placeholders, fixed-height containers, and pre-allocated layout slot
 
 F. Interactive elements that are newly rendered, repositioned, or whose visible state changes due to asynchronous data SHALL apply a brief input-suppression window (target: 200 ms) during which taps are ignored and the element visually indicates that it is not yet active (e.g., reduced opacity or disabled styling), to prevent inadvertent activation when a control changes under the user's finger.
 
-## Rationale
+### Rationale
 
 Patients interact with the diary app reflexively — they look at a control, decide what it will do based on what they see, and then tap. If the control's appearance, position, or behavior changes between the moment of decision and the moment of tap, the patient performs an action they did not intend. This is disorienting in any application and unacceptable in a clinical context where the user may be unwell, distracted, or relying on muscle memory to log time-sensitive events. Asynchronous data loads, lazy rendering, and background cache refreshes are common sources of this class of defect; this requirement establishes that the interface the user sees is the contract the application honors, and provides a concrete fallback (assertion F) for cases where the underlying data legitimately arrives after first paint.
 

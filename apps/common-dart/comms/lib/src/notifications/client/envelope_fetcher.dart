@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling (client-side fetcher)
+//   REQ-d00195: Mobile Notifications Polling (client-side fetcher)
 //
 // Pure-Dart HTTP client for the envelope endpoints. Used by the mobile
 // diary app on cold start / resume to pull envelopes since the last

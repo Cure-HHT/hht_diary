@@ -570,7 +570,10 @@ void main() {
         expect(cardFinder, findsOneWidget);
 
         final card = tester.widget<Card>(cardFinder);
-        expect(card.color, equals(const Color(0xFFF9FAFB)));
+        expect(
+          card.color,
+          equals(const Color(0xffe4e4e4).withValues(alpha: 0.7)),
+        );
       });
 
       testWidgets('badge shows "Study participation: Ended" message', (

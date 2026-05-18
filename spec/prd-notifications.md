@@ -5,7 +5,7 @@
 **Last Updated**: 2026-05-11
 **Status**: Draft
 
-> PRD requirements referenced by dev-notifications.md and dev-notifications-v2.md.
+> PRD requirements referenced by dev-notifications-v2.md.
 > These capture the URS-level obligations that the dev specs implement.
 
 ---

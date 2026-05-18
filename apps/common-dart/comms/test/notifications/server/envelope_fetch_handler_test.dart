@@ -1,5 +1,5 @@
 // VERIFIES REQUIREMENTS:
-//   REQ-d00169: GET /notifications/{id} returns the envelope and
+//   REQ-d00195: GET /notifications/{id} returns the envelope and
 //               idempotently stamps delivered_at on first read
 
 import 'dart:convert';

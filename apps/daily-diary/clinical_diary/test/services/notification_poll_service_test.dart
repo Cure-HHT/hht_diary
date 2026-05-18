@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling
-//   REQ-d00169-K: Lifecycle reset (clearCursor)
+//   REQ-d00195: Mobile Notifications Polling
+//   REQ-d00195-K: Lifecycle reset (clearCursor)
 //
 // Unit tests for NotificationPollService.
 
