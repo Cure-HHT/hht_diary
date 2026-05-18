@@ -283,6 +283,10 @@ class _UserManagementTabState extends State<UserManagementTab>
           Navigator.pop(context);
           _reactivateUser(user);
         },
+        onResendActivation: () {
+          Navigator.pop(context);
+          _resendActivationEmail(user);
+        },
         apiClient: _apiClient,
       ),
     );
@@ -764,6 +768,92 @@ class _UserManagementTabState extends State<UserManagementTab>
       }
     }
   }
+
+  /// Resend the activation email for a pending user.
+  ///
+  /// Confirms with the admin (the previous link becomes invalid), then
+  /// calls PATCH /api/v1/portal/users/<id> with {regenerate_activation: true}.
+  /// The backend rotates the code with a fresh 14-day expiry, sends the
+  /// email, and writes an immutable audit row.
+  ///
+  /// Implements: REQ-CAL-p00033/<UI flow assertions>
+  Future<void> _resendActivationEmail(Map<String, dynamic> user) async {
+    final userId = user['id'] as String;
+    final userName = user['name'] as String? ?? 'User';
+    final userEmail = user['email'] as String? ?? '';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Resend Activation Email'),
+        content: Text(
+          'Send a new activation email to $userEmail? '
+          'The previous activation link will become invalid.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final response = await _apiClient.patch('/api/v1/portal/users/$userId', {
+        'regenerate_activation': true,
+      });
+      debugPrint('Resend activation response: ${response.data}');
+
+      if (!mounted) return;
+
+      if (response.isSuccess) {
+        final data = response.data as Map<String, dynamic>;
+        final emailSent = data['email_sent'] == true;
+        final emailError = data['email_error'] as String?;
+        final newCode = data['activation_code'] as String?;
+
+        if (emailSent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Activation email sent to $userEmail')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                emailError != null
+                    ? 'Activation code regenerated; email could not be sent: '
+                          '$emailError. Share the code manually.'
+                    : 'Activation code regenerated; email could not be sent. '
+                          'Share the code manually.',
+              ),
+              duration: const Duration(seconds: 6),
+            ),
+          );
+          if (newCode != null) {
+            _showActivationCode(userName, newCode);
+          }
+        }
+        _loadData();
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${response.error}')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error resending activation email: $e')),
+        );
+      }
+    }
+  }
 }
 
 class CreateUserDialog extends StatefulWidget {
@@ -1192,10 +1282,12 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 /// Read-only dialog showing user details, roles, and assigned sites.
 /// Provides actions to edit or deactivate the user.
 /// For revoked users, shows deactivation reason and reactivate option.
+/// For pending users, shows a Resend Activation Email action.
 ///
 /// IMPLEMENTS REQUIREMENTS:
 ///   REQ-CAL-p00030: Edit User Account
 ///   REQ-CAL-p00031: Deactivate User Account
+///   REQ-CAL-p00033: Resend Activation Email
 ///   REQ-CAL-p00034: Site Visibility and Assignment
 class UserInfoDialog extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -1205,6 +1297,7 @@ class UserInfoDialog extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDeactivate;
   final VoidCallback? onReactivate;
+  final VoidCallback? onResendActivation;
   final ApiClient apiClient;
 
   const UserInfoDialog({
@@ -1216,6 +1309,7 @@ class UserInfoDialog extends StatelessWidget {
     required this.onEdit,
     required this.onDeactivate,
     this.onReactivate,
+    this.onResendActivation,
     required this.apiClient,
   });
 
@@ -1226,6 +1320,7 @@ class UserInfoDialog extends StatelessWidget {
 
     final status = user['status'] as String? ?? 'pending';
     final isRevoked = status == 'revoked';
+    final isPending = status == 'pending';
 
     // Deactivation details (REQ-CAL-p00031)
     final statusChangeReason = user['status_change_reason'] as String?;
@@ -1429,6 +1524,13 @@ class UserInfoDialog extends StatelessWidget {
           OutlinedButton(
             onPressed: onReactivate,
             child: const Text('Reactivate User'),
+          ),
+        // Implements: REQ-CAL-p00033/<UI assertion>
+        if (isPending && onResendActivation != null)
+          OutlinedButton.icon(
+            onPressed: onResendActivation,
+            icon: const Icon(Icons.mail_outline, size: 18),
+            label: const Text('Resend Activation Email'),
           ),
         if (!isRevoked)
           OutlinedButton(onPressed: onEdit, child: const Text('Edit User')),
