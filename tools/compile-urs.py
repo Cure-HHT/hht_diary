@@ -31,6 +31,23 @@ from urs_compile.render import render_node  # noqa: E402
 
 _HEADING_RE = re.compile(r"^(#{1,5})(\s+)", re.MULTILINE)
 _LEADING_H1_RE = re.compile(r"\A\s*#\s+[^\n]*(\n+|\Z)")
+_LEADING_COMMENTS_RE = re.compile(r"\A(?:\s*<!--.*?-->\s*\n?)+", re.DOTALL)
+_LATEX_BLOCK_RE = re.compile(r"```\{=latex\}\n.*?\n```\n?", re.DOTALL)
+
+
+def _strip_latex_blocks(text: str) -> str:
+    """Remove raw LaTeX fenced blocks (`{=latex}`) — for non-LaTeX targets."""
+    return _LATEX_BLOCK_RE.sub("", text)
+
+
+def _has_leading_h1(text: str) -> bool:
+    """Return True if `text` starts with an H1 heading.
+
+    Tolerates leading HTML comments (e.g. elspais-generated banner comments
+    in spec/_generated/*.md) and blank lines before the heading.
+    """
+    cleaned = _LEADING_COMMENTS_RE.sub("", text)
+    return bool(_LEADING_H1_RE.match(cleaned))
 
 
 def demote_headings(md: str, levels: int = 1) -> str:
@@ -132,9 +149,23 @@ def assemble_full_document(
     graph: Graph,
     manifest: Manifest,
     repo_root: Path,
+    target_format: str = "pdf",
 ) -> str:
-    """Assemble the full markdown including frontmatter, body, appendices, glossary, term-index."""
+    """Assemble the full markdown including frontmatter, body, appendices, glossary, term-index.
+
+    `target_format` controls format-specific assembly differences:
+    - "pdf": cover is supplied separately via pandoc --variable=cover-tex;
+      raw `{=latex}` blocks (e.g. \\setcounter for the deliberate 5.2 skip)
+      are preserved.
+    - "docx": prepend docs/urs-cover.md (if present) at the top of the
+      assembled doc; strip raw `{=latex}` blocks, which Word can't render.
+    """
     chunks: list[str] = []
+    # docx prepends a markdown cover; PDF gets its cover via pandoc variable
+    if target_format == "docx":
+        cover_md = repo_root / "docs" / "urs-cover.md"
+        if cover_md.exists():
+            chunks.append(cover_md.read_text())
     if manifest.frontmatter:
         path = repo_root / manifest.frontmatter
         if path.exists():
@@ -156,14 +187,18 @@ def assemble_full_document(
         text = full.read_text()
         # Only inject a chapter heading when the file doesn't already
         # provide one; appendices/glossary/term-index commonly start with
-        # `# Appendices` / `# Glossary` / `# Term Index`.
-        if not _LEADING_H1_RE.match(text):
+        # `# Appendices` / `# Glossary` / `# Term Index`, possibly after
+        # an elspais auto-generated comment banner.
+        if not _has_leading_h1(text):
             chunks.append(f"\n\n# {heading}\n\n")
         chunks.append(text)
-    return _rewrite_image_paths("\n\n".join(chunks))
+    text = _rewrite_image_paths("\n\n".join(chunks))
+    if target_format != "pdf":
+        text = _strip_latex_blocks(text)
+    return text
 
 
-def run_pandoc(
+def run_pandoc_pdf(
     markdown_path: Path,
     output_path: Path,
     template: Path,
@@ -193,37 +228,92 @@ def run_pandoc(
     subprocess.run(cmd, check=True)
 
 
+def run_pandoc_docx(
+    markdown_path: Path,
+    output_path: Path,
+    resource_paths: list[Path],
+    reference_doc: Path | None = None,
+) -> None:
+    """Invoke pandoc to produce a Word .docx output.
+
+    No --template / --pdf-engine — docx uses a reference doc for styling.
+    If reference_doc is provided and exists, pandoc uses it for fonts,
+    heading styles, header/footer; otherwise pandoc's default styling applies.
+    """
+    cmd = [
+        "pandoc",
+        str(markdown_path),
+        "-o", str(output_path),
+        "--toc",
+        "--toc-depth=3",
+        "--number-sections",
+        # Match the PDF's chapter-class mapping so headings line up
+        # numerically between the two outputs.
+        "--top-level-division=chapter",
+        "--resource-path=" + ":".join(str(p) for p in resource_paths),
+    ]
+    if reference_doc is not None and reference_doc.exists():
+        cmd.extend(["--reference-doc", str(reference_doc)])
+    subprocess.run(cmd, check=True)
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--graph", type=Path, default=Path("build/graph.json"))
     p.add_argument("--manifest", type=Path, default=Path("tools/urs-section-map.yaml"))
+    p.add_argument(
+        "--format", choices=["pdf", "docx", "both"], default="both",
+        help="Output format(s) to produce (default: both)",
+    )
     p.add_argument("--output-md", type=Path, default=Path("build/urs-assembled.md"))
     p.add_argument("--output-pdf", type=Path, default=Path("docs/urs-compiled.pdf"))
+    p.add_argument("--output-docx", type=Path, default=Path("docs/urs-compiled.docx"))
     p.add_argument("--template", type=Path, default=Path("docs/urs-template.latex"))
     p.add_argument("--cover", type=Path, default=Path("docs/urs-cover.tex"))
+    p.add_argument(
+        "--reference-doc", type=Path, default=Path("docs/urs-reference.docx"),
+        help="Word reference doc for docx styling (used if file exists; otherwise pandoc default)",
+    )
     p.add_argument(
         "--cal-root", type=Path,
         default=Path("../../hht_diary_callisto-worktrees/URS-1"),
         help="Path to callisto worktree (for image resource paths)",
     )
     p.add_argument(
-        "--skip-pdf", action="store_true",
+        "--skip-render", action="store_true",
         help="Stop after markdown assembly (useful for tests)",
+    )
+    # Back-compat: --skip-pdf used to mean the same thing.
+    p.add_argument(
+        "--skip-pdf", dest="skip_render", action="store_true",
+        help=argparse.SUPPRESS,
     )
     args = p.parse_args()
 
     repo_root = Path(".").resolve()
     args.output_md.parent.mkdir(parents=True, exist_ok=True)
     args.output_pdf.parent.mkdir(parents=True, exist_ok=True)
+    args.output_docx.parent.mkdir(parents=True, exist_ok=True)
 
     graph = Graph.from_json_path(args.graph)
     manifest = Manifest.from_yaml_path(args.manifest)
 
-    md = assemble_full_document(graph, manifest, repo_root)
-    args.output_md.write_text(md)
-    print(f"Assembled markdown: {args.output_md} ({len(md):,} chars)", file=sys.stderr)
+    formats = ["pdf", "docx"] if args.format == "both" else [args.format]
 
-    if args.skip_pdf:
+    # Assemble per-format markdown. When producing both formats, write
+    # separate `.<fmt>.md` files so each is independently inspectable.
+    per_format_md: dict[str, Path] = {}
+    for fmt in formats:
+        md = assemble_full_document(graph, manifest, repo_root, target_format=fmt)
+        if len(formats) > 1:
+            md_path = args.output_md.with_suffix(f".{fmt}.md")
+        else:
+            md_path = args.output_md
+        md_path.write_text(md)
+        per_format_md[fmt] = md_path
+        print(f"Assembled markdown ({fmt}): {md_path} ({len(md):,} chars)", file=sys.stderr)
+
+    if args.skip_render:
         return 0
 
     cal_root = args.cal_root.resolve() if args.cal_root.exists() else None
@@ -234,14 +324,23 @@ def main() -> int:
         if cal_images.exists():
             resource_paths.append(cal_images)
 
-    run_pandoc(
-        markdown_path=args.output_md,
-        output_path=args.output_pdf,
-        template=args.template,
-        cover=args.cover,
-        resource_paths=resource_paths,
-    )
-    print(f"Compiled PDF: {args.output_pdf}", file=sys.stderr)
+    if "pdf" in formats:
+        run_pandoc_pdf(
+            markdown_path=per_format_md["pdf"],
+            output_path=args.output_pdf,
+            template=args.template,
+            cover=args.cover,
+            resource_paths=resource_paths,
+        )
+        print(f"Compiled PDF: {args.output_pdf}", file=sys.stderr)
+    if "docx" in formats:
+        run_pandoc_docx(
+            markdown_path=per_format_md["docx"],
+            output_path=args.output_docx,
+            resource_paths=resource_paths,
+            reference_doc=args.reference_doc,
+        )
+        print(f"Compiled DOCX: {args.output_docx}", file=sys.stderr)
     return 0
 
 

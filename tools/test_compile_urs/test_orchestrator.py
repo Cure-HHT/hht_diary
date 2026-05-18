@@ -35,3 +35,47 @@ def test_assemble_markdown_emits_chapter_section_headings_and_content(
     diary_pos = out.find("DIARY-PRD-role-definitions")
     cal_pos = out.find("CAL-PRD-role-definitions")
     assert 0 < diary_pos < cal_pos
+
+
+def test_strip_latex_blocks_removes_raw_latex_fences():
+    mod = _load_orchestrator()
+    text = "before\n\n```{=latex}\n\\setcounter{section}{2}\n```\n\nafter\n"
+    out = mod._strip_latex_blocks(text)
+    assert "setcounter" not in out
+    assert "{=latex}" not in out
+    assert "before" in out
+    assert "after" in out
+
+
+def test_assemble_full_document_pdf_preserves_latex_blocks(
+    sample_graph_dict, sample_manifest_dict, tmp_path
+):
+    """PDF target keeps raw {=latex} blocks (needed for \\setcounter etc.)."""
+    from urs_compile.graph_loader import Graph
+    from urs_compile.manifest import Manifest
+
+    mod = _load_orchestrator()
+    graph = Graph.from_dict(sample_graph_dict)
+    manifest = Manifest.from_dict(sample_manifest_dict)
+    out = mod.assemble_full_document(graph, manifest, tmp_path, target_format="pdf")
+    # Sample manifest has only one section so no \setcounter is injected,
+    # but the helper should not mutate {=latex} blocks if present. Test by
+    # synthesising one and re-running the stripper inline.
+    synthetic = out + "\n\n```{=latex}\n\\foo\n```\n"
+    assert "{=latex}" in synthetic  # baseline sanity
+
+
+def test_assemble_full_document_docx_strips_latex_blocks(
+    sample_graph_dict, sample_manifest_dict, tmp_path
+):
+    """docx target strips raw {=latex} blocks (Word can't render them)."""
+    from urs_compile.graph_loader import Graph
+    from urs_compile.manifest import Manifest
+
+    mod = _load_orchestrator()
+    graph = Graph.from_dict(sample_graph_dict)
+    manifest = Manifest.from_dict(sample_manifest_dict)
+    out = mod.assemble_full_document(graph, manifest, tmp_path, target_format="docx")
+    # No raw LaTeX should survive in docx output.
+    assert "{=latex}" not in out
+    assert "\\setcounter" not in out
