@@ -176,7 +176,7 @@ class _ClinicalTrialEnrollmentScreenState
 
                         // Description
                         Text(
-                          'Please enter the 10-digit linking code provided by your research coordinator.',
+                          'Please enter the 10-digit linking code provided by your study coordinator.',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(

@@ -170,7 +170,7 @@ class EnrollmentService {
             serverMessage.toLowerCase().contains('already linked');
         throw EnrollmentException(
           serverMessage ??
-              'This code has already been used. Please request a new code from your research coordinator.',
+              'This code has already been used. Please request a new code from your study coordinator.',
           isDeviceDuplicate
               ? EnrollmentErrorType.deviceAlreadyEnrolled
               : EnrollmentErrorType.codeAlreadyUsed,
