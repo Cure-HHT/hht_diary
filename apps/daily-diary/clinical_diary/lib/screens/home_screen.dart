@@ -857,9 +857,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           isSharingWithCureHHT: false,
           sponsorLogo: sponsorBranding.appLogoUrl,
           userName: 'User',
-          onUpdateUserName: (name) {
-            // TODO: Implement username update
-          },
           enrollmentCode: enrollment?.linkingCode,
           enrollmentDateTime: enrollment?.enrolledAt,
           enrollmentEndDateTime: notParticipatingAt,

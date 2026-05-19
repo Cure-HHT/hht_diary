@@ -22,7 +22,6 @@ class ProfileScreen extends StatefulWidget {
     required this.enrollmentStatus,
     required this.isSharingWithCureHHT,
     required this.userName,
-    required this.onUpdateUserName,
     this.isDisconnected = false,
     this.isNotParticipating = false,
     this.linkingStatus = MobileLinkingStatus.connected,
@@ -53,7 +52,6 @@ class ProfileScreen extends StatefulWidget {
   final String enrollmentStatus; // linking status: 'active', 'ended', or 'none'
   final bool isSharingWithCureHHT;
   final String userName;
-  final ValueChanged<String> onUpdateUserName;
   final String? siteName;
   final String? sitePhoneNumber;
   final String? sponsorLogo;
@@ -63,53 +61,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _isEditingName = false;
-  late TextEditingController _nameController;
-  final _nameFocusNode = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(text: widget.userName);
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _nameFocusNode.dispose();
-    super.dispose();
-  }
-
-  void _startEditing() {
-    setState(() {
-      _nameController.text = widget.userName;
-      _isEditingName = true;
-    });
-    // Auto-focus after rebuild
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _nameFocusNode.requestFocus();
-    });
-  }
-
-  void _cancelEditing() {
-    setState(() {
-      _nameController.text = widget.userName;
-      _isEditingName = false;
-    });
-  }
-
-  void _saveName() {
-    final trimmedName = _nameController.text.trim();
-    if (trimmedName.isNotEmpty) {
-      widget.onUpdateUserName(trimmedName);
-    } else {
-      _nameController.text = widget.userName; // Reset to original if empty
-    }
-    setState(() {
-      _isEditingName = false;
-    });
-  }
-
   void _openClinicalTrialPrivacyPolicy() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -208,48 +159,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _isEditingName
-                                ? Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextField(
-                                          controller: _nameController,
-                                          focusNode: _nameFocusNode,
-                                          decoration: InputDecoration(
-                                            hintText: l10n.enterYourName,
-                                            isDense: true,
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 8,
-                                                ),
-                                          ),
-                                          onSubmitted: (_) => _saveName(),
-                                          onEditingComplete: _saveName,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      TextButton(
-                                        onPressed: _cancelEditing,
-                                        child: Text(l10n.cancel),
-                                      ),
-                                    ],
-                                  )
-                                : Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          widget.userName,
-                                          style: theme.textTheme.titleMedium,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        onPressed: _startEditing,
-                                        icon: const Icon(Icons.edit, size: 20),
-                                        tooltip: l10n.editName,
-                                      ),
-                                    ],
-                                  ),
+                            child: Text(
+                              widget.userName,
+                              style: theme.textTheme.titleMedium,
+                            ),
                           ),
                         ],
                       ),
