@@ -151,6 +151,6 @@ The delete *Action* is exposed on every screen of the recording flow because the
 
 ### Screen reference
 
-See: ![Delete Record — Reason Dialog](../docs/urs-extracted-images/image-18.jpg)
+See: ![Delete Record — Reason Dialog](./images/image-18.jpg)
 
 *End* *Nosebleed Event Delete* | **Hash**: 0cb2cfd1

@@ -251,12 +251,12 @@ def assemble_markdown(graph: Graph, manifest: Manifest) -> str:
 def _rewrite_image_paths(text: str) -> str:
     """Rewrite spec-relative image paths so pandoc resolves them from repo root.
 
-    Spec files at `spec/prd-*.md` reference images via `../docs/urs-extracted-images/`,
+    Spec files at `spec/prd-*.md` reference images via `./images/`,
     which is correct relative to the spec file but wrong when pandoc reads the
-    assembled markdown from `build/`. Strip the `../` prefix so the path is
-    relative to the repo root (which is on `--resource-path`).
+    assembled markdown from `build/`. Strip the leading `./` so the path is
+    relative to the repo root with the `spec/` prefix on `--resource-path`.
     """
-    return text.replace("../docs/urs-extracted-images/", "docs/urs-extracted-images/")
+    return text.replace("./images/", "spec/images/").replace("(images/", "(spec/images/")
 
 
 def assemble_full_document(
@@ -421,10 +421,10 @@ def main() -> int:
     p.add_argument("--output-md", type=Path, default=Path("build/urs-assembled.md"))
     p.add_argument("--output-pdf", type=Path, default=Path("docs/urs-compiled.pdf"))
     p.add_argument("--output-docx", type=Path, default=Path("docs/urs-compiled.docx"))
-    p.add_argument("--template", type=Path, default=Path("docs/urs-template.latex"))
-    p.add_argument("--cover", type=Path, default=Path("docs/urs-cover.tex"))
+    p.add_argument("--template", type=Path, default=Path("tools/urs-template.latex"))
+    p.add_argument("--cover", type=Path, default=Path("spec/URS-manifest/urs-cover.tex"))
     p.add_argument(
-        "--reference-doc", type=Path, default=Path("docs/urs-reference.docx"),
+        "--reference-doc", type=Path, default=Path("tools/urs-reference.docx"),
         help="Word reference doc for docx styling (used if file exists; otherwise pandoc default)",
     )
     p.add_argument(
@@ -470,10 +470,10 @@ def main() -> int:
         return 0
 
     cal_root = args.cal_root.resolve() if args.cal_root.exists() else None
-    resource_paths = [repo_root, repo_root / "docs" / "urs-extracted-images"]
+    resource_paths = [repo_root, repo_root / "spec" / "images"]
     if cal_root:
         resource_paths.append(cal_root)
-        cal_images = cal_root / "docs" / "urs-extracted-images"
+        cal_images = cal_root / "spec" / "images"
         if cal_images.exists():
             resource_paths.append(cal_images)
 

@@ -156,7 +156,7 @@ def render_requirement(node: GraphNode, graph: Graph) -> str:
             # the start of the first line of text — which is the visual
             # the user asked for. Bold/italic styling of the label is
             # controlled by the LaTeX template's `\labelenumi`
-            # redefinition; see docs/urs-template.latex.
+            # redefinition; see tools/urs-template.latex.
             body_parts.append(f"\n{label}.  {text}\n")
 
     # Fallback: emit content.rationale only when the children didn't

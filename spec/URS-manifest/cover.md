@@ -1,7 +1,8 @@
-<!-- Markdown cover page for docx output. Mirrors docs/urs-cover.tex
-     content; both should be kept in sync if cover metadata changes.
-     PDF output uses urs-cover.tex via pandoc --variable=cover-tex;
-     docx output prepends this markdown file before the frontmatter. -->
+<!-- Markdown cover page for docx output. Mirrors urs-cover.tex
+     content (sibling file in spec/URS-manifest/); both should be
+     kept in sync if cover metadata changes. PDF output uses
+     urs-cover.tex via pandoc --variable=cover-tex; docx output
+     prepends this markdown file before the frontmatter. -->
 
 **eCOA User Requirements Specification (URS)**
 

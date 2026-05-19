@@ -38,8 +38,8 @@ python3 "${REPO_ROOT}/tools/compile-urs.py" \
   --manifest "${REPO_ROOT}/tools/urs-section-map.yaml" \
   --output-md "${REPO_ROOT}/build/urs-assembled.md" \
   --output-pdf "${REPO_ROOT}/docs/urs-compiled.pdf" \
-  --template "${REPO_ROOT}/docs/urs-template.latex" \
-  --cover "${REPO_ROOT}/docs/urs-cover.tex" \
+  --template "${REPO_ROOT}/tools/urs-template.latex" \
+  --cover "${REPO_ROOT}/spec/URS-manifest/urs-cover.tex" \
   --cal-root "${CAL_WORKTREE}"
 
 # 4) Stand-alone Term Index PDF + DOCX. The federated term-index is too
@@ -49,8 +49,8 @@ python3 "${REPO_ROOT}/tools/compile-urs.py" \
 pandoc "${REPO_ROOT}/build/_generated/term-index.md" \
   -o "${REPO_ROOT}/docs/urs-term-index.pdf" \
   --pdf-engine xelatex \
-  --template "${REPO_ROOT}/docs/urs-template.latex" \
-  --variable=cover-tex:"${REPO_ROOT}/docs/urs-term-index-cover.tex" \
+  --template "${REPO_ROOT}/tools/urs-template.latex" \
+  --variable=cover-tex:"${REPO_ROOT}/spec/URS-manifest/urs-term-index-cover.tex" \
   --toc --toc-depth=1 \
   --top-level-division=chapter
 pandoc "${REPO_ROOT}/build/_generated/term-index.md" \

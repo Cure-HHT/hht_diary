@@ -13,7 +13,7 @@
 -- (`l` content-sized columns had no upper bound and overflowed the page).
 --
 -- The shaded header colour is `tableHeaderShade`, defined in
--- docs/urs-template.latex header-includes.
+-- tools/urs-template.latex header-includes.
 --
 -- Targets pandoc 3.x Table schema: {caption, colspecs, head, bodies,
 -- foot, attr}. head/foot are TableHead/TableFoot with .rows; each body

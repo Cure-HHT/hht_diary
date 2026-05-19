@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate docs/urs-reference.docx from pandoc's default reference doc.
+"""Generate tools/urs-reference.docx from pandoc's default reference doc.
 
 The reference doc supplies pandoc with the styles to use when emitting
 the URS in Word format:
@@ -14,7 +14,7 @@ the URS in Word format:
 - Page footer: "Specific to Protocol TER-4480-C01    CONFIDENTIAL    Page N of M"
 
 Run once (or whenever URS metadata changes); committed output lives at
-docs/urs-reference.docx and is consumed automatically by
+tools/urs-reference.docx and is consumed automatically by
 tools/compile-urs.py when producing docx output.
 
 Usage:
@@ -185,7 +185,7 @@ def _install_footer(doc) -> None:
 
 def main() -> None:
     repo_root = Path(__file__).resolve().parent.parent
-    output = repo_root / "docs" / "urs-reference.docx"
+    output = repo_root / "tools" / "urs-reference.docx"
 
     # Start from pandoc's default reference doc — it ships with all the
     # style names pandoc expects to map markdown elements to.

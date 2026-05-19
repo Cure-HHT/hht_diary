@@ -116,6 +116,6 @@ A successful link transitions the *Participant* from a personal-use **User** to 
 
 ### Screen reference
 
-See: ![Successful Linking Confirmation](../docs/urs-extracted-images/image-25.png)
+See: ![Successful Linking Confirmation](./images/image-25.png)
 
 *End* *Successful Linking Confirmation* | **Hash**: b2e4c450

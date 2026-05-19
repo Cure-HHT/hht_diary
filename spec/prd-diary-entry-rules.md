@@ -180,7 +180,7 @@ Two nosebleeds cannot physically *Overlap*; allowing overlapping records into th
 
 ### Screen reference
 
-See: ![Resolve Conflict — *Resolution* Screen](../docs/urs-extracted-images/image-03.png)
+See: ![Resolve Conflict — *Resolution* Screen](./images/image-03.png)
 
 *End* *Overlapping Event Detection and Resolution* | **Hash**: 1069b1e5
 
@@ -248,6 +248,6 @@ The early warning on start-time is a non-blocking signal: the *Participant* sees
 
 ### Screen reference
 
-See: ![Resolve Conflict — *Resolution* Screen](../docs/urs-extracted-images/image-03.png)
+See: ![Resolve Conflict — *Resolution* Screen](./images/image-03.png)
 
 *End* *Overlapping Event Resolution Flow* | **Hash**: 7bee74de

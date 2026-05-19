@@ -69,7 +69,7 @@ The *Preamble* exists because a **Portal-Sent Questionnaire** is a non-trivial c
 
 ### Screen reference
 
-See: ![*Questionnaire* *Preamble* Screen](../docs/urs-extracted-images/image-02.png)
+See: ![*Questionnaire* *Preamble* Screen](./images/image-02.png)
 
 *End* *Portal-Sent Questionnaire Rules* | **Hash**: afa0afe0
 
@@ -155,11 +155,11 @@ The four-screen structure (*Preamble*, Question, Review, Acknowledgement) makes 
 
 See:
 
-![*Questionnaire* *Review Screen*](../docs/urs-extracted-images/image-01.png)
+![*Questionnaire* *Review Screen*](./images/image-01.png)
 
-![*Questionnaire* *Preamble* Screen](../docs/urs-extracted-images/image-02.png)
+![*Questionnaire* *Preamble* Screen](./images/image-02.png)
 
-![Post-*Submission* Acknowledgement Dialog](../docs/urs-extracted-images/image-19.png)
+![Post-*Submission* Acknowledgement Dialog](./images/image-19.png)
 
 *End* *Portal-Sent Questionnaire Workflow* | **Hash**: ca0d5613
 
@@ -225,11 +225,11 @@ Some clinical questionnaires (e.g. the *NOSE HHT*, the *HHT-QoL*) require contem
 
 See:
 
-![*Session* Expiry Dialog](../docs/urs-extracted-images/image-20.png)
+![*Session* Expiry Dialog](./images/image-20.png)
 
-![*Timeout Warning Notification*](../docs/urs-extracted-images/image-26.png)
+![*Timeout Warning Notification*](./images/image-26.png)
 
-![*Session* Expiry Notification](../docs/urs-extracted-images/image-27.png)
+![*Session* Expiry Notification](./images/image-27.png)
 
 *End* *Questionnaire Session Timeout* | **Hash**: 4e7f3306
 
@@ -283,6 +283,6 @@ The **Session Expiry Dialog** is the in-app companion to the **Session Expiry No
 
 ### Screen reference
 
-See: ![*Session* Expiry Dialog](../docs/urs-extracted-images/image-20.png)
+See: ![*Session* Expiry Dialog](./images/image-20.png)
 
 *End* *Questionnaire Session Expiry* | **Hash**: 02879dd5
