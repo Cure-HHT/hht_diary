@@ -123,7 +123,6 @@ See: REQ-p00038 (Auditor Compliance Access).
 : The mechanism required to release the **Application Lock**. The configured **Authentication Method** is one of: **PIN**, **Device Authentication**, or none.
 *Defined in: DIARY-PRD-application-lock (DIARY)*
 
-
 ## C
 
 **Calendar**
@@ -212,7 +211,6 @@ Diary Platform is not a CTMS — it is specifically a health diary /
 ePRO data collection system. Sponsors typically use a separate CTMS
 alongside the Diary Platform.
 *Defined in: file:spec/glossary-core.md (DIARY)*
-
 
 ## D
 
@@ -343,7 +341,6 @@ See: REQ-p00044 (Clinical Trial Compliant Diary Platform).
 : A configurable validation rule that prompts the **Participant** to confirm the recorded duration of an event when it falls outside expected boundaries.
 *Defined in: DIARY-PRD-entry-duration-check (DIARY)*
 
-
 ## E
 
 **eCOA (Electronic Clinical Outcome Assessment)** *(not indexed)*
@@ -459,7 +456,6 @@ See: REQ-p00004 (Immutable Audit Trail via Event Sourcing), REQ-p01000
 (Event Sourcing Client Interface), prd-event-sourcing-system.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
-
 ## F
 
 **FDA (U.S. Food and Drug Administration)** *(not indexed)*
@@ -492,7 +488,6 @@ prd-clinical-trials.md.
 : A common name, which is **PII**, of the person associated with a **User Account** that identifies a specific individual in the context of the **Sponsor Portal**.
 *Defined in: DIARY-PRD-user-account-create (DIARY)*
 
-
 ## G
 
 **GCP (Good Clinical Practice)** *(not indexed)*
@@ -520,7 +515,6 @@ isolation.
 Note: in clinical trial contexts, "GCP" typically refers to Good
 Clinical Practice.
 *Defined in: file:spec/glossary-core.md (DIARY)*
-
 
 ## H
 
@@ -563,7 +557,6 @@ Documentation).
 **Historical Gap Reminder**
 : A daily **Push Notification** delivered to the **Participant** prompting them to address one or more **Historical Gaps**.
 *Defined in: DIARY-PRD-notification-historical-gap (DIARY)*
-
 
 ## I
 
@@ -642,13 +635,11 @@ at a trial site. Ongoing approval is required for any changes to Diary
 data collection procedures.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
-
 ## J
 
 **Justification Threshold**
 : The configurable elapsed time from midnight (00:00) of the event date in the **Participant's** local timezone after which the **Participant** must provide a reason before creating or editing an entry for that date.
 *Defined in: DIARY-PRD-entry-time-restrictions (DIARY)*
-
 
 ## L
 
@@ -687,7 +678,6 @@ See: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078
 : The configurable maximum duration above which a confirmation prompt is triggered.
 *Defined in: DIARY-PRD-entry-duration-check (DIARY)*
 
-
 ## M
 
 **Main Screen**
@@ -718,7 +708,6 @@ See: REQ-p00001 (Complete Multi-Sponsor Data Separation), REQ-p00008
 prd-architecture-multi-sponsor.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
-
 ## N
 
 **NOSE HHT**
@@ -730,7 +719,6 @@ prd-architecture-multi-sponsor.md.
 impact in HHT patients. May be collected as a questionnaire within the
 Diary app during clinical trials. Specific to HHT clinical trials.
 *Defined in: file:spec/glossary-core.md (DIARY)*
-
 
 ## O
 
@@ -750,7 +738,6 @@ Queue with Automatic Synchronization), dev-app.md.
 **Overlap**
 : A state in which the time range of a new or edited entry intersects with the time range of one or more existing entries for the same **Participant**.
 *Defined in: DIARY-PRD-entry-overlap-resolution (DIARY)*
-
 
 ## P
 
@@ -842,7 +829,6 @@ ePROs.
 : The persistent bar displayed at the top of every screen in the recording flow showing the three steps — Start, Max Intensity, and End — and their completion state.
 *Defined in: DIARY-GUI-epistaxis-record (DIARY)*
 
-
 ## Q
 
 **Questionnaire**
@@ -860,7 +846,6 @@ ePROs.
 **Questionnaire Type**
 : A named category of **Questionnaire**. Each **Questionnaire Type** is implemented as an individual coded component.
 *Defined in: DIARY-PRD-questionnaire-system (DIARY)*
-
 
 ## R
 
@@ -940,7 +925,6 @@ Usage Context: security architecture, database design.
 See: REQ-p00015 (Database-Level Access Enforcement), REQ-p00035
 (Patient Data Isolation), prd-security-RLS.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
-
 
 ## S
 
@@ -1049,7 +1033,6 @@ See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
 : A dedicated zone at the top of the Main Screen reserved for persistent, non-dismissable system notices that require the Participant's attention.
 *Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
-
 ## T
 
 **Task List**
@@ -1075,7 +1058,6 @@ See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
 **True Copy**
 : A complete, unaltered reproduction of the source document obtained directly from the original publisher URL.
 *Defined in: DIARY-PRD-questionnaire-nose-hht (DIARY)*
-
 
 ## U
 
@@ -1113,7 +1095,6 @@ stored in UTC (with the patient's timezone offset for ePROs).
 Displayed in the user's local time zone in the Diary app and Portal.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
-
 ## V
 
 **Verification Code**
@@ -1124,13 +1105,11 @@ Displayed in the user's local time zone in the Diary app and Portal.
 : A unique, time-limited, single-use secured URL delivered to an email address to confirm that the recipient controls that address.
 *Defined in: DIARY-PRD-user-account-activation-workflow (DIARY)*
 
-
 ## Y
 
 **Yesterday Reminder Task**
 : A task prompting the **Participant** to record a **Daily Status** for the previous day.
 *Defined in: DIARY-GUI-participant-task-list (DIARY)*
-
 
 # References
 
@@ -1162,4 +1141,3 @@ Displayed in the user's local time zone in the Diary app and Portal.
 : Version: NIST Special Publication 800-63-3 (with revisions 800-63A/B/C)
 : URL: <https://pages.nist.gov/800-63-3/>
 *Defined in: file:spec/glossary-core.md (DIARY)*
-

@@ -27,8 +27,12 @@ document:
   version: "1.0"
   status: "Draft"
 
-frontmatter: docs/urs-frontmatter.md
-appendices:  docs/urs-appendices.md
+# Authored prose pieces live under spec/URS-manifest/ — the URS document
+# is authored content, even though the rendering pipeline (compile-urs.py,
+# Lua filters, LaTeX template) is tooling. Spec authors edit the prose;
+# tooling devs edit the scripts.
+frontmatter: spec/URS-manifest/frontmatter.md
+appendices:  spec/URS-manifest/appendices.md
 # Glossary and term-index are regenerated fresh on every compile from
 # the callisto worktree (which declares hht_diary as an associate), so
 # the federated view includes every defined term across all repos. The
@@ -47,6 +51,7 @@ glossary:    build/_generated/glossary.md
 chapters:
   - number: 4
     title: "SYSTEM-WIDE STANDARDS"
+    intro_file: spec/URS-manifest/ch4-intro.md
     sections:
       - number: "4.1"
         title: "Common User Interface Elements and Actions"
@@ -75,6 +80,7 @@ chapters:
 
   - number: 5
     title: "PRODUCT REQUIREMENTS"
+    intro_file: spec/URS-manifest/ch5-intro.md
     sections:
       - number: "5.1"
         title: "Administration"
@@ -95,6 +101,7 @@ chapters:
 
   - number: 6
     title: "MOBILE APPLICATION"
+    intro_file: spec/URS-manifest/ch6-intro.md
     sections:
       - number: "6.1"
         title: "Mobile Application Foundation"

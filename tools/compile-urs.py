@@ -180,6 +180,15 @@ def assemble_markdown(graph: Graph, manifest: Manifest) -> str:
     for chapter in manifest.chapters:
         # LaTeX adds the chapter/section numbers; we just emit titles.
         parts.append(f"\n\n# {chapter.title}\n")
+        # Chapter-level intro prose, if the manifest references one. The
+        # file is plain markdown and is rendered between the chapter
+        # heading and its first section heading. Skip silently if the
+        # pointed-at file is missing so an unwired chapter doesn't break
+        # the build.
+        if chapter.intro_file:
+            intro_path = Path(chapter.intro_file)
+            if intro_path.exists():
+                parts.append("\n" + intro_path.read_text().rstrip() + "\n")
         prev_section_num: int | None = None
         for section in chapter.sections:
             # Parse the manifest section number ("5.3" -> 3) and inject a raw
@@ -262,13 +271,14 @@ def assemble_full_document(
     - "pdf": cover is supplied separately via pandoc --variable=cover-tex;
       raw `{=latex}` blocks (e.g. \\setcounter for the deliberate 5.2 skip)
       are preserved.
-    - "docx": prepend docs/urs-cover.md (if present) at the top of the
-      assembled doc; strip raw `{=latex}` blocks, which Word can't render.
+    - "docx": prepend spec/URS-manifest/cover.md (if present) at the
+      top of the assembled doc; strip raw `{=latex}` blocks, which Word
+      can't render.
     """
     chunks: list[str] = []
     # docx prepends a markdown cover; PDF gets its cover via pandoc variable
     if target_format == "docx":
-        cover_md = repo_root / "docs" / "urs-cover.md"
+        cover_md = repo_root / "spec" / "URS-manifest" / "cover.md"
         if cover_md.exists():
             chunks.append(cover_md.read_text())
     if manifest.frontmatter:

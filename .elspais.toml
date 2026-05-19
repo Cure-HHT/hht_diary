@@ -110,8 +110,11 @@ skip_files = ["README.md", "requirements-spec.md", "EXAMPLE-requirement.md", "IN
 # change-control, SDLC-SOP, etc.) with its own conventions, intentionally
 # not part of the local requirement graph but mined for terms via
 # glossary-core.md at the spec/ root.
+# URS-manifest/ holds authored prose pieces (chapter intros, frontmatter,
+# appendices, cover) consumed by the URS PDF generator; these are not
+# REQs and shouldn't be parsed by elspais's spec scanner.
 # regulations/, roadmap/, and the legacy NFR/ entry are also skipped.
-skip_dirs = ["_generated", "roadmap", "regulations", "NFR", "governance"]
+skip_dirs = ["_generated", "roadmap", "regulations", "NFR", "governance", "URS-manifest"]
 
 [scanning.code]
 directories = ["src", "apps", "packages"]

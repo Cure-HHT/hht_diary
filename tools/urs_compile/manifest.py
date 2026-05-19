@@ -21,6 +21,12 @@ class Chapter:
     number: int
     title: str
     sections: list[Section]
+    # Optional path (repo-relative) to a markdown file holding the
+    # chapter-level intro prose that renders between the chapter heading
+    # and its first section. Separates spec-author prose work from
+    # manifest / pipeline edits — the file is plain markdown, no
+    # frontmatter or scripting required.
+    intro_file: str | None = None
 
 
 @dataclass(frozen=True)
@@ -50,6 +56,7 @@ class Manifest:
                 number=int(ch["number"]),
                 title=ch["title"],
                 sections=sections,
+                intro_file=ch.get("intro_file"),
             ))
         return cls(
             document=d.get("document", {}),
