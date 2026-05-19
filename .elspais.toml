@@ -248,12 +248,17 @@ exclude_files = []
 
 [terms.severity]
 duplicate = "error"
-undefined = "warning"
-unmarked = "warning"
-unused = "warning"
+# undefined / unmarked / unused / canonical_form dropped to info — they
+# currently generate ~10k findings, ~89% of which originate in code
+# files (Dart / SQL / bash where markdown emphasis on a domain term is
+# a category error). Re-evaluate on the dedicated terms-cleanup ticket
+# tracked at CUR-1359; see that ticket for the proposed long-term fix.
+undefined = "info"
+unmarked = "info"
+unused = "info"
 bad_definition = "error"
 collection_empty = "warning"
-canonical_form = "warning"
+canonical_form = "info"
 changed = "warning"
 
 # Output settings
