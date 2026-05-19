@@ -1183,6 +1183,111 @@ void main() {
       },
     );
   });
+
+  // CUR-1124: the list endpoint joined portal_user_roles and
+  // portal_user_site_access without DISTINCT, so a user with N roles
+  // and M sites returned N*M site entries. This pins the DISTINCT
+  // jsonb_build_object fix in `getPortalUsersHandler`.
+  group('getPortalUsersHandler — site dedup (CUR-1124)', () {
+    test(
+      'returns each site once for a multi-role user (no cartesian dupes)',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        const multiRoleId = '99994000-0000-0000-0000-0000000000bb';
+        const multiRoleEmail = 'multi-role-dedupe@user-edit-test.example.com';
+        const multiRoleFirebaseUid = 'firebase-edit-multi-role-uid';
+
+        final db = Database.instance;
+
+        // Create a fresh user with 3 roles and 2 sites. Without the
+        // DISTINCT fix, the list endpoint would return 6 site entries
+        // for this user (3 roles × 2 sites).
+        await db.execute(
+          '''
+          INSERT INTO portal_users (id, email, name, firebase_uid, status)
+          VALUES (@id::uuid, @email, 'Multi-Role Dedup Target',
+                  @firebaseUid, 'active')
+          ''',
+          parameters: {
+            'id': multiRoleId,
+            'email': multiRoleEmail,
+            'firebaseUid': multiRoleFirebaseUid,
+          },
+        );
+        for (final role in ['Administrator', 'Auditor', 'Investigator']) {
+          await db.execute(
+            '''
+            INSERT INTO portal_user_roles (user_id, role, assigned_by)
+            VALUES (@userId::uuid, @role::portal_user_role, @assignedBy::uuid)
+            ''',
+            parameters: {
+              'userId': multiRoleId,
+              'role': role,
+              'assignedBy': testAdminId,
+            },
+          );
+        }
+        for (final siteId in [testSiteId, testSiteId2]) {
+          await db.execute(
+            '''
+            INSERT INTO portal_user_site_access (user_id, site_id)
+            VALUES (@userId::uuid, @siteId)
+            ''',
+            parameters: {'userId': multiRoleId, 'siteId': siteId},
+          );
+        }
+
+        try {
+          final token = createMockEmulatorToken(
+            testAdminFirebaseUid,
+            testAdminEmail,
+          );
+          final response = await getPortalUsersHandler(
+            createGetRequest(
+              '/api/v1/portal/users',
+              headers: {'authorization': 'Bearer $token'},
+            ),
+          );
+          expect(response.statusCode, equals(200));
+
+          final json = await getResponseJson(response);
+          final users = (json['users'] as List).cast<Map<String, dynamic>>();
+          final target = users.firstWhere(
+            (u) => u['id'] == multiRoleId,
+            orElse: () =>
+                throw StateError('multi-role test user not in list response'),
+          );
+
+          final sites = (target['sites'] as List).cast<Map<String, dynamic>>();
+          // 3 roles × 2 sites = 6 entries pre-fix; 2 unique entries post-fix.
+          expect(sites.length, equals(2));
+          final siteIds = sites.map((s) => s['site_id'] as String).toSet();
+          expect(siteIds, equals({testSiteId, testSiteId2}));
+
+          // Roles still report all three (string_agg DISTINCT was already
+          // correct; this guards against regressing that path).
+          final roles = (target['roles'] as List).cast<String>();
+          expect(
+            roles.toSet(),
+            equals({'Administrator', 'Auditor', 'Investigator'}),
+          );
+        } finally {
+          await db.execute(
+            'DELETE FROM portal_user_site_access WHERE user_id = @id::uuid',
+            parameters: {'id': multiRoleId},
+          );
+          await db.execute(
+            'DELETE FROM portal_user_roles WHERE user_id = @id::uuid',
+            parameters: {'id': multiRoleId},
+          );
+          await db.execute(
+            'DELETE FROM portal_users WHERE id = @id::uuid',
+            parameters: {'id': multiRoleId},
+          );
+        }
+      },
+    );
+  });
 }
 
 Future<void> _cleanup() async {
