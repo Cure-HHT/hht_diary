@@ -57,7 +57,7 @@ The **Study Coordinator** **Audit Log View** presents the **Study Coordinator**'
 
 **Display**
 
-A. The interface SHALL display the **Participant ID** column in addition to the columns defined in *Diary*-GUI-audit-log-common.
+A. The interface SHALL display the **Participant ID** column in addition to the columns defined in `DIARY-GUI-audit-log-common`.
 
 **Controls**
 
@@ -67,7 +67,7 @@ B. The interface SHALL provide a **Participant ID** search input that filters th
 
 A *Study Coordinator*'s investigative workflow centers on individual participants — confirming what was done for a specific *Participant* during a specific visit, or assembling documentation in response to a monitoring request. Surfacing **Participant ID** as a first-class column and providing a dedicated search input collapses the most common filter operation to a single keystroke. Limiting the view to the Coordinator's own actions reinforces the separation-of-duties model encoded in the per-*Role* scope: Coordinators are accountable for their own *Audit Trail* and do not need (and should not have) visibility into peer actions.
 
-*End* *Study Coordinator Audit Log View* | **Hash**: 16324281
+*End* *Study Coordinator Audit Log View* | **Hash**: ab4dc758
 
 ## DIARY-GUI-audit-log-cra: CRA Audit Log View
 
@@ -82,7 +82,7 @@ The **CRA** **Audit Log View** is accessed by selecting a **Site** from the **CR
 
 **Display**
 
-A. The interface SHALL display the **Participant ID** and **Site** columns in addition to the columns defined in *Diary*-GUI-audit-log-common.
+A. The interface SHALL display the **Participant ID** and **Site** columns in addition to the columns defined in `DIARY-GUI-audit-log-common`.
 
 B. The interface SHALL display the name of the selected **Site** in the **Audit Log View** header.
 
@@ -98,7 +98,7 @@ E. The interface SHALL provide a **Participant ID** search input that filters th
 
 CRAs perform *Site* monitoring — verifying that *Study Coordinator* activity at a specific *Site* is compliant and consistent with protocol. The single-*Site* scope makes the unit of monitoring explicit (a CRA reviews one *Site* at a time, not their entire assignment portfolio in a single view), the *Site* name in the header keeps the active scope visible, and the Coordinator selector with an "all Coordinators" default supports both audit-wide review and Coordinator-specific drill-down without forcing the CRA to apply filters manually. The *Participant* ID search supports the same per-*Participant* investigation pattern the *Study Coordinator* view supports, but scoped to the *Site* under review.
 
-*End* *CRA Audit Log View* | **Hash**: 674325a9
+*End* *CRA Audit Log View* | **Hash**: 39017414
 
 ## DIARY-GUI-audit-log-administrator: Administrator Audit Log View
 

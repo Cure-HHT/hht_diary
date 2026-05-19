@@ -47,22 +47,42 @@
   pdfstartview=FitH
 ]{hyperref}
 
+% Long URLs break at any character (vs. only at /, ?, & with hyperref alone).
+% Used for the JAMA Network / ASH Publications references on NOSE HHT / HHT-QoL
+% True Copy assertions where the URL is longer than \linewidth. xurl loads
+% AFTER hyperref so its breakpoints win.
+\usepackage{xurl}
+
 \usepackage{enumitem}
 
-% Graphics support — constrain images to page dimensions. The height cap is
-% deliberately ~0.85*\textheight rather than \textheight directly: a figure
-% sized to full textheight, plus its caption (~14pt), plus the float
-% separation (\textfloatsep, ~24pt), would overflow the page by ~30-40pt
-% and trigger "Float too large for page" warnings — LaTeX then dumps the
-% figure onto a separate float page, leaving the introducing prose
-% ("Screen reference\n\nSee:") orphaned at the bottom of the previous page
-% where it can overlap the footer rule.
+% Reserve a minimum amount of vertical space below a heading so a section
+% heading can't be left orphaned at the bottom of a page with its first
+% subsection content on the next page. Used via \needspace{Npt} in
+% \titleformat hooks below. Round-2 audit caught orphan `7.2 Modals`,
+% `7.3 Dialogs`, `7.4 Notifications` headings.
+\usepackage{needspace}
+
+% Suppress LaTeX hyphenation on words where the default hyphenation
+% pattern produces awkward breaks ("Dia-log", "Prede-fined"). \hyphenation
+% takes a list of hyphenation patterns — words listed with NO hyphens
+% are never broken. Add words here as round-2 audit findings turn them up.
+\hyphenation{Dialog Dialogs Predefined}
+
+% Graphics support — every embedded image renders at a fixed fraction of
+% the text column so screenshots / dialogs / phone mockups appear at a
+% consistent visual size throughout the document. Round-2 audit found
+% images ranging from ~40% to ~95% column width based on the source
+% PNG's natural dimensions; pinning a single default removes that
+% variance.
+%
+% Height cap kept at 0.85*\textheight as a safety: a figure sized to
+% full textheight plus its caption (~14pt) plus float separation
+% (\textfloatsep, ~24pt) would overflow the page and trigger "Float too
+% large for page" warnings that bump the figure to a float page and
+% strand the introducing prose ("Screen reference\n\nSee:") at the
+% bottom of the previous page where it can overlap the footer rule.
 \usepackage{graphicx}
-\makeatletter
-\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
-\def\maxheight{\ifdim\Gin@nat@height>0.85\textheight 0.85\textheight\else\Gin@nat@height\fi}
-\makeatother
-\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\setkeys{Gin}{width=0.5\textwidth,height=0.85\textheight,keepaspectratio}
 
 % Figure placement: `htbp` lets LaTeX pick the best of here/top/bottom/page
 % so a figure that doesn't fit the immediate position can float to the next
@@ -212,6 +232,12 @@
 \titlespacing*{\chapter}{0pt}{-20pt}{20pt}
 \titleformat{\paragraph}[hang]{\normalfont\normalsize\bfseries}{}{0pt}{}
 \titlespacing*{\paragraph}{0pt}{10pt}{4pt}
+
+% Keep section / subsection headings from being orphaned at the bottom of a
+% page. \needspace{6\baselineskip} reserves ~6 lines so the heading can't
+% land with only its label visible before the page break.
+\pretocmd{\section}{\needspace{6\baselineskip}}{}{}
+\pretocmd{\subsection}{\needspace{6\baselineskip}}{}{}
 
 % Each REQUIREMENT renders as `### Title` -> \subsection. Start every
 % REQ on a fresh page so reviewers can read one requirement at a time

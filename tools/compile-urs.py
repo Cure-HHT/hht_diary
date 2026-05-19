@@ -34,6 +34,96 @@ _LEADING_H1_RE = re.compile(r"\A\s*#\s+[^\n]*(\n+|\Z)")
 _LEADING_COMMENTS_RE = re.compile(r"\A(?:\s*<!--.*?-->\s*\n?)+", re.DOTALL)
 _LATEX_BLOCK_RE = re.compile(r"```\{=latex\}\n.*?\n```\n?", re.DOTALL)
 _H2_HEADING_RE = re.compile(r"^(## )(?!.*\{\.)(.+?)$", re.MULTILINE)
+_GLOSSARY_LETTER_HEADING_RE = re.compile(r"^## ([A-Z])\s*$", re.MULTILINE)
+_DEFINED_IN_RE = re.compile(r"\n\*Defined in: ([^*]*)\*", re.MULTILINE)
+
+
+def _break_defined_in(text: str) -> str:
+    """Render every `*Defined in: <path>*` line in the elspais glossary /
+    references on a new line, right-aligned, with a small gap before the
+    next entry but no extra vertical space above.
+
+    elspais emits each entry as a definition list followed immediately
+    (no blank line) by `*Defined in: <path>*`. Without intervention,
+    pandoc treats the line as a continuation of the last `:` definition
+    and renders the pointer inline with the URL. A paragraph break
+    would force visible vertical space above, which the user rejected.
+
+    Instead, stay inside the same definition-list item and inject:
+    - `\\\\*` — forced linebreak, with `*` to forbid a page break
+      between the prior content and the pointer (otherwise the pointer
+      can land at the top of the next page, orphaned from its term).
+    - `\\null\\hfill` — fills the new line so the italic text
+      right-aligns against the right margin.
+    - `\\smallskip` after the emph — a small gap before the next term
+      so adjacent entries aren't visually flush against each other.
+    """
+    return _DEFINED_IN_RE.sub(
+        r" `\\\\*\\null\\hfill`{=latex} *Defined in: \1* `\\smallskip`{=latex}",
+        text,
+    )
+
+
+def _fill_missing_glossary_letters(text: str) -> str:
+    """Insert `## <Letter>\\n\\n*No terms.*\\n` for every alphabet letter
+    that doesn't already appear as a single-letter H2 heading.
+
+    elspais's `glossary` output only emits letter headings that have terms
+    under them. A reader scanning the rendered glossary couldn't tell
+    whether a missing letter (K, X, Z, ...) was an authoring oversight or
+    an intentional gap. Filling in every absent letter with an explicit
+    "No terms." marker disambiguates: an empty letter section is a
+    statement that the corpus has no terms beginning with that letter.
+
+    Letters that DO have terms are left untouched. Placeholders are
+    inserted just before the next existing letter heading; tail letters
+    that come after the last existing one (e.g. Z when last is Y) are
+    appended at the end of the glossary section (before any following
+    H1 chapter such as References).
+    """
+    matches = list(_GLOSSARY_LETTER_HEADING_RE.finditer(text))
+    if not matches:
+        return text  # No letter structure detected; nothing to patch.
+
+    out_parts: list[str] = []
+    cursor = 0
+    last_letter = "@"  # one before "A"
+    for match in matches:
+        letter = match.group(1)
+        # Letters that should appear in the gap between last_letter and letter.
+        missing = [chr(c) for c in range(ord(last_letter) + 1, ord(letter))]
+        if missing:
+            # Emit text up to this heading, then insert placeholders, then
+            # the heading itself in the regular flow.
+            out_parts.append(text[cursor:match.start()])
+            for m in missing:
+                out_parts.append(f"## {m}\n\n*No terms.*\n\n")
+            cursor = match.start()
+        # Continue normal accumulation; the heading line itself is emitted
+        # when we close out the loop or hit the next match.
+        last_letter = letter
+
+    # Append everything after the last match boundary.
+    out_parts.append(text[cursor:])
+    body = "".join(out_parts)
+
+    # Tail letters after the last existing letter (e.g. Z when last is Y).
+    if last_letter < "Z":
+        tail_letters = [chr(c) for c in range(ord(last_letter) + 1, ord("Z") + 1)]
+        tail = "".join(f"\n## {m}\n\n*No terms.*\n" for m in tail_letters)
+        # Splice tail before the next H1 (References / Term Index) so the
+        # placeholders sit inside the glossary chapter. Search starts AFTER
+        # the last existing letter heading so the glossary's own `# Glossary`
+        # H1 (which sits at the top of the file) is not matched.
+        last_letter_match = matches[-1]
+        scan_from = last_letter_match.end()
+        next_h1 = re.search(r"\n# [A-Z]", body[scan_from:])
+        if next_h1:
+            insert_at = scan_from + next_h1.start()
+            body = body[:insert_at].rstrip() + "\n" + tail + body[insert_at:]
+        else:
+            body = body.rstrip() + "\n" + tail
+    return body
 
 
 def _strip_latex_blocks(text: str) -> str:
@@ -205,6 +295,14 @@ def assemble_full_document(
         # term — flag each H2 as unnumbered + unlisted.
         if key == "term_index":
             text = _exclude_h2_from_toc(text)
+        # Glossary letters that have no terms are absent from elspais's
+        # output; fill them in with "No terms." placeholders so a reader
+        # can distinguish "intentionally empty" from "authoring oversight".
+        # Also break `*Defined in: ...*` onto its own paragraph so it
+        # doesn't render inline with the entry's URL / last definition.
+        if key == "glossary":
+            text = _fill_missing_glossary_letters(text)
+            text = _break_defined_in(text)
         # Only inject a chapter heading when the file doesn't already
         # provide one; appendices/glossary/term-index commonly start with
         # `# Appendices` / `# Glossary` / `# Term Index`, possibly after
@@ -226,12 +324,21 @@ def run_pandoc_pdf(
     resource_paths: list[Path],
     engine: str = "xelatex",
 ) -> None:
-    table_filter = Path(__file__).parent / "pandoc-filters" / "table-grid.lua"
-    assertion_filter = Path(__file__).parent / "pandoc-filters" / "assertion-label-italic.lua"
+    filters_dir = Path(__file__).parent / "pandoc-filters"
+    table_filter = filters_dir / "table-grid.lua"
+    assertion_filter = filters_dir / "assertion-label-italic.lua"
+    image_filter = filters_dir / "image-normalize.lua"
+    code_filter = filters_dir / "code-breakable.lua"
     cmd = [
         "pandoc",
         str(markdown_path),
         "-o", str(output_path),
+        # autolink_bare_uris wraps `https://...` text in `\url{...}` so xurl
+        # can break it at any character (without it, pandoc emits the URL
+        # as plain text and long URLs overflow the right margin — round-2
+        # audit caught this on the JAMA and ASH Publications links in
+        # DIARY-PRD-questionnaire-nose-hht / -hht-qol assertion B).
+        "-f", "markdown+autolink_bare_uris",
         "--pdf-engine", engine,
         "--template", str(template),
         # Cover is consumed by the template's `$cover-tex$` slot, which
@@ -252,6 +359,13 @@ def run_pandoc_pdf(
         # Lua filter: italicise A./B./C. labels on alphabetic ordered
         # lists (assertion blocks). LaTeX target only.
         f"--lua-filter={assertion_filter}",
+        # Lua filter: normalise every Image to a fixed width and force
+        # in-place placement (no float). LaTeX target only.
+        f"--lua-filter={image_filter}",
+        # Lua filter: inject \allowbreak after every hyphen inside inline
+        # `\texttt{}` spans so long REQ ids (DIARY-PRD-...-...) can wrap
+        # at hyphens instead of overflowing the right margin.
+        f"--lua-filter={code_filter}",
         "--resource-path=" + ":".join(str(p) for p in resource_paths),
     ]
     subprocess.run(cmd, check=True)

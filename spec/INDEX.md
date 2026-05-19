@@ -97,8 +97,8 @@
 | DIARY-GUI-administrator-settings             | Administrator Settings Interface          | prd-administrator-settings.md             | fca0242e |
 | DIARY-GUI-audit-log-administrator            | Administrator Audit Log View              | prd-audit-log.md                          | 1f44ba79 |
 | DIARY-GUI-audit-log-common                   | Audit Log View — Common Presentation      | prd-audit-log.md                          | 92f0cef8 |
-| DIARY-GUI-audit-log-cra                      | CRA Audit Log View                        | prd-audit-log.md                          | 674325a9 |
-| DIARY-GUI-audit-log-study-coordinator        | Study Coordinator Audit Log View          | prd-audit-log.md                          | 16324281 |
+| DIARY-GUI-audit-log-cra                      | CRA Audit Log View                        | prd-audit-log.md                          | 39017414 |
+| DIARY-GUI-audit-log-study-coordinator        | Study Coordinator Audit Log View          | prd-audit-log.md                          | ab4dc758 |
 | DIARY-GUI-calendar-day-view                  | Calendar and Day View                     | prd-mobile-navigation.md                  | 8051d0f5 |
 | DIARY-GUI-entry-overlap-resolution           | Overlapping Event Resolution Flow         | prd-diary-entry-rules.md                  | 7bee74de |
 | DIARY-GUI-epistaxis-delete                   | Nosebleed Event Delete                    | prd-epistaxis.md                          | 0cb2cfd1 |
@@ -109,7 +109,7 @@
 | DIARY-GUI-main-screen-layout                 | Main Screen Layout                        | prd-mobile-navigation.md                  | 0e9dccb1 |
 | DIARY-GUI-mobile-navigation                  | Mobile Application Navigation and Screens | prd-mobile-navigation.md                  | ecc7e268 |
 | DIARY-GUI-participant-dashboard              | Participant Dashboard                     | prd-participant.md                        | ce22fd18 |
-| DIARY-GUI-participant-task-list              | Participant Task List                     | prd-mobile-notifications.md               | 4046086e |
+| DIARY-GUI-participant-task-list              | Participant Task List                     | prd-mobile-notifications.md               | 916aca8a |
 | DIARY-GUI-participation-status-badge         | Participation Status Badge                | prd-mobile-notifications.md               | 6f306233 |
 | DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface        | prd-portal-auth.md                        | d41e7764 |
 | DIARY-GUI-questionnaire-portal-sent-workflow | Portal-Sent Questionnaire Workflow        | prd-questionnaire-participant-workflow.md | ca0d5613 |
@@ -118,5 +118,5 @@
 | DIARY-GUI-show-linking-code                  | Show Linking Code                         | prd-participant.md                        | 30285056 |
 | DIARY-GUI-user-account-deactivate            | Deactivate User Account                   | prd-user-account.md                       | bb9d75f2 |
 | DIARY-GUI-user-account-reactivate            | Reactivate User Account                   | prd-user-account.md                       | 15f0d2fd |
-| DIARY-GUI-user-information-modal             | User Information Modal                    | prd-user-account.md                       | 4402c06b |
+| DIARY-GUI-user-information-modal             | User Information Modal                    | prd-user-account.md                       | 378c3dcd |
 | DIARY-GUI-user-management-tabs               | User Management Tabs                      | prd-user-account.md                       | f36341b4 |

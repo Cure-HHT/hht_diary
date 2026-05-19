@@ -5,6 +5,13 @@
 -- pandoc target is LaTeX (PDF output); other formats pass through
 -- unchanged.
 --
+-- Column width policy: every body column is a `p{<width>}` block-paragraph
+-- column that fills equal share of \linewidth (after subtracting the
+-- per-column rule + padding overhead). This wraps long cell content
+-- instead of letting it run past the right margin, which was the failure
+-- mode for the Behavior / Description / Trigger columns in the URS PDF
+-- (`l` content-sized columns had no upper bound and overflowed the page).
+--
 -- The shaded header colour is `tableHeaderShade`, defined in
 -- docs/urs-template.latex header-includes.
 --
@@ -38,9 +45,16 @@ function Table(tbl)
   local ncols = #tbl.colspecs
   if ncols == 0 then return tbl end
 
-  -- |l|l|...|l| column spec gives left-aligned columns with vertical
-  -- rules between every pair.
-  local colspec = "|" .. string.rep("l|", ncols)
+  -- Equal-share `p{...}` columns. Each column gets the same width derived
+  -- from \linewidth minus the per-column rule + padding overhead
+  -- (\tabcolsep * 2 per column, plus the trailing rule). Using
+  -- \dimexpr lets LaTeX evaluate the arithmetic at typeset time.
+  local col_width = string.format(
+    "\\dimexpr(\\linewidth-%d\\tabcolsep-\\arrayrulewidth)/%d\\relax",
+    2 * ncols, ncols
+  )
+  local single = "|>{\\raggedright\\arraybackslash}p{" .. col_width .. "}"
+  local colspec = string.rep(single, ncols) .. "|"
 
   local lines = {
     "\\begin{longtable}{" .. colspec .. "}",

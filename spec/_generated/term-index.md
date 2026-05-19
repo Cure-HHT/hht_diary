@@ -573,9 +573,8 @@
 - DIARY-GUI-administrator-dashboard-C
 - DIARY-GUI-administrator-dashboard-E
 - DIARY-GUI-administrator-dashboard-F
-- rem:spec/glossary-core.md:750
-- rem:spec/glossary-core.md:776
-- rem:spec/prd-common-ui.md:63
+- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:771
 - rem:spec/prd-diary-entry-rules.md:1
 - rem:spec/prd-diary-entry-rules.md:3
 - DIARY-PRD-entry-time-restrictions:section:4
@@ -606,6 +605,7 @@
 - rem:spec/prd-questionnaire-versioning.md:3
 - rem:spec/prd-requirements-management.md:3
 - rem:spec/prd-sla.md:3
+- rem:spec/prd-status-registry.md:19
 
 
 ## Diary Data Synchronization
@@ -614,15 +614,15 @@
 
 - DIARY-PRD-questionnaire-system-C
 - DIARY-PRD-questionnaire-system-D
-- rem:spec/prd-common-ui.md:63
 - DIARY-PRD-questionnaire-system:section:4
+- rem:spec/prd-status-registry.md:19
 
 
 ## Diary Entry
 
 **Cure-HHT Diary Platform:**
 
-- rem:spec/glossary-core.md:750
+- rem:spec/glossary-core.md:745
 
 
 ## Diary Platform
@@ -917,7 +917,7 @@
 **Cure-HHT Diary Platform:**
 
 - DIARY-PRD-role-definitions-B
-- rem:spec/glossary-core.md:750
+- rem:spec/glossary-core.md:745
 - DIARY-PRD-role-definitions:section:1
 
 
@@ -968,7 +968,6 @@
 - DIARY-GUI-show-linking-code-C
 - DIARY-GUI-link-participant-flow-A
 - DIARY-GUI-link-participant-flow-B
-- rem:spec/prd-common-ui.md:77
 - DIARY-PRD-linking-code-entry-errors:section:0
 - DIARY-GUI-join-study-screen:section:0
 - DIARY-GUI-join-study-screen:section:1
@@ -983,6 +982,7 @@
 - DIARY-GUI-show-linking-code:section:0
 - DIARY-GUI-show-linking-code:section:2
 - DIARY-GUI-link-participant-flow:section:0
+- rem:spec/prd-status-registry.md:33
 
 
 ## Linking Code Validation Failure
@@ -1102,10 +1102,8 @@
 - DIARY-PRD-participant-reconnection-F
 - DIARY-PRD-participant-mark-not-participating-D
 - DIARY-PRD-participant-reactivate-C
-- rem:spec/glossary-core.md:750
+- rem:spec/glossary-core.md:745
 - rem:spec/prd-common-ui.md:3
-- rem:spec/prd-common-ui.md:63
-- rem:spec/prd-common-ui.md:94
 - rem:spec/prd-mobile-app.md:1
 - rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-mobile-application:section:0
@@ -1128,6 +1126,9 @@
 - DIARY-PRD-participant-mark-not-participating:section:0
 - DIARY-PRD-participant-mark-not-participating:section:1
 - DIARY-PRD-participant-reactivate:section:0
+- rem:spec/prd-status-registry.md:3
+- rem:spec/prd-status-registry.md:19
+- rem:spec/prd-status-registry.md:50
 
 
 ## Mobile Linking Code
@@ -1401,17 +1402,11 @@
 - DIARY-GUI-questionnaire-session-expiry-D
 - DIARY-GUI-questionnaire-session-expiry-E
 - DIARY-GUI-questionnaire-session-expiry-G
-- rem:spec/glossary-core.md:750
+- rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-GUI-audit-log-cra:section:0
 - DIARY-GUI-audit-log-cra:section:3
-- rem:spec/prd-common-ui.md:59
-- rem:spec/prd-common-ui.md:61
-- rem:spec/prd-common-ui.md:63
-- rem:spec/prd-common-ui.md:73
-- rem:spec/prd-common-ui.md:77
-- rem:spec/prd-common-ui.md:94
 - rem:spec/prd-device-linking.md:3
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-join-study-screen:section:0
@@ -1506,6 +1501,12 @@
 - DIARY-GUI-questionnaire-session-expiry:section:5
 - DIARY-PRD-action-inventory:section:1
 - DIARY-PRD-questionnaire-score-calculation:section:1
+- rem:spec/prd-status-registry.md:15
+- rem:spec/prd-status-registry.md:17
+- rem:spec/prd-status-registry.md:19
+- rem:spec/prd-status-registry.md:29
+- rem:spec/prd-status-registry.md:33
+- rem:spec/prd-status-registry.md:50
 
 
 ## Participant Actions Modal
@@ -1621,7 +1622,7 @@
 - DIARY-PRD-questionnaire-localization-I
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-sla-incident-severity-B
-- rem:spec/glossary-core.md:750
+- rem:spec/glossary-core.md:745
 - rem:spec/prd-evidence-records.md:3
 - DIARY-PRD-evidence-device-fingerprint:section:0
 - DIARY-PRD-evidence-patient-authentication:section:0
@@ -1663,12 +1664,14 @@
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-G
 - DIARY-GUI-participant-task-list-H
+- DIARY-GUI-participant-task-list-I
 - DIARY-PRD-questionnaire-portal-sent-rules-A
 - DIARY-PRD-questionnaire-portal-sent-rules-F
 - DIARY-PRD-questionnaire-portal-sent-rules-G
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
 - DIARY-PRD-notification-portal-sent-questionnaire:section:4
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
+- DIARY-GUI-questionnaire-portal-sent-workflow:section:0
 
 
 ## Preamble
@@ -1804,9 +1807,6 @@
 - DIARY-PRD-score-hht-qol-A
 - DIARY-PRD-score-nose-hht-A
 - rem:spec/prd-common-ui.md:7
-- rem:spec/prd-common-ui.md:90
-- rem:spec/prd-common-ui.md:92
-- rem:spec/prd-common-ui.md:94
 - DIARY-GUI-calendar-day-view:section:7
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
 - DIARY-PRD-notification-portal-sent-questionnaire:section:4
@@ -1841,6 +1841,9 @@
 - DIARY-PRD-questionnaire-score-calculation:section:1
 - DIARY-PRD-score-hht-qol:section:0
 - DIARY-PRD-score-nose-hht:section:0
+- rem:spec/prd-status-registry.md:46
+- rem:spec/prd-status-registry.md:48
+- rem:spec/prd-status-registry.md:50
 
 
 ## Questionnaire Display Name
@@ -2034,13 +2037,12 @@
 - DIARY-GUI-user-information-modal-F
 - DIARY-GUI-user-information-modal-H
 - DIARY-GUI-administrator-dashboard-A
-- rem:spec/glossary-core.md:750
+- rem:spec/glossary-core.md:745
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-audit-log.md:3
 - DIARY-GUI-audit-log-common:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
-- rem:spec/prd-common-ui.md:53
 - DIARY-PRD-help-resources:section:0
 - DIARY-PRD-help-resources:section:5
 - DIARY-PRD-privacy-policy:section:1
@@ -2061,6 +2063,7 @@
 - DIARY-GUI-role-switching:section:0
 - DIARY-GUI-role-switching:section:3
 - DIARY-PRD-score-hht-qol:section:0
+- rem:spec/prd-status-registry.md:9
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-create:section:1
 - DIARY-PRD-user-account-edit:section:1
@@ -2360,18 +2363,15 @@
 - DIARY-PRD-sla-regulatory-event-support-E
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
-- rem:spec/glossary-core.md:750
-- rem:spec/glossary-core.md:767
-- rem:spec/glossary-core.md:769
-- rem:spec/glossary-core.md:776
+- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:762
+- rem:spec/glossary-core.md:764
+- rem:spec/glossary-core.md:771
 - rem:spec/prd-administrator-settings.md:3
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-common-ui.md:42
-- rem:spec/prd-common-ui.md:49
-- rem:spec/prd-common-ui.md:51
-- rem:spec/prd-common-ui.md:63
 - DIARY-PRD-configuration-precedence:section:0
 - DIARY-PRD-configuration-precedence:section:1
 - DIARY-PRD-configuration-precedence:section:2
@@ -2450,6 +2450,10 @@
 - DIARY-PRD-sla-data-recovery:section:0
 - DIARY-PRD-sla-chronic-failure-escalation:section:0
 - DIARY-PRD-sla-regulatory-event-support:section:0
+- rem:spec/prd-status-registry.md:3
+- rem:spec/prd-status-registry.md:5
+- rem:spec/prd-status-registry.md:7
+- rem:spec/prd-status-registry.md:19
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-create:section:1
 - DIARY-PRD-user-account-deactivate:section:1
@@ -2483,9 +2487,6 @@
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-PRD-administrator-settings:section:0
 - rem:spec/prd-common-ui.md:3
-- rem:spec/prd-common-ui.md:49
-- rem:spec/prd-common-ui.md:51
-- rem:spec/prd-common-ui.md:63
 - DIARY-PRD-help-resources:section:0
 - DIARY-PRD-help-resources:section:1
 - DIARY-PRD-help-resources:section:5
@@ -2502,6 +2503,10 @@
 - DIARY-PRD-session-management:section:0
 - DIARY-PRD-session-management:section:5
 - DIARY-PRD-questionnaire-portal-sent-rules:section:0
+- rem:spec/prd-status-registry.md:3
+- rem:spec/prd-status-registry.md:5
+- rem:spec/prd-status-registry.md:7
+- rem:spec/prd-status-registry.md:19
 - DIARY-PRD-user-account-create:section:1
 
 
@@ -2538,9 +2543,6 @@
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-GUI-audit-log-cra:section:0
 - DIARY-GUI-audit-log-cra:section:3
-- rem:spec/prd-common-ui.md:63
-- rem:spec/prd-common-ui.md:77
-- rem:spec/prd-common-ui.md:94
 - DIARY-PRD-help-resources:section:5
 - DIARY-GUI-participant-task-list:section:6
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
@@ -2556,6 +2558,9 @@
 - DIARY-PRD-questionnaire-portal-sent-rules:section:0
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
 - DIARY-PRD-rbac-customizable:section:1
+- rem:spec/prd-status-registry.md:19
+- rem:spec/prd-status-registry.md:33
+- rem:spec/prd-status-registry.md:50
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-information-modal:section:3
 
@@ -2674,10 +2679,7 @@
 - DIARY-PRD-questionnaire-sponsor-eligibility-B
 - DIARY-PRD-questionnaire-sponsor-eligibility-C
 - DIARY-PRD-sla-service-availability-J
-- rem:spec/glossary-core.md:750
-- rem:spec/prd-common-ui.md:61
-- rem:spec/prd-common-ui.md:63
-- rem:spec/prd-common-ui.md:77
+- rem:spec/glossary-core.md:745
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-linking-confirmation:section:1
@@ -2731,6 +2733,9 @@
 - DIARY-PRD-sla-data-recovery:section:0
 - DIARY-PRD-sla-chronic-failure-escalation:section:0
 - DIARY-PRD-sla-regulatory-event-support:section:0
+- rem:spec/prd-status-registry.md:17
+- rem:spec/prd-status-registry.md:19
+- rem:spec/prd-status-registry.md:33
 - DIARY-PRD-user-account-site-assignment:section:1
 
 
@@ -2872,17 +2877,14 @@
 - DIARY-GUI-user-information-modal-M
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-E
-- rem:spec/glossary-core.md:750
-- rem:spec/glossary-core.md:776
+- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:771
 - rem:spec/prd-audit-log.md:3
 - DIARY-GUI-audit-log-administrator:section:0
 - DIARY-GUI-audit-log-administrator:section:1
 - rem:spec/prd-common-ui.md:7
 - rem:spec/prd-common-ui.md:35
 - rem:spec/prd-common-ui.md:42
-- rem:spec/prd-common-ui.md:49
-- rem:spec/prd-common-ui.md:51
-- rem:spec/prd-common-ui.md:53
 - rem:spec/prd-device-linking.md:3
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-join-study-screen:section:0
@@ -2905,6 +2907,9 @@
 - DIARY-PRD-session-management:section:5
 - DIARY-PRD-questionnaire-versioning:section:0
 - DIARY-PRD-action-inventory:section:1
+- rem:spec/prd-status-registry.md:5
+- rem:spec/prd-status-registry.md:7
+- rem:spec/prd-status-registry.md:9
 - rem:spec/prd-user-account.md:1
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-create:section:0
@@ -2995,6 +3000,7 @@
 - DIARY-GUI-user-information-modal-C
 - DIARY-GUI-user-information-modal-D
 - DIARY-GUI-user-information-modal-E
+- DIARY-GUI-user-information-modal-M
 - DIARY-PRD-password-forgot:section:0
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-PRD-action-inventory:section:1
@@ -3034,9 +3040,6 @@
 - DIARY-GUI-mobile-navigation-A
 - DIARY-GUI-mobile-navigation-E
 - DIARY-GUI-mobile-navigation:section:0
-
-
-## User Session
 
 
 ## Verification Code

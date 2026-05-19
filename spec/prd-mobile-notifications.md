@@ -53,7 +53,7 @@ G. When the **Participant** selects a **Questionnaire Task**, the interface SHAL
 
 H. After the *Participant* submits a **Portal-Sent Questionnaire**, the *Questionnaire* SHALL be accessible as a record on the day it was submitted via the **Calendar**.
 
-I. After the *Sponsor* finalizes the **Portal-Sent **Questionnaire**, the Questionnaire Task** SHALL be removed from the **Task List**.
+I. After the *Sponsor* finalizes the **Portal-Sent Questionnaire**, the **Questionnaire Task** SHALL be removed from the **Task List**.
 
 J. After **Submission**, the **Questionnaire Task** SHALL display a completed visual state indicating the *Questionnaire* has been submitted and is awaiting *Sponsor* review.
 
@@ -88,7 +88,7 @@ The three task types correspond to the three categories of follow-up the platfor
 > Satisfies) when the need arises. Until that seam exists, this REQ is
 > normative for the Callisto deployment.
 
-*End* *Participant Task List* | **Hash**: 4046086e
+*End* *Participant Task List* | **Hash**: 916aca8a
 
 ## DIARY-PRD-notification-disconnection: Disconnection Notification
 

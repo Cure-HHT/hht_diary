@@ -2,11 +2,27 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import jinja2
 
 from .graph_loader import Graph, GraphNode
+
+
+_TABLE_AFTER_PROSE_RE = re.compile(
+    r"(?<!\n)\n(\|[^\n]+\|[ \t]*\n[ \t]*\|[ \t]*[:\-| \t]+\|)"
+)
+
+
+def _restore_table_blank_line(text: str) -> str:
+    """Insert a blank line before a markdown pipe table that sits flush against
+    preceding prose. elspais's assertion parser concatenates the table into the
+    assertion label with single newlines; pandoc then renders the table rows as
+    literal text instead of a table. Detect the table-header + separator-row
+    pattern and prepend a blank line so pandoc recognises it.
+    """
+    return _TABLE_AFTER_PROSE_RE.sub(r"\n\n\1", text)
 
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -131,7 +147,7 @@ def render_requirement(node: GraphNode, graph: Graph) -> str:
 
         elif child.kind == "ASSERTION":
             label = child.content.get("label") or "?"
-            text = (child.label or "").strip()
+            text = _restore_table_blank_line((child.label or "").strip())
             # Render as a pandoc alphabetic ordered-list item (`A.  text`).
             # LaTeX backend turns a sequence of these into a single
             # `\begin{enumerate}\def\labelenumi{\Alph{enumi}.}...\end{enumerate}`

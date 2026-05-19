@@ -80,7 +80,7 @@ See: ![*Questionnaire* *Preamble* Screen](../docs/urs-extracted-images/image-02.
 
 ### Overview
 
-The interface for a **Portal-Sent **Questionnaire** spans four screens: the Preamble**, the per-question screen, the **Review Screen** (after the final question), and the post-*Submission* Acknowledgement Dialog. The behavior on each screen tracks the PRD-level rules above and adds the visual affordances (*Progress Indicator*, navigation controls, *Action* labels) participants use to move through the flow.
+The interface for a **Portal-Sent Questionnaire** spans four screens: the **Preamble**, the per-question screen, the **Review Screen** (after the final question), and the post-*Submission* Acknowledgement Dialog. The behavior on each screen tracks the PRD-level rules above and adds the visual affordances (*Progress Indicator*, navigation controls, *Action* labels) participants use to move through the flow.
 
 
 Review Screen

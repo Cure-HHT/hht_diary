@@ -7,7 +7,7 @@
 *Trigger:* **Participant** answers the final question of a **Portal-Sent Questionnaire**, before **Submission**.   
 *Displays:* **Questionnaire Display Name**, every question in original order, the **Participant**'s selected response beneath each question, an Edit affordance per question, and a **Submit** action.   
 *Outcome:* Selecting **Submit** completes **Submission**.   
-*Reference:* GUI-p00001.
+*Reference:* DIARY-GUI-questionnaire-portal-sent-workflow.
 
 ![](image-01.png)
 
@@ -16,7 +16,7 @@
 *Trigger:* **Participant** opens a **Portal-Sent Questionnaire**.   
 *Displays:* **Questionnaire Display Name**, estimated time to complete.
 
-*Actions:* **I'm Ready** (proceed to first question), **Not Now** (return to **Main Screen**). *Reference:* REQ-p02065, GUI-p00001.
+*Actions:* **I'm Ready** (proceed to first question), **Not Now** (return to **Main Screen**). *Reference:* DIARY-PRD-questionnaire-portal-sent-rules, DIARY-GUI-questionnaire-portal-sent-workflow.
 
 ![](image-02.png)
 
@@ -31,7 +31,7 @@
 
 *Outcome:* **Participant** is navigated to the **Record Nosebleed** screen pre-filled with the resulting entry data for review and confirmation. 
 
-*Reference:* REQ-p05008, GUI-p05009.
+*Reference:* DIARY-PRD-entry-overlap-resolution, DIARY-GUI-entry-overlap-resolution.
 
 ![](image-03.png)
 
@@ -43,7 +43,7 @@
 
 *Dismissal:* Click outside the popover.
 
-*Reference:* GUI-CAL-p00006.
+*Reference:* CAL-GUI-manage-questionnaires-modal.
 
 ![](image-04.png)
 
@@ -55,7 +55,7 @@
 *Target identification:* **Full Name**, **Email Address**, **Status**.   
 *Displays:* Assigned **Role**(s) and **Site** assignments. When the **User Account** holds one or more non-**Administrator** **Roles**, the **Administrator** may select a single **Role** to scope the displayed **Site** list. When the **User Account** is an **Administrator**, the modal indicates access to all **Sites**. *Actions (Active Users tab):* **Edit User**, **Deactivate User**, **Close**. The **Deactivate User** action is not presented for the currently authenticated user's own account.   
 *Actions (Inactive Users tab):* **Reactivate User**, **Close**.   
-*Reference:* GUI-p00033.
+*Reference:* DIARY-GUI-user-information-modal.
 
 ![](image-05.png)
 
@@ -70,7 +70,7 @@
 * Any other status: displays the **Participant Linking Code** (the code previously used to establish the connection) with a **Copy** action, and indicates the code is shown for reference only.
 
 *Dismissal:* **Close**.   
-*Reference:* GUI-p03001.
+*Reference:* CAL-GUI-participant-dashboard-configuration.
 
 Pending Status
 
@@ -90,7 +90,7 @@ After Participant was linked to the Mobile Application
 
 *Dismissal:* Close action. 
 
-*Reference:* GUI-CAL-p00006.
+*Reference:* CAL-GUI-manage-questionnaires-modal.
 
 ![](image-08.png)
 
@@ -104,7 +104,7 @@ After Participant was linked to the Mobile Application
 
 *Pattern:* Reason Dialog — Free Text (see §4.1). 
 
-*Reference:* REQ-p20031, GUI-p00031.
+*Reference:* DIARY-PRD-user-account-deactivate, DIARY-GUI-user-account-deactivate.
 
 ![](image-09.png)
 
@@ -118,7 +118,7 @@ After Participant was linked to the Mobile Application
 
 *Pattern:* Reason Dialog — Free Text (see §4.1). 
 
-*Reference:* REQ-p20032, GUI-p00032.
+*Reference:* DIARY-PRD-user-account-reactivate, DIARY-GUI-user-account-reactivate.
 
 ![](image-10.png)
 
@@ -132,7 +132,7 @@ After Participant was linked to the Mobile Application
 
 *Pattern:* Confirmation Dialog (see §4.1). 
 
-*Reference:* REQ-p70009, GUI-p03001.
+*Reference:* DIARY-PRD-participant-link-new, CAL-GUI-participant-dashboard-configuration.
 
 ![](image-11.png)
 
@@ -146,7 +146,7 @@ After Participant was linked to the Mobile Application
 
 *Pattern:* Acknowledgement Dialog (see §4.1). 
 
-*Reference:* GUI-p03001.
+*Reference:* CAL-GUI-participant-dashboard-configuration.
 
 ![](image-12.png)
 
@@ -160,7 +160,7 @@ After Participant was linked to the Mobile Application
 
 *Pattern:* Confirmation Dialog (see §4.1). 
 
-*Reference:* REQ-CAL-p00022, GUI-CAL-p00005.
+*Reference:* CAL-PRD-trial-start-workflow, CAL-GUI-trial-start-workflow.
 
 ![](image-13.png)
 
@@ -176,7 +176,7 @@ After Participant was linked to the Mobile Application
 
 *Pattern:* Reason Dialog — Predefined List (see §4.1). 
 
-*Reference:* REQ-p70010, REQ-CAL-p00020.
+*Reference:* DIARY-PRD-participant-disconnection, CAL-PRD-participant-disconnection-reason-options.
 
 ![](image-14.png)
 
@@ -190,7 +190,7 @@ After Participant was linked to the Mobile Application
 
 *Pattern:* Reason Dialog — Free Text (see §4.1). 
 
-*Reference:* REQ-p70011.
+*Reference:* DIARY-PRD-participant-reconnection.
 
 ![](image-15.png)
 
@@ -204,7 +204,7 @@ After Participant was linked to the Mobile Application
 
 *Pattern:* Reason Dialog — Predefined List (see §4.1). 
 
-*Reference:* REQ-p70017, REQ-CAL-p00064.
+*Reference:* DIARY-PRD-participant-mark-not-participating, CAL-PRD-participant-not-participating-reason-options.
 
 ![](image-16.png)
 
@@ -218,7 +218,7 @@ After Participant was linked to the Mobile Application
 
 *Pattern:* Reason Dialog — Free Text (see §4.1). 
 
-*Reference:* REQ-p70016.
+*Reference:* DIARY-PRD-participant-reactivate.
 
 ![](image-17.png)
 
@@ -227,7 +227,7 @@ After Participant was linked to the Mobile Application
 *Trigger:* **Participant** initiates the delete action on an **Epistaxis Event**, either during the recording flow or from event history.   
 *Consequence summary:* The **Epistaxis Event** will be removed from the **Participant**'s diary. *Reason options:* Entered by mistake, Duplicate entry, Incorrect information, Other.   
 *Pattern:* Reason Dialog — Predefined List (see §4.1).   
-*Reference:* GUI-p00003.
+*Reference:* DIARY-GUI-epistaxis-delete.
 
 ![](image-18.jpg)
 
@@ -236,7 +236,7 @@ After Participant was linked to the Mobile Application
 *Trigger:* **Participant** confirms **Submission** of a **Portal-Sent Questionnaire**.   
 *Consequence summary:* Confirms the **Questionnaire** has been submitted and informs the **Participant** that the **Study Coordinator** will review the responses.   
 *Pattern:* Acknowledgement Dialog (see §4.1).   
-*Reference:* GUI-p00001.
+*Reference:* DIARY-GUI-questionnaire-portal-sent-workflow.
 
 ![](image-19.png)
 
@@ -246,7 +246,7 @@ After Participant was linked to the Mobile Application
 *Consequence summary:* Informs the **Participant** that the session has expired and previous answers were not saved.   
 *Actions:* **Start Again** (begin the **Questionnaire** from the **Preamble**), **Not Now** (return to **Main Screen**).   
 *Pattern:* Acknowledgement Dialog (see §4.1).   
-*Reference:* REQ-p01073, GUI-p00004.
+*Reference:* DIARY-PRD-questionnaire-session-timeout, DIARY-GUI-questionnaire-session-expiry.
 
 ![](image-20.png)
 
@@ -258,7 +258,7 @@ After Participant was linked to the Mobile Application
 *Inputs:* Cycle dropdown — selectable values are the Current Cycle N Day 1 value, End of Treatment, and End of Study.  
 *Cross-flow:* When a Terminal Cycle value (End of Treatment or End of Study) is selected, confirming opens the Terminal Cycle Warning Dialog before finalization is applied.  
 *Pattern:* Confirmation Dialog (see §4.1).  
-*Reference:* REQ-CAL-p00023 I–M, GUI-CAL-p00007 A–F.
+*Reference:* CAL-PRD-nose-hht-qol-workflow/I+J+K+L+M, CAL-GUI-questionnaire-finalization-workflow/A+B+C+D+E+F.
 
 ![](image-21.png)
 
@@ -268,7 +268,7 @@ After Participant was linked to the Mobile Application
 *Target identification:* **Participant** ID, **Questionnaire Type**, **Terminal Cycle** being assigned. *Consequence summary:* The **Participant**'s answers will be locked, the score will be transmitted to **Rave EDC**, and the **Questionnaire Type** will be closed for the **Participant** so no further **Questionnaires** of that type may be sent.   
 *Cancellation behavior:* On cancel, the **Questionnaire** remains unchanged and the **Study Coordinator** is returned to the **Finalization Dialog**.   
 *Pattern:* Confirmation Dialog (see §4.1).   
-*Reference:* GUI-CAL-p00007.
+*Reference:* CAL-GUI-questionnaire-finalization-workflow.
 
 ![](image-22.png)
 
@@ -278,7 +278,7 @@ After Participant was linked to the Mobile Application
 *Target identification:* **Participant** ID, **Questionnaire Type**.   
 *Consequence summary:* The **Questionnaire** status will be set to **Not Sent**.   
 *Pattern:* Reason Dialog — Free Text (see §4.1).   
-*Reference:* REQ-CAL-p00023, GUI-CAL-p00006.
+*Reference:* CAL-PRD-nose-hht-qol-workflow, CAL-GUI-manage-questionnaires-modal.
 
 ![](image-23.png)
 
@@ -294,7 +294,7 @@ After Participant was linked to the Mobile Application
 
 *Behavior:* Cannot be dismissed by tapping outside its bounds. On acknowledgement, the **Participant** is returned to the **Main Screen** and the corresponding **Questionnaire Task** is removed from the **Task List**.   
 *Pattern:* Acknowledgement Dialog (see §4.1).   
-*Reference:* GUI-CAL-p07002.
+*Reference:* CAL-GUI-questionnaire-call-back-participant.
 
 ![](image-24.png)
 
@@ -305,7 +305,7 @@ After Participant was linked to the Mobile Application
 
 *Behavior:* On acknowledgement, the **Participant** is navigated to the **User Profile** screen.  
 *Pattern:* Acknowledgement Dialog (see §4.1).   
-*Reference:* GUI-p05015.
+*Reference:* DIARY-GUI-linking-confirmation.
 
 ![](image-25.png)
 
@@ -343,7 +343,7 @@ A push notification delivered to the Participant at the configured Reminder Time
 
 ### 7.4.6 Ongoing Epistaxis Event Reminder {-}
 
-A push notification delivered to the Participant when an Incomplete Record has not been interacted with for the configured Reminder Interval. Tapping the notification opens the Mobile Application; the Participant returns to the Incomplete Record to either complete it or confirm the event is still ongoing. The wording is sponsor-configurable; the default text is *\["Is your nosebleed still going? You started recording a nosebleed but haven't finished. Tap to update.”*
+A push notification delivered to the Participant when an Incomplete Record has not been interacted with for the configured Reminder Interval. Tapping the notification opens the Mobile Application; the Participant returns to the Incomplete Record to either complete it or confirm the event is still ongoing. The wording is sponsor-configurable; the default text is *\["Is your nosebleed still going? You started recording a nosebleed but haven't finished. Tap to update."\]*
 
 ![](image-31.png)
 

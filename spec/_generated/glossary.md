@@ -1106,12 +1106,6 @@ or more Roles.
 : The menu accessed from the right side of the top navigation bar, grouping account and study-related actions.
 *Defined in: DIARY-GUI-mobile-navigation (DIARY)*
 
-**User Session**
-: A bounded period of authenticated activity for a User Account,
-terminated by explicit sign-out or by the inactivity timeout
-configured per Role.
-*Defined in: file:spec/glossary-core.md (DIARY)*
-
 **UTC (Coordinated Universal Time)** *(not indexed)*
 : Primary time standard used worldwide, not affected by time zones or
 daylight saving time. All database and audit trail timestamps are

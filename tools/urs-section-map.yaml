@@ -12,9 +12,6 @@
 # a current spec-tree file; compile-urs.py renders them as gap markers.
 #
 # Sections without a current dedicated spec file (verified 2026-05-17):
-#   - 4.2 Status Registry: content currently lives inline in prd-common-ui.md
-#     (no standalone prd-status-registry.md on either repo side). Left as
-#     placeholder so the chapter outline still surfaces the section heading.
 #   - 5.2 User Interface: OMITTED from the manifest by design. The original
 #     URS PDF carved out a "5.2 User Interface" subsection under
 #     Administration, but in the current spec tree the GUI/portal UI REQs
@@ -56,7 +53,7 @@ chapters:
         files: [spec/prd-common-ui.md]
       - number: "4.2"
         title: "Status Registry"
-        files: []  # Content currently embedded in prd-common-ui.md; no standalone file.
+        files: [spec/prd-status-registry.md]
       - number: "4.3"
         title: "User Roles and Permissions"
         files: [spec/prd-rbac.md]

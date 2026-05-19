@@ -399,13 +399,13 @@ K. The **User Information Modal** SHALL NOT present a **Deactivate User** *Actio
 
 L. When the *User* selects **Close**, the interface SHALL dismiss the modal without making any changes.
 
-M. When the *User* selects **Edit **User**, the interface SHALL open the edit workflow for that **User** Account**.
+M. When the *User* selects **Edit User**, the interface SHALL open the edit workflow for that **User Account**.
 
 ### Rationale
 
 The **User Information Modal** is the per-account hub: every lifecycle *Action* (edit, deactivate, reactivate) launches from here, and every account-related question (who, what *Role*, which Sites) is answered here. Scoping the *Site* list by *Role* addresses the multi-*Role* case directly — a *User* holding both *Study Coordinator* and CRA roles on overlapping but distinct *Site* sets is shown the correct subset for whichever *Role* context the *Administrator* is reasoning about. Surfacing **Sites** by *Role* rather than as a flat union prevents the inverse error in which an *Administrator* believes a *User* has *Study Coordinator* access at a *Site* that they actually have only as a CRA. Suppressing **Deactivate User** on the current *User*'s own account mirrors the PRD-level self-*Deactivation* prohibition and the GUI-level Active Users tab rule, so the unavailable state is consistent across every surface a self-*Deactivation* attempt could originate from.
 
-*End* *User Information Modal* | **Hash**: 4402c06b
+*End* *User Information Modal* | **Hash**: 378c3dcd
 
 ## DIARY-GUI-administrator-dashboard: Administrator Dashboard
 
