@@ -2,9 +2,10 @@
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-d00035: Admin Dashboard Implementation
 //   REQ-d00036: User Management Interface
-//   REQ-CAL-p00010: Schema-Driven Data Validation (EDC sites display)
-//   REQ-CAL-p00063: EDC Patient Ingestion
-//   REQ-CAL-p00073: Patient Status Definitions
+//
+// Per CUR-1122 / Figma, the Admin sidebar contains only Users and Audit Logs.
+// Overview / Sites / Participants pages were removed; if Admin needs Sites
+// or Patients views in the future they must be re-scoped via spec first.
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -13,8 +14,6 @@ import 'package:sponsor_portal_ui/widgets/user_activity_listener.dart';
 
 import '../../services/auth_service.dart';
 import '../../widgets/portal_app_bar.dart';
-import 'patients_overview_tab.dart';
-import 'sites_tab.dart';
 import 'user_management_tab.dart';
 
 /// Admin dashboard page with navigation rail
@@ -94,29 +93,19 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     labelType: NavigationRailLabelType.all,
                     destinations: const [
                       NavigationRailDestination(
-                        icon: Icon(Icons.dashboard_outlined),
-                        selectedIcon: Icon(Icons.dashboard),
-                        label: Text('Overview'),
-                      ),
-                      NavigationRailDestination(
                         icon: Icon(Icons.people_outline),
                         selectedIcon: Icon(Icons.people),
                         label: Text('Users'),
                       ),
                       NavigationRailDestination(
-                        icon: Icon(Icons.location_city_outlined),
-                        selectedIcon: Icon(Icons.location_city),
-                        label: Text('Sites'),
-                      ),
-                      NavigationRailDestination(
-                        icon: Icon(Icons.people_alt_outlined),
-                        selectedIcon: Icon(Icons.people_alt),
-                        label: Text('Participants'),
+                        icon: Icon(Icons.history_outlined),
+                        selectedIcon: Icon(Icons.history),
+                        label: Text('Audit Logs'),
                       ),
                     ],
                   ),
                   const VerticalDivider(thickness: 1, width: 1),
-                  Expanded(child: _buildContent(user, theme)),
+                  Expanded(child: _buildContent(theme)),
                 ],
               ),
             ),
@@ -126,141 +115,41 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     );
   }
 
-  Widget _buildContent(PortalUser user, ThemeData theme) {
+  Widget _buildContent(ThemeData theme) {
     switch (_selectedIndex) {
       case 0:
-        return _buildOverviewTab(user, theme);
+        return const UserManagementTab();
       case 1:
-        return _buildUsersTab(theme);
-      case 2:
-        return _buildSitesTab(theme);
-      case 3:
-        return _buildPatientsTab(theme);
+        return _buildAuditLogsPlaceholder(theme);
       default:
-        return _buildOverviewTab(user, theme);
+        return const UserManagementTab();
     }
   }
 
-  Widget _buildOverviewTab(PortalUser user, ThemeData theme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+  /// Placeholder pending the Admin audit log viewer.
+  ///
+  /// Mirrors the Investigator dashboard's placeholder in
+  /// `investigator_dashboard_page.dart` so both roles see consistent
+  /// affordances while the real viewer is being built.
+  Widget _buildAuditLogsPlaceholder(ThemeData theme) {
+    return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            'Welcome, ${user.name}',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Icon(Icons.history, size: 64, color: theme.colorScheme.outline),
+          const SizedBox(height: 16),
+          Text('Audit Logs', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
-            'Clinical Trial Sponsor Portal',
-            style: theme.textTheme.bodyLarge?.copyWith(
+            'Audit log viewing will be available in a future update.',
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
-          ),
-          const SizedBox(height: 32),
-          // Quick stats cards
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              _buildStatCard(
-                theme,
-                'Users',
-                Icons.people,
-                'Manage portal users and roles',
-                () => setState(() => _selectedIndex = 1),
-              ),
-              _buildStatCard(
-                theme,
-                'Sites',
-                Icons.location_city,
-                'View clinical trial sites',
-                () => setState(() => _selectedIndex = 2),
-              ),
-              _buildStatCard(
-                theme,
-                'Participants',
-                Icons.people_alt,
-                'View participants from EDC',
-                () => setState(() => _selectedIndex = 3),
-              ),
-              _buildStatCard(
-                theme,
-                'Settings',
-                Icons.settings,
-                'Portal configuration',
-                null, // Coming soon
-              ),
-            ],
           ),
         ],
       ),
     );
   }
-
-  Widget _buildStatCard(
-    ThemeData theme,
-    String title,
-    IconData icon,
-    String subtitle,
-    VoidCallback? onTap,
-  ) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: 200,
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                icon,
-                size: 32,
-                color: onTap != null
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.outline,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              if (onTap == null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Coming soon',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.outline,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUsersTab(ThemeData theme) => const UserManagementTab();
-
-  Widget _buildSitesTab(ThemeData theme) => const SitesTab();
-
-  Widget _buildPatientsTab(ThemeData theme) => const PatientsTab();
 
   Color _getRoleBannerColor(UserRole role, ThemeData theme) {
     switch (role) {
