@@ -130,8 +130,14 @@ reference_keyword = "Verifies"
 reference_patterns = []
 
 [scanning.result]
-directories = ["build-reports"]
-file_patterns = ["**/TEST-*.xml", "pytest-results.json"]
+# Test result scanning intentionally disabled — the URS-1 branch is
+# spec-and-render work; no test runs are part of this PR cadence. CI
+# generates per-package test artifacts under their own build/ trees,
+# not in a single build-reports/ collection. Re-enable (and point at
+# the artifacts) once a unified test-results pipeline exists; tracked
+# alongside CUR-1359.
+directories = []
+file_patterns = []
 skip_files = []
 skip_dirs = []
 run_meta_file = ""
