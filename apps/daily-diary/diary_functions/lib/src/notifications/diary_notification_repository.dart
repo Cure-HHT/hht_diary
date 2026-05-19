@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling (read-side handlers + delivery stamping)
+//   REQ-d00195: Mobile Notifications Polling (read-side handlers + delivery stamping)
 //
 // Diary-side `comms.NotificationRepository` impl. Used by the
 // `envelopeFetchHandler` and `envelopeSinceHandler` factories that
@@ -40,7 +40,7 @@ class DiaryNotificationRepository implements NotificationRepository {
   Future<void> insertPending(Envelope envelope) {
     throw UnsupportedError(
       'DiaryNotificationRepository is read-only. Envelope writes happen on '
-      'the portal side via PgNotificationRepository (REQ-d00167).',
+      'the portal side via PgNotificationRepository (REQ-d00197).',
     );
   }
 

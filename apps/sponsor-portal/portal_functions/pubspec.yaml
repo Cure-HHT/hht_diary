@@ -7,7 +7,7 @@
 
 name: portal_functions
 description: CureHHT Sponsor Portal Server Side Functions
-version: 0.1.31+50
+version: 0.1.36+55
 publish_to: none
 
 environment:
@@ -64,4 +64,4 @@ dev_dependencies:
   # Available transitively via otel_common but a direct declaration
   # is required by sonar:dart:S7087 and protects against an upstream
   # version bump silently breaking the test imports.
-  dartastic_opentelemetry: '>=1.0.2-alpha <2.0.0'
+  dartastic_opentelemetry: ">=1.0.2-alpha <2.0.0"

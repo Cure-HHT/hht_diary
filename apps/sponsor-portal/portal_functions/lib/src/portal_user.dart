@@ -70,9 +70,14 @@ Future<Response> getPortalUsersHandler(Request request) async {
       pu.activation_code,
       pu.created_at,
       string_agg(DISTINCT pur.role::text, ',' ORDER BY pur.role::text) as roles,
+      -- CUR-1124: DISTINCT + jsonb_build_object dedupes sites that the
+      -- portal_user_roles × portal_user_site_access cartesian product
+      -- would otherwise repeat once per role. Mirrors the single-user
+      -- query below (getPortalUserHandler). `json_build_object` lacks
+      -- the equality operator required for DISTINCT, so use jsonb here.
       COALESCE(
         json_agg(
-          json_build_object(
+          DISTINCT jsonb_build_object(
             'site_id', s.site_id,
             'site_name', s.site_name,
             'site_number', s.site_number
@@ -555,11 +560,28 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     currentSiteIds = (sitesResult.first[0] as List).cast<String>();
   }
 
-  // Non-developer admins cannot modify admin users
+  // Non-developer admins cannot modify admin users — guards against
+  // privilege escalation (roles/sites/status changes) by a peer admin.
+  //
+  // Carve-out for REQ-CAL-p00033 (Resend Activation Email): a *pending*
+  // admin cannot sign in yet, so allowing another Administrator to
+  // resend their activation email is non-privilege-changing — the role
+  // assignment already exists and is not modified by this path. A
+  // *revoked* admin re-invite still requires Developer Admin because
+  // it would restore access. The resend body has the literal shape
+  // {'regenerate_activation': true} and no other fields, so we
+  // narrow the bypass to that exact signal.
   final isTargetAdmin =
       targetRoles.contains('Administrator') ||
       targetRoles.contains('Developer Admin');
-  if (isTargetAdmin && !user.hasRole('Developer Admin')) {
+  final isResendOnly =
+      body['regenerate_activation'] == true &&
+      body['name'] == null &&
+      body['status'] == null &&
+      body['roles'] == null &&
+      body['site_ids'] == null;
+  final allowResendBypass = isResendOnly && currentStatus == 'pending';
+  if (isTargetAdmin && !user.hasRole('Developer Admin') && !allowResendBypass) {
     return _jsonResponse({
       'error': 'Only Developer Admin can modify admin users',
     }, 403);
@@ -838,7 +860,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     }
   }
 
-  // Handle regenerating activation code.
+  // Handle regenerating activation code (Resend Activation Email).
   //
   // Mirrors generateActivationCodeHandler's active-user guard: silently
   // resetting status='pending' on an active user locks them out
@@ -846,6 +868,13 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
   // UPDATE here is intended for the pending->pending re-issue case; it
   // also fires for revoked->pending (re-invite). Active users must
   // never be flipped via this path.
+  //
+  // Per REQ-CAL-p00033, every resend must (a) rotate the code with a
+  // fresh 14-day expiry, (b) send the activation email, and (c) write
+  // an immutable audit row. Email failure is non-fatal — the code is
+  // still rotated so the admin can share it manually.
+  //
+  // Implements: REQ-CAL-p00033/A,B,C,D,E,F,G,H,I
   if (body['regenerate_activation'] == true) {
     if (currentStatus == 'active') {
       return _jsonResponse({
@@ -853,6 +882,7 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
         'code': 'already_active',
       }, 409);
     }
+    final currentEmail = userResult.first[2] as String;
     final activationCode = _generateCode();
     final activationExpiry = DateTime.now().add(const Duration(days: 14));
 
@@ -883,7 +913,59 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
       }, 409);
     }
 
-    return _jsonResponse({'success': true, 'activation_code': activationCode});
+    // Send the activation email. Mirrors the reactivation path at the
+    // top of this handler — same EmailService, same URL pattern.
+    final portalBaseUrl = _getPortalBaseUrl(request);
+    final activationUrl = '$portalBaseUrl/activate?code=$activationCode';
+    bool emailSent = false;
+    String? emailError;
+
+    if (FeatureFlags.emailActivation) {
+      final emailResult = await EmailService.instance.sendActivationCode(
+        recipientEmail: currentEmail,
+        recipientName: currentName,
+        activationCode: activationCode,
+        activationUrl: activationUrl,
+        sentByUserId: user.id,
+      );
+
+      emailSent = emailResult.success;
+      emailError = emailResult.error;
+
+      if (emailSent) {
+        print('[PORTAL_USER] Resend activation email sent to $currentEmail');
+      } else {
+        print(
+          '[PORTAL_USER] Failed to send resend activation email: $emailError',
+        );
+      }
+    }
+
+    // Audit-log the resend per REQ-CAL-p00033. Email failure is captured
+    // in after_value so an auditor can reconstruct delivery outcome.
+    // Implements: REQ-CAL-p00033/<audit-trail assertion>
+    await _logAudit(
+      db,
+      userId: userId,
+      changedBy: user.id,
+      action: 'resend_activation',
+      before: {'status': currentStatus},
+      after: {
+        'status': 'pending',
+        'expires_at': activationExpiry.toIso8601String(),
+        'email_sent': emailSent,
+        if (emailError != null) 'email_error': emailError,
+      },
+    );
+
+    return _jsonResponse({
+      'success': true,
+      'activation_code': activationCode,
+      'activation_url': activationUrl,
+      'expires_at': activationExpiry.toIso8601String(),
+      'email_sent': emailSent,
+      if (emailError != null) 'email_error': emailError,
+    });
   }
 
   // Terminate active sessions if permissions changed
@@ -992,7 +1074,7 @@ Future<Response> getPortalSitesHandler(Request request) async {
 }
 
 /// Get patients synced from EDC (RAVE)
-/// GET /api/v1/portal/patients
+/// GET /api/v1/portal/participants
 ///
 /// Automatically syncs patients from EDC if:
 /// - No patients exist in the database

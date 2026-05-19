@@ -48,11 +48,17 @@ class EmailOtpResult {
   final String? maskedEmail;
   final int? expiresIn;
 
+  /// Seconds until the next OTP send is permitted, populated only when the
+  /// server returned HTTP 429 with a `retry_after` field. The UI uses this
+  /// to disable the resend button for the actual remaining wait time.
+  final int? retryAfter;
+
   EmailOtpResult.success({this.maskedEmail, this.expiresIn})
     : success = true,
-      error = null;
+      error = null,
+      retryAfter = null;
 
-  EmailOtpResult.failure(this.error)
+  EmailOtpResult.failure(this.error, {this.retryAfter})
     : success = false,
       maskedEmail = null,
       expiresIn = null;
@@ -985,9 +991,11 @@ class AuthService extends ChangeNotifier {
           expiresIn: data['expires_in'] as int?,
         );
       } else if (response.statusCode == 429) {
-        // Rate limited
+        // Rate limited. Forward the server-computed retry_after so the UI
+        // can disable the resend button for the actual remaining wait.
         return EmailOtpResult.failure(
           data['error'] as String? ?? 'Too many requests. Please wait.',
+          retryAfter: (data['retry_after'] as num?)?.toInt(),
         );
       } else {
         return EmailOtpResult.failure(

@@ -989,6 +989,115 @@ void main() {
     },
   );
 
+  // REQ-CAL-p00033: Resend Activation Email. End-to-end via the
+  // updatePortalUserHandler regenerate_activation path against a real DB.
+  group('updatePortalUserHandler - resend activation', () {
+    // Verifies: REQ-CAL-p00033/<rotation + audit assertions>
+    test(
+      'rotates code, sets ~14-day expiry, and writes resend_activation audit',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final db = Database.instance;
+
+        // Flip the target to pending with a known prior code so we can
+        // verify the new code differs from the previous one.
+        const priorCode = 'AAAAA-AAAAA';
+        await db.execute(
+          '''
+          UPDATE portal_users
+          SET status = 'pending',
+              activation_code = @code,
+              activation_code_expires_at = now() + interval '1 day'
+          WHERE id = @id::uuid
+          ''',
+          parameters: {'id': testTargetId, 'code': priorCode},
+        );
+
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+        final request = createPatchRequest(
+          '/api/v1/portal/users/$testTargetId',
+          {'regenerate_activation': true},
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await updatePortalUserHandler(request, testTargetId);
+
+        expect(response.statusCode, equals(200));
+        final json = await getResponseJson(response);
+        expect(json['success'], isTrue);
+        expect(json['activation_code'], isA<String>());
+        expect(json['activation_code'], isNot(equals(priorCode)));
+        expect(json['expires_at'], isA<String>());
+
+        // Verify DB row state — code rotated, expiry ~14 days out.
+        final row = await db.execute(
+          '''
+          SELECT activation_code, activation_code_expires_at, status
+          FROM portal_users WHERE id = @id::uuid
+          ''',
+          parameters: {'id': testTargetId},
+        );
+        expect(row.first[0], equals(json['activation_code']));
+        expect(row.first[0], isNot(equals(priorCode)));
+        final expiresAt = row.first[1] as DateTime;
+        final daysOut = expiresAt.difference(DateTime.now()).inDays;
+        // Allow ±1 day for clock skew / scheduling.
+        expect(daysOut, greaterThanOrEqualTo(13));
+        expect(daysOut, lessThanOrEqualTo(14));
+        expect(row.first[2], equals('pending'));
+
+        // Verify the immutable audit row was written.
+        final audit = await db.execute(
+          '''
+          SELECT action, changed_by FROM portal_user_audit_log
+          WHERE user_id = @userId::uuid AND action = 'resend_activation'
+          ORDER BY created_at DESC LIMIT 1
+          ''',
+          parameters: {'userId': testTargetId},
+        );
+        expect(audit.length, equals(1));
+        expect(audit.first[0], equals('resend_activation'));
+        expect((audit.first[1] as String).toLowerCase(), equals(testAdminId));
+      },
+    );
+
+    test(
+      'rejects regenerate_activation on an active user (409)',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        final db = Database.instance;
+
+        // Reset target to active (cleanup from prior test or default state).
+        await db.execute(
+          '''
+          UPDATE portal_users
+          SET status = 'active', activation_code = NULL,
+              activation_code_expires_at = NULL
+          WHERE id = @id::uuid
+          ''',
+          parameters: {'id': testTargetId},
+        );
+
+        final token = createMockEmulatorToken(
+          testAdminFirebaseUid,
+          testAdminEmail,
+        );
+        final request = createPatchRequest(
+          '/api/v1/portal/users/$testTargetId',
+          {'regenerate_activation': true},
+          headers: {'authorization': 'Bearer $token'},
+        );
+        final response = await updatePortalUserHandler(request, testTargetId);
+
+        expect(response.statusCode, equals(409));
+        final json = await getResponseJson(response);
+        expect(json['code'], equals('already_active'));
+      },
+    );
+  });
+
   group('verifyEmailChangeHandler', () {
     test(
       'rejects pending change when target email collides case-insensitively',
@@ -1069,6 +1178,111 @@ void main() {
           await db.execute(
             'DELETE FROM portal_users WHERE id = @id::uuid',
             parameters: {'id': collisionOwnerId},
+          );
+        }
+      },
+    );
+  });
+
+  // CUR-1124: the list endpoint joined portal_user_roles and
+  // portal_user_site_access without DISTINCT, so a user with N roles
+  // and M sites returned N*M site entries. This pins the DISTINCT
+  // jsonb_build_object fix in `getPortalUsersHandler`.
+  group('getPortalUsersHandler — site dedup (CUR-1124)', () {
+    test(
+      'returns each site once for a multi-role user (no cartesian dupes)',
+      skip: !useEmulator ? 'Requires FIREBASE_AUTH_EMULATOR_HOST' : null,
+      () async {
+        const multiRoleId = '99994000-0000-0000-0000-0000000000bb';
+        const multiRoleEmail = 'multi-role-dedupe@user-edit-test.example.com';
+        const multiRoleFirebaseUid = 'firebase-edit-multi-role-uid';
+
+        final db = Database.instance;
+
+        // Create a fresh user with 3 roles and 2 sites. Without the
+        // DISTINCT fix, the list endpoint would return 6 site entries
+        // for this user (3 roles × 2 sites).
+        await db.execute(
+          '''
+          INSERT INTO portal_users (id, email, name, firebase_uid, status)
+          VALUES (@id::uuid, @email, 'Multi-Role Dedup Target',
+                  @firebaseUid, 'active')
+          ''',
+          parameters: {
+            'id': multiRoleId,
+            'email': multiRoleEmail,
+            'firebaseUid': multiRoleFirebaseUid,
+          },
+        );
+        for (final role in ['Administrator', 'Auditor', 'Investigator']) {
+          await db.execute(
+            '''
+            INSERT INTO portal_user_roles (user_id, role, assigned_by)
+            VALUES (@userId::uuid, @role::portal_user_role, @assignedBy::uuid)
+            ''',
+            parameters: {
+              'userId': multiRoleId,
+              'role': role,
+              'assignedBy': testAdminId,
+            },
+          );
+        }
+        for (final siteId in [testSiteId, testSiteId2]) {
+          await db.execute(
+            '''
+            INSERT INTO portal_user_site_access (user_id, site_id)
+            VALUES (@userId::uuid, @siteId)
+            ''',
+            parameters: {'userId': multiRoleId, 'siteId': siteId},
+          );
+        }
+
+        try {
+          final token = createMockEmulatorToken(
+            testAdminFirebaseUid,
+            testAdminEmail,
+          );
+          final response = await getPortalUsersHandler(
+            createGetRequest(
+              '/api/v1/portal/users',
+              headers: {'authorization': 'Bearer $token'},
+            ),
+          );
+          expect(response.statusCode, equals(200));
+
+          final json = await getResponseJson(response);
+          final users = (json['users'] as List).cast<Map<String, dynamic>>();
+          final target = users.firstWhere(
+            (u) => u['id'] == multiRoleId,
+            orElse: () =>
+                throw StateError('multi-role test user not in list response'),
+          );
+
+          final sites = (target['sites'] as List).cast<Map<String, dynamic>>();
+          // 3 roles × 2 sites = 6 entries pre-fix; 2 unique entries post-fix.
+          expect(sites.length, equals(2));
+          final siteIds = sites.map((s) => s['site_id'] as String).toSet();
+          expect(siteIds, equals({testSiteId, testSiteId2}));
+
+          // Roles still report all three (string_agg DISTINCT was already
+          // correct; this guards against regressing that path).
+          final roles = (target['roles'] as List).cast<String>();
+          expect(
+            roles.toSet(),
+            equals({'Administrator', 'Auditor', 'Investigator'}),
+          );
+        } finally {
+          await db.execute(
+            'DELETE FROM portal_user_site_access WHERE user_id = @id::uuid',
+            parameters: {'id': multiRoleId},
+          );
+          await db.execute(
+            'DELETE FROM portal_user_roles WHERE user_id = @id::uuid',
+            parameters: {'id': multiRoleId},
+          );
+          await db.execute(
+            'DELETE FROM portal_users WHERE id = @id::uuid',
+            parameters: {'id': multiRoleId},
           );
         }
       },

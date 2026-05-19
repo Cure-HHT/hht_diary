@@ -106,8 +106,8 @@ MockClient _createMockHttpClient() {
       );
     }
 
-    // GET /api/v1/portal/patients
-    if (path == '/api/v1/portal/patients' && request.method == 'GET') {
+    // GET /api/v1/portal/participants
+    if (path == '/api/v1/portal/participants' && request.method == 'GET') {
       return http.Response(
         jsonEncode({'patients': _testPatients, 'assigned_sites': _testSites}),
         200,

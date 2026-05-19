@@ -5,6 +5,7 @@
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -24,6 +25,7 @@ class ProfileScreen extends StatefulWidget {
     required this.onUpdateUserName,
     this.isDisconnected = false,
     this.isNotParticipating = false,
+    this.linkingStatus = MobileLinkingStatus.connected,
     this.enrollmentCode,
     this.enrollmentDateTime,
     this.enrollmentEndDateTime,
@@ -42,6 +44,9 @@ class ProfileScreen extends StatefulWidget {
   final bool isDisconnected;
   // CUR-1165: True when sponsor portal has marked patient as not participating
   final bool isNotParticipating;
+  // CUR-1343 / REQ-p70011/F: Fine-grained linking status used to render
+  // the "reconnection required" badge variant.
+  final MobileLinkingStatus linkingStatus;
   final String? enrollmentCode;
   final DateTime? enrollmentDateTime;
   final DateTime? enrollmentEndDateTime;
@@ -324,9 +329,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Determine status and colors
     final isNotParticipating = widget.isNotParticipating;
     final isDisconnected = widget.isDisconnected;
+    final isAwaitingReconnect =
+        widget.linkingStatus == MobileLinkingStatus.linkingInProgress;
     // CUR-1165: not_participating is distinct from active — exclude it explicitly
     final isActive =
-        widget.isEnrolledInTrial && !isDisconnected && !isNotParticipating;
+        widget.isEnrolledInTrial &&
+        !isDisconnected &&
+        !isNotParticipating &&
+        !isAwaitingReconnect;
 
     Color bgColor;
     Color borderColor;
@@ -335,7 +345,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     IconData statusIcon;
     String statusMessage;
 
-    if (isDisconnected) {
+    if (isAwaitingReconnect) {
+      // CUR-1343 / REQ-p70011/F: A new linking code has been issued by the
+      // portal; the patient must enter it. Reuses the amber disconnected
+      // styling to maintain the "attention required" affordance, but with
+      // its own message that tells the patient what to do next.
+      bgColor = const Color(0xFFFFFBEA);
+      borderColor = Colors.amber.shade300;
+      iconColor = Colors.amber.shade700;
+      subtextColor = const Color(0xFF7B3306);
+      statusIcon = Icons.refresh;
+      statusMessage = l10n.participationStatusAwaitingReconnectMessage;
+    } else if (isDisconnected) {
       // Disconnected state - exact brand colors
       bgColor = const Color(0xFFFFFBEA);
       borderColor = Colors.amber.shade300;
@@ -345,7 +366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       statusMessage = l10n.participationStatusDisconnectedMessage;
     } else if (isNotParticipating) {
       // CUR-1165: Not participating state — grey/inactive styling (GUI-p00076)
-      bgColor = const Color(0xFFF9FAFB);
+      bgColor = const Color(0xffe4e4e4).withValues(alpha: 0.7);
       borderColor = const Color(0xFFE7E8EC);
       iconColor = const Color(0xFF586170);
       subtextColor = const Color(0xFF586170);
@@ -409,14 +430,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Image.network(
                         widget.sponsorLogo!,
                         height: 60,
+                        width: 120,
                         errorBuilder: (context, _, _) =>
                             const SizedBox(height: 60),
                       ),
                     )
                   else
                     const SizedBox(),
-                  const SizedBox(height: 16),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         height: 40,
@@ -433,51 +455,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Text(
-                          statusMessage,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF212C3B),
-                          ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              statusMessage,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF212C3B),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (widget.enrollmentCode != null)
+                              Text(
+                                l10n.linkingCode(
+                                  _formatEnrollmentCode(widget.enrollmentCode!),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF586170),
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            if (widget.enrollmentDateTime != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.joinedDate(
+                                  _formatEnrollmentDateTime(
+                                    widget.enrollmentDateTime!,
+                                  ),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF586170),
+                                ),
+                              ),
+                            ],
+                            if (widget.enrollmentEndDateTime != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.endedDate(
+                                  _formatEnrollmentDateTime(
+                                    widget.enrollmentEndDateTime!,
+                                  ),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF586170),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  if (widget.enrollmentCode != null)
-                    Text(
-                      l10n.linkingCode(
-                        _formatEnrollmentCode(widget.enrollmentCode!),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  if (widget.enrollmentDateTime != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.joinedDate(
-                        _formatEnrollmentDateTime(widget.enrollmentDateTime!),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                      ),
-                    ),
-                  ],
-                  if (widget.enrollmentEndDateTime != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.endedDate(
-                        _formatEnrollmentDateTime(
-                          widget.enrollmentEndDateTime!,
-                        ),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                      ),
-                    ),
-                  ],
                 ] else ...[
                   // Active / disconnected states: existing layout
                   if (widget.sponsorLogo != null)

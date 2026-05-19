@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling (Envelope.type vocabulary)
+//   REQ-d00195: Mobile Notifications Polling (Envelope.type vocabulary)
 //
 // 3-value protocol vocabulary for the notification_type column. The
 // fine-grained sub-actions (questionnaire_sent vs. _deleted vs.

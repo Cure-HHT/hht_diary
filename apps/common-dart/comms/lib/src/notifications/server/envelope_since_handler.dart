@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling
+//   REQ-d00195: Mobile Notifications Polling
 //     (cursor-based since query — primary reliability mechanism)
 //
 // Shelf handler factory for `GET /api/v1/notifications?since=<iso8601>&limit=<n>`.

@@ -607,7 +607,7 @@ G. Every system-audit emission callsite (destination registry mutations per REQ-
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. `Initiator` SHALL be a Dart 3 sealed class with exactly three variants: `UserInitiator`, `AutomationInitiator`, `AnonymousInitiator`.
 
@@ -628,7 +628,7 @@ F. `Initiator.fromJson` SHALL throw `FormatException` on an unknown `type` discr
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p00013
 
-## Assertions
+### Assertions
 
 A. `StoredEvent.flowToken` SHALL be a nullable `String?` column carried on the event record.
 
@@ -647,7 +647,7 @@ E. `flow_token` SHALL be part of the `event_hash` inputs so tampering with the t
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p01018
 
-## Assertions
+### Assertions
 
 A. `EventSecurityContext` rows SHALL live in a separate storage namespace (sembast store `security_context`), not as columns on the `event_log` store.
 
@@ -668,7 +668,7 @@ F. `SecurityContextStore.queryAudit({initiator?, flowToken?, ipAddress?, from?, 
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p01018
 
-## Assertions
+### Assertions
 
 A. `SecurityRetentionPolicy` SHALL be an immutable value type carrying `fullRetention` (default 90 days), `truncatedRetention` (default 365 days additional), `truncateIpv4LastOctet` (default true), `truncateIpv6Suffix` (default true, `/48` mask), `dropUserAgentAfterFull` (default true), `dropGeoAfterFull` (default false), and `dropAllAfterTruncated` (default true); a `SecurityRetentionPolicy.defaults` static constant SHALL expose the defaults as a single value.
 
@@ -693,7 +693,7 @@ H. Every invocation of `EventStore.applyRetentionPolicy` SHALL emit exactly one 
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p01018
 
-## Assertions
+### Assertions
 
 A. Event `data` and `flowToken` SHALL NOT contain unhashed credentials, OTPs, recovery tokens, session tokens, or any other value whose mere knowledge confers authority.
 
@@ -708,7 +708,7 @@ C. Hashes (SHA-256 or stronger, with sufficient input entropy to resist precompu
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p01006
 
-## Assertions
+### Assertions
 
 A. `Materializer` SHALL be an abstract base class with:
 - `String get viewName`
@@ -746,7 +746,7 @@ L. When a materializer's `targetVersionFor` cannot find a registered version for
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. `EventStore` SHALL live at `apps/common-dart/event_sourcing_datastore/lib/src/event_store.dart`.
 
@@ -771,7 +771,7 @@ H. `EventStore.append` SHALL accept caller-supplied `metadata['causality']` (REQ
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p00004
 
-## Assertions
+### Assertions
 
 A. The class named `DeviceInfo` SHALL be renamed to `Source` and SHALL carry exactly three fields: `hopId: String`, `identifier: String`, `softwareVersion: String`; `Source` SHALL NOT carry a `userId` field.
 
@@ -788,7 +788,7 @@ D. `Source.identifier` SHALL be the per-installation unique identity. Production
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p00006
 
-## Assertions
+### Assertions
 
 A. `StorageException` SHALL be a sealed class with exactly three subclasses: `StorageTransientException`, `StoragePermanentException`, `StorageCorruptException`; no other subclasses SHALL exist.
 
@@ -811,7 +811,7 @@ G. Every `StorageException` instance SHALL preserve the original `cause: Object`
 
 **Level**: dev | **Status**: Draft | **Implements**: REQ-p01001
 
-## Rationale
+### Rationale
 
 A destination whose head row is wedged cannot make drain progress (REQ-d00124-H). `tombstoneAndRefill` is the recovery primitive: the operator declares the bundle at the FIFO head permanently undeliverable as-built — its wire bytes were malformed because of a transform bug that has since been fixed, or its content was rejected by the destination until a server-side change landed, or (in the case of a `null` head) the operator knows the bundle will never succeed and wants to short-circuit retry-exhaustion. The library archives that row as a tombstone preserving its `attempts[]` as the audit record of the delivery attempt, clears the pending trail that had been building up behind it, and rewinds `fill_cursor` so the next `fillBatch` rebuilds the events covered by the tombstoned target AND by the deleted trail into fresh bundles against the current transform and destination state.
 
@@ -821,7 +821,7 @@ When the operator's fix is valid, the fresh rows drain through successfully. Whe
 
 `tombstoneAndRefill` is the sole recovery primitive for the drain loop and the sole code path by which a FIFO row reaches `final_status == tombstoned`.
 
-## Assertions
+### Assertions
 
 A. `DestinationRegistry.tombstoneAndRefill(String destId, String fifoRowId, {required Initiator initiator})` SHALL be the entry point for the wedge-recovery primitive. It SHALL throw `ArgumentError` unless `fifoRowId` identifies the current head of the destination's FIFO.
 

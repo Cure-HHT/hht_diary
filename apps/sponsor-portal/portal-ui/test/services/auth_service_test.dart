@@ -525,6 +525,127 @@ void main() {
     });
   });
 
+  // CUR-1137: rate-limited OTP send must surface retry_after to the UI so
+  // the page can disable the resend button for the actual remaining wait.
+  group('AuthService.sendEmailOtp rate limit', () {
+    test('429 response populates retryAfter on EmailOtpResult', () async {
+      fakeAsync((fake) {
+        final mockUser = MockUser(
+          uid: 'otp-user-uid',
+          email: 'rate-limited@example.com',
+          displayName: 'Rate Limited',
+        );
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: mockUser,
+          signedIn: true,
+        );
+        final mockHttpClient = MockClient((request) async {
+          if (request.url.path == '/api/v1/portal/me') {
+            return http.Response(
+              jsonEncode({
+                'id': 'user-001',
+                'email': 'rate-limited@example.com',
+                'name': 'Rate Limited',
+                'status': 'active',
+                'roles': ['Investigator'],
+                'active_role': 'Investigator',
+                'sites': [],
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          if (request.url.path == '/api/v1/portal/auth/send-otp') {
+            return http.Response(
+              jsonEncode({
+                'error':
+                    'Too many OTP requests. Please wait before trying again.',
+                'retry_after': 780,
+              }),
+              429,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not found', 404);
+        });
+
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          isPageRefresh: true,
+          clearStorage: () async {},
+        );
+        fake.flushMicrotasks();
+
+        EmailOtpResult? result;
+        authService.sendEmailOtp().then((r) => result = r);
+        fake.flushMicrotasks();
+
+        expect(result, isNotNull);
+        expect(result!.success, isFalse);
+        expect(result!.retryAfter, 780);
+        expect(result!.error, contains('Too many'));
+      });
+    });
+
+    test('429 without retry_after leaves retryAfter null', () async {
+      fakeAsync((fake) {
+        final mockUser = MockUser(
+          uid: 'otp-user-uid',
+          email: 'rate-limited@example.com',
+          displayName: 'Rate Limited',
+        );
+        final mockFirebaseAuth = MockFirebaseAuth(
+          mockUser: mockUser,
+          signedIn: true,
+        );
+        final mockHttpClient = MockClient((request) async {
+          if (request.url.path == '/api/v1/portal/me') {
+            return http.Response(
+              jsonEncode({
+                'id': 'user-001',
+                'email': 'rate-limited@example.com',
+                'name': 'Rate Limited',
+                'status': 'active',
+                'roles': ['Investigator'],
+                'active_role': 'Investigator',
+                'sites': [],
+              }),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          if (request.url.path == '/api/v1/portal/auth/send-otp') {
+            return http.Response(
+              jsonEncode({'error': 'Too many requests.'}),
+              429,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not found', 404);
+        });
+
+        final authService = AuthService(
+          firebaseAuth: mockFirebaseAuth,
+          httpClient: mockHttpClient,
+          enableInactivityTimer: false,
+          isPageRefresh: true,
+          clearStorage: () async {},
+        );
+        fake.flushMicrotasks();
+
+        EmailOtpResult? result;
+        authService.sendEmailOtp().then((r) => result = r);
+        fake.flushMicrotasks();
+
+        expect(result, isNotNull);
+        expect(result!.success, isFalse);
+        expect(result!.retryAfter, isNull);
+      });
+    });
+  });
+
   group('AuthService inactivity timeout', () {
     // Synchronous setup helper — must run inside a fakeAsync zone so that
     // the AuthService's internal Timer is governed by fake time.

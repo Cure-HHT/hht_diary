@@ -810,7 +810,8 @@ CREATE TABLE portal_user_audit_log (
     changed_by UUID NOT NULL REFERENCES portal_users(id),
     action TEXT NOT NULL CHECK (action IN (
         'update_name', 'update_email', 'update_roles',
-        'update_sites', 'update_status', 'revoke_sessions'
+        'update_sites', 'update_status', 'revoke_sessions',
+        'resend_activation'
     )),
     before_value JSONB,           -- State before the change
     after_value JSONB,            -- State after the change
@@ -1130,9 +1131,9 @@ COMMENT ON COLUMN patient_fcm_tokens.is_active IS 'False when token is invalidat
 -- NOTIFICATIONS — outbox / envelope pattern (Phase 1B)
 -- =====================================================
 -- IMPLEMENTS REQUIREMENTS:
---   REQ-d00167: FCM Dispatch via cure-hht-admin Project
---   REQ-d00168: PHI-Safe FCM Payload
---   REQ-d00169: Mobile Notifications Polling
+--   REQ-d00193: FCM Dispatch via cure-hht-admin Project
+--   REQ-d00194: PHI-Safe FCM Payload
+--   REQ-d00195: Mobile Notifications Polling
 --
 -- Each row is the durable record of a push notification — written by
 -- the server before FCM dispatch, polled by mobile via
@@ -1169,7 +1170,7 @@ CREATE INDEX notifications_patient_pending_idx
 
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
-COMMENT ON TABLE notifications IS 'Outbox / envelope record for push notifications. Written before FCM dispatch (REQ-d00168), polled by mobile via /api/v1/notifications (REQ-d00169).';
+COMMENT ON TABLE notifications IS 'Outbox / envelope record for push notifications. Written before FCM dispatch (REQ-d00194), polled by mobile via /api/v1/notifications (REQ-d00195).';
 COMMENT ON COLUMN notifications.patient_id IS 'FK to patients (RAVE SubjectKey). RLS scope key.';
 COMMENT ON COLUMN notifications.notification_type IS '3-value enum. Sub-action lives in payload->>"action".';
 COMMENT ON COLUMN notifications.user_visible IS 'True for alerts (priority 10 + lock-screen). False for silent data pushes (priority 5 + content-available).';

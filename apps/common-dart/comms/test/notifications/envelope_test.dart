@@ -1,5 +1,5 @@
 // VERIFIES REQUIREMENTS:
-//   REQ-d00169: Envelope is the wire format consumed by the mobile
+//   REQ-d00195: Envelope is the wire format consumed by the mobile
 //               client — toJson / fromJson must round-trip every field
 
 import 'package:comms/comms.dart';
