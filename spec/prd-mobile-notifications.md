@@ -32,7 +32,7 @@ A. The **Task List** SHALL support the following task types, displayed in the pr
 | Priority | Task Type | Trigger | Removal |
 | :---- | :---- | :---- | :---- |
 | 1 | **Incomplete Records Task** | **Participant** has one or more saved entries with missing required data | All incomplete entries are completed or deleted |
-| 2 | **Questionnaire Task** | *Study Coordinator* sends a **Portal-Sent **Questionnaire**** | *Sponsor* finalizes the *Questionnaire* |
+| 2 | **Questionnaire Task** | *Study Coordinator* sends a **Portal-Sent Questionnaire** | *Sponsor* finalizes the *Questionnaire* |
 | 3 | **Yesterday Reminder Task** | New day begins and the **Participant** has not recorded a **Daily Status** for the previous day | **Participant** records a **Daily Status** for the previous day |
 
 **Incomplete Records Task**
@@ -47,13 +47,13 @@ E. The **Incomplete Records Task** SHALL persist regardless of the age of the in
 
 **Questionnaire Task**
 
-F. The interface SHALL display one **Questionnaire Task** per ****Questionnaire** Type**.
+F. The interface SHALL display one **Questionnaire Task** per **Questionnaire Type**.
 
-G. When the **Participant** selects a **Questionnaire Task**, the interface SHALL navigate to the *Questionnaire* flow for that **Portal-Sent **Questionnaire****.
+G. When the **Participant** selects a **Questionnaire Task**, the interface SHALL navigate to the *Questionnaire* flow for that **Portal-Sent Questionnaire**.
 
-H. After the *Participant* submits a **Portal-Sent **Questionnaire****, the *Questionnaire* SHALL be accessible as a record on the day it was submitted via the **Calendar**.
+H. After the *Participant* submits a **Portal-Sent Questionnaire**, the *Questionnaire* SHALL be accessible as a record on the day it was submitted via the **Calendar**.
 
-I. After the *Sponsor* finalizes the **Portal-Sent **Questionnaire****, the **Questionnaire Task** SHALL be removed from the **Task List**.
+I. After the *Sponsor* finalizes the **Portal-Sent **Questionnaire**, the Questionnaire Task** SHALL be removed from the **Task List**.
 
 J. After **Submission**, the **Questionnaire Task** SHALL display a completed visual state indicating the *Questionnaire* has been submitted and is awaiting *Sponsor* review.
 
@@ -88,7 +88,7 @@ The three task types correspond to the three categories of follow-up the platfor
 > Satisfies) when the need arises. Until that seam exists, this REQ is
 > normative for the Callisto deployment.
 
-*End* *Participant Task List* | **Hash**: ea2daf89
+*End* *Participant Task List* | **Hash**: 4046086e
 
 ## DIARY-PRD-notification-disconnection: Disconnection Notification
 
@@ -104,9 +104,9 @@ Disconnection Notification
 
 ### Assertions
 
-A. When a ****Participant**'s** status is **Disconnected**, the System SHALL display a **Disconnection Notification** on the **Main Screen**.
+A. When a **Participant's** status is **Disconnected**, the System SHALL display a **Disconnection Notification** on the **Main Screen**.
 
-B. The **Disconnection Notification** SHALL persist until the **Participant** is reconnected to the ****Sponsor** Portal**.
+B. The **Disconnection Notification** SHALL persist until the **Participant** is reconnected to the **Sponsor Portal**.
 
 C. The **Disconnection Notification** SHALL NOT be dismissible by the **Participant**.
 
@@ -122,7 +122,7 @@ Disconnection is an operational state with clinical-data consequences: data the 
 
 See: ![*Disconnection Notification*](../docs/urs-extracted-images/image-28.png)
 
-*End* *Disconnection Notification* | **Hash**: 8bfa6e58
+*End* *Disconnection Notification* | **Hash**: ac967ad3
 
 ## DIARY-GUI-participation-status-badge: Participation Status Badge
 
@@ -131,7 +131,7 @@ See: ![*Disconnection Notification*](../docs/urs-extracted-images/image-28.png)
 
 ### Overview
 
-The **Participation Status Badge** gives **Participants** a persistent, at-a-glance view of their clinical *Trial* involvement. The badge adapts its display based on the ****Participant**'s** current status so they always know whether they are connected, disconnected, or no longer participating in a study.
+The **Participation Status Badge** gives **Participants** a persistent, at-a-glance view of their clinical *Trial* involvement. The badge adapts its display based on the **Participant's** current status so they always know whether they are connected, disconnected, or no longer participating in a study.
 
 
 Participation Status Badge
@@ -145,25 +145,25 @@ A. The interface SHALL display the **Participation Status Badge** in the Clinica
 
 **Linked State**
 
-B. When the ****Participant**'s** status is **Linked - Awaiting Start** or ****Trial** Active**, the **Participation Status Badge** SHALL display the *Sponsor* logo, the ****Participant**'s** *Linking Code*, and the date and time the **Participant** joined.
+B. When the **Participant's** status is **Linked - Awaiting Start** or **Trial Active**, the **Participation Status Badge** SHALL display the *Sponsor* logo, the **Participant's** *Linking Code*, and the date and time the **Participant** joined.
 
 C. The **Participation Status Badge** SHALL include a link to the **Clinical Trial Privacy Policy** from the moment the *Participant* links to the study, and the link SHALL remain available thereafter regardless of subsequent status changes.
 
 **Disconnected State**
 
-D. When the ****Participant**'s** status is **Disconnected**, the **Participation Status Badge** SHALL display a warning indicator, the ****Participant**'s** current *Linking Code*, and a message that the connection has been interrupted.
+D. When the **Participant's** status is **Disconnected**, the **Participation Status Badge** SHALL display a warning indicator, the **Participant's** current *Linking Code*, and a message that the connection has been interrupted.
 
-E. When the ****Participant**'s** status is **Disconnected**, the **Participation Status Badge** SHALL present an Enter New *Linking Code* *Action* that navigates the **Participant** to the *Linking Code* entry screen.
+E. When the **Participant's** status is **Disconnected**, the **Participation Status Badge** SHALL present an Enter New *Linking Code* *Action* that navigates the **Participant** to the *Linking Code* entry screen.
 
 **Not Participating State**
 
-F. When the ****Participant**'s** status is **Not Participating**, the **Participation Status Badge** SHALL display in an inactive visual style with the end date of participation.
+F. When the **Participant's** status is **Not Participating**, the **Participation Status Badge** SHALL display in an inactive visual style with the end date of participation.
 
 **Automatic Update**
 
-G. The **Participation Status Badge** SHALL update automatically when the ****Participant**'s** status changes.
+G. The **Participation Status Badge** SHALL update automatically when the **Participant's** status changes.
 
-H. The System SHALL support *Sponsor*-configurable display of the *Sponsor* logo on the **Participation Status Badge** when the ****Participant**'s** status is **Not Participating**.
+H. The System SHALL support *Sponsor*-configurable display of the *Sponsor* logo on the **Participation Status Badge** when the **Participant's** status is **Not Participating**.
 
 ### Rationale
 
@@ -176,7 +176,7 @@ The badge consolidates "where do I stand with this study" into a single visual t
 > Satisfies) when the need arises. Until that seam exists, this REQ is
 > normative for the Callisto deployment.
 
-*End* *Participation Status Badge* | **Hash**: da3fa454
+*End* *Participation Status Badge* | **Hash**: 6f306233
 
 ## DIARY-PRD-notification-incomplete-record-lock: Incomplete Record Lock Warning Notification
 
@@ -222,33 +222,33 @@ The **Lock Threshold** produces an irreversible state — once exceeded, the **I
 
 ### Overview
 
-When a **Study Coordinator** sends a **Portal-Sent **Questionnaire**** from the *Sponsor* Portal, the **Participant** must be made aware that a new *Questionnaire* is available for completion. A push notification serves as the awareness mechanism. The ***Questionnaire** Task* on the **Main Screen** provides the **Participant**'s entry point into the *Questionnaire* flow once the application is open.
+When a **Study Coordinator** sends a **Portal-Sent Questionnaire** from the *Sponsor* Portal, the **Participant** must be made aware that a new *Questionnaire* is available for completion. A push notification serves as the awareness mechanism. The ***Questionnaire** Task* on the **Main Screen** provides the **Participant**'s entry point into the *Questionnaire* flow once the application is open.
 
 ### Assertions
 
 **Trigger**
 
-A. When a **Portal-Sent **Questionnaire**** is successfully delivered to the **Mobile Application**, the System SHALL deliver a **Push Notification** to the **Participant**.
+A. When a **Portal-Sent **Questionnaire** is successfully delivered to the Mobile Application**, the System SHALL deliver a **Push Notification** to the **Participant**.
 
 **Offline Delivery**
 
-B. When the **Mobile Application** is offline at the time a **Portal-Sent **Questionnaire**** is sent, the System SHALL deliver the **Push Notification** when the **Mobile Application** next establishes connectivity.
+B. When the **Mobile Application** is offline at the time a **Portal-Sent **Questionnaire** is sent, the System SHALL deliver the Push Notification** when the **Mobile Application** next establishes connectivity.
 
 **Suppression**
 
-C. The System SHALL NOT deliver a **Push Notification** for a **Portal-Sent **Questionnaire**** that has already been submitted by the **Participant**.
+C. The System SHALL NOT deliver a **Push Notification** for a **Portal-Sent **Questionnaire** that has already been submitted by the Participant**.
 
-D. The System SHALL NOT deliver a **Push Notification** for a **Portal-Sent **Questionnaire**** that has been called back by the **Study Coordinator**.
+D. The System SHALL NOT deliver a **Push Notification** for a **Portal-Sent **Questionnaire** that has been called back by the Study Coordinator**.
 
 ### Rationale
 
-The push notification is the *Participant*'s awareness signal that a new **Portal-Sent **Questionnaire**** is waiting; without it, the *Participant* would discover the *Questionnaire* only when they happen to open the app, which can extend the response window beyond what the **Study Coordinator** intended. Trigger-on-delivery (rather than trigger-on-send-from-portal) is the correct boundary because delivery is what actually puts the *Questionnaire* on the *Participant*'s device; sending from the portal to an offline device is a *Sponsor*-side *Action* that has no *Participant*-side effect yet. Offline-deferred delivery follows the cross-cutting notification template — the OS deferred-delivery mechanism is sufficient for the nudge purpose. *Submission* and call-back suppression closes the two cases where the notification would be misleading: a *Questionnaire* already submitted no longer needs the *Participant*'s attention, and a called-back *Questionnaire* is no longer assigned to them and a notification would invite wasted effort on an inactive *Questionnaire*.
+The push notification is the *Participant*'s awareness signal that a new **Portal-Sent Questionnaire** is waiting; without it, the *Participant* would discover the *Questionnaire* only when they happen to open the app, which can extend the response window beyond what the **Study Coordinator** intended. Trigger-on-delivery (rather than trigger-on-send-from-portal) is the correct boundary because delivery is what actually puts the *Questionnaire* on the *Participant*'s device; sending from the portal to an offline device is a *Sponsor*-side *Action* that has no *Participant*-side effect yet. Offline-deferred delivery follows the cross-cutting notification template — the OS deferred-delivery mechanism is sufficient for the nudge purpose. *Submission* and call-back suppression closes the two cases where the notification would be misleading: a *Questionnaire* already submitted no longer needs the *Participant*'s attention, and a called-back *Questionnaire* is no longer assigned to them and a notification would invite wasted effort on an inactive *Questionnaire*.
 
 ### Screen reference
 
 See: ![Portal-Sent *Questionnaire* Notification](../docs/urs-extracted-images/image-29.png)
 
-*End* *Portal-Sent Questionnaire Notification* | **Hash**: 9aa01b76
+*End* *Portal-Sent Questionnaire Notification* | **Hash**: 88bc4533
 
 ## DIARY-PRD-notification-yesterday-entry: Yesterday Entry Reminder Notification
 
@@ -369,9 +369,9 @@ Historical Gap Reminder
 
 A. The **System** SHALL evaluate, once per *Calendar* day at the configured **Reminder Time**, whether the **Participant** has any **Historical Gap** within the editable window.
 
-B. When the **Participant** has at least one **Historical Gap** within the editable window, the **System** SHALL deliver a ****Historical Gap** Reminder** to the **Participant**.
+B. When the **Participant** has at least one **Historical Gap** within the editable window, the **System** SHALL deliver a **Historical Gap Reminder** to the **Participant**.
 
-C. The **System** SHALL deliver at most one ****Historical Gap** Reminder** per *Calendar* day.
+C. The **System** SHALL deliver at most one **Historical Gap Reminder** per *Calendar* day.
 
 **Editable Window**
 
@@ -381,11 +381,11 @@ E. In linked use mode, the **System** SHALL exclude from the **Historical Gap** 
 
 **Mode-Dependent Default**
 
-F. In personal use mode, the ****Historical Gap** Reminder** SHALL be disabled by default.
+F. In personal use mode, the **Historical Gap Reminder** SHALL be disabled by default.
 
-G. In personal use mode, the **System** SHALL allow the **User** to enable or disable the ****Historical Gap** Reminder** from the *Mobile Application* settings.
+G. In personal use mode, the **System** SHALL allow the **User** to enable or disable the **Historical Gap Reminder** from the *Mobile Application* settings.
 
-H. In linked use mode, the ****Historical Gap** Reminder** SHALL be enabled by default.
+H. In linked use mode, the **Historical Gap Reminder** SHALL be enabled by default.
 
 **Configuration**
 
@@ -401,4 +401,4 @@ Historical gaps (days within the *Diary* period that have no **Daily Status**) a
 
 See: ![*Historical Gap* Reminder](../docs/urs-extracted-images/image-32.png)
 
-*End* *Historical Gap Reminder* | **Hash**: b6094130
+*End* *Historical Gap Reminder* | **Hash**: d0a485a3

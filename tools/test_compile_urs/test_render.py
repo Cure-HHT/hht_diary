@@ -17,9 +17,9 @@ def test_requirement_renders_title_rationale_assertions(sample_graph_dict):
     # Rationale from content.rationale
     assert "#### Rationale" in out
     assert "Body prose for RBAC." in out
-    # Assertion child (DIARY-PRD-rbac-A) — label letter + node.label text
+    # Assertion child (DIARY-PRD-rbac-A) — def-list entry (label term + body)
     assert "#### Assertions" in out
-    assert "**A.** The System SHALL support customizable roles." in out
+    assert "A.  The System SHALL support customizable roles." in out
 
 
 def test_requirement_renders_remainder_sections_above_rationale(sample_graph_dict):
@@ -48,9 +48,9 @@ def test_requirement_omits_rationale_block_when_empty(sample_graph_dict):
     node = g.get_node("DIARY-PRD-action-inventory")
     out = render_requirement(node, g)
     assert "#### Rationale" not in out
-    # But the Assertions block still renders
+    # But the Assertions block still renders (as a def-list)
     assert "#### Assertions" in out
-    assert "**A.** Inventory all actions." in out
+    assert "A.  Inventory all actions." in out
 
 
 def test_render_node_dispatches_on_kind(sample_graph_dict):

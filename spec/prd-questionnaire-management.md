@@ -36,27 +36,27 @@ Trial
 
 **Questionnaire Registry**
 
-A. The System SHALL allow implementation of multiple ****Questionnaire** Types**, each as an individual coded component.
+A. The System SHALL allow implementation of multiple **Questionnaire Types**, each as an individual coded component.
 
 B. The System SHALL track **Completion Status** for each **Questionnaire** instance.
 
 **Data Synchronization**
 
-C. The System SHALL activate ****Diary** Data Synchronization** upon **Trial Start**.
+C. The System SHALL activate **Diary Data Synchronization** upon **Trial Start**.
 
-D. The System SHALL deactivate ****Diary** Data Synchronization** when a *Participant* is disconnected or is marked as Not Participating.
+D. The System SHALL deactivate **Diary Data Synchronization** when a *Participant* is disconnected or is marked as Not Participating.
 
 **Configuration**
 
 E. The System SHALL support *Sponsor*-configurable configuration of the trigger and workflow that activates **Trial Start**.
 
-F. Each **Questionnaire** SHALL have a ****Questionnaire** Display Name**.
+F. Each **Questionnaire** SHALL have a **Questionnaire Display Name**.
 
 ### Rationale
 
-The *Questionnaire* subsystem is the principal source of *Trial*-grade clinical data in the platform, and its design choices reflect that *Role*. Implementing each ****Questionnaire** Type** as an individual coded component is a defense against ad hoc clinical content: every *Questionnaire* that ships is a deliberate engineering artifact reviewed against an approved source document, not a configuration table that a *Sponsor* could edit without change control. **Completion Status** tracking is the foundation for the workflow rules that govern how a *Questionnaire* moves from sent to answered to finalized; without per-instance status the platform could not distinguish "answered but not finalized" from "answered and locked", which is a clinical and regulatory distinction. **Trial Start** is the gate at which ****Diary** Data Synchronization** activates because pre-*Trial* *Diary* data is *Participant*-private and must not be promoted to the *Sponsor* portal or Rave EDC until the *Sponsor* has acknowledged that the *Participant* is in *Trial*; making the trigger *Sponsor*-configurable keeps the platform protocol-neutral.
+The *Questionnaire* subsystem is the principal source of *Trial*-grade clinical data in the platform, and its design choices reflect that *Role*. Implementing each **Questionnaire Type** as an individual coded component is a defense against ad hoc clinical content: every *Questionnaire* that ships is a deliberate engineering artifact reviewed against an approved source document, not a configuration table that a *Sponsor* could edit without change control. **Completion Status** tracking is the foundation for the workflow rules that govern how a *Questionnaire* moves from sent to answered to finalized; without per-instance status the platform could not distinguish "answered but not finalized" from "answered and locked", which is a clinical and regulatory distinction. **Trial Start** is the gate at which **Diary Data Synchronization** activates because pre-*Trial* *Diary* data is *Participant*-private and must not be promoted to the *Sponsor* portal or Rave EDC until the *Sponsor* has acknowledged that the *Participant* is in *Trial*; making the trigger *Sponsor*-configurable keeps the platform protocol-neutral.
 
-*End* *Clinical Questionnaire System* | **Hash**: e625d6a0
+*End* *Clinical Questionnaire System* | **Hash**: 5d99cd12
 
 ## DIARY-PRD-questionnaire-sponsor-configuration: Sponsor Questionnaire Configuration
 
@@ -81,7 +81,7 @@ E. The System SHALL support *Sponsor*-specific configuration of which languages 
 
 ### Rationale
 
-The five configuration axes named here — enablement, reminder behavior, post-*Submission* processing, post-*Submission* editability, and language — are the dimensions along which clinical protocols typically vary between sponsors using the same underlying ****Questionnaire** Type**. Encoding them as *Sponsor* configuration rather than platform code keeps the platform's *Questionnaire* library stable across deployments while letting each *Sponsor* express the protocol-specific decisions that their IRB and operations teams require. The configuration approach is bounded — sponsors choose from the offered axes, they do not edit *Questionnaire* content — which preserves the change-control discipline established in the foundation requirement.
+The five configuration axes named here — enablement, reminder behavior, post-*Submission* processing, post-*Submission* editability, and language — are the dimensions along which clinical protocols typically vary between sponsors using the same underlying **Questionnaire Type**. Encoding them as *Sponsor* configuration rather than platform code keeps the platform's *Questionnaire* library stable across deployments while letting each *Sponsor* express the protocol-specific decisions that their IRB and operations teams require. The configuration approach is bounded — sponsors choose from the offered axes, they do not edit *Questionnaire* content — which preserves the change-control discipline established in the foundation requirement.
 
 *End* *Sponsor Questionnaire Configuration* | **Hash**: efaae01f
 
@@ -119,7 +119,7 @@ Questionnaires must stay the same throughout an active *Trial* so the data remai
 
 A. The System SHALL use predefined **Questionnaires** for all clinical data collection.
 
-B. The System SHALL NOT allow **Questionnaires** to be created, modified, or deleted during *Trial* operation. If any new **Questionnaire** is required, a new ****Questionnaire** Type** will be implemented. Modifications for an existing **Questionnaire** will follow the process outlined in the below two assertions.
+B. The System SHALL NOT allow **Questionnaires** to be created, modified, or deleted during *Trial* operation. If any new **Questionnaire** is required, a new **Questionnaire Type** will be implemented. Modifications for an existing **Questionnaire** will follow the process outlined in the below two assertions.
 
 C. Changes to **Questionnaires** SHALL be subject to formal change control procedures before deployment.
 
@@ -127,6 +127,6 @@ D. The System SHALL maintain backward compatibility to allow viewing of data col
 
 ### Rationale
 
-Mid-*Trial* **Questionnaire** changes would silently alter the meaning of the data being collected: a question reworded between Day 30 and Day 60 of a *Participant*'s enrollment produces two non-comparable answer streams under the same instrument name. The change-control discipline encoded here prevents that class of error by treating every **Questionnaire** modification as a deliberate engineering act subject to review and approval. The new-*Questionnaire*-Type rule (rather than in-place edit) keeps the data semantics for any given ****Questionnaire** Type** stable for the lifetime of any *Trial* that uses it. Backward-compatible viewing is essential because trials regularly span multiple **Questionnaire** versions when long-running studies adopt updated instruments part-way through; reviewers must be able to inspect historical data captured under the previous version without that data being silently re-interpreted under the new version's rules.
+Mid-*Trial* **Questionnaire** changes would silently alter the meaning of the data being collected: a question reworded between Day 30 and Day 60 of a *Participant*'s enrollment produces two non-comparable answer streams under the same instrument name. The change-control discipline encoded here prevents that class of error by treating every **Questionnaire** modification as a deliberate engineering act subject to review and approval. The new-*Questionnaire*-Type rule (rather than in-place edit) keeps the data semantics for any given **Questionnaire Type** stable for the lifetime of any *Trial* that uses it. Backward-compatible viewing is essential because trials regularly span multiple **Questionnaire** versions when long-running studies adopt updated instruments part-way through; reviewers must be able to inspect historical data captured under the previous version without that data being silently re-interpreted under the new version's rules.
 
-*End* *Questionnaire Change Control* | **Hash**: 50cb4a44
+*End* *Questionnaire Change Control* | **Hash**: 5410f8c2

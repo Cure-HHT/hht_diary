@@ -136,8 +136,15 @@
 % URS-style header and footer
 \usepackage{fancyhdr}
 \usepackage{lastpage}
-\usepackage{colortbl}  % for bordered + shaded tables in frontmatter
+\usepackage{colortbl}  % for bordered + shaded tables (frontmatter + body)
 \usepackage{array}      % for >{\centering\arraybackslash} columns
+\usepackage{etoolbox}   % \pretocmd for page-break-before-REQ hook
+
+% Shared colour for the header row of every grid table. The table-grid
+% Lua filter (tools/pandoc-filters/table-grid.lua) rewrites body tables
+% as longtables that reference this colour via `\rowcolor`.
+\definecolor{tableHeaderShade}{gray}{0.88}
+\arrayrulewidth=0.4pt
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -206,6 +213,13 @@
 \titleformat{\paragraph}[hang]{\normalfont\normalsize\bfseries}{}{0pt}{}
 \titlespacing*{\paragraph}{0pt}{10pt}{4pt}
 
+% Each REQUIREMENT renders as `### Title` -> \subsection. Start every
+% REQ on a fresh page so reviewers can read one requirement at a time
+% without scrolling across boundaries. \newpage in the title-format's
+% before-code block fires for every subsection.
+\titleformat{\subsection}[hang]
+  {\newpage\Large\bfseries}{\thesubsection.}{0.5em}{}
+
 % Paragraph spacing
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{6pt}
@@ -213,6 +227,13 @@
 % Tight list support (pandoc)
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+% pandoc 3.x wraps included images in \pandocbounded for sizing. Newer
+% reference templates define it; our template predates that. A simple
+% passthrough definition is sufficient — the image \includegraphics
+% calls already carry explicit width/keepaspectratio via pandoc's
+% Image-to-LaTeX path, so we don't need pandocbounded's scaling logic.
+\providecommand{\pandocbounded}[1]{#1}
 
 % Title page
 \title{$title$}

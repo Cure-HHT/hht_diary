@@ -24,15 +24,15 @@ Rate Limit Cooldown
 
 **Error Messaging**
 
-A. When a ****Linking Code** Validation Failure** occurs, the System SHALL display a single generic error message regardless of the specific reason for failure.
+A. When a **Linking Code Validation Failure** occurs, the System SHALL display a single generic error message regardless of the specific reason for failure.
 
 B. The error message SHALL NOT reveal the specific reason for failure.
 
-C. When a ****Linking Code** Validation Failure** occurs, the System SHALL provide guidance to contact the *Site* for a new code.
+C. When a **Linking Code Validation Failure** occurs, the System SHALL provide guidance to contact the *Site* for a new code.
 
 **Rate Limiting**
 
-D. When the number of consecutive ****Linking Code** Validation Failures** reaches the **Rate Limit Threshold**, the System SHALL block further linking attempts and display the **Rate Limit** error message until the **Rate Limit Cooldown** has elapsed.
+D. When the number of consecutive **Linking Code Validation Failures** reaches the **Rate Limit Threshold**, the System SHALL block further linking attempts and display the **Rate Limit** error message until the **Rate Limit Cooldown** has elapsed.
 
 E. The **Rate Limit Cooldown** SHALL be calculated from the first failed attempt in the current window.
 
@@ -48,7 +48,7 @@ H. The System SHALL support *Sponsor*-configurable error message text per deploy
 
 Linking codes are short, human-typeable secrets that confer access to a clinical-*Trial* *Participant* identity; the platform's threat model has to assume that someone may attempt to guess or enumerate valid codes. Two mitigations compose: a generic error message that does not distinguish "code does not exist" from "code expired" from "code already used" (assertions A and B — distinguishing them would tell an attacker exactly which guesses are worth pursuing), and a rate limit that caps the number of attempts in a window. The *Site*-contact guidance (assertion C) is the legitimate-*User* recovery path that survives the genericity rule — a real *Participant* who has mistyped their code gets the same message as an enumerator, but they also get the actionable next step (contact the *Site*). The cooldown anchored at the first failed attempt in the window (assertion E) prevents the trivial workaround of attempting just below the threshold, waiting one second, and continuing — the window is a fixed time interval from the first miss. *Sponsor*-configurable threshold, cooldown, and text let each deployment tune the security/usability trade-off and customize the message.
 
-*End* *Linking Code Entry Error Handling* | **Hash**: 769c2bb3
+*End* *Linking Code Entry Error Handling* | **Hash**: 1eb043a2
 
 ## DIARY-GUI-join-study-screen: Join the Study Screen
 
@@ -57,7 +57,7 @@ Linking codes are short, human-typeable secrets that confer access to a clinical
 
 ### Overview
 
-The **Join the Study** screen is presented to the *User* when initiating the linking workflow. It captures the **Mobile **Linking Code**** and the *Participant*'s explicit consent to the **Clinical Trial Privacy Policy** before any link is established.
+The **Join the Study** screen is presented to the *User* when initiating the linking workflow. It captures the **Mobile Linking Code** and the *Participant*'s explicit consent to the **Clinical Trial Privacy Policy** before any link is established.
 
 
 Linking Consent
@@ -65,13 +65,13 @@ Linking Consent
 
 ### Assertions
 
-A. The **Join the Study** screen SHALL display a **Mobile **Linking Code**** entry field formatted according to the configured code format.
+A. The **Join the Study** screen SHALL display a **Mobile Linking Code** entry field formatted according to the configured code format.
 
 B. The screen SHALL display a **Linking Consent** checkbox with text confirming the *Participant* has read, understood, and consents to the **Clinical Trial Privacy Policy**.
 
 C. The **Linking Consent** text SHALL include a link that opens the **Clinical Trial Privacy Policy**.
 
-D. The **Submit** *Action* SHALL be disabled until both a complete **Mobile **Linking Code**** is entered and the **Linking Consent** checkbox is checked.
+D. The **Submit** *Action* SHALL be disabled until both a complete **Mobile **Linking Code** is entered and the Linking Consent** checkbox is checked.
 
 E. The System SHALL retain the **Linking Consent** acknowledgement, including the **Clinical Trial Privacy Policy** version, against the **Participant** record upon successful link.
 
@@ -86,7 +86,7 @@ The **Join the Study** screen has to do two things at once: capture the *Linking
 > Satisfies) when the need arises. Until that seam exists, this REQ is
 > normative for the Callisto deployment.
 
-*End* *Join the Study Screen* | **Hash**: 664d452b
+*End* *Join the Study Screen* | **Hash**: 8aff3bce
 
 ## DIARY-GUI-linking-confirmation: Successful Linking Confirmation
 
@@ -99,13 +99,13 @@ When a *Participant* successfully enters a valid Mobile *Linking Code* on the Jo
 
 ### Assertions
 
-A. When the **Participant** successfully submits a valid **Mobile **Linking Code****, the interface SHALL display an **Acknowledgement Dialog** confirming that the device has been linked to the study.
+A. When the **Participant** successfully submits a valid **Mobile **Linking Code**, the interface SHALL display an Acknowledgement Dialog** confirming that the device has been linked to the study.
 
-B. When the **Participant** acknowledges the dialog, the interface SHALL navigate the **Participant** to the ****User** Profile** screen.
+B. When the **Participant** acknowledges the dialog, the interface SHALL navigate the **Participant** to the **User Profile** screen.
 
 ### Rationale
 
-A successful link transitions the *Participant* from a personal-use **User** to a clinical-*Trial* **Participant** — a state change that affects what data syncs, which notifications fire, and which screens display the *Sponsor* logo. The Acknowledgement Dialog makes the transition explicit so the *Participant* has a clear before/after rather than discovering the change passively. Routing to the ****User** Profile** screen after acknowledgement (rather than back to the **Main Screen**) lands the *Participant* on the screen where the new linked state is most visible: the Clinical *Trial* section now displays the **Participation Status Badge** instead of the unlinked-state guidance, which serves as the visible confirmation of the new state.
+A successful link transitions the *Participant* from a personal-use **User** to a clinical-*Trial* **Participant** — a state change that affects what data syncs, which notifications fire, and which screens display the *Sponsor* logo. The Acknowledgement Dialog makes the transition explicit so the *Participant* has a clear before/after rather than discovering the change passively. Routing to the **User Profile** screen after acknowledgement (rather than back to the **Main Screen**) lands the *Participant* on the screen where the new linked state is most visible: the Clinical *Trial* section now displays the **Participation Status Badge** instead of the unlinked-state guidance, which serves as the visible confirmation of the new state.
 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
@@ -118,4 +118,4 @@ A successful link transitions the *Participant* from a personal-use **User** to 
 
 See: ![Successful Linking Confirmation](../docs/urs-extracted-images/image-25.png)
 
-*End* *Successful Linking Confirmation* | **Hash**: 74bcd4e6
+*End* *Successful Linking Confirmation* | **Hash**: b2e4c450

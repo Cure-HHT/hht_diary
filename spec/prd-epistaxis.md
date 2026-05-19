@@ -49,7 +49,7 @@ The *Daily Status* / *Epistaxis Event* two-level structure exists because the cl
 
 ### Overview
 
-The nosebleed recording flow walks the *Participant* through three steps — **Start** time, **Max **Intensity****, **End** time — visible at all times in a persistent **Progress Indicator** at the top of every screen. The *Participant* can revisit any completed step. Validation at the End Time step prevents impossible records (end before start, end after current real time) and prompts for confirmation on entries that look like they may have been recorded too quickly after the event.
+The nosebleed recording flow walks the *Participant* through three steps — **Start** time, **Max **Intensity**, End** time — visible at all times in a persistent **Progress Indicator** at the top of every screen. The *Participant* can revisit any completed step. Validation at the End Time step prevents impossible records (end before start, end after current real time) and prompts for confirmation on entries that look like they may have been recorded too quickly after the event.
 
 
 Progress Indicator

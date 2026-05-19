@@ -32,8 +32,20 @@ document:
 
 frontmatter: docs/urs-frontmatter.md
 appendices:  docs/urs-appendices.md
-glossary:    spec/_generated/glossary.md
-term_index:  spec/_generated/term-index.md
+# Glossary and term-index are regenerated fresh on every compile from
+# the callisto worktree (which declares hht_diary as an associate), so
+# the federated view includes every defined term across all repos. The
+# committed spec/_generated/ files are local-only and would miss CAL
+# terms — we read from build/_generated/ instead. See compile-urs.sh
+# for the regeneration step.
+glossary:    build/_generated/glossary.md
+# Term index excluded from the URS PDF — the federated index is ~10.6k
+# lines (one entry per indexed term, listing every assertion and code
+# reference verbatim) and adds ~200 pages without proportional review
+# value. Pending an elspais compression pass (see FEATURE_REQUEST #8)
+# that collapses multiple assertions of one REQ into 'REQ-id-E/H/I'
+# form and groups file references by directory.
+# term_index:  build/_generated/term-index.md
 
 chapters:
   - number: 4

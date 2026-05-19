@@ -1,6 +1,6 @@
 # *Mobile Application* Foundation
 
-The **Mobile Application** foundation comprises the dual-mode (personal vs. linked) operating model, *Offline-First* data entry, the ****Diary** Start Day** invariant, the *Sponsor*-configurable **Clinical Trial Privacy Policy**, and the **Application Lock**.
+The **Mobile Application** foundation comprises the dual-mode (personal vs. linked) operating model, *Offline-First* data entry, the **Diary Start Day** invariant, the *Sponsor*-configurable **Clinical Trial Privacy Policy**, and the **Application Lock**.
 
 ## DIARY-PRD-mobile-application: Diary Mobile Application
 
@@ -29,13 +29,13 @@ D. The *Mobile Application* SHALL NOT require account creation or login for pers
 
 E. The **User** SHALL retain control over locally-entered data, including the right to delete it from the device while in personal use mode.
 
-F. The *Mobile Application* SHALL obtain explicit **User** consent before synchronizing pre-existing local data to the ****Sponsor** Portal** upon linking.
+F. The *Mobile Application* SHALL obtain explicit **User** consent before synchronizing pre-existing local data to the **Sponsor Portal** upon linking.
 
 ### Rationale
 
-The dual-mode design serves two distinct populations from a single codebase: individuals tracking nosebleeds for personal health reasons (no clinical-*Trial* context, no *Sponsor*, no account) and clinical-*Trial* participants whose data feeds the *Sponsor*'s regulatory *Submission*. Personal mode is account-less by design — it removes onboarding friction for the first population, who would not benefit from an account they cannot use against any backend, and it keeps the device the single point of control for their data. Linked mode adds the ****Sponsor** Portal** synchronization path; the explicit-consent gate on first sync ensures the **User** transitioning to **Participant** affirmatively chooses to share their previously-private local entries with the *Sponsor*, rather than that data being silently uploaded on link. iOS and Android coverage is required because participants in any plausible clinical-*Trial* population will hold devices on both platforms; restricting to one would exclude participants without a fallback.
+The dual-mode design serves two distinct populations from a single codebase: individuals tracking nosebleeds for personal health reasons (no clinical-*Trial* context, no *Sponsor*, no account) and clinical-*Trial* participants whose data feeds the *Sponsor*'s regulatory *Submission*. Personal mode is account-less by design — it removes onboarding friction for the first population, who would not benefit from an account they cannot use against any backend, and it keeps the device the single point of control for their data. Linked mode adds the **Sponsor Portal** synchronization path; the explicit-consent gate on first sync ensures the **User** transitioning to **Participant** affirmatively chooses to share their previously-private local entries with the *Sponsor*, rather than that data being silently uploaded on link. iOS and Android coverage is required because participants in any plausible clinical-*Trial* population will hold devices on both platforms; restricting to one would exclude participants without a fallback.
 
-*End* *Diary Mobile Application* | **Hash**: 61ae9c4e
+*End* *Diary Mobile Application* | **Hash**: 910bb065
 
 ## DIARY-PRD-mobile-offline-first: Offline-First Data Entry
 
@@ -54,15 +54,15 @@ B. The System SHALL allow **Users** to edit *Diary* entries without requiring in
 
 C. The System SHALL allow **Users** to view their complete entry history without requiring internet connectivity.
 
-D. For linked **Participants**, the System SHALL indicate which entries have not yet synchronized to the ****Sponsor** Portal**.
+D. For linked **Participants**, the System SHALL indicate which entries have not yet synchronized to the **Sponsor Portal**.
 
 E. For linked **Participants**, the System SHALL automatically synchronize unsynchronized entries when network connectivity becomes available.
 
 ### Rationale
 
-*Diary* entries are time-sensitive: a nosebleed event must be captured as it occurs or shortly afterward to preserve recall accuracy and satisfy the ALCOA+ Contemporaneous principle. A network-required entry model would push participants toward either delayed entry (when connectivity is restored, by which time recall has degraded) or non-entry (when connectivity never recovers in the relevant window). *Offline-First* inverts that: every entry succeeds locally regardless of network state, and synchronization to the ****Sponsor** Portal** is a background concern handled by the platform whenever connectivity is available. The unsynchronized indicator preserves transparency for the *Participant* — they can see whether their data has reached the *Sponsor* — without making sync a gate on entry.
+*Diary* entries are time-sensitive: a nosebleed event must be captured as it occurs or shortly afterward to preserve recall accuracy and satisfy the ALCOA+ Contemporaneous principle. A network-required entry model would push participants toward either delayed entry (when connectivity is restored, by which time recall has degraded) or non-entry (when connectivity never recovers in the relevant window). *Offline-First* inverts that: every entry succeeds locally regardless of network state, and synchronization to the **Sponsor Portal** is a background concern handled by the platform whenever connectivity is available. The unsynchronized indicator preserves transparency for the *Participant* — they can see whether their data has reached the *Sponsor* — without making sync a gate on entry.
 
-*End* *Offline-First Data Entry* | **Hash**: 9ad9a85b
+*End* *Offline-First Data Entry* | **Hash**: ab325a3c
 
 ## DIARY-PRD-diary-start-day: Diary Start Day Definition
 
@@ -70,7 +70,7 @@ E. For linked **Participants**, the System SHALL automatically synchronize unsyn
 
 ### Overview
 
-Clinical *Trial* **Participants** may need to record nosebleeds that occurred before their first *Mobile Application* usage. The ****Diary** Start Day** establishes the earliest date for which *Diary* entries are valid, balancing the need for historical data capture with the requirement to maintain reliable data quality. The ****Diary** Start Day** is set automatically based on the **Participant**'s actual entries, when a **Participant** records data for a date earlier than any prior entry, the ****Diary** Start Day** moves backward to that date. The ****Diary** Start Day** never moves forward, even if the earliest entry is subsequently deleted, to preserve the historical scope of the *Diary* and ensure that documented gaps remain visible.
+Clinical *Trial* **Participants** may need to record nosebleeds that occurred before their first *Mobile Application* usage. The **Diary Start Day** establishes the earliest date for which *Diary* entries are valid, balancing the need for historical data capture with the requirement to maintain reliable data quality. The **Diary Start Day** is set automatically based on the **Participant**'s actual entries, when a **Participant** records data for a date earlier than any prior entry, the **Diary Start Day** moves backward to that date. The **Diary Start Day** never moves forward, even if the earliest entry is subsequently deleted, to preserve the historical scope of the *Diary* and ensure that documented gaps remain visible.
 
 
 Diary Start Day
@@ -78,29 +78,29 @@ Diary Start Day
 
 ### Assertions
 
-A. The System SHALL establish and maintain a ****Diary** Start Day** for each **User**.
+A. The System SHALL establish and maintain a **Diary Start Day** for each **User**.
 
-B. The System SHALL set the ****Diary** Start Day** to the date of the earliest entry the **Participant** has ever recorded.
+B. The System SHALL set the **Diary Start Day** to the date of the earliest entry the **Participant** has ever recorded.
 
-C. When a **Participant** records an entry for a date earlier than the current ****Diary** Start Day**, the System SHALL move the ****Diary** Start Day** backward to that date.
+C. When a **Participant** records an entry for a date earlier than the current **Diary Start Day**, the System SHALL move the **Diary Start Day** backward to that date.
 
-D. The System SHALL NOT allow the ****Diary** Start Day** to be set earlier than 365 days before *Mobile Application* installation on the current device.
+D. The System SHALL NOT allow the **Diary Start Day** to be set earlier than 365 days before *Mobile Application* installation on the current device.
 
-E. The ****Diary** Start Day** SHALL only move backward, never forward, once set.
+E. The **Diary Start Day** SHALL only move backward, never forward, once set.
 
-F. The System SHALL NOT prompt **Users** to set the ****Diary** Start Day** during onboarding.
+F. The System SHALL NOT prompt **Users** to set the **Diary Start Day** during onboarding.
 
-G. Data entered for dates before the ***Trial** Start* date SHALL NOT synchronize to the ****Sponsor** Portal** or Rave EDC.
+G. Data entered for dates before the ***Trial** Start* date SHALL NOT synchronize to the **Sponsor Portal** or Rave EDC.
 
 H. The **System** SHALL NOT allow the **Participant** to record an entry for a date in the future.
 
-I. The **System** SHALL display each *Calendar* day between the ****Diary** Start Day** and the current day, exclusive of any day for which a **Daily Status** has been recorded, as a missing day in the *Calendar*.
+I. The **System** SHALL display each *Calendar* day between the **Diary Start Day** and the current day, exclusive of any day for which a **Daily Status** has been recorded, as a missing day in the *Calendar*.
 
 ### Rationale
 
-The ****Diary** Start Day** is the single boundary the **Mobile Application** uses to distinguish "no entry expected" from "missing entry" — every day from the ****Diary** Start Day** to today is part of the *Diary* period and therefore a candidate for the missing-day display in the *Calendar*. Automatic backward expansion (set to the earliest entry, can move backward but never forward) reflects two operational realities: participants discover the need to backfill historical events incrementally rather than declaring a start date up front, and once a date is recognized as part of the *Diary* period, the visible gaps on dates within it are evidence the audit and *Sponsor* reporting rely on — collapsing those gaps by moving the start day forward when the earliest entry is deleted would silently erase that evidence. The 365-day floor below installation date caps the historical window at a clinically meaningful range while leaving room for retrospective capture early in a *Trial*. Future-date rejection is a contemporaneous-data integrity floor. The non-sync rule for pre-*Trial* dates keeps the ****Sponsor** Portal** dataset bounded to the *Trial* period regardless of how far back the personal *Diary* extends.
+The **Diary Start Day** is the single boundary the **Mobile Application** uses to distinguish "no entry expected" from "missing entry" — every day from the **Diary Start Day** to today is part of the *Diary* period and therefore a candidate for the missing-day display in the *Calendar*. Automatic backward expansion (set to the earliest entry, can move backward but never forward) reflects two operational realities: participants discover the need to backfill historical events incrementally rather than declaring a start date up front, and once a date is recognized as part of the *Diary* period, the visible gaps on dates within it are evidence the audit and *Sponsor* reporting rely on — collapsing those gaps by moving the start day forward when the earliest entry is deleted would silently erase that evidence. The 365-day floor below installation date caps the historical window at a clinically meaningful range while leaving room for retrospective capture early in a *Trial*. Future-date rejection is a contemporaneous-data integrity floor. The non-sync rule for pre-*Trial* dates keeps the **Sponsor Portal** dataset bounded to the *Trial* period regardless of how far back the personal *Diary* extends.
 
-*End* *Diary Start Day Definition* | **Hash**: 16462d6a
+*End* *Diary Start Day Definition* | **Hash**: b0c35e38
 
 ## DIARY-PRD-privacy-policy: Clinical Trial Privacy Policy
 

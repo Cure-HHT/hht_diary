@@ -226,6 +226,8 @@ def run_pandoc_pdf(
     resource_paths: list[Path],
     engine: str = "xelatex",
 ) -> None:
+    table_filter = Path(__file__).parent / "pandoc-filters" / "table-grid.lua"
+    assertion_filter = Path(__file__).parent / "pandoc-filters" / "assertion-label-italic.lua"
     cmd = [
         "pandoc",
         str(markdown_path),
@@ -243,6 +245,13 @@ def run_pandoc_pdf(
         # survives. pandoc 2.x defaults to \section without this flag, which
         # collapses our chapter headings down a level and yields 0.x numbering.
         "--top-level-division=chapter",
+        # Lua filter: re-render every pipe-table as a longtable with full
+        # grid lines + shaded header row. LaTeX target only; the filter
+        # passes other formats through unchanged.
+        f"--lua-filter={table_filter}",
+        # Lua filter: italicise A./B./C. labels on alphabetic ordered
+        # lists (assertion blocks). LaTeX target only.
+        f"--lua-filter={assertion_filter}",
         "--resource-path=" + ":".join(str(p) for p in resource_paths),
     ]
     subprocess.run(cmd, check=True)

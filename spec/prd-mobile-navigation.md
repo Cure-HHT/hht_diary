@@ -8,7 +8,7 @@ The foundational navigation surfaces of the **Mobile Application** comprise the 
 
 ### Overview
 
-The **Main Screen** is the ****Participant**'s** primary interface for daily *Diary* use. Organizing the screen into distinct zones ensures that urgent items (disconnection alerts and tasks) are always visible, *Diary* content is scrollable, and the primary recording *Action* is always accessible. When no tasks or alerts are active, the content area expands to use the full available space.
+The **Main Screen** is the **Participant's** primary interface for daily *Diary* use. Organizing the screen into distinct zones ensures that urgent items (disconnection alerts and tasks) are always visible, *Diary* content is scrollable, and the primary recording *Action* is always accessible. When no tasks or alerts are active, the content area expands to use the full available space.
 
 
 Main Screen
@@ -66,7 +66,7 @@ The five-zone structure (*System Notice Area*, top navigation bar, *Task List*, 
 
 ### Overview
 
-The *Mobile Application* provides two menus accessible from the top navigation bar: a ****User** Menu** for account and study-related actions, and an **Application Menu** for application-level functions. Each menu leads to dedicated screens. The top navigation bar is visible on the **Main Screen** at all times.
+The *Mobile Application* provides two menus accessible from the top navigation bar: a **User Menu** for account and study-related actions, and an **Application Menu** for application-level functions. Each menu leads to dedicated screens. The top navigation bar is visible on the **Main Screen** at all times.
 
 
 User Menu
@@ -79,7 +79,7 @@ Application Menu
 
 **Top Navigation Bar**
 
-A. The **Main Screen** SHALL display a top navigation bar containing the **Application Menu** access on the left, the *Sponsor* or Application logo in the center, and the ****User** Menu** access on the right.
+A. The **Main Screen** SHALL display a top navigation bar containing the **Application Menu** access on the left, the *Sponsor* or Application logo in the center, and the **User Menu** access on the right.
 
 B. The top navigation bar SHALL remain visible on the **Main Screen** at all times.
 
@@ -89,7 +89,7 @@ D. Tapping anywhere outside an open menu SHALL dismiss it.
 
 **User Menu**
 
-E. The ****User** Menu** SHALL contain the following items: Join the Study, *User* Profile, and Help Center.
+E. The **User Menu** SHALL contain the following items: Join the Study, *User* Profile, and Help Center.
 
 F. When the **User** clicks the "Join the Study" button SHALL navigate to the *Linking Code* entry screen.
 
@@ -122,7 +122,7 @@ The two-menu split (*User* Menu on the right, *Application Menu* on the left) gr
 > Satisfies) when the need arises. Until that seam exists, this REQ is
 > normative for the Callisto deployment.
 
-*End* *Mobile Application Navigation and Screens* | **Hash**: d650a191
+*End* *Mobile Application Navigation and Screens* | **Hash**: ecc7e268
 
 ## DIARY-GUI-calendar-day-view: Calendar and Day View
 

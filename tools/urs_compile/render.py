@@ -112,21 +112,36 @@ def render_requirement(node: GraphNode, graph: Graph) -> str:
             if heading_lower == "rationale":
                 saw_rationale_remainder = True
             if heading:
-                # `heading_level == 3` -> source `### Heading` -> emit at H4
-                # (one deeper than the REQ's H3 title).
+                # `heading_level` set -> source `### Heading` / `## Heading`
+                # (varies by repo authoring style; both surface as REQ
+                # sub-sections). Render at H4 so it sits one level under
+                # the REQ's H3 title.
                 # `heading_level is None` -> source bold-paragraph subgroup
-                # (e.g. `**Trigger**` inside an Assertions block) -> emit at
-                # H5 so it sits visually under the `#### Assertions` we
-                # injected above, and stays out of the H3-capped TOC.
-                prefix = "####" if heading_level == 3 else "#####"
-                body_parts.append(f"\n\n{prefix} {heading}\n")
+                # (e.g. `**Trigger**` inside an Assertions block) -> emit
+                # as an italic paragraph rather than a heading. Headings
+                # would pollute the outline / TOC and visually compete with
+                # the `#### Assertions` parent; an italic label is a soft
+                # subgroup marker.
+                if heading_level is not None:
+                    body_parts.append(f"\n\n#### {heading}\n")
+                else:
+                    body_parts.append(f"\n\n*{heading}*\n")
             if text:
                 body_parts.append(f"\n{text}\n")
 
         elif child.kind == "ASSERTION":
             label = child.content.get("label") or "?"
             text = (child.label or "").strip()
-            body_parts.append(f"\n**{label}.** {text}\n")
+            # Render as a pandoc alphabetic ordered-list item (`A.  text`).
+            # LaTeX backend turns a sequence of these into a single
+            # `\begin{enumerate}\def\labelenumi{\Alph{enumi}.}...\end{enumerate}`
+            # block. enumerate's default geometry puts the label at the
+            # left margin and aligns the hanging continuation indent with
+            # the start of the first line of text — which is the visual
+            # the user asked for. Bold/italic styling of the label is
+            # controlled by the LaTeX template's `\labelenumi`
+            # redefinition; see docs/urs-template.latex.
+            body_parts.append(f"\n{label}.  {text}\n")
 
     # Fallback: emit content.rationale only when the children didn't
     # already supply a Rationale REMAINDER (avoids duplicate sections).

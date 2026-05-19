@@ -56,7 +56,7 @@ M. The **Lock Threshold** SHALL apply only to event dates on or after the ***Tri
 
 ### Rationale
 
-The two-tier model exists because two distinct integrity concerns argue for two distinct boundaries. Recall accuracy degrades gradually after an event, so for some window after the event date the data is still useful but the *Participant* should explicitly acknowledge they are entering it late (this is the **Justification Threshold** — a soft boundary that captures a categorical reason on the record). Beyond a longer window, the data is no longer clinically reliable regardless of justification, so the platform makes it impossible to modify (the **Lock Threshold** — a hard boundary that disables create/edit/delete). Predefined-list justifications (rather than free-text) match the analyzability goal: the *Audit Trail* aggregates over a controlled vocabulary of reasons rather than over unbounded prose. Deletion within the justification window does not require justification because the *Participant* is removing data they reported, not modifying it; the *Audit Trail* still captures the deletion event and its own reason via the standard delete flow. The `Lock >= Justification` invariant ensures the two tiers compose correctly (a Justification-required state always precedes a Lock state for the same date). The "only after ***Trial** Start* date" qualifier on the **Lock Threshold** means pre-*Trial* historical entries (covered by the ****Diary** Start Day**) are not subject to the lock, since those entries are explicitly retrospective and the lock semantics don't apply.
+The two-tier model exists because two distinct integrity concerns argue for two distinct boundaries. Recall accuracy degrades gradually after an event, so for some window after the event date the data is still useful but the *Participant* should explicitly acknowledge they are entering it late (this is the **Justification Threshold** — a soft boundary that captures a categorical reason on the record). Beyond a longer window, the data is no longer clinically reliable regardless of justification, so the platform makes it impossible to modify (the **Lock Threshold** — a hard boundary that disables create/edit/delete). Predefined-list justifications (rather than free-text) match the analyzability goal: the *Audit Trail* aggregates over a controlled vocabulary of reasons rather than over unbounded prose. Deletion within the justification window does not require justification because the *Participant* is removing data they reported, not modifying it; the *Audit Trail* still captures the deletion event and its own reason via the standard delete flow. The `Lock >= Justification` invariant ensures the two tiers compose correctly (a Justification-required state always precedes a Lock state for the same date). The "only after ***Trial** Start* date" qualifier on the **Lock Threshold** means pre-*Trial* historical entries (covered by the **Diary Start Day**) are not subject to the lock, since those entries are explicitly retrospective and the lock semantics don't apply.
 
 *End* *Time-Based Entry Restrictions* | **Hash**: 7dcca73c
 
@@ -144,7 +144,7 @@ C. The System SHALL evaluate **Overlap** against both completed entries and ongo
 
 D. When an **Overlap** is detected, the System SHALL save the new entry to persistent storage immediately upon creation.
 
-E. When an **Overlap** is detected, the System SHALL NOT display the new entry in the ****Participant**'s** *Diary* history until **Resolution** is complete.
+E. When an **Overlap** is detected, the System SHALL NOT display the new entry in the **Participant's** *Diary* history until **Resolution** is complete.
 
 **Resolution Sequencing**
 
@@ -182,7 +182,7 @@ Two nosebleeds cannot physically *Overlap*; allowing overlapping records into th
 
 See: ![Resolve Conflict — *Resolution* Screen](../docs/urs-extracted-images/image-03.png)
 
-*End* *Overlapping Event Detection and Resolution* | **Hash**: 0c9d3927
+*End* *Overlapping Event Detection and Resolution* | **Hash**: 1069b1e5
 
 ## DIARY-GUI-entry-overlap-resolution: Overlapping Event Resolution Flow
 
@@ -207,17 +207,17 @@ B. The warning SHALL NOT prevent the **Participant** from continuing the recordi
 
 **Resolution Trigger**
 
-C. When the **Participant** sets the end time and the **Overlap** is confirmed, the interface SHALL navigate the **Participant** to the ****Resolution** Screen**.
+C. When the **Participant** sets the end time and the **Overlap** is confirmed, the interface SHALL navigate the **Participant** to the **Resolution Screen**.
 
 **Resolution Screen**
 
-D. The interface SHALL present the ****Resolution** Screen** displaying the new entry and the **Conflicting Record** side by side.
+D. The interface SHALL present the **Resolution Screen** displaying the new entry and the **Conflicting Record** side by side.
 
-E. Each entry on the ****Resolution** Screen** SHALL display the time range, duration, and severity.
+E. Each entry on the **Resolution Screen** SHALL display the time range, duration, and severity.
 
 F. When the **Conflicting Record** is older than the **Justification Threshold**, the System SHALL require an **Entry Justification** before saving the *Resolution*.
 
-G. The ****Resolution** Screen** SHALL present a Keep New *Action* and a Keep Existing *Action*. The *Resolution* Screen SHALL present a Merge Records *Action* only when the *Conflicting Record*'s event date has not exceeded the **Lock Threshold**.
+G. The **Resolution Screen** SHALL present a Keep New *Action* and a Keep Existing *Action*. The *Resolution* Screen SHALL present a Merge Records *Action* only when the *Conflicting Record*'s event date has not exceeded the **Lock Threshold**.
 
 H. The Merge Records *Action* SHALL display a description indicating that both records will be combined into one event.
 
@@ -231,13 +231,13 @@ K. The **Record Nosebleed** screen SHALL allow the **Participant** to review and
 
 **Multiple Conflicts**
 
-L. When multiple **Overlaps** exist, the interface SHALL present one ****Resolution** Screen** at a time.
+L. When multiple **Overlaps** exist, the interface SHALL present one **Resolution Screen** at a time.
 
 M. When all **Overlaps** are resolved and the **Participant** confirms the final entry, the interface SHALL return the **Participant** to the *Main Screen*.
 
 ### Rationale
 
-The early warning on start-time is a non-blocking signal: the *Participant* sees that something is going to need *Resolution* but is not pushed into the *Resolution* flow yet, because the end-time may still make the *Overlap* go away (e.g. the *Participant* moves the end time earlier than the *Conflicting Record*'s start). Only when the end-time confirms the conflict does the GUI commit the *Participant* to the ****Resolution** Screen**. The side-by-side display makes the comparison legible — same time-range / duration / severity rows for both entries — so the *Participant* can make an informed choice between Keep New, Keep Existing, and Merge. The Merge-availability check against the **Lock Threshold** is required because merging would produce edits to the *Conflicting Record*'s date, which the lock prohibits; surfacing the unavailability with an explanatory message (rather than silently disabling) keeps the *Participant* oriented. Routing the post-*Resolution* result through the standard **Record Nosebleed** screen (pre-filled) gives the *Participant* a final edit-and-confirm opportunity on the same surface they used to enter the original record — a single interaction model end-to-end rather than a *Resolution*-specific screen the *Participant* has to learn separately. One-at-a-time presentation for multiple overlaps matches the PRD-level *Resolution* sequencing rule, and the return-to-Main-Screen on completion closes the recording journey at its natural endpoint.
+The early warning on start-time is a non-blocking signal: the *Participant* sees that something is going to need *Resolution* but is not pushed into the *Resolution* flow yet, because the end-time may still make the *Overlap* go away (e.g. the *Participant* moves the end time earlier than the *Conflicting Record*'s start). Only when the end-time confirms the conflict does the GUI commit the *Participant* to the **Resolution Screen**. The side-by-side display makes the comparison legible — same time-range / duration / severity rows for both entries — so the *Participant* can make an informed choice between Keep New, Keep Existing, and Merge. The Merge-availability check against the **Lock Threshold** is required because merging would produce edits to the *Conflicting Record*'s date, which the lock prohibits; surfacing the unavailability with an explanatory message (rather than silently disabling) keeps the *Participant* oriented. Routing the post-*Resolution* result through the standard **Record Nosebleed** screen (pre-filled) gives the *Participant* a final edit-and-confirm opportunity on the same surface they used to enter the original record — a single interaction model end-to-end rather than a *Resolution*-specific screen the *Participant* has to learn separately. One-at-a-time presentation for multiple overlaps matches the PRD-level *Resolution* sequencing rule, and the return-to-Main-Screen on completion closes the recording journey at its natural endpoint.
 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
@@ -250,4 +250,4 @@ The early warning on start-time is a non-blocking signal: the *Participant* sees
 
 See: ![Resolve Conflict — *Resolution* Screen](../docs/urs-extracted-images/image-03.png)
 
-*End* *Overlapping Event Resolution Flow* | **Hash**: 4d17d081
+*End* *Overlapping Event Resolution Flow* | **Hash**: 7bee74de

@@ -8,7 +8,7 @@ The *Participant*-facing workflow over **Portal-Sent Questionnaires** comprises 
 
 ### Overview
 
-**Portal-Sent Questionnaires** are initiated by a **Study Coordinator** from the ****Sponsor** Portal** and delivered to the *Participant* via push notification. The rules below define what the *Participant* sees (*Preamble*), how they progress through the *Questionnaire*, when their answers become a *Submission*, and the editing window between *Submission* and *Finalization*.
+**Portal-Sent Questionnaires** are initiated by a **Study Coordinator** from the **Sponsor Portal** and delivered to the *Participant* via push notification. The rules below define what the *Participant* sees (*Preamble*), how they progress through the *Questionnaire*, when their answers become a *Submission*, and the editing window between *Submission* and *Finalization*.
 
 
 Portal-Sent Questionnaire
@@ -27,7 +27,7 @@ Finalization
 
 **Preamble**
 
-A. The System SHALL present the **Preamble** to the *Participant* each time the *Participant* opens a **Portal-Sent **Questionnaire****.
+A. The System SHALL present the **Preamble** to the *Participant* each time the *Participant* opens a **Portal-Sent Questionnaire**.
 
 B. The **Preamble** SHALL inform the *Participant* of the estimated time required to complete the *Questionnaire*.
 
@@ -39,9 +39,9 @@ E. When the *Participant* indicates they are not ready, the System SHALL return 
 
 **Completion Rules**
 
-F. The System SHALL present one question at a time during **Portal-Sent **Questionnaire**** completion.
+F. The System SHALL present one question at a time during **Portal-Sent Questionnaire** completion.
 
-G. The System SHALL NOT permit the *Participant* to skip any question in a **Portal-Sent **Questionnaire****.
+G. The System SHALL NOT permit the *Participant* to skip any question in a **Portal-Sent Questionnaire**.
 
 H. The System SHALL preserve in-progress answers locally while the *Participant* is completing the *Questionnaire* and SHALL NOT commit answers as a *Submission* until the *Participant* completes **Submission**.
 
@@ -49,7 +49,7 @@ I. The System SHALL make completion progress available to the *Participant* thro
 
 J. The System SHALL allow the *Participant* to navigate back and forth between the questions before **Submission**.
 
-K. The System SHALL allow the *Participant* to exit the *Questionnaire* at any point before **Submission** without losing in-progress answers, subject to the ****Session** Timeout** defined in *Diary*-PRD-*Questionnaire*-*Session*-timeout.
+K. The System SHALL allow the *Participant* to exit the *Questionnaire* at any point before **Submission** without losing in-progress answers, subject to the **Session Timeout** defined in *Diary*-PRD-*Questionnaire*-*Session*-timeout.
 
 L. The System SHALL present a review of all answers to the *Participant* before **Submission**, allowing the *Participant* to modify any answer before proceeding.
 
@@ -65,13 +65,13 @@ O. The System SHALL NOT permit the *Participant* to edit their answers after **F
 
 ### Rationale
 
-The *Preamble* exists because a **Portal-Sent **Questionnaire**** is a non-trivial commitment of *Participant* time (the *NOSE HHT* has 29 questions; an ad-hoc *Questionnaire* can be longer); telling the *Participant* up front how long it will take and that progress is preserved between sessions reduces the rate at which participants start and abandon mid-flow. One-question-at-a-time presentation matches the validated-instrument format (the source documents present questions one at a time on paper) and prevents the *Participant* from scanning ahead, which could bias later answers. Skipping is prohibited because the validated scoring algorithms require complete responses; partial questionnaires are not interpretable. The in-progress-preservation rule is the *Participant*-side guarantee that "Exit" is safe — combined with the ****Session** Timeout** override (which can discard in-progress answers if the *Participant* has been idle too long), it gives the *Participant* flexible but bounded continuation. Editing is open between *Submission* and *Finalization* because *Submission* signals "*Participant* is done", but the **Study Coordinator** review may surface answer issues the *Participant* should be able to correct without resubmitting from scratch; *Finalization* is the irreversible boundary because that is when the score is computed and the data ships to **Rave EDC**.
+The *Preamble* exists because a **Portal-Sent Questionnaire** is a non-trivial commitment of *Participant* time (the *NOSE HHT* has 29 questions; an ad-hoc *Questionnaire* can be longer); telling the *Participant* up front how long it will take and that progress is preserved between sessions reduces the rate at which participants start and abandon mid-flow. One-question-at-a-time presentation matches the validated-instrument format (the source documents present questions one at a time on paper) and prevents the *Participant* from scanning ahead, which could bias later answers. Skipping is prohibited because the validated scoring algorithms require complete responses; partial questionnaires are not interpretable. The in-progress-preservation rule is the *Participant*-side guarantee that "Exit" is safe — combined with the **Session Timeout** override (which can discard in-progress answers if the *Participant* has been idle too long), it gives the *Participant* flexible but bounded continuation. Editing is open between *Submission* and *Finalization* because *Submission* signals "*Participant* is done", but the **Study Coordinator** review may surface answer issues the *Participant* should be able to correct without resubmitting from scratch; *Finalization* is the irreversible boundary because that is when the score is computed and the data ships to **Rave EDC**.
 
 ### Screen reference
 
 See: ![*Questionnaire* *Preamble* Screen](../docs/urs-extracted-images/image-02.png)
 
-*End* *Portal-Sent Questionnaire Rules* | **Hash**: c217a71c
+*End* *Portal-Sent Questionnaire Rules* | **Hash**: afa0afe0
 
 ## DIARY-GUI-questionnaire-portal-sent-workflow: Portal-Sent Questionnaire Workflow
 
@@ -80,7 +80,7 @@ See: ![*Questionnaire* *Preamble* Screen](../docs/urs-extracted-images/image-02.
 
 ### Overview
 
-The interface for a **Portal-Sent **Questionnaire**** spans four screens: the **Preamble**, the per-question screen, the **Review Screen** (after the final question), and the post-*Submission* Acknowledgement Dialog. The behavior on each screen tracks the PRD-level rules above and adds the visual affordances (*Progress Indicator*, navigation controls, *Action* labels) participants use to move through the flow.
+The interface for a **Portal-Sent **Questionnaire** spans four screens: the Preamble**, the per-question screen, the **Review Screen** (after the final question), and the post-*Submission* Acknowledgement Dialog. The behavior on each screen tracks the PRD-level rules above and adds the visual affordances (*Progress Indicator*, navigation controls, *Action* labels) participants use to move through the flow.
 
 
 Review Screen
@@ -189,37 +189,37 @@ Session Expiry Notification
 
 **Timeout Tracking**
 
-A. When a *Questionnaire* is configured with a ****Session** Timeout**, the System SHALL track elapsed inactivity from the *Participant*'s most recent interaction with the *Questionnaire*.
+A. When a *Questionnaire* is configured with a **Session Timeout**, the System SHALL track elapsed inactivity from the *Participant*'s most recent interaction with the *Questionnaire*.
 
 B. The System SHALL only advance the inactivity timer while the *Participant* is not actively interacting with the *Questionnaire*.
 
-C. When the ****Session** Timeout** is exceeded before the *Participant* submits the *Questionnaire*, the System SHALL discard all answers selected so far.
+C. When the **Session Timeout** is exceeded before the *Participant* submits the *Questionnaire*, the System SHALL discard all answers selected so far.
 
 **Expiry Behavior**
 
-D. When a *Participant* returns to a *Questionnaire* in a state of ****Session** Expiry**, the System SHALL present the *Questionnaire* from the beginning including the **Preamble**.
+D. When a *Participant* returns to a *Questionnaire* in a state of **Session Expiry**, the System SHALL present the *Questionnaire* from the beginning including the **Preamble**.
 
 **Notifications**
 
-E. When a *Questionnaire* is configured with a ****Session** Timeout**, the System SHALL deliver a **Timeout Warning Notification** to the *Participant* when the ****Session** Timeout** is approaching.
+E. When a *Questionnaire* is configured with a **Session Timeout**, the System SHALL deliver a **Timeout Warning Notification** to the *Participant* when the **Session Timeout** is approaching.
 
-F. When a *Questionnaire* is configured with a ****Session** Timeout**, the System SHALL deliver a ****Session** Expiry Notification** to the *Participant* when ****Session** Expiry** has occurred.
+F. When a *Questionnaire* is configured with a **Session Timeout**, the System SHALL deliver a **Session Expiry Notification** to the *Participant* when **Session Expiry** has occurred.
 
 **State Preservation**
 
-G. When a *Questionnaire* is not configured with a ****Session** Timeout**, the System SHALL preserve and restore the *Participant*'s in-progress answers on return with no timeout constraint.
+G. When a *Questionnaire* is not configured with a **Session Timeout**, the System SHALL preserve and restore the *Participant*'s in-progress answers on return with no timeout constraint.
 
-H. When a *Questionnaire* with a ****Session** Timeout** has not yet expired, the System SHALL return the *Participant* to their in-progress *Questionnaire* on return.
+H. When a *Questionnaire* with a **Session Timeout** has not yet expired, the System SHALL return the *Participant* to their in-progress *Questionnaire* on return.
 
 **Configuration**
 
-I. Each *Questionnaire* definition SHALL support optional configuration of ****Session** Timeout** duration.
+I. Each *Questionnaire* definition SHALL support optional configuration of **Session Timeout** duration.
 
 J. Each *Questionnaire* definition SHALL support configuration of the threshold before expiry at which the **Timeout Warning Notification** is delivered.
 
 ### Rationale
 
-Some clinical questionnaires (e.g. the *NOSE HHT*, the *HHT-QoL*) require contemporaneous answering — a *Participant*'s frame of reference shifts measurably if they pause for hours between questions, and the resulting answers no longer reflect a single moment of self-report. A configurable ****Session** Timeout** lets each *Questionnaire* enforce a "complete this in one sitting" constraint without baking a single duration into the platform. Discarding in-progress answers on expiry rather than retaining them is what gives the timeout its clinical meaning: the next attempt starts fresh from the **Preamble**, with a *Participant* frame of reference that the *Sponsor* can interpret. The opt-out (no ****Session** Timeout** configured) covers the case where in-progress preservation is fine (e.g. an ad-hoc *Questionnaire* with no contemporaneous requirement). The two notifications — Warning before expiry, Expiry on the event — give the *Participant* a chance to return before answers are discarded (Warning) and clear feedback when answers have already been discarded (Expiry).
+Some clinical questionnaires (e.g. the *NOSE HHT*, the *HHT-QoL*) require contemporaneous answering — a *Participant*'s frame of reference shifts measurably if they pause for hours between questions, and the resulting answers no longer reflect a single moment of self-report. A configurable **Session Timeout** lets each *Questionnaire* enforce a "complete this in one sitting" constraint without baking a single duration into the platform. Discarding in-progress answers on expiry rather than retaining them is what gives the timeout its clinical meaning: the next attempt starts fresh from the **Preamble**, with a *Participant* frame of reference that the *Sponsor* can interpret. The opt-out (no **Session Timeout** configured) covers the case where in-progress preservation is fine (e.g. an ad-hoc *Questionnaire* with no contemporaneous requirement). The two notifications — Warning before expiry, Expiry on the event — give the *Participant* a chance to return before answers are discarded (Warning) and clear feedback when answers have already been discarded (Expiry).
 
 ### Screen reference
 
@@ -231,7 +231,7 @@ See:
 
 ![*Session* Expiry Notification](../docs/urs-extracted-images/image-27.png)
 
-*End* *Questionnaire Session Timeout* | **Hash**: ecf9b78c
+*End* *Questionnaire Session Timeout* | **Hash**: 4e7f3306
 
 ## DIARY-GUI-questionnaire-session-expiry: Questionnaire Session Expiry
 
@@ -240,7 +240,7 @@ See:
 
 ### Overview
 
-The interface for ****Session** Expiry** consists of three surfaces: the **Timeout Warning Notification** (push notification before expiry), the ****Session** Expiry Dialog** (in-app dialog on return after expiry), and the ****Session** Expiry Notification** (push notification when expiry occurs). On return to an active (not-yet-expired) *Session*, the interface restores the *Participant* to where they left off.
+The interface for **Session Expiry** consists of three surfaces: the **Timeout Warning Notification** (push notification before expiry), the **Session Expiry Dialog** (in-app dialog on return after expiry), and the **Session Expiry Notification** (push notification when expiry occurs). On return to an active (not-yet-expired) *Session*, the interface restores the *Participant* to where they left off.
 
 
 Session Expiry Dialog
@@ -254,25 +254,25 @@ A. When a **Timeout Warning Notification** is delivered, the interface SHALL pre
 
 **Expired Session on Return**
 
-B. When the *Participant* opens a *Questionnaire* that has reached ****Session** Expiry**, the interface SHALL display a ****Session** Expiry Dialog** informing the *Participant* that their *Session* has expired and their previous answers were not saved.
+B. When the *Participant* opens a *Questionnaire* that has reached **Session Expiry**, the interface SHALL display a **Session Expiry Dialog** informing the *Participant* that their *Session* has expired and their previous answers were not saved.
 
-C. The ****Session** Expiry Dialog** SHALL present a Start Again button and a Not Now button.
+C. The **Session Expiry Dialog** SHALL present a Start Again button and a Not Now button.
 
-D. When the *Participant* selects Start Again, the interface SHALL dismiss the ****Session** Expiry Dialog** and present the **Preamble**.
+D. When the *Participant* selects Start Again, the interface SHALL dismiss the **Session Expiry Dialog** and present the **Preamble**.
 
 E. When the *Participant* selects Not Now, the interface SHALL navigate the *Participant* to the home screen.
 
 **Session Expiry Notification**
 
-F. When a ****Session** Expiry Notification** is delivered, the interface SHALL present it as a push notification indicating that the *Questionnaire* *Session* has expired.
+F. When a **Session Expiry Notification** is delivered, the interface SHALL present it as a push notification indicating that the *Questionnaire* *Session* has expired.
 
 **Active Session on Return**
 
-G. When the *Participant* returns to a *Questionnaire* with a *Session* that has not yet reached ****Session** Expiry**, the interface SHALL restore the *Participant* to the question they were on when they left, with their in-progress answers intact.
+G. When the *Participant* returns to a *Questionnaire* with a *Session* that has not yet reached **Session Expiry**, the interface SHALL restore the *Participant* to the question they were on when they left, with their in-progress answers intact.
 
 ### Rationale
 
-The ****Session** Expiry Dialog** is the in-app companion to the ****Session** Expiry Notification**: the notification tells the *Participant* the *Session* expired while they were away from the app; the dialog confirms it when they return and tells them their prior answers are gone. Start Again / Not Now are the two realistic next-actions — restart now from the *Preamble*, or defer until later — and both are made explicit so the *Participant* does not face a silent reset on next open. Restoring the active-*Session* *Participant* to their last question (with in-progress answers intact) is the GUI-side guarantee that the PRD's in-progress-preservation rule actually surfaces to the *Participant*; if the interface always re-entered through the *Preamble*, the preservation would be invisible and the *Participant* would lose confidence that pausing is safe.
+The **Session Expiry Dialog** is the in-app companion to the **Session Expiry Notification**: the notification tells the *Participant* the *Session* expired while they were away from the app; the dialog confirms it when they return and tells them their prior answers are gone. Start Again / Not Now are the two realistic next-actions — restart now from the *Preamble*, or defer until later — and both are made explicit so the *Participant* does not face a silent reset on next open. Restoring the active-*Session* *Participant* to their last question (with in-progress answers intact) is the GUI-side guarantee that the PRD's in-progress-preservation rule actually surfaces to the *Participant*; if the interface always re-entered through the *Preamble*, the preservation would be invisible and the *Participant* would lose confidence that pausing is safe.
 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
@@ -285,4 +285,4 @@ The ****Session** Expiry Dialog** is the in-app companion to the ****Session** E
 
 See: ![*Session* Expiry Dialog](../docs/urs-extracted-images/image-20.png)
 
-*End* *Questionnaire Session Expiry* | **Hash**: bab33e1c
+*End* *Questionnaire Session Expiry* | **Hash**: 02879dd5
