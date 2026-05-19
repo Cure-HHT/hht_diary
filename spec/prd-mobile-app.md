@@ -1,6 +1,6 @@
 # *Mobile Application* Foundation
 
-The **Mobile Application** foundation comprises the dual-mode (personal vs. linked) operating model, *Offline-First* data entry, the **Diary Start Day** invariant, the *Sponsor*-configurable **Clinical Trial Privacy Policy**, and the **Application Lock**.
+The **Mobile Application** foundation comprises the dual-mode (personal vs. linked) operating model, *Offline-First* data entry, the **Diary Start Day** invariant, the *Sponsor*-configurable **Clinical Trial Privacy Policy**, and **Diary User Authentication**.
 
 ## DIARY-PRD-mobile-application: Diary Mobile Application
 
@@ -131,82 +131,128 @@ Two privacy policies coexist in the **Mobile Application** because two distinct 
 
 *End* *Clinical Trial Privacy Policy* | **Hash**: defed08d
 
-## DIARY-PRD-application-lock: Application Lock
+## DIARY-PRD-user-authentication: Diary User Authentication
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 
 ### Overview
 
-The *Mobile Application* contains *Participant*-reported clinical data and identifying information that must be protected from unauthorized access on the *Participant*'s device. An *Application Lock* requires the *Participant* to authenticate before each use, ensuring that someone who picks up an unattended device cannot view or modify *Diary* entries. The lock is configurable so each *Sponsor* deployment can select the *Authentication Method* appropriate to its risk profile and *Participant* population. When the configured method is unavailable on a *Participant*'s device, a fallback to *Device Authentication* ensures continuity of access without compromising the protective intent.
+The *Mobile Application* captures acute *Epistaxis Event* data and supporting *Diary* entries that must be recorded as close to event onset as feasible. **Diary User Authentication** protects **Participant** data on the device by requiring authentication at three sensible boundaries — opening the *Mobile Application*, coming back to the *Mobile Application* after switching away, and resuming after a stretch of inactivity — while keeping that authentication step as lightweight as possible so it does not deter contemporaneous recording. Which authentication path applies for a given **Participant** is determined by the **PIN Policy** — a tri-state setting that ranges from no in-application **PIN** at all, to **PIN** as a fallback when **Device Authentication** is unavailable, to **PIN** always — combined with whether **Device Authentication** is enabled on the **Participant**'s device. A successful authentication on the active path within the **Idle Timeout** is trusted (no prompt); otherwise the **Participant** is prompted to authenticate via the active path. The whitepaper at `docs/whitepapers/authentication-strategy.md` (Sections 2–5) develops the regulatory rationale.
 
 
-Application Lock
-: The state in which the **Mobile Application** requires the **Participant** to authenticate before any **Participant**-facing screen, action, or data is accessible.
-
-PIN
-: A numeric secret of configurable length set by the **Participant** and used to release the **Application Lock**.
+Diary User Authentication
+: The access-control mechanism that gates **Participant** data and **Participant** *Actions* in the **Mobile Application**, satisfied via the **Active Authentication Path** for the **Participant**.
 
 Device Authentication
-: Authentication performed by the device operating system using the credential the **Participant** has configured at the device level, including but not limited to device passcode, fingerprint, or face recognition.
+: Authentication performed by the device operating system using the credential the **Participant** has configured at the device level, including device passcode, fingerprint, or face recognition.
 
-Authentication Method
-: The mechanism required to release the **Application Lock**. The configured **Authentication Method** is one of: **PIN**, **Device Authentication**, or none.
+PIN Policy
+: The setting that determines whether the in-application **PIN** mechanism is used for a given **Participant**. Permitted values: **Not Required** (the in-application **PIN** mechanism is never used), **Required When Device Authentication Is Not Enabled** (the in-application **PIN** mechanism is used only when **Device Authentication** is not enabled on the **Participant**'s device), and **Required** (the in-application **PIN** mechanism is always used).
+
+Active Authentication Path
+: The authentication path engaged by **Diary User Authentication** for a given **Participant**, derived from the **PIN Policy** and the **Device Authentication** state on the **Participant**'s device:
+    - **In-application PIN** when the **PIN Policy** is **Required**, or when the **PIN Policy** is **Required When Device Authentication Is Not Enabled** and **Device Authentication** is not enabled on the **Participant**'s device.
+    - **Device Authentication** when the **PIN Policy** is not **Required** and **Device Authentication** is enabled on the **Participant**'s device.
+    - **None** when the **PIN Policy** is **Not Required** and **Device Authentication** is not enabled on the **Participant**'s device.
 
 Idle Timeout
-: The configurable elapsed time the **Mobile Application** may remain in the background before the **System** re-applies the **Application Lock** on return to the foreground.
+: The configurable elapsed time, used both as the maximum **Participant** in-app inactivity before re-authentication is required and as the trust window for the most recent successful authentication on the **Active Authentication Path**.
 
 ### Assertions
 
-**Lock Application**
+**When — Authentication Triggers**
 
-A. The **System** SHALL apply the **Application Lock** when the **Mobile Application** is launched from a fully closed state.
+A. The **System** SHALL require **Diary User Authentication** when the **Participant** opens the **Mobile Application**.
 
-B. The **System** SHALL apply the **Application Lock** when the **Mobile Application** returns to the foreground after spending more than the **Idle Timeout** in the background.
+B. The **System** SHALL require **Diary User Authentication** when the **Participant** comes back to the **Mobile Application** after switching away.
 
-C. While the **Application Lock** is applied, the **System** SHALL NOT display **Participant** data and SHALL NOT permit any **Participant** *Action* other than authentication.
+C. The **System** SHALL require **Diary User Authentication** when the **Participant** has been inactive in the **Mobile Application** for longer than the **Idle Timeout**.
 
-**Authentication Method**
+**How — Authentication Path**
 
-D. The **System** SHALL release the **Application Lock** only upon successful authentication using the configured **Authentication Method**.
+D. When a successful authentication on the **Active Authentication Path** for the **Participant** occurred within the **Idle Timeout**, the **System** SHALL satisfy **Diary User Authentication** without further **Participant** interaction.
 
-E. When the configured **Authentication Method** is **PIN**, the **System** SHALL require the **Participant** to enter their **PIN** to release the **Application Lock**.
+E. When the **Active Authentication Path** for the **Participant** is **Device Authentication** and no successful **Device Authentication** event occurred within the **Idle Timeout**, the **System** SHALL prompt the **Participant** to authenticate via **Device Authentication**.
 
-F. When the configured **Authentication Method** is **Device Authentication**, the **System** SHALL invoke the device operating system's authentication prompt to release the **Application Lock**.
+F. When the **Active Authentication Path** for the **Participant** is **In-application PIN** and no successful in-application **PIN** entry occurred within the **Idle Timeout**, the **System** SHALL prompt the **Participant** to authenticate via the in-application **PIN** mechanism.
 
-G. When the configured **Authentication Method** is none, the **System** SHALL NOT apply the **Application Lock**.
+G. When the **Active Authentication Path** for the **Participant** is **None**, the **System** SHALL satisfy **Diary User Authentication** without further **Participant** interaction.
 
-**PIN Setup and Reset**
+**While Prompting**
 
-H. When the configured **Authentication Method** is **PIN** and the **Participant** has not yet set a **PIN**, the **System** SHALL require the **Participant** to set a **PIN** before any **Participant** data is accessible.
-
-I. The **System** SHALL require the **Participant** to enter the **PIN** twice during setup and SHALL reject the setup when the two entries do not match.
-
-J. The **System** SHALL allow the **Participant** to change their **PIN** from the **Mobile Application** settings, after first authenticating with their existing **PIN** or **Device Authentication**.
-
-**Failed Attempt Handling**
-
-K. The **System** SHALL track consecutive failed **PIN** entry attempts.
-
-L. When the number of consecutive failed **PIN** entry attempts reaches the configured **Failed Attempt Threshold**, the **System** SHALL fall back to **Device Authentication**.
-
-M. Upon successful **Device Authentication** following a fallback, the **System** SHALL require the **Participant** to reset their **PIN** before any **Participant** data is accessible.
-
-N. The **System** SHALL reset the failed attempt counter upon successful authentication.
+H. While the **System** is prompting the **Participant** for authentication, the **System** SHALL NOT display **Participant** data and SHALL NOT permit any **Participant** *Action* other than authentication.
 
 **Configuration**
 
-O. The **System** SHALL support *Sponsor*-configurable selection of the **Authentication Method** per deployment.
+I. The **System** SHALL allow a **User** in personal-use mode to select the **PIN Policy** for the **User**'s own use.
 
-P. The **System** SHALL support *Sponsor*-configurable **PIN** length per deployment.
+J. The **System** SHALL support *Sponsor*-configurable **PIN Policy** per deployment; when a **User** is linked to a *Sponsor* deployment, the *Sponsor*'s **PIN Policy** SHALL govern for that **Participant**, overriding any prior personal-mode selection.
 
-Q. The **System** SHALL support *Sponsor*-configurable **Idle Timeout** per deployment.
-
-R. The **System** SHALL support *Sponsor*-configurable **Failed Attempt Threshold** per deployment.
+K. The **System** SHALL support *Sponsor*-configurable **Idle Timeout** per deployment.
 
 ### Rationale
 
-The **Application Lock** is the per-device gate that protects *Participant* clinical data when a device is left unattended, lost, or stolen. The lock applies at two boundaries — fresh launch and resume-from-background-after-idle — because both are realistic re-entry points after an interval in which the device could have changed hands. The "no data, no *Action* other than authentication" rule while locked closes the leakage channels that would otherwise exist (e.g., notification preview, deep-link routing into a partial workflow). The *Sponsor*-configurable **Authentication Method** lets each deployment choose between three security-posture options: **PIN** (cheapest, works on every device, controlled by the platform), **Device Authentication** (delegates to the OS-managed credential, which may include biometrics), or none (when the deployment determines a separate lock is not required). The failed-attempt fallback to **Device Authentication** rather than account lockout preserves *Participant* access — a *Participant* who has forgotten their **PIN** can still recover by authenticating against the OS credential and resetting — while still raising the bar against a casual unauthorized attempt. Failed-attempt counter reset on success prevents accumulated rare typos from compounding into a fallback over normal use.
+**Device Authentication** already addresses casual device access at the OS level; an additional in-application step adds seconds to the acute-event recording flow without materially raising the access-control bar against that threat. Trusting a fresh device unlock supports under-ten-second nosebleed recording — the contemporaneous-data property anchoring the *Sponsor*'s data-integrity case. The three triggers cover realistic re-entry points after the device could have changed hands; **Idle Timeout** does double duty as both the in-app inactivity bound and the trust window for prior authentication, so a *Sponsor* tunes one number for both.
 
-> OPEN: Should the **Application Lock** be bypassed for **Push Notification** taps that lead to time-sensitive flows (e.g., Ongoing *Epistaxis Event* Reminder), or always enforced?
+The **PIN Policy** spans three points along the access-control spectrum: **Not Required** trusts the OS lock alone; **Required When Device Authentication Is Not Enabled** ensures a **PIN** floor for devices without a credential; **Required** invokes the in-application **PIN** unconditionally as a procedural control beyond OS unlock. **Users** choose in personal-use mode; *Sponsors* override on link. Identity assurance otherwise rests on device–subject pairing, procedural controls, and monitoring (see `docs/whitepapers/authentication-strategy.md` Section 6).
 
-*End* *Application Lock* | **Hash**: 6798a92e
+*End* *Diary User Authentication* | **Hash**: c516100c
+
+## DIARY-PRD-user-authentication-pin: Diary User Authentication — In-Application PIN Mechanism
+
+**Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-user-authentication
+
+### Overview
+
+When the **Active Authentication Path** selected by the parent **Diary User Authentication** is **In-application PIN**, the **Participant** authenticates by entering a numeric secret within the *Mobile Application*. This REQ covers initial **PIN** setup, **PIN** entry to satisfy authentication, **PIN** change from settings, lockout on repeated failed entries, and *Sponsor*-initiated **PIN Reset** for recovery.
+
+
+PIN
+: A numeric secret of configurable length set by the **Participant** and used to satisfy **Diary User Authentication** when the in-application **PIN** mechanism is the active path.
+
+PIN Reset
+: A *Sponsor*-initiated command that clears the **Participant**'s **PIN** and returns the **Participant** to the **PIN** setup state on next access.
+
+Failed Attempt Threshold
+: The configurable number of consecutive failed **PIN** entry attempts that triggers a **Participant** lockout pending **PIN Reset**.
+
+### Assertions
+
+**PIN Entry**
+
+A. The **System** SHALL satisfy **Diary User Authentication** upon successful **PIN** entry by the **Participant**.
+
+**PIN Setup**
+
+B. When the **Participant** has not yet set a **PIN**, the **System** SHALL require the **Participant** to set a **PIN** before any **Participant** data is accessible.
+
+C. The **System** SHALL require the **Participant** to enter the **PIN** twice during setup and SHALL reject the setup when the two entries do not match.
+
+**PIN Change**
+
+D. The **System** SHALL allow the **Participant** to change their **PIN** from the **Mobile Application** settings, after first authenticating with their existing **PIN**.
+
+**Failed Attempts and PIN Reset**
+
+E. The **System** SHALL track consecutive failed **PIN** entry attempts.
+
+F. When the number of consecutive failed **PIN** entry attempts reaches the configured **Failed Attempt Threshold**, the **System** SHALL prevent **Participant** access to the **Mobile Application** until a **PIN Reset** is received.
+
+G. The **System** SHALL accept a **PIN Reset** issued by the *Sponsor* for the **Participant** and SHALL clear the **Participant**'s **PIN**.
+
+H. Following a **PIN Reset**, the **System** SHALL require the **Participant** to set a new **PIN** before any **Participant** data is accessible.
+
+I. The **System** SHALL reset the failed attempt counter upon successful **PIN** entry.
+
+**Configuration**
+
+J. The **System** SHALL support *Sponsor*-configurable **PIN** length per deployment.
+
+K. The **System** SHALL support *Sponsor*-configurable **Failed Attempt Threshold** per deployment.
+
+### Rationale
+
+The in-application **PIN** mechanism is the **Diary User Authentication** path engaged when the **PIN Policy** plus **Device Authentication** state on the **Participant**'s device resolve to the **In-application PIN** **Active Authentication Path** — either because the **PIN Policy** is **Required**, or because the **PIN Policy** is **Required When Device Authentication Is Not Enabled** and the device does not have **Device Authentication** enabled. The double-entry rule at **PIN** setup catches mistyped secrets before they become a lock-out risk. The **PIN** change path is gated by re-entry of the existing **PIN** to prevent an unattended *Mobile Application* from being trivially repurposed by another person. The **Failed Attempt Threshold** bounds the brute-force surface: on reaching it, the **Participant** is held in a locked state until the *Sponsor* issues a **PIN Reset**, restoring continuity of access through a controlled, attributable channel rather than an in-application self-recovery that would re-open the brute-force surface. Failed-attempt counter reset on success prevents accumulated rare typos from compounding into a lockout over normal use. The trigger timing for **Diary User Authentication** (open, return, **Idle Timeout** of inactivity) is governed by the parent REQ and applies uniformly across paths.
+
+*End* *Diary User Authentication — In-Application PIN Mechanism* | **Hash**: edd1b330

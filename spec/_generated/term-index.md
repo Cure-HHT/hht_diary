@@ -6,7 +6,7 @@
 
 ## Action
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-action-inventory
 - DIARY-PRD-sla-corrective-preventive
@@ -25,7 +25,7 @@
 - DIARY-GUI-epistaxis-delete-A
 - DIARY-GUI-epistaxis-delete-B
 - DIARY-GUI-epistaxis-delete-E
-- DIARY-PRD-application-lock-C
+- DIARY-PRD-user-authentication-H
 - DIARY-GUI-calendar-day-view-H
 - DIARY-GUI-calendar-day-view-M
 - DIARY-GUI-calendar-day-view-R
@@ -80,7 +80,6 @@
 - rem:spec/prd-common-ui.md:7
 - rem:spec/prd-common-ui.md:42
 - DIARY-GUI-epistaxis-delete:section:3
-- DIARY-PRD-application-lock:section:6
 - DIARY-GUI-main-screen-layout:section:0
 - DIARY-GUI-mobile-navigation:section:5
 - DIARY-GUI-calendar-day-view:section:7
@@ -114,7 +113,7 @@
 
 ## Action Inventory
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-action-inventory
 - DIARY-PRD-action-inventory-A
@@ -122,7 +121,7 @@
 
 ## Activation Webpage
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-user-account-activation-workflow-B
 - DIARY-PRD-user-account-activation-workflow-C
@@ -130,9 +129,20 @@
 - DIARY-PRD-user-account-activation-resend:section:0
 - DIARY-PRD-user-account-activation-resend:section:1
 
+## Active Authentication Path
+
+**DIARY:**
+
+- DIARY-PRD-user-authentication-D
+- DIARY-PRD-user-authentication-E
+- DIARY-PRD-user-authentication-F
+- DIARY-PRD-user-authentication-G
+- DIARY-PRD-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication-pin:section:6
+
 ## Administrator
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-administrator-settings
 - DIARY-GUI-administrator-settings
@@ -198,7 +208,7 @@
 
 ## Administrator Dashboard
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-administrator-dashboard
 - DIARY-GUI-administrator-settings-A
@@ -211,7 +221,7 @@
 
 ## Administrator Settings
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-administrator-settings
 - DIARY-GUI-administrator-settings
@@ -229,25 +239,9 @@
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-PRD-action-inventory:section:1
 
-## Application Lock
-
-**Cure-HHT Diary Platform:**
-
-- DIARY-PRD-application-lock
-- DIARY-PRD-application-lock-A
-- DIARY-PRD-application-lock-B
-- DIARY-PRD-application-lock-C
-- DIARY-PRD-application-lock-D
-- DIARY-PRD-application-lock-E
-- DIARY-PRD-application-lock-F
-- DIARY-PRD-application-lock-G
-- rem:spec/prd-mobile-app.md:3
-- DIARY-PRD-application-lock:section:0
-- DIARY-PRD-application-lock:section:6
-
 ## Application Menu
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-mobile-navigation-A
 - DIARY-GUI-mobile-navigation-K
@@ -257,7 +251,7 @@
 
 ## Application Privacy Policy
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-mobile-navigation-K
 - DIARY-GUI-mobile-navigation-L
@@ -267,7 +261,7 @@
 
 ## Audit Trail
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-ancillary-platform-services-D
 - DIARY-PRD-questionnaire-localization-K
@@ -292,22 +286,9 @@
 - DIARY-PRD-reason-field-constraints:section:1
 - DIARY-GUI-user-account-reactivate:section:3
 
-## Authentication Method
-
-**Cure-HHT Diary Platform:**
-
-- DIARY-PRD-application-lock-D
-- DIARY-PRD-application-lock-E
-- DIARY-PRD-application-lock-F
-- DIARY-PRD-application-lock-G
-- DIARY-PRD-application-lock-H
-- DIARY-PRD-application-lock-O
-- DIARY-PRD-application-lock:section:0
-- DIARY-PRD-application-lock:section:6
-
 ## Calendar
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-calendar-day-view
 - DIARY-PRD-epistaxis-capture-standard-A
@@ -345,7 +326,7 @@
 
 ## Clinical Trial Privacy Policy
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-privacy-policy
 - DIARY-GUI-join-study-screen-B
@@ -364,21 +345,21 @@
 
 ## Code Expiry
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-two-factor-authentication-E
 - DIARY-PRD-two-factor-authentication-H
 
 ## Completion Status
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-system-B
 - DIARY-PRD-questionnaire-system:section:4
 
 ## Configuration Category
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-administrator-settings-C
 - DIARY-GUI-administrator-settings-C
@@ -388,7 +369,7 @@
 
 ## Configuration Parameter
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-administrator-settings-B
 - DIARY-PRD-administrator-settings-C
@@ -399,7 +380,7 @@
 
 ## Conflicting Record
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-entry-overlap-resolution-F
 - DIARY-PRD-entry-overlap-resolution-J
@@ -411,7 +392,7 @@
 
 ## Daily Epistaxis Record
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-daily-epistaxis
 - DIARY-PRD-questionnaire-daily-epistaxis-A
@@ -420,7 +401,7 @@
 
 ## Daily Status
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-epistaxis-capture-standard-A
 - DIARY-PRD-epistaxis-capture-standard-B
@@ -448,7 +429,7 @@
 
 ## Database
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-data-backup-and-archival-A
 - DIARY-PRD-data-backup-and-archival-C
@@ -460,7 +441,7 @@
 
 ## Day View
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-calendar-day-view
 - DIARY-GUI-calendar-day-view-I
@@ -477,7 +458,7 @@
 
 ## Deactivation
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-user-account-deactivate-B
 - DIARY-GUI-user-account-deactivate-A
@@ -498,21 +479,21 @@
 
 ## Device Authentication
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
-- DIARY-PRD-application-lock-F
-- DIARY-PRD-application-lock-J
-- DIARY-PRD-application-lock-L
-- DIARY-PRD-application-lock-M
-- DIARY-PRD-application-lock:section:0
-- DIARY-PRD-application-lock:section:6
+- DIARY-PRD-user-authentication-E
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication:section:5
+- DIARY-PRD-user-authentication-pin:section:6
 
 ## Diary
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-mobile-application
 - DIARY-PRD-diary-start-day
+- DIARY-PRD-user-authentication
+- DIARY-PRD-user-authentication-pin
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
 - DIARY-PRD-entry-overlap-resolution-E
@@ -534,6 +515,12 @@
 - DIARY-PRD-diary-start-day-E
 - DIARY-PRD-diary-start-day-F
 - DIARY-PRD-diary-start-day-I
+- DIARY-PRD-user-authentication-A
+- DIARY-PRD-user-authentication-B
+- DIARY-PRD-user-authentication-C
+- DIARY-PRD-user-authentication-D
+- DIARY-PRD-user-authentication-G
+- DIARY-PRD-user-authentication-pin-A
 - DIARY-GUI-main-screen-layout-F
 - DIARY-GUI-calendar-day-view-C
 - DIARY-GUI-calendar-day-view-G
@@ -557,7 +544,9 @@
 - DIARY-PRD-mobile-offline-first:section:1
 - DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-diary-start-day:section:1
-- DIARY-PRD-application-lock:section:0
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication-pin:section:6
 - DIARY-GUI-main-screen-layout:section:0
 - DIARY-GUI-calendar-day-view:section:0
 - DIARY-GUI-calendar-day-view:section:7
@@ -581,7 +570,7 @@
 
 ## Diary Data Synchronization
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-system-C
 - DIARY-PRD-questionnaire-system-D
@@ -590,7 +579,7 @@
 
 ## Diary Entry
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - rem:spec/glossary-core.md:745
 
@@ -598,7 +587,7 @@
 
 ## Diary Start Day
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-diary-start-day
 - DIARY-PRD-diary-start-day-A
@@ -613,9 +602,26 @@
 - DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-diary-start-day:section:1
 
+## Diary User Authentication
+
+**DIARY:**
+
+- DIARY-PRD-user-authentication
+- DIARY-PRD-user-authentication-pin
+- DIARY-PRD-user-authentication-A
+- DIARY-PRD-user-authentication-B
+- DIARY-PRD-user-authentication-C
+- DIARY-PRD-user-authentication-D
+- DIARY-PRD-user-authentication-G
+- DIARY-PRD-user-authentication-pin-A
+- rem:spec/prd-mobile-app.md:3
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication-pin:section:6
+
 ## Disconnection Notification
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-notification-disconnection
 - DIARY-GUI-main-screen-layout-E
@@ -629,7 +635,7 @@
 
 ## Duration Reasonableness Check
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-entry-duration-check
 - rem:spec/prd-diary-entry-rules.md:3
@@ -640,7 +646,7 @@
 
 ## Email Address
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-evidence-email-identity-A
 - DIARY-PRD-evidence-email-identity-G
@@ -676,7 +682,7 @@
 
 ## Entry Justification
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-entry-time-restrictions-A
 - DIARY-PRD-entry-time-restrictions-B
@@ -687,7 +693,7 @@
 
 ## Epistaxis Event
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-notification-ongoing-epistaxis
 - DIARY-PRD-epistaxis-capture-standard-C
@@ -698,7 +704,7 @@
 - DIARY-GUI-epistaxis-delete-E
 - DIARY-GUI-epistaxis-delete-G
 - DIARY-PRD-epistaxis-capture-standard:section:1
-- DIARY-PRD-application-lock:section:6
+- DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:5
 - DIARY-PRD-notification-ongoing-epistaxis:section:6
@@ -709,9 +715,17 @@
 
 ## Event Store
 
+## Failed Attempt Threshold
+
+**DIARY:**
+
+- DIARY-PRD-user-authentication-pin-F
+- DIARY-PRD-user-authentication-pin-K
+- DIARY-PRD-user-authentication-pin:section:6
+
 ## FDA 21 CFR Part 11
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-evidence-timestamp-attestation:section:1
@@ -732,7 +746,7 @@
 
 ## Finalization
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-portal-sent-rules-N
 - DIARY-PRD-questionnaire-portal-sent-rules-O
@@ -745,7 +759,7 @@
 
 ## Full Name
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-user-account-create-A
 - DIARY-GUI-user-management-tabs-H
@@ -757,7 +771,7 @@
 
 ## HHT-QoL
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-hht-qol
 - DIARY-PRD-score-hht-qol
@@ -775,7 +789,7 @@
 
 ## Historical Gap
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-notification-historical-gap
 - DIARY-PRD-notification-historical-gap-A
@@ -792,7 +806,7 @@
 
 ## Historical Gap Reminder
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-notification-historical-gap
 - DIARY-PRD-notification-historical-gap-B
@@ -805,17 +819,23 @@
 
 ## Idle Timeout
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
-- DIARY-PRD-application-lock-B
-- DIARY-PRD-application-lock-Q
+- DIARY-PRD-user-authentication-C
+- DIARY-PRD-user-authentication-D
+- DIARY-PRD-user-authentication-E
+- DIARY-PRD-user-authentication-F
+- DIARY-PRD-user-authentication-K
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-G
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication:section:5
+- DIARY-PRD-user-authentication-pin:section:6
 - DIARY-PRD-session-management:section:5
 
 ## Incomplete Record
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-notification-incomplete-record-lock
 - DIARY-PRD-epistaxis-capture-standard-G
@@ -833,7 +853,7 @@
 
 ## Incomplete Records Task
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-B
@@ -844,7 +864,7 @@
 
 ## Intensity
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-epistaxis-capture-standard-E
 - DIARY-GUI-epistaxis-record-A
@@ -859,7 +879,7 @@
 
 ## Investigator
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-role-definitions-B
 - rem:spec/glossary-core.md:745
@@ -869,7 +889,7 @@
 
 ## Justification Threshold
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-entry-time-restrictions-A
 - DIARY-PRD-entry-time-restrictions-H
@@ -879,7 +899,7 @@
 
 ## Linking Code
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-linking-code-entry-errors
 - DIARY-PRD-linking-code-lifecycle
@@ -928,14 +948,14 @@
 
 ## Linking Code Validation Failure
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-linking-code-entry-errors-A
 - DIARY-PRD-linking-code-entry-errors-C
 
 ## Linking Consent
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-join-study-screen-B
 - DIARY-GUI-join-study-screen-C
@@ -945,7 +965,7 @@
 
 ## Lock Threshold
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-entry-time-restrictions-A
 - DIARY-PRD-entry-time-restrictions-E
@@ -969,7 +989,7 @@
 
 ## Lock Warning Offset
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-notification-incomplete-record-lock-A
 - DIARY-PRD-notification-incomplete-record-lock-C
@@ -979,14 +999,14 @@
 
 ## Long Duration Threshold
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-entry-duration-check-C
 - DIARY-PRD-entry-duration-check-G
 
 ## Main Screen
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-main-screen-layout
 - DIARY-GUI-entry-overlap-resolution-M
@@ -1011,7 +1031,7 @@
 
 ## Mobile Application
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-mobile-application
 - DIARY-GUI-mobile-navigation
@@ -1021,9 +1041,11 @@
 - DIARY-PRD-mobile-application-D
 - DIARY-PRD-mobile-application-F
 - DIARY-PRD-diary-start-day-D
-- DIARY-PRD-application-lock-A
-- DIARY-PRD-application-lock-B
-- DIARY-PRD-application-lock-J
+- DIARY-PRD-user-authentication-A
+- DIARY-PRD-user-authentication-B
+- DIARY-PRD-user-authentication-C
+- DIARY-PRD-user-authentication-pin-D
+- DIARY-PRD-user-authentication-pin-F
 - DIARY-PRD-notification-portal-sent-questionnaire-A
 - DIARY-PRD-notification-portal-sent-questionnaire-B
 - DIARY-PRD-notification-ongoing-epistaxis-G
@@ -1046,7 +1068,9 @@
 - DIARY-PRD-diary-start-day:section:1
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
-- DIARY-PRD-application-lock:section:0
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication-pin:section:6
 - rem:spec/prd-mobile-navigation.md:1
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-mobile-navigation:section:0
@@ -1067,7 +1091,7 @@
 
 ## Mobile Linking Code
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-join-study-screen-A
 - DIARY-PRD-linking-code-lifecycle-A
@@ -1092,7 +1116,7 @@
 
 ## NOSE HHT
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-nose-hht
 - DIARY-PRD-score-nose-hht
@@ -1112,7 +1136,7 @@
 
 ## Offline-First
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-mobile-offline-first
 - rem:spec/prd-mobile-app.md:3
@@ -1121,7 +1145,7 @@
 
 ## Overlap
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-entry-overlap-resolution-A
 - DIARY-PRD-entry-overlap-resolution-B
@@ -1139,7 +1163,7 @@
 
 ## Participant
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-participant-task-list
 - DIARY-PRD-participant-registration
@@ -1198,12 +1222,22 @@
 - DIARY-PRD-diary-start-day-H
 - DIARY-PRD-privacy-policy-B
 - DIARY-PRD-privacy-policy-C
-- DIARY-PRD-application-lock-C
-- DIARY-PRD-application-lock-E
-- DIARY-PRD-application-lock-H
-- DIARY-PRD-application-lock-I
-- DIARY-PRD-application-lock-J
-- DIARY-PRD-application-lock-M
+- DIARY-PRD-user-authentication-A
+- DIARY-PRD-user-authentication-B
+- DIARY-PRD-user-authentication-C
+- DIARY-PRD-user-authentication-D
+- DIARY-PRD-user-authentication-E
+- DIARY-PRD-user-authentication-F
+- DIARY-PRD-user-authentication-G
+- DIARY-PRD-user-authentication-H
+- DIARY-PRD-user-authentication-J
+- DIARY-PRD-user-authentication-pin-A
+- DIARY-PRD-user-authentication-pin-B
+- DIARY-PRD-user-authentication-pin-C
+- DIARY-PRD-user-authentication-pin-D
+- DIARY-PRD-user-authentication-pin-F
+- DIARY-PRD-user-authentication-pin-G
+- DIARY-PRD-user-authentication-pin-H
 - DIARY-GUI-mobile-navigation-G
 - DIARY-GUI-mobile-navigation-J
 - DIARY-GUI-calendar-day-view-A
@@ -1360,8 +1394,9 @@
 - DIARY-PRD-mobile-offline-first:section:1
 - DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-privacy-policy:section:1
-- DIARY-PRD-application-lock:section:0
-- DIARY-PRD-application-lock:section:6
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication-pin:section:6
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-main-screen-layout:section:0
 - DIARY-GUI-main-screen-layout:section:5
@@ -1438,7 +1473,7 @@
 
 ## Participant Actions Modal
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-participant-dashboard-L
 - DIARY-GUI-participant-dashboard-M
@@ -1448,14 +1483,14 @@
 
 ## Participant Linking Code
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-linking-code-lifecycle-H
 - DIARY-GUI-show-linking-code-C
 
 ## Participation Status Badge
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-participation-status-badge
 - DIARY-GUI-mobile-navigation-J
@@ -1474,7 +1509,7 @@
 
 ## Password
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-password-requirements
 - DIARY-PRD-password-forgot
@@ -1517,13 +1552,13 @@
 
 ## Password Reuse Limit
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-password-requirements-F
 
 ## Patient
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-evidence-patient-authentication
 - DIARY-PRD-evidence-device-fingerprint-I
@@ -1557,26 +1592,53 @@
 
 ## PIN
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
+- DIARY-PRD-user-authentication-pin
 - DIARY-PRD-evidence-patient-authentication-C
 - DIARY-PRD-evidence-patient-authentication-G
 - DIARY-PRD-evidence-patient-authentication-H
 - DIARY-PRD-evidence-patient-authentication-I
-- DIARY-PRD-application-lock-E
-- DIARY-PRD-application-lock-H
-- DIARY-PRD-application-lock-I
-- DIARY-PRD-application-lock-J
-- DIARY-PRD-application-lock-K
-- DIARY-PRD-application-lock-L
-- DIARY-PRD-application-lock-M
-- DIARY-PRD-application-lock-P
+- DIARY-PRD-user-authentication-F
+- DIARY-PRD-user-authentication-pin-A
+- DIARY-PRD-user-authentication-pin-B
+- DIARY-PRD-user-authentication-pin-C
+- DIARY-PRD-user-authentication-pin-D
+- DIARY-PRD-user-authentication-pin-E
+- DIARY-PRD-user-authentication-pin-F
+- DIARY-PRD-user-authentication-pin-G
+- DIARY-PRD-user-authentication-pin-H
+- DIARY-PRD-user-authentication-pin-I
+- DIARY-PRD-user-authentication-pin-J
 - DIARY-PRD-evidence-patient-authentication:section:0
-- DIARY-PRD-application-lock:section:6
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication:section:5
+- DIARY-PRD-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication-pin:section:6
+
+## PIN Policy
+
+**DIARY:**
+
+- DIARY-PRD-user-authentication-I
+- DIARY-PRD-user-authentication-J
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication:section:5
+- DIARY-PRD-user-authentication-pin:section:6
+
+## PIN Reset
+
+**DIARY:**
+
+- DIARY-PRD-user-authentication-pin-F
+- DIARY-PRD-user-authentication-pin-G
+- DIARY-PRD-user-authentication-pin-H
+- DIARY-PRD-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication-pin:section:6
 
 ## Portal-Sent Questionnaire
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-notification-portal-sent-questionnaire
 - DIARY-PRD-questionnaire-portal-sent-rules
@@ -1595,7 +1657,7 @@
 
 ## Preamble
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-portal-sent-rules-A
 - DIARY-PRD-questionnaire-portal-sent-rules-B
@@ -1616,7 +1678,7 @@
 
 ## Progress Indicator
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-epistaxis-record-A
 - DIARY-GUI-epistaxis-record-B
@@ -1628,7 +1690,7 @@
 
 ## Questionnaire
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-notification-portal-sent-questionnaire
 - DIARY-PRD-questionnaire-system
@@ -1764,13 +1826,13 @@
 
 ## Questionnaire Display Name
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-system-F
 
 ## Questionnaire Task
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-F
@@ -1782,7 +1844,7 @@
 
 ## Questionnaire Type
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-audit-log-common-G
 - DIARY-GUI-participant-task-list-F
@@ -1795,7 +1857,7 @@
 
 ## Rate Limit Cooldown
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-linking-code-entry-errors-D
 - DIARY-PRD-linking-code-entry-errors-E
@@ -1803,7 +1865,7 @@
 
 ## Rate Limit Threshold
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-linking-code-entry-errors-D
 - DIARY-PRD-linking-code-entry-errors-F
@@ -1812,13 +1874,13 @@
 
 ## Record State
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-epistaxis-capture-standard:section:1
 
 ## Reminder Schedule
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-notification-ongoing-epistaxis-B
 - DIARY-PRD-notification-ongoing-epistaxis-C
@@ -1831,7 +1893,7 @@
 
 ## Reminder Time
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-notification-yesterday-entry-A
 - DIARY-PRD-notification-yesterday-entry-B
@@ -1843,7 +1905,7 @@
 
 ## Resolution
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-entry-overlap-resolution
 - DIARY-GUI-entry-overlap-resolution
@@ -1881,7 +1943,7 @@
 
 ## Resolution Screen
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-entry-overlap-resolution-C
 - DIARY-GUI-entry-overlap-resolution-D
@@ -1892,7 +1954,7 @@
 
 ## Review Screen
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-questionnaire-portal-sent-workflow-K
 - DIARY-GUI-questionnaire-portal-sent-workflow-L
@@ -1907,7 +1969,7 @@
 
 ## Role
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-rbac-customizable
 - DIARY-PRD-role-definitions
@@ -1978,7 +2040,7 @@
 
 ## Role Selector
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-role-switching-A
 - DIARY-GUI-role-switching-B
@@ -1991,7 +2053,7 @@
 
 ## Second Factor
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-G
@@ -1999,7 +2061,7 @@
 
 ## Session
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-session-management
 - DIARY-PRD-questionnaire-session-timeout
@@ -2044,7 +2106,7 @@
 
 ## Session Expiry
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-questionnaire-session-expiry
 - DIARY-PRD-questionnaire-session-timeout-D
@@ -2059,7 +2121,7 @@
 
 ## Session Expiry Dialog
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-questionnaire-session-expiry-B
 - DIARY-GUI-questionnaire-session-expiry-C
@@ -2069,7 +2131,7 @@
 
 ## Session Expiry Notification
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-session-timeout-F
 - DIARY-GUI-questionnaire-session-expiry-F
@@ -2078,13 +2140,13 @@
 
 ## Session Idle Timeout
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-session-management-G
 
 ## Session Timeout
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-session-timeout
 - DIARY-PRD-questionnaire-portal-sent-rules-K
@@ -2100,14 +2162,14 @@
 
 ## Short Duration Threshold
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-entry-duration-check-A
 - DIARY-PRD-entry-duration-check-F
 
 ## Site
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-user-account-site-assignment
 - DIARY-GUI-audit-log-cra-A
@@ -2150,7 +2212,7 @@
 
 ## Sponsor
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
@@ -2183,10 +2245,11 @@
 - DIARY-PRD-mobile-offline-first-D
 - DIARY-PRD-diary-start-day-G
 - DIARY-PRD-privacy-policy-A
-- DIARY-PRD-application-lock-O
-- DIARY-PRD-application-lock-P
-- DIARY-PRD-application-lock-Q
-- DIARY-PRD-application-lock-R
+- DIARY-PRD-user-authentication-J
+- DIARY-PRD-user-authentication-K
+- DIARY-PRD-user-authentication-pin-G
+- DIARY-PRD-user-authentication-pin-J
+- DIARY-PRD-user-authentication-pin-K
 - DIARY-GUI-mobile-navigation-A
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-I
@@ -2284,8 +2347,9 @@
 - DIARY-PRD-diary-start-day:section:1
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
-- DIARY-PRD-application-lock:section:0
-- DIARY-PRD-application-lock:section:6
+- DIARY-PRD-user-authentication:section:5
+- DIARY-PRD-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication-pin:section:6
 - DIARY-PRD-notification-disconnection:section:0
 - DIARY-PRD-notification-disconnection:section:1
 - DIARY-GUI-participation-status-badge:section:6
@@ -2353,7 +2417,7 @@
 
 ## Sponsor Portal
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-help-resources-A
@@ -2404,7 +2468,7 @@
 
 ## Study Coordinator
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-audit-log-study-coordinator
 - DIARY-GUI-audit-log-cra-C
@@ -2455,7 +2519,7 @@
 
 ## Submission
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-submission-control
 - DIARY-PRD-evidence-bitcoin-timestamp-H
@@ -2498,7 +2562,7 @@
 
 ## System Notice Area
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-main-screen-layout-A
 - DIARY-GUI-main-screen-layout-B
@@ -2507,7 +2571,7 @@
 
 ## Task List
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-participant-task-list
 - DIARY-GUI-main-screen-layout-A
@@ -2523,7 +2587,7 @@
 
 ## Time Picker
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-epistaxis-record-E
 - DIARY-GUI-epistaxis-record-J
@@ -2531,7 +2595,7 @@
 
 ## Timeout Warning Notification
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-session-timeout-E
 - DIARY-PRD-questionnaire-session-timeout-J
@@ -2541,7 +2605,7 @@
 
 ## Trial
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-privacy-policy
 - DIARY-PRD-entry-time-restrictions-M
@@ -2623,7 +2687,7 @@
 
 ## Trial Start
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-system-C
 - DIARY-PRD-questionnaire-system-E
@@ -2631,7 +2695,7 @@
 
 ## True Copy
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-questionnaire-nose-hht-B
 - DIARY-PRD-questionnaire-nose-hht-C
@@ -2643,8 +2707,10 @@
 
 ## User
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
+- DIARY-PRD-user-authentication
+- DIARY-PRD-user-authentication-pin
 - DIARY-PRD-user-account-create
 - DIARY-PRD-user-account-edit
 - DIARY-PRD-user-account-deactivate
@@ -2664,6 +2730,14 @@
 - DIARY-PRD-mobile-application-E
 - DIARY-PRD-mobile-application-F
 - DIARY-PRD-diary-start-day-A
+- DIARY-PRD-user-authentication-A
+- DIARY-PRD-user-authentication-B
+- DIARY-PRD-user-authentication-C
+- DIARY-PRD-user-authentication-D
+- DIARY-PRD-user-authentication-G
+- DIARY-PRD-user-authentication-I
+- DIARY-PRD-user-authentication-J
+- DIARY-PRD-user-authentication-pin-A
 - DIARY-GUI-mobile-navigation-A
 - DIARY-GUI-mobile-navigation-E
 - DIARY-GUI-mobile-navigation-F
@@ -2773,7 +2847,11 @@
 - DIARY-PRD-help-resources:section:0
 - DIARY-PRD-help-resources:section:1
 - DIARY-PRD-help-resources:section:5
+- rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-mobile-application:section:1
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication-pin:section:6
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-mobile-navigation:section:0
 - DIARY-GUI-mobile-navigation:section:5
@@ -2814,7 +2892,7 @@
 
 ## User Account
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-user-account-create
 - DIARY-PRD-user-account-edit
@@ -2897,7 +2975,7 @@
 
 ## User Information Modal
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-user-information-modal
 - DIARY-GUI-user-management-tabs-M
@@ -2912,7 +2990,7 @@
 
 ## User Menu
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-mobile-navigation-A
 - DIARY-GUI-mobile-navigation-E
@@ -2920,7 +2998,7 @@
 
 ## Verification Code
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-two-factor-authentication-B
 - DIARY-PRD-two-factor-authentication-C
@@ -2931,7 +3009,7 @@
 
 ## Verification Link
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-PRD-password-forgot-B
 - DIARY-PRD-password-forgot-D
@@ -2953,7 +3031,7 @@
 
 ## Yesterday Reminder Task
 
-**Cure-HHT Diary Platform:**
+**DIARY:**
 
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-L

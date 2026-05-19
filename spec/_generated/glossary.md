@@ -20,6 +20,13 @@
 : A **Verification Link** associated with a **User Account** that provides a mechanism for the **Account Owner** to activate their account and configure their password and 2FA.
 *Defined in: DIARY-PRD-user-account-activation-workflow (DIARY)*
 
+**Active Authentication Path**
+: The authentication path engaged by **Diary User Authentication** for a given **Participant**, derived from the **PIN Policy** and the **Device Authentication** state on the **Participant**'s device:
+  - **In-application PIN** when the **PIN Policy** is **Required**, or when the **PIN Policy** is **Required When Device Authentication Is Not Enabled** and **Device Authentication** is not enabled on the **Participant**'s device.
+  - **Device Authentication** when the **PIN Policy** is not **Required** and **Device Authentication** is enabled on the **Participant**'s device.
+  - **None** when the **PIN Policy** is **Not Required** and **Device Authentication** is not enabled on the **Participant**'s device.
+*Defined in: DIARY-PRD-user-authentication (DIARY)*
+
 **Admin** *(not indexed)*
 : A staff member with privileges to create and manage User Accounts,
 configure sites, and manage system settings. In clinical trial
@@ -82,10 +89,6 @@ compliance auditing.
 See: REQ-p00022 (Analyst Read-Only Access).
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
-**Application Lock**
-: The state in which the **Mobile Application** requires the **Participant** to authenticate before any **Participant**-facing screen, action, or data is accessible.
-*Defined in: DIARY-PRD-application-lock (DIARY)*
-
 **Application Menu**
 : The menu accessed from the left side of the top navigation bar, grouping application-level functions.
 *Defined in: DIARY-GUI-mobile-navigation (DIARY)*
@@ -118,10 +121,6 @@ read-only access across all sites within a sponsor. Auditors can view
 but NEVER modify data.
 See: REQ-p00038 (Auditor Compliance Access).
 *Defined in: file:spec/glossary-core.md (DIARY)*
-
-**Authentication Method**
-: The mechanism required to release the **Application Lock**. The configured **Authentication Method** is one of: **PIN**, **Device Authentication**, or none.
-*Defined in: DIARY-PRD-application-lock (DIARY)*
 
 ## C
 
@@ -269,8 +268,8 @@ See: ops-security.md for developer admin procedures.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Device Authentication**
-: Authentication performed by the device operating system using the credential the **Participant** has configured at the device level, including but not limited to device passcode, fingerprint, or face recognition.
-*Defined in: DIARY-PRD-application-lock (DIARY)*
+: Authentication performed by the device operating system using the credential the **Participant** has configured at the device level, including device passcode, fingerprint, or face recognition.
+*Defined in: DIARY-PRD-user-authentication (DIARY)*
 
 **Diary**
 : The iOS and Android smartphone application that individuals use to
@@ -332,6 +331,10 @@ See: REQ-p00044 (Clinical Trial Compliant Diary Platform).
 **Diary Start Day**
 : The earliest date for which diary entries are valid for a given **User**.
 *Defined in: DIARY-PRD-diary-start-day (DIARY)*
+
+**Diary User Authentication**
+: The access-control mechanism that gates **Participant** data and **Participant** *Actions* in the **Mobile Application**, satisfied via the **Active Authentication Path** for the **Participant**.
+*Defined in: DIARY-PRD-user-authentication (DIARY)*
 
 **Disconnection Notification**
 : A persistent, non-dismissible notification displayed to the **Participant** when their mobile Application is disconnected from the **Sponsor Portal**.
@@ -457,6 +460,10 @@ See: REQ-p00004 (Immutable Audit Trail via Event Sourcing), REQ-p01000
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 ## F
+
+**Failed Attempt Threshold**
+: The configurable number of consecutive failed **PIN** entry attempts that triggers a **Participant** lockout pending **PIN Reset**.
+*Defined in: DIARY-PRD-user-authentication-pin (DIARY)*
 
 **FDA (U.S. Food and Drug Administration)** *(not indexed)*
 : United States federal agency responsible for regulating
@@ -584,8 +591,8 @@ See: REQ-p00011 (ALCOA+ Data Integrity Principles).
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Idle Timeout**
-: The configurable elapsed time the **Mobile Application** may remain in the background before the **System** re-applies the **Application Lock** on return to the foreground.
-*Defined in: DIARY-PRD-application-lock (DIARY)*
+: The configurable elapsed time, used both as the maximum **Participant** in-app inactivity before re-authentication is required and as the trust window for the most recent successful authentication on the **Active Authentication Path**.
+*Defined in: DIARY-PRD-user-authentication (DIARY)*
 
 **IMP (Investigational Medicinal Product)** *(not indexed)*
 : The drug, biological product, or device being tested in a clinical
@@ -807,8 +814,16 @@ See: prd-security-data-classification.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **PIN**
-: A numeric secret of configurable length set by the **Participant** and used to release the **Application Lock**.
-*Defined in: DIARY-PRD-application-lock (DIARY)*
+: A numeric secret of configurable length set by the **Participant** and used to satisfy **Diary User Authentication** when the in-application **PIN** mechanism is the active path.
+*Defined in: DIARY-PRD-user-authentication-pin (DIARY)*
+
+**PIN Policy**
+: The setting that determines whether the in-application **PIN** mechanism is used for a given **Participant**. Permitted values: **Not Required** (the in-application **PIN** mechanism is never used), **Required When Device Authentication Is Not Enabled** (the in-application **PIN** mechanism is used only when **Device Authentication** is not enabled on the **Participant**'s device), and **Required** (the in-application **PIN** mechanism is always used).
+*Defined in: DIARY-PRD-user-authentication (DIARY)*
+
+**PIN Reset**
+: A *Sponsor*-initiated command that clears the **Participant**'s **PIN** and returns the **Participant** to the **PIN** setup state on next access.
+*Defined in: DIARY-PRD-user-authentication-pin (DIARY)*
 
 **Portal-Sent Questionnaire**
 : A Questionnaire initiated by a Study Coordinator from the Sponsor Portal and delivered to the participant via push notification.
