@@ -58,31 +58,72 @@ def render_requirement(node: GraphNode, graph: Graph) -> str:
     header = template.render(node=node).rstrip()
 
     body_parts: list[str] = [header]
-    emitted_assertions_header = False
     saw_rationale_remainder = False
 
-    for child_id in node.children:
+    def _is_subgroup(child: GraphNode) -> bool:
+        """Bold-paragraph subgroup heading inside the Assertions block.
+
+        elspais parses `**Trigger**` style bold paragraphs (no markdown
+        heading marker) as REMAINDERs with `heading` set, `heading_level`
+        unset, and empty body text. These are subgroup labels for the
+        lettered assertions that follow them.
+        """
+        if child.kind != "REMAINDER":
+            return False
+        if child.content.get("heading_level") is not None:
+            return False
+        if not (child.content.get("heading") or "").strip():
+            return False
+        if (child.content.get("text") or "").strip():
+            return False
+        return True
+
+    # Pre-scan to locate where the Assertions block starts. The block
+    # begins at the first ASSERTION OR the first subgroup-style REMAINDER
+    # (whichever comes first). Source authors put `### Assertions` before
+    # `**Trigger**` etc., but elspais flattens that heading away — emit an
+    # implicit `#### Assertions` here so subgroup H5s sit under it.
+    assertions_start_idx: int | None = None
+    for idx, child_id in enumerate(node.children):
+        if not graph.has_node(child_id):
+            continue
+        child = graph.get_node(child_id)
+        if child.kind == "ASSERTION" or _is_subgroup(child):
+            assertions_start_idx = idx
+            break
+    emitted_assertions_header = assertions_start_idx is None
+
+    for idx, child_id in enumerate(node.children):
         if not graph.has_node(child_id):
             continue
         child = graph.get_node(child_id)
 
+        if idx == assertions_start_idx and not emitted_assertions_header:
+            body_parts.append("\n\n#### Assertions\n")
+            emitted_assertions_header = True
+
         if child.kind == "REMAINDER":
-            heading = (child.content.get("heading") or child.label or "").strip()
+            heading = (child.content.get("heading") or "").strip()
             text = (child.content.get("text") or "").strip()
+            heading_level = child.content.get("heading_level")
             heading_lower = heading.lower()
             if heading_lower == "assertions":
                 emitted_assertions_header = True
             if heading_lower == "rationale":
                 saw_rationale_remainder = True
             if heading:
-                body_parts.append(f"\n\n#### {heading}\n")
+                # `heading_level == 3` -> source `### Heading` -> emit at H4
+                # (one deeper than the REQ's H3 title).
+                # `heading_level is None` -> source bold-paragraph subgroup
+                # (e.g. `**Trigger**` inside an Assertions block) -> emit at
+                # H5 so it sits visually under the `#### Assertions` we
+                # injected above, and stays out of the H3-capped TOC.
+                prefix = "####" if heading_level == 3 else "#####"
+                body_parts.append(f"\n\n{prefix} {heading}\n")
             if text:
                 body_parts.append(f"\n{text}\n")
 
         elif child.kind == "ASSERTION":
-            if not emitted_assertions_header:
-                body_parts.append("\n\n#### Assertions\n")
-                emitted_assertions_header = True
             label = child.content.get("label") or "?"
             text = (child.label or "").strip()
             body_parts.append(f"\n**{label}.** {text}\n")
