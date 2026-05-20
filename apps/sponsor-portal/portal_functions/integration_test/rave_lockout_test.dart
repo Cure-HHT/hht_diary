@@ -340,6 +340,58 @@ void main() {
     });
   });
 
+  test('lockout-recovery happy path', () async {
+    // Verifies: CAL-OPS-rave-sync-cooldown/C, CAL-OPS-rave-sync-hard-lockout/A+B
+    //
+    // End-to-end capstone: walks the full lockout lifecycle in one test —
+    // clean → cooldown → gate-skip → locked → success-resets-counter (but
+    // not locked_at) → unwedge-clears-locked_at → proceed.
+    //
+    // Skips last_unwedged_by_user_id in the simulated unwedge UPDATE: the
+    // FK to portal_users requires a fixture row that lives only inside the
+    // 'endpoints' group's setUpAll. What matters here is the behavior — that
+    // clearing locked_at lets checkLockout return proceed again.
+
+    // 1. Start clean — counter 0, no cooldown, not locked.
+    var state = await checkLockout();
+    expect(state.result, LockoutCheckResult.proceed);
+
+    // 2. Trip cooldown with one auth failure.
+    await recordAuthFailure(reasonCode: 'AUTH001');
+    state = await checkLockout();
+    expect(state.result, LockoutCheckResult.pausedCooldown);
+
+    // 3. syncSitesIfNeeded must skip the Rave call.
+    final pausedResult = await syncSitesIfNeeded();
+    expect(pausedResult, isNotNull);
+    expect(pausedResult!.paused, isTrue);
+    expect(pausedResult.pausedReason, 'cooldown');
+
+    // 4. Two more failures → hard lockout.
+    await recordAuthFailure();
+    await recordAuthFailure();
+    state = await checkLockout();
+    expect(state.result, LockoutCheckResult.pausedLocked);
+
+    // 5. Successful sync (simulated by calling recordSyncSuccess directly)
+    //    resets counter but does NOT clear locked_at.
+    await recordSyncSuccess();
+    state = await checkLockout();
+    expect(state.row.consecutiveAuthFailures, 0);
+    expect(state.row.lockedAt, isNotNull);
+
+    // 6. Unwedge clears locked_at.
+    final db = Database.instance;
+    await db.executeWithContext('''
+      UPDATE rave_sync_lockout
+      SET locked_at = NULL,
+          last_unwedged_at = now()
+      WHERE id = 1
+      ''', context: UserContext.service);
+    state = await checkLockout();
+    expect(state.result, LockoutCheckResult.proceed);
+  });
+
   group('buildRaveSyncBlock (CUR-1361)', () {
     // setUp is already resetting the lockout row per outer test setUp.
 
