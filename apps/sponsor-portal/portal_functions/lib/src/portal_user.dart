@@ -1071,7 +1071,13 @@ Future<Response> getPortalSitesHandler(Request request) async {
     response['sync'] = syncResult.toJson();
   }
 
-  response['rave_sync'] = await buildRaveSyncBlock();
+  // Best-effort: omit rave_sync entirely if the lockout table is unavailable
+  // (e.g., migration not applied yet, transient DB hiccup). Don't break /sites.
+  try {
+    response['rave_sync'] = await buildRaveSyncBlock();
+  } catch (e) {
+    print('[WARN] Failed to build rave_sync block for /sites: $e');
+  }
 
   return _jsonResponse(response);
 }
@@ -1193,7 +1199,12 @@ Future<Response> getPortalPatientsHandler(Request request) async {
     response['assigned_sites'] = user.sites;
   }
 
-  response['rave_sync'] = await buildRaveSyncBlock();
+  // Best-effort: omit rave_sync entirely on failure. Don't break /participants.
+  try {
+    response['rave_sync'] = await buildRaveSyncBlock();
+  } catch (e) {
+    print('[WARN] Failed to build rave_sync block for /participants: $e');
+  }
 
   return _jsonResponse(response);
 }

@@ -172,21 +172,30 @@ Future<Response> unwedgeRaveHandler(Request request) async {
   // Best-effort state fetch. If this throws we still return a useful
   // response: the clear committed, the timestamp is DB-authoritative,
   // and probe outcome is known.
-  RaveLockoutRow? rowAfter;
+  LockoutState? stateAfter;
   try {
-    final stateAfter = await checkLockout();
-    rowAfter = stateAfter.row;
+    stateAfter = await checkLockout();
   } catch (e) {
     // ignore: avoid_print
     print('[WARN] Failed to fetch state_after for unwedge response: $e');
   }
+  final rowAfter = stateAfter?.row;
+  final stateAfterName = switch (stateAfter?.result) {
+    LockoutCheckResult.proceed => 'ok',
+    LockoutCheckResult.pausedCooldown => 'cooldown',
+    LockoutCheckResult.pausedLocked => 'locked',
+    null => 'unknown',
+  };
 
   return _json({
     'unwedged_at': (dbUnwedgedAt ?? DateTime.now().toUtc()).toIso8601String(),
     'probe': {'ok': probeOk, if (!probeOk) 'error': probeError},
     'state_after': {
+      'state': stateAfterName,
       'consecutive_auth_failures': rowAfter?.consecutiveAuthFailures ?? 0,
       'locked': rowAfter?.lockedAt != null,
+      if (stateAfter?.pausedUntil != null)
+        'paused_until': stateAfter!.pausedUntil!.toIso8601String(),
       'last_success_at': rowAfter?.lastSuccessAt?.toIso8601String(),
     },
   });

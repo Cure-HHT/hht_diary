@@ -71,21 +71,35 @@ class UnwedgeResult {
   /// True if the lockout was retriggered by the probe failure.
   final bool lockedAfter;
 
+  /// Post-unwedge state: `ok`, `cooldown`, `locked`, or `unknown` if the
+  /// state read failed after the clear committed.
+  final String stateAfter;
+
+  /// Populated when [stateAfter] is `cooldown`.
+  final DateTime? pausedUntil;
+
   UnwedgeResult({
     required this.probeOk,
     required this.consecutiveAuthFailures,
     required this.lockedAfter,
+    required this.stateAfter,
     this.probeError,
+    this.pausedUntil,
   });
 
   factory UnwedgeResult.fromJson(Map<String, dynamic> j) {
     final probe = (j['probe'] as Map).cast<String, dynamic>();
     final stateAfter = (j['state_after'] as Map).cast<String, dynamic>();
+    final pausedUntilRaw = stateAfter['paused_until'];
     return UnwedgeResult(
       probeOk: probe['ok'] as bool,
       probeError: probe['error'] as String?,
       consecutiveAuthFailures: stateAfter['consecutive_auth_failures'] as int,
       lockedAfter: stateAfter['locked'] as bool,
+      stateAfter: (stateAfter['state'] as String?) ?? 'unknown',
+      pausedUntil: pausedUntilRaw is String
+          ? DateTime.tryParse(pausedUntilRaw)
+          : null,
     );
   }
 }

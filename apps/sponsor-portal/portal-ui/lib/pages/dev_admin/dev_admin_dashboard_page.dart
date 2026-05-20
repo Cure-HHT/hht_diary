@@ -777,6 +777,8 @@ class _RaveSyncCardState extends State<_RaveSyncCard> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Post-frame callback can fire after dispose (rapid navigation).
+      if (!mounted) return;
       _service = RaveAdminService(ApiClient(context.read<AuthService>()));
       _loadState();
     });
@@ -785,6 +787,7 @@ class _RaveSyncCardState extends State<_RaveSyncCard> {
   Future<void> _loadState() async {
     final service = _service;
     if (service == null) return;
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -864,13 +867,22 @@ class _RaveSyncCardState extends State<_RaveSyncCard> {
       );
     } else {
       final reason = result.probeError ?? 'probe failed';
+      final stateNote = switch (result.stateAfter) {
+        'locked' => 'Hard lockout re-triggered',
+        'cooldown' =>
+          result.pausedUntil != null
+              ? 'Cooldown active until ${result.pausedUntil!.toIso8601String()}'
+              : 'Cooldown active',
+        'ok' => 'Sync is OK (probe failure did not trip cooldown)',
+        _ => 'State unknown',
+      };
       messenger.showSnackBar(
         SnackBar(
           backgroundColor: Colors.red.shade700,
           duration: const Duration(seconds: 6),
           content: Text(
             'Probe FAILED ($reason). '
-            'Lockout ${result.lockedAfter ? "re-triggered" : "still active"} '
+            '$stateNote '
             '(${result.consecutiveAuthFailures} consecutive failures).',
           ),
         ),

@@ -107,6 +107,40 @@ void main() {
       );
       expect(state.result, LockoutCheckResult.pausedLocked);
     });
+
+    test('proceed when last success is after last failure', () {
+      // Recent failure (would be in cooldown) but a later successful sync
+      // supersedes it. last_failure_at stays for diagnostic context but no
+      // longer gates new attempts.
+      final lastFail = now.subtract(const Duration(hours: 5));
+      final lastSuccess = now.subtract(const Duration(hours: 1));
+      final state = classifyLockout(
+        row: RaveLockoutRow(
+          consecutiveAuthFailures: 0,
+          lastFailureAt: lastFail,
+          lastSuccessAt: lastSuccess,
+        ),
+        cooldownHours: 24,
+        now: now,
+      );
+      expect(state.result, LockoutCheckResult.proceed);
+    });
+
+    test('cooldown still active when success precedes failure', () {
+      // Old success, then a fresh failure. Cooldown should be active.
+      final lastSuccess = now.subtract(const Duration(hours: 10));
+      final lastFail = now.subtract(const Duration(hours: 1));
+      final state = classifyLockout(
+        row: RaveLockoutRow(
+          consecutiveAuthFailures: 1,
+          lastFailureAt: lastFail,
+          lastSuccessAt: lastSuccess,
+        ),
+        cooldownHours: 24,
+        now: now,
+      );
+      expect(state.result, LockoutCheckResult.pausedCooldown);
+    });
   });
 
   group('notifySlackWith', () {

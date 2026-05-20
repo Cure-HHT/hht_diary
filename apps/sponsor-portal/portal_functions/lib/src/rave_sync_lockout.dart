@@ -110,14 +110,22 @@ LockoutState classifyLockout({
   }
   final lastFail = row.lastFailureAt;
   if (lastFail != null) {
-    final cooldownEnd = lastFail.add(Duration(hours: cooldownHours));
-    if (cooldownEnd.isAfter(now)) {
-      return LockoutState(
-        result: LockoutCheckResult.pausedCooldown,
-        pausedUntil: cooldownEnd,
-        consecutiveAuthFailures: row.consecutiveAuthFailures,
-        row: row,
-      );
+    // Cooldown only counts failures that aren't superseded by a later success.
+    // Any successful sync (including the Unwedge probe) clears the pause —
+    // last_failure_at is preserved as diagnostic context but no longer gates.
+    final lastSuccess = row.lastSuccessAt;
+    final supersededBySuccess =
+        lastSuccess != null && !lastSuccess.isBefore(lastFail);
+    if (!supersededBySuccess) {
+      final cooldownEnd = lastFail.add(Duration(hours: cooldownHours));
+      if (cooldownEnd.isAfter(now)) {
+        return LockoutState(
+          result: LockoutCheckResult.pausedCooldown,
+          pausedUntil: cooldownEnd,
+          consecutiveAuthFailures: row.consecutiveAuthFailures,
+          row: row,
+        );
+      }
     }
   }
   return LockoutState(
