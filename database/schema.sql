@@ -836,6 +836,41 @@ COMMENT ON COLUMN portal_user_audit_log.before_value IS 'JSONB snapshot of state
 COMMENT ON COLUMN portal_user_audit_log.after_value IS 'JSONB snapshot of state after change';
 
 -- =====================================================
+-- RAVE SYNC LOCKOUT (CUR-1361)
+-- =====================================================
+-- Single-row state table per env. Tracks consecutive Rave auth failures,
+-- hard-lockout marker, and last-unwedge audit info. See
+-- docs/superpowers/specs/2026-05-19-rave-lockout-design.md.
+--
+-- Also maintained as a migration (013_create_rave_sync_lockout.sql) for
+-- incremental upgrades to live deployments. Fresh installs (CI test DB,
+-- local dev) pick it up here via init.sql.
+
+-- Implements: CAL-OPS-rave-sync-hard-lockout/A+C, CAL-OPS-rave-sync-cooldown/B
+CREATE TABLE rave_sync_lockout (
+    id                          smallint    PRIMARY KEY CHECK (id = 1),
+    consecutive_auth_failures   integer     NOT NULL DEFAULT 0
+                                            CHECK (consecutive_auth_failures >= 0),
+    locked_at                   timestamptz NULL,
+    last_failure_at             timestamptz NULL,
+    last_failure_reason_code    text        NULL,
+    last_success_at             timestamptz NULL,
+    last_unwedged_by_user_id    uuid        NULL REFERENCES portal_users(id),
+    last_unwedged_at            timestamptz NULL,
+    updated_at                  timestamptz NOT NULL DEFAULT now()
+);
+
+-- Singleton seed row so UPDATEs against id=1 always hit.
+INSERT INTO rave_sync_lockout (id) VALUES (1);
+
+COMMENT ON TABLE rave_sync_lockout IS
+  'Live decision state for Rave sync lockout (CUR-1361). Single row, id=1.';
+COMMENT ON COLUMN rave_sync_lockout.locked_at IS
+  'Non-NULL = hard lockout. Cleared only by the Unwedge endpoint.';
+COMMENT ON COLUMN rave_sync_lockout.last_failure_at IS
+  'Drives soft cooldown: now() - last_failure_at < RAVE_AUTH_COOLDOWN_HOURS = paused.';
+
+-- =====================================================
 -- PORTAL PENDING EMAIL CHANGES
 -- =====================================================
 -- IMPLEMENTS REQUIREMENTS:
