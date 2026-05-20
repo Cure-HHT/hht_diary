@@ -359,6 +359,7 @@ Future<SitesSyncResult> syncSitesFromEdc({
   RaveClient? testClient,
   String? testStudyOid,
   bool skipLogging = false,
+  AuthFailureSource authFailureSource = AuthFailureSource.normalSync,
 }) async {
   final startTime = DateTime.now();
 
@@ -537,7 +538,10 @@ Future<SitesSyncResult> syncSitesFromEdc({
     // Implements: CAL-DEV-rave-auth-failure-classification/A+C
     if (!skipLogging) {
       try {
-        await recordAuthFailure(reasonCode: e.reasonCode);
+        await recordAuthFailure(
+          reasonCode: e.reasonCode,
+          source: authFailureSource,
+        );
       } catch (logErr) {
         print('[WARN] Failed to record rave auth failure: $logErr');
       }

@@ -8,9 +8,11 @@
 @TestOn('vm')
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:portal_functions/portal_functions.dart';
+import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -146,5 +148,195 @@ void main() {
       threshold,
       reason: 'gate must not increment counter',
     );
+  });
+
+  group('endpoints (CUR-1361)', () {
+    // Verifies: CAL-OPS-rave-unwedge-authz/A+B,
+    //   CAL-GUI-dev-admin-rave-sync-card/A
+    //
+    // Uses [requirePortalAuthOverride] to bypass Identity Platform token
+    // verification — the unit under test is the handler's authz + business
+    // logic, not token minting. Override lives in portal_auth.dart and is
+    // honored by requirePortalAuth (production callsite).
+    const testDevAdminId = '99991361-0000-0000-0000-000000000001';
+    const testDevAdminEmail = 'devadmin@rave-lockout-test.example.com';
+    const testNonAdminId = '99991361-0000-0000-0000-000000000002';
+    const testNonAdminEmail = 'investigator@rave-lockout-test.example.com';
+
+    Request makeRequest(String method, String path, [Object? body]) {
+      return Request(
+        method,
+        Uri.parse('http://localhost$path'),
+        body: body == null ? null : jsonEncode(body),
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
+    Future<Map<String, dynamic>> readJson(Response response) async {
+      final chunks = await response.read().toList();
+      return jsonDecode(utf8.decode(chunks.expand((c) => c).toList()))
+          as Map<String, dynamic>;
+    }
+
+    setUpAll(() async {
+      // The unwedge handler casts user.id to ::uuid and writes
+      // last_unwedged_by_user_id (FK -> portal_users.id), so the dev-admin
+      // row must exist. Non-admin row is created for symmetry (handlers do
+      // not write its id, but a real-looking fixture is cheaper than
+      // explaining the asymmetry).
+      final db = Database.instance;
+      await db.execute(
+        '''
+        INSERT INTO portal_users (id, email, name, status)
+        VALUES (@id::uuid, @email, 'Test Dev Admin (rave-lockout)', 'active')
+        ON CONFLICT (LOWER(email)) DO NOTHING
+        ''',
+        parameters: {'id': testDevAdminId, 'email': testDevAdminEmail},
+      );
+      await db.execute(
+        '''
+        INSERT INTO portal_users (id, email, name, status)
+        VALUES (@id::uuid, @email, 'Test Investigator (rave-lockout)', 'active')
+        ON CONFLICT (LOWER(email)) DO NOTHING
+        ''',
+        parameters: {'id': testNonAdminId, 'email': testNonAdminEmail},
+      );
+    });
+
+    tearDownAll(() async {
+      // Best-effort cleanup. Test rows are namespaced under
+      // 99991361-* and *@rave-lockout-test.example.com so collisions
+      // with other suites are not possible.
+      final db = Database.instance;
+      // Clear FK first so portal_users DELETE doesn't fail.
+      await db.executeWithContext(
+        '''
+        UPDATE rave_sync_lockout
+        SET last_unwedged_by_user_id = NULL
+        WHERE id = 1 AND last_unwedged_by_user_id = @id::uuid
+        ''',
+        parameters: {'id': testDevAdminId},
+        context: UserContext.service,
+      );
+      await db.execute(
+        'DELETE FROM portal_users WHERE email LIKE @pattern',
+        parameters: {'pattern': '%@rave-lockout-test.example.com'},
+      );
+    });
+
+    tearDown(() {
+      requirePortalAuthOverride = null;
+    });
+
+    PortalUser devAdmin() => PortalUser(
+      id: testDevAdminId,
+      email: testDevAdminEmail,
+      name: 'Test Dev Admin (rave-lockout)',
+      roles: const ['Developer Admin'],
+      activeRole: 'Developer Admin',
+      status: 'active',
+    );
+
+    PortalUser nonAdmin() => PortalUser(
+      id: testNonAdminId,
+      email: testNonAdminEmail,
+      name: 'Test Investigator (rave-lockout)',
+      roles: const ['Investigator'],
+      activeRole: 'Investigator',
+      status: 'active',
+    );
+
+    test('GET /rave/lockout returns 403 for non-dev-admin', () async {
+      requirePortalAuthOverride = (_) async => nonAdmin();
+      final response = await getRaveLockoutStateHandler(
+        makeRequest('GET', '/api/v1/portal/dev-admin/rave/lockout'),
+      );
+      expect(response.statusCode, 403);
+    });
+
+    test('GET /rave/lockout returns 403 for unauthenticated request', () async {
+      requirePortalAuthOverride = (_) async => null;
+      final response = await getRaveLockoutStateHandler(
+        makeRequest('GET', '/api/v1/portal/dev-admin/rave/lockout'),
+      );
+      expect(response.statusCode, 403);
+    });
+
+    test('GET /rave/lockout returns full state for dev-admin', () async {
+      requirePortalAuthOverride = (_) async => devAdmin();
+      await recordAuthFailure(reasonCode: 'TEST');
+
+      final response = await getRaveLockoutStateHandler(
+        makeRequest('GET', '/api/v1/portal/dev-admin/rave/lockout'),
+      );
+      expect(response.statusCode, 200);
+      final body = await readJson(response);
+      expect(body['state'], 'cooldown');
+      expect(body['consecutive_auth_failures'], 1);
+      expect(body['threshold'], 3);
+      expect(body['cooldown_hours'], 24);
+      expect(body['last_failure_reason_code'], 'TEST');
+      expect(body['last_failure_at'], isNotNull);
+      expect(body['locked_at'], isNull);
+      expect(body['paused_until'], isNotNull);
+    });
+
+    test('POST /rave/unwedge returns 403 for non-dev-admin', () async {
+      requirePortalAuthOverride = (_) async => nonAdmin();
+      final response = await unwedgeRaveHandler(
+        makeRequest('POST', '/api/v1/portal/dev-admin/rave/unwedge'),
+      );
+      expect(response.statusCode, 403);
+    });
+
+    test('POST /rave/unwedge clears counter + writes UNWEDGE row', () async {
+      requirePortalAuthOverride = (_) async => devAdmin();
+      final threshold = raveAuthFailureThresholdFromEnv({});
+      for (var i = 0; i < threshold; i++) {
+        await recordAuthFailure();
+      }
+      // Pre-condition: locked.
+      expect((await checkLockout()).row.lockedAt, isNotNull);
+
+      final response = await unwedgeRaveHandler(
+        makeRequest('POST', '/api/v1/portal/dev-admin/rave/unwedge'),
+      );
+      expect(response.statusCode, 200);
+      final body = await readJson(response);
+      expect(body['unwedged_at'], isNotNull);
+      expect(body['probe'], isA<Map>());
+      expect(body['state_after'], isA<Map>());
+      // The probe likely fails (Rave not configured in integration env);
+      // either way the clear path must have run.
+      expect(body['state_after']['locked'], isFalse);
+
+      // DB invariants: locked_at cleared, last_unwedged_by_user_id set.
+      final db = Database.instance;
+      final lockoutRow = await db.executeWithContext('''
+        SELECT locked_at, last_unwedged_by_user_id::text, last_unwedged_at
+        FROM rave_sync_lockout WHERE id = 1
+        ''', context: UserContext.service);
+      expect(lockoutRow.first[0], isNull, reason: 'locked_at must be cleared');
+      expect(lockoutRow.first[1], testDevAdminId);
+      expect(lockoutRow.first[2], isNotNull);
+
+      // UNWEDGE row written to edc_sync_log with triggered_by metadata.
+      final logRow = await db.executeWithContext('''
+        SELECT operation, metadata
+        FROM edc_sync_log
+        WHERE operation = 'UNWEDGE'
+        ORDER BY sync_id DESC
+        LIMIT 1
+        ''', context: UserContext.service);
+      expect(logRow, isNotEmpty);
+      expect(logRow.first[0], 'UNWEDGE');
+      // metadata is jsonb (Map) returned from postgres driver.
+      final metadata = logRow.first[1];
+      final metadataMap = metadata is String
+          ? jsonDecode(metadata) as Map<String, dynamic>
+          : metadata as Map<String, dynamic>;
+      expect(metadataMap['triggered_by'], 'unwedge');
+      expect(metadataMap['unwedged_by_user_id'], testDevAdminId);
+    });
   });
 }
