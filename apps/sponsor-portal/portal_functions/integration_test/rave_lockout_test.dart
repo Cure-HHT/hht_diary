@@ -339,4 +339,33 @@ void main() {
       expect(metadataMap['unwedged_by_user_id'], testDevAdminId);
     });
   });
+
+  group('buildRaveSyncBlock (CUR-1361)', () {
+    // setUp is already resetting the lockout row per outer test setUp.
+
+    test('returns state=ok when clean', () async {
+      final block = await buildRaveSyncBlock();
+      expect(block['state'], 'ok');
+      expect(block.containsKey('since'), isFalse);
+      expect(block.containsKey('paused_until'), isFalse);
+    });
+
+    test('returns state=cooldown with paused_until when in cooldown', () async {
+      await recordAuthFailure();
+      final block = await buildRaveSyncBlock();
+      expect(block['state'], 'cooldown');
+      expect(block['paused_until'], isA<String>());
+      expect(block.containsKey('since'), isFalse);
+    });
+
+    test('returns state=locked with since when locked', () async {
+      final threshold = raveAuthFailureThresholdFromEnv({});
+      for (var i = 0; i < threshold; i++) {
+        await recordAuthFailure();
+      }
+      final block = await buildRaveSyncBlock();
+      expect(block['state'], 'locked');
+      expect(block['since'], isA<String>());
+    });
+  });
 }

@@ -33,6 +33,7 @@ import 'email_service.dart';
 import 'feature_flags.dart';
 import 'patients_sync.dart';
 import 'portal_auth.dart';
+import 'portal_rave_admin.dart';
 import 'sites_sync.dart';
 
 /// Roles that can manage other users
@@ -1070,6 +1071,8 @@ Future<Response> getPortalSitesHandler(Request request) async {
     response['sync'] = syncResult.toJson();
   }
 
+  response['rave_sync'] = await buildRaveSyncBlock();
+
   return _jsonResponse(response);
 }
 
@@ -1189,6 +1192,8 @@ Future<Response> getPortalPatientsHandler(Request request) async {
   if (isInvestigator) {
     response['assigned_sites'] = user.sites;
   }
+
+  response['rave_sync'] = await buildRaveSyncBlock();
 
   return _jsonResponse(response);
 }

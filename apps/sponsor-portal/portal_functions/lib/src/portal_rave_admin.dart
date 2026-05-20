@@ -19,6 +19,24 @@ Response _json(Map<String, dynamic> body, [int status = 200]) => Response(
   headers: {'content-type': 'application/json'},
 );
 
+/// Renders the `rave_sync` block embedded in /sites and /participants
+/// responses. Reads current lockout state.
+// Implements: CAL-GUI-rave-sync-paused-banner/A
+Future<Map<String, dynamic>> buildRaveSyncBlock() async {
+  final state = await checkLockout();
+  return {
+    'state': switch (state.result) {
+      LockoutCheckResult.proceed => 'ok',
+      LockoutCheckResult.pausedCooldown => 'cooldown',
+      LockoutCheckResult.pausedLocked => 'locked',
+    },
+    if (state.row.lockedAt != null)
+      'since': state.row.lockedAt!.toIso8601String(),
+    if (state.pausedUntil != null)
+      'paused_until': state.pausedUntil!.toIso8601String(),
+  };
+}
+
 /// GET /api/v1/portal/dev-admin/rave/lockout
 // Implements: CAL-GUI-dev-admin-rave-sync-card/A
 Future<Response> getRaveLockoutStateHandler(Request request) async {
