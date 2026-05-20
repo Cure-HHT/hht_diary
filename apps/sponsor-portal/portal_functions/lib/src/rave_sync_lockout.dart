@@ -225,13 +225,13 @@ Future<void> recordAuthFailure({
   if (source == AuthFailureSource.normalSync) {
     final cooldownEnd = lastFailureAt.add(Duration(hours: cooldownHours));
     await notifySlack(
-      ':rotating_light: [${_envTag()}] Rave auth failed — counter '
+      ':rotating_light: [${raveEnvTag()}] Rave auth failed — counter '
       '$counter/$threshold, paused until ${cooldownEnd.toIso8601String()}',
     );
   }
   if (justLocked) {
     await notifySlack(
-      ':no_entry: [${_envTag()}] Rave HARD LOCKOUT — manual Unwedge required '
+      ':no_entry: [${raveEnvTag()}] Rave HARD LOCKOUT — manual Unwedge required '
       'from Dev Admin dashboard',
     );
   }
@@ -301,7 +301,10 @@ Future<void> notifySlackWith({
   }
 }
 
-String _envTag() =>
+/// Environment tag for Slack alerts. Prefers ENVIRONMENT, falls back to
+/// DEPLOY_ENV, then 'unknown-env'. Public so portal_rave_admin (and any
+/// future caller) renders the same tag without duplicating the logic.
+String raveEnvTag() =>
     Platform.environment['ENVIRONMENT'] ??
     Platform.environment['DEPLOY_ENV'] ??
     'unknown-env';

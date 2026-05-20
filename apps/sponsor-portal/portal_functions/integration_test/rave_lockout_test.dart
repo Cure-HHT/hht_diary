@@ -254,12 +254,12 @@ void main() {
       expect(response.statusCode, 403);
     });
 
-    test('GET /rave/lockout returns 403 for unauthenticated request', () async {
+    test('GET /rave/lockout returns 401 for unauthenticated request', () async {
       requirePortalAuthOverride = (_) async => null;
       final response = await getRaveLockoutStateHandler(
         makeRequest('GET', '/api/v1/portal/dev-admin/rave/lockout'),
       );
-      expect(response.statusCode, 403);
+      expect(response.statusCode, 401);
     });
 
     test('GET /rave/lockout returns full state for dev-admin', () async {
