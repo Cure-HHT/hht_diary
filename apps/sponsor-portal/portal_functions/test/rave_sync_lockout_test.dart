@@ -1,0 +1,109 @@
+// Verifies: CAL-OPS-rave-sync-cooldown/B+D, CAL-OPS-rave-sync-hard-lockout/A
+//
+// Unit tests for rave_sync_lockout module. Uses in-memory state stubs to
+// exercise pure logic without hitting Postgres.
+
+import 'package:portal_functions/portal_functions.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('lockout config', () {
+    test('defaults when env unset', () {
+      expect(raveAuthFailureThresholdFromEnv({}), 3);
+      expect(raveAuthCooldownHoursFromEnv({}), 24);
+    });
+
+    test('reads env values', () {
+      expect(
+        raveAuthFailureThresholdFromEnv({'RAVE_AUTH_FAILURE_THRESHOLD': '5'}),
+        5,
+      );
+      expect(
+        raveAuthCooldownHoursFromEnv({'RAVE_AUTH_COOLDOWN_HOURS': '12'}),
+        12,
+      );
+    });
+
+    test('non-numeric falls back to default', () {
+      expect(
+        raveAuthFailureThresholdFromEnv({
+          'RAVE_AUTH_FAILURE_THRESHOLD': 'oops',
+        }),
+        3,
+      );
+      expect(
+        raveAuthCooldownHoursFromEnv({'RAVE_AUTH_COOLDOWN_HOURS': ''}),
+        24,
+      );
+    });
+  });
+
+  group('classifyLockout', () {
+    final now = DateTime.utc(2026, 5, 19, 12, 0, 0);
+
+    test('proceed when no failure history', () {
+      final state = classifyLockout(
+        row: const RaveLockoutRow(consecutiveAuthFailures: 0),
+        cooldownHours: 24,
+        now: now,
+      );
+      expect(state.result, LockoutCheckResult.proceed);
+    });
+
+    test('pausedLocked when locked_at set', () {
+      final lockedAt = now.subtract(const Duration(hours: 5));
+      final state = classifyLockout(
+        row: RaveLockoutRow(
+          consecutiveAuthFailures: 3,
+          lockedAt: lockedAt,
+          lastFailureAt: lockedAt,
+        ),
+        cooldownHours: 24,
+        now: now,
+      );
+      expect(state.result, LockoutCheckResult.pausedLocked);
+      expect(state.lockedAt, lockedAt);
+    });
+
+    test('pausedCooldown when last_failure_at within window', () {
+      final lastFail = now.subtract(const Duration(hours: 5));
+      final state = classifyLockout(
+        row: RaveLockoutRow(
+          consecutiveAuthFailures: 1,
+          lastFailureAt: lastFail,
+        ),
+        cooldownHours: 24,
+        now: now,
+      );
+      expect(state.result, LockoutCheckResult.pausedCooldown);
+      expect(state.pausedUntil, lastFail.add(const Duration(hours: 24)));
+    });
+
+    test('proceed when last_failure_at outside window', () {
+      final lastFail = now.subtract(const Duration(hours: 25));
+      final state = classifyLockout(
+        row: RaveLockoutRow(
+          consecutiveAuthFailures: 1,
+          lastFailureAt: lastFail,
+        ),
+        cooldownHours: 24,
+        now: now,
+      );
+      expect(state.result, LockoutCheckResult.proceed);
+    });
+
+    test('locked beats cooldown', () {
+      final lastFail = now.subtract(const Duration(hours: 1));
+      final state = classifyLockout(
+        row: RaveLockoutRow(
+          consecutiveAuthFailures: 3,
+          lockedAt: lastFail,
+          lastFailureAt: lastFail,
+        ),
+        cooldownHours: 24,
+        now: now,
+      );
+      expect(state.result, LockoutCheckResult.pausedLocked);
+    });
+  });
+}
