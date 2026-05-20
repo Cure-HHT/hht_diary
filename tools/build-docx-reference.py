@@ -11,7 +11,7 @@ the URS in Word format:
 - Heading 4 (sub-sections under a REQ): bold italic, 11pt
 - Body Text: 11pt Arial (Calibri fallback)
 - Page header: sponsor / protocol / version, right-aligned
-- Page footer: "Specific to Protocol TER-4480-C01    CONFIDENTIAL    Page N of M"
+- Page footer: "Specific to Protocol [PROTOCOL]    CONFIDENTIAL    Page N of M"
 
 Run once (or whenever URS metadata changes); committed output lives at
 tools/urs-reference.docx and is consumed automatically by
@@ -35,10 +35,10 @@ from docx.shared import Pt, RGBColor, Inches
 
 HEADER_TEXT = (
     "eCOA User Requirements Specification\n"
-    "Sponsor: Terremoto Biosciences\n"
-    "Protocol: TER-4480-C01    Version: 1.0"
+    "Sponsor: [SPONSOR_NAME]\n"
+    "Protocol: [PROTOCOL]    Version: 1.0"
 )
-FOOTER_LEFT = "Specific to Protocol TER-4480-C01"
+FOOTER_LEFT = "Specific to Protocol [PROTOCOL]"
 FOOTER_CENTER = "CONFIDENTIAL"
 
 # Body font preference: Arial (matches the URS LaTeX template), falling
