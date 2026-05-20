@@ -106,4 +106,24 @@ void main() {
       reason: 'counter still resets',
     );
   });
+
+  test('recordAuthFailure does not re-bump locked_at after threshold', () async {
+    // Verifies: CAL-OPS-rave-sync-hard-lockout (locked_at sticky)
+    final threshold = raveAuthFailureThresholdFromEnv({});
+    for (var i = 0; i < threshold; i++) {
+      await recordAuthFailure();
+    }
+    final firstLockedAt = (await checkLockout()).row.lockedAt!;
+    // Wait a tick so a re-bump would be observably later.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    // Simulate a post-lock failure (would normally be blocked by the gate, but
+    // we're testing the SQL invariant directly).
+    await recordAuthFailure();
+    final secondLockedAt = (await checkLockout()).row.lockedAt!;
+    expect(
+      secondLockedAt,
+      firstLockedAt,
+      reason: 'locked_at must be sticky once set — only Unwedge clears it',
+    );
+  });
 }

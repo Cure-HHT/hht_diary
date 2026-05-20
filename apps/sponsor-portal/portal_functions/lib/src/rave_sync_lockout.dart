@@ -182,17 +182,22 @@ Future<void> recordAuthFailure({
 
   final result = await db.executeWithContext(
     '''
+    WITH prev AS (
+      SELECT locked_at AS prev_locked_at FROM rave_sync_lockout WHERE id = 1
+    )
     UPDATE rave_sync_lockout
     SET consecutive_auth_failures = consecutive_auth_failures + 1,
         last_failure_at = now(),
         last_failure_reason_code = @reasonCode,
         locked_at = CASE
-          WHEN consecutive_auth_failures + 1 >= @threshold THEN now()
+          WHEN consecutive_auth_failures + 1 >= @threshold AND locked_at IS NULL THEN now()
           ELSE locked_at
         END,
         updated_at = now()
+    FROM prev
     WHERE id = 1
-    RETURNING consecutive_auth_failures, locked_at, last_failure_at
+    RETURNING consecutive_auth_failures, locked_at, last_failure_at,
+              prev.prev_locked_at
     ''',
     parameters: {'reasonCode': reasonCode, 'threshold': threshold},
     context: UserContext.service,
@@ -202,7 +207,8 @@ Future<void> recordAuthFailure({
   final counter = result.first[0] as int;
   final lockedAt = result.first[1] as DateTime?;
   final lastFailureAt = result.first[2] as DateTime;
-  final justLocked = lockedAt != null && counter == threshold;
+  final prevLockedAt = result.first[3] as DateTime?;
+  final justLocked = lockedAt != null && prevLockedAt == null;
 
   logWithTrace(
     'ERROR',
