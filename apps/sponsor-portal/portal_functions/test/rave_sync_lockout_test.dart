@@ -3,6 +3,8 @@
 // Unit tests for rave_sync_lockout module. Uses in-memory state stubs to
 // exercise pure logic without hitting Postgres.
 
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart' as http_testing;
 import 'package:portal_functions/portal_functions.dart';
 import 'package:test/test.dart';
 
@@ -104,6 +106,58 @@ void main() {
         now: now,
       );
       expect(state.result, LockoutCheckResult.pausedLocked);
+    });
+  });
+
+  group('notifySlackWith', () {
+    test('webhook unset is a no-op', () async {
+      var called = false;
+      final client = http_testing.MockClient((_) async {
+        called = true;
+        return http.Response('', 200);
+      });
+      await notifySlackWith(client: client, webhookUrl: null, text: 'ping');
+      expect(called, isFalse);
+    });
+
+    test('posts JSON body to webhook URL', () async {
+      Uri? capturedUri;
+      String? capturedBody;
+      final client = http_testing.MockClient((req) async {
+        capturedUri = req.url;
+        capturedBody = req.body;
+        return http.Response('ok', 200);
+      });
+      await notifySlackWith(
+        client: client,
+        webhookUrl: 'https://hooks.example/T/B/X',
+        text: 'hi',
+      );
+      expect(capturedUri.toString(), 'https://hooks.example/T/B/X');
+      expect(capturedBody, contains('"text":"hi"'));
+    });
+
+    test('non-2xx response is swallowed', () async {
+      final client = http_testing.MockClient(
+        (_) async => http.Response('nope', 500),
+      );
+      // Should NOT throw.
+      await notifySlackWith(
+        client: client,
+        webhookUrl: 'https://hooks.example/T/B/X',
+        text: 'hi',
+      );
+    });
+
+    test('client exception is swallowed', () async {
+      final client = http_testing.MockClient(
+        (_) async => throw http.ClientException('boom'),
+      );
+      await notifySlackWith(
+        client: client,
+        webhookUrl: 'https://hooks.example/T/B/X',
+        text: 'hi',
+      );
     });
   });
 }

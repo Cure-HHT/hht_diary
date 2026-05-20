@@ -252,28 +252,52 @@ Future<void> recordSyncSuccess() async {
 }
 
 /// Fire-and-forget Slack notifier. Reads RAVE_ALERT_SLACK_WEBHOOK per call.
-/// When unset, no-op (logs once). Slack failure never throws.
 // Implements: CAL-OPS-rave-alert-notification/A+E
 Future<void> notifySlack(String text) async {
-  final webhook = Platform.environment['RAVE_ALERT_SLACK_WEBHOOK'];
-  if (webhook == null || webhook.isEmpty) {
-    // ignore: avoid_print
-    print(
-      '[INFO] RAVE_ALERT_SLACK_WEBHOOK unset — skipping Slack alert: $text',
-    );
-    return;
-  }
+  await notifySlackWith(
+    client: http.Client(),
+    webhookUrl: Platform.environment['RAVE_ALERT_SLACK_WEBHOOK'],
+    text: text,
+    closeClient: true,
+  );
+}
+
+/// Testable variant: explicit client + webhook. Non-2xx and exceptions are
+/// logged and swallowed; never blocks or alters the caller's path.
+// Implements: CAL-OPS-rave-alert-notification/E
+Future<void> notifySlackWith({
+  required http.Client client,
+  required String? webhookUrl,
+  required String text,
+  bool closeClient = false,
+}) async {
   try {
-    await http
-        .post(
-          Uri.parse(webhook),
-          headers: {'content-type': 'application/json'},
-          body: jsonEncode({'text': text}),
-        )
-        .timeout(const Duration(seconds: 5));
-  } catch (e) {
-    // ignore: avoid_print
-    print('[WARN] Slack notify failed (non-fatal): $e');
+    if (webhookUrl == null || webhookUrl.isEmpty) {
+      // ignore: avoid_print
+      print('[INFO] RAVE_ALERT_SLACK_WEBHOOK unset — skipping Slack: $text');
+      return;
+    }
+    try {
+      final response = await client
+          .post(
+            Uri.parse(webhookUrl),
+            headers: {'content-type': 'application/json'},
+            body: jsonEncode({'text': text}),
+          )
+          .timeout(const Duration(seconds: 5));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        // ignore: avoid_print
+        print(
+          '[WARN] Slack notify non-2xx ${response.statusCode}: '
+          '${response.body}',
+        );
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('[WARN] Slack notify failed (non-fatal): $e');
+    }
+  } finally {
+    if (closeClient) client.close();
   }
 }
 
