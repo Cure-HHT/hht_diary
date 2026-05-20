@@ -5,7 +5,11 @@
 // docs/superpowers/specs/2026-05-19-rave-lockout-design.md.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+
+import 'package:http/http.dart' as http;
+import 'package:otel_common/otel_common.dart';
 
 import 'database.dart';
 
@@ -155,3 +159,119 @@ Future<LockoutState> checkLockout() async {
     now: DateTime.now().toUtc(),
   );
 }
+
+/// Slack alert origin. Probe-path failures suppress the per-failure alert in
+/// favor of the Unwedge confirmation alert.
+enum AuthFailureSource { normalSync, unwedgeProbe }
+
+/// Increments the consecutive-failure counter and may transition into
+/// hard lockout. Always sets last_failure_at (drives cooldown).
+/// On lockout-trip, fires both the per-failure Slack alert and the
+/// distinct lockout-trip alert. When [source] == unwedgeProbe, the
+/// per-failure alert is suppressed.
+// Implements: CAL-DEV-rave-auth-failure-classification/A+B+C
+// Implements: CAL-OPS-rave-sync-hard-lockout/A
+// Implements: CAL-OPS-rave-alert-notification/A+B
+Future<void> recordAuthFailure({
+  String? reasonCode,
+  AuthFailureSource source = AuthFailureSource.normalSync,
+}) async {
+  final db = Database.instance;
+  final threshold = raveAuthFailureThresholdFromEnv(Platform.environment);
+  final cooldownHours = raveAuthCooldownHoursFromEnv(Platform.environment);
+
+  final result = await db.executeWithContext(
+    '''
+    UPDATE rave_sync_lockout
+    SET consecutive_auth_failures = consecutive_auth_failures + 1,
+        last_failure_at = now(),
+        last_failure_reason_code = @reasonCode,
+        locked_at = CASE
+          WHEN consecutive_auth_failures + 1 >= @threshold THEN now()
+          ELSE locked_at
+        END,
+        updated_at = now()
+    WHERE id = 1
+    RETURNING consecutive_auth_failures, locked_at, last_failure_at
+    ''',
+    parameters: {'reasonCode': reasonCode, 'threshold': threshold},
+    context: UserContext.service,
+  );
+
+  if (result.isEmpty) return;
+  final counter = result.first[0] as int;
+  final lockedAt = result.first[1] as DateTime?;
+  final lastFailureAt = result.first[2] as DateTime;
+  final justLocked = lockedAt != null && counter == threshold;
+
+  logWithTrace(
+    'ERROR',
+    'Rave auth failure',
+    labels: {
+      'rave_auth_failed': 'true',
+      'rave_reason_code': reasonCode ?? 'unknown',
+      'rave_counter': '$counter',
+      'rave_threshold': '$threshold',
+      if (justLocked) 'rave_lockout_event': 'locked',
+    },
+  );
+
+  if (source == AuthFailureSource.normalSync) {
+    final cooldownEnd = lastFailureAt.add(Duration(hours: cooldownHours));
+    await notifySlack(
+      ':rotating_light: [${_envTag()}] Rave auth failed — counter '
+      '$counter/$threshold, paused until ${cooldownEnd.toIso8601String()}',
+    );
+  }
+  if (justLocked) {
+    await notifySlack(
+      ':no_entry: [${_envTag()}] Rave HARD LOCKOUT — manual Unwedge required '
+      'from Dev Admin dashboard',
+    );
+  }
+}
+
+/// Resets the counter, sets last_success_at. Does NOT clear locked_at —
+/// hard lockout is hard and only cleared by Unwedge.
+// Implements: CAL-OPS-rave-sync-cooldown/C
+Future<void> recordSyncSuccess() async {
+  final db = Database.instance;
+  await db.executeWithContext('''
+    UPDATE rave_sync_lockout
+    SET consecutive_auth_failures = 0,
+        last_success_at = now(),
+        updated_at = now()
+    WHERE id = 1
+    ''', context: UserContext.service);
+}
+
+/// Fire-and-forget Slack notifier. Reads RAVE_ALERT_SLACK_WEBHOOK per call.
+/// When unset, no-op (logs once). Slack failure never throws.
+// Implements: CAL-OPS-rave-alert-notification/A+E
+Future<void> notifySlack(String text) async {
+  final webhook = Platform.environment['RAVE_ALERT_SLACK_WEBHOOK'];
+  if (webhook == null || webhook.isEmpty) {
+    // ignore: avoid_print
+    print(
+      '[INFO] RAVE_ALERT_SLACK_WEBHOOK unset — skipping Slack alert: $text',
+    );
+    return;
+  }
+  try {
+    await http
+        .post(
+          Uri.parse(webhook),
+          headers: {'content-type': 'application/json'},
+          body: jsonEncode({'text': text}),
+        )
+        .timeout(const Duration(seconds: 5));
+  } catch (e) {
+    // ignore: avoid_print
+    print('[WARN] Slack notify failed (non-fatal): $e');
+  }
+}
+
+String _envTag() =>
+    Platform.environment['ENVIRONMENT'] ??
+    Platform.environment['DEPLOY_ENV'] ??
+    'unknown-env';
