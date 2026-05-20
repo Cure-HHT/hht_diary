@@ -173,13 +173,13 @@
 \fancyhead[R]{%
   \begin{tabular}{r@{}}
     \small \textbf{eCOA User Requirements Specification}\\
-    \small Sponsor: Terremoto Biosciences\\
-    \small Protocol: TER-4480-C01 \quad Version: 1.0
+    \small Sponsor: [SPONSOR_NAME]\\
+    \small Protocol: [PROTOCOL] \quad Version: 1.0
   \end{tabular}%
 }
 
 % CONFIDENTIAL marker left, "Page N of M" right
-\fancyfoot[L]{\small Specific to Protocol TER-4480-C01}
+\fancyfoot[L]{\small Specific to Protocol [PROTOCOL]}
 \fancyfoot[C]{\small CONFIDENTIAL}
 \fancyfoot[R]{\small Page \thepage{} of \pageref{LastPage}}
 
@@ -196,11 +196,11 @@
   \fancyhead[R]{%
     \begin{tabular}{r@{}}
       \small \textbf{eCOA User Requirements Specification}\\
-      \small Sponsor: Terremoto Biosciences\\
-      \small Protocol: TER-4480-C01 \quad Version: 1.0
+      \small Sponsor: [SPONSOR_NAME]\\
+      \small Protocol: [PROTOCOL] \quad Version: 1.0
     \end{tabular}%
   }%
-  \fancyfoot[L]{\small Specific to Protocol TER-4480-C01}%
+  \fancyfoot[L]{\small Specific to Protocol [PROTOCOL]}%
   \fancyfoot[C]{\small CONFIDENTIAL}%
   \fancyfoot[R]{\small Page \thepage{} of \pageref{LastPage}}%
   \renewcommand{\headrulewidth}{0.4pt}%
