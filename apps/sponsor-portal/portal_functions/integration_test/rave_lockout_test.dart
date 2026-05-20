@@ -126,4 +126,25 @@ void main() {
       reason: 'locked_at must be sticky once set — only Unwedge clears it',
     );
   });
+
+  test('syncSitesIfNeeded skips Rave call when locked', () async {
+    // Verifies: CAL-OPS-rave-sync-hard-lockout/B
+    // Trip lockout.
+    final threshold = raveAuthFailureThresholdFromEnv({});
+    for (var i = 0; i < threshold; i++) {
+      await recordAuthFailure();
+    }
+    // Now call sync — it must NOT call Rave (we'd see auth fails increment
+    // the counter if it did). We assert by counter staying constant.
+    final result = await syncSitesIfNeeded();
+    expect(result, isNotNull);
+    expect(result!.paused, isTrue);
+    expect(result.pausedReason, 'locked');
+    final state = await checkLockout();
+    expect(
+      state.row.consecutiveAuthFailures,
+      threshold,
+      reason: 'gate must not increment counter',
+    );
+  });
 }

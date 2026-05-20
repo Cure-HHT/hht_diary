@@ -11,7 +11,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:rave_integration/rave_integration.dart';
 import 'package:test/test.dart';
 
-import 'package:portal_functions/src/sites_sync.dart';
+import 'package:portal_functions/portal_functions.dart';
 
 // Mock classes
 class MockRaveClient extends Mock implements RaveClient {}
@@ -592,6 +592,34 @@ void main() {
         expect(config.username, isNotEmpty);
         expect(config.password, isNotEmpty);
       }
+    });
+  });
+
+  group('lockout gate (CUR-1361)', () {
+    test('pausedLocked → paused result with reason=locked', () {
+      final lockedAt = DateTime.utc(2026, 5, 19, 12, 0, 0);
+      final state = LockoutState(
+        result: LockoutCheckResult.pausedLocked,
+        lockedAt: lockedAt,
+        row: RaveLockoutRow(lockedAt: lockedAt),
+      );
+      final result = buildPausedSitesResult(state);
+      expect(result.paused, isTrue);
+      expect(result.pausedReason, 'locked');
+      expect(result.error, contains('Rave sync paused'));
+    });
+
+    test('pausedCooldown → paused result with pausedUntil', () {
+      final until = DateTime.utc(2026, 5, 20, 12, 0, 0);
+      final state = LockoutState(
+        result: LockoutCheckResult.pausedCooldown,
+        pausedUntil: until,
+        row: const RaveLockoutRow(),
+      );
+      final result = buildPausedSitesResult(state);
+      expect(result.paused, isTrue);
+      expect(result.pausedReason, 'cooldown');
+      expect(result.pausedUntil, until);
     });
   });
 }
