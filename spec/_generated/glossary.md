@@ -171,6 +171,10 @@ exported in CDISC-compliant formats for regulatory submission.
 : An existing entry whose time range intersects with the entry being created or edited.
 *Defined in: DIARY-PRD-entry-overlap-resolution (DIARY)*
 
+**Cooldown Window**
+: The configurable duration after the most recent Rave authentication failure during which the *Sponsor Portal* will not attempt another Rave call.
+*Defined in: file:spec/prd-rave-sync.md (DIARY)*
+
 **CQRS (Command Query Responsibility Segregation)** *(not indexed)*
 : An architectural pattern separating write operations (commands that
 create events) from read operations (queries that read current state).
@@ -525,6 +529,10 @@ Clinical Practice.
 
 ## H
 
+**Hard Lockout**
+: The state in which the *Sponsor Portal* refuses to attempt Rave calls until a *Developer Admin* explicitly invokes the recovery action, regardless of how much time has passed since the last failure.
+*Defined in: file:spec/prd-rave-sync.md (DIARY)*
+
 **Healthcare Provider** *(not indexed)*
 : A licensed healthcare professional (physician, nurse, specialist) who
 reviews a user's diary data to support clinical care. The healthcare
@@ -680,6 +688,10 @@ See: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078
 **Lock Warning Offset**
 : The configurable elapsed time before the Lock Threshold at which the **System** sends a push notification to the Participant about an **Incomplete Record** that has not been completed or deleted.
 *Defined in: DIARY-PRD-notification-incomplete-record-lock (DIARY)*
+
+**Lockout Threshold**
+: The configurable count of consecutive Rave authentication failures that triggers a hard pause requiring manual operator recovery.
+*Defined in: file:spec/prd-rave-sync.md (DIARY)*
 
 **Long Duration Threshold**
 : The configurable maximum duration above which a confirmation prompt is triggered.
@@ -1075,6 +1087,10 @@ See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
 *Defined in: DIARY-PRD-questionnaire-nose-hht (DIARY)*
 
 ## U
+
+**Unwedge**
+: The *Developer Admin*-initiated recovery action that clears the **Hard Lockout** state and immediately probes Rave with one synchronization attempt to confirm the credentials have been corrected.
+*Defined in: file:spec/prd-rave-sync.md (DIARY)*
 
 **User**
 : Any individual who uses the Diary Platform. The default term for
