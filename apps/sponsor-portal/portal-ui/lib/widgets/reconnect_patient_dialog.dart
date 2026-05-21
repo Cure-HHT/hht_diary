@@ -220,28 +220,6 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Reason field (mandatory)
-              Text(
-                'Reason for reconnection *',
-                style: theme.textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _reasonController,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  hintText: 'Enter reason for reconnection...',
-                  contentPadding: const EdgeInsets.all(12),
-                  helperText:
-                      'Required - explain why this participant is being reconnected',
-                  helperMaxLines: 2,
-                  errorText: _reasonController.text.isEmpty ? null : null,
-                ),
-                maxLines: 3,
-                onChanged: (_) => setState(() {}),
-              ),
               const SizedBox(height: 16),
 
               // Info message
@@ -274,6 +252,28 @@ class _ReconnectPatientDialogState extends State<ReconnectPatientDialog> {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 20),
+
+              // Reason field (mandatory)
+              Text(
+                'Reason for reconnection *',
+                style: theme.textTheme.labelLarge,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _reasonController,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  hintText: 'Enter reason for reconnection...',
+                  contentPadding: const EdgeInsets.all(12),
+                  helperText:
+                      'Required - explain why this participant is being reconnected',
+                  helperMaxLines: 2,
+                  errorText: _reasonController.text.isEmpty ? null : null,
+                ),
+                maxLines: 3,
+                onChanged: (_) => setState(() {}),
               ),
             ],
           ),
