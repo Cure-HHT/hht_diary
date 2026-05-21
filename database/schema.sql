@@ -839,8 +839,8 @@ COMMENT ON COLUMN portal_user_audit_log.after_value IS 'JSONB snapshot of state 
 -- RAVE SYNC LOCKOUT (CUR-1361)
 -- =====================================================
 -- Single-row state table per env. Tracks consecutive Rave auth failures,
--- hard-lockout marker, and last-unwedge audit info. See
--- docs/superpowers/specs/2026-05-19-rave-lockout-design.md.
+-- hard-lockout marker, and last-unwedge audit info. See spec/prd-rave-sync.md
+-- for the normative REQs.
 --
 -- Also maintained as a migration (013_create_rave_sync_lockout.sql) for
 -- incremental upgrades to live deployments. Fresh installs (CI test DB,

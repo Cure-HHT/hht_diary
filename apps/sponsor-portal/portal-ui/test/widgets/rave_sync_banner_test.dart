@@ -66,5 +66,40 @@ void main() {
       expect(find.textContaining('reason'), findsNothing);
       expect(find.textContaining('unwedged'), findsNothing);
     });
+
+    testWidgets('cooldown with null pausedUntil omits the time clause', (
+      tester,
+    ) async {
+      // Defensive: backend should always populate pausedUntil for cooldown,
+      // but if it ever doesn't, the banner must not render a literal '?'
+      // where a timestamp belongs.
+      await tester.pumpWidget(_wrap(const RaveSyncBanner(state: 'cooldown')));
+      expect(find.textContaining('?'), findsNothing);
+      expect(
+        find.textContaining('Sync will resume automatically'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('locked with null since omits the from-time clause', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_wrap(const RaveSyncBanner(state: 'locked')));
+      expect(find.textContaining('?'), findsNothing);
+      expect(find.textContaining('contact a Developer Admin'), findsOneWidget);
+    });
+
+    testWidgets('unknown state renders nothing (no misleading copy)', (
+      tester,
+    ) async {
+      // If the backend ever adds a new state or returns malformed data,
+      // the banner must not fall back to the locked copy (which would
+      // misleadingly tell users to contact a Developer Admin).
+      await tester.pumpWidget(
+        _wrap(const RaveSyncBanner(state: 'something-new')),
+      );
+      expect(find.byIcon(Icons.warning_amber), findsNothing);
+      expect(find.textContaining('Rave sync'), findsNothing);
+    });
   });
 }

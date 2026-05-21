@@ -31,13 +31,13 @@ class RaveSyncBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state == 'ok') return const SizedBox.shrink();
-    final text = state == 'cooldown'
-        ? 'Rave sync paused due to a recent auth failure. Showing last-known '
-              'data. Sync resumes automatically at '
-              '${pausedUntil?.toIso8601String() ?? '?'}.'
-        : 'Rave sync paused - contact a Developer Admin to resume. Showing '
-              'last-known data from ${since?.toIso8601String() ?? '?'}.';
+    final text = switch (state) {
+      'ok' => null, // No banner.
+      'cooldown' => _cooldownText(pausedUntil),
+      'locked' => _lockedText(since),
+      _ => null, // Unknown state: render nothing rather than misleading copy.
+    };
+    if (text == null) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -50,5 +50,26 @@ class RaveSyncBanner extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _cooldownText(DateTime? pausedUntil) {
+    const base =
+        'Rave sync paused due to a recent auth failure. Showing '
+        'last-known data.';
+    if (pausedUntil == null) {
+      return '$base Sync will resume automatically.';
+    }
+    return '$base Sync resumes automatically at '
+        '${pausedUntil.toIso8601String()}.';
+  }
+
+  static String _lockedText(DateTime? since) {
+    const base =
+        'Rave sync paused - contact a Developer Admin to resume. '
+        'Showing last-known data';
+    if (since == null) {
+      return '$base.';
+    }
+    return '$base from ${since.toIso8601String()}.';
   }
 }

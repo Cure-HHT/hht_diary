@@ -1,8 +1,7 @@
-// Live decision state for Rave sync lockout. See
-// spec/prd-rave-sync.md for the normative REQs and
-// docs/superpowers/specs/2026-05-19-rave-lockout-design.md for the design.
-// Per-function `// Implements:` annotations cite specific assertions; this
-// file deliberately carries no file-header IMPLEMENTS block (CLAUDE.md §1).
+// Live decision state for Rave sync lockout. See spec/prd-rave-sync.md
+// for the normative REQs. Per-function `// Implements:` annotations cite
+// specific assertions; this file deliberately carries no file-header
+// IMPLEMENTS block (CLAUDE.md §1).
 
 import 'dart:async';
 import 'dart:convert';
@@ -235,6 +234,12 @@ Future<void> recordAuthFailure({
   // that we don't want to add to the HTTP response time; fire-and-forget
   // instead. On Cloud Run the isolate stays alive after the response so
   // background work completes.
+  //
+  // Both per-failure AND lockout-trip alerts are suppressed for the
+  // unwedge-probe path, so each Unwedge click produces exactly one Slack
+  // message (the unwedge-confirmation alert fired by unwedgeRaveHandler).
+  // Without this, low thresholds (e.g. RAVE_AUTH_FAILURE_THRESHOLD=1)
+  // would emit lockout-trip AND confirmation for a single failed probe.
   if (source == AuthFailureSource.normalSync) {
     final cooldownEnd = lastFailureAt.add(Duration(hours: cooldownHours));
     unawaited(
@@ -247,9 +252,9 @@ Future<void> recordAuthFailure({
         ),
       ),
     );
-  }
-  if (justLocked) {
-    unawaited(notifySlack(buildHardLockoutSlackMessage(env: raveEnvTag())));
+    if (justLocked) {
+      unawaited(notifySlack(buildHardLockoutSlackMessage(env: raveEnvTag())));
+    }
   }
 }
 

@@ -7,8 +7,8 @@
 --   auth failures, hard-lockout marker, last-failure timestamp
 --   (drives cooldown), and last-unwedge audit info.
 --
---   See docs/superpowers/specs/2026-05-19-rave-lockout-design.md
---   for full semantics.
+--   See spec/prd-rave-sync.md for the normative REQs (DIARY-OPS-rave-sync-*,
+--   DIARY-DEV-rave-auth-failure-classification).
 -- =====================================================
 
 set lock_timeout = '2s';

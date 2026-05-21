@@ -30,8 +30,11 @@ String buildUnwedgeConfirmationSlackMessage({
   required bool probeOk,
   String? probeError,
 }) {
+  // Use distinct leading emoji so an operator scanning the channel can tell
+  // success vs failure at a glance, without parsing the full message body.
+  final emoji = probeOk ? ':white_check_mark:' : ':x:';
   final probeText = probeOk ? 'OK' : 'FAIL: ${probeError ?? "unknown"}';
-  return ':white_check_mark: [$env] Rave unwedged by $userEmail — probe $probeText';
+  return '$emoji [$env] Rave unwedged by $userEmail — probe $probeText';
 }
 
 /// Renders the `rave_sync` block embedded in /sites and /participants

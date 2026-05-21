@@ -42,5 +42,27 @@ void main() {
       );
       expect(msg, contains('probe FAIL: unknown'));
     });
+
+    test('successful probe uses :white_check_mark: emoji', () {
+      final msg = buildUnwedgeConfirmationSlackMessage(
+        env: 'qa',
+        userEmail: 'alice@example.com',
+        probeOk: true,
+      );
+      expect(msg, startsWith(':white_check_mark:'));
+    });
+
+    test('failed probe uses :x: emoji (not a success marker)', () {
+      // Operators scan Slack visually — a success emoji on a failed Unwedge
+      // is misleading. The failure emoji must be distinct.
+      final msg = buildUnwedgeConfirmationSlackMessage(
+        env: 'qa',
+        userEmail: 'alice@example.com',
+        probeOk: false,
+        probeError: 'whatever',
+      );
+      expect(msg, startsWith(':x:'));
+      expect(msg, isNot(contains(':white_check_mark:')));
+    });
   });
 }
