@@ -97,7 +97,6 @@ Widget _buildActiveState(BuildContext context) {
     enrollmentStatus: 'active',
     isSharingWithCureHHT: false,
     userName: 'John Doe',
-    onUpdateUserName: (_) {},
     enrollmentCode: 'CA12345678',
     enrollmentDateTime: DateTime(2026, 1, 15, 10, 30),
     siteName: 'University Hospital Clinical Research Center',
@@ -122,7 +121,6 @@ Widget _buildDisconnectedState(BuildContext context) {
     enrollmentStatus: 'active',
     isSharingWithCureHHT: false,
     userName: 'Jane Smith',
-    onUpdateUserName: (_) {},
     enrollmentCode: 'CA87654321',
     enrollmentDateTime: DateTime(2025, 11, 20, 14, 45),
     siteName: 'City Medical Center',
@@ -147,7 +145,6 @@ Widget _buildNotParticipatingState(BuildContext context) {
     enrollmentStatus: 'none',
     isSharingWithCureHHT: false,
     userName: 'New User',
-    onUpdateUserName: (_) {},
   );
 }
 
@@ -201,7 +198,6 @@ Widget _buildInteractiveState(BuildContext context) {
     enrollmentStatus: isEnrolled ? 'active' : 'none',
     isSharingWithCureHHT: false,
     userName: userName,
-    onUpdateUserName: (_) {},
     enrollmentCode: isEnrolled ? enrollmentCode : null,
     enrollmentDateTime: isEnrolled ? DateTime(2026, 1, 15) : null,
     siteName: siteName,

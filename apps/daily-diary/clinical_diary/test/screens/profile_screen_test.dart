@@ -48,7 +48,6 @@ void main() {
           enrollmentStatus: enrollmentStatus,
           isSharingWithCureHHT: isSharingWithCureHHT,
           userName: 'Test User',
-          onUpdateUserName: (_) {},
           enrollmentCode: enrollmentCode,
           enrollmentDateTime: enrollmentDateTime,
           enrollmentEndDateTime: enrollmentEndDateTime,
@@ -323,7 +322,6 @@ void main() {
               enrollmentStatus: 'active',
               isSharingWithCureHHT: false,
               userName: 'Test User',
-              onUpdateUserName: (_) {},
             ),
           ),
         );
@@ -376,7 +374,6 @@ void main() {
                 enrollmentStatus: 'none',
                 isSharingWithCureHHT: true,
                 userName: 'Test User',
-                onUpdateUserName: (_) {},
               ),
             ),
           );
@@ -468,7 +465,6 @@ void main() {
               enrollmentStatus: 'none',
               isSharingWithCureHHT: false,
               userName: 'Test User',
-              onUpdateUserName: (_) {},
             ),
           ),
         );
@@ -500,7 +496,6 @@ void main() {
               enrollmentStatus: 'none',
               isSharingWithCureHHT: false,
               userName: 'Test User',
-              onUpdateUserName: (_) {},
             ),
           ),
         );
