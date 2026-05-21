@@ -13,8 +13,44 @@ import 'dart:io';
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' show OTel;
 import 'package:portal_functions/portal_functions.dart';
+import 'package:rave_integration/rave_integration.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
+
+/// Minimal RaveClient stub that always throws RaveNetworkException.
+/// Used by the negative-classification test to verify that non-401 Rave
+/// failures don't increment the auth-failure counter.
+class _NetworkFailingRaveClient implements RaveClient {
+  @override
+  final String baseUrl = 'stub://rave.example';
+  @override
+  final String username = 'stub';
+  @override
+  final String password = 'stub';
+
+  @override
+  Future<String> getVersion() async {
+    throw RaveNetworkException('stubbed network failure');
+  }
+
+  @override
+  Future<String> getStudies() async {
+    throw RaveNetworkException('stubbed network failure');
+  }
+
+  @override
+  Future<List<RaveSite>> getSites({String? studyOid}) async {
+    throw RaveNetworkException('stubbed network failure');
+  }
+
+  @override
+  Future<List<RaveSubject>> getSubjects({required String studyOid}) async {
+    throw RaveNetworkException('stubbed network failure');
+  }
+
+  @override
+  void close() {}
+}
 
 void main() {
   setUpAll(() async {
@@ -173,6 +209,36 @@ void main() {
           'wrapper must not increment counter (gate or config short-circuit)',
     );
   });
+
+  test(
+    'RaveNetworkException does NOT increment the auth-failure counter',
+    () async {
+      // Verifies: DIARY-DEV-rave-auth-failure-classification/B
+      //
+      // Negative-classification check: network errors (DNS, socket, timeout)
+      // and generic Rave errors must NOT count toward the lockout counter,
+      // because they don't advance Medidata's upstream lockout. Only HTTP 401
+      // does. Confirms by stubbing the RaveClient to throw RaveNetworkException
+      // and asserting the counter stays at its pre-call value.
+      await recordAuthFailure(reasonCode: 'PRIOR'); // counter -> 1
+      expect((await checkLockout()).row.consecutiveAuthFailures, 1);
+
+      final stub = _NetworkFailingRaveClient();
+      final result = await syncSitesFromEdc(
+        testClient: stub,
+        skipLogging: true,
+      );
+      expect(result.hasError, isTrue);
+      expect(result.error, contains('RAVE network error'));
+
+      final state = await checkLockout();
+      expect(
+        state.row.consecutiveAuthFailures,
+        1,
+        reason: 'network errors must NOT increment the auth-failure counter',
+      );
+    },
+  );
 
   group('endpoints (CUR-1361)', () {
     // Verifies: DIARY-OPS-rave-unwedge-authz/A+B,

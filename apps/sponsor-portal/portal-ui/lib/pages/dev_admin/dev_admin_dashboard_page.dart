@@ -134,7 +134,7 @@ class _SystemTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const _RaveSyncCard(),
+          const RaveSyncCard(),
         ],
       ),
     );
@@ -759,14 +759,20 @@ class _AllUsersTabState extends State<_AllUsersTab> {
 
 /// Dev-Admin-facing Rave outbound-sync status + manual unwedge card.
 // Implements: DIARY-GUI-dev-admin-rave-sync-card/A+B+C
-class _RaveSyncCard extends StatefulWidget {
-  const _RaveSyncCard();
+class RaveSyncCard extends StatefulWidget {
+  /// Optional service injection for widget tests. Production callers
+  /// (the `_SystemTab` instantiation below) leave this null and the
+  /// post-frame callback constructs a real `RaveAdminService` from the
+  /// in-context `AuthService`.
+  const RaveSyncCard({super.key, this.serviceOverride});
+
+  final RaveAdminService? serviceOverride;
 
   @override
-  State<_RaveSyncCard> createState() => _RaveSyncCardState();
+  State<RaveSyncCard> createState() => RaveSyncCardState();
 }
 
-class _RaveSyncCardState extends State<_RaveSyncCard> {
+class RaveSyncCardState extends State<RaveSyncCard> {
   RaveAdminService? _service;
   RaveLockoutState? _state;
   bool _isLoading = true;
@@ -776,6 +782,17 @@ class _RaveSyncCardState extends State<_RaveSyncCard> {
   @override
   void initState() {
     super.initState();
+    final override = widget.serviceOverride;
+    if (override != null) {
+      // Test path: service injected; skip the post-frame AuthService lookup
+      // and load state synchronously after first frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _service = override;
+        _loadState();
+      });
+      return;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Post-frame callback can fire after dispose (rapid navigation).
       if (!mounted) return;

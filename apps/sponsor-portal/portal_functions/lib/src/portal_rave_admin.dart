@@ -1,7 +1,8 @@
-// Implements: DIARY-OPS-rave-unwedge-authz, DIARY-OPS-rave-alert-notification/C
-//
-// Developer Admin endpoints for the Rave sync lockout feature.
+// Developer Admin endpoints for the Rave sync lockout feature. Per-handler
+// `// Implements:` annotations cite specific assertions; no file-header
+// IMPLEMENTS block per CLAUDE.md §1.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,6 +19,20 @@ Response _json(Map<String, dynamic> body, [int status = 200]) => Response(
   body: jsonEncode(body),
   headers: {'content-type': 'application/json'},
 );
+
+/// Builds the Slack confirmation alert text fired by unwedgeRaveHandler.
+/// Pure — extracted so unit tests can assert on env tag, operator email,
+/// and probe outcome formatting without a webhook stub.
+// Implements: DIARY-OPS-rave-alert-notification/C+D
+String buildUnwedgeConfirmationSlackMessage({
+  required String env,
+  required String userEmail,
+  required bool probeOk,
+  String? probeError,
+}) {
+  final probeText = probeOk ? 'OK' : 'FAIL: ${probeError ?? "unknown"}';
+  return ':white_check_mark: [$env] Rave unwedged by $userEmail — probe $probeText';
+}
 
 /// Renders the `rave_sync` block embedded in /sites and /participants
 /// responses. Reads current lockout state.
@@ -163,12 +178,19 @@ Future<Response> unwedgeRaveHandler(Request request) async {
 
   // Slack confirmation. Probe-fail case: the per-failure Slack alert was
   // suppressed by syncSitesFromEdc using AuthFailureSource.unwedgeProbe.
-  // notifySlack swallows its own failures internally — safe to await
-  // without an outer try.
-  final probeText = probeOk ? 'OK' : 'FAIL: ${probeError ?? "unknown"}';
-  await notifySlack(
-    ':white_check_mark: [${raveEnvTag()}] '
-    'Rave unwedged by ${user.email} — probe $probeText',
+  // Fire-and-forget (DIARY-OPS-rave-alert-notification/E): notifySlackWith
+  // swallows its own failures internally, but the 5s timeout MUST NOT add
+  // tail latency to the HTTP response. On Cloud Run the isolate stays
+  // alive after the response so the background send completes.
+  unawaited(
+    notifySlack(
+      buildUnwedgeConfirmationSlackMessage(
+        env: raveEnvTag(),
+        userEmail: user.email,
+        probeOk: probeOk,
+        probeError: probeError,
+      ),
+    ),
   );
 
   // Best-effort state fetch. If this throws we still return a useful

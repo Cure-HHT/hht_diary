@@ -106,6 +106,7 @@ class UnwedgeResult {
 
 /// Thin wrapper around [ApiClient] that exposes the Dev Admin Rave Sync
 /// endpoints as typed methods.
+// Implements: DIARY-GUI-dev-admin-rave-sync-card/A+B
 class RaveAdminService {
   final ApiClient _api;
 

@@ -1,8 +1,8 @@
-// Implements: DIARY-OPS-rave-sync-cooldown, DIARY-OPS-rave-sync-hard-lockout,
-//   DIARY-DEV-rave-auth-failure-classification, DIARY-OPS-rave-alert-notification
-//
 // Live decision state for Rave sync lockout. See
-// docs/superpowers/specs/2026-05-19-rave-lockout-design.md.
+// spec/prd-rave-sync.md for the normative REQs and
+// docs/superpowers/specs/2026-05-19-rave-lockout-design.md for the design.
+// Per-function `// Implements:` annotations cite specific assertions; this
+// file deliberately carries no file-header IMPLEMENTS block (CLAUDE.md §1).
 
 import 'dart:async';
 import 'dart:convert';
@@ -230,18 +230,26 @@ Future<void> recordAuthFailure({
     },
   );
 
+  // Slack notification MUST NOT block the sync request path (per
+  // DIARY-OPS-rave-alert-notification/E). notifySlackWith has a 5s timeout
+  // that we don't want to add to the HTTP response time; fire-and-forget
+  // instead. On Cloud Run the isolate stays alive after the response so
+  // background work completes.
   if (source == AuthFailureSource.normalSync) {
     final cooldownEnd = lastFailureAt.add(Duration(hours: cooldownHours));
-    await notifySlack(
-      ':rotating_light: [${raveEnvTag()}] Rave auth failed — counter '
-      '$counter/$threshold, paused until ${cooldownEnd.toIso8601String()}',
+    unawaited(
+      notifySlack(
+        buildAuthFailureSlackMessage(
+          env: raveEnvTag(),
+          counter: counter,
+          threshold: threshold,
+          cooldownEnd: cooldownEnd,
+        ),
+      ),
     );
   }
   if (justLocked) {
-    await notifySlack(
-      ':no_entry: [${raveEnvTag()}] Rave HARD LOCKOUT — manual Unwedge required '
-      'from Dev Admin dashboard',
-    );
+    unawaited(notifySlack(buildHardLockoutSlackMessage(env: raveEnvTag())));
   }
 }
 
@@ -316,7 +324,30 @@ Future<void> notifySlackWith({
 /// Environment tag for Slack alerts. Prefers ENVIRONMENT, falls back to
 /// DEPLOY_ENV, then 'unknown-env'. Public so portal_rave_admin (and any
 /// future caller) renders the same tag without duplicating the logic.
+// Implements: DIARY-OPS-rave-alert-notification/D
 String raveEnvTag() =>
     Platform.environment['ENVIRONMENT'] ??
     Platform.environment['DEPLOY_ENV'] ??
     'unknown-env';
+
+/// Builds the per-failure Slack alert text fired by recordAuthFailure.
+/// Pure — extracted from the recordAuthFailure body so unit tests can
+/// assert on the message contract (env tag, counter, threshold, cooldown
+/// end) without standing up Postgres or a webhook.
+// Implements: DIARY-OPS-rave-alert-notification/A+D
+String buildAuthFailureSlackMessage({
+  required String env,
+  required int counter,
+  required int threshold,
+  required DateTime cooldownEnd,
+}) =>
+    ':rotating_light: [$env] Rave auth failed — counter '
+    '$counter/$threshold, paused until ${cooldownEnd.toIso8601String()}';
+
+/// Builds the lockout-trip Slack alert text fired by recordAuthFailure
+/// on the threshold-crossing UPDATE. Distinct from the per-failure alert
+/// so it can be routed/filtered separately by operators.
+// Implements: DIARY-OPS-rave-alert-notification/B+D
+String buildHardLockoutSlackMessage({required String env}) =>
+    ':no_entry: [$env] Rave HARD LOCKOUT — manual Unwedge required '
+    'from Dev Admin dashboard';

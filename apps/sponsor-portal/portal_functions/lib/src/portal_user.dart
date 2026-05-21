@@ -1073,6 +1073,7 @@ Future<Response> getPortalSitesHandler(Request request) async {
 
   // Best-effort: omit rave_sync entirely if the lockout table is unavailable
   // (e.g., migration not applied yet, transient DB hiccup). Don't break /sites.
+  // Implements: DIARY-GUI-rave-sync-paused-banner/A
   try {
     response['rave_sync'] = await buildRaveSyncBlock();
   } catch (e) {
@@ -1200,6 +1201,7 @@ Future<Response> getPortalPatientsHandler(Request request) async {
   }
 
   // Best-effort: omit rave_sync entirely on failure. Don't break /participants.
+  // Implements: DIARY-GUI-rave-sync-paused-banner/A
   try {
     response['rave_sync'] = await buildRaveSyncBlock();
   } catch (e) {

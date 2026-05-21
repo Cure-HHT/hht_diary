@@ -494,6 +494,7 @@ class _UserManagementTabState extends State<UserManagementTab>
         // Rave sync lockout banner (CUR-1361). Site data on this page is
         // synced from Rave; warn admins when the cached `_sites` list may
         // be stale because the sync is paused. Renders nothing when ok.
+        // Implements: DIARY-GUI-rave-sync-paused-banner/A
         RaveSyncBanner(
           state: _raveSyncState,
           pausedUntil: _ravePausedUntil,

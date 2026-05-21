@@ -267,6 +267,7 @@ class _StudyCoordinatorPatientsTabState
           // Rave sync lockout banner (CUR-1361). Renders nothing when
           // state == 'ok'. Sits above the data so paused/locked state is
           // visible before the cached table.
+          // Implements: DIARY-GUI-rave-sync-paused-banner/A
           RaveSyncBanner(
             state: _raveSyncState,
             pausedUntil: _ravePausedUntil,

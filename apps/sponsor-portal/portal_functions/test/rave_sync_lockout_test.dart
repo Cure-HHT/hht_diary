@@ -194,4 +194,53 @@ void main() {
       );
     });
   });
+
+  group('alert message builders', () {
+    // Verifies: DIARY-OPS-rave-alert-notification/A+D
+    test(
+      'auth-failure message includes env, counter, threshold, cooldown end',
+      () {
+        final cooldownEnd = DateTime.utc(2026, 5, 22, 12, 0, 0);
+        final msg = buildAuthFailureSlackMessage(
+          env: 'qa',
+          counter: 2,
+          threshold: 3,
+          cooldownEnd: cooldownEnd,
+        );
+        expect(msg, contains('[qa]'));
+        expect(msg, contains('2/3'));
+        expect(msg, contains(cooldownEnd.toIso8601String()));
+        expect(msg, contains('Rave auth failed'));
+      },
+    );
+
+    // Verifies: DIARY-OPS-rave-alert-notification/B+D
+    test('hard-lockout message is distinct and includes env', () {
+      final msg = buildHardLockoutSlackMessage(env: 'uat');
+      expect(msg, contains('[uat]'));
+      expect(msg, contains('HARD LOCKOUT'));
+      expect(msg, contains('Unwedge'));
+      // Must be distinguishable from the per-failure message.
+      expect(
+        msg,
+        isNot(contains('Rave auth failed')),
+        reason:
+            'lockout-trip alert must not be confused with per-failure alert',
+      );
+    });
+
+    // Verifies: DIARY-OPS-rave-alert-notification/D — env tag always present
+    test('builders use whatever env tag is passed (no hidden fallback)', () {
+      expect(
+        buildAuthFailureSlackMessage(
+          env: 'dev',
+          counter: 1,
+          threshold: 3,
+          cooldownEnd: DateTime.utc(2026, 5, 22),
+        ),
+        contains('[dev]'),
+      );
+      expect(buildHardLockoutSlackMessage(env: 'prod'), contains('[prod]'));
+    });
+  });
 }
