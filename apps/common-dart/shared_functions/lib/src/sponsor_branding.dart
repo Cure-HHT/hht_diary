@@ -52,8 +52,8 @@ class SponsorBranding {
 ///
 /// GET /api/v1/sponsor/branding
 ///
-/// 200: { "sponsorId": "callisto", "title": "Terremoto",
-///         "assetBaseUrl": "/callisto" }
+/// 200: { "sponsorId": "[sponsor-id]", "title": "[Sponsor Display Name]",
+///         "assetBaseUrl": "/[sponsor-id]" }
 /// 503: Sponsor branding not configured
 Response sponsorBrandingHandlerWithId(Request request, String sponsorId) {
   final branding = SponsorBranding(sponsorId);
@@ -81,8 +81,8 @@ Response sponsorBrandingHandlerWithId(Request request, String sponsorId) {
 ///
 /// GET /api/v1/sponsor/branding
 ///
-/// 200: { "sponsorId": "callisto", "title": "Terremoto",
-///         "assetBaseUrl": "/callisto" }
+/// 200: { "sponsorId": "[sponsor-id]", "title": "[Sponsor Display Name]",
+///         "assetBaseUrl": "/[sponsor-id]" }
 /// 503: Sponsor branding not configured
 Response sponsorBrandingHandler(Request request) =>
     sponsorBrandingHandlerWithId(
