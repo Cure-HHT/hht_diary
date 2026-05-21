@@ -22,18 +22,23 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 
   | Repo | REQ ID format | Example |
   | ---- | ------------- | ------- |
-  | `hht_diary` (this repo, legacy) | `REQ-{p\|o\|d}{NNNNN}` (5 digits) | `REQ-d00027`, `REQ-p01018` |
-  | `hht_admin` (named, no elspais) | `HHT-{PRD\|OPS\|DEV}-{kebab-name}` | `HHT-OPS-storage-rules` |
-  | `event_sourcing` (named) | `EVS-{PRD\|OPS\|DEV}-{kebab-name}` | `EVS-DEV-provenance-entry-schema` |
+  | `hht_diary` (this repo) | `DIARY-{PRD\|GUI\|OPS\|DEV}-{kebab-name}` | `DIARY-PRD-action-inventory`, `DIARY-GUI-user-account-deactivate` |
+  | `hht_diary_callisto` | `CAL-{PRD\|GUI\|OPS\|DEV}-{kebab-name}` | `CAL-PRD-permissions-table`, `CAL-GUI-portal-questionnaire-callback` |
+  | `hht_admin` | `HHT-{PRD\|OPS\|DEV}-{kebab-name}` | `HHT-OPS-storage-rules` |
+  | `event_sourcing` | `EVS-{PRD\|OPS\|DEV}-{kebab-name}` | `EVS-DEV-provenance-entry-schema` |
   | `hht_workflows` (public CI) | no own REQs; consumes from `hht_admin` (e.g. `HHT-OPS-composite-action-library`) | — |
+
+  `hht_diary`'s legacy `REQ-{p\|o\|d}NNNNN` format was migrated to the entity-first kebab convention above on 2026-05-15. The pre-migration tree is preserved under `spec-archive/` for reference and is not scanned by elspais.
+
+  Naming convention: **entity-first kebab-case**. Group related requirements by their primary entity so file listings self-organize (e.g. `DIARY-PRD-user-account-create`, `DIARY-PRD-user-account-edit`, `DIARY-PRD-user-account-deactivate`).
 
   Named REQ IDs are **stable**: renaming is a breaking change for every reference (annotations, `Refines:`/`Satisfies:` metadata, Rationale prose). Coordinate sweeps; call out renames explicitly in the commit.
 
 - **Annotate functions / script steps with specific Assertions — NOT file-header `IMPLEMENTS REQUIREMENTS:` blocks.** The unit of traceability is the assertion (A, B, C, ...), not the whole REQ. Cite by appending the assertion label(s):
 
   ```dart
-  // Implements: EVS-DEV-provenance-entry-schema/A,B
-  String canonicalize(Map<String, Object?> entry) { ... }
+  // Implements: DIARY-PRD-user-account-deactivate/A+B
+  void deactivateUserAccount(String userId, String reason) { ... }
   ```
 
   ```yaml
@@ -48,9 +53,9 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
   assert_no_secret_in_state "$TF_STATE_PATH"
   ```
 
-  Format: `<REQ-id>/<assertion-list>`. Single assertion: `/A`. Multiple assertions of one REQ on one unit: `/A,B,D`. Multiple REQs on one unit: stack the annotations as separate comment lines. Use `// Implements:` (or `# Implements:`) on production-code units; use `// Verifies:` (or `# Verifies:`) on test units. Cross-repo refs use the foreign repo's format (e.g. a `hht_diary` file may carry `// Implements: HHT-OPS-identity-over-keys/B` to cite hht_admin's spec).
+  Format: `<REQ-id>/<assertion-list>`. Single assertion: `/A`. Multiple assertions of one REQ on one unit: `/A+B+D` (elspais default `multi_separator`). Multiple REQs on one unit: stack the annotations as separate comment lines. Use `// Implements:` (or `# Implements:`) on production-code units; use `// Verifies:` (or `# Verifies:`) on test units. Cross-repo refs use the foreign repo's format (e.g. a `hht_diary` file may carry `// Implements: HHT-OPS-identity-over-keys/B` to cite hht_admin's spec).
 
-- **Legacy `REQ-{p|o|d}NNNNN` file-header `IMPLEMENTS REQUIREMENTS:` blocks** in pre-existing `hht_diary` source files are historical. Leave them alone unless you're touching the surrounding code; when you do, migrate to function/step-level annotations on the units that actually implement each assertion.
+- **`spec-archive/`** holds the pre-2026-05 spec tree (legacy `REQ-{p|o|d}NNNNN` ids). Read-only reference for the URS-v1 migration. Not scanned by elspais; not part of the active traceability graph.
 
 ### 2. Workflow Enforcement
 - You MUST claim a ticket using the `workflow:workflow` sub-agent
@@ -60,8 +65,11 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 ### 3. Documentation Hierarchy
 - **spec/**: Formal requirements defining WHAT to build, organized by audience
   - `prd-*.md`: Product requirements (NO CODE EXAMPLES)
+  - `gui-*.md`: Presentation requirements — interface behavior, layout, interaction patterns (refines a PRD parent)
   - `ops-*.md`: Deployment/operations (CLI commands OK)
   - `dev-*.md`: Implementation guides (code examples OK)
+- **spec/_generated/**: Build artifacts emitted by elspais (`INDEX.md`, glossary, term index). Committed for review; do not edit by hand.
+- **spec-archive/**: Pre-2026-05 spec snapshot (legacy ids); reference only, not scanned.
 - **docs/**: Implementation notes and Architecture Decision Records (ADRs)
 - Always read `spec/README.md` before modifying spec/ files
 - See `spec/INDEX.md` for complete REQ index
@@ -91,13 +99,13 @@ This rule applies to `hht_diary`'s own design specs at `docs/superpowers/specs/*
 Every new design spec MUST include a `## Requirements` section that:
 
 - Lists existing applicable REQs. For `hht_diary` REQs, use `discover_requirements` via the elspais MCP. For cross-repo REQs (`HHT-*` in `hht_admin`, `EVS-*` in `event_sourcing`), cite by name with the file path of the authoritative spec.
-- Drafts new REQ entries (title, rationale, assertion list A/B/C/...) for any new functionality. New `hht_diary` REQs claim `REQ-d{NNNNN}` numbers and land in `spec/dev-*.md` via the implementation plan; new `HHT-*` / `EVS-*` REQs land in the relevant sibling repo's `spec/`.
+- Drafts new REQ entries (title, rationale, assertion list A/B/C/...) for any new functionality. New `hht_diary` REQs claim `DIARY-{PRD|GUI|OPS|DEV}-{kebab-name}` ids (pick the entity-first kebab slug at authoring time; the slug is stable) and land in `spec/prd-*.md`, `spec/gui-*.md`, `spec/ops-*.md`, or `spec/dev-*.md` via the implementation plan; new `CAL-*` / `HHT-*` / `EVS-*` REQs land in the relevant sibling repo's `spec/`.
 - Identifies the function-level `// Implements: <REQ-id>/<assertion-list>` (production code) and `// Verifies: <REQ-id>/<assertion-list>` (tests) annotations the plan must apply on every code unit it touches. **No file-header `IMPLEMENTS REQUIREMENTS:` blocks** — see §1.
 - References the required `spec/dev-*.md` and `spec/INDEX.md` updates (or, for cross-repo REQs, the sibling repo's spec update).
 
 For stub files at `docs/superpowers/specs/*-stub.md`: a single line "Requirements: deferred until full design" suffices — the obligation lands when the stub is upgraded to a full design spec.
 
-Pre-commit hook enforcement: `.githooks/pre-commit` section 6 checks that `*-design.md` files include `## Requirements` and at least one `REQ-[pod]NNNNN` reference. The legacy ID format in the hook check applies because this repo's own design specs always reference at least one local REQ; cross-repo REQs may also appear but are not what the hook is checking. To bypass (NOT RECOMMENDED): `git commit --no-verify`.
+Pre-commit hook enforcement: `.githooks/pre-commit` section 6 checks that `*-design.md` files include `## Requirements` and at least one REQ reference. Both the new `DIARY-/CAL-/HHT-/EVS-{PRD|GUI|OPS|DEV}-{kebab}` form and the legacy `REQ-[pod]NNNNN` form satisfy the check (the latter still needed while `spec-archive/` source files are cherry-picked during the URS-v1 migration). To bypass (NOT RECOMMENDED): `git commit --no-verify`.
 
 
 ## Project Structure
