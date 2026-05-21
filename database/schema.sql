@@ -215,7 +215,7 @@ CREATE TABLE edc_sync_log (
     sync_id BIGSERIAL PRIMARY KEY,
     sync_timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
     source_system TEXT NOT NULL CHECK (source_system IN ('RAVE', 'MEDIDATA', 'OTHER')),
-    operation TEXT NOT NULL CHECK (operation IN ('SITES_SYNC', 'PATIENTS_SYNC', 'METADATA_SYNC', 'FULL_SYNC')),
+    operation TEXT NOT NULL CHECK (operation IN ('SITES_SYNC', 'PATIENTS_SYNC', 'METADATA_SYNC', 'FULL_SYNC', 'UNWEDGE')),
     sites_created INTEGER NOT NULL DEFAULT 0,
     sites_updated INTEGER NOT NULL DEFAULT 0,
     sites_deactivated INTEGER NOT NULL DEFAULT 0,

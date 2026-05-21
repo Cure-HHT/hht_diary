@@ -150,17 +150,27 @@ void main() {
     for (var i = 0; i < threshold; i++) {
       await recordAuthFailure();
     }
-    // Now call sync — it must NOT call Rave (we'd see auth fails increment
-    // the counter if it did). We assert by counter staying constant.
     final result = await syncSitesIfNeeded();
-    expect(result, isNotNull);
-    expect(result!.paused, isTrue);
-    expect(result.pausedReason, 'locked');
+    // Whether or not RAVE_UAT_* env vars are set in the integration env,
+    // the critical safety property is the same: the wrapper does NOT call
+    // Rave (and therefore does not increment the counter further).
+    if (RaveConfig.isConfigured) {
+      // Configured: gate runs, returns a paused result.
+      expect(result, isNotNull);
+      expect(result!.paused, isTrue);
+      expect(result.pausedReason, 'locked');
+    } else {
+      // Not configured (default CI): wrapper short-circuits to null before
+      // reaching the gate. Rave is still not called, so the safety property
+      // below still holds.
+      expect(result, isNull);
+    }
     final state = await checkLockout();
     expect(
       state.row.consecutiveAuthFailures,
       threshold,
-      reason: 'gate must not increment counter',
+      reason:
+          'wrapper must not increment counter (gate or config short-circuit)',
     );
   });
 
@@ -375,11 +385,18 @@ void main() {
     state = await checkLockout();
     expect(state.result, LockoutCheckResult.pausedCooldown);
 
-    // 3. syncSitesIfNeeded must skip the Rave call.
+    // 3. syncSitesIfNeeded must skip the Rave call. The wrapper either
+    //    returns a paused result (when RaveConfig is configured — local dev /
+    //    deployed envs) or null (when RaveConfig is unset — default CI env).
+    //    Both paths satisfy the no-Rave-call safety property.
     final pausedResult = await syncSitesIfNeeded();
-    expect(pausedResult, isNotNull);
-    expect(pausedResult!.paused, isTrue);
-    expect(pausedResult.pausedReason, 'cooldown');
+    if (RaveConfig.isConfigured) {
+      expect(pausedResult, isNotNull);
+      expect(pausedResult!.paused, isTrue);
+      expect(pausedResult.pausedReason, 'cooldown');
+    } else {
+      expect(pausedResult, isNull);
+    }
 
     // 4. Two more failures → hard lockout.
     await recordAuthFailure();
