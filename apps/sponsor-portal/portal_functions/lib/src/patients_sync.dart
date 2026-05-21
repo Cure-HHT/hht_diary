@@ -6,12 +6,14 @@
 // Fetches subjects from Medidata RAVE and syncs to local patients table
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:otel_common/otel_common.dart';
 import 'package:rave_integration/rave_integration.dart';
 
 import 'database.dart';
+import 'rave_mock.dart';
 import 'rave_sync_lockout.dart';
 import 'sites_sync.dart' show RaveConfig, defaultSyncInterval;
 
@@ -150,25 +152,36 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
   String? studyOid = testStudyOid;
 
   if (client == null) {
-    final config = RaveConfig.fromEnvironment();
-    if (config == null) {
-      final result = PatientsSyncResult(
-        patientsCreated: 0,
-        patientsUpdated: 0,
-        syncedAt: DateTime.now().toUtc(),
-        error: 'RAVE configuration not available',
-      );
-      if (!skipLogging) {
-        await _logPatientSyncResult(result, '', startTime, studyOid: null);
+    // Dev override: RAVE_MOCK_MODE bypasses RAVE_UAT_* requirement and
+    // returns a MockRaveClient. See rave_mock.dart for the mode vocabulary.
+    final mockMode = Platform.environment['RAVE_MOCK_MODE'];
+    if (mockMode != null && mockMode.isNotEmpty) {
+      client = MockRaveClient(mockMode);
+      studyOid =
+          testStudyOid ??
+          Platform.environment['RAVE_STUDY_OID'] ??
+          'MOCK-STUDY-001';
+    } else {
+      final config = RaveConfig.fromEnvironment();
+      if (config == null) {
+        final result = PatientsSyncResult(
+          patientsCreated: 0,
+          patientsUpdated: 0,
+          syncedAt: DateTime.now().toUtc(),
+          error: 'RAVE configuration not available',
+        );
+        if (!skipLogging) {
+          await _logPatientSyncResult(result, '', startTime, studyOid: null);
+        }
+        return result;
       }
-      return result;
+      client = RaveClient(
+        baseUrl: config.baseUrl,
+        username: config.username,
+        password: config.password,
+      );
+      studyOid = testStudyOid ?? config.studyOid;
     }
-    client = RaveClient(
-      baseUrl: config.baseUrl,
-      username: config.username,
-      password: config.password,
-    );
-    studyOid = testStudyOid ?? config.studyOid;
   }
 
   // studyOid is required for the subjects endpoint

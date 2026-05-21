@@ -13,6 +13,7 @@ import 'package:otel_common/otel_common.dart';
 import 'package:rave_integration/rave_integration.dart';
 
 import 'database.dart';
+import 'rave_mock.dart';
 import 'rave_sync_lockout.dart';
 
 /// Default sync interval - sites are refreshed if older than this duration.
@@ -57,11 +58,17 @@ class RaveConfig {
     );
   }
 
-  /// Whether RAVE integration is configured.
-  static bool get isConfigured =>
-      Platform.environment['RAVE_UAT_URL'] != null &&
-      Platform.environment['RAVE_UAT_USERNAME'] != null &&
-      Platform.environment['RAVE_UAT_PWD'] != null;
+  /// Whether RAVE integration is configured. True when either the live
+  /// RAVE_UAT_* env vars are populated OR the dev-only RAVE_MOCK_MODE
+  /// env var is set (see rave_mock.dart). Either path produces a usable
+  /// RaveClient downstream.
+  static bool get isConfigured {
+    final mockMode = Platform.environment['RAVE_MOCK_MODE'];
+    if (mockMode != null && mockMode.isNotEmpty) return true;
+    return Platform.environment['RAVE_UAT_URL'] != null &&
+        Platform.environment['RAVE_UAT_USERNAME'] != null &&
+        Platform.environment['RAVE_UAT_PWD'] != null;
+  }
 }
 
 /// Result of a sites sync operation.
@@ -368,27 +375,35 @@ Future<SitesSyncResult> syncSitesFromEdc({
   String? studyOid = testStudyOid;
 
   if (client == null) {
-    final config = RaveConfig.fromEnvironment();
-    if (config == null) {
-      final result = SitesSyncResult(
-        sitesUpdated: 0,
-        sitesCreated: 0,
-        sitesDeactivated: 0,
-        syncedAt: DateTime.now().toUtc(),
-        error: 'RAVE configuration not available',
-      );
-      // Log configuration error (use empty hash since no content)
-      if (!skipLogging) {
-        await _logSyncResult(result, '', startTime, studyOid: null);
+    // Dev override: RAVE_MOCK_MODE bypasses RAVE_UAT_* requirement and
+    // returns a MockRaveClient. See rave_mock.dart for the mode vocabulary.
+    final mockMode = Platform.environment['RAVE_MOCK_MODE'];
+    if (mockMode != null && mockMode.isNotEmpty) {
+      client = MockRaveClient(mockMode);
+      studyOid = Platform.environment['RAVE_STUDY_OID'];
+    } else {
+      final config = RaveConfig.fromEnvironment();
+      if (config == null) {
+        final result = SitesSyncResult(
+          sitesUpdated: 0,
+          sitesCreated: 0,
+          sitesDeactivated: 0,
+          syncedAt: DateTime.now().toUtc(),
+          error: 'RAVE configuration not available',
+        );
+        // Log configuration error (use empty hash since no content)
+        if (!skipLogging) {
+          await _logSyncResult(result, '', startTime, studyOid: null);
+        }
+        return result;
       }
-      return result;
+      client = RaveClient(
+        baseUrl: config.baseUrl,
+        username: config.username,
+        password: config.password,
+      );
+      studyOid = config.studyOid;
     }
-    client = RaveClient(
-      baseUrl: config.baseUrl,
-      username: config.username,
-      password: config.password,
-    );
-    studyOid = config.studyOid;
   }
 
   List<RaveSite> raveSites = [];
