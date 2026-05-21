@@ -1026,6 +1026,10 @@ class RaveSyncCardState extends State<RaveSyncCard> {
       const SizedBox(height: 20),
       Center(
         child: FilledButton.icon(
+          // Stable key so widget tests can target this button regardless of
+          // whether the runtime classifies FilledButton.icon as FilledButton
+          // (varies across Flutter versions).
+          key: const Key('rave-unwedge-button'),
           onPressed: _isUnwedging ? null : _confirmAndUnwedge,
           icon: _isUnwedging
               ? const SizedBox(

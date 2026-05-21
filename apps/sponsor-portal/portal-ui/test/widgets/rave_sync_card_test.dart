@@ -85,10 +85,13 @@ void main() {
       await tester.pump();
       await tester.pumpAndSettle();
 
-      // Find the Unwedge button and assert it's enabled.
-      final unwedgeBtn = find.widgetWithText(FilledButton, 'Unwedge Rave');
+      // Find the Unwedge button by stable Key. The button is constructed
+      // via FilledButton.icon which doesn't subclass FilledButton in all
+      // Flutter runtimes (locally yes, CI no), so type-based finders are
+      // brittle.
+      final unwedgeBtn = find.byKey(const Key('rave-unwedge-button'));
       expect(unwedgeBtn, findsOneWidget);
-      final btn = tester.widget<FilledButton>(unwedgeBtn);
+      final btn = tester.widget<ButtonStyleButton>(unwedgeBtn);
       expect(
         btn.onPressed,
         isNotNull,
@@ -119,12 +122,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Unwedge → confirmation dialog opens.
-      await tester.tap(find.widgetWithText(FilledButton, 'Unwedge Rave'));
+      await tester.tap(find.byKey(const Key('rave-unwedge-button')));
       await tester.pumpAndSettle();
       expect(find.text('Unwedge Rave sync?'), findsOneWidget);
 
-      // Confirm.
-      await tester.tap(find.widgetWithText(FilledButton, 'Unwedge'));
+      // Confirm — the dialog's confirm button is a plain FilledButton with
+      // the text 'Unwedge' (no icon variant), so the text finder is fine.
+      // Use find.text + ancestor lookup to be explicit.
+      await tester.tap(find.text('Unwedge'));
       await tester.pumpAndSettle();
 
       expect(service.unwedgeCallCount, 1);
