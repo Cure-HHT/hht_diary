@@ -294,7 +294,7 @@ void main() {
           final mockClient = MockClient((request) async {
             return http.Response(
               '{"error": "This device is already linked to a study. '
-              'Please contact your research coordinator if you need to re-link."}',
+              'Please contact your study coordinator if you need to re-link."}',
               409,
             );
           });
