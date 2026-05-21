@@ -49,7 +49,7 @@ class PatientsSyncResult {
 }
 
 /// Builds a PatientsSyncResult that signals "paused" to callers.
-// Implements: CAL-OPS-rave-sync-cooldown/D, CAL-OPS-rave-sync-hard-lockout/B
+// Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
 PatientsSyncResult buildPausedPatientsResult(LockoutState state) {
   final reason = state.result == LockoutCheckResult.pausedLocked
       ? 'locked'
@@ -292,7 +292,7 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
       );
     }
 
-    // Implements: CAL-OPS-rave-sync-cooldown/C
+    // Implements: DIARY-OPS-rave-sync-cooldown/C
     if (!skipLogging) {
       try {
         await recordSyncSuccess();
@@ -302,7 +302,7 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
     }
     return result;
   } on RaveAuthenticationException catch (e) {
-    // Implements: CAL-DEV-rave-auth-failure-classification/A+C
+    // Implements: DIARY-DEV-rave-auth-failure-classification/A+C
     if (!skipLogging) {
       try {
         await recordAuthFailure(reasonCode: e.reasonCode);
@@ -444,7 +444,7 @@ Future<PatientsSyncResult?> syncPatientsIfNeeded({
     return null;
   }
 
-  // Implements: CAL-OPS-rave-sync-cooldown/D, CAL-OPS-rave-sync-hard-lockout/B
+  // Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
   final state = await checkLockout();
   if (state.isPaused) {
     final result = buildPausedPatientsResult(state);

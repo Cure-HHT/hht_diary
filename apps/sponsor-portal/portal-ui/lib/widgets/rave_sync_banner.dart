@@ -1,4 +1,4 @@
-// Implements: CAL-GUI-rave-sync-paused-banner/A+B+C
+// Implements: DIARY-GUI-rave-sync-paused-banner/A+B+C
 
 import 'package:flutter/material.dart';
 

@@ -101,7 +101,7 @@ class SitesSyncResult {
 }
 
 /// Builds a SitesSyncResult that signals "paused" to callers.
-// Implements: CAL-OPS-rave-sync-cooldown/D, CAL-OPS-rave-sync-hard-lockout/B
+// Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
 SitesSyncResult buildPausedSitesResult(LockoutState state) {
   final reason = state.result == LockoutCheckResult.pausedLocked
       ? 'locked'
@@ -525,7 +525,7 @@ Future<SitesSyncResult> syncSitesFromEdc({
       );
     }
 
-    // Implements: CAL-OPS-rave-sync-cooldown/C
+    // Implements: DIARY-OPS-rave-sync-cooldown/C
     if (!skipLogging) {
       try {
         await recordSyncSuccess();
@@ -535,7 +535,7 @@ Future<SitesSyncResult> syncSitesFromEdc({
     }
     return result;
   } on RaveAuthenticationException catch (e) {
-    // Implements: CAL-DEV-rave-auth-failure-classification/A+C
+    // Implements: DIARY-DEV-rave-auth-failure-classification/A+C
     if (!skipLogging) {
       try {
         await recordAuthFailure(
@@ -643,7 +643,7 @@ Future<SitesSyncResult?> syncSitesIfNeeded({
     return null;
   }
 
-  // Implements: CAL-OPS-rave-sync-cooldown/D, CAL-OPS-rave-sync-hard-lockout/B
+  // Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
   final state = await checkLockout();
   if (state.isPaused) {
     final result = buildPausedSitesResult(state);

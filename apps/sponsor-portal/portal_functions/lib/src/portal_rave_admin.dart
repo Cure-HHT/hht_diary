@@ -1,4 +1,4 @@
-// Implements: CAL-OPS-rave-unwedge-authz, CAL-OPS-rave-alert-notification/C
+// Implements: DIARY-OPS-rave-unwedge-authz, DIARY-OPS-rave-alert-notification/C
 //
 // Developer Admin endpoints for the Rave sync lockout feature.
 
@@ -21,7 +21,7 @@ Response _json(Map<String, dynamic> body, [int status = 200]) => Response(
 
 /// Renders the `rave_sync` block embedded in /sites and /participants
 /// responses. Reads current lockout state.
-// Implements: CAL-GUI-rave-sync-paused-banner/A
+// Implements: DIARY-GUI-rave-sync-paused-banner/A
 Future<Map<String, dynamic>> buildRaveSyncBlock() async {
   final state = await checkLockout();
   return {
@@ -38,7 +38,7 @@ Future<Map<String, dynamic>> buildRaveSyncBlock() async {
 }
 
 /// GET /api/v1/portal/dev-admin/rave/lockout
-// Implements: CAL-GUI-dev-admin-rave-sync-card/A
+// Implements: DIARY-GUI-dev-admin-rave-sync-card/A
 Future<Response> getRaveLockoutStateHandler(Request request) async {
   final user = await requirePortalAuth(request);
   if (user == null) return _json({'error': 'Unauthorized'}, 401);
@@ -65,7 +65,7 @@ Future<Response> getRaveLockoutStateHandler(Request request) async {
 }
 
 /// POST /api/v1/portal/dev-admin/rave/unwedge
-// Implements: CAL-OPS-rave-unwedge-authz/A+B, CAL-OPS-rave-alert-notification/C
+// Implements: DIARY-OPS-rave-unwedge-authz/A+B, DIARY-OPS-rave-alert-notification/C
 Future<Response> unwedgeRaveHandler(Request request) async {
   final user = await requirePortalAuth(request);
   if (user == null) return _json({'error': 'Unauthorized'}, 401);

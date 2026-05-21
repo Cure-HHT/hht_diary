@@ -1,5 +1,5 @@
-// Implements: CAL-OPS-rave-sync-cooldown, CAL-OPS-rave-sync-hard-lockout,
-//   CAL-DEV-rave-auth-failure-classification, CAL-OPS-rave-alert-notification
+// Implements: DIARY-OPS-rave-sync-cooldown, DIARY-OPS-rave-sync-hard-lockout,
+//   DIARY-DEV-rave-auth-failure-classification, DIARY-OPS-rave-alert-notification
 //
 // Live decision state for Rave sync lockout. See
 // docs/superpowers/specs/2026-05-19-rave-lockout-design.md.
@@ -18,7 +18,7 @@ const int _defaultCooldownHours = 24;
 
 /// Reads RAVE_AUTH_FAILURE_THRESHOLD with a default of 3.
 /// Non-numeric values fall back to the default with a warning log.
-// Implements: CAL-OPS-rave-sync-hard-lockout/A
+// Implements: DIARY-OPS-rave-sync-hard-lockout/A
 int raveAuthFailureThresholdFromEnv(Map<String, String> env) {
   final raw = env['RAVE_AUTH_FAILURE_THRESHOLD'];
   if (raw == null || raw.isEmpty) return _defaultThreshold;
@@ -35,7 +35,7 @@ int raveAuthFailureThresholdFromEnv(Map<String, String> env) {
 }
 
 /// Reads RAVE_AUTH_COOLDOWN_HOURS with a default of 24.
-// Implements: CAL-OPS-rave-sync-cooldown/B
+// Implements: DIARY-OPS-rave-sync-cooldown/B
 int raveAuthCooldownHoursFromEnv(Map<String, String> env) {
   final raw = env['RAVE_AUTH_COOLDOWN_HOURS'];
   if (raw == null || raw.isEmpty) return _defaultCooldownHours;
@@ -94,7 +94,7 @@ class LockoutState {
 
 /// Pure classifier: given a row snapshot, decide if sync is allowed.
 /// Tested directly; the live `checkLockout` is a thin DB wrapper around this.
-// Implements: CAL-OPS-rave-sync-cooldown/D, CAL-OPS-rave-sync-hard-lockout/B
+// Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
 LockoutState classifyLockout({
   required RaveLockoutRow row,
   required int cooldownHours,
@@ -177,9 +177,9 @@ enum AuthFailureSource { normalSync, unwedgeProbe }
 /// On lockout-trip, fires both the per-failure Slack alert and the
 /// distinct lockout-trip alert. When [source] == unwedgeProbe, the
 /// per-failure alert is suppressed.
-// Implements: CAL-DEV-rave-auth-failure-classification/A+B+C
-// Implements: CAL-OPS-rave-sync-hard-lockout/A
-// Implements: CAL-OPS-rave-alert-notification/A+B
+// Implements: DIARY-DEV-rave-auth-failure-classification/A+B+C
+// Implements: DIARY-OPS-rave-sync-hard-lockout/A
+// Implements: DIARY-OPS-rave-alert-notification/A+B
 Future<void> recordAuthFailure({
   String? reasonCode,
   AuthFailureSource source = AuthFailureSource.normalSync,
@@ -247,7 +247,7 @@ Future<void> recordAuthFailure({
 
 /// Resets the counter, sets last_success_at. Does NOT clear locked_at —
 /// hard lockout is hard and only cleared by Unwedge.
-// Implements: CAL-OPS-rave-sync-cooldown/C
+// Implements: DIARY-OPS-rave-sync-cooldown/C
 Future<void> recordSyncSuccess() async {
   final db = Database.instance;
   await db.executeWithContext('''
@@ -260,7 +260,7 @@ Future<void> recordSyncSuccess() async {
 }
 
 /// Fire-and-forget Slack notifier. Reads RAVE_ALERT_SLACK_WEBHOOK per call.
-// Implements: CAL-OPS-rave-alert-notification/A+E
+// Implements: DIARY-OPS-rave-alert-notification/A+E
 Future<void> notifySlack(String text) async {
   await notifySlackWith(
     client: http.Client(),
@@ -272,7 +272,7 @@ Future<void> notifySlack(String text) async {
 
 /// Testable variant: explicit client + webhook. Non-2xx and exceptions are
 /// logged and swallowed; never blocks or alters the caller's path.
-// Implements: CAL-OPS-rave-alert-notification/E
+// Implements: DIARY-OPS-rave-alert-notification/E
 Future<void> notifySlackWith({
   required http.Client client,
   required String? webhookUrl,

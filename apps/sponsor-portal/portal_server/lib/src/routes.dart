@@ -128,7 +128,7 @@ Router createRouter() {
   );
 
   // Developer Admin only - Rave sync lockout state + unwedge
-  // Implements: CAL-OPS-rave-unwedge-authz, CAL-GUI-dev-admin-rave-sync-card
+  // Implements: DIARY-OPS-rave-unwedge-authz, DIARY-GUI-dev-admin-rave-sync-card
   router.get(
     '/api/v1/portal/dev-admin/rave/lockout',
     getRaveLockoutStateHandler,

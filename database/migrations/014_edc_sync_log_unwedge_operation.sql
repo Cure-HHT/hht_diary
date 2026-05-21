@@ -23,7 +23,7 @@
 -- Dependencies: Requires the base edc_sync_log table from schema.sql
 --   (CREATE TABLE edc_sync_log) and the inline CHECK constraint defined
 --   there (auto-named edc_sync_log_operation_check).
--- Reference: database/schema.sql:218, CAL-OPS-rave-unwedge-authz
+-- Reference: database/schema.sql:218, DIARY-OPS-rave-unwedge-authz
 -- =====================================================
 
 set lock_timeout = '2s';
@@ -32,7 +32,7 @@ set statement_timeout = '10s';
 BEGIN;
 
 -- Step 1: Add updated constraint (NOT VALID — no row scan, no lock).
--- Implements: CAL-OPS-rave-unwedge-authz/B
+-- Implements: DIARY-OPS-rave-unwedge-authz/B
 ALTER TABLE edc_sync_log
   ADD CONSTRAINT edc_sync_log_operation_check_v2
   CHECK (operation IN (

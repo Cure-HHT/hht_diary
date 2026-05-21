@@ -1,5 +1,5 @@
-// Verifies: CAL-DEV-rave-auth-failure-classification/A+B+C,
-//   CAL-OPS-rave-sync-hard-lockout/A, CAL-OPS-rave-sync-cooldown/C
+// Verifies: DIARY-DEV-rave-auth-failure-classification/A+B+C,
+//   DIARY-OPS-rave-sync-hard-lockout/A, DIARY-OPS-rave-sync-cooldown/C
 //
 // Integration tests for state-mutating helpers. Requires a Postgres
 // instance with migration 013 applied (seeds the singleton row id=1).
@@ -124,7 +124,7 @@ void main() {
   });
 
   test('recordAuthFailure does not re-bump locked_at after threshold', () async {
-    // Verifies: CAL-OPS-rave-sync-hard-lockout (locked_at sticky)
+    // Verifies: DIARY-OPS-rave-sync-hard-lockout (locked_at sticky)
     final threshold = raveAuthFailureThresholdFromEnv({});
     for (var i = 0; i < threshold; i++) {
       await recordAuthFailure();
@@ -144,7 +144,7 @@ void main() {
   });
 
   test('syncSitesIfNeeded skips Rave call when locked', () async {
-    // Verifies: CAL-OPS-rave-sync-hard-lockout/B
+    // Verifies: DIARY-OPS-rave-sync-hard-lockout/B
     // Trip lockout.
     final threshold = raveAuthFailureThresholdFromEnv({});
     for (var i = 0; i < threshold; i++) {
@@ -175,8 +175,8 @@ void main() {
   });
 
   group('endpoints (CUR-1361)', () {
-    // Verifies: CAL-OPS-rave-unwedge-authz/A+B,
-    //   CAL-GUI-dev-admin-rave-sync-card/A
+    // Verifies: DIARY-OPS-rave-unwedge-authz/A+B,
+    //   DIARY-GUI-dev-admin-rave-sync-card/A
     //
     // Uses [requirePortalAuthOverride] to bypass Identity Platform token
     // verification — the unit under test is the handler's authz + business
@@ -365,7 +365,7 @@ void main() {
   });
 
   test('lockout-recovery happy path', () async {
-    // Verifies: CAL-OPS-rave-sync-cooldown/C, CAL-OPS-rave-sync-hard-lockout/A+B
+    // Verifies: DIARY-OPS-rave-sync-cooldown/C, DIARY-OPS-rave-sync-hard-lockout/A+B
     //
     // End-to-end capstone: walks the full lockout lifecycle in one test —
     // clean → cooldown → gate-skip → locked → success-resets-counter (but

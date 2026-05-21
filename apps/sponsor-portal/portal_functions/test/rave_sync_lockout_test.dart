@@ -1,4 +1,4 @@
-// Verifies: CAL-OPS-rave-sync-cooldown/B+D, CAL-OPS-rave-sync-hard-lockout/A
+// Verifies: DIARY-OPS-rave-sync-cooldown/B+D, DIARY-OPS-rave-sync-hard-lockout/A
 //
 // Unit tests for rave_sync_lockout module. Uses in-memory state stubs to
 // exercise pure logic without hitting Postgres.

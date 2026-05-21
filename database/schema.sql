@@ -846,7 +846,7 @@ COMMENT ON COLUMN portal_user_audit_log.after_value IS 'JSONB snapshot of state 
 -- incremental upgrades to live deployments. Fresh installs (CI test DB,
 -- local dev) pick it up here via init.sql.
 
--- Implements: CAL-OPS-rave-sync-hard-lockout/A+C, CAL-OPS-rave-sync-cooldown/B
+-- Implements: DIARY-OPS-rave-sync-hard-lockout/A+C, DIARY-OPS-rave-sync-cooldown/B
 CREATE TABLE rave_sync_lockout (
     id                          smallint    PRIMARY KEY CHECK (id = 1),
     consecutive_auth_failures   integer     NOT NULL DEFAULT 0

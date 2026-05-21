@@ -758,7 +758,7 @@ class _AllUsersTabState extends State<_AllUsersTab> {
 }
 
 /// Dev-Admin-facing Rave outbound-sync status + manual unwedge card.
-// Implements: CAL-GUI-dev-admin-rave-sync-card/A+B+C
+// Implements: DIARY-GUI-dev-admin-rave-sync-card/A+B+C
 class _RaveSyncCard extends StatefulWidget {
   const _RaveSyncCard();
 

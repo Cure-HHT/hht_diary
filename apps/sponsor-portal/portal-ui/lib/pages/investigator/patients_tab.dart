@@ -146,7 +146,7 @@ class _StudyCoordinatorPatientsTabState
   final _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Rave sync lockout banner state (CUR-1361 / CAL-GUI-rave-sync-paused-banner).
+  // Rave sync lockout banner state (CUR-1361 / DIARY-GUI-rave-sync-paused-banner).
   // Parsed from the `rave_sync` block on the /participants response.
   String _raveSyncState = 'ok';
   DateTime? _ravePausedUntil;

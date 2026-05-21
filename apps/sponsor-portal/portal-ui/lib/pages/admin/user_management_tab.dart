@@ -91,7 +91,7 @@ class _UserManagementTabState extends State<UserManagementTab>
   String _searchQuery = '';
   late final TabController _tabController;
 
-  // Rave sync lockout banner state (CUR-1361 / CAL-GUI-rave-sync-paused-banner).
+  // Rave sync lockout banner state (CUR-1361 / DIARY-GUI-rave-sync-paused-banner).
   // Parsed from the `rave_sync` block on the /sites response.
   String _raveSyncState = 'ok';
   DateTime? _ravePausedUntil;
