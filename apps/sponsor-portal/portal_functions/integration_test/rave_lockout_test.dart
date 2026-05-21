@@ -11,12 +11,24 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' show OTel;
 import 'package:portal_functions/portal_functions.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 void main() {
   setUpAll(() async {
+    // OTel must be initialized before any logWithTrace call (which fires
+    // inside recordAuthFailure on every auth-fail path). Without this,
+    // OTel.tracerProvider throws an APITracerProvider cast error.
+    // Mirrors sites_sync_test.dart's OTel setup.
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'portal-functions-integration-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+
     // Mirror the inline DB setup used by sites_sync_test.dart /
     // patients_sync_test.dart — no shared helper exists yet.
     final sslEnv = Platform.environment['DB_SSL'];
@@ -39,6 +51,8 @@ void main() {
 
   tearDownAll(() async {
     await Database.instance.close();
+    await OTel.shutdown();
+    await OTel.reset();
   });
 
   setUp(() async {
