@@ -75,6 +75,19 @@ class EmailResult {
 }
 
 /// Email service singleton using Gmail API
+/// Result of a rate-limit check for email sending.
+///
+/// [allowed] is `true` when a new email can be sent. [retryAfter] is the
+/// number of seconds until the next send is permitted, computed from the
+/// oldest in-window record. It is `0` when [allowed] is `true`, and at least
+/// `1` when [allowed] is `false`.
+class RateLimitStatus {
+  final bool allowed;
+  final int retryAfter;
+
+  const RateLimitStatus({required this.allowed, required this.retryAfter});
+}
+
 class EmailService {
   static EmailService? _instance;
   static EmailConfig? _config;
@@ -608,11 +621,35 @@ $bodyHtml
     }
   }
 
+  /// Rate limit window for email sending: 15 minutes.
+  static const int rateLimitWindowSeconds = 900;
+
+  /// Maximum emails per address per window.
+  static const int rateLimitMaxCount = 3;
+
   /// Check rate limit for email sending
   ///
   /// Returns true if email can be sent, false if rate limited.
-  /// Rate limit: max 3 emails per address per 15 minutes
+  /// Rate limit: max 3 emails per address per 15 minutes.
+  ///
+  /// Thin wrapper around [getRateLimitStatus] for callers that only need a
+  /// boolean. Prefer [getRateLimitStatus] when the caller wants to surface
+  /// a `retry_after` value to the client (e.g., the OTP send handler).
   Future<bool> checkRateLimit({
+    required String email,
+    required String emailType,
+  }) async {
+    final status = await getRateLimitStatus(email: email, emailType: emailType);
+    return status.allowed;
+  }
+
+  /// Check rate limit and return both the boolean decision and the actual
+  /// remaining seconds until the next send is permitted.
+  ///
+  /// `retryAfter` is computed from the oldest in-window record so the client
+  /// can show a real countdown rather than a fixed 15-minute placeholder.
+  /// When the window is empty (i.e. allowed), `retryAfter` is `0`.
+  Future<RateLimitStatus> getRateLimitStatus({
     required String email,
     required String emailType,
   }) async {
@@ -623,25 +660,43 @@ $bodyHtml
       // keeps the existing index on (email, email_type, sent_at) usable.
       final normalizedEmail = email.toLowerCase();
 
-      // Count emails sent in last 15 minutes
       final result = await db.executeWithContext(
         '''
-        SELECT COUNT(*) as count
+        SELECT COUNT(*) AS count, MIN(sent_at) AS oldest
         FROM email_rate_limits
         WHERE email = @email
           AND email_type = @email_type
-          AND sent_at > NOW() - INTERVAL '15 minutes'
+          AND sent_at > NOW() - make_interval(secs => @window)
         ''',
-        parameters: {'email': normalizedEmail, 'email_type': emailType},
+        parameters: {
+          'email': normalizedEmail,
+          'email_type': emailType,
+          'window': rateLimitWindowSeconds,
+        },
         context: UserContext.service,
       );
 
       final count = result.first[0] as int;
-      return count < 3;
+      if (count < rateLimitMaxCount) {
+        return const RateLimitStatus(allowed: true, retryAfter: 0);
+      }
+
+      final oldest = result.first[1] as DateTime;
+      final elapsed = DateTime.now()
+          .toUtc()
+          .difference(oldest.toUtc())
+          .inSeconds;
+      // Clamp to [1, window]: never report 0 alongside a "denied" status, and
+      // never exceed the configured window if clocks drift.
+      final remaining = (rateLimitWindowSeconds - elapsed).clamp(
+        1,
+        rateLimitWindowSeconds,
+      );
+      return RateLimitStatus(allowed: false, retryAfter: remaining);
     } catch (e) {
       print('[EMAIL] Rate limit check failed: $e');
       // Allow email if check fails (fail open for better UX)
-      return true;
+      return const RateLimitStatus(allowed: true, retryAfter: 0);
     }
   }
 

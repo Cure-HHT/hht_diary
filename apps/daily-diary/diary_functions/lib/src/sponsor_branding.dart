@@ -17,8 +17,8 @@ export 'package:shared_functions/shared_functions.dart' show SponsorBranding;
 /// Returns the sponsor's branding configuration (title, etc.) plus
 /// the asset base URL for constructing asset paths by convention.
 ///
-/// 200: { "sponsorId": "callisto", "title": "Terremoto",
-///         "assetBaseUrl": "/callisto" }
+/// 200: { "sponsorId": "[sponsor-id]", "title": "[Sponsor Display Name]",
+///         "assetBaseUrl": "/[sponsor-id]" }
 /// 503: Sponsor branding not configured
 Response sponsorBrandingHandler(Request request, String sponsorId) =>
     sf.sponsorBrandingHandlerWithId(request, sponsorId);

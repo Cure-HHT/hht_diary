@@ -22,6 +22,30 @@ import '../../widgets/error_message.dart';
 import '../../widgets/role_badge.dart';
 import '../../widgets/status_badge.dart';
 
+/// Deduplicates a user's `sites` array by `site_id`.
+///
+/// The list endpoint historically returned duplicates because the
+/// `portal_user_roles × portal_user_site_access` cartesian product
+/// inflated the JSON aggregate (CUR-1124). The backend now does
+/// `DISTINCT jsonb_build_object(...)` so duplicates should not appear,
+/// but this defensive client-side pass survives:
+///   - stale list responses cached in memory after a hot reload
+///   - any future query path that re-introduces a similar bug
+///   - mocked test fixtures that intentionally pass duplicates
+/// Preserves first-seen order so the visual order is stable.
+List<Map<String, dynamic>> _dedupeSitesById(List<dynamic> rawSites) {
+  final seen = <String>{};
+  final result = <Map<String, dynamic>>[];
+  for (final raw in rawSites) {
+    if (raw is! Map) continue;
+    final site = raw.cast<String, dynamic>();
+    final id = site['site_id'] as String?;
+    if (id == null || !seen.add(id)) continue;
+    result.add(site);
+  }
+  return result;
+}
+
 class UserManagementTab extends StatefulWidget {
   /// Optional API client for dependency injection (used in tests).
   @visibleForTesting
@@ -283,6 +307,10 @@ class _UserManagementTabState extends State<UserManagementTab>
           Navigator.pop(context);
           _reactivateUser(user);
         },
+        onResendActivation: () {
+          Navigator.pop(context);
+          _resendActivationEmail(user);
+        },
         apiClient: _apiClient,
       ),
     );
@@ -324,9 +352,12 @@ class _UserManagementTabState extends State<UserManagementTab>
     }).toList();
   }
 
+  // Per CUR-1123 / Figma, the user table has no Actions column. Row tap
+  // opens UserInfoDialog (see onSelectChanged below); all edit /
+  // deactivate / reactivate / resend-activation actions live inside the
+  // modal.
   Widget _buildUserTable(
-    List<Map<String, dynamic>> users,
-    ColorScheme colorScheme, {
+    List<Map<String, dynamic>> users, {
     required bool isActiveTab,
   }) {
     if (users.isEmpty) {
@@ -352,12 +383,9 @@ class _UserManagementTabState extends State<UserManagementTab>
         DataColumn(label: Text('Roles')),
         DataColumn(label: Text('Sites')),
         DataColumn(label: Text('Status')),
-        DataColumn(label: Text('Actions')),
       ],
       rows: users.map((user) {
         final status = user['status'] as String? ?? 'pending';
-        final isPending = status == 'pending';
-        final isRevoked = status == 'revoked';
 
         // Get roles as list (system names from backend)
         final systemRoles = <String>[];
@@ -373,8 +401,10 @@ class _UserManagementTabState extends State<UserManagementTab>
             .map(UserRole.fromString)
             .any((r) => r.requiresSiteAssignment);
 
-        // Get sites
-        final sitesList = (user['sites'] as List<dynamic>?) ?? [];
+        // Get sites (dedupe defensively — CUR-1124)
+        final sitesList = _dedupeSitesById(
+          (user['sites'] as List<dynamic>?) ?? const [],
+        );
         final sitesDisplay = sitesList.isEmpty
             ? 'No sites'
             : sitesList.length == 1
@@ -401,64 +431,6 @@ class _UserManagementTabState extends State<UserManagementTab>
             ),
             DataCell(Text(hasSiteScopedRole ? sitesDisplay : 'All sites')),
             DataCell(StatusBadge.fromString(status, compact: true)),
-            DataCell(
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!isRevoked)
-                    IconButton(
-                      icon: Icon(Icons.edit, color: colorScheme.primary),
-                      onPressed: () => _editUser(user),
-                      tooltip: 'Edit User',
-                    ),
-                  if (!isRevoked && !isPending)
-                    IconButton(
-                      icon: Icon(Icons.block, color: colorScheme.error),
-                      onPressed: () => _deactivateUser(
-                        user['id'],
-                        user['name'] ?? 'this user',
-                      ),
-                      tooltip: 'Deactivate',
-                    ),
-                  if (isRevoked)
-                    IconButton(
-                      icon: Icon(
-                        Icons.check_circle_outline,
-                        color: colorScheme.primary,
-                      ),
-                      onPressed: () => _reactivateUser(user),
-                      tooltip: 'Reactivate',
-                    ),
-                  if (isPending && user['activation_code'] != null)
-                    IconButton(
-                      icon: const Icon(Icons.vpn_key),
-                      onPressed: () => _showActivationCode(
-                        user['name'] ?? 'User',
-                        user['activation_code'],
-                      ),
-                      tooltip: 'Show Activation Code',
-                    ),
-                  if (isPending && user['activation_code'] == null)
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      onPressed: () => _regenerateActivationCode(
-                        user['id'],
-                        user['name'] ?? 'User',
-                      ),
-                      tooltip: 'Generate Activation Code',
-                    ),
-                  if (user['linking_code'] != null)
-                    IconButton(
-                      icon: const Icon(Icons.link),
-                      onPressed: () => _showLinkingCode(
-                        user['name'] ?? 'User',
-                        user['linking_code'],
-                      ),
-                      tooltip: 'Show Linking Code',
-                    ),
-                ],
-              ),
-            ),
           ],
         );
       }).toList(),
@@ -623,11 +595,7 @@ class _UserManagementTabState extends State<UserManagementTab>
                   vertical: 8,
                 ),
                 child: Card(
-                  child: _buildUserTable(
-                    activeUsers,
-                    colorScheme,
-                    isActiveTab: true,
-                  ),
+                  child: _buildUserTable(activeUsers, isActiveTab: true),
                 ),
               ),
               // Inactive Users tab
@@ -637,45 +605,13 @@ class _UserManagementTabState extends State<UserManagementTab>
                   vertical: 8,
                 ),
                 child: Card(
-                  child: _buildUserTable(
-                    inactiveUsers,
-                    colorScheme,
-                    isActiveTab: false,
-                  ),
+                  child: _buildUserTable(inactiveUsers, isActiveTab: false),
                 ),
               ),
             ],
           ),
         ),
       ],
-    );
-  }
-
-  void _showLinkingCode(String userName, String linkingCode) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Linking Code for $userName'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Share this code with the user to link their device:'),
-            const SizedBox(height: 16),
-            ActivationCodeDisplay(
-              code: linkingCode,
-              showLabel: false,
-              fontSize: 20,
-            ),
-          ],
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -736,19 +672,76 @@ class _UserManagementTabState extends State<UserManagementTab>
     );
   }
 
-  Future<void> _regenerateActivationCode(String userId, String userName) async {
+  /// Resend the activation email for a pending user.
+  ///
+  /// Confirms with the admin (the previous link becomes invalid), then
+  /// calls PATCH /api/v1/portal/users/<id> with {regenerate_activation: true}.
+  /// The backend rotates the code with a fresh 14-day expiry, sends the
+  /// email, and writes an immutable audit row.
+  ///
+  /// Implements: REQ-CAL-p00033/<UI flow assertions>
+  Future<void> _resendActivationEmail(Map<String, dynamic> user) async {
+    final userId = user['id'] as String;
+    final userName = user['name'] as String? ?? 'User';
+    final userEmail = user['email'] as String? ?? '';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Resend Activation Email'),
+        content: Text(
+          'Send a new activation email to $userEmail? '
+          'The previous activation link will become invalid.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
     try {
       final response = await _apiClient.patch('/api/v1/portal/users/$userId', {
         'regenerate_activation': true,
       });
+      debugPrint('Resend activation response: ${response.data}');
 
       if (!mounted) return;
 
       if (response.isSuccess) {
         final data = response.data as Map<String, dynamic>;
+        final emailSent = data['email_sent'] == true;
+        final emailError = data['email_error'] as String?;
         final newCode = data['activation_code'] as String?;
-        if (newCode != null) {
-          _showActivationCode(userName, newCode);
+
+        if (emailSent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Activation email sent to $userEmail')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                emailError != null
+                    ? 'Activation code regenerated; email could not be sent: '
+                          '$emailError. Share the code manually.'
+                    : 'Activation code regenerated; email could not be sent. '
+                          'Share the code manually.',
+              ),
+              duration: const Duration(seconds: 6),
+            ),
+          );
+          if (newCode != null) {
+            _showActivationCode(userName, newCode);
+          }
         }
         _loadData();
       } else {
@@ -758,9 +751,9 @@ class _UserManagementTabState extends State<UserManagementTab>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error regenerating code: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error resending activation email: $e')),
+        );
       }
     }
   }
@@ -1192,10 +1185,12 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
 /// Read-only dialog showing user details, roles, and assigned sites.
 /// Provides actions to edit or deactivate the user.
 /// For revoked users, shows deactivation reason and reactivate option.
+/// For pending users, shows a Resend Activation Email action.
 ///
 /// IMPLEMENTS REQUIREMENTS:
 ///   REQ-CAL-p00030: Edit User Account
 ///   REQ-CAL-p00031: Deactivate User Account
+///   REQ-CAL-p00033: Resend Activation Email
 ///   REQ-CAL-p00034: Site Visibility and Assignment
 class UserInfoDialog extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -1205,6 +1200,7 @@ class UserInfoDialog extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDeactivate;
   final VoidCallback? onReactivate;
+  final VoidCallback? onResendActivation;
   final ApiClient apiClient;
 
   const UserInfoDialog({
@@ -1216,6 +1212,7 @@ class UserInfoDialog extends StatelessWidget {
     required this.onEdit,
     required this.onDeactivate,
     this.onReactivate,
+    this.onResendActivation,
     required this.apiClient,
   });
 
@@ -1226,6 +1223,7 @@ class UserInfoDialog extends StatelessWidget {
 
     final status = user['status'] as String? ?? 'pending';
     final isRevoked = status == 'revoked';
+    final isPending = status == 'pending';
 
     // Deactivation details (REQ-CAL-p00031)
     final statusChangeReason = user['status_change_reason'] as String?;
@@ -1240,8 +1238,10 @@ class UserInfoDialog extends StatelessWidget {
       systemRoles.add(user['role'] as String);
     }
 
-    // Get sites
-    final sitesList = (user['sites'] as List<dynamic>?) ?? [];
+    // Get sites (dedupe defensively — CUR-1124)
+    final sitesList = _dedupeSitesById(
+      (user['sites'] as List<dynamic>?) ?? const [],
+    );
 
     return AlertDialog(
       title: Column(
@@ -1429,6 +1429,13 @@ class UserInfoDialog extends StatelessWidget {
           OutlinedButton(
             onPressed: onReactivate,
             child: const Text('Reactivate User'),
+          ),
+        // Implements: REQ-CAL-p00033/<UI assertion>
+        if (isPending && onResendActivation != null)
+          OutlinedButton.icon(
+            onPressed: onResendActivation,
+            icon: const Icon(Icons.mail_outline, size: 18),
+            label: const Text('Resend Activation Email'),
           ),
         if (!isRevoked)
           OutlinedButton(onPressed: onEdit, child: const Text('Edit User')),

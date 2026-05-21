@@ -1,0 +1,1 @@
+**Sponsor Portal**: The web-based interface provided by the **System** for clinical staff and **Sponsor** administrators to manage **User Accounts**, **Participants**, **Questionnaires**, and **Audit Logs**. The **Sponsor Portal** is one of the two primary system surfaces; the other is the **Mobile Application**.

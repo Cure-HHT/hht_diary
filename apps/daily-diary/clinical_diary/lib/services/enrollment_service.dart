@@ -13,6 +13,7 @@ import 'dart:convert';
 
 import 'package:clinical_diary/config/sponsor_registry.dart';
 import 'package:clinical_diary/flavors.dart';
+import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:comms/comms.dart';
 import 'package:flutter/foundation.dart' show ValueNotifier, debugPrint;
@@ -50,6 +51,14 @@ class EnrollmentService {
   /// to listeners (feature-flag reset, profile screen) without waiting
   /// for the patient to navigate.
   final ValueNotifier<bool> notParticipatingNotifier = ValueNotifier(false);
+
+  /// CUR-1343: Fine-grained mobile linking status. Distinguishes
+  /// `linkingInProgress` (new code issued, patient must enter it) from
+  /// `disconnected` (no new code yet) so the banner and profile badge can
+  /// render the correct "enter your new code" call-to-action.
+  /// REQ-p70011/F.
+  final ValueNotifier<MobileLinkingStatus> linkingStatusNotifier =
+      ValueNotifier(MobileLinkingStatus.connected);
   final FlutterSecureStorage _secureStorage;
   final http.Client _httpClient;
   SharedPreferences? _sharedPreferences;
@@ -161,7 +170,7 @@ class EnrollmentService {
             serverMessage.toLowerCase().contains('already linked');
         throw EnrollmentException(
           serverMessage ??
-              'This code has already been used. Please request a new code from your research coordinator.',
+              'This code has already been used. Please request a new code from your study coordinator.',
           isDeviceDuplicate
               ? EnrollmentErrorType.deviceAlreadyEnrolled
               : EnrollmentErrorType.codeAlreadyUsed,
@@ -246,6 +255,9 @@ class EnrollmentService {
       );
 
       await _saveEnrollment(enrollment);
+      // CUR-1343 / REQ-p70011/G: Mobile linking status only transitions to
+      // `connected` after the new code is successfully redeemed at the server.
+      linkingStatusNotifier.value = MobileLinkingStatus.connected;
       return enrollment;
     } on http.ClientException catch (e) {
       debugPrint('HTTP error: $e');
@@ -379,6 +391,7 @@ class EnrollmentService {
 
   /// Process a sync/records response to check for disconnection status
   /// Returns true if the patient is disconnected
+  // Implements: REQ-p70011/F,G
   bool processDisconnectionStatus(Map<String, dynamic> response) {
     final isDisconnected = response['isDisconnected'] as bool? ?? false;
     final isNotParticipating = response['isNotParticipating'] as bool? ?? false;
@@ -389,8 +402,18 @@ class EnrollmentService {
       'isNotParticipating=$isNotParticipating',
     );
 
+    final parsedStatus = parseMobileLinkingStatus(status);
+    linkingStatusNotifier.value = parsedStatus;
+
+    // CUR-1343 / REQ-p70011/F: A server-reported `linking_in_progress` means
+    // the portal has issued a new linking code; mobile must hold the patient
+    // in a disconnected state until the new code is entered. This is the
+    // recovery path if the FCM `reconnect` push was lost.
+    final effectiveDisconnected =
+        isDisconnected || parsedStatus == MobileLinkingStatus.linkingInProgress;
+
     // Update local disconnection state asynchronously
-    setDisconnected(isDisconnected);
+    setDisconnected(effectiveDisconnected);
 
     // CUR-1165: Store not_participating state; record detection time on first detection
     if (isNotParticipating) {
@@ -402,20 +425,27 @@ class EnrollmentService {
       setNotParticipating(false);
     }
 
-    return isDisconnected;
+    return effectiveDisconnected;
   }
 
   /// CUR-1311 P1B.5: Route an envelope-fetched patient status notification.
   ///
   /// Sub-action is in `payload.action`. `start_trial` is a no-op here —
   /// it is handled by the /tasks path.
+  // Implements: REQ-p70011/F
   void handleEnvelopeStatusUpdate(Envelope envelope) {
     final action = envelope.payload['action'] as String?;
     switch (action) {
       case 'disconnect':
+        linkingStatusNotifier.value = MobileLinkingStatus.disconnected;
         setDisconnected(true);
       case 'reconnect':
-        setDisconnected(false);
+        // CUR-1343 / REQ-p70011/F: the reconnect push means "a new linking
+        // code has been issued"; the patient still needs to enter it. Keep
+        // the disconnected flag set so the banner stays visible and the
+        // existing enroll() re-link path remains the only way out.
+        linkingStatusNotifier.value = MobileLinkingStatus.linkingInProgress;
+        setDisconnected(true);
       case 'mark_not_participating':
         setNotParticipating(true, at: DateTime.now());
       case 'reactivate':
@@ -432,6 +462,7 @@ class EnrollmentService {
     _httpClient.close();
     disconnectedNotifier.dispose();
     notParticipatingNotifier.dispose();
+    linkingStatusNotifier.dispose();
   }
 }
 

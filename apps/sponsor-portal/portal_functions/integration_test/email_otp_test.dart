@@ -261,12 +261,19 @@ void main() {
       expect(json['error'], contains('email'));
     });
 
-    test('returns 429 when rate limited', () async {
-      // Insert rate limit records to trigger rate limiting
+    test('returns 429 when rate limited with dynamic retry_after', () async {
+      // Insert rate limit records to trigger rate limiting.
+      // Oldest row is 2 minutes old, so retry_after should be ≈780s
+      // (window 900 - 120 elapsed). Allow a tolerance for clock drift
+      // between the INSERT and the handler's NOW().
       final db = Database.instance;
+      // Isolate from previous rate-limit tests in this group.
+      await db.execute(
+        'DELETE FROM email_rate_limits WHERE email = @email',
+        parameters: {'email': testUserEmail},
+      );
       final now = DateTime.now().toUtc();
 
-      // Add 3 rate limit records within 15 minutes
       for (var i = 0; i < 3; i++) {
         await db.execute(
           '''
@@ -292,8 +299,93 @@ void main() {
       expect(response.statusCode, equals(429));
       final json = await getResponseJson(response);
       expect(json['error'], contains('Too many'));
-      expect(json['retry_after'], equals(900));
+      expect(json['retry_after'], isA<int>());
+      expect(json['retry_after'], inInclusiveRange(770, 790));
     });
+
+    test('429 retry_after shrinks as oldest record ages', () async {
+      // Oldest row is 14 minutes old → only ~60s left in the window.
+      final db = Database.instance;
+      await db.execute(
+        'DELETE FROM email_rate_limits WHERE email = @email',
+        parameters: {'email': testUserEmail},
+      );
+      final now = DateTime.now().toUtc();
+
+      for (var i = 0; i < 3; i++) {
+        await db.execute(
+          '''
+          INSERT INTO email_rate_limits (email, email_type, sent_at)
+          VALUES (@email, 'otp', @sentAt)
+          ''',
+          parameters: {
+            'email': testUserEmail,
+            'sentAt': now.subtract(Duration(minutes: 14 - i)).toIso8601String(),
+          },
+        );
+      }
+
+      final token = createMockEmulatorToken(testUserFirebaseUid, testUserEmail);
+      final request = createPostRequest(
+        '/api/v1/portal/auth/send-otp',
+        {},
+        headers: {'authorization': 'Bearer $token'},
+      );
+
+      final response = await sendEmailOtpHandler(request);
+
+      expect(response.statusCode, equals(429));
+      final json = await getResponseJson(response);
+      expect(json['retry_after'], inInclusiveRange(50, 70));
+    });
+
+    test(
+      'rate limit allows new request once oldest row exits window',
+      () async {
+        // Oldest row is 16 minutes old (outside the 15-min window) so only
+        // 2 in-window rows remain → request should be allowed (not 429).
+        final db = Database.instance;
+        await db.execute(
+          'DELETE FROM email_rate_limits WHERE email = @email',
+          parameters: {'email': testUserEmail},
+        );
+        final now = DateTime.now().toUtc();
+
+        final ages = [
+          const Duration(minutes: 16),
+          const Duration(minutes: 5),
+          const Duration(minutes: 1),
+        ];
+        for (final age in ages) {
+          await db.execute(
+            '''
+          INSERT INTO email_rate_limits (email, email_type, sent_at)
+          VALUES (@email, 'otp', @sentAt)
+          ''',
+            parameters: {
+              'email': testUserEmail,
+              'sentAt': now.subtract(age).toIso8601String(),
+            },
+          );
+        }
+
+        final token = createMockEmulatorToken(
+          testUserFirebaseUid,
+          testUserEmail,
+        );
+        final request = createPostRequest(
+          '/api/v1/portal/auth/send-otp',
+          {},
+          headers: {'authorization': 'Bearer $token'},
+        );
+
+        final response = await sendEmailOtpHandler(request);
+
+        // Should not be rate-limited (may be 200 if email send is mocked, or a
+        // 5xx from the disabled email path — either way, not a 429).
+        expect(response.statusCode, isNot(equals(429)));
+      },
+    );
   });
 
   group('verifyEmailOtpHandler', () {

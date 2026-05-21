@@ -70,7 +70,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
     setState(() => _state = _DialogState.loading);
 
     final response = await widget.apiClient.post(
-      '/api/v1/portal/patients/reactivate',
+      '/api/v1/portal/participants/reactivate',
       {'patientId': widget.patientId, 'reason': _reasonController.text.trim()},
     );
 

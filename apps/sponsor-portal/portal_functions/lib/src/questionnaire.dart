@@ -398,7 +398,7 @@ Future<_QuestionnairePushResult> _dispatchQuestionnairePush({
   return (fcmMessageId: result.messageId, notificationId: null);
 }
 
-/// GET /api/v1/portal/patients/questionnaires (X-Patient-Id header)
+/// GET /api/v1/portal/participants/questionnaires (X-Patient-Id header)
 ///
 /// Returns the current status of all questionnaire types for a patient.
 /// Per REQ-CAL-p00023: statuses are Not Sent, Sent, In Progress,
@@ -566,7 +566,7 @@ Future<Response> getQuestionnaireStatusHandler(Request request) async {
   });
 }
 
-/// POST /api/v1/portal/patients/questionnaires/send (patientId + questionnaireType in body)
+/// POST /api/v1/portal/participants/questionnaires/send (patientId + questionnaireType in body)
 ///
 /// Sends a questionnaire to a patient. Creates a questionnaire instance,
 /// sends an FCM notification, and logs the action.

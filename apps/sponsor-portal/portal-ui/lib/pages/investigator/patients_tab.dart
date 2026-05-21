@@ -170,7 +170,7 @@ class _StudyCoordinatorPatientsTabState
     final authService = context.read<AuthService>();
     final apiClient = widget.apiClient ?? ApiClient(authService);
 
-    final response = await apiClient.get('/api/v1/portal/patients');
+    final response = await apiClient.get('/api/v1/portal/participants');
 
     if (!mounted) return;
 

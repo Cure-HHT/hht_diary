@@ -3,30 +3,50 @@
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00065: Reactivate Patient
 //   REQ-p05004: Disconnection Notification (persistent, non-dismissible)
+//   REQ-p70011: Patient Reconnection Workflow (banner variant for linking_in_progress)
 //
 // Persistent warning banner shown when patient is disconnected from the study.
-// Non-dismissible per REQ-p05004. Tapping shows site contact info with phone.
+// Non-dismissible per REQ-p05004. In the plain `disconnected` state the banner
+// expands on tap to show site contact info. When the underlying mobile linking
+// status is `linkingInProgress` (i.e. the portal has issued a new linking
+// code), the banner copy and tap behavior switch to a "tap to enter your new
+// code" call-to-action (REQ-p70011/F).
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Persistent warning banner shown when a patient has been disconnected
-/// from the study by their Study Coordinator.
+/// from the study by their Study Coordinator, or when the portal has just
+/// issued a new linking code and is awaiting re-entry on mobile.
 ///
 /// Non-dismissible per REQ-p05004 — stays visible until patient reconnects.
-/// Displays at the top of the screen with:
-/// - Warning icon and message to contact the study site
-/// - Tap to expand and show site contact details
-/// - Tappable phone number to initiate a call
 class DisconnectionBanner extends StatefulWidget {
-  const DisconnectionBanner({this.siteName, this.sitePhoneNumber, super.key});
+  const DisconnectionBanner({
+    required this.status,
+    this.siteName,
+    this.sitePhoneNumber,
+    this.onTapReconnect,
+    super.key,
+  });
 
-  /// Optional site name to include in the message
+  /// The underlying mobile linking status driving the banner copy/behavior.
+  /// Only [MobileLinkingStatus.disconnected] and
+  /// [MobileLinkingStatus.linkingInProgress] render meaningful banner
+  /// variants; the host widget decides whether to mount the banner at all.
+  final MobileLinkingStatus status;
+
+  /// Optional site name to include in the message (disconnected variant)
   final String? siteName;
 
   /// Optional site phone number for contact (REQ-CAL-p00077)
   final String? sitePhoneNumber;
+
+  /// Invoked when the patient taps the banner in the `linkingInProgress`
+  /// variant. Host wires this to the enrollment screen.
+  // Implements: REQ-p70011/F
+  final VoidCallback? onTapReconnect;
 
   @override
   State<DisconnectionBanner> createState() => _DisconnectionBannerState();
@@ -49,14 +69,37 @@ class _DisconnectionBannerState extends State<DisconnectionBanner> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final isAwaitingReconnect =
+        widget.status == MobileLinkingStatus.linkingInProgress;
     final hasContactInfo =
         widget.siteName != null || widget.sitePhoneNumber != null;
 
+    final title = isAwaitingReconnect
+        ? l10n.reconnectionRequired
+        : l10n.disconnectedFromStudy;
+    final body = isAwaitingReconnect
+        ? l10n.tapToEnterNewCode
+        : (widget.siteName != null
+              ? l10n.contactYourSiteWithName(widget.siteName!)
+              : l10n.contactYourSite);
+
+    final onTap = isAwaitingReconnect
+        ? widget.onTapReconnect
+        : (hasContactInfo
+              ? () => setState(() => _isExpanded = !_isExpanded)
+              : null);
+
+    final trailingIcon = isAwaitingReconnect
+        ? Icons.arrow_forward_ios
+        : (hasContactInfo
+              ? (_isExpanded
+                    ? Icons.keyboard_arrow_up
+                    : Icons.keyboard_arrow_down)
+              : null);
+
     return Material(
       child: InkWell(
-        onTap: hasContactInfo
-            ? () => setState(() => _isExpanded = !_isExpanded)
-            : null,
+        onTap: onTap,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -90,7 +133,7 @@ class _DisconnectionBannerState extends State<DisconnectionBanner> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            l10n.disconnectedFromStudy,
+                            title,
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: Colors.red.shade900,
@@ -98,9 +141,7 @@ class _DisconnectionBannerState extends State<DisconnectionBanner> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            widget.siteName != null
-                                ? l10n.contactYourSiteWithName(widget.siteName!)
-                                : l10n.contactYourSite,
+                            body,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: Colors.red.shade800,
                             ),
@@ -109,20 +150,18 @@ class _DisconnectionBannerState extends State<DisconnectionBanner> {
                       ),
                     ),
 
-                    // Expand indicator (if has contact info)
-                    if (hasContactInfo)
+                    // Trailing indicator (chevron for expand, arrow for reconnect)
+                    if (trailingIcon != null)
                       Icon(
-                        _isExpanded
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
+                        trailingIcon,
                         color: Colors.red.shade600,
-                        size: 20,
+                        size: isAwaitingReconnect ? 14 : 20,
                       ),
                   ],
                 ),
 
-                // Expanded contact details
-                if (_isExpanded && hasContactInfo)
+                // Expanded contact details (disconnected variant only)
+                if (!isAwaitingReconnect && _isExpanded && hasContactInfo)
                   _buildExpandedContactDetails(theme, l10n),
               ],
             ),

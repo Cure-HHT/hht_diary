@@ -48,7 +48,6 @@ void main() {
           enrollmentStatus: enrollmentStatus,
           isSharingWithCureHHT: isSharingWithCureHHT,
           userName: 'Test User',
-          onUpdateUserName: (_) {},
           enrollmentCode: enrollmentCode,
           enrollmentDateTime: enrollmentDateTime,
           enrollmentEndDateTime: enrollmentEndDateTime,
@@ -323,7 +322,6 @@ void main() {
               enrollmentStatus: 'active',
               isSharingWithCureHHT: false,
               userName: 'Test User',
-              onUpdateUserName: (_) {},
             ),
           ),
         );
@@ -376,7 +374,6 @@ void main() {
                 enrollmentStatus: 'none',
                 isSharingWithCureHHT: true,
                 userName: 'Test User',
-                onUpdateUserName: (_) {},
               ),
             ),
           );
@@ -468,7 +465,6 @@ void main() {
               enrollmentStatus: 'none',
               isSharingWithCureHHT: false,
               userName: 'Test User',
-              onUpdateUserName: (_) {},
             ),
           ),
         );
@@ -500,7 +496,6 @@ void main() {
               enrollmentStatus: 'none',
               isSharingWithCureHHT: false,
               userName: 'Test User',
-              onUpdateUserName: (_) {},
             ),
           ),
         );
@@ -570,7 +565,10 @@ void main() {
         expect(cardFinder, findsOneWidget);
 
         final card = tester.widget<Card>(cardFinder);
-        expect(card.color, equals(const Color(0xFFF9FAFB)));
+        expect(
+          card.color,
+          equals(const Color(0xffe4e4e4).withValues(alpha: 0.7)),
+        );
       });
 
       testWidgets('badge shows "Study participation: Ended" message', (

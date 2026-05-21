@@ -5,6 +5,7 @@
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -21,9 +22,9 @@ class ProfileScreen extends StatefulWidget {
     required this.enrollmentStatus,
     required this.isSharingWithCureHHT,
     required this.userName,
-    required this.onUpdateUserName,
     this.isDisconnected = false,
     this.isNotParticipating = false,
+    this.linkingStatus = MobileLinkingStatus.connected,
     this.enrollmentCode,
     this.enrollmentDateTime,
     this.enrollmentEndDateTime,
@@ -42,13 +43,15 @@ class ProfileScreen extends StatefulWidget {
   final bool isDisconnected;
   // CUR-1165: True when sponsor portal has marked patient as not participating
   final bool isNotParticipating;
+  // CUR-1343 / REQ-p70011/F: Fine-grained linking status used to render
+  // the "reconnection required" badge variant.
+  final MobileLinkingStatus linkingStatus;
   final String? enrollmentCode;
   final DateTime? enrollmentDateTime;
   final DateTime? enrollmentEndDateTime;
   final String enrollmentStatus; // linking status: 'active', 'ended', or 'none'
   final bool isSharingWithCureHHT;
   final String userName;
-  final ValueChanged<String> onUpdateUserName;
   final String? siteName;
   final String? sitePhoneNumber;
   final String? sponsorLogo;
@@ -58,53 +61,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _isEditingName = false;
-  late TextEditingController _nameController;
-  final _nameFocusNode = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(text: widget.userName);
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _nameFocusNode.dispose();
-    super.dispose();
-  }
-
-  void _startEditing() {
-    setState(() {
-      _nameController.text = widget.userName;
-      _isEditingName = true;
-    });
-    // Auto-focus after rebuild
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _nameFocusNode.requestFocus();
-    });
-  }
-
-  void _cancelEditing() {
-    setState(() {
-      _nameController.text = widget.userName;
-      _isEditingName = false;
-    });
-  }
-
-  void _saveName() {
-    final trimmedName = _nameController.text.trim();
-    if (trimmedName.isNotEmpty) {
-      widget.onUpdateUserName(trimmedName);
-    } else {
-      _nameController.text = widget.userName; // Reset to original if empty
-    }
-    setState(() {
-      _isEditingName = false;
-    });
-  }
-
   void _openClinicalTrialPrivacyPolicy() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -203,48 +159,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _isEditingName
-                                ? Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextField(
-                                          controller: _nameController,
-                                          focusNode: _nameFocusNode,
-                                          decoration: InputDecoration(
-                                            hintText: l10n.enterYourName,
-                                            isDense: true,
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 8,
-                                                ),
-                                          ),
-                                          onSubmitted: (_) => _saveName(),
-                                          onEditingComplete: _saveName,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      TextButton(
-                                        onPressed: _cancelEditing,
-                                        child: Text(l10n.cancel),
-                                      ),
-                                    ],
-                                  )
-                                : Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          widget.userName,
-                                          style: theme.textTheme.titleMedium,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        onPressed: _startEditing,
-                                        icon: const Icon(Icons.edit, size: 20),
-                                        tooltip: l10n.editName,
-                                      ),
-                                    ],
-                                  ),
+                            child: Text(
+                              widget.userName,
+                              style: theme.textTheme.titleMedium,
+                            ),
                           ),
                         ],
                       ),
@@ -324,9 +242,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Determine status and colors
     final isNotParticipating = widget.isNotParticipating;
     final isDisconnected = widget.isDisconnected;
+    final isAwaitingReconnect =
+        widget.linkingStatus == MobileLinkingStatus.linkingInProgress;
     // CUR-1165: not_participating is distinct from active — exclude it explicitly
     final isActive =
-        widget.isEnrolledInTrial && !isDisconnected && !isNotParticipating;
+        widget.isEnrolledInTrial &&
+        !isDisconnected &&
+        !isNotParticipating &&
+        !isAwaitingReconnect;
 
     Color bgColor;
     Color borderColor;
@@ -335,7 +258,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     IconData statusIcon;
     String statusMessage;
 
-    if (isDisconnected) {
+    if (isAwaitingReconnect) {
+      // CUR-1343 / REQ-p70011/F: A new linking code has been issued by the
+      // portal; the patient must enter it. Reuses the amber disconnected
+      // styling to maintain the "attention required" affordance, but with
+      // its own message that tells the patient what to do next.
+      bgColor = const Color(0xFFFFFBEA);
+      borderColor = Colors.amber.shade300;
+      iconColor = Colors.amber.shade700;
+      subtextColor = const Color(0xFF7B3306);
+      statusIcon = Icons.refresh;
+      statusMessage = l10n.participationStatusAwaitingReconnectMessage;
+    } else if (isDisconnected) {
       // Disconnected state - exact brand colors
       bgColor = const Color(0xFFFFFBEA);
       borderColor = Colors.amber.shade300;
@@ -345,7 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       statusMessage = l10n.participationStatusDisconnectedMessage;
     } else if (isNotParticipating) {
       // CUR-1165: Not participating state — grey/inactive styling (GUI-p00076)
-      bgColor = const Color(0xFFF9FAFB);
+      bgColor = const Color(0xffe4e4e4).withValues(alpha: 0.7);
       borderColor = const Color(0xFFE7E8EC);
       iconColor = const Color(0xFF586170);
       subtextColor = const Color(0xFF586170);
@@ -409,14 +343,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Image.network(
                         widget.sponsorLogo!,
                         height: 60,
+                        width: 120,
                         errorBuilder: (context, _, _) =>
                             const SizedBox(height: 60),
                       ),
                     )
                   else
                     const SizedBox(),
-                  const SizedBox(height: 16),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         height: 40,
@@ -433,51 +368,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Text(
-                          statusMessage,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF212C3B),
-                          ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              statusMessage,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF212C3B),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            if (widget.enrollmentCode != null)
+                              Text(
+                                l10n.linkingCode(
+                                  _formatEnrollmentCode(widget.enrollmentCode!),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF586170),
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            if (widget.enrollmentDateTime != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.joinedDate(
+                                  _formatEnrollmentDateTime(
+                                    widget.enrollmentDateTime!,
+                                  ),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF586170),
+                                ),
+                              ),
+                            ],
+                            if (widget.enrollmentEndDateTime != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.endedDate(
+                                  _formatEnrollmentDateTime(
+                                    widget.enrollmentEndDateTime!,
+                                  ),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: const Color(0xFF586170),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  if (widget.enrollmentCode != null)
-                    Text(
-                      l10n.linkingCode(
-                        _formatEnrollmentCode(widget.enrollmentCode!),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  if (widget.enrollmentDateTime != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.joinedDate(
-                        _formatEnrollmentDateTime(widget.enrollmentDateTime!),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                      ),
-                    ),
-                  ],
-                  if (widget.enrollmentEndDateTime != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.endedDate(
-                        _formatEnrollmentDateTime(
-                          widget.enrollmentEndDateTime!,
-                        ),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                      ),
-                    ),
-                  ],
                 ] else ...[
                   // Active / disconnected states: existing layout
                   if (widget.sponsorLogo != null)

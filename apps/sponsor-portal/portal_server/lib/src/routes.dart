@@ -52,36 +52,43 @@ Router createRouter() {
     deletePendingPortalUserHandler,
   );
   router.get('/api/v1/portal/sites', getPortalSitesHandler);
-  router.get('/api/v1/portal/patients', getPortalPatientsHandler);
+  router.get('/api/v1/portal/participants', getPortalPatientsHandler);
 
-  // Patient operations — patientId in request body/header, not URL (CUR-1064)
-  // POST routes: patientId in JSON body
-  // GET routes: patientId in X-Patient-Id header (not logged by CDN/proxy)
+  // Participant operations (CUR-1220 renamed path segment from "patients").
+  // patientId in request body/header, not URL (CUR-1064):
+  //   POST routes: patientId in JSON body
+  //   GET routes: patientId in X-Patient-Id header (not logged by CDN/proxy)
   router.post(
-    '/api/v1/portal/patients/link-code',
+    '/api/v1/portal/participants/link-code',
     generatePatientLinkingCodeHandler,
   );
   router.get(
-    '/api/v1/portal/patients/link-code/active',
+    '/api/v1/portal/participants/link-code/active',
     getPatientLinkingCodeHandler,
   );
-  router.post('/api/v1/portal/patients/disconnect', disconnectPatientHandler);
   router.post(
-    '/api/v1/portal/patients/not-participating',
+    '/api/v1/portal/participants/disconnect',
+    disconnectPatientHandler,
+  );
+  router.post(
+    '/api/v1/portal/participants/not-participating',
     markPatientNotParticipatingHandler,
   );
-  router.post('/api/v1/portal/patients/reactivate', reactivatePatientHandler);
-  router.post('/api/v1/portal/patients/start-trial', startTrialHandler);
+  router.post(
+    '/api/v1/portal/participants/reactivate',
+    reactivatePatientHandler,
+  );
+  router.post('/api/v1/portal/participants/start-trial', startTrialHandler);
 
   // Questionnaire management endpoints (Investigator role)
   // REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
   // GET: patientId in X-Patient-Id header; POST send: patientId + questionnaireType in body
   router.get(
-    '/api/v1/portal/patients/questionnaires',
+    '/api/v1/portal/participants/questionnaires',
     getQuestionnaireStatusHandler,
   );
   router.post(
-    '/api/v1/portal/patients/questionnaires/send',
+    '/api/v1/portal/participants/questionnaires/send',
     sendQuestionnaireHandler,
   );
 

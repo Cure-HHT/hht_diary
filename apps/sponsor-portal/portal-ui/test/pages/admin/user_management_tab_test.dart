@@ -284,28 +284,6 @@ void main() {
       expect(find.text('Bob Investigator'), findsOneWidget);
     });
 
-    testWidgets('edit button uses primary colored filled icon', (tester) async {
-      await _pumpUserManagementTab(tester);
-
-      // Find edit buttons (only for non-revoked users: Alice and Bob)
-      final editIcons = find.byIcon(Icons.edit);
-      expect(editIcons, findsNWidgets(2));
-
-      // Verify icon uses primary color
-      final iconWidget = tester.widget<Icon>(editIcons.first);
-      final colorScheme = Theme.of(tester.element(editIcons.first)).colorScheme;
-      expect(iconWidget.color, equals(colorScheme.primary));
-    });
-
-    testWidgets('Active tab shows edit buttons for active users only', (
-      tester,
-    ) async {
-      await _pumpUserManagementTab(tester);
-
-      // Active tab: Alice + Bob each get edit icons
-      expect(find.byIcon(Icons.edit), findsNWidgets(2));
-    });
-
     testWidgets('shows create user and refresh buttons', (tester) async {
       await _pumpUserManagementTab(tester);
       expect(find.text('Create User'), findsOneWidget);
@@ -313,27 +291,37 @@ void main() {
       expect(find.byIcon(Icons.refresh), findsOneWidget);
     });
 
-    testWidgets('active non-pending users show deactivate button', (
+    // Per CUR-1123, the user table has no Actions column. Inline edit /
+    // deactivate / reactivate / activation-code icons were removed; all
+    // actions are reached by tapping the row to open UserInfoDialog.
+    testWidgets('Active user table has exactly 5 columns (no Actions)', (
       tester,
     ) async {
       await _pumpUserManagementTab(tester);
 
-      // Active tab: Alice and Bob are both active (non-pending) → both show block icon
-      expect(find.byIcon(Icons.block), findsNWidgets(2));
+      final table = tester.widget<DataTable>(find.byType(DataTable));
+      expect(table.columns.length, equals(5));
+      final labels = table.columns.map((c) => (c.label as Text).data).toList();
+      expect(labels, equals(['Name', 'Email', 'Roles', 'Sites', 'Status']));
     });
 
-    testWidgets('Inactive tab shows reactivate button for revoked users', (
+    testWidgets('Active user table does not render Actions header', (
       tester,
     ) async {
       await _pumpUserManagementTab(tester);
+      // Belt-and-suspenders alongside the column-count assertion: pins
+      // that the literal header is gone from the rendered tree.
+      expect(find.text('Actions'), findsNothing);
+    });
 
-      // Switch to Inactive Users tab
-      await tester.tap(find.text('Inactive Users'));
+    testWidgets('tapping a row opens UserInfoDialog', (tester) async {
+      await _pumpUserManagementTab(tester);
+
+      // Tap Alice's row (active Administrator)
+      await tester.tap(find.text('Alice Admin'));
       await tester.pumpAndSettle();
 
-      // Carol is revoked → shows check_circle_outline for reactivate
-      expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
-      expect(find.text('Carol Auditor'), findsOneWidget);
+      expect(find.text('User Information'), findsOneWidget);
     });
 
     testWidgets('shows role badges with sponsor display names on Active tab', (
@@ -1785,6 +1773,294 @@ void main() {
       );
 
       expect(find.text('Previous deactivation reason'), findsNothing);
+    });
+  });
+
+  // REQ-CAL-p00033: UserInfoDialog exposes a Resend Activation Email action
+  // for pending users (and only for pending users).
+  group('UserInfoDialog - resend activation', () {
+    Future<void> pumpInfoDialog(
+      WidgetTester tester, {
+      required String status,
+      VoidCallback? onResendActivation,
+    }) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'admin@example.com',
+        displayName: 'Test Admin',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = _createMockHttpClient();
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+        enableInactivityTimer: false,
+      );
+      await authService.signIn('admin@example.com', 'password');
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+      final roleMappings = [
+        const SponsorRoleMapping(
+          sponsorName: 'Study Coordinator',
+          systemRole: 'Investigator',
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserInfoDialog(
+              user: {
+                'id': 'pending-1',
+                'name': 'Jennifer Martinez',
+                'email': 'jennifer@example.com',
+                'status': status,
+                'roles': const ['Investigator'],
+                'sites': const <dynamic>[],
+              },
+              sites: const [],
+              roleMappings: roleMappings,
+              toSponsorName: (systemRole) => 'Study Coordinator',
+              onEdit: () {},
+              onDeactivate: () {},
+              onResendActivation: onResendActivation,
+              apiClient: apiClient,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Verifies: REQ-CAL-p00033/<UI assertion>
+    testWidgets('shows Resend Activation Email button for pending user', (
+      tester,
+    ) async {
+      await pumpInfoDialog(
+        tester,
+        status: 'pending',
+        onResendActivation: () {},
+      );
+      expect(find.text('Resend Activation Email'), findsOneWidget);
+    });
+
+    testWidgets('hides Resend button for active user', (tester) async {
+      await pumpInfoDialog(tester, status: 'active', onResendActivation: () {});
+      expect(find.text('Resend Activation Email'), findsNothing);
+    });
+
+    testWidgets('hides Resend button for revoked user', (tester) async {
+      await pumpInfoDialog(
+        tester,
+        status: 'revoked',
+        onResendActivation: () {},
+      );
+      expect(find.text('Resend Activation Email'), findsNothing);
+    });
+
+    testWidgets('Resend button invokes onResendActivation callback', (
+      tester,
+    ) async {
+      var called = false;
+      await pumpInfoDialog(
+        tester,
+        status: 'pending',
+        onResendActivation: () {
+          called = true;
+        },
+      );
+
+      await tester.tap(find.text('Resend Activation Email'));
+      await tester.pumpAndSettle();
+
+      expect(called, isTrue);
+    });
+
+    testWidgets(
+      'Resend button is omitted when callback not provided (defensive)',
+      (tester) async {
+        await pumpInfoDialog(tester, status: 'pending');
+        expect(find.text('Resend Activation Email'), findsNothing);
+      },
+    );
+  });
+
+  // CUR-1124: UserInfoDialog must dedupe sites by site_id before
+  // counting and rendering. Defensive against the pre-fix list endpoint
+  // (which returned N*M duplicates for a user with N roles × M sites)
+  // and any future regression.
+  group('UserInfoDialog - site dedup (CUR-1124)', () {
+    // The Jira ticket's worked example: a user with 3 roles and 3 sites,
+    // each site repeated 3 times in the array. Pre-fix this rendered as
+    // "Assigned Sites (9)" with 9 list entries.
+    final duplicatedSites = <Map<String, dynamic>>[
+      {
+        'site_id': 's1',
+        'site_name': '001 - Memorial Hospital',
+        'site_number': '001',
+      },
+      {'site_id': 's2', 'site_name': '002 - Stanford', 'site_number': '002'},
+      {
+        'site_id': 's3',
+        'site_name': '003 - Johns Hopkins',
+        'site_number': '003',
+      },
+      {
+        'site_id': 's1',
+        'site_name': '001 - Memorial Hospital',
+        'site_number': '001',
+      },
+      {'site_id': 's2', 'site_name': '002 - Stanford', 'site_number': '002'},
+      {
+        'site_id': 's3',
+        'site_name': '003 - Johns Hopkins',
+        'site_number': '003',
+      },
+      {
+        'site_id': 's1',
+        'site_name': '001 - Memorial Hospital',
+        'site_number': '001',
+      },
+      {'site_id': 's2', 'site_name': '002 - Stanford', 'site_number': '002'},
+      {
+        'site_id': 's3',
+        'site_name': '003 - Johns Hopkins',
+        'site_number': '003',
+      },
+    ];
+
+    Future<void> pumpInfoDialogWithSites(
+      WidgetTester tester, {
+      required List<Map<String, dynamic>> sites,
+    }) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final mockUser = MockUser(
+        uid: 'test-uid',
+        email: 'admin@example.com',
+        displayName: 'Test Admin',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final mockHttpClient = _createMockHttpClient();
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+        enableInactivityTimer: false,
+      );
+      await authService.signIn('admin@example.com', 'password');
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+      final roleMappings = [
+        const SponsorRoleMapping(
+          sponsorName: 'Admin',
+          systemRole: 'Administrator',
+        ),
+        const SponsorRoleMapping(sponsorName: 'CRA', systemRole: 'Auditor'),
+        const SponsorRoleMapping(
+          sponsorName: 'Study Coordinator',
+          systemRole: 'Investigator',
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserInfoDialog(
+              user: {
+                'id': 'multi-role-1',
+                'name': 'Multi-Role User',
+                'email': 'multi@example.com',
+                'status': 'active',
+                'roles': const ['Administrator', 'Auditor', 'Investigator'],
+                'sites': sites,
+              },
+              sites: const [],
+              roleMappings: roleMappings,
+              toSponsorName: (systemRole) {
+                final m = roleMappings.firstWhere(
+                  (r) => r.systemRole == systemRole,
+                  orElse: () => SponsorRoleMapping(
+                    sponsorName: systemRole,
+                    systemRole: systemRole,
+                  ),
+                );
+                return m.sponsorName;
+              },
+              onEdit: () {},
+              onDeactivate: () {},
+              apiClient: apiClient,
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets(
+      'counts unique sites (3, not 9) for a multi-role user with duplicated sites',
+      (tester) async {
+        await pumpInfoDialogWithSites(tester, sites: duplicatedSites);
+        expect(find.text('Assigned Sites (3)'), findsOneWidget);
+        expect(find.text('Assigned Sites (9)'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'renders each unique site once even when input contains duplicates',
+      (tester) async {
+        await pumpInfoDialogWithSites(tester, sites: duplicatedSites);
+        expect(find.text('001 - 001 - Memorial Hospital'), findsOneWidget);
+        expect(find.text('002 - 002 - Stanford'), findsOneWidget);
+        expect(find.text('003 - 003 - Johns Hopkins'), findsOneWidget);
+      },
+    );
+
+    testWidgets('preserves first-seen order when deduplicating', (
+      tester,
+    ) async {
+      // Reverse + duplicated input. Expected order: s3, s2, s1 (first-seen).
+      final shuffled = [
+        duplicatedSites[2], // s3 first
+        duplicatedSites[1], // s2
+        duplicatedSites[0], // s1
+        duplicatedSites[2], // s3 dup
+        duplicatedSites[1], // s2 dup
+        duplicatedSites[0], // s1 dup
+      ];
+      await pumpInfoDialogWithSites(tester, sites: shuffled);
+      expect(find.text('Assigned Sites (3)'), findsOneWidget);
+
+      // Pin order by reading the rendered text widgets in document order
+      // and matching against the expected first-seen sequence.
+      final renderedSites = find
+          .textContaining(RegExp(r'^00\d - 00\d -'))
+          .evaluate()
+          .map((e) => (e.widget as Text).data!)
+          .toList();
+      expect(
+        renderedSites,
+        equals([
+          '003 - 003 - Johns Hopkins',
+          '002 - 002 - Stanford',
+          '001 - 001 - Memorial Hospital',
+        ]),
+      );
     });
   });
 }

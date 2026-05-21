@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00167: FCM Dispatch via cure-hht-admin Project (assertions C, D, H)
+//   REQ-d00193: FCM Dispatch via cure-hht-admin Project (assertions C, D, H)
 //
 // Channel-agnostic dispatch outcome. Three terminal states the
 // `OutboxWriter` reacts to:
@@ -42,7 +42,7 @@ class DispatchResult {
   final bool unregistered;
 
   /// Tag value for the `comms.<channel>.dispatch` metric — exactly one
-  /// of `'success'`, `'failed'`, `'unregistered'`. See REQ-d00167-H.
+  /// of `'success'`, `'failed'`, `'unregistered'`. See REQ-d00193-H.
   String get outcome {
     if (unregistered) return 'unregistered';
     if (success) return 'success';

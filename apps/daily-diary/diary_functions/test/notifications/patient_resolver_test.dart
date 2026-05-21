@@ -1,5 +1,5 @@
 // VERIFIES REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling — JWT → patient_id resolution
+//   REQ-d00195: Mobile Notifications Polling — JWT → patient_id resolution
 
 import 'package:diary_functions/diary_functions.dart';
 import 'package:shelf/shelf.dart';

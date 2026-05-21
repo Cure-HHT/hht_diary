@@ -1,5 +1,5 @@
 // VERIFIES REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling — diary-side read repo
+//   REQ-d00195: Mobile Notifications Polling — diary-side read repo
 
 import 'dart:convert';
 

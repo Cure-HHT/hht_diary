@@ -146,7 +146,7 @@ Future<Response> linkHandler(Request request) async {
         );
         return _jsonResponse({
           'error':
-              'This linking code has already been used. Please request a new code from your research coordinator.',
+              'This linking code has already been used. Please request a new code from your study coordinator.',
         }, 409);
       }
 
@@ -158,7 +158,7 @@ Future<Response> linkHandler(Request request) async {
         );
         return _jsonResponse({
           'error':
-              'This linking code has been revoked. Please request a new code from your research coordinator.',
+              'This linking code has been revoked. Please request a new code from your study coordinator.',
         }, 410);
       }
 
@@ -173,7 +173,7 @@ Future<Response> linkHandler(Request request) async {
         );
         return _jsonResponse({
           'error':
-              'This linking code has expired. Please request a new code from your research coordinator.',
+              'This linking code has expired. Please request a new code from your study coordinator.',
         }, 410);
       }
 
@@ -288,7 +288,7 @@ Future<Response> linkHandler(Request request) async {
       return _jsonResponse({
         'error':
             'This device is already linked to a study. '
-            'Please contact your research coordinator if you need to re-link.',
+            'Please contact your study coordinator if you need to re-link.',
       }, 409);
     }
 

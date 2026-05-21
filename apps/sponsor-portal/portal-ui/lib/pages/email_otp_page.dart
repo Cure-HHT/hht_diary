@@ -52,12 +52,20 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
     super.dispose();
   }
 
+  /// Default cooldown after a successful send, to discourage spam.
+  static const int _successCooldownSeconds = 60;
+
   Future<void> _sendOtpCode() async {
     if (_isSendingCode || _resendCooldown > 0) return;
 
     setState(() {
       _isSendingCode = true;
       _error = null;
+      // Start the cooldown optimistically so the resend button is locked
+      // the moment the request goes out — covers the page-load auto-send
+      // and any race where the server reply is slow. Adjusted below based
+      // on the response.
+      _startResendCooldown(_successCooldownSeconds);
     });
 
     final authService = context.read<AuthService>();
@@ -67,16 +75,28 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
 
     setState(() {
       _isSendingCode = false;
-      if (!result.success) {
+      if (result.success) {
+        // Optimistic cooldown already running — nothing more to do.
+      } else if (result.retryAfter != null && result.retryAfter! > 0) {
+        // Rate limited: extend the cooldown to the server-reported wait
+        // and tell the user how long that is, so they don't try again early.
+        final waitSeconds = result.retryAfter!;
+        final baseError = result.error ?? 'Too many OTP requests.';
+        _error =
+            '$baseError Please wait ${_formatWaitDuration(waitSeconds)} '
+            'before trying again.';
+        _startResendCooldown(waitSeconds);
+      } else {
+        // Transient failure (network, 5xx, etc.): keep the optimistic
+        // cooldown so the user doesn't hammer the button while we're in
+        // an unknown state, and surface the error.
         _error = result.error ?? 'Failed to send verification code';
       }
-      // Start cooldown for resend button
-      _startResendCooldown();
     });
   }
 
-  void _startResendCooldown() {
-    _resendCooldown = 60; // 60 seconds cooldown
+  void _startResendCooldown(int seconds) {
+    _resendCooldown = seconds;
     _cooldownTimer?.cancel();
     _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -90,6 +110,32 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
         }
       });
     });
+  }
+
+  /// Formats the resend countdown for the button label.
+  ///   < 60s → "12 s"
+  ///   ≥ 60s → "mm:ss" (e.g. "14:59")
+  String _formatCooldown(int seconds) {
+    if (seconds < 60) return '$seconds s';
+    final minutes = seconds ~/ 60;
+    final remainder = seconds % 60;
+    return '$minutes:${remainder.toString().padLeft(2, '0')}';
+  }
+
+  /// Formats the wait time for the human-readable error message.
+  ///   < 60s            → "45 seconds" (or "1 second")
+  ///   whole minutes    → "1 minute" / "5 minutes"
+  ///   minutes+seconds  → "5 minutes 20 seconds" / "1 minute 1 second"
+  String _formatWaitDuration(int seconds) {
+    if (seconds < 60) {
+      return seconds == 1 ? '1 second' : '$seconds seconds';
+    }
+    final minutes = seconds ~/ 60;
+    final remainder = seconds % 60;
+    final minutesPart = minutes == 1 ? '1 minute' : '$minutes minutes';
+    if (remainder == 0) return minutesPart;
+    final secondsPart = remainder == 1 ? '1 second' : '$remainder seconds';
+    return '$minutesPart $secondsPart';
   }
 
   Future<void> _verifyCode() async {
@@ -294,7 +340,7 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
                               )
                             : Text(
                                 _resendCooldown > 0
-                                    ? 'Resend code in $_resendCooldown s'
+                                    ? 'Resend code in ${_formatCooldown(_resendCooldown)}'
                                     : 'Resend code',
                               ),
                       ),

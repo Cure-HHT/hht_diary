@@ -80,17 +80,20 @@ Future<Response> sendEmailOtpHandler(Request request) async {
     return _jsonResponse({'error': 'Account not active'}, 403);
   }
 
-  // Check rate limit
-  final canSend = await emailService.checkRateLimit(
+  // Check rate limit. Use the dynamic-status variant so the client receives
+  // the actual seconds remaining (computed from the oldest in-window record)
+  // rather than a fixed placeholder. This lets the UI show a real countdown
+  // and prevents the user from hammering the button after a too-short wait.
+  final rateLimitStatus = await emailService.getRateLimitStatus(
     email: email,
     emailType: 'otp',
   );
 
-  if (!canSend) {
+  if (!rateLimitStatus.allowed) {
     print('[EMAIL_OTP] Rate limit exceeded for: $email');
     return _jsonResponse({
       'error': 'Too many OTP requests. Please wait before trying again.',
-      'retry_after': 900, // 15 minutes in seconds
+      'retry_after': rateLimitStatus.retryAfter,
     }, 429);
   }
 

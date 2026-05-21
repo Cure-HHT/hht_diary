@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00167: FCM Dispatch via cure-hht-admin Project (B, C, D, F, G)
-//   REQ-d00168: PHI-Safe FCM Payload (D — runs before network egress)
+//   REQ-d00193: FCM Dispatch via cure-hht-admin Project (B, C, D, F, G)
+//   REQ-d00194: PHI-Safe FCM Payload (D — runs before network egress)
 //
 // FCM HTTP v1 channel. Builds the per-message payload, runs PayloadGuard,
 // POSTs through the AdcClient's authenticated http.Client, and maps
@@ -50,7 +50,7 @@ class FcmChannel implements Channel<FcmMessage> {
   @override
   Future<DispatchResult> dispatch(FcmMessage message) async {
     // Guard runs before any network I/O so a PHI leak fails closed
-    // (REQ-d00168-D). Title/body and every data value are checked.
+    // (REQ-d00194-D). Title/body and every data value are checked.
     if (message.notificationTitle != null) {
       PayloadGuard.assertSafeText(
         message.notificationTitle!,
@@ -103,7 +103,7 @@ class FcmChannel implements Channel<FcmMessage> {
 
   /// Builds the `message` object for the FCM v1 request body. The
   /// APNS split (priority 10 + alert vs. priority 5 + content-available)
-  /// is driven by [FcmMessage.userVisible] — see REQ-d00170 / S3.3.
+  /// is driven by [FcmMessage.userVisible] — see REQ-d00196 / S3.3.
   Map<String, dynamic> _buildMessagePayload(FcmMessage message) {
     final payload = <String, dynamic>{
       'token': message.fcmToken,
@@ -142,7 +142,7 @@ class FcmChannel implements Channel<FcmMessage> {
   }
 
   /// Returns true when the FCM response signals a permanently dead
-  /// token (REQ-d00167-D). The OutboxWriter routes this into
+  /// token (REQ-d00193-D). The OutboxWriter routes this into
   /// `DispatchResult.unregisteredToken` so the caller can deactivate
   /// the row in `patient_fcm_tokens`.
   bool _isUnregistered(http.Response response) {

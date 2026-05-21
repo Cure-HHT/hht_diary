@@ -1,8 +1,8 @@
 // VERIFIES REQUIREMENTS:
-//   REQ-d00167: dispatch + status transitions persist correctly
-//   REQ-d00168: PHI checks happen at the OutboxWriter layer; the repo
+//   REQ-d00193: dispatch + status transitions persist correctly
+//   REQ-d00194: PHI checks happen at the OutboxWriter layer; the repo
 //               accepts already-validated envelopes
-//   REQ-d00169: findSince ordering + bounded result set; markDelivered
+//   REQ-d00195: findSince ordering + bounded result set; markDelivered
 //               idempotent semantics
 //
 // Unit tests for [PgNotificationRepository] using
