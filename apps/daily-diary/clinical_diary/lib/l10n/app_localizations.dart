@@ -307,8 +307,6 @@ class AppLocalizations {
 
       // Profile screen
       'userProfile': 'User Profile',
-      'enterYourName': 'Enter your name',
-      'editName': 'Edit name',
       'shareWithCureHHT': 'Share with CureHHT',
       'stopSharingWithCureHHT': 'Stop Sharing with CureHHT',
       'privacyDataProtection': 'Privacy & Data Protection',
@@ -738,8 +736,6 @@ class AppLocalizations {
 
       // Profile screen
       'userProfile': 'Perfil de Usuario',
-      'enterYourName': 'Ingresa tu nombre',
-      'editName': 'Editar nombre',
       'shareWithCureHHT': 'Compartir con CureHHT',
       'stopSharingWithCureHHT': 'Dejar de Compartir con CureHHT',
       'privacyDataProtection': 'Privacidad y Proteccion de Datos',
@@ -1184,8 +1180,6 @@ class AppLocalizations {
 
       // Profile screen
       'userProfile': 'Profil Utilisateur',
-      'enterYourName': 'Entrez votre nom',
-      'editName': 'Modifier le nom',
       'shareWithCureHHT': 'Partager avec CureHHT',
       'stopSharingWithCureHHT': 'Arreter le Partage avec CureHHT',
       'privacyDataProtection': 'Confidentialite et Protection des Donnees',
@@ -1626,8 +1620,6 @@ class AppLocalizations {
 
       // Profile screen
       'userProfile': 'Benutzerprofil',
-      'enterYourName': 'Geben Sie Ihren Namen ein',
-      'editName': 'Name bearbeiten',
       'shareWithCureHHT': 'Mit CureHHT teilen',
       'stopSharingWithCureHHT': 'Teilen mit CureHHT beenden',
       'privacyDataProtection': 'Datenschutz & Datensicherheit',
@@ -2100,8 +2092,6 @@ class AppLocalizations {
 
   // Profile screen
   String get userProfile => translate('userProfile');
-  String get enterYourName => translate('enterYourName');
-  String get editName => translate('editName');
   String get shareWithCureHHT => translate('shareWithCureHHT');
   String get stopSharingWithCureHHT => translate('stopSharingWithCureHHT');
   String get privacyDataProtection => translate('privacyDataProtection');
