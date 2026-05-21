@@ -282,7 +282,11 @@ Future<void> notifySlackWith({
   try {
     if (webhookUrl == null || webhookUrl.isEmpty) {
       // ignore: avoid_print
-      print('[INFO] RAVE_ALERT_SLACK_WEBHOOK unset — skipping Slack: $text');
+      //
+      // Do NOT log [text] here — the unwedge confirmation message includes
+      // operator email (PII), and writing it to application logs would
+      // duplicate PII into a less-protected sink.
+      print('[INFO] RAVE_ALERT_SLACK_WEBHOOK unset — skipping Slack alert');
       return;
     }
     try {

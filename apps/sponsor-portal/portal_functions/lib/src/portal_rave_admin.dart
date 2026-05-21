@@ -131,10 +131,12 @@ Future<Response> unwedgeRaveHandler(Request request) async {
       ) VALUES (
         now(), 'RAVE', 'UNWEDGE',
         0, 0, 0,
-        'unwedge', 0, true, NULL, @metadata::jsonb
+        'unwedge', 0, @success, @errorMessage, @metadata::jsonb
       )
       ''',
       parameters: {
+        'success': probeOk,
+        'errorMessage': probeOk ? null : probeError,
         'metadata': jsonEncode({
           'triggered_by': 'unwedge',
           'unwedged_by_user_id': user.id,
