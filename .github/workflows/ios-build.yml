@@ -181,7 +181,7 @@ jobs:
           set -euo pipefail
           python3 -m pip install --quiet 'pyjwt[crypto]' requests
           doppler run --project "$DOPPLER_PROJECT" --config "$FLAVOR" -- python3 <<'PY'
-          import base64, json, os, sys, time
+          import base64, os, time
           import jwt, requests
 
           key_b64 = os.environ["APP_STORE_CONNECT_API_KEY_MGR_BASE64"]
@@ -254,6 +254,8 @@ jobs:
           print(f"Local pubspec versionCode:           {local_vc}")
           print(f"TestFlight highest cfBundleVersion:  {highest}")
 
+          # GITHUB_OUTPUT is injected by the GitHub runner and inherited
+          # through `doppler run -- python3` via the normal UNIX env tree.
           gh_out = os.environ["GITHUB_OUTPUT"]
           with open(gh_out, "a") as f:
               f.write(f"current_testflight_version_code={highest}\n")
