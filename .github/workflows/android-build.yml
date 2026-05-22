@@ -54,7 +54,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  # CUR-1370: gate job — queries Play Store API for the highest versionCode
+  # ever uploaded to this package; skips the build job cleanly when the
+  # local pubspec versionCode is not greater. Eliminates false-alarm
+  # "Cannot update a published APK" Slack DMs on lockfile-only / docs-only
+  # pushes that don't bump pubspec.yaml.
+  gate:
+    name: Version-bump gate
+    runs-on: ubuntu-latest
     # Skip auto-deploy on Dependabot-merge commits. Their PRs come in waves
     # and each squash-merge would otherwise trigger a Play Store upload for
     # a small dep bump. The merge commit's message preserves the PR title
@@ -63,15 +70,21 @@ jobs:
     # `workflow_dispatch` and non-push events have no head_commit, so the
     # `|| ''` fallback lets manual triggers always run.
     if: ${{ !startsWith(github.event.head_commit.message || '', '[Dependabot]') }}
-    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.decide.outputs.should_deploy }}
+      flavor: ${{ steps.inputs.outputs.flavor }}
+      track: ${{ steps.inputs.outputs.track }}
+      status: ${{ steps.inputs.outputs.status }}
+      version: ${{ steps.version.outputs.version }}
+      version_code: ${{ steps.version.outputs.version_code }}
+      version_name: ${{ steps.version.outputs.version_name }}
+      package_name: ${{ steps.package.outputs.name }}
+      current_play_version_code: ${{ steps.decide.outputs.current_play_version_code }}
+      slack_channel: ${{ steps.slack-chan.outputs.channel }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Load pinned versions
-        run: |
-          grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
 
       - name: Resolve build inputs
         id: inputs
@@ -101,11 +114,209 @@ jobs:
           echo "track=$TRACK" >> "$GITHUB_OUTPUT"
           echo "status=$STATUS" >> "$GITHUB_OUTPUT"
 
+      - name: Extract version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | awk '{print $2}')
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not parse version from apps/daily-diary/clinical_diary/pubspec.yaml"
+            exit 1
+          fi
+          # Format is <name>+<code>, e.g. 0.9.35+65 → name=0.9.35, code=65
+          VERSION_NAME="${VERSION%+*}"
+          VERSION_CODE="${VERSION##*+}"
+          if [ "$VERSION_NAME" = "$VERSION" ] || [ -z "$VERSION_CODE" ]; then
+            echo "::error::pubspec version '$VERSION' missing '+<versionCode>' suffix"
+            exit 1
+          fi
+          case "$VERSION_CODE" in
+            ''|*[!0-9]*)
+              echo "::error::pubspec versionCode '$VERSION_CODE' is not a positive integer"
+              exit 1
+              ;;
+          esac
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "App version: $VERSION (name=$VERSION_NAME, code=$VERSION_CODE)"
+
+      - name: Determine package name
+        id: package
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+        run: |
+          echo "name=org.anspar.curehht.app.${FLAVOR}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Slack channel from flavor
+        id: slack-chan
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+        run: |
+          # Per-flavor routing — mirrors callisto's .github/slack-channels.yml
+          # (deploy-success: dev->#dev, qa->#qa, uat->#devops). Channel
+          # names are not secrets; hardcoded here for simplicity until/
+          # unless a slack-channels.yml lands in this repo too.
+          case "$FLAVOR" in
+            dev)  CHANNEL="#dev" ;;
+            qa)   CHANNEL="#qa" ;;
+            uat)  CHANNEL="#devops" ;;
+            *)    CHANNEL="#devops" ;;
+          esac
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "Slack channel for flavor '$FLAVOR': $CHANNEL"
+
+      # CUR-1370: mint an access token scoped to androidpublisher so the
+      # next step can query Play Developer API. The existing build-job
+      # auth step (now in the `build` job below) still writes a credentials
+      # file for r0adkll/upload-google-play; that pattern is unchanged.
+      - name: Authenticate to Google Cloud (Play API)
+        id: gcp-auth-play
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+
+      # CUR-1370: query Play Store for the highest versionCode ever uploaded
+      # to this package (across all bundles + APKs, all tracks). Play rejects
+      # re-upload of a versionCode that already exists *anywhere* on the
+      # package, not just on the target track — so this is the correct
+      # comparison for catching the "Cannot update a published APK" case.
+      - name: Decide whether to deploy
+        id: decide
+        env:
+          ACCESS_TOKEN: ${{ steps.gcp-auth-play.outputs.access_token }}
+          PACKAGE: ${{ steps.package.outputs.name }}
+          LOCAL_VC: ${{ steps.version.outputs.version_code }}
+        run: |
+          set -euo pipefail
+          API="https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}"
+
+          # 1. Open a read-only edit (Play API requires an edit context).
+          EDIT_HTTP=$(curl -sS -o /tmp/edit.json -w '%{http_code}' \
+            -X POST -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" -d '{}' \
+            "${API}/edits")
+          if [ "$EDIT_HTTP" = "404" ]; then
+            # Brand-new package never uploaded — definitely deploy.
+            echo "::notice::Play Store has no record of package ${PACKAGE} (HTTP 404 on edits.insert); treating current versionCode as 0"
+            HIGHEST=0
+            EDIT_ID=""
+          elif [ "$EDIT_HTTP" != "200" ]; then
+            echo "::error::edits.insert failed (HTTP ${EDIT_HTTP})"
+            cat /tmp/edit.json
+            exit 1
+          else
+            EDIT_ID=$(jq -r '.id' /tmp/edit.json)
+
+            # 2. List all bundles (AABs) and APKs on the package; take the max
+            #    versionCode across both. Either list may be empty (404 or
+            #    {"kind":"..."}, no array key). Treat empty as max=0.
+            BUNDLES_HTTP=$(curl -sS -o /tmp/bundles.json -w '%{http_code}' \
+              -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+              "${API}/edits/${EDIT_ID}/bundles")
+            APKS_HTTP=$(curl -sS -o /tmp/apks.json -w '%{http_code}' \
+              -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+              "${API}/edits/${EDIT_ID}/apks")
+
+            MAX_BUNDLE=0
+            if [ "$BUNDLES_HTTP" = "200" ]; then
+              MAX_BUNDLE=$(jq -r '[.bundles[]?.versionCode | tonumber] | max // 0' /tmp/bundles.json)
+            elif [ "$BUNDLES_HTTP" != "404" ]; then
+              echo "::error::edits.bundles.list failed (HTTP ${BUNDLES_HTTP})"
+              cat /tmp/bundles.json
+              # Clean up edit best-effort then exit.
+              curl -sS -X DELETE -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+                "${API}/edits/${EDIT_ID}" >/dev/null 2>&1 || true
+              exit 1
+            fi
+
+            MAX_APK=0
+            if [ "$APKS_HTTP" = "200" ]; then
+              MAX_APK=$(jq -r '[.apks[]?.versionCode | tonumber] | max // 0' /tmp/apks.json)
+            elif [ "$APKS_HTTP" != "404" ]; then
+              echo "::error::edits.apks.list failed (HTTP ${APKS_HTTP})"
+              cat /tmp/apks.json
+              curl -sS -X DELETE -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+                "${API}/edits/${EDIT_ID}" >/dev/null 2>&1 || true
+              exit 1
+            fi
+
+            HIGHEST=$MAX_BUNDLE
+            if [ "$MAX_APK" -gt "$HIGHEST" ]; then HIGHEST=$MAX_APK; fi
+
+            # 3. Best-effort cleanup of the edit.
+            curl -sS -X DELETE -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+              "${API}/edits/${EDIT_ID}" >/dev/null 2>&1 || true
+          fi
+
+          echo "current_play_version_code=$HIGHEST" >> "$GITHUB_OUTPUT"
+          echo "Local pubspec versionCode:        $LOCAL_VC"
+          echo "Play Store highest versionCode:   $HIGHEST"
+
+          if [ "$LOCAL_VC" -gt "$HIGHEST" ]; then
+            echo "::notice::Local versionCode ($LOCAL_VC) > Play Store highest ($HIGHEST); will deploy."
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Local versionCode ($LOCAL_VC) <= Play Store highest ($HIGHEST); skipping build & upload (no version bump)."
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Gate summary
+        env:
+          SHOULD_DEPLOY: ${{ steps.decide.outputs.should_deploy }}
+          LOCAL_VC: ${{ steps.version.outputs.version_code }}
+          PLAY_VC: ${{ steps.decide.outputs.current_play_version_code }}
+          PACKAGE: ${{ steps.package.outputs.name }}
+          TRACK: ${{ steps.inputs.outputs.track }}
+        run: |
+          {
+            echo "### Version-bump gate"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| **Decision** | ${SHOULD_DEPLOY} |"
+            echo "| **Local versionCode (pubspec)** | ${LOCAL_VC} |"
+            echo "| **Play Store highest versionCode** | ${PLAY_VC} |"
+            echo "| **Package** | ${PACKAGE} |"
+            echo "| **Target track** | ${TRACK} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # CUR-1370: when the gate skips, post a single informational message
+      # to the per-flavor channel so the team knows the push intentionally
+      # didn't deploy. Not a DM — the committer hasn't broken anything.
+      - name: Notify Slack on skipped deploy
+        if: steps.decide.outputs.should_deploy == 'false'
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          errors: true
+          payload: |
+            channel: "${{ steps.slack-chan.outputs.channel }}"
+            text: ":information_source: *Android: deploy skipped (no version bump)*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Package:* ${{ steps.package.outputs.name }}\n*Pubspec versionCode:* ${{ steps.version.outputs.version_code }}\n*Play Store highest versionCode:* ${{ steps.decide.outputs.current_play_version_code }}\n*Hint:* bump `pubspec.yaml` `version: x.y.z+N` to deploy.\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+
+  build:
+    name: Build & deploy
+    needs: gate
+    if: needs.gate.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load pinned versions
+        run: |
+          grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
+
       - name: Compute short SHA
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Java
+        id: setup-java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -113,6 +324,7 @@ jobs:
           cache: gradle
 
       - name: Set up Flutter
+        id: setup-flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -136,33 +348,30 @@ jobs:
           fi
 
       - name: Install Flutter dependencies
+        id: pub-get
         working-directory: apps/daily-diary/clinical_diary
         run: flutter pub get
 
       - name: Run Flutter analyze
+        id: analyze
         working-directory: apps/daily-diary/clinical_diary
         run: flutter analyze
 
       - name: Run Flutter tests
+        id: test
         working-directory: apps/daily-diary/clinical_diary
         run: flutter test
-
-      - name: Extract version from pubspec.yaml
-        id: version
-        run: |
-          VERSION=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | awk '{print $2}')
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "App version: $VERSION"
 
       - name: Install Doppler CLI
         uses: dopplerhq/cli-action@v3
 
-      - name: Build signed Android ${{ steps.inputs.outputs.flavor }}
+      - name: Build signed Android ${{ needs.gate.outputs.flavor }}
+        id: build-android
         working-directory: apps/daily-diary/clinical_diary
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
           DOPPLER_PROJECT: ${{ secrets.DOPPLER_PROJECT }}
-          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+          FLAVOR: ${{ needs.gate.outputs.flavor }}
         run: |
           doppler run \
             --project "$DOPPLER_PROJECT" \
@@ -172,8 +381,8 @@ jobs:
       - name: Determine artifact path
         id: artifact
         env:
-          FLAVOR: ${{ steps.inputs.outputs.flavor }}
-          VERSION: ${{ steps.version.outputs.version }}
+          FLAVOR: ${{ needs.gate.outputs.flavor }}
+          VERSION: ${{ needs.gate.outputs.version }}
           SHORT_SHA: ${{ steps.sha.outputs.short }}
         run: |
           # UAT Play Store listing requires AAB; dev/qa accept APK.
@@ -186,18 +395,12 @@ jobs:
           fi
 
       - name: Upload artifact
+        id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact.outputs.name }}
           path: ${{ steps.artifact.outputs.path }}
           retention-days: 90
-
-      - name: Determine package name
-        id: package
-        env:
-          FLAVOR: ${{ steps.inputs.outputs.flavor }}
-        run: |
-          echo "name=org.anspar.curehht.app.${FLAVOR}" >> "$GITHUB_OUTPUT"
 
       - name: Authenticate to Google Cloud
         id: gcp-auth
@@ -208,21 +411,22 @@ jobs:
           create_credentials_file: true
 
       - name: Upload to Google Play
+        id: upload-play
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ steps.gcp-auth.outputs.credentials_file_path }}
-          packageName: ${{ steps.package.outputs.name }}
+          packageName: ${{ needs.gate.outputs.package_name }}
           releaseFiles: ${{ steps.artifact.outputs.path }}
-          track: ${{ steps.inputs.outputs.track }}
-          status: ${{ steps.inputs.outputs.status }}
+          track: ${{ needs.gate.outputs.track }}
+          status: ${{ needs.gate.outputs.status }}
 
       - name: Build summary
         env:
-          FLAVOR: ${{ steps.inputs.outputs.flavor }}
-          TRACK: ${{ steps.inputs.outputs.track }}
-          STATUS: ${{ steps.inputs.outputs.status }}
-          VERSION: ${{ steps.version.outputs.version }}
-          PACKAGE: ${{ steps.package.outputs.name }}
+          FLAVOR: ${{ needs.gate.outputs.flavor }}
+          TRACK: ${{ needs.gate.outputs.track }}
+          STATUS: ${{ needs.gate.outputs.status }}
+          VERSION: ${{ needs.gate.outputs.version }}
+          PACKAGE: ${{ needs.gate.outputs.package_name }}
           ARTIFACT: ${{ steps.artifact.outputs.name }}
           SHORT_SHA: ${{ steps.sha.outputs.short }}
           ACTOR: ${{ github.actor }}
@@ -241,24 +445,6 @@ jobs:
             echo "| **Triggered by** | $ACTOR |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Resolve Slack channel from flavor
-        id: slack-chan
-        env:
-          FLAVOR: ${{ steps.inputs.outputs.flavor }}
-        run: |
-          # Per-flavor routing — mirrors callisto's .github/slack-channels.yml
-          # (deploy-success: dev->#dev, qa->#qa, uat->#devops). Channel
-          # names are not secrets; hardcoded here for simplicity until/
-          # unless a slack-channels.yml lands in this repo too.
-          case "$FLAVOR" in
-            dev)  CHANNEL="#dev" ;;
-            qa)   CHANNEL="#qa" ;;
-            uat)  CHANNEL="#devops" ;;
-            *)    CHANNEL="#devops" ;;
-          esac
-          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
-          echo "Slack channel for flavor '$FLAVOR': $CHANNEL"
-
       - name: Notify Slack on success
         if: success()
         uses: slackapi/slack-github-action@v3.0.3
@@ -267,8 +453,52 @@ jobs:
           token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
           errors: true
           payload: |
-            channel: "${{ steps.slack-chan.outputs.channel }}"
-            text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Version:* ${{ steps.version.outputs.version }}\n*Package:* ${{ steps.package.outputs.name }}\n*Play Store:* ${{ steps.inputs.outputs.track }} track (${{ steps.inputs.outputs.status }})\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            channel: "${{ needs.gate.outputs.slack_channel }}"
+            text: ":robot_face: *Android Build & Play Store Upload*\n\n*Flavor:* ${{ needs.gate.outputs.flavor }}\n*Version:* ${{ needs.gate.outputs.version }}\n*Package:* ${{ needs.gate.outputs.package_name }}\n*Play Store:* ${{ needs.gate.outputs.track }} track (${{ needs.gate.outputs.status }})\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+
+      # CUR-1370: identify which step failed so the failure DM can name it.
+      # Each candidate step has an explicit `id:` above. The cascade picks
+      # the FIRST failed step (steps run in document order, so the first
+      # failure stops the job — there should never be more than one).
+      - name: Identify failed step
+        if: failure()
+        id: failed-step
+        run: |
+          set -u
+          NAME="Unknown step"
+          HINT="Inspect the workflow run logs."
+          if [ "${{ steps.setup-java.outcome }}" = "failure" ]; then
+            NAME="Set up Java"
+            HINT="JDK ${{ env.JAVA_VERSION }} install failed; check .github/versions.env."
+          elif [ "${{ steps.setup-flutter.outcome }}" = "failure" ]; then
+            NAME="Set up Flutter"
+            HINT="Flutter ${{ env.FLUTTER_VERSION }} install failed; check .github/versions.env."
+          elif [ "${{ steps.pub-get.outcome }}" = "failure" ]; then
+            NAME="Install Flutter dependencies"
+            HINT="\`flutter pub get\` failed; pub.dev outage or pubspec.lock conflict."
+          elif [ "${{ steps.analyze.outcome }}" = "failure" ]; then
+            NAME="Flutter analyze"
+            HINT="Static analysis errors. Run \`flutter analyze\` locally to reproduce."
+          elif [ "${{ steps.test.outcome }}" = "failure" ]; then
+            NAME="Flutter tests"
+            HINT="Unit/widget tests failed. Run \`flutter test\` locally to reproduce."
+          elif [ "${{ steps.build-android.outcome }}" = "failure" ]; then
+            NAME="Build signed Android"
+            HINT="Gradle/Doppler build failed for flavor '${{ needs.gate.outputs.flavor }}'. Check Doppler config and tool/build_android_*_signed.sh."
+          elif [ "${{ steps.upload-artifact.outcome }}" = "failure" ]; then
+            NAME="Upload artifact"
+            HINT="GitHub Artifacts upload failed (transient infra issue most likely)."
+          elif [ "${{ steps.gcp-auth.outcome }}" = "failure" ]; then
+            NAME="Authenticate to Google Cloud"
+            HINT="WIF/SA misconfigured; check vars.GCP_PROJECT_NUMBER and vars.GCP_SA_EMAIL."
+          elif [ "${{ steps.upload-play.outcome }}" = "failure" ]; then
+            NAME="Upload to Google Play"
+            HINT="Play Store rejected the upload. The version-bump gate passed but Play still refused — investigate Play Console state for package ${{ needs.gate.outputs.package_name }}, track ${{ needs.gate.outputs.track }}."
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "hint=$HINT" >> "$GITHUB_OUTPUT"
+          echo "Failed step: $NAME"
+          echo "Hint: $HINT"
 
       - name: Resolve Slack user for failure DM
         if: failure()
@@ -302,4 +532,4 @@ jobs:
           errors: true
           payload: |
             channel: "${{ steps.slack-user.outputs.channel }}"
-            text: ":x: *Android Build Failed*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor || 'unknown' }}\n*Version:* ${{ steps.version.outputs.version || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            text: ":x: *Android workflow failed*\n\n*Failed step:* ${{ steps.failed-step.outputs.name }}\n*Hint:* ${{ steps.failed-step.outputs.hint }}\n*Flavor:* ${{ needs.gate.outputs.flavor || 'unknown' }}\n*Version:* ${{ needs.gate.outputs.version || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
