@@ -56,8 +56,10 @@ class RaveLockoutState {
     );
   }
 
-  /// Compact display string for the cooldown duration. Returns `"24h"`,
-  /// `"5m"`, `"30s"`, `"none"`, or a "Hh Mm" combo for mixed durations.
+  /// Compact display string for the cooldown duration. Returns the largest
+  /// whole unit that divides evenly: `"24h"` / `"5m"` / `"30s"`, `"none"`
+  /// for a zero cooldown, or falls through to seconds for any duration
+  /// that isn't a whole-minute / whole-hour multiple.
   String get cooldownDisplay {
     final s = cooldown.inSeconds;
     if (s == 0) return 'none';

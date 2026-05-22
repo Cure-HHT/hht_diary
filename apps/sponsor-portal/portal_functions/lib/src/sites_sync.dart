@@ -692,8 +692,19 @@ Future<SitesSyncResult?> syncSitesIfNeeded({
   }
 
   // Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
-  final state = await checkLockout();
-  if (state.isPaused) {
+  //
+  // Wrap checkLockout in try/catch: if migration 013 hasn't been applied
+  // yet (incremental rollout, env in a weird state, etc.) the SELECT
+  // against rave_sync_lockout throws and we don't want that to take down
+  // the entire /sites handler. Treat any failure as "proceed" — the gate
+  // is a defense-in-depth pause, not a hard prerequisite for serving.
+  LockoutState? state;
+  try {
+    state = await checkLockout();
+  } catch (e) {
+    print('[WARN] checkLockout failed (proceeding without gate): $e');
+  }
+  if (state != null && state.isPaused) {
     final result = buildPausedSitesResult(state);
     // Audit: record the skip in edc_sync_log.
     try {

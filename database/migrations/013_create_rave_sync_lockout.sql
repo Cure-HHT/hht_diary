@@ -38,7 +38,9 @@ COMMENT ON TABLE rave_sync_lockout IS
 COMMENT ON COLUMN rave_sync_lockout.locked_at IS
   'Non-NULL = hard lockout. Cleared only by the Unwedge endpoint.';
 COMMENT ON COLUMN rave_sync_lockout.last_failure_at IS
-  'Drives soft cooldown: now() - last_failure_at < RAVE_AUTH_COOLDOWN_HOURS = paused.';
+  'Drives soft cooldown: now() - last_failure_at < cooldown_window = paused. '
+  'Cooldown window resolves from RAVE_AUTH_COOLDOWN_MINUTES if set, '
+  'else RAVE_AUTH_COOLDOWN_HOURS, else 24h.';
 
 COMMIT;
 

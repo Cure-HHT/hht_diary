@@ -273,7 +273,12 @@ class _StudyCoordinatorPatientsTabState
             pausedUntil: _ravePausedUntil,
             since: _raveSince,
           ),
-          if (_raveSyncState != 'ok') const SizedBox(height: 16),
+          // Gate the spacer on the same states the banner actually renders.
+          // RaveSyncBanner returns SizedBox.shrink() for unknown states; if
+          // we keyed off `!= 'ok'`, an unknown backend value would still
+          // insert a blank 16px gap above the table.
+          if (_raveSyncState == 'cooldown' || _raveSyncState == 'locked')
+            const SizedBox(height: 16),
 
           // My Sites section
           if (_assignedSites.isNotEmpty) ...[
