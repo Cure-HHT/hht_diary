@@ -302,38 +302,46 @@ jobs:
         continue-on-error: true
 
       # -----------------------------------------------------------------
-      # PR comment with results
+      # PR comment with results (rolling, via shared upsert action)
       # -----------------------------------------------------------------
-      - name: Comment PR with test results
+      - name: Build QA results comment body
+        id: qa-comment-body
         if: always() && github.event_name == 'pull_request'
-        uses: actions/github-script@v9
+        env:
+          MARKER: '<!-- pr-comment-upsert:qa-automation -->'
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          {
+            echo "$MARKER"
+            echo "## QA Automation Results"
+            echo ""
+            if [ -f qa-reports/test-summary.md ]; then
+              cat qa-reports/test-summary.md
+              echo ""
+              echo ""
+            fi
+            echo "### Detailed Reports"
+            echo ""
+            echo "- [Test Reports Artifact](https://github.com/${REPO}/actions/runs/${RUN_ID})"
+            echo "- Commit: \`${SHA}\`"
+            echo "- Workflow: [View Logs](https://github.com/${REPO}/actions/runs/${RUN_ID})"
+            echo ""
+            echo "*Generated at $(date -u +%Y-%m-%dT%H:%M:%SZ)*"
+          } > /tmp/qa-comment-body.md
+          {
+            echo "body<<QA_COMMENT_EOF"
+            cat /tmp/qa-comment-body.md
+            echo "QA_COMMENT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upsert QA Automation Results comment
+        if: always() && github.event_name == 'pull_request'
+        uses: Cure-HHT/hht_workflows/.github/actions/pr-comment-upsert@5f6797b6cbd6434e251539c959e418e2b4bb1b18  # hht_workflows main 2026-05-22
         with:
-          script: |
-            const fs = require('fs');
-            let comment = '## QA Automation Results\n\n';
-
-            // Read test summary if available
-            if (fs.existsSync('qa-reports/test-summary.md')) {
-              const summary = fs.readFileSync('qa-reports/test-summary.md', 'utf8');
-              comment += summary + '\n\n';
-            }
-
-            // Add artifact links
-            comment += '### Detailed Reports\n\n';
-            comment += `- [Test Reports Artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
-            comment += `- Commit: \`${{ github.sha }}\`\n`;
-            comment += `- Workflow: [View Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n`;
-
-            // Add timestamp
-            comment += `*Generated at ${new Date().toISOString()}*\n`;
-
-            // Post comment
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
+          marker: '<!-- pr-comment-upsert:qa-automation -->'
+          body: ${{ steps.qa-comment-body.outputs.body }}
 
       # -----------------------------------------------------------------
       # Cleanup (always runs)
