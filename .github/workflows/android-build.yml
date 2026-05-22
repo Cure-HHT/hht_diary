@@ -222,7 +222,7 @@ jobs:
 
             MAX_BUNDLE=0
             if [ "$BUNDLES_HTTP" = "200" ]; then
-              MAX_BUNDLE=$(jq -r '[.bundles[]?.versionCode | tonumber] | max // 0' /tmp/bundles.json)
+              MAX_BUNDLE=$(jq -r '[.bundles[]?.versionCode | select(. != null) | tonumber] | max // 0' /tmp/bundles.json)
             elif [ "$BUNDLES_HTTP" != "404" ]; then
               echo "::error::edits.bundles.list failed (HTTP ${BUNDLES_HTTP})"
               cat /tmp/bundles.json
@@ -234,7 +234,7 @@ jobs:
 
             MAX_APK=0
             if [ "$APKS_HTTP" = "200" ]; then
-              MAX_APK=$(jq -r '[.apks[]?.versionCode | tonumber] | max // 0' /tmp/apks.json)
+              MAX_APK=$(jq -r '[.apks[]?.versionCode | select(. != null) | tonumber] | max // 0' /tmp/apks.json)
             elif [ "$APKS_HTTP" != "404" ]; then
               echo "::error::edits.apks.list failed (HTTP ${APKS_HTTP})"
               cat /tmp/apks.json
@@ -363,6 +363,7 @@ jobs:
         run: flutter test
 
       - name: Install Doppler CLI
+        id: install-doppler
         uses: dopplerhq/cli-action@v3
 
       - name: Build signed Android ${{ needs.gate.outputs.flavor }}
@@ -482,6 +483,9 @@ jobs:
           elif [ "${{ steps.test.outcome }}" = "failure" ]; then
             NAME="Flutter tests"
             HINT="Unit/widget tests failed. Run \`flutter test\` locally to reproduce."
+          elif [ "${{ steps.install-doppler.outcome }}" = "failure" ]; then
+            NAME="Install Doppler CLI"
+            HINT="dopplerhq/cli-action@v3 failed; transient action infrastructure or Doppler outage."
           elif [ "${{ steps.build-android.outcome }}" = "failure" ]; then
             NAME="Build signed Android"
             HINT="Gradle/Doppler build failed for flavor '${{ needs.gate.outputs.flavor }}'. Check Doppler config and tool/build_android_*_signed.sh."
