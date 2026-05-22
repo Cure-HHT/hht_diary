@@ -130,39 +130,56 @@ jobs:
           TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
           TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
 
-      - name: 'Post Plan to PR'
-        if: always()
-        uses: actions/github-script@v9
+      - name: Build Terraform plan comment body
+        id: tf-plan-comment-body
+        if: always() && github.event_name == 'pull_request'
+        env:
+          MARKER: '<!-- pr-comment-upsert:terraform-plan -->'
+          EXIT_CODE: ${{ steps.plan.outputs.exitcode }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          PLAN_FILE=infrastructure/terraform/sponsor-envs/plan-output.txt
+          EXIT_CODE="${EXIT_CODE:-1}"
+          if [ -f "$PLAN_FILE" ] && grep -q 'Error:' "$PLAN_FILE"; then
+            STATUS='FAILED (errors in plan output)'
+          elif [ "$EXIT_CODE" = '0' ]; then
+            STATUS='succeeded'
+          else
+            STATUS="FAILED (exit code $EXIT_CODE)"
+          fi
+          {
+            echo "$MARKER"
+            echo "### Terraform Plan: \`sponsor-envs/callisto4-dev\` -- $STATUS"
+            echo ""
+            echo "<details><summary>Show Plan Output</summary>"
+            echo ""
+            echo '```hcl'
+            if [ -f "$PLAN_FILE" ]; then
+              head -c 60000 "$PLAN_FILE"
+              echo ""
+            else
+              echo "(plan-output.txt not found)"
+            fi
+            echo '```'
+            echo ""
+            echo "</details>"
+            echo ""
+            echo "*Environment: dev (auto-apply on merge)*"
+            echo "*Promotion: qa/uat/prod require manual workflow dispatch*"
+            echo "*Pusher: @${ACTOR}*"
+          } > /tmp/tf-plan-comment-body.md
+          {
+            echo "body<<TF_PLAN_COMMENT_EOF"
+            cat /tmp/tf-plan-comment-body.md
+            echo "TF_PLAN_COMMENT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upsert Terraform plan comment
+        if: always() && github.event_name == 'pull_request'
+        uses: Cure-HHT/hht_workflows/.github/actions/pr-comment-upsert@5f6797b6cbd6434e251539c959e418e2b4bb1b18  # hht_workflows main 2026-05-22
         with:
-          script: |
-            const fs = require('fs');
-            const plan = fs.readFileSync('infrastructure/terraform/sponsor-envs/plan-output.txt', 'utf8');
-            const exitCode = parseInt('${{ steps.plan.outputs.exitcode }}' || '1');
-            const passed = exitCode === 0;
-            const hasErrors = plan.includes('Error:');
-            const status = hasErrors ? 'FAILED (errors in plan output)' : (passed ? 'succeeded' : `FAILED (exit code ${exitCode})`);
-
-            const body = `### ${hasErrors ? '❌' : (passed ? '✅' : '❌')} Terraform Plan: \`sponsor-envs/callisto4-dev\`
-
-            <details><summary>Show Plan Output</summary>
-
-            \`\`\`hcl
-            ${plan.substring(0, 60000)}
-            \`\`\`
-
-            </details>
-
-            *Plan: ${status}*
-            *Environment: dev (auto-apply on merge)*
-            *Promotion: qa/uat/prod require manual workflow dispatch*
-            *Pusher: @${{ github.actor }}*`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
+          marker: '<!-- pr-comment-upsert:terraform-plan -->'
+          body: ${{ steps.tf-plan-comment-body.outputs.body }}
 
       - name: 'Fail on plan error'
         if: steps.plan.outputs.exitcode != '0'

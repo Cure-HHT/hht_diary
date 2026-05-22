@@ -57,6 +57,11 @@
 - DIARY-GUI-questionnaire-portal-sent-workflow-G
 - DIARY-GUI-questionnaire-portal-sent-workflow-H
 - DIARY-GUI-questionnaire-portal-sent-workflow-N
+- DIARY-OPS-rave-sync-hard-lockout-C
+- DIARY-OPS-rave-unwedge-authz-B
+- DIARY-OPS-rave-alert-notification-C
+- DIARY-GUI-dev-admin-rave-sync-card-B
+- DIARY-GUI-dev-admin-rave-sync-card-C
 - DIARY-PRD-action-inventory-A
 - DIARY-PRD-action-inventory-B
 - DIARY-PRD-action-inventory-C
@@ -94,6 +99,8 @@
 - DIARY-GUI-link-participant-flow:section:0
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:0
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:8
+- DIARY-OPS-rave-unwedge-authz:section:0
+- DIARY-GUI-dev-admin-rave-sync-card:section:0
 - DIARY-PRD-action-inventory:section:0
 - DIARY-PRD-action-inventory:section:1
 - DIARY-PRD-action-inventory:section:2
@@ -189,6 +196,7 @@
 - DIARY-PRD-help-resources:section:5
 - DIARY-PRD-password-forgot:section:0
 - DIARY-PRD-password-forgot:section:5
+- DIARY-OPS-rave-sync-cooldown:section:0
 - DIARY-PRD-rbac-customizable:section:1
 - DIARY-PRD-action-inventory:section:1
 - DIARY-PRD-role-definitions:section:1
@@ -390,6 +398,18 @@
 - DIARY-GUI-entry-overlap-resolution-I
 - DIARY-GUI-entry-overlap-resolution:section:6
 
+## Cooldown Window
+
+**DIARY:**
+
+- DIARY-OPS-rave-sync-cooldown-A
+- DIARY-OPS-rave-sync-cooldown-B
+- DIARY-DEV-rave-auth-failure-classification-A
+- DIARY-GUI-rave-sync-paused-banner-A
+- DIARY-OPS-rave-sync-hard-lockout:section:0
+- DIARY-OPS-rave-alert-notification:section:0
+- DIARY-GUI-dev-admin-rave-sync-card:section:0
+
 ## Daily Epistaxis Record
 
 **DIARY:**
@@ -434,10 +454,13 @@
 - DIARY-PRD-data-backup-and-archival-A
 - DIARY-PRD-data-backup-and-archival-C
 - DIARY-PRD-questionnaire-versioning-C
+- DIARY-OPS-rave-sync-cooldown-D
+- DIARY-OPS-rave-sync-hard-lockout-B
 - DIARY-PRD-sla-service-availability-E
 - DIARY-PRD-sla-incident-severity-F
 - DIARY-PRD-sla-disaster-recovery-C
 - DIARY-PRD-questionnaire-versioning:section:0
+- DIARY-GUI-dev-admin-rave-sync-card:section:0
 
 ## Day View
 
@@ -735,6 +758,7 @@
 - DIARY-PRD-evidence-patient-authentication:section:0
 - DIARY-PRD-evidence-email-identity:section:0
 - DIARY-PRD-platform-operations-monitoring:section:0
+- DIARY-OPS-rave-unwedge-authz:section:0
 - DIARY-PRD-action-inventory:section:2
 - rem:spec/prd-requirements-management.md:3
 - DIARY-PRD-system-validation-traceability:section:1
@@ -768,6 +792,21 @@
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-PRD-user-account-create:section:1
 - DIARY-GUI-user-management-tabs:section:5
+
+## Hard Lockout
+
+**DIARY:**
+
+- DIARY-OPS-rave-sync-hard-lockout
+- DIARY-OPS-rave-sync-hard-lockout-A
+- DIARY-OPS-rave-sync-hard-lockout-B
+- DIARY-OPS-rave-sync-hard-lockout-C
+- DIARY-OPS-rave-alert-notification-B
+- DIARY-GUI-rave-sync-paused-banner-A
+- DIARY-GUI-rave-sync-paused-banner-B
+- DIARY-OPS-rave-sync-hard-lockout:section:0
+- DIARY-OPS-rave-alert-notification:section:0
+- DIARY-GUI-rave-sync-paused-banner:section:0
 
 ## HHT-QoL
 
@@ -883,6 +922,7 @@
 
 - DIARY-PRD-role-definitions-B
 - rem:spec/glossary-core.md:745
+- DIARY-OPS-rave-sync-cooldown:section:0
 - DIARY-PRD-role-definitions:section:1
 
 ## ISO/IEC 24760-1
@@ -996,6 +1036,15 @@
 - DIARY-PRD-notification-incomplete-record-lock-D
 - DIARY-PRD-notification-incomplete-record-lock-F
 - DIARY-PRD-notification-incomplete-record-lock-G
+
+## Lockout Threshold
+
+**DIARY:**
+
+- DIARY-OPS-rave-sync-hard-lockout-A
+- DIARY-OPS-rave-sync-hard-lockout-D
+- DIARY-DEV-rave-auth-failure-classification-A
+- DIARY-OPS-rave-sync-hard-lockout:section:0
 
 ## Long Duration Threshold
 
@@ -1364,6 +1413,8 @@
 - DIARY-GUI-questionnaire-session-expiry-D
 - DIARY-GUI-questionnaire-session-expiry-E
 - DIARY-GUI-questionnaire-session-expiry-G
+- DIARY-OPS-rave-sync-cooldown-D
+- DIARY-OPS-rave-sync-hard-lockout-B
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
@@ -1462,6 +1513,8 @@
 - DIARY-PRD-questionnaire-session-timeout:section:6
 - DIARY-GUI-questionnaire-session-expiry:section:0
 - DIARY-GUI-questionnaire-session-expiry:section:5
+- rem:spec/prd-rave-sync.md:3
+- DIARY-OPS-rave-sync-cooldown:section:0
 - DIARY-PRD-action-inventory:section:1
 - DIARY-PRD-questionnaire-score-calculation:section:1
 - rem:spec/prd-status-registry.md:15
@@ -1548,6 +1601,7 @@
 - DIARY-PRD-password-forgot:section:5
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-GUI-password-forgot-workflow:section:6
+- DIARY-DEV-rave-auth-failure-classification:section:0
 - DIARY-PRD-user-account-reactivate:section:0
 
 ## Password Reuse Limit
@@ -1976,6 +2030,7 @@
 - DIARY-GUI-role-switching
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-session-management-F
+- DIARY-OPS-rave-unwedge-authz-A
 - DIARY-PRD-rbac-customizable-B
 - DIARY-PRD-rbac-customizable-C
 - DIARY-PRD-action-inventory-A
@@ -2017,6 +2072,7 @@
 - DIARY-PRD-session-management:section:0
 - DIARY-PRD-session-management:section:5
 - DIARY-PRD-questionnaire-system:section:4
+- DIARY-OPS-rave-unwedge-authz:section:0
 - rem:spec/prd-rbac.md:1
 - rem:spec/prd-rbac.md:3
 - DIARY-PRD-rbac-customizable:section:0
@@ -2181,6 +2237,8 @@
 - DIARY-PRD-notification-disconnection-E
 - DIARY-GUI-participant-dashboard-I
 - DIARY-PRD-session-management-F
+- DIARY-OPS-rave-sync-cooldown-D
+- DIARY-OPS-rave-sync-hard-lockout-B
 - DIARY-PRD-user-account-create-A
 - DIARY-PRD-user-account-site-assignment-D
 - DIARY-PRD-user-account-edit-C
@@ -2199,6 +2257,8 @@
 - DIARY-GUI-show-linking-code:section:2
 - DIARY-PRD-session-management:section:5
 - DIARY-PRD-questionnaire-localization:section:0
+- rem:spec/prd-rave-sync.md:3
+- DIARY-OPS-rave-sync-cooldown:section:0
 - DIARY-PRD-action-inventory:section:1
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-create:section:0
@@ -2304,6 +2364,8 @@
 - DIARY-PRD-questionnaire-sponsor-eligibility-J
 - DIARY-PRD-questionnaire-sponsor-eligibility-L
 - DIARY-PRD-questionnaire-sponsor-eligibility-N
+- DIARY-GUI-rave-sync-paused-banner-A
+- DIARY-GUI-dev-admin-rave-sync-card-C
 - DIARY-PRD-action-inventory-D
 - DIARY-PRD-role-definitions-A
 - DIARY-PRD-sla-service-availability-K
@@ -2393,6 +2455,13 @@
 - rem:spec/prd-questionnaire-versioning.md:3
 - DIARY-PRD-questionnaire-versioning:section:0
 - DIARY-PRD-questionnaire-sponsor-eligibility:section:0
+- rem:spec/prd-rave-sync.md:3
+- rem:spec/prd-rave-sync.md:5
+- DIARY-OPS-rave-sync-cooldown:section:0
+- DIARY-OPS-rave-sync-hard-lockout:section:0
+- DIARY-OPS-rave-alert-notification:section:0
+- DIARY-DEV-rave-auth-failure-classification:section:0
+- DIARY-GUI-dev-admin-rave-sync-card:section:0
 - rem:spec/prd-rbac.md:3
 - DIARY-PRD-rbac-customizable:section:1
 - DIARY-PRD-action-inventory:section:0
@@ -2438,6 +2507,8 @@
 - DIARY-GUI-password-forgot-workflow-A
 - DIARY-GUI-password-forgot-workflow-R
 - DIARY-PRD-session-management-B
+- DIARY-GUI-rave-sync-paused-banner-A
+- DIARY-GUI-dev-admin-rave-sync-card-C
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-PRD-administrator-settings:section:0
@@ -2458,6 +2529,13 @@
 - DIARY-PRD-session-management:section:0
 - DIARY-PRD-session-management:section:5
 - DIARY-PRD-questionnaire-portal-sent-rules:section:0
+- rem:spec/prd-rave-sync.md:3
+- rem:spec/prd-rave-sync.md:5
+- DIARY-OPS-rave-sync-cooldown:section:0
+- DIARY-OPS-rave-sync-hard-lockout:section:0
+- DIARY-OPS-rave-alert-notification:section:0
+- DIARY-DEV-rave-auth-failure-classification:section:0
+- DIARY-GUI-dev-admin-rave-sync-card:section:0
 - rem:spec/prd-status-registry.md:3
 - rem:spec/prd-status-registry.md:5
 - rem:spec/prd-status-registry.md:7
@@ -2705,6 +2783,23 @@
 - DIARY-PRD-questionnaire-hht-qol:section:1
 - DIARY-PRD-questionnaire-score-calculation:section:1
 
+## Unwedge
+
+**DIARY:**
+
+- DIARY-OPS-rave-unwedge-authz
+- DIARY-OPS-rave-sync-cooldown-C
+- DIARY-OPS-rave-sync-hard-lockout-C
+- DIARY-OPS-rave-unwedge-authz-A
+- DIARY-OPS-rave-unwedge-authz-B
+- DIARY-OPS-rave-alert-notification-C
+- DIARY-GUI-rave-sync-paused-banner-C
+- DIARY-GUI-dev-admin-rave-sync-card-A
+- DIARY-GUI-dev-admin-rave-sync-card-B
+- DIARY-GUI-dev-admin-rave-sync-card-C
+- DIARY-OPS-rave-unwedge-authz:section:0
+- DIARY-OPS-rave-alert-notification:section:0
+
 ## User
 
 **DIARY:**
@@ -2764,6 +2859,8 @@
 - DIARY-PRD-session-management-E
 - DIARY-PRD-session-management-F
 - DIARY-PRD-questionnaire-versioning-I
+- DIARY-OPS-rave-unwedge-authz-B
+- DIARY-GUI-rave-sync-paused-banner-B
 - DIARY-PRD-rbac-customizable-A
 - DIARY-PRD-rbac-customizable-B
 - DIARY-PRD-rbac-customizable-C
@@ -2864,6 +2961,7 @@
 - DIARY-GUI-password-forgot-workflow:section:6
 - DIARY-PRD-session-management:section:5
 - DIARY-PRD-questionnaire-versioning:section:0
+- DIARY-GUI-rave-sync-paused-banner:section:0
 - DIARY-PRD-action-inventory:section:1
 - rem:spec/prd-status-registry.md:5
 - rem:spec/prd-status-registry.md:7

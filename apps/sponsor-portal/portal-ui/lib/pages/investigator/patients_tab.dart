@@ -22,6 +22,7 @@ import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/link_patient_dialog.dart';
 import '../../widgets/patient_actions_dialog.dart';
+import '../../widgets/rave_sync_banner.dart';
 import '../../widgets/reactivate_patient_dialog.dart';
 import '../../widgets/manage_questionnaires_dialog.dart';
 import '../../widgets/start_trial_dialog.dart';
@@ -145,6 +146,12 @@ class _StudyCoordinatorPatientsTabState
   final _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // Rave sync lockout banner state (CUR-1361 / DIARY-GUI-rave-sync-paused-banner).
+  // Parsed from the `rave_sync` block on the /participants response.
+  String _raveSyncState = 'ok';
+  DateTime? _ravePausedUntil;
+  DateTime? _raveSince;
+
   @override
   void initState() {
     super.initState();
@@ -183,9 +190,21 @@ class _StudyCoordinatorPatientsTabState
           .map((s) => _SiteInfo.fromJson(s as Map<String, dynamic>))
           .toList();
 
+      // Parse the Rave sync lockout block (CUR-1361). Backend omits the
+      // block entirely if the lookup fails — treat missing as 'ok'.
+      final raveSync = data['rave_sync'] as Map<String, dynamic>?;
+      final raveState = raveSync?['state'] as String? ?? 'ok';
+      final pausedUntilRaw = raveSync?['paused_until'] as String?;
+      final sinceRaw = raveSync?['since'] as String?;
+
       setState(() {
         _patients = patients;
         _assignedSites = sites;
+        _raveSyncState = raveState;
+        _ravePausedUntil = pausedUntilRaw != null
+            ? DateTime.tryParse(pausedUntilRaw)
+            : null;
+        _raveSince = sinceRaw != null ? DateTime.tryParse(sinceRaw) : null;
         _isLoading = false;
       });
     } else {
@@ -245,6 +264,22 @@ class _StudyCoordinatorPatientsTabState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Rave sync lockout banner (CUR-1361). Renders nothing when
+          // state == 'ok'. Sits above the data so paused/locked state is
+          // visible before the cached table.
+          // Implements: DIARY-GUI-rave-sync-paused-banner/A
+          RaveSyncBanner(
+            state: _raveSyncState,
+            pausedUntil: _ravePausedUntil,
+            since: _raveSince,
+          ),
+          // Gate the spacer on the same states the banner actually renders.
+          // RaveSyncBanner returns SizedBox.shrink() for unknown states; if
+          // we keyed off `!= 'ok'`, an unknown backend value would still
+          // insert a blank 16px gap above the table.
+          if (_raveSyncState == 'cooldown' || _raveSyncState == 'locked')
+            const SizedBox(height: 16),
+
           // My Sites section
           if (_assignedSites.isNotEmpty) ...[
             _buildMySitesSection(theme),

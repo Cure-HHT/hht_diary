@@ -19,6 +19,7 @@ import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/activation_code_display.dart';
 import '../../widgets/error_message.dart';
+import '../../widgets/rave_sync_banner.dart';
 import '../../widgets/role_badge.dart';
 import '../../widgets/status_badge.dart';
 
@@ -90,6 +91,12 @@ class _UserManagementTabState extends State<UserManagementTab>
   String _searchQuery = '';
   late final TabController _tabController;
 
+  // Rave sync lockout banner state (CUR-1361 / DIARY-GUI-rave-sync-paused-banner).
+  // Parsed from the `rave_sync` block on the /sites response.
+  String _raveSyncState = 'ok';
+  DateTime? _ravePausedUntil;
+  DateTime? _raveSince;
+
   /// Convert system role to sponsor display name
   String _toSponsorName(String systemRole) {
     final mapping = _roleMappings.firstWhere(
@@ -157,6 +164,13 @@ class _UserManagementTabState extends State<UserManagementTab>
           }
         }
 
+        // Parse the Rave sync lockout block (CUR-1361). Backend omits the
+        // block entirely if the lookup fails — treat missing as 'ok'.
+        final raveSync = sitesData?['rave_sync'] as Map<String, dynamic>?;
+        final raveState = raveSync?['state'] as String? ?? 'ok';
+        final pausedUntilRaw = raveSync?['paused_until'] as String?;
+        final sinceRaw = raveSync?['since'] as String?;
+
         setState(() {
           _users = List<Map<String, dynamic>>.from(
             (usersData?['users'] as List?) ?? [],
@@ -165,6 +179,11 @@ class _UserManagementTabState extends State<UserManagementTab>
             (sitesData?['sites'] as List?) ?? [],
           );
           _roleMappings = roleMappings;
+          _raveSyncState = raveState;
+          _ravePausedUntil = pausedUntilRaw != null
+              ? DateTime.tryParse(pausedUntilRaw)
+              : null;
+          _raveSince = sinceRaw != null ? DateTime.tryParse(sinceRaw) : null;
           _isLoading = false;
         });
       } else {
@@ -472,6 +491,15 @@ class _UserManagementTabState extends State<UserManagementTab>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Rave sync lockout banner (CUR-1361). Site data on this page is
+        // synced from Rave; warn admins when the cached `_sites` list may
+        // be stale because the sync is paused. Renders nothing when ok.
+        // Implements: DIARY-GUI-rave-sync-paused-banner/A
+        RaveSyncBanner(
+          state: _raveSyncState,
+          pausedUntil: _ravePausedUntil,
+          since: _raveSince,
+        ),
         Padding(
           padding: const EdgeInsets.all(16),
           child: Row(

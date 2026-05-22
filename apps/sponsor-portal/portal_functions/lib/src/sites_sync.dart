@@ -13,6 +13,8 @@ import 'package:otel_common/otel_common.dart';
 import 'package:rave_integration/rave_integration.dart';
 
 import 'database.dart';
+import 'rave_mock.dart';
+import 'rave_sync_lockout.dart';
 
 /// Default sync interval - sites are refreshed if older than this duration.
 const defaultSyncInterval = Duration(days: 1);
@@ -56,11 +58,17 @@ class RaveConfig {
     );
   }
 
-  /// Whether RAVE integration is configured.
-  static bool get isConfigured =>
-      Platform.environment['RAVE_UAT_URL'] != null &&
-      Platform.environment['RAVE_UAT_USERNAME'] != null &&
-      Platform.environment['RAVE_UAT_PWD'] != null;
+  /// Whether RAVE integration is configured. True when either the live
+  /// RAVE_UAT_* env vars are populated OR the dev-only RAVE_MOCK_MODE
+  /// env var is set (see rave_mock.dart). Either path produces a usable
+  /// RaveClient downstream.
+  static bool get isConfigured {
+    final mockMode = Platform.environment['RAVE_MOCK_MODE'];
+    if (mockMode != null && mockMode.isNotEmpty) return true;
+    return Platform.environment['RAVE_UAT_URL'] != null &&
+        Platform.environment['RAVE_UAT_USERNAME'] != null &&
+        Platform.environment['RAVE_UAT_PWD'] != null;
+  }
 }
 
 /// Result of a sites sync operation.
@@ -70,6 +78,9 @@ class SitesSyncResult {
   final int sitesDeactivated;
   final DateTime syncedAt;
   final String? error;
+  final bool paused;
+  final String? pausedReason;
+  final DateTime? pausedUntil;
 
   const SitesSyncResult({
     required this.sitesUpdated,
@@ -77,6 +88,9 @@ class SitesSyncResult {
     required this.sitesDeactivated,
     required this.syncedAt,
     this.error,
+    this.paused = false,
+    this.pausedReason,
+    this.pausedUntil,
   });
 
   bool get hasError => error != null;
@@ -87,7 +101,28 @@ class SitesSyncResult {
     'sites_deactivated': sitesDeactivated,
     'synced_at': syncedAt.toIso8601String(),
     if (error != null) 'error': error,
+    if (paused) 'paused': true,
+    if (pausedReason != null) 'paused_reason': pausedReason,
+    if (pausedUntil != null) 'paused_until': pausedUntil!.toIso8601String(),
   };
+}
+
+/// Builds a SitesSyncResult that signals "paused" to callers.
+// Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
+SitesSyncResult buildPausedSitesResult(LockoutState state) {
+  final reason = state.result == LockoutCheckResult.pausedLocked
+      ? 'locked'
+      : 'cooldown';
+  return SitesSyncResult(
+    sitesUpdated: 0,
+    sitesCreated: 0,
+    sitesDeactivated: 0,
+    syncedAt: DateTime.now().toUtc(),
+    error: 'Rave sync paused ($reason)',
+    paused: true,
+    pausedReason: reason,
+    pausedUntil: state.pausedUntil,
+  );
 }
 
 /// Computes SHA-256 hash of content for integrity verification.
@@ -331,6 +366,7 @@ Future<SitesSyncResult> syncSitesFromEdc({
   RaveClient? testClient,
   String? testStudyOid,
   bool skipLogging = false,
+  AuthFailureSource authFailureSource = AuthFailureSource.normalSync,
 }) async {
   final startTime = DateTime.now();
 
@@ -339,27 +375,35 @@ Future<SitesSyncResult> syncSitesFromEdc({
   String? studyOid = testStudyOid;
 
   if (client == null) {
-    final config = RaveConfig.fromEnvironment();
-    if (config == null) {
-      final result = SitesSyncResult(
-        sitesUpdated: 0,
-        sitesCreated: 0,
-        sitesDeactivated: 0,
-        syncedAt: DateTime.now().toUtc(),
-        error: 'RAVE configuration not available',
-      );
-      // Log configuration error (use empty hash since no content)
-      if (!skipLogging) {
-        await _logSyncResult(result, '', startTime, studyOid: null);
+    // Dev override: RAVE_MOCK_MODE bypasses RAVE_UAT_* requirement and
+    // returns a MockRaveClient. See rave_mock.dart for the mode vocabulary.
+    final mockMode = Platform.environment['RAVE_MOCK_MODE'];
+    if (mockMode != null && mockMode.isNotEmpty) {
+      client = MockRaveClient(mockMode);
+      studyOid = Platform.environment['RAVE_STUDY_OID'];
+    } else {
+      final config = RaveConfig.fromEnvironment();
+      if (config == null) {
+        final result = SitesSyncResult(
+          sitesUpdated: 0,
+          sitesCreated: 0,
+          sitesDeactivated: 0,
+          syncedAt: DateTime.now().toUtc(),
+          error: 'RAVE configuration not available',
+        );
+        // Log configuration error (use empty hash since no content)
+        if (!skipLogging) {
+          await _logSyncResult(result, '', startTime, studyOid: null);
+        }
+        return result;
       }
-      return result;
+      client = RaveClient(
+        baseUrl: config.baseUrl,
+        username: config.username,
+        password: config.password,
+      );
+      studyOid = config.studyOid;
     }
-    client = RaveClient(
-      baseUrl: config.baseUrl,
-      username: config.username,
-      password: config.password,
-    );
-    studyOid = config.studyOid;
   }
 
   List<RaveSite> raveSites = [];
@@ -406,7 +450,41 @@ Future<SitesSyncResult> syncSitesFromEdc({
     final existingSiteIds = existingResult.map((r) => r[0] as String).toSet();
     final syncedSiteIds = <String>{};
 
-    // Upsert each site from RAVE
+    // Rave-wins reconciliation for the `site_number` unique constraint.
+    //
+    // Rave is the source of truth for the entire site record (OID, number,
+    // name, active state). The portal has no local override mechanism for
+    // any of those fields. When Rave reassigns site_number 001 from OID Y
+    // to OID X, we need to free the site_number slot before X can be
+    // inserted — the unique constraint won't let two rows hold the same
+    // number. We deactivate (don't DELETE — patients / audit rows still
+    // FK to Y) and tombstone the old site_number with an 'OLD-…' prefix.
+    final incomingNumbers = raveSites
+        .map((s) => s.studySiteNumber ?? s.oid)
+        .toList();
+    final incomingOids = raveSites.map((s) => s.oid).toList();
+    if (incomingNumbers.isNotEmpty) {
+      await db.executeWithContext(
+        '''
+        UPDATE sites
+        SET is_active = false,
+            site_number = 'OLD-' || site_id || '-' || site_number,
+            edc_synced_at = @syncedAt,
+            updated_at = now()
+        WHERE site_number = ANY(@incomingNumbers)
+          AND NOT (site_id = ANY(@incomingOids))
+        ''',
+        parameters: {
+          'incomingNumbers': incomingNumbers,
+          'incomingOids': incomingOids,
+          'syncedAt': syncedAt,
+        },
+        context: serviceContext,
+      );
+    }
+
+    // Upsert each site from RAVE. site_name is in DO UPDATE because Rave
+    // is authoritative — no local override exists.
     for (final site in raveSites) {
       final siteId = site.oid;
       final siteName = site.name;
@@ -415,7 +493,6 @@ Future<SitesSyncResult> syncSitesFromEdc({
 
       syncedSiteIds.add(siteId);
 
-      // Use upsert to handle both create and update
       final upsertResult = await db.executeWithContext(
         '''
         INSERT INTO sites (
@@ -496,8 +573,27 @@ Future<SitesSyncResult> syncSitesFromEdc({
       );
     }
 
+    // Implements: DIARY-OPS-rave-sync-cooldown/C
+    if (!skipLogging) {
+      try {
+        await recordSyncSuccess();
+      } catch (logErr) {
+        print('[WARN] Failed to record rave sync success: $logErr');
+      }
+    }
     return result;
   } on RaveAuthenticationException catch (e) {
+    // Implements: DIARY-DEV-rave-auth-failure-classification/A+C
+    if (!skipLogging) {
+      try {
+        await recordAuthFailure(
+          reasonCode: e.reasonCode,
+          source: authFailureSource,
+        );
+      } catch (logErr) {
+        print('[WARN] Failed to record rave auth failure: $logErr');
+      }
+    }
     final errorMessage =
         'RAVE authentication failed - invalid credentials or locked account'
         '${e.detailSuffix}';
@@ -593,6 +689,36 @@ Future<SitesSyncResult?> syncSitesIfNeeded({
   if (!RaveConfig.isConfigured) {
     // RAVE not configured - skip sync silently
     return null;
+  }
+
+  // Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
+  //
+  // Wrap checkLockout in try/catch: if migration 013 hasn't been applied
+  // yet (incremental rollout, env in a weird state, etc.) the SELECT
+  // against rave_sync_lockout throws and we don't want that to take down
+  // the entire /sites handler. Treat any failure as "proceed" — the gate
+  // is a defense-in-depth pause, not a hard prerequisite for serving.
+  LockoutState? state;
+  try {
+    state = await checkLockout();
+  } catch (e) {
+    print('[WARN] checkLockout failed (proceeding without gate): $e');
+  }
+  if (state != null && state.isPaused) {
+    final result = buildPausedSitesResult(state);
+    // Audit: record the skip in edc_sync_log.
+    try {
+      await logSyncEvent(
+        sourceSystem: 'RAVE',
+        operation: 'SITES_SYNC',
+        result: result,
+        contentHash: 'no-content',
+        metadata: {'rave_lockout_skipped': true},
+      );
+    } catch (e) {
+      print('[WARN] Failed to log paused sync skip: $e');
+    }
+    return result;
   }
 
   final needsSync = await shouldSyncSites(syncInterval: syncInterval);

@@ -5,6 +5,8 @@
 # - prefer-robust-stmts: IF NOT EXISTS / transaction wrapping not needed for initial schema
 # - prefer-identity: BIGSERIAL is fine for initial schema (IDENTITY matters for migrations)
 # - prefer-bigint-over-int: INTEGER is intentional for bounded values (scores, versions, counts)
+# - prefer-bigint-over-smallint: SMALLINT is intentional for singleton-row tables
+#   constrained to id=1 (e.g. rave_sync_lockout) and other bounded values
 # - require-timeout-settings: Not needed for initial schema DDL
 # - adding-foreign-key-constraint: NOT VALID + VALIDATE pattern not needed for initial schema
 excluded_rules = [
@@ -12,6 +14,7 @@ excluded_rules = [
     "prefer-robust-stmts",
     "prefer-identity",
     "prefer-bigint-over-int",
+    "prefer-bigint-over-smallint",
     "require-timeout-settings",
     "adding-foreign-key-constraint",
 ]
