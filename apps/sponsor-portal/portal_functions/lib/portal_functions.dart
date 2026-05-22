@@ -30,6 +30,9 @@ export 'src/sponsor_branding.dart';
 
 // EDC Integration
 export 'src/patients_sync.dart';
+export 'src/portal_rave_admin.dart';
+export 'src/rave_mock.dart';
+export 'src/rave_sync_lockout.dart';
 export 'src/sites_sync.dart';
 
 // Patient Linking
