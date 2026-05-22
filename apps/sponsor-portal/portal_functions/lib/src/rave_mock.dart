@@ -80,6 +80,28 @@ class MockRaveClient implements RaveClient {
     return '<ODM><Study OID="$_mockStudyOid"/></ODM>';
   }
 
+  // TODO(CUR-1361 follow-up): the canned fixtures below hardcode OIDs
+  // (MOCK-001/002/003 and MOCK-001-001…) that don't match the SQL-seeded
+  // data in the sibling callisto repo's seed_data_dev.sql /
+  // seed_local_stack.sql (which uses REQ-CAL-d00022 / d00023 format like
+  // 840-001 / 840-001-001). The two sources of fake-Rave data drifted
+  // because the seed is hand-authored SQL while these fixtures are
+  // hand-authored Dart. Every mock sync against a seeded DB exercises
+  // the site_number-reassignment code path in sites_sync.dart (which is
+  // correct production behavior, but noisy in tests).
+  //
+  // Future cleanup options (pick one when seed pipeline is touched next):
+  //   - Refactor the seed to read from a structured file (TOML/CSV/YAML)
+  //     in callisto, then have this mock load the same file; or
+  //   - Have the mock SELECT from the live sites/patients tables in
+  //     'ok' mode so it always echoes whatever's currently cached
+  //     (no churn; reassignment path only fires on real drift).
+  //
+  // Either approach also addresses the broader concern that mock data
+  // should never have a shape unsupported by the real EDC — any future
+  // portal-side validation could choke locally on values that pass in
+  // prod but not in our hand-authored fixtures.
+
   @override
   Future<List<RaveSite>> getSites({String? studyOid}) async {
     _maybeFail();
