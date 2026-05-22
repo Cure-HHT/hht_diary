@@ -65,7 +65,10 @@ Future<Response> getRaveLockoutStateHandler(Request request) async {
   final state = await checkLockout();
   return _json({
     'threshold': raveAuthFailureThresholdFromEnv(Platform.environment),
-    'cooldown_hours': raveAuthCooldownHoursFromEnv(Platform.environment),
+    // Wire as seconds (integer) — the UI formats smartly. Allows
+    // sub-hour cooldowns (RAVE_AUTH_COOLDOWN_MINUTES) without losing
+    // precision in the JSON transit.
+    'cooldown_seconds': raveAuthCooldownFromEnv(Platform.environment).inSeconds,
     'state': switch (state.result) {
       LockoutCheckResult.proceed => 'ok',
       LockoutCheckResult.pausedCooldown => 'cooldown',

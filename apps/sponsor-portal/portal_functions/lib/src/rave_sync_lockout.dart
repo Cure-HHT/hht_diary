@@ -33,21 +33,47 @@ int raveAuthFailureThresholdFromEnv(Map<String, String> env) {
   return parsed;
 }
 
-/// Reads RAVE_AUTH_COOLDOWN_HOURS with a default of 24.
+/// Reads the cooldown duration from env vars, defaulting to 24 hours.
+///
+/// Resolution order (first non-empty wins):
+///   1. `RAVE_AUTH_COOLDOWN_MINUTES` — fast-iteration override for local
+///      dev / testing. Accepts decimals, e.g. "0.5" for 30 seconds.
+///   2. `RAVE_AUTH_COOLDOWN_HOURS` — operational config. Accepts decimals,
+///      e.g. "0.25" for 15 minutes.
+///   3. Default of 24 hours.
+///
+/// Zero is allowed and means "no cooldown" (useful for tests). Negative or
+/// unparseable values fall back to the default with a warning log.
 // Implements: DIARY-OPS-rave-sync-cooldown/B
-int raveAuthCooldownHoursFromEnv(Map<String, String> env) {
-  final raw = env['RAVE_AUTH_COOLDOWN_HOURS'];
-  if (raw == null || raw.isEmpty) return _defaultCooldownHours;
-  final parsed = int.tryParse(raw);
-  if (parsed == null || parsed < 1) {
+Duration raveAuthCooldownFromEnv(Map<String, String> env) {
+  final minutesRaw = env['RAVE_AUTH_COOLDOWN_MINUTES'];
+  if (minutesRaw != null && minutesRaw.isNotEmpty) {
+    final parsed = double.tryParse(minutesRaw);
+    if (parsed == null || parsed < 0) {
+      // ignore: avoid_print
+      print(
+        '[WARN] RAVE_AUTH_COOLDOWN_MINUTES=$minutesRaw is not a non-negative '
+        'number; falling back to $_defaultCooldownHours hours',
+      );
+      return const Duration(hours: _defaultCooldownHours);
+    }
+    return Duration(microseconds: (parsed * 60 * 1000 * 1000).round());
+  }
+
+  final hoursRaw = env['RAVE_AUTH_COOLDOWN_HOURS'];
+  if (hoursRaw == null || hoursRaw.isEmpty) {
+    return const Duration(hours: _defaultCooldownHours);
+  }
+  final parsed = double.tryParse(hoursRaw);
+  if (parsed == null || parsed < 0) {
     // ignore: avoid_print
     print(
-      '[WARN] RAVE_AUTH_COOLDOWN_HOURS=$raw is not a positive integer; '
-      'falling back to $_defaultCooldownHours',
+      '[WARN] RAVE_AUTH_COOLDOWN_HOURS=$hoursRaw is not a non-negative '
+      'number; falling back to $_defaultCooldownHours hours',
     );
-    return _defaultCooldownHours;
+    return const Duration(hours: _defaultCooldownHours);
   }
-  return parsed;
+  return Duration(microseconds: (parsed * 3600 * 1000 * 1000).round());
 }
 
 enum LockoutCheckResult { proceed, pausedCooldown, pausedLocked }
@@ -96,7 +122,7 @@ class LockoutState {
 // Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
 LockoutState classifyLockout({
   required RaveLockoutRow row,
-  required int cooldownHours,
+  required Duration cooldown,
   required DateTime now,
 }) {
   if (row.lockedAt != null) {
@@ -116,7 +142,7 @@ LockoutState classifyLockout({
     final supersededBySuccess =
         lastSuccess != null && !lastSuccess.isBefore(lastFail);
     if (!supersededBySuccess) {
-      final cooldownEnd = lastFail.add(Duration(hours: cooldownHours));
+      final cooldownEnd = lastFail.add(cooldown);
       if (cooldownEnd.isAfter(now)) {
         return LockoutState(
           result: LockoutCheckResult.pausedCooldown,
@@ -162,7 +188,7 @@ Future<LockoutState> checkLockout() async {
   );
   return classifyLockout(
     row: row,
-    cooldownHours: raveAuthCooldownHoursFromEnv(Platform.environment),
+    cooldown: raveAuthCooldownFromEnv(Platform.environment),
     now: DateTime.now().toUtc(),
   );
 }
@@ -185,7 +211,7 @@ Future<void> recordAuthFailure({
 }) async {
   final db = Database.instance;
   final threshold = raveAuthFailureThresholdFromEnv(Platform.environment);
-  final cooldownHours = raveAuthCooldownHoursFromEnv(Platform.environment);
+  final cooldown = raveAuthCooldownFromEnv(Platform.environment);
 
   final result = await db.executeWithContext(
     '''
@@ -241,7 +267,7 @@ Future<void> recordAuthFailure({
   // Without this, low thresholds (e.g. RAVE_AUTH_FAILURE_THRESHOLD=1)
   // would emit lockout-trip AND confirmation for a single failed probe.
   if (source == AuthFailureSource.normalSync) {
-    final cooldownEnd = lastFailureAt.add(Duration(hours: cooldownHours));
+    final cooldownEnd = lastFailureAt.add(cooldown);
     unawaited(
       notifySlack(
         buildAuthFailureSlackMessage(

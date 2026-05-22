@@ -13,7 +13,10 @@ class RaveLockoutState {
   final String state;
   final int consecutiveAuthFailures;
   final int threshold;
-  final int cooldownHours;
+
+  /// Backend-configured cooldown duration. Sub-hour values are possible
+  /// (e.g. dev sets `RAVE_AUTH_COOLDOWN_MINUTES=5` for fast iteration).
+  final Duration cooldown;
   final DateTime? lockedAt;
   final DateTime? pausedUntil;
   final DateTime? lastFailureAt;
@@ -26,7 +29,7 @@ class RaveLockoutState {
     required this.state,
     required this.consecutiveAuthFailures,
     required this.threshold,
-    required this.cooldownHours,
+    required this.cooldown,
     this.lockedAt,
     this.pausedUntil,
     this.lastFailureAt,
@@ -37,11 +40,12 @@ class RaveLockoutState {
   });
 
   factory RaveLockoutState.fromJson(Map<String, dynamic> j) {
+    final cooldownSec = (j['cooldown_seconds'] as int?) ?? 24 * 3600;
     return RaveLockoutState(
       state: j['state'] as String,
       consecutiveAuthFailures: (j['consecutive_auth_failures'] as int?) ?? 0,
       threshold: (j['threshold'] as int?) ?? 3,
-      cooldownHours: (j['cooldown_hours'] as int?) ?? 24,
+      cooldown: Duration(seconds: cooldownSec),
       lockedAt: _parseDt(j['locked_at']),
       pausedUntil: _parseDt(j['paused_until']),
       lastFailureAt: _parseDt(j['last_failure_at']),
@@ -50,6 +54,16 @@ class RaveLockoutState {
       lastUnwedgedByUserId: j['last_unwedged_by_user_id'] as String?,
       lastUnwedgedAt: _parseDt(j['last_unwedged_at']),
     );
+  }
+
+  /// Compact display string for the cooldown duration. Returns `"24h"`,
+  /// `"5m"`, `"30s"`, `"none"`, or a "Hh Mm" combo for mixed durations.
+  String get cooldownDisplay {
+    final s = cooldown.inSeconds;
+    if (s == 0) return 'none';
+    if (s % 3600 == 0) return '${s ~/ 3600}h';
+    if (s % 60 == 0) return '${s ~/ 60}m';
+    return '${s}s';
   }
 
   static DateTime? _parseDt(dynamic v) =>

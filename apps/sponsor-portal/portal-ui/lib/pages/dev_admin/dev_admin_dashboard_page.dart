@@ -1092,7 +1092,7 @@ class RaveSyncCardState extends State<RaveSyncCard> {
   Widget _buildCounterLine(ThemeData theme, RaveLockoutState s) {
     return Text(
       'Consecutive auth failures: ${s.consecutiveAuthFailures} / ${s.threshold}'
-      ' (cooldown ${s.cooldownHours}h)',
+      ' (cooldown ${s.cooldownDisplay})',
       style: theme.textTheme.bodyMedium,
     );
   }

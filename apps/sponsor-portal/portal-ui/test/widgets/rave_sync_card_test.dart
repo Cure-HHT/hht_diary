@@ -41,7 +41,7 @@ RaveLockoutState _okState() => RaveLockoutState(
   state: 'ok',
   consecutiveAuthFailures: 0,
   threshold: 3,
-  cooldownHours: 24,
+  cooldown: const Duration(hours: 24),
   lastSuccessAt: DateTime.utc(2026, 5, 21, 10, 0, 0),
 );
 
@@ -49,7 +49,7 @@ RaveLockoutState _lockedState() => RaveLockoutState(
   state: 'locked',
   consecutiveAuthFailures: 3,
   threshold: 3,
-  cooldownHours: 24,
+  cooldown: const Duration(hours: 24),
   lockedAt: DateTime.utc(2026, 5, 21, 8, 0, 0),
   lastFailureAt: DateTime.utc(2026, 5, 21, 8, 0, 0),
   lastFailureReasonCode: 'AUTH001',

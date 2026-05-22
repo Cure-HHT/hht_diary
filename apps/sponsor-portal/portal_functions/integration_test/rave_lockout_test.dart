@@ -364,7 +364,7 @@ void main() {
       expect(body['state'], 'cooldown');
       expect(body['consecutive_auth_failures'], 1);
       expect(body['threshold'], 3);
-      expect(body['cooldown_hours'], 24);
+      expect(body['cooldown_seconds'], 24 * 3600);
       expect(body['last_failure_reason_code'], 'TEST');
       expect(body['last_failure_at'], isNotNull);
       expect(body['locked_at'], isNull);

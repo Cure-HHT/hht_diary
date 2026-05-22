@@ -12,7 +12,7 @@ void main() {
   group('lockout config', () {
     test('defaults when env unset', () {
       expect(raveAuthFailureThresholdFromEnv({}), 3);
-      expect(raveAuthCooldownHoursFromEnv({}), 24);
+      expect(raveAuthCooldownFromEnv({}), const Duration(hours: 24));
     });
 
     test('reads env values', () {
@@ -21,8 +21,8 @@ void main() {
         5,
       );
       expect(
-        raveAuthCooldownHoursFromEnv({'RAVE_AUTH_COOLDOWN_HOURS': '12'}),
-        12,
+        raveAuthCooldownFromEnv({'RAVE_AUTH_COOLDOWN_HOURS': '12'}),
+        const Duration(hours: 12),
       );
     });
 
@@ -34,8 +34,60 @@ void main() {
         3,
       );
       expect(
-        raveAuthCooldownHoursFromEnv({'RAVE_AUTH_COOLDOWN_HOURS': ''}),
-        24,
+        raveAuthCooldownFromEnv({'RAVE_AUTH_COOLDOWN_HOURS': ''}),
+        const Duration(hours: 24),
+      );
+      expect(
+        raveAuthCooldownFromEnv({'RAVE_AUTH_COOLDOWN_HOURS': 'oops'}),
+        const Duration(hours: 24),
+      );
+    });
+
+    test('hours accepts fractional values', () {
+      // 0.25 hours = 15 minutes.
+      expect(
+        raveAuthCooldownFromEnv({'RAVE_AUTH_COOLDOWN_HOURS': '0.25'}),
+        const Duration(minutes: 15),
+      );
+    });
+
+    test('minutes env var overrides hours when set', () {
+      expect(
+        raveAuthCooldownFromEnv({
+          'RAVE_AUTH_COOLDOWN_MINUTES': '5',
+          'RAVE_AUTH_COOLDOWN_HOURS': '24',
+        }),
+        const Duration(minutes: 5),
+      );
+    });
+
+    test('minutes accepts fractional values (sub-minute granularity)', () {
+      // 0.5 minutes = 30 seconds — useful for fast-iteration local tests.
+      expect(
+        raveAuthCooldownFromEnv({'RAVE_AUTH_COOLDOWN_MINUTES': '0.5'}),
+        const Duration(seconds: 30),
+      );
+    });
+
+    test('zero is a valid cooldown (no pause)', () {
+      expect(
+        raveAuthCooldownFromEnv({'RAVE_AUTH_COOLDOWN_HOURS': '0'}),
+        Duration.zero,
+      );
+      expect(
+        raveAuthCooldownFromEnv({'RAVE_AUTH_COOLDOWN_MINUTES': '0'}),
+        Duration.zero,
+      );
+    });
+
+    test('negative values fall back to default', () {
+      expect(
+        raveAuthCooldownFromEnv({'RAVE_AUTH_COOLDOWN_HOURS': '-1'}),
+        const Duration(hours: 24),
+      );
+      expect(
+        raveAuthCooldownFromEnv({'RAVE_AUTH_COOLDOWN_MINUTES': '-1'}),
+        const Duration(hours: 24),
       );
     });
   });
@@ -46,7 +98,7 @@ void main() {
     test('proceed when no failure history', () {
       final state = classifyLockout(
         row: const RaveLockoutRow(consecutiveAuthFailures: 0),
-        cooldownHours: 24,
+        cooldown: const Duration(hours: 24),
         now: now,
       );
       expect(state.result, LockoutCheckResult.proceed);
@@ -60,7 +112,7 @@ void main() {
           lockedAt: lockedAt,
           lastFailureAt: lockedAt,
         ),
-        cooldownHours: 24,
+        cooldown: const Duration(hours: 24),
         now: now,
       );
       expect(state.result, LockoutCheckResult.pausedLocked);
@@ -74,7 +126,7 @@ void main() {
           consecutiveAuthFailures: 1,
           lastFailureAt: lastFail,
         ),
-        cooldownHours: 24,
+        cooldown: const Duration(hours: 24),
         now: now,
       );
       expect(state.result, LockoutCheckResult.pausedCooldown);
@@ -88,7 +140,7 @@ void main() {
           consecutiveAuthFailures: 1,
           lastFailureAt: lastFail,
         ),
-        cooldownHours: 24,
+        cooldown: const Duration(hours: 24),
         now: now,
       );
       expect(state.result, LockoutCheckResult.proceed);
@@ -102,7 +154,7 @@ void main() {
           lockedAt: lastFail,
           lastFailureAt: lastFail,
         ),
-        cooldownHours: 24,
+        cooldown: const Duration(hours: 24),
         now: now,
       );
       expect(state.result, LockoutCheckResult.pausedLocked);
@@ -120,7 +172,7 @@ void main() {
           lastFailureAt: lastFail,
           lastSuccessAt: lastSuccess,
         ),
-        cooldownHours: 24,
+        cooldown: const Duration(hours: 24),
         now: now,
       );
       expect(state.result, LockoutCheckResult.proceed);
@@ -136,7 +188,7 @@ void main() {
           lastFailureAt: lastFail,
           lastSuccessAt: lastSuccess,
         ),
-        cooldownHours: 24,
+        cooldown: const Duration(hours: 24),
         now: now,
       );
       expect(state.result, LockoutCheckResult.pausedCooldown);
