@@ -33,6 +33,7 @@ import 'email_service.dart';
 import 'feature_flags.dart';
 import 'patients_sync.dart';
 import 'portal_auth.dart';
+import 'portal_rave_admin.dart';
 import 'sites_sync.dart';
 
 /// Roles that can manage other users
@@ -1070,6 +1071,15 @@ Future<Response> getPortalSitesHandler(Request request) async {
     response['sync'] = syncResult.toJson();
   }
 
+  // Best-effort: omit rave_sync entirely if the lockout table is unavailable
+  // (e.g., migration not applied yet, transient DB hiccup). Don't break /sites.
+  // Implements: DIARY-GUI-rave-sync-paused-banner/A
+  try {
+    response['rave_sync'] = await buildRaveSyncBlock();
+  } catch (e) {
+    print('[WARN] Failed to build rave_sync block for /sites: $e');
+  }
+
   return _jsonResponse(response);
 }
 
@@ -1188,6 +1198,14 @@ Future<Response> getPortalPatientsHandler(Request request) async {
   // Include user's assigned sites for Investigators (UI needs for "My Sites")
   if (isInvestigator) {
     response['assigned_sites'] = user.sites;
+  }
+
+  // Best-effort: omit rave_sync entirely on failure. Don't break /participants.
+  // Implements: DIARY-GUI-rave-sync-paused-banner/A
+  try {
+    response['rave_sync'] = await buildRaveSyncBlock();
+  } catch (e) {
+    print('[WARN] Failed to build rave_sync block for /participants: $e');
   }
 
   return _jsonResponse(response);

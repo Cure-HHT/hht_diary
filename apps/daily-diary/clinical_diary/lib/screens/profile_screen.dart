@@ -308,7 +308,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Row(
           children: [
-            Image.asset('assets/images/users.png'),
+            Icon(
+              Icons.person,
+              size: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Row(

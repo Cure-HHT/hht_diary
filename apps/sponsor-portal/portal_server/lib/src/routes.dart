@@ -127,6 +127,14 @@ Router createRouter() {
     generateActivationCodeHandler,
   );
 
+  // Developer Admin only - Rave sync lockout state + unwedge
+  // Implements: DIARY-OPS-rave-unwedge-authz, DIARY-GUI-dev-admin-rave-sync-card
+  router.get(
+    '/api/v1/portal/dev-admin/rave/lockout',
+    getRaveLockoutStateHandler,
+  );
+  router.post('/api/v1/portal/dev-admin/rave/unwedge', unwedgeRaveHandler);
+
   // Email OTP endpoints (for non-Developer-Admin users)
   // These require a valid Identity Platform token (password already verified)
   router.post('/api/v1/portal/auth/send-otp', sendEmailOtpHandler);

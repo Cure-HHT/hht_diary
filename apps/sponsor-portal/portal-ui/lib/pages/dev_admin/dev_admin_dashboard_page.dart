@@ -12,6 +12,7 @@ import 'package:sponsor_portal_ui/widgets/user_activity_listener.dart';
 
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
+import '../../services/rave_admin_service.dart';
 import '../../widgets/error_message.dart';
 import '../../widgets/portal_app_bar.dart';
 import '../../widgets/status_badge.dart';
@@ -100,31 +101,40 @@ class _DevAdminDashboardPageState extends State<DevAdminDashboardPage> {
       case 1:
         return const _AllUsersTab();
       case 2:
-        return _buildSystemTab(theme);
+        return const _SystemTab();
       default:
         return const _PortalAdminSetupTab();
     }
   }
+}
 
-  Widget _buildSystemTab(ThemeData theme) {
-    return Center(
+/// Tab grouping system-level operational tools (Rave sync state, etc.).
+class _SystemTab extends StatelessWidget {
+  const _SystemTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.settings_outlined,
-            size: 64,
-            color: theme.colorScheme.outline,
+          Text(
+            'System',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const SizedBox(height: 16),
-          Text('System Settings', style: theme.textTheme.headlineSmall),
           const SizedBox(height: 8),
           Text(
-            'System configuration coming soon',
-            style: theme.textTheme.bodyMedium?.copyWith(
+            'Operational health and recovery actions.',
+            style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
+          const SizedBox(height: 24),
+          const RaveSyncCard(),
         ],
       ),
     );
@@ -744,5 +754,353 @@ class _AllUsersTabState extends State<_AllUsersTab> {
         ),
       ],
     );
+  }
+}
+
+/// Dev-Admin-facing Rave outbound-sync status + manual unwedge card.
+// Implements: DIARY-GUI-dev-admin-rave-sync-card/A+B+C
+class RaveSyncCard extends StatefulWidget {
+  /// Optional service injection for widget tests. Production callers
+  /// (the `_SystemTab` instantiation below) leave this null and the
+  /// post-frame callback constructs a real `RaveAdminService` from the
+  /// in-context `AuthService`.
+  const RaveSyncCard({super.key, this.serviceOverride});
+
+  final RaveAdminService? serviceOverride;
+
+  @override
+  State<RaveSyncCard> createState() => RaveSyncCardState();
+}
+
+class RaveSyncCardState extends State<RaveSyncCard> {
+  RaveAdminService? _service;
+  RaveLockoutState? _state;
+  bool _isLoading = true;
+  bool _isUnwedging = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final override = widget.serviceOverride;
+    if (override != null) {
+      // Test path: service injected; skip the post-frame AuthService lookup
+      // and load state synchronously after first frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _service = override;
+        _loadState();
+      });
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Post-frame callback can fire after dispose (rapid navigation).
+      if (!mounted) return;
+      _service = RaveAdminService(ApiClient(context.read<AuthService>()));
+      _loadState();
+    });
+  }
+
+  Future<void> _loadState() async {
+    final service = _service;
+    if (service == null) return;
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final state = await service.getState();
+      if (!mounted) return;
+      setState(() {
+        _state = state;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e is RaveAdminException ? e.message : 'Error: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _confirmAndUnwedge() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Unwedge Rave sync?'),
+        content: const Text(
+          'This will probe Rave with the current credentials. '
+          'If the probe fails (e.g. bad password or expired secret), '
+          'the lockout will be re-triggered immediately.\n\n'
+          'Confirm that credentials are correct in the secret manager '
+          'AND the portal service has been redeployed since the '
+          'password was rotated.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Unwedge'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    final service = _service;
+    if (service == null || !mounted) return;
+
+    setState(() => _isUnwedging = true);
+    UnwedgeResult? result;
+    String? failureMessage;
+    try {
+      result = await service.unwedge();
+    } catch (e) {
+      failureMessage = e is RaveAdminException ? e.message : 'Error: $e';
+    }
+
+    if (!mounted) return;
+    setState(() => _isUnwedging = false);
+
+    final messenger = ScaffoldMessenger.of(context);
+    if (failureMessage != null) {
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red.shade700,
+          content: Text('Unwedge failed: $failureMessage'),
+        ),
+      );
+    } else if (result!.probeOk) {
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.green.shade700,
+          content: const Text('Rave probe OK — sync unwedged.'),
+        ),
+      );
+    } else {
+      final reason = result.probeError ?? 'probe failed';
+      final stateNote = switch (result.stateAfter) {
+        'locked' => 'Hard lockout re-triggered',
+        'cooldown' =>
+          result.pausedUntil != null
+              ? 'Cooldown active until ${result.pausedUntil!.toIso8601String()}'
+              : 'Cooldown active',
+        'ok' => 'Sync is OK (probe failure did not trip cooldown)',
+        _ => 'State unknown',
+      };
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 6),
+          content: Text(
+            'Probe FAILED ($reason). '
+            '$stateNote '
+            '(${result.consecutiveAuthFailures} consecutive failures).',
+          ),
+        ),
+      );
+    }
+
+    await _loadState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.sync, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Rave Sync',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Refresh',
+                  onPressed: _isLoading ? null : _loadState,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (_error != null)
+              ErrorMessage(
+                message: _error!,
+                onDismiss: () => setState(() => _error = null),
+              )
+            else if (_state != null)
+              ..._buildStateView(theme, _state!),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildStateView(ThemeData theme, RaveLockoutState s) {
+    return [
+      _buildStatusLine(theme, s),
+      const SizedBox(height: 12),
+      _buildCounterLine(theme, s),
+      if (s.lastFailureAt != null) ...[
+        const SizedBox(height: 6),
+        Text(
+          'Last failure: ${_formatDt(s.lastFailureAt!)}'
+          '${s.lastFailureReasonCode != null ? " (reason: ${s.lastFailureReasonCode})" : ""}',
+          style: theme.textTheme.bodyMedium,
+        ),
+      ],
+      if (s.lastSuccessAt != null) ...[
+        const SizedBox(height: 6),
+        Text(
+          'Last success: ${_formatDt(s.lastSuccessAt!)}',
+          style: theme.textTheme.bodyMedium,
+        ),
+      ],
+      if (s.lastUnwedgedAt != null) ...[
+        const SizedBox(height: 6),
+        Text(
+          'Last unwedged: ${_formatDt(s.lastUnwedgedAt!)}'
+          '${s.lastUnwedgedByUserId != null ? " by ${s.lastUnwedgedByUserId}" : ""}',
+          style: theme.textTheme.bodyMedium,
+        ),
+      ],
+      const SizedBox(height: 20),
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.amber.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.amber.shade300),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.warning_amber, color: Colors.amber.shade800),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'WARNING',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.amber.shade900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Ensure credentials are correct in the secret manager '
+                    'AND the portal service has been redeployed since the '
+                    'password was rotated. Unwedging without both will '
+                    'retrigger lockout.',
+                    style: TextStyle(color: Colors.amber.shade900),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+      Center(
+        child: FilledButton.icon(
+          // Stable key so widget tests can target this button regardless of
+          // whether the runtime classifies FilledButton.icon as FilledButton
+          // (varies across Flutter versions).
+          key: const Key('rave-unwedge-button'),
+          onPressed: _isUnwedging ? null : _confirmAndUnwedge,
+          icon: _isUnwedging
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.lock_open),
+          label: Text(_isUnwedging ? 'Unwedging...' : 'Unwedge Rave'),
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildStatusLine(ThemeData theme, RaveLockoutState s) {
+    late final IconData icon;
+    late final Color color;
+    late final String label;
+    switch (s.state) {
+      case 'locked':
+        icon = Icons.lock;
+        color = Colors.red.shade700;
+        label = s.lockedAt != null
+            ? 'HARD LOCKOUT since ${_formatDt(s.lockedAt!)}'
+            : 'HARD LOCKOUT';
+        break;
+      case 'cooldown':
+        icon = Icons.timer;
+        color = Colors.orange.shade700;
+        label = s.pausedUntil != null
+            ? 'Cooldown until ${_formatDt(s.pausedUntil!)}'
+            : 'Cooldown';
+        break;
+      case 'ok':
+      default:
+        icon = Icons.check_circle;
+        color = Colors.green.shade700;
+        label = s.lastSuccessAt != null
+            ? 'OK - last success ${_formatDt(s.lastSuccessAt!)}'
+            : 'OK';
+        break;
+    }
+    return Row(
+      children: [
+        Icon(icon, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Status: $label',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCounterLine(ThemeData theme, RaveLockoutState s) {
+    return Text(
+      'Consecutive auth failures: ${s.consecutiveAuthFailures} / ${s.threshold}'
+      ' (cooldown ${s.cooldownDisplay})',
+      style: theme.textTheme.bodyMedium,
+    );
+  }
+
+  String _formatDt(DateTime dt) {
+    final local = dt.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${local.year}-${two(local.month)}-${two(local.day)} '
+        '${two(local.hour)}:${two(local.minute)}';
   }
 }

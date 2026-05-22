@@ -29,6 +29,21 @@
 #   - Database password defaults to 'postgres' (local Docker)
 #   - No external API calls required
 #
+# RAVE MOCK MODE (CUR-1361 — exercise the lockout state machine without
+# a live Rave endpoint):
+#
+#   RAVE_MOCK_MODE=ok           ./tool/run_local.sh
+#   RAVE_MOCK_MODE=auth_fail    ./tool/run_local.sh
+#   RAVE_MOCK_MODE=network_fail ./tool/run_local.sh
+#
+#   When RAVE_MOCK_MODE is set, the portal substitutes an in-process
+#   MockRaveClient for the real one. Restart with a different value to
+#   change behavior. With auth_fail, three reloads of the Sites or
+#   Participants page (with cooldown < 24h) will drive the system into
+#   hard lockout; the Dev Admin "Unwedge Rave" button on the System tab
+#   becomes exercisable end-to-end. See apps/sponsor-portal/portal_functions/
+#   lib/src/rave_mock.dart for the supported mode vocabulary.
+#
 # Default dev password for all seeded users: "curehht"
 # =====================================================
 

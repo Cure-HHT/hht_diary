@@ -167,14 +167,15 @@ jobs:
               fi
               echo ""
               echo "All ${TOTAL} checks passed (or were skipped)."
-              # Clean up any previous failure comment(s). The legacy marker covers
-              # comments posted before the CUR-1246 rename of "CI Gate" to "Validation Summary".
-              # Paginate so chatty PRs are fully scanned, and delete every match to
-              # converge on zero failure comments when the gate is green.
-              MARKER="<!-- validation-summary -->"
-              LEGACY_MARKER="<!-- ci-gate-summary -->"
+              # Clean up any previous failure comment(s). Each marker is a
+              # generation of this check's comment scheme; we sweep all three
+              # so PRs straddling a migration converge on zero comments when green.
+              #   <!-- pr-comment-upsert:validation-summary --> -- current (CUR-1369 adoption of pr-comment-upsert)
+              #   <!-- validation-summary -->                   -- pre-CUR-1369 manual upsert
+              #   <!-- ci-gate-summary -->                      -- pre-CUR-1246 rename
+              # Paginate so chatty PRs are fully scanned.
               EXISTING_IDS=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
-                --jq ".[] | select(.body | startswith(\"${MARKER}\") or startswith(\"${LEGACY_MARKER}\")) | .id" 2>/dev/null || true)
+                --jq '.[] | select(.body | startswith("<!-- pr-comment-upsert:validation-summary -->") or startswith("<!-- validation-summary -->") or startswith("<!-- ci-gate-summary -->")) | .id' 2>/dev/null || true)
               if [ -n "$EXISTING_IDS" ]; then
                 DELETED=0
                 while IFS= read -r ID; do
@@ -206,48 +207,36 @@ jobs:
           echo "::error::${ANNOTATION}"
           exit 1
 
-      - name: Comment on PR with failure details
+      - name: Build Validation Summary comment body
+        id: validation-summary-body
         if: failure()
         env:
-          GH_TOKEN: ${{ github.token }}
+          MARKER: '<!-- pr-comment-upsert:validation-summary -->'
+          SERVER_URL: ${{ github.server_url }}
           REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           if [ ! -f /tmp/validation-summary.md ]; then
             echo "No summary file found, skipping comment"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          {
+            echo "$MARKER"
+            cat /tmp/validation-summary.md
+            echo ""
+            echo "*Updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | [View full details](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})*"
+          } > /tmp/validation-summary-comment.md
+          {
+            echo "body<<VALIDATION_SUMMARY_COMMENT_EOF"
+            cat /tmp/validation-summary-comment.md
+            echo "VALIDATION_SUMMARY_COMMENT_EOF"
+          } >> "$GITHUB_OUTPUT"
 
-          MARKER="<!-- validation-summary -->"
-          # Legacy marker: comments posted before CUR-1246 rename. Recognized so
-          # orphaned pre-rename comments get updated in place rather than spawning a duplicate.
-          LEGACY_MARKER="<!-- ci-gate-summary -->"
-          SUMMARY_CONTENT=$(cat /tmp/validation-summary.md)
-          UPDATED="*Updated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | [View full details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*"
-          printf -v BODY '%s\n%s\n\n%s' "$MARKER" "$SUMMARY_CONTENT" "$UPDATED"
-
-          # Find every Validation Summary comment (paginated) so chatty PRs are
-          # fully scanned. PATCH the first one to the new body and delete the
-          # rest, converging on a single comment regardless of marker mix.
-          EXISTING_IDS=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
-            --jq ".[] | select(.body | startswith(\"${MARKER}\") or startswith(\"${LEGACY_MARKER}\")) | .id" 2>/dev/null || true)
-
-          KEEP_ID=""
-          while IFS= read -r ID; do
-            [ -z "$ID" ] && continue
-            if [ -z "$KEEP_ID" ]; then
-              KEEP_ID="$ID"
-            else
-              gh api "repos/${REPO}/issues/comments/${ID}" -X DELETE > /dev/null 2>&1 || true
-            fi
-          done <<< "$EXISTING_IDS"
-
-          if [ -n "$KEEP_ID" ]; then
-            gh api "repos/${REPO}/issues/comments/${KEEP_ID}" \
-              -X PATCH -f body="$BODY" > /dev/null
-            echo "Updated existing Validation Summary comment"
-          else
-            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
-              -f body="$BODY" > /dev/null
-            echo "Posted new Validation Summary comment"
-          fi
+      - name: Upsert Validation Summary comment
+        if: failure() && steps.validation-summary-body.outputs.skip != 'true'
+        uses: Cure-HHT/hht_workflows/.github/actions/pr-comment-upsert@5f6797b6cbd6434e251539c959e418e2b4bb1b18  # hht_workflows main 2026-05-22
+        with:
+          marker: '<!-- pr-comment-upsert:validation-summary -->'
+          body: ${{ steps.validation-summary-body.outputs.body }}

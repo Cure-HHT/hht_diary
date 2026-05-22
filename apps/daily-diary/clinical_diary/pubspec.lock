@@ -231,6 +231,13 @@ packages:
       relative: true
     source: path
     version: "0.0.1"
+  comms:
+    dependency: "direct main"
+    description:
+      path: "../../common-dart/comms"
+      relative: true
+    source: path
+    version: "0.0.1"
   connectivity_plus:
     dependency: "direct main"
     description:

@@ -6,12 +6,15 @@
 // Fetches subjects from Medidata RAVE and syncs to local patients table
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:otel_common/otel_common.dart';
 import 'package:rave_integration/rave_integration.dart';
 
 import 'database.dart';
+import 'rave_mock.dart';
+import 'rave_sync_lockout.dart';
 import 'sites_sync.dart' show RaveConfig, defaultSyncInterval;
 
 /// Result of a patients sync operation.
@@ -20,12 +23,18 @@ class PatientsSyncResult {
   final int patientsUpdated;
   final DateTime syncedAt;
   final String? error;
+  final bool paused;
+  final String? pausedReason;
+  final DateTime? pausedUntil;
 
   const PatientsSyncResult({
     required this.patientsCreated,
     required this.patientsUpdated,
     required this.syncedAt,
     this.error,
+    this.paused = false,
+    this.pausedReason,
+    this.pausedUntil,
   });
 
   bool get hasError => error != null;
@@ -35,7 +44,27 @@ class PatientsSyncResult {
     'patients_updated': patientsUpdated,
     'synced_at': syncedAt.toIso8601String(),
     if (error != null) 'error': error,
+    if (paused) 'paused': true,
+    if (pausedReason != null) 'paused_reason': pausedReason,
+    if (pausedUntil != null) 'paused_until': pausedUntil!.toIso8601String(),
   };
+}
+
+/// Builds a PatientsSyncResult that signals "paused" to callers.
+// Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
+PatientsSyncResult buildPausedPatientsResult(LockoutState state) {
+  final reason = state.result == LockoutCheckResult.pausedLocked
+      ? 'locked'
+      : 'cooldown';
+  return PatientsSyncResult(
+    patientsCreated: 0,
+    patientsUpdated: 0,
+    syncedAt: DateTime.now().toUtc(),
+    error: 'Rave sync paused ($reason)',
+    paused: true,
+    pausedReason: reason,
+    pausedUntil: state.pausedUntil,
+  );
 }
 
 /// Computes SHA-256 hash of subject content for integrity verification.
@@ -123,25 +152,36 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
   String? studyOid = testStudyOid;
 
   if (client == null) {
-    final config = RaveConfig.fromEnvironment();
-    if (config == null) {
-      final result = PatientsSyncResult(
-        patientsCreated: 0,
-        patientsUpdated: 0,
-        syncedAt: DateTime.now().toUtc(),
-        error: 'RAVE configuration not available',
-      );
-      if (!skipLogging) {
-        await _logPatientSyncResult(result, '', startTime, studyOid: null);
+    // Dev override: RAVE_MOCK_MODE bypasses RAVE_UAT_* requirement and
+    // returns a MockRaveClient. See rave_mock.dart for the mode vocabulary.
+    final mockMode = Platform.environment['RAVE_MOCK_MODE'];
+    if (mockMode != null && mockMode.isNotEmpty) {
+      client = MockRaveClient(mockMode);
+      studyOid =
+          testStudyOid ??
+          Platform.environment['RAVE_STUDY_OID'] ??
+          'MOCK-STUDY-001';
+    } else {
+      final config = RaveConfig.fromEnvironment();
+      if (config == null) {
+        final result = PatientsSyncResult(
+          patientsCreated: 0,
+          patientsUpdated: 0,
+          syncedAt: DateTime.now().toUtc(),
+          error: 'RAVE configuration not available',
+        );
+        if (!skipLogging) {
+          await _logPatientSyncResult(result, '', startTime, studyOid: null);
+        }
+        return result;
       }
-      return result;
+      client = RaveClient(
+        baseUrl: config.baseUrl,
+        username: config.username,
+        password: config.password,
+      );
+      studyOid = testStudyOid ?? config.studyOid;
     }
-    client = RaveClient(
-      baseUrl: config.baseUrl,
-      username: config.username,
-      password: config.password,
-    );
-    studyOid = testStudyOid ?? config.studyOid;
   }
 
   // studyOid is required for the subjects endpoint
@@ -265,8 +305,24 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
       );
     }
 
+    // Implements: DIARY-OPS-rave-sync-cooldown/C
+    if (!skipLogging) {
+      try {
+        await recordSyncSuccess();
+      } catch (logErr) {
+        print('[WARN] Failed to record rave sync success: $logErr');
+      }
+    }
     return result;
   } on RaveAuthenticationException catch (e) {
+    // Implements: DIARY-DEV-rave-auth-failure-classification/A+C
+    if (!skipLogging) {
+      try {
+        await recordAuthFailure(reasonCode: e.reasonCode);
+      } catch (logErr) {
+        print('[WARN] Failed to record rave auth failure: $logErr');
+      }
+    }
     final errorMessage =
         'RAVE authentication failed - invalid credentials or locked account'
         '${e.detailSuffix}';
@@ -399,6 +455,50 @@ Future<PatientsSyncResult?> syncPatientsIfNeeded({
 }) async {
   if (!RaveConfig.isConfigured) {
     return null;
+  }
+
+  // Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
+  //
+  // Wrap checkLockout in try/catch: if migration 013 hasn't been applied
+  // yet (incremental rollout, env in a weird state, etc.) the SELECT
+  // against rave_sync_lockout throws and we don't want that to take down
+  // the entire /participants handler. Treat any failure as "proceed" —
+  // the gate is defense-in-depth, not a hard prerequisite for serving.
+  LockoutState? state;
+  try {
+    state = await checkLockout();
+  } catch (e) {
+    print('[WARN] checkLockout failed (proceeding without gate): $e');
+  }
+  if (state != null && state.isPaused) {
+    final result = buildPausedPatientsResult(state);
+    // Audit: record the skip in edc_sync_log.
+    try {
+      final db = Database.instance;
+      await db.executeWithContext(
+        '''
+        INSERT INTO edc_sync_log (
+          sync_timestamp, source_system, operation,
+          sites_created, sites_updated, sites_deactivated,
+          content_hash, duration_ms, success, error_message, metadata
+        )
+        VALUES (
+          @syncTimestamp, 'RAVE', 'PATIENTS_SYNC',
+          0, 0, 0,
+          'no-content', 0, false, @errorMessage, @metadata::jsonb
+        )
+        ''',
+        parameters: {
+          'syncTimestamp': result.syncedAt,
+          'errorMessage': result.error,
+          'metadata': jsonEncode({'rave_lockout_skipped': true}),
+        },
+        context: UserContext.service,
+      );
+    } catch (e) {
+      print('[WARN] Failed to log paused sync skip: $e');
+    }
+    return result;
   }
 
   final needsSync = await shouldSyncPatients(syncInterval: syncInterval);

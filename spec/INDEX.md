@@ -92,32 +92,49 @@
 
 ## INTERFACE
 
-| ID                                           | Title                                     | File                                      | Hash     |
-| -------------------------------------------- | ----------------------------------------- | ----------------------------------------- | -------- |
-| DIARY-GUI-administrator-dashboard            | Administrator Dashboard                   | prd-user-account.md                       | a0642fc7 |
-| DIARY-GUI-administrator-settings             | Administrator Settings Interface          | prd-administrator-settings.md             | fca0242e |
-| DIARY-GUI-audit-log-administrator            | Administrator Audit Log View              | prd-audit-log.md                          | 1f44ba79 |
-| DIARY-GUI-audit-log-common                   | Audit Log View — Common Presentation      | prd-audit-log.md                          | 92f0cef8 |
-| DIARY-GUI-audit-log-cra                      | CRA Audit Log View                        | prd-audit-log.md                          | 39017414 |
-| DIARY-GUI-audit-log-study-coordinator        | Study Coordinator Audit Log View          | prd-audit-log.md                          | ab4dc758 |
-| DIARY-GUI-calendar-day-view                  | Calendar and Day View                     | prd-mobile-navigation.md                  | 8051d0f5 |
-| DIARY-GUI-entry-overlap-resolution           | Overlapping Event Resolution Flow         | prd-diary-entry-rules.md                  | 7bee74de |
-| DIARY-GUI-epistaxis-delete                   | Nosebleed Event Delete                    | prd-epistaxis.md                          | 0cb2cfd1 |
-| DIARY-GUI-epistaxis-record                   | Record Nosebleed Event                    | prd-epistaxis.md                          | 83c8479f |
-| DIARY-GUI-join-study-screen                  | Join the Study Screen                     | prd-device-linking.md                     | 8aff3bce |
-| DIARY-GUI-link-participant-flow              | Link Participant Flow                     | prd-participant.md                        | 9c9abfe0 |
-| DIARY-GUI-linking-confirmation               | Successful Linking Confirmation           | prd-device-linking.md                     | b2e4c450 |
-| DIARY-GUI-main-screen-layout                 | Main Screen Layout                        | prd-mobile-navigation.md                  | 0e9dccb1 |
-| DIARY-GUI-mobile-navigation                  | Mobile Application Navigation and Screens | prd-mobile-navigation.md                  | ecc7e268 |
-| DIARY-GUI-participant-dashboard              | Participant Dashboard                     | prd-participant.md                        | ce22fd18 |
-| DIARY-GUI-participant-task-list              | Participant Task List                     | prd-mobile-notifications.md               | 916aca8a |
-| DIARY-GUI-participation-status-badge         | Participation Status Badge                | prd-mobile-notifications.md               | 6f306233 |
-| DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface        | prd-portal-auth.md                        | d41e7764 |
-| DIARY-GUI-questionnaire-portal-sent-workflow | Portal-Sent Questionnaire Workflow        | prd-questionnaire-participant-workflow.md | ca0d5613 |
-| DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry              | prd-questionnaire-participant-workflow.md | 02879dd5 |
-| DIARY-GUI-role-switching                     | Role Switching — Interface Behavior       | prd-rbac.md                               | f820206c |
-| DIARY-GUI-show-linking-code                  | Show Linking Code                         | prd-participant.md                        | 30285056 |
-| DIARY-GUI-user-account-deactivate            | Deactivate User Account                   | prd-user-account.md                       | bb9d75f2 |
-| DIARY-GUI-user-account-reactivate            | Reactivate User Account                   | prd-user-account.md                       | 15f0d2fd |
-| DIARY-GUI-user-information-modal             | User Information Modal                    | prd-user-account.md                       | 378c3dcd |
-| DIARY-GUI-user-management-tabs               | User Management Tabs                      | prd-user-account.md                       | f36341b4 |
+| ID                                           | Title                                      | File                                      | Hash     |
+| -------------------------------------------- | ------------------------------------------ | ----------------------------------------- | -------- |
+| DIARY-GUI-administrator-dashboard            | Administrator Dashboard                    | prd-user-account.md                       | a0642fc7 |
+| DIARY-GUI-administrator-settings             | Administrator Settings Interface           | prd-administrator-settings.md             | fca0242e |
+| DIARY-GUI-audit-log-administrator            | Administrator Audit Log View               | prd-audit-log.md                          | 1f44ba79 |
+| DIARY-GUI-audit-log-common                   | Audit Log View — Common Presentation       | prd-audit-log.md                          | 92f0cef8 |
+| DIARY-GUI-audit-log-cra                      | CRA Audit Log View                         | prd-audit-log.md                          | 39017414 |
+| DIARY-GUI-audit-log-study-coordinator        | Study Coordinator Audit Log View           | prd-audit-log.md                          | ab4dc758 |
+| DIARY-GUI-calendar-day-view                  | Calendar and Day View                      | prd-mobile-navigation.md                  | 8051d0f5 |
+| DIARY-GUI-dev-admin-rave-sync-card           | Developer Admin Dashboard Rave Sync Card   | prd-rave-sync.md                          | 19da0ac2 |
+| DIARY-GUI-entry-overlap-resolution           | Overlapping Event Resolution Flow          | prd-diary-entry-rules.md                  | 7bee74de |
+| DIARY-GUI-epistaxis-delete                   | Nosebleed Event Delete                     | prd-epistaxis.md                          | 0cb2cfd1 |
+| DIARY-GUI-epistaxis-record                   | Record Nosebleed Event                     | prd-epistaxis.md                          | 83c8479f |
+| DIARY-GUI-join-study-screen                  | Join the Study Screen                      | prd-device-linking.md                     | 8aff3bce |
+| DIARY-GUI-link-participant-flow              | Link Participant Flow                      | prd-participant.md                        | 9c9abfe0 |
+| DIARY-GUI-linking-confirmation               | Successful Linking Confirmation            | prd-device-linking.md                     | b2e4c450 |
+| DIARY-GUI-main-screen-layout                 | Main Screen Layout                         | prd-mobile-navigation.md                  | 0e9dccb1 |
+| DIARY-GUI-mobile-navigation                  | Mobile Application Navigation and Screens  | prd-mobile-navigation.md                  | ecc7e268 |
+| DIARY-GUI-participant-dashboard              | Participant Dashboard                      | prd-participant.md                        | ce22fd18 |
+| DIARY-GUI-participant-task-list              | Participant Task List                      | prd-mobile-notifications.md               | 916aca8a |
+| DIARY-GUI-participation-status-badge         | Participation Status Badge                 | prd-mobile-notifications.md               | 6f306233 |
+| DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface         | prd-portal-auth.md                        | d41e7764 |
+| DIARY-GUI-questionnaire-portal-sent-workflow | Portal-Sent Questionnaire Workflow         | prd-questionnaire-participant-workflow.md | ca0d5613 |
+| DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry               | prd-questionnaire-participant-workflow.md | 02879dd5 |
+| DIARY-GUI-rave-sync-paused-banner            | Sites and Participants Pages Paused Banner | prd-rave-sync.md                          | 75bc47b3 |
+| DIARY-GUI-role-switching                     | Role Switching — Interface Behavior        | prd-rbac.md                               | f820206c |
+| DIARY-GUI-show-linking-code                  | Show Linking Code                          | prd-participant.md                        | 30285056 |
+| DIARY-GUI-user-account-deactivate            | Deactivate User Account                    | prd-user-account.md                       | bb9d75f2 |
+| DIARY-GUI-user-account-reactivate            | Reactivate User Account                    | prd-user-account.md                       | 15f0d2fd |
+| DIARY-GUI-user-information-modal             | User Information Modal                     | prd-user-account.md                       | 378c3dcd |
+| DIARY-GUI-user-management-tabs               | User Management Tabs                       | prd-user-account.md                       | f36341b4 |
+
+## OPERATIONS
+
+| ID                                | Title                                          | File             | Hash     |
+| --------------------------------- | ---------------------------------------------- | ---------------- | -------- |
+| DIARY-OPS-rave-alert-notification | Rave Lockout Operator Alerting                 | prd-rave-sync.md | 0925f7b5 |
+| DIARY-OPS-rave-sync-cooldown      | Rave Sync Cooldown After Auth Failure          | prd-rave-sync.md | 2d1cf77c |
+| DIARY-OPS-rave-sync-hard-lockout  | Rave Sync Hard Lockout After Repeated Failures | prd-rave-sync.md | 5c2f7d7c |
+| DIARY-OPS-rave-unwedge-authz      | Rave Unwedge Endpoint Authorization            | prd-rave-sync.md | 7c99b2b8 |
+
+## DEVELOPMENT
+
+| ID                                         | Title                                      | File             | Hash     |
+| ------------------------------------------ | ------------------------------------------ | ---------------- | -------- |
+| DIARY-DEV-rave-auth-failure-classification | Rave Authentication Failure Classification | prd-rave-sync.md | f2732c70 |
