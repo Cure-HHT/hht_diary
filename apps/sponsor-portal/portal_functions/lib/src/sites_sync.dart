@@ -450,16 +450,80 @@ Future<SitesSyncResult> syncSitesFromEdc({
     final existingSiteIds = existingResult.map((r) => r[0] as String).toSet();
     final syncedSiteIds = <String>{};
 
-    // Upsert each site from RAVE
+    // Rave-wins reconciliation for the `site_number` unique constraint.
+    //
+    // Rave is the source of truth for site identity (OID + number + active),
+    // but site_name is locally-curated (Rave returns boring "Site 001"
+    // strings; admins assign human names like "County General Hospital").
+    // When Rave reassigns site_number 001 from OID Y to OID X, we want X
+    // to inherit Y's curated site_name AND we have to free the site_number
+    // slot before the upsert can succeed.
+    //
+    // Strategy: build a {site_number -> existing site_name} map for any
+    // incoming number currently held by a DIFFERENT OID, then deactivate
+    // those stale rows and rename their site_number to a deterministic
+    // 'OLD-…' tombstone (frees the unique constraint). The map is used
+    // below to seed the INSERT for the new OID with the inherited name.
+    // The old row stays (patients / audit rows still FK to it) — just
+    // deactivated and tombstoned.
+    final incomingNumbers = raveSites
+        .map((s) => s.studySiteNumber ?? s.oid)
+        .toList();
+    final incomingOids = raveSites.map((s) => s.oid).toList();
+    final inheritedNames = <String, String>{}; // site_number -> site_name
+    if (incomingNumbers.isNotEmpty) {
+      // Capture site_name from each stale row BEFORE we deactivate them.
+      final stale = await db.executeWithContext(
+        '''
+        SELECT site_number, site_name FROM sites
+        WHERE site_number = ANY(@incomingNumbers)
+          AND NOT (site_id = ANY(@incomingOids))
+        ''',
+        parameters: {
+          'incomingNumbers': incomingNumbers,
+          'incomingOids': incomingOids,
+        },
+        context: serviceContext,
+      );
+      for (final row in stale) {
+        inheritedNames[row[0] as String] = row[1] as String;
+      }
+
+      // Deactivate the stale rows and free the site_number slot.
+      await db.executeWithContext(
+        '''
+        UPDATE sites
+        SET is_active = false,
+            site_number = 'OLD-' || site_id || '-' || site_number,
+            edc_synced_at = @syncedAt,
+            updated_at = now()
+        WHERE site_number = ANY(@incomingNumbers)
+          AND NOT (site_id = ANY(@incomingOids))
+        ''',
+        parameters: {
+          'incomingNumbers': incomingNumbers,
+          'incomingOids': incomingOids,
+          'syncedAt': syncedAt,
+        },
+        context: serviceContext,
+      );
+    }
+
+    // Upsert each site from RAVE.
+    //
+    // ON CONFLICT (site_id) DO UPDATE deliberately omits `site_name` —
+    // that column is locally-curated and Rave is NOT authoritative for it.
+    // The INSERT path uses the inherited name from a same-site_number
+    // tombstoned row if one existed, otherwise the name Rave gave us
+    // (acts as a placeholder until an admin sets a real one).
     for (final site in raveSites) {
       final siteId = site.oid;
-      final siteName = site.name;
       final siteNumber = site.studySiteNumber ?? site.oid;
+      final siteName = inheritedNames[siteNumber] ?? site.name;
       final isActive = site.isActive;
 
       syncedSiteIds.add(siteId);
 
-      // Use upsert to handle both create and update
       final upsertResult = await db.executeWithContext(
         '''
         INSERT INTO sites (
@@ -471,7 +535,6 @@ Future<SitesSyncResult> syncSitesFromEdc({
           @edcOid, @syncedAt, now(), now()
         )
         ON CONFLICT (site_id) DO UPDATE SET
-          site_name = EXCLUDED.site_name,
           site_number = EXCLUDED.site_number,
           is_active = EXCLUDED.is_active,
           edc_oid = EXCLUDED.edc_oid,
