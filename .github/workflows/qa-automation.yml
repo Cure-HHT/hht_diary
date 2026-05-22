@@ -304,6 +304,10 @@ jobs:
       # -----------------------------------------------------------------
       # PR comment with results (rolling, via shared upsert action)
       # -----------------------------------------------------------------
+      # The body is composed here in shell (rather than directly in the
+      # pr-comment-upsert step's `with.body:`) so we can conditionally
+      # include the test-summary file when it exists. The heredoc-via-
+      # $GITHUB_OUTPUT pattern preserves embedded newlines in the body.
       - name: Build QA results comment body
         id: qa-comment-body
         if: always() && github.event_name == 'pull_request'
