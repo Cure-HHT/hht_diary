@@ -298,12 +298,15 @@ Future<void> recordSyncSuccess() async {
     ''', context: UserContext.service);
 }
 
-/// Fire-and-forget Slack notifier. Reads RAVE_ALERT_SLACK_WEBHOOK per call.
+/// Fire-and-forget Slack notifier. Reads SLACK_INCIDENT_WEBHOOK_URL per call
+/// — the same operator webhook already provisioned via Doppler for billing
+/// alerts. Reusing it (rather than adding a Rave-specific secret) means a
+/// freshly deployed env gets Rave alerts as soon as the code lands.
 // Implements: DIARY-OPS-rave-alert-notification/A+E
 Future<void> notifySlack(String text) async {
   await notifySlackWith(
     client: http.Client(),
-    webhookUrl: Platform.environment['RAVE_ALERT_SLACK_WEBHOOK'],
+    webhookUrl: Platform.environment['SLACK_INCIDENT_WEBHOOK_URL'],
     text: text,
     closeClient: true,
   );
@@ -325,7 +328,7 @@ Future<void> notifySlackWith({
       // Do NOT log [text] here — the unwedge confirmation message includes
       // operator email (PII), and writing it to application logs would
       // duplicate PII into a less-protected sink.
-      print('[INFO] RAVE_ALERT_SLACK_WEBHOOK unset — skipping Slack alert');
+      print('[INFO] SLACK_INCIDENT_WEBHOOK_URL unset — skipping Slack alert');
       return;
     }
     try {
