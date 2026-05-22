@@ -88,6 +88,7 @@ jobs:
         run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Ruby
+        id: setup-ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
@@ -95,6 +96,7 @@ jobs:
           working-directory: apps/daily-diary/clinical_diary/ios
 
       - name: Set up Flutter
+        id: setup-flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
@@ -108,6 +110,7 @@ jobs:
           restore-keys: pub-${{ runner.os }}-
 
       - name: Install Flutter dependencies
+        id: pub-get
         working-directory: apps/daily-diary/clinical_diary
         run: flutter pub get
 
@@ -119,14 +122,17 @@ jobs:
           restore-keys: pods-${{ runner.os }}-
 
       - name: Install CocoaPods dependencies
+        id: pod-install
         working-directory: apps/daily-diary/clinical_diary/ios
         run: bundle exec pod install
 
       - name: Run Flutter analyze
+        id: analyze
         working-directory: apps/daily-diary/clinical_diary
         run: flutter analyze
 
       - name: Run Flutter tests
+        id: test
         working-directory: apps/daily-diary/clinical_diary
         run: flutter test
 
@@ -138,9 +144,11 @@ jobs:
           echo "App version: $VERSION"
 
       - name: Install Doppler CLI
+        id: install-doppler
         uses: dopplerhq/cli-action@v3
 
       - name: Build iOS ${{ steps.inputs.outputs.flavor }} with Fastlane
+        id: build-ios
         working-directory: apps/daily-diary/clinical_diary/ios
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
@@ -155,6 +163,7 @@ jobs:
             -- bundle exec fastlane "build_${FLAVOR}"
 
       - name: Upload IPA artifact
+        id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
           name: clinical-diary-${{ steps.inputs.outputs.flavor }}-${{ steps.version.outputs.version }}-${{ steps.sha.outputs.short }}.ipa
@@ -219,6 +228,49 @@ jobs:
             channel: "${{ steps.slack-chan.outputs.channel }}"
             text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Deployment:* ${{ steps.inputs.outputs.deployment }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
 
+      # CUR-1370: identify which step failed so the failure DM can name it.
+      # iOS's Fastlane lane does both the build and the TestFlight/App Store
+      # upload, so build-ios failures cover both classes.
+      - name: Identify failed step
+        if: failure()
+        id: failed-step
+        run: |
+          set -u
+          NAME="Unknown step"
+          HINT="Inspect the workflow run logs."
+          if [ "${{ steps.setup-ruby.outcome }}" = "failure" ]; then
+            NAME="Set up Ruby"
+            HINT="Ruby ${{ env.RUBY_VERSION }} install or bundler cache failed; check .github/versions.env."
+          elif [ "${{ steps.setup-flutter.outcome }}" = "failure" ]; then
+            NAME="Set up Flutter"
+            HINT="Flutter ${{ env.FLUTTER_VERSION }} install failed; check .github/versions.env."
+          elif [ "${{ steps.pub-get.outcome }}" = "failure" ]; then
+            NAME="Install Flutter dependencies"
+            HINT="\`flutter pub get\` failed; pub.dev outage or pubspec.lock conflict."
+          elif [ "${{ steps.pod-install.outcome }}" = "failure" ]; then
+            NAME="Install CocoaPods dependencies"
+            HINT="\`bundle exec pod install\` failed; check Podfile.lock conflict or CDN outage."
+          elif [ "${{ steps.analyze.outcome }}" = "failure" ]; then
+            NAME="Flutter analyze"
+            HINT="Static analysis errors. Run \`flutter analyze\` locally to reproduce."
+          elif [ "${{ steps.test.outcome }}" = "failure" ]; then
+            NAME="Flutter tests"
+            HINT="Unit/widget tests failed. Run \`flutter test\` locally to reproduce."
+          elif [ "${{ steps.install-doppler.outcome }}" = "failure" ]; then
+            NAME="Install Doppler CLI"
+            HINT="dopplerhq/cli-action@v3 failed; transient action infrastructure or Doppler outage."
+          elif [ "${{ steps.build-ios.outcome }}" = "failure" ]; then
+            NAME="Build iOS with Fastlane"
+            HINT="Fastlane lane 'build_${{ steps.inputs.outputs.flavor }}' failed. This covers both Xcode build AND TestFlight/App Store upload — check Fastlane log for code-signing issues, build errors, or duplicate-build-number rejection from App Store Connect."
+          elif [ "${{ steps.upload-artifact.outcome }}" = "failure" ]; then
+            NAME="Upload IPA artifact"
+            HINT="GitHub Artifacts upload failed (transient infra issue most likely)."
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "hint=$HINT" >> "$GITHUB_OUTPUT"
+          echo "Failed step: $NAME"
+          echo "Hint: $HINT"
+
       - name: Resolve Slack user for failure DM
         if: failure()
         id: slack-user
@@ -251,4 +303,4 @@ jobs:
           errors: true
           payload: |
             channel: "${{ steps.slack-user.outputs.channel }}"
-            text: ":x: *iOS Build Failed*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor || 'unknown' }}\n*Version:* ${{ steps.version.outputs.version || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            text: ":x: *iOS workflow failed*\n\n*Failed step:* ${{ steps.failed-step.outputs.name }}\n*Hint:* ${{ steps.failed-step.outputs.hint }}\n*Flavor:* ${{ steps.inputs.outputs.flavor || 'unknown' }}\n*Version:* ${{ steps.version.outputs.version || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
