@@ -211,7 +211,7 @@ docker push gcr.io/PROJECT_ID/portal-server:latest
 ### Deploy to Cloud Run
 
 ```bash
-gcloud run deploy portal-server \
+gcloud run deploy portal-service \
   --image gcr.io/PROJECT_ID/portal-server:latest \
   --platform managed \
   --region europe-west1 \

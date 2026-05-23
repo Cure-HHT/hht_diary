@@ -33,7 +33,7 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local development server
-  - url: https://diary-server-{region}-run.app
+  - url: https://diary-service-{region}-run.app
     description: Google Cloud Run (Production)
     variables:
       region:
@@ -585,7 +585,11 @@ components:
           description: Cloud Run region
         service:
           type: string
-          description: Service name
+          description: |
+            Application identifier (the OpenTelemetry `service.name`
+            set by the binary at startup — see bin/server.dart). This
+            is independent of the deployed Cloud Run service name
+            (the URL host), which may differ. Stable across redeploys.
 
     RegisterRequest:
       type: object
