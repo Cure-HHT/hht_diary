@@ -165,5 +165,5 @@ enable_gmail_api = true
 
 enable_regional_lb            = true
 lb_domain                     = "*.callisto.anspar.org"
-lb_cloud_run_service_name     = "portal-server"
+lb_cloud_run_service_name     = "portal-service"
 lb_enable_http_redirect       = true
