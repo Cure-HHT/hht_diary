@@ -84,6 +84,7 @@ jobs:
 
     steps:
       - name: Checkout repository
+        id: checkout
         uses: actions/checkout@v4
 
       - name: Resolve build inputs
@@ -297,6 +298,51 @@ jobs:
             channel: "${{ steps.slack-chan.outputs.channel }}"
             text: ":information_source: *Android: deploy skipped (no version bump)*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Package:* ${{ steps.package.outputs.name }}\n*Pubspec versionCode:* ${{ steps.version.outputs.version_code }}\n*Play Store highest versionCode:* ${{ steps.decide.outputs.current_play_version_code }}\n*Hint:* bump `pubspec.yaml` `version: x.y.z+N` to deploy.\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
 
+      - name: Identify gate failure
+        if: failure()
+        id: gate-failed-step
+        run: |
+          set -u
+          NAME="Unknown gate step"
+          HINT="Check the gate job log for the failed step."
+          if [ "${{ steps.checkout.outcome }}" = "failure" ]; then
+            NAME="Checkout repository"
+            HINT="git checkout failed; likely transient GitHub infra issue."
+          elif [ "${{ steps.inputs.outcome }}" = "failure" ]; then
+            NAME="Resolve build inputs"
+            HINT="Workflow input validation failed; check the workflow_dispatch inputs or push-event defaults."
+          elif [ "${{ steps.version.outcome }}" = "failure" ]; then
+            NAME="Extract version from pubspec.yaml"
+            HINT="pubspec.yaml version parsing failed; expected format \`<name>+<code>\`."
+          elif [ "${{ steps.package.outcome }}" = "failure" ]; then
+            NAME="Determine package name"
+            HINT="Package-name resolution failed for flavor '${{ steps.inputs.outputs.flavor }}'."
+          elif [ "${{ steps.slack-chan.outcome }}" = "failure" ]; then
+            NAME="Resolve Slack channel from flavor"
+            HINT="Channel-name resolution failed."
+          elif [ "${{ steps.gcp-auth-play.outcome }}" = "failure" ]; then
+            NAME="Authenticate to Google Cloud (Play API)"
+            HINT="WIF/SA misconfig; check vars.GCP_PROJECT_NUMBER and vars.GCP_SA_EMAIL."
+          elif [ "${{ steps.decide.outcome }}" = "failure" ]; then
+            NAME="Decide whether to deploy"
+            HINT="Play Developer API query failed; check API status, SA scopes (androidpublisher), or jq pipeline."
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "hint=$HINT" >> "$GITHUB_OUTPUT"
+          echo "Failed gate step: $NAME"
+          echo "Hint: $HINT"
+
+      - name: Notify Slack on gate failure
+        if: failure()
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          errors: true
+          payload: |
+            channel: "#devops"
+            text: ":warning: *Android: version-bump gate failed*\n\n*Failed step:* ${{ steps.gate-failed-step.outputs.name }}\n*Hint:* ${{ steps.gate-failed-step.outputs.hint }}\n*Flavor:* ${{ steps.inputs.outputs.flavor || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+
   build:
     name: Build & deploy
     needs: gate
@@ -305,6 +351,7 @@ jobs:
 
     steps:
       - name: Checkout repository
+        id: checkout
         uses: actions/checkout@v4
 
       - name: Load pinned versions
@@ -331,6 +378,7 @@ jobs:
           cache: true
 
       - name: Cache pub dependencies
+        id: cache-pub
         uses: actions/cache@v5
         with:
           path: ~/.pub-cache
@@ -338,6 +386,7 @@ jobs:
           restore-keys: pub-${{ runner.os }}-
 
       - name: Pre-install CMake
+        id: cmake
         run: |
           SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
           if [ ! -d "$SDK/cmake/${ANDROID_CMAKE_VERSION}" ]; then
@@ -466,14 +515,23 @@ jobs:
         id: failed-step
         run: |
           set -u
-          NAME="Unknown step"
-          HINT="Inspect the workflow run logs."
-          if [ "${{ steps.setup-java.outcome }}" = "failure" ]; then
+          NAME="Unknown build step"
+          HINT="Failure occurred outside the named-step cascade; check the workflow run logs for the red X."
+          if [ "${{ steps.checkout.outcome }}" = "failure" ]; then
+            NAME="Checkout repository"
+            HINT="git checkout failed; likely transient GitHub infra issue."
+          elif [ "${{ steps.setup-java.outcome }}" = "failure" ]; then
             NAME="Set up Java"
             HINT="JDK ${{ env.JAVA_VERSION }} install failed; check .github/versions.env."
           elif [ "${{ steps.setup-flutter.outcome }}" = "failure" ]; then
             NAME="Set up Flutter"
             HINT="Flutter ${{ env.FLUTTER_VERSION }} install failed; check .github/versions.env."
+          elif [ "${{ steps.cache-pub.outcome }}" = "failure" ]; then
+            NAME="Cache pub dependencies"
+            HINT="actions/cache restore failed; non-fatal in practice, retry the workflow."
+          elif [ "${{ steps.cmake.outcome }}" = "failure" ]; then
+            NAME="Pre-install CMake"
+            HINT="Android CMake install failed; check ANDROID_CMAKE_VERSION pin in .github/versions.env."
           elif [ "${{ steps.pub-get.outcome }}" = "failure" ]; then
             NAME="Install Flutter dependencies"
             HINT="\`flutter pub get\` failed; pub.dev outage or pubspec.lock conflict."
@@ -489,6 +547,9 @@ jobs:
           elif [ "${{ steps.build-android.outcome }}" = "failure" ]; then
             NAME="Build signed Android"
             HINT="Gradle/Doppler build failed for flavor '${{ needs.gate.outputs.flavor }}'. Check Doppler config and tool/build_android_*_signed.sh."
+          elif [ "${{ steps.artifact.outcome }}" = "failure" ]; then
+            NAME="Determine artifact path"
+            HINT="pubspec parse for artifact-path naming failed; check pubspec.yaml shape."
           elif [ "${{ steps.upload-artifact.outcome }}" = "failure" ]; then
             NAME="Upload artifact"
             HINT="GitHub Artifacts upload failed (transient infra issue most likely)."

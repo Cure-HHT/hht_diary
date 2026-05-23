@@ -78,6 +78,7 @@ jobs:
 
     steps:
       - name: Checkout repository
+        id: checkout
         uses: actions/checkout@v4
 
       - name: Resolve build inputs
@@ -161,6 +162,7 @@ jobs:
           echo "Slack channel for flavor '$FLAVOR': $CHANNEL"
 
       - name: Install Doppler CLI
+        id: install-doppler
         uses: dopplerhq/cli-action@v3
 
       # CUR-1370: query App Store Connect for the highest cfBundleVersion ever
@@ -222,21 +224,24 @@ jobs:
               asc_app_id = apps[0]["id"]
 
               # 2. List builds. Apple's sort=-version is lexicographic (broken for numeric build
-              #    numbers like "9" vs "10"); fetch up to 200 and find max numerically in Python.
-              #    If the app ever exceeds 200 builds, add pagination — for now this is far above
-              #    realistic usage.
-              r = requests.get(
-                  f"{api}/v1/builds",
-                  params={
-                      "filter[app]": asc_app_id,
-                      "fields[builds]": "version",
-                      "limit": 200,
-                  },
-                  headers=headers,
-                  timeout=30,
-              )
-              r.raise_for_status()
-              builds = r.json().get("data", [])
+              #    numbers like "9" vs "10"); paginate through all builds and find max numerically
+              #    in Python. ASC paginates at 200/page; `links.next` provides the cursor URL.
+              url = f"{api}/v1/builds"
+              params = {
+                  "filter[app]": asc_app_id,
+                  "fields[builds]": "version",
+                  "limit": 200,
+              }
+              builds = []
+              while url:
+                  r = requests.get(url, params=params, headers=headers, timeout=30)
+                  r.raise_for_status()
+                  payload = r.json()
+                  builds.extend(payload.get("data", []))
+                  # The pagination URL has cursor & query baked in; pass it as-is and
+                  # drop our local params dict so we don't double-encode them.
+                  url = (payload.get("links") or {}).get("next")
+                  params = None
 
               version_codes = []
               for b in builds:
@@ -301,6 +306,51 @@ jobs:
             channel: "${{ steps.slack-chan.outputs.channel }}"
             text: ":information_source: *iOS: deploy skipped (no version bump)*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*App identifier:* ${{ steps.app.outputs.identifier }}\n*Pubspec versionCode:* ${{ steps.version.outputs.version_code }}\n*TestFlight highest cfBundleVersion:* ${{ steps.decide.outputs.current_testflight_version_code }}\n*Hint:* bump `pubspec.yaml` `version: x.y.z+N` to deploy.\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
 
+      - name: Identify gate failure
+        if: failure()
+        id: gate-failed-step
+        run: |
+          set -u
+          NAME="Unknown gate step"
+          HINT="Check the gate job log for the failed step."
+          if [ "${{ steps.checkout.outcome }}" = "failure" ]; then
+            NAME="Checkout repository"
+            HINT="git checkout failed; likely transient GitHub infra issue."
+          elif [ "${{ steps.inputs.outcome }}" = "failure" ]; then
+            NAME="Resolve build inputs"
+            HINT="Workflow input validation failed; check workflow_dispatch inputs or push-event defaults."
+          elif [ "${{ steps.version.outcome }}" = "failure" ]; then
+            NAME="Extract version from pubspec.yaml"
+            HINT="pubspec.yaml version parsing failed; expected format \`<name>+<code>\`."
+          elif [ "${{ steps.app.outcome }}" = "failure" ]; then
+            NAME="Determine app identifier"
+            HINT="App-identifier resolution failed for flavor '${{ steps.inputs.outputs.flavor }}'."
+          elif [ "${{ steps.slack-chan.outcome }}" = "failure" ]; then
+            NAME="Resolve Slack channel from flavor"
+            HINT="Channel-name resolution failed."
+          elif [ "${{ steps.install-doppler.outcome }}" = "failure" ]; then
+            NAME="Install Doppler CLI"
+            HINT="dopplerhq/cli-action@v3 failed; transient action infra or Doppler outage."
+          elif [ "${{ steps.decide.outcome }}" = "failure" ]; then
+            NAME="Decide whether to deploy"
+            HINT="App Store Connect API query failed; check ASC status, JWT expiry / clock drift, or Doppler env mapping for APP_STORE_CONNECT_API_KEY_MGR_*."
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "hint=$HINT" >> "$GITHUB_OUTPUT"
+          echo "Failed gate step: $NAME"
+          echo "Hint: $HINT"
+
+      - name: Notify Slack on gate failure
+        if: failure()
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          errors: true
+          payload: |
+            channel: "#devops"
+            text: ":warning: *iOS: version-bump gate failed*\n\n*Failed step:* ${{ steps.gate-failed-step.outputs.name }}\n*Hint:* ${{ steps.gate-failed-step.outputs.hint }}\n*Flavor:* ${{ steps.inputs.outputs.flavor || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+
   build:
     name: Build & deploy
     needs: gate
@@ -309,6 +359,7 @@ jobs:
 
     steps:
       - name: Checkout repository
+        id: checkout
         uses: actions/checkout@v4
 
       - name: Load pinned versions
@@ -335,6 +386,7 @@ jobs:
           cache: true
 
       - name: Cache pub dependencies
+        id: cache-pub
         uses: actions/cache@v5
         with:
           path: ~/.pub-cache
@@ -347,6 +399,7 @@ jobs:
         run: flutter pub get
 
       - name: Cache CocoaPods
+        id: cache-pods
         uses: actions/cache@v5
         with:
           path: apps/daily-diary/clinical_diary/ios/Pods
@@ -443,17 +496,26 @@ jobs:
         id: failed-step
         run: |
           set -u
-          NAME="Unknown step"
-          HINT="Inspect the workflow run logs."
-          if [ "${{ steps.setup-ruby.outcome }}" = "failure" ]; then
+          NAME="Unknown build step"
+          HINT="Failure occurred outside the named-step cascade; check the workflow run logs for the red X."
+          if [ "${{ steps.checkout.outcome }}" = "failure" ]; then
+            NAME="Checkout repository"
+            HINT="git checkout failed; likely transient GitHub infra issue."
+          elif [ "${{ steps.setup-ruby.outcome }}" = "failure" ]; then
             NAME="Set up Ruby"
             HINT="Ruby ${{ env.RUBY_VERSION }} install or bundler cache failed; check .github/versions.env."
           elif [ "${{ steps.setup-flutter.outcome }}" = "failure" ]; then
             NAME="Set up Flutter"
             HINT="Flutter ${{ env.FLUTTER_VERSION }} install failed; check .github/versions.env."
+          elif [ "${{ steps.cache-pub.outcome }}" = "failure" ]; then
+            NAME="Cache pub dependencies"
+            HINT="actions/cache restore failed; non-fatal in practice, retry the workflow."
           elif [ "${{ steps.pub-get.outcome }}" = "failure" ]; then
             NAME="Install Flutter dependencies"
             HINT="\`flutter pub get\` failed; pub.dev outage or pubspec.lock conflict."
+          elif [ "${{ steps.cache-pods.outcome }}" = "failure" ]; then
+            NAME="Cache CocoaPods"
+            HINT="CocoaPods cache restore failed; non-fatal in practice, retry the workflow."
           elif [ "${{ steps.pod-install.outcome }}" = "failure" ]; then
             NAME="Install CocoaPods dependencies"
             HINT="\`bundle exec pod install\` failed; check Podfile.lock conflict or CDN outage."
