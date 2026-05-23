@@ -46,7 +46,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  # CUR-1370: gate job — queries App Store Connect API for the highest
+  # cfBundleVersion ever uploaded to this bundle id; skips the build job
+  # cleanly when the local pubspec versionCode is not greater. Eliminates
+  # false-alarm "ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE" / duplicate
+  # cfBundleVersion Slack DMs on lockfile-only / docs-only pushes that
+  # don't bump pubspec.yaml. Runs on ubuntu-latest (cheap, fast ~20s) via
+  # direct ASC API calls (JWT-signed), keeping the expensive macos-26 runner
+  # only for actual builds.
+  gate:
+    name: Version-bump gate
+    runs-on: ubuntu-latest
     # Skip auto-deploy on Dependabot-merge commits. Their PRs come in waves
     # and each squash-merge would otherwise trigger an App Store Connect /
     # TestFlight upload for a small dep bump. The merge commit's message
@@ -55,15 +65,21 @@ jobs:
     # human-merger paths. `workflow_dispatch` and non-push events have no
     # head_commit, so the `|| ''` fallback lets manual triggers always run.
     if: ${{ !startsWith(github.event.head_commit.message || '', '[Dependabot]') }}
-    runs-on: macos-26
+    outputs:
+      should_deploy: ${{ steps.decide.outputs.should_deploy }}
+      flavor: ${{ steps.inputs.outputs.flavor }}
+      deployment: ${{ steps.inputs.outputs.deployment }}
+      version: ${{ steps.version.outputs.version }}
+      version_code: ${{ steps.version.outputs.version_code }}
+      version_name: ${{ steps.version.outputs.version_name }}
+      app_identifier: ${{ steps.app.outputs.identifier }}
+      current_testflight_version_code: ${{ steps.decide.outputs.current_testflight_version_code }}
+      slack_channel: ${{ steps.slack-chan.outputs.channel }}
 
     steps:
       - name: Checkout repository
+        id: checkout
         uses: actions/checkout@v4
-
-      - name: Load pinned versions
-        run: |
-          grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
 
       - name: Resolve build inputs
         id: inputs
@@ -83,11 +99,279 @@ jobs:
           echo "flavor=$FLAVOR" >> "$GITHUB_OUTPUT"
           echo "deployment=$DEPLOYMENT" >> "$GITHUB_OUTPUT"
 
+      - name: Extract version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | awk '{print $2}')
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not parse version from apps/daily-diary/clinical_diary/pubspec.yaml"
+            exit 1
+          fi
+          # Format is <name>+<code>, e.g. 0.9.35+66 → name=0.9.35, code=66
+          VERSION_NAME="${VERSION%+*}"
+          VERSION_CODE="${VERSION##*+}"
+          if [ "$VERSION_NAME" = "$VERSION" ] || [ -z "$VERSION_CODE" ]; then
+            echo "::error::pubspec version '$VERSION' missing '+<versionCode>' suffix"
+            exit 1
+          fi
+          case "$VERSION_CODE" in
+            ''|*[!0-9]*)
+              echo "::error::pubspec versionCode '$VERSION_CODE' is not a positive integer"
+              exit 1
+              ;;
+          esac
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "App version: $VERSION (name=$VERSION_NAME, code=$VERSION_CODE)"
+
+      - name: Determine app identifier
+        id: app
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+        run: |
+          case "$FLAVOR" in
+            dev)  ID="org.anspar.curehht.app.dev"  ;;
+            qa)   ID="org.anspar.curehht.app.qa"   ;;
+            uat)  ID="org.anspar.curehht.app.uat"  ;;
+            prod) ID="org.anspar.curehht.app"      ;;
+            *)
+              echo "::error::Unknown flavor: $FLAVOR"
+              exit 1
+              ;;
+          esac
+          echo "identifier=$ID" >> "$GITHUB_OUTPUT"
+          echo "App identifier for flavor '$FLAVOR': $ID"
+
+      - name: Resolve Slack channel from flavor
+        id: slack-chan
+        env:
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+        run: |
+          # Per-flavor routing — mirrors callisto's .github/slack-channels.yml
+          # (deploy-success: dev->#dev, qa->#qa, uat->#devops). Channel
+          # names are not secrets; hardcoded here for simplicity until/
+          # unless a slack-channels.yml lands in this repo too.
+          case "$FLAVOR" in
+            dev)  CHANNEL="#dev" ;;
+            qa)   CHANNEL="#qa" ;;
+            uat)  CHANNEL="#devops" ;;
+            *)    CHANNEL="#devops" ;;
+          esac
+          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "Slack channel for flavor '$FLAVOR': $CHANNEL"
+
+      - name: Install Doppler CLI
+        id: install-doppler
+        uses: dopplerhq/cli-action@v3
+
+      # CUR-1370: query App Store Connect for the highest cfBundleVersion ever
+      # uploaded for this bundle id (across all TestFlight builds). ASC rejects
+      # re-upload of a cfBundleVersion already known to the system, so this
+      # comparison is the correct gate for catching the duplicate-build-number
+      # case. Uses direct ASC API via signed JWT (ES256) on ubuntu-latest —
+      # avoids Fastlane/Bundler/macos runner overhead for a simple version check.
+      - name: Decide whether to deploy
+        id: decide
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          DOPPLER_PROJECT: ${{ secrets.DOPPLER_PROJECT }}
+          FLAVOR: ${{ steps.inputs.outputs.flavor }}
+          APP_ID: ${{ steps.app.outputs.identifier }}
+          LOCAL_VC: ${{ steps.version.outputs.version_code }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet 'pyjwt[crypto]' requests
+          doppler run --project "$DOPPLER_PROJECT" --config "$FLAVOR" -- python3 <<'PY'
+          import base64, os, time
+          import jwt, requests
+
+          key_b64 = os.environ["APP_STORE_CONNECT_API_KEY_MGR_BASE64"]
+          key_id = os.environ["APP_STORE_CONNECT_API_KEY_MGR_ID"]
+          issuer_id = os.environ["APP_STORE_CONNECT_API_ISSUER_ID"]
+          app_id = os.environ["APP_ID"]
+          local_vc = int(os.environ["LOCAL_VC"])
+
+          private_key = base64.b64decode(key_b64)
+
+          token = jwt.encode(
+              payload={
+                  "iss": issuer_id,
+                  "exp": int(time.time()) + 1200,
+                  "aud": "appstoreconnect-v1",
+              },
+              key=private_key,
+              algorithm="ES256",
+              headers={"kid": key_id, "typ": "JWT"},
+          )
+
+          api = "https://api.appstoreconnect.apple.com"
+          headers = {"Authorization": f"Bearer {token}"}
+
+          # 1. Look up app's ASC numeric ID by bundleId.
+          r = requests.get(
+              f"{api}/v1/apps",
+              params={"filter[bundleId]": app_id, "fields[apps]": "bundleId"},
+              headers=headers,
+              timeout=30,
+          )
+          r.raise_for_status()
+          apps = r.json().get("data", [])
+          if not apps:
+              print(f"::notice::App {app_id} not found on App Store Connect; treating highest cfBundleVersion as 0")
+              highest = 0
+          else:
+              asc_app_id = apps[0]["id"]
+
+              # 2. List builds. Apple's sort=-version is lexicographic (broken for numeric build
+              #    numbers like "9" vs "10"); paginate through all builds and find max numerically
+              #    in Python. ASC paginates at 200/page; `links.next` provides the cursor URL.
+              url = f"{api}/v1/builds"
+              params = {
+                  "filter[app]": asc_app_id,
+                  "fields[builds]": "version",
+                  "limit": 200,
+              }
+              builds = []
+              while url:
+                  r = requests.get(url, params=params, headers=headers, timeout=30)
+                  r.raise_for_status()
+                  payload = r.json()
+                  builds.extend(payload.get("data", []))
+                  # The pagination URL has cursor & query baked in; pass it as-is and
+                  # drop our local params dict so we don't double-encode them.
+                  url = (payload.get("links") or {}).get("next")
+                  params = None
+
+              version_codes = []
+              for b in builds:
+                  v = (b.get("attributes") or {}).get("version")
+                  if v is None:
+                      continue
+                  try:
+                      version_codes.append(int(v))
+                  except (TypeError, ValueError):
+                      # Skip non-integer build numbers (shouldn't exist for this app)
+                      continue
+
+              highest = max(version_codes) if version_codes else 0
+
+          print(f"Local pubspec versionCode:           {local_vc}")
+          print(f"TestFlight highest cfBundleVersion:  {highest}")
+
+          # GITHUB_OUTPUT is injected by the GitHub runner and inherited
+          # through `doppler run -- python3` via the normal UNIX env tree.
+          gh_out = os.environ["GITHUB_OUTPUT"]
+          with open(gh_out, "a") as f:
+              f.write(f"current_testflight_version_code={highest}\n")
+              if local_vc > highest:
+                  print(f"::notice::Local versionCode ({local_vc}) > TestFlight highest ({highest}); will deploy.")
+                  f.write("should_deploy=true\n")
+              else:
+                  print(f"::notice::Local versionCode ({local_vc}) <= TestFlight highest ({highest}); skipping build & upload (no version bump).")
+                  f.write("should_deploy=false\n")
+          PY
+
+      - name: Gate summary
+        env:
+          SHOULD_DEPLOY: ${{ steps.decide.outputs.should_deploy }}
+          LOCAL_VC: ${{ steps.version.outputs.version_code }}
+          TF_VC: ${{ steps.decide.outputs.current_testflight_version_code }}
+          APP_ID: ${{ steps.app.outputs.identifier }}
+          DEPLOYMENT: ${{ steps.inputs.outputs.deployment }}
+        run: |
+          {
+            echo "### Version-bump gate"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| **Decision** | ${SHOULD_DEPLOY} |"
+            echo "| **Local versionCode (pubspec)** | ${LOCAL_VC} |"
+            echo "| **TestFlight highest cfBundleVersion** | ${TF_VC} |"
+            echo "| **App identifier** | ${APP_ID} |"
+            echo "| **Deployment target** | ${DEPLOYMENT} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # CUR-1370: when the gate skips, post a single informational message
+      # to the per-flavor channel so the team knows the push intentionally
+      # didn't deploy. Not a DM — the committer hasn't broken anything.
+      - name: Notify Slack on skipped deploy
+        if: steps.decide.outputs.should_deploy == 'false'
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          errors: true
+          payload: |
+            channel: "${{ steps.slack-chan.outputs.channel }}"
+            text: ":information_source: *iOS: deploy skipped (no version bump)*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*App identifier:* ${{ steps.app.outputs.identifier }}\n*Pubspec versionCode:* ${{ steps.version.outputs.version_code }}\n*TestFlight highest cfBundleVersion:* ${{ steps.decide.outputs.current_testflight_version_code }}\n*Hint:* bump `pubspec.yaml` `version: x.y.z+N` to deploy.\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+
+      - name: Identify gate failure
+        if: failure()
+        id: gate-failed-step
+        run: |
+          set -u
+          NAME="Unknown gate step"
+          HINT="Check the gate job log for the failed step."
+          if [ "${{ steps.checkout.outcome }}" = "failure" ]; then
+            NAME="Checkout repository"
+            HINT="git checkout failed; likely transient GitHub infra issue."
+          elif [ "${{ steps.inputs.outcome }}" = "failure" ]; then
+            NAME="Resolve build inputs"
+            HINT="Workflow input validation failed; check workflow_dispatch inputs or push-event defaults."
+          elif [ "${{ steps.version.outcome }}" = "failure" ]; then
+            NAME="Extract version from pubspec.yaml"
+            HINT="pubspec.yaml version parsing failed; expected format \`<name>+<code>\`."
+          elif [ "${{ steps.app.outcome }}" = "failure" ]; then
+            NAME="Determine app identifier"
+            HINT="App-identifier resolution failed for flavor '${{ steps.inputs.outputs.flavor }}'."
+          elif [ "${{ steps.slack-chan.outcome }}" = "failure" ]; then
+            NAME="Resolve Slack channel from flavor"
+            HINT="Channel-name resolution failed."
+          elif [ "${{ steps.install-doppler.outcome }}" = "failure" ]; then
+            NAME="Install Doppler CLI"
+            HINT="dopplerhq/cli-action@v3 failed; transient action infra or Doppler outage."
+          elif [ "${{ steps.decide.outcome }}" = "failure" ]; then
+            NAME="Decide whether to deploy"
+            HINT="App Store Connect API query failed; check ASC status, JWT expiry / clock drift, or Doppler env mapping for APP_STORE_CONNECT_API_KEY_MGR_*."
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "hint=$HINT" >> "$GITHUB_OUTPUT"
+          echo "Failed gate step: $NAME"
+          echo "Hint: $HINT"
+
+      - name: Notify Slack on gate failure
+        if: failure()
+        uses: slackapi/slack-github-action@v3.0.3
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          errors: true
+          payload: |
+            channel: "#devops"
+            text: ":warning: *iOS: version-bump gate failed*\n\n*Failed step:* ${{ steps.gate-failed-step.outputs.name }}\n*Hint:* ${{ steps.gate-failed-step.outputs.hint }}\n*Flavor:* ${{ steps.inputs.outputs.flavor || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+
+  build:
+    name: Build & deploy
+    needs: gate
+    if: needs.gate.outputs.should_deploy == 'true'
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Load pinned versions
+        run: |
+          grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
+
       - name: Compute short SHA
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Ruby
+        id: setup-ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
@@ -95,12 +379,14 @@ jobs:
           working-directory: apps/daily-diary/clinical_diary/ios
 
       - name: Set up Flutter
+        id: setup-flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
       - name: Cache pub dependencies
+        id: cache-pub
         uses: actions/cache@v5
         with:
           path: ~/.pub-cache
@@ -108,10 +394,12 @@ jobs:
           restore-keys: pub-${{ runner.os }}-
 
       - name: Install Flutter dependencies
+        id: pub-get
         working-directory: apps/daily-diary/clinical_diary
         run: flutter pub get
 
       - name: Cache CocoaPods
+        id: cache-pods
         uses: actions/cache@v5
         with:
           path: apps/daily-diary/clinical_diary/ios/Pods
@@ -119,34 +407,32 @@ jobs:
           restore-keys: pods-${{ runner.os }}-
 
       - name: Install CocoaPods dependencies
+        id: pod-install
         working-directory: apps/daily-diary/clinical_diary/ios
         run: bundle exec pod install
 
       - name: Run Flutter analyze
+        id: analyze
         working-directory: apps/daily-diary/clinical_diary
         run: flutter analyze
 
       - name: Run Flutter tests
+        id: test
         working-directory: apps/daily-diary/clinical_diary
         run: flutter test
 
-      - name: Extract version from pubspec.yaml
-        id: version
-        run: |
-          VERSION=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | awk '{print $2}')
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "App version: $VERSION"
-
       - name: Install Doppler CLI
+        id: install-doppler
         uses: dopplerhq/cli-action@v3
 
-      - name: Build iOS ${{ steps.inputs.outputs.flavor }} with Fastlane
+      - name: Build iOS ${{ needs.gate.outputs.flavor }} with Fastlane
+        id: build-ios
         working-directory: apps/daily-diary/clinical_diary/ios
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
           DOPPLER_PROJECT: ${{ secrets.DOPPLER_PROJECT }}
-          FLAVOR: ${{ steps.inputs.outputs.flavor }}
-          DEPLOYMENT_TARGET: ${{ steps.inputs.outputs.deployment }}
+          FLAVOR: ${{ needs.gate.outputs.flavor }}
+          DEPLOYMENT_TARGET: ${{ needs.gate.outputs.deployment }}
           RELEASE_NOTES: ${{ inputs.release_notes }}
         run: |
           doppler run \
@@ -155,17 +441,18 @@ jobs:
             -- bundle exec fastlane "build_${FLAVOR}"
 
       - name: Upload IPA artifact
+        id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
-          name: clinical-diary-${{ steps.inputs.outputs.flavor }}-${{ steps.version.outputs.version }}-${{ steps.sha.outputs.short }}.ipa
-          path: apps/daily-diary/clinical_diary/build/ios/ipa/clinical-diary-${{ steps.inputs.outputs.flavor }}.ipa
+          name: clinical-diary-${{ needs.gate.outputs.flavor }}-${{ needs.gate.outputs.version }}-${{ steps.sha.outputs.short }}.ipa
+          path: apps/daily-diary/clinical_diary/build/ios/ipa/clinical-diary-${{ needs.gate.outputs.flavor }}.ipa
           retention-days: 90
 
       - name: Build summary
         env:
-          FLAVOR: ${{ steps.inputs.outputs.flavor }}
-          DEPLOYMENT: ${{ steps.inputs.outputs.deployment }}
-          VERSION: ${{ steps.version.outputs.version }}
+          FLAVOR: ${{ needs.gate.outputs.flavor }}
+          DEPLOYMENT: ${{ needs.gate.outputs.deployment }}
+          VERSION: ${{ needs.gate.outputs.version }}
           SHORT_SHA: ${{ steps.sha.outputs.short }}
           ACTOR: ${{ github.actor }}
           RELEASE_NOTES: ${{ inputs.release_notes }}
@@ -190,24 +477,6 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Resolve Slack channel from flavor
-        id: slack-chan
-        env:
-          FLAVOR: ${{ steps.inputs.outputs.flavor }}
-        run: |
-          # Per-flavor routing — mirrors callisto's .github/slack-channels.yml
-          # (deploy-success: dev->#dev, qa->#qa, uat->#devops). Channel
-          # names are not secrets; hardcoded here for simplicity until/
-          # unless a slack-channels.yml lands in this repo too.
-          case "$FLAVOR" in
-            dev)  CHANNEL="#dev" ;;
-            qa)   CHANNEL="#qa" ;;
-            uat)  CHANNEL="#devops" ;;
-            *)    CHANNEL="#devops" ;;
-          esac
-          echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
-          echo "Slack channel for flavor '$FLAVOR': $CHANNEL"
-
       - name: Notify Slack on success
         if: success()
         uses: slackapi/slack-github-action@v3.0.3
@@ -216,8 +485,60 @@ jobs:
           token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
           errors: true
           payload: |
-            channel: "${{ steps.slack-chan.outputs.channel }}"
-            text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor }}\n*Deployment:* ${{ steps.inputs.outputs.deployment }}\n*Version:* ${{ steps.version.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            channel: "${{ needs.gate.outputs.slack_channel }}"
+            text: ":iphone: *iOS Build Deployed*\n\n*Flavor:* ${{ needs.gate.outputs.flavor }}\n*Deployment:* ${{ needs.gate.outputs.deployment }}\n*Version:* ${{ needs.gate.outputs.version }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+
+      # CUR-1370: identify which step failed so the failure DM can name it.
+      # iOS's Fastlane lane does both the build and the TestFlight/App Store
+      # upload, so build-ios failures cover both classes.
+      - name: Identify failed step
+        if: failure()
+        id: failed-step
+        run: |
+          set -u
+          NAME="Unknown build step"
+          HINT="Failure occurred outside the named-step cascade; check the workflow run logs for the red X."
+          if [ "${{ steps.checkout.outcome }}" = "failure" ]; then
+            NAME="Checkout repository"
+            HINT="git checkout failed; likely transient GitHub infra issue."
+          elif [ "${{ steps.setup-ruby.outcome }}" = "failure" ]; then
+            NAME="Set up Ruby"
+            HINT="Ruby ${{ env.RUBY_VERSION }} install or bundler cache failed; check .github/versions.env."
+          elif [ "${{ steps.setup-flutter.outcome }}" = "failure" ]; then
+            NAME="Set up Flutter"
+            HINT="Flutter ${{ env.FLUTTER_VERSION }} install failed; check .github/versions.env."
+          elif [ "${{ steps.cache-pub.outcome }}" = "failure" ]; then
+            NAME="Cache pub dependencies"
+            HINT="actions/cache restore failed; non-fatal in practice, retry the workflow."
+          elif [ "${{ steps.pub-get.outcome }}" = "failure" ]; then
+            NAME="Install Flutter dependencies"
+            HINT="\`flutter pub get\` failed; pub.dev outage or pubspec.lock conflict."
+          elif [ "${{ steps.cache-pods.outcome }}" = "failure" ]; then
+            NAME="Cache CocoaPods"
+            HINT="CocoaPods cache restore failed; non-fatal in practice, retry the workflow."
+          elif [ "${{ steps.pod-install.outcome }}" = "failure" ]; then
+            NAME="Install CocoaPods dependencies"
+            HINT="\`bundle exec pod install\` failed; check Podfile.lock conflict or CDN outage."
+          elif [ "${{ steps.analyze.outcome }}" = "failure" ]; then
+            NAME="Flutter analyze"
+            HINT="Static analysis errors. Run \`flutter analyze\` locally to reproduce."
+          elif [ "${{ steps.test.outcome }}" = "failure" ]; then
+            NAME="Flutter tests"
+            HINT="Unit/widget tests failed. Run \`flutter test\` locally to reproduce."
+          elif [ "${{ steps.install-doppler.outcome }}" = "failure" ]; then
+            NAME="Install Doppler CLI"
+            HINT="dopplerhq/cli-action@v3 failed; transient action infrastructure or Doppler outage."
+          elif [ "${{ steps.build-ios.outcome }}" = "failure" ]; then
+            NAME="Build iOS with Fastlane"
+            HINT="Fastlane lane 'build_${{ needs.gate.outputs.flavor }}' failed. This covers both Xcode build AND TestFlight/App Store upload — check Fastlane log for code-signing issues, build errors, or duplicate-build-number rejection from App Store Connect."
+          elif [ "${{ steps.upload-artifact.outcome }}" = "failure" ]; then
+            NAME="Upload IPA artifact"
+            HINT="GitHub Artifacts upload failed (transient infra issue most likely)."
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "hint=$HINT" >> "$GITHUB_OUTPUT"
+          echo "Failed step: $NAME"
+          echo "Hint: $HINT"
 
       - name: Resolve Slack user for failure DM
         if: failure()
@@ -251,4 +572,4 @@ jobs:
           errors: true
           payload: |
             channel: "${{ steps.slack-user.outputs.channel }}"
-            text: ":x: *iOS Build Failed*\n\n*Flavor:* ${{ steps.inputs.outputs.flavor || 'unknown' }}\n*Version:* ${{ steps.version.outputs.version || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
+            text: ":x: *iOS workflow failed*\n\n*Failed step:* ${{ steps.failed-step.outputs.name }}\n*Hint:* ${{ steps.failed-step.outputs.hint }}\n*Flavor:* ${{ needs.gate.outputs.flavor || 'unknown' }}\n*Version:* ${{ needs.gate.outputs.version || 'unknown' }}\n*Triggered by:* ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow run>"
