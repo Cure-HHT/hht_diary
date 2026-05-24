@@ -155,13 +155,13 @@ class FlavorConfig {
   /// UAT flavor configuration
   static const uat = FlavorValues(
     name: 'uat',
-    apiBase: 'https://diary-server-768644809588.europe-west9.run.app',
+    apiBase: 'https://diary-service-768644809588.europe-west9.run.app',
     environment: 'uat',
     showDevTools: false,
     showResetData: true,
     showBanner: false,
     sponsorBackends: {
-      'CA': 'https://diary-server-768644809588.europe-west9.run.app',
+      'CA': 'https://diary-service-768644809588.europe-west9.run.app',
     },
   );
 
