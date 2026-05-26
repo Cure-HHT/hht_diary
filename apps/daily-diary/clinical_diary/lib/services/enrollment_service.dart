@@ -158,7 +158,6 @@ class EnrollmentService {
       );
 
       debugPrint('Link response status: ${response.statusCode}');
-      debugPrint('Link response body: ${response.body}');
 
       if (response.statusCode == 409) {
         // Server returns two distinct 409 messages — use the body directly
