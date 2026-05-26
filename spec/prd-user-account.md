@@ -147,7 +147,7 @@ This functionality allows *User* access to be updated as roles or responsibiliti
 
 ### Assertions
 
-A. The **System** SHALL allow an **Administrator** to edit any **User Account** other than their own.
+A. The **System** SHALL allow an **Administrator** to edit any **User Account** other than their own, including another **Administrator** account.
 
 B. The **System** SHALL require at least one **Role** for non-**Administrator** users.
 
@@ -161,11 +161,13 @@ F. When an **Administrator** changes a **User Account**'s **Email Address**, the
 
 G. When an **Administrator** initiates an **Email Address** change, the **System** SHALL notify the **User Account** owner at the original **Email Address** that a change has been initiated.
 
+H. The **System** SHALL restrict modification of a **User Account** holding the **Developer Admin** **Role** to requesters who also hold the **Developer Admin** **Role**.
+
 ### Rationale
 
-*User* edits encode three risks the platform contains structurally. First, an *Administrator* editing their own account could escalate privilege or remove their own *Deactivation* safeguard; prohibiting self-edit closes that channel. Second, *Role* or *Site* changes that take effect on the next login leave a window in which a *User* retains stale authorization; enforcing the change immediately collapses that window. Third, an email change is effectively a credential change (the email is the username and the activation channel), so the new address must be verified by the same mechanism used at account creation, and the prior address must be notified so that an unauthorized change initiated against an unattended *Administrator* *Session* is visible to the legitimate account owner.
+*User* edits encode four risks the platform contains structurally. First, an *Administrator* editing their own account could escalate privilege or remove their own *Deactivation* safeguard; prohibiting self-edit closes that channel. Second, *Role* or *Site* changes that take effect on the next login leave a window in which a *User* retains stale authorization; enforcing the change immediately collapses that window. Third, an email change is effectively a credential change (the email is the username and the activation channel), so the new address must be verified by the same mechanism used at account creation, and the prior address must be notified so that an unauthorized change initiated against an unattended *Administrator* *Session* is visible to the legitimate account owner. Fourth, the **Developer Admin** *Role* is the recovery tier of last resort for the deployment — the operator-level *Role* that can re-establish access if every regular **Administrator** locks themselves out — so allowing a regular **Administrator** to revoke or downgrade it would create a denial-of-service vector against the system operator. The regular **Administrator**↔**Administrator** path is explicitly permitted by assertion A; assertion H carves out only the *Developer Admin* tier.
 
-*End* *Edit User Account* | **Hash**: c4d1c981
+*End* *Edit User Account* | **Hash**: 9565897b
 
 ## DIARY-PRD-user-account-deactivate: Deactivate User Account
 
@@ -182,7 +184,7 @@ Deactivation
 
 ### Assertions
 
-A. The System SHALL allow the *Administrator* to deactivate any **User Account** except their own.
+A. The System SHALL allow an **Administrator** to deactivate any **User Account** except their own, including another **Administrator** account. The **System** SHALL restrict *Deactivation* of a **User Account** holding the **Developer Admin** **Role** to requesters who also hold the **Developer Admin** **Role**.
 
 B. The System SHALL terminate all active sessions associated with a **User Account** immediately upon **Deactivation**.
 
@@ -198,7 +200,7 @@ F. When an **Administrator** deactivates a **User Account**, the **System** SHAL
 
 *Deactivation* is the standard off-boarding mechanism for users who should no longer access the system — completion of a study assignment, *Role* change off the study, departure from the *Sponsor* or *Site* organization. Retaining the account record and its full **Audit Trail** is required by *FDA 21 CFR Part 11*: every historical *Action* attributed to that account must remain auditable indefinitely, even after the account is no longer usable. Terminating active sessions immediately is necessary because any *Session* in flight at *Deactivation* time was authenticated under the about-to-be-revoked credentials and must be invalidated to honor the access decision. Prohibiting self-*Deactivation* closes a denial-of-service vector against the *Administrator* workforce (an *Administrator* deactivating themselves and leaving no other active *Administrator* could lock out the deployment). The free-text reason is captured to support audit reviews of why each account was deactivated.
 
-*End* *Deactivate User Account* | **Hash**: 5dc7acf8
+*End* *Deactivate User Account* | **Hash**: 7e1c1907
 
 ## DIARY-PRD-user-account-reactivate: Reactivate User Account
 

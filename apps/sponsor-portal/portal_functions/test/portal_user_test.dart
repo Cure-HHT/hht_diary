@@ -547,12 +547,10 @@ void main() {
         },
       );
 
-      // Carve-out: Administrator can resend activation for a *pending*
-      // Administrator target. The role assignment is unchanged; only the
-      // activation code rotates. Without this carve-out the isTargetAdmin
-      // guard would 403 the resend, breaking REQ-CAL-p00033 for the very
-      // case the Figma mockup illustrates (Jennifer Martinez —
-      // Administrator, Pending).
+      // Implements: DIARY-PRD-user-account-edit/A
+      // A regular Administrator may resend activation for a pending
+      // Administrator target — the role assignment is unchanged and
+      // only the activation code rotates.
       test(
         'Administrator can resend for pending Administrator target (no 403)',
         () async {
@@ -565,95 +563,37 @@ void main() {
         },
       );
 
-      // Mirror security guard: re-inviting a *revoked* admin would
-      // restore access, so peer admins must not be able to do it.
-      // Developer Admin is still required for that path.
+      // Implements: DIARY-PRD-user-account-edit/A
+      // CUR-1121: a regular Administrator may re-invite a revoked
+      // Administrator. Previously this returned 403 because the
+      // isTargetAdmin guard required Developer Admin for any change
+      // restoring access. The guard now applies only to Developer
+      // Admin targets (assertion H), exercised in the separate
+      // Developer-Admin protection tests.
+      test('Administrator can re-invite a revoked Administrator', () async {
+        final result = await callResend(
+          fromStatus: 'revoked',
+          targetRoles: ['Administrator'],
+        );
+        expect(result.response.statusCode, equals(200));
+        expect(result.auditAction, equals('resend_activation'));
+      });
+
+      // Implements: DIARY-PRD-user-account-edit/H
+      // The Developer Admin tier remains protected — only a Developer
+      // Admin may re-invite a revoked Developer Admin.
       test(
-        'Administrator CANNOT re-invite a revoked Administrator (403)',
+        'Administrator CANNOT re-invite a revoked Developer Admin (403)',
         () async {
           final result = await callResend(
             fromStatus: 'revoked',
-            targetRoles: ['Administrator'],
+            targetRoles: ['Developer Admin'],
           );
           expect(result.response.statusCode, equals(403));
           final body = await getResponseJson(result.response);
           expect(body['error'], contains('Developer Admin'));
         },
       );
-    });
-
-    /// Carve-out applies only when the body is *exclusively* a resend.
-    /// A request that mixes regenerate_activation with role/site/status
-    /// changes must still trip the isTargetAdmin guard so an Administrator
-    /// cannot piggyback privilege changes on the resend bypass.
-    group('updatePortalUserHandler — resend bypass scope guard', () {
-      const targetId = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
-      const adminId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-
-      setUp(() {
-        requirePortalAuthOverride = (_) async => PortalUser(
-          id: adminId,
-          email: 'admin@example.com',
-          name: 'Test Admin',
-          roles: ['Administrator'],
-          activeRole: 'Administrator',
-          status: 'active',
-        );
-      });
-
-      tearDown(() {
-        requirePortalAuthOverride = null;
-        databaseQueryOverride = null;
-      });
-
-      Future<Response> callMixed(Map<String, dynamic> body) {
-        databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains(
-            'SELECT id, name, email, status FROM portal_users',
-          )) {
-            return [
-              [targetId, 'Target', 'target@example.com', 'pending'],
-            ];
-          }
-          if (query.contains('FROM portal_user_roles')) {
-            return [
-              [
-                <String>['Administrator'],
-              ],
-            ];
-          }
-          if (query.contains('FROM portal_user_site_access')) {
-            return [
-              [<String>[]],
-            ];
-          }
-          return [];
-        };
-        return updatePortalUserHandler(
-          createPatchRequest(
-            '/api/v1/portal/users/$targetId',
-            body,
-            headers: {'authorization': 'Bearer test'},
-          ),
-          targetId,
-        );
-      }
-
-      test('rejects regenerate_activation + roles update (403)', () async {
-        final response = await callMixed({
-          'regenerate_activation': true,
-          'roles': ['Investigator'],
-        });
-        expect(response.statusCode, equals(403));
-      });
-
-      test('rejects regenerate_activation + name update (403)', () async {
-        final response = await callMixed({
-          'regenerate_activation': true,
-          'name': 'Hijacked Name',
-        });
-        expect(response.statusCode, equals(403));
-      });
     });
   });
 

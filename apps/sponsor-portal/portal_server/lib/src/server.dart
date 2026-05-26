@@ -9,6 +9,7 @@
 import 'dart:io';
 
 import 'package:otel_common/otel_common.dart';
+import 'package:portal_functions/portal_functions.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
@@ -20,6 +21,12 @@ Future<HttpServer> createServer({required int port}) async {
       .addMiddleware(logRequests())
       .addMiddleware(otelMiddleware())
       .addMiddleware(_corsMiddleware())
+      // Implements: DIARY-PRD-session-management/H
+      // Wraps every request in a zone so requirePortalAuth can mark
+      // session-revocation rejections; the middleware then rewrites
+      // any 403 body with the structured `session_revoked` code that
+      // the SPA's ApiClient watches for to trigger a clean sign-out.
+      .addMiddleware(withSessionRevokedTracking())
       .addHandler(createRouter().call);
 
   return shelf_io.serve(handler, InternetAddress.anyIPv4, port);
