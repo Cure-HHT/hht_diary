@@ -189,5 +189,48 @@ void main() {
       // The color should have red component from the custom color
       expect((capturedColor!.r * 255).round(), greaterThan(0));
     });
+
+    testWidgets('CUR-554: re-flashes on subsequent flash:true transitions', (
+      tester,
+    ) async {
+      var completionCount = 0;
+      Color? capturedColor;
+
+      Widget buildWidget({required bool flash}) => wrapWithScaffold(
+        FlashHighlight(
+          flash: flash,
+          enabled: true,
+          onFlashComplete: () => completionCount++,
+          builder: (context, color) {
+            capturedColor = color;
+            return Container();
+          },
+        ),
+      );
+
+      // First cycle: flash:true triggers the two-pulse animation.
+      await tester.pumpWidget(buildWidget(flash: true));
+      await tester.pumpAndSettle(const Duration(seconds: 2));
+      expect(completionCount, 1, reason: 'first flash should complete');
+
+      // Caller acknowledges by clearing flash back to false (mirrors
+      // home_screen's `onFlashComplete: _flashRecordId = null` flow).
+      await tester.pumpWidget(buildWidget(flash: false));
+      await tester.pumpAndSettle();
+      capturedColor = null;
+
+      // Second cycle: flash:true again. Pre-fix the latch (_hasFlashed=true,
+      // _flashCount=2) made this a no-op.
+      await tester.pumpWidget(buildWidget(flash: true));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(
+        capturedColor,
+        isNotNull,
+        reason: 'second flash should animate color',
+      );
+
+      await tester.pumpAndSettle(const Duration(seconds: 2));
+      expect(completionCount, 2, reason: 'second flash should complete');
+    });
   });
 }
