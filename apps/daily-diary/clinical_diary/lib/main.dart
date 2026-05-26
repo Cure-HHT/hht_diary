@@ -85,11 +85,30 @@ void main() async {
       // Initialize IANA timezone database for DST-aware time calculations
       TimezoneConverter.ensureInitialized();
 
+      // CUR-1278: on Android the google-services Gradle plugin's
+      // FirebaseInitProvider (a ContentProvider) auto-initializes the
+      // [DEFAULT] app from google-services.json before Dart's main()
+      // runs; on iOS the same happens via FirebaseApp.configure() in
+      // AppDelegate. The Dart-side `Firebase.apps` list is NOT eagerly
+      // populated from that native registry — it stays empty until the
+      // first `Firebase.initializeApp()` call, which then trips the
+      // native "already exists" check and surfaces as `duplicate-app`.
+      // So we can't pre-check `Firebase.apps.isEmpty`; instead we
+      // attempt the init and treat `duplicate-app` as success. The
+      // FlutterFire CLI generates both google-services.json and
+      // firebase_options.dart together, so the options are identical
+      // either way.
       try {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
-        debugPrint('Firebase initialized successfully');
+        debugPrint('Firebase initialized from Dart');
+      } on FirebaseException catch (e) {
+        if (e.code == 'duplicate-app') {
+          debugPrint('Firebase already initialized by native side');
+        } else {
+          debugPrint('Firebase initialization error: $e');
+        }
       } catch (e, stack) {
         debugPrint('Firebase initialization error: $e');
         debugPrint('Stack trace:\n$stack');
