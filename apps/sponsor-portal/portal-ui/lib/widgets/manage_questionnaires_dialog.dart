@@ -6,6 +6,8 @@
 // Dialog for managing questionnaire status and actions for a patient.
 // Shows Nose HHT and QoL as cards with status chips and contextual actions.
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:trial_data_types/trial_data_types.dart';
@@ -95,6 +97,31 @@ class ManageQuestionnairesDialog extends StatefulWidget {
         apiClient: apiClient,
       ),
     );
+  }
+
+  // Force MaterialIcons font to fetch before the first paint of the dialog's
+  // icons. In release web builds Flutter tree-shakes MaterialIcons-Regular.otf
+  // and loads it lazily, so delete/document icons render blank for ~1s on
+  // first open. Laying out a TextPainter with each icon's codepoint triggers
+  // the font fetch immediately so it's in cache by the time build() paints.
+  static void precacheIconFont() {
+    const icons = <IconData>[
+      Icons.delete_outline,
+      Icons.description,
+      Icons.description_outlined,
+    ];
+    for (final icon in icons) {
+      TextPainter(
+        text: TextSpan(
+          text: String.fromCharCode(icon.codePoint),
+          style: TextStyle(
+            fontFamily: icon.fontFamily,
+            package: icon.fontPackage,
+          ),
+        ),
+        textDirection: ui.TextDirection.ltr,
+      ).layout();
+    }
   }
 
   @override

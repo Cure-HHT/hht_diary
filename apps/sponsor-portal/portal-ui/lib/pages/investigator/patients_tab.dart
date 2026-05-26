@@ -156,6 +156,10 @@ class _StudyCoordinatorPatientsTabState
   void initState() {
     super.initState();
     _loadPatients();
+    // Warm the MaterialIcons font cache so the dialog's icons render
+    // immediately when the user opens it (web release builds load this
+    // font lazily).
+    ManageQuestionnairesDialog.precacheIconFont();
   }
 
   @override
