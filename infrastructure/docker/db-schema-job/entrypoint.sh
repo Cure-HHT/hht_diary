@@ -107,7 +107,7 @@ reset_database() {
     # reset uses a versioned, auditable artifact instead of a mutable bucket
     # object. Fall back to gsutil only when the baked file is absent (e.g.
     # older images that pre-date this change).
-    # Implements: DIARY-OPS-db-reset-non-prod/C
+    # Implements: DIARY-OPS-baseline-generated/B
     local baked_baseline="/app/baseline/init-consolidated.sql"
     if [[ -f "${baked_baseline}" ]]; then
         log_info "Using baked-in baseline from image: ${baked_baseline}"
