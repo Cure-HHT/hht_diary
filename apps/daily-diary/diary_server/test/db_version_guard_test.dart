@@ -43,14 +43,13 @@ void main() {
 
     test('normal route returns 503 when schema is stale', () async {
       setSchemaStaleForTesting(stale: true);
-      final port = 39080 + DateTime.now().millisecond % 1000;
-      server = await createServer(port: port);
+      server = await createServer(port: 0);
 
       final client = HttpClient();
       try {
         final request = await client.get(
           'localhost',
-          port,
+          server!.port,
           '/api/v1/sponsor/config',
         );
         final response = await request.close();
@@ -68,12 +67,11 @@ void main() {
 
     test('/health returns 200 even when schema is stale', () async {
       setSchemaStaleForTesting(stale: true);
-      final port = 39080 + DateTime.now().millisecond % 1000;
-      server = await createServer(port: port);
+      server = await createServer(port: 0);
 
       final client = HttpClient();
       try {
-        final request = await client.get('localhost', port, '/health');
+        final request = await client.get('localhost', server!.port, '/health');
         final response = await request.close();
         expect(response.statusCode, equals(200));
       } finally {
@@ -83,12 +81,11 @@ void main() {
 
     test('normal route passes through when schema is not stale', () async {
       // stale flag stays false (setUp called resetDbVersionCheckState)
-      final port = 39080 + DateTime.now().millisecond % 1000;
-      server = await createServer(port: port);
+      server = await createServer(port: 0);
 
       final client = HttpClient();
       try {
-        final request = await client.get('localhost', port, '/health');
+        final request = await client.get('localhost', server!.port, '/health');
         final response = await request.close();
         // /health should return 200, not 503
         expect(response.statusCode, equals(200));
@@ -98,15 +95,14 @@ void main() {
     });
 
     test('non-health route passes through when schema is not stale', () async {
-      final port = 39080 + DateTime.now().millisecond % 1000;
-      server = await createServer(port: port);
+      server = await createServer(port: 0);
 
       final client = HttpClient();
       try {
         // /api/v1/sponsor/config without sponsorId → 400, not 503
         final request = await client.get(
           'localhost',
-          port,
+          server!.port,
           '/api/v1/sponsor/config',
         );
         final response = await request.close();
