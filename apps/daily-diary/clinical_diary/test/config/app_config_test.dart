@@ -2,6 +2,7 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -214,55 +215,86 @@ void main() {
 
   group('AppConfig', () {
     setUp(() {
-      // Ensure flavor is set for tests
-      F.appFlavor = Flavor.dev;
+      // Reset to dev profile for each test
+      EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
+    });
+
+    tearDown(() {
+      EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
+      AppConfig.testApiBaseOverride = null;
     });
 
     group('environment', () {
-      test('environment returns current flavor', () {
-        F.appFlavor = Flavor.dev;
-        expect(AppConfig.environment, Flavor.dev);
+      test('environment returns current AppEnv', () {
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
+        expect(AppConfig.environment, AppEnv.dev);
 
-        F.appFlavor = Flavor.prod;
-        expect(AppConfig.environment, Flavor.prod);
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.prod);
+        expect(AppConfig.environment, AppEnv.prod);
       });
 
-      test('showDevTools delegates to F.showDevTools', () {
-        F.appFlavor = Flavor.dev;
+      test('showDevTools delegates to EnvProfile.current', () {
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
         expect(AppConfig.showDevTools, true);
 
-        F.appFlavor = Flavor.prod;
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.prod);
         expect(AppConfig.showDevTools, false);
       });
 
-      test('showBanner delegates to F.showBanner', () {
-        F.appFlavor = Flavor.dev;
+      test('showBanner delegates to EnvProfile.current', () {
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
         expect(AppConfig.showBanner, true);
 
-        F.appFlavor = Flavor.prod;
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.prod);
         expect(AppConfig.showBanner, false);
       });
 
-      test('showResetData mirrors F.showResetData for each flavor', () {
-        for (final flavor in Flavor.values) {
-          F.appFlavor = flavor;
+      test('showResetData mirrors EnvProfile for each AppEnv', () {
+        for (final env in AppEnv.values) {
+          EnvProfile.current = EnvProfile.forEnv(env);
           expect(
             AppConfig.showResetData,
-            F.showResetData,
+            EnvProfile.current.showResetData,
             reason:
-                'AppConfig.showResetData must equal F.showResetData for $flavor',
+                'AppConfig.showResetData must equal EnvProfile.showResetData for $env',
           );
         }
       });
 
       test('showResetData is true for uat', () {
-        F.appFlavor = Flavor.uat;
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.uat);
         expect(AppConfig.showResetData, true);
       });
 
       test('showResetData is false for prod', () {
-        F.appFlavor = Flavor.prod;
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.prod);
         expect(AppConfig.showResetData, false);
+      });
+    });
+
+    group('EnvProfile delegation', () {
+      test('apiBase follows the active EnvProfile', () {
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.qa);
+        expect(
+          AppConfig.apiBase,
+          'https://diary-service-421945483876.europe-west9.run.app',
+        );
+      });
+
+      test(
+        'showBanner/showDevTools/showResetData follow the active EnvProfile',
+        () {
+          EnvProfile.current = EnvProfile.forEnv(AppEnv.prod);
+          expect(AppConfig.showBanner, isFalse);
+          expect(AppConfig.showDevTools, isFalse);
+          expect(AppConfig.showResetData, isFalse);
+        },
+      );
+
+      test('testApiBaseOverride still wins over the profile', () {
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.prod);
+        AppConfig.testApiBaseOverride = 'http://test.local';
+        expect(AppConfig.apiBase, 'http://test.local');
       });
     });
 
@@ -283,16 +315,12 @@ void main() {
     });
 
     group('API configuration', () {
-      tearDown(() {
+      test('apiBase returns value from EnvProfile when no override', () {
         AppConfig.testApiBaseOverride = null;
-      });
-
-      test('apiBase returns value from FlavorConfig when no override', () {
-        AppConfig.testApiBaseOverride = null;
-        F.appFlavor = Flavor.dev;
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
         expect(AppConfig.apiBase, FlavorConfig.dev.apiBase);
 
-        F.appFlavor = Flavor.prod;
+        EnvProfile.current = EnvProfile.forEnv(AppEnv.prod);
         expect(AppConfig.apiBase, FlavorConfig.prod.apiBase);
       });
 
