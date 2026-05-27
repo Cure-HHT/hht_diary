@@ -73,5 +73,49 @@ void main() {
         isFalse,
       );
     });
+
+    test('a blank general endpoint does not mask a signal-specific one', () {
+      // Regression: the general endpoint being present-but-blank must not
+      // shadow a valid signal-specific endpoint.
+      const env = {
+        'OTEL_EXPORTER_OTLP_ENDPOINT': '',
+        'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT':
+            'http://collector:4318/v1/metrics',
+      };
+      expect(otelExportEnabled(env), isTrue);
+      expect(otelExportEnabled(env, signal: 'metrics'), isTrue);
+    });
+
+    group('per-signal gating', () {
+      test('only the signal whose endpoint is set is enabled', () {
+        const env = {
+          'OTEL_EXPORTER_OTLP_TRACES_ENDPOINT':
+              'http://collector:4318/v1/traces',
+        };
+        expect(otelExportEnabled(env, signal: 'traces'), isTrue);
+        expect(otelExportEnabled(env, signal: 'metrics'), isFalse);
+        expect(otelExportEnabled(env, signal: 'logs'), isFalse);
+        // Any-signal view is true because traces would export.
+        expect(otelExportEnabled(env), isTrue);
+      });
+
+      test('the general endpoint enables every signal', () {
+        const env = {'OTEL_EXPORTER_OTLP_ENDPOINT': 'http://collector:4318'};
+        for (final s in const ['metrics', 'logs', 'traces']) {
+          expect(otelExportEnabled(env, signal: s), isTrue, reason: s);
+        }
+      });
+
+      test('OTEL_SDK_DISABLED force-disables every signal', () {
+        const env = {
+          'OTEL_SDK_DISABLED': 'true',
+          'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT':
+              'http://collector:4318/v1/metrics',
+        };
+        for (final s in const ['metrics', 'logs', 'traces']) {
+          expect(otelExportEnabled(env, signal: s), isFalse, reason: s);
+        }
+      });
+    });
   });
 }
