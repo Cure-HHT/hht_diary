@@ -69,7 +69,7 @@ const _corsHeaders = {
 /// INSIDE the CORS wrapper. The 503 response flows back through
 /// [_corsMiddleware], which appends CORS headers — ensuring browsers can read
 /// the error body without an opaque network failure.
-// Implements: DIARY-OPS-db-schema-version-check/D+E
+// Implements: DIARY-DEV-schema-version-check/C
 Middleware _dbVersionGuardMiddleware() {
   return (Handler innerHandler) {
     return (Request request) async {

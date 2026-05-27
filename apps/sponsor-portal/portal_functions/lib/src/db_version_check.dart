@@ -59,7 +59,7 @@ void setSchemaStaleForTesting({required bool stale}) {
 ///   - logs an ERROR via [logWithTrace].
 ///   - calls [sendAlert] exactly once (subsequent calls are no-ops for the
 ///     alert, but the stale flag and log are set unconditionally).
-// Implements: DIARY-OPS-db-schema-version-check/A+B+C
+// Implements: DIARY-DEV-schema-version-check/A+B+C
 Future<void> checkSchemaVersion({
   required int expectedMinVersion,
   required Future<int> Function() readDbVersion,
@@ -103,7 +103,7 @@ Future<void> checkSchemaVersion({
 /// Runs `SELECT COALESCE(MAX(id), 0) FROM schema_migrations` via the
 /// singleton [Database.instance] using service context (no RLS needed
 /// for this read-only schema query; no user context exists at startup).
-// Implements: DIARY-OPS-db-schema-version-check/A
+// Implements: DIARY-DEV-schema-version-check/A
 Future<int> productionDbVersionReader() async {
   final result = await Database.instance.executeWithContext(
     'SELECT COALESCE(MAX(id), 0) FROM schema_migrations',

@@ -1,4 +1,4 @@
-// Verifies: DIARY-OPS-db-schema-version-check/A+B+C
+// Verifies: DIARY-DEV-schema-version-check/A+B+C
 //
 // Unit tests for checkSchemaVersion — no DB or network required.
 

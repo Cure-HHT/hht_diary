@@ -59,7 +59,7 @@ const _corsHeaders = {
 /// Returns 503 with a JSON body when the DB schema version is behind.
 /// Passes `/health` through unconditionally so Cloud Run readiness probes
 /// can report the problem rather than hiding it behind the old revision.
-// Implements: DIARY-OPS-db-schema-version-check/D+E
+// Implements: DIARY-DEV-schema-version-check/C
 Middleware _dbVersionGuardMiddleware() {
   return (Handler innerHandler) {
     return (Request request) async {

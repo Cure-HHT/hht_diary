@@ -1,4 +1,4 @@
-// Verifies: DIARY-OPS-db-schema-version-check/D+E
+// Verifies: DIARY-DEV-schema-version-check/C
 //
 // Unit tests for the _dbVersionGuardMiddleware.
 // Uses setSchemaStaleForTesting to control process-global state without a DB.

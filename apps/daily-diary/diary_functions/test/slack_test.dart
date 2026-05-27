@@ -1,4 +1,4 @@
-// Verifies: DIARY-OPS-db-schema-version-check/C (Slack notifier contract)
+// Verifies: DIARY-DEV-schema-version-check/C (Slack notifier contract)
 //
 // Unit tests for the diary slack notifier using MockClient — no network required.
 
