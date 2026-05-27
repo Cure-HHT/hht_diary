@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 
+import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
@@ -45,24 +46,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 import 'package:uuid/uuid.dart';
 
-/// Flavor name from build configuration.
-/// APP_FLAVOR (--dart-define) takes priority over FLUTTER_APP_FLAVOR (--flavor).
-/// This allows local dev to use --dart-define=APP_FLAVOR=local while keeping
-/// --flavor dev for the Android build (which has no 'local' product flavor).
-const String appFlavor = String.fromEnvironment('APP_FLAVOR') != ''
-    ? String.fromEnvironment('APP_FLAVOR')
-    : String.fromEnvironment('FLUTTER_APP_FLAVOR');
-
 /// SharedPreferences key for the persisted device install UUID.
 const _kDeviceIdPrefsKey = 'clinical_diary.device_id';
 
 void main() async {
-  // Initialize flavor from native platform configuration
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Implements: DIARY-DEV-runtime-environment-resolution/A+B
+  EnvProfile.current = await EnvProfile.load();
+  debugPrint('Running with environment: ${EnvProfile.current.name}');
+
+  // Compatibility bridge: some modules still read the legacy `F` flavor
+  // accessor (settings_screen, enrollment_service). Keep it in sync with the
+  // resolved EnvProfile until those readers are migrated (CUR-1389 Task 10),
+  // because `F.appFlavor` throws if never set.
   F.appFlavor = Flavor.values.firstWhere(
-    (f) => f.name == appFlavor,
-    orElse: () => Flavor.dev, // Default to dev if not specified
+    (f) => f.name == EnvProfile.current.name,
+    orElse: () => Flavor.dev,
   );
-  debugPrint('Running with flavor: ${F.name}');
+
   // Catch all errors in the Flutter framework
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
@@ -179,10 +181,10 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
   Widget build(BuildContext context) {
     // Wrap with EnvironmentBanner to show DEV/QA ribbon in non-production builds
     return EnvironmentBanner(
-      show: F.showBanner,
-      flavorName: F.name,
+      show: EnvProfile.current.showBanner,
+      flavorName: EnvProfile.current.name,
       child: MaterialApp(
-        title: F.title,
+        title: EnvProfile.current.title,
         // Show Flutter debug banner in debug mode (top-right corner)
         // Environment ribbon (DEV/QA) shows in top-left corner
         debugShowCheckedModeBanner: kDebugMode,
@@ -426,7 +428,7 @@ class _AppRootState extends State<AppRoot> {
       // on Flavor.local + !kIsWeb (shelf needs dart:io). Failure to bind
       // is logged and swallowed so a port collision does not block app
       // bring-up.
-      if (F.appFlavor == Flavor.local && !kIsWeb) {
+      if (EnvProfile.current.env == AppEnv.local && !kIsWeb) {
         try {
           final bridge = DebugBridge(
             runtime: runtime,
