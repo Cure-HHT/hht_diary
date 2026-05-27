@@ -1,6 +1,46 @@
 // test/config/env_profile_test.dart
 import 'package:clinical_diary/config/env_profile.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FakeBundle extends CachingAssetBundle {
+  _FakeBundle(this._contents);
+  final String? _contents;
+
+  @override
+  Future<ByteData> load(String key) async {
+    if (_contents == null) {
+      throw FlutterError('asset not found: $key');
+    }
+    final bytes = Uint8List.fromList(_contents.codeUnits);
+    return ByteData.view(bytes.buffer);
+  }
+}
+
+void _loadTests() {
+  group('EnvProfile.load', () {
+    test('reads the env name from the asset', () async {
+      final p = await EnvProfile.load(bundle: _FakeBundle('{"env":"qa"}'));
+      expect(p.env, AppEnv.qa);
+    });
+
+    test('defaults to dev when the asset is missing', () async {
+      final p = await EnvProfile.load(bundle: _FakeBundle(null));
+      expect(p.env, AppEnv.dev);
+    });
+
+    test('defaults to dev when the env name is unknown', () async {
+      final p = await EnvProfile.load(bundle: _FakeBundle('{"env":"staging"}'));
+      expect(p.env, AppEnv.dev);
+    });
+
+    test('defaults to dev when the asset is malformed', () async {
+      final p = await EnvProfile.load(bundle: _FakeBundle('not json'));
+      expect(p.env, AppEnv.dev);
+    });
+  });
+}
 
 void main() {
   group('EnvProfile registry', () {
@@ -44,4 +84,5 @@ void main() {
       );
     });
   });
+  _loadTests();
 }
