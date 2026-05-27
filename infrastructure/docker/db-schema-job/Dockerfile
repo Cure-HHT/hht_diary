@@ -41,9 +41,9 @@ RUN groupadd --gid 1001 appuser \
 WORKDIR /app
 
 # Copy scripts and package manifest
-COPY entrypoint.sh /app/entrypoint.sh
+COPY infrastructure/docker/db-schema-job/entrypoint.sh /app/entrypoint.sh
 COPY apps/sponsor-portal/tool/seed_identity_users.js /app/seed_identity_users.js
-COPY package.json /app/package.json
+COPY infrastructure/docker/db-schema-job/package.json /app/package.json
 
 # Migration files consumed by MODE=migrate (baked in, versioned with the image).
 COPY database/migrations/ /app/migrations/
