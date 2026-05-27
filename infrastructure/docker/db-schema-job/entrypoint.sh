@@ -79,12 +79,22 @@ fi
 # Optional settings
 SKIP_IF_TABLES_EXIST="${SKIP_IF_TABLES_EXIST:-true}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
+# migrate (default): apply pending migrations/NNN to the live DB.
+# reset: drop + reapply the consolidated baseline + seed (manual, never prod).
+MODE="${MODE:-migrate}"
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-/app/migrations}"
 
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 
-main() {
+reset_database() {
+    if [[ "${ENVIRONMENT}" == "prod" ]]; then
+        log_error "MODE=reset is not permitted on prod (drop + reapply destroys data)."
+        log_error "Prod schema changes go through MODE=migrate only."
+        exit 10
+    fi
+    log_info "MODE=reset: drop + reapply consolidated baseline (${ENVIRONMENT})"
     log_info "Starting database schema deployment"
     log_info "Sponsor: ${SPONSOR}, Environment: ${ENVIRONMENT}"
     log_info "Database: ${DB_NAME} on ${DB_HOST}:${DB_PORT}"
@@ -309,6 +319,9 @@ EOF
         log_info "RESET_IDS not set - skipping Identity Platform reset"
     fi
 
+    log_info "Stamping all present migrations as applied (post-reset)..."
+    stamp_all_present
+
     # Log completion
     log_info "=========================================="
     log_info "Database schema deployment COMPLETE"
@@ -321,5 +334,69 @@ EOF
     exit 0
 }
 
-# Run main function
-main "$@"
+# List migration files in MIGRATIONS_DIR, sorted by numeric id. Echoes "<id> <path>".
+list_migrations() {
+    local f base num
+    for f in "${MIGRATIONS_DIR}"/[0-9]*.sql; do
+        [[ -e "$f" ]] || continue
+        base=$(basename "$f")
+        num=$(echo "$base" | grep -oE '^[0-9]+' | sed 's/^0*//')
+        echo "${num:-0} ${f}"
+    done | sort -n
+}
+
+# Stamp every present migration as applied WITHOUT running it (used after a reset,
+# where the consolidated baseline already contains all of them).
+stamp_all_present() {
+    local num path base
+    while read -r num path; do
+        base=$(basename "$path")
+        psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 \
+            -c "INSERT INTO schema_migrations (id, name) VALUES (${num}, '${base}')
+                ON CONFLICT (id) DO NOTHING;"
+    done < <(list_migrations)
+}
+
+migrate_database() {
+    export PGDATABASE="${DB_NAME}" PGUSER="${DB_USER}" PGPASSWORD="${DB_PASSWORD}"
+    log_info "MODE=migrate: applying pending migrations (${ENVIRONMENT})"
+
+    if [[ "$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+            "SELECT pg_try_advisory_lock(827641)")" != "t" ]]; then
+        log_error "Another migrate job holds the advisory lock; aborting."
+        exit 12
+    fi
+
+    local applied_max
+    applied_max=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+        "SELECT COALESCE(MAX(id), 0) FROM schema_migrations")
+    log_info "Current schema version: ${applied_max}"
+
+    local num path base applied=0
+    while read -r num path; do
+        [[ "${num}" -le "${applied_max}" ]] && continue
+        base=$(basename "$path")
+        log_info "Applying migration ${num}: ${base}"
+        if ! psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 -f "${path}"; then
+            log_error "Migration ${num} (${base}) failed."
+            exit 3
+        fi
+        psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 \
+            -c "INSERT INTO schema_migrations (id, name) VALUES (${num}, '${base}')
+                ON CONFLICT (id) DO NOTHING;"
+        applied=$((applied + 1))
+    done < <(list_migrations)
+
+    log_info "MODE=migrate complete: ${applied} migration(s) applied; version now $(
+        psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc "SELECT COALESCE(MAX(id),0) FROM schema_migrations")"
+    exit 0
+}
+
+# Only dispatch when executed directly, not when sourced (tests source this file).
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    case "${MODE}" in
+        migrate) migrate_database "$@" ;;
+        reset)   reset_database "$@" ;;
+        *)       log_error "Unknown MODE='${MODE}' (expected 'migrate' or 'reset')"; exit 11 ;;
+    esac
+fi
