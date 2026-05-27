@@ -17,7 +17,6 @@ import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/firebase_options.dart';
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
@@ -55,15 +54,6 @@ void main() async {
   // Implements: DIARY-DEV-runtime-environment-resolution/A+B
   EnvProfile.current = await EnvProfile.load();
   debugPrint('Running with environment: ${EnvProfile.current.name}');
-
-  // Compatibility bridge: some modules still read the legacy `F` flavor
-  // accessor (settings_screen, enrollment_service). Keep it in sync with the
-  // resolved EnvProfile until those readers are migrated (CUR-1389 Task 10),
-  // because `F.appFlavor` throws if never set.
-  F.appFlavor = Flavor.values.firstWhere(
-    (f) => f.name == EnvProfile.current.name,
-    orElse: () => Flavor.dev,
-  );
 
   // Catch all errors in the Flutter framework
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -425,7 +415,7 @@ class _AppRootState extends State<AppRoot> {
       _onTrialStartedAtChanged();
 
       // Start the local-only HTTP debug bridge. Loopback-bound and gated
-      // on Flavor.local + !kIsWeb (shelf needs dart:io). Failure to bind
+      // on AppEnv.local + !kIsWeb (shelf needs dart:io). Failure to bind
       // is logged and swallowed so a port collision does not block app
       // bring-up.
       if (EnvProfile.current.env == AppEnv.local && !kIsWeb) {

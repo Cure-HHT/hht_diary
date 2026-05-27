@@ -1,8 +1,9 @@
 // Local-only HTTP debug surface for the clinical_diary runtime. Listens
 // on 127.0.0.1 (loopback only) so the bridge is unreachable from any
-// other host. Wired into the bootstrap behind a `F.appFlavor ==
-// Flavor.local && !kIsWeb` guard so it never ships in dev/qa/uat/prod
-// and never compiles into a web bundle (shelf needs dart:io).
+// other host. Wired into the bootstrap behind an
+// `EnvProfile.current.env == AppEnv.local && !kIsWeb` guard so it never
+// ships in dev/qa/uat/prod and never compiles into a web bundle (shelf
+// needs dart:io).
 //
 // All endpoints return application/json (UTF-8). Routes:
 //
@@ -40,9 +41,10 @@ class DebugBridge {
          'DebugBridge must only bind to loopback (127.0.0.1).',
        ) {
     // Asserts are stripped in release/profile builds, so back the loopback
-    // invariant with a runtime check too. The Flavor.local + !kIsWeb gate
-    // at the call site is the primary guard, this is defense in depth in
-    // case the class is ever reused outside that gate.
+    // invariant with a runtime check too. The EnvProfile.current.env ==
+    // AppEnv.local + !kIsWeb gate at the call site is the primary guard;
+    // this is defense in depth in case the class is ever reused outside
+    // that gate.
     if (host != '127.0.0.1') {
       throw ArgumentError.value(
         host,

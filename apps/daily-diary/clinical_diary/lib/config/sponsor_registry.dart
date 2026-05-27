@@ -1,17 +1,15 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-//   REQ-p70007: Linking Code Lifecycle Management
-//   REQ-d00078: Linking Code Validation
-//
 // Sponsor registry for mapping linking code prefixes to backend URLs.
 // Each sponsor has a unique 2-letter prefix (e.g., CA for Callisto).
 // The mobile app uses this to determine which diary-server to connect to.
 //
-// Backend URLs are configured in FlavorConfig (lib/flavors.dart).
+// Backend URL for the current deployment is provided by AppConfig.apiBase,
+// which layers DIARY_API_BASE / BACKEND_URL overrides over the resolved
+// EnvProfile. Single-tenant-per-sponsor: each deployment serves one sponsor,
+// so apiBase is that sponsor's backend.
 // TODO: Replace with central config service on cure-hht-admin GCP project
 // so new sponsors can be added without app updates.
 
-import 'package:clinical_diary/flavors.dart';
+import 'package:clinical_diary/config/app_config.dart';
 
 /// Exception thrown when sponsor lookup fails.
 class SponsorRegistryException implements Exception {
@@ -23,7 +21,7 @@ class SponsorRegistryException implements Exception {
 }
 
 /// Sponsor metadata for display purposes.
-/// Backend URLs are in FlavorConfig.sponsorBackends.
+/// The backend URL for the active deployment is provided by AppConfig.apiBase.
 class SponsorInfo {
   const SponsorInfo({required this.id, required this.name});
 
@@ -36,13 +34,13 @@ class SponsorInfo {
 ///
 /// The mobile app uses this to:
 /// 1. Extract the 2-letter prefix from a linking code
-/// 2. Look up the corresponding sponsor's diary-server URL from FlavorConfig
-/// 3. Call the /api/v1/user/link endpoint on that server
+/// 2. Validate the prefix identifies a known sponsor
+/// 3. Route to AppConfig.apiBase (the active deployment's diary-server URL)
 class SponsorRegistry {
   SponsorRegistry._();
 
   /// Sponsor metadata by prefix.
-  /// Backend URLs are in FlavorConfig.sponsorBackends.
+  /// The backend URL is provided by AppConfig.apiBase.
   static const _sponsors = <String, SponsorInfo>{
     'CA': SponsorInfo(id: 'callisto', name: 'Callisto'),
     // Add more sponsors here as they are onboarded:
@@ -91,20 +89,13 @@ class SponsorRegistry {
     return normalized.substring(0, 2);
   }
 
-  /// Compile-time override for backend URL.
-  /// When set (via --dart-define=DIARY_API_BASE=... or BACKEND_URL=...),
-  /// all sponsors route to this server (local dev: one server serves all
-  /// sponsors). DIARY_API_BASE wins; BACKEND_URL kept for back-compat.
-  static const _diaryApiBaseOverride = String.fromEnvironment('DIARY_API_BASE');
-  static const _backendUrlOverride = String.fromEnvironment('BACKEND_URL');
-
-  /// Get the backend URL for a linking code in the given flavor.
-  /// Extracts the prefix and looks up the URL from FlavorConfig.
-  /// Respects DIARY_API_BASE / BACKEND_URL override for local development.
-  static String getBackendUrlForCode(String code, Flavor flavor) {
+  /// Get the backend URL for a linking code.
+  /// Validates the sponsor prefix, then returns the active backend
+  /// (AppConfig.apiBase already layers DIARY_API_BASE / BACKEND_URL
+  /// overrides over the resolved EnvProfile). Single-tenant-per-sponsor:
+  /// each deployment serves one sponsor, so apiBase is that sponsor's backend.
+  static String getBackendUrlForCode(String code) {
     final prefix = extractPrefix(code);
-
-    // Validate sponsor exists
     final sponsor = getByPrefix(prefix);
     if (sponsor == null) {
       throw SponsorRegistryException(
@@ -112,26 +103,7 @@ class SponsorRegistry {
         'Please check your linking code or contact support.',
       );
     }
-
-    // Local dev: all sponsors share one diary server
-    if (_diaryApiBaseOverride.isNotEmpty) {
-      return _diaryApiBaseOverride;
-    }
-    if (_backendUrlOverride.isNotEmpty) {
-      return _backendUrlOverride;
-    }
-
-    // Production: per-sponsor backend from flavor config
-    final flavorConfig = FlavorConfig.byName(flavor.name);
-    final url = flavorConfig.sponsorBackends[prefix];
-    if (url == null) {
-      throw SponsorRegistryException(
-        'No backend URL configured for sponsor ${sponsor.name} '
-        'in ${flavor.name} environment.',
-      );
-    }
-
-    return url;
+    return AppConfig.apiBase;
   }
 
   /// Get all registered sponsor prefixes.
