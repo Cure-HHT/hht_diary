@@ -526,6 +526,7 @@
 - DIARY-PRD-diary-start-day
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
+- DIARY-DEV-runtime-environment-resolution-D
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
 - DIARY-PRD-entry-overlap-resolution-E
@@ -566,6 +567,7 @@
 - DIARY-GUI-administrator-dashboard-F
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
+- DIARY-OPS-single-promotable-artifact:section:1
 - rem:spec/prd-diary-entry-rules.md:1
 - rem:spec/prd-diary-entry-rules.md:3
 - DIARY-PRD-entry-time-restrictions:section:4
@@ -1093,6 +1095,7 @@
 
 - DIARY-PRD-mobile-application
 - DIARY-GUI-mobile-navigation
+- DIARY-OPS-single-promotable-artifact-C
 - DIARY-PRD-mobile-application-A
 - DIARY-PRD-mobile-application-B
 - DIARY-PRD-mobile-application-C
@@ -1970,6 +1973,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-runtime-environment-resolution
 - DIARY-PRD-entry-overlap-resolution
 - DIARY-GUI-entry-overlap-resolution
 - DIARY-PRD-entry-overlap-resolution-E
@@ -1993,6 +1997,7 @@
 - DIARY-PRD-sla-incident-response-times-T
 - DIARY-PRD-sla-customer-notification-L
 - DIARY-PRD-sla-root-cause-analysis-E
+- DIARY-OPS-single-promotable-artifact:section:1
 - rem:spec/prd-diary-entry-rules.md:3
 - DIARY-PRD-entry-overlap-resolution:section:0
 - DIARY-PRD-entry-overlap-resolution:section:7
