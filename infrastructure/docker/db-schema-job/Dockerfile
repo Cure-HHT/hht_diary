@@ -48,6 +48,16 @@ COPY infrastructure/docker/db-schema-job/package.json /app/package.json
 # Migration files consumed by MODE=migrate (baked in, versioned with the image).
 COPY database/migrations/ /app/migrations/
 
+# Bake the consolidated baseline so MODE=reset uses a versioned, in-image
+# baseline instead of a mutable GCS bucket object.
+# consolidate-schema.sh needs only bash (no psql) — bash ships with the
+# google/cloud-sdk:slim Debian base image.
+# Implements: DIARY-OPS-db-reset-non-prod/C
+COPY database/ /app/database-src/
+RUN mkdir -p /app/baseline \
+    && bash /app/database-src/tool/consolidate-schema.sh /app/baseline/init-consolidated.sql \
+    && rm -rf /app/database-src
+
 # Install npm dependencies (firebase-admin for Identity Platform user seeding)
 # hadolint ignore=DL3016
 RUN npm install --production \

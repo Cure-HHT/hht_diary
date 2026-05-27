@@ -102,18 +102,30 @@ reset_database() {
     log_info "Running as: $(gcloud auth list) 2>&1" # --filter=status:ACTIVE --format='value(account)' 2>/dev/null || echo 'unknown')"
 
 
-    # Download schema file from GCS
-    log_info "Downloading schema from ${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}"
-    gsutil cp "${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}" /tmp/${SCHEMA_FILE}
+    # Obtain the consolidated baseline.
+    # Prefer the baked-in baseline (built into the image at build time) so
+    # reset uses a versioned, auditable artifact instead of a mutable bucket
+    # object. Fall back to gsutil only when the baked file is absent (e.g.
+    # older images that pre-date this change).
+    # Implements: DIARY-OPS-db-reset-non-prod/C
+    local baked_baseline="/app/baseline/init-consolidated.sql"
+    if [[ -f "${baked_baseline}" ]]; then
+        log_info "Using baked-in baseline from image: ${baked_baseline}"
+        cp "${baked_baseline}" /tmp/${SCHEMA_FILE}
+    else
+        log_warn "Baked baseline not found — falling back to GCS download (pre-CUR-1320 image)"
+        log_info "Downloading schema from ${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}"
+        gsutil cp "${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}" /tmp/${SCHEMA_FILE}
+    fi
 
     if [[ ! -f /tmp/${SCHEMA_FILE} ]]; then
-        log_error "Failed to download schema file."
+        log_error "Failed to obtain schema file (baked baseline missing and GCS download failed)."
         exit 1
     fi
 
     local schema_size
     schema_size=$(wc -c < /tmp/${SCHEMA_FILE})
-    log_info "Schema file downloaded: ${schema_size} bytes."
+    log_info "Schema file obtained: ${schema_size} bytes."
 
     # Download seed data file from GCS
     log_info "Downloading seed data from ${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SPONSOR_DATA_FILE}"
