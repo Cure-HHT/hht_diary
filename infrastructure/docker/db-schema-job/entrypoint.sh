@@ -88,8 +88,9 @@ MIGRATIONS_DIR="${MIGRATIONS_DIR:-/app/migrations}"
 # Main
 # -----------------------------------------------------------------------------
 
+# Implements: DIARY-OPS-db-reset-non-prod/A+B
 reset_database() {
-    if [[ "${ENVIRONMENT}" == "prod" ]]; then
+    if [[ "${ENVIRONMENT,,}" == "prod" ]]; then
         log_error "MODE=reset is not permitted on prod (drop + reapply destroys data)."
         log_error "Prod schema changes go through MODE=migrate only."
         exit 10
@@ -351,21 +352,26 @@ stamp_all_present() {
     local num path base
     while read -r num path; do
         base=$(basename "$path")
+        # num is digits-only (safe to interpolate). base is passed via -v so
+        # psql performs :'mname' substitution — feed via stdin because psql -c
+        # disables variable interpolation; stdin mode preserves it.
         psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 \
-            -c "INSERT INTO schema_migrations (id, name) VALUES (${num}, '${base}')
-                ON CONFLICT (id) DO NOTHING;"
+            -v mname="${base}" \
+            <<< "INSERT INTO schema_migrations (id, name) VALUES (${num}, :'mname') ON CONFLICT (id) DO NOTHING;"
     done < <(list_migrations)
 }
 
+# Implements: DIARY-OPS-schema-migrate-on-deploy/A+C
 migrate_database() {
     export PGDATABASE="${DB_NAME}" PGUSER="${DB_USER}" PGPASSWORD="${DB_PASSWORD}"
     log_info "MODE=migrate: applying pending migrations (${ENVIRONMENT})"
 
-    if [[ "$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
-            "SELECT pg_try_advisory_lock(827641)")" != "t" ]]; then
-        log_error "Another migrate job holds the advisory lock; aborting."
-        exit 12
-    fi
+    # Concurrency is provided by the deploy workflow's per-env concurrency group
+    # (only one migrate job per environment runs at a time). A DB-level advisory
+    # lock would require single-session execution, which conflicts with applying
+    # CONCURRENTLY-index migrations per-file; not warranted at this phase. If
+    # migrate is ever run OUTSIDE that workflow, the operator must ensure no
+    # concurrent run against the same database.
 
     local applied_max
     applied_max=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
@@ -373,6 +379,10 @@ migrate_database() {
     log_info "Current schema version: ${applied_max}"
 
     local num path base applied=0
+    # NOTE: if the job crashes between applying a migration and stamping it,
+    # the migration re-runs on the next deploy — so migrations MUST be
+    # written to be re-runnable (IF NOT EXISTS / guarded). Migrations that
+    # add named constraints without IF NOT EXISTS are NOT safe to retry.
     while read -r num path; do
         [[ "${num}" -le "${applied_max}" ]] && continue
         base=$(basename "$path")
@@ -381,9 +391,12 @@ migrate_database() {
             log_error "Migration ${num} (${base}) failed."
             exit 3
         fi
+        # num is digits-only (safe to interpolate). base is passed via -v so
+        # psql performs :'mname' substitution — feed via stdin because psql -c
+        # disables variable interpolation; stdin mode preserves it.
         psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 \
-            -c "INSERT INTO schema_migrations (id, name) VALUES (${num}, '${base}')
-                ON CONFLICT (id) DO NOTHING;"
+            -v mname="${base}" \
+            <<< "INSERT INTO schema_migrations (id, name) VALUES (${num}, :'mname') ON CONFLICT (id) DO NOTHING;"
         applied=$((applied + 1))
     done < <(list_migrations)
 
