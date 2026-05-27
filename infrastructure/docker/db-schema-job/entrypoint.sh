@@ -332,8 +332,8 @@ EOF
         log_info "RESET_IDS not set - skipping Identity Platform reset"
     fi
 
-    log_info "Stamping all present migrations as applied (post-reset)..."
-    stamp_all_present
+    log_info "Stamping rev-1 baseline in schema_migrations..."
+    stamp_baseline
 
     # Log completion
     log_info "=========================================="
@@ -358,19 +358,13 @@ list_migrations() {
     done | sort -n
 }
 
-# Stamp every present migration as applied WITHOUT running it (used after a reset,
-# where the consolidated baseline already contains all of them).
-stamp_all_present() {
-    local num path base
-    while read -r num path; do
-        base=$(basename "$path")
-        # num is digits-only (safe to interpolate). base is passed via -v so
-        # psql performs :'mname' substitution — feed via stdin because psql -c
-        # disables variable interpolation; stdin mode preserves it.
-        psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 \
-            -v mname="${base}" \
-            <<< "INSERT INTO schema_migrations (id, name) VALUES (${num}, :'mname') ON CONFLICT (id) DO NOTHING;"
-    done < <(list_migrations)
+# Stamp the rev-1 baseline row in schema_migrations.
+# Called after reset_database() applies the consolidated schema so that
+# migrate_database() knows the baseline is present and only applies 002+ deltas.
+# Implements: DIARY-OPS-db-reset-non-prod/A
+stamp_baseline() {
+    psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 \
+        -c "INSERT INTO schema_migrations (id, name) VALUES (1, 'rev1_baseline') ON CONFLICT (id) DO NOTHING;"
 }
 
 # Implements: DIARY-OPS-schema-migrate-on-deploy/A+C
