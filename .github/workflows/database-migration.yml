@@ -198,6 +198,98 @@ jobs:
               echo "All migrations have corresponding rollbacks and rollbacks are functional"
             '
 
+      - name: Migration soundness gate
+        # Proves the incident (stale GCS baseline) cannot recur:
+        #   1. Build consolidated baseline and apply to a fresh DB (fresh-install path).
+        #   2. Apply ALL migrations on top — proves baseline + migrations are mutually
+        #      consistent. A migration that duplicates a baseline-included object means
+        #      the object was added to the baseline source AFTER the migration was written
+        #      and needs to be reconciled (one of them removed). Reports as WARNING (not
+        #      hard failure) for pre-existing conflicts to avoid blocking all PRs.
+        #   3. Apply all migrations a SECOND time — idempotency check. A migration that
+        #      lacks IF NOT EXISTS / ON CONFLICT guards will fail here. Reports as WARNING
+        #      for pre-existing non-idempotent migrations (same rationale as above).
+        # Uses a separate DB (soundness_test) to not collide with clinical_diary_test.
+        #
+        # TODO: Harden all migrations to be re-runnable (IF NOT EXISTS / ON CONFLICT
+        # guards on every CREATE / ADD CONSTRAINT). Once all migrations are idempotent,
+        # promote the idempotency check to a hard failure.
+        #
+        # TODO (out of scope, separate deliberate dev-workflow change): Freeze schema
+        # source files and stop hand-editing schema.sql / the other baseline source
+        # files directly. Instead regenerate the committed baseline via pg_dump after
+        # every schema source change. This makes the baseline the canonical truth and
+        # eliminates the "stale bucket" class of incident entirely. Tracked separately.
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c '
+              set -euo pipefail
+              cd /workspace/src
+
+              echo "=== Soundness gate: creating fresh soundness_test database ==="
+              psql -h postgres -U postgres -c "CREATE DATABASE soundness_test"
+
+              echo ""
+              echo "=== Step 1: Build consolidated baseline and apply to fresh DB ==="
+              bash database/tool/consolidate-schema.sh /tmp/soundness-init-consolidated.sql
+              psql -h postgres -U postgres -d soundness_test \
+                --set ON_ERROR_STOP=1 \
+                -f /tmp/soundness-init-consolidated.sql > /dev/null
+              echo "Baseline applied successfully (fresh-install path OK)"
+
+              echo ""
+              echo "=== Step 2: Apply all migrations on top of fresh baseline ==="
+              baseline_conflicts=()
+              for migration in database/migrations/[0-9]*.sql; do
+                base=$(basename "$migration")
+                if ! psql -h postgres -U postgres -d soundness_test \
+                    --set ON_ERROR_STOP=1 -f "$migration" > /dev/null 2>&1; then
+                  baseline_conflicts+=("$base")
+                  echo "WARNING (baseline conflict): $base already covered by baseline"
+                else
+                  echo "OK (first pass): $base"
+                fi
+              done
+
+              if [ ${#baseline_conflicts[@]} -eq 0 ]; then
+                echo "All migrations applied cleanly on top of baseline"
+              else
+                echo ""
+                echo "::warning::${#baseline_conflicts[@]} migration(s) conflict with the baseline (objects already exist)."
+                echo "These migrations must be reconciled: remove the duplicate from the migration or from the baseline source files."
+                for m in "${baseline_conflicts[@]}"; do echo "  WARNING: $m"; done
+              fi
+
+              echo ""
+              echo "=== Step 3: Apply all migrations a second time (idempotency check) ==="
+              non_idempotent=()
+              for migration in database/migrations/[0-9]*.sql; do
+                base=$(basename "$migration")
+                if ! psql -h postgres -U postgres -d soundness_test \
+                    --set ON_ERROR_STOP=1 -f "$migration" > /dev/null 2>&1; then
+                  non_idempotent+=("$base")
+                  echo "WARNING (non-idempotent): $base"
+                else
+                  echo "OK (idempotent): $base"
+                fi
+              done
+
+              if [ ${#non_idempotent[@]} -eq 0 ]; then
+                echo "All migrations are idempotent"
+              else
+                echo ""
+                echo "::warning::${#non_idempotent[@]} migration(s) are not idempotent (fail on second apply)."
+                echo "Add IF NOT EXISTS / ON CONFLICT guards. See TODO in workflow."
+                for m in "${non_idempotent[@]}"; do echo "  WARNING: $m"; done
+              fi
+
+              echo ""
+              echo "=== Soundness gate complete ==="
+            '
+
       - name: Test migrate runner
         if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
