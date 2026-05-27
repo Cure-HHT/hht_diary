@@ -24,5 +24,10 @@ BEGIN
     IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
         GRANT SELECT ON schema_migrations TO authenticated;
     END IF;
+    -- Portal reader runs as service_role; grant explicitly so the read works
+    -- regardless of rls_policies.sql application order.
+    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
+        GRANT SELECT ON schema_migrations TO service_role;
+    END IF;
 END
 $$;
