@@ -80,6 +80,16 @@ jobs:
             ci bash -c "cd /workspace/src && psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/schema.sql"
           echo "Schema deployed successfully"
 
+      - name: Deploy schema migrations tracking table
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
+        run: |
+          echo "Deploying schema migrations tracking table..."
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGPASSWORD=postgres \
+            ci bash -c "cd /workspace/src && psql -h postgres -U postgres -d clinical_diary_test --set ON_ERROR_STOP=1 -f database/schema_migrations.sql"
+          echo "Schema migrations tracking table deployed successfully"
+
       - name: Deploy triggers
         if: steps.check-flag.outputs.validate == 'true'
         working-directory: tools/dev-env
