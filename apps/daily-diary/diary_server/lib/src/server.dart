@@ -6,10 +6,16 @@
 //
 // HTTP server setup using shelf
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:diary_functions/diary_functions.dart'
-    show sessionStarted, sessionEnded;
+    show
+        sessionStarted,
+        sessionEnded,
+        isSchemaStale,
+        foundDbVersion,
+        expectedMinDbVersion;
 import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -21,6 +27,7 @@ Future<HttpServer> createServer({required int port}) async {
   final handler = const Pipeline()
       .addMiddleware(logRequests())
       .addMiddleware(otelMiddleware())
+      .addMiddleware(_dbVersionGuardMiddleware())
       .addMiddleware(_activeSessionsMiddleware())
       .addMiddleware(_corsMiddleware())
       .addHandler(createRouter().call);
@@ -48,6 +55,29 @@ const _corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Origin, Content-Type, Authorization',
 };
+
+/// Returns 503 with a JSON body when the DB schema version is behind.
+/// Passes `/health` through unconditionally so Cloud Run readiness probes
+/// can report the problem rather than hiding it behind the old revision.
+// Implements: DIARY-OPS-db-schema-version-check/D+E
+Middleware _dbVersionGuardMiddleware() {
+  return (Handler innerHandler) {
+    return (Request request) async {
+      if (isSchemaStale && request.url.path != 'health') {
+        return Response(
+          503,
+          body: jsonEncode({
+            'error': 'database schema version behind',
+            'needs': expectedMinDbVersion,
+            'found': foundDbVersion,
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+      return innerHandler(request);
+    };
+  };
+}
 
 // IMPLEMENTS: REQ-o00047
 /// Tracks active concurrent sessions (requests) for the diary server.
