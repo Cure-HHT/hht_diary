@@ -85,4 +85,21 @@ void main() {
     });
   });
   _loadTests();
+  _prodGateTests();
+}
+
+void _prodGateTests() {
+  test('prod disables banner, dev tools, reset, and dangerous affordances', () {
+    final p = EnvProfile.forEnv(AppEnv.prod);
+    expect(
+      [
+        p.showBanner,
+        p.showDevTools,
+        p.showResetData,
+        p.dangerousAffordancesEnabled,
+      ],
+      everyElement(isFalse),
+      reason: 'DIARY-DEV-runtime-environment-resolution/D: prod is hard-off',
+    );
+  });
 }

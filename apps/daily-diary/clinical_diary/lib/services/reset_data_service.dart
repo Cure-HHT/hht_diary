@@ -33,7 +33,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///      app has no firebase_auth dependency, so step 1 is not the
 ///      Firebase signOut the name might suggest).
 ///
-/// Dev/qa/uat only — gated upstream by `F.showResetData`. Not safe to
+/// Dev/qa/uat only — gated upstream by `AppConfig.showResetData`
+/// (EnvProfile-derived; `false` in prod; see
+/// DIARY-DEV-runtime-environment-resolution/D). Not safe to
 /// call while a sync is in flight (Tier 3 of CUR-1315 will add a queue
 /// check). After a successful reset the runtime is unusable; the caller
 /// must navigate to onboarding before any further widget.runtime access
