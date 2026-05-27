@@ -29,6 +29,10 @@ const _trialDataTypesVersion = String.fromEnvironment(
   'TRIAL_DATA_TYPES_VERSION',
   defaultValue: 'unknown',
 );
+const _expectedMinDbVersion = int.fromEnvironment(
+  'EXPECTED_MIN_DB_VERSION',
+  defaultValue: 0,
+);
 
 void main(List<String> args) async {
   // Initialize OpenTelemetry first (before logging, so traces are available)
@@ -98,6 +102,13 @@ void main(List<String> args) async {
   final dbConfig = DatabaseConfig.fromEnvironment();
   await Database.instance.initialize(dbConfig);
   log.info('Database connected to ${dbConfig.host}:${dbConfig.port}');
+
+  // Check that the DB schema version meets the build-time minimum.
+  // Sets the process-global isSchemaStale flag used by _dbVersionGuardMiddleware.
+  await checkSchemaVersion(
+    expectedMinVersion: _expectedMinDbVersion,
+    readDbVersion: productionDbVersionReader,
+  );
 
   // Initialize email service (for activation emails and OTP)
   log.info('Initializing email service...');
