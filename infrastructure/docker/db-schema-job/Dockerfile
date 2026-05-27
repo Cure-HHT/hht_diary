@@ -45,6 +45,9 @@ COPY entrypoint.sh /app/entrypoint.sh
 COPY apps/sponsor-portal/tool/seed_identity_users.js /app/seed_identity_users.js
 COPY package.json /app/package.json
 
+# Migration files consumed by MODE=migrate (baked in, versioned with the image).
+COPY database/migrations/ /app/migrations/
+
 # Install npm dependencies (firebase-admin for Identity Platform user seeding)
 # hadolint ignore=DL3016
 RUN npm install --production \
