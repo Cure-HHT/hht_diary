@@ -37,7 +37,9 @@ storeFile=key.jks
 EOF
 
 echo "Building Clinical Diary for Android (DEV flavor, signed)..."
-flutter build apk --flavor dev --dart-define=APP_FLAVOR=dev
+# Env comes from the committed assets/config/env.json (default dev); no
+# dart-define, so the Dart compilation is environment-independent.
+flutter build apk --flavor dev
 
 echo ""
 echo "Build complete! Signed APK at build/app/outputs/flutter-apk/app-dev-release.apk"
