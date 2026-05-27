@@ -18,6 +18,7 @@ on:
     branches: [main]
     paths:
       - 'database/**'
+      - 'infrastructure/docker/db-schema-job/**'
       - '.github/workflows/database-migration.yml'
       # Toolchain triggers — mirror start-ci-container/action.yml's
       # detection regex. A bump to any of these changes the runtime image
@@ -196,6 +197,14 @@ jobs:
               done
               echo "All migrations have corresponding rollbacks and rollbacks are functional"
             '
+
+      - name: Test migrate runner
+        if: steps.check-flag.outputs.validate == 'true'
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PGHOST=postgres -e PGUSER=postgres -e PGPASSWORD=postgres \
+            ci bash -c 'cd /workspace/src && infrastructure/docker/db-schema-job/test/migrate_test.sh'
 
       - name: Cleanup
         if: always() && steps.check-flag.outputs.validate == 'true'
