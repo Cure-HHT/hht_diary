@@ -67,7 +67,38 @@ Future<void> checkSchemaVersion({
 }) async {
   _expectedMinVersion = expectedMinVersion;
 
-  final found = await readDbVersion();
+  int found;
+  try {
+    found = await readDbVersion();
+  } catch (e) {
+    // DB unreachable or schema_migrations missing (e.g. bootstrap window).
+    // Treat as "schema unknown / behind" so the server serves 503 instead of
+    // crash-looping. Alert fires once so on-call is notified.
+    found = -1;
+    _foundDbVersion = found;
+    _schemaStale = true;
+
+    logWithTrace(
+      'ERROR',
+      'Database schema version check failed — treating schema as behind',
+      labels: {
+        'db_schema_stale': 'true',
+        'db_version_check_error': e.toString(),
+      },
+    );
+
+    if (!_alertSent) {
+      _alertSent = true;
+      final alert = sendAlert ?? notifySlack;
+      await alert(
+        ':warning: [portal-server] DB schema version check FAILED — '
+        'could not read schema_migrations ($e). '
+        'Server is serving 503 until the DB is reachable.',
+      );
+    }
+    return;
+  }
+
   _foundDbVersion = found;
 
   if (found < expectedMinVersion) {

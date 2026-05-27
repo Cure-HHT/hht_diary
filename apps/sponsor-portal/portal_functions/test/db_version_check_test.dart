@@ -110,6 +110,58 @@ void main() {
       expect(isSchemaStale, isFalse);
       expect(alertCount, equals(0));
     });
+
+    test(
+      'reader throws — schema treated as stale and alert sent once',
+      () async {
+        // Verifies: DIARY-DEV-schema-version-check/A+B+C
+        // DB unreachable / schema_migrations missing at bootstrap.
+        // The server must NOT crash; it must set the stale flag and fire the
+        // alert exactly once so on-call is notified.
+        var alertCount = 0;
+        String? capturedMessage;
+
+        await checkSchemaVersion(
+          expectedMinVersion: 10,
+          readDbVersion: () async =>
+              throw Exception('connection refused (test)'),
+          sendAlert: (msg) async {
+            alertCount++;
+            capturedMessage = msg;
+          },
+        );
+
+        expect(
+          isSchemaStale,
+          isTrue,
+          reason: 'stale flag must be set on error',
+        );
+        expect(foundDbVersion, equals(-1), reason: 'sentinel -1 on error');
+        expect(alertCount, equals(1), reason: 'alert must fire exactly once');
+        expect(
+          capturedMessage,
+          contains('FAILED'),
+          reason: 'alert message should indicate failure',
+        );
+      },
+    );
+
+    test('reader throws twice — alert still sent only once', () async {
+      // Verifies: DIARY-DEV-schema-version-check/A+B+C
+      var alertCount = 0;
+
+      Future<void> call() => checkSchemaVersion(
+        expectedMinVersion: 10,
+        readDbVersion: () async => throw Exception('connection refused (test)'),
+        sendAlert: (_) async => alertCount++,
+      );
+
+      await call();
+      await call(); // second call must not re-fire the alert
+
+      expect(alertCount, equals(1));
+      expect(isSchemaStale, isTrue);
+    });
   });
 
   group('setSchemaStaleForTesting', () {
