@@ -79,30 +79,53 @@ fi
 # Optional settings
 SKIP_IF_TABLES_EXIST="${SKIP_IF_TABLES_EXIST:-true}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
+# migrate (default): apply pending migrations/NNN to the live DB.
+# reset: drop + reapply the consolidated baseline + seed (manual, never prod).
+MODE="${MODE:-migrate}"
+MIGRATIONS_DIR="${MIGRATIONS_DIR:-/app/migrations}"
 
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 
-main() {
+# Implements: DIARY-OPS-db-reset-non-prod/A+B
+reset_database() {
+    if [[ "${ENVIRONMENT,,}" == "prod" ]]; then
+        log_error "MODE=reset is not permitted on prod (drop + reapply destroys data)."
+        log_error "Prod schema changes go through MODE=migrate only."
+        exit 10
+    fi
+    log_info "MODE=reset: drop + reapply consolidated baseline (${ENVIRONMENT})"
     log_info "Starting database schema deployment"
     log_info "Sponsor: ${SPONSOR}, Environment: ${ENVIRONMENT}"
     log_info "Database: ${DB_NAME} on ${DB_HOST}:${DB_PORT}"
     log_info "Running as: $(gcloud auth list) 2>&1" # --filter=status:ACTIVE --format='value(account)' 2>/dev/null || echo 'unknown')"
 
 
-    # Download schema file from GCS
-    log_info "Downloading schema from ${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}"
-    gsutil cp "${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}" /tmp/${SCHEMA_FILE}
+    # Obtain the consolidated baseline.
+    # Prefer the baked-in baseline (built into the image at build time) so
+    # reset uses a versioned, auditable artifact instead of a mutable bucket
+    # object. Fall back to gsutil only when the baked file is absent (e.g.
+    # older images that pre-date this change).
+    # Implements: DIARY-OPS-baseline-generated/B
+    local baked_baseline="/app/baseline/init-consolidated.sql"
+    if [[ -f "${baked_baseline}" ]]; then
+        log_info "Using baked-in baseline from image: ${baked_baseline}"
+        cp "${baked_baseline}" /tmp/${SCHEMA_FILE}
+    else
+        log_warn "Baked baseline not found — falling back to GCS download (pre-CUR-1320 image)"
+        log_info "Downloading schema from ${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}"
+        gsutil cp "${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SCHEMA_FILE}" /tmp/${SCHEMA_FILE}
+    fi
 
     if [[ ! -f /tmp/${SCHEMA_FILE} ]]; then
-        log_error "Failed to download schema file."
+        log_error "Failed to obtain schema file (baked baseline missing and GCS download failed)."
         exit 1
     fi
 
     local schema_size
     schema_size=$(wc -c < /tmp/${SCHEMA_FILE})
-    log_info "Schema file downloaded: ${schema_size} bytes."
+    log_info "Schema file obtained: ${schema_size} bytes."
 
     # Download seed data file from GCS
     log_info "Downloading seed data from ${SCHEMA_BUCKET}/${SCHEMA_PREFIX}/${SPONSOR_DATA_FILE}"
@@ -309,6 +332,9 @@ EOF
         log_info "RESET_IDS not set - skipping Identity Platform reset"
     fi
 
+    log_info "Stamping rev-1 baseline in schema_migrations..."
+    stamp_baseline
+
     # Log completion
     log_info "=========================================="
     log_info "Database schema deployment COMPLETE"
@@ -321,5 +347,85 @@ EOF
     exit 0
 }
 
-# Run main function
-main "$@"
+# List migration files in MIGRATIONS_DIR, sorted by numeric id. Echoes "<id> <path>".
+list_migrations() {
+    local f base num
+    for f in "${MIGRATIONS_DIR}"/[0-9]*.sql; do
+        [[ -e "$f" ]] || continue
+        base=$(basename "$f")
+        num=$(echo "$base" | grep -oE '^[0-9]+' | sed 's/^0*//')
+        echo "${num:-0} ${f}"
+    done | sort -n
+}
+
+# Stamp the rev-1 baseline row in schema_migrations.
+# Called after reset_database() applies the consolidated schema so that
+# migrate_database() knows the baseline is present and only applies 002+ deltas.
+# Implements: DIARY-OPS-db-reset-non-prod/A
+stamp_baseline() {
+    psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 \
+        -c "INSERT INTO schema_migrations (id, name) VALUES (1, 'rev1_baseline') ON CONFLICT (id) DO NOTHING;"
+}
+
+# Implements: DIARY-OPS-schema-migrate-on-deploy/A+C
+migrate_database() {
+    export PGDATABASE="${DB_NAME}" PGUSER="${DB_USER}" PGPASSWORD="${DB_PASSWORD}"
+    log_info "MODE=migrate: applying pending migrations (${ENVIRONMENT})"
+
+    # Concurrency is provided by the deploy workflow's per-env concurrency group
+    # (only one migrate job per environment runs at a time). A DB-level advisory
+    # lock would require single-session execution, which conflicts with applying
+    # CONCURRENTLY-index migrations per-file; not warranted at this phase. If
+    # migrate is ever run OUTSIDE that workflow, the operator must ensure no
+    # concurrent run against the same database.
+
+    # Self-bootstrap the tracking table so a database that pre-dates CUR-1320
+    # (no schema_migrations table) does not crash on the first MAX(id) query.
+    # Idempotent; on a baseline-fresh DB the table already exists.
+    psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 -c "
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            id         INTEGER     PRIMARY KEY,
+            name       TEXT        NOT NULL,
+            applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        );"
+
+    local applied_max
+    applied_max=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
+        "SELECT COALESCE(MAX(id), 0) FROM schema_migrations")
+    log_info "Current schema version: ${applied_max}"
+
+    local num path base applied=0
+    # NOTE: if the job crashes between applying a migration and stamping it,
+    # the migration re-runs on the next deploy — so migrations MUST be
+    # written to be re-runnable (IF NOT EXISTS / guarded). Migrations that
+    # add named constraints without IF NOT EXISTS are NOT safe to retry.
+    while read -r num path; do
+        [[ "${num}" -le "${applied_max}" ]] && continue
+        base=$(basename "$path")
+        log_info "Applying migration ${num}: ${base}"
+        if ! psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 -f "${path}"; then
+            log_error "Migration ${num} (${base}) failed."
+            exit 3
+        fi
+        # num is digits-only (safe to interpolate). base is passed via -v so
+        # psql performs :'mname' substitution — feed via stdin because psql -c
+        # disables variable interpolation; stdin mode preserves it.
+        psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 \
+            -v mname="${base}" \
+            <<< "INSERT INTO schema_migrations (id, name) VALUES (${num}, :'mname') ON CONFLICT (id) DO NOTHING;"
+        applied=$((applied + 1))
+    done < <(list_migrations)
+
+    log_info "MODE=migrate complete: ${applied} migration(s) applied; version now $(
+        psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc "SELECT COALESCE(MAX(id),0) FROM schema_migrations")"
+    exit 0
+}
+
+# Only dispatch when executed directly, not when sourced (tests source this file).
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    case "${MODE}" in
+        migrate) migrate_database "$@" ;;
+        reset)   reset_database "$@" ;;
+        *)       log_error "Unknown MODE='${MODE}' (expected 'migrate' or 'reset')"; exit 11 ;;
+    esac
+fi
