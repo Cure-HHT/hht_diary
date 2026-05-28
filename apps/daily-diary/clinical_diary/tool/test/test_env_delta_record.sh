@@ -19,8 +19,12 @@ check "committed record is current" "'$GEN' --check >/dev/null 2>&1"
 tmp="$(mktemp)"
 awk '1; /create\("dev"\)/{print "        versionNameSuffix = \"-x\""}' \
   "$FLAVORIZR" > "$tmp"
-check "undeclared per-flavor key fails generation" \
-  "! CDIARY_FLAVORIZR='$tmp' CDIARY_RECORD=/dev/null '$GEN' >/dev/null 2>&1"
+if ! grep -q 'versionNameSuffix = "-x"' "$tmp"; then
+  echo "FAIL: test fixture not built (could not inject undeclared key)"; fail=$((fail+1));
+else
+  check "undeclared per-flavor key fails generation" \
+    "! CDIARY_FLAVORIZR='$tmp' CDIARY_RECORD=/dev/null '$GEN' >/dev/null 2>&1"
+fi
 rm -f "$tmp"
 
 echo "----"; echo "passed=$pass failed=$fail"

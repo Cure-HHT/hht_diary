@@ -42,6 +42,9 @@ fi
 # --- Allowlist scan: android flavor source sets ------------------------------
 # Allowed override files under src/<flavor>/: google-services.json and
 # launcher icon overrides (res/mipmap-*/ic_launcher.png).
+# The allowlist is intentionally strict: any NEW per-flavor file (e.g. a
+# round-icon variant) must be consciously added here and to the record —
+# that conscious review is the point of the controlled delta (assertion D).
 for env in "${ENVS[@]}"; do
   d="$SRC_DIR/$env"
   [ -d "$d" ] || continue
@@ -56,12 +59,12 @@ done
 # --- Extract per-flavor values -----------------------------------------------
 declare -A APPID APPNAME GSVC IOSID IOSPROFILE ICON
 
-appid_block="$(awk '/^APP_IDENTIFIERS/{p=1} p{print} p&&/}/{exit}' "$FASTFILE")"
-profile_block="$(awk '/^PROFILE_NAMES/{p=1} p{print} p&&/}/{exit}' "$FASTFILE")"
+appid_block="$(awk '/^APP_IDENTIFIERS/{p=1} p{print} p&&/^}$/{exit}' "$FASTFILE")"
+profile_block="$(awk '/^PROFILE_NAMES/{p=1} p{print} p&&/^}$/{exit}' "$FASTFILE")"
 
 for env in "${ENVS[@]}"; do
   block="$(awk -v f="$env" \
-    '$0 ~ "create\\(\""f"\"" {p=1} p{print} p&&/^[[:space:]]*}/{exit}' "$FLAVORIZR")"
+    '$0 ~ "create\\(\"" f "\"\\)" {p=1} p{print} p&&/^[[:space:]]*}/{exit}' "$FLAVORIZR")"
   APPID[$env]="$(printf '%s\n' "$block" | \
     sed -n 's/.*applicationId[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p')"
   APPNAME[$env]="$(printf '%s\n' "$block" | \
@@ -123,6 +126,7 @@ EOF
 
 if [ "$MODE" = "check" ]; then
   tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' EXIT
   emit > "$tmp"
   if ! diff -u "$RECORD" "$tmp"; then
     rm -f "$tmp"
