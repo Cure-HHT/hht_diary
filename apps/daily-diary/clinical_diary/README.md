@@ -169,26 +169,21 @@ flutter build appbundle --release --flavor prod
 ### Using in Code
 
 ```dart
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/env_profile.dart';
 
-// Check current flavor
-if (F.appFlavor == Flavor.prod) {
+// Check the current environment
+if (EnvProfile.current.env == AppEnv.prod) {
   // Production-specific logic
 }
 
-// Check if dev tools should be shown
-if (F.showDevTools) {
-  // Show debug menu items
-}
-
-// Or use AppConfig (delegates to F)
+// Check if dev tools should be shown (AppConfig delegates to the resolved EnvProfile)
 if (AppConfig.showDevTools) {
   // Show debug menu items
 }
 
-// Get app title for current flavor
-print(F.title); // "Diary DEV", "Diary QA", or "Clinical Diary"
+// Get app title for the current environment
+print(EnvProfile.current.title); // "Diary DEV", "Diary QA", or "Clinical Diary"
 ```
 
 ### CI/CD Integration
@@ -588,16 +583,15 @@ authentication, not a shared test key.
 
 ### Accessing Configuration in Flutter Code
 
-Most configuration is derived from the flavor, not dart-defines:
+Most configuration is derived from the resolved environment, not dart-defines:
 
 ```dart
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/config/app_config.dart';
 
-// API base URL (derived from FlavorConfig)
-final apiUrl = AppConfig.apiBase;  // e.g., "https://hht-diary-mvp.web.app/api"
+// API base URL (derived from the resolved EnvProfile)
+final apiUrl = AppConfig.apiBase;
 
-// Feature flags (derived from flavor)
+// Feature flags (derived from the resolved EnvProfile)
 if (AppConfig.showDevTools) {
   // Show debug menu
 }
