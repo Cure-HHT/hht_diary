@@ -157,8 +157,14 @@ platform :ios do
         end
       end
     ensure
-      # Restore the env pointer so the working tree is left clean.
-      sh("git", "-C", FLUTTER_DIR, "checkout", "--", "assets/config/env.json")
+      # Restore the env pointer so the working tree is left clean. Tolerate a
+      # restore failure so it can't mask the actual build/upload result —
+      # parity with tool/_write_env_pointer.sh, which uses `git checkout ... || true`.
+      begin
+        sh("git", "-C", FLUTTER_DIR, "checkout", "--", "assets/config/env.json")
+      rescue => e
+        UI.important("env.json restore failed (#{e.message}); leaving working tree as-is")
+      end
     end
   end
 end
