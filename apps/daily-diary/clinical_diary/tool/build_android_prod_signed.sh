@@ -1,6 +1,5 @@
 #!/bin/bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00006: Mobile App Build and Release Process
+# Implements: DIARY-OPS-single-promotable-artifact/C
 
 # Build the Clinical Diary SIGNED Android app with PROD flavor
 # Usage: doppler run -- ./tool/build_android_prod_signed.sh
@@ -16,8 +15,13 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 KEYSTORE_PATH="$PROJECT_DIR/android/app/key.jks"
 KEY_PROPS_PATH="$PROJECT_DIR/android/key.properties"
 
+# Stamp the bundled env pointer (env name == flavor name); the helper also
+# registers an EXIT trap to restore env.json. Re-trap so BOTH the keystore
+# cleanup and the env-pointer restore run on exit.
+source "$SCRIPT_DIR/_write_env_pointer.sh" prod
 cleanup() {
   rm -f "$KEYSTORE_PATH" "$KEY_PROPS_PATH"
+  restore_env_pointer
 }
 trap cleanup EXIT
 
@@ -38,7 +42,7 @@ EOF
 
 echo "Building Clinical Diary for Android (PROD flavor, signed)..."
 # Use appbundle for Play Store submission
-flutter build appbundle --release --flavor prod --dart-define=APP_FLAVOR=prod
+flutter build appbundle --release --flavor prod
 
 echo ""
 echo "Build complete! Signed AAB at build/app/outputs/bundle/prodRelease/app-prod-release.aab"
