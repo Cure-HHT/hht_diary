@@ -1,0 +1,62 @@
+# Listens for completion of push-event runs of the named workflows on main
+# and posts a Slack alert to #devops when one fails.
+#
+# Rationale: workflow_run failure on main is a post-merge regression — it
+# bypasses PR status checks and is otherwise invisible until someone notices.
+# PR-event failures are surfaced by PR status checks and are NOT notified
+# here (filtered in the job-level `if:`).
+#
+# Routing: .github/slack-channels.yml -> routing.main-failure -> SLACK_DEVOPS_CH.
+
+name: Notify on main-branch workflow failure
+
+on:
+  workflow_run:
+    workflows:
+      - "Build sponsor-ci"
+      - "Build & Publish Docker Images"
+      - "Database Migration Validation"
+      - "Terraform Plan & Apply"
+      - "Android Build & Store Artifact"
+      - "iOS Build & Store Artifact"
+      - "Diary Server CI"
+      - "Sponsor Portal CI"
+      - "Trial Data Types CI"
+      - "PR Health"
+      - "SonarQube"
+      - "Alert on Workflow Changes"
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  notify-on-failure:
+    name: Notify Slack on failure
+    # Only fire on push-event runs that actually failed on main.
+    # PR-event failures are visible on the PR's status checks — no Slack noise.
+    if: >
+      github.event.workflow_run.conclusion == 'failure'
+      && github.event.workflow_run.event == 'push'
+      && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository (required for slack-notify routing file)
+        uses: actions/checkout@v4
+
+      - name: Post Slack notification
+        # Implements: (operational visibility — post-merge silent failures surface to Slack)
+        # Pinned to hht_workflows main 2026-05-22 (same SHA used across hht_diary).
+        continue-on-error: true
+        uses: Cure-HHT/hht_workflows/.github/actions/slack-notify@738dc754b9484b56c489bfdab9b31eec8562cdb1
+        with:
+          event: main-failure
+          slack-token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
+          text: |
+            :rotating_light: *Workflow failed on main — please investigate*
+
+            *Workflow:* ${{ github.event.workflow_run.name }}
+            *Commit:*   `${{ github.event.workflow_run.head_sha }}`
+            *Actor:*    @${{ github.event.workflow_run.actor.login }}
+            *Run:*      ${{ github.event.workflow_run.html_url }}
