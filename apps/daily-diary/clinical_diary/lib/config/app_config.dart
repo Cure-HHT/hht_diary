@@ -15,15 +15,15 @@ class MissingConfigException implements Exception {
 /// Application configuration.
 ///
 /// Configuration is derived from the runtime [EnvProfile], resolved once
-/// during app bootstrap via [EnvProfile.load] from the bundled env.json
-/// pointer asset.
+/// during app bootstrap via [EnvProfile.load] from the bundled
+/// `assets/config/env.json` pointer asset.
 ///
-/// For mobile builds, --flavor dev sets FLUTTER_APP_FLAVOR; the bootstrap
-/// reads assets/config/env.json written by the build tooling.
-/// For web builds, the same asset is injected at build time.
+/// The asset is committed as `{ "env": "dev" }` by default. Non-dev builds
+/// stamp it at packaging time via `tool/_write_env_pointer.sh` (CUR-1391
+/// wires this into the qa/uat/prod build scripts).
 ///
-/// All other configuration (apiBase, showDevTools, showBanner, showResetData)
-/// is derived from [EnvProfile.current].
+/// All environment-dependent configuration (apiBase, showDevTools,
+/// showBanner, showResetData) is derived from [EnvProfile.current].
 class AppConfig {
   // Private constructor - this is a static utility class
   AppConfig._();

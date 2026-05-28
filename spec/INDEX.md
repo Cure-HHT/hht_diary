@@ -132,11 +132,11 @@
 | DIARY-OPS-rave-sync-cooldown         | Rave Sync Cooldown After Auth Failure          | prd-rave-sync.md           | 2d1cf77c |
 | DIARY-OPS-rave-sync-hard-lockout     | Rave Sync Hard Lockout After Repeated Failures | prd-rave-sync.md           | 5c2f7d7c |
 | DIARY-OPS-rave-unwedge-authz         | Rave Unwedge Endpoint Authorization            | prd-rave-sync.md           | 7c99b2b8 |
-| DIARY-OPS-single-promotable-artifact | Single Promotable Artifact                     | ops-build-and-promotion.md | f17ffb5b |
+| DIARY-OPS-single-promotable-artifact | Single Promotable Artifact                     | ops-build-and-promotion.md | cbc3c5c0 |
 
 ## DEVELOPMENT
 
 | ID                                         | Title                                      | File                          | Hash     |
 | ------------------------------------------ | ------------------------------------------ | ----------------------------- | -------- |
 | DIARY-DEV-rave-auth-failure-classification | Rave Authentication Failure Classification | prd-rave-sync.md              | f2732c70 |
-| DIARY-DEV-runtime-environment-resolution   | Runtime Environment Resolution             | dev-environment-resolution.md | 770609ce |
+| DIARY-DEV-runtime-environment-resolution   | Runtime Environment Resolution             | dev-environment-resolution.md | 32fa8cf9 |
