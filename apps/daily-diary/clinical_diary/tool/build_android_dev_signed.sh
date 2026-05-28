@@ -1,6 +1,5 @@
 #!/bin/bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00006: Mobile App Build and Release Process
+# Implements: DIARY-OPS-single-promotable-artifact/C
 
 # Build the Clinical Diary SIGNED Android app with DEV flavor
 # Usage: doppler run -- ./tool/build_android_dev_signed.sh
@@ -37,7 +36,9 @@ storeFile=key.jks
 EOF
 
 echo "Building Clinical Diary for Android (DEV flavor, signed)..."
-flutter build apk --flavor dev --dart-define=APP_FLAVOR=dev
+# Env comes from the committed assets/config/env.json (default dev); no
+# dart-define, so the Dart compilation is environment-independent.
+flutter build apk --flavor dev
 
 echo ""
 echo "Build complete! Signed APK at build/app/outputs/flutter-apk/app-dev-release.apk"

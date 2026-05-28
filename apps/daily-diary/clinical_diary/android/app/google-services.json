@@ -23,6 +23,44 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149504828360:android:cfc348ada42423034616fd",
+        "android_client_info": {
+          "package_name": "org.anspar.curehht.app.qa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiYN-ZS2ahRt9sc3rfMNdADzNI1t4xy5A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149504828360:android:f03bfeade6c23aab4616fd",
+        "android_client_info": {
+          "package_name": "org.anspar.curehht.app.uat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiYN-ZS2ahRt9sc3rfMNdADzNI1t4xy5A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

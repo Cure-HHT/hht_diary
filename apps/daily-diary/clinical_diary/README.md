@@ -94,11 +94,12 @@ flutter run -d chrome --dart-define=APP_FLAVOR=dev
 flutter run -d chrome --dart-define=APP_FLAVOR=qa
 flutter run -d chrome --dart-define=APP_FLAVOR=prod
 
-# Mobile builds (--flavor sets FLUTTER_APP_FLAVOR for native config)
-# Include both for cross-platform compatibility
-flutter run --flavor dev --dart-define=APP_FLAVOR=dev
-flutter run --flavor qa --dart-define=APP_FLAVOR=qa
-flutter run --flavor prod --dart-define=APP_FLAVOR=prod
+# Mobile builds — env is resolved at runtime from the bundled assets/config/env.json;
+# the tool/run_*.sh scripts stamp it. --flavor selects native config (bundle id, name, icon, signing).
+# Prefer: ./tool/run_dev.sh | ./tool/run_qa.sh | ./tool/run_uat.sh
+flutter run --flavor dev
+flutter run --flavor qa
+flutter run --flavor prod
 ```
 
 ### How Flavor Configuration Works
@@ -112,8 +113,10 @@ other settings from `FlavorConfig` in `lib/flavors.dart`:
 | `showDevTools` | `F.showDevTools` (true for dev/qa)    |
 | `showBanner`   | `F.showBanner` (true for dev/qa)      |
 
-> **Note**: The `--flavor` flag only affects native platform builds (iOS/Android bundle IDs,
-> app names, icons). For web builds, `--dart-define=APP_FLAVOR` is required.
+> **Note**: For mobile, the active environment is resolved at runtime from the bundled
+> `assets/config/env.json` (stamped by the `tool/` build/run scripts); `--flavor` selects
+> native config only (bundle IDs, app names, icons, signing). For web builds,
+> `--dart-define=APP_FLAVOR` is still required.
 
 ### Building for Release
 
@@ -140,10 +143,10 @@ Or build manually:
 # Web (use --dart-define only)
 flutter build web --release --dart-define=APP_FLAVOR=prod
 
-# Mobile (include both --flavor and --dart-define)
-flutter build apk --release --flavor prod --dart-define=APP_FLAVOR=prod
-flutter build ios --release --flavor prod --dart-define=APP_FLAVOR=prod
-flutter build appbundle --release --flavor prod --dart-define=APP_FLAVOR=prod
+# Mobile — use the tool scripts (they stamp env.json); --flavor selects native config
+flutter build apk --release --flavor prod
+flutter build ios --release --flavor prod
+flutter build appbundle --release --flavor prod
 ```
 
 ### Environment Features
@@ -195,11 +198,11 @@ In GitHub Actions workflows:
 
 # Build for Production APK
 - name: Build Production APK
-  run: flutter build apk --release --flavor prod --dart-define=APP_FLAVOR=prod
+  run: flutter build apk --release --flavor prod
 
 # Build iOS
 - name: Build Production iOS
-  run: flutter build ios --release --flavor prod --dart-define=APP_FLAVOR=prod --no-codesign
+  run: flutter build ios --release --flavor prod --no-codesign
 ```
 
 ### Firebase Configuration
@@ -469,7 +472,7 @@ project. This eliminates insecure secret sharing via Slack, email, or .env files
    doppler run -- flutter run -d chrome --dart-define=APP_FLAVOR=dev
 
    # For mobile
-   doppler run -- flutter run --flavor dev --dart-define=APP_FLAVOR=dev
+   doppler run -- flutter run --flavor dev
    ```
 
 ### Team Secret Sharing
@@ -599,7 +602,7 @@ if (AppConfig.showDevTools) {
 static const String _qaApiKeyRaw = String.fromEnvironment('CUREHHT_QA_API_KEY');
 ```
 
-The IDE run configurations only need to pass `--dart-define=APP_FLAVOR=<flavor>`.
+For web, the IDE run configurations pass `--dart-define=APP_FLAVOR=<flavor>`. For mobile, the environment comes from the bundled `assets/config/env.json` (use the `tool/run_*.sh` scripts to target a non-dev env).
 
 ## 🧪 Testing
 
@@ -636,7 +639,7 @@ flutter run -d chrome --dart-define=APP_FLAVOR=dev \
     --dart-define=IMPORT_FILE=/full/path/to/export.json
 
 # Mobile (absolute path required)
-flutter run --flavor dev --dart-define=APP_FLAVOR=dev \
+flutter run --flavor dev \
     --dart-define=IMPORT_FILE=/full/path/to/export.json
 ```
 

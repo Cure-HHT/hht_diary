@@ -1,6 +1,5 @@
 #!/bin/bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00006: Mobile App Build and Release Process
+# Implements: DIARY-OPS-single-promotable-artifact/C
 
 # Run the Clinical Diary app with DEV flavor
 # Usage: ./tool/run_dev.sh [OPTIONS]
@@ -46,8 +45,9 @@ done
 
 echo "Running Clinical Diary (DEV flavor)..."
 
+# Env = committed default (dev) in assets/config/env.json; no stamp needed.
 # Build the flutter run command
-CMD="flutter run --dart-define=APP_FLAVOR=dev"
+CMD="flutter run"
 
 # Add device if specified
 if [[ -n "$DEVICE" ]]; then
