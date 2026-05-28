@@ -242,10 +242,14 @@ void main() {
   // path, so these tests run end-to-end through NotificationService
   // without ADC or a Firebase project.
   //
-  // TCs 04, 09, 15 covered here. TCs 02, 03, 11 are wire-layer tests
-  // in diary_functions/test/fcm_token_test.dart. TC-10 (UNREGISTERED)
-  // and TC-13 (logout deactivation) are covered by the OutboxWriter
-  // suite in apps/common-dart/comms.
+  // TCs 04 and 15 covered here. TCs 02, 03, 11 are wire-layer tests
+  // in diary_functions/test/fcm_token_test.dart. TC-09 (duplicate-send
+  // tolerance) — NotificationService is stateless across calls; real
+  // idempotency lives in apps/common-dart/comms/test/notifications/
+  // server/envelope_fetch_handler_test.dart (idempotent re-delivery)
+  // and questionnaire_unlock_finalize_test.dart (duplicate finalize
+  // returns 409). TC-10 (UNREGISTERED) and TC-13 (logout deactivation)
+  // are covered by the OutboxWriter suite in apps/common-dart/comms.
   // --------------------------------------------------------------------
 
   group('TC-04: questionnaire assignment dispatches via FCM', () {
@@ -265,64 +269,72 @@ void main() {
       await body(NotificationService.instance);
     }
 
-    test('sendQuestionnaireNotification returns success in console mode',
-        () async {
-      await withConsoleMode((svc) async {
-        final result = await svc.sendQuestionnaireNotification(
-          fcmToken: 'test-token-aaaaaaaaaaaaaaaaaaaa',
-          questionnaireType: 'nose_hht',
-          questionnaireInstanceId: 'inst-tc04-001',
-          patientId: 'pat-tc04-001',
-        );
+    test(
+      'sendQuestionnaireNotification returns success in console mode',
+      () async {
+        await withConsoleMode((svc) async {
+          final result = await svc.sendQuestionnaireNotification(
+            fcmToken: 'test-token-aaaaaaaaaaaaaaaaaaaa',
+            questionnaireType: 'nose_hht',
+            questionnaireInstanceId: 'inst-tc04-001',
+            patientId: 'pat-tc04-001',
+          );
 
-        expect(result.success, isTrue);
-        // Console-mode messageId is either 'console-mode' (legacy) or
-        // 'projects/.../messages/...' — the contract is non-null and
-        // distinct from a real FCM v1 send.
-        expect(result.messageId, isNotNull);
-        expect(result.error, isNull);
-      });
-    });
+          expect(result.success, isTrue);
+          // Console-mode messageId is either 'console-mode' (legacy) or
+          // 'projects/.../messages/...' — the contract is non-null and
+          // distinct from a real FCM v1 send.
+          expect(result.messageId, isNotNull);
+          expect(result.error, isNull);
+        });
+      },
+    );
 
-    test('sendQuestionnaireDeletedNotification succeeds silently in console mode',
-        () async {
-      await withConsoleMode((svc) async {
-        final result = await svc.sendQuestionnaireDeletedNotification(
-          fcmToken: 'test-token-bbbbbbbbbbbbbbbbbbbb',
-          questionnaireInstanceId: 'inst-tc04-002',
-          patientId: 'pat-tc04-002',
-        );
+    test(
+      'sendQuestionnaireDeletedNotification succeeds silently in console mode',
+      () async {
+        await withConsoleMode((svc) async {
+          final result = await svc.sendQuestionnaireDeletedNotification(
+            fcmToken: 'test-token-bbbbbbbbbbbbbbbbbbbb',
+            questionnaireInstanceId: 'inst-tc04-002',
+            patientId: 'pat-tc04-002',
+          );
 
-        expect(result.success, isTrue);
-        expect(result.error, isNull);
-      });
-    });
+          expect(result.success, isTrue);
+          expect(result.error, isNull);
+        });
+      },
+    );
 
-    test('sendQuestionnaireUnlockedNotification succeeds in console mode',
-        () async {
-      await withConsoleMode((svc) async {
-        final result = await svc.sendQuestionnaireUnlockedNotification(
-          fcmToken: 'test-token-cccccccccccccccccccc',
-          questionnaireInstanceId: 'inst-tc04-003',
-          patientId: 'pat-tc04-003',
-        );
+    test(
+      'sendQuestionnaireUnlockedNotification succeeds in console mode',
+      () async {
+        await withConsoleMode((svc) async {
+          final result = await svc.sendQuestionnaireUnlockedNotification(
+            fcmToken: 'test-token-cccccccccccccccccccc',
+            questionnaireInstanceId: 'inst-tc04-003',
+            patientId: 'pat-tc04-003',
+          );
 
-        expect(result.success, isTrue);
-      });
-    });
+          expect(result.success, isTrue);
+        });
+      },
+    );
 
-    test('sendQuestionnaireFinalizedNotification succeeds in console mode',
-        () async {
-      await withConsoleMode((svc) async {
-        final result = await svc.sendQuestionnaireFinalizedNotification(
-          fcmToken: 'test-token-dddddddddddddddddddd',
-          questionnaireInstanceId: 'inst-tc04-004',
-          patientId: 'pat-tc04-004',
-        );
+    test(
+      'sendQuestionnaireFinalizedNotification succeeds in console mode',
+      () async {
+        await withConsoleMode((svc) async {
+          final result = await svc.sendQuestionnaireFinalizedNotification(
+            fcmToken: 'test-token-dddddddddddddddddddd',
+            questionnaireInstanceId: 'inst-tc04-004',
+            patientId: 'pat-tc04-004',
+          );
 
-        expect(result.success, isTrue);
-      });
-    });
+          expect(result.success, isTrue);
+        });
+      },
+    );
 
     test('sendPatientStatusNotification succeeds with extra data', () async {
       await withConsoleMode((svc) async {
@@ -340,46 +352,6 @@ void main() {
     });
   });
 
-  group('TC-09: duplicate sends are tolerated (no exception, idempotent shape)',
-      () {
-    setUp(() {
-      NotificationService.resetForTesting();
-    });
-
-    test(
-      'identical questionnaire send invoked twice returns success twice',
-      () async {
-        final config = NotificationConfig(
-          projectId: 'cure-hht-admin-test',
-          enabled: true,
-          consoleMode: true,
-        );
-        await NotificationService.instance.initialize(config);
-
-        Future<NotificationResult> send() =>
-            NotificationService.instance.sendQuestionnaireNotification(
-              fcmToken: 'tok-dup-1111111111111111',
-              questionnaireType: 'nose_hht',
-              questionnaireInstanceId: 'inst-tc09-001',
-              patientId: 'pat-tc09-001',
-            );
-
-        final first = await send();
-        final second = await send();
-
-        // Idempotency at THIS layer means: no thrown exception, no
-        // mutated state on the in-process service. Database-level
-        // questionnaire-record idempotency is the questionnaire
-        // handler's responsibility — covered in
-        // questionnaire_unlock_finalize_test.dart. End-to-end
-        // de-dup at the envelope layer is covered in the comms
-        // OutboxWriter test suite.
-        expect(first.success, isTrue);
-        expect(second.success, isTrue);
-      },
-    );
-  });
-
   group('TC-15: FCM send failure does not block business state', () {
     setUp(() {
       NotificationService.resetForTesting();
@@ -392,11 +364,11 @@ void main() {
 
       final result = await NotificationService.instance
           .sendQuestionnaireNotification(
-        fcmToken: 'tok-tc15-aaaaaaaaaaaaaaaa',
-        questionnaireType: 'nose_hht',
-        questionnaireInstanceId: 'inst-tc15-001',
-        patientId: 'pat-tc15-001',
-      );
+            fcmToken: 'tok-tc15-aaaaaaaaaaaaaaaa',
+            questionnaireType: 'nose_hht',
+            questionnaireInstanceId: 'inst-tc15-001',
+            patientId: 'pat-tc15-001',
+          );
 
       expect(result.success, isFalse);
       expect(result.error, isNotNull);
@@ -405,84 +377,83 @@ void main() {
       // result object so the business event can still commit.
     });
 
-    test('uninitialised service: send returns failure (does not throw)',
-        () async {
-      // No initialize() call.
-      final result = await NotificationService.instance
-          .sendQuestionnaireDeletedNotification(
-        fcmToken: 'tok-tc15-bbbbbbbbbbbbbbbb',
-        questionnaireInstanceId: 'inst-tc15-002',
-        patientId: 'pat-tc15-002',
-      );
-
-      expect(result.success, isFalse);
-      expect(result.error, contains('not configured'));
-    });
-
     test(
-      'every public send method returns NotificationResult on failure '
-      '(none throw)',
+      'uninitialised service: send returns failure (does not throw)',
       () async {
-        await NotificationService.instance.initialize(
-          NotificationConfig(projectId: 'test', enabled: false),
-        );
-        final svc = NotificationService.instance;
+        // No initialize() call.
+        final result = await NotificationService.instance
+            .sendQuestionnaireDeletedNotification(
+              fcmToken: 'tok-tc15-bbbbbbbbbbbbbbbb',
+              questionnaireInstanceId: 'inst-tc15-002',
+              patientId: 'pat-tc15-002',
+            );
 
-        Future<NotificationResult> assertReturnsResult(
-          Future<NotificationResult> Function() call,
-        ) async {
-          // The assertion is that this completes without throwing — the
-          // returned NotificationResult is captured and validated below.
-          final r = await call();
-          expect(r, isA<NotificationResult>());
-          return r;
-        }
-
-        final results = <NotificationResult>[
-          await assertReturnsResult(
-            () => svc.sendQuestionnaireNotification(
-              fcmToken: 'tok-tc15-c1-cccccccccccc',
-              questionnaireType: 'nose_hht',
-              questionnaireInstanceId: 'inst-c1',
-              patientId: 'pat-c1',
-            ),
-          ),
-          await assertReturnsResult(
-            () => svc.sendQuestionnaireDeletedNotification(
-              fcmToken: 'tok-tc15-c2-cccccccccccc',
-              questionnaireInstanceId: 'inst-c2',
-              patientId: 'pat-c2',
-            ),
-          ),
-          await assertReturnsResult(
-            () => svc.sendQuestionnaireUnlockedNotification(
-              fcmToken: 'tok-tc15-c3-cccccccccccc',
-              questionnaireInstanceId: 'inst-c3',
-              patientId: 'pat-c3',
-            ),
-          ),
-          await assertReturnsResult(
-            () => svc.sendQuestionnaireFinalizedNotification(
-              fcmToken: 'tok-tc15-c4-cccccccccccc',
-              questionnaireInstanceId: 'inst-c4',
-              patientId: 'pat-c4',
-            ),
-          ),
-          await assertReturnsResult(
-            () => svc.sendPatientStatusNotification(
-              fcmToken: 'tok-tc15-c5-cccccccccccc',
-              patientId: 'pat-c5',
-              action: 'disconnect',
-              title: 'Disconnected',
-              body: 'You were disconnected.',
-            ),
-          ),
-        ];
-
-        // Every helper surfaced a non-throwing failure result.
-        expect(results.every((r) => !r.success), isTrue);
-        expect(results.every((r) => r.error != null), isTrue);
+        expect(result.success, isFalse);
+        expect(result.error, contains('not configured'));
       },
     );
+
+    test('every public send method returns NotificationResult on failure '
+        '(none throw)', () async {
+      await NotificationService.instance.initialize(
+        NotificationConfig(projectId: 'test', enabled: false),
+      );
+      final svc = NotificationService.instance;
+
+      Future<NotificationResult> assertReturnsResult(
+        Future<NotificationResult> Function() call,
+      ) async {
+        // The assertion is that this completes without throwing — the
+        // returned NotificationResult is captured and validated below.
+        final r = await call();
+        expect(r, isA<NotificationResult>());
+        return r;
+      }
+
+      final results = <NotificationResult>[
+        await assertReturnsResult(
+          () => svc.sendQuestionnaireNotification(
+            fcmToken: 'tok-tc15-c1-cccccccccccc',
+            questionnaireType: 'nose_hht',
+            questionnaireInstanceId: 'inst-c1',
+            patientId: 'pat-c1',
+          ),
+        ),
+        await assertReturnsResult(
+          () => svc.sendQuestionnaireDeletedNotification(
+            fcmToken: 'tok-tc15-c2-cccccccccccc',
+            questionnaireInstanceId: 'inst-c2',
+            patientId: 'pat-c2',
+          ),
+        ),
+        await assertReturnsResult(
+          () => svc.sendQuestionnaireUnlockedNotification(
+            fcmToken: 'tok-tc15-c3-cccccccccccc',
+            questionnaireInstanceId: 'inst-c3',
+            patientId: 'pat-c3',
+          ),
+        ),
+        await assertReturnsResult(
+          () => svc.sendQuestionnaireFinalizedNotification(
+            fcmToken: 'tok-tc15-c4-cccccccccccc',
+            questionnaireInstanceId: 'inst-c4',
+            patientId: 'pat-c4',
+          ),
+        ),
+        await assertReturnsResult(
+          () => svc.sendPatientStatusNotification(
+            fcmToken: 'tok-tc15-c5-cccccccccccc',
+            patientId: 'pat-c5',
+            action: 'disconnect',
+            title: 'Disconnected',
+            body: 'You were disconnected.',
+          ),
+        ),
+      ];
+
+      // Every helper surfaced a non-throwing failure result.
+      expect(results.every((r) => !r.success), isTrue);
+      expect(results.every((r) => r.error != null), isTrue);
+    });
   });
 }
