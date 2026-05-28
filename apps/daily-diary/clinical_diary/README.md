@@ -91,8 +91,9 @@ Simply select the desired flavor from your IDE's run configuration dropdown.
 
 ```bash
 # Web — env resolved at runtime from bundled assets/config/env.json (defaults to dev).
-# To preview a non-dev env, stamp the pointer first:
-#   source tool/_write_env_pointer.sh qa && flutter run -d chrome
+# To preview a non-dev env, run in a subshell so the pointer is restored on exit:
+#   ( source tool/_write_env_pointer.sh qa && flutter run -d chrome )
+# (or use ./tool/run_qa.sh --web, which stamps and restores around the run)
 flutter run -d chrome
 
 # Mobile builds — env is resolved at runtime from the bundled assets/config/env.json;
