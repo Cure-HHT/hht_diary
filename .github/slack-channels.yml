@@ -1,0 +1,19 @@
+# Slack channel routing for hht_diary workflow notifications.
+#
+# Used by: .github/workflows/notify-main-failure.yml
+#
+# The `slack-notify` composite action (Cure-HHT/hht_workflows) resolves
+# channel names to IDs at runtime via Slack conversations.list, so a rename
+# or accidental deletion fails loudly with a clear error instead of posting
+# silently to nowhere.
+#
+# Bot prerequisites (api.slack.com/apps):
+#   OAuth scopes: chat:write, channels:read, channels:join, groups:read
+#   For private channels: one-time manual /invite (conversations.join
+#   doesn't apply to private channels).
+
+channels:
+  SLACK_DEVOPS_CH: "#devops"   # DevOps cross-team escalation
+
+routing:
+  main-failure: SLACK_DEVOPS_CH
