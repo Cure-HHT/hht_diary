@@ -15,19 +15,9 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 COMMENT ON TABLE schema_migrations IS
   'Applied DB migrations; schema version = MAX(id). Written only by db-schema-job.';
 
--- Application runtime role may read the current schema version; writes are
--- reserved for the db-schema-job (runs as the owner/superuser, not as
--- authenticated). Guard so this file can be sourced in environments where
--- roles.sql has not yet run (e.g. bare test containers).
-DO $$
-BEGIN
-    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'authenticated') THEN
-        GRANT SELECT ON schema_migrations TO authenticated;
-    END IF;
-    -- Portal reader runs as service_role; grant explicitly so the read works
-    -- regardless of rls_policies.sql application order.
-    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
-        GRANT SELECT ON schema_migrations TO service_role;
-    END IF;
-END
-$$;
+-- Grants are NOT defined here. This file runs early in init.sql, before
+-- roles.sql creates the application roles, so any conditional grant against
+-- `authenticated` / `service_role` would be skipped and dead. The runtime
+-- read path (service_role) is covered by the catch-all
+-- `GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role` in
+-- rls_policies.sql, which runs after this table exists.

@@ -379,6 +379,16 @@ migrate_database() {
     # migrate is ever run OUTSIDE that workflow, the operator must ensure no
     # concurrent run against the same database.
 
+    # Self-bootstrap the tracking table so a database that pre-dates CUR-1320
+    # (no schema_migrations table) does not crash on the first MAX(id) query.
+    # Idempotent; on a baseline-fresh DB the table already exists.
+    psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -v ON_ERROR_STOP=1 -c "
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            id         INTEGER     PRIMARY KEY,
+            name       TEXT        NOT NULL,
+            applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        );"
+
     local applied_max
     applied_max=$(psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DB_NAME}" -tAc \
         "SELECT COALESCE(MAX(id), 0) FROM schema_migrations")

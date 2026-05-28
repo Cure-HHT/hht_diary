@@ -239,6 +239,12 @@ jobs:
               set -euo pipefail
               cd /workspace/src
 
+              # nullglob: when database/migrations/ has no numbered files (the
+              # current state after collapsing 004-014 into the baseline), the
+              # glob expands to nothing instead of the literal pattern, so the
+              # loops below correctly do zero iterations.
+              shopt -s nullglob
+
               echo "=== Soundness gate: creating fresh soundness_test database ==="
               psql -h postgres -U postgres -c "CREATE DATABASE soundness_test"
 
