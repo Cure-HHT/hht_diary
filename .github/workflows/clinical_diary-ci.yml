@@ -49,6 +49,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify mobile env delta record (controlled delta)
+        # Verifies: DIARY-OPS-single-promotable-artifact/D
+        working-directory: apps/daily-diary/clinical_diary
+        run: bash tool/generate_env_delta_record.sh --check
+
       - name: Start CI container
         uses: ./.github/actions/start-ci-container
         with:
