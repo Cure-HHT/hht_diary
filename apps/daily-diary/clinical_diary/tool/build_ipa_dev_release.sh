@@ -1,7 +1,7 @@
 #!/bin/bash
 # Implements: DIARY-OPS-single-promotable-artifact/C
 
-# Build the Clinical Diary iOS app with QA flavor
+# Build the Clinical Diary iOS app with DEV flavor
 # Usage: ./tool/build_ipa_dev_release.sh
 
 set -e

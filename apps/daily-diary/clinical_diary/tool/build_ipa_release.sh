@@ -8,7 +8,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "Building Clinical Diary for iOS UAT release flavor..."
+echo "Building Clinical Diary for iOS PROD release flavor..."
 
 # For iOS, --flavor sets FLUTTER_APP_FLAVOR automatically
 # Stamp the bundled env pointer; restored on exit by the sourced helper.

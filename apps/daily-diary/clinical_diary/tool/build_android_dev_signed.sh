@@ -1,6 +1,5 @@
 #!/bin/bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00006: Mobile App Build and Release Process
+# Implements: DIARY-OPS-single-promotable-artifact/C
 
 # Build the Clinical Diary SIGNED Android app with DEV flavor
 # Usage: doppler run -- ./tool/build_android_dev_signed.sh
