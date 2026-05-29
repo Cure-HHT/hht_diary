@@ -73,9 +73,10 @@ Each flavor has:
 - **Separate Firebase project** - Isolated data per environment
 - **Environment-specific API base URL**
 
-### Running with Flavors
+### Running with Environments
 
-All configuration (API base URL, feature flags, etc.) is derived from a single `APP_FLAVOR` value.
+All configuration (API base URL, feature flags, etc.) is derived from the resolved
+environment — the bundled `assets/config/env.json` pointer (`EnvProfile`), not a build flag.
 This simplifies build commands and IDE configurations.
 
 **Using IDE Run Configurations (Recommended):**
@@ -89,10 +90,11 @@ Simply select the desired flavor from your IDE's run configuration dropdown.
 **Using Command Line:**
 
 ```bash
-# Web builds (--flavor doesn't work on web, use --dart-define only)
-flutter run -d chrome --dart-define=APP_FLAVOR=dev
-flutter run -d chrome --dart-define=APP_FLAVOR=qa
-flutter run -d chrome --dart-define=APP_FLAVOR=prod
+# Web — env resolved at runtime from bundled assets/config/env.json (defaults to dev).
+# To preview a non-dev env, run in a subshell so the pointer is restored on exit:
+#   ( source tool/_write_env_pointer.sh qa && flutter run -d chrome )
+# (or use ./tool/run_qa.sh --web, which stamps and restores around the run)
+flutter run -d chrome
 
 # Mobile builds — env is resolved at runtime from the bundled assets/config/env.json;
 # the tool/run_*.sh scripts stamp it. --flavor selects native config (bundle id, name, icon, signing).
@@ -102,21 +104,23 @@ flutter run --flavor qa
 flutter run --flavor prod
 ```
 
-### How Flavor Configuration Works
+### How Environment Configuration Works
 
-The app reads `APP_FLAVOR` (or `FLUTTER_APP_FLAVOR` on mobile) in `main.dart` and derives all
-other settings from `FlavorConfig` in `lib/flavors.dart`:
+The app resolves the active environment at runtime from the bundled
+`assets/config/env.json` pointer in `main.dart` (`EnvProfile.load()`), and derives all
+other settings from the resolved `EnvProfile` via `AppConfig`:
 
-| Setting        | Derived From                          |
-|----------------|---------------------------------------|
-| `apiBase`      | `FlavorConfig.byName(flavor).apiBase` |
-| `showDevTools` | `F.showDevTools` (true for dev/qa)    |
-| `showBanner`   | `F.showBanner` (true for dev/qa)      |
+| Setting        | Derived From                               |
+|----------------|--------------------------------------------|
+| `apiBase`      | `AppConfig.apiBase`                        |
+| `showDevTools` | `AppConfig.showDevTools` (true for dev/qa) |
+| `showBanner`   | `AppConfig.showBanner` (true for dev/qa)   |
 
-> **Note**: For mobile, the active environment is resolved at runtime from the bundled
-> `assets/config/env.json` (stamped by the `tool/` build/run scripts); `--flavor` selects
-> native config only (bundle IDs, app names, icons, signing). For web builds,
-> `--dart-define=APP_FLAVOR` is still required.
+> **Note**: The environment is resolved at runtime from the bundled
+> `assets/config/env.json` on every platform (mobile and web), stamped by the `tool/`
+> build/run scripts and defaulting to dev. `--flavor` additionally selects native config
+> on mobile (bundle IDs, app names, icons, signing). `--dart-define=APP_FLAVOR` is no
+> longer read.
 
 ### Building for Release
 
@@ -140,8 +144,8 @@ Build scripts are available in `tool/` for common build operations:
 Or build manually:
 
 ```bash
-# Web (use --dart-define only)
-flutter build web --release --dart-define=APP_FLAVOR=prod
+# Web (prefer ./tool/build_web_<env>.sh, which stamp env.json; a bare build = dev)
+flutter build web --release
 
 # Mobile — use the tool scripts (they stamp env.json); --flavor selects native config
 flutter build apk --release --flavor prod
@@ -165,26 +169,21 @@ flutter build appbundle --release --flavor prod
 ### Using in Code
 
 ```dart
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/env_profile.dart';
 
-// Check current flavor
-if (F.appFlavor == Flavor.prod) {
+// Check the current environment
+if (EnvProfile.current.env == AppEnv.prod) {
   // Production-specific logic
 }
 
-// Check if dev tools should be shown
-if (F.showDevTools) {
-  // Show debug menu items
-}
-
-// Or use AppConfig (delegates to F)
+// Check if dev tools should be shown (AppConfig delegates to the resolved EnvProfile)
 if (AppConfig.showDevTools) {
   // Show debug menu items
 }
 
-// Get app title for current flavor
-print(F.title); // "Diary DEV", "Diary QA", or "Clinical Diary"
+// Get app title for the current environment
+print(EnvProfile.current.title); // "Diary DEV", "Diary QA", or "Clinical Diary"
 ```
 
 ### CI/CD Integration
@@ -194,7 +193,7 @@ In GitHub Actions workflows:
 ```yaml
 # Build for web (dev)
 - name: Build Web
-  run: flutter build web --release --dart-define=APP_FLAVOR=dev
+  run: flutter build web --release
 
 # Build for Production APK
 - name: Build Production APK
@@ -469,7 +468,7 @@ project. This eliminates insecure secret sharing via Slack, email, or .env files
 5. **Run with Doppler** (injects secrets as environment variables):
    ```bash
    # For web
-   doppler run -- flutter run -d chrome --dart-define=APP_FLAVOR=dev
+   doppler run -- flutter run -d chrome
 
    # For mobile
    doppler run -- flutter run --flavor dev
@@ -516,8 +515,8 @@ doppler secrets get CUREHHT_QA_API_KEY
 |----------------------|-------------------------------------|--------------|---------------------------------|
 | `CUREHHT_QA_API_KEY` | API key for sponsor config endpoint | dev, qa only | Flutter app, Firebase Functions |
 
-> **Note**: Configuration like `apiBase` is no longer passed via dart-define. It's derived from
-> the `APP_FLAVOR` setting in `lib/flavors.dart`.
+> **Note**: Configuration like `apiBase` is not passed via dart-define. It's derived from the
+> resolved environment (`EnvProfile.current`, from the bundled `assets/config/env.json`).
 
 ### Firebase Functions Secrets (Doppler Integration)
 
@@ -584,16 +583,15 @@ authentication, not a shared test key.
 
 ### Accessing Configuration in Flutter Code
 
-Most configuration is derived from the flavor, not dart-defines:
+Most configuration is derived from the resolved environment, not dart-defines:
 
 ```dart
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/config/app_config.dart';
 
-// API base URL (derived from FlavorConfig)
-final apiUrl = AppConfig.apiBase;  // e.g., "https://hht-diary-mvp.web.app/api"
+// API base URL (derived from the resolved EnvProfile)
+final apiUrl = AppConfig.apiBase;
 
-// Feature flags (derived from flavor)
+// Feature flags (derived from the resolved EnvProfile)
 if (AppConfig.showDevTools) {
   // Show debug menu
 }
@@ -602,7 +600,7 @@ if (AppConfig.showDevTools) {
 static const String _qaApiKeyRaw = String.fromEnvironment('CUREHHT_QA_API_KEY');
 ```
 
-For web, the IDE run configurations pass `--dart-define=APP_FLAVOR=<flavor>`. For mobile, the environment comes from the bundled `assets/config/env.json` (use the `tool/run_*.sh` scripts to target a non-dev env).
+On every platform the environment comes from the bundled `assets/config/env.json` (use the `tool/run_*.sh` or `tool/build_web_*.sh` scripts to target a non-dev env); `--dart-define=APP_FLAVOR` is no longer read.
 
 ## 🧪 Testing
 
@@ -634,8 +632,8 @@ The app supports loading test data on startup via the `IMPORT_FILE` dart-define.
 **Using flutter run directly:**
 
 ```bash
-# Web (absolute path required)
-flutter run -d chrome --dart-define=APP_FLAVOR=dev \
+# Web (absolute path required; env = bundled dev pointer)
+flutter run -d chrome \
     --dart-define=IMPORT_FILE=/full/path/to/export.json
 
 # Mobile (absolute path required)
