@@ -2,6 +2,8 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-p00001: Incomplete Entry Preservation (CUR-405)
 
+import 'dart:async';
+
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -26,6 +28,7 @@ class SimpleRecordingScreen extends StatefulWidget {
     this.existingEntry,
     this.allEntries = const [],
     this.onDelete,
+    this.saveTimeout = const Duration(seconds: 10),
   });
 
   final EntryService entryService;
@@ -40,6 +43,12 @@ class SimpleRecordingScreen extends StatefulWidget {
   /// All nosebleed-related entries used for overlap checks.
   final List<DiaryEntry> allEntries;
   final Future<void> Function(String)? onDelete;
+
+  /// CUR-1397: ceiling on how long a single `entryService.record(...)` call
+  /// is awaited before the save path treats it as a failure. Mirrors the
+  /// guard added to `RecordingScreen` so a hung Future cannot trap the
+  /// user. Override in tests; production callers take the default.
+  final Duration saveTimeout;
 
   @override
   State<SimpleRecordingScreen> createState() => _SimpleRecordingScreenState();
@@ -232,13 +241,18 @@ class _SimpleRecordingScreenState extends State<SimpleRecordingScreen> {
         if (_intensity != null) 'intensity': _intensity!.name,
       };
 
-      await widget.entryService.record(
-        entryType: 'epistaxis_event',
-        aggregateId: recordId,
-        eventType: 'finalized',
-        answers: answers,
-        changeReason: existing != null ? 'edited' : null,
-      );
+      // CUR-1397: bound the local-write call so a hung Future cannot
+      // trap the user on the entry screen. See RecordingScreen for the
+      // full rationale.
+      await widget.entryService
+          .record(
+            entryType: 'epistaxis_event',
+            aggregateId: recordId,
+            eventType: 'finalized',
+            answers: answers,
+            changeReason: existing != null ? 'edited' : null,
+          )
+          .timeout(widget.saveTimeout);
 
       if (mounted) {
         // Return record ID so home screen can scroll to and highlight it
