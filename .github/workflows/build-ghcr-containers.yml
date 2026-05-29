@@ -276,6 +276,35 @@ jobs:
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit:buildcache,mode=max
 
   # ============================================================
+  # Verify Image Signatures
+  # ============================================================
+  verify-images:
+    name: Verify Image Signatures
+    runs-on: ubuntu-latest
+    needs: [build-ci, build-devops, build-audit]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true')
+
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Downcase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+
+      - name: Verify image signatures
+        uses: Cure-HHT/hht_workflows/.github/actions/cosign-verify@5c6faade3f2957c44a89643d99ee5798ffceb3e2  # CUR-1174 Task 1
+        with:
+          soft-fail: 'false'
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci@${{ needs.build-ci.outputs.image_digest }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops@${{ needs.build-devops.outputs.image_digest }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit@${{ needs.build-audit.outputs.image_digest }}
+
+  # ============================================================
   # Build Summary
   # ============================================================
   summary:
