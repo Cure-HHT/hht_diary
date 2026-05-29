@@ -18,7 +18,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-import '../flavors.dart';
+import '../config/env_profile.dart';
 import 'firebase_emulator_helper.dart';
 
 /// MFA type for the user
@@ -274,8 +274,8 @@ class AuthService extends ChangeNotifier {
     Future<void> Function()? clearStorage,
     Future<void> Function()? forceClearFirebaseAuthDb,
     bool isPageRefresh = false,
-    // Implements: REQ-d00167-B — flavor controls the uid_not_bound error banner
-    Flavor? flavor,
+    // Implements: REQ-d00167-B — environment controls the uid_not_bound banner
+    AppEnv? env,
   }) : _sponsorId = sponsorId,
        _auth = firebaseAuth ?? FirebaseAuth.instance,
        _httpClient = httpClient ?? http.Client(),
@@ -289,14 +289,14 @@ class AuthService extends ChangeNotifier {
        // no-op for unit tests / non-web platforms — the recovery path
        // is local-flavor only anyway.
        _forceClearFirebaseAuthDb = forceClearFirebaseAuthDb ?? _noopStorage,
-       _flavor = flavor ?? F.appFlavor ?? Flavor.prod {
+       _env = env ?? EnvProfile.current.env {
     _init();
   }
 
   final String _sponsorId;
   final bool _enableInactivityTimer;
   // Implements: REQ-d00167-B — controls uid_not_bound error message copy
-  final Flavor _flavor;
+  final AppEnv _env;
 
   /// CUR-1118: true when this page load is a same-tab refresh (F5/Cmd+R).
   /// When false (fresh tab / post-close), stale Firebase sessions are cleared
@@ -1178,9 +1178,9 @@ class AuthService extends ChangeNotifier {
         return _PortalFetchResult.success;
       } else if (response.statusCode == 401) {
         // Implements: REQ-d00167-B — uid_not_bound 401 envelope: Firebase UID
-        // is not bound to any portal_users row. On Flavor.local this means
-        // the emulator was restarted; surface the rebind hint. Other flavors
-        // get a generic administrator-contact message.
+        // is not bound to any portal_users row. In the local environment this
+        // means the emulator was restarted; surface the rebind hint. Other
+        // environments get a generic administrator-contact message.
         //
         // Reverse proxies / gateways may return non-JSON 401 bodies (HTML
         // error pages). Guard the decode so a malformed body doesn't fall
@@ -1194,7 +1194,7 @@ class AuthService extends ChangeNotifier {
         }
         final errCode = body['code'] as String?;
         if (errCode == 'uid_not_bound') {
-          _error = (_flavor == Flavor.local)
+          _error = (_env == AppEnv.local)
               ? 'Your portal account isn\'t bound to this Identity Platform '
                     'user. If you just restarted the emulator, run '
                     '`./local-stack rebind` and reload.'
