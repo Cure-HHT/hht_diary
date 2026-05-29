@@ -392,6 +392,11 @@ class _AppRootState extends State<AppRoot> {
         },
         // CUR-1311 P1B.5: Hook notification poll into the trigger chain.
         onAfterSync: () => _notificationPollService.poll(),
+        // CUR-1398: include task-sync in every periodic / resume /
+        // connectivity / FCM-triggered tick so foreground state stays
+        // correct even when FCM delivery is slow or fails. Cold-start
+        // sync is still done separately in _initializeNotifications.
+        tasksSync: () => _taskService.syncTasks(_enrollmentService),
       );
 
       // The legacy-shim destinations stay dormant until the portal

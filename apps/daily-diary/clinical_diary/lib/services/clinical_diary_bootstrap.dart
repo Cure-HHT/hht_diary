@@ -163,6 +163,12 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   // CUR-1311 P1B.5: Hook notification poll into the trigger chain.
   // Called at the end of fullSync() after portalInboundPoll completes.
   Future<void> Function()? onAfterSync,
+  // CUR-1398: Hook TaskService.syncTasks into the trigger chain so each
+  // periodic / resume / connectivity / FCM tick re-pulls /tasks. Without
+  // this, FCM is the only way a foreground patient discovers a newly
+  // sent questionnaire — and FCM delivery is best-effort. Optional so
+  // existing tests (which don't construct a TaskService) keep working.
+  Future<void> Function()? tasksSync,
 }) async {
   final client = httpClient ?? http.Client();
 
@@ -283,6 +289,10 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
       authToken: authToken,
       onSurveyTombstoned: onSurveyTombstoned,
     );
+    // CUR-1398: backstop FCM unreliability — re-pull /tasks on every
+    // periodic / resume / connectivity / FCM-triggered tick so a missed
+    // notification doesn't leave the home screen stale.
+    await tasksSync?.call();
     await onAfterSync?.call();
   }
 
