@@ -56,4 +56,54 @@ void main() {
     expect(ids, isNot(contains('fcm_message_received'))); // [M], held
     expect(ids, isNot(contains('fcm_token_registered'))); // [M], held
   });
+
+  test(
+    'sharedEventCatalog aggregates all [P]/edge entry types with no duplicates',
+    () {
+      final ids = sharedEventCatalog.map((t) => t.id).toList();
+      expect(
+        ids.length,
+        19,
+      ); // 9 patient + 7 questionnaire + 3 notification/fcm
+      expect(ids.toSet().length, ids.length, reason: 'duplicate entry-type id');
+    },
+  );
+
+  test(
+    'every catalog id is snake_case and has a positive registeredVersion',
+    () {
+      final snake = RegExp(r'^[a-z][a-z0-9_]*$');
+      for (final t in sharedEventCatalog) {
+        expect(
+          snake.hasMatch(t.id),
+          isTrue,
+          reason: 'non-snake_case id: ${t.id}',
+        );
+        expect(t.definition.registeredVersion, greaterThanOrEqualTo(1));
+        expect(t.definition.name, isNotEmpty);
+      }
+    },
+  );
+
+  test(
+    'EntryTypeDefinition round-trips through JSON for every catalog entry',
+    () {
+      for (final t in sharedEventCatalog) {
+        final round = EntryTypeDefinition.fromJson(t.definition.toJson());
+        expect(round, t.definition, reason: 'round-trip mismatch for ${t.id}');
+      }
+    },
+  );
+
+  test('held [M] ids are documented and NOT registered in the catalog', () {
+    final registered = sharedEventCatalog.map((t) => t.id).toSet();
+    for (final heldId in heldMobileAuthoredIds) {
+      expect(
+        registered,
+        isNot(contains(heldId)),
+        reason:
+            '$heldId is [M]-held and must not be registered until cross-post',
+      );
+    }
+  });
 }
