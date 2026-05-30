@@ -96,8 +96,8 @@ const String lockThresholdHoursKey = 'clinical.lockThresholdHours';
 
 /// Derives the [EntryRestrictionConfig] consumed by `entryGateForDate` from the
 /// folded settings. Clinical thresholds are sponsor settings (integer hours);
-/// [trialStart] comes from the patient-lifecycle projection over
-/// `patient_trial_started`, NOT from settings. Pure and deterministic.
+/// [trialStart] comes from the participant-lifecycle projection over
+/// `participant_trial_started`, NOT from settings. Pure and deterministic.
 EntryRestrictionConfig entryRestrictionConfigFromSettings(
   Map<String, SettingPayload> settings, {
   required DateTime? trialStart,

@@ -30,7 +30,7 @@ void main() {
   });
 
   group('dayAggregateId', () {
-    test('is {patientId}:{localDate}, stable per participant-day', () {
+    test('is {participantId}:{localDate}, stable per participant-day', () {
       expect(dayAggregateId('P-42', '2025-10-15'), 'P-42:2025-10-15');
       // Same participant + day => same aggregate (re-record updates, not dup).
       expect(

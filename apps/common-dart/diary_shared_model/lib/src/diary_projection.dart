@@ -36,8 +36,8 @@ const AggregateProjectionSpec diaryEntriesProjection = AggregateProjectionSpec(
 /// re-recording the same day updates the same aggregate rather than creating a
 /// duplicate. Cross-wire stable — the diary and the portal compute the same key.
 /// (`epistaxis_event` aggregates use a fresh per-event id instead.)
-String dayAggregateId(String patientId, String localDate) =>
-    '$patientId:$localDate';
+String dayAggregateId(String participantId, String localDate) =>
+    '$participantId:$localDate';
 
 /// The canonical local calendar date (`yyyy-MM-dd`) an entry falls on, derived
 /// deterministically from the entry's OWN captured local timestamp — never the

@@ -4,14 +4,14 @@
 import 'diary_originated_events.dart';
 import 'event_origin.dart';
 import 'notification_events.dart';
-import 'patient_events.dart';
+import 'participant_events.dart';
 import 'questionnaire_events.dart';
 
 /// The exhaustive cross-wire entry-type catalog (frozen 2026-05-29):
 /// portal-originated + edge + diary-originated static types. Survey types
 /// (`<id>_survey`) are diary-app-registered dynamically and are not listed here.
 const List<SharedEventType> sharedEventCatalog = <SharedEventType>[
-  ...patientEventTypes,
+  ...participantEventTypes,
   ...questionnaireEventTypes,
   ...notificationEventTypes,
   ...diaryOriginatedEventTypes,

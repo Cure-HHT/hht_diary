@@ -16,18 +16,18 @@ void main() {
     expect(t.origin, EventOrigin.portal);
   });
 
-  test('patient aggregate declares the [P]/edge entry types', () {
-    final ids = patientEventTypes.map((t) => t.id).toSet();
+  test('participant aggregate declares the [P]/edge entry types', () {
+    final ids = participantEventTypes.map((t) => t.id).toSet();
     expect(ids, {
-      'patient_synced_from_edc',
-      'patient_linking_code_issued',
-      'patient_linking_code_revoked',
-      'patient_trial_started',
-      'patient_disconnected',
-      'patient_reconnected',
-      'patient_marked_not_participating',
-      'patient_reactivated',
-      'patient_enrollment_status_changed',
+      'participant_synced_from_edc',
+      'participant_linking_code_issued',
+      'participant_linking_code_revoked',
+      'participant_trial_started',
+      'participant_disconnected',
+      'participant_reconnected',
+      'participant_marked_not_participating',
+      'participant_reactivated',
+      'participant_enrollment_status_changed',
     });
   });
 
@@ -64,7 +64,7 @@ void main() {
       expect(
         ids.length,
         26,
-      ); // 9 patient + 7 questionnaire + 3 notification/fcm + 7 diary-originated
+      ); // 9 participant + 7 questionnaire + 3 notification/fcm + 7 diary-originated
       expect(ids.toSet().length, ids.length, reason: 'duplicate entry-type id');
     },
   );
@@ -101,7 +101,7 @@ void main() {
       'epistaxis_event',
       'no_epistaxis_event',
       'unknown_day_event',
-      'patient_linked',
+      'participant_linked',
       'fcm_token_registered',
       'fcm_message_received',
       'setting_applied',
