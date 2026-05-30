@@ -1,2 +1,4 @@
 /// shared_events: the cross-wire event entry-type catalog.
 library;
+
+export 'src/event_origin.dart';
