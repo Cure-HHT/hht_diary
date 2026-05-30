@@ -225,3 +225,24 @@ carry the portal `instance_id` + `flowToken`; diary-initiated (e.g. the daily ep
 record questionnaire, if any) mint `instance_id` diary-side and have no `flowToken`. The diary
 will tag each questionnaire's origin in its registry; portal projection treats a
 missing `flowToken` as diary-initiated.
+
+## Implementation pointer — `diary_shared_model` is CANONICAL on `CUR-1409` (CUR-1170 · 2026-05-29)
+
+The shared `diary_shared_model` package is being authored on branch
+**`CUR-1409-shared-events`** (off `main`) — **treat it as canonical** so both sides don't
+create competing packages. Current state at `apps/common-dart/diary_shared_model/`:
+
+- `sharedEventCatalog` = **25** cross-wire entry types: 19 portal `[P]`/edge (patient
+  lifecycle, questionnaire lifecycle, notification + `fcm_token_deactivated`) + **6
+  diary-originated** (`epistaxis_event`, `no_epistaxis_event`, `unknown_day_event`,
+  `patient_linked`, `fcm_token_registered`, `fcm_message_received`).
+- `intentionallyAbsentIds` documents the dropped `questionnaire_submitted` (→ `finalized`
+  on `<id>_survey`) and `inbound_tombstone_record_failed`.
+- Survey `<id>_survey` types stay **diary-app-registered (dynamic)** — not hardcoded here.
+- Minimal `EntryTypeDefinition` (`id`/`registeredVersion`/`name`/`isMaterialized`); the
+  event **kind** rides in metadata. Invariant tests: no-dup, snake_case, JSON round-trip.
+- Depends on `event_sourcing@9e04c17` via git ref + gitignored `pubspec_overrides`.
+
+Diary: please add your **payload schemas + canonical projection specs** into this package
+(or flag if you'd rather split projections). Portal will author the `[P]` payload classes
+next. Confirm and we freeze the package skeleton.
