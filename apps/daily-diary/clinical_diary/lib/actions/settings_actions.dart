@@ -74,3 +74,76 @@ class SetUserSettingAction extends Action<SetUserSettingInput, String> {
     );
   }
 }
+
+/// Parsed input for the sponsor-settings actions ([ApplySponsorSettingsAction]
+/// and the unlock action): the `{key: value}` set to apply.
+class SponsorSettingsInput {
+  const SponsorSettingsInput({required this.settings});
+  final Map<String, Object?> settings;
+}
+
+Map<String, Object?> _parseSettingsMap(Map<String, Object?> raw, String field) {
+  final settings = raw[field];
+  if (settings is! Map) {
+    throw FormatException('$field map is required');
+  }
+  return settings.cast<String, Object?>();
+}
+
+/// Applies a portal-requested settings set: one `setting_applied(source:
+/// sponsor, locked: true)` per key. This is the SAME apply path as the user
+/// action — same event type — only source/locked differ. Returns the keys.
+class ApplySponsorSettingsAction
+    extends Action<SponsorSettingsInput, List<String>> {
+  const ApplySponsorSettingsAction();
+
+  @override
+  String get name => 'apply_sponsor_settings';
+
+  @override
+  String get description =>
+      'Diary applies (and locks) the sponsor-requested settings.';
+
+  @override
+  Set<Permission> get permissions => const <Permission>{};
+
+  @override
+  Idempotency get idempotency => Idempotency.optional;
+
+  @override
+  SponsorSettingsInput parseInput(Map<String, Object?> raw) =>
+      SponsorSettingsInput(settings: _parseSettingsMap(raw, 'settings'));
+
+  @override
+  void validate(SponsorSettingsInput input) {
+    if (input.settings.isEmpty) {
+      throw ArgumentError.value(
+        input.settings,
+        'settings',
+        'a sponsor settings request must contain at least one setting',
+      );
+    }
+  }
+
+  @override
+  Future<ExecutionResult<List<String>>> execute(
+    SponsorSettingsInput input,
+    ActionContext ctx,
+  ) async {
+    final events = <EventDraft>[
+      for (final entry in input.settings.entries)
+        _settingDraft(
+          SettingPayload(
+            key: entry.key,
+            value: entry.value,
+            source: SettingSource.sponsor,
+            locked: true,
+          ),
+        ),
+    ];
+    return ExecutionResult<List<String>>(
+      result: input.settings.keys.toList(),
+      events: events,
+    );
+  }
+}

@@ -49,4 +49,38 @@ void main() {
       );
     });
   });
+
+  group('ApplySponsorSettingsAction', () {
+    const apply = ApplySponsorSettingsAction();
+
+    test('emits one locked sponsor setting_applied per key', () async {
+      final input = apply.parseInput(const {
+        'settings': {
+          'clinical.lockThresholdHours': 48,
+          'useReviewScreen': true,
+        },
+      });
+      apply.validate(input);
+      final events = (await apply.execute(input, _ctx())).events;
+      expect(events.length, 2);
+      for (final e in events) {
+        expect(e.aggregateType, settingAggregateType);
+        expect(e.entryType, 'setting_applied');
+        expect(e.data['source'], 'sponsor');
+        expect(e.data['locked'], true);
+      }
+      final byKey = {for (final e in events) e.aggregateId: e.data['value']};
+      expect(byKey['clinical.lockThresholdHours'], 48);
+      expect(byKey['useReviewScreen'], true);
+    });
+
+    test('parseInput rejects a missing settings map', () {
+      expect(() => apply.parseInput(const {}), throwsA(isA<FormatException>()));
+    });
+
+    test('validate rejects an empty settings map', () {
+      final input = apply.parseInput(const {'settings': <String, Object?>{}});
+      expect(() => apply.validate(input), throwsArgumentError);
+    });
+  });
 }
