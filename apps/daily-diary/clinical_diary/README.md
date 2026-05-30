@@ -19,7 +19,8 @@ Flutter application for FDA-compliant clinical trial data collection, focusing o
 - Flutter SDK 3.38.7 or higher
 - Doppler CLI (for secrets management)
 - lcov (for coverage reports)
-- Bash 4+ (for `tool/generate_env_delta_record.sh` and `tool/test/test_env_delta_record.sh`; macOS ships Bash 3.2, so `brew install bash` and invoke as `/opt/homebrew/bin/bash tool/...`). CI's ubuntu runner has Bash 5 so the gate works there unconditionally.
+- Bash 4+ (for `tool/build`, `tool/run`, `tool/generate_env_delta_record.sh`; macOS ships Bash 3.2, so `brew install bash`). CI's ubuntu runner has Bash 5 unconditionally.
+- yq (mikefarah/yq) for parsing `flavorizr.yaml` from the tool scripts. `brew install yq`. CI runners have it preinstalled.
 
 ### Installation
 
@@ -78,31 +79,31 @@ Each flavor has:
 
 All configuration (API base URL, feature flags, etc.) is derived from the resolved
 environment — the bundled `assets/config/env.json` pointer (`EnvProfile`), not a build flag.
-This simplifies build commands and IDE configurations.
 
-**Using IDE Run Configurations (Recommended):**
+**Single source of truth for the env list**: `flavorizr.yaml` at the project root.
+Adding a new env means adding an entry there; the tool scripts pick it up automatically.
 
-Pre-configured run configurations are available for both IDEs:
-- **IntelliJ IDEA**: `.idea/runConfigurations/` (dev, qa, uat, prod, plus profile/release variants)
-- **VS Code**: `.vscode/launch.json`
+**Using IDE Run Configurations:**
 
-Simply select the desired flavor from your IDE's run configuration dropdown.
+VS Code launch configurations are in `.vscode/launch.json` (one entry per env per
+debug/profile/release mode — adding a new env to `flavorizr.yaml` requires adding
+matching launch.json entries by hand for now).
 
 **Using Command Line:**
 
 ```bash
-# Web — env resolved at runtime from bundled assets/config/env.json (defaults to dev).
-# To preview a non-dev env, run in a subshell so the pointer is restored on exit:
-#   ( source tool/_write_env_pointer.sh qa && flutter run -d chrome )
-# (or use ./tool/run_qa.sh --web, which stamps and restores around the run)
-flutter run -d chrome
+# Run with parametric ./tool/run <env> [flags]
+./tool/run dev                          # default device, dev env
+./tool/run qa --web                     # Chrome, qa env
+./tool/run uat --device macos           # macOS, uat env
+./tool/run local                        # Chrome -> localhost:8081 (local diary-server)
+./tool/run local --device emulator-5554 --api-base http://10.0.2.2:8081  # Android emu
+./tool/run prod --force                 # prod locally — almost always wrong (hence --force)
+```
 
-# Mobile builds — env is resolved at runtime from the bundled assets/config/env.json;
-# the tool/run_*.sh scripts stamp it. --flavor selects native config (bundle id, name, icon, signing).
-# Prefer: ./tool/run_dev.sh | ./tool/run_qa.sh | ./tool/run_uat.sh
-flutter run --flavor dev
-flutter run --flavor qa
-flutter run --flavor prod
+For one-off preview without the wrapper, stamp the pointer in a subshell so it's restored on exit:
+```bash
+( source tool/_write_env_pointer.sh qa && flutter run -d chrome )
 ```
 
 ### How Environment Configuration Works
@@ -125,34 +126,64 @@ other settings from the resolved `EnvProfile` via `AppConfig`:
 
 ### Building for Release
 
-Build scripts are available in `tool/` for common build operations:
+One parametric build entrypoint: `./tool/build <platform> <env> [flags]`.
 
 ```bash
-# Web builds
-./tool/build_web_dev.sh
-./tool/build_web_qa.sh
-./tool/build_web_prod.sh
+# Web
+./tool/build web dev
+./tool/build web qa
+./tool/build web prod
 
-# iOS builds
-./tool/build_ios_dev.sh
-./tool/build_ios_prod.sh
+# Android — unsigned (sideload-style)
+./tool/build android dev
+./tool/build android qa
 
-# Android builds
-./tool/build_android_dev.sh
-./tool/build_android_prod.sh
+# Android — signed (requires Doppler keystore secrets)
+# Per-env output format (apk vs aab) comes from flavorizr.yaml's android.signedFormat.
+doppler run -- ./tool/build android prod --signed   # produces AAB for Play Store
+doppler run -- ./tool/build android qa --signed     # produces APK for sideload
+
+# iOS — local .app bundle for Xcode archive
+./tool/build ios dev
+
+# iOS — .ipa archive (no signing; for Xcode-driven device install)
+./tool/build ios uat --ipa
+
+# Full iOS App Store packaging + signing + upload — use Fastlane:
+cd ios && bundle exec fastlane build flavor:dev
+cd ios && bundle exec fastlane build_all          # all four envs from one Dart compile
 ```
 
-Or build manually:
+Or build manually (the scripts stamp `assets/config/env.json` and restore on exit;
+do this yourself if invoking flutter directly):
 
 ```bash
-# Web (prefer ./tool/build_web_<env>.sh, which stamp env.json; a bare build = dev)
-flutter build web --release
-
-# Mobile — use the tool scripts (they stamp env.json); --flavor selects native config
-flutter build apk --release --flavor prod
-flutter build ios --release --flavor prod
-flutter build appbundle --release --flavor prod
+( source tool/_write_env_pointer.sh prod && flutter build apk --release --flavor prod )
 ```
+
+### Adding a new environment
+
+The single source of truth is `flavorizr.yaml`. To add a new env (say `staging`):
+
+1. Add a `staging:` block under `flavors:` in `flavorizr.yaml` with the per-env
+   `app.name`, `android.applicationId` + `signedFormat`, `ios.bundleId` +
+   `provisioningProfile`, `macos.bundleId`, icon paths, Firebase plist paths.
+2. Regenerate the native scaffolding for the new env. For most changes (adding
+   a flavor, fixing a bundle id), prefer hand-editing `android/app/flavorizr.gradle.kts`
+   directly — it's small and reviewable. Only run `dart run flutter_flavorizr -f`
+   when you genuinely need to recreate IDE configs / asset catalogs / Xcode
+   schemes from scratch: that command is destructive and overwrites unrelated
+   files (`ios/Podfile`, `lib/main.dart`, `lib/flavors.dart`, asset catalogs).
+   If you do run it, inspect the diff carefully and revert anything that isn't
+   strictly part of the new-env delta. The delta-record generator's yaml-vs-Gradle
+   cross-check will catch any divergence either way.
+3. Add per-flavor assets: `android/app/src/staging/google-services.json`,
+   `ios/Runner/staging/GoogleService-Info.plist`, launcher icons.
+4. Regenerate the controlled-delta record:
+   `/opt/homebrew/bin/bash tool/generate_env_delta_record.sh`
+5. Commit. `tool/build`, `tool/run`, Fastlane, and the CI workflows will pick up
+   the new env automatically (the workflow `flavor` dispatch input is the only
+   hand-maintained list — add `staging` there too).
 
 ### Environment Features
 
@@ -189,20 +220,24 @@ print(EnvProfile.current.title); // "Diary DEV", "Diary QA", or "Clinical Diary"
 
 ### CI/CD Integration
 
-In GitHub Actions workflows:
+Production mobile builds run through the workflows under `.github/workflows/`:
 
-```yaml
-# Build for web (dev)
-- name: Build Web
-  run: flutter build web --release
+- **`android-build.yml`** — manual `workflow_dispatch`. Resolves the package name
+  from `flavorizr.yaml` (via `yq`), then runs
+  `doppler run ... -- ./tool/build android <flavor> --signed`. Output format
+  (APK vs AAB) is per-env in the manifest's `android.signedFormat` field.
+- **`ios-build.yml`** — manual `workflow_dispatch`. Resolves the bundle id from
+  `flavorizr.yaml`, then runs
+  `doppler run ... -- bundle exec fastlane build flavor:<flavor>` from `ios/`.
+  Fastlane handles `archive_once` (one Dart compile) + `package_flavor` (per-env
+  signing, env.json stamp, Firebase plist swap, App Store upload).
 
-# Build for Production APK
-- name: Build Production APK
-  run: flutter build apk --release --flavor prod
+For local CI parity, invoke the same scripts directly:
 
-# Build iOS
-- name: Build Production iOS
-  run: flutter build ios --release --flavor prod --no-codesign
+```bash
+./tool/build web prod
+doppler run -- ./tool/build android prod --signed
+cd ios && bundle exec fastlane build flavor:prod
 ```
 
 ### Firebase Configuration
@@ -601,7 +636,7 @@ if (AppConfig.showDevTools) {
 static const String _qaApiKeyRaw = String.fromEnvironment('CUREHHT_QA_API_KEY');
 ```
 
-On every platform the environment comes from the bundled `assets/config/env.json` (use the `tool/run_*.sh` or `tool/build_web_*.sh` scripts to target a non-dev env); `--dart-define=APP_FLAVOR` is no longer read.
+On every platform the environment comes from the bundled `assets/config/env.json` (use `tool/run <env>` or `tool/build web <env>` to target a non-dev env); `--dart-define=APP_FLAVOR` is no longer read.
 
 ## 🧪 Testing
 
@@ -614,20 +649,20 @@ The app supports loading test data on startup via the `IMPORT_FILE` dart-define.
 - Demo presentations
 - QA testing specific scenarios
 
-**Using run scripts (recommended):**
+**Using the run script (recommended):**
 
 ```bash
 # Run dev flavor with test data
-./tool/run_dev.sh --import-file ./test/data/hht-diary-export-2025-12-14-123050.json
+./tool/run dev --import-file ./test/data/hht-diary-export-2025-12-14-123050.json
 
 # Run on web with test data
-./tool/run_dev.sh --web --import-file ./test/data/export.json
+./tool/run dev --web --import-file ./test/data/export.json
 
 # Run QA flavor with test data
-./tool/run_qa.sh --import-file ./test/data/export.json
+./tool/run qa --import-file ./test/data/export.json
 
 # Run UAT flavor
-./tool/run_uat.sh --import-file ./test/data/export.json
+./tool/run uat --import-file ./test/data/export.json
 ```
 
 **Using flutter run directly:**
@@ -644,26 +679,31 @@ flutter run --flavor dev \
 
 **Notes:**
 - The file path must be absolute when using `--dart-define` directly
-- The run scripts automatically convert relative paths to absolute
+- The run script automatically converts relative paths to absolute
 - IMPORT_FILE only works on native platforms (iOS, Android, macOS, Linux, Windows)
 - On web, IMPORT_FILE is ignored (browsers cannot read local files)
 - Import merges with existing data (duplicates are skipped by record ID)
 - To start fresh, use "Reset All Data" from the logo menu before running with IMPORT_FILE
 
-### Run Scripts
+### Run Script
 
-Convenience scripts in `tool/` for running the app with different flavors:
+One parametric script in `tool/run` accepts any env from `flavorizr.yaml`:
 
-| Script              | Flavor | Dev Tools |
-|---------------------|--------|-----------|
-| `./tool/run_dev.sh` | dev    | Yes       |
-| `./tool/run_qa.sh`  | qa     | Yes       |
-| `./tool/run_uat.sh` | uat    | No        |
+```bash
+./tool/run dev               # dev with dev tools
+./tool/run qa                # qa with dev tools
+./tool/run uat               # uat (no dev tools)
+./tool/run local             # Dart-only local env (default Chrome -> localhost:8081)
+./tool/run prod --force      # prod (requires --force — almost always wrong)
+```
 
-All scripts support these options:
-- `--import-file <path>` - Auto-import JSON export file on startup
-- `--device <device>` - Specify device (e.g., `chrome`, `macos`, `iPhone 15`)
-- `--web` - Shortcut for `--device chrome`
+Supported flags:
+- `--import-file <path>` — Auto-import JSON export file on startup
+- `--device <device>` — Specify device (e.g., `chrome`, `macos`, `iPhone 15`, `emulator-5554`)
+- `--web` — Shortcut for `--device chrome`
+- `--api-base <url>` — Override `DIARY_API_BASE` (mainly for `local` env on mobile)
+- `--force` — Required for prod (running prod locally points the app at prod
+  APIs/Firebase with dev creds — almost always wrong)
 
 ### Test Architecture
 

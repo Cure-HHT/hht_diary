@@ -1,51 +1,37 @@
+require "yaml"
+
 default_platform(:ios)
 
 FLUTTER_DIR = File.expand_path("../../", __dir__)
 
-PROFILE_NAMES = {
-  "dev"  => "ClinicalDiary_DEV_AppStore",
-  "qa"   => "ClinicalDiary_QA_AppStore",
-  "uat"  => "ClinicalDiary_UAT_AppStore",
-  "prod" => "ClinicalDiary_PROD_AppStore"
-}
-
-APP_IDENTIFIERS = {
-  "dev"  => "org.anspar.curehht.app.dev",
-  "qa"   => "org.anspar.curehht.app.qa",
-  "uat"  => "org.anspar.curehht.app.uat",
-  "prod" => "org.anspar.curehht.app"
-}
+# Implements: DIARY-OPS-single-promotable-artifact/D
+# Single source of truth for per-flavor identity. flavorizr.yaml is the
+# manifest; APP_IDENTIFIERS and PROFILE_NAMES are derived projections of it.
+# Filters to envs with a native build config (excludes `local`, which is
+# Dart-only and not buildable through Fastlane).
+FLAVORIZR_YAML = YAML.load_file(File.expand_path("../../flavorizr.yaml", __dir__))
+BUILDABLE_FLAVORS = FLAVORIZR_YAML["flavors"].reject { |_, c| c["native"] == false }
+APP_IDENTIFIERS  = BUILDABLE_FLAVORS.transform_values { |c| c.dig("ios", "bundleId") }
+PROFILE_NAMES    = BUILDABLE_FLAVORS.transform_values { |c| c.dig("ios", "provisioningProfile") }
 
 platform :ios do
   before_all do
     setup_ci if ENV["CI"]
   end
 
-  desc "Build DEV IPA"
-  lane :build_dev do
+  desc "Build IPA for the given flavor (one Dart compile + per-env packaging)"
+  lane :build do |options|
+    flavor = options.fetch(:flavor) do
+      UI.user_error!("missing required argument: flavor (try: bundle exec fastlane build flavor:dev)")
+    end
+    APP_IDENTIFIERS.key?(flavor) || UI.user_error!(
+      "unknown flavor '#{flavor}'; known: #{APP_IDENTIFIERS.keys.join(', ')}"
+    )
     archive_once
-    package_flavor(flavor: "dev")
+    package_flavor(flavor: flavor)
   end
 
-  desc "Build QA IPA"
-  lane :build_qa do
-    archive_once
-    package_flavor(flavor: "qa")
-  end
-
-  desc "Build UAT IPA"
-  lane :build_uat do
-    archive_once
-    package_flavor(flavor: "uat")
-  end
-
-  desc "Build PROD IPA"
-  lane :build_prod do
-    archive_once
-    package_flavor(flavor: "prod")
-  end
-
-  desc "Build all four IPAs from one Dart compilation"
+  desc "Build all flavors from one Dart compile (local 'ship four IPAs' shape)"
   lane :build_all do
     archive_once
     APP_IDENTIFIERS.each_key { |flavor| package_flavor(flavor: flavor) }
