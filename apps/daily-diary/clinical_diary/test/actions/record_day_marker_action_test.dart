@@ -85,5 +85,25 @@ void main() {
         throwsA(isA<FormatException>()),
       );
     });
+
+    test('validate rejects a changeReason outside the closed set', () {
+      final input = action.parseInput(const {
+        'aggregateId': 'e1',
+        'entryType': 'epistaxis_event',
+        'changeReason': 'because-i-felt-like-it',
+      });
+      expect(() => action.validate(input), throwsArgumentError);
+    });
+
+    test('validate accepts entered-in-error / duplicate', () {
+      for (final r in ['entered-in-error', 'duplicate']) {
+        final input = action.parseInput({
+          'aggregateId': 'e1',
+          'entryType': 'epistaxis_event',
+          'changeReason': r,
+        });
+        expect(() => action.validate(input), returnsNormally);
+      }
+    });
   });
 }

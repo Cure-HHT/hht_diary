@@ -39,7 +39,7 @@ dependencies:
   diary_shared_model:
     git:
       url: git@github.com:Cure-HHT/hht_diary.git
-      ref: CUR-1409-diary-payloads
+      ref: CUR-1409-diary-model-additions
       path: apps/common-dart/diary_shared_model
   trial_data_types:
     path: ../../common-dart/trial_data_types

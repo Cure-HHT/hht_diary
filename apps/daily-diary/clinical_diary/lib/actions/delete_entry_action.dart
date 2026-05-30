@@ -69,7 +69,15 @@ class DeleteEntryAction extends Action<DeleteEntryInput, String> {
 
   @override
   void validate(DeleteEntryInput input) {
-    // Structural only; the lock guard lives at the submission boundary.
+    // changeReason must be in the cross-wire controlled vocabulary (no free
+    // text). The hard lock guard lives at the submission boundary.
+    if (!changeReasonWireValues.contains(input.changeReason)) {
+      throw ArgumentError.value(
+        input.changeReason,
+        'changeReason',
+        'must be one of $changeReasonWireValues',
+      );
+    }
   }
 
   @override
