@@ -3,7 +3,7 @@
 //   REQ-CAL-p00072: View Linking Code Button
 //   REQ-CAL-p00073: Patient Status Definitions
 //
-// Widget tests for PatientActionsDialog rendering based on patient status.
+// Widget tests for ParticipantActionsDialog rendering based on patient status.
 
 import 'dart:convert';
 
@@ -14,7 +14,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sponsor_portal_ui/services/api_client.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
-import 'package:sponsor_portal_ui/widgets/patient_actions_dialog.dart';
+import 'package:sponsor_portal_ui/widgets/participant_actions_dialog.dart';
 
 MockClient _createMockHttpClient() {
   return MockClient((request) async {
@@ -69,9 +69,9 @@ Future<void> _pumpDialog(
         body: Builder(
           builder: (context) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              showDialog<PatientActionResult>(
+              showDialog<ParticipantActionResult>(
                 context: context,
-                builder: (_) => PatientActionsDialog(
+                builder: (_) => ParticipantActionsDialog(
                   patientId: 'PAT-TEST-001',
                   patientDisplayId: '999-002-320',
                   mobileLinkingStatus: mobileLinkingStatus,
@@ -91,7 +91,7 @@ Future<void> _pumpDialog(
 }
 
 void main() {
-  group('PatientActionsDialog', () {
+  group('ParticipantActionsDialog', () {
     testWidgets('shows title and patient ID', (tester) async {
       final apiClient = await _createMockApiClient();
 

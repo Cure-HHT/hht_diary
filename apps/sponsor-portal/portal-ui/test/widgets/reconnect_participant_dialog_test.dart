@@ -3,7 +3,7 @@
 //   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00073: Patient Status Definitions
 //
-// Widget tests for ReconnectPatientDialog confirm/success/error/retry states.
+// Widget tests for ReconnectParticipantDialog confirm/success/error/retry states.
 
 import 'dart:convert';
 
@@ -14,7 +14,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sponsor_portal_ui/services/api_client.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
-import 'package:sponsor_portal_ui/widgets/reconnect_patient_dialog.dart';
+import 'package:sponsor_portal_ui/widgets/reconnect_participant_dialog.dart';
 
 MockClient _createMockHttpClient({bool shouldFail = false}) {
   return MockClient((request) async {
@@ -102,7 +102,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
               showDialog<bool>(
                 context: context,
                 barrierDismissible: false,
-                builder: (_) => ReconnectPatientDialog(
+                builder: (_) => ReconnectParticipantDialog(
                   patientId: 'PAT-TEST-001',
                   patientDisplayId: '999-002-320',
                   apiClient: apiClient,
@@ -121,7 +121,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
 }
 
 void main() {
-  group('ReconnectPatientDialog widget', () {
+  group('ReconnectParticipantDialog widget', () {
     testWidgets('confirm state shows patient ID and Reconnect button', (
       tester,
     ) async {

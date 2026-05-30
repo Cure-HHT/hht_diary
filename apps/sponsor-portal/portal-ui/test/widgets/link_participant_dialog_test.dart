@@ -14,7 +14,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sponsor_portal_ui/services/api_client.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
-import 'package:sponsor_portal_ui/widgets/link_patient_dialog.dart';
+import 'package:sponsor_portal_ui/widgets/link_participant_dialog.dart';
 
 /// Creates a mock HTTP client that returns no active code on GET,
 /// then returns a new code on POST.
@@ -161,8 +161,8 @@ Future<void> _pumpShowLinkingCodeDialog(
   await tester.pumpAndSettle();
 }
 
-/// Pumps the LinkPatientDialog (generate code for new patient).
-Future<void> _pumpLinkPatientDialog(
+/// Pumps the LinkParticipantDialog (generate code for new participant).
+Future<void> _pumpLinkParticipantDialog(
   WidgetTester tester,
   ApiClient apiClient,
 ) async {
@@ -175,7 +175,7 @@ Future<void> _pumpLinkPatientDialog(
               showDialog<bool>(
                 context: context,
                 barrierDismissible: false,
-                builder: (_) => LinkPatientDialog(
+                builder: (_) => LinkParticipantDialog(
                   patientId: 'PAT-TEST-001',
                   patientDisplayId: '999-002-320',
                   apiClient: apiClient,
@@ -194,13 +194,13 @@ Future<void> _pumpLinkPatientDialog(
 }
 
 void main() {
-  group('LinkPatientDialog', () {
+  group('LinkParticipantDialog', () {
     testWidgets('confirm state shows patient ID and Generate Code button', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
 
-      await _pumpLinkPatientDialog(tester, apiClient);
+      await _pumpLinkParticipantDialog(tester, apiClient);
 
       expect(find.text('Link Participant'), findsOneWidget);
       expect(find.text('999-002-320'), findsOneWidget);
@@ -214,7 +214,7 @@ void main() {
     ) async {
       final apiClient = await _createMockApiClient();
 
-      await _pumpLinkPatientDialog(tester, apiClient);
+      await _pumpLinkParticipantDialog(tester, apiClient);
 
       await tester.tap(find.text('Generate Code'));
       await tester.pumpAndSettle();
@@ -229,7 +229,7 @@ void main() {
     ) async {
       final apiClient = await _createMockApiClient(generateShouldFail: true);
 
-      await _pumpLinkPatientDialog(tester, apiClient);
+      await _pumpLinkParticipantDialog(tester, apiClient);
 
       await tester.tap(find.text('Generate Code'));
       await tester.pumpAndSettle();
@@ -242,7 +242,7 @@ void main() {
     testWidgets('Try Again returns to confirm state', (tester) async {
       final apiClient = await _createMockApiClient(generateShouldFail: true);
 
-      await _pumpLinkPatientDialog(tester, apiClient);
+      await _pumpLinkParticipantDialog(tester, apiClient);
 
       await tester.tap(find.text('Generate Code'));
       await tester.pumpAndSettle();
@@ -257,7 +257,7 @@ void main() {
     testWidgets('Cancel button closes dialog', (tester) async {
       final apiClient = await _createMockApiClient();
 
-      await _pumpLinkPatientDialog(tester, apiClient);
+      await _pumpLinkParticipantDialog(tester, apiClient);
 
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();

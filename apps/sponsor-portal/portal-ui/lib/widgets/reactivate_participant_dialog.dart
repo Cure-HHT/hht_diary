@@ -1,125 +1,90 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00064: Mark Patient as Not Participating
 //   REQ-CAL-p00073: Patient Status Definitions
-//   REQ-CAL-p00077: Disconnection Notification
 //
-// Dialog for disconnecting patients from the mobile app
+// Dialog for reactivating a patient who was marked as not participating
 
 import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
 
-/// Valid disconnect reasons per CUR-768 specification
-enum DisconnectReason {
-  deviceIssues('Device Issues', 'Lost, stolen, or damaged device'),
-  technicalIssues('Technical Issues', 'App not working, sync problems'),
-  other('Other', 'No additional details required');
-
-  final String label;
-  final String description;
-  const DisconnectReason(this.label, this.description);
-}
-
-/// Dialog states for the disconnect flow
+/// Dialog states for the reactivate flow
 enum _DialogState { confirm, loading, success, error }
 
-/// Dialog for disconnecting a patient from the mobile app.
+/// Dialog for reactivating a patient who was marked as not participating.
 ///
-/// Shows a confirmation prompt with reason dropdown, then calls the API,
-/// and displays the result.
-///
-/// Usage:
-/// ```dart
-/// final success = await DisconnectPatientDialog.show(
-///   context: context,
-///   patientId: patient.patientId,
-///   patientDisplayId: patient.edcSubjectKey,
-///   apiClient: apiClient,
-/// );
-/// ```
-class DisconnectPatientDialog extends StatefulWidget {
+/// The patient will be moved to "disconnected" status and will need to
+/// be reconnected to continue participating.
+class ReactivateParticipantDialog extends StatefulWidget {
   final String patientId;
   final String patientDisplayId;
   final ApiClient apiClient;
-  // REQ-p70010-C: true = predefined dropdown, false = free text field
-  final bool useDropdown;
 
-  const DisconnectPatientDialog({
+  const ReactivateParticipantDialog({
     super.key,
     required this.patientId,
     required this.patientDisplayId,
     required this.apiClient,
-    this.useDropdown = true,
   });
 
-  /// Shows the dialog and returns true if the patient was disconnected successfully.
+  /// Shows the dialog and returns true if the patient was reactivated successfully.
   static Future<bool> show({
     required BuildContext context,
     required String patientId,
     required String patientDisplayId,
     required ApiClient apiClient,
-    bool useDropdown = true,
   }) async {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => DisconnectPatientDialog(
+      builder: (context) => ReactivateParticipantDialog(
         patientId: patientId,
         patientDisplayId: patientDisplayId,
         apiClient: apiClient,
-        useDropdown: useDropdown,
       ),
     );
     return result ?? false;
   }
 
   @override
-  State<DisconnectPatientDialog> createState() =>
-      _DisconnectPatientDialogState();
+  State<ReactivateParticipantDialog> createState() =>
+      _ReactivateParticipantDialogState();
 }
 
-class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
+class _ReactivateParticipantDialogState
+    extends State<ReactivateParticipantDialog> {
   _DialogState _state = _DialogState.confirm;
-  DisconnectReason? _selectedReason;
-  final _reasonTextController = TextEditingController();
+  final _reasonController = TextEditingController();
   String? _error;
-  int _codesRevoked = 0;
-
-  bool get _canSubmit => widget.useDropdown
-      ? _selectedReason != null
-      : _reasonTextController.text.trim().isNotEmpty;
 
   @override
   void dispose() {
-    _reasonTextController.dispose();
+    _reasonController.dispose();
     super.dispose();
   }
 
-  Future<void> _disconnect() async {
+  bool get _canSubmit => _reasonController.text.trim().isNotEmpty;
+
+  Future<void> _reactivate() async {
     if (!_canSubmit) return;
 
     setState(() => _state = _DialogState.loading);
 
-    final reason = widget.useDropdown
-        ? _selectedReason!.label
-        : _reasonTextController.text.trim();
     final response = await widget.apiClient.post(
-      '/api/v1/portal/participants/disconnect',
-      {'patientId': widget.patientId, 'reason': reason},
+      '/api/v1/portal/participants/reactivate',
+      {'patientId': widget.patientId, 'reason': _reasonController.text.trim()},
     );
 
     if (!mounted) return;
 
     if (response.isSuccess && response.data != null) {
-      final data = response.data as Map<String, dynamic>;
       setState(() {
         _state = _DialogState.success;
-        _codesRevoked = data['codes_revoked'] as int? ?? 0;
       });
     } else {
       setState(() {
         _state = _DialogState.error;
-        _error = response.error ?? 'Failed to disconnect participant';
+        _error = response.error ?? 'Failed to reactivate participant';
       });
     }
   }
@@ -140,9 +105,9 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
       case _DialogState.confirm:
         return Row(
           children: [
-            Icon(Icons.link_off, color: theme.colorScheme.error),
+            Icon(Icons.refresh, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            const Text('Disconnect Participant'),
+            const Text('Reactivate Participant'),
           ],
         );
       case _DialogState.loading:
@@ -157,7 +122,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
               ),
             ),
             const SizedBox(width: 8),
-            const Text('Disconnecting...'),
+            const Text('Reactivating...'),
           ],
         );
       case _DialogState.success:
@@ -165,7 +130,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
           children: [
             Icon(Icons.check_circle, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            const Text('Participant Disconnected'),
+            const Text('Participant Reactivated'),
           ],
         );
       case _DialogState.error:
@@ -189,7 +154,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Disconnect this participant from the mobile app:',
+                'Reactivate this participant to resume participation:',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
@@ -217,98 +182,60 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Reason input — dropdown or free text based on sponsor config
-              Text(
-                'Reason for disconnection *',
-                style: theme.textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
-              if (widget.useDropdown)
-                DropdownButtonFormField<DisconnectReason>(
-                  initialValue: _selectedReason,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Select a reason',
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                  items: DisconnectReason.values.map((reason) {
-                    return DropdownMenuItem(
-                      value: reason,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(reason.label),
-                          Text(
-                            reason.description,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() => _selectedReason = value);
-                  },
-                  selectedItemBuilder: (context) {
-                    return DisconnectReason.values.map((reason) {
-                      return Text(reason.label);
-                    }).toList();
-                  },
-                )
-              else
-                TextField(
-                  controller: _reasonTextController,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter reason for disconnection',
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                  maxLines: 3,
-                  onChanged: (_) => setState(() {}),
-                ),
               const SizedBox(height: 16),
 
-              // Warning message
+              // Info message
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer.withValues(
+                  color: theme.colorScheme.tertiaryContainer.withValues(
                     alpha: 0.3,
                   ),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: theme.colorScheme.error.withValues(alpha: 0.5),
+                    color: theme.colorScheme.tertiary.withValues(alpha: 0.5),
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      Icons.warning_amber,
+                      Icons.info_outline,
                       size: 20,
-                      color: theme.colorScheme.error,
+                      color: theme.colorScheme.tertiary,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'This will revoke all active linking codes and the participant will see a disconnection notice in their app.',
+                        'The participant will be moved to "disconnected" status. '
+                        'You will need to generate a new linking code to reconnect them.',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onErrorContainer,
+                          color: theme.colorScheme.onTertiaryContainer,
                         ),
                       ),
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 20),
+
+              // Reason field (mandatory)
+              Text(
+                'Reason for reactivation *',
+                style: theme.textTheme.labelLarge,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _reasonController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Enter reason for reactivation...',
+                  contentPadding: EdgeInsets.all(12),
+                  helperText:
+                      'Required - explain why this participant is being reactivated',
+                  helperMaxLines: 2,
+                ),
+                maxLines: 3,
+                onChanged: (_) => setState(() {}),
               ),
             ],
           ),
@@ -327,7 +254,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Participant ${widget.patientDisplayId} has been disconnected from the mobile app.',
+              'Participant ${widget.patientDisplayId} has been reactivated.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
@@ -340,20 +267,15 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoRow(theme, 'Reason', _selectedReason?.label ?? '-'),
+                  _buildInfoRow(theme, 'New status', 'Disconnected'),
                   const SizedBox(height: 8),
-                  _buildInfoRow(
-                    theme,
-                    'Linking codes revoked',
-                    _codesRevoked.toString(),
-                  ),
+                  _buildInfoRow(theme, 'Reason', _reasonController.text.trim()),
                 ],
               ),
             ),
             const SizedBox(height: 16),
             Text(
-              'The participant will see a disconnection notice when they next open the app. '
-              'To reconnect, generate a new linking code.',
+              'Use the "Reconnect" action to generate a new linking code for this participant.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -367,8 +289,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _error ??
-                  'An error occurred while disconnecting the participant.',
+              _error ?? 'An error occurred while reactivating the participant.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.error,
               ),
@@ -390,7 +311,7 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 140,
+          width: 100,
           child: Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -419,13 +340,9 @@ class _DisconnectPatientDialogState extends State<DisconnectPatientDialog> {
             child: const Text('Cancel'),
           ),
           FilledButton.icon(
-            onPressed: _canSubmit ? _disconnect : null,
-            icon: const Icon(Icons.link_off, size: 18),
-            label: const Text('Disconnect'),
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError,
-            ),
+            onPressed: _canSubmit ? _reactivate : null,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Reactivate'),
           ),
         ];
 

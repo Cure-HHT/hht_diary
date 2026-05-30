@@ -2,7 +2,7 @@
 //   REQ-CAL-p00064: Mark Patient as Not Participating
 //   REQ-CAL-p00073: Patient Status Definitions
 //
-// Widget tests for ReactivatePatientDialog confirm/success/error/retry states.
+// Widget tests for ReactivateParticipantDialog confirm/success/error/retry states.
 
 import 'dart:convert';
 
@@ -13,7 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sponsor_portal_ui/services/api_client.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
-import 'package:sponsor_portal_ui/widgets/reactivate_patient_dialog.dart';
+import 'package:sponsor_portal_ui/widgets/reactivate_participant_dialog.dart';
 
 MockClient _createMockHttpClient({bool shouldFail = false}) {
   return MockClient((request) async {
@@ -91,7 +91,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
               showDialog<bool>(
                 context: context,
                 barrierDismissible: false,
-                builder: (_) => ReactivatePatientDialog(
+                builder: (_) => ReactivateParticipantDialog(
                   patientId: 'PAT-TEST-001',
                   patientDisplayId: '999-002-320',
                   apiClient: apiClient,
@@ -110,7 +110,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
 }
 
 void main() {
-  group('ReactivatePatientDialog widget', () {
+  group('ReactivateParticipantDialog widget', () {
     testWidgets('confirm state shows patient ID and Reactivate button', (
       tester,
     ) async {

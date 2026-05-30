@@ -3,7 +3,7 @@
 //   REQ-CAL-p00073: Patient Status Definitions
 //   REQ-CAL-p00077: Disconnection Notification
 //
-// Widget tests for DisconnectPatientDialog confirm/success/error/retry states.
+// Widget tests for DisconnectParticipantDialog confirm/success/error/retry states.
 
 import 'dart:convert';
 
@@ -14,7 +14,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sponsor_portal_ui/services/api_client.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
-import 'package:sponsor_portal_ui/widgets/disconnect_patient_dialog.dart';
+import 'package:sponsor_portal_ui/widgets/disconnect_participant_dialog.dart';
 
 MockClient _createMockHttpClient({bool shouldFail = false}) {
   return MockClient((request) async {
@@ -101,7 +101,7 @@ Future<void> _pumpDialog(
               showDialog<bool>(
                 context: context,
                 barrierDismissible: false,
-                builder: (_) => DisconnectPatientDialog(
+                builder: (_) => DisconnectParticipantDialog(
                   patientId: 'PAT-TEST-001',
                   patientDisplayId: '999-002-320',
                   apiClient: apiClient,
@@ -158,7 +158,7 @@ void main() {
     });
   });
 
-  group('DisconnectPatientDialog widget', () {
+  group('DisconnectParticipantDialog widget', () {
     testWidgets('confirm state shows patient ID and Disconnect button', (
       tester,
     ) async {
@@ -304,7 +304,7 @@ void main() {
     });
   });
 
-  group('DisconnectPatientDialog free-text mode (useDropdown=false)', () {
+  group('DisconnectParticipantDialog free-text mode (useDropdown=false)', () {
     testWidgets('shows TextField instead of dropdown', (tester) async {
       final apiClient = await _createMockApiClient();
 

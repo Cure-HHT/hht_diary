@@ -8,35 +8,35 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
-import 'disconnect_patient_dialog.dart';
-import 'link_patient_dialog.dart';
+import 'disconnect_participant_dialog.dart';
+import 'link_participant_dialog.dart';
 import 'mark_not_participating_dialog.dart';
-import 'reconnect_patient_dialog.dart';
+import 'reconnect_participant_dialog.dart';
 
-/// Result from opening a patient action dialog
-enum PatientActionResult {
+/// Result from opening a participant action dialog
+enum ParticipantActionResult {
   /// No action taken, dialog was cancelled
   cancelled,
 
-  /// An action was taken that requires refreshing the patient list
+  /// An action was taken that requires refreshing the participant list
   actionTaken,
 }
 
-/// Dialog showing available actions for a patient.
+/// Dialog showing available actions for a participant.
 ///
-/// Actions vary based on the patient's current status:
-/// - disconnected: Show Linking Code, Reconnect Patient, Mark as Not Participating
+/// Actions vary based on the participant's current status:
+/// - disconnected: Show Linking Code, Reconnect Participant, Mark as Not Participating
 /// - not_participating: Reactivate
 /// - other statuses: relevant actions (link, show code, etc.)
-class PatientActionsDialog extends StatelessWidget {
+class ParticipantActionsDialog extends StatelessWidget {
   final String patientId;
   final String patientDisplayId;
   final String mobileLinkingStatus;
   final ApiClient apiClient;
-  // REQ-p70010-C: passed through to DisconnectPatientDialog
+  // REQ-p70010-C: passed through to DisconnectParticipantDialog
   final bool disconnectReasonDropdown;
 
-  const PatientActionsDialog({
+  const ParticipantActionsDialog({
     super.key,
     required this.patientId,
     required this.patientDisplayId,
@@ -46,7 +46,7 @@ class PatientActionsDialog extends StatelessWidget {
   });
 
   /// Shows the dialog and returns whether an action was taken.
-  static Future<PatientActionResult> show({
+  static Future<ParticipantActionResult> show({
     required BuildContext context,
     required String patientId,
     required String patientDisplayId,
@@ -54,9 +54,9 @@ class PatientActionsDialog extends StatelessWidget {
     required ApiClient apiClient,
     bool disconnectReasonDropdown = true,
   }) async {
-    final result = await showDialog<PatientActionResult>(
+    final result = await showDialog<ParticipantActionResult>(
       context: context,
-      builder: (context) => PatientActionsDialog(
+      builder: (context) => ParticipantActionsDialog(
         patientId: patientId,
         patientDisplayId: patientDisplayId,
         mobileLinkingStatus: mobileLinkingStatus,
@@ -64,7 +64,7 @@ class PatientActionsDialog extends StatelessWidget {
         disconnectReasonDropdown: disconnectReasonDropdown,
       ),
     );
-    return result ?? PatientActionResult.cancelled;
+    return result ?? ParticipantActionResult.cancelled;
   }
 
   @override
@@ -119,7 +119,7 @@ class PatientActionsDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () =>
-              Navigator.of(context).pop(PatientActionResult.cancelled),
+              Navigator.of(context).pop(ParticipantActionResult.cancelled),
           child: const Text('Close'),
         ),
       ],
@@ -136,7 +136,7 @@ class PatientActionsDialog extends StatelessWidget {
             description:
                 'View the code used to link this device (reference only)',
             onTap: () async {
-              Navigator.of(context).pop(PatientActionResult.cancelled);
+              Navigator.of(context).pop(ParticipantActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
                 context: context,
                 patientId: patientId,
@@ -153,7 +153,7 @@ class PatientActionsDialog extends StatelessWidget {
             description: 'Generate new linking code to reconnect',
             iconColor: theme.colorScheme.primary,
             onTap: () async {
-              final success = await ReconnectPatientDialog.show(
+              final success = await ReconnectParticipantDialog.show(
                 context: context,
                 patientId: patientId,
                 patientDisplayId: patientDisplayId,
@@ -162,8 +162,8 @@ class PatientActionsDialog extends StatelessWidget {
               if (context.mounted) {
                 Navigator.of(context).pop(
                   success
-                      ? PatientActionResult.actionTaken
-                      : PatientActionResult.cancelled,
+                      ? ParticipantActionResult.actionTaken
+                      : ParticipantActionResult.cancelled,
                 );
               }
             },
@@ -186,8 +186,8 @@ class PatientActionsDialog extends StatelessWidget {
               if (context.mounted) {
                 Navigator.of(context).pop(
                   success
-                      ? PatientActionResult.actionTaken
-                      : PatientActionResult.cancelled,
+                      ? ParticipantActionResult.actionTaken
+                      : ParticipantActionResult.cancelled,
                 );
               }
             },
@@ -201,7 +201,7 @@ class PatientActionsDialog extends StatelessWidget {
             title: 'Show Linking Code',
             description: 'View the active linking code',
             onTap: () async {
-              Navigator.of(context).pop(PatientActionResult.cancelled);
+              Navigator.of(context).pop(ParticipantActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
                 context: context,
                 patientId: patientId,
@@ -222,7 +222,7 @@ class PatientActionsDialog extends StatelessWidget {
             description:
                 'View the code used to link this device (reference only)',
             onTap: () async {
-              Navigator.of(context).pop(PatientActionResult.cancelled);
+              Navigator.of(context).pop(ParticipantActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
                 context: context,
                 patientId: patientId,
@@ -240,7 +240,7 @@ class PatientActionsDialog extends StatelessWidget {
             iconColor: theme.colorScheme.error,
             titleColor: theme.colorScheme.error,
             onTap: () async {
-              final success = await DisconnectPatientDialog.show(
+              final success = await DisconnectParticipantDialog.show(
                 context: context,
                 patientId: patientId,
                 patientDisplayId: patientDisplayId,
@@ -250,8 +250,8 @@ class PatientActionsDialog extends StatelessWidget {
               if (context.mounted) {
                 Navigator.of(context).pop(
                   success
-                      ? PatientActionResult.actionTaken
-                      : PatientActionResult.cancelled,
+                      ? ParticipantActionResult.actionTaken
+                      : ParticipantActionResult.cancelled,
                 );
               }
             },
@@ -297,7 +297,7 @@ class PatientActionsDialog extends StatelessWidget {
             description:
                 'View the code used to link this device (reference only)',
             onTap: () async {
-              Navigator.of(context).pop(PatientActionResult.cancelled);
+              Navigator.of(context).pop(ParticipantActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
                 context: context,
                 patientId: patientId,

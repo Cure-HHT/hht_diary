@@ -21,19 +21,19 @@ enum _DialogState { confirm, loading, success, error }
 ///
 /// Usage:
 /// ```dart
-/// await LinkPatientDialog.show(
+/// await LinkParticipantDialog.show(
 ///   context: context,
 ///   patientId: patient.patientId,
 ///   patientDisplayId: patient.edcSubjectKey,
 ///   apiClient: apiClient,
 /// );
 /// ```
-class LinkPatientDialog extends StatefulWidget {
+class LinkParticipantDialog extends StatefulWidget {
   final String patientId;
   final String patientDisplayId;
   final ApiClient apiClient;
 
-  const LinkPatientDialog({
+  const LinkParticipantDialog({
     super.key,
     required this.patientId,
     required this.patientDisplayId,
@@ -50,7 +50,7 @@ class LinkPatientDialog extends StatefulWidget {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => LinkPatientDialog(
+      builder: (context) => LinkParticipantDialog(
         patientId: patientId,
         patientDisplayId: patientDisplayId,
         apiClient: apiClient,
@@ -60,10 +60,10 @@ class LinkPatientDialog extends StatefulWidget {
   }
 
   @override
-  State<LinkPatientDialog> createState() => _LinkPatientDialogState();
+  State<LinkParticipantDialog> createState() => _LinkParticipantDialogState();
 }
 
-class _LinkPatientDialogState extends State<LinkPatientDialog> {
+class _LinkParticipantDialogState extends State<LinkParticipantDialog> {
   _DialogState _state = _DialogState.confirm;
   String? _code;
   String? _expiresAt;

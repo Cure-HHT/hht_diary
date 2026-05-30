@@ -1,33 +1,45 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00021: Patient Reconnection Workflow
+//   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00073: Patient Status Definitions
 //
-// Dialog for reactivating a patient who was marked as not participating
+// Dialog for reconnecting disconnected patients to the mobile app
 
 import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
+import 'activation_code_display.dart';
 
-/// Dialog states for the reactivate flow
+/// Dialog states for the reconnect flow
 enum _DialogState { confirm, loading, success, error }
 
-/// Dialog for reactivating a patient who was marked as not participating.
+/// Dialog for reconnecting a disconnected patient to the mobile app.
 ///
-/// The patient will be moved to "disconnected" status and will need to
-/// be reconnected to continue participating.
-class ReactivatePatientDialog extends StatefulWidget {
+/// Shows a confirmation prompt with mandatory reason field, generates a new
+/// linking code, and displays the code with copy functionality.
+///
+/// Usage:
+/// ```dart
+/// final success = await ReconnectParticipantDialog.show(
+///   context: context,
+///   patientId: patient.patientId,
+///   patientDisplayId: patient.edcSubjectKey,
+///   apiClient: apiClient,
+/// );
+/// ```
+class ReconnectParticipantDialog extends StatefulWidget {
   final String patientId;
   final String patientDisplayId;
   final ApiClient apiClient;
 
-  const ReactivatePatientDialog({
+  const ReconnectParticipantDialog({
     super.key,
     required this.patientId,
     required this.patientDisplayId,
     required this.apiClient,
   });
 
-  /// Shows the dialog and returns true if the patient was reactivated successfully.
+  /// Shows the dialog and returns true if reconnection was successful.
   static Future<bool> show({
     required BuildContext context,
     required String patientId,
@@ -37,7 +49,7 @@ class ReactivatePatientDialog extends StatefulWidget {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => ReactivatePatientDialog(
+      builder: (context) => ReconnectParticipantDialog(
         patientId: patientId,
         patientDisplayId: patientDisplayId,
         apiClient: apiClient,
@@ -47,13 +59,17 @@ class ReactivatePatientDialog extends StatefulWidget {
   }
 
   @override
-  State<ReactivatePatientDialog> createState() =>
-      _ReactivatePatientDialogState();
+  State<ReconnectParticipantDialog> createState() =>
+      _ReconnectParticipantDialogState();
 }
 
-class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
+class _ReconnectParticipantDialogState
+    extends State<ReconnectParticipantDialog> {
   _DialogState _state = _DialogState.confirm;
   final _reasonController = TextEditingController();
+  String? _code;
+  String? _expiresAt;
+  String? _siteName;
   String? _error;
 
   @override
@@ -64,27 +80,52 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
 
   bool get _canSubmit => _reasonController.text.trim().isNotEmpty;
 
-  Future<void> _reactivate() async {
+  Future<void> _reconnect() async {
     if (!_canSubmit) return;
 
     setState(() => _state = _DialogState.loading);
 
-    final response = await widget.apiClient.post(
-      '/api/v1/portal/participants/reactivate',
-      {'patientId': widget.patientId, 'reason': _reasonController.text.trim()},
-    );
+    final response = await widget.apiClient
+        .post('/api/v1/portal/participants/link-code', {
+          'patientId': widget.patientId,
+          'reconnect_reason': _reasonController.text.trim(),
+        });
 
     if (!mounted) return;
 
     if (response.isSuccess && response.data != null) {
+      final data = response.data as Map<String, dynamic>;
       setState(() {
         _state = _DialogState.success;
+        _code = data['code'] as String?;
+        _expiresAt = data['expires_at'] as String?;
+        _siteName = data['site_name'] as String?;
       });
     } else {
       setState(() {
         _state = _DialogState.error;
-        _error = response.error ?? 'Failed to reactivate participant';
+        _error = response.error ?? 'Failed to reconnect participant';
       });
+    }
+  }
+
+  String _formatExpiresAt(String? expiresAt) {
+    if (expiresAt == null) return '72 hours';
+    try {
+      final expiry = DateTime.parse(expiresAt);
+      final now = DateTime.now();
+      final diff = expiry.difference(now);
+      if (diff.inHours >= 24) {
+        final days = diff.inDays;
+        final hours = diff.inHours % 24;
+        if (hours > 0) {
+          return '$days day${days > 1 ? 's' : ''}, $hours hour${hours > 1 ? 's' : ''}';
+        }
+        return '$days day${days > 1 ? 's' : ''}';
+      }
+      return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''}';
+    } catch (_) {
+      return '72 hours';
     }
   }
 
@@ -104,9 +145,9 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
       case _DialogState.confirm:
         return Row(
           children: [
-            Icon(Icons.refresh, color: theme.colorScheme.primary),
+            Icon(Icons.link, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            const Text('Reactivate Participant'),
+            const Text('Reconnect Participant'),
           ],
         );
       case _DialogState.loading:
@@ -121,7 +162,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
               ),
             ),
             const SizedBox(width: 8),
-            const Text('Reactivating...'),
+            const Text('Generating Code...'),
           ],
         );
       case _DialogState.success:
@@ -129,7 +170,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
           children: [
             Icon(Icons.check_circle, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
-            const Text('Participant Reactivated'),
+            const Text('Linking Code Generated'),
           ],
         );
       case _DialogState.error:
@@ -153,7 +194,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Reactivate this participant to resume participation:',
+                'Reconnect this disconnected participant to the mobile app:',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 12),
@@ -205,8 +246,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'The participant will be moved to "disconnected" status. '
-                        'You will need to generate a new linking code to reconnect them.',
+                        'A new linking code will be generated. The participant will use this code to reconnect their mobile app.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onTertiaryContainer,
                         ),
@@ -219,19 +259,20 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
 
               // Reason field (mandatory)
               Text(
-                'Reason for reactivation *',
+                'Reason for reconnection *',
                 style: theme.textTheme.labelLarge,
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _reasonController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter reason for reactivation...',
-                  contentPadding: EdgeInsets.all(12),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  hintText: 'Enter reason for reconnection...',
+                  contentPadding: const EdgeInsets.all(12),
                   helperText:
-                      'Required - explain why this participant is being reactivated',
+                      'Required - explain why this participant is being reconnected',
                   helperMaxLines: 2,
+                  errorText: _reasonController.text.isEmpty ? null : null,
                 ),
                 maxLines: 3,
                 onChanged: (_) => setState(() {}),
@@ -252,29 +293,69 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_siteName != null) ...[
+              Text(
+                'Site: $_siteName',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
             Text(
-              'Participant ${widget.patientDisplayId} has been reactivated.',
-              style: theme.textTheme.bodyMedium,
+              'Participant: ${widget.patientDisplayId}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Reason: ${_reasonController.text.trim()}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_code != null)
+              ActivationCodeDisplay(
+                code: _code!,
+                label: 'Linking Code',
+                fontSize: 20,
+              ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
+                color: theme.colorScheme.tertiaryContainer.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.tertiary.withValues(alpha: 0.5),
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  _buildInfoRow(theme, 'New status', 'Disconnected'),
-                  const SizedBox(height: 8),
-                  _buildInfoRow(theme, 'Reason', _reasonController.text.trim()),
+                  Icon(
+                    Icons.timer,
+                    size: 18,
+                    color: theme.colorScheme.tertiary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Expires in ${_formatExpiresAt(_expiresAt)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onTertiaryContainer,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
-              'Use the "Reconnect" action to generate a new linking code for this participant.',
+              'Share this code with the participant to reconnect their mobile app.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -288,7 +369,7 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _error ?? 'An error occurred while reactivating the participant.',
+              _error ?? 'An error occurred while reconnecting the participant.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.error,
               ),
@@ -305,31 +386,6 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
     }
   }
 
-  Widget _buildInfoRow(ThemeData theme, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   List<Widget> _buildActions(ThemeData theme) {
     switch (_state) {
       case _DialogState.confirm:
@@ -339,9 +395,9 @@ class _ReactivatePatientDialogState extends State<ReactivatePatientDialog> {
             child: const Text('Cancel'),
           ),
           FilledButton.icon(
-            onPressed: _canSubmit ? _reactivate : null,
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Reactivate'),
+            onPressed: _canSubmit ? _reconnect : null,
+            icon: const Icon(Icons.link, size: 18),
+            label: const Text('Reconnect'),
           ),
         ];
 

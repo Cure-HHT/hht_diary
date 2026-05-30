@@ -16,7 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
-import 'package:sponsor_portal_ui/pages/investigator/patients_tab.dart';
+import 'package:sponsor_portal_ui/pages/investigator/participants_tab.dart';
 import 'package:sponsor_portal_ui/services/api_client.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
 
@@ -120,7 +120,7 @@ MockClient _createMockHttpClient() {
 }
 
 /// Builds the test widget with properly injected mock dependencies
-Future<void> _pumpPatientsTab(WidgetTester tester) async {
+Future<void> _pumpParticipantsTab(WidgetTester tester) async {
   // Portal is a desktop/tablet layout — use a very wide viewport to avoid overflow
   // The extra EQ, NOSE HHT, QoL columns cause overflow at smaller sizes
   tester.view.physicalSize = const Size(2400, 900);
@@ -154,7 +154,7 @@ Future<void> _pumpPatientsTab(WidgetTester tester) async {
       home: ChangeNotifierProvider<AuthService>.value(
         value: authService,
         child: Scaffold(
-          body: StudyCoordinatorPatientsTab(apiClient: apiClient),
+          body: StudyCoordinatorParticipantsTab(apiClient: apiClient),
         ),
       ),
     ),
@@ -170,7 +170,7 @@ void main() {
       testWidgets('should NOT display EQ, NOSE HHT, or QoL columns', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         // These columns should NOT be present (per REQ-CAL-p00074)
         expect(find.text('EQ'), findsNothing);
@@ -181,7 +181,7 @@ void main() {
       testWidgets(
         'should display only Patient ID, Site, Mobile Linking, Actions columns',
         (WidgetTester tester) async {
-          await _pumpPatientsTab(tester);
+          await _pumpParticipantsTab(tester);
 
           // These columns SHOULD be present
           expect(find.text('Participant ID'), findsOneWidget);
@@ -196,7 +196,7 @@ void main() {
       testWidgets('should display patient data in table', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         // Should show patient IDs
         expect(find.text('PAT-001'), findsOneWidget);
@@ -207,7 +207,7 @@ void main() {
       testWidgets('should display site information', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         // Should show site info (format: "number - name")
         expect(find.textContaining('001'), findsWidgets);
@@ -217,7 +217,7 @@ void main() {
       testWidgets('should display Patient Summary header', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         expect(find.text('Participant Summary'), findsOneWidget);
       });
@@ -227,7 +227,7 @@ void main() {
       testWidgets('should display linking status chips for patients', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         // Check status chips are displayed
         expect(find.text('Not Connected'), findsOneWidget);
@@ -237,7 +237,7 @@ void main() {
       testWidgets(
         'should show "Trial Active" for connected+trialStarted patients',
         (WidgetTester tester) async {
-          await _pumpPatientsTab(tester);
+          await _pumpParticipantsTab(tester);
 
           // PAT-002 is connected with trial_started=true
           expect(find.text('Trial Active'), findsOneWidget);
@@ -247,7 +247,7 @@ void main() {
       testWidgets(
         'should show "Linked - Awaiting Start" for connected+!trialStarted patients',
         (WidgetTester tester) async {
-          await _pumpPatientsTab(tester);
+          await _pumpParticipantsTab(tester);
 
           // PAT-004 is connected with trial_started=false
           expect(find.text('Linked - Awaiting Start'), findsOneWidget);
@@ -259,7 +259,7 @@ void main() {
       testWidgets(
         'should show "Start Trial" button for connected+!trialStarted patients',
         (WidgetTester tester) async {
-          await _pumpPatientsTab(tester);
+          await _pumpParticipantsTab(tester);
 
           // PAT-004 is connected with trial_started=false - should show Start Trial
           expect(find.text('Start Trial'), findsOneWidget);
@@ -269,7 +269,7 @@ void main() {
       testWidgets(
         'should show "Manage Questionnaires" button for connected+trialStarted patients',
         (WidgetTester tester) async {
-          await _pumpPatientsTab(tester);
+          await _pumpParticipantsTab(tester);
 
           // PAT-002 is connected with trial_started=true - show Manage Questionnaires
           expect(find.text('Manage Questionnaires'), findsOneWidget);
@@ -279,7 +279,7 @@ void main() {
       testWidgets('Start Trial button should have play_arrow icon', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         // Find Start Trial button and verify icon
         final startTrialButton = find.text('Start Trial');
@@ -294,7 +294,7 @@ void main() {
       testWidgets(
         'shows Expired chip for linking_in_progress patient with no active code',
         (WidgetTester tester) async {
-          await _pumpPatientsTab(tester);
+          await _pumpParticipantsTab(tester);
 
           // PAT-005 has linking_in_progress + has_active_linking_code=false
           expect(find.text('Expired'), findsOneWidget);
@@ -305,7 +305,7 @@ void main() {
       testWidgets(
         'shows Pending chip for linking_in_progress patient with active code',
         (WidgetTester tester) async {
-          await _pumpPatientsTab(tester);
+          await _pumpParticipantsTab(tester);
 
           // PAT-003 has linking_in_progress + has_active_linking_code=true
           expect(find.text('Pending'), findsOneWidget);
@@ -315,7 +315,7 @@ void main() {
       testWidgets('shows Generate New Code button for expired linking code', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         // PAT-005 expired code → should show Generate New Code
         expect(find.text('Generate New Code'), findsOneWidget);
@@ -325,7 +325,7 @@ void main() {
       testWidgets('shows Show Code button for active linking code', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         // PAT-003 active code → should show Show Code
         expect(find.text('Show Code'), findsOneWidget);
@@ -339,7 +339,7 @@ void main() {
       testWidgets('no checkbox column is rendered (CUR-1112)', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         expect(find.byType(Checkbox), findsNothing);
       });
@@ -347,7 +347,7 @@ void main() {
       testWidgets('tapping a Participant row opens PatientActionsDialog', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         // Tap on a patient row (PAT-001)
         await tester.tap(find.text('PAT-001'));
@@ -363,7 +363,7 @@ void main() {
           // This test verifies that "Show Linking Code" is available
           // for connected patients (Trial Active / Linked - Awaiting Start)
           // who have a valid linking code, per REQ-CAL-p00072 and REQ-CAL-p00073
-          await _pumpPatientsTab(tester);
+          await _pumpParticipantsTab(tester);
 
           // Tap on PAT-002 (connected, trial_started=true = Trial Active)
           await tester.tap(find.text('PAT-002'));
@@ -378,7 +378,7 @@ void main() {
 
     group('Search and Filter', () {
       testWidgets('should display search field', (WidgetTester tester) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         expect(find.byIcon(Icons.search), findsOneWidget);
         expect(find.text('Search participants...'), findsOneWidget);
@@ -387,7 +387,7 @@ void main() {
       testWidgets('should display status filter tabs', (
         WidgetTester tester,
       ) async {
-        await _pumpPatientsTab(tester);
+        await _pumpParticipantsTab(tester);
 
         // Filter tabs should be present
         expect(find.textContaining('All'), findsOneWidget);
@@ -399,7 +399,7 @@ void main() {
       testWidgets(
         'Not Connected tab should include Pending patients (REQ-CAL-p00073)',
         (WidgetTester tester) async {
-          await _pumpPatientsTab(tester);
+          await _pumpParticipantsTab(tester);
 
           // Test data has:
           // - PAT-001: not_connected
@@ -412,7 +412,7 @@ void main() {
       testWidgets(
         'Active tab should only include connected patients (REQ-CAL-p00073)',
         (WidgetTester tester) async {
-          await _pumpPatientsTab(tester);
+          await _pumpParticipantsTab(tester);
 
           // Test data has:
           // - PAT-002: connected, trial_started=true
