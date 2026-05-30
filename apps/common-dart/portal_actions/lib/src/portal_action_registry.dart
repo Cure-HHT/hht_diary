@@ -2,9 +2,26 @@
 import 'package:event_sourcing/event_sourcing.dart';
 
 import 'actions/deactivate_user_account_action.dart';
+import 'actions/participant/disconnect_participant_action.dart';
+import 'actions/participant/link_participant_action.dart';
+import 'actions/participant/mark_not_participating_action.dart';
+import 'actions/participant/reactivate_participant_action.dart';
+import 'actions/participant/reconnect_participant_action.dart';
+import 'actions/participant/start_trial_action.dart';
+import 'actions/participant/view_participant_action.dart';
+import 'flow_token_minter.dart';
 
 /// Build the portal's ActionRegistry. Extend as concrete actions land.
-ActionRegistry buildPortalActionRegistry() {
-  final registry = ActionRegistry()..register(DeactivateUserAccountAction());
+ActionRegistry buildPortalActionRegistry({FlowTokenMinter? flowTokenMinter}) {
+  final minter = flowTokenMinter ?? SerialFlowTokenMinter();
+  final registry = ActionRegistry()
+    ..register(DeactivateUserAccountAction())
+    ..register(LinkParticipantAction())
+    ..register(StartTrialAction(flowTokenMinter: minter))
+    ..register(DisconnectParticipantAction(flowTokenMinter: minter))
+    ..register(ReconnectParticipantAction(flowTokenMinter: minter))
+    ..register(MarkNotParticipatingAction(flowTokenMinter: minter))
+    ..register(ReactivateParticipantAction(flowTokenMinter: minter))
+    ..register(ViewParticipantAction());
   return registry;
 }
