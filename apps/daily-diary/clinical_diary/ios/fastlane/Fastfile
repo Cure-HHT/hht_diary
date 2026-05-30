@@ -192,13 +192,18 @@ platform :ios do
         end
       end
     ensure
-      # Restore tracked files mutated above (env pointer + Firebase plist) so
-      # the working tree is left clean. Tolerate a restore failure so it can't
-      # mask the actual build/upload result — parity with
-      # tool/_write_env_pointer.sh, which uses `git checkout ... || true`.
+      # Restore tracked files mutated above so the working tree is left clean.
+      # Three sources of mutation: the env pointer (File.write), the Firebase
+      # plist (FileUtils.cp), and the pbxproj (update_code_signing_settings,
+      # which stamps DEVELOPMENT_TEAM / PRODUCT_BUNDLE_IDENTIFIER / signing
+      # identity / profile name into the Runner build configurations). Tolerate
+      # a restore failure so it can't mask the actual build/upload result —
+      # parity with tool/_write_env_pointer.sh, which uses `git checkout ... || true`.
       begin
         sh("git", "-C", FLUTTER_DIR, "checkout", "--",
-           "assets/config/env.json", "ios/Runner/GoogleService-Info.plist")
+           "assets/config/env.json",
+           "ios/Runner/GoogleService-Info.plist",
+           "ios/Runner.xcodeproj/project.pbxproj")
       rescue => e
         UI.important("working-tree restore failed (#{e.message}); leaving as-is")
       end

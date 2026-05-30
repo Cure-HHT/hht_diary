@@ -19,6 +19,7 @@ Flutter application for FDA-compliant clinical trial data collection, focusing o
 - Flutter SDK 3.38.7 or higher
 - Doppler CLI (for secrets management)
 - lcov (for coverage reports)
+- Bash 4+ (for `tool/generate_env_delta_record.sh` and `tool/test/test_env_delta_record.sh`; macOS ships Bash 3.2, so `brew install bash` and invoke as `/opt/homebrew/bin/bash tool/...`). CI's ubuntu runner has Bash 5 so the gate works there unconditionally.
 
 ### Installation
 
