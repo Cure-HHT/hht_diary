@@ -121,10 +121,13 @@ platform :ios do
       # configuration is shared across all four flavors; per-env identity
       # (bundle id, signing, launcher icon, Firebase plist, env.json) is
       # injected via update_code_signing_settings, FileUtils.cp, the env.json
-      # stamp above, and the ASSETCATALOG_COMPILER_APPICON_NAME xcarg. The
-      # Dart source is the same across all four flavors (CUR-1389), so the
-      # resulting App.framework/App is the same compilation regardless of
-      # how many times xcodebuild is invoked.
+      # stamp above, and the APP_ICON_NAME xcarg (which the Runner target's
+      # ASSETCATALOG_COMPILER_APPICON_NAME consumes via $(APP_ICON_NAME:default=AppIcon);
+      # the indirection scopes the override to Runner so Pod targets'
+      # asset-catalog compiles aren't told to look for a Runner-only icon set).
+      # The Dart source is the same across all four flavors (CUR-1389), so
+      # the resulting App.framework/App is the same compilation regardless
+      # of how many times xcodebuild is invoked.
       build_app(
         workspace: File.join(FLUTTER_DIR, "ios", "Runner.xcworkspace"),
         scheme: "Runner",
@@ -132,7 +135,7 @@ platform :ios do
         export_method: "app-store",
         output_directory: File.join(FLUTTER_DIR, "build", "ios", "ipa"),
         output_name: "clinical-diary-#{flavor}.ipa",
-        xcargs: "ASSETCATALOG_COMPILER_APPICON_NAME=#{flavor}AppIcon",
+        xcargs: "APP_ICON_NAME=#{flavor}AppIcon",
         export_options: {
           signingStyle: "manual",
           teamID: apple_team_id,
@@ -189,13 +192,18 @@ platform :ios do
         end
       end
     ensure
-      # Restore tracked files mutated above (env pointer + Firebase plist) so
-      # the working tree is left clean. Tolerate a restore failure so it can't
-      # mask the actual build/upload result — parity with
-      # tool/_write_env_pointer.sh, which uses `git checkout ... || true`.
+      # Restore tracked files mutated above so the working tree is left clean.
+      # Three sources of mutation: the env pointer (File.write), the Firebase
+      # plist (FileUtils.cp), and the pbxproj (update_code_signing_settings,
+      # which stamps DEVELOPMENT_TEAM / PRODUCT_BUNDLE_IDENTIFIER / signing
+      # identity / profile name into the Runner build configurations). Tolerate
+      # a restore failure so it can't mask the actual build/upload result —
+      # parity with tool/_write_env_pointer.sh, which uses `git checkout ... || true`.
       begin
         sh("git", "-C", FLUTTER_DIR, "checkout", "--",
-           "assets/config/env.json", "ios/Runner/GoogleService-Info.plist")
+           "assets/config/env.json",
+           "ios/Runner/GoogleService-Info.plist",
+           "ios/Runner.xcodeproj/project.pbxproj")
       rescue => e
         UI.important("working-tree restore failed (#{e.message}); leaving as-is")
       end

@@ -3,6 +3,17 @@
 # Generate (default) or --check the controlled mobile environment delta record.
 # Reads the authoritative per-flavor sources, fails on any undeclared per-flavor
 # key, and emits a committed markdown record enumerating the entire delta.
+#
+# Requires Bash 4+ (uses `declare -A` for associative arrays). macOS ships Bash
+# 3.2; install a modern bash via `brew install bash` and run as
+# `/opt/homebrew/bin/bash tool/generate_env_delta_record.sh ...`. CI's ubuntu
+# runner has Bash 5 so the gate works there unconditionally.
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+  printf 'ERROR: %s requires Bash 4+; this is bash %s.\n' \
+    "$0" "${BASH_VERSION:-unknown}" >&2
+  printf 'On macOS, run: brew install bash && /opt/homebrew/bin/bash %s "$@"\n' "$0" >&2
+  exit 1
+fi
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
