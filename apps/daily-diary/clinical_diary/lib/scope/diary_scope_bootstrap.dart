@@ -1,9 +1,3 @@
-// Implements: DIARY-DEV-evs-stack-adoption/A+B — composes the data layer through
-//   bootstrapEventStore + a LocalScope (mounted at the app root in main.dart).
-// Implements: DIARY-DEV-local-participant-authorization/A+B+C — the local
-//   participant is authenticated from launch (setCredential) with a stable
-//   per-install id, so recording works regardless of enrollment; enrollment
-//   gates sync, not entry.
 import 'package:clinical_diary/scope/diary_action_registry.dart';
 import 'package:clinical_diary/scope/local_participant_authorization_policy.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
@@ -17,18 +11,29 @@ class DiaryScopeRuntime {
     required this.scope,
     required this.bundle,
     required this.authSession,
+    required this.permissionSource,
   });
 
   final LocalScope scope;
   final EventStoreBundle bundle;
   final LocalAuthSession authSession;
+  final LocalPermissionSource permissionSource;
 
+  /// Disposes all owned resources in dependency order.
+  ///
+  /// [LocalScope.dispose] does NOT cascade to [LocalPermissionSource] or
+  /// [LocalAuthSession] (it only sets an internal disposed flag), so the
+  /// composition root disposes them explicitly to avoid resource leaks.
   Future<void> dispose() async {
+    await permissionSource.dispose();
+    await authSession.dispose();
     await scope.dispose();
     await bundle.eventStore.close();
   }
 }
 
+// Implements: DIARY-DEV-evs-stack-adoption/A+B
+// Implements: DIARY-DEV-local-participant-authorization/A+B+C
 /// Wires the new stack: bootstrapEventStore -> ActionDispatcher -> LocalScope.
 /// [localUserId] is the stable per-install id (recording is never gated on
 /// study enrollment). [extraEntryTypes] carries dynamic `<id>_survey` defs when
@@ -94,5 +99,6 @@ Future<DiaryScopeRuntime> bootstrapDiaryScope({
     scope: scope,
     bundle: bundle,
     authSession: authSession,
+    permissionSource: permissionSource,
   );
 }
