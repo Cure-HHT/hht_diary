@@ -45,4 +45,15 @@ void main() {
     });
     expect(ids, isNot(contains('questionnaire_submitted'))); // [M], held
   });
+
+  test('notification + fcm_token declare the [P]/edge entry types', () {
+    final ids = notificationEventTypes.map((t) => t.id).toSet();
+    expect(ids, {
+      'notification_sent',
+      'notification_dispatch_failed',
+      'fcm_token_deactivated',
+    });
+    expect(ids, isNot(contains('fcm_message_received'))); // [M], held
+    expect(ids, isNot(contains('fcm_token_registered'))); // [M], held
+  });
 }
