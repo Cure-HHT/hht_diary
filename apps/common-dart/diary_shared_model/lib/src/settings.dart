@@ -10,6 +10,27 @@
 // reader needs the stored flag to tell locked from unlocked.
 library;
 
+import 'package:event_sourcing/event_sourcing.dart';
+
+/// Aggregate type stamped on every settings event (one aggregate per key).
+const String settingAggregateType = 'Setting';
+
+/// View name of the canonical settings projection.
+const String settingsViewName = 'settings';
+
+/// Canonical settings projection: one row per setting key, latest
+/// `setting_applied` event wins. Settings are superseded, never tombstoned,
+/// so only the `finalized` kind is of interest.
+const AggregateProjectionSpec settingsProjection = AggregateProjectionSpec(
+  viewName: settingsViewName,
+  interest: SubscriptionFilter(
+    aggregateTypes: {settingAggregateType},
+    eventTypes: {'finalized'},
+  ),
+  // Settings are superseded by the latest event, never deleted.
+  tombstoneEventTypes: {},
+);
+
 /// Who applied a setting. `sponsor` settings are recorded `locked: true` while
 /// the participant is participating; `user` settings are never locked.
 enum SettingSource {

@@ -63,8 +63,8 @@ void main() {
       final ids = sharedEventCatalog.map((t) => t.id).toList();
       expect(
         ids.length,
-        25,
-      ); // 9 patient + 7 questionnaire + 3 notification/fcm + 6 diary-originated
+        26,
+      ); // 9 patient + 7 questionnaire + 3 notification/fcm + 7 diary-originated
       expect(ids.toSet().length, ids.length, reason: 'duplicate entry-type id');
     },
   );
@@ -104,6 +104,7 @@ void main() {
       'patient_linked',
       'fcm_token_registered',
       'fcm_message_received',
+      'setting_applied',
     });
     for (final t in diaryOriginatedEventTypes) {
       expect(t.origin, EventOrigin.mobile);
