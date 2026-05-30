@@ -17,6 +17,7 @@ import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/debug_bridge.dart';
@@ -28,6 +29,7 @@ import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:common_widgets/common_widgets.dart';
+import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
@@ -37,6 +39,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:sembast_web/sembast_web.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -249,6 +252,11 @@ class _AppRootState extends State<AppRoot> {
   final TaskService _taskService = TaskService();
   ClinicalDiaryRuntime? _runtime;
 
+  /// CUR-1169 I1: the new reactive composition root, built alongside (not
+  /// replacing) [_runtime]. Mounted into the tree via [ReActionScope] so
+  /// reaction widgets can resolve a `LocalScope` during the transition.
+  DiaryScopeRuntime? _diaryScope;
+
   /// Persistent device install UUID, minted on first launch and reused
   /// thereafter. Forwarded to [HomeScreen] for the export payload.
   String? _deviceId;
@@ -351,10 +359,37 @@ class _AppRootState extends State<AppRoot> {
         }
       }
 
+      // CUR-1169 I1: build the new reactive composition root alongside the
+      // old runtime. Backed by a SEPARATE Sembast store (diary_es.db) so it
+      // shares nothing with the legacy store; mirrors the web/native factory
+      // selection above. Reuses the already-computed deviceId/softwareVersion.
+      // Failures route to _bootstrapError via the enclosing try/catch, exactly
+      // like the old runtime.
+      final DiaryScopeRuntime diaryScope;
+      {
+        final Database esDb;
+        if (kIsWeb) {
+          esDb = await databaseFactoryWeb.openDatabase('diary_es.db');
+        } else {
+          final docsDir = await getApplicationDocumentsDirectory();
+          esDb = await databaseFactoryIo.openDatabase(
+            '${docsDir.path}/diary_es.db',
+          );
+        }
+        diaryScope = await bootstrapDiaryScope(
+          backend: SembastBackend(database: esDb),
+          deviceId: deviceId,
+          softwareVersion: softwareVersion,
+          localUserId: deviceId, // stable per-install id; recording is never
+          // enrollment-gated
+        );
+      }
+
       if (mounted) {
         setState(() {
           _runtime = runtime;
           _deviceId = deviceId;
+          _diaryScope = diaryScope;
         });
       }
 
@@ -484,6 +519,7 @@ class _AppRootState extends State<AppRoot> {
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
     _runtime?.dispose();
+    unawaited(_diaryScope?.dispose());
     super.dispose();
   }
 
@@ -501,20 +537,26 @@ class _AppRootState extends State<AppRoot> {
     }
     final runtime = _runtime;
     final deviceId = _deviceId;
-    if (runtime == null || deviceId == null) {
+    final diaryScope = _diaryScope;
+    if (runtime == null || deviceId == null || diaryScope == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    return HomeScreen(
-      runtime: runtime,
-      deviceId: deviceId,
-      enrollmentService: _enrollmentService,
-      taskService: _taskService,
-      onLocaleChanged: widget.onLocaleChanged,
-      onThemeModeChanged: widget.onThemeModeChanged,
-      onLargerTextChanged: widget.onLargerTextChanged,
-      onFontChanged: widget.onFontChanged,
-      preferencesService: widget.preferencesService,
-      onEnrolled: _onPostEnrollment,
+    // CUR-1169 I1: mount the new LocalScope above the existing screens so
+    // reaction widgets can resolve it. Old screens are unchanged.
+    return ReActionScope(
+      scope: diaryScope.scope,
+      child: HomeScreen(
+        runtime: runtime,
+        deviceId: deviceId,
+        enrollmentService: _enrollmentService,
+        taskService: _taskService,
+        onLocaleChanged: widget.onLocaleChanged,
+        onThemeModeChanged: widget.onThemeModeChanged,
+        onLargerTextChanged: widget.onLargerTextChanged,
+        onFontChanged: widget.onFontChanged,
+        preferencesService: widget.preferencesService,
+        onEnrolled: _onPostEnrollment,
+      ),
     );
   }
 }
