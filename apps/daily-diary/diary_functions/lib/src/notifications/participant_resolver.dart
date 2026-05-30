@@ -20,13 +20,13 @@ import 'package:shelf/shelf.dart';
 import '../database.dart';
 import '../jwt.dart';
 
-/// Resolve the request's authenticated patient. Returns null when:
+/// Resolve the request's authenticated participant. Returns null when:
 ///   * the Authorization header is missing or invalid
 ///   * the JWT is structurally invalid or expired
-///   * the user has no linked patient (`patient_linking_codes.used_at` is null)
+///   * the user has no linked participant (`patient_linking_codes.used_at` is null)
 ///
-/// Wire into `envelopeFetchHandler(patientResolver: jwtPatientResolver)`.
-Future<String?> jwtPatientResolver(Request request) async {
+/// Wire into `envelopeFetchHandler(patientResolver: jwtParticipantResolver)`.
+Future<String?> jwtParticipantResolver(Request request) async {
   final auth = verifyAuthHeader(request.headers['authorization']);
   if (auth == null) return null;
 

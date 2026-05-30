@@ -18,7 +18,7 @@ void main() {
     databaseQueryOverride = null;
   });
 
-  group('jwtPatientResolver', () {
+  group('jwtParticipantResolver', () {
     test('returns null on missing Authorization header', () async {
       var queried = false;
       databaseQueryOverride = (query, {parameters, table}) async {
@@ -26,7 +26,7 @@ void main() {
         return [];
       };
 
-      final result = await jwtPatientResolver(_request());
+      final result = await jwtParticipantResolver(_request());
 
       expect(result, isNull);
       expect(queried, isFalse, reason: 'short-circuit before any DB query');
@@ -34,13 +34,13 @@ void main() {
 
     test('returns null on malformed bearer token', () async {
       databaseQueryOverride = (query, {parameters, table}) async => [];
-      final result = await jwtPatientResolver(
+      final result = await jwtParticipantResolver(
         _request(authHeader: 'Bearer not-a-jwt'),
       );
       expect(result, isNull);
     });
 
-    test('returns null when user has no linked patient', () async {
+    test('returns null when user has no linked participant', () async {
       databaseQueryOverride = (query, {parameters, table}) async {
         // SELECT joins app_users → patient_linking_codes → patients;
         // when no link exists, the LEFT JOINs yield a single row with
@@ -50,7 +50,7 @@ void main() {
         ];
       };
       final token = createJwtToken(authCode: 'auth-code-123', userId: 'user-1');
-      final result = await jwtPatientResolver(
+      final result = await jwtParticipantResolver(
         _request(authHeader: 'Bearer $token'),
       );
       expect(result, isNull);
@@ -72,7 +72,7 @@ void main() {
         userId: 'user-1',
       );
 
-      final result = await jwtPatientResolver(
+      final result = await jwtParticipantResolver(
         _request(authHeader: 'Bearer $token'),
       );
 
