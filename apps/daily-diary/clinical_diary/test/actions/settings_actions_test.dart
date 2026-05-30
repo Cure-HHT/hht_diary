@@ -83,4 +83,31 @@ void main() {
       expect(() => apply.validate(input), throwsArgumentError);
     });
   });
+
+  group('UnlockSponsorSettingsAction', () {
+    const unlock = UnlockSponsorSettingsAction();
+
+    test(
+      'emits keep-as-is unlock (source: sponsor, locked: false) per key',
+      () async {
+        final input = unlock.parseInput(const {
+          'lockedSettings': {'clinical.lockThresholdHours': 48},
+        });
+        unlock.validate(input);
+        final draft = (await unlock.execute(input, _ctx())).events.single;
+        expect(draft.entryType, 'setting_applied');
+        expect(draft.aggregateId, 'clinical.lockThresholdHours');
+        expect(draft.data['source'], 'sponsor');
+        expect(draft.data['locked'], false);
+        expect(draft.data['value'], 48); // keep-as-is
+      },
+    );
+
+    test('parseInput rejects a missing lockedSettings map', () {
+      expect(
+        () => unlock.parseInput(const {}),
+        throwsA(isA<FormatException>()),
+      );
+    });
+  });
 }

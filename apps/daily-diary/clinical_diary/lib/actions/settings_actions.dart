@@ -147,3 +147,57 @@ class ApplySponsorSettingsAction
     );
   }
 }
+
+/// Unlocks the sponsor-applied settings when the participant is marked not
+/// participating: one `setting_applied(source: sponsor, locked: false)` per key,
+/// keeping the current value (keep-as-is policy — revert-to-pre-study is a future
+/// one-line switch here). The caller supplies the currently-locked `{key: value}`
+/// read from `settingsProjection`. Returns the unlocked keys.
+class UnlockSponsorSettingsAction
+    extends Action<SponsorSettingsInput, List<String>> {
+  const UnlockSponsorSettingsAction();
+
+  @override
+  String get name => 'unlock_sponsor_settings';
+
+  @override
+  String get description =>
+      'Diary unlocks sponsor settings when participation ends.';
+
+  @override
+  Set<Permission> get permissions => const <Permission>{};
+
+  @override
+  Idempotency get idempotency => Idempotency.optional;
+
+  @override
+  SponsorSettingsInput parseInput(Map<String, Object?> raw) =>
+      SponsorSettingsInput(settings: _parseSettingsMap(raw, 'lockedSettings'));
+
+  @override
+  void validate(SponsorSettingsInput input) {
+    // Empty is a no-op (no locked settings to unlock) — allowed.
+  }
+
+  @override
+  Future<ExecutionResult<List<String>>> execute(
+    SponsorSettingsInput input,
+    ActionContext ctx,
+  ) async {
+    final events = <EventDraft>[
+      for (final entry in input.settings.entries)
+        _settingDraft(
+          SettingPayload(
+            key: entry.key,
+            value: entry.value, // keep-as-is
+            source: SettingSource.sponsor,
+            locked: false,
+          ),
+        ),
+    ];
+    return ExecutionResult<List<String>>(
+      result: input.settings.keys.toList(),
+      events: events,
+    );
+  }
+}
