@@ -1,22 +1,22 @@
-# Diary event/Action surface — proposal for shared `diary_domain`
+# Diary event/Action surface — shared `diary_shared_model` (RECONCILED)
 
 **Date:** 2026-05-29 · **From:** diary mobile port (CUR-1169) · **To:** portal cutover (CUR-1170)
-**Purpose:** reconcile the event/Action surface for the shared `apps/common-dart/diary_domain`
-package that both the diary app and the portal will consume. This is the diary's
-**proposal**; the portal consumes these events more than it originates, so it's the
-starting point. Portal effort: append your additions / mark disagreements and push back
-to this branch.
+**Status:** RECONCILED — see "Diary reconciliation response — FROZEN" at the bottom.
+**Purpose:** agree the cross-wire event/payload/projection surface for the shared
+`apps/common-dart/diary_shared_model` package consumed by both the diary app and the
+portal. (Package renamed from the proposal's `diary_domain`; per P1 it holds events +
+payload schemas + canonical projections — **Actions stay per-app**.)
 
 ## Context (settled on the diary side)
 
 - The diary is being rebuilt on the external `event_sourcing` / `reaction` /
   `reaction_widgets` stack. **Every meaningful user action and relevant occurrence
   becomes an event** in the event log (menu navigation excluded).
-- The whole diary domain — event types, entry-type registry, all Action definitions,
-  canonical projection specs, read-query semantics — lives in the shared
-  `diary_domain` package so the two apps fold the **same log into the same canonical
-  state** (anti-drift). The package lands as its own additive PR once this surface is
-  reconciled.
+- The shared `diary_shared_model` package holds the cross-wire **event entry-types +
+  payload schemas + canonical projection specs** so the two apps fold the **same log
+  into the same canonical state** (anti-drift). **Actions stay per-app**
+  (`diary_actions` / `portal_actions`) — see P1. The package lands as its own additive
+  PR once this surface is frozen.
 - Each **Action** is a write intent dispatched through the core `ActionDispatcher`
   (parse → validate → authorize → execute → record); each produces one or more
   **events** on an aggregate.
@@ -178,3 +178,50 @@ Portal adopts your `(entry_type + event_kind)` model for the clinical aggregates
 (`patient_*`, portal `questionnaire_*`) are modeled one-entry-type-per-fact (no kind) since
 they're single occurrences — confirm that reads cleanly on the diary side (diary just records
 them).
+
+## Diary reconciliation response — FROZEN (CUR-1169 · 2026-05-29)
+
+Diary lead accepts the portal's notes. The surface below is **frozen**; the additive
+`diary_shared_model` package PR is authored from it.
+
+- **P1 — ACCEPTED.** Shared package = event entry-types + payload schemas + canonical
+  projection specs. Actions stay per-app (`diary_actions` / `portal_actions`). This
+  revises the diary's prior "whole-domain" decision; anti-drift holds via shared
+  events + projections.
+- **P2 — package name = `diary_shared_model`** (lead call). snake_case `entry_type` +
+  `event_kind` (`finalized`/`tombstone`/`checkpoint`) is the shared contract; Action
+  class names are per-app CamelCase.
+- **P3 — ACCEPTED (originator owns the name).** Diary consumes the portal ids verbatim:
+  `patient_disconnected`, `patient_reconnected`, `patient_marked_not_participating`,
+  `patient_reactivated`, `patient_trial_started`, `questionnaire_assigned`,
+  `questionnaire_called_back`, `questionnaire_unlocked`.
+- **P4 — CONFIRMED diary-originated ids:** `patient_linked` (was EnrollmentCompleted),
+  `questionnaire_submitted` (+ `<id>_survey`/`finalized`), `fcm_token_registered`,
+  `fcm_message_received`.
+- **P5 — ACCEPTED.** Diary echoes the portal-minted `flowToken` on `fcm_message_received`
+  AND on `questionnaire_submitted` (for portal-assigned surveys). No secrets in it.
+- **P6 — ACCEPTED.** `checkpoint` events stay **diary-local, not synced**; the portal
+  projection never sees partials.
+- **P7 — confirmed dropped** both sides (`inbound_tombstone_record_failed`).
+- **P8 — ACCEPTED.** `(entry_type + event_kind)` for clinical aggregates; portal
+  lifecycle facts are one-entry-type-per-fact; the diary just records them — reads cleanly.
+
+### Pinned details (responses to §D)
+- **D1 changeReason** — closed set `{edited, corrected, portal-withdrawn}`.
+- **D3 aggregate id** — per-event: the event's own uuid; **per-day** (no-event / unknown-day):
+  `{patientId}:{localDate}` with `localDate` = `yyyy-MM-dd` in the entry's capture timezone.
+- **D4 timezone** — epistaxis payload carries `startTimeZone` (IANA id, e.g.
+  `America/New_York`) **and** `startTimeUtcOffset` (offset at event time). (Same pair for
+  endTime when present.)
+- **D6 submission payload** — `instance_id` = the **portal-minted** `questionnaire_assigned`
+  id, carried through unchanged (diary does NOT mint for portal-assigned surveys); plus
+  version refs (schema/content/gui + translation, per
+  `DIARY-PRD-questionnaire-versioning/J,K,L`), `completed_at`, `flowToken`, and responses
+  shape `question_id → {value, display_label, normalized_label}`.
+
+### One residual (non-blocking, resolve at impl)
+Which configured questionnaires are **portal-assigned** vs **diary-initiated**: portal-assigned
+carry the portal `instance_id` + `flowToken`; diary-initiated (e.g. the daily epistaxis
+record questionnaire, if any) mint `instance_id` diary-side and have no `flowToken`. The diary
+will tag each questionnaire's origin in its registry; portal projection treats a
+missing `flowToken` as diary-initiated.
