@@ -17,11 +17,11 @@ import 'package:portal_functions/portal_functions.dart';
 class MockRaveClient extends Mock implements RaveClient {}
 
 void main() {
-  group('PatientsSyncResult', () {
+  group('ParticipantsSyncResult', () {
     test('hasError returns false when no error', () {
-      final result = PatientsSyncResult(
-        patientsCreated: 5,
-        patientsUpdated: 3,
+      final result = ParticipantsSyncResult(
+        participantsCreated: 5,
+        participantsUpdated: 3,
         syncedAt: DateTime.utc(2024, 1, 15, 12, 0, 0),
         error: null,
       );
@@ -30,9 +30,9 @@ void main() {
     });
 
     test('hasError returns true when error is set', () {
-      final result = PatientsSyncResult(
-        patientsCreated: 0,
-        patientsUpdated: 0,
+      final result = ParticipantsSyncResult(
+        participantsCreated: 0,
+        participantsUpdated: 0,
         syncedAt: DateTime.utc(2024, 1, 15, 12, 0, 0),
         error: 'RAVE authentication failed',
       );
@@ -42,9 +42,9 @@ void main() {
 
     test('toJson includes all fields without error', () {
       final syncTime = DateTime.utc(2024, 1, 15, 12, 0, 0);
-      final result = PatientsSyncResult(
-        patientsCreated: 5,
-        patientsUpdated: 3,
+      final result = ParticipantsSyncResult(
+        participantsCreated: 5,
+        participantsUpdated: 3,
         syncedAt: syncTime,
       );
 
@@ -58,9 +58,9 @@ void main() {
 
     test('toJson includes error when present', () {
       final syncTime = DateTime.utc(2024, 1, 15, 12, 0, 0);
-      final result = PatientsSyncResult(
-        patientsCreated: 0,
-        patientsUpdated: 0,
+      final result = ParticipantsSyncResult(
+        participantsCreated: 0,
+        participantsUpdated: 0,
         syncedAt: syncTime,
         error: 'Network error',
       );
@@ -74,9 +74,9 @@ void main() {
     });
 
     test('toJson with zero counts', () {
-      final result = PatientsSyncResult(
-        patientsCreated: 0,
-        patientsUpdated: 0,
+      final result = ParticipantsSyncResult(
+        participantsCreated: 0,
+        participantsUpdated: 0,
         syncedAt: DateTime.utc(2024, 6, 1),
       );
 
@@ -87,15 +87,15 @@ void main() {
     });
   });
 
-  group('computePatientContentHash', () {
+  group('computeParticipantContentHash', () {
     test('returns consistent hash for same subjects', () {
       final subjects = [
         const RaveSubject(subjectKey: '840-001-001', siteOid: '12345'),
         const RaveSubject(subjectKey: '840-001-002', siteOid: '12345'),
       ];
 
-      final hash1 = computePatientContentHash(subjects);
-      final hash2 = computePatientContentHash(subjects);
+      final hash1 = computeParticipantContentHash(subjects);
+      final hash2 = computeParticipantContentHash(subjects);
 
       expect(hash1, equals(hash2));
       expect(hash1.length, equals(64)); // SHA-256 produces 64 hex chars
@@ -109,8 +109,8 @@ void main() {
         const RaveSubject(subjectKey: '840-001-002', siteOid: '12345'),
       ];
 
-      final hash1 = computePatientContentHash(subjects1);
-      final hash2 = computePatientContentHash(subjects2);
+      final hash1 = computeParticipantContentHash(subjects1);
+      final hash2 = computeParticipantContentHash(subjects2);
 
       expect(hash1, isNot(equals(hash2)));
     });
@@ -126,13 +126,13 @@ void main() {
       ];
 
       expect(
-        computePatientContentHash(subjects1),
-        equals(computePatientContentHash(subjects2)),
+        computeParticipantContentHash(subjects1),
+        equals(computeParticipantContentHash(subjects2)),
       );
     });
 
     test('returns consistent hash for empty list', () {
-      final hash = computePatientContentHash([]);
+      final hash = computeParticipantContentHash([]);
       expect(hash.length, equals(64));
     });
 
@@ -145,8 +145,8 @@ void main() {
       ];
 
       expect(
-        computePatientContentHash(subjects1),
-        isNot(equals(computePatientContentHash(subjects2))),
+        computeParticipantContentHash(subjects1),
+        isNot(equals(computeParticipantContentHash(subjects2))),
       );
     });
 
@@ -167,42 +167,42 @@ void main() {
       ];
 
       expect(
-        computePatientContentHash(subjects1),
-        isNot(equals(computePatientContentHash(subjects2))),
+        computeParticipantContentHash(subjects1),
+        isNot(equals(computeParticipantContentHash(subjects2))),
       );
     });
   });
 
-  group('syncPatientsFromEdc', () {
+  group('syncParticipantsFromEdc', () {
     test('returns error when RAVE not configured', () async {
       if (Platform.environment['RAVE_UAT_URL'] != null) {
         print('Skipping test - RAVE is configured');
         return;
       }
 
-      final result = await syncPatientsFromEdc(skipLogging: true);
+      final result = await syncParticipantsFromEdc(skipLogging: true);
 
       expect(result.hasError, isTrue);
       expect(result.error, equals('RAVE configuration not available'));
-      expect(result.patientsCreated, equals(0));
-      expect(result.patientsUpdated, equals(0));
+      expect(result.participantsCreated, equals(0));
+      expect(result.participantsUpdated, equals(0));
     });
   });
 
-  group('syncPatientsIfNeeded', () {
+  group('syncParticipantsIfNeeded', () {
     test('returns null when RAVE not configured', () async {
       if (Platform.environment['RAVE_UAT_URL'] != null) {
         print('Skipping test - RAVE is configured');
         return;
       }
 
-      final result = await syncPatientsIfNeeded();
+      final result = await syncParticipantsIfNeeded();
 
       expect(result, isNull);
     });
   });
 
-  group('syncPatientsFromEdc with mocked client', () {
+  group('syncParticipantsFromEdc with mocked client', () {
     late MockRaveClient mockClient;
 
     setUp(() {
@@ -214,7 +214,7 @@ void main() {
     });
 
     test('returns error when studyOid is null', () async {
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: null,
         skipLogging: true,
@@ -225,12 +225,12 @@ void main() {
         result.error,
         equals('RAVE_STUDY_OID is required for patient sync'),
       );
-      expect(result.patientsCreated, equals(0));
-      expect(result.patientsUpdated, equals(0));
+      expect(result.participantsCreated, equals(0));
+      expect(result.participantsUpdated, equals(0));
     });
 
     test('returns error when studyOid is empty', () async {
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: '',
         skipLogging: true,
@@ -248,7 +248,7 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer((_) async => []);
 
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: true,
@@ -259,8 +259,8 @@ void main() {
         result.error,
         equals('No subjects returned from RAVE - check permissions'),
       );
-      expect(result.patientsCreated, equals(0));
-      expect(result.patientsUpdated, equals(0));
+      expect(result.participantsCreated, equals(0));
+      expect(result.participantsUpdated, equals(0));
 
       verify(() => mockClient.getSubjects(studyOid: 'TEST-STUDY')).called(1);
     });
@@ -275,7 +275,7 @@ void main() {
         ),
       );
 
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: true,
@@ -298,7 +298,7 @@ void main() {
           () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
         ).thenThrow(const RaveAuthenticationException());
 
-        final result = await syncPatientsFromEdc(
+        final result = await syncParticipantsFromEdc(
           testClient: mockClient,
           testStudyOid: 'TEST-STUDY',
           skipLogging: true,
@@ -318,7 +318,7 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenThrow(RaveNetworkException('Connection refused'));
 
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: true,
@@ -334,7 +334,7 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenThrow(RaveApiException('Server error', statusCode: 500));
 
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: true,
@@ -350,7 +350,7 @@ void main() {
       ).thenAnswer((_) async => []);
       when(() => mockClient.close()).thenReturn(null);
 
-      await syncPatientsFromEdc(
+      await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: true,
@@ -364,7 +364,7 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer((_) async => []);
 
-      await syncPatientsFromEdc(
+      await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'MY-STUDY-OID',
         skipLogging: true,
@@ -384,15 +384,15 @@ void main() {
 
       // Without a real database, the per-patient upsert will fail but be
       // caught and skipped. The function still completes with 0 counts.
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: true,
       );
 
       // All patients skipped due to DB errors
-      expect(result.patientsCreated, equals(0));
-      expect(result.patientsUpdated, equals(0));
+      expect(result.participantsCreated, equals(0));
+      expect(result.participantsUpdated, equals(0));
       expect(result.hasError, isFalse);
 
       verify(() => mockClient.getSubjects(studyOid: 'TEST-STUDY')).called(1);
@@ -409,19 +409,19 @@ void main() {
       ).thenAnswer((_) async => subjects);
 
       // Should complete without throwing, skipping patients with DB errors
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: true,
       );
 
-      expect(result.patientsCreated, equals(0));
-      expect(result.patientsUpdated, equals(0));
+      expect(result.participantsCreated, equals(0));
+      expect(result.participantsUpdated, equals(0));
       expect(result.hasError, isFalse);
     });
   });
 
-  group('syncPatientsFromEdc logging paths (skipLogging: false)', () {
+  group('syncParticipantsFromEdc logging paths (skipLogging: false)', () {
     // These tests exercise the _logPatientSyncResult and logWithTrace code paths.
     // OTel must be initialized for logWithTrace to work.
     // Without a database, the logging function catches its own errors,
@@ -458,7 +458,7 @@ void main() {
           () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
         ).thenAnswer((_) async => []);
 
-        final result = await syncPatientsFromEdc(
+        final result = await syncParticipantsFromEdc(
           testClient: mockClient,
           testStudyOid: 'TEST-STUDY',
           skipLogging: false,
@@ -475,7 +475,7 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenThrow(const RaveAuthenticationException());
 
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: false,
@@ -490,7 +490,7 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenThrow(RaveNetworkException('Timeout'));
 
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: false,
@@ -507,7 +507,7 @@ void main() {
           () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
         ).thenThrow(RaveApiException('Server error', statusCode: 500));
 
-        final result = await syncPatientsFromEdc(
+        final result = await syncParticipantsFromEdc(
           testClient: mockClient,
           testStudyOid: 'TEST-STUDY',
           skipLogging: false,
@@ -521,7 +521,7 @@ void main() {
     test(
       'attempts logging on missing studyOid with skipLogging false',
       () async {
-        final result = await syncPatientsFromEdc(
+        final result = await syncParticipantsFromEdc(
           testClient: mockClient,
           testStudyOid: null,
           skipLogging: false,
@@ -542,7 +542,7 @@ void main() {
           return;
         }
 
-        final result = await syncPatientsFromEdc(skipLogging: false);
+        final result = await syncParticipantsFromEdc(skipLogging: false);
 
         expect(result.hasError, isTrue);
         expect(result.error, equals('RAVE configuration not available'));
@@ -558,7 +558,7 @@ void main() {
         lockedAt: lockedAt,
         row: RaveLockoutRow(lockedAt: lockedAt),
       );
-      final result = buildPausedPatientsResult(state);
+      final result = buildPausedParticipantsResult(state);
       expect(result.paused, isTrue);
       expect(result.pausedReason, 'locked');
       expect(result.error, contains('Rave sync paused'));
@@ -571,7 +571,7 @@ void main() {
         pausedUntil: until,
         row: const RaveLockoutRow(),
       );
-      final result = buildPausedPatientsResult(state);
+      final result = buildPausedParticipantsResult(state);
       expect(result.paused, isTrue);
       expect(result.pausedReason, 'cooldown');
       expect(result.pausedUntil, until);

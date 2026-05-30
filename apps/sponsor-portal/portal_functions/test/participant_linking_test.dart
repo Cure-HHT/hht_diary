@@ -22,7 +22,7 @@ import 'package:test/test.dart';
 
 import 'package:portal_functions/src/database.dart';
 import 'package:portal_functions/src/notification_service.dart';
-import 'package:portal_functions/src/patient_linking.dart';
+import 'package:portal_functions/src/participant_linking.dart';
 import 'package:portal_functions/src/portal_auth.dart';
 import 'package:portal_functions/src/sponsor.dart';
 
@@ -108,7 +108,7 @@ void main() {
     await OTel.reset();
   });
 
-  group('generatePatientLinkingCodeHandler', () {
+  group('generateParticipantLinkingCodeHandler', () {
     group('authorization', () {
       test('returns 401 when no authorization header', () async {
         final request = Request(
@@ -117,7 +117,7 @@ void main() {
           body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 401);
         final body = jsonDecode(await response.readAsString());
@@ -132,7 +132,7 @@ void main() {
           body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 401);
       });
@@ -147,7 +147,7 @@ void main() {
             body: jsonEncode({'patientId': 'p1'}),
           );
 
-          final response = await generatePatientLinkingCodeHandler(request);
+          final response = await generateParticipantLinkingCodeHandler(request);
 
           expect(response.statusCode, 401);
         },
@@ -160,14 +160,14 @@ void main() {
           body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.headers['content-type'], 'application/json');
       });
     });
   });
 
-  group('getPatientLinkingCodeHandler', () {
+  group('getParticipantLinkingCodeHandler', () {
     group('authorization', () {
       test('returns 401 when no authorization header', () async {
         final request = Request(
@@ -176,7 +176,7 @@ void main() {
           headers: {'x-patient-id': 'p1'},
         );
 
-        final response = await getPatientLinkingCodeHandler(request);
+        final response = await getParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 401);
         final body = jsonDecode(await response.readAsString());
@@ -190,7 +190,7 @@ void main() {
           headers: {'authorization': '', 'x-patient-id': 'p1'},
         );
 
-        final response = await getPatientLinkingCodeHandler(request);
+        final response = await getParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 401);
       });
@@ -199,7 +199,7 @@ void main() {
 
   group('Response format consistency', () {
     test(
-      'generatePatientLinkingCodeHandler returns valid JSON on all error paths',
+      'generateParticipantLinkingCodeHandler returns valid JSON on all error paths',
       () async {
         final requests = [
           Request(
@@ -222,7 +222,7 @@ void main() {
         ];
 
         for (final request in requests) {
-          final response = await generatePatientLinkingCodeHandler(request);
+          final response = await generateParticipantLinkingCodeHandler(request);
           final body = await response.readAsString();
 
           // Should parse as valid JSON without throwing
@@ -233,7 +233,7 @@ void main() {
     );
 
     test(
-      'getPatientLinkingCodeHandler returns valid JSON on all error paths',
+      'getParticipantLinkingCodeHandler returns valid JSON on all error paths',
       () async {
         final requests = [
           Request(
@@ -257,7 +257,7 @@ void main() {
         ];
 
         for (final request in requests) {
-          final response = await getPatientLinkingCodeHandler(request);
+          final response = await getParticipantLinkingCodeHandler(request);
           final body = await response.readAsString();
 
           // Should parse as valid JSON without throwing
@@ -268,21 +268,24 @@ void main() {
     );
   });
 
-  group('generatePatientLinkingCode', () {
+  group('generateParticipantLinkingCode', () {
     test('generates code with correct length', () {
-      final code = generatePatientLinkingCode('CA');
+      final code = generateParticipantLinkingCode('CA');
 
       expect(code.length, 10);
     });
 
     test('generates code with sponsor prefix', () {
-      final code = generatePatientLinkingCode('CA');
+      final code = generateParticipantLinkingCode('CA');
 
       expect(code.startsWith('CA'), isTrue);
     });
 
     test('generates different codes each time', () {
-      final codes = List.generate(100, (_) => generatePatientLinkingCode('CA'));
+      final codes = List.generate(
+        100,
+        (_) => generateParticipantLinkingCode('CA'),
+      );
       final uniqueCodes = codes.toSet();
 
       expect(uniqueCodes.length, 100, reason: 'All codes should be unique');
@@ -293,7 +296,7 @@ void main() {
       const allowedChars = 'ABCDEFGHJKLMNPQRTUVWXY346789';
 
       for (var i = 0; i < 100; i++) {
-        final code = generatePatientLinkingCode('XX');
+        final code = generateParticipantLinkingCode('XX');
         // Skip the 2-char prefix and check the random part
         final randomPart = code.substring(2);
 
@@ -312,7 +315,7 @@ void main() {
       const ambiguousChars = ['I', '1', 'O', '0', 'S', '5', 'Z', '2'];
 
       for (var i = 0; i < 100; i++) {
-        final code = generatePatientLinkingCode('XX');
+        final code = generateParticipantLinkingCode('XX');
         // Skip the 2-char prefix and check the random part
         final randomPart = code.substring(2);
 
@@ -330,7 +333,7 @@ void main() {
       final prefixes = ['CA', 'NY', 'TX', 'FL', 'XX'];
 
       for (final prefix in prefixes) {
-        final code = generatePatientLinkingCode(prefix);
+        final code = generateParticipantLinkingCode(prefix);
 
         expect(code.startsWith(prefix), isTrue);
         expect(code.length, 10);
@@ -490,7 +493,7 @@ void main() {
     });
   });
 
-  group('disconnectPatientHandler', () {
+  group('disconnectParticipantHandler', () {
     group('authorization', () {
       test('returns 401 when no authorization header', () async {
         final request = Request(
@@ -499,7 +502,7 @@ void main() {
           body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.statusCode, 401);
         final body = jsonDecode(await response.readAsString());
@@ -514,7 +517,7 @@ void main() {
           body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.statusCode, 401);
       });
@@ -529,7 +532,7 @@ void main() {
             body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
           );
 
-          final response = await disconnectPatientHandler(request);
+          final response = await disconnectParticipantHandler(request);
 
           expect(response.statusCode, 401);
         },
@@ -542,7 +545,7 @@ void main() {
           body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.headers['content-type'], 'application/json');
       });
@@ -558,7 +561,7 @@ void main() {
           body: jsonEncode({'patientId': 'p1'}),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         // Without auth, returns 401, but response is still valid JSON
         expect(response.headers['content-type'], 'application/json');
@@ -569,7 +572,7 @@ void main() {
 
     group('response format consistency', () {
       test(
-        'disconnectPatientHandler returns valid JSON on all error paths',
+        'disconnectParticipantHandler returns valid JSON on all error paths',
         () async {
           final requests = [
             Request(
@@ -598,7 +601,7 @@ void main() {
           ];
 
           for (final request in requests) {
-            final response = await disconnectPatientHandler(request);
+            final response = await disconnectParticipantHandler(request);
             final body = await response.readAsString();
 
             // Should parse as valid JSON without throwing
@@ -713,7 +716,7 @@ void main() {
   });
 
   group(
-    'Reconnection (generatePatientLinkingCodeHandler with reconnect_reason)',
+    'Reconnection (generateParticipantLinkingCodeHandler with reconnect_reason)',
     () {
       group('request body handling', () {
         test('accepts request with reconnect_reason in body', () async {
@@ -729,7 +732,7 @@ void main() {
             headers: {'content-type': 'application/json'},
           );
 
-          final response = await generatePatientLinkingCodeHandler(request);
+          final response = await generateParticipantLinkingCodeHandler(request);
 
           // Should return valid JSON even on auth error
           expect(response.headers['content-type'], 'application/json');
@@ -748,7 +751,9 @@ void main() {
               body: jsonEncode({'patientId': 'p1'}),
             );
 
-            final response = await generatePatientLinkingCodeHandler(request);
+            final response = await generateParticipantLinkingCodeHandler(
+              request,
+            );
 
             expect(response.headers['content-type'], 'application/json');
             final body = await response.readAsString();
@@ -764,7 +769,7 @@ void main() {
             headers: {'content-type': 'application/json'},
           );
 
-          final response = await generatePatientLinkingCodeHandler(request);
+          final response = await generateParticipantLinkingCodeHandler(request);
 
           // Should still return valid JSON (auth error, not parsing error)
           expect(response.headers['content-type'], 'application/json');
@@ -1018,9 +1023,9 @@ void main() {
     });
 
     // ================================================================
-    // generatePatientLinkingCodeHandler
+    // generateParticipantLinkingCodeHandler
     // ================================================================
-    group('generatePatientLinkingCodeHandler handler', () {
+    group('generateParticipantLinkingCodeHandler handler', () {
       test('generates code successfully for not_connected patient', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
           if (query.contains('FROM patients')) {
@@ -1048,7 +1053,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1069,7 +1074,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 403);
         final body = await _json(response);
@@ -1088,7 +1093,7 @@ void main() {
           body: jsonEncode({'patientId': 'nonexistent'}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -1107,7 +1112,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 403);
         final body = await _json(response);
@@ -1128,7 +1133,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 409);
         final body = await _json(response);
@@ -1167,7 +1172,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
         expect(revokedCodes, isTrue);
@@ -1208,14 +1213,14 @@ void main() {
           }),
         );
 
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
         expect(capturedActionType, 'RECONNECT_PATIENT');
       });
 
       // CUR-1311 (Phase 1B.3): envelope flag for the reconnect path
-      // inside generatePatientLinkingCodeHandler. Only fires when
+      // inside generateParticipantLinkingCodeHandler. Only fires when
       // isReconnection is true (i.e. previous_status was 'disconnected').
       group('envelope flag (FCM_USE_ENVELOPE_RECONNECT)', () {
         tearDown(() {
@@ -1293,7 +1298,9 @@ void main() {
               }),
             );
 
-            final response = await generatePatientLinkingCodeHandler(request);
+            final response = await generateParticipantLinkingCodeHandler(
+              request,
+            );
 
             expect(response.statusCode, 200);
             expect(
@@ -1342,7 +1349,9 @@ void main() {
               body: jsonEncode({'patientId': _testPatientId}),
             );
 
-            final response = await generatePatientLinkingCodeHandler(request);
+            final response = await generateParticipantLinkingCodeHandler(
+              request,
+            );
 
             expect(response.statusCode, 200);
             expect(
@@ -1357,9 +1366,9 @@ void main() {
     });
 
     // ================================================================
-    // getPatientLinkingCodeHandler
+    // getParticipantLinkingCodeHandler
     // ================================================================
-    group('getPatientLinkingCodeHandler handler', () {
+    group('getParticipantLinkingCodeHandler handler', () {
       test('returns active code when one exists', () async {
         final expiresAt = DateTime.now().add(const Duration(hours: 48));
         final generatedAt = DateTime.now().subtract(const Duration(hours: 24));
@@ -1384,7 +1393,7 @@ void main() {
           headers: {'x-patient-id': _testPatientId},
         );
 
-        final response = await getPatientLinkingCodeHandler(request);
+        final response = await getParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1412,7 +1421,7 @@ void main() {
           headers: {'x-patient-id': _testPatientId},
         );
 
-        final response = await getPatientLinkingCodeHandler(request);
+        final response = await getParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1451,7 +1460,7 @@ void main() {
             headers: {'x-patient-id': _testPatientId},
           );
 
-          final response = await getPatientLinkingCodeHandler(request);
+          final response = await getParticipantLinkingCodeHandler(request);
 
           expect(response.statusCode, 200);
           final body = await _json(response);
@@ -1485,7 +1494,7 @@ void main() {
             headers: {'x-patient-id': _testPatientId},
           );
 
-          final response = await getPatientLinkingCodeHandler(request);
+          final response = await getParticipantLinkingCodeHandler(request);
 
           expect(response.statusCode, 200);
           final body = await _json(response);
@@ -1522,7 +1531,7 @@ void main() {
             headers: {'x-patient-id': _testPatientId},
           );
 
-          final response = await getPatientLinkingCodeHandler(request);
+          final response = await getParticipantLinkingCodeHandler(request);
 
           final body = await _json(response);
           expect(body['used_code'], contains('-'));
@@ -1540,7 +1549,7 @@ void main() {
           headers: {'x-patient-id': _testPatientId},
         );
 
-        final response = await getPatientLinkingCodeHandler(request);
+        final response = await getParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1557,7 +1566,7 @@ void main() {
           headers: {'x-patient-id': 'nonexistent'},
         );
 
-        final response = await getPatientLinkingCodeHandler(request);
+        final response = await getParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -1578,16 +1587,16 @@ void main() {
           headers: {'x-patient-id': _testPatientId},
         );
 
-        final response = await getPatientLinkingCodeHandler(request);
+        final response = await getParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 403);
       });
     });
 
     // ================================================================
-    // disconnectPatientHandler
+    // disconnectParticipantHandler
     // ================================================================
-    group('disconnectPatientHandler handler', () {
+    group('disconnectParticipantHandler handler', () {
       test('disconnects connected patient with valid reason', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
           if (query.contains('FROM patients')) {
@@ -1614,7 +1623,7 @@ void main() {
           }),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -1637,7 +1646,7 @@ void main() {
           }),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1653,7 +1662,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.statusCode, 400);
         final body = await _json(response);
@@ -1670,7 +1679,7 @@ void main() {
           }),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.statusCode, 400);
         final body = await _json(response);
@@ -1692,7 +1701,7 @@ void main() {
             body: jsonEncode({'patientId': _testPatientId, 'reason': 'Other'}),
           );
 
-          final response = await disconnectPatientHandler(request);
+          final response = await disconnectParticipantHandler(request);
 
           // Proceeds past notes validation to DB lookup (404) — not a 400 notes error
           expect(response.statusCode, isNot(400));
@@ -1716,7 +1725,7 @@ void main() {
           }),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -1738,7 +1747,7 @@ void main() {
           }),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -1760,7 +1769,7 @@ void main() {
           }),
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.statusCode, 409);
         final body = await _json(response);
@@ -1774,7 +1783,7 @@ void main() {
           body: 'not json',
         );
 
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
 
         expect(response.statusCode, 400);
       });
@@ -1805,7 +1814,7 @@ void main() {
               }),
             );
 
-            final response = await disconnectPatientHandler(request);
+            final response = await disconnectParticipantHandler(request);
 
             expect(response.statusCode, 400);
             final body = await _json(response);
@@ -1843,7 +1852,7 @@ void main() {
               }),
             );
 
-            final response = await disconnectPatientHandler(request);
+            final response = await disconnectParticipantHandler(request);
 
             expect(response.statusCode, 200);
             final body = await _json(response);
@@ -1871,7 +1880,7 @@ void main() {
               body: jsonEncode({'patientId': _testPatientId, 'reason': ''}),
             );
 
-            final response = await disconnectPatientHandler(request);
+            final response = await disconnectParticipantHandler(request);
 
             expect(response.statusCode, 400);
             final body = await _json(response);
@@ -1973,7 +1982,7 @@ void main() {
             }),
           );
 
-          final response = await disconnectPatientHandler(request);
+          final response = await disconnectParticipantHandler(request);
 
           expect(response.statusCode, 200);
 
@@ -2050,7 +2059,7 @@ void main() {
               }),
             );
 
-            final response = await disconnectPatientHandler(request);
+            final response = await disconnectParticipantHandler(request);
 
             // The action itself succeeds — the patient row was updated;
             // the push is the side-effect that got blocked. The handler
@@ -2072,9 +2081,9 @@ void main() {
     });
 
     // ================================================================
-    // markPatientNotParticipatingHandler
+    // markParticipantNotParticipatingHandler
     // ================================================================
-    group('markPatientNotParticipatingHandler handler', () {
+    group('markParticipantNotParticipatingHandler handler', () {
       test('marks disconnected patient as not participating', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
           if (query.contains('FROM patients')) {
@@ -2098,7 +2107,7 @@ void main() {
           }),
         );
 
-        final response = await markPatientNotParticipatingHandler(request);
+        final response = await markParticipantNotParticipatingHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -2117,7 +2126,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId, 'reason': 'Death'}),
         );
 
-        final response = await markPatientNotParticipatingHandler(request);
+        final response = await markParticipantNotParticipatingHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -2132,7 +2141,7 @@ void main() {
           }),
         );
 
-        final response = await markPatientNotParticipatingHandler(request);
+        final response = await markParticipantNotParticipatingHandler(request);
 
         expect(response.statusCode, 400);
       });
@@ -2144,7 +2153,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId, 'reason': 'Other'}),
         );
 
-        final response = await markPatientNotParticipatingHandler(request);
+        final response = await markParticipantNotParticipatingHandler(request);
 
         expect(response.statusCode, 400);
         final body = await _json(response);
@@ -2163,7 +2172,7 @@ void main() {
           body: jsonEncode({'patientId': 'nonexistent', 'reason': 'Death'}),
         );
 
-        final response = await markPatientNotParticipatingHandler(request);
+        final response = await markParticipantNotParticipatingHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -2182,7 +2191,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId, 'reason': 'Death'}),
         );
 
-        final response = await markPatientNotParticipatingHandler(request);
+        final response = await markParticipantNotParticipatingHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -2204,7 +2213,7 @@ void main() {
           }),
         );
 
-        final response = await markPatientNotParticipatingHandler(request);
+        final response = await markParticipantNotParticipatingHandler(request);
 
         expect(response.statusCode, 409);
       });
@@ -2216,7 +2225,7 @@ void main() {
           body: 'not json',
         );
 
-        final response = await markPatientNotParticipatingHandler(request);
+        final response = await markParticipantNotParticipatingHandler(request);
 
         expect(response.statusCode, 400);
       });
@@ -2294,7 +2303,9 @@ void main() {
               }),
             );
 
-            final response = await markPatientNotParticipatingHandler(request);
+            final response = await markParticipantNotParticipatingHandler(
+              request,
+            );
 
             expect(response.statusCode, 200);
             expect(
@@ -2313,9 +2324,9 @@ void main() {
     });
 
     // ================================================================
-    // reactivatePatientHandler
+    // reactivateParticipantHandler
     // ================================================================
-    group('reactivatePatientHandler handler', () {
+    group('reactivateParticipantHandler handler', () {
       test('reactivates not_participating patient', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
           if (query.contains('FROM patients')) {
@@ -2339,7 +2350,7 @@ void main() {
           }),
         );
 
-        final response = await reactivatePatientHandler(request);
+        final response = await reactivateParticipantHandler(request);
 
         expect(response.statusCode, 200);
         final body = await _json(response);
@@ -2361,7 +2372,7 @@ void main() {
           }),
         );
 
-        final response = await reactivatePatientHandler(request);
+        final response = await reactivateParticipantHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -2373,7 +2384,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId}),
         );
 
-        final response = await reactivatePatientHandler(request);
+        final response = await reactivateParticipantHandler(request);
 
         expect(response.statusCode, 400);
       });
@@ -2390,7 +2401,7 @@ void main() {
           body: jsonEncode({'patientId': 'nonexistent', 'reason': 'Test'}),
         );
 
-        final response = await reactivatePatientHandler(request);
+        final response = await reactivateParticipantHandler(request);
 
         expect(response.statusCode, 404);
       });
@@ -2411,7 +2422,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId, 'reason': 'Test'}),
         );
 
-        final response = await reactivatePatientHandler(request);
+        final response = await reactivateParticipantHandler(request);
 
         expect(response.statusCode, 403);
       });
@@ -2430,7 +2441,7 @@ void main() {
           body: jsonEncode({'patientId': _testPatientId, 'reason': 'Test'}),
         );
 
-        final response = await reactivatePatientHandler(request);
+        final response = await reactivateParticipantHandler(request);
 
         expect(response.statusCode, 409);
       });
@@ -2442,7 +2453,7 @@ void main() {
           body: 'not json',
         );
 
-        final response = await reactivatePatientHandler(request);
+        final response = await reactivateParticipantHandler(request);
 
         expect(response.statusCode, 400);
       });
@@ -2521,7 +2532,7 @@ void main() {
               }),
             );
 
-            final response = await reactivatePatientHandler(request);
+            final response = await reactivateParticipantHandler(request);
 
             expect(response.statusCode, 200);
             expect(

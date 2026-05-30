@@ -83,7 +83,7 @@ class NotificationConfig {
   /// development without GCP credentials.
   final bool consoleMode;
 
-  /// CUR-1311 (Phase 1B.2): when true, `disconnectPatientHandler` routes
+  /// CUR-1311 (Phase 1B.2): when true, `disconnectParticipantHandler` routes
   /// the disconnect notification through `OutboxWriter` (writes a row to
   /// `notifications` before dispatching FCM). When false, behaviour is
   /// identical to S2 — direct FCM send via `sendPatientStatusNotification`.
@@ -92,15 +92,15 @@ class NotificationConfig {
   final bool useEnvelopeDisconnect;
 
   /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for the
-  /// `markPatientNotParticipatingHandler`.
+  /// `markParticipantNotParticipatingHandler`.
   final bool useEnvelopeNotParticipating;
 
   /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for the
-  /// `reactivatePatientHandler`.
+  /// `reactivateParticipantHandler`.
   final bool useEnvelopeReactivate;
 
   /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for the
-  /// reconnect path inside `generatePatientLinkingCodeHandler` (only
+  /// reconnect path inside `generateParticipantLinkingCodeHandler` (only
   /// fires when isReconnection is true).
   final bool useEnvelopeReconnect;
 

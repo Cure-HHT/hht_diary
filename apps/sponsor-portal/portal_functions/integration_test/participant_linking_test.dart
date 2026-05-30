@@ -222,13 +222,13 @@ void main() {
     return Request('GET', Uri.parse('http://localhost$path'), headers: headers);
   }
 
-  group('generatePatientLinkingCodeHandler', () {
+  group('generateParticipantLinkingCodeHandler', () {
     test('returns 401 without authorization header', () async {
       final request = createPostRequest(
         '/api/v1/portal/participants/link-code',
         body: {'patientId': testPatientNotConnected},
       );
-      final response = await generatePatientLinkingCodeHandler(request);
+      final response = await generateParticipantLinkingCodeHandler(request);
 
       expect(response.statusCode, equals(401));
       final json = await getResponseJson(response);
@@ -241,7 +241,7 @@ void main() {
         body: {'patientId': testPatientNotConnected},
         headers: {'authorization': 'Bearer invalid-token'},
       );
-      final response = await generatePatientLinkingCodeHandler(request);
+      final response = await generateParticipantLinkingCodeHandler(request);
 
       expect(response.statusCode, equals(401));
     });
@@ -252,7 +252,7 @@ void main() {
         body: {'patientId': testPatientNotConnected},
         headers: {'authorization': 'some-token'},
       );
-      final response = await generatePatientLinkingCodeHandler(request);
+      final response = await generateParticipantLinkingCodeHandler(request);
 
       expect(response.statusCode, equals(401));
     });
@@ -276,19 +276,19 @@ void main() {
       ];
 
       for (final request in requests) {
-        final response = await generatePatientLinkingCodeHandler(request);
+        final response = await generateParticipantLinkingCodeHandler(request);
         expect(response.headers['content-type'], equals('application/json'));
       }
     });
   });
 
-  group('getPatientLinkingCodeHandler', () {
+  group('getParticipantLinkingCodeHandler', () {
     test('returns 401 without authorization header', () async {
       final request = createGetRequest(
         '/api/v1/portal/participants/link-code',
         headers: {'x-patient-id': testPatientLinking},
       );
-      final response = await getPatientLinkingCodeHandler(request);
+      final response = await getParticipantLinkingCodeHandler(request);
 
       expect(response.statusCode, equals(401));
       final json = await getResponseJson(response);
@@ -312,19 +312,19 @@ void main() {
       ];
 
       for (final request in requests) {
-        final response = await getPatientLinkingCodeHandler(request);
+        final response = await getParticipantLinkingCodeHandler(request);
         expect(response.headers['content-type'], equals('application/json'));
       }
     });
   });
 
-  group('disconnectPatientHandler', () {
+  group('disconnectParticipantHandler', () {
     test('returns 401 without authorization header', () async {
       final request = createPostRequest(
         '/api/v1/portal/participants/disconnect',
         body: {'patientId': testPatientConnected, 'reason': 'Device Issues'},
       );
-      final response = await disconnectPatientHandler(request);
+      final response = await disconnectParticipantHandler(request);
 
       expect(response.statusCode, equals(401));
       final json = await getResponseJson(response);
@@ -350,16 +350,16 @@ void main() {
       ];
 
       for (final request in requests) {
-        final response = await disconnectPatientHandler(request);
+        final response = await disconnectParticipantHandler(request);
         expect(response.headers['content-type'], equals('application/json'));
       }
     });
   });
 
   group('Utility functions', () {
-    test('generatePatientLinkingCode produces valid codes', () {
+    test('generateParticipantLinkingCode produces valid codes', () {
       for (var i = 0; i < 100; i++) {
-        final code = generatePatientLinkingCode('CA');
+        final code = generateParticipantLinkingCode('CA');
 
         // Length check
         expect(code.length, equals(10));

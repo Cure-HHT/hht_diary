@@ -31,7 +31,7 @@ import 'package:shelf/shelf.dart';
 import 'database.dart';
 import 'email_service.dart';
 import 'feature_flags.dart';
-import 'patients_sync.dart';
+import 'participants_sync.dart';
 import 'portal_auth.dart';
 import 'portal_rave_admin.dart';
 import 'sites_sync.dart';
@@ -1106,7 +1106,7 @@ Future<Response> getPortalPatientsHandler(Request request) async {
   }
 
   // Sync patients from EDC if needed (stale or missing)
-  final syncResult = await syncPatientsIfNeeded();
+  final syncResult = await syncParticipantsIfNeeded();
   if (syncResult != null && syncResult.hasError) {
     print('Patients sync warning: ${syncResult.error}');
   }

@@ -18,18 +18,18 @@ import 'rave_sync_lockout.dart';
 import 'sites_sync.dart' show RaveConfig, defaultSyncInterval;
 
 /// Result of a patients sync operation.
-class PatientsSyncResult {
-  final int patientsCreated;
-  final int patientsUpdated;
+class ParticipantsSyncResult {
+  final int participantsCreated;
+  final int participantsUpdated;
   final DateTime syncedAt;
   final String? error;
   final bool paused;
   final String? pausedReason;
   final DateTime? pausedUntil;
 
-  const PatientsSyncResult({
-    required this.patientsCreated,
-    required this.patientsUpdated,
+  const ParticipantsSyncResult({
+    required this.participantsCreated,
+    required this.participantsUpdated,
     required this.syncedAt,
     this.error,
     this.paused = false,
@@ -40,8 +40,8 @@ class PatientsSyncResult {
   bool get hasError => error != null;
 
   Map<String, dynamic> toJson() => {
-    'patients_created': patientsCreated,
-    'patients_updated': patientsUpdated,
+    'patients_created': participantsCreated,
+    'patients_updated': participantsUpdated,
     'synced_at': syncedAt.toIso8601String(),
     if (error != null) 'error': error,
     if (paused) 'paused': true,
@@ -50,15 +50,15 @@ class PatientsSyncResult {
   };
 }
 
-/// Builds a PatientsSyncResult that signals "paused" to callers.
+/// Builds a ParticipantsSyncResult that signals "paused" to callers.
 // Implements: DIARY-OPS-rave-sync-cooldown/D, DIARY-OPS-rave-sync-hard-lockout/B
-PatientsSyncResult buildPausedPatientsResult(LockoutState state) {
+ParticipantsSyncResult buildPausedParticipantsResult(LockoutState state) {
   final reason = state.result == LockoutCheckResult.pausedLocked
       ? 'locked'
       : 'cooldown';
-  return PatientsSyncResult(
-    patientsCreated: 0,
-    patientsUpdated: 0,
+  return ParticipantsSyncResult(
+    participantsCreated: 0,
+    participantsUpdated: 0,
     syncedAt: DateTime.now().toUtc(),
     error: 'Rave sync paused ($reason)',
     paused: true,
@@ -70,7 +70,7 @@ PatientsSyncResult buildPausedPatientsResult(LockoutState state) {
 /// Computes SHA-256 hash of subject content for integrity verification.
 ///
 /// This function is exposed for testing purposes.
-String computePatientContentHash(List<RaveSubject> subjects) {
+String computeParticipantContentHash(List<RaveSubject> subjects) {
   // Sort subjects by subjectKey for consistent hashing
   final sorted = List<RaveSubject>.from(subjects)
     ..sort((a, b) => a.subjectKey.compareTo(b.subjectKey));
@@ -92,7 +92,7 @@ String computePatientContentHash(List<RaveSubject> subjects) {
 /// Returns true if:
 /// - No patients exist in the database
 /// - Most recent sync is older than [syncInterval]
-Future<bool> shouldSyncPatients({
+Future<bool> shouldSyncParticipants({
   Duration syncInterval = defaultSyncInterval,
 }) async {
   final db = Database.instance;
@@ -139,8 +139,8 @@ Future<bool> shouldSyncPatients({
 /// - [testStudyOid]: Override study OID for testing
 /// - [skipLogging]: Skip database logging for unit tests without DB
 ///
-/// Returns a [PatientsSyncResult] with counts of changes made.
-Future<PatientsSyncResult> syncPatientsFromEdc({
+/// Returns a [ParticipantsSyncResult] with counts of changes made.
+Future<ParticipantsSyncResult> syncParticipantsFromEdc({
   RaveClient? testClient,
   String? testStudyOid,
   bool skipLogging = false,
@@ -164,14 +164,19 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
     } else {
       final config = RaveConfig.fromEnvironment();
       if (config == null) {
-        final result = PatientsSyncResult(
-          patientsCreated: 0,
-          patientsUpdated: 0,
+        final result = ParticipantsSyncResult(
+          participantsCreated: 0,
+          participantsUpdated: 0,
           syncedAt: DateTime.now().toUtc(),
           error: 'RAVE configuration not available',
         );
         if (!skipLogging) {
-          await _logPatientSyncResult(result, '', startTime, studyOid: null);
+          await _logParticipantSyncResult(
+            result,
+            '',
+            startTime,
+            studyOid: null,
+          );
         }
         return result;
       }
@@ -186,14 +191,14 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
 
   // studyOid is required for the subjects endpoint
   if (studyOid == null || studyOid.isEmpty) {
-    final result = PatientsSyncResult(
-      patientsCreated: 0,
-      patientsUpdated: 0,
+    final result = ParticipantsSyncResult(
+      participantsCreated: 0,
+      participantsUpdated: 0,
       syncedAt: DateTime.now().toUtc(),
       error: 'RAVE_STUDY_OID is required for patient sync',
     );
     if (!skipLogging) {
-      await _logPatientSyncResult(result, '', startTime, studyOid: null);
+      await _logParticipantSyncResult(result, '', startTime, studyOid: null);
     }
     if (testClient == null) {
       client.close();
@@ -209,17 +214,17 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
     subjects = await client.getSubjects(studyOid: studyOid);
 
     // Compute content hash for integrity verification
-    contentHash = computePatientContentHash(subjects);
+    contentHash = computeParticipantContentHash(subjects);
 
     if (subjects.isEmpty) {
-      final result = PatientsSyncResult(
-        patientsCreated: 0,
-        patientsUpdated: 0,
+      final result = ParticipantsSyncResult(
+        participantsCreated: 0,
+        participantsUpdated: 0,
         syncedAt: DateTime.now().toUtc(),
         error: 'No subjects returned from RAVE - check permissions',
       );
       if (!skipLogging) {
-        await _logPatientSyncResult(
+        await _logParticipantSyncResult(
           result,
           contentHash,
           startTime,
@@ -239,7 +244,7 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
 
     // Upsert each subject as a patient
     for (final subject in subjects) {
-      final patientId = subject.subjectKey;
+      final participantId = subject.subjectKey;
       final siteId = subject.siteOid;
 
       try {
@@ -262,7 +267,7 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
           RETURNING (xmax = 0) as is_insert
           ''',
           parameters: {
-            'patientId': patientId,
+            'patientId': participantId,
             'siteId': siteId,
             'edcSubjectKey': subject.subjectKey,
             'syncedAt': syncedAt,
@@ -280,7 +285,7 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
         }
       } catch (e) {
         // Skip patients with invalid site references (FK violation)
-        print('[WARN] Skipping patient $patientId (site $siteId): $e');
+        print('[WARN] Skipping patient $participantId (site $siteId): $e');
         skipped++;
       }
     }
@@ -289,19 +294,19 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
       print('[PATIENTS_SYNC] Skipped $skipped patients with unknown sites');
     }
 
-    final result = PatientsSyncResult(
-      patientsCreated: created,
-      patientsUpdated: updated,
+    final result = ParticipantsSyncResult(
+      participantsCreated: created,
+      participantsUpdated: updated,
       syncedAt: syncedAt,
     );
 
     if (!skipLogging) {
-      await _logPatientSyncResult(
+      await _logParticipantSyncResult(
         result,
         contentHash,
         startTime,
         studyOid: studyOid,
-        patientCount: subjects.length,
+        participantCount: subjects.length,
       );
     }
 
@@ -337,14 +342,14 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
         },
       );
     }
-    final result = PatientsSyncResult(
-      patientsCreated: 0,
-      patientsUpdated: 0,
+    final result = ParticipantsSyncResult(
+      participantsCreated: 0,
+      participantsUpdated: 0,
       syncedAt: DateTime.now().toUtc(),
       error: errorMessage,
     );
     if (!skipLogging) {
-      await _logPatientSyncResult(
+      await _logParticipantSyncResult(
         result,
         contentHash,
         startTime,
@@ -353,14 +358,14 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
     }
     return result;
   } on RaveNetworkException catch (e) {
-    final result = PatientsSyncResult(
-      patientsCreated: 0,
-      patientsUpdated: 0,
+    final result = ParticipantsSyncResult(
+      participantsCreated: 0,
+      participantsUpdated: 0,
       syncedAt: DateTime.now().toUtc(),
       error: 'RAVE network error: ${e.message}',
     );
     if (!skipLogging) {
-      await _logPatientSyncResult(
+      await _logParticipantSyncResult(
         result,
         contentHash,
         startTime,
@@ -369,14 +374,14 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
     }
     return result;
   } on RaveException catch (e) {
-    final result = PatientsSyncResult(
-      patientsCreated: 0,
-      patientsUpdated: 0,
+    final result = ParticipantsSyncResult(
+      participantsCreated: 0,
+      participantsUpdated: 0,
       syncedAt: DateTime.now().toUtc(),
       error: 'RAVE error: ${e.message}',
     );
     if (!skipLogging) {
-      await _logPatientSyncResult(
+      await _logParticipantSyncResult(
         result,
         contentHash,
         startTime,
@@ -395,12 +400,12 @@ Future<PatientsSyncResult> syncPatientsFromEdc({
 ///
 /// Uses PATIENTS_SYNC operation and stores patient counts in metadata JSONB
 /// since edc_sync_log columns are sites-specific.
-Future<void> _logPatientSyncResult(
-  PatientsSyncResult result,
+Future<void> _logParticipantSyncResult(
+  ParticipantsSyncResult result,
   String contentHash,
   DateTime startTime, {
   String? studyOid,
-  int? patientCount,
+  int? participantCount,
 }) async {
   final durationMs = DateTime.now().difference(startTime).inMilliseconds;
 
@@ -432,10 +437,10 @@ Future<void> _logPatientSyncResult(
         'success': !result.hasError,
         'errorMessage': result.error,
         'metadata': jsonEncode({
-          'patients_created': result.patientsCreated,
-          'patients_updated': result.patientsUpdated,
+          'patients_created': result.participantsCreated,
+          'patients_updated': result.participantsUpdated,
           if (studyOid != null) 'study_oid': studyOid,
-          if (patientCount != null) 'patient_count': patientCount,
+          if (participantCount != null) 'patient_count': participantCount,
         }),
       },
       context: serviceContext,
@@ -450,7 +455,7 @@ Future<void> _logPatientSyncResult(
 ///
 /// This is the main entry point for the patients handler.
 /// It checks if a sync is needed and performs it if so.
-Future<PatientsSyncResult?> syncPatientsIfNeeded({
+Future<ParticipantsSyncResult?> syncParticipantsIfNeeded({
   Duration syncInterval = defaultSyncInterval,
 }) async {
   if (!RaveConfig.isConfigured) {
@@ -471,7 +476,7 @@ Future<PatientsSyncResult?> syncPatientsIfNeeded({
     print('[WARN] checkLockout failed (proceeding without gate): $e');
   }
   if (state != null && state.isPaused) {
-    final result = buildPausedPatientsResult(state);
+    final result = buildPausedParticipantsResult(state);
     // Audit: record the skip in edc_sync_log.
     try {
       final db = Database.instance;
@@ -501,10 +506,10 @@ Future<PatientsSyncResult?> syncPatientsIfNeeded({
     return result;
   }
 
-  final needsSync = await shouldSyncPatients(syncInterval: syncInterval);
+  final needsSync = await shouldSyncParticipants(syncInterval: syncInterval);
   if (!needsSync) {
     return null;
   }
 
-  return syncPatientsFromEdc();
+  return syncParticipantsFromEdc();
 }

@@ -91,8 +91,8 @@ void main() {
     await Database.instance.close();
   });
 
-  group('shouldSyncPatients', () {
-    // NOTE: shouldSyncPatients checks MAX(edc_synced_at) across ALL patients,
+  group('shouldSyncParticipants', () {
+    // NOTE: shouldSyncParticipants checks MAX(edc_synced_at) across ALL patients,
     // so tests must account for existing patients in the database.
 
     setUp(() async {
@@ -121,7 +121,7 @@ void main() {
         },
       );
 
-      final shouldSync = await shouldSyncPatients();
+      final shouldSync = await shouldSyncParticipants();
       expect(shouldSync, isFalse);
     });
 
@@ -147,7 +147,7 @@ void main() {
         },
       );
 
-      final shouldSync = await shouldSyncPatients();
+      final shouldSync = await shouldSyncParticipants();
       expect(shouldSync, isTrue);
 
       // Restore existing patients to have recent sync time
@@ -179,11 +179,11 @@ void main() {
       );
 
       // With 1-day default interval, should return true (sync is 2 days old)
-      final shouldSync = await shouldSyncPatients();
+      final shouldSync = await shouldSyncParticipants();
       expect(shouldSync, isTrue);
 
       // With 3-day custom interval, should return false (2 days < 3 days)
-      final shouldSyncLonger = await shouldSyncPatients(
+      final shouldSyncLonger = await shouldSyncParticipants(
         syncInterval: const Duration(days: 3),
       );
       expect(shouldSyncLonger, isFalse);
@@ -577,7 +577,7 @@ void main() {
     });
   });
 
-  group('syncPatientsFromEdc with mock client and real DB', () {
+  group('syncParticipantsFromEdc with mock client and real DB', () {
     late MockRaveClient mockClient;
 
     setUp(() async {
@@ -599,15 +599,15 @@ void main() {
         ],
       );
 
-      final result = await syncPatientsFromEdc(
+      final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: false,
       );
 
       expect(result.hasError, isFalse);
-      expect(result.patientsCreated, equals(2));
-      expect(result.patientsUpdated, equals(0));
+      expect(result.participantsCreated, equals(2));
+      expect(result.participantsUpdated, equals(0));
 
       // Verify patients exist in DB
       final db = Database.instance;
@@ -630,22 +630,22 @@ void main() {
       );
 
       // First sync creates the patient
-      final firstResult = await syncPatientsFromEdc(
+      final firstResult = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: true,
       );
-      expect(firstResult.patientsCreated, equals(1));
+      expect(firstResult.participantsCreated, equals(1));
 
       // Second sync updates the patient
-      final secondResult = await syncPatientsFromEdc(
+      final secondResult = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: false,
       );
       expect(secondResult.hasError, isFalse);
-      expect(secondResult.patientsCreated, equals(0));
-      expect(secondResult.patientsUpdated, equals(1));
+      expect(secondResult.participantsCreated, equals(0));
+      expect(secondResult.participantsUpdated, equals(1));
     });
 
     test('logs sync event with patient count metadata', () async {
@@ -659,7 +659,7 @@ void main() {
         ],
       );
 
-      await syncPatientsFromEdc(
+      await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
         skipLogging: false,

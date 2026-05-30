@@ -60,23 +60,23 @@ Router createRouter() {
   //   GET routes: patientId in X-Patient-Id header (not logged by CDN/proxy)
   router.post(
     '/api/v1/portal/participants/link-code',
-    generatePatientLinkingCodeHandler,
+    generateParticipantLinkingCodeHandler,
   );
   router.get(
     '/api/v1/portal/participants/link-code/active',
-    getPatientLinkingCodeHandler,
+    getParticipantLinkingCodeHandler,
   );
   router.post(
     '/api/v1/portal/participants/disconnect',
-    disconnectPatientHandler,
+    disconnectParticipantHandler,
   );
   router.post(
     '/api/v1/portal/participants/not-participating',
-    markPatientNotParticipatingHandler,
+    markParticipantNotParticipatingHandler,
   );
   router.post(
     '/api/v1/portal/participants/reactivate',
-    reactivatePatientHandler,
+    reactivateParticipantHandler,
   );
   router.post('/api/v1/portal/participants/start-trial', startTrialHandler);
 
