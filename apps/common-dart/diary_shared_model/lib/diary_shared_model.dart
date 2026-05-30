@@ -11,6 +11,7 @@ export 'src/diary_payloads.dart';
 export 'src/questionnaire_submission.dart';
 export 'src/inbound_payloads.dart';
 export 'src/settings.dart';
+export 'src/patient_payloads.dart';
 export 'src/diary_projection.dart';
 export 'src/change_reasons.dart';
 export 'src/entry_restrictions.dart';
