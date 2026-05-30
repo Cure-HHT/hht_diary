@@ -24,14 +24,20 @@ app:
     flavorDimensions: "environment"
 
 flavors:
-  # `local` is a Dart-side EnvProfile only — no native build config (Android/
-  # iOS scaffolding doesn't have a `local` flavor; flutter_flavorizr does NOT
-  # process this entry because `native: false`). Mobile invocations of
-  # `tool/run local` fall back to the dev native flavor. Defaults web/desktop
-  # to the diary-server published by deployment/local-stack on the sponsor
-  # repo (http://localhost:8081); mobile devices need --api-base.
+  # `local` is a Dart-side EnvProfile only — no native build config.
+  # `native: false` tells `tool/build` to reject it (run-only) and tells
+  # `tool/run` to fall back to the dev native flavor on mobile targets.
+  # `tool/run local` defaults to Chrome; mobile devices need --api-base to
+  # reach the local diary-server (deployment/local-stack on the sponsor
+  # repo, default http://localhost:8081).
+  #
+  # The `app:` block is present because flutter_flavorizr 2.4.2 requires it
+  # for schema validation; the no-native-blocks shape means flutter_flavorizr
+  # generates only IDE config for this entry, not Android/iOS/macOS scaffolding.
   local:
     native: false
+    app:
+      name: "Diary LOCAL"
 
   dev:
     app:

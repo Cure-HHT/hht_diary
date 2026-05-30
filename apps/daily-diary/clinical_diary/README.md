@@ -168,11 +168,15 @@ The single source of truth is `flavorizr.yaml`. To add a new env (say `staging`)
 1. Add a `staging:` block under `flavors:` in `flavorizr.yaml` with the per-env
    `app.name`, `android.applicationId` + `signedFormat`, `ios.bundleId` +
    `provisioningProfile`, `macos.bundleId`, icon paths, Firebase plist paths.
-2. Run `dart run flutter_flavorizr -f` to regenerate native scaffolding (Xcode
-   schemes, Gradle flavor blocks, etc.). NOTE: this is destructive — it overwrites
-   `ios/Podfile`, `lib/main.dart`, `lib/flavors.dart`, asset catalogs, etc.
-   Inspect the diff carefully and revert anything that isn't the staging-only delta.
-   For minor edits (e.g. fixing a bundle id), hand-edit `flavorizr.gradle.kts` directly.
+2. Regenerate the native scaffolding for the new env. For most changes (adding
+   a flavor, fixing a bundle id), prefer hand-editing `android/app/flavorizr.gradle.kts`
+   directly — it's small and reviewable. Only run `dart run flutter_flavorizr -f`
+   when you genuinely need to recreate IDE configs / asset catalogs / Xcode
+   schemes from scratch: that command is destructive and overwrites unrelated
+   files (`ios/Podfile`, `lib/main.dart`, `lib/flavors.dart`, asset catalogs).
+   If you do run it, inspect the diff carefully and revert anything that isn't
+   strictly part of the new-env delta. The delta-record generator's yaml-vs-Gradle
+   cross-check will catch any divergence either way.
 3. Add per-flavor assets: `android/app/src/staging/google-services.json`,
    `ios/Runner/staging/GoogleService-Info.plist`, launcher icons.
 4. Regenerate the controlled-delta record:

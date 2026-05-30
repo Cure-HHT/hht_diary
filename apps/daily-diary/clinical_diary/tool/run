@@ -95,10 +95,13 @@ if [ "$ENV" = "prod" ] && [ "$FORCE" -ne 1 ]; then
 fi
 
 # Envs with `native: false` (e.g. `local`) have no native build config; fall
-# back to dev for the --flavor knob on mobile targets.
+# back to dev for the --flavor knob on mobile targets. They also default to
+# Chrome since there's no native scaffolding to target by default.
 native="$(yq -r ".flavors.$ENV.native // \"true\"" "$MANIFEST")"
 if [ "$native" = "false" ]; then
   NATIVE_FLAVOR="dev"
+  # Match the prior run_local.sh default: Chrome unless overridden.
+  [ -n "$DEVICE" ] || DEVICE="chrome"
   echo "Running Clinical Diary ($ENV env; Dart-only, native config = dev)..."
 else
   NATIVE_FLAVOR="$ENV"
@@ -133,4 +136,7 @@ fi
 
 echo "Command: doppler run -- $CMD"
 echo
-exec doppler run -- $CMD
+# Do NOT `exec` here: that would replace this shell process with doppler,
+# bypassing the EXIT trap that _write_env_pointer.sh installs to restore
+# assets/config/env.json. Run as a child instead and propagate the exit code.
+doppler run -- $CMD
