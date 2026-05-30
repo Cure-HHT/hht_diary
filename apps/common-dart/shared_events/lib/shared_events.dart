@@ -2,3 +2,4 @@
 library;
 
 export 'src/event_origin.dart';
+export 'src/patient_events.dart';

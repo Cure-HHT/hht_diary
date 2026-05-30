@@ -15,4 +15,20 @@ void main() {
     expect(t.id, 'example_event');
     expect(t.origin, EventOrigin.portal);
   });
+
+  test('patient aggregate declares the [P]/edge entry types', () {
+    final ids = patientEventTypes.map((t) => t.id).toSet();
+    expect(ids, {
+      'patient_synced_from_edc',
+      'patient_linking_code_issued',
+      'patient_linking_code_revoked',
+      'patient_trial_started',
+      'patient_disconnected',
+      'patient_reconnected',
+      'patient_marked_not_participating',
+      'patient_reactivated',
+      'patient_enrollment_status_changed',
+    });
+    expect(ids, isNot(contains('patient_linked'))); // [M], held
+  });
 }
