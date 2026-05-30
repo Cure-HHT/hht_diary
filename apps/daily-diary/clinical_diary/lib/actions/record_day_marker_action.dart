@@ -4,7 +4,7 @@
 //
 // Per-app diary Actions for the two whole-day markers: "no nosebleed today" and
 // "I don't remember". Both record a finalized event on the canonical per-day
-// aggregate `{patientId}:{localDate}` (shared `dayAggregateId`), so re-recording
+// aggregate `{participantId}:{localDate}` (shared `dayAggregateId`), so re-recording
 // the same day updates the same aggregate rather than duplicating it. Same
 // layering note as RecordEpistaxisEventAction: `validate` is pure-structural;
 // duration/justification/lock rules live in their UI/config/guard layers.

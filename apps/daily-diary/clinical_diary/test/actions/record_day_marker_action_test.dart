@@ -29,7 +29,10 @@ void main() {
         final draft = result.events.single;
         expect(draft.entryType, 'no_epistaxis_event');
         expect(draft.eventType, 'finalized');
-        expect(draft.aggregateId, 'P-42:2025-10-15'); // {patientId}:{localDate}
+        expect(
+          draft.aggregateId,
+          'P-42:2025-10-15',
+        ); // {participantId}:{localDate}
         expect(result.result, 'P-42:2025-10-15');
       },
     );

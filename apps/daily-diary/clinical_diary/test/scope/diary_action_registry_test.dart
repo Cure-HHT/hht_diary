@@ -20,7 +20,7 @@ void main() {
         'set_user_setting',
         'apply_sponsor_settings',
         'unlock_sponsor_settings',
-        'record_patient_linked',
+        'record_participant_linked',
       ]),
     );
   });
