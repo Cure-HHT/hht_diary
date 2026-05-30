@@ -47,7 +47,7 @@ void main() {
         authHeader: 'Bearer token',
       );
       expect(envelope.notificationId, equals('env-1'));
-      expect(envelope.type, equals(NotificationType.patientStatusUpdate));
+      expect(envelope.type, equals(NotificationType.participantStatusUpdate));
       expect(envelope.status, equals(EnvelopeStatus.delivered));
     });
 

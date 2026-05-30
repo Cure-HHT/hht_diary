@@ -85,8 +85,8 @@ Future<_StatusPushResult> _dispatchPatientStatusPush({
     if (outboxWriter != null) {
       final envelope = Envelope(
         notificationId: const Uuid().v4(),
-        patientId: patientId,
-        type: NotificationType.patientStatusUpdate,
+        participantId: patientId,
+        type: NotificationType.participantStatusUpdate,
         title: title,
         body: body,
         userVisible: true,
@@ -103,7 +103,7 @@ Future<_StatusPushResult> _dispatchPatientStatusPush({
         // — the row already has it after OutboxWriter.markSent / markFailed.
         final stored = await outboxWriter.repo.findById(
           notificationId,
-          patientId: patientId,
+          participantId: patientId,
         );
         if (stored?.status == EnvelopeStatus.failed) {
           print(

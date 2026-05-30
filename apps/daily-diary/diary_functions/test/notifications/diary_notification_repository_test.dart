@@ -37,8 +37,8 @@ void main() {
         () => repo.insertPending(
           Envelope(
             notificationId: 'env-1',
-            patientId: 'pat-1',
-            type: NotificationType.patientStatusUpdate,
+            participantId: 'pat-1',
+            type: NotificationType.participantStatusUpdate,
             title: 'X',
             payload: const <String, dynamic>{},
             status: EnvelopeStatus.pending,
@@ -71,7 +71,7 @@ void main() {
       rowsFor = (_) => <List<dynamic>>[];
       final repo = DiaryNotificationRepository();
 
-      final result = await repo.findById('id-1', patientId: '840-001');
+      final result = await repo.findById('id-1', participantId: '840-001');
       expect(result, isNull);
     });
 
@@ -99,11 +99,11 @@ void main() {
 
       final result = await repo.findById(
         '11111111-1111-1111-1111-111111111111',
-        patientId: '840-001',
+        participantId: '840-001',
       );
 
       expect(result, isNotNull);
-      expect(result!.type, equals(NotificationType.patientStatusUpdate));
+      expect(result!.type, equals(NotificationType.participantStatusUpdate));
       expect(result.status, equals(EnvelopeStatus.sent));
       expect(result.payload, equals(<String, dynamic>{'action': 'disconnect'}));
       expect(result.userVisible, isTrue);
@@ -113,7 +113,7 @@ void main() {
 
     test('query includes WHERE patient_id (defense in depth)', () async {
       final repo = DiaryNotificationRepository();
-      await repo.findById('id-1', patientId: '840-001');
+      await repo.findById('id-1', participantId: '840-001');
 
       expect(calls.single.query, contains('WHERE notification_id = @id'));
       expect(calls.single.query, contains('AND patient_id = @patientId'));
@@ -127,7 +127,7 @@ void main() {
       final repo = DiaryNotificationRepository();
       final since = DateTime.utc(2026, 5, 8, 9, 0);
 
-      await repo.findSince(since, patientId: '840-001', limit: 25);
+      await repo.findSince(since, participantId: '840-001', limit: 25);
 
       expect(calls.single.query, contains('ORDER BY created_at ASC'));
       expect(calls.single.query, contains('LIMIT @limit'));
@@ -141,7 +141,7 @@ void main() {
   group('DiaryNotificationRepository.markDeliveredIfNull', () {
     test('no-op for empty id list', () async {
       final repo = DiaryNotificationRepository();
-      await repo.markDeliveredIfNull(<String>[], patientId: '840-001');
+      await repo.markDeliveredIfNull(<String>[], participantId: '840-001');
       expect(calls, isEmpty);
     });
 
@@ -152,7 +152,7 @@ void main() {
         await repo.markDeliveredIfNull(<String>[
           'id-1',
           'id-2',
-        ], patientId: '840-001');
+        ], participantId: '840-001');
 
         expect(calls.single.query, contains('UPDATE notifications'));
         expect(calls.single.query, contains("SET status = 'delivered'"));

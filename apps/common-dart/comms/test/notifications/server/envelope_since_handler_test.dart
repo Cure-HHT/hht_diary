@@ -18,7 +18,7 @@ void _seedEnvelope(
 }) {
   repo.envelopes[id] = Envelope(
     notificationId: id,
-    patientId: patientId,
+    participantId: patientId,
     type: NotificationType.reminder,
     title: 'Yesterday Reminder',
     payload: const <String, dynamic>{},

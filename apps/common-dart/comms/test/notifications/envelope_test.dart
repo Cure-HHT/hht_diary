@@ -13,7 +13,7 @@ void main() {
         equals('questionnaire_update'),
       );
       expect(
-        NotificationType.patientStatusUpdate.wire,
+        NotificationType.participantStatusUpdate.wire,
         equals('patient_status_update'),
       );
       expect(NotificationType.reminder.wire, equals('reminder'));
@@ -47,7 +47,7 @@ void main() {
     test('round-trips a fully populated envelope', () {
       final original = Envelope(
         notificationId: 'env-001',
-        patientId: 'pat-123',
+        participantId: 'pat-123',
         type: NotificationType.questionnaireUpdate,
         title: 'Questionnaire Finalized',
         body: 'Your questionnaire is locked.',
@@ -68,7 +68,7 @@ void main() {
       final reparsed = Envelope.fromJson(json);
 
       expect(reparsed.notificationId, equals(original.notificationId));
-      expect(reparsed.patientId, equals(original.patientId));
+      expect(reparsed.participantId, equals(original.participantId));
       expect(reparsed.type, equals(original.type));
       expect(reparsed.title, equals(original.title));
       expect(reparsed.body, equals(original.body));
@@ -84,8 +84,8 @@ void main() {
     test('omits null fields from JSON output', () {
       final pending = Envelope(
         notificationId: 'env-002',
-        patientId: 'pat-123',
-        type: NotificationType.patientStatusUpdate,
+        participantId: 'pat-123',
+        type: NotificationType.participantStatusUpdate,
         title: 'Account Disconnected',
         payload: const <String, dynamic>{'action': 'disconnect'},
         status: EnvelopeStatus.pending,
@@ -120,7 +120,7 @@ void main() {
     test('updates only the named fields', () {
       final original = Envelope(
         notificationId: 'env-1',
-        patientId: 'pat-1',
+        participantId: 'pat-1',
         type: NotificationType.reminder,
         title: 'Yesterday Reminder',
         payload: const <String, dynamic>{},

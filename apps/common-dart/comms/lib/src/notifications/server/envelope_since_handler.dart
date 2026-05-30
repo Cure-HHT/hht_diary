@@ -28,8 +28,8 @@ Handler envelopeSinceHandler({
   int maxLimit = 200,
 }) {
   return (Request request) async {
-    final patientId = await patientResolver(request);
-    if (patientId == null) {
+    final participantId = await patientResolver(request);
+    if (participantId == null) {
       return Response.unauthorized(
         jsonEncode({'error': 'Unauthorized'}),
         headers: const {'content-type': 'application/json'},
@@ -70,7 +70,7 @@ Handler envelopeSinceHandler({
 
     final envelopes = await repo.findSince(
       since,
-      patientId: patientId,
+      participantId: participantId,
       limit: limit,
     );
 

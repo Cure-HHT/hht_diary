@@ -11,10 +11,10 @@ enum NotificationType {
   /// finalized. Sub-action is in `payload.action`.
   questionnaireUpdate('questionnaire_update'),
 
-  /// Patient status transition — disconnect / reconnect /
+  /// Participant status transition — disconnect / reconnect /
   /// mark_not_participating / reactivate / start_trial. Sub-action in
   /// `payload.action`.
-  patientStatusUpdate('patient_status_update'),
+  participantStatusUpdate('patient_status_update'),
 
   /// Scheduled, time-based reminder (e.g. yesterday-reminder cron).
   reminder('reminder');

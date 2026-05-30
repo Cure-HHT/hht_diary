@@ -26,8 +26,8 @@ Handler envelopeFetchHandler({
   required Future<String?> Function(Request) patientResolver,
 }) {
   return (Request request) async {
-    final patientId = await patientResolver(request);
-    if (patientId == null) {
+    final participantId = await patientResolver(request);
+    if (participantId == null) {
       return Response.unauthorized(
         jsonEncode({'error': 'Unauthorized'}),
         headers: const {'content-type': 'application/json'},
@@ -42,7 +42,7 @@ Handler envelopeFetchHandler({
       );
     }
 
-    final envelope = await repo.findById(id, patientId: patientId);
+    final envelope = await repo.findById(id, participantId: participantId);
     if (envelope == null) {
       return Response.notFound(
         jsonEncode({'error': 'Envelope not found'}),
@@ -54,7 +54,9 @@ Handler envelopeFetchHandler({
     // implementation MUST short-circuit when delivered_at is already
     // non-null so a duplicate fetch from mobile does not re-stamp.
     if (envelope.deliveredAt == null) {
-      await repo.markDeliveredIfNull(<String>[id], patientId: patientId);
+      await repo.markDeliveredIfNull(<String>[
+        id,
+      ], participantId: participantId);
     }
 
     return Response.ok(

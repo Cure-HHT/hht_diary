@@ -32,8 +32,8 @@ Envelope _seed(
 }) {
   final envelope = Envelope(
     notificationId: 'env-1',
-    patientId: patientId,
-    type: NotificationType.patientStatusUpdate,
+    participantId: patientId,
+    type: NotificationType.participantStatusUpdate,
     title: 'Account Disconnected',
     payload: const <String, dynamic>{'action': 'disconnect'},
     status: EnvelopeStatus.sent,

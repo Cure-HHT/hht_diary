@@ -63,7 +63,7 @@ class PgNotificationRepository implements NotificationRepository {
       ''',
       parameters: {
         'notificationId': envelope.notificationId,
-        'patientId': envelope.patientId,
+        'patientId': envelope.participantId,
         'notificationType': envelope.type.wire,
         'title': envelope.title,
         'body': envelope.body,
@@ -77,7 +77,7 @@ class PgNotificationRepository implements NotificationRepository {
   }
 
   @override
-  Future<Envelope?> findById(String id, {required String patientId}) async {
+  Future<Envelope?> findById(String id, {required String participantId}) async {
     final result = await _db.executeWithContext(
       '''
       SELECT notification_id, patient_id, notification_type::text,
@@ -88,8 +88,8 @@ class PgNotificationRepository implements NotificationRepository {
       WHERE notification_id = @id AND patient_id = @patientId
       LIMIT 1
       ''',
-      parameters: {'id': id, 'patientId': patientId},
-      context: UserContext.patient(patientId),
+      parameters: {'id': id, 'patientId': participantId},
+      context: UserContext.patient(participantId),
     );
     if (result.isEmpty) return null;
     return _rowToEnvelope(result.first);
@@ -98,7 +98,7 @@ class PgNotificationRepository implements NotificationRepository {
   @override
   Future<List<Envelope>> findSince(
     DateTime since, {
-    required String patientId,
+    required String participantId,
     required int limit,
   }) async {
     final result = await _db.executeWithContext(
@@ -114,11 +114,11 @@ class PgNotificationRepository implements NotificationRepository {
       LIMIT @limit
       ''',
       parameters: {
-        'patientId': patientId,
+        'patientId': participantId,
         'since': since.toUtc(),
         'limit': limit,
       },
-      context: UserContext.patient(patientId),
+      context: UserContext.patient(participantId),
     );
     return result.map(_rowToEnvelope).toList();
   }
@@ -156,7 +156,7 @@ class PgNotificationRepository implements NotificationRepository {
   @override
   Future<void> markDeliveredIfNull(
     List<String> ids, {
-    required String patientId,
+    required String participantId,
   }) async {
     if (ids.isEmpty) return;
     // Idempotent — only stamps rows where delivered_at IS NULL. A
@@ -171,8 +171,8 @@ class PgNotificationRepository implements NotificationRepository {
         AND patient_id = @patientId
         AND delivered_at IS NULL
       ''',
-      parameters: {'ids': ids, 'patientId': patientId},
-      context: UserContext.patient(patientId),
+      parameters: {'ids': ids, 'patientId': participantId},
+      context: UserContext.patient(participantId),
     );
   }
 
@@ -184,7 +184,7 @@ class PgNotificationRepository implements NotificationRepository {
     final payload = jsonDecode(payloadText) as Map<String, dynamic>;
     return Envelope(
       notificationId: row[0] as String,
-      patientId: row[1] as String,
+      participantId: row[1] as String,
       type: NotificationType.fromWire(row[2] as String),
       title: row[3] as String,
       body: row[4] as String?,

@@ -124,7 +124,7 @@ class NotificationPollService {
     switch (envelope.type) {
       case NotificationType.questionnaireUpdate:
         _taskService.handleEnvelopeQuestionnaireUpdate(envelope);
-      case NotificationType.patientStatusUpdate:
+      case NotificationType.participantStatusUpdate:
         _enrollmentService.handleEnvelopeStatusUpdate(envelope);
       case NotificationType.reminder:
         debugPrint(

@@ -300,7 +300,7 @@ Future<_QuestionnairePushResult> _dispatchQuestionnairePush({
     if (outboxWriter != null) {
       final envelope = Envelope(
         notificationId: const Uuid().v4(),
-        patientId: patientId,
+        participantId: patientId,
         type: NotificationType.questionnaireUpdate,
         // The envelope still stores a title for audit / UI fallback,
         // even on silent actions — it just isn't sent over FCM.
@@ -323,7 +323,7 @@ Future<_QuestionnairePushResult> _dispatchQuestionnairePush({
         );
         final stored = await outboxWriter.repo.findById(
           notificationId,
-          patientId: patientId,
+          participantId: patientId,
         );
         if (stored?.status == EnvelopeStatus.failed) {
           logWithTrace(

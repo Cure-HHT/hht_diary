@@ -40,7 +40,7 @@ void main() {
   Envelope buildEnvelope({
     String id = '11111111-1111-1111-1111-111111111111',
     String patientId = '840-001',
-    NotificationType type = NotificationType.patientStatusUpdate,
+    NotificationType type = NotificationType.participantStatusUpdate,
     String title = 'Account Disconnected',
     String? body = 'Your study account has been disconnected.',
     bool userVisible = true,
@@ -50,7 +50,7 @@ void main() {
   }) {
     return Envelope(
       notificationId: id,
-      patientId: patientId,
+      participantId: patientId,
       type: type,
       title: title,
       body: body,
@@ -95,7 +95,7 @@ void main() {
 
       final params = calls[0].parameters!;
       expect(params['notificationId'], equals(envelope.notificationId));
-      expect(params['patientId'], equals(envelope.patientId));
+      expect(params['patientId'], equals(envelope.participantId));
       expect(params['notificationType'], equals('patient_status_update'));
       expect(params['title'], equals(envelope.title));
       expect(params['body'], equals(envelope.body));
@@ -134,7 +134,7 @@ void main() {
 
       final result = await repo.findById(
         '00000000-0000-0000-0000-000000000000',
-        patientId: '840-001',
+        participantId: '840-001',
       );
 
       expect(result, isNull);
@@ -166,7 +166,7 @@ void main() {
 
       final result = await repo.findById(
         '11111111-1111-1111-1111-111111111111',
-        patientId: '840-001',
+        participantId: '840-001',
       );
 
       expect(result, isNotNull);
@@ -174,7 +174,7 @@ void main() {
         result!.notificationId,
         equals('11111111-1111-1111-1111-111111111111'),
       );
-      expect(result.type, equals(NotificationType.patientStatusUpdate));
+      expect(result.type, equals(NotificationType.participantStatusUpdate));
       expect(result.status, equals(EnvelopeStatus.sent));
       expect(result.payload, equals(<String, dynamic>{'action': 'disconnect'}));
       expect(result.userVisible, isTrue);
@@ -189,7 +189,7 @@ void main() {
 
     test('uses patient context, includes WHERE patient_id', () async {
       final repo = PgNotificationRepository();
-      await repo.findById('id-1', patientId: '840-001');
+      await repo.findById('id-1', participantId: '840-001');
 
       expect(calls.single.context.role, equals('patient'));
       expect(calls.single.context.patientId, equals('840-001'));
@@ -204,7 +204,7 @@ void main() {
       final repo = PgNotificationRepository();
       final since = DateTime.utc(2026, 5, 8, 9, 0);
 
-      await repo.findSince(since, patientId: '840-001', limit: 25);
+      await repo.findSince(since, participantId: '840-001', limit: 25);
 
       expect(calls.single.query, contains('ORDER BY created_at ASC'));
       expect(calls.single.query, contains('LIMIT @limit'));
@@ -259,7 +259,7 @@ void main() {
   group('PgNotificationRepository.markDeliveredIfNull', () {
     test('no-op for empty id list', () async {
       final repo = PgNotificationRepository();
-      await repo.markDeliveredIfNull(<String>[], patientId: '840-001');
+      await repo.markDeliveredIfNull(<String>[], participantId: '840-001');
       expect(calls, isEmpty);
     });
 
@@ -270,7 +270,7 @@ void main() {
         await repo.markDeliveredIfNull(<String>[
           'id-1',
           'id-2',
-        ], patientId: '840-001');
+        ], participantId: '840-001');
 
         expect(calls.single.query, contains('UPDATE notifications'));
         expect(calls.single.query, contains("SET status = 'delivered'"));
