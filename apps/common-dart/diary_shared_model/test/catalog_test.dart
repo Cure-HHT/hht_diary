@@ -29,7 +29,6 @@ void main() {
       'patient_reactivated',
       'patient_enrollment_status_changed',
     });
-    expect(ids, isNot(contains('patient_linked'))); // [M], held
   });
 
   test('questionnaire aggregate declares the [P] entry types', () {
@@ -43,7 +42,10 @@ void main() {
       'questionnaire_called_back',
       'questionnaire_end_event_set',
     });
-    expect(ids, isNot(contains('questionnaire_submitted'))); // [M], held
+    expect(
+      ids,
+      isNot(contains('questionnaire_submitted')),
+    ); // intentionally absent (finalized-kind on <id>_survey)
   });
 
   test('notification + fcm_token declare the [P]/edge entry types', () {
@@ -53,8 +55,6 @@ void main() {
       'notification_dispatch_failed',
       'fcm_token_deactivated',
     });
-    expect(ids, isNot(contains('fcm_message_received'))); // [M], held
-    expect(ids, isNot(contains('fcm_token_registered'))); // [M], held
   });
 
   test(
@@ -63,8 +63,8 @@ void main() {
       final ids = sharedEventCatalog.map((t) => t.id).toList();
       expect(
         ids.length,
-        19,
-      ); // 9 patient + 7 questionnaire + 3 notification/fcm
+        25,
+      ); // 9 patient + 7 questionnaire + 3 notification/fcm + 6 diary-originated
       expect(ids.toSet().length, ids.length, reason: 'duplicate entry-type id');
     },
   );
@@ -95,14 +95,28 @@ void main() {
     },
   );
 
-  test('held [M] ids are documented and NOT registered in the catalog', () {
+  test('diary-originated entry types are registered with mobile origin', () {
+    final ids = diaryOriginatedEventTypes.map((t) => t.id).toSet();
+    expect(ids, {
+      'epistaxis_event',
+      'no_epistaxis_event',
+      'unknown_day_event',
+      'patient_linked',
+      'fcm_token_registered',
+      'fcm_message_received',
+    });
+    for (final t in diaryOriginatedEventTypes) {
+      expect(t.origin, EventOrigin.mobile);
+    }
+  });
+
+  test('intentionally-absent ids are NOT registered as entry types', () {
     final registered = sharedEventCatalog.map((t) => t.id).toSet();
-    for (final heldId in heldMobileAuthoredIds) {
+    for (final id in intentionallyAbsentIds) {
       expect(
         registered,
-        isNot(contains(heldId)),
-        reason:
-            '$heldId is [M]-held and must not be registered until cross-post',
+        isNot(contains(id)),
+        reason: '$id must not be a distinct entry type (frozen surface)',
       );
     }
   });

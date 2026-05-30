@@ -6,3 +6,4 @@ export 'src/patient_events.dart';
 export 'src/questionnaire_events.dart';
 export 'src/notification_events.dart';
 export 'src/catalog.dart';
+export 'src/diary_originated_events.dart';
