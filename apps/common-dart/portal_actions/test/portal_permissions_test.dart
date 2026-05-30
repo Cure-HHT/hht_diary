@@ -40,4 +40,20 @@ void main() {
     final names = byId.values.map((p) => p.name).toList();
     expect(names.toSet().length, names.length);
   });
+
+  // Verifies: DIARY-PRD-action-inventory/A
+  test(
+    'DIARY-PRD-action-inventory/A: registry registers actions with declared permissions',
+    () {
+      final registry = buildPortalActionRegistry();
+      final names = registry.all.map((a) => a.name).toSet();
+      expect(names, contains('ACT-USR-003'));
+      final catalogPerms = portalPermissionsByActId.values.toSet();
+      for (final a in registry.all) {
+        for (final p in a.permissions) {
+          expect(catalogPerms, contains(p), reason: '${a.name} perm ${p.name}');
+        }
+      }
+    },
+  );
 }
