@@ -1,6 +1,6 @@
 name: portal_actions
 description: "Portal concrete Action catalog + [home: portal] private events, on the event_sourcing Action framework. Realizes DIARY-PRD-action-inventory."
-version: 0.1.0
+version: 0.1.1
 publish_to: none
 
 environment:
