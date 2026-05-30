@@ -23,25 +23,47 @@ platform :ios do
 
   desc "Build DEV IPA"
   lane :build_dev do
-    build_flavor(flavor: "dev")
+    archive_once
+    package_flavor(flavor: "dev")
   end
 
   desc "Build QA IPA"
   lane :build_qa do
-    build_flavor(flavor: "qa")
+    archive_once
+    package_flavor(flavor: "qa")
   end
 
   desc "Build UAT IPA"
   lane :build_uat do
-    build_flavor(flavor: "uat")
+    archive_once
+    package_flavor(flavor: "uat")
   end
 
   desc "Build PROD IPA"
   lane :build_prod do
-    build_flavor(flavor: "prod")
+    archive_once
+    package_flavor(flavor: "prod")
   end
 
-  private_lane :build_flavor do |options|
+  desc "Build all four IPAs from one Dart compilation"
+  lane :build_all do
+    archive_once
+    APP_IDENTIFIERS.each_key { |flavor| package_flavor(flavor: flavor) }
+  end
+
+  # Implements: DIARY-OPS-single-promotable-artifact/C
+  # Prime the iOS project configuration once per Fastlane invocation, with no
+  # flavor selected. The Dart source feeding the subsequent xcodebuild archives
+  # is environment-independent (CUR-1389: no --dart-define=APP_FLAVOR; env is
+  # resolved at runtime from assets/config/env.json), so the AOT snapshot each
+  # xcodebuild archive emits is the same compilation across all four packages.
+  private_lane :archive_once do
+    Dir.chdir(FLUTTER_DIR) do
+      sh("flutter", "build", "ios", "--release", "--config-only")
+    end
+  end
+
+  private_lane :package_flavor do |options|
     flavor = options[:flavor]
     app_id = APP_IDENTIFIERS[flavor]
     profile_name = PROFILE_NAMES[flavor]
@@ -78,29 +100,39 @@ platform :ios do
       profile_name: profile_name
     )
 
-    # Implements: DIARY-OPS-single-promotable-artifact/C
+    # Implements: DIARY-DEV-runtime-environment-resolution/E
     # Stamp the bundled env pointer (env name == flavor name); restored after
-    # the archive so the working tree stays clean. Replaces the dead
-    # --dart-define flag that CUR-1389 made obsolete.
+    # the archive so the working tree stays clean. The pointer flows into the
+    # asset bundle that xcodebuild assembles below; changing it does not
+    # invalidate the Dart AOT produced by archive_once.
     env_json = File.join(FLUTTER_DIR, "assets", "config", "env.json")
     File.write(env_json, "{ \"env\": \"#{flavor}\" }\n")
 
-    begin
-      # Generate Dart AOT snapshot + Xcode config without running xcodebuild
-      # (build_app below handles the single xcodebuild archive)
-      Dir.chdir(FLUTTER_DIR) do
-        sh("flutter", "build", "ios", "--flavor", flavor,
-           "--release", "--config-only")
-      end
+    # Copy the per-flavor Firebase config over the tracked top-level plist.
+    # Replaces the dead $CONFIGURATION-keyed "Firebase Setup" Xcode build
+    # phase that the pbxproj cleanup removed; restored alongside env.json so
+    # the working tree stays clean.
+    gs_src = File.join(FLUTTER_DIR, "ios", "Runner", flavor, "GoogleService-Info.plist")
+    gs_dst = File.join(FLUTTER_DIR, "ios", "Runner", "GoogleService-Info.plist")
+    FileUtils.cp(gs_src, gs_dst)
 
-      # Archive and export IPA with Fastlane gym
+    begin
+      # Archive and export IPA with Fastlane gym. The Runner scheme + Release
+      # configuration is shared across all four flavors; per-env identity
+      # (bundle id, signing, launcher icon, Firebase plist, env.json) is
+      # injected via update_code_signing_settings, FileUtils.cp, the env.json
+      # stamp above, and the ASSETCATALOG_COMPILER_APPICON_NAME xcarg. The
+      # Dart source is the same across all four flavors (CUR-1389), so the
+      # resulting App.framework/App is the same compilation regardless of
+      # how many times xcodebuild is invoked.
       build_app(
         workspace: File.join(FLUTTER_DIR, "ios", "Runner.xcworkspace"),
-        scheme: flavor,
-        configuration: "Release-#{flavor}",
+        scheme: "Runner",
+        configuration: "Release",
         export_method: "app-store",
         output_directory: File.join(FLUTTER_DIR, "build", "ios", "ipa"),
         output_name: "clinical-diary-#{flavor}.ipa",
+        xcargs: "ASSETCATALOG_COMPILER_APPICON_NAME=#{flavor}AppIcon",
         export_options: {
           signingStyle: "manual",
           teamID: apple_team_id,
@@ -157,13 +189,15 @@ platform :ios do
         end
       end
     ensure
-      # Restore the env pointer so the working tree is left clean. Tolerate a
-      # restore failure so it can't mask the actual build/upload result —
-      # parity with tool/_write_env_pointer.sh, which uses `git checkout ... || true`.
+      # Restore tracked files mutated above (env pointer + Firebase plist) so
+      # the working tree is left clean. Tolerate a restore failure so it can't
+      # mask the actual build/upload result — parity with
+      # tool/_write_env_pointer.sh, which uses `git checkout ... || true`.
       begin
-        sh("git", "-C", FLUTTER_DIR, "checkout", "--", "assets/config/env.json")
+        sh("git", "-C", FLUTTER_DIR, "checkout", "--",
+           "assets/config/env.json", "ios/Runner/GoogleService-Info.plist")
       rescue => e
-        UI.important("env.json restore failed (#{e.message}); leaving working tree as-is")
+        UI.important("working-tree restore failed (#{e.message}); leaving as-is")
       end
     end
   end
