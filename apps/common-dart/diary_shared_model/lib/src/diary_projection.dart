@@ -31,6 +31,14 @@ const AggregateProjectionSpec diaryEntriesProjection = AggregateProjectionSpec(
   tombstoneEventTypes: {'tombstone'},
 );
 
+/// The canonical aggregate id for a per-day marker entry (`no_epistaxis_event`
+/// / `unknown_day_event`): one row per participant per local calendar day, so
+/// re-recording the same day updates the same aggregate rather than creating a
+/// duplicate. Cross-wire stable — the diary and the portal compute the same key.
+/// (`epistaxis_event` aggregates use a fresh per-event id instead.)
+String dayAggregateId(String patientId, String localDate) =>
+    '$patientId:$localDate';
+
 /// The canonical local calendar date (`yyyy-MM-dd`) an entry falls on, derived
 /// deterministically from the entry's OWN captured local timestamp — never the
 /// reader's device timezone. For `epistaxis_event` it is the date component of
