@@ -10,3 +10,4 @@ export 'src/diary_originated_events.dart';
 export 'src/diary_payloads.dart';
 export 'src/diary_projection.dart';
 export 'src/change_reasons.dart';
+export 'src/entry_restrictions.dart';
