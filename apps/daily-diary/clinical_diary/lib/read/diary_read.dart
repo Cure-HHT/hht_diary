@@ -114,3 +114,33 @@ List<String> uncoveredDays(
       )
       .toList();
 }
+
+/// Epistaxis rows whose recorded `[startTime, endTime]` intersects the candidate
+/// range `[candidateStart, candidateEnd]`. Open-ended entries (no endTime) are
+/// treated as a point at their startTime. [excludeAggregateId] drops the entry
+/// being edited. Backs the overlap warning (DIARY-PRD-entry-overlap-resolution).
+// Implements: DIARY-PRD-entry-overlap-resolution
+List<DiaryEntryRow> overlappingEpistaxisEntries(
+  Iterable<DiaryEntryRow> rows,
+  DateTime candidateStart,
+  DateTime candidateEnd, {
+  String? excludeAggregateId,
+}) {
+  bool intersects(DateTime aStart, DateTime aEnd) =>
+      aStart.isBefore(candidateEnd) && aEnd.isAfter(candidateStart);
+  final out = <DiaryEntryRow>[];
+  for (final r in rows) {
+    if (r.entryType != 'epistaxis_event') continue;
+    if (excludeAggregateId != null && r.aggregateId == excludeAggregateId) {
+      continue;
+    }
+    final startRaw = r.data['startTime'];
+    if (startRaw is! String) continue;
+    final start = DateTime.tryParse(startRaw);
+    if (start == null) continue;
+    final endRaw = r.data['endTime'];
+    final end = endRaw is String ? (DateTime.tryParse(endRaw) ?? start) : start;
+    if (intersects(start, end)) out.add(r);
+  }
+  return out;
+}
