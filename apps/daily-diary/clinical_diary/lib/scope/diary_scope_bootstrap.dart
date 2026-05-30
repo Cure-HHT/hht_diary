@@ -1,3 +1,4 @@
+import 'package:clinical_diary/read/diary_incomplete_projection.dart';
 import 'package:clinical_diary/scope/diary_action_registry.dart';
 import 'package:clinical_diary/scope/local_participant_authorization_policy.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
@@ -51,7 +52,8 @@ Future<DiaryScopeRuntime> bootstrapDiaryScope({
   ];
   final projections = ProjectionRegistry()
     ..register(diaryEntriesProjection)
-    ..register(settingsProjection);
+    ..register(settingsProjection)
+    ..register(diaryIncompleteProjection);
 
   final bundle = await bootstrapEventStore(
     backend: backend,
