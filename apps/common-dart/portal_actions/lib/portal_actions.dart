@@ -6,3 +6,4 @@ export 'src/actions/deactivate_user_account_action.dart';
 export 'src/portal_action_registry.dart';
 export 'src/portal_events.dart';
 export 'src/portal_permissions.dart';
+export 'src/flow_token_minter.dart';
