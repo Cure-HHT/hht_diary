@@ -51,7 +51,12 @@ class DeactivateUserAccountAction
         'DeactivateUserAccountAction expects {userId, reason}: String',
       );
     }
-    return DeactivateUserAccountInput(userId: userId, reason: reason);
+    // Normalize at the parse boundary so emitted events carry a canonical
+    // aggregateId (audit-safety: no whitespace-variant duplicate aggregates).
+    return DeactivateUserAccountInput(
+      userId: userId.trim(),
+      reason: reason.trim(),
+    );
   }
 
   @override

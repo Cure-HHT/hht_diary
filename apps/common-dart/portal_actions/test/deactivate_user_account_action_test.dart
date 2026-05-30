@@ -76,4 +76,17 @@ void main() {
       expect(result.events[1].data['reason_kind'], 'deactivated');
     },
   );
+
+  // Verifies: DIARY-PRD-action-inventory/B
+  test(
+    'DIARY-PRD-action-inventory/B: parseInput normalizes surrounding whitespace to canonical values',
+    () {
+      final input = action.parseInput(<String, Object?>{
+        'userId': '  u1  ',
+        'reason': '  left study  ',
+      });
+      expect(input.userId, 'u1');
+      expect(input.reason, 'left study');
+    },
+  );
 }
