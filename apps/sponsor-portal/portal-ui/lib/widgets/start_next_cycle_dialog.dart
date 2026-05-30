@@ -144,7 +144,7 @@ class StartNextCycleDialog extends StatelessWidget {
             const SizedBox(height: 16),
 
             Text(
-              'The patient will receive this questionnaire on their mobile device.',
+              'The participant will receive this questionnaire on their mobile device.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

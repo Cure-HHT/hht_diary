@@ -14,7 +14,7 @@ void main() {
       );
       expect(
         NotificationType.participantStatusUpdate.wire,
-        equals('patient_status_update'),
+        equals('participant_status_update'),
       );
       expect(NotificationType.reminder.wire, equals('reminder'));
     });
@@ -104,7 +104,7 @@ void main() {
     test('user_visible defaults to true when omitted from JSON', () {
       final json = <String, dynamic>{
         'notification_id': 'env-003',
-        'patient_id': 'pat-123',
+        'participant_id': 'pat-123',
         'type': 'reminder',
         'title': 'Yesterday Reminder',
         'payload': <String, dynamic>{},

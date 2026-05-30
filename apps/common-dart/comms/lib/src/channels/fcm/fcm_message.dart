@@ -27,11 +27,11 @@ class FcmMessage extends ChannelMessage {
   });
 
   /// Device-specific FCM registration token. One device → one active
-  /// token at a time per `patient_fcm_tokens` invariant.
+  /// token at a time per `participant_fcm_tokens` invariant.
   final String fcmToken;
 
   /// FCM data payload — string-keyed, string-valued. Mobile
-  /// dispatchers route on `data.type` (e.g. `'patient_status_update'`,
+  /// dispatchers route on `data.type` (e.g. `'participant_status_update'`,
   /// `'questionnaire_finalized'`). All values are PHI-checked by
   /// `PayloadGuard` before dispatch.
   final Map<String, String> data;

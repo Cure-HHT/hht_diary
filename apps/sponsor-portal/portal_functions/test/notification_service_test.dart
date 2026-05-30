@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//   REQ-CAL-p00082: Patient Alert Delivery
+//   REQ-CAL-p00082: Participant Alert Delivery
 //   REQ-p00049: Ancillary Platform Services (push notifications)
 //
 // Unit tests for NotificationService, NotificationConfig, and NotificationResult.

@@ -18,7 +18,7 @@ void main() {
       test('rejects strict 3-3-3 SubjectKey', () {
         expect(
           () => PayloadGuard.assertSafeText(
-            'Patient 999-001-125 was disconnected',
+            'Participant 999-001-125 was disconnected',
             fieldName: 'envelope.body',
           ),
           throwsA(
@@ -189,13 +189,13 @@ void main() {
       expect(
         () => PayloadGuard.assertSafeStringMap({
           'type': 'questionnaire_finalized',
-          'patient': '999-001-125',
+          'participant': '999-001-125',
         }, fieldPrefix: 'fcmMessage.data'),
         throwsA(
           isA<PhiLeakException>().having(
             (e) => e.field,
             'field',
-            'fcmMessage.data.patient',
+            'fcmMessage.data.participant',
           ),
         ),
       );

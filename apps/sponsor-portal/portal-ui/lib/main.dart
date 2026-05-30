@@ -271,7 +271,7 @@ void main() async {
 ///
 /// IMPLEMENTS REQUIREMENTS:
 ///   REQ-p00009 (always serve the latest deploy)
-///   REQ-p01044-M (no patient data recoverable from the browser after
+///   REQ-p01044-M (no participant data recoverable from the browser after
 ///                 logout — SW caches could otherwise persist)
 ///
 /// Note: REQ-d00077-H/I/N states the explicit "SHALL disable SW" /

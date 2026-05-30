@@ -8,13 +8,13 @@
 // owned by portal_functions and throw if invoked here.
 //
 // RLS note: diary_functions's `Database` does not currently set the
-// `app.current_patient_id` session variable, so the patient-scoping
+// `app.current_participant_id` session variable, so the participant-scoping
 // RLS policies cannot rely on it through this connection. Defense in
 // depth still works because:
 //   * every query in this repo includes an explicit
-//     `WHERE patient_id = @patientId` predicate
-//   * the patientResolver upstream of the handler factories has
-//     already mapped the JWT to a single patient_id
+//     `WHERE participant_id = @participantId` predicate
+//   * the participantResolver upstream of the handler factories has
+//     already mapped the JWT to a single participant_id
 //   * the `notifications_service_all` policy lets the diary
 //     connection (which authenticates as a service-grade role on the
 //     diary side) read freely — RLS is a backstop for the portal
@@ -62,15 +62,15 @@ class DiaryNotificationRepository implements NotificationRepository {
   Future<Envelope?> findById(String id, {required String participantId}) async {
     final result = await _db.execute(
       '''
-      SELECT notification_id, patient_id, notification_type::text,
+      SELECT notification_id, participant_id, notification_type::text,
              title, body, user_visible, payload::text, status,
              message_id, last_error,
              created_at, sent_at, delivered_at
       FROM notifications
-      WHERE notification_id = @id AND patient_id = @patientId
+      WHERE notification_id = @id AND participant_id = @participantId
       LIMIT 1
       ''',
-      parameters: {'id': id, 'patientId': participantId},
+      parameters: {'id': id, 'participantId': participantId},
       table: 'notifications',
     );
     if (result.isEmpty) return null;
@@ -85,18 +85,18 @@ class DiaryNotificationRepository implements NotificationRepository {
   }) async {
     final result = await _db.execute(
       '''
-      SELECT notification_id, patient_id, notification_type::text,
+      SELECT notification_id, participant_id, notification_type::text,
              title, body, user_visible, payload::text, status,
              message_id, last_error,
              created_at, sent_at, delivered_at
       FROM notifications
-      WHERE patient_id = @patientId
+      WHERE participant_id = @participantId
         AND created_at > @since
       ORDER BY created_at ASC
       LIMIT @limit
       ''',
       parameters: {
-        'patientId': participantId,
+        'participantId': participantId,
         'since': since.toUtc(),
         'limit': limit,
       },
@@ -120,10 +120,10 @@ class DiaryNotificationRepository implements NotificationRepository {
       SET status = 'delivered',
           delivered_at = now()
       WHERE notification_id = ANY (@ids)
-        AND patient_id = @patientId
+        AND participant_id = @participantId
         AND delivered_at IS NULL
       ''',
-      parameters: {'ids': ids, 'patientId': participantId},
+      parameters: {'ids': ids, 'participantId': participantId},
       table: 'notifications',
     );
   }

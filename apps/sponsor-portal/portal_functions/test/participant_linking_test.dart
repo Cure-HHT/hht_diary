@@ -2,15 +2,15 @@
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-d00078: Linking Code Validation
 //   REQ-d00079: Linking Code Pattern Matching
-//   REQ-CAL-p00019: Link New Patient Workflow
+//   REQ-CAL-p00019: Link New Participant Workflow
 //   REQ-CAL-p00049: Mobile Linking Codes
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00021: Patient Reconnection Workflow
+//   REQ-CAL-p00021: Participant Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00079: Start Trial Workflow
 //
-// Tests for patient_linking.dart handlers and utilities
+// Tests for participant_linking.dart handlers and utilities
 
 import 'dart:convert';
 
@@ -27,7 +27,7 @@ import 'package:portal_functions/src/portal_auth.dart';
 import 'package:portal_functions/src/sponsor.dart';
 
 /// Test constants
-const _testParticipantId = 'patient-001';
+const _testParticipantId = 'participant-001';
 const _testSiteId = 'site-001';
 const _testUserId = 'user-001';
 
@@ -56,7 +56,7 @@ PortalUser _investigator({
   );
 }
 
-/// Standard patient row: [patient_id, site_id, linking_status, site_name]
+/// Standard participant row: [participant_id, site_id, linking_status, site_name]
 List<dynamic> _participantRow({
   String status = 'not_connected',
   String siteId = _testSiteId,
@@ -65,7 +65,7 @@ List<dynamic> _participantRow({
   return [_testParticipantId, siteId, status, 'Test Site'];
 }
 
-/// Patient row for startTrial: [patient_id, site_id, linking_status, trial_started, site_name]
+/// Participant row for startTrial: [participant_id, site_id, linking_status, trial_started, site_name]
 List<dynamic> _participantRowForTrial({
   String status = 'connected',
   String siteId = _testSiteId,
@@ -114,7 +114,7 @@ void main() {
         final request = Request(
           'POST',
           Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
-          body: jsonEncode({'patientId': 'p1'}),
+          body: jsonEncode({'participantId': 'p1'}),
         );
 
         final response = await generateParticipantLinkingCodeHandler(request);
@@ -129,7 +129,7 @@ void main() {
           'POST',
           Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
           headers: {'authorization': ''},
-          body: jsonEncode({'patientId': 'p1'}),
+          body: jsonEncode({'participantId': 'p1'}),
         );
 
         final response = await generateParticipantLinkingCodeHandler(request);
@@ -144,7 +144,7 @@ void main() {
             'POST',
             Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
             headers: {'authorization': 'some-token'},
-            body: jsonEncode({'patientId': 'p1'}),
+            body: jsonEncode({'participantId': 'p1'}),
           );
 
           final response = await generateParticipantLinkingCodeHandler(request);
@@ -157,7 +157,7 @@ void main() {
         final request = Request(
           'POST',
           Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
-          body: jsonEncode({'patientId': 'p1'}),
+          body: jsonEncode({'participantId': 'p1'}),
         );
 
         final response = await generateParticipantLinkingCodeHandler(request);
@@ -173,7 +173,7 @@ void main() {
         final request = Request(
           'GET',
           Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
-          headers: {'x-patient-id': 'p1'},
+          headers: {'x-participant-id': 'p1'},
         );
 
         final response = await getParticipantLinkingCodeHandler(request);
@@ -187,7 +187,7 @@ void main() {
         final request = Request(
           'GET',
           Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
-          headers: {'authorization': '', 'x-patient-id': 'p1'},
+          headers: {'authorization': '', 'x-participant-id': 'p1'},
         );
 
         final response = await getParticipantLinkingCodeHandler(request);
@@ -205,19 +205,19 @@ void main() {
           Request(
             'POST',
             Uri.parse('http://localhost/'),
-            body: jsonEncode({'patientId': 'test-id'}),
+            body: jsonEncode({'participantId': 'test-id'}),
           ),
           Request(
             'POST',
             Uri.parse('http://localhost/'),
             headers: {'authorization': ''},
-            body: jsonEncode({'patientId': 'test-id'}),
+            body: jsonEncode({'participantId': 'test-id'}),
           ),
           Request(
             'POST',
             Uri.parse('http://localhost/'),
             headers: {'authorization': 'invalid'},
-            body: jsonEncode({'patientId': 'test-id'}),
+            body: jsonEncode({'participantId': 'test-id'}),
           ),
         ];
 
@@ -239,19 +239,19 @@ void main() {
           Request(
             'GET',
             Uri.parse('http://localhost/'),
-            headers: {'x-patient-id': 'test-id'},
+            headers: {'x-participant-id': 'test-id'},
           ),
           Request(
             'GET',
             Uri.parse('http://localhost/'),
-            headers: {'authorization': '', 'x-patient-id': 'test-id'},
+            headers: {'authorization': '', 'x-participant-id': 'test-id'},
           ),
           Request(
             'GET',
             Uri.parse('http://localhost/'),
             headers: {
               'authorization': 'Bearer invalid',
-              'x-patient-id': 'test-id',
+              'x-participant-id': 'test-id',
             },
           ),
         ];
@@ -415,7 +415,7 @@ void main() {
       // Expected success response structure
       final successResponse = {
         'success': true,
-        'patient_id': 'patient-123',
+        'participant_id': 'participant-123',
         'site_name': 'Site A',
         'code': 'CAXXX-XXXXX',
         'code_raw': 'CAXXXXXXXX',
@@ -424,7 +424,7 @@ void main() {
       };
 
       expect(successResponse['success'], isTrue);
-      expect(successResponse['patient_id'], isA<String>());
+      expect(successResponse['participant_id'], isA<String>());
       expect(successResponse['code'], contains('-'));
       expect(successResponse['code_raw'], isNot(contains('-')));
       expect(successResponse['expires_in_hours'], 72);
@@ -433,7 +433,7 @@ void main() {
     test('get code response has expected fields when code exists', () {
       final successResponse = {
         'has_active_code': true,
-        'patient_id': 'patient-123',
+        'participant_id': 'participant-123',
         'mobile_linking_status': 'linking_in_progress',
         'code': 'CAXXX-XXXXX',
         'code_raw': 'CAXXXXXXXX',
@@ -448,7 +448,7 @@ void main() {
     test('get code response has expected fields when no code', () {
       final noCodeResponse = {
         'has_active_code': false,
-        'patient_id': 'patient-123',
+        'participant_id': 'participant-123',
         'mobile_linking_status': 'not_connected',
       };
 
@@ -460,7 +460,7 @@ void main() {
   group('Error response formats', () {
     test('role error includes appropriate message', () {
       final roleError = {
-        'error': 'Only Investigators can generate patient linking codes',
+        'error': 'Only Investigators can generate participant linking codes',
       };
 
       expect(roleError['error'], contains('Investigator'));
@@ -468,7 +468,7 @@ void main() {
 
     test('site access error includes appropriate message', () {
       final siteError = {
-        'error': 'You do not have access to patients at this site',
+        'error': 'You do not have access to participants at this site',
       };
 
       expect(siteError['error'], contains('access'));
@@ -478,17 +478,17 @@ void main() {
     test('already connected error includes guidance', () {
       final connectedError = {
         'error':
-            'Patient is already connected. Use "New Code" to generate a replacement code.',
+            'Participant is already connected. Use "New Code" to generate a replacement code.',
       };
 
       expect(connectedError['error'], contains('connected'));
       expect(connectedError['error'], contains('New Code'));
     });
 
-    test('not found error includes patient context', () {
-      final notFoundError = {'error': 'Patient not found'};
+    test('not found error includes participant context', () {
+      final notFoundError = {'error': 'Participant not found'};
 
-      expect(notFoundError['error'], contains('Patient'));
+      expect(notFoundError['error'], contains('Participant'));
       expect(notFoundError['error'], contains('not found'));
     });
   });
@@ -499,7 +499,7 @@ void main() {
         final request = Request(
           'POST',
           Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
-          body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
+          body: jsonEncode({'participantId': 'p1', 'reason': 'Device Issues'}),
         );
 
         final response = await disconnectParticipantHandler(request);
@@ -514,7 +514,7 @@ void main() {
           'POST',
           Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
           headers: {'authorization': ''},
-          body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
+          body: jsonEncode({'participantId': 'p1', 'reason': 'Device Issues'}),
         );
 
         final response = await disconnectParticipantHandler(request);
@@ -529,7 +529,10 @@ void main() {
             'POST',
             Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
             headers: {'authorization': 'some-token'},
-            body: jsonEncode({'patientId': 'p1', 'reason': 'Device Issues'}),
+            body: jsonEncode({
+              'participantId': 'p1',
+              'reason': 'Device Issues',
+            }),
           );
 
           final response = await disconnectParticipantHandler(request);
@@ -542,7 +545,7 @@ void main() {
         final request = Request(
           'POST',
           Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
-          body: jsonEncode({'patientId': 'p1'}),
+          body: jsonEncode({'participantId': 'p1'}),
         );
 
         final response = await disconnectParticipantHandler(request);
@@ -558,7 +561,7 @@ void main() {
         final request = Request(
           'POST',
           Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
-          body: jsonEncode({'patientId': 'p1'}),
+          body: jsonEncode({'participantId': 'p1'}),
         );
 
         final response = await disconnectParticipantHandler(request);
@@ -578,25 +581,25 @@ void main() {
             Request(
               'POST',
               Uri.parse('http://localhost/'),
-              body: jsonEncode({'patientId': 'test-id'}),
+              body: jsonEncode({'participantId': 'test-id'}),
             ),
             Request(
               'POST',
               Uri.parse('http://localhost/'),
               headers: {'authorization': ''},
-              body: jsonEncode({'patientId': 'test-id'}),
+              body: jsonEncode({'participantId': 'test-id'}),
             ),
             Request(
               'POST',
               Uri.parse('http://localhost/'),
               headers: {'authorization': 'invalid'},
-              body: jsonEncode({'patientId': 'test-id'}),
+              body: jsonEncode({'participantId': 'test-id'}),
             ),
             Request(
               'POST',
               Uri.parse('http://localhost/'),
               headers: {'authorization': 'Bearer invalid'},
-              body: jsonEncode({'patientId': 'test-id'}),
+              body: jsonEncode({'participantId': 'test-id'}),
             ),
           ];
 
@@ -655,7 +658,7 @@ void main() {
       // Expected success response structure
       final successResponse = {
         'success': true,
-        'patient_id': 'patient-123',
+        'participant_id': 'participant-123',
         'previous_status': 'connected',
         'new_status': 'disconnected',
         'codes_revoked': 1,
@@ -663,7 +666,7 @@ void main() {
       };
 
       expect(successResponse['success'], isTrue);
-      expect(successResponse['patient_id'], isA<String>());
+      expect(successResponse['participant_id'], isA<String>());
       expect(successResponse['previous_status'], 'connected');
       expect(successResponse['new_status'], 'disconnected');
       expect(successResponse['codes_revoked'], isA<int>());
@@ -673,7 +676,7 @@ void main() {
     test('not connected error includes current status', () {
       final notConnectedError = {
         'error':
-            'Patient is not in "connected" status. Current status: disconnected',
+            'Participant is not in "connected" status. Current status: disconnected',
       };
 
       expect(notConnectedError['error'], contains('connected'));
@@ -708,7 +711,9 @@ void main() {
     );
 
     test('role error message is specific to disconnect', () {
-      final roleError = {'error': 'Only Investigators can disconnect patients'};
+      final roleError = {
+        'error': 'Only Investigators can disconnect participants',
+      };
 
       expect(roleError['error'], contains('Investigator'));
       expect(roleError['error'], contains('disconnect'));
@@ -726,8 +731,8 @@ void main() {
             'POST',
             Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
             body: jsonEncode({
-              'patientId': 'p1',
-              'reconnect_reason': 'Patient got new device',
+              'participantId': 'p1',
+              'reconnect_reason': 'Participant got new device',
             }),
             headers: {'content-type': 'application/json'},
           );
@@ -748,7 +753,7 @@ void main() {
               Uri.parse(
                 'http://localhost/api/v1/portal/participants/link-code',
               ),
-              body: jsonEncode({'patientId': 'p1'}),
+              body: jsonEncode({'participantId': 'p1'}),
             );
 
             final response = await generateParticipantLinkingCodeHandler(
@@ -780,10 +785,10 @@ void main() {
 
       group('response format for reconnection', () {
         test('reconnection success response includes previous_status', () {
-          // Expected structure when reconnecting a disconnected patient
+          // Expected structure when reconnecting a disconnected participant
           final reconnectResponse = {
             'success': true,
-            'patient_id': 'patient-123',
+            'participant_id': 'participant-123',
             'site_name': 'Site A',
             'code': 'CAXXX-XXXXX',
             'code_raw': 'CAXXXXXXXX',
@@ -792,21 +797,21 @@ void main() {
           };
 
           expect(reconnectResponse['success'], isTrue);
-          expect(reconnectResponse['patient_id'], isA<String>());
+          expect(reconnectResponse['participant_id'], isA<String>());
           expect(reconnectResponse['code'], contains('-'));
         });
 
         test('reconnection audit log entry structure is correct', () {
-          // Expected action_details for RECONNECT_PATIENT action
+          // Expected action_details for RECONNECT_PARTICIPANT action
           final actionDetails = {
-            'patient_id': 'patient-123',
+            'participant_id': 'participant-123',
             'site_id': 'site-456',
             'site_name': 'Site A',
             'expires_at': '2024-01-01T00:00:00.000Z',
             'generated_by_email': 'coordinator@example.com',
             'generated_by_name': 'John Doe',
             'previous_status': 'disconnected',
-            'reconnect_reason': 'Patient got new device',
+            'reconnect_reason': 'Participant got new device',
           };
 
           expect(actionDetails['previous_status'], 'disconnected');
@@ -817,7 +822,7 @@ void main() {
         test('standard link audit log does not include reconnect_reason', () {
           // Expected action_details for standard GENERATE_LINKING_CODE action
           final actionDetails = {
-            'patient_id': 'patient-123',
+            'participant_id': 'participant-123',
             'site_id': 'site-456',
             'site_name': 'Site A',
             'expires_at': '2024-01-01T00:00:00.000Z',
@@ -839,7 +844,7 @@ void main() {
         final request = Request(
           'POST',
           Uri.parse('http://localhost/api/v1/portal/participants/start-trial'),
-          body: jsonEncode({'patientId': 'p1'}),
+          body: jsonEncode({'participantId': 'p1'}),
         );
 
         final response = await startTrialHandler(request);
@@ -854,7 +859,7 @@ void main() {
           'POST',
           Uri.parse('http://localhost/api/v1/portal/participants/start-trial'),
           headers: {'authorization': ''},
-          body: jsonEncode({'patientId': 'p1'}),
+          body: jsonEncode({'participantId': 'p1'}),
         );
 
         final response = await startTrialHandler(request);
@@ -871,7 +876,7 @@ void main() {
               'http://localhost/api/v1/portal/participants/start-trial',
             ),
             headers: {'authorization': 'some-token'},
-            body: jsonEncode({'patientId': 'p1'}),
+            body: jsonEncode({'participantId': 'p1'}),
           );
 
           final response = await startTrialHandler(request);
@@ -884,7 +889,7 @@ void main() {
         final request = Request(
           'POST',
           Uri.parse('http://localhost/api/v1/portal/participants/start-trial'),
-          body: jsonEncode({'patientId': 'p1'}),
+          body: jsonEncode({'participantId': 'p1'}),
         );
 
         final response = await startTrialHandler(request);
@@ -899,25 +904,25 @@ void main() {
           Request(
             'POST',
             Uri.parse('http://localhost/'),
-            body: jsonEncode({'patientId': 'test-id'}),
+            body: jsonEncode({'participantId': 'test-id'}),
           ),
           Request(
             'POST',
             Uri.parse('http://localhost/'),
             headers: {'authorization': ''},
-            body: jsonEncode({'patientId': 'test-id'}),
+            body: jsonEncode({'participantId': 'test-id'}),
           ),
           Request(
             'POST',
             Uri.parse('http://localhost/'),
             headers: {'authorization': 'invalid'},
-            body: jsonEncode({'patientId': 'test-id'}),
+            body: jsonEncode({'participantId': 'test-id'}),
           ),
           Request(
             'POST',
             Uri.parse('http://localhost/'),
             headers: {'authorization': 'Bearer invalid'},
-            body: jsonEncode({'patientId': 'test-id'}),
+            body: jsonEncode({'participantId': 'test-id'}),
           ),
         ];
 
@@ -938,7 +943,7 @@ void main() {
       // Expected success response structure
       final successResponse = {
         'success': true,
-        'patient_id': 'patient-123',
+        'participant_id': 'participant-123',
         'site_id': 'site-456',
         'site_name': 'Site A',
         'trial_started': true,
@@ -946,7 +951,7 @@ void main() {
       };
 
       expect(successResponse['success'], isTrue);
-      expect(successResponse['patient_id'], isA<String>());
+      expect(successResponse['participant_id'], isA<String>());
       expect(successResponse['site_id'], isA<String>());
       expect(successResponse['site_name'], isA<String>());
       expect(successResponse['trial_started'], isTrue);
@@ -956,7 +961,7 @@ void main() {
     test('not connected error includes current status', () {
       final notConnectedError = {
         'error':
-            'Patient must be in "connected" status to start trial. Current status: disconnected',
+            'Participant must be in "connected" status to start trial. Current status: disconnected',
       };
 
       expect(notConnectedError['error'], contains('connected'));
@@ -965,7 +970,7 @@ void main() {
 
     test('trial already started error is specific', () {
       final alreadyStartedError = {
-        'error': 'Trial has already been started for this patient',
+        'error': 'Trial has already been started for this participant',
       };
 
       expect(alreadyStartedError['error'], contains('already'));
@@ -974,7 +979,7 @@ void main() {
 
     test('role error message is specific to start trial', () {
       final roleError = {
-        'error': 'Only Investigators can start trial for patients',
+        'error': 'Only Investigators can start trial for participants',
       };
 
       expect(roleError['error'], contains('Investigator'));
@@ -984,7 +989,7 @@ void main() {
     test('audit log entry structure is correct', () {
       // Expected action_details for START_TRIAL action
       final actionDetails = {
-        'patient_id': 'patient-123',
+        'participant_id': 'participant-123',
         'site_id': 'site-456',
         'site_name': 'Site A',
         'trial_started_at': '2024-01-01T00:00:00.000Z',
@@ -992,7 +997,7 @@ void main() {
         'started_by_name': 'John Doe',
       };
 
-      expect(actionDetails['patient_id'], isA<String>());
+      expect(actionDetails['participant_id'], isA<String>());
       expect(actionDetails['site_id'], isA<String>());
       expect(actionDetails['trial_started_at'], isA<String>());
       expect(actionDetails['started_by_email'], isA<String>());
@@ -1026,43 +1031,47 @@ void main() {
     // generateParticipantLinkingCodeHandler
     // ================================================================
     group('generateParticipantLinkingCodeHandler handler', () {
-      test('generates code successfully for not_connected patient', () async {
-        databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
-            return [_participantRow(status: 'not_connected')];
-          }
-          if (query.contains('UPDATE patient_linking_codes') &&
-              query.contains('revoked_at')) {
-            return []; // No codes to revoke
-          }
-          if (query.contains('INSERT INTO patient_linking_codes')) {
-            return [];
-          }
-          if (query.contains('UPDATE patients')) {
-            return [];
-          }
-          if (query.contains('INSERT INTO admin_action_log')) {
-            return [];
-          }
-          return [];
-        };
+      test(
+        'generates code successfully for not_connected participant',
+        () async {
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM participants')) {
+                  return [_participantRow(status: 'not_connected')];
+                }
+                if (query.contains('UPDATE participant_linking_codes') &&
+                    query.contains('revoked_at')) {
+                  return []; // No codes to revoke
+                }
+                if (query.contains('INSERT INTO participant_linking_codes')) {
+                  return [];
+                }
+                if (query.contains('UPDATE participants')) {
+                  return [];
+                }
+                if (query.contains('INSERT INTO admin_action_log')) {
+                  return [];
+                }
+                return [];
+              };
 
-        final request = _request(
-          'POST',
-          '/api/v1/portal/participants/link-code',
-          body: jsonEncode({'patientId': _testParticipantId}),
-        );
+          final request = _request(
+            'POST',
+            '/api/v1/portal/participants/link-code',
+            body: jsonEncode({'participantId': _testParticipantId}),
+          );
 
-        final response = await generateParticipantLinkingCodeHandler(request);
+          final response = await generateParticipantLinkingCodeHandler(request);
 
-        expect(response.statusCode, 200);
-        final body = await _json(response);
-        expect(body['success'], true);
-        expect(body['patient_id'], _testParticipantId);
-        expect(body['code'], contains('-'));
-        expect(body['code_raw'], hasLength(10));
-        expect(body['expires_in_hours'], 72);
-      });
+          expect(response.statusCode, 200);
+          final body = await _json(response);
+          expect(body['success'], true);
+          expect(body['participant_id'], _testParticipantId);
+          expect(body['code'], contains('-'));
+          expect(body['code_raw'], hasLength(10));
+          expect(body['expires_in_hours'], 72);
+        },
+      );
 
       test('returns 403 for non-Investigator role', () async {
         requirePortalAuthOverride = (_) async =>
@@ -1071,7 +1080,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/link-code',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await generateParticipantLinkingCodeHandler(request);
@@ -1081,16 +1090,16 @@ void main() {
         expect(body['error'], contains('Investigator'));
       });
 
-      test('returns 404 when patient not found', () async {
+      test('returns 404 when participant not found', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) return [];
+          if (query.contains('FROM participants')) return [];
           return [];
         };
 
         final request = _request(
           'POST',
           '/api/v1/portal/participants/link-code',
-          body: jsonEncode({'patientId': 'nonexistent'}),
+          body: jsonEncode({'participantId': 'nonexistent'}),
         );
 
         final response = await generateParticipantLinkingCodeHandler(request);
@@ -1100,7 +1109,7 @@ void main() {
 
       test('returns 403 when user has no site access', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(siteId: 'other-site')];
           }
           return [];
@@ -1109,7 +1118,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/link-code',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await generateParticipantLinkingCodeHandler(request);
@@ -1119,9 +1128,9 @@ void main() {
         expect(body['error'], contains('site'));
       });
 
-      test('returns 409 when patient is already connected', () async {
+      test('returns 409 when participant is already connected', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(status: 'connected')];
           }
           return [];
@@ -1130,7 +1139,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/link-code',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await generateParticipantLinkingCodeHandler(request);
@@ -1144,10 +1153,10 @@ void main() {
         var revokedCodes = false;
 
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(status: 'linking_in_progress')];
           }
-          if (query.contains('UPDATE patient_linking_codes') &&
+          if (query.contains('UPDATE participant_linking_codes') &&
               query.contains('revoked_at')) {
             revokedCodes = true;
             return [
@@ -1157,10 +1166,10 @@ void main() {
           if (query.contains('INSERT INTO admin_action_log')) {
             return [];
           }
-          if (query.contains('INSERT INTO patient_linking_codes')) {
+          if (query.contains('INSERT INTO participant_linking_codes')) {
             return [];
           }
-          if (query.contains('UPDATE patients')) {
+          if (query.contains('UPDATE participants')) {
             return [];
           }
           return [];
@@ -1169,7 +1178,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/link-code',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await generateParticipantLinkingCodeHandler(request);
@@ -1182,17 +1191,17 @@ void main() {
         var capturedActionType = '';
 
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(status: 'disconnected')];
           }
-          if (query.contains('UPDATE patient_linking_codes') &&
+          if (query.contains('UPDATE participant_linking_codes') &&
               query.contains('revoked_at')) {
             return [];
           }
-          if (query.contains('INSERT INTO patient_linking_codes')) {
+          if (query.contains('INSERT INTO participant_linking_codes')) {
             return [];
           }
-          if (query.contains('UPDATE patients')) {
+          if (query.contains('UPDATE participants')) {
             return [];
           }
           if (query.contains('INSERT INTO admin_action_log')) {
@@ -1208,7 +1217,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/link-code',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reconnect_reason': 'New device',
           }),
         );
@@ -1216,7 +1225,7 @@ void main() {
         final response = await generateParticipantLinkingCodeHandler(request);
 
         expect(response.statusCode, 200);
-        expect(capturedActionType, 'RECONNECT_PATIENT');
+        expect(capturedActionType, 'RECONNECT_PARTICIPANT');
       });
 
       // CUR-1311 (Phase 1B.3): envelope flag for the reconnect path
@@ -1235,15 +1244,15 @@ void main() {
             Map<String, dynamic>? auditDetails;
             databaseQueryOverride = (query, {parameters, required context}) async {
               captured.add(query);
-              if (query.contains('FROM patients') &&
-                  query.contains('patient_id')) {
+              if (query.contains('FROM participants') &&
+                  query.contains('participant_id')) {
                 return [_participantRow(status: 'disconnected')];
               }
-              if (query.contains('UPDATE patient_linking_codes')) return [];
-              if (query.contains('INSERT INTO patient_linking_codes'))
+              if (query.contains('UPDATE participant_linking_codes')) return [];
+              if (query.contains('INSERT INTO participant_linking_codes'))
                 return [];
-              if (query.contains('UPDATE patients')) return [];
-              if (query.contains('FROM patient_fcm_tokens')) {
+              if (query.contains('UPDATE participants')) return [];
+              if (query.contains('FROM participant_fcm_tokens')) {
                 return [
                   ['fake-fcm-token-1234567890'],
                 ];
@@ -1254,8 +1263,8 @@ void main() {
                 return [
                   <dynamic>[
                     parameters!['id'],
-                    parameters['patientId'],
-                    'patient_status_update',
+                    parameters['participantId'],
+                    'participant_status_update',
                     'Reconnect to Study',
                     'Your study coordinator has issued a new linking code.',
                     true,
@@ -1293,7 +1302,7 @@ void main() {
               'POST',
               '/api/v1/portal/participants/link-code',
               body: jsonEncode({
-                'patientId': _testParticipantId,
+                'participantId': _testParticipantId,
                 'reconnect_reason': 'New device',
               }),
             );
@@ -1319,14 +1328,14 @@ void main() {
         test(
           'flag ON but NOT reconnect (initial linking): no notification row',
           () async {
-            // Initial linking-code generation for a not_connected patient
+            // Initial linking-code generation for a not_connected participant
             // — isReconnection is false, so the helper is never invoked.
             final captured = <String>[];
             databaseQueryOverride =
                 (query, {parameters, required context}) async {
                   captured.add(query);
-                  if (query.contains('FROM patients') &&
-                      query.contains('patient_id')) {
+                  if (query.contains('FROM participants') &&
+                      query.contains('participant_id')) {
                     return [_participantRow(status: 'not_connected')];
                   }
                   return [];
@@ -1346,7 +1355,7 @@ void main() {
             final request = _request(
               'POST',
               '/api/v1/portal/participants/link-code',
-              body: jsonEncode({'patientId': _testParticipantId}),
+              body: jsonEncode({'participantId': _testParticipantId}),
             );
 
             final response = await generateParticipantLinkingCodeHandler(
@@ -1374,12 +1383,12 @@ void main() {
         final generatedAt = DateTime.now().subtract(const Duration(hours: 24));
 
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [
               [_testParticipantId, _testSiteId, 'linking_in_progress'],
             ];
           }
-          if (query.contains('FROM patient_linking_codes')) {
+          if (query.contains('FROM participant_linking_codes')) {
             return [
               ['CAABCDEFGH', expiresAt, generatedAt],
             ];
@@ -1390,7 +1399,7 @@ void main() {
         final request = _request(
           'GET',
           '/api/v1/portal/participants/link-code',
-          headers: {'x-patient-id': _testParticipantId},
+          headers: {'x-participant-id': _testParticipantId},
         );
 
         final response = await getParticipantLinkingCodeHandler(request);
@@ -1404,12 +1413,12 @@ void main() {
 
       test('returns no active code when none exist', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [
               [_testParticipantId, _testSiteId, 'not_connected'],
             ];
           }
-          if (query.contains('FROM patient_linking_codes')) {
+          if (query.contains('FROM participant_linking_codes')) {
             return [];
           }
           return [];
@@ -1418,7 +1427,7 @@ void main() {
         final request = _request(
           'GET',
           '/api/v1/portal/participants/link-code',
-          headers: {'x-patient-id': _testParticipantId},
+          headers: {'x-participant-id': _testParticipantId},
         );
 
         final response = await getParticipantLinkingCodeHandler(request);
@@ -1436,16 +1445,16 @@ void main() {
 
           databaseQueryOverride =
               (query, {parameters, required context}) async {
-                if (query.contains('FROM patients')) {
+                if (query.contains('FROM participants')) {
                   return [
                     [_testParticipantId, _testSiteId, 'connected'],
                   ];
                 }
-                if (query.contains('FROM patient_linking_codes') &&
+                if (query.contains('FROM participant_linking_codes') &&
                     query.contains('used_at IS NULL')) {
                   return []; // no active code
                 }
-                if (query.contains('FROM patient_linking_codes') &&
+                if (query.contains('FROM participant_linking_codes') &&
                     query.contains('used_at IS NOT NULL')) {
                   return [
                     ['CAABCDEFGH', usedAt],
@@ -1457,7 +1466,7 @@ void main() {
           final request = _request(
             'GET',
             '/api/v1/portal/participants/link-code',
-            headers: {'x-patient-id': _testParticipantId},
+            headers: {'x-participant-id': _testParticipantId},
           );
 
           final response = await getParticipantLinkingCodeHandler(request);
@@ -1477,12 +1486,12 @@ void main() {
         () async {
           databaseQueryOverride =
               (query, {parameters, required context}) async {
-                if (query.contains('FROM patients')) {
+                if (query.contains('FROM participants')) {
                   return [
                     [_testParticipantId, _testSiteId, 'connected'],
                   ];
                 }
-                if (query.contains('FROM patient_linking_codes')) {
+                if (query.contains('FROM participant_linking_codes')) {
                   return []; // neither active nor used
                 }
                 return [];
@@ -1491,7 +1500,7 @@ void main() {
           final request = _request(
             'GET',
             '/api/v1/portal/participants/link-code',
-            headers: {'x-patient-id': _testParticipantId},
+            headers: {'x-participant-id': _testParticipantId},
           );
 
           final response = await getParticipantLinkingCodeHandler(request);
@@ -1511,7 +1520,7 @@ void main() {
 
           databaseQueryOverride =
               (query, {parameters, required context}) async {
-                if (query.contains('FROM patients')) {
+                if (query.contains('FROM participants')) {
                   return [
                     [_testParticipantId, _testSiteId, 'disconnected'],
                   ];
@@ -1528,7 +1537,7 @@ void main() {
           final request = _request(
             'GET',
             '/api/v1/portal/participants/link-code',
-            headers: {'x-patient-id': _testParticipantId},
+            headers: {'x-participant-id': _testParticipantId},
           );
 
           final response = await getParticipantLinkingCodeHandler(request);
@@ -1546,7 +1555,7 @@ void main() {
         final request = _request(
           'GET',
           '/api/v1/portal/participants/link-code',
-          headers: {'x-patient-id': _testParticipantId},
+          headers: {'x-participant-id': _testParticipantId},
         );
 
         final response = await getParticipantLinkingCodeHandler(request);
@@ -1554,16 +1563,16 @@ void main() {
         expect(response.statusCode, 403);
       });
 
-      test('returns 404 when patient not found', () async {
+      test('returns 404 when participant not found', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) return [];
+          if (query.contains('FROM participants')) return [];
           return [];
         };
 
         final request = _request(
           'GET',
           '/api/v1/portal/participants/link-code',
-          headers: {'x-patient-id': 'nonexistent'},
+          headers: {'x-participant-id': 'nonexistent'},
         );
 
         final response = await getParticipantLinkingCodeHandler(request);
@@ -1573,7 +1582,7 @@ void main() {
 
       test('returns 403 when user has no site access', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [
               [_testParticipantId, 'other-site', 'not_connected'],
             ];
@@ -1584,7 +1593,7 @@ void main() {
         final request = _request(
           'GET',
           '/api/v1/portal/participants/link-code',
-          headers: {'x-patient-id': _testParticipantId},
+          headers: {'x-participant-id': _testParticipantId},
         );
 
         final response = await getParticipantLinkingCodeHandler(request);
@@ -1597,15 +1606,15 @@ void main() {
     // disconnectParticipantHandler
     // ================================================================
     group('disconnectParticipantHandler handler', () {
-      test('disconnects connected patient with valid reason', () async {
+      test('disconnects connected participant with valid reason', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(status: 'connected')];
           }
-          if (query.contains('UPDATE patient_linking_codes')) {
+          if (query.contains('UPDATE participant_linking_codes')) {
             return []; // No codes to revoke
           }
-          if (query.contains('UPDATE patients')) {
+          if (query.contains('UPDATE participants')) {
             return [];
           }
           if (query.contains('INSERT INTO admin_action_log')) {
@@ -1618,7 +1627,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Device Issues',
           }),
         );
@@ -1641,7 +1650,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Device Issues',
           }),
         );
@@ -1659,7 +1668,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/disconnect',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await disconnectParticipantHandler(request);
@@ -1674,7 +1683,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Not a valid reason',
           }),
         );
@@ -1691,7 +1700,7 @@ void main() {
         () async {
           databaseQueryOverride =
               (query, {parameters, required context}) async {
-                if (query.contains('FROM patients')) return [];
+                if (query.contains('FROM participants')) return [];
                 return [];
               };
 
@@ -1699,7 +1708,7 @@ void main() {
             'POST',
             '/api/v1/portal/participants/disconnect',
             body: jsonEncode({
-              'patientId': _testParticipantId,
+              'participantId': _testParticipantId,
               'reason': 'Other',
             }),
           );
@@ -1713,9 +1722,9 @@ void main() {
         },
       );
 
-      test('returns 404 when patient not found', () async {
+      test('returns 404 when participant not found', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) return [];
+          if (query.contains('FROM participants')) return [];
           return [];
         };
 
@@ -1723,7 +1732,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
-            'patientId': 'nonexistent',
+            'participantId': 'nonexistent',
             'reason': 'Device Issues',
           }),
         );
@@ -1735,7 +1744,7 @@ void main() {
 
       test('returns 403 when user has no site access', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(siteId: 'other-site', status: 'connected')];
           }
           return [];
@@ -1745,7 +1754,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Device Issues',
           }),
         );
@@ -1755,9 +1764,9 @@ void main() {
         expect(response.statusCode, 403);
       });
 
-      test('returns 409 when patient is not connected', () async {
+      test('returns 409 when participant is not connected', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(status: 'disconnected')];
           }
           return [];
@@ -1767,7 +1776,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/disconnect',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Device Issues',
           }),
         );
@@ -1812,7 +1821,7 @@ void main() {
               'POST',
               '/api/v1/portal/participants/disconnect',
               body: jsonEncode({
-                'patientId': _testParticipantId,
+                'participantId': _testParticipantId,
                 'reason': 'Custom free text reason',
               }),
             );
@@ -1840,7 +1849,7 @@ void main() {
             );
             databaseQueryOverride =
                 (query, {parameters, required context}) async {
-                  if (query.contains('FROM patients')) {
+                  if (query.contains('FROM participants')) {
                     return [_participantRow(status: 'connected')];
                   }
                   return [];
@@ -1850,7 +1859,7 @@ void main() {
               'POST',
               '/api/v1/portal/participants/disconnect',
               body: jsonEncode({
-                'patientId': _testParticipantId,
+                'participantId': _testParticipantId,
                 'reason': 'Custom free text reason',
               }),
             );
@@ -1880,7 +1889,10 @@ void main() {
             final request = _request(
               'POST',
               '/api/v1/portal/participants/disconnect',
-              body: jsonEncode({'patientId': _testParticipantId, 'reason': ''}),
+              body: jsonEncode({
+                'participantId': _testParticipantId,
+                'reason': '',
+              }),
             );
 
             final response = await disconnectParticipantHandler(request);
@@ -1920,17 +1932,17 @@ void main() {
           final auditDetails = <Map<String, dynamic>>[];
           databaseQueryOverride = (query, {parameters, required context}) async {
             capturedQueries.add(query);
-            if (query.contains('FROM patients') &&
-                query.contains('patient_id')) {
+            if (query.contains('FROM participants') &&
+                query.contains('participant_id')) {
               return [_participantRow(status: 'connected')];
             }
-            if (query.contains('UPDATE patient_linking_codes')) {
+            if (query.contains('UPDATE participant_linking_codes')) {
               return [];
             }
-            if (query.contains('UPDATE patients')) {
+            if (query.contains('UPDATE participants')) {
               return [];
             }
-            if (query.contains('FROM patient_fcm_tokens')) {
+            if (query.contains('FROM participant_fcm_tokens')) {
               return [
                 ['fake-fcm-token-1234567890'],
               ];
@@ -1949,8 +1961,8 @@ void main() {
               return [
                 <dynamic>[
                   parameters!['id'],
-                  parameters['patientId'],
-                  'patient_status_update',
+                  parameters['participantId'],
+                  'participant_status_update',
                   'Account Disconnected',
                   'Your study account has been disconnected. Please contact your study coordinator.',
                   true,
@@ -1980,7 +1992,7 @@ void main() {
             'POST',
             '/api/v1/portal/participants/disconnect',
             body: jsonEncode({
-              'patientId': _testParticipantId,
+              'participantId': _testParticipantId,
               'reason': 'Device Issues',
             }),
           );
@@ -2029,11 +2041,11 @@ void main() {
             databaseQueryOverride =
                 (query, {parameters, required context}) async {
                   capturedQueries.add(query);
-                  if (query.contains('FROM patients') &&
-                      query.contains('patient_id')) {
+                  if (query.contains('FROM participants') &&
+                      query.contains('participant_id')) {
                     return [_participantRow(status: 'connected')];
                   }
-                  if (query.contains('FROM patient_fcm_tokens')) {
+                  if (query.contains('FROM participant_fcm_tokens')) {
                     return [
                       ['fake-fcm-token-1234567890'],
                     ];
@@ -2057,14 +2069,14 @@ void main() {
               'POST',
               '/api/v1/portal/participants/disconnect',
               body: jsonEncode({
-                'patientId': _testParticipantId,
+                'participantId': _testParticipantId,
                 'reason': 'Device Issues',
               }),
             );
 
             final response = await disconnectParticipantHandler(request);
 
-            // The action itself succeeds — the patient row was updated;
+            // The action itself succeeds — the participant row was updated;
             // the push is the side-effect that got blocked. The handler
             // logs the failure but doesn't surface it as a 5xx.
             expect(response.statusCode, 200);
@@ -2087,12 +2099,12 @@ void main() {
     // markParticipantNotParticipatingHandler
     // ================================================================
     group('markParticipantNotParticipatingHandler handler', () {
-      test('marks disconnected patient as not participating', () async {
+      test('marks disconnected participant as not participating', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(status: 'disconnected')];
           }
-          if (query.contains('UPDATE patients')) {
+          if (query.contains('UPDATE participants')) {
             return [];
           }
           if (query.contains('INSERT INTO admin_action_log')) {
@@ -2105,7 +2117,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/not-participating',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Subject Withdrawal',
           }),
         );
@@ -2127,7 +2139,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/not-participating',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Death',
           }),
         );
@@ -2142,7 +2154,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/not-participating',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Invalid reason',
           }),
         );
@@ -2157,7 +2169,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/not-participating',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Other',
           }),
         );
@@ -2169,16 +2181,16 @@ void main() {
         expect(body['error'], contains('Notes'));
       });
 
-      test('returns 404 when patient not found', () async {
+      test('returns 404 when participant not found', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) return [];
+          if (query.contains('FROM participants')) return [];
           return [];
         };
 
         final request = _request(
           'POST',
           '/api/v1/portal/participants/not-participating',
-          body: jsonEncode({'patientId': 'nonexistent', 'reason': 'Death'}),
+          body: jsonEncode({'participantId': 'nonexistent', 'reason': 'Death'}),
         );
 
         final response = await markParticipantNotParticipatingHandler(request);
@@ -2188,7 +2200,7 @@ void main() {
 
       test('returns 403 when user has no site access', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [
               _participantRow(siteId: 'other-site', status: 'disconnected'),
             ];
@@ -2200,7 +2212,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/not-participating',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Death',
           }),
         );
@@ -2210,9 +2222,9 @@ void main() {
         expect(response.statusCode, 403);
       });
 
-      test('returns 409 when patient is not disconnected', () async {
+      test('returns 409 when participant is not disconnected', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(status: 'connected')];
           }
           return [];
@@ -2222,7 +2234,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/not-participating',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Subject Withdrawal',
           }),
         );
@@ -2258,11 +2270,11 @@ void main() {
             Map<String, dynamic>? auditDetails;
             databaseQueryOverride = (query, {parameters, required context}) async {
               captured.add(query);
-              if (query.contains('FROM patients') &&
-                  query.contains('patient_id')) {
+              if (query.contains('FROM participants') &&
+                  query.contains('participant_id')) {
                 return [_participantRow(status: 'disconnected')];
               }
-              if (query.contains('FROM patient_fcm_tokens')) {
+              if (query.contains('FROM participant_fcm_tokens')) {
                 return [
                   ['fake-fcm-token-1234567890'],
                 ];
@@ -2273,8 +2285,8 @@ void main() {
                 return [
                   <dynamic>[
                     parameters!['id'],
-                    parameters['patientId'],
-                    'patient_status_update',
+                    parameters['participantId'],
+                    'participant_status_update',
                     'Study Participation Ended',
                     'Your study participation has ended.',
                     true,
@@ -2312,7 +2324,7 @@ void main() {
               'POST',
               '/api/v1/portal/participants/not-participating',
               body: jsonEncode({
-                'patientId': _testParticipantId,
+                'participantId': _testParticipantId,
                 'reason': 'Subject Withdrawal',
               }),
             );
@@ -2341,12 +2353,12 @@ void main() {
     // reactivateParticipantHandler
     // ================================================================
     group('reactivateParticipantHandler handler', () {
-      test('reactivates not_participating patient', () async {
+      test('reactivates not_participating participant', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(status: 'not_participating')];
           }
-          if (query.contains('UPDATE patients')) {
+          if (query.contains('UPDATE participants')) {
             return [];
           }
           if (query.contains('INSERT INTO admin_action_log')) {
@@ -2359,8 +2371,8 @@ void main() {
           'POST',
           '/api/v1/portal/participants/reactivate',
           body: jsonEncode({
-            'patientId': _testParticipantId,
-            'reason': 'Patient changed mind',
+            'participantId': _testParticipantId,
+            'reason': 'Participant changed mind',
           }),
         );
 
@@ -2381,7 +2393,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/reactivate',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'reason': 'Changed mind',
           }),
         );
@@ -2395,7 +2407,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/reactivate',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await reactivateParticipantHandler(request);
@@ -2403,16 +2415,16 @@ void main() {
         expect(response.statusCode, 400);
       });
 
-      test('returns 404 when patient not found', () async {
+      test('returns 404 when participant not found', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) return [];
+          if (query.contains('FROM participants')) return [];
           return [];
         };
 
         final request = _request(
           'POST',
           '/api/v1/portal/participants/reactivate',
-          body: jsonEncode({'patientId': 'nonexistent', 'reason': 'Test'}),
+          body: jsonEncode({'participantId': 'nonexistent', 'reason': 'Test'}),
         );
 
         final response = await reactivateParticipantHandler(request);
@@ -2422,7 +2434,7 @@ void main() {
 
       test('returns 403 when user has no site access', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [
               _participantRow(
                 siteId: 'other-site',
@@ -2436,7 +2448,10 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/reactivate',
-          body: jsonEncode({'patientId': _testParticipantId, 'reason': 'Test'}),
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Test',
+          }),
         );
 
         final response = await reactivateParticipantHandler(request);
@@ -2444,9 +2459,9 @@ void main() {
         expect(response.statusCode, 403);
       });
 
-      test('returns 409 when patient is not not_participating', () async {
+      test('returns 409 when participant is not not_participating', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow(status: 'connected')];
           }
           return [];
@@ -2455,7 +2470,10 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/reactivate',
-          body: jsonEncode({'patientId': _testParticipantId, 'reason': 'Test'}),
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Test',
+          }),
         );
 
         final response = await reactivateParticipantHandler(request);
@@ -2490,11 +2508,11 @@ void main() {
             databaseQueryOverride =
                 (query, {parameters, required context}) async {
                   captured.add(query);
-                  if (query.contains('FROM patients') &&
-                      query.contains('patient_id')) {
+                  if (query.contains('FROM participants') &&
+                      query.contains('participant_id')) {
                     return [_participantRow(status: 'not_participating')];
                   }
-                  if (query.contains('FROM patient_fcm_tokens')) {
+                  if (query.contains('FROM participant_fcm_tokens')) {
                     return [
                       ['fake-fcm-token-1234567890'],
                     ];
@@ -2505,8 +2523,8 @@ void main() {
                     return [
                       <dynamic>[
                         parameters!['id'],
-                        parameters['patientId'],
-                        'patient_status_update',
+                        parameters['participantId'],
+                        'participant_status_update',
                         'Account Reactivated',
                         'Your study account has been reactivated.',
                         true,
@@ -2544,8 +2562,8 @@ void main() {
               'POST',
               '/api/v1/portal/participants/reactivate',
               body: jsonEncode({
-                'patientId': _testParticipantId,
-                'reason': 'Patient Request',
+                'participantId': _testParticipantId,
+                'reason': 'Participant Request',
               }),
             );
 
@@ -2571,15 +2589,15 @@ void main() {
     // startTrialHandler
     // ================================================================
     group('startTrialHandler handler', () {
-      test('starts trial for connected patient', () async {
+      test('starts trial for connected participant', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRowForTrial()];
           }
-          if (query.contains('UPDATE patients')) {
+          if (query.contains('UPDATE participants')) {
             return [];
           }
-          if (query.contains('FROM patient_fcm_tokens')) {
+          if (query.contains('FROM participant_fcm_tokens')) {
             return [];
           }
           if (query.contains('INSERT INTO admin_action_log')) {
@@ -2591,7 +2609,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/start-trial',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await startTrialHandler(request);
@@ -2609,7 +2627,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/start-trial',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await startTrialHandler(request);
@@ -2617,16 +2635,16 @@ void main() {
         expect(response.statusCode, 403);
       });
 
-      test('returns 404 when patient not found', () async {
+      test('returns 404 when participant not found', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) return [];
+          if (query.contains('FROM participants')) return [];
           return [];
         };
 
         final request = _request(
           'POST',
           '/api/v1/portal/participants/start-trial',
-          body: jsonEncode({'patientId': 'nonexistent'}),
+          body: jsonEncode({'participantId': 'nonexistent'}),
         );
 
         final response = await startTrialHandler(request);
@@ -2636,7 +2654,7 @@ void main() {
 
       test('returns 403 when user has no site access', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRowForTrial(siteId: 'other-site')];
           }
           return [];
@@ -2645,7 +2663,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/start-trial',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await startTrialHandler(request);
@@ -2653,9 +2671,9 @@ void main() {
         expect(response.statusCode, 403);
       });
 
-      test('returns 409 when patient is not connected', () async {
+      test('returns 409 when participant is not connected', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRowForTrial(status: 'disconnected')];
           }
           return [];
@@ -2664,7 +2682,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/start-trial',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await startTrialHandler(request);
@@ -2674,7 +2692,7 @@ void main() {
 
       test('returns 409 when trial already started', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRowForTrial(trialStarted: true)];
           }
           return [];
@@ -2683,7 +2701,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/start-trial',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await startTrialHandler(request);
@@ -2693,15 +2711,15 @@ void main() {
         expect(body['error'], contains('already'));
       });
 
-      test('sends FCM when patient has token', () async {
+      test('sends FCM when participant has token', () async {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRowForTrial()];
           }
-          if (query.contains('UPDATE patients')) {
+          if (query.contains('UPDATE participants')) {
             return [];
           }
-          if (query.contains('FROM patient_fcm_tokens')) {
+          if (query.contains('FROM participant_fcm_tokens')) {
             return [
               ['fake-fcm-token-12345678901234567890'],
             ];
@@ -2715,7 +2733,7 @@ void main() {
         final request = _request(
           'POST',
           '/api/v1/portal/participants/start-trial',
-          body: jsonEncode({'patientId': _testParticipantId}),
+          body: jsonEncode({'participantId': _testParticipantId}),
         );
 
         final response = await startTrialHandler(request);
@@ -2741,11 +2759,11 @@ void main() {
             databaseQueryOverride =
                 (query, {parameters, required context}) async {
                   captured.add(query);
-                  if (query.contains('FROM patients')) {
+                  if (query.contains('FROM participants')) {
                     return [_participantRowForTrial()];
                   }
-                  if (query.contains('UPDATE patients')) return [];
-                  if (query.contains('FROM patient_fcm_tokens')) {
+                  if (query.contains('UPDATE participants')) return [];
+                  if (query.contains('FROM participant_fcm_tokens')) {
                     return [
                       ['fake-fcm-token-12345678901234567890'],
                     ];
@@ -2760,8 +2778,8 @@ void main() {
                     return [
                       <dynamic>[
                         parameters!['id'],
-                        parameters['patientId'],
-                        'patient_status_update',
+                        parameters['participantId'],
+                        'participant_status_update',
                         'Trial Started',
                         'Your study has started.',
                         true,
@@ -2798,7 +2816,7 @@ void main() {
             final request = _request(
               'POST',
               '/api/v1/portal/participants/start-trial',
-              body: jsonEncode({'patientId': _testParticipantId}),
+              body: jsonEncode({'participantId': _testParticipantId}),
             );
 
             final response = await startTrialHandler(request);
@@ -2813,7 +2831,7 @@ void main() {
                 jsonDecode(capturedPayload!) as Map<String, dynamic>;
             expect(payload['action'], equals('start_trial'));
             // The trial_started_at timestamp distinguishes this from
-            // every other patient_status_update flow.
+            // every other participant_status_update flow.
             expect(payload['trial_started_at'], isA<String>());
             expect(auditDetails, isNotNull);
             expect(

@@ -106,7 +106,7 @@ void main() {
           () => writer.send(
             // SubjectKey embedded in title — guard must reject before
             // the row reaches the repo.
-            _buildEnvelope(title: 'Patient 999-001-125 disconnected'),
+            _buildEnvelope(title: 'Participant 999-001-125 disconnected'),
             fcmToken: 'tok-1',
           ),
           throwsA(isA<PhiLeakException>()),
@@ -187,7 +187,7 @@ void main() {
         );
 
         final sent = channel.dispatches.single;
-        expect(sent.data['type'], equals('patient_status_update'));
+        expect(sent.data['type'], equals('participant_status_update'));
         expect(sent.data['notification_id'], equals('env-1'));
         expect(sent.data['action'], equals('disconnect'));
         expect(sent.data['study_id'], equals('s-1'));

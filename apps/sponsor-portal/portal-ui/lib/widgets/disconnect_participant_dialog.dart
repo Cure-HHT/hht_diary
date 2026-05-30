@@ -1,9 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00020: Patient Disconnection Workflow
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00020: Participant Disconnection Workflow
+//   REQ-CAL-p00073: Participant Status Definitions
 //   REQ-CAL-p00077: Disconnection Notification
 //
-// Dialog for disconnecting patients from the mobile app
+// Dialog for disconnecting participants from the mobile app
 
 import 'package:flutter/material.dart';
 
@@ -23,7 +23,7 @@ enum DisconnectReason {
 /// Dialog states for the disconnect flow
 enum _DialogState { confirm, loading, success, error }
 
-/// Dialog for disconnecting a patient from the mobile app.
+/// Dialog for disconnecting a participant from the mobile app.
 ///
 /// Shows a confirmation prompt with reason dropdown, then calls the API,
 /// and displays the result.
@@ -32,8 +32,8 @@ enum _DialogState { confirm, loading, success, error }
 /// ```dart
 /// final success = await DisconnectParticipantDialog.show(
 ///   context: context,
-///   patientId: patient.patientId,
-///   patientDisplayId: patient.edcSubjectKey,
+///   participantId: participant.participantId,
+///   participantDisplayId: participant.edcSubjectKey,
 ///   apiClient: apiClient,
 /// );
 /// ```
@@ -52,7 +52,7 @@ class DisconnectParticipantDialog extends StatefulWidget {
     this.useDropdown = true,
   });
 
-  /// Shows the dialog and returns true if the patient was disconnected successfully.
+  /// Shows the dialog and returns true if the participant was disconnected successfully.
   static Future<bool> show({
     required BuildContext context,
     required String participantId,
@@ -106,7 +106,7 @@ class _DisconnectParticipantDialogState
         : _reasonTextController.text.trim();
     final response = await widget.apiClient.post(
       '/api/v1/portal/participants/disconnect',
-      {'patientId': widget.participantId, 'reason': reason},
+      {'participantId': widget.participantId, 'reason': reason},
     );
 
     if (!mounted) return;

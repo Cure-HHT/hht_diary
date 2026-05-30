@@ -14,7 +14,7 @@ enum NotificationType {
   /// Participant status transition — disconnect / reconnect /
   /// mark_not_participating / reactivate / start_trial. Sub-action in
   /// `payload.action`.
-  participantStatusUpdate('patient_status_update'),
+  participantStatusUpdate('participant_status_update'),
 
   /// Scheduled, time-based reminder (e.g. yesterday-reminder cron).
   reminder('reminder');

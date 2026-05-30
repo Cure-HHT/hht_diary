@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//   REQ-CAL-p00082: Patient Alert Delivery
+//   REQ-CAL-p00082: Participant Alert Delivery
 //   REQ-p00049: Ancillary Platform Services (push notifications)
 //   REQ-d00193: FCM Dispatch via cure-hht-admin Project
 //
@@ -9,13 +9,13 @@
 // `comms` package as `FcmChannel`. This service is now a thin
 // orchestrator that:
 //   * holds the FcmChannel + console mode
-//   * exposes per-notification-type helpers used by the patient_linking
+//   * exposes per-notification-type helpers used by the participant_linking
 //     and questionnaire handlers
 //   * builds an FcmMessage and dispatches via the channel
 //   * keeps the FDA audit row + metrics that Phase 1B will move into
 //     the OutboxWriter when envelopes land
 //
-// Public API (sendQuestionnaireNotification, sendPatientStatusNotification,
+// Public API (sendQuestionnaireNotification, sendParticipantStatusNotification,
 // etc.) is unchanged — callers get NotificationResult back as before.
 
 import 'dart:convert';
@@ -86,7 +86,7 @@ class NotificationConfig {
   /// CUR-1311 (Phase 1B.2): when true, `disconnectParticipantHandler` routes
   /// the disconnect notification through `OutboxWriter` (writes a row to
   /// `notifications` before dispatching FCM). When false, behaviour is
-  /// identical to S2 — direct FCM send via `sendPatientStatusNotification`.
+  /// identical to S2 — direct FCM send via `sendParticipantStatusNotification`.
   /// Per-handler flag so we can validate the envelope path one handler
   /// at a time before flipping the rest in P1B.3.
   final bool useEnvelopeDisconnect;
@@ -142,7 +142,7 @@ class NotificationResult {
 }
 
 /// FCM orchestrator singleton. Sends data-only / alert push messages to
-/// patient devices. PHI is rejected by `PayloadGuard` inside the channel
+/// participant devices. PHI is rejected by `PayloadGuard` inside the channel
 /// before any network egress (REQ-d00194).
 class NotificationService {
   NotificationService._();
@@ -216,8 +216,8 @@ class NotificationService {
 
   /// CUR-1311 (Phase 1B.2): builds the OutboxWriter that handlers use
   /// when their envelope flag is on. The `onUnregistered` callback
-  /// deactivates the `patient_fcm_tokens` row so subsequent sends to
-  /// the same patient do not re-target a dead token.
+  /// deactivates the `participant_fcm_tokens` row so subsequent sends to
+  /// the same participant do not re-target a dead token.
   static OutboxWriter _buildOutboxWriter(FcmChannel channel) {
     return OutboxWriter(
       repo: PgNotificationRepository(),
@@ -226,14 +226,14 @@ class NotificationService {
     );
   }
 
-  /// CUR-1311 (Phase 1B.2): mark the matching `patient_fcm_tokens` row
+  /// CUR-1311 (Phase 1B.2): mark the matching `participant_fcm_tokens` row
   /// inactive when FCM returns UNREGISTERED. Idempotent — a duplicate
   /// dead-token signal is a no-op (already inactive).
   static Future<void> _deactivateFcmToken(String token) async {
     try {
       await Database.instance.executeWithContext(
         '''
-        UPDATE patient_fcm_tokens
+        UPDATE participant_fcm_tokens
         SET is_active = false, updated_at = now()
         WHERE fcm_token = @token AND is_active = true
         ''',
@@ -262,9 +262,9 @@ class NotificationService {
   /// Check if running in console mode.
   bool get isConsoleMode => _config?.consoleMode ?? false;
 
-  /// Send a questionnaire notification to a patient's device.
+  /// Send a questionnaire notification to a participant's device.
   ///
-  /// Per REQ-CAL-p00023-D: When a questionnaire is sent, the patient
+  /// Per REQ-CAL-p00023-D: When a questionnaire is sent, the participant
   /// SHALL receive a push notification on their Mobile App.
   Future<NotificationResult> sendQuestionnaireNotification({
     required String fcmToken,
@@ -287,10 +287,10 @@ class NotificationService {
     );
   }
 
-  /// Send a questionnaire deletion notification to a patient's device.
+  /// Send a questionnaire deletion notification to a participant's device.
   ///
   /// Per REQ-CAL-p00023-H: When a questionnaire is deleted, it SHALL be
-  /// removed from the patient's app. Silent push — no title/body.
+  /// removed from the participant's app. Silent push — no title/body.
   Future<NotificationResult> sendQuestionnaireDeletedNotification({
     required String fcmToken,
     required String questionnaireInstanceId,
@@ -308,7 +308,7 @@ class NotificationService {
     );
   }
 
-  /// Send a questionnaire unlocked notification to a patient's device.
+  /// Send a questionnaire unlocked notification to a participant's device.
   Future<NotificationResult> sendQuestionnaireUnlockedNotification({
     required String fcmToken,
     required String questionnaireInstanceId,
@@ -328,7 +328,7 @@ class NotificationService {
     );
   }
 
-  /// Send a questionnaire-finalized notification to a patient's device.
+  /// Send a questionnaire-finalized notification to a participant's device.
   Future<NotificationResult> sendQuestionnaireFinalizedNotification({
     required String fcmToken,
     required String questionnaireInstanceId,
@@ -348,7 +348,7 @@ class NotificationService {
     );
   }
 
-  /// Send a patient-status-change notification (disconnect, reconnect,
+  /// Send a participant-status-change notification (disconnect, reconnect,
   /// mark_not_participating, reactivate, start_trial).
   Future<NotificationResult> sendParticipantStatusNotification({
     required String fcmToken,
@@ -359,7 +359,7 @@ class NotificationService {
     Map<String, String>? extraData,
   }) async {
     final data = <String, String>{
-      'type': 'patient_status_update',
+      'type': 'participant_status_update',
       'action': action,
       if (extraData != null) ...extraData,
     };
@@ -368,7 +368,7 @@ class NotificationService {
       data: data,
       notificationTitle: title,
       notificationBody: body,
-      messageType: 'patient_status_update',
+      messageType: 'participant_status_update',
       participantId: participantId,
     );
   }
@@ -409,7 +409,10 @@ class NotificationService {
         logWithTrace(
           'INFO',
           'FCM console mode: would send $messageType',
-          labels: {'patient_id': participantId, 'message_type': messageType},
+          labels: {
+            'participant_id': participantId,
+            'message_type': messageType,
+          },
         );
         await _logNotificationAudit(
           participantId: participantId,
@@ -426,7 +429,7 @@ class NotificationService {
           'INFO',
           'FCM sent $messageType',
           labels: {
-            'patient_id': participantId,
+            'participant_id': participantId,
             'message_id': result.messageId ?? 'unknown',
           },
         );
@@ -450,7 +453,7 @@ class NotificationService {
       logWithTrace(
         'ERROR',
         'FCM failed to send $messageType',
-        labels: {'patient_id': participantId, 'error': errorMessage},
+        labels: {'participant_id': participantId, 'error': errorMessage},
       );
       await _logNotificationAudit(
         participantId: participantId,
@@ -467,7 +470,7 @@ class NotificationService {
       logWithTrace(
         'ERROR',
         'FCM exception sending $messageType',
-        labels: {'patient_id': participantId, 'error': errorMessage},
+        labels: {'participant_id': participantId, 'error': errorMessage},
       );
       await _logNotificationAudit(
         participantId: participantId,

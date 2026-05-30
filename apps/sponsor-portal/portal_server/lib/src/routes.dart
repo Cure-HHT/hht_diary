@@ -7,15 +7,15 @@
 //   REQ-p00002: Multi-Factor Authentication for Staff
 //   REQ-CAL-p00030: Edit User Account
 //   REQ-CAL-p00034: Site Visibility and Assignment
-//   REQ-CAL-p00063: EDC Patient Ingestion
+//   REQ-CAL-p00063: EDC Participant Ingestion
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-CAL-p00049: Mobile Linking Codes
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00064: Mark Participant as Not Participating
 //   REQ-CAL-p00079: Start Trial Workflow
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-d00169: Pending row cleanup endpoint
 //
 // Route definitions for portal server
@@ -54,10 +54,10 @@ Router createRouter() {
   router.get('/api/v1/portal/sites', getPortalSitesHandler);
   router.get('/api/v1/portal/participants', getPortalParticipantsHandler);
 
-  // Participant operations (CUR-1220 renamed path segment from "patients").
-  // patientId in request body/header, not URL (CUR-1064):
-  //   POST routes: patientId in JSON body
-  //   GET routes: patientId in X-Patient-Id header (not logged by CDN/proxy)
+  // Participant operations (CUR-1220 renamed path segment from "participants").
+  // participantId in request body/header, not URL (CUR-1064):
+  //   POST routes: participantId in JSON body
+  //   GET routes: participantId in X-Participant-Id header (not logged by CDN/proxy)
   router.post(
     '/api/v1/portal/participants/link-code',
     generateParticipantLinkingCodeHandler,
@@ -82,7 +82,7 @@ Router createRouter() {
 
   // Questionnaire management endpoints (Investigator role)
   // REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-  // GET: patientId in X-Patient-Id header; POST send: patientId + questionnaireType in body
+  // GET: participantId in X-Participant-Id header; POST send: participantId + questionnaireType in body
   router.get(
     '/api/v1/portal/participants/questionnaires',
     getQuestionnaireStatusHandler,
@@ -92,7 +92,7 @@ Router createRouter() {
     sendQuestionnaireHandler,
   );
 
-  // Questionnaire instance operations — instanceId (opaque UUID) in URL, patientId looked up server-side
+  // Questionnaire instance operations — instanceId (opaque UUID) in URL, participantId looked up server-side
   router.delete(
     '/api/v1/portal/questionnaire-instances/<instanceId>',
     deleteQuestionnaireHandler,

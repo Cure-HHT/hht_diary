@@ -1,22 +1,22 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p70007: Linking Code Lifecycle Management
-//   REQ-p70009: Link New Patient Workflow
+//   REQ-p70009: Link New Participant Workflow
 //   REQ-d00078: Linking Code Validation
 //   REQ-d00079: Linking Code Pattern Matching
-//   REQ-CAL-p00019: Link New Patient Workflow
+//   REQ-CAL-p00019: Link New Participant Workflow
 //   REQ-CAL-p00049: Mobile Linking Codes
-//   REQ-CAL-p00073: Patient Status Definitions
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00073: Participant Status Definitions
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00021: Patient Reconnection Workflow
+//   REQ-CAL-p00021: Participant Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
-//   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00064: Mark Participant as Not Participating
 //   REQ-CAL-p00079: Start Trial Workflow
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //   REQ-CAL-p00022: Analyst Read-Only Site-Scoped Access
 //
-// Patient linking code handlers - generate and manage linking codes
-// for patient mobile app linking
+// Participant linking code handlers - generate and manage linking codes
+// for participant mobile app linking
 
 import 'dart:convert';
 import 'dart:io';
@@ -43,23 +43,23 @@ const _linkingCodeChars = 'ABCDEFGHJKLMNPQRTUVWXY346789';
 String get sponsorLinkingPrefix =>
     Platform.environment['SPONSOR_LINKING_PREFIX'] ?? 'XX';
 
-/// CUR-1311 (Phase 1B.2/3): outcome of a patient-status push dispatch.
+/// CUR-1311 (Phase 1B.2/3): outcome of a participant-status push dispatch.
 /// Carries both ids so the action's audit row can record cross-table
 /// traceability — `fcm_message_id` for legacy compatibility,
 /// `notification_id` for the new envelope row when the flag is on.
 typedef _StatusPushResult = ({String? fcmMessageId, String? notificationId});
 
 /// CUR-1311 (Phase 1B.2/3): unified send path for the
-/// `patient_status_update` family of notifications. Branches on the
+/// `participant_status_update` family of notifications. Branches on the
 /// per-handler envelope flag — flag-OFF preserves S2 behaviour;
 /// flag-ON persists a row in `notifications` before FCM dispatch and
 /// returns the envelope id so the caller can surface it in
 /// `admin_action_log`.
 ///
 /// Caller responsibilities:
-///   * Resolve [fcmToken] from `patient_fcm_tokens` (this helper does
+///   * Resolve [fcmToken] from `participant_fcm_tokens` (this helper does
 ///     not look it up — letting the caller short-circuit when the
-///     patient has no active token).
+///     participant has no active token).
 ///   * Pick the per-handler [useEnvelope] flag (e.g.
 ///     `NotificationConfig.fromEnvironment().useEnvelopeDisconnect`).
 ///   * Pass [logPrefix] used for both the legacy log line and the
@@ -149,24 +149,24 @@ Future<_StatusPushResult> _dispatchParticipantStatusPush({
   return (fcmMessageId: result.messageId, notificationId: null);
 }
 
-/// Generate a patient linking code
+/// Generate a participant linking code
 /// POST /api/v1/portal/participants/link-code (participantId in body, CUR-1064)
 /// Authorization: Bearer <Identity Platform ID token>
-/// Body (optional): { "reconnect_reason": "..." } for reconnecting disconnected patients
+/// Body (optional): { "reconnect_reason": "..." } for reconnecting disconnected participants
 ///
-/// Generates a new linking code for the patient.
-/// - Requires Investigator role with site access to patient's site
-/// - Invalidates any existing unused codes for this patient
-/// - Updates patient status to 'linking_in_progress'
+/// Generates a new linking code for the participant.
+/// - Requires Investigator role with site access to participant's site
+/// - Invalidates any existing unused codes for this participant
+/// - Updates participant status to 'linking_in_progress'
 /// - Returns the code for display (shown only once)
-/// - If reconnect_reason is provided for a disconnected patient, logs RECONNECT_PATIENT action
+/// - If reconnect_reason is provided for a disconnected participant, logs RECONNECT_PARTICIPANT action
 ///
 /// Returns:
-///   200: { "code": "CAXXXX-XXXXX", "code_raw": "CAXXXXXXXX", "expires_at": "...", "patient_id": "..." }
+///   200: { "code": "CAXXXX-XXXXX", "code_raw": "CAXXXXXXXX", "expires_at": "...", "participant_id": "..." }
 ///   401: Missing or invalid authorization
 ///   403: Unauthorized (not Investigator role or wrong site)
-///   404: Patient not found
-///   409: Patient already connected
+///   404: Participant not found
+///   409: Participant already connected
 Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
@@ -177,7 +177,7 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
   // Check role - only Investigators can generate linking codes
   if (user.activeRole != 'Investigator') {
     return _jsonResponse({
-      'error': 'Only Investigators can generate patient linking codes',
+      'error': 'Only Investigators can generate participant linking codes',
     }, 403);
   }
 
@@ -192,14 +192,16 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
     return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
   }
 
-  final participantId = requestData['patientId'] as String?;
+  final participantId = requestData['participantId'] as String?;
   if (participantId == null || participantId.isEmpty) {
-    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+    return _jsonResponse({
+      'error': 'Missing participantId in request body',
+    }, 400);
   }
   final reconnectReason = requestData['reconnect_reason'] as String?;
 
   print(
-    '[PATIENT_LINKING] generateParticipantLinkingCodeHandler for: $participantId',
+    '[PARTICIPANT_LINKING] generateParticipantLinkingCodeHandler for: $participantId',
   );
 
   final db = Database.instance;
@@ -210,61 +212,63 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
       request.headers['x-forwarded-for']?.split(',').first.trim() ??
       request.headers['x-real-ip'];
 
-  // Fetch patient and verify site access
+  // Fetch participant and verify site access
   final participantResult = await db.executeWithContext(
     '''
-    SELECT p.patient_id, p.site_id, p.mobile_linking_status::text, s.site_name
-    FROM patients p
+    SELECT p.participant_id, p.site_id, p.mobile_linking_status::text, s.site_name
+    FROM participants p
     JOIN sites s ON p.site_id = s.site_id
-    WHERE p.patient_id = @patientId
+    WHERE p.participant_id = @participantId
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
   if (participantResult.isEmpty) {
-    print('[PATIENT_LINKING] Patient not found: $participantId');
-    return _jsonResponse({'error': 'Patient not found'}, 404);
+    print('[PARTICIPANT_LINKING] Participant not found: $participantId');
+    return _jsonResponse({'error': 'Participant not found'}, 404);
   }
 
   final participantSiteId = participantResult.first[1] as String;
   final currentStatus = participantResult.first[2] as String;
   final siteName = participantResult.first[3] as String;
 
-  // Verify Investigator has access to this patient's site
+  // Verify Investigator has access to this participant's site
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
   if (!userSiteIds.contains(participantSiteId)) {
     print(
-      '[PATIENT_LINKING] User ${user.id} has no access to site $participantSiteId',
+      '[PARTICIPANT_LINKING] User ${user.id} has no access to site $participantSiteId',
     );
     return _jsonResponse({
-      'error': 'You do not have access to patients at this site',
+      'error': 'You do not have access to participants at this site',
     }, 403);
   }
 
-  // Check patient status - cannot link if already connected
+  // Check participant status - cannot link if already connected
   if (currentStatus == 'connected') {
-    print('[PATIENT_LINKING] Patient $participantId is already connected');
+    print(
+      '[PARTICIPANT_LINKING] Participant $participantId is already connected',
+    );
     return _jsonResponse({
       'error':
-          'Patient is already connected. Use "New Code" to generate a replacement code.',
+          'Participant is already connected. Use "New Code" to generate a replacement code.',
     }, 409);
   }
 
-  // Invalidate any existing unused codes for this patient
+  // Invalidate any existing unused codes for this participant
   final revokeResult = await db.executeWithContext(
     '''
-    UPDATE patient_linking_codes
+    UPDATE participant_linking_codes
     SET revoked_at = now(),
         revoked_by = @userId::uuid,
         revoke_reason = 'Superseded by new code'
-    WHERE patient_id = @patientId
+    WHERE participant_id = @participantId
       AND used_at IS NULL
       AND revoked_at IS NULL
       AND expires_at > now()
     RETURNING id
     ''',
-    parameters: {'patientId': participantId, 'userId': user.id},
+    parameters: {'participantId': participantId, 'userId': user.id},
     context: serviceContext,
   );
 
@@ -283,9 +287,9 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
       ''',
       parameters: {
         'adminId': user.id,
-        'targetResource': 'patient:$participantId',
+        'targetResource': 'participant:$participantId',
         'actionDetails': jsonEncode({
-          'patient_id': participantId,
+          'participant_id': participantId,
           'revoked_code_count': revokeResult.length,
           'reason': 'Superseded by new code',
           'revoked_by_email': user.email,
@@ -304,21 +308,21 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
   final expiresAt = DateTime.now().toUtc().add(linkingCodeExpiration);
 
   print(
-    '[PATIENT_LINKING] Generated code for patient: $participantId, expires: $expiresAt',
+    '[PARTICIPANT_LINKING] Generated code for participant: $participantId, expires: $expiresAt',
   );
 
   // Store the code
   await db.executeWithContext(
     '''
-    INSERT INTO patient_linking_codes (
-      patient_id, code, code_hash, generated_by, expires_at, ip_address
+    INSERT INTO participant_linking_codes (
+      participant_id, code, code_hash, generated_by, expires_at, ip_address
     )
     VALUES (
-      @patientId, @code, @codeHash, @generatedBy::uuid, @expiresAt, @ipAddress::inet
+      @participantId, @code, @codeHash, @generatedBy::uuid, @expiresAt, @ipAddress::inet
     )
     ''',
     parameters: {
-      'patientId': participantId,
+      'participantId': participantId,
       'code': code,
       'codeHash': codeHash,
       'generatedBy': user.id,
@@ -328,44 +332,44 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
     context: serviceContext,
   );
 
-  // Update patient status to 'linking_in_progress'
+  // Update participant status to 'linking_in_progress'
   await db.executeWithContext(
     '''
-    UPDATE patients
+    UPDATE participants
     SET mobile_linking_status = 'linking_in_progress',
         updated_at = now()
-    WHERE patient_id = @patientId
+    WHERE participant_id = @participantId
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
-  // Determine if this is a reconnection (disconnected patient with reason provided)
+  // Determine if this is a reconnection (disconnected participant with reason provided)
   final isReconnection =
       currentStatus == 'disconnected' &&
       reconnectReason != null &&
       reconnectReason.isNotEmpty;
   final actionType = isReconnection
-      ? 'RECONNECT_PATIENT'
+      ? 'RECONNECT_PARTICIPANT'
       : 'GENERATE_LINKING_CODE';
   final justification = isReconnection
-      ? 'Patient reconnected to mobile app: $reconnectReason'
-      : 'Patient linking code generated for mobile app linking';
+      ? 'Participant reconnected to mobile app: $reconnectReason'
+      : 'Participant linking code generated for mobile app linking';
 
   // On reconnect, notify the device that a new linking code is available.
   // Only fires when isReconnection — initial GENERATE_LINKING_CODE is for
-  // patients who don't yet have the app installed.
+  // participants who don't yet have the app installed.
   String? fcmMessageId;
   String? notificationEnvelopeId;
   if (isReconnection) {
     final fcmTokenResult = await db.executeWithContext(
       '''
-      SELECT fcm_token FROM patient_fcm_tokens
-      WHERE patient_id = @patientId AND is_active = true
+      SELECT fcm_token FROM participant_fcm_tokens
+      WHERE participant_id = @participantId AND is_active = true
       ORDER BY updated_at DESC
       LIMIT 1
       ''',
-      parameters: {'patientId': participantId},
+      parameters: {'participantId': participantId},
       context: serviceContext,
     );
 
@@ -379,13 +383,13 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
             'Your study coordinator has issued a new linking code. Open the app to reconnect.',
         extraPayload: const {'new_status': 'linking_in_progress'},
         useEnvelope: NotificationConfig.fromEnvironment().useEnvelopeReconnect,
-        logPrefix: 'PATIENT_LINKING',
+        logPrefix: 'PARTICIPANT_LINKING',
       );
       fcmMessageId = pushResult.fcmMessageId;
       notificationEnvelopeId = pushResult.notificationId;
     } else {
       print(
-        '[PATIENT_LINKING] No active FCM token for $participantId; skipping reconnect push',
+        '[PARTICIPANT_LINKING] No active FCM token for $participantId; skipping reconnect push',
       );
     }
   }
@@ -405,9 +409,9 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
     parameters: {
       'adminId': user.id,
       'actionType': actionType,
-      'targetResource': 'patient:$participantId',
+      'targetResource': 'participant:$participantId',
       'actionDetails': jsonEncode({
-        'patient_id': participantId,
+        'participant_id': participantId,
         'site_id': participantSiteId,
         'site_name': siteName,
         'expires_at': expiresAt.toIso8601String(),
@@ -425,11 +429,13 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
     context: serviceContext,
   );
 
-  print('[PATIENT_LINKING] Code stored, status updated for: $participantId');
+  print(
+    '[PARTICIPANT_LINKING] Code stored, status updated for: $participantId',
+  );
 
   return _jsonResponse({
     'success': true,
-    'patient_id': participantId,
+    'participant_id': participantId,
     'site_name': siteName,
     'code': formatLinkingCodeForDisplay(code),
     'code_raw': code,
@@ -438,8 +444,8 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
   });
 }
 
-/// Get active linking code for patient (if any)
-/// GET /api/v1/portal/participants/link-code/active (X-Patient-Id header, CUR-1064)
+/// Get active linking code for participant (if any)
+/// GET /api/v1/portal/participants/link-code/active (X-Participant-Id header, CUR-1064)
 ///
 /// Returns the current active (unused, not expired, not revoked) linking code.
 /// Per REQ-p70007.J, the code should only be displayed once at generation,
@@ -450,7 +456,7 @@ Future<Response> generateParticipantLinkingCodeHandler(Request request) async {
 ///   200: { "has_active_code": false }
 ///   401: Missing or invalid authorization
 ///   403: Unauthorized
-///   404: Patient not found
+///   404: Participant not found
 Future<Response> getParticipantLinkingCodeHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
@@ -461,46 +467,46 @@ Future<Response> getParticipantLinkingCodeHandler(Request request) async {
   // Check role - only Investigators can view linking codes
   if (user.activeRole != 'Investigator') {
     return _jsonResponse({
-      'error': 'Only Investigators can view patient linking codes',
+      'error': 'Only Investigators can view participant linking codes',
     }, 403);
   }
 
-  // CUR-1064: participantId moved from URL path to X-Patient-Id header (GET request)
-  final participantId = request.headers['x-patient-id'];
+  // CUR-1064: participantId moved from URL path to X-Participant-Id header (GET request)
+  final participantId = request.headers['x-participant-id'];
   if (participantId == null || participantId.isEmpty) {
-    return _jsonResponse({'error': 'Missing X-Patient-Id header'}, 400);
+    return _jsonResponse({'error': 'Missing X-Participant-Id header'}, 400);
   }
 
   print(
-    '[PATIENT_LINKING] getParticipantLinkingCodeHandler for: $participantId',
+    '[PARTICIPANT_LINKING] getParticipantLinkingCodeHandler for: $participantId',
   );
 
   final db = Database.instance;
   const serviceContext = UserContext.service;
 
-  // Fetch patient and verify site access
+  // Fetch participant and verify site access
   final participantResult = await db.executeWithContext(
     '''
-    SELECT p.patient_id, p.site_id, p.mobile_linking_status::text
-    FROM patients p
-    WHERE p.patient_id = @patientId
+    SELECT p.participant_id, p.site_id, p.mobile_linking_status::text
+    FROM participants p
+    WHERE p.participant_id = @participantId
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
   if (participantResult.isEmpty) {
-    return _jsonResponse({'error': 'Patient not found'}, 404);
+    return _jsonResponse({'error': 'Participant not found'}, 404);
   }
 
   final participantSiteId = participantResult.first[1] as String;
   final currentStatus = participantResult.first[2] as String;
 
-  // Verify Investigator has access to this patient's site
+  // Verify Investigator has access to this participant's site
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
   if (!userSiteIds.contains(participantSiteId)) {
     return _jsonResponse({
-      'error': 'You do not have access to patients at this site',
+      'error': 'You do not have access to participants at this site',
     }, 403);
   }
 
@@ -508,32 +514,32 @@ Future<Response> getParticipantLinkingCodeHandler(Request request) async {
   final codeResult = await db.executeWithContext(
     '''
     SELECT code, expires_at, generated_at
-    FROM patient_linking_codes
-    WHERE patient_id = @patientId
+    FROM participant_linking_codes
+    WHERE participant_id = @participantId
       AND used_at IS NULL
       AND revoked_at IS NULL
       AND expires_at > now()
     ORDER BY generated_at DESC
     LIMIT 1
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
   if (codeResult.isEmpty) {
     // CUR-1069: Also return the most recently used code for Participant Linking Code
     // reference display (GUI-CAL-p00001-I). The plain code is stored in
-    // patient_linking_codes.code so it can be shown for reference/troubleshooting.
+    // participant_linking_codes.code so it can be shown for reference/troubleshooting.
     final usedCodeResult = await db.executeWithContext(
       '''
       SELECT code, used_at
-      FROM patient_linking_codes
-      WHERE patient_id = @patientId
+      FROM participant_linking_codes
+      WHERE participant_id = @participantId
         AND used_at IS NOT NULL
       ORDER BY used_at DESC
       LIMIT 1
       ''',
-      parameters: {'patientId': participantId},
+      parameters: {'participantId': participantId},
       context: serviceContext,
     );
 
@@ -542,7 +548,7 @@ Future<Response> getParticipantLinkingCodeHandler(Request request) async {
       final usedAt = usedCodeResult.first[1] as DateTime;
       return _jsonResponse({
         'has_active_code': false,
-        'patient_id': participantId,
+        'participant_id': participantId,
         'mobile_linking_status': currentStatus,
         'used_code': formatLinkingCodeForDisplay(usedCode),
         'used_at': usedAt.toIso8601String(),
@@ -551,7 +557,7 @@ Future<Response> getParticipantLinkingCodeHandler(Request request) async {
 
     return _jsonResponse({
       'has_active_code': false,
-      'patient_id': participantId,
+      'participant_id': participantId,
       'mobile_linking_status': currentStatus,
     });
   }
@@ -562,7 +568,7 @@ Future<Response> getParticipantLinkingCodeHandler(Request request) async {
 
   return _jsonResponse({
     'has_active_code': true,
-    'patient_id': participantId,
+    'participant_id': participantId,
     'mobile_linking_status': currentStatus,
     'code': formatLinkingCodeForDisplay(code),
     'code_raw': code,
@@ -571,7 +577,7 @@ Future<Response> getParticipantLinkingCodeHandler(Request request) async {
   });
 }
 
-/// Generate a patient linking code
+/// Generate a participant linking code
 /// Format: {SS}{XXXXXXXX} where SS is 2-char sponsor prefix (REQ-d00079.K)
 String generateParticipantLinkingCode(String sponsorPrefix) {
   final random = Random.secure();
@@ -599,26 +605,26 @@ String hashLinkingCode(String code) {
 /// Valid disconnect reasons per CUR-768 specification
 const validDisconnectReasons = ['Device Issues', 'Technical Issues', 'Other'];
 
-/// Disconnect a patient from the mobile app
+/// Disconnect a participant from the mobile app
 /// POST /api/v1/portal/participants/disconnect (participantId in body, CUR-1064)
 /// Authorization: Bearer <Identity Platform ID token>
 /// Body: { "reason": "Device Issues" | "Technical Issues" | "Other" }
 ///   When sponsor config disconnectReasonDropdown=false: reason may be any non-empty string.
 ///
-/// Disconnects a connected patient:
-/// - Requires Investigator role with site access to patient's site
-/// - Patient must be in 'connected' status
+/// Disconnects a connected participant:
+/// - Requires Investigator role with site access to participant's site
+/// - Participant must be in 'connected' status
 /// - Revokes all active linking codes
-/// - Updates patient status to 'disconnected'
+/// - Updates participant status to 'disconnected'
 /// - Logs action to admin_action_log
 ///
 /// Returns:
-///   200: { "success": true, "patient_id": "...", "previous_status": "connected", "new_status": "disconnected", ... }
+///   200: { "success": true, "participant_id": "...", "previous_status": "connected", "new_status": "disconnected", ... }
 ///   400: Invalid or missing reason value
 ///   401: Missing or invalid authorization
 ///   403: Unauthorized (not Investigator role or wrong site)
-///   404: Patient not found
-///   409: Patient is not in 'connected' status
+///   404: Participant not found
+///   409: Participant is not in 'connected' status
 Future<Response> disconnectParticipantHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
@@ -626,10 +632,10 @@ Future<Response> disconnectParticipantHandler(Request request) async {
     return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
   }
 
-  // Check role - only Investigators can disconnect patients
+  // Check role - only Investigators can disconnect participants
   if (user.activeRole != 'Investigator') {
     return _jsonResponse({
-      'error': 'Only Investigators can disconnect patients',
+      'error': 'Only Investigators can disconnect participants',
     }, 403);
   }
 
@@ -650,12 +656,16 @@ Future<Response> disconnectParticipantHandler(Request request) async {
     return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
   }
 
-  final participantId = requestData['patientId'] as String?;
+  final participantId = requestData['participantId'] as String?;
   if (participantId == null || participantId.isEmpty) {
-    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+    return _jsonResponse({
+      'error': 'Missing participantId in request body',
+    }, 400);
   }
 
-  print('[PATIENT_LINKING] disconnectParticipantHandler for: $participantId');
+  print(
+    '[PARTICIPANT_LINKING] disconnectParticipantHandler for: $participantId',
+  );
 
   // Validate reason field
   final reason = requestData['reason'] as String?;
@@ -681,97 +691,97 @@ Future<Response> disconnectParticipantHandler(Request request) async {
       request.headers['x-forwarded-for']?.split(',').first.trim() ??
       request.headers['x-real-ip'];
 
-  // Fetch patient and verify site access
+  // Fetch participant and verify site access
   final participantResult = await db.executeWithContext(
     '''
-    SELECT p.patient_id, p.site_id, p.mobile_linking_status::text, s.site_name
-    FROM patients p
+    SELECT p.participant_id, p.site_id, p.mobile_linking_status::text, s.site_name
+    FROM participants p
     JOIN sites s ON p.site_id = s.site_id
-    WHERE p.patient_id = @patientId
+    WHERE p.participant_id = @participantId
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
   if (participantResult.isEmpty) {
-    print('[PATIENT_LINKING] Patient not found: $participantId');
-    return _jsonResponse({'error': 'Patient not found'}, 404);
+    print('[PARTICIPANT_LINKING] Participant not found: $participantId');
+    return _jsonResponse({'error': 'Participant not found'}, 404);
   }
 
   final participantSiteId = participantResult.first[1] as String;
   final currentStatus = participantResult.first[2] as String;
   final siteName = participantResult.first[3] as String;
 
-  // Verify Investigator has access to this patient's site
+  // Verify Investigator has access to this participant's site
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
   if (!userSiteIds.contains(participantSiteId)) {
     print(
-      '[PATIENT_LINKING] User ${user.id} has no access to site $participantSiteId',
+      '[PARTICIPANT_LINKING] User ${user.id} has no access to site $participantSiteId',
     );
     return _jsonResponse({
-      'error': 'You do not have access to patients at this site',
+      'error': 'You do not have access to participants at this site',
     }, 403);
   }
 
-  // Check patient status - can only disconnect if connected
+  // Check participant status - can only disconnect if connected
   if (currentStatus != 'connected') {
     print(
-      '[PATIENT_LINKING] Patient $participantId is not connected (status: $currentStatus)',
+      '[PARTICIPANT_LINKING] Participant $participantId is not connected (status: $currentStatus)',
     );
     return _jsonResponse({
       'error':
-          'Patient is not in "connected" status. Current status: $currentStatus',
+          'Participant is not in "connected" status. Current status: $currentStatus',
     }, 409);
   }
 
-  // Revoke all active linking codes with reason "Patient disconnected"
+  // Revoke all active linking codes with reason "Participant disconnected"
   final revokeResult = await db.executeWithContext(
     '''
-    UPDATE patient_linking_codes
+    UPDATE participant_linking_codes
     SET revoked_at = now(),
         revoked_by = @userId::uuid,
         revoke_reason = @revokeReason
-    WHERE patient_id = @patientId
+    WHERE participant_id = @participantId
       AND used_at IS NULL
       AND revoked_at IS NULL
       AND expires_at > now()
     RETURNING id
     ''',
     parameters: {
-      'patientId': participantId,
+      'participantId': participantId,
       'userId': user.id,
-      'revokeReason': 'Patient disconnected: $reason',
+      'revokeReason': 'Participant disconnected: $reason',
     },
     context: serviceContext,
   );
 
   final codesRevoked = revokeResult.length;
   print(
-    '[PATIENT_LINKING] Revoked $codesRevoked active codes for: $participantId',
+    '[PARTICIPANT_LINKING] Revoked $codesRevoked active codes for: $participantId',
   );
 
-  // Update patient status to 'disconnected'
+  // Update participant status to 'disconnected'
   await db.executeWithContext(
     '''
-    UPDATE patients
+    UPDATE participants
     SET mobile_linking_status = 'disconnected',
         updated_at = now()
-    WHERE patient_id = @patientId
+    WHERE participant_id = @participantId
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
-  // Notify the patient device that the account has been disconnected.
+  // Notify the participant device that the account has been disconnected.
   // fcm_message_id is captured into the audit row below for traceability.
   final fcmTokenResult = await db.executeWithContext(
     '''
-    SELECT fcm_token FROM patient_fcm_tokens
-    WHERE patient_id = @patientId AND is_active = true
+    SELECT fcm_token FROM participant_fcm_tokens
+    WHERE participant_id = @participantId AND is_active = true
     ORDER BY updated_at DESC
     LIMIT 1
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
@@ -787,13 +797,13 @@ Future<Response> disconnectParticipantHandler(Request request) async {
           'Your study account has been disconnected. Please contact your study coordinator.',
       extraPayload: const {'new_status': 'disconnected'},
       useEnvelope: NotificationConfig.fromEnvironment().useEnvelopeDisconnect,
-      logPrefix: 'PATIENT_LINKING',
+      logPrefix: 'PARTICIPANT_LINKING',
     );
     fcmMessageId = pushResult.fcmMessageId;
     notificationEnvelopeId = pushResult.notificationId;
   } else {
     print(
-      '[PATIENT_LINKING] No active FCM token for $participantId; skipping disconnect push',
+      '[PARTICIPANT_LINKING] No active FCM token for $participantId; skipping disconnect push',
     );
   }
 
@@ -805,15 +815,15 @@ Future<Response> disconnectParticipantHandler(Request request) async {
       justification, requires_review, ip_address
     )
     VALUES (
-      @adminId, 'DISCONNECT_PATIENT', @targetResource,
+      @adminId, 'DISCONNECT_PARTICIPANT', @targetResource,
       @actionDetails::jsonb, @justification, false, @ipAddress::inet
     )
     ''',
     parameters: {
       'adminId': user.id,
-      'targetResource': 'patient:$participantId',
+      'targetResource': 'participant:$participantId',
       'actionDetails': jsonEncode({
-        'patient_id': participantId,
+        'participant_id': participantId,
         'site_id': participantSiteId,
         'site_name': siteName,
         'previous_status': currentStatus,
@@ -826,19 +836,19 @@ Future<Response> disconnectParticipantHandler(Request request) async {
         if (notificationEnvelopeId != null)
           'notification_id': notificationEnvelopeId,
       }),
-      'justification': 'Patient disconnected from mobile app: $reason',
+      'justification': 'Participant disconnected from mobile app: $reason',
       'ipAddress': clientIp,
     },
     context: serviceContext,
   );
 
   print(
-    '[PATIENT_LINKING] Patient disconnected successfully: $participantId, reason: $reason',
+    '[PARTICIPANT_LINKING] Participant disconnected successfully: $participantId, reason: $reason',
   );
 
   return _jsonResponse({
     'success': true,
-    'patient_id': participantId,
+    'participant_id': participantId,
     'previous_status': currentStatus,
     'new_status': 'disconnected',
     'codes_revoked': codesRevoked,
@@ -846,7 +856,7 @@ Future<Response> disconnectParticipantHandler(Request request) async {
   });
 }
 
-/// Valid reasons for marking patient as not participating per CUR-770 specification
+/// Valid reasons for marking participant as not participating per CUR-770 specification
 const validNotParticipatingReasons = [
   'Subject Withdrawal',
   'Death',
@@ -854,24 +864,24 @@ const validNotParticipatingReasons = [
   'Other',
 ];
 
-/// Mark a patient as not participating in the study
+/// Mark a participant as not participating in the study
 /// POST /api/v1/portal/participants/not-participating (participantId in body, CUR-1064)
 /// Authorization: Bearer <Identity Platform ID token>
 /// Body: { "reason": "Subject Withdrawal" | "Death" | "Protocol treatment/study complete" | "Other", "notes": "..." }
 ///
-/// Marks a disconnected patient as not participating:
-/// - Requires Investigator role with site access to patient's site
-/// - Patient must be in 'disconnected' status
-/// - Updates patient status to 'not_participating'
+/// Marks a disconnected participant as not participating:
+/// - Requires Investigator role with site access to participant's site
+/// - Participant must be in 'disconnected' status
+/// - Updates participant status to 'not_participating'
 /// - Logs action to admin_action_log
 ///
 /// Returns:
-///   200: { "success": true, "patient_id": "...", "previous_status": "disconnected", "new_status": "not_participating", ... }
+///   200: { "success": true, "participant_id": "...", "previous_status": "disconnected", "new_status": "not_participating", ... }
 ///   400: Invalid or missing reason value
 ///   401: Missing or invalid authorization
 ///   403: Unauthorized (not Investigator role or wrong site)
-///   404: Patient not found
-///   409: Patient is not in 'disconnected' status
+///   404: Participant not found
+///   409: Participant is not in 'disconnected' status
 Future<Response> markParticipantNotParticipatingHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
@@ -879,10 +889,10 @@ Future<Response> markParticipantNotParticipatingHandler(Request request) async {
     return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
   }
 
-  // Check role - only Investigators can mark patients as not participating
+  // Check role - only Investigators can mark participants as not participating
   if (user.activeRole != 'Investigator') {
     return _jsonResponse({
-      'error': 'Only Investigators can mark patients as not participating',
+      'error': 'Only Investigators can mark participants as not participating',
     }, 403);
   }
 
@@ -903,13 +913,15 @@ Future<Response> markParticipantNotParticipatingHandler(Request request) async {
     return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
   }
 
-  final participantId = requestData['patientId'] as String?;
+  final participantId = requestData['participantId'] as String?;
   if (participantId == null || participantId.isEmpty) {
-    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+    return _jsonResponse({
+      'error': 'Missing participantId in request body',
+    }, 400);
   }
 
   print(
-    '[PATIENT_LINKING] markParticipantNotParticipatingHandler for: $participantId',
+    '[PARTICIPANT_LINKING] markParticipantNotParticipatingHandler for: $participantId',
   );
 
   // Validate reason field
@@ -941,70 +953,70 @@ Future<Response> markParticipantNotParticipatingHandler(Request request) async {
       request.headers['x-forwarded-for']?.split(',').first.trim() ??
       request.headers['x-real-ip'];
 
-  // Fetch patient and verify site access
+  // Fetch participant and verify site access
   final participantResult = await db.executeWithContext(
     '''
-    SELECT p.patient_id, p.site_id, p.mobile_linking_status::text, s.site_name
-    FROM patients p
+    SELECT p.participant_id, p.site_id, p.mobile_linking_status::text, s.site_name
+    FROM participants p
     JOIN sites s ON p.site_id = s.site_id
-    WHERE p.patient_id = @patientId
+    WHERE p.participant_id = @participantId
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
   if (participantResult.isEmpty) {
-    print('[PATIENT_LINKING] Patient not found: $participantId');
-    return _jsonResponse({'error': 'Patient not found'}, 404);
+    print('[PARTICIPANT_LINKING] Participant not found: $participantId');
+    return _jsonResponse({'error': 'Participant not found'}, 404);
   }
 
   final participantSiteId = participantResult.first[1] as String;
   final currentStatus = participantResult.first[2] as String;
   final siteName = participantResult.first[3] as String;
 
-  // Verify Investigator has access to this patient's site
+  // Verify Investigator has access to this participant's site
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
   if (!userSiteIds.contains(participantSiteId)) {
     print(
-      '[PATIENT_LINKING] User ${user.id} has no access to site $participantSiteId',
+      '[PARTICIPANT_LINKING] User ${user.id} has no access to site $participantSiteId',
     );
     return _jsonResponse({
-      'error': 'You do not have access to patients at this site',
+      'error': 'You do not have access to participants at this site',
     }, 403);
   }
 
-  // Check patient status - can only mark as not participating if disconnected
+  // Check participant status - can only mark as not participating if disconnected
   if (currentStatus != 'disconnected') {
     print(
-      '[PATIENT_LINKING] Patient $participantId is not disconnected (status: $currentStatus)',
+      '[PARTICIPANT_LINKING] Participant $participantId is not disconnected (status: $currentStatus)',
     );
     return _jsonResponse({
       'error':
-          'Patient must be in "disconnected" status. Current status: $currentStatus',
+          'Participant must be in "disconnected" status. Current status: $currentStatus',
     }, 409);
   }
 
-  // Update patient status to 'not_participating'
+  // Update participant status to 'not_participating'
   await db.executeWithContext(
     '''
-    UPDATE patients
+    UPDATE participants
     SET mobile_linking_status = 'not_participating',
         updated_at = now()
-    WHERE patient_id = @patientId
+    WHERE participant_id = @participantId
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
-  // Notify the patient device that participation has ended.
+  // Notify the participant device that participation has ended.
   final fcmTokenResult = await db.executeWithContext(
     '''
-    SELECT fcm_token FROM patient_fcm_tokens
-    WHERE patient_id = @patientId AND is_active = true
+    SELECT fcm_token FROM participant_fcm_tokens
+    WHERE participant_id = @participantId AND is_active = true
     ORDER BY updated_at DESC
     LIMIT 1
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
@@ -1021,13 +1033,13 @@ Future<Response> markParticipantNotParticipatingHandler(Request request) async {
       extraPayload: const {'new_status': 'not_participating'},
       useEnvelope:
           NotificationConfig.fromEnvironment().useEnvelopeNotParticipating,
-      logPrefix: 'PATIENT_LINKING',
+      logPrefix: 'PARTICIPANT_LINKING',
     );
     fcmMessageId = pushResult.fcmMessageId;
     notificationEnvelopeId = pushResult.notificationId;
   } else {
     print(
-      '[PATIENT_LINKING] No active FCM token for $participantId; skipping not-participating push',
+      '[PARTICIPANT_LINKING] No active FCM token for $participantId; skipping not-participating push',
     );
   }
 
@@ -1045,9 +1057,9 @@ Future<Response> markParticipantNotParticipatingHandler(Request request) async {
     ''',
     parameters: {
       'adminId': user.id,
-      'targetResource': 'patient:$participantId',
+      'targetResource': 'participant:$participantId',
       'actionDetails': jsonEncode({
-        'patient_id': participantId,
+        'participant_id': participantId,
         'site_id': participantSiteId,
         'site_name': siteName,
         'previous_status': currentStatus,
@@ -1060,43 +1072,43 @@ Future<Response> markParticipantNotParticipatingHandler(Request request) async {
         if (notificationEnvelopeId != null)
           'notification_id': notificationEnvelopeId,
       }),
-      'justification': 'Patient marked as not participating: $reason',
+      'justification': 'Participant marked as not participating: $reason',
       'ipAddress': clientIp,
     },
     context: serviceContext,
   );
 
   print(
-    '[PATIENT_LINKING] Patient marked as not participating: $participantId, reason: $reason',
+    '[PARTICIPANT_LINKING] Participant marked as not participating: $participantId, reason: $reason',
   );
 
   return _jsonResponse({
     'success': true,
-    'patient_id': participantId,
+    'participant_id': participantId,
     'previous_status': currentStatus,
     'new_status': 'not_participating',
     'reason': reason,
   });
 }
 
-/// Reactivate a patient who was marked as not participating
+/// Reactivate a participant who was marked as not participating
 /// POST /api/v1/portal/participants/reactivate (participantId in body, CUR-1064)
 /// Authorization: Bearer <Identity Platform ID token>
 /// Body: { "reason": "..." }
 ///
-/// Reactivates a patient who was marked as not participating:
-/// - Requires Investigator role with site access to patient's site
-/// - Patient must be in 'not_participating' status
-/// - Updates patient status to 'disconnected' (requires reconnection)
+/// Reactivates a participant who was marked as not participating:
+/// - Requires Investigator role with site access to participant's site
+/// - Participant must be in 'not_participating' status
+/// - Updates participant status to 'disconnected' (requires reconnection)
 /// - Logs action to admin_action_log
 ///
 /// Returns:
-///   200: { "success": true, "patient_id": "...", "previous_status": "not_participating", "new_status": "disconnected", ... }
+///   200: { "success": true, "participant_id": "...", "previous_status": "not_participating", "new_status": "disconnected", ... }
 ///   400: Invalid or missing reason value
 ///   401: Missing or invalid authorization
 ///   403: Unauthorized (not Investigator role or wrong site)
-///   404: Patient not found
-///   409: Patient is not in 'not_participating' status
+///   404: Participant not found
+///   409: Participant is not in 'not_participating' status
 Future<Response> reactivateParticipantHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
@@ -1104,10 +1116,10 @@ Future<Response> reactivateParticipantHandler(Request request) async {
     return _jsonResponse({'error': 'Missing or invalid authorization'}, 401);
   }
 
-  // Check role - only Investigators can reactivate patients
+  // Check role - only Investigators can reactivate participants
   if (user.activeRole != 'Investigator') {
     return _jsonResponse({
-      'error': 'Only Investigators can reactivate patients',
+      'error': 'Only Investigators can reactivate participants',
     }, 403);
   }
 
@@ -1128,12 +1140,16 @@ Future<Response> reactivateParticipantHandler(Request request) async {
     return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
   }
 
-  final participantId = requestData['patientId'] as String?;
+  final participantId = requestData['participantId'] as String?;
   if (participantId == null || participantId.isEmpty) {
-    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+    return _jsonResponse({
+      'error': 'Missing participantId in request body',
+    }, 400);
   }
 
-  print('[PATIENT_LINKING] reactivateParticipantHandler for: $participantId');
+  print(
+    '[PARTICIPANT_LINKING] reactivateParticipantHandler for: $participantId',
+  );
 
   // Validate reason field
   final reason = requestData['reason'] as String?;
@@ -1149,70 +1165,70 @@ Future<Response> reactivateParticipantHandler(Request request) async {
       request.headers['x-forwarded-for']?.split(',').first.trim() ??
       request.headers['x-real-ip'];
 
-  // Fetch patient and verify site access
+  // Fetch participant and verify site access
   final participantResult = await db.executeWithContext(
     '''
-    SELECT p.patient_id, p.site_id, p.mobile_linking_status::text, s.site_name
-    FROM patients p
+    SELECT p.participant_id, p.site_id, p.mobile_linking_status::text, s.site_name
+    FROM participants p
     JOIN sites s ON p.site_id = s.site_id
-    WHERE p.patient_id = @patientId
+    WHERE p.participant_id = @participantId
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
   if (participantResult.isEmpty) {
-    print('[PATIENT_LINKING] Patient not found: $participantId');
-    return _jsonResponse({'error': 'Patient not found'}, 404);
+    print('[PARTICIPANT_LINKING] Participant not found: $participantId');
+    return _jsonResponse({'error': 'Participant not found'}, 404);
   }
 
   final participantSiteId = participantResult.first[1] as String;
   final currentStatus = participantResult.first[2] as String;
   final siteName = participantResult.first[3] as String;
 
-  // Verify Investigator has access to this patient's site
+  // Verify Investigator has access to this participant's site
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
   if (!userSiteIds.contains(participantSiteId)) {
     print(
-      '[PATIENT_LINKING] User ${user.id} has no access to site $participantSiteId',
+      '[PARTICIPANT_LINKING] User ${user.id} has no access to site $participantSiteId',
     );
     return _jsonResponse({
-      'error': 'You do not have access to patients at this site',
+      'error': 'You do not have access to participants at this site',
     }, 403);
   }
 
-  // Check patient status - can only reactivate if not_participating
+  // Check participant status - can only reactivate if not_participating
   if (currentStatus != 'not_participating') {
     print(
-      '[PATIENT_LINKING] Patient $participantId is not "not_participating" (status: $currentStatus)',
+      '[PARTICIPANT_LINKING] Participant $participantId is not "not_participating" (status: $currentStatus)',
     );
     return _jsonResponse({
       'error':
-          'Patient must be in "not_participating" status. Current status: $currentStatus',
+          'Participant must be in "not_participating" status. Current status: $currentStatus',
     }, 409);
   }
 
-  // Update patient status to 'disconnected' (they will need to reconnect)
+  // Update participant status to 'disconnected' (they will need to reconnect)
   await db.executeWithContext(
     '''
-    UPDATE patients
+    UPDATE participants
     SET mobile_linking_status = 'disconnected',
         updated_at = now()
-    WHERE patient_id = @patientId
+    WHERE participant_id = @participantId
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
-  // Notify the patient device that their account is reactivated.
+  // Notify the participant device that their account is reactivated.
   final fcmTokenResult = await db.executeWithContext(
     '''
-    SELECT fcm_token FROM patient_fcm_tokens
-    WHERE patient_id = @patientId AND is_active = true
+    SELECT fcm_token FROM participant_fcm_tokens
+    WHERE participant_id = @participantId AND is_active = true
     ORDER BY updated_at DESC
     LIMIT 1
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
@@ -1228,13 +1244,13 @@ Future<Response> reactivateParticipantHandler(Request request) async {
           'Your study account has been reactivated. Please contact your study coordinator to reconnect.',
       extraPayload: const {'new_status': 'disconnected'},
       useEnvelope: NotificationConfig.fromEnvironment().useEnvelopeReactivate,
-      logPrefix: 'PATIENT_LINKING',
+      logPrefix: 'PARTICIPANT_LINKING',
     );
     fcmMessageId = pushResult.fcmMessageId;
     notificationEnvelopeId = pushResult.notificationId;
   } else {
     print(
-      '[PATIENT_LINKING] No active FCM token for $participantId; skipping reactivate push',
+      '[PARTICIPANT_LINKING] No active FCM token for $participantId; skipping reactivate push',
     );
   }
 
@@ -1246,15 +1262,15 @@ Future<Response> reactivateParticipantHandler(Request request) async {
       justification, requires_review, ip_address
     )
     VALUES (
-      @adminId, 'REACTIVATE_PATIENT', @targetResource,
+      @adminId, 'REACTIVATE_PARTICIPANT', @targetResource,
       @actionDetails::jsonb, @justification, false, @ipAddress::inet
     )
     ''',
     parameters: {
       'adminId': user.id,
-      'targetResource': 'patient:$participantId',
+      'targetResource': 'participant:$participantId',
       'actionDetails': jsonEncode({
-        'patient_id': participantId,
+        'participant_id': participantId,
         'site_id': participantSiteId,
         'site_name': siteName,
         'previous_status': currentStatus,
@@ -1266,42 +1282,42 @@ Future<Response> reactivateParticipantHandler(Request request) async {
         if (notificationEnvelopeId != null)
           'notification_id': notificationEnvelopeId,
       }),
-      'justification': 'Patient reactivated: $reason',
+      'justification': 'Participant reactivated: $reason',
       'ipAddress': clientIp,
     },
     context: serviceContext,
   );
 
   print(
-    '[PATIENT_LINKING] Patient reactivated: $participantId, reason: $reason',
+    '[PARTICIPANT_LINKING] Participant reactivated: $participantId, reason: $reason',
   );
 
   return _jsonResponse({
     'success': true,
-    'patient_id': participantId,
+    'participant_id': participantId,
     'previous_status': currentStatus,
     'new_status': 'disconnected',
     'reason': reason,
   });
 }
 
-/// Start trial for a patient
+/// Start trial for a participant
 /// POST /api/v1/portal/participants/start-trial (participantId in body, CUR-1064)
 /// Authorization: Bearer <Identity Platform ID token>
 /// Body: {} (empty body)
 ///
-/// Starts the trial for a connected patient who hasn't started yet:
-/// - Requires Investigator role with site access to patient's site
-/// - Patient must be in 'connected' status with trial_started = false
-/// - Updates patient: trial_started = true, trial_started_at, trial_started_by
+/// Starts the trial for a connected participant who hasn't started yet:
+/// - Requires Investigator role with site access to participant's site
+/// - Participant must be in 'connected' status with trial_started = false
+/// - Updates participant: trial_started = true, trial_started_at, trial_started_by
 /// - Logs action to admin_action_log with START_TRIAL
 ///
 /// Returns:
-///   200: { "success": true, "patient_id": "...", "trial_started": true, ... }
+///   200: { "success": true, "participant_id": "...", "trial_started": true, ... }
 ///   401: Missing or invalid authorization
 ///   403: Unauthorized (not Investigator role or wrong site)
-///   404: Patient not found
-///   409: Patient is not in 'connected' status OR trial already started
+///   404: Participant not found
+///   409: Participant is not in 'connected' status OR trial already started
 Future<Response> startTrialHandler(Request request) async {
   // Authenticate and get user
   final user = await requirePortalAuth(request);
@@ -1312,7 +1328,7 @@ Future<Response> startTrialHandler(Request request) async {
   // Check role - only Investigators can start trial
   if (user.activeRole != 'Investigator') {
     return _jsonResponse({
-      'error': 'Only Investigators can start trial for patients',
+      'error': 'Only Investigators can start trial for participants',
     }, 403);
   }
 
@@ -1323,15 +1339,17 @@ Future<Response> startTrialHandler(Request request) async {
     final bodyJson = bodyStr.isNotEmpty
         ? jsonDecode(bodyStr) as Map<String, dynamic>
         : <String, dynamic>{};
-    participantId = bodyJson['patientId'] as String?;
+    participantId = bodyJson['participantId'] as String?;
   } catch (_) {
     return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
   }
   if (participantId == null || participantId.isEmpty) {
-    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+    return _jsonResponse({
+      'error': 'Missing participantId in request body',
+    }, 400);
   }
 
-  print('[PATIENT_LINKING] startTrialHandler for: $participantId');
+  print('[PARTICIPANT_LINKING] startTrialHandler for: $participantId');
 
   final db = Database.instance;
   const serviceContext = UserContext.service;
@@ -1341,22 +1359,22 @@ Future<Response> startTrialHandler(Request request) async {
       request.headers['x-forwarded-for']?.split(',').first.trim() ??
       request.headers['x-real-ip'];
 
-  // Fetch patient and verify site access
+  // Fetch participant and verify site access
   final participantResult = await db.executeWithContext(
     '''
-    SELECT p.patient_id, p.site_id, p.mobile_linking_status::text,
+    SELECT p.participant_id, p.site_id, p.mobile_linking_status::text,
            p.trial_started, s.site_name
-    FROM patients p
+    FROM participants p
     JOIN sites s ON p.site_id = s.site_id
-    WHERE p.patient_id = @patientId
+    WHERE p.participant_id = @participantId
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
   if (participantResult.isEmpty) {
-    print('[PATIENT_LINKING] Patient not found: $participantId');
-    return _jsonResponse({'error': 'Patient not found'}, 404);
+    print('[PARTICIPANT_LINKING] Participant not found: $participantId');
+    return _jsonResponse({'error': 'Participant not found'}, 404);
   }
 
   final participantSiteId = participantResult.first[1] as String;
@@ -1364,73 +1382,73 @@ Future<Response> startTrialHandler(Request request) async {
   final trialStarted = participantResult.first[3] as bool;
   final siteName = participantResult.first[4] as String;
 
-  // Verify Investigator has access to this patient's site
+  // Verify Investigator has access to this participant's site
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
   if (!userSiteIds.contains(participantSiteId)) {
     print(
-      '[PATIENT_LINKING] User ${user.id} has no access to site $participantSiteId',
+      '[PARTICIPANT_LINKING] User ${user.id} has no access to site $participantSiteId',
     );
     return _jsonResponse({
-      'error': 'You do not have access to patients at this site',
+      'error': 'You do not have access to participants at this site',
     }, 403);
   }
 
-  // Check patient status - must be connected to start trial
+  // Check participant status - must be connected to start trial
   if (currentStatus != 'connected') {
     print(
-      '[PATIENT_LINKING] Patient $participantId is not connected (status: $currentStatus)',
+      '[PARTICIPANT_LINKING] Participant $participantId is not connected (status: $currentStatus)',
     );
     return _jsonResponse({
       'error':
-          'Patient must be in "connected" status to start trial. Current status: $currentStatus',
+          'Participant must be in "connected" status to start trial. Current status: $currentStatus',
     }, 409);
   }
 
   // Check if trial already started
   if (trialStarted) {
     print(
-      '[PATIENT_LINKING] Trial already started for patient: $participantId',
+      '[PARTICIPANT_LINKING] Trial already started for participant: $participantId',
     );
     return _jsonResponse({
-      'error': 'Trial has already been started for this patient',
+      'error': 'Trial has already been started for this participant',
     }, 409);
   }
 
   final now = DateTime.now().toUtc();
 
-  // Update patient: trial_started = true
+  // Update participant: trial_started = true
   await db.executeWithContext(
     '''
-    UPDATE patients
+    UPDATE participants
     SET trial_started = true,
         trial_started_at = @trialStartedAt,
         trial_started_by = @trialStartedBy,
         updated_at = now()
-    WHERE patient_id = @patientId
+    WHERE participant_id = @participantId
     ''',
     parameters: {
-      'patientId': participantId,
+      'participantId': participantId,
       'trialStartedAt': now.toIso8601String(),
       'trialStartedBy': user.id,
     },
     context: serviceContext,
   );
 
-  // Send FCM notification to patient's device to inform trial has started.
-  // Use the patient_status_update channel (not questionnaire) so the mobile
-  // app can sub-route on action='start_trial'. No patient identifier is
-  // included in the FCM payload — the device already knows which patient
+  // Send FCM notification to participant's device to inform trial has started.
+  // Use the participant_status_update channel (not questionnaire) so the mobile
+  // app can sub-route on action='start_trial'. No participant identifier is
+  // included in the FCM payload — the device already knows which participant
   // it belongs to.
   String? fcmMessageId;
   String? notificationEnvelopeId;
   final fcmTokenResult = await db.executeWithContext(
     '''
-    SELECT fcm_token FROM patient_fcm_tokens
-    WHERE patient_id = @patientId AND is_active = true
+    SELECT fcm_token FROM participant_fcm_tokens
+    WHERE participant_id = @participantId AND is_active = true
     ORDER BY updated_at DESC
     LIMIT 1
     ''',
-    parameters: {'patientId': participantId},
+    parameters: {'participantId': participantId},
     context: serviceContext,
   );
 
@@ -1443,14 +1461,14 @@ Future<Response> startTrialHandler(Request request) async {
       body: 'Your study has started. Open the app to begin.',
       extraPayload: {'trial_started_at': now.toIso8601String()},
       useEnvelope: NotificationConfig.fromEnvironment().useEnvelopeStartTrial,
-      logPrefix: 'PATIENT_LINKING',
+      logPrefix: 'PARTICIPANT_LINKING',
     );
     fcmMessageId = pushResult.fcmMessageId;
     notificationEnvelopeId = pushResult.notificationId;
   } else {
     print(
-      '[PATIENT_LINKING] No FCM token found for patient $participantId. '
-      'Patient will discover trial start via sync.',
+      '[PARTICIPANT_LINKING] No FCM token found for participant $participantId. '
+      'Participant will discover trial start via sync.',
     );
   }
 
@@ -1468,9 +1486,9 @@ Future<Response> startTrialHandler(Request request) async {
     ''',
     parameters: {
       'adminId': user.id,
-      'targetResource': 'patient:$participantId',
+      'targetResource': 'participant:$participantId',
       'actionDetails': jsonEncode({
-        'patient_id': participantId,
+        'participant_id': participantId,
         'site_id': participantSiteId,
         'site_name': siteName,
         'trial_started_at': now.toIso8601String(),
@@ -1480,19 +1498,19 @@ Future<Response> startTrialHandler(Request request) async {
         if (notificationEnvelopeId != null)
           'notification_id': notificationEnvelopeId,
       }),
-      'justification': 'Trial started for patient',
+      'justification': 'Trial started for participant',
       'ipAddress': clientIp,
     },
     context: serviceContext,
   );
 
   print(
-    '[PATIENT_LINKING] Trial started successfully for patient: $participantId',
+    '[PARTICIPANT_LINKING] Trial started successfully for participant: $participantId',
   );
 
   return _jsonResponse({
     'success': true,
-    'patient_id': participantId,
+    'participant_id': participantId,
     'site_id': participantSiteId,
     'site_name': siteName,
     'trial_started': true,

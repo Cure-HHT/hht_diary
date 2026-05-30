@@ -7,7 +7,7 @@
 //   REQ-p01066-B: Capture nosebleed end time as an optional field
 //   REQ-p01066-H: Validate that end time is after start time
 //   REQ-p01066-K: Prevent entry of nosebleed records for future dates or times
-//   REQ-p01066-L: Store timestamps with patient's wall-clock time and timezone offset
+//   REQ-p01066-L: Store timestamps with participant's wall-clock time and timezone offset
 //   REQ-p01069-A: Provide an intuitive time picker for start and end times
 //   REQ-p01069-E: Support editing of records regardless of completion state
 
@@ -541,7 +541,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // after timezone conversion (e.g., a displayed time in a timezone behind the
   // device that converts to a future UTC moment).
   // Implements: REQ-p01066-L — convert displayed (wall-clock) time to stored
-  // UTC-equivalent using the patient's selected timezone.
+  // UTC-equivalent using the participant's selected timezone.
   void _handleStartTimeConfirm(DateTime displayedTime) {
     // Convert displayed time to stored DateTime using selected timezone
     final storedStartTime = TimezoneConverter.toStoredDateTime(
@@ -586,7 +586,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // Implements: REQ-p01066-H — validate end time is after start time.
   // Implements: REQ-p01066-K — reject end times that resolve to the future.
   // Implements: REQ-p01066-L — convert wall-clock display time to stored
-  // representation using the patient's selected timezone.
+  // representation using the participant's selected timezone.
   Future<void> _handleEndTimeConfirm(DateTime displayedTime) async {
     // CUR-583: Convert displayed time to stored DateTime using selected timezone
     final storedEndTime = TimezoneConverter.toStoredDateTime(

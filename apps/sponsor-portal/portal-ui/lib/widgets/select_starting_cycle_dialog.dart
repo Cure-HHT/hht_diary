@@ -2,7 +2,7 @@
 //   REQ-CAL-p00080: Questionnaire Study Event Association (Assertion H)
 //
 // Dialog for selecting the starting cycle number when sending the first
-// questionnaire of a type to a patient. Supports patients transitioning
+// questionnaire of a type to a participant. Supports participants transitioning
 // from paper records who may need to start at a cycle > 1.
 
 import 'package:flutter/material.dart';
@@ -13,7 +13,7 @@ import 'portal_dropdown.dart';
 
 /// Dialog that prompts the Study Coordinator to select a starting cycle.
 ///
-/// Shown on the first send of each questionnaire type per patient (or after
+/// Shown on the first send of each questionnaire type per participant (or after
 /// all previous sends were deleted). Returns the selected cycle number or
 /// null if cancelled.
 class SelectStartingCycleDialog extends StatefulWidget {

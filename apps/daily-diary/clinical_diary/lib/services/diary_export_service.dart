@@ -167,7 +167,7 @@ class DiaryExportService {
       } catch (_) {
         // Per-event errors are absorbed: a single corrupt row should not
         // abort the rest of the import. The caller surfaces the count via
-        // [DiaryImportResult.skipped] so the patient can see something
+        // [DiaryImportResult.skipped] so the participant can see something
         // was missed.
         skipped++;
       }

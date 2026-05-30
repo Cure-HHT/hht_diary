@@ -26,7 +26,7 @@ const _inboundPollInitiator = AutomationInitiator(service: 'inbound-poll');
 /// and outbound FIFO destinations are separate library concepts.
 ///
 /// The base URL is supplied lazily through [resolveBaseUrl]. Returning
-/// `null` (e.g. before the patient has linked) makes the function return
+/// `null` (e.g. before the participant has linked) makes the function return
 /// silently without making an HTTP call; the next sync cycle will retry
 /// once the backend URL is available.
 ///
@@ -77,7 +77,7 @@ Future<void> portalInboundPoll({
   Future<String?> Function()? authToken,
   // CUR-1292: invoked once per applied survey-tombstone so callers
   // (e.g. clinical_diary's TaskService) can surface a "questionnaire
-  // cancelled" notification to the patient. Receives the entry's
+  // cancelled" notification to the participant. Receives the entry's
   // aggregate id and entry_type ('nose_hht_survey', 'qol_survey'…);
   // mapping to a display name is the caller's responsibility.
   void Function(String aggregateId, String entryType)? onSurveyTombstoned,
@@ -85,7 +85,7 @@ Future<void> portalInboundPoll({
   try {
     final baseUrl = await resolveBaseUrl();
     if (baseUrl == null) {
-      // Silent-skip: the patient has not linked yet. The destination
+      // Silent-skip: the participant has not linked yet. The destination
       // FIFO retains anything queued for the server, and the next sync
       // cycle will retry the poll once enrollment populates the URL.
       // Recording this as an audit event would create one row per
@@ -109,7 +109,7 @@ Future<void> portalInboundPoll({
       // Silent-skip: 4xx/5xx is observed by the diary server itself
       // (it has otel_common middleware on every request handler). The
       // mobile side does not need to mirror server-side telemetry; a
-      // patient device that sees 401/403/5xx will retry on the next
+      // participant device that sees 401/403/5xx will retry on the next
       // tick once the server-side issue is resolved.
       return;
     }
@@ -119,7 +119,7 @@ Future<void> portalInboundPoll({
       decoded = jsonDecode(response.body);
     } on FormatException {
       // Silent-skip: a 200 with non-JSON body is a server-side contract
-      // regression that affects every patient identically. The diary
+      // regression that affects every participant identically. The diary
       // server's OTel pipeline already covers detection upstream; there
       // is nothing per-device to record.
       return;
@@ -175,7 +175,7 @@ Future<void> portalInboundPoll({
         // mobile UI can surface a passive "questionnaire cancelled"
         // notification on the next render. Other entry types
         // (epistaxis_event, no_epistaxis_event, …) don't need this —
-        // the patient initiated those locally; they're not surprised
+        // the participant initiated those locally; they're not surprised
         // when they disappear.
         if (entryType.endsWith('_survey')) {
           onSurveyTombstoned?.call(entryId, entryType);
@@ -185,7 +185,7 @@ Future<void> portalInboundPoll({
         // refused this tombstone (e.g. the entry_type is not registered
         // in this build, schema validation rejected it, or storage
         // raised). Record the failure as an audit event so the gap is
-        // visible to the data team across the patient population, then
+        // visible to the data team across the participant population, then
         // continue with the rest of the batch. The next sync cycle
         // retries the original instruction; if the underlying cause is
         // resolved (e.g. mobile is upgraded), the retry succeeds and

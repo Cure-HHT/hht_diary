@@ -9,16 +9,16 @@
 ///
 /// Delete is allowed at any status before finalization (REQ-CAL-p00023-F/I).
 enum QuestionnaireStatus {
-  /// Questionnaire has not been sent to the patient yet
+  /// Questionnaire has not been sent to the participant yet
   notSent('not_sent', 'Not Sent'),
 
-  /// Questionnaire has been sent; patient has received notification
+  /// Questionnaire has been sent; participant has received notification
   sent('sent', 'Sent'),
 
-  /// Patient has opened the questionnaire and started answering
+  /// Participant has opened the questionnaire and started answering
   inProgress('in_progress', 'In Progress'),
 
-  /// Patient has submitted all answers; awaiting investigator review
+  /// Participant has submitted all answers; awaiting investigator review
   readyToReview('ready_to_review', 'Ready to Review'),
 
   /// Investigator has finalized; questionnaire is read-only
@@ -44,7 +44,7 @@ enum QuestionnaireStatus {
   /// Per REQ-CAL-p00023-I: deletion is NOT allowed after finalization.
   bool get canDelete => this != QuestionnaireStatus.finalized;
 
-  /// Whether the patient can edit responses at this status.
+  /// Whether the participant can edit responses at this status.
   /// Per REQ-CAL-p00023-M: editable until finalized.
   bool get canEdit =>
       this == QuestionnaireStatus.sent ||

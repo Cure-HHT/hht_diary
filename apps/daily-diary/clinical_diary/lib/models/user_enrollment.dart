@@ -2,9 +2,9 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-CAL-p00049: Mobile Linking Codes
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00065: Reactivate Patient
+//   REQ-CAL-p00065: Reactivate Participant
 
 import 'package:clinical_diary/config/sponsor_registry.dart';
 
@@ -32,11 +32,11 @@ class UserEnrollment {
       enrolledAt: DateTime.parse(json['enrolledAt'] as String),
       sponsorId: json['sponsorId'] as String?,
       backendUrl: json['backendUrl'] as String?,
-      participantId: json['patientId'] as String?,
+      participantId: json['participantId'] as String?,
       siteId: json['siteId'] as String?,
       siteName: json['siteName'] as String?,
       sitePhoneNumber: json['sitePhoneNumber'] as String?,
-      studyParticipantId: json['studyPatientId'] as String?,
+      studyParticipantId: json['studyParticipantId'] as String?,
       linkingCode: json['linkingCode'] as String?,
     );
   }
@@ -84,11 +84,11 @@ class UserEnrollment {
       'enrolledAt': enrolledAt.toIso8601String(),
       if (sponsorId != null) 'sponsorId': sponsorId,
       if (backendUrl != null) 'backendUrl': backendUrl,
-      if (participantId != null) 'patientId': participantId,
+      if (participantId != null) 'participantId': participantId,
       if (siteId != null) 'siteId': siteId,
       if (siteName != null) 'siteName': siteName,
       if (sitePhoneNumber != null) 'sitePhoneNumber': sitePhoneNumber,
-      if (studyParticipantId != null) 'studyPatientId': studyParticipantId,
+      if (studyParticipantId != null) 'studyParticipantId': studyParticipantId,
       if (linkingCode != null) 'linkingCode': linkingCode,
     };
   }

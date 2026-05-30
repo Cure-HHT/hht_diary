@@ -1,9 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00064: Mark Participant as Not Participating
 //   REQ-CAL-p00072: View Linking Code Button
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //
-// Widget tests for ParticipantActionsDialog rendering based on patient status.
+// Widget tests for ParticipantActionsDialog rendering based on participant status.
 
 import 'dart:convert';
 
@@ -92,7 +92,7 @@ Future<void> _pumpDialog(
 
 void main() {
   group('ParticipantActionsDialog', () {
-    testWidgets('shows title and patient ID', (tester) async {
+    testWidgets('shows title and participant ID', (tester) async {
       final apiClient = await _createMockApiClient();
 
       await _pumpDialog(tester, apiClient, 'disconnected');
@@ -159,8 +159,8 @@ void main() {
       },
     );
 
-    // REQ-CAL-p00072: View Linking Code for any patient with a valid code
-    // REQ-CAL-p00073 Assertion C: Show Linking Code for connected patients
+    // REQ-CAL-p00072: View Linking Code for any participant with a valid code
+    // REQ-CAL-p00073 Assertion C: Show Linking Code for connected participants
     // CUR-1069: connected now shows "Show Participant Linking Code" (reference)
     testWidgets('connected status shows Show Participant Linking Code action', (
       tester,

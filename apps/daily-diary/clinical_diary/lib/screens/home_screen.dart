@@ -1,10 +1,10 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00076: Participation Status Badge
 //   REQ-CAL-p00080: Questionnaire Study Event Association (cycle label stamp)
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-p01065:    Clinical Questionnaire System (D: deactivate sync; not-participating reset)
 
 import 'dart:async';
@@ -108,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Subset of [_entries] that are checkpointed but not finalized.
   List<DiaryEntry> _incompleteEntries = [];
 
-  /// CUR-1292: aggregate ids of questionnaires the patient has started
+  /// CUR-1292: aggregate ids of questionnaires the participant has started
   /// but not yet submitted, surfaced to [TaskListWidget] so the
   /// matching task card renders an "In progress" pill.
   Set<String> _wipQuestionnaireAggregateIds = const <String>{};
@@ -133,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _sitePhoneNumber;
 
   // CUR-1343 / REQ-p70011/F: Fine-grained mobile linking status, used to
-  // distinguish a fully disconnected patient from one with a freshly issued
+  // distinguish a fully disconnected participant from one with a freshly issued
   // linking code waiting to be entered.
   MobileLinkingStatus _linkingStatus = MobileLinkingStatus.connected;
 
@@ -161,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
     // CUR-1311: React when a `mark_not_participating` / `reactivate` FCM
     // (or any background sync) flips not-participating state, so feature
-    // flags reset without the patient having to navigate to profile.
+    // flags reset without the participant having to navigate to profile.
     widget.enrollmentService.notParticipatingNotifier.addListener(
       _onNotParticipatingChanged,
     );
@@ -243,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// REQ-CAL-p00077: Check if patient is disconnected from the study.
+  /// REQ-CAL-p00077: Check if participant is disconnected from the study.
   /// Seeds [_isDisconnected] from SharedPreferences and syncs the notifier
   /// so the initial persisted state is reflected in the banner on startup.
   Future<void> _checkDisconnectionStatus() async {
@@ -270,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final isDisconnected = widget.enrollmentService.disconnectedNotifier.value;
     setState(() => _isDisconnected = isDisconnected);
     if (isDisconnected) {
-      // Clear cached tasks — disconnected patients have no valid questionnaires
+      // Clear cached tasks — disconnected participants have no valid questionnaires
       unawaited(widget.taskService.clearAll());
       // Refresh site name/phone for the banner contact details
       unawaited(_refreshSiteInfo());
@@ -283,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   /// CUR-1311: Mirror of [_onDisconnectionChanged] for the
-  /// not-participating notifier. When the patient flips into
+  /// not-participating notifier. When the participant flips into
   /// not-participating, sponsor-specific feature flags must reset to
   /// neutral defaults (REQ-p01065-D). On reactivation we leave flags
   /// alone — they re-hydrate from sponsor config on next launch.
@@ -307,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// CUR-1165: Check if patient is marked as not participating (REQ-p01065-D).
+  /// CUR-1165: Check if participant is marked as not participating (REQ-p01065-D).
   /// When true, sponsor-specific feature flags are reset to defaults so the
   /// app falls back to neutral behavior.
   Future<void> _checkNotParticipatingStatus() async {
@@ -349,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     // CUR-1292: aggregate ids of in-progress questionnaire surveys.
     // Surfaced to the task list so the matching task card shows the
-    // "In progress" pill — patients see at a glance that tapping the
+    // "In progress" pill — participants see at a glance that tapping the
     // task will resume rather than restart. Derived from `allEntries`
     // (already loaded above with a 1970..9999 range) instead of a
     // separate `reader.incompleteEntries()` call to avoid a duplicate
@@ -902,7 +902,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final entryType = '${qType.value}_survey';
     // CUR-1292: when an in-progress (checkpointed-but-not-finalized) row
     // already exists for this aggregate, seed the flow with the prior
-    // responses so tap-task and resume-on-launch land the patient in
+    // responses so tap-task and resume-on-launch land the participant in
     // the same place. Without this, tapping a task with prior state
     // would open a fresh flow whose first answer would overwrite the
     // saved responses (the materializer replaces the `responses` key
@@ -955,8 +955,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               );
             },
             onComplete: () {
-              // CUR-1292: Don't remove the task on patient submit. The
-              // sponsor's contract is that a patient-completed
+              // CUR-1292: Don't remove the task on participant submit. The
+              // sponsor's contract is that a participant-completed
               // questionnaire stays editable until the portal
               // coordinator clicks Finalize. While status is
               // 'ready_to_review' on the server, /tasks keeps returning
@@ -965,7 +965,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               // task-sync removes it from the local list. Tombstones
               // from portalInboundPoll do the same thing through a
               // different path. Either way, the diary follows the
-              // server, not the patient's submit.
+              // server, not the participant's submit.
               Navigator.of(context).pop();
             },
             onDefer: () => Navigator.of(context).pop(),
@@ -977,7 +977,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
     // CUR-1292: refresh the WIP set so the "In progress" pill appears
     // (or disappears) on the task card based on what landed during the
-    // flow — the patient may have answered some questions and Home'd
+    // flow — the participant may have answered some questions and Home'd
     // out, or they may have fully submitted.
     if (mounted) {
       unawaited(_loadRecords());
@@ -1033,7 +1033,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// to the editable flow — the same path as tapping the task at the
   /// top of the screen. If no matching task exists, the portal has
   /// finalized the submission; open the flow in view-only mode so the
-  /// patient can verify the answers but cannot edit or re-submit.
+  /// participant can verify the answers but cannot edit or re-submit.
   Future<void> _onQuestionnaireEntryTapped(DiaryEntry entry) async {
     Task? matchingTask;
     for (final t in widget.taskService.tasks) {
@@ -1093,10 +1093,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// [_navigateToQuestionnaire] to seed the flow on every re-tap.
   ///
   /// CUR-1292: seed regardless of `isComplete`. A questionnaire that
-  /// the patient has already submitted (isComplete=true,
+  /// the participant has already submitted (isComplete=true,
   /// server-side status='ready_to_review') stays editable until the
   /// portal coordinator clicks Finalize. Tombstoned rows
-  /// (`isDeleted=true`) return null — the patient should never see
+  /// (`isDeleted=true`) return null — the participant should never see
   /// stale post-tombstone state.
   Future<List<QuestionResponse>?> _readInitialResponses({
     required String entryType,
@@ -1395,10 +1395,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens.
                   // CUR-1292: tap the title to manually trigger a task-sync. This is
                   // the dev-mode fallback for environments without FCM (Linux desktop
-                  // local-stack), where the patient otherwise has to wait up to the
+                  // local-stack), where the participant otherwise has to wait up to the
                   // next periodic-trigger tick to discover a freshly-assigned
                   // questionnaire. Production keeps the same affordance — a manual
-                  // pull is a reasonable patient gesture.
+                  // pull is a reasonable participant gesture.
                   Expanded(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
@@ -1523,7 +1523,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             // Banners section
             if (!_isLoading) ...[
               // Wedge banner: at least one destination FIFO is wedged on a
-              // unknown event-type bridge mismatch — patient should update
+              // unknown event-type bridge mismatch — participant should update
               // the app to drain it.
               if (_hasWedgedFifo) const _SyncWedgedBanner(),
 
@@ -1610,7 +1610,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // whose aggregate has a checkpointed-but-not-finalized
                   // row in the materialized view.
                   wipAggregateIds: _wipQuestionnaireAggregateIds,
-                  // CUR-1292: hide the task entry once the patient has
+                  // CUR-1292: hide the task entry once the participant has
                   // submitted (a `finalized` event landed locally) —
                   // it lives in the today/yesterday timeline from
                   // there until the portal Finalizes or tombstones.
@@ -1697,7 +1697,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   OutlinedButton.icon(
                     onPressed: () async {
                       // CUR-1292: the dialog can return a *_survey
-                      // DiaryEntry when the patient taps a completed
+                      // DiaryEntry when the participant taps a completed
                       // questionnaire on the calendar's day-view; in
                       // that case we close the calendar and route the
                       // tap through the same handler used on the home
@@ -1873,7 +1873,7 @@ class _GroupedRecords {
 }
 
 /// Banner shown when at least one destination FIFO is wedged on a
-/// `unknown_event_type` bridge.  Surfaces the situation so the patient
+/// `unknown_event_type` bridge.  Surfaces the situation so the participant
 /// updates the app; underlying scope is "visible state", not UX polish.
 class _SyncWedgedBanner extends StatelessWidget {
   const _SyncWedgedBanner();

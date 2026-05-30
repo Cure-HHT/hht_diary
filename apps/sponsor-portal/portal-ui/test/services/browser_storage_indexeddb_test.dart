@@ -23,7 +23,7 @@ library;
 //   REQ-d00083-D: clear IndexedDB databases on logout
 //   REQ-d00083-I: clear IndexedDB databases on session timeout
 //   REQ-d00083-N: clear IndexedDB databases on browser close
-//   REQ-p01044-M: no patient data recoverable from browser after logout
+//   REQ-p01044-M: no participant data recoverable from browser after logout
 //
 // Per CHECKLIST §3: REQ-p01044 lives in hht_diary/spec/prd-diary-web.md and
 // REQ-d00083 in hht_diary/spec/dev-diary-web.md (both confirmed). The

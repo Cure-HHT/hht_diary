@@ -6,14 +6,14 @@ info:
 
     This API provides endpoints for:
     - User authentication (registration, login, password management)
-    - Patient linking via sponsor-issued codes
+    - Participant linking via sponsor-issued codes
     - Event sourcing-based data synchronization
     - Push notification token management
     - Sponsor configuration retrieval
 
     ## Authentication
     Most endpoints require JWT authentication via the `Authorization: Bearer <token>` header.
-    JWTs are obtained through registration, login, or patient linking.
+    JWTs are obtained through registration, login, or participant linking.
 
     ## FDA 21 CFR Part 11 Compliance
     This API implements immutable audit trails via event sourcing patterns.
@@ -48,7 +48,7 @@ tags:
   - name: Authentication
     description: User registration, login, and password management
   - name: User
-    description: Patient linking and data synchronization
+    description: Participant linking and data synchronization
   - name: Sponsor
     description: Sponsor-specific configuration
 
@@ -239,17 +239,17 @@ paths:
     post:
       tags:
         - User
-      summary: Link patient account via sponsor code
+      summary: Link participant account via sponsor code
       description: |
-        Links a mobile app user to a clinical trial patient using a one-time linking code.
+        Links a mobile app user to a clinical trial participant using a one-time linking code.
         The code serves as authentication - no prior JWT required.
-        Returns a JWT and patient details upon successful linking.
+        Returns a JWT and participant details upon successful linking.
 
         **Code Format**: 10 characters (2-char sponsor prefix + 8 alphanumeric)
         Example: `CA12345678` or `CA-1234-5678` (dashes are removed)
 
         **Implements**: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078 (Linking Code Validation)
-      operationId: linkPatient
+      operationId: linkParticipant
       requestBody:
         required: true
         content:
@@ -261,7 +261,7 @@ paths:
               appUuid: 550e8400-e29b-41d4-a716-446655440000
       responses:
         '200':
-          description: Patient linked successfully
+          description: Participant linked successfully
           content:
             application/json:
               schema:
@@ -390,7 +390,7 @@ paths:
       description: |
         Retrieves the current state of all records for the authenticated user.
         Returns the materialized view derived from the event store.
-        Includes patient linking status for disconnection detection.
+        Includes participant linking status for disconnection detection.
       operationId: getRecords
       security:
         - bearerAuth: []
@@ -423,10 +423,10 @@ paths:
       summary: Register FCM push notification token
       description: |
         Registers a Firebase Cloud Messaging token for push notifications.
-        Requires the user to be linked to a patient first.
+        Requires the user to be linked to a participant first.
         Uses UPSERT pattern - deactivates old tokens and inserts new one.
 
-        **Implements**: REQ-CAL-p00082 (Patient Alert Delivery), REQ-p00049 (Ancillary Platform Services)
+        **Implements**: REQ-CAL-p00082 (Participant Alert Delivery), REQ-p00049 (Ancillary Platform Services)
       operationId: registerFcmToken
       security:
         - bearerAuth: []
@@ -471,13 +471,13 @@ paths:
               example:
                 error: Invalid authorization header
         '409':
-          description: No linked patient
+          description: No linked participant
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
-                error: No linked patient. Please link your account first.
+                error: No linked participant. Please link your account first.
 
   /api/v1/sponsor/config:
     get:
@@ -561,7 +561,7 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: |
-        JWT token obtained from registration, login, or patient linking.
+        JWT token obtained from registration, login, or participant linking.
         Token is signed with HS256 and valid for 365 days.
 
   schemas:
@@ -684,11 +684,11 @@ components:
         - success
         - jwt
         - userId
-        - patientId
+        - participantId
         - siteId
         - siteName
         - siteNumber
-        - studyPatientId
+        - studyParticipantId
       properties:
         success:
           type: boolean
@@ -700,10 +700,10 @@ components:
           type: string
           format: uuid
           description: App user's unique identifier
-        patientId:
+        participantId:
           type: string
           format: uuid
-          description: Linked patient's unique identifier
+          description: Linked participant's unique identifier
         siteId:
           type: string
           format: uuid
@@ -714,9 +714,9 @@ components:
         siteNumber:
           type: string
           description: Clinical site number
-        studyPatientId:
+        studyParticipantId:
           type: string
-          description: EDC de-identified patient ID
+          description: EDC de-identified participant ID
         sitePhoneNumber:
           type: string
           description: Site contact phone number (optional)
@@ -805,10 +805,10 @@ components:
         mobileLinkingStatus:
           type: string
           enum: [connected, disconnected]
-          description: Current patient linking status
+          description: Current participant linking status
         isDisconnected:
           type: boolean
-          description: True if patient has been disconnected
+          description: True if participant has been disconnected
 
     RecordsResponse:
       type: object

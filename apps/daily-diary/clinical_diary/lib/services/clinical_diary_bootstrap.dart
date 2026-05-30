@@ -136,7 +136,7 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   bool Function()? isDisconnected,
   // CUR-1292: invoked by [portalInboundPoll] for each survey-aggregate
   // tombstone the device applies. Caller (main.dart) wires this to
-  // [TaskService.notifyQuestionnaireCancelled] so the patient sees a
+  // [TaskService.notifyQuestionnaireCancelled] so the participant sees a
   // passive notification.
   void Function(String aggregateId, String entryType)? onSurveyTombstoned,
   // --- test seams for trigger factories (use production defaults when omitted) ---

@@ -109,11 +109,11 @@
 //   }
 //
 //   @override
-//   Future<List<Map<String, dynamic>>> getPatients({
+//   Future<List<Map<String, dynamic>>> getParticipants({
 //     List<String>? siteIds,
 //     bool includeInactive = false,
 //   }) async {
-//     // var query = _client.from('patients').select('*, sites(site_name)');
+//     // var query = _client.from('participants').select('*, sites(site_name)');
 //     //
 //     // if (!includeInactive) {
 //     //   query = query.eq('is_active', true);
@@ -129,14 +129,14 @@
 //   }
 //
 //   @override
-//   Future<Map<String, dynamic>> enrollPatient({
-//     required String patientId,
+//   Future<Map<String, dynamic>> enrollParticipant({
+//     required String participantId,
 //     required String siteId,
 //   }) async {
 //     // final response = await _client
-//     //     .from('patients')
+//     //     .from('participants')
 //     //     .insert({
-//     //       'patient_id': patientId,
+//     //       'participant_id': participantId,
 //     //       'site_id': siteId,
 //     //     })
 //     //     .select('*, sites(site_name)')
@@ -148,11 +148,11 @@
 //
 //   @override
 //   Future<void> sendQuestionnaire({
-//     required String patientId,
+//     required String participantId,
 //     required String questionnaireType,
 //   }) async {
 //     // await _client.from('questionnaires').insert({
-//     //   'patient_id': patientId,
+//     //   'participant_id': participantId,
 //     //   'questionnaire_type': questionnaireType,
 //     //   'status': 'pending',
 //     // });

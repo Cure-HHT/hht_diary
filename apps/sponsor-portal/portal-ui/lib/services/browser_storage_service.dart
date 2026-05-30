@@ -74,7 +74,7 @@ class BrowserStorageService {
 
   // IMPLEMENTS REQUIREMENTS:
   //   REQ-d00083-D/I/N: clear IndexedDB databases on logout/timeout/close
-  //   REQ-p01044-M: no patient data recoverable from browser after logout
+  //   REQ-p01044-M: no participant data recoverable from browser after logout
   //
   // CUR-1280: deleteDatabase returns an IDBOpenDBRequest. The actual
   // delete only happens when all connections to the DB close. Firebase
@@ -119,7 +119,7 @@ class BrowserStorageService {
   ///
   /// Other Firebase-managed DBs (`firebase-heartbeat-database`,
   /// `firebase-installations-database`, etc.) are NOT skipped — `signOut()`
-  /// does not touch them, so REQ-d00083 / REQ-p01044-M (no patient data
+  /// does not touch them, so REQ-d00083 / REQ-p01044-M (no participant data
   /// recoverable after logout) requires us to delete them through the
   /// normal best-effort path. They may block if the SDK still has handles
   /// open; the timeout/blocked logging in `_deleteDatabase` covers that.

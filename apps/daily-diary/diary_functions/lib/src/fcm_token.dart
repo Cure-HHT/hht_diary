@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00082: Patient Alert Delivery
+//   REQ-CAL-p00082: Participant Alert Delivery
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //   REQ-p00049: Ancillary Platform Services (push notifications)
 //
@@ -15,13 +15,13 @@ import 'package:shelf/shelf.dart';
 import 'database.dart';
 import 'jwt.dart';
 
-/// Register or update FCM token for a patient's device.
+/// Register or update FCM token for a participant's device.
 /// POST /api/v1/user/fcm-token
 /// Authorization: Bearer <jwt>
 /// Body: { "fcm_token": "<token>", "platform": "android"|"ios" }
 ///
-/// The token is stored in patient_fcm_tokens (shared with portal server).
-/// Uses UPSERT: one active token per patient per platform.
+/// The token is stored in participant_fcm_tokens (shared with portal server).
+/// Uses UPSERT: one active token per participant per platform.
 Future<Response> registerFcmTokenHandler(Request request) async {
   if (request.method != 'POST') {
     return _jsonResponse({'error': 'Method not allowed'}, 405);
@@ -36,14 +36,14 @@ Future<Response> registerFcmTokenHandler(Request request) async {
 
     final db = Database.instance;
 
-    // Look up user and their linked patient via patient_linking_codes
+    // Look up user and their linked participant via participant_linking_codes
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, p.patient_id
+      SELECT u.user_id, p.participant_id
       FROM app_users u
-      LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
+      LEFT JOIN participant_linking_codes plc ON u.user_id = plc.used_by_user_id
         AND plc.used_at IS NOT NULL
-      LEFT JOIN patients p ON plc.patient_id = p.patient_id
+      LEFT JOIN participants p ON plc.participant_id = p.participant_id
       WHERE u.auth_code = @authCode
       ''',
       parameters: {'authCode': auth.authCode},
@@ -56,7 +56,7 @@ Future<Response> registerFcmTokenHandler(Request request) async {
     final participantId = userResult.first[1] as String?;
     if (participantId == null) {
       return _jsonResponse({
-        'error': 'No linked patient. Complete patient linking first.',
+        'error': 'No linked participant. Complete participant linking first.',
       }, 409);
     }
 
@@ -82,45 +82,45 @@ Future<Response> registerFcmTokenHandler(Request request) async {
     // Optional: app version for tracking
     final appVersion = body['app_version'] as String?;
 
-    // Upsert: deactivate any existing active token for this patient+platform
-    // (handles token rotation when the same patient's device generates a new
+    // Upsert: deactivate any existing active token for this participant+platform
+    // (handles token rotation when the same participant's device generates a new
     // FCM token).
     await db.execute(
       '''
-      UPDATE patient_fcm_tokens
+      UPDATE participant_fcm_tokens
       SET is_active = false, updated_at = now()
-      WHERE patient_id = @participantId
+      WHERE participant_id = @participantId
         AND platform = @platform
         AND is_active = true
       ''',
-      parameters: {'patientId': participantId, 'platform': platform},
+      parameters: {'participantId': participantId, 'platform': platform},
     );
 
-    // Also deactivate any other-patient rows that share this exact fcm_token.
+    // Also deactivate any other-participant rows that share this exact fcm_token.
     // A single device produces one fcm_token; if it shows up against a
-    // different patient_id (re-linked device, shared device), the prior row
-    // must be deactivated to prevent FCM sends for the old patient from
-    // routing to the new patient's device.
+    // different participant_id (re-linked device, shared device), the prior row
+    // must be deactivated to prevent FCM sends for the old participant from
+    // routing to the new participant's device.
     await db.execute(
       '''
-      UPDATE patient_fcm_tokens
+      UPDATE participant_fcm_tokens
       SET is_active = false, updated_at = now()
       WHERE fcm_token = @fcmToken
-        AND patient_id <> @participantId
+        AND participant_id <> @participantId
         AND is_active = true
       ''',
-      parameters: {'fcmToken': fcmToken, 'patientId': participantId},
+      parameters: {'fcmToken': fcmToken, 'participantId': participantId},
     );
 
     await db.execute(
       '''
-      INSERT INTO patient_fcm_tokens (
-        patient_id, fcm_token, platform, app_version, is_active
+      INSERT INTO participant_fcm_tokens (
+        participant_id, fcm_token, platform, app_version, is_active
       )
       VALUES (@participantId, @fcmToken, @platform, @appVersion, true)
       ''',
       parameters: {
-        'patientId': participantId,
+        'participantId': participantId,
         'fcmToken': fcmToken,
         'platform': platform,
         'appVersion': appVersion,
@@ -131,7 +131,7 @@ Future<Response> registerFcmTokenHandler(Request request) async {
       'INFO',
       'FCM token registered',
       labels: {
-        'patientId': participantId,
+        'participantId': participantId,
         'platform': platform,
         'tokenPrefix': fcmToken.substring(0, 20),
       },

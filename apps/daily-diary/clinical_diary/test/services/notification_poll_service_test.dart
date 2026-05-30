@@ -22,7 +22,7 @@ Map<String, dynamic> _buildEnvelope({
   required String id,
   String type = 'questionnaire_update',
   String action = 'sent',
-  String participantId = 'patient-1',
+  String participantId = 'participant-1',
   String title = 'Test',
   DateTime? createdAt,
   Map<String, dynamic>? extraPayload,
@@ -30,7 +30,7 @@ Map<String, dynamic> _buildEnvelope({
   final payload = <String, dynamic>{'action': action, ...?extraPayload};
   return {
     'notification_id': id,
-    'patient_id': participantId,
+    'participant_id': participantId,
     'type': type,
     'title': title,
     'user_visible': true,
@@ -450,39 +450,42 @@ void main() {
       },
     );
 
-    test('patient_status_update + disconnect → sets disconnected', () async {
-      final envelopes = [
-        _buildEnvelope(
-          id: 'ps-1',
-          type: 'patient_status_update',
-          action: 'disconnect',
-        ),
-      ];
-      final client = _mockClient(envelopes);
+    test(
+      'participant_status_update + disconnect → sets disconnected',
+      () async {
+        final envelopes = [
+          _buildEnvelope(
+            id: 'ps-1',
+            type: 'participant_status_update',
+            action: 'disconnect',
+          ),
+        ];
+        final client = _mockClient(envelopes);
 
-      final service = NotificationPollService(
-        enrollmentService: mockEnrollment,
-        taskService: taskService,
-        httpClient: client,
-      );
+        final service = NotificationPollService(
+          enrollmentService: mockEnrollment,
+          taskService: taskService,
+          httpClient: client,
+        );
 
-      await service.poll();
-      expect(await mockEnrollment.isDisconnected(), isTrue);
-    });
+        await service.poll();
+        expect(await mockEnrollment.isDisconnected(), isTrue);
+      },
+    );
 
     // CUR-1343 / REQ-p70011/F: A `reconnect` envelope means the portal has
     // issued a NEW linking code; mobile must hold the disconnected flag until
-    // the patient enters the new code. The status notifier flips to
+    // the participant enters the new code. The status notifier flips to
     // linkingInProgress so the banner and profile badge swap their copy.
     // Verifies: REQ-p70011/F
-    test('patient_status_update + reconnect → holds disconnected and flips '
+    test('participant_status_update + reconnect → holds disconnected and flips '
         'linking status to linkingInProgress', () async {
       await mockEnrollment.setDisconnected(true);
 
       final envelopes = [
         _buildEnvelope(
           id: 'ps-2',
-          type: 'patient_status_update',
+          type: 'participant_status_update',
           action: 'reconnect',
         ),
       ];
@@ -503,12 +506,12 @@ void main() {
     });
 
     test(
-      'patient_status_update + mark_not_participating → sets state',
+      'participant_status_update + mark_not_participating → sets state',
       () async {
         final envelopes = [
           _buildEnvelope(
             id: 'ps-3',
-            type: 'patient_status_update',
+            type: 'participant_status_update',
             action: 'mark_not_participating',
           ),
         ];
@@ -526,14 +529,14 @@ void main() {
     );
 
     test(
-      'patient_status_update + reactivate → clears not-participating',
+      'participant_status_update + reactivate → clears not-participating',
       () async {
         await mockEnrollment.setNotParticipating(true, at: DateTime.now());
 
         final envelopes = [
           _buildEnvelope(
             id: 'ps-4',
-            type: 'patient_status_update',
+            type: 'participant_status_update',
             action: 'reactivate',
           ),
         ];
@@ -550,11 +553,11 @@ void main() {
       },
     );
 
-    test('patient_status_update + start_trial → no-op', () async {
+    test('participant_status_update + start_trial → no-op', () async {
       final envelopes = [
         _buildEnvelope(
           id: 'ps-5',
-          type: 'patient_status_update',
+          type: 'participant_status_update',
           action: 'start_trial',
         ),
       ];

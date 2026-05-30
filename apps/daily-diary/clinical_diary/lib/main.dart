@@ -4,7 +4,7 @@
 //   REQ-p00006: Offline-First Data Entry
 //   REQ-d00006: Mobile App Build and Release Process
 //   REQ-p00008: Single App Architecture
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 
 import 'dart:async';
@@ -249,7 +249,7 @@ class _AppRootState extends State<AppRoot> {
   /// CUR-1292: invoked when `/tasks` response surfaces a cancelled
   /// questionnaire. Records a local tombstone event so the
   /// materialized view row flips to `is_deleted=true` (and the
-  /// timeline card disappears) and queues a patient-visible
+  /// timeline card disappears) and queues a participant-visible
   /// "questionnaire cancelled" notification. Both sides are
   /// idempotent — calling for an already-applied cancellation is a
   /// no-op via `EntryService.record`'s tombstone-on-tombstone
@@ -280,7 +280,7 @@ class _AppRootState extends State<AppRoot> {
     );
   }
 
-  /// Resolve the patient-facing display name for a survey entry type
+  /// Resolve the participant-facing display name for a survey entry type
   /// ('nose_hht_survey', 'qol_survey', …). Strips the `_survey`
   /// suffix and looks up [QuestionnaireType] — the single source of
   /// truth for these labels — falling back to the stripped string.
@@ -353,10 +353,10 @@ class _AppRootState extends State<AppRoot> {
       final runtime = await bootstrapClinicalDiary(
         sembastDatabase: db,
         authToken: _enrollmentService.getJwtToken,
-        // The patient's backend URL is resolved from their linking code at
+        // The participant's backend URL is resolved from their linking code at
         // enrollment time and persisted by EnrollmentService. Resolve it
         // lazily on every use so the destination + inbound poll automatically
-        // pick up the URL the moment the patient links, without requiring a
+        // pick up the URL the moment the participant links, without requiring a
         // bootstrap-time restart. Returns null pre-enrollment, which the
         // destination + inbound poll handle as "skip this cycle".
         resolveBaseUrl: () async {
@@ -392,9 +392,9 @@ class _AppRootState extends State<AppRoot> {
       // sends a `start_trial` inbound message (handled by
       // portalInboundPoll's onStartTrial callback wired in the
       // bootstrap). Their start_date is durable, so on a process
-      // restart of an already-activated patient there is nothing for
+      // restart of an already-activated participant there is nothing for
       // bootstrap to do here. Personal-use (unenrolled) and
-      // post-enrollment-pre-Send-EQ patients never have legacy_sync
+      // post-enrollment-pre-Send-EQ participants never have legacy_sync
       // active, so they never wedge against the trial diary server.
 
       if (mounted) {
@@ -482,7 +482,7 @@ class _AppRootState extends State<AppRoot> {
   /// Register the FCM token with the diary server.
   ///
   /// Called on initial token retrieval and on token refresh.
-  /// REQ-CAL-p00082: Patient Alert Delivery
+  /// REQ-CAL-p00082: Participant Alert Delivery
   Future<void> _registerFcmToken(String token) async {
     final jwt = await _enrollmentService.getJwtToken();
     if (jwt == null) {
@@ -526,7 +526,7 @@ class _AppRootState extends State<AppRoot> {
   /// Registers the cached FCM token with the diary server now that
   /// the JWT and backend URL are available.
   ///
-  /// REQ-CAL-p00082: Patient Alert Delivery
+  /// REQ-CAL-p00082: Participant Alert Delivery
   void _onPostEnrollment() {
     final token = _notificationService?.currentToken;
     if (token != null) {

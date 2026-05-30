@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
 // Unit tests for tasks handler (non-database aspects)

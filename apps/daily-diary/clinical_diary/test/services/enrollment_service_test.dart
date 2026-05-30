@@ -1,7 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p70007: Linking Code Lifecycle Management
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-p05004: Disconnection Notification (persistent banner)
 
@@ -133,10 +133,10 @@ void main() {
               'success': true,
               'jwt': 'server-returned-jwt',
               'userId': 'server-user-id',
-              'patientId': 'patient-123',
+              'participantId': 'participant-123',
               'siteId': 'site-001',
               'siteName': 'Test Site',
-              'studyPatientId': 'STUDY-001',
+              'studyParticipantId': 'STUDY-001',
             }),
             200,
           );
@@ -151,7 +151,7 @@ void main() {
 
         expect(result.userId, 'server-user-id');
         expect(result.jwtToken, 'server-returned-jwt');
-        expect(result.participantId, 'patient-123');
+        expect(result.participantId, 'participant-123');
         expect(result.siteId, 'site-001');
         expect(result.siteName, 'Test Site');
         expect(result.enrolledAt, isNotNull);
@@ -160,7 +160,7 @@ void main() {
         // Verify it was saved
         final saved = await service.getEnrollment();
         expect(saved, isNotNull);
-        expect(saved!.participantId, 'patient-123');
+        expect(saved!.participantId, 'participant-123');
       });
 
       test('normalizes code to uppercase and removes dash', () async {
@@ -173,7 +173,7 @@ void main() {
               'success': true,
               'jwt': 'jwt',
               'userId': 'uid',
-              'patientId': 'p1',
+              'participantId': 'p1',
               'siteId': 's1',
             }),
             200,
@@ -200,7 +200,7 @@ void main() {
               'success': true,
               'jwt': 'jwt',
               'userId': 'uid',
-              'patientId': 'p1',
+              'participantId': 'p1',
               'siteId': 's1',
             }),
             200,
@@ -221,7 +221,7 @@ void main() {
         // Server returns 200 but missing jwt/userId fields
         final mockClient = MockClient((request) async {
           return http.Response(
-            jsonEncode({'success': true, 'patientId': 'p1'}),
+            jsonEncode({'success': true, 'participantId': 'p1'}),
             200,
           );
         });
@@ -255,9 +255,9 @@ void main() {
             enrolledAt: DateTime.now(),
           );
           mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
-          // CUR-1164: patient is NOT disconnected, so re-enrollment is blocked
+          // CUR-1164: participant is NOT disconnected, so re-enrollment is blocked
           SharedPreferences.setMockInitialValues({
-            'patient_disconnected': false,
+            'participant_disconnected': false,
           });
 
           var httpCalled = false;
@@ -648,12 +648,12 @@ void main() {
         expect(result, true);
       });
 
-      // CUR-1343 / REQ-p70011/F: Patient reconnection workflow tests.
+      // CUR-1343 / REQ-p70011/F: Participant reconnection workflow tests.
       Envelope buildStatusEnvelope(String action) {
         return Envelope.fromJson({
           'notification_id': 'env-test',
-          'patient_id': 'patient-1',
-          'type': 'patient_status_update',
+          'participant_id': 'participant-1',
+          'type': 'participant_status_update',
           'title': 'status',
           'payload': {'action': action},
           'status': 'sent',
@@ -791,12 +791,12 @@ void main() {
       final validLinkResponse = jsonEncode({
         'jwt': 'new-token',
         'userId': 'user-456',
-        'patientId': 'patient-456',
+        'participantId': 'participant-456',
         'linkingCode': 'CAHELLO WORLD',
         'siteId': 'site-1',
         'siteName': 'Test Site',
         'sitePhoneNumber': '+1-555-0000',
-        'studyPatientId': 'SP-001',
+        'studyParticipantId': 'SP-001',
       });
 
       setUp(() {
@@ -808,7 +808,7 @@ void main() {
         service.dispose();
       });
 
-      test('allows re-enrollment when patient is disconnected', () async {
+      test('allows re-enrollment when participant is disconnected', () async {
         // Arrange: existing enrollment + disconnected state
         final existing = UserEnrollment(
           userId: 'user-old',
@@ -818,7 +818,9 @@ void main() {
           linkingCode: 'CAOLDCODE',
         );
         mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
-        SharedPreferences.setMockInitialValues({'patient_disconnected': true});
+        SharedPreferences.setMockInitialValues({
+          'participant_disconnected': true,
+        });
 
         service = EnrollmentService(
           secureStorage: mockStorage,
@@ -846,7 +848,7 @@ void main() {
           );
           mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
           SharedPreferences.setMockInitialValues({
-            'patient_disconnected': true,
+            'participant_disconnected': true,
           });
 
           service = EnrollmentService(
@@ -871,7 +873,9 @@ void main() {
           enrolledAt: DateTime.now(),
         );
         mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
-        SharedPreferences.setMockInitialValues({'patient_disconnected': false});
+        SharedPreferences.setMockInitialValues({
+          'participant_disconnected': false,
+        });
 
         service = EnrollmentService(
           secureStorage: mockStorage,

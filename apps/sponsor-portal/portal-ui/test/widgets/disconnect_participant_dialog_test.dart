@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00020: Patient Disconnection Workflow
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00020: Participant Disconnection Workflow
+//   REQ-CAL-p00073: Participant Status Definitions
 //   REQ-CAL-p00077: Disconnection Notification
 //
 // Widget tests for DisconnectParticipantDialog confirm/success/error/retry states.
@@ -43,7 +43,7 @@ MockClient _createMockHttpClient({bool shouldFail = false}) {
     if (path.contains('/disconnect') && request.method == 'POST') {
       if (shouldFail) {
         return http.Response(
-          jsonEncode({'error': 'Patient not in connected state'}),
+          jsonEncode({'error': 'Participant not in connected state'}),
           400,
           headers: {'content-type': 'application/json'},
         );
@@ -159,7 +159,7 @@ void main() {
   });
 
   group('DisconnectParticipantDialog widget', () {
-    testWidgets('confirm state shows patient ID and Disconnect button', (
+    testWidgets('confirm state shows participant ID and Disconnect button', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
@@ -266,7 +266,7 @@ void main() {
       // Error state
       expect(find.text('Error'), findsOneWidget);
       expect(find.byIcon(Icons.error), findsOneWidget);
-      expect(find.text('Patient not in connected state'), findsOneWidget);
+      expect(find.text('Participant not in connected state'), findsOneWidget);
       expect(find.text('Try Again'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
     });

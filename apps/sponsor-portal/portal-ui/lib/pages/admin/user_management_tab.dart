@@ -1000,7 +1000,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
               ],
             ],
             // NOTE: Linking codes are NOT shown for portal users.
-            // Linking codes are only for patients (diary app device linking).
+            // Linking codes are only for participants (diary app device linking).
           ],
         ),
         actions: [

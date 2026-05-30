@@ -1,11 +1,11 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00065: Reactivate Patient
+//   REQ-CAL-p00065: Reactivate Participant
 //   REQ-p05004: Disconnection Notification (persistent, non-dismissible)
-//   REQ-p70011: Patient Reconnection Workflow (banner variant for linking_in_progress)
+//   REQ-p70011: Participant Reconnection Workflow (banner variant for linking_in_progress)
 //
-// Persistent warning banner shown when patient is disconnected from the study.
+// Persistent warning banner shown when participant is disconnected from the study.
 // Non-dismissible per REQ-p05004. In the plain `disconnected` state the banner
 // expands on tap to show site contact info. When the underlying mobile linking
 // status is `linkingInProgress` (i.e. the portal has issued a new linking
@@ -17,11 +17,11 @@ import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Persistent warning banner shown when a patient has been disconnected
+/// Persistent warning banner shown when a participant has been disconnected
 /// from the study by their Study Coordinator, or when the portal has just
 /// issued a new linking code and is awaiting re-entry on mobile.
 ///
-/// Non-dismissible per REQ-p05004 — stays visible until patient reconnects.
+/// Non-dismissible per REQ-p05004 — stays visible until participant reconnects.
 class DisconnectionBanner extends StatefulWidget {
   const DisconnectionBanner({
     required this.status,
@@ -43,7 +43,7 @@ class DisconnectionBanner extends StatefulWidget {
   /// Optional site phone number for contact (REQ-CAL-p00077)
   final String? sitePhoneNumber;
 
-  /// Invoked when the patient taps the banner in the `linkingInProgress`
+  /// Invoked when the participant taps the banner in the `linkingInProgress`
   /// variant. Host wires this to the enrollment screen.
   // Implements: REQ-p70011/F
   final VoidCallback? onTapReconnect;

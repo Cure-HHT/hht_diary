@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00063: EDC Patient Ingestion
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00063: EDC Participant Ingestion
+//   REQ-CAL-p00073: Participant Status Definitions
 //
-// Integration tests for patient synchronization from RAVE EDC
+// Integration tests for participant synchronization from RAVE EDC
 // Requires PostgreSQL database with schema applied
 
 @TestOn('vm')
@@ -33,16 +33,16 @@ void main() {
     await OTel.reset();
   });
   // Test data using unique IDs to avoid conflicts
-  const testSiteId1 = 'test-patient-sync-site-001';
-  const testSiteId2 = 'test-patient-sync-site-002';
+  const testSiteId1 = 'test-participant-sync-site-001';
+  const testSiteId2 = 'test-participant-sync-site-002';
   const testParticipantId1 = 'PSYNC-001-001';
   const testParticipantId2 = 'PSYNC-001-002';
   const testParticipantId3 = 'PSYNC-002-001';
 
   // For handler tests
   const testUserId = '99996000-0000-0000-0000-000000000001';
-  const testUserEmail = 'coord@patient-sync-test.example.com';
-  const testUserFirebaseUid = 'firebase-patient-sync-uid-96001';
+  const testUserEmail = 'coord@participant-sync-test.example.com';
+  const testUserFirebaseUid = 'firebase-participant-sync-uid-96001';
 
   setUpAll(() async {
     final sslEnv = Platform.environment['DB_SSL'];
@@ -65,11 +65,19 @@ void main() {
     // Clean up any previous test data
     await _cleanup();
 
-    // Create test sites (patients FK to sites)
+    // Create test sites (participants FK to sites)
     final db = Database.instance;
     for (final site in [
-      {'id': testSiteId1, 'name': 'Patient Sync Site 1', 'number': 'PS-001'},
-      {'id': testSiteId2, 'name': 'Patient Sync Site 2', 'number': 'PS-002'},
+      {
+        'id': testSiteId1,
+        'name': 'Participant Sync Site 1',
+        'number': 'PS-001',
+      },
+      {
+        'id': testSiteId2,
+        'name': 'Participant Sync Site 2',
+        'number': 'PS-002',
+      },
     ]) {
       await db.execute(
         '''
@@ -92,30 +100,30 @@ void main() {
   });
 
   group('shouldSyncParticipants', () {
-    // NOTE: shouldSyncParticipants checks MAX(edc_synced_at) across ALL patients,
-    // so tests must account for existing patients in the database.
+    // NOTE: shouldSyncParticipants checks MAX(edc_synced_at) across ALL participants,
+    // so tests must account for existing participants in the database.
 
     setUp(() async {
       await _cleanupParticipants();
     });
 
-    test('returns false when any patient was synced recently', () async {
+    test('returns false when any participant was synced recently', () async {
       final db = Database.instance;
 
-      // Update all existing patients to have recent edc_synced_at
-      await db.execute('UPDATE patients SET edc_synced_at = now()');
+      // Update all existing participants to have recent edc_synced_at
+      await db.execute('UPDATE participants SET edc_synced_at = now()');
 
-      // Insert a test patient with recent sync
+      // Insert a test participant with recent sync
       await db.execute(
         '''
-        INSERT INTO patients (patient_id, site_id, edc_subject_key,
+        INSERT INTO participants (participant_id, site_id, edc_subject_key,
           mobile_linking_status, edc_synced_at, created_at, updated_at)
-        VALUES (@patientId, @siteId, @subjectKey,
+        VALUES (@participantId, @siteId, @subjectKey,
           'not_connected', now(), now(), now())
-        ON CONFLICT (patient_id) DO UPDATE SET edc_synced_at = now()
+        ON CONFLICT (participant_id) DO UPDATE SET edc_synced_at = now()
         ''',
         parameters: {
-          'patientId': testParticipantId1,
+          'participantId': testParticipantId1,
           'siteId': testSiteId1,
           'subjectKey': testParticipantId1,
         },
@@ -125,54 +133,57 @@ void main() {
       expect(shouldSync, isFalse);
     });
 
-    test('returns true when all patients have null edc_synced_at', () async {
-      final db = Database.instance;
+    test(
+      'returns true when all participants have null edc_synced_at',
+      () async {
+        final db = Database.instance;
 
-      // Set ALL patients to have NULL edc_synced_at
-      await db.execute('UPDATE patients SET edc_synced_at = NULL');
+        // Set ALL participants to have NULL edc_synced_at
+        await db.execute('UPDATE participants SET edc_synced_at = NULL');
 
-      // Insert a patient with NULL edc_synced_at
-      await db.execute(
-        '''
-        INSERT INTO patients (patient_id, site_id, edc_subject_key,
+        // Insert a participant with NULL edc_synced_at
+        await db.execute(
+          '''
+        INSERT INTO participants (participant_id, site_id, edc_subject_key,
           mobile_linking_status, edc_synced_at, created_at, updated_at)
-        VALUES (@patientId, @siteId, @subjectKey,
+        VALUES (@participantId, @siteId, @subjectKey,
           'not_connected', NULL, now(), now())
-        ON CONFLICT (patient_id) DO UPDATE SET edc_synced_at = NULL
+        ON CONFLICT (participant_id) DO UPDATE SET edc_synced_at = NULL
         ''',
-        parameters: {
-          'patientId': testParticipantId1,
-          'siteId': testSiteId1,
-          'subjectKey': testParticipantId1,
-        },
-      );
+          parameters: {
+            'participantId': testParticipantId1,
+            'siteId': testSiteId1,
+            'subjectKey': testParticipantId1,
+          },
+        );
 
-      final shouldSync = await shouldSyncParticipants();
-      expect(shouldSync, isTrue);
+        final shouldSync = await shouldSyncParticipants();
+        expect(shouldSync, isTrue);
 
-      // Restore existing patients to have recent sync time
-      await db.execute('UPDATE patients SET edc_synced_at = now()');
-    });
+        // Restore existing participants to have recent sync time
+        await db.execute('UPDATE participants SET edc_synced_at = now()');
+      },
+    );
 
     test('returns true when sync is stale', () async {
       final db = Database.instance;
 
-      // Set ALL patients to have old edc_synced_at (2 days ago)
+      // Set ALL participants to have old edc_synced_at (2 days ago)
       await db.execute(
-        "UPDATE patients SET edc_synced_at = now() - interval '2 days'",
+        "UPDATE participants SET edc_synced_at = now() - interval '2 days'",
       );
 
-      // Insert test patient with old sync time
+      // Insert test participant with old sync time
       await db.execute(
         '''
-        INSERT INTO patients (patient_id, site_id, edc_subject_key,
+        INSERT INTO participants (participant_id, site_id, edc_subject_key,
           mobile_linking_status, edc_synced_at, created_at, updated_at)
-        VALUES (@patientId, @siteId, @subjectKey,
+        VALUES (@participantId, @siteId, @subjectKey,
           'not_connected', now() - interval '2 days', now(), now())
-        ON CONFLICT (patient_id) DO UPDATE SET edc_synced_at = now() - interval '2 days'
+        ON CONFLICT (participant_id) DO UPDATE SET edc_synced_at = now() - interval '2 days'
         ''',
         parameters: {
-          'patientId': testParticipantId1,
+          'participantId': testParticipantId1,
           'siteId': testSiteId1,
           'subjectKey': testParticipantId1,
         },
@@ -188,20 +199,20 @@ void main() {
       );
       expect(shouldSyncLonger, isFalse);
 
-      // Restore existing patients to have recent sync time
-      await db.execute('UPDATE patients SET edc_synced_at = now()');
+      // Restore existing participants to have recent sync time
+      await db.execute('UPDATE participants SET edc_synced_at = now()');
     });
   });
 
-  group('getPortalPatientsHandler site-scoped filtering', () {
+  group('getPortalParticipantsHandler site-scoped filtering', () {
     setUp(() async {
       await _cleanupParticipants();
       await _cleanupTestUser();
 
       final db = Database.instance;
 
-      // Insert test patients across two sites
-      for (final patient in [
+      // Insert test participants across two sites
+      for (final participant in [
         {
           'id': testParticipantId1,
           'site': testSiteId1,
@@ -216,19 +227,19 @@ void main() {
       ]) {
         await db.execute(
           '''
-          INSERT INTO patients (patient_id, site_id, edc_subject_key,
+          INSERT INTO participants (participant_id, site_id, edc_subject_key,
             mobile_linking_status, edc_synced_at, created_at, updated_at)
-          VALUES (@patientId, @siteId, @subjectKey,
+          VALUES (@participantId, @siteId, @subjectKey,
             @status::mobile_linking_status, now(), now(), now())
-          ON CONFLICT (patient_id) DO UPDATE SET
+          ON CONFLICT (participant_id) DO UPDATE SET
             mobile_linking_status = @status::mobile_linking_status,
             edc_synced_at = now()
           ''',
           parameters: {
-            'patientId': patient['id'],
-            'siteId': patient['site'],
-            'subjectKey': patient['id'],
-            'status': patient['status'],
+            'participantId': participant['id'],
+            'siteId': participant['site'],
+            'subjectKey': participant['id'],
+            'status': participant['status'],
           },
         );
       }
@@ -274,8 +285,8 @@ void main() {
       await _cleanupTestUser();
     });
 
-    test('Investigator sees only patients from assigned sites', () async {
-      // Simulate calling getPortalPatientsHandler as the Investigator
+    test('Investigator sees only participants from assigned sites', () async {
+      // Simulate calling getPortalParticipantsHandler as the Investigator
       // We'll test the SQL filtering directly since handler requires real auth
       final db = Database.instance;
       const serviceContext = UserContext.service;
@@ -285,23 +296,23 @@ void main() {
       final result = await db.executeWithContext(
         '''
         SELECT
-          p.patient_id,
+          p.participant_id,
           p.site_id,
           p.edc_subject_key,
           p.mobile_linking_status::text,
           p.edc_synced_at,
           s.site_name,
           s.site_number
-        FROM patients p
+        FROM participants p
         JOIN sites s ON p.site_id = s.site_id
         WHERE p.site_id = ANY(@siteIds)
-        ORDER BY p.patient_id
+        ORDER BY p.participant_id
         ''',
         parameters: {'siteIds': siteIds},
         context: serviceContext,
       );
 
-      // Should only see patients from site 1 (2 patients), not site 2
+      // Should only see participants from site 1 (2 participants), not site 2
       expect(result.length, equals(2));
       final participantIds = result.map((r) => r[0] as String).toList();
       expect(participantIds, contains(testParticipantId1));
@@ -309,18 +320,18 @@ void main() {
       expect(participantIds, isNot(contains(testParticipantId3)));
     });
 
-    test('Admin sees all patients (no site filtering)', () async {
+    test('Admin sees all participants (no site filtering)', () async {
       final db = Database.instance;
       const serviceContext = UserContext.service;
 
       // Simulate admin query (no WHERE clause on site_id)
       final result = await db.executeWithContext(
         '''
-        SELECT p.patient_id
-        FROM patients p
+        SELECT p.participant_id
+        FROM participants p
         JOIN sites s ON p.site_id = s.site_id
-        WHERE p.patient_id IN (@p1, @p2, @p3)
-        ORDER BY p.patient_id
+        WHERE p.participant_id IN (@p1, @p2, @p3)
+        ORDER BY p.participant_id
         ''',
         parameters: {
           'p1': testParticipantId1,
@@ -330,11 +341,11 @@ void main() {
         context: serviceContext,
       );
 
-      // Admin should see all 3 patients
+      // Admin should see all 3 participants
       expect(result.length, equals(3));
     });
 
-    test('Investigator with no assigned sites sees no patients', () async {
+    test('Investigator with no assigned sites sees no participants', () async {
       // Simulate an investigator with empty site list
       final siteIds = <String>[];
 
@@ -363,35 +374,35 @@ void main() {
 
       expect(siteResult.length, equals(1));
       expect(siteResult.first[0], equals(testSiteId1));
-      expect(siteResult.first[1], equals('Patient Sync Site 1'));
+      expect(siteResult.first[1], equals('Participant Sync Site 1'));
       expect(siteResult.first[2], equals('PS-001'));
     });
   });
 
-  group('patient upsert behavior', () {
+  group('participant upsert behavior', () {
     setUp(() async {
       await _cleanupParticipants();
     });
 
-    test('insert creates patient with not_connected status', () async {
+    test('insert creates participant with not_connected status', () async {
       final db = Database.instance;
       const serviceContext = UserContext.service;
 
       await db.executeWithContext(
         '''
-        INSERT INTO patients (
-          patient_id, site_id, edc_subject_key,
+        INSERT INTO participants (
+          participant_id, site_id, edc_subject_key,
           mobile_linking_status, edc_synced_at,
           created_at, updated_at
         )
         VALUES (
-          @patientId, @siteId, @edcSubjectKey,
+          @participantId, @siteId, @edcSubjectKey,
           'not_connected', @syncedAt,
           now(), now()
         )
         ''',
         parameters: {
-          'patientId': testParticipantId1,
+          'participantId': testParticipantId1,
           'siteId': testSiteId1,
           'edcSubjectKey': testParticipantId1,
           'syncedAt': DateTime.now().toUtc(),
@@ -401,10 +412,10 @@ void main() {
 
       final result = await db.executeWithContext(
         '''
-        SELECT mobile_linking_status::text FROM patients
-        WHERE patient_id = @patientId
+        SELECT mobile_linking_status::text FROM participants
+        WHERE participant_id = @participantId
         ''',
-        parameters: {'patientId': testParticipantId1},
+        parameters: {'participantId': testParticipantId1},
         context: serviceContext,
       );
 
@@ -416,21 +427,21 @@ void main() {
       final db = Database.instance;
       const serviceContext = UserContext.service;
 
-      // Insert initial patient
+      // Insert initial participant
       await db.executeWithContext(
         '''
-        INSERT INTO patients (
-          patient_id, site_id, edc_subject_key,
+        INSERT INTO participants (
+          participant_id, site_id, edc_subject_key,
           mobile_linking_status, edc_synced_at,
           created_at, updated_at
         )
         VALUES (
-          @patientId, @siteId, @edcSubjectKey,
+          @participantId, @siteId, @edcSubjectKey,
           'not_connected', now(), now(), now()
         )
         ''',
         parameters: {
-          'patientId': testParticipantId1,
+          'participantId': testParticipantId1,
           'siteId': testSiteId1,
           'edcSubjectKey': testParticipantId1,
         },
@@ -440,33 +451,33 @@ void main() {
       // Manually update linking status to 'connected' (simulate mobile link)
       await db.executeWithContext(
         '''
-        UPDATE patients SET mobile_linking_status = 'connected'
-        WHERE patient_id = @patientId
+        UPDATE participants SET mobile_linking_status = 'connected'
+        WHERE participant_id = @participantId
         ''',
-        parameters: {'patientId': testParticipantId1},
+        parameters: {'participantId': testParticipantId1},
         context: serviceContext,
       );
 
       // Re-sync (upsert) — should NOT change mobile_linking_status
       await db.executeWithContext(
         '''
-        INSERT INTO patients (
-          patient_id, site_id, edc_subject_key,
+        INSERT INTO participants (
+          participant_id, site_id, edc_subject_key,
           mobile_linking_status, edc_synced_at,
           created_at, updated_at
         )
         VALUES (
-          @patientId, @siteId, @edcSubjectKey,
+          @participantId, @siteId, @edcSubjectKey,
           'not_connected', @syncedAt,
           now(), now()
         )
-        ON CONFLICT (patient_id) DO UPDATE SET
+        ON CONFLICT (participant_id) DO UPDATE SET
           site_id = EXCLUDED.site_id,
           edc_synced_at = EXCLUDED.edc_synced_at,
           updated_at = now()
         ''',
         parameters: {
-          'patientId': testParticipantId1,
+          'participantId': testParticipantId1,
           'siteId': testSiteId1,
           'edcSubjectKey': testParticipantId1,
           'syncedAt': DateTime.now().toUtc(),
@@ -477,10 +488,10 @@ void main() {
       // Verify linking status was preserved
       final result = await db.executeWithContext(
         '''
-        SELECT mobile_linking_status::text FROM patients
-        WHERE patient_id = @patientId
+        SELECT mobile_linking_status::text FROM participants
+        WHERE participant_id = @participantId
         ''',
-        parameters: {'patientId': testParticipantId1},
+        parameters: {'participantId': testParticipantId1},
         context: serviceContext,
       );
 
@@ -496,24 +507,24 @@ void main() {
       // First insert → is_insert = true
       final insertResult = await db.executeWithContext(
         '''
-        INSERT INTO patients (
-          patient_id, site_id, edc_subject_key,
+        INSERT INTO participants (
+          participant_id, site_id, edc_subject_key,
           mobile_linking_status, edc_synced_at,
           created_at, updated_at
         )
         VALUES (
-          @patientId, @siteId, @edcSubjectKey,
+          @participantId, @siteId, @edcSubjectKey,
           'not_connected', @syncedAt,
           now(), now()
         )
-        ON CONFLICT (patient_id) DO UPDATE SET
+        ON CONFLICT (participant_id) DO UPDATE SET
           site_id = EXCLUDED.site_id,
           edc_synced_at = EXCLUDED.edc_synced_at,
           updated_at = now()
         RETURNING (xmax = 0) as is_insert
         ''',
         parameters: {
-          'patientId': testParticipantId1,
+          'participantId': testParticipantId1,
           'siteId': testSiteId1,
           'edcSubjectKey': testParticipantId1,
           'syncedAt': syncedAt,
@@ -526,24 +537,24 @@ void main() {
       // Second upsert → is_insert = false (update)
       final updateResult = await db.executeWithContext(
         '''
-        INSERT INTO patients (
-          patient_id, site_id, edc_subject_key,
+        INSERT INTO participants (
+          participant_id, site_id, edc_subject_key,
           mobile_linking_status, edc_synced_at,
           created_at, updated_at
         )
         VALUES (
-          @patientId, @siteId, @edcSubjectKey,
+          @participantId, @siteId, @edcSubjectKey,
           'not_connected', @syncedAt,
           now(), now()
         )
-        ON CONFLICT (patient_id) DO UPDATE SET
+        ON CONFLICT (participant_id) DO UPDATE SET
           site_id = EXCLUDED.site_id,
           edc_synced_at = EXCLUDED.edc_synced_at,
           updated_at = now()
         RETURNING (xmax = 0) as is_insert
         ''',
         parameters: {
-          'patientId': testParticipantId1,
+          'participantId': testParticipantId1,
           'siteId': testSiteId1,
           'edcSubjectKey': testParticipantId1,
           'syncedAt': syncedAt,
@@ -554,11 +565,11 @@ void main() {
       expect(updateResult.first[0], isFalse); // is_insert = false (update)
     });
 
-    test('edc_sync_log schema allows PATIENTS_SYNC operation', () async {
+    test('edc_sync_log schema allows PARTICIPANTS_SYNC operation', () async {
       final db = Database.instance;
       const serviceContext = UserContext.service;
 
-      // Verify the schema.sql defines PATIENTS_SYNC in the CHECK constraint
+      // Verify the schema.sql defines PARTICIPANTS_SYNC in the CHECK constraint
       // by querying the constraint definition from information_schema
       final result = await db.executeWithContext('''
         SELECT check_clause
@@ -566,12 +577,12 @@ void main() {
         WHERE constraint_name = 'edc_sync_log_operation_check'
         ''', context: serviceContext);
 
-      // The constraint should exist and include PATIENTS_SYNC
+      // The constraint should exist and include PARTICIPANTS_SYNC
       // Note: On freshly-created databases this will pass;
       // on pre-existing databases the constraint may need migration
       if (result.isNotEmpty) {
         final clause = result.first[0] as String;
-        expect(clause, contains('PATIENTS_SYNC'));
+        expect(clause, contains('PARTICIPANTS_SYNC'));
       }
       // If constraint not found by name, the schema may use inline CHECK
       // which is still valid — just verify the column exists
@@ -597,7 +608,7 @@ void main() {
       reset(mockClient);
     });
 
-    test('creates new patients from subjects', () async {
+    test('creates new participants from subjects', () async {
       when(
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer(
@@ -623,10 +634,10 @@ void main() {
       expect(result.participantsCreated, equals(2));
       expect(result.participantsUpdated, equals(0));
 
-      // Verify patients exist in DB
+      // Verify participants exist in DB
       final db = Database.instance;
       final rows = await db.execute(
-        "SELECT patient_id, mobile_linking_status::text FROM patients WHERE patient_id IN (@p1, @p2) ORDER BY patient_id",
+        "SELECT participant_id, mobile_linking_status::text FROM participants WHERE participant_id IN (@p1, @p2) ORDER BY participant_id",
         parameters: {'p1': testParticipantId1, 'p2': testParticipantId2},
       );
       expect(rows.length, equals(2));
@@ -634,7 +645,7 @@ void main() {
       expect(rows[1][1], equals('not_connected'));
     });
 
-    test('updates existing patients on re-sync', () async {
+    test('updates existing participants on re-sync', () async {
       when(
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer(
@@ -646,7 +657,7 @@ void main() {
         ],
       );
 
-      // First sync creates the patient
+      // First sync creates the participant
       final firstResult = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
@@ -654,7 +665,7 @@ void main() {
       );
       expect(firstResult.participantsCreated, equals(1));
 
-      // Second sync updates the patient
+      // Second sync updates the participant
       final secondResult = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
@@ -665,7 +676,7 @@ void main() {
       expect(secondResult.participantsUpdated, equals(1));
     });
 
-    test('logs sync event with patient count metadata', () async {
+    test('logs sync event with participant count metadata', () async {
       when(
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer(
@@ -691,23 +702,23 @@ void main() {
         skipLogging: false,
       );
 
-      // Verify sync was logged with PATIENTS_SYNC operation
+      // Verify sync was logged with PARTICIPANTS_SYNC operation
       final db = Database.instance;
       const serviceContext = UserContext.service;
       final logs = await db.executeWithContext('''
         SELECT operation, success, metadata::text
         FROM edc_sync_log
-        WHERE operation = 'PATIENTS_SYNC'
+        WHERE operation = 'PARTICIPANTS_SYNC'
         ORDER BY sync_timestamp DESC
         LIMIT 1
         ''', context: serviceContext);
 
       expect(logs.isNotEmpty, isTrue);
-      expect(logs.first[0], equals('PATIENTS_SYNC'));
+      expect(logs.first[0], equals('PARTICIPANTS_SYNC'));
       expect(logs.first[1], isTrue);
-      // Metadata should contain patient_count
+      // Metadata should contain participant_count
       final metadata = logs.first[2] as String;
-      expect(metadata, contains('patient_count'));
+      expect(metadata, contains('participant_count'));
     });
   });
 }
@@ -721,7 +732,9 @@ Future<void> _cleanup() async {
 
 Future<void> _cleanupParticipants() async {
   final db = Database.instance;
-  await db.execute("DELETE FROM patients WHERE patient_id LIKE 'PSYNC-%'");
+  await db.execute(
+    "DELETE FROM participants WHERE participant_id LIKE 'PSYNC-%'",
+  );
 }
 
 Future<void> _cleanupTestUser() async {
@@ -747,6 +760,6 @@ Future<void> _cleanupSyncLogs() async {
 Future<void> _cleanupSites() async {
   final db = Database.instance;
   await db.execute(
-    "DELETE FROM sites WHERE site_id LIKE 'test-patient-sync-%'",
+    "DELETE FROM sites WHERE site_id LIKE 'test-participant-sync-%'",
   );
 }

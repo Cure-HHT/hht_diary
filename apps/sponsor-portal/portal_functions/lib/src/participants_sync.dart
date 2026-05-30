@@ -1,9 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00063: EDC Patient Ingestion
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00063: EDC Participant Ingestion
+//   REQ-CAL-p00073: Participant Status Definitions
 //
-// Patient synchronization from RAVE EDC
-// Fetches subjects from Medidata RAVE and syncs to local patients table
+// Participant synchronization from RAVE EDC
+// Fetches subjects from Medidata RAVE and syncs to local participants table
 
 import 'dart:convert';
 import 'dart:io';
@@ -17,7 +17,7 @@ import 'rave_mock.dart';
 import 'rave_sync_lockout.dart';
 import 'sites_sync.dart' show RaveConfig, defaultSyncInterval;
 
-/// Result of a patients sync operation.
+/// Result of a participants sync operation.
 class ParticipantsSyncResult {
   final int participantsCreated;
   final int participantsUpdated;
@@ -40,8 +40,8 @@ class ParticipantsSyncResult {
   bool get hasError => error != null;
 
   Map<String, dynamic> toJson() => {
-    'patients_created': participantsCreated,
-    'patients_updated': participantsUpdated,
+    'participants_created': participantsCreated,
+    'participants_updated': participantsUpdated,
     'synced_at': syncedAt.toIso8601String(),
     if (error != null) 'error': error,
     if (paused) 'paused': true,
@@ -87,10 +87,10 @@ String computeParticipantContentHash(List<RaveSubject> subjects) {
   return digest.toString();
 }
 
-/// Checks if patients need to be synced from EDC.
+/// Checks if participants need to be synced from EDC.
 ///
 /// Returns true if:
-/// - No patients exist in the database
+/// - No participants exist in the database
 /// - Most recent sync is older than [syncInterval]
 Future<bool> shouldSyncParticipants({
   Duration syncInterval = defaultSyncInterval,
@@ -102,7 +102,7 @@ Future<bool> shouldSyncParticipants({
     SELECT
       COUNT(*) as count,
       MAX(edc_synced_at) as last_sync
-    FROM patients
+    FROM participants
   ''', context: serviceContext);
 
   if (result.isEmpty) {
@@ -125,13 +125,13 @@ Future<bool> shouldSyncParticipants({
   return age > syncInterval;
 }
 
-/// Synchronizes patients from RAVE EDC to the local database.
+/// Synchronizes participants from RAVE EDC to the local database.
 ///
 /// This function:
 /// 1. Connects to RAVE and fetches all subjects for the configured study
-/// 2. Upserts each patient to the database
-/// 3. New patients get mobile_linking_status = 'not_connected'
-/// 4. Existing patients: updates edc_synced_at and site_id only (preserves linking status)
+/// 2. Upserts each participant to the database
+/// 3. New participants get mobile_linking_status = 'not_connected'
+/// 4. Existing participants: updates edc_synced_at and site_id only (preserves linking status)
 /// 5. Logs the sync event with counts in metadata JSONB
 ///
 /// Optional parameters for testing:
@@ -195,7 +195,7 @@ Future<ParticipantsSyncResult> syncParticipantsFromEdc({
       participantsCreated: 0,
       participantsUpdated: 0,
       syncedAt: DateTime.now().toUtc(),
-      error: 'RAVE_STUDY_OID is required for patient sync',
+      error: 'RAVE_STUDY_OID is required for participant sync',
     );
     if (!skipLogging) {
       await _logParticipantSyncResult(result, '', startTime, studyOid: null);
@@ -242,7 +242,7 @@ Future<ParticipantsSyncResult> syncParticipantsFromEdc({
     var updated = 0;
     var skipped = 0;
 
-    // Upsert each subject as a patient
+    // Upsert each subject as a participant
     for (final subject in subjects) {
       final participantId = subject.subjectKey;
       final siteId = subject.siteOid;
@@ -250,24 +250,24 @@ Future<ParticipantsSyncResult> syncParticipantsFromEdc({
       try {
         final upsertResult = await db.executeWithContext(
           '''
-          INSERT INTO patients (
-            patient_id, site_id, edc_subject_key,
+          INSERT INTO participants (
+            participant_id, site_id, edc_subject_key,
             mobile_linking_status, edc_synced_at,
             created_at, updated_at
           )
           VALUES (
-            @patientId, @siteId, @edcSubjectKey,
+            @participantId, @siteId, @edcSubjectKey,
             'not_connected', @syncedAt,
             now(), now()
           )
-          ON CONFLICT (patient_id) DO UPDATE SET
+          ON CONFLICT (participant_id) DO UPDATE SET
             site_id = EXCLUDED.site_id,
             edc_synced_at = EXCLUDED.edc_synced_at,
             updated_at = now()
           RETURNING (xmax = 0) as is_insert
           ''',
           parameters: {
-            'patientId': participantId,
+            'participantId': participantId,
             'siteId': siteId,
             'edcSubjectKey': subject.subjectKey,
             'syncedAt': syncedAt,
@@ -284,14 +284,16 @@ Future<ParticipantsSyncResult> syncParticipantsFromEdc({
           }
         }
       } catch (e) {
-        // Skip patients with invalid site references (FK violation)
-        print('[WARN] Skipping patient $participantId (site $siteId): $e');
+        // Skip participants with invalid site references (FK violation)
+        print('[WARN] Skipping participant $participantId (site $siteId): $e');
         skipped++;
       }
     }
 
     if (skipped > 0) {
-      print('[PATIENTS_SYNC] Skipped $skipped patients with unknown sites');
+      print(
+        '[PARTICIPANTS_SYNC] Skipped $skipped participants with unknown sites',
+      );
     }
 
     final result = ParticipantsSyncResult(
@@ -338,7 +340,7 @@ Future<ParticipantsSyncResult> syncParticipantsFromEdc({
         labels: {
           'rave_auth_failed': 'true',
           'rave_reason_code': e.reasonCode ?? 'unknown',
-          'source': 'patients_sync',
+          'source': 'participants_sync',
         },
       );
     }
@@ -396,9 +398,9 @@ Future<ParticipantsSyncResult> syncParticipantsFromEdc({
   }
 }
 
-/// Internal helper to log patient sync results to edc_sync_log.
+/// Internal helper to log participant sync results to edc_sync_log.
 ///
-/// Uses PATIENTS_SYNC operation and stores patient counts in metadata JSONB
+/// Uses PARTICIPANTS_SYNC operation and stores participant counts in metadata JSONB
 /// since edc_sync_log columns are sites-specific.
 Future<void> _logParticipantSyncResult(
   ParticipantsSyncResult result,
@@ -410,7 +412,7 @@ Future<void> _logParticipantSyncResult(
   final durationMs = DateTime.now().difference(startTime).inMilliseconds;
 
   // Build a SitesSyncResult adapter for the shared logSyncEvent function
-  // We pass patient counts via metadata since edc_sync_log columns are sites-specific
+  // We pass participant counts via metadata since edc_sync_log columns are sites-specific
   try {
     final db = Database.instance;
     const serviceContext = UserContext.service;
@@ -431,29 +433,29 @@ Future<void> _logParticipantSyncResult(
       parameters: {
         'syncTimestamp': result.syncedAt,
         'sourceSystem': 'RAVE',
-        'operation': 'PATIENTS_SYNC',
+        'operation': 'PARTICIPANTS_SYNC',
         'contentHash': contentHash.isEmpty ? 'no-content' : contentHash,
         'durationMs': durationMs,
         'success': !result.hasError,
         'errorMessage': result.error,
         'metadata': jsonEncode({
-          'patients_created': result.participantsCreated,
-          'patients_updated': result.participantsUpdated,
+          'participants_created': result.participantsCreated,
+          'participants_updated': result.participantsUpdated,
           if (studyOid != null) 'study_oid': studyOid,
-          if (participantCount != null) 'patient_count': participantCount,
+          if (participantCount != null) 'participant_count': participantCount,
         }),
       },
       context: serviceContext,
     );
   } catch (e) {
     // Log error but don't fail the sync operation
-    print('[WARN] Failed to log patient sync event: $e');
+    print('[WARN] Failed to log participant sync event: $e');
   }
 }
 
-/// Syncs patients if needed, based on sync interval.
+/// Syncs participants if needed, based on sync interval.
 ///
-/// This is the main entry point for the patients handler.
+/// This is the main entry point for the participants handler.
 /// It checks if a sync is needed and performs it if so.
 Future<ParticipantsSyncResult?> syncParticipantsIfNeeded({
   Duration syncInterval = defaultSyncInterval,
@@ -488,7 +490,7 @@ Future<ParticipantsSyncResult?> syncParticipantsIfNeeded({
           content_hash, duration_ms, success, error_message, metadata
         )
         VALUES (
-          @syncTimestamp, 'RAVE', 'PATIENTS_SYNC',
+          @syncTimestamp, 'RAVE', 'PARTICIPANTS_SYNC',
           0, 0, 0,
           'no-content', 0, false, @errorMessage, @metadata::jsonb
         )

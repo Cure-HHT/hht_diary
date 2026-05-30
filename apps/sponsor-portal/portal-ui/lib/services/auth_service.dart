@@ -1098,7 +1098,7 @@ class AuthService extends ChangeNotifier {
     }
 
     // REQ-d00083-A..E, REQ-p01044-J..M: clear all client-side storage so no
-    // patient data remains recoverable after logout or session timeout.
+    // participant data remains recoverable after logout or session timeout.
     await _clearStorage();
 
     await _auth.signOut();

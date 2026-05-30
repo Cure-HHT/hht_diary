@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p01066-K: Prevent entry of nosebleed records for future dates or times
-//   REQ-p01066-L: Store timestamps with patient's wall-clock time and timezone offset
+//   REQ-p01066-L: Store timestamps with participant's wall-clock time and timezone offset
 //   REQ-p01069-A: Provide an intuitive time picker for start and end times
 
 /// Time picker widget with a dial-style interface

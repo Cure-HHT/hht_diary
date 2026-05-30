@@ -1,10 +1,10 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00019: Link New Patient Workflow
+//   REQ-CAL-p00019: Link New Participant Workflow
 //   REQ-CAL-p00049: Mobile Linking Codes
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //   REQ-p70007: Linking Code Lifecycle Management
 //
-// Dialog for generating patient linking codes
+// Dialog for generating participant linking codes
 
 import 'package:flutter/material.dart';
 
@@ -14,7 +14,7 @@ import 'activation_code_display.dart';
 /// Dialog states for the linking flow
 enum _DialogState { confirm, loading, success, error }
 
-/// Dialog for generating a patient linking code.
+/// Dialog for generating a participant linking code.
 ///
 /// Shows a confirmation prompt, then generates a linking code via API,
 /// and displays the code with copy functionality.
@@ -23,8 +23,8 @@ enum _DialogState { confirm, loading, success, error }
 /// ```dart
 /// await LinkParticipantDialog.show(
 ///   context: context,
-///   patientId: patient.patientId,
-///   patientDisplayId: patient.edcSubjectKey,
+///   participantId: participant.participantId,
+///   participantDisplayId: participant.edcSubjectKey,
 ///   apiClient: apiClient,
 /// );
 /// ```
@@ -75,7 +75,7 @@ class _LinkParticipantDialogState extends State<LinkParticipantDialog> {
 
     final response = await widget.apiClient.post(
       '/api/v1/portal/participants/link-code',
-      {'patientId': widget.participantId},
+      {'participantId': widget.participantId},
     );
 
     if (!mounted) return;
@@ -357,9 +357,9 @@ class _LinkParticipantDialogState extends State<LinkParticipantDialog> {
   }
 }
 
-/// Dialog for showing an existing patient linking code.
+/// Dialog for showing an existing participant linking code.
 ///
-/// Fetches the active linking code for a patient and displays it.
+/// Fetches the active linking code for a participant and displays it.
 class ShowLinkingCodeDialog extends StatefulWidget {
   final String participantId;
   final String participantDisplayId;
@@ -422,7 +422,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
   Future<void> _fetchCode() async {
     final response = await widget.apiClient.get(
       '/api/v1/portal/participants/link-code/active',
-      extraHeaders: {'X-Patient-Id': widget.participantId},
+      extraHeaders: {'X-Participant-Id': widget.participantId},
     );
 
     if (!mounted) return;
@@ -453,7 +453,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
 
     final response = await widget.apiClient.post(
       '/api/v1/portal/participants/link-code',
-      {'patientId': widget.participantId},
+      {'participantId': widget.participantId},
     );
 
     if (!mounted) return;
@@ -552,7 +552,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
     if (!_hasActiveCode) {
       // CUR-1069: Reference mode — show the previously used code if available.
       // For non-pending statuses the active code was consumed; the used code
-      // is stored in patient_linking_codes.code and returned by the server.
+      // is stored in participant_linking_codes.code and returned by the server.
       if (widget.isReference && _usedCode != null) {
         return _buildReferenceCodeDisplay(theme, _usedCode!, _usedAt);
       }
@@ -575,7 +575,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
             ),
             const SizedBox(height: 8),
             Text(
-              'No linking code has been recorded for this patient.',
+              'No linking code has been recorded for this participant.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

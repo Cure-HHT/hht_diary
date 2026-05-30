@@ -63,27 +63,27 @@ class UserContext {
   );
 
   /// CUR-1311 (Phase 1B): Participant-scoped context for notifications
-  /// reads/updates. Drives the `app.current_patient_id` session variable
-  /// that the `notifications_patient_select` / `_update` RLS policies
+  /// reads/updates. Drives the `app.current_participant_id` session variable
+  /// that the `notifications_participant_select` / `_update` RLS policies
   /// read — so RLS scopes the result set to the calling participant even
-  /// if the SQL forgets a `WHERE patient_id = ?` predicate.
+  /// if the SQL forgets a `WHERE participant_id = ?` predicate.
   ///
   /// Use only after the request's auth has been resolved to a concrete
-  /// `patient_id`. Apps wire the resolver inside the
+  /// `participant_id`. Apps wire the resolver inside the
   /// `comms.envelopeFetchHandler` / `envelopeSinceHandler` factories.
   factory UserContext.participant(String participantId) {
     return UserContext(
       pgRole: 'authenticated',
       userId: participantId,
-      role: 'patient',
-      allowedRoles: const ['patient'],
+      role: 'participant',
+      allowedRoles: const ['participant'],
     );
   }
 
-  /// CUR-1311 (Phase 1B): the [patient_id] this context is scoped to,
+  /// CUR-1311 (Phase 1B): the [participant_id] this context is scoped to,
   /// or null if the context isn't a participant context. Carried via
   /// [userId] for the participant factory; null for service / other roles.
-  String? get participantId => role == 'patient' ? userId : null;
+  String? get participantId => role == 'participant' ? userId : null;
 }
 
 /// Database connection configuration from environment
@@ -240,12 +240,12 @@ class Database {
         parameters: [context.allowedRoles.join(',')],
       );
 
-      // CUR-1311 (Phase 1B): patient-scope session variable for the
+      // CUR-1311 (Phase 1B): participant-scope session variable for the
       // notifications RLS policies. Empty string when the context is
-      // not a patient context — current_setting('app.current_patient_id', true)
-      // returns '' which won't match any real patient_id.
+      // not a participant context — current_setting('app.current_participant_id', true)
+      // returns '' which won't match any real participant_id.
       await connection.execute(
-        Sql("SELECT set_config('app.current_patient_id', \$1, true)"),
+        Sql("SELECT set_config('app.current_participant_id', \$1, true)"),
         parameters: [context.participantId ?? ''],
       );
 
@@ -297,7 +297,7 @@ class Database {
         parameters: [context.allowedRoles.join(',')],
       );
       await session.execute(
-        Sql("SELECT set_config('app.current_patient_id', \$1, true)"),
+        Sql("SELECT set_config('app.current_participant_id', \$1, true)"),
         parameters: [context.participantId ?? ''],
       );
 

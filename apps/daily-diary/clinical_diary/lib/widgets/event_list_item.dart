@@ -307,7 +307,7 @@ class EventListItem extends StatelessWidget {
     );
   }
 
-  /// Map a questionnaire_type string to a patient-facing display name
+  /// Map a questionnaire_type string to a participant-facing display name
   /// via [QuestionnaireType] (the single source of truth for these
   /// labels). Falls back to the input string when the value is unknown.
   static String _displayNameFor(String questionnaireType) {

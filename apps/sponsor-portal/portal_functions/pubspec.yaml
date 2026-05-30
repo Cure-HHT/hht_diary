@@ -60,7 +60,7 @@ dev_dependencies:
   test: ^1.25.15
   mocktail: ^1.0.4
   # Imported directly by ~6 test files (notification_service_test,
-  # portal_auth_test, patient_linking_test, integration_test/*).
+  # portal_auth_test, participant_linking_test, integration_test/*).
   # Available transitively via otel_common but a direct declaration
   # is required by sonar:dart:S7087 and protects against an upstream
   # version bump silently breaking the test imports.

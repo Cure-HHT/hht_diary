@@ -1,9 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00065: Reactivate Patient
+//   REQ-CAL-p00065: Reactivate Participant
 //   REQ-p05004: Disconnection Notification (persistent, non-dismissible)
-//   REQ-p70011: Patient Reconnection Workflow (linking_in_progress variant)
+//   REQ-p70011: Participant Reconnection Workflow (linking_in_progress variant)
 //
 // Widget tests for DisconnectionBanner
 

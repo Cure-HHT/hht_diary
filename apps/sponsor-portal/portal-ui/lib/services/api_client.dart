@@ -58,7 +58,7 @@ class ApiClient {
   }
 
   /// Make an authenticated GET request.
-  /// [extraHeaders] are merged into the auth headers — use for e.g. X-Patient-Id (CUR-1064).
+  /// [extraHeaders] are merged into the auth headers — use for e.g. X-Participant-Id (CUR-1064).
   Future<ApiResponse> get(
     String path, {
     Map<String, String> extraHeaders = const {},

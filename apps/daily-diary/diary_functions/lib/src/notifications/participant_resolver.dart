@@ -1,19 +1,19 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-d00195: Mobile Notifications Polling — auth-to-patient bridge
+//   REQ-d00195: Mobile Notifications Polling — auth-to-participant bridge
 //
-// JWT → patient_id resolver for the comms `envelopeFetchHandler` and
+// JWT → participant_id resolver for the comms `envelopeFetchHandler` and
 // `envelopeSinceHandler` factories. The handlers know nothing about
 // auth; this function performs the lookup once per request and
-// returns either the resolved patient_id or null (which the handler
+// returns either the resolved participant_id or null (which the handler
 // translates into 401 Unauthorized).
 //
 // Resolution path mirrors the existing fcm_token.dart logic:
-//   JWT.authCode → app_users.user_id → patient_linking_codes.used_by_user_id
-//   → patients.patient_id
+//   JWT.authCode → app_users.user_id → participant_linking_codes.used_by_user_id
+//   → participants.participant_id
 //
 // One row is expected per active link; LIMIT 1 plus the
-// `used_at IS NOT NULL` filter on patient_linking_codes scopes to the
-// patient currently linked to this user.
+// `used_at IS NOT NULL` filter on participant_linking_codes scopes to the
+// participant currently linked to this user.
 
 import 'package:shelf/shelf.dart';
 
@@ -23,9 +23,9 @@ import '../jwt.dart';
 /// Resolve the request's authenticated participant. Returns null when:
 ///   * the Authorization header is missing or invalid
 ///   * the JWT is structurally invalid or expired
-///   * the user has no linked participant (`patient_linking_codes.used_at` is null)
+///   * the user has no linked participant (`participant_linking_codes.used_at` is null)
 ///
-/// Wire into `envelopeFetchHandler(patientResolver: jwtParticipantResolver)`.
+/// Wire into `envelopeFetchHandler(participantResolver: jwtParticipantResolver)`.
 Future<String?> jwtParticipantResolver(Request request) async {
   final auth = verifyAuthHeader(request.headers['authorization']);
   if (auth == null) return null;
@@ -33,12 +33,12 @@ Future<String?> jwtParticipantResolver(Request request) async {
   final db = Database.instance;
   final result = await db.execute(
     '''
-    SELECT p.patient_id
+    SELECT p.participant_id
     FROM app_users u
-    LEFT JOIN patient_linking_codes plc
+    LEFT JOIN participant_linking_codes plc
       ON u.user_id = plc.used_by_user_id
       AND plc.used_at IS NOT NULL
-    LEFT JOIN patients p ON plc.patient_id = p.patient_id
+    LEFT JOIN participants p ON plc.participant_id = p.participant_id
     WHERE u.auth_code = @authCode
     LIMIT 1
     ''',

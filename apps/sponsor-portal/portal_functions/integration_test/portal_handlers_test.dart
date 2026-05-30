@@ -892,7 +892,7 @@ void main() {
           final json = await getResponseJson(response);
           expect(json['roles'], contains('Investigator'));
           // NOTE: linking_code is NOT returned for portal users.
-          // Linking codes are only for patients (diary app device linking).
+          // Linking codes are only for participants (diary app device linking).
           expect(json['site_ids'], contains(testSiteId));
         }
       },

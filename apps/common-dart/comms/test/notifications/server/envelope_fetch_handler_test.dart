@@ -59,10 +59,10 @@ void main() {
       final json =
           jsonDecode(await response.readAsString()) as Map<String, dynamic>;
       expect(json['notification_id'], equals('env-1'));
-      expect(json['type'], equals('patient_status_update'));
+      expect(json['type'], equals('participant_status_update'));
     });
 
-    test('401 when patientResolver returns null', () async {
+    test('401 when participantResolver returns null', () async {
       final repo = InMemoryNotificationRepository();
       _seed(repo, participantId: 'pat-1');
       final router = _routerFor(repo, resolver: (_) => null);
@@ -74,7 +74,7 @@ void main() {
       expect(response.statusCode, equals(401));
     });
 
-    test('404 when envelope does not exist for this patient', () async {
+    test('404 when envelope does not exist for this participant', () async {
       final repo = InMemoryNotificationRepository();
       _seed(repo, participantId: 'pat-OTHER');
       // Caller is pat-1 but the envelope belongs to pat-OTHER.

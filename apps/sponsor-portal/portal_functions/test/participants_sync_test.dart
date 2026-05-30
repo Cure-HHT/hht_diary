@@ -1,8 +1,8 @@
-// Tests for patient synchronization from RAVE EDC
+// Tests for participant synchronization from RAVE EDC
 //
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00063: EDC Patient Ingestion
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00063: EDC Participant Ingestion
+//   REQ-CAL-p00073: Participant Status Definitions
 
 import 'dart:io';
 
@@ -50,8 +50,8 @@ void main() {
 
       final json = result.toJson();
 
-      expect(json['patients_created'], equals(5));
-      expect(json['patients_updated'], equals(3));
+      expect(json['participants_created'], equals(5));
+      expect(json['participants_updated'], equals(3));
       expect(json['synced_at'], equals('2024-01-15T12:00:00.000Z'));
       expect(json.containsKey('error'), isFalse);
     });
@@ -67,8 +67,8 @@ void main() {
 
       final json = result.toJson();
 
-      expect(json['patients_created'], equals(0));
-      expect(json['patients_updated'], equals(0));
+      expect(json['participants_created'], equals(0));
+      expect(json['participants_updated'], equals(0));
       expect(json['synced_at'], equals('2024-01-15T12:00:00.000Z'));
       expect(json['error'], equals('Network error'));
     });
@@ -82,8 +82,8 @@ void main() {
 
       final json = result.toJson();
 
-      expect(json['patients_created'], equals(0));
-      expect(json['patients_updated'], equals(0));
+      expect(json['participants_created'], equals(0));
+      expect(json['participants_updated'], equals(0));
     });
   });
 
@@ -223,7 +223,7 @@ void main() {
       expect(result.hasError, isTrue);
       expect(
         result.error,
-        equals('RAVE_STUDY_OID is required for patient sync'),
+        equals('RAVE_STUDY_OID is required for participant sync'),
       );
       expect(result.participantsCreated, equals(0));
       expect(result.participantsUpdated, equals(0));
@@ -239,7 +239,7 @@ void main() {
       expect(result.hasError, isTrue);
       expect(
         result.error,
-        equals('RAVE_STUDY_OID is required for patient sync'),
+        equals('RAVE_STUDY_OID is required for participant sync'),
       );
     });
 
@@ -382,7 +382,7 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer((_) async => subjects);
 
-      // Without a real database, the per-patient upsert will fail but be
+      // Without a real database, the per-participant upsert will fail but be
       // caught and skipped. The function still completes with 0 counts.
       final result = await syncParticipantsFromEdc(
         testClient: mockClient,
@@ -390,7 +390,7 @@ void main() {
         skipLogging: true,
       );
 
-      // All patients skipped due to DB errors
+      // All participants skipped due to DB errors
       expect(result.participantsCreated, equals(0));
       expect(result.participantsUpdated, equals(0));
       expect(result.hasError, isFalse);
@@ -398,7 +398,7 @@ void main() {
       verify(() => mockClient.getSubjects(studyOid: 'TEST-STUDY')).called(1);
     });
 
-    test('skips patients with unknown site references gracefully', () async {
+    test('skips participants with unknown site references gracefully', () async {
       final subjects = [
         const RaveSubject(subjectKey: '840-001-001', siteOid: 'UNKNOWN_SITE'),
         const RaveSubject(subjectKey: '840-001-002', siteOid: 'UNKNOWN_SITE'),
@@ -408,7 +408,7 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer((_) async => subjects);
 
-      // Should complete without throwing, skipping patients with DB errors
+      // Should complete without throwing, skipping participants with DB errors
       final result = await syncParticipantsFromEdc(
         testClient: mockClient,
         testStudyOid: 'TEST-STUDY',
@@ -422,7 +422,7 @@ void main() {
   });
 
   group('syncParticipantsFromEdc logging paths (skipLogging: false)', () {
-    // These tests exercise the _logPatientSyncResult and logWithTrace code paths.
+    // These tests exercise the _logParticipantSyncResult and logWithTrace code paths.
     // OTel must be initialized for logWithTrace to work.
     // Without a database, the logging function catches its own errors,
     // so these tests complete normally while exercising the logging branches.

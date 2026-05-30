@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00064: Mark Patient as Not Participating
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00064: Mark Participant as Not Participating
+//   REQ-CAL-p00073: Participant Status Definitions
 //
 // Widget tests for ReactivateParticipantDialog confirm/success/error/retry states.
 
@@ -42,7 +42,7 @@ MockClient _createMockHttpClient({bool shouldFail = false}) {
     if (path.contains('/reactivate') && request.method == 'POST') {
       if (shouldFail) {
         return http.Response(
-          jsonEncode({'error': 'Patient not in not_participating state'}),
+          jsonEncode({'error': 'Participant not in not_participating state'}),
           400,
           headers: {'content-type': 'application/json'},
         );
@@ -111,7 +111,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
 
 void main() {
   group('ReactivateParticipantDialog widget', () {
-    testWidgets('confirm state shows patient ID and Reactivate button', (
+    testWidgets('confirm state shows participant ID and Reactivate button', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
@@ -167,7 +167,7 @@ void main() {
         // Enter reason
         await tester.enterText(
           find.byType(TextField),
-          'Patient wants to re-link',
+          'Participant wants to re-link',
         );
         await tester.pump();
 
@@ -180,7 +180,10 @@ void main() {
         expect(find.byIcon(Icons.check_circle), findsOneWidget);
         expect(find.textContaining('has been reactivated'), findsOneWidget);
         expect(find.text('Disconnected'), findsOneWidget);
-        expect(find.textContaining('Patient wants to re-link'), findsOneWidget);
+        expect(
+          find.textContaining('Participant wants to re-link'),
+          findsOneWidget,
+        );
         expect(find.text('Done'), findsOneWidget);
         expect(find.textContaining('Reconnect'), findsWidgets);
       },
@@ -203,7 +206,7 @@ void main() {
       expect(find.text('Error'), findsOneWidget);
       expect(find.byIcon(Icons.error), findsOneWidget);
       expect(
-        find.text('Patient not in not_participating state'),
+        find.text('Participant not in not_participating state'),
         findsOneWidget,
       );
       expect(find.text('Try Again'), findsOneWidget);

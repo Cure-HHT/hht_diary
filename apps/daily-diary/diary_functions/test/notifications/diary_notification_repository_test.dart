@@ -82,7 +82,7 @@ void main() {
         <dynamic>[
           '11111111-1111-1111-1111-111111111111',
           '840-001',
-          'patient_status_update',
+          'participant_status_update',
           'Account Disconnected',
           'You have been disconnected.',
           true,
@@ -111,13 +111,16 @@ void main() {
       expect(result.sentAt, equals(sentAt));
     });
 
-    test('query includes WHERE patient_id (defense in depth)', () async {
+    test('query includes WHERE participant_id (defense in depth)', () async {
       final repo = DiaryNotificationRepository();
       await repo.findById('id-1', participantId: '840-001');
 
       expect(calls.single.query, contains('WHERE notification_id = @id'));
-      expect(calls.single.query, contains('AND patient_id = @patientId'));
-      expect(calls.single.parameters!['patientId'], equals('840-001'));
+      expect(
+        calls.single.query,
+        contains('AND participant_id = @participantId'),
+      );
+      expect(calls.single.parameters!['participantId'], equals('840-001'));
     });
   });
 
@@ -134,7 +137,7 @@ void main() {
       final params = calls.single.parameters!;
       expect(params['since'], equals(since));
       expect(params['limit'], equals(25));
-      expect(params['patientId'], equals('840-001'));
+      expect(params['participantId'], equals('840-001'));
     });
   });
 
@@ -163,7 +166,10 @@ void main() {
           reason:
               'idempotent — duplicate fetch from another device must not bump',
         );
-        expect(calls.single.query, contains('AND patient_id = @patientId'));
+        expect(
+          calls.single.query,
+          contains('AND participant_id = @participantId'),
+        );
         expect(calls.single.parameters!['ids'], equals(['id-1', 'id-2']));
       },
     );

@@ -131,7 +131,7 @@ class MockEnrollmentService implements EnrollmentService {
         setDisconnected(true);
       case 'reconnect':
         // CUR-1343 / REQ-p70011/F: A new linking code has been issued; mobile
-        // must hold the disconnected state until the patient enters the new
+        // must hold the disconnected state until the participant enters the new
         // code, so the test surface matches the real service.
         linkingStatusNotifier.value = MobileLinkingStatus.linkingInProgress;
         setDisconnected(true);

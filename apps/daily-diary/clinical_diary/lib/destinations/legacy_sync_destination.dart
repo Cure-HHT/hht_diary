@@ -61,7 +61,7 @@ import 'package:http/http.dart' as http;
 ///   - [http.ClientException]               -> [SendTransient]
 ///   - [TimeoutException]                   -> [SendTransient]
 ///   - `resolveBaseUrl` returns `null`      -> [SendTransient]
-///     (patient not yet enrolled — FIFO retains the row, retries next cycle)
+///     (participant not yet enrolled — FIFO retains the row, retries next cycle)
 class LegacySyncDestination extends Destination {
   LegacySyncDestination({
     required http.Client client,
@@ -230,7 +230,7 @@ class LegacySyncDestination extends Destination {
     if (baseUrl == null) {
       return _logged(
         const SendTransient(
-          error: 'patient not enrolled — base URL unavailable',
+          error: 'participant not enrolled — base URL unavailable',
         ),
         url: null,
       );

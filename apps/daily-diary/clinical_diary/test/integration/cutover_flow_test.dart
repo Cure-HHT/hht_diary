@@ -256,7 +256,7 @@ void main() {
         'startTime': now.toIso8601String(),
         'intensity': 'pouring',
       },
-      changeReason: 'patient correction',
+      changeReason: 'participant correction',
     );
 
     final events = await fx.runtime.backend.findEventsForAggregate('agg-s2');
@@ -305,7 +305,7 @@ void main() {
         aggregateId: 'agg-s3',
         eventType: 'tombstone',
         answers: const <String, Object?>{},
-        changeReason: 'patient retracted',
+        changeReason: 'participant retracted',
       );
 
       final events = await fx.runtime.backend.findEventsForAggregate('agg-s3');

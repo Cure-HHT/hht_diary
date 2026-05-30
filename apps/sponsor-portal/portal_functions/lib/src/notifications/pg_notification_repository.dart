@@ -8,9 +8,9 @@
 // Postgres implementation of `comms.NotificationRepository` for the
 // sponsor portal (envelope writer side). Inserts and status updates
 // run with `UserContext.service` — the orchestrator owns the row's
-// lifecycle. Patient-scoped reads use `UserContext.patient(patientId)`
-// so the `notifications_patient_select` RLS policy clamps the result
-// set to that patient even if a query forgets the `WHERE patient_id`
+// lifecycle. Participant-scoped reads use `UserContext.participant(participantId)`
+// so the `notifications_participant_select` RLS policy clamps the result
+// set to that participant even if a query forgets the `WHERE participant_id`
 // predicate (defense in depth).
 //
 // JSONB <-> Map<String, dynamic> conversion happens at the boundary —
@@ -32,14 +32,14 @@ class PgNotificationRepository implements NotificationRepository {
   @override
   Future<void> insertPending(Envelope envelope) async {
     // INSERT runs with service_role — the writer is the action handler,
-    // not the patient. ON CONFLICT DO NOTHING makes a writer retry
+    // not the participant. ON CONFLICT DO NOTHING makes a writer retry
     // after a crash idempotent: if the row already exists at the same
     // id, the second attempt is a no-op rather than a duplicate.
     await _db.executeWithContext(
       '''
       INSERT INTO notifications (
         notification_id,
-        patient_id,
+        participant_id,
         notification_type,
         title,
         body,
@@ -50,7 +50,7 @@ class PgNotificationRepository implements NotificationRepository {
       )
       VALUES (
         @notificationId,
-        @patientId,
+        @participantId,
         @notificationType::notification_type,
         @title,
         @body,
@@ -63,7 +63,7 @@ class PgNotificationRepository implements NotificationRepository {
       ''',
       parameters: {
         'notificationId': envelope.notificationId,
-        'patientId': envelope.participantId,
+        'participantId': envelope.participantId,
         'notificationType': envelope.type.wire,
         'title': envelope.title,
         'body': envelope.body,
@@ -80,15 +80,15 @@ class PgNotificationRepository implements NotificationRepository {
   Future<Envelope?> findById(String id, {required String participantId}) async {
     final result = await _db.executeWithContext(
       '''
-      SELECT notification_id, patient_id, notification_type::text,
+      SELECT notification_id, participant_id, notification_type::text,
              title, body, user_visible, payload::text, status,
              message_id, last_error,
              created_at, sent_at, delivered_at
       FROM notifications
-      WHERE notification_id = @id AND patient_id = @patientId
+      WHERE notification_id = @id AND participant_id = @participantId
       LIMIT 1
       ''',
-      parameters: {'id': id, 'patientId': participantId},
+      parameters: {'id': id, 'participantId': participantId},
       context: UserContext.participant(participantId),
     );
     if (result.isEmpty) return null;
@@ -103,18 +103,18 @@ class PgNotificationRepository implements NotificationRepository {
   }) async {
     final result = await _db.executeWithContext(
       '''
-      SELECT notification_id, patient_id, notification_type::text,
+      SELECT notification_id, participant_id, notification_type::text,
              title, body, user_visible, payload::text, status,
              message_id, last_error,
              created_at, sent_at, delivered_at
       FROM notifications
-      WHERE patient_id = @patientId
+      WHERE participant_id = @participantId
         AND created_at > @since
       ORDER BY created_at ASC
       LIMIT @limit
       ''',
       parameters: {
-        'patientId': participantId,
+        'participantId': participantId,
         'since': since.toUtc(),
         'limit': limit,
       },
@@ -168,10 +168,10 @@ class PgNotificationRepository implements NotificationRepository {
       SET status = 'delivered',
           delivered_at = now()
       WHERE notification_id = ANY (@ids)
-        AND patient_id = @patientId
+        AND participant_id = @participantId
         AND delivered_at IS NULL
       ''',
-      parameters: {'ids': ids, 'patientId': participantId},
+      parameters: {'ids': ids, 'participantId': participantId},
       context: UserContext.participant(participantId),
     );
   }

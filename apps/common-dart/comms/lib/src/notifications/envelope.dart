@@ -35,7 +35,7 @@ class Envelope {
   factory Envelope.fromJson(Map<String, dynamic> json) {
     return Envelope(
       notificationId: json['notification_id'] as String,
-      participantId: json['patient_id'] as String,
+      participantId: json['participant_id'] as String,
       type: NotificationType.fromWire(json['type'] as String),
       title: json['title'] as String,
       body: json['body'] as String?,
@@ -104,7 +104,7 @@ class Envelope {
   /// columns. Field names are snake_case to match Postgres conventions.
   Map<String, dynamic> toJson() => <String, dynamic>{
     'notification_id': notificationId,
-    'patient_id': participantId,
+    'participant_id': participantId,
     'type': type.wire,
     'title': title,
     if (body != null) 'body': body,

@@ -4,12 +4,12 @@
 //   REQ-CAL-p00047: Hard-Coded Questionnaires
 //   REQ-CAL-p00079: Start Trial Workflow
 //   REQ-CAL-p00080: Questionnaire Study Event Association
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //
 // Comprehensive tests for questionnaire handlers (get, send, delete,
 // unlock, finalize) and NextCycleResult sealed class serialisation.
 // Covers all CUR-823 acceptance criteria:
-//   1. GET returns statuses per patient
+//   1. GET returns statuses per participant
 //   2. POST sends questionnaire + triggers FCM
 //   3. Nose HHT and QoL can be sent multiple times (after finalize)
 //   4. DELETE requires reason (max 25 chars)
@@ -38,8 +38,8 @@ Future<void> _initOTel() async {
   );
 }
 
-/// Test patient and user data
-const _testParticipantId = 'patient-001';
+/// Test participant and user data
+const _testParticipantId = 'participant-001';
 const _testSiteId = 'site-001';
 const _testUserId = 'user-001';
 const _testInstanceId = '00000000-0000-0000-0000-000000000001';
@@ -69,7 +69,7 @@ PortalUser _investigator({
   );
 }
 
-/// Standard patient row returned by DB: [patient_id, site_id, trial_started, linking_status]
+/// Standard participant row returned by DB: [participant_id, site_id, trial_started, linking_status]
 List<dynamic> _participantRow({
   bool trialStarted = true,
   String siteId = _testSiteId,
@@ -78,8 +78,8 @@ List<dynamic> _participantRow({
 }
 
 /// Standard questionnaire instance row:
-/// [id, type::text, status::text, patient_id, deleted_at, site_id,study_event]
-/// The site_id comes from the JOIN with patients (added for CUR-1064 site access check).
+/// [id, type::text, status::text, participant_id, deleted_at, site_id,study_event]
+/// The site_id comes from the JOIN with participants (added for CUR-1064 site access check).
 List<dynamic> _instanceRow({
   String id = _testInstanceId,
   String type = 'nose_hht',
@@ -331,7 +331,7 @@ void main() {
           _investigator(activeRole: 'Auditor');
 
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances')) {
@@ -343,7 +343,7 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': _testParticipantId},
+        headers: {'x-participant-id': _testParticipantId},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -358,7 +358,7 @@ void main() {
   group('getQuestionnaireStatusHandler', () {
     test('returns all questionnaire types with defaults', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances')) {
@@ -370,14 +370,14 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': _testParticipantId},
+        headers: {'x-participant-id': _testParticipantId},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
 
       expect(response.statusCode, 200);
       final body = await _json(response);
-      expect(body['patient_id'], _testParticipantId);
+      expect(body['participant_id'], _testParticipantId);
 
       final questionnaires = body['questionnaires'] as List<dynamic>;
       expect(questionnaires, hasLength(3));
@@ -395,7 +395,7 @@ void main() {
       final sentAt = DateTime.now().toUtc();
 
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow()];
         }
         // CUR-856: Last-finalized query (2-column result)
@@ -431,7 +431,7 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': _testParticipantId},
+        headers: {'x-participant-id': _testParticipantId},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -448,10 +448,10 @@ void main() {
       expect(noseHht['version'], '1.0.0');
     });
 
-    test('returns 404 for non-existent patient', () async {
+    test('returns 404 for non-existent participant', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
-          return []; // Patient not found
+        if (query.contains('FROM participants')) {
+          return []; // Participant not found
         }
         return [];
       };
@@ -459,7 +459,7 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': 'nonexistent'},
+        headers: {'x-participant-id': 'nonexistent'},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -468,9 +468,9 @@ void main() {
     });
 
     test('returns 403 when user has no site access', () async {
-      // Patient is at a different site than the user
+      // Participant is at a different site than the user
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow(siteId: 'other-site')];
         }
         return [];
@@ -479,7 +479,7 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': _testParticipantId},
+        headers: {'x-participant-id': _testParticipantId},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -500,7 +500,7 @@ void main() {
       final finalizedAt = DateTime.now().toUtc();
 
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow()];
         }
         // Last-finalized query (runs per type to populate last_finalized_*)
@@ -542,7 +542,7 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': _testParticipantId},
+        headers: {'x-participant-id': _testParticipantId},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -575,7 +575,7 @@ void main() {
       databaseQueryOverride = (query, {parameters, required context}) async {
         capturedQueries.add((query: query, params: parameters));
 
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances') &&
@@ -587,7 +587,7 @@ void main() {
             [_testInstanceId],
           ];
         }
-        if (query.contains('FROM patient_fcm_tokens')) {
+        if (query.contains('FROM participant_fcm_tokens')) {
           return []; // No FCM token
         }
         if (query.contains('INSERT INTO admin_action_log')) {
@@ -600,7 +600,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testParticipantId,
+          'participantId': _testParticipantId,
           'questionnaireType': 'nose_hht',
           'study_event': 'Cycle 1 Day 1',
         }),
@@ -627,7 +627,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testParticipantId,
+          'participantId': _testParticipantId,
           'questionnaireType': 'invalid_type',
         }),
       );
@@ -642,7 +642,7 @@ void main() {
     test('validates all supported types: nose_hht, qol, eq', () async {
       for (final type in ['nose_hht', 'qol', 'eq']) {
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow()];
           }
           if (query.contains('FROM questionnaire_instances') &&
@@ -654,7 +654,7 @@ void main() {
               ['instance-$type'],
             ];
           }
-          if (query.contains('FROM patient_fcm_tokens')) {
+          if (query.contains('FROM participant_fcm_tokens')) {
             return [];
           }
           if (query.contains('INSERT INTO admin_action_log')) {
@@ -667,7 +667,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/questionnaires/send',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'questionnaireType': type,
             if (type == 'nose_hht' || type == 'qol')
               'study_event': 'Cycle 1 Day 1',
@@ -680,9 +680,9 @@ void main() {
       }
     });
 
-    test('returns 404 for non-existent patient', () async {
+    test('returns 404 for non-existent participant', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [];
         }
         return [];
@@ -692,7 +692,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': 'nonexistent',
+          'participantId': 'nonexistent',
           'questionnaireType': 'nose_hht',
         }),
       );
@@ -704,7 +704,7 @@ void main() {
 
     test('returns 409 when trial not started (REQ-CAL-p00079)', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow(trialStarted: false)];
         }
         return [];
@@ -714,7 +714,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testParticipantId,
+          'participantId': _testParticipantId,
           'questionnaireType': 'nose_hht',
         }),
       );
@@ -728,7 +728,7 @@ void main() {
 
     test('returns 409 when active instance exists', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances') &&
@@ -744,7 +744,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testParticipantId,
+          'participantId': _testParticipantId,
           'questionnaireType': 'nose_hht',
         }),
       );
@@ -758,7 +758,7 @@ void main() {
 
     test('returns 403 when user has no site access', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow(siteId: 'other-site')];
         }
         return [];
@@ -768,7 +768,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testParticipantId,
+          'participantId': _testParticipantId,
           'questionnaireType': 'nose_hht',
         }),
       );
@@ -782,7 +782,7 @@ void main() {
       databaseQueryOverride = (query, {parameters, required context}) async {
         capturedQueries.add((query: query, params: parameters));
 
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances') &&
@@ -794,7 +794,7 @@ void main() {
             [_testInstanceId],
           ];
         }
-        if (query.contains('FROM patient_fcm_tokens')) {
+        if (query.contains('FROM participant_fcm_tokens')) {
           return [];
         }
         if (query.contains('INSERT INTO admin_action_log')) {
@@ -808,7 +808,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testParticipantId,
+          'participantId': _testParticipantId,
           'questionnaireType': 'nose_hht',
           'study_event': 'Cycle 1 Day 1',
         }),
@@ -832,7 +832,7 @@ void main() {
       // race condition or manual override). The conflict check must return
       // a clean 409 before the INSERT reaches the DB constraint.
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow()];
         }
         // No active non-finalized instance
@@ -863,7 +863,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testParticipantId,
+          'participantId': _testParticipantId,
           'questionnaireType': 'nose_hht',
           'study_event': 'Cycle 2 Day 1',
         }),
@@ -889,7 +889,7 @@ void main() {
         Map<String, dynamic>? auditDetails;
         databaseQueryOverride = (query, {parameters, required context}) async {
           captured.add(query);
-          if (query.contains('FROM patients')) return [_participantRow()];
+          if (query.contains('FROM participants')) return [_participantRow()];
           if (query.contains('FROM questionnaire_instances') &&
               query.contains('deleted_at IS NULL')) {
             return []; // no existing active instance
@@ -906,7 +906,7 @@ void main() {
               <dynamic>[null, null],
             ];
           }
-          if (query.contains('FROM patient_fcm_tokens')) {
+          if (query.contains('FROM participant_fcm_tokens')) {
             return [
               ['fake-fcm-token-1234567890'],
             ];
@@ -917,7 +917,7 @@ void main() {
             return [
               <dynamic>[
                 parameters!['id'],
-                parameters['patientId'],
+                parameters['participantId'],
                 'questionnaire_update',
                 'New Questionnaire Available',
                 'You have a new questionnaire to complete.',
@@ -955,7 +955,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/questionnaires/send',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'questionnaireType': 'nose_hht',
             'study_event': 'Cycle 1 Day 1',
           }),
@@ -983,7 +983,8 @@ void main() {
           databaseQueryOverride =
               (query, {parameters, required context}) async {
                 captured.add(query);
-                if (query.contains('FROM patients')) return [_participantRow()];
+                if (query.contains('FROM participants'))
+                  return [_participantRow()];
                 if (query.contains('FROM questionnaire_instances') &&
                     query.contains('deleted_at IS NULL')) {
                   return [];
@@ -1000,7 +1001,7 @@ void main() {
                     <dynamic>[DateTime.utc(2026, 5, 8, 9), null],
                   ];
                 }
-                if (query.contains('FROM patient_fcm_tokens')) {
+                if (query.contains('FROM participant_fcm_tokens')) {
                   return [
                     ['fake-fcm-token-1234567890'],
                   ];
@@ -1022,7 +1023,7 @@ void main() {
             'POST',
             '/api/v1/portal/participants/questionnaires/send',
             body: jsonEncode({
-              'patientId': _testParticipantId,
+              'participantId': _testParticipantId,
               'questionnaireType': 'nose_hht',
               'study_event': 'Cycle 1 Day 1',
             }),
@@ -1058,7 +1059,7 @@ void main() {
         if (query.contains('UPDATE questionnaire_instances')) {
           return [];
         }
-        if (query.contains('FROM patient_fcm_tokens')) {
+        if (query.contains('FROM participant_fcm_tokens')) {
           return [];
         }
         if (query.contains('INSERT INTO admin_action_log')) {
@@ -1336,7 +1337,7 @@ void main() {
             return [_instanceRow(status: 'sent')];
           }
           if (query.contains('UPDATE questionnaire_instances')) return [];
-          if (query.contains('FROM patient_fcm_tokens')) {
+          if (query.contains('FROM participant_fcm_tokens')) {
             return [
               ['fake-fcm-token-1234567890'],
             ];
@@ -1351,7 +1352,7 @@ void main() {
             return [
               <dynamic>[
                 parameters!['id'],
-                parameters['patientId'],
+                parameters['participantId'],
                 'questionnaire_update',
                 'Questionnaire Removed',
                 null,
@@ -1545,7 +1546,7 @@ void main() {
           if (query.contains('FROM questionnaire_instances')) {
             return [_instanceRow(status: 'ready_to_review')];
           }
-          if (query.contains('FROM patient_fcm_tokens')) {
+          if (query.contains('FROM participant_fcm_tokens')) {
             return [
               ['fake-fcm-token-1234567890'],
             ];
@@ -1556,7 +1557,7 @@ void main() {
             return [
               <dynamic>[
                 parameters!['id'],
-                parameters['patientId'],
+                parameters['participantId'],
                 'questionnaire_update',
                 'Questionnaire Unlocked',
                 'A questionnaire has been unlocked for editing.',
@@ -1771,7 +1772,7 @@ void main() {
           if (query.contains('FROM questionnaire_instances')) {
             return [_instanceRow(status: 'ready_to_review')];
           }
-          if (query.contains('FROM patient_fcm_tokens')) {
+          if (query.contains('FROM participant_fcm_tokens')) {
             return [
               ['fake-fcm-token-1234567890'],
             ];
@@ -1782,7 +1783,7 @@ void main() {
             return [
               <dynamic>[
                 parameters!['id'],
-                parameters['patientId'],
+                parameters['participantId'],
                 'questionnaire_update',
                 'Questionnaire Finalized',
                 'Your questionnaire has been finalized.',
@@ -1846,12 +1847,15 @@ void main() {
   // State transition validation (CUR-823 AC#10)
   // ====================================================================
   group('state transitions', () {
-    test('sent -> ready_to_review: via patient submit (tested elsewhere)', () {
-      // This transition happens on the diary server, not portal.
-      // Tested in diary_functions/test/questionnaire_submit_test.dart.
-      // Including as documentation of the valid state flow.
-      expect(true, isTrue);
-    });
+    test(
+      'sent -> ready_to_review: via participant submit (tested elsewhere)',
+      () {
+        // This transition happens on the diary server, not portal.
+        // Tested in diary_functions/test/questionnaire_submit_test.dart.
+        // Including as documentation of the valid state flow.
+        expect(true, isTrue);
+      },
+    );
 
     test('ready_to_review -> finalized: via finalize handler', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
@@ -2101,7 +2105,7 @@ void main() {
   group('sendQuestionnaireHandler — end event blocking (CUR-856)', () {
     test('returns 409 when end event is finalized for that type', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow()];
         }
         // No active non-finalized instance
@@ -2122,7 +2126,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testParticipantId,
+          'participantId': _testParticipantId,
           'questionnaireType': 'nose_hht',
           'study_event': 'Cycle 6 Day 1',
         }),
@@ -2139,7 +2143,7 @@ void main() {
 
     test('does not block when no end event finalized', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
-        if (query.contains('FROM patients')) {
+        if (query.contains('FROM participants')) {
           return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances') &&
@@ -2162,7 +2166,7 @@ void main() {
             ['new-instance-id'],
           ];
         }
-        if (query.contains('FROM patient_fcm_tokens')) {
+        if (query.contains('FROM participant_fcm_tokens')) {
           return [];
         }
         if (query.contains('INSERT INTO admin_action_log')) {
@@ -2175,7 +2179,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testParticipantId,
+          'participantId': _testParticipantId,
           'questionnaireType': 'nose_hht',
         }),
       );
@@ -2204,7 +2208,7 @@ void main() {
           // Expected: system auto-assigns Cycle 2 Day 1 (not Cycle 3 Day 1),
           // because Next Cycle = Finalized Cycle (1) + 1 = 2.
           databaseQueryOverride = (query, {parameters, required context}) async {
-            if (query.contains('FROM patients')) {
+            if (query.contains('FROM participants')) {
               return [_participantRow()];
             }
             // No active non-finalized instance — Cycle 2 was soft-deleted
@@ -2228,7 +2232,7 @@ void main() {
                 ['new-instance-id'],
               ];
             }
-            if (query.contains('FROM patient_fcm_tokens')) {
+            if (query.contains('FROM participant_fcm_tokens')) {
               return [];
             }
             if (query.contains('INSERT INTO admin_action_log')) {
@@ -2242,7 +2246,7 @@ void main() {
             'POST',
             '/api/v1/portal/participants/questionnaires/send',
             body: jsonEncode({
-              'patientId': _testParticipantId,
+              'participantId': _testParticipantId,
               'questionnaireType': 'nose_hht',
             }),
           );
@@ -2268,7 +2272,7 @@ void main() {
           // not Cycle 5.
           databaseQueryOverride =
               (query, {parameters, required context}) async {
-                if (query.contains('FROM patients')) {
+                if (query.contains('FROM participants')) {
                   return [_participantRow()];
                 }
                 if (query.contains('FROM questionnaire_instances') &&
@@ -2291,7 +2295,7 @@ void main() {
                     ['new-instance-id'],
                   ];
                 }
-                if (query.contains('FROM patient_fcm_tokens')) {
+                if (query.contains('FROM participant_fcm_tokens')) {
                   return [];
                 }
                 if (query.contains('INSERT INTO admin_action_log')) {
@@ -2304,7 +2308,7 @@ void main() {
             'POST',
             '/api/v1/portal/participants/questionnaires/send',
             body: jsonEncode({
-              'patientId': _testParticipantId,
+              'participantId': _testParticipantId,
               'questionnaireType': 'nose_hht',
             }),
           );
@@ -2339,7 +2343,7 @@ void main() {
         //
         // Expected: 200 — system allows a new send.
         databaseQueryOverride = (query, {parameters, required context}) async {
-          if (query.contains('FROM patients')) {
+          if (query.contains('FROM participants')) {
             return [_participantRow()];
           }
           // No active non-finalized instance (deleted one is excluded)
@@ -2361,7 +2365,7 @@ void main() {
               [_testInstanceId],
             ];
           }
-          if (query.contains('FROM patient_fcm_tokens')) {
+          if (query.contains('FROM participant_fcm_tokens')) {
             return [];
           }
           if (query.contains('INSERT INTO admin_action_log')) {
@@ -2374,7 +2378,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/questionnaires/send',
           body: jsonEncode({
-            'patientId': _testParticipantId,
+            'participantId': _testParticipantId,
             'questionnaireType': 'nose_hht',
             'study_event': 'Cycle 1 Day 1',
           }),

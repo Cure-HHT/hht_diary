@@ -1,9 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00021: Patient Reconnection Workflow
+//   REQ-CAL-p00021: Participant Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //
-// Dialog for reconnecting disconnected patients to the mobile app
+// Dialog for reconnecting disconnected participants to the mobile app
 
 import 'package:flutter/material.dart';
 
@@ -13,7 +13,7 @@ import 'activation_code_display.dart';
 /// Dialog states for the reconnect flow
 enum _DialogState { confirm, loading, success, error }
 
-/// Dialog for reconnecting a disconnected patient to the mobile app.
+/// Dialog for reconnecting a disconnected participant to the mobile app.
 ///
 /// Shows a confirmation prompt with mandatory reason field, generates a new
 /// linking code, and displays the code with copy functionality.
@@ -22,8 +22,8 @@ enum _DialogState { confirm, loading, success, error }
 /// ```dart
 /// final success = await ReconnectParticipantDialog.show(
 ///   context: context,
-///   patientId: patient.patientId,
-///   patientDisplayId: patient.edcSubjectKey,
+///   participantId: participant.participantId,
+///   participantDisplayId: participant.edcSubjectKey,
 ///   apiClient: apiClient,
 /// );
 /// ```
@@ -87,7 +87,7 @@ class _ReconnectParticipantDialogState
 
     final response = await widget.apiClient
         .post('/api/v1/portal/participants/link-code', {
-          'patientId': widget.participantId,
+          'participantId': widget.participantId,
           'reconnect_reason': _reasonController.text.trim(),
         });
 

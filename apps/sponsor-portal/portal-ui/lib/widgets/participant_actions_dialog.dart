@@ -1,9 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00064: Mark Participant as Not Participating
 //   REQ-CAL-p00072: View Linking Code Button
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //
-// Modal dialog showing available actions for a patient based on their status
+// Modal dialog showing available actions for a participant based on their status
 
 import 'package:flutter/material.dart';
 
@@ -85,7 +85,7 @@ class ParticipantActionsDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Patient ID display
+            // Participant ID display
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -212,7 +212,7 @@ class ParticipantActionsDialog extends StatelessWidget {
           ),
         ];
 
-      // CUR-1069: connected patients see the Participant Linking Code (reference)
+      // CUR-1069: connected participants see the Participant Linking Code (reference)
       // per GUI-CAL-p00001-F and GUI-CAL-p00001-I.
       case 'connected':
         return [
@@ -258,7 +258,7 @@ class ParticipantActionsDialog extends StatelessWidget {
           ),
         ];
 
-      // CUR-1069: not_participating patients can view the Participant Linking
+      // CUR-1069: not_participating participants can view the Participant Linking
       // Code for reference/troubleshooting (GUI-CAL-p00001-F, GUI-CAL-p00001-I).
       case 'not_participating':
         return [
@@ -329,7 +329,7 @@ class ParticipantActionsDialog extends StatelessWidget {
   }
 }
 
-/// Action tile widget for the patient actions dialog
+/// Action tile widget for the participant actions dialog
 class _ActionTile extends StatelessWidget {
   final IconData icon;
   final String title;

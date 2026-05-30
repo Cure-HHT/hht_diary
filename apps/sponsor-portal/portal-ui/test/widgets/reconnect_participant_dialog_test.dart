@@ -1,7 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00021: Patient Reconnection Workflow
+//   REQ-CAL-p00021: Participant Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //
 // Widget tests for ReconnectParticipantDialog confirm/success/error/retry states.
 
@@ -43,7 +43,7 @@ MockClient _createMockHttpClient({bool shouldFail = false}) {
     if (path.contains('/link-code') && request.method == 'POST') {
       if (shouldFail) {
         return http.Response(
-          jsonEncode({'error': 'Patient not found'}),
+          jsonEncode({'error': 'Participant not found'}),
           404,
           headers: {'content-type': 'application/json'},
         );
@@ -51,7 +51,7 @@ MockClient _createMockHttpClient({bool shouldFail = false}) {
       return http.Response(
         jsonEncode({
           'success': true,
-          'patient_id': 'PAT-TEST-001',
+          'participant_id': 'PAT-TEST-001',
           'site_name': 'Site Alpha',
           'code': 'CAXXX-XXXXX',
           'code_raw': 'CAXXXXXXXX',
@@ -122,7 +122,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
 
 void main() {
   group('ReconnectParticipantDialog widget', () {
-    testWidgets('confirm state shows patient ID and Reconnect button', (
+    testWidgets('confirm state shows participant ID and Reconnect button', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
@@ -175,7 +175,7 @@ void main() {
         // Enter reason
         await tester.enterText(
           find.byType(TextField),
-          'Patient got new device',
+          'Participant got new device',
         );
         await tester.pump();
 
@@ -188,7 +188,10 @@ void main() {
         expect(find.byIcon(Icons.check_circle), findsOneWidget);
         expect(find.textContaining('Site Alpha'), findsOneWidget);
         expect(find.textContaining('999-002-320'), findsOneWidget);
-        expect(find.textContaining('Patient got new device'), findsOneWidget);
+        expect(
+          find.textContaining('Participant got new device'),
+          findsOneWidget,
+        );
         expect(find.text('Done'), findsOneWidget);
         expect(find.textContaining('Expires in'), findsOneWidget);
       },
@@ -210,7 +213,7 @@ void main() {
       // Error state
       expect(find.text('Error'), findsOneWidget);
       expect(find.byIcon(Icons.error), findsOneWidget);
-      expect(find.text('Patient not found'), findsOneWidget);
+      expect(find.text('Participant not found'), findsOneWidget);
       expect(find.text('Try Again'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
     });

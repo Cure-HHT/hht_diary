@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00024: Portal User Roles and Permissions
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //
-// Investigator (Study Coordinator) dashboard with patients and audit logs tabs
+// Investigator (Study Coordinator) dashboard with participants and audit logs tabs
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

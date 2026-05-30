@@ -1,18 +1,18 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00063: EDC Patient Ingestion
-//   REQ-CAL-p00073: Patient Status Definitions
-//   REQ-CAL-p00019: Link New Patient Workflow
+//   REQ-CAL-p00063: EDC Participant Ingestion
+//   REQ-CAL-p00073: Participant Status Definitions
+//   REQ-CAL-p00019: Link New Participant Workflow
 //   REQ-CAL-p00049: Mobile Linking Codes
 //   REQ-p00024: Portal User Roles and Permissions
 //   REQ-p70007: Linking Code Lifecycle Management
-//   REQ-CAL-p00020: Patient Disconnection Workflow
-//   REQ-CAL-p00021: Patient Reconnection Workflow
+//   REQ-CAL-p00020: Participant Disconnection Workflow
+//   REQ-CAL-p00021: Participant Reconnection Workflow
 //   REQ-CAL-p00066: Status Change Reason Field
-//   REQ-CAL-p00064: Mark Patient as Not Participating
+//   REQ-CAL-p00064: Mark Participant as Not Participating
 //   REQ-CAL-p00079: Start Trial Workflow
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
-// Study Coordinator Patients Tab - site-scoped patient dashboard with
+// Study Coordinator Participants Tab - site-scoped participant dashboard with
 // search, status filtering, and contextual actions
 
 import 'package:flutter/material.dart';
@@ -64,7 +64,7 @@ class _ParticipantData {
 
   factory _ParticipantData.fromJson(Map<String, dynamic> json) {
     return _ParticipantData(
-      participantId: json['patient_id'] as String,
+      participantId: json['participant_id'] as String,
       siteId: json['site_id'] as String,
       edcSubjectKey: json['edc_subject_key'] as String,
       mobileLinkingStatus: json['mobile_linking_status'] as String,
@@ -183,7 +183,7 @@ class _StudyCoordinatorParticipantsTabState
 
     if (response.isSuccess && response.data != null) {
       final data = response.data as Map<String, dynamic>;
-      final participantsJson = data['patients'] as List<dynamic>? ?? [];
+      final participantsJson = data['participants'] as List<dynamic>? ?? [];
       final participants = participantsJson
           .map((p) => _ParticipantData.fromJson(p as Map<String, dynamic>))
           .toList();

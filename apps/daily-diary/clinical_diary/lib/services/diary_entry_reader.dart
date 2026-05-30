@@ -126,7 +126,7 @@ class DiaryEntryReader {
   /// yesterday.
   ///
   /// This mirrors the set of entry types that affect [dayStatus], so the
-  /// return value is a compliance proxy: "did the patient report anything
+  /// return value is a compliance proxy: "did the participant report anything
   /// yesterday?"
   Future<bool> hasEntriesForYesterday() async {
     final yesterday = _clock().subtract(const Duration(days: 1));
@@ -243,7 +243,7 @@ class DiaryEntryReader {
   /// ignored.
   ///
   /// Used by HomeScreen (yesterday section) and the calendar surfaces (blue
-  /// dot indicator) to flag days where the patient submitted a questionnaire.
+  /// dot indicator) to flag days where the participant submitted a questionnaire.
   Future<Set<DateTime>> daysWithCompletedQuestionnaires(
     DateTime from,
     DateTime to,

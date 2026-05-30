@@ -1,12 +1,12 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00008: Mobile App Diary Entry
-//   REQ-p01066-L: Store timestamps with patient's wall-clock time and timezone offset
+//   REQ-p01066-L: Store timestamps with participant's wall-clock time and timezone offset
 //
 // Phase 12.9 (CUR-1169): Restored from the legacy integration_test/ tree.
 // The original 1960-line test bound itself to the legacy ClinicalDiaryApp
 // boot path (Datastore.initialize) and drove time-picker dials end-to-end
 // to mint events. The behaviour it was guarding — "timestamps render in
-// the patient's chosen timezone consistently across screens" — is still
+// the participant's chosen timezone consistently across screens" — is still
 // in scope, but we can now express it directly against the materialized
 // view by seeding events that already carry the storedTime + timezone the
 // recording flow would persist.
@@ -151,7 +151,7 @@ DateTime _today() {
   return DateTime(now.year, now.month, now.day);
 }
 
-/// 10:00 AM today in the target timezone (the wall-clock time the patient
+/// 10:00 AM today in the target timezone (the wall-clock time the participant
 /// sees in the recording flow).
 DateTime _displayedAt10AmToday() {
   final d = _today();

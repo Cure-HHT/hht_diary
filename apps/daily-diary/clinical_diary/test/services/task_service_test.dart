@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
 // Unit tests for TaskService.syncTasks()
@@ -298,7 +298,7 @@ void main() {
         final service = TaskService(httpClient: client);
         await service.syncTasks(mockEnrollment);
 
-        // EQ tasks must never appear in the patient to-do list
+        // EQ tasks must never appear in the participant to-do list
         expect(service.taskCount, equals(0));
       });
     });
@@ -330,7 +330,7 @@ void main() {
               'status': 'sent',
             });
 
-        // EQ tasks must never appear in the patient to-do list
+        // EQ tasks must never appear in the participant to-do list
         expect(service.taskCount, equals(0));
       });
 
@@ -354,11 +354,11 @@ void main() {
       });
 
       // CUR-1311: FCM is treated as a wake-up signal — dispatcher cases for
-      // patient_status_update / questionnaire_unlocked / questionnaire_finalized
+      // participant_status_update / questionnaire_unlocked / questionnaire_finalized
       // pull /tasks instead of trusting the payload, so mobile state mirrors
       // server truth without per-action sub-routing.
       test(
-        'patient_status_update triggers /tasks pull and fires status notifiers',
+        'participant_status_update triggers /tasks pull and fires status notifiers',
         () async {
           var requestCount = 0;
           final client = MockClient((request) async {
@@ -378,7 +378,7 @@ void main() {
             httpClient: client,
             enrollmentService: mockEnrollment,
           ).handleFcmMessage({
-            'type': 'patient_status_update',
+            'type': 'participant_status_update',
             'action': 'disconnect',
           });
 
@@ -498,7 +498,7 @@ void main() {
       });
 
       test(
-        'patient_status_update no-ops when EnrollmentService missing',
+        'participant_status_update no-ops when EnrollmentService missing',
         () async {
           var requestCount = 0;
           final client = MockClient((request) async {
@@ -508,7 +508,7 @@ void main() {
 
           // No enrollmentService passed — older test wiring / non-prod usage.
           TaskService(httpClient: client).handleFcmMessage({
-            'type': 'patient_status_update',
+            'type': 'participant_status_update',
             'action': 'disconnect',
           });
           await pumpEventQueue();

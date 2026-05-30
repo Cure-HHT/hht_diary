@@ -514,12 +514,12 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 
 /// CUR-1292: paste-aware splitter for the first half of the linking-code
 /// input. Coordinators distribute the 10-character code as a single
-/// string ("CADEMO0001"); when the patient pastes it into the first
+/// string ("CADEMO0001"); when the participant pastes it into the first
 /// box, this formatter clamps the visible value to 5 characters and
 /// hands the overflow to [onOverflow] (which writes it into the second
 /// box and moves focus). Without it, `maxLength: 5` on the first box
 /// silently truncates the paste to the first 5 characters and the
-/// patient sees only half their code.
+/// participant sees only half their code.
 class _CodeSplitFormatter extends TextInputFormatter {
   _CodeSplitFormatter({required this.onOverflow});
 

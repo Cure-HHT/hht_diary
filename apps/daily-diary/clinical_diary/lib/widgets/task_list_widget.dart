@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
 // Task list widget displayed at the top of the home screen.
@@ -11,7 +11,7 @@ import 'package:clinical_diary/services/task_service.dart';
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
-/// Widget that displays the patient's task list at the top of the home screen.
+/// Widget that displays the participant's task list at the top of the home screen.
 ///
 /// Shows actionable items (questionnaires, incomplete records, etc.)
 /// sorted by priority per REQ-CAL-p00081-C.
@@ -30,13 +30,13 @@ class TaskListWidget extends StatelessWidget {
   /// REQ-CAL-p00081-D)
   final ValueChanged<Task>? onTaskTap;
 
-  /// CUR-1292: aggregate ids of questionnaires the patient has started
+  /// CUR-1292: aggregate ids of questionnaires the participant has started
   /// but not yet submitted. Used to render an "In progress" pill on
-  /// the matching questionnaire task card so the patient knows tapping
+  /// the matching questionnaire task card so the participant knows tapping
   /// it will resume rather than restart.
   final Set<String> wipAggregateIds;
 
-  /// CUR-1292: aggregate ids of questionnaires the patient has already
+  /// CUR-1292: aggregate ids of questionnaires the participant has already
   /// submitted (a `finalized` event landed locally). Once submitted the
   /// questionnaire lives in the timeline (today/yesterday/calendar) as
   /// an event entry; it should not also appear here as a task. The
@@ -220,7 +220,7 @@ class _TaskCard extends StatelessWidget {
 }
 
 /// CUR-1292: small chip rendered next to a questionnaire task title
-/// when the patient has answered at least one question but hasn't yet
+/// when the participant has answered at least one question but hasn't yet
 /// submitted. Tapping the task resumes from where they left off rather
 /// than restarting from readiness.
 class _InProgressPill extends StatelessWidget {

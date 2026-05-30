@@ -19,6 +19,6 @@ class ResponseScaleOption {
   /// Numeric value (0-4) for scoring
   final int value;
 
-  /// Human-readable label displayed to the patient
+  /// Human-readable label displayed to the participant
   final String label;
 }

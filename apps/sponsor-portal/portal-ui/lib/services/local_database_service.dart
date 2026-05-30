@@ -43,7 +43,7 @@ class LocalDatabaseService implements DatabaseService {
 
   final List<Map<String, dynamic>> _participants = [
     {
-      'patient_id': '001-0000001',
+      'participant_id': '001-0000001',
       'site_id': 'site-001',
       'linking_code': 'AB3D5-FG7H9',
       'is_active': true,
@@ -152,7 +152,7 @@ class LocalDatabaseService implements DatabaseService {
     required String siteId,
   }) async {
     final newParticipant = {
-      'patient_id': participantId,
+      'participant_id': participantId,
       'site_id': siteId,
       'linking_code': _generateLinkingCode(),
       'is_active': true,
@@ -177,7 +177,7 @@ class LocalDatabaseService implements DatabaseService {
   }) async {
     final questionnaire = {
       'id': 'q-${DateTime.now().millisecondsSinceEpoch}',
-      'patient_id': participantId,
+      'participant_id': participantId,
       'questionnaire_type': questionnaireType,
       'status': 'pending',
       'sent_at': DateTime.now().toIso8601String(),
@@ -185,11 +185,11 @@ class LocalDatabaseService implements DatabaseService {
     };
     _questionnaires.add(questionnaire);
 
-    // Add to patient's questionnaires
-    final patient = _participants.firstWhere(
-      (p) => p['patient_id'] == participantId,
+    // Add to participant's questionnaires
+    final participant = _participants.firstWhere(
+      (p) => p['participant_id'] == participantId,
     );
-    (patient['questionnaires'] as List).add(questionnaire);
+    (participant['questionnaires'] as List).add(questionnaire);
   }
 
   @override

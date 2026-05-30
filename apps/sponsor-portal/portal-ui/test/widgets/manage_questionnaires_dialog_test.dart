@@ -62,7 +62,7 @@ MockClient _createMockHttpClient({
       }
       return http.Response(
         jsonEncode({
-          'patient_id': 'PAT-TEST-001',
+          'participant_id': 'PAT-TEST-001',
           'questionnaires': [
             {
               'questionnaire_type': 'nose_hht',
@@ -215,7 +215,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
 
 void main() {
   group('ManageQuestionnairesDialog', () {
-    testWidgets('shows title and patient ID', (tester) async {
+    testWidgets('shows title and participant ID', (tester) async {
       final apiClient = await _createMockApiClient();
       await _pumpDialog(tester, apiClient);
 
@@ -332,7 +332,7 @@ void main() {
         if (path.contains('/questionnaires') && request.method == 'GET') {
           return http.Response(
             jsonEncode({
-              'patient_id': 'PAT-TEST-001',
+              'participant_id': 'PAT-TEST-001',
               'questionnaires': [
                 {
                   'questionnaire_type': 'nose_hht',
@@ -509,7 +509,7 @@ void main() {
         if (path.contains('/questionnaires') && request.method == 'GET') {
           return http.Response(
             jsonEncode({
-              'patient_id': 'PAT-TEST-001',
+              'participant_id': 'PAT-TEST-001',
               'questionnaires': [
                 {
                   'questionnaire_type': 'nose_hht',

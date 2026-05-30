@@ -1,13 +1,13 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-d00078: Linking Code Validation
-//   REQ-CAL-p00019: Link New Patient Workflow
+//   REQ-CAL-p00019: Link New Participant Workflow
 //   REQ-CAL-p00049: Mobile Linking Codes
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //
-// Integration tests for patient linking handlers
+// Integration tests for participant linking handlers
 // Requires PostgreSQL database with schema applied and Firebase Auth emulator
 
 @TestOn('vm')
@@ -46,10 +46,10 @@ void main() {
   const testSiteId = 'test-linking-site-001';
   const testSiteName = 'Linking Test Site';
 
-  const testParticipantNotConnected = 'test-link-patient-001';
-  const testParticipantConnected = 'test-link-patient-002';
-  const testParticipantDisconnected = 'test-link-patient-003';
-  const testParticipantLinking = 'test-link-patient-004';
+  const testParticipantNotConnected = 'test-link-participant-001';
+  const testParticipantConnected = 'test-link-participant-002';
+  const testParticipantDisconnected = 'test-link-participant-003';
+  const testParticipantLinking = 'test-link-participant-004';
 
   setUpAll(() async {
     // Initialize database
@@ -143,8 +143,8 @@ void main() {
       parameters: {'userId': testAdminId},
     );
 
-    // Create test patients with various statuses
-    for (final patient in [
+    // Create test participants with various statuses
+    for (final participant in [
       {
         'id': testParticipantNotConnected,
         'status': 'not_connected',
@@ -168,28 +168,28 @@ void main() {
     ]) {
       await db.execute(
         '''
-        INSERT INTO patients (patient_id, site_id, edc_subject_key, mobile_linking_status)
-        VALUES (@patientId, @siteId, @subjectKey, @status::mobile_linking_status)
-        ON CONFLICT (patient_id) DO UPDATE SET mobile_linking_status = EXCLUDED.mobile_linking_status
+        INSERT INTO participants (participant_id, site_id, edc_subject_key, mobile_linking_status)
+        VALUES (@participantId, @siteId, @subjectKey, @status::mobile_linking_status)
+        ON CONFLICT (participant_id) DO UPDATE SET mobile_linking_status = EXCLUDED.mobile_linking_status
         ''',
         parameters: {
-          'patientId': patient['id'],
+          'participantId': participant['id'],
           'siteId': testSiteId,
-          'subjectKey': patient['key'],
-          'status': patient['status'],
+          'subjectKey': participant['key'],
+          'status': participant['status'],
         },
       );
     }
 
-    // Create an active linking code for the linking_in_progress patient
+    // Create an active linking code for the linking_in_progress participant
     await db.execute(
       '''
-      INSERT INTO patient_linking_codes (patient_id, code, code_hash, generated_by, expires_at)
-      VALUES (@patientId, @code, @codeHash, @generatedBy::uuid, @expiresAt)
+      INSERT INTO participant_linking_codes (participant_id, code, code_hash, generated_by, expires_at)
+      VALUES (@participantId, @code, @codeHash, @generatedBy::uuid, @expiresAt)
       ON CONFLICT DO NOTHING
       ''',
       parameters: {
-        'patientId': testParticipantLinking,
+        'participantId': testParticipantLinking,
         'code': 'CATEST1234',
         'codeHash': hashLinkingCode('CATEST1234'),
         'generatedBy': testInvestigatorId,
@@ -230,7 +230,7 @@ void main() {
     test('returns 401 without authorization header', () async {
       final request = createPostRequest(
         '/api/v1/portal/participants/link-code',
-        body: {'patientId': testParticipantNotConnected},
+        body: {'participantId': testParticipantNotConnected},
       );
       final response = await generateParticipantLinkingCodeHandler(request);
 
@@ -242,7 +242,7 @@ void main() {
     test('returns 401 with invalid Bearer token', () async {
       final request = createPostRequest(
         '/api/v1/portal/participants/link-code',
-        body: {'patientId': testParticipantNotConnected},
+        body: {'participantId': testParticipantNotConnected},
         headers: {'authorization': 'Bearer invalid-token'},
       );
       final response = await generateParticipantLinkingCodeHandler(request);
@@ -253,7 +253,7 @@ void main() {
     test('returns 401 without Bearer prefix', () async {
       final request = createPostRequest(
         '/api/v1/portal/participants/link-code',
-        body: {'patientId': testParticipantNotConnected},
+        body: {'participantId': testParticipantNotConnected},
         headers: {'authorization': 'some-token'},
       );
       final response = await generateParticipantLinkingCodeHandler(request);
@@ -265,16 +265,16 @@ void main() {
       final requests = [
         createPostRequest(
           '/api/v1/portal/participants/link-code',
-          body: {'patientId': 'test'},
+          body: {'participantId': 'test'},
         ),
         createPostRequest(
           '/api/v1/portal/participants/link-code',
-          body: {'patientId': 'test'},
+          body: {'participantId': 'test'},
           headers: {'authorization': ''},
         ),
         createPostRequest(
           '/api/v1/portal/participants/link-code',
-          body: {'patientId': 'test'},
+          body: {'participantId': 'test'},
           headers: {'authorization': 'invalid'},
         ),
       ];
@@ -290,7 +290,7 @@ void main() {
     test('returns 401 without authorization header', () async {
       final request = createGetRequest(
         '/api/v1/portal/participants/link-code',
-        headers: {'x-patient-id': testParticipantLinking},
+        headers: {'x-participant-id': testParticipantLinking},
       );
       final response = await getParticipantLinkingCodeHandler(request);
 
@@ -303,15 +303,18 @@ void main() {
       final requests = [
         createGetRequest(
           '/api/v1/portal/participants/link-code',
-          headers: {'x-patient-id': 'test'},
+          headers: {'x-participant-id': 'test'},
         ),
         createGetRequest(
           '/api/v1/portal/participants/link-code',
-          headers: {'authorization': '', 'x-patient-id': 'test'},
+          headers: {'authorization': '', 'x-participant-id': 'test'},
         ),
         createGetRequest(
           '/api/v1/portal/participants/link-code',
-          headers: {'authorization': 'Bearer invalid', 'x-patient-id': 'test'},
+          headers: {
+            'authorization': 'Bearer invalid',
+            'x-participant-id': 'test',
+          },
         ),
       ];
 
@@ -327,7 +330,7 @@ void main() {
       final request = createPostRequest(
         '/api/v1/portal/participants/disconnect',
         body: {
-          'patientId': testParticipantConnected,
+          'participantId': testParticipantConnected,
           'reason': 'Device Issues',
         },
       );
@@ -342,16 +345,16 @@ void main() {
       final requests = [
         createPostRequest(
           '/api/v1/portal/participants/disconnect',
-          body: {'patientId': 'test'},
+          body: {'participantId': 'test'},
         ),
         createPostRequest(
           '/api/v1/portal/participants/disconnect',
-          body: {'patientId': 'test'},
+          body: {'participantId': 'test'},
           headers: {'authorization': ''},
         ),
         createPostRequest(
           '/api/v1/portal/participants/disconnect',
-          body: {'patientId': 'test'},
+          body: {'participantId': 'test'},
           headers: {'authorization': 'invalid'},
         ),
       ];
@@ -416,38 +419,38 @@ Future<void> _cleanupTestData() async {
   final db = Database.instance;
 
   // Clean up in correct order for foreign key constraints
-  const testPatientId1 = 'test-link-patient-001';
-  const testPatientId2 = 'test-link-patient-002';
-  const testPatientId3 = 'test-link-patient-003';
-  const testPatientId4 = 'test-link-patient-004';
+  const testParticipantId1 = 'test-link-participant-001';
+  const testParticipantId2 = 'test-link-participant-002';
+  const testParticipantId3 = 'test-link-participant-003';
+  const testParticipantId4 = 'test-link-participant-004';
 
   const testUserId1 = '99992000-0000-0000-0000-000000000001';
   const testUserId2 = '99992000-0000-0000-0000-000000000002';
 
-  // Delete linking codes by patient
+  // Delete linking codes by participant
   await db.execute(
-    'DELETE FROM patient_linking_codes WHERE patient_id IN (@p1, @p2, @p3, @p4)',
+    'DELETE FROM participant_linking_codes WHERE participant_id IN (@p1, @p2, @p3, @p4)',
     parameters: {
-      'p1': testPatientId1,
-      'p2': testPatientId2,
-      'p3': testPatientId3,
-      'p4': testPatientId4,
+      'p1': testParticipantId1,
+      'p2': testParticipantId2,
+      'p3': testParticipantId3,
+      'p4': testParticipantId4,
     },
   );
 
   // Delete admin action logs by target_resource
   await db.execute(
-    "DELETE FROM admin_action_log WHERE target_resource LIKE 'patient:test-link-%'",
+    "DELETE FROM admin_action_log WHERE target_resource LIKE 'participant:test-link-%'",
   );
 
-  // Delete patients
+  // Delete participants
   await db.execute(
-    'DELETE FROM patients WHERE patient_id IN (@p1, @p2, @p3, @p4)',
+    'DELETE FROM participants WHERE participant_id IN (@p1, @p2, @p3, @p4)',
     parameters: {
-      'p1': testPatientId1,
-      'p2': testPatientId2,
-      'p3': testPatientId3,
-      'p4': testPatientId4,
+      'p1': testParticipantId1,
+      'p2': testParticipantId2,
+      'p3': testParticipantId3,
+      'p4': testParticipantId4,
     },
   );
 

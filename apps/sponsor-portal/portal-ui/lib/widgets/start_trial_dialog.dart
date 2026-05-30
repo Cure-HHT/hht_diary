@@ -1,9 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00079: Start Trial Workflow
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //   REQ-CAL-p00022: Analyst Read-Only Site-Scoped Access
 //
-// Dialog for starting trial for a patient (sends EQ questionnaire)
+// Dialog for starting trial for a participant (sends EQ questionnaire)
 
 import 'package:flutter/material.dart';
 
@@ -12,7 +12,7 @@ import '../services/api_client.dart';
 /// Dialog states for the start trial flow
 enum _DialogState { confirm, loading, success, error }
 
-/// Dialog for starting trial for a patient.
+/// Dialog for starting trial for a participant.
 ///
 /// Shows a confirmation prompt, then calls the API,
 /// and displays the result.
@@ -21,8 +21,8 @@ enum _DialogState { confirm, loading, success, error }
 /// ```dart
 /// final success = await StartTrialDialog.show(
 ///   context: context,
-///   patientId: patient.patientId,
-///   patientDisplayId: patient.edcSubjectKey,
+///   participantId: participant.participantId,
+///   participantDisplayId: participant.edcSubjectKey,
 ///   apiClient: apiClient,
 /// );
 /// ```
@@ -71,7 +71,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
 
     final response = await widget.apiClient.post(
       '/api/v1/portal/participants/start-trial',
-      {'patientId': widget.participantId},
+      {'participantId': widget.participantId},
     );
 
     if (!mounted) return;
@@ -158,7 +158,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Patient ID display
+              // Participant ID display
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(

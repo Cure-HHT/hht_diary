@@ -75,7 +75,7 @@ MockClient _createMockHttpClient({
     if (path.contains('/link-code') && request.method == 'POST') {
       if (generateShouldFail) {
         return http.Response(
-          jsonEncode({'error': 'Patient already connected'}),
+          jsonEncode({'error': 'Participant already connected'}),
           400,
           headers: {'content-type': 'application/json'},
         );
@@ -195,7 +195,7 @@ Future<void> _pumpLinkParticipantDialog(
 
 void main() {
   group('LinkParticipantDialog', () {
-    testWidgets('confirm state shows patient ID and Generate Code button', (
+    testWidgets('confirm state shows participant ID and Generate Code button', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
@@ -235,7 +235,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Error'), findsOneWidget);
-      expect(find.text('Patient already connected'), findsOneWidget);
+      expect(find.text('Participant already connected'), findsOneWidget);
       expect(find.text('Try Again'), findsOneWidget);
     });
 
@@ -327,7 +327,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Should show inline error text
-      expect(find.text('Patient already connected'), findsOneWidget);
+      expect(find.text('Participant already connected'), findsOneWidget);
       // Button should still be visible for retry
       expect(find.text('Generate New Code'), findsOneWidget);
       // Should still be in the "no active code" state
@@ -433,7 +433,7 @@ void main() {
     testWidgets('shows "No linking code on record" when no used code exists', (
       tester,
     ) async {
-      // No usedCode — patient was never linked
+      // No usedCode — participant was never linked
       final apiClient = await _createMockApiClient();
 
       await _pumpShowLinkingCodeDialog(tester, apiClient, isReference: true);

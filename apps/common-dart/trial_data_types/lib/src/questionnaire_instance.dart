@@ -36,7 +36,7 @@ class QuestionnaireInstance {
         json['questionnaire_type'] as String,
       ),
       status: QuestionnaireStatus.fromValue(json['status'] as String),
-      participantId: json['patient_id'] as String,
+      participantId: json['participant_id'] as String,
       version: json['version'] as String,
       sentAt: json['sent_at'] != null
           ? DateTime.parse(json['sent_at'] as String)
@@ -74,7 +74,7 @@ class QuestionnaireInstance {
   /// When sent by coordinator (null if not yet sent)
   final DateTime? sentAt;
 
-  /// When patient submitted responses
+  /// When participant submitted responses
   final DateTime? submittedAt;
 
   /// When investigator finalized
@@ -104,7 +104,7 @@ class QuestionnaireInstance {
   /// Whether this instance has been soft-deleted
   bool get isDeleted => deletedAt != null;
 
-  /// Whether the patient can still edit responses
+  /// Whether the participant can still edit responses
   bool get isEditable => status.canEdit && !isDeleted;
 
   /// Serialize to JSON map
@@ -113,7 +113,7 @@ class QuestionnaireInstance {
       'id': id,
       'questionnaire_type': questionnaireType.value,
       'status': status.value,
-      'patient_id': participantId,
+      'participant_id': participantId,
       'version': version,
       'sent_at': sentAt?.toIso8601String(),
       'submitted_at': submittedAt?.toIso8601String(),

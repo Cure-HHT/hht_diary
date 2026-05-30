@@ -2,7 +2,7 @@
 /// (see `database/schema.sql` lines 168-174).
 ///
 /// Used to drive UI branches that need to distinguish a "fully disconnected"
-/// patient from one whose study coordinator has just issued a new linking code
+/// participant from one whose study coordinator has just issued a new linking code
 /// (REQ-p70011/F).
 enum MobileLinkingStatus {
   notConnected,

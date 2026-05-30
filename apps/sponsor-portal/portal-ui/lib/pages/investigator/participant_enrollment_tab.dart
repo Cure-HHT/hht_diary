@@ -1,5 +1,5 @@
 // // IMPLEMENTS REQUIREMENTS:
-// //   REQ-p00025: Patient Enrollment Workflow
+// //   REQ-p00025: Participant Enrollment Workflow
 //
 // import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
@@ -9,16 +9,16 @@
 // import '../../services/auth_service.dart';
 // import '../../services/database_service.dart';
 //
-// class PatientEnrollmentTab extends StatefulWidget {
-//   const PatientEnrollmentTab({super.key});
+// class ParticipantEnrollmentTab extends StatefulWidget {
+//   const ParticipantEnrollmentTab({super.key});
 //
 //   @override
-//   State<PatientEnrollmentTab> createState() => _PatientEnrollmentTabState();
+//   State<ParticipantEnrollmentTab> createState() => _ParticipantEnrollmentTabState();
 // }
 //
-// class _PatientEnrollmentTabState extends State<PatientEnrollmentTab> {
+// class _ParticipantEnrollmentTabState extends State<ParticipantEnrollmentTab> {
 //   final _formKey = GlobalKey<FormState>();
-//   final _patientIdController = TextEditingController();
+//   final _participantIdController = TextEditingController();
 //   String? _selectedSiteId;
 //   List<Map<String, dynamic>> _sites = [];
 //   bool _isLoading = true;
@@ -32,7 +32,7 @@
 //
 //   @override
 //   void dispose() {
-//     _patientIdController.dispose();
+//     _participantIdController.dispose();
 //     super.dispose();
 //   }
 //
@@ -58,7 +58,7 @@
 //     }
 //   }
 //
-//   Future<void> _enrollPatient() async {
+//   Future<void> _enrollParticipant() async {
 //     if (!_formKey.currentState!.validate()) return;
 //     if (_selectedSiteId == null) {
 //       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,17 +68,17 @@
 //     }
 //
 //     try {
-//       final patientId = _patientIdController.text.trim();
+//       final participantId = _participantIdController.text.trim();
 //       final db = DatabaseConfig.getDatabaseService();
 //
-//       final result = await db.enrollPatient(
-//         patientId: patientId,
+//       final result = await db.enrollParticipant(
+//         participantId: participantId,
 //         siteId: _selectedSiteId!,
 //       );
 //
 //       setState(() {
 //         _generatedCode = result['linking_code'] as String;
-//         _patientIdController.clear();
+//         _participantIdController.clear();
 //         _selectedSiteId = null;
 //       });
 //
@@ -86,12 +86,12 @@
 //         showDialog(
 //           context: context,
 //           builder: (context) => AlertDialog(
-//             title: const Text('Patient Enrolled'),
+//             title: const Text('Participant Enrolled'),
 //             content: Column(
 //               mainAxisSize: MainAxisSize.min,
 //               crossAxisAlignment: CrossAxisAlignment.start,
 //               children: [
-//                 Text('Patient $patientId enrolled successfully!'),
+//                 Text('Participant $participantId enrolled successfully!'),
 //                 const SizedBox(height: 16),
 //                 const Text(
 //                   'Linking Code:',
@@ -104,7 +104,7 @@
 //                 ),
 //                 const SizedBox(height: 16),
 //                 const Text(
-//                   'Share this code with the patient to link their mobile app.',
+//                   'Share this code with the participant to link their mobile app.',
 //                   style: TextStyle(fontStyle: FontStyle.italic),
 //                 ),
 //               ],
@@ -132,7 +132,7 @@
 //     } catch (e) {
 //       if (mounted) {
 //         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(content: Text('Error enrolling patient: $e')),
+//           SnackBar(content: Text('Error enrolling participant: $e')),
 //         );
 //       }
 //     }
@@ -158,26 +158,26 @@
 //                   crossAxisAlignment: CrossAxisAlignment.stretch,
 //                   children: [
 //                     Text(
-//                       'Enroll New Patient',
+//                       'Enroll New Participant',
 //                       style: Theme.of(context).textTheme.displaySmall,
 //                     ),
 //                     const SizedBox(height: 8),
 //                     const Text(
-//                       'Enter the patient ID from the IRT system and select their clinical site.',
+//                       'Enter the participant ID from the IRT system and select their clinical site.',
 //                       style: TextStyle(color: Colors.grey),
 //                     ),
 //                     const SizedBox(height: 32),
 //                     TextFormField(
-//                       controller: _patientIdController,
+//                       controller: _participantIdController,
 //                       decoration: const InputDecoration(
-//                         labelText: 'Patient ID (from IRT)',
+//                         labelText: 'Participant ID (from IRT)',
 //                         hintText: 'SSS-PPPPPPP',
 //                         helperText: 'Format: SSS-PPPPPPP',
 //                         prefixIcon: Icon(Icons.badge),
 //                       ),
 //                       validator: (value) {
 //                         if (value == null || value.isEmpty) {
-//                           return 'Please enter patient ID';
+//                           return 'Please enter participant ID';
 //                         }
 //                         // Basic format validation (can be customized)
 //                         if (!RegExp(r'^\d{3}-\d{7}$').hasMatch(value)) {
@@ -213,9 +213,9 @@
 //                     ),
 //                     const SizedBox(height: 32),
 //                     FilledButton.icon(
-//                       onPressed: _enrollPatient,
+//                       onPressed: _enrollParticipant,
 //                       icon: const Icon(Icons.person_add),
-//                       label: const Text('Enroll Patient'),
+//                       label: const Text('Enroll Participant'),
 //                       style: FilledButton.styleFrom(
 //                         padding: const EdgeInsets.all(16),
 //                       ),
@@ -230,7 +230,7 @@
 //                         Expanded(
 //                           child: Text(
 //                             'The system will generate a unique linking code. '
-//                             'Share this code with the patient to link their mobile app.',
+//                             'Share this code with the participant to link their mobile app.',
 //                             style: Theme.of(context).textTheme.bodySmall,
 //                           ),
 //                         ),

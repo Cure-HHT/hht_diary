@@ -6,12 +6,12 @@
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-d00078: Linking Code Validation
 //   REQ-CAL-p00049: Mobile Linking Codes
-//   REQ-CAL-p00073: Patient Status Definitions
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00073: Participant Status Definitions
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
 //
 // User linking and data sync handlers
-// Patient linking uses patient_linking_codes (via sponsor portal)
+// Participant linking uses participant_linking_codes (via sponsor portal)
 // Sync writes to record_audit (event store), not separate tables
 
 import 'dart:convert';
@@ -33,13 +33,13 @@ String _hashLinkingCode(String code) {
   return digest.toString();
 }
 
-/// Link handler - links app user to a patient via linking code
+/// Link handler - links app user to a participant via linking code
 /// POST /api/v1/user/link
 /// Body: { code, appUuid? }
 ///
 /// The linking code IS the authentication mechanism (REQ-p70007).
 /// Creates app_user if needed and returns JWT for future API calls.
-/// This is the mobile app side of the patient linking flow (REQ-p70007, REQ-d00078).
+/// This is the mobile app side of the participant linking flow (REQ-p70007, REQ-d00078).
 Future<Response> linkHandler(Request request) async {
   if (request.method != 'POST') {
     return _jsonResponse({'error': 'Method not allowed'}, 405);
@@ -81,20 +81,20 @@ Future<Response> linkHandler(Request request) async {
       },
     );
 
-    // Look up the linking code in patient_linking_codes
+    // Look up the linking code in participant_linking_codes
     // Must be: not expired, not used, not revoked
     final codeResult = await db.execute(
       '''
       SELECT
         plc.id,
-        plc.patient_id,
+        plc.participant_id,
         p.site_id,
         p.edc_subject_key,
         s.site_name,
         s.site_number,
         s.contact_info
-      FROM patient_linking_codes plc
-      JOIN patients p ON plc.patient_id = p.patient_id
+      FROM participant_linking_codes plc
+      JOIN participants p ON plc.participant_id = p.participant_id
       JOIN sites s ON p.site_id = s.site_id
       WHERE plc.code_hash = @codeHash
         AND plc.expires_at > now()
@@ -107,14 +107,14 @@ Future<Response> linkHandler(Request request) async {
     if (codeResult.isEmpty) {
       // REQ-d00078-C: Return error for invalid, expired, or already-used codes
       final checkResult = await db.execute(
-        'SELECT used_at, expires_at, revoked_at FROM patient_linking_codes WHERE code_hash = @codeHash',
+        'SELECT used_at, expires_at, revoked_at FROM participant_linking_codes WHERE code_hash = @codeHash',
         parameters: {'codeHash': codeHash},
       );
 
       if (checkResult.isEmpty) {
         // Also check total codes in table for debugging
         final countResult = await db.execute(
-          'SELECT COUNT(*) FROM patient_linking_codes',
+          'SELECT COUNT(*) FROM participant_linking_codes',
         );
         final totalCodes = countResult.first[0] as int;
 
@@ -263,14 +263,14 @@ Future<Response> linkHandler(Request request) async {
     }
 
     // CUR-1055: Prevent duplicate enrollment from same device
-    // Check if this user is already linked to a connected patient.
+    // Check if this user is already linked to a connected participant.
     // Uses used_by_user_id (set on first enrollment) and explicit ::text
     // cast on the mobile_linking_status enum for driver compatibility.
     final existingLink = await db.execute(
       '''
-      SELECT plc.patient_id
-      FROM patient_linking_codes plc
-      JOIN patients p ON plc.patient_id = p.patient_id
+      SELECT plc.participant_id
+      FROM participant_linking_codes plc
+      JOIN participants p ON plc.participant_id = p.participant_id
       WHERE plc.used_by_user_id = @userId
         AND plc.used_at IS NOT NULL
         AND p.mobile_linking_status::text = 'connected'
@@ -298,7 +298,7 @@ Future<Response> linkHandler(Request request) async {
     // Mark the code as used (REQ-p70007.J - single-use)
     await db.execute(
       '''
-      UPDATE patient_linking_codes
+      UPDATE participant_linking_codes
       SET used_at = now(),
           used_by_user_id = @userId,
           used_by_app_uuid = @appUuid
@@ -307,21 +307,21 @@ Future<Response> linkHandler(Request request) async {
       parameters: {'codeId': codeId, 'userId': userId, 'appUuid': appUuid},
     );
 
-    // Update patient linking status to 'connected' (REQ-CAL-p00073)
+    // Update participant linking status to 'connected' (REQ-CAL-p00073)
     await db.execute(
       '''
-      UPDATE patients
+      UPDATE participants
       SET mobile_linking_status = 'connected',
           updated_at = now()
-      WHERE patient_id = @participantId
+      WHERE participant_id = @participantId
       ''',
-      parameters: {'patientId': participantId},
+      parameters: {'participantId': participantId},
     );
 
-    // Note: The app user → patient → site relationship is established through:
-    // - patient_linking_codes.used_by_user_id → app_users.user_id
-    // - patient_linking_codes.patient_id → patients.patient_id
-    // - patients.site_id → sites.site_id
+    // Note: The app user → participant → site relationship is established through:
+    // - participant_linking_codes.used_by_user_id → app_users.user_id
+    // - participant_linking_codes.participant_id → participants.participant_id
+    // - participants.site_id → sites.site_id
     // user_site_assignments is for portal users (coordinators, investigators), not app users.
 
     // Update app_users last_active_at
@@ -332,11 +332,11 @@ Future<Response> linkHandler(Request request) async {
 
     logWithTrace(
       'INFO',
-      'Patient linked successfully',
+      'Participant linked successfully',
       labels: {
         'codePrefix': codePrefix,
         'siteId': siteId,
-        'patientLinked': true,
+        'participantLinked': true,
       },
     );
 
@@ -344,12 +344,12 @@ Future<Response> linkHandler(Request request) async {
       'success': true,
       'jwt': jwtToken,
       'userId': userId,
-      'patientId': participantId,
+      'participantId': participantId,
       'linkingCode': code,
       'siteId': siteId,
       'siteName': siteName,
       'siteNumber': siteNumber,
-      'studyPatientId': edcSubjectKey,
+      'studyParticipantId': edcSubjectKey,
       if (sitePhoneNumber != null) 'sitePhoneNumber': sitePhoneNumber,
     });
   } catch (e, stackTrace) {
@@ -359,7 +359,7 @@ Future<Response> linkHandler(Request request) async {
 }
 
 /// Legacy enrollment handler - DEPRECATED
-/// Use linkHandler instead for patient linking via sponsor portal codes
+/// Use linkHandler instead for participant linking via sponsor portal codes
 Future<Response> enrollHandler(Request request) async {
   return _jsonResponse({
     'error':
@@ -385,16 +385,16 @@ Future<Response> syncHandler(Request request) async {
 
     final db = Database.instance;
 
-    // Look up user and their linked patient/site via patient_linking_codes
+    // Look up user and their linked participant/site via participant_linking_codes
     // Include mobile_linking_status for disconnection detection (REQ-CAL-p00077)
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, p.site_id, p.patient_id, p.edc_subject_key,
+      SELECT u.user_id, p.site_id, p.participant_id, p.edc_subject_key,
              p.mobile_linking_status::text
       FROM app_users u
-      LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
+      LEFT JOIN participant_linking_codes plc ON u.user_id = plc.used_by_user_id
         AND plc.used_at IS NOT NULL
-      LEFT JOIN patients p ON plc.patient_id = p.patient_id
+      LEFT JOIN participants p ON plc.participant_id = p.participant_id
       WHERE u.auth_code = @authCode
       ''',
       parameters: {'authCode': auth.authCode},
@@ -408,7 +408,7 @@ Future<Response> syncHandler(Request request) async {
     final userId = row[0] as String;
     final siteId = row[1] as String?;
     final participantId =
-        row[2] as String? ?? userId; // Use userId if no linked patient
+        row[2] as String? ?? userId; // Use userId if no linked participant
     final mobileLinkingStatus = row[4] as String?;
 
     final body = await _parseJson(request);
@@ -444,7 +444,7 @@ Future<Response> syncHandler(Request request) async {
         await db.execute(
           '''
           INSERT INTO record_audit (
-            event_uuid, patient_id, site_id, operation, data,
+            event_uuid, participant_id, site_id, operation, data,
             created_by, role, client_timestamp, change_reason
           ) VALUES (
             @eventId::uuid, @participantId, @siteId, @operation, @data::jsonb,
@@ -453,7 +453,7 @@ Future<Response> syncHandler(Request request) async {
           ''',
           parameters: {
             'eventId': eventId,
-            'patientId': participantId,
+            'participantId': participantId,
             'siteId': siteId ?? 'DEFAULT', // Fallback for non-enrolled users
             'operation': operation,
             'data': jsonEncode(event['data'] ?? {}),
@@ -481,7 +481,7 @@ Future<Response> syncHandler(Request request) async {
       'INFO',
       'Events synced',
       labels: {
-        'patientId': participantId,
+        'participantId': participantId,
         'syncedCount': syncedEventIds.length,
         'totalSubmitted': events.length,
       },
@@ -491,7 +491,7 @@ Future<Response> syncHandler(Request request) async {
       'success': true,
       'syncedCount': syncedEventIds.length,
       'syncedEventIds': syncedEventIds,
-      // REQ-CAL-p00077: Return patient linking status for disconnection detection
+      // REQ-CAL-p00077: Return participant linking status for disconnection detection
       if (mobileLinkingStatus != null)
         'mobileLinkingStatus': mobileLinkingStatus,
       'isDisconnected': mobileLinkingStatus == 'disconnected',
@@ -521,15 +521,15 @@ Future<Response> getRecordsHandler(Request request) async {
 
     final db = Database.instance;
 
-    // Look up user and linked patient via patient_linking_codes
+    // Look up user and linked participant via participant_linking_codes
     // Include mobile_linking_status for disconnection detection (REQ-CAL-p00077)
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, p.patient_id, p.mobile_linking_status::text
+      SELECT u.user_id, p.participant_id, p.mobile_linking_status::text
       FROM app_users u
-      LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
+      LEFT JOIN participant_linking_codes plc ON u.user_id = plc.used_by_user_id
         AND plc.used_at IS NOT NULL
-      LEFT JOIN patients p ON plc.patient_id = p.patient_id
+      LEFT JOIN participants p ON plc.participant_id = p.participant_id
       WHERE u.auth_code = @authCode
       ''',
       parameters: {'authCode': auth.authCode},
@@ -542,7 +542,7 @@ Future<Response> getRecordsHandler(Request request) async {
     final row = userResult.first;
     final userId = row[0] as String;
     final participantId =
-        row[1] as String? ?? userId; // Use userId if no linked patient
+        row[1] as String? ?? userId; // Use userId if no linked participant
     final mobileLinkingStatus = row[2] as String?;
 
     // Fetch current state from record_state (materialized view)
@@ -550,10 +550,10 @@ Future<Response> getRecordsHandler(Request request) async {
       '''
       SELECT event_uuid, current_data, version, updated_at
       FROM record_state
-      WHERE patient_id = @participantId AND is_deleted = false
+      WHERE participant_id = @participantId AND is_deleted = false
       ORDER BY updated_at DESC
       ''',
-      parameters: {'patientId': participantId},
+      parameters: {'participantId': participantId},
     );
 
     final records = recordsResult.map((r) {
@@ -567,7 +567,7 @@ Future<Response> getRecordsHandler(Request request) async {
 
     return _jsonResponse({
       'records': records,
-      // REQ-CAL-p00077: Return patient linking status for disconnection detection
+      // REQ-CAL-p00077: Return participant linking status for disconnection detection
       if (mobileLinkingStatus != null)
         'mobileLinkingStatus': mobileLinkingStatus,
       'isDisconnected': mobileLinkingStatus == 'disconnected',

@@ -1,14 +1,14 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-CAL-p00080: Questionnaire Study Event Association (CUR-856)
 
 import 'package:trial_data_types/src/questionnaire_type.dart';
 import 'package:trial_data_types/src/task_type.dart';
 
-/// A patient task displayed at the top of the mobile app screen.
+/// A participant task displayed at the top of the mobile app screen.
 ///
 /// Per REQ-CAL-p00081-A: Tasks are actionable items that require
-/// patient attention. They are displayed in priority order (REQ-CAL-p00081-C)
+/// participant attention. They are displayed in priority order (REQ-CAL-p00081-C)
 /// and each links directly to the relevant screen (REQ-CAL-p00081-D).
 class Task {
   const Task({

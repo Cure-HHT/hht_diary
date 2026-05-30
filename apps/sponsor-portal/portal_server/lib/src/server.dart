@@ -58,7 +58,7 @@ const _corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers':
-      'Origin, Content-Type, Authorization, X-Active-Role, X-Patient-Id',
+      'Origin, Content-Type, Authorization, X-Active-Role, X-Participant-Id',
 };
 
 /// Returns 503 with a JSON body when the DB schema version is behind.

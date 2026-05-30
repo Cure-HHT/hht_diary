@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //
 // Phase 12.5 (CUR-1169): Screen-level coverage for HomeScreen against the
 // new event_sourcing_datastore-backed runtime. Drives the screen with a

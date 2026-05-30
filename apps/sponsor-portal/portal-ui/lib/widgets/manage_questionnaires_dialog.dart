@@ -3,7 +3,7 @@
 //   REQ-CAL-p00066: Status Change Reason Field
 //   REQ-CAL-p00080: Questionnaire Study Event Association
 //
-// Dialog for managing questionnaire status and actions for a patient.
+// Dialog for managing questionnaire status and actions for a participant.
 // Shows Nose HHT and QoL as cards with status chips and contextual actions.
 
 import 'dart:ui' as ui;
@@ -65,7 +65,7 @@ class _QuestionnaireInfo {
   }
 }
 
-/// Dialog for managing questionnaires for a patient.
+/// Dialog for managing questionnaires for a participant.
 ///
 /// Shows Nose HHT and QoL questionnaire cards with status chips and
 /// contextual action buttons (Send Now, Revoke, Unlock, Finalize).
@@ -152,7 +152,7 @@ class _ManageQuestionnairesDialogState
 
     final response = await widget.apiClient.get(
       '/api/v1/portal/participants/questionnaires',
-      extraHeaders: {'X-Patient-Id': widget.participantId},
+      extraHeaders: {'X-Participant-Id': widget.participantId},
     );
 
     if (!mounted) return;
@@ -250,7 +250,11 @@ class _ManageQuestionnairesDialogState
         : <String, dynamic>{};
     final response = await widget.apiClient.post(
       '/api/v1/portal/participants/questionnaires/send',
-      {...body, 'patientId': widget.participantId, 'questionnaireType': type},
+      {
+        ...body,
+        'participantId': widget.participantId,
+        'questionnaireType': type,
+      },
     );
 
     if (!mounted) return;
@@ -501,7 +505,7 @@ class _ManageQuestionnairesDialogState
                   TextSpan(
                     text:
                         'Are you sure you want to finalize the '
-                        '${q.displayName} questionnaire for patient ',
+                        '${q.displayName} questionnaire for participant ',
                     children: [
                       TextSpan(
                         text: widget.participantDisplayId,
@@ -552,8 +556,8 @@ class _ManageQuestionnairesDialogState
                       ),
                       const SizedBox(height: 4),
                       _buildBulletPoint(
-                        'Finalizing the questionnaire locks all patient '
-                        'responses. After this point, the patient cannot '
+                        'Finalizing the questionnaire locks all participant '
+                        'responses. After this point, the participant cannot '
                         'edit or update their answers in the Daily Diary app.',
                       ),
                     ],
@@ -621,7 +625,7 @@ class _ManageQuestionnairesDialogState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Subtitle — questionnaire name and patient ID both bold
+                    // Subtitle — questionnaire name and participant ID both bold
                     Text.rich(
                       TextSpan(
                         text: 'Are you sure you want to finalize the ',
@@ -630,7 +634,9 @@ class _ManageQuestionnairesDialogState
                             text: q.displayName,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          const TextSpan(text: ' questionnaire for patient '),
+                          const TextSpan(
+                            text: ' questionnaire for participant ',
+                          ),
                           TextSpan(
                             text: widget.participantDisplayId,
                             style: const TextStyle(fontWeight: FontWeight.bold),
@@ -850,14 +856,14 @@ class _ManageQuestionnairesDialogState
                       ),
                       const TextSpan(
                         text:
-                            ' this questionnaire type for this patient. '
+                            ' this questionnaire type for this participant. '
                             "You won't be able to send ",
                       ),
                       TextSpan(
                         text: q.displayName,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      const TextSpan(text: ' questionnaires to patient '),
+                      const TextSpan(text: ' questionnaires to participant '),
                       TextSpan(
                         text: widget.participantDisplayId,
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -924,7 +930,8 @@ class _ManageQuestionnairesDialogState
                 const SizedBox(height: 4),
                 Text.rich(
                   TextSpan(
-                    text: 'View and manage questionnaire status for patient ',
+                    text:
+                        'View and manage questionnaire status for participant ',
                     children: [
                       TextSpan(
                         text: widget.participantDisplayId,

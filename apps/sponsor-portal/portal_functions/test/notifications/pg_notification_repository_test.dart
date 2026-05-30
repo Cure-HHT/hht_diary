@@ -95,8 +95,8 @@ void main() {
 
       final params = calls[0].parameters!;
       expect(params['notificationId'], equals(envelope.notificationId));
-      expect(params['patientId'], equals(envelope.participantId));
-      expect(params['notificationType'], equals('patient_status_update'));
+      expect(params['participantId'], equals(envelope.participantId));
+      expect(params['notificationType'], equals('participant_status_update'));
       expect(params['title'], equals(envelope.title));
       expect(params['body'], equals(envelope.body));
       expect(params['userVisible'], isTrue);
@@ -138,7 +138,7 @@ void main() {
       );
 
       expect(result, isNull);
-      expect(calls.single.context.role, equals('patient'));
+      expect(calls.single.context.role, equals('participant'));
       expect(calls.single.context.participantId, equals('840-001'));
     });
 
@@ -149,7 +149,7 @@ void main() {
         <dynamic>[
           '11111111-1111-1111-1111-111111111111',
           '840-001',
-          'patient_status_update',
+          'participant_status_update',
           'Account Disconnected',
           'You have been disconnected.',
           true,
@@ -187,14 +187,17 @@ void main() {
       expect(result.deliveredAt, isNull);
     });
 
-    test('uses patient context, includes WHERE patient_id', () async {
+    test('uses participant context, includes WHERE participant_id', () async {
       final repo = PgNotificationRepository();
       await repo.findById('id-1', participantId: '840-001');
 
-      expect(calls.single.context.role, equals('patient'));
+      expect(calls.single.context.role, equals('participant'));
       expect(calls.single.context.participantId, equals('840-001'));
       expect(calls.single.query, contains('WHERE notification_id = @id'));
-      expect(calls.single.query, contains('AND patient_id = @patientId'));
+      expect(
+        calls.single.query,
+        contains('AND participant_id = @participantId'),
+      );
     });
   });
 
@@ -211,8 +214,8 @@ void main() {
       final params = calls.single.parameters!;
       expect(params['since'], equals(since));
       expect(params['limit'], equals(25));
-      expect(params['patientId'], equals('840-001'));
-      expect(calls.single.context.role, equals('patient'));
+      expect(params['participantId'], equals('840-001'));
+      expect(calls.single.context.role, equals('participant'));
     });
   });
 
@@ -264,7 +267,7 @@ void main() {
     });
 
     test(
-      'updates only rows where delivered_at IS NULL — patient context',
+      'updates only rows where delivered_at IS NULL — participant context',
       () async {
         final repo = PgNotificationRepository();
         await repo.markDeliveredIfNull(<String>[
@@ -280,8 +283,11 @@ void main() {
           contains('AND delivered_at IS NULL'),
           reason: 'idempotent — duplicate fetch must not bump the timestamp',
         );
-        expect(calls.single.query, contains('AND patient_id = @patientId'));
-        expect(calls.single.context.role, equals('patient'));
+        expect(
+          calls.single.query,
+          contains('AND participant_id = @participantId'),
+        );
+        expect(calls.single.context.role, equals('participant'));
         expect(calls.single.context.participantId, equals('840-001'));
         expect(calls.single.parameters!['ids'], equals(['id-1', 'id-2']));
       },

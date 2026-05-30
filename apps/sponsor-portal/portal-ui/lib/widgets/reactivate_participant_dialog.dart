@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00064: Mark Patient as Not Participating
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00064: Mark Participant as Not Participating
+//   REQ-CAL-p00073: Participant Status Definitions
 //
-// Dialog for reactivating a patient who was marked as not participating
+// Dialog for reactivating a participant who was marked as not participating
 
 import 'package:flutter/material.dart';
 
@@ -11,9 +11,9 @@ import '../services/api_client.dart';
 /// Dialog states for the reactivate flow
 enum _DialogState { confirm, loading, success, error }
 
-/// Dialog for reactivating a patient who was marked as not participating.
+/// Dialog for reactivating a participant who was marked as not participating.
 ///
-/// The patient will be moved to "disconnected" status and will need to
+/// The participant will be moved to "disconnected" status and will need to
 /// be reconnected to continue participating.
 class ReactivateParticipantDialog extends StatefulWidget {
   final String participantId;
@@ -27,7 +27,7 @@ class ReactivateParticipantDialog extends StatefulWidget {
     required this.apiClient,
   });
 
-  /// Shows the dialog and returns true if the patient was reactivated successfully.
+  /// Shows the dialog and returns true if the participant was reactivated successfully.
   static Future<bool> show({
     required BuildContext context,
     required String participantId,
@@ -70,13 +70,11 @@ class _ReactivateParticipantDialogState
 
     setState(() => _state = _DialogState.loading);
 
-    final response = await widget.apiClient.post(
-      '/api/v1/portal/participants/reactivate',
-      {
-        'patientId': widget.participantId,
-        'reason': _reasonController.text.trim(),
-      },
-    );
+    final response = await widget.apiClient
+        .post('/api/v1/portal/participants/reactivate', {
+          'participantId': widget.participantId,
+          'reason': _reasonController.text.trim(),
+        });
 
     if (!mounted) return;
 

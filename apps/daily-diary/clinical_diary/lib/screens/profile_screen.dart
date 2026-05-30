@@ -41,7 +41,7 @@ class ProfileScreen extends StatefulWidget {
   final VoidCallback onStopSharingWithCureHHT;
   final bool isEnrolledInTrial;
   final bool isDisconnected;
-  // CUR-1165: True when sponsor portal has marked patient as not participating
+  // CUR-1165: True when sponsor portal has marked participant as not participating
   final bool isNotParticipating;
   // CUR-1343 / REQ-p70011/F: Fine-grained linking status used to render
   // the "reconnection required" badge variant.
@@ -183,7 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       // 3. REQ-CAL-p00076: Participation Status Badge or Link Button
                       // CUR-1165: Hide enroll button when not_participating — this
-                      // is not a disconnection; patient should not re-enroll.
+                      // is not a disconnection; participant should not re-enroll.
                       if ((!widget.isEnrolledInTrial ||
                               widget.isDisconnected) &&
                           !widget.isNotParticipating) ...[
@@ -260,9 +260,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (isAwaitingReconnect) {
       // CUR-1343 / REQ-p70011/F: A new linking code has been issued by the
-      // portal; the patient must enter it. Reuses the amber disconnected
+      // portal; the participant must enter it. Reuses the amber disconnected
       // styling to maintain the "attention required" affordance, but with
-      // its own message that tells the patient what to do next.
+      // its own message that tells the participant what to do next.
       bgColor = const Color(0xFFFFFBEA);
       borderColor = Colors.amber.shade300;
       iconColor = Colors.amber.shade700;

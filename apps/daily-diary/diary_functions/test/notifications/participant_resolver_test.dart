@@ -1,5 +1,5 @@
 // VERIFIES REQUIREMENTS:
-//   REQ-d00195: Mobile Notifications Polling — JWT → patient_id resolution
+//   REQ-d00195: Mobile Notifications Polling — JWT → participant_id resolution
 
 import 'package:diary_functions/diary_functions.dart';
 import 'package:shelf/shelf.dart';
@@ -42,9 +42,9 @@ void main() {
 
     test('returns null when user has no linked participant', () async {
       databaseQueryOverride = (query, {parameters, table}) async {
-        // SELECT joins app_users → patient_linking_codes → patients;
+        // SELECT joins app_users → participant_linking_codes → participants;
         // when no link exists, the LEFT JOINs yield a single row with
-        // patient_id = null.
+        // participant_id = null.
         return [
           <dynamic>[null],
         ];
@@ -56,28 +56,31 @@ void main() {
       expect(result, isNull);
     });
 
-    test('returns the linked patient_id when JWT + link both exist', () async {
-      String? capturedAuthCode;
-      databaseQueryOverride = (query, {parameters, table}) async {
-        expect(query, contains('FROM app_users'));
-        expect(query, contains('patient_linking_codes'));
-        expect(query, contains('patients'));
-        capturedAuthCode = parameters?['authCode'] as String?;
-        return [
-          <dynamic>['840-001'],
-        ];
-      };
-      final token = createJwtToken(
-        authCode: 'auth-code-abcdef',
-        userId: 'user-1',
-      );
+    test(
+      'returns the linked participant_id when JWT + link both exist',
+      () async {
+        String? capturedAuthCode;
+        databaseQueryOverride = (query, {parameters, table}) async {
+          expect(query, contains('FROM app_users'));
+          expect(query, contains('participant_linking_codes'));
+          expect(query, contains('participants'));
+          capturedAuthCode = parameters?['authCode'] as String?;
+          return [
+            <dynamic>['840-001'],
+          ];
+        };
+        final token = createJwtToken(
+          authCode: 'auth-code-abcdef',
+          userId: 'user-1',
+        );
 
-      final result = await jwtParticipantResolver(
-        _request(authHeader: 'Bearer $token'),
-      );
+        final result = await jwtParticipantResolver(
+          _request(authHeader: 'Bearer $token'),
+        );
 
-      expect(result, equals('840-001'));
-      expect(capturedAuthCode, equals('auth-code-abcdef'));
-    });
+        expect(result, equals('840-001'));
+        expect(capturedAuthCode, equals('auth-code-abcdef'));
+      },
+    );
   });
 }

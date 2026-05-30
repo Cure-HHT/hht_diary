@@ -11,9 +11,9 @@
 //   REQ-CAL-p00032: Reactivate User Account
 //   REQ-CAL-p00034: Site Visibility and Assignment
 //   REQ-CAL-p00062: Activation code generation on reactivation
-//   REQ-CAL-p00063: EDC Patient Ingestion
+//   REQ-CAL-p00063: EDC Participant Ingestion
 //   REQ-CAL-p00066: Capture deactivation/reactivation reason
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //   REQ-CAL-p00079: Start Trial Workflow
 //
 // Portal user management - create users, assign sites, revoke access
@@ -340,9 +340,9 @@ Future<Response> createPortalUserHandler(Request request) async {
   // Note: Developer Admin role is already blocked above in assignableRoles check.
   // Regular Admins CAN create other Admins - this is the normal bootstrap flow.
 
-  // NOTE: Linking codes are ONLY for patients (diary app device linking).
+  // NOTE: Linking codes are ONLY for participants (diary app device linking).
   // Portal users (Admins, Investigators, etc.) only need activation codes.
-  // Patient enrollment is handled separately, not through this endpoint.
+  // Participant enrollment is handled separately, not through this endpoint.
 
   // Generate activation code for all new users
   final activationCode = _generateCode();
@@ -372,7 +372,7 @@ Future<Response> createPortalUserHandler(Request request) async {
   }
 
   // Create user with pending status
-  // NOTE: linking_code is NULL for portal users - only patients get linking codes
+  // NOTE: linking_code is NULL for portal users - only participants get linking codes
   //
   // Catch UniqueViolationException (SQLSTATE 23505) from the
   // portal_users_email_lower_key index in case two concurrent
@@ -472,7 +472,7 @@ Future<Response> createPortalUserHandler(Request request) async {
   );
 
   // NOTE: linking_code not included - portal users don't need linking codes
-  // Linking codes are only for patients (diary app device linking)
+  // Linking codes are only for participants (diary app device linking)
   return _jsonResponse({
     'id': newUserId,
     'email': email,
@@ -1083,38 +1083,38 @@ Future<Response> getPortalSitesHandler(Request request) async {
   return _jsonResponse(response);
 }
 
-/// Get patients synced from EDC (RAVE)
+/// Get participants synced from EDC (RAVE)
 /// GET /api/v1/portal/participants
 ///
-/// Automatically syncs patients from EDC if:
-/// - No patients exist in the database
-/// - Patients were last synced more than 1 day ago
+/// Automatically syncs participants from EDC if:
+/// - No participants exist in the database
+/// - Participants were last synced more than 1 day ago
 ///
 /// IMPLEMENTS REQUIREMENTS:
-///   REQ-CAL-p00063: EDC Patient Ingestion
-///   REQ-CAL-p00073: Patient Status Definitions
+///   REQ-CAL-p00063: EDC Participant Ingestion
+///   REQ-CAL-p00073: Participant Status Definitions
 Future<Response> getPortalParticipantsHandler(Request request) async {
   final user = await requirePortalAuth(request);
   if (user == null) {
     return _jsonResponse({'error': 'Unauthorized'}, 403);
   }
 
-  // Ensure sites are synced first (patients FK to sites)
+  // Ensure sites are synced first (participants FK to sites)
   final sitesSyncResult = await syncSitesIfNeeded();
   if (sitesSyncResult != null && sitesSyncResult.hasError) {
     print('Sites sync warning: ${sitesSyncResult.error}');
   }
 
-  // Sync patients from EDC if needed (stale or missing)
+  // Sync participants from EDC if needed (stale or missing)
   final syncResult = await syncParticipantsIfNeeded();
   if (syncResult != null && syncResult.hasError) {
-    print('Patients sync warning: ${syncResult.error}');
+    print('Participants sync warning: ${syncResult.error}');
   }
 
   final db = Database.instance;
   const serviceContext = UserContext.service;
 
-  // Investigators (Study Coordinators) only see patients from assigned sites
+  // Investigators (Study Coordinators) only see participants from assigned sites
   final isInvestigator = user.activeRole == 'Investigator';
   final siteIds = isInvestigator
       ? user.sites.map((s) => s['site_id'] as String).toList()
@@ -1125,7 +1125,7 @@ Future<Response> getPortalParticipantsHandler(Request request) async {
     result = await db.executeWithContext(
       '''
       SELECT
-        p.patient_id,
+        p.participant_id,
         p.site_id,
         p.edc_subject_key,
         p.mobile_linking_status::text,
@@ -1134,28 +1134,28 @@ Future<Response> getPortalParticipantsHandler(Request request) async {
         s.site_number,
         p.trial_started,
         EXISTS (
-          SELECT 1 FROM patient_linking_codes plc
-          WHERE plc.patient_id = p.patient_id
+          SELECT 1 FROM participant_linking_codes plc
+          WHERE plc.participant_id = p.participant_id
             AND plc.used_at IS NULL
             AND plc.revoked_at IS NULL
             AND plc.expires_at > now()
         ) AS has_active_linking_code
-      FROM patients p
+      FROM participants p
       JOIN sites s ON p.site_id = s.site_id
       WHERE p.site_id = ANY(@siteIds)
-      ORDER BY p.patient_id
+      ORDER BY p.participant_id
     ''',
       parameters: {'siteIds': siteIds},
       context: serviceContext,
     );
   } else if (isInvestigator && siteIds.isEmpty) {
-    // Investigator with no assigned sites sees no patients
+    // Investigator with no assigned sites sees no participants
     result = [];
   } else {
-    // Admins, Sponsors, Auditors see all patients
+    // Admins, Sponsors, Auditors see all participants
     result = await db.executeWithContext('''
       SELECT
-        p.patient_id,
+        p.participant_id,
         p.site_id,
         p.edc_subject_key,
         p.mobile_linking_status::text,
@@ -1164,21 +1164,21 @@ Future<Response> getPortalParticipantsHandler(Request request) async {
         s.site_number,
         p.trial_started,
         EXISTS (
-          SELECT 1 FROM patient_linking_codes plc
-          WHERE plc.patient_id = p.patient_id
+          SELECT 1 FROM participant_linking_codes plc
+          WHERE plc.participant_id = p.participant_id
             AND plc.used_at IS NULL
             AND plc.revoked_at IS NULL
             AND plc.expires_at > now()
         ) AS has_active_linking_code
-      FROM patients p
+      FROM participants p
       JOIN sites s ON p.site_id = s.site_id
-      ORDER BY p.patient_id
+      ORDER BY p.participant_id
     ''', context: serviceContext);
   }
 
   final participants = result.map((r) {
     return {
-      'patient_id': r[0] as String,
+      'participant_id': r[0] as String,
       'site_id': r[1] as String,
       'edc_subject_key': r[2] as String,
       'mobile_linking_status': r[3] as String,
@@ -1190,7 +1190,7 @@ Future<Response> getPortalParticipantsHandler(Request request) async {
     };
   }).toList();
 
-  final response = <String, dynamic>{'patients': participants};
+  final response = <String, dynamic>{'participants': participants};
   if (syncResult != null) {
     response['sync'] = syncResult.toJson();
   }

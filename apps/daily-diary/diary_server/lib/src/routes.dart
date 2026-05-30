@@ -4,8 +4,8 @@
 //   REQ-p00008: User Account Management
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-d00078: Linking Code Validation
-//   REQ-CAL-p00082: Patient Alert Delivery
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00082: Participant Alert Delivery
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-p00049: Ancillary Platform Services (push notifications)
 //   REQ-p01067: NOSE HHT Questionnaire Content
 //   REQ-p01068: HHT Quality of Life Questionnaire Content
@@ -31,7 +31,10 @@ Router createRouter() {
 
   // User routes
   router.post('/api/v1/user/enroll', enrollHandler); // DEPRECATED - returns 410
-  router.post('/api/v1/user/link', linkHandler); // Patient linking via codes
+  router.post(
+    '/api/v1/user/link',
+    linkHandler,
+  ); // Participant linking via codes
   router.post('/api/v1/user/sync', syncHandler);
   router.post('/api/v1/user/records', getRecordsHandler);
   router.get('/api/v1/user/tasks', getTasksHandler); // Task discovery (polling)

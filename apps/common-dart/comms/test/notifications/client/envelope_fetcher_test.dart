@@ -23,8 +23,8 @@ void main() {
         return http.Response(
           jsonEncode(<String, dynamic>{
             'notification_id': 'env-1',
-            'patient_id': 'pat-1',
-            'type': 'patient_status_update',
+            'participant_id': 'pat-1',
+            'type': 'participant_status_update',
             'title': 'Account Disconnected',
             'user_visible': true,
             'payload': <String, dynamic>{'action': 'disconnect'},
@@ -92,7 +92,7 @@ void main() {
               'items': <Map<String, dynamic>>[
                 {
                   'notification_id': 'a',
-                  'patient_id': 'pat-1',
+                  'participant_id': 'pat-1',
                   'type': 'reminder',
                   'title': 'Yesterday Reminder',
                   'user_visible': true,
@@ -102,7 +102,7 @@ void main() {
                 },
                 {
                   'notification_id': 'b',
-                  'patient_id': 'pat-1',
+                  'participant_id': 'pat-1',
                   'type': 'reminder',
                   'title': 'Yesterday Reminder',
                   'user_visible': true,

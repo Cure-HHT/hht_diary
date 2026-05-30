@@ -5,7 +5,7 @@
 //
 // Per CUR-1122 / Figma, the Admin sidebar contains only Users and Audit Logs.
 // Overview / Sites / Participants pages were removed; if Admin needs Sites
-// or Patients views in the future they must be re-scoped via spec first.
+// or Participants views in the future they must be re-scoped via spec first.
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

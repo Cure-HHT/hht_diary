@@ -2,7 +2,7 @@
 //   REQ-p01067: NOSE HHT Questionnaire Content
 //   REQ-p01068: HHT Quality of Life Questionnaire Content
 
-/// A patient's response to a single question.
+/// A participant's response to a single question.
 class QuestionResponse {
   const QuestionResponse({
     required this.questionId,
@@ -64,7 +64,7 @@ class QuestionnaireSubmission {
   /// All question responses
   final List<QuestionResponse> responses;
 
-  /// When the patient completed the questionnaire
+  /// When the participant completed the questionnaire
   final DateTime completedAt;
 
   Map<String, dynamic> toJson() {

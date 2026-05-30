@@ -2,8 +2,8 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p00008: User Account Management
 //   REQ-p00013: GDPR compliance - EU-only regions
-//   REQ-CAL-p00082: Patient Alert Delivery
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00082: Participant Alert Delivery
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-p00049: Ancillary Platform Services (push notifications)
 //   REQ-p01067: NOSE HHT Questionnaire Content
 //   REQ-p01068: HHT Quality of Life Questionnaire Content

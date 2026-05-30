@@ -1,5 +1,5 @@
 // // IMPLEMENTS REQUIREMENTS:
-// //   REQ-p00026: Patient Monitoring Dashboard
+// //   REQ-p00026: Participant Monitoring Dashboard
 // //   REQ-p00027: Questionnaire Management
 // //   REQ-p00028: Token Revocation and Access Control
 //
@@ -29,48 +29,48 @@
 //   const QuestionnaireStatus(this.displayName);
 // }
 //
-// class PatientMonitoringTab extends StatefulWidget {
-//   const PatientMonitoringTab({super.key});
+// class ParticipantMonitoringTab extends StatefulWidget {
+//   const ParticipantMonitoringTab({super.key});
 //
 //   @override
-//   State<PatientMonitoringTab> createState() => _PatientMonitoringTabState();
+//   State<ParticipantMonitoringTab> createState() => _ParticipantMonitoringTabState();
 // }
 //
-// class _PatientMonitoringTabState extends State<PatientMonitoringTab> {
-//   List<Map<String, dynamic>> _patients = [];
+// class _ParticipantMonitoringTabState extends State<ParticipantMonitoringTab> {
+//   List<Map<String, dynamic>> _participants = [];
 //   bool _isLoading = true;
 //
 //   @override
 //   void initState() {
 //     super.initState();
-//     _loadPatients();
+//     _loadParticipants();
 //   }
 //
-//   Future<void> _loadPatients() async {
+//   Future<void> _loadParticipants() async {
 //     setState(() => _isLoading = true);
 //     try {
 //       final authService = context.read<AuthService>();
 //       final assignedSites = authService.currentUser?.assignedSites ?? [];
 //       final db = DatabaseConfig.getDatabaseService();
 //
-//       // Get patients (filtered by assigned sites if not admin)
-//       final patients = await db.getPatients(
+//       // Get participants (filtered by assigned sites if not admin)
+//       final participants = await db.getParticipants(
 //         siteIds: assignedSites.isNotEmpty ? assignedSites : null,
 //         includeInactive: false,
 //       );
 //
 //       setState(() {
-//         _patients = patients;
+//         _participants = participants;
 //         _isLoading = false;
 //       });
 //     } catch (e) {
-//       debugPrint('Error loading patients: $e');
+//       debugPrint('Error loading participants: $e');
 //       setState(() => _isLoading = false);
 //     }
 //   }
 //
-//   Color _getStatusColor(Map<String, dynamic> patient) {
-//     final lastEntry = patient['last_diary_entry'] as String?;
+//   Color _getStatusColor(Map<String, dynamic> participant) {
+//     final lastEntry = participant['last_diary_entry'] as String?;
 //     if (lastEntry == null) return StatusColors.noData;
 //
 //     final lastEntryDate = DateTime.parse(lastEntry);
@@ -81,8 +81,8 @@
 //     return StatusColors.atRisk;
 //   }
 //
-//   String _getStatusText(Map<String, dynamic> patient) {
-//     final lastEntry = patient['last_diary_entry'] as String?;
+//   String _getStatusText(Map<String, dynamic> participant) {
+//     final lastEntry = participant['last_diary_entry'] as String?;
 //     if (lastEntry == null) return 'No Data';
 //
 //     final lastEntryDate = DateTime.parse(lastEntry);
@@ -93,8 +93,8 @@
 //     return 'At Risk';
 //   }
 //
-//   int _getDaysWithoutData(Map<String, dynamic> patient) {
-//     final lastEntry = patient['last_diary_entry'] as String?;
+//   int _getDaysWithoutData(Map<String, dynamic> participant) {
+//     final lastEntry = participant['last_diary_entry'] as String?;
 //     if (lastEntry == null) return -1;
 //
 //     final lastEntryDate = DateTime.parse(lastEntry);
@@ -102,21 +102,21 @@
 //   }
 //
 //   Future<void> _sendQuestionnaire(
-//     String patientId,
+//     String participantId,
 //     QuestionnaireType type,
 //   ) async {
 //     try {
 //       final db = DatabaseConfig.getDatabaseService();
 //       await db.sendQuestionnaire(
-//         patientId: patientId,
+//         participantId: participantId,
 //         questionnaireType: type.name,
 //       );
 //
 //       if (mounted) {
 //         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(content: Text('${type.displayName} sent to patient')),
+//           SnackBar(content: Text('${type.displayName} sent to participant')),
 //         );
-//         _loadPatients();
+//         _loadParticipants();
 //       }
 //     } catch (e) {
 //       if (mounted) {
@@ -136,7 +136,7 @@
 //         ScaffoldMessenger.of(context).showSnackBar(
 //           const SnackBar(content: Text('Questionnaire acknowledged')),
 //         );
-//         _loadPatients();
+//         _loadParticipants();
 //       }
 //     } catch (e) {
 //       if (mounted) {
@@ -147,13 +147,13 @@
 //     }
 //   }
 //
-//   Future<void> _revokePatientToken(String patientId) async {
+//   Future<void> _revokeParticipantToken(String participantId) async {
 //     final confirm = await showDialog<bool>(
 //       context: context,
 //       builder: (context) => AlertDialog(
-//         title: const Text('Revoke Patient Access'),
+//         title: const Text('Revoke Participant Access'),
 //         content: const Text(
-//           'Are you sure you want to revoke this patient\'s mobile app access? '
+//           'Are you sure you want to revoke this participant\'s mobile app access? '
 //           'This is typically done for lost or stolen devices.',
 //         ),
 //         actions: [
@@ -171,9 +171,9 @@
 //
 //     if (confirm == true && mounted) {
 //       try {
-//         // TODO: Add revokePatientToken to DatabaseService
-//         // For now, patients remain active in local database
-//         debugPrint('Patient token revocation not yet implemented');
+//         // TODO: Add revokeParticipantToken to DatabaseService
+//         // For now, participants remain active in local database
+//         debugPrint('Participant token revocation not yet implemented');
 //
 //         if (mounted) {
 //           ScaffoldMessenger.of(context).showSnackBar(
@@ -218,8 +218,8 @@
 //     }
 //
 //     final activeToday =
-//         _patients.where((p) => _getStatusText(p) == 'Active').length;
-//     final requiresFollowup = _patients
+//         _participants.where((p) => _getStatusText(p) == 'Active').length;
+//     final requiresFollowup = _participants
 //         .where((p) => ['Attention', 'At Risk'].contains(_getStatusText(p)))
 //         .length;
 //
@@ -229,7 +229,7 @@
 //         Padding(
 //           padding: const EdgeInsets.all(16),
 //           child: Text(
-//             'Patient Monitoring',
+//             'Participant Monitoring',
 //             style: Theme.of(context).textTheme.displaySmall,
 //           ),
 //         ),
@@ -245,9 +245,9 @@
 //                     child: Column(
 //                       crossAxisAlignment: CrossAxisAlignment.start,
 //                       children: [
-//                         const Text('Total Patients'),
+//                         const Text('Total Participants'),
 //                         Text(
-//                           '${_patients.length}',
+//                           '${_participants.length}',
 //                           style: Theme.of(context).textTheme.displayMedium,
 //                         ),
 //                       ],
@@ -308,7 +308,7 @@
 //               scrollDirection: Axis.horizontal,
 //               child: DataTable(
 //                 columns: const [
-//                   DataColumn(label: Text('Patient ID')),
+//                   DataColumn(label: Text('Participant ID')),
 //                   DataColumn(label: Text('Site')),
 //                   DataColumn(label: Text('Status')),
 //                   DataColumn(label: Text('Days\nWithout Data')),
@@ -316,10 +316,10 @@
 //                   DataColumn(label: Text('Quality of Life')),
 //                   DataColumn(label: Text('Actions')),
 //                 ],
-//                 rows: _patients.map((patient) {
-//                   final siteName = patient['sites']?['site_name'] ?? 'Unknown';
-//                   final daysWithout = _getDaysWithoutData(patient);
-//                   final questionnaires = patient['questionnaires'] as List?;
+//                 rows: _participants.map((participant) {
+//                   final siteName = participant['sites']?['site_name'] ?? 'Unknown';
+//                   final daysWithout = _getDaysWithoutData(participant);
+//                   final questionnaires = participant['questionnaires'] as List?;
 //
 //                   final noseQuest = _getLatestQuestionnaire(
 //                     questionnaires,
@@ -332,23 +332,23 @@
 //
 //                   return DataRow(
 //                     cells: [
-//                       DataCell(Text(patient['patient_id'] ?? '')),
+//                       DataCell(Text(participant['participant_id'] ?? '')),
 //                       DataCell(Text(siteName)),
 //                       DataCell(
 //                         Chip(
-//                           label: Text(_getStatusText(patient)),
-//                           backgroundColor: _getStatusColor(patient),
+//                           label: Text(_getStatusText(participant)),
+//                           backgroundColor: _getStatusColor(participant),
 //                         ),
 //                       ),
 //                       DataCell(
 //                           Text(daysWithout >= 0 ? '$daysWithout' : 'Never')),
 //                       DataCell(_buildQuestionnaireCell(
-//                         patient['patient_id'],
+//                         participant['participant_id'],
 //                         QuestionnaireType.noseHht,
 //                         noseQuest,
 //                       )),
 //                       DataCell(_buildQuestionnaireCell(
-//                         patient['patient_id'],
+//                         participant['participant_id'],
 //                         QuestionnaireType.qol,
 //                         qolQuest,
 //                       )),
@@ -356,7 +356,7 @@
 //                         IconButton(
 //                           icon: const Icon(Icons.block),
 //                           onPressed: () =>
-//                               _revokePatientToken(patient['patient_id']),
+//                               _revokeParticipantToken(participant['participant_id']),
 //                           tooltip: 'Revoke Token',
 //                         ),
 //                       ),
@@ -372,13 +372,13 @@
 //   }
 //
 //   Widget _buildQuestionnaireCell(
-//     String patientId,
+//     String participantId,
 //     QuestionnaireType type,
 //     Map<String, dynamic>? questionnaire,
 //   ) {
 //     if (questionnaire == null) {
 //       return TextButton(
-//         onPressed: () => _sendQuestionnaire(patientId, type),
+//         onPressed: () => _sendQuestionnaire(participantId, type),
 //         child: const Text('Send'),
 //       );
 //     }
@@ -408,7 +408,7 @@
 //       children: [
 //         const Text('Pending', style: TextStyle(fontSize: 12)),
 //         TextButton(
-//           onPressed: () => _sendQuestionnaire(patientId, type),
+//           onPressed: () => _sendQuestionnaire(participantId, type),
 //           child: const Text('Resend'),
 //         ),
 //       ],
