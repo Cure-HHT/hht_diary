@@ -1,0 +1,86 @@
+// Verifies: DIARY-DEV-reactive-read-path/B
+import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_read.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+DiaryEntryRow _row(Map<String, Object?> data, String type) =>
+    DiaryEntryRow(aggregateId: 'a1', entryType: type, data: data);
+
+void main() {
+  group('EpistaxisEntryView', () {
+    test('parses typed fields + computes duration/multiday', () {
+      final v = EpistaxisEntryView(
+        _row(
+          const EpistaxisEventPayload(
+            startTime: '2025-10-15T22:00:00.000-05:00',
+            startTimeZone: 'America/New_York',
+            startTimeUtcOffset: '-05:00',
+            endTime: '2025-10-16T00:30:00.000-05:00',
+            endTimeZone: 'America/New_York',
+            endTimeUtcOffset: '-05:00',
+            intensity: NosebleedIntensity.pouring,
+          ).toJson(),
+          'epistaxis_event',
+        ),
+        isComplete: true,
+      );
+      expect(v.startTime, DateTime.parse('2025-10-15T22:00:00.000-05:00'));
+      expect(v.endTime, DateTime.parse('2025-10-16T00:30:00.000-05:00'));
+      expect(v.startTimeZone, 'America/New_York');
+      expect(v.intensity, NosebleedIntensity.pouring);
+      expect(v.durationMinutes, 150);
+      expect(v.isMultiDay, isTrue);
+      expect(v.isComplete, isTrue);
+    });
+
+    test('open-ended entry: null end, null duration', () {
+      final v = EpistaxisEntryView(
+        _row(
+          const EpistaxisEventPayload(
+            startTime: '2025-10-15T22:00:00.000-05:00',
+            startTimeZone: 'UTC',
+            startTimeUtcOffset: '+00:00',
+          ).toJson(),
+          'epistaxis_event',
+        ),
+        isComplete: false,
+      );
+      expect(v.endTime, isNull);
+      expect(v.durationMinutes, isNull);
+      expect(v.isMultiDay, isFalse);
+    });
+  });
+
+  group('DayMarkerView', () {
+    test('exposes the local date + entry type', () {
+      final v = DayMarkerView(
+        _row(const {'date': '2025-10-15'}, 'no_epistaxis_event'),
+      );
+      expect(v.localDate, '2025-10-15');
+      expect(v.entryType, 'no_epistaxis_event');
+    });
+  });
+
+  group('diaryEntryViewOf', () {
+    test(
+      'returns EpistaxisEntryView for epistaxis rows, DayMarkerView else',
+      () {
+        final ep = diaryEntryViewOf(
+          _row(const {
+            'startTime': '2025-10-15T10:00:00.000Z',
+            'startTimeZone': 'UTC',
+            'startTimeUtcOffset': '+00:00',
+          }, 'epistaxis_event'),
+          isComplete: true,
+        );
+        final dm = diaryEntryViewOf(
+          _row(const {'date': '2025-10-15'}, 'unknown_day_event'),
+          isComplete: true,
+        );
+        expect(ep, isA<EpistaxisEntryView>());
+        expect(dm, isA<DayMarkerView>());
+      },
+    );
+  });
+}
