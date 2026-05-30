@@ -21,6 +21,9 @@ import 'actions/user_account/edit_user_account_action.dart';
 import 'actions/user_account/reactivate_user_account_action.dart';
 import 'actions/user_account/resend_activation_email_action.dart';
 import 'actions/user_account/unlock_user_account_action.dart';
+import 'actions/views/view_admin_settings_action.dart';
+import 'actions/views/view_audit_log_action.dart';
+import 'actions/views/view_sites_action.dart';
 import 'flow_token_minter.dart';
 
 /// Build the portal's ActionRegistry. Extend as concrete actions land.
@@ -46,6 +49,9 @@ ActionRegistry buildPortalActionRegistry({FlowTokenMinter? flowTokenMinter}) {
     ..register(ResendActivationEmailAction(flowTokenMinter: minter))
     ..register(AssignRoleAction())
     ..register(AssignSiteAction())
-    ..register(DeletePendingUserAction());
+    ..register(DeletePendingUserAction())
+    ..register(ViewSitesAction())
+    ..register(ViewAuditLogAction())
+    ..register(ViewAdminSettingsAction());
   return registry;
 }
