@@ -1,5 +1,5 @@
-name: shared_events
-description: "Single source of truth for cross-wire event entry-type ids (device <-> diary-server <-> portal-server). DIARY-DEV-shared-events-catalog."
+name: diary_shared_model
+description: "Shared cross-wire event entry-types + payload schemas + canonical projections for the diary/portal event-sourcing surface (frozen 2026-05-29). Actions stay per-app."
 version: 0.1.0
 publish_to: none
 

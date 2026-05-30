@@ -1,5 +1,5 @@
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:shared_events/shared_events.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:test/test.dart';
 
 void main() {
