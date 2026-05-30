@@ -23,25 +23,47 @@ platform :ios do
 
   desc "Build DEV IPA"
   lane :build_dev do
-    build_flavor(flavor: "dev")
+    archive_once
+    package_flavor(flavor: "dev")
   end
 
   desc "Build QA IPA"
   lane :build_qa do
-    build_flavor(flavor: "qa")
+    archive_once
+    package_flavor(flavor: "qa")
   end
 
   desc "Build UAT IPA"
   lane :build_uat do
-    build_flavor(flavor: "uat")
+    archive_once
+    package_flavor(flavor: "uat")
   end
 
   desc "Build PROD IPA"
   lane :build_prod do
-    build_flavor(flavor: "prod")
+    archive_once
+    package_flavor(flavor: "prod")
   end
 
-  private_lane :build_flavor do |options|
+  desc "Build all four IPAs from one Dart compilation"
+  lane :build_all do
+    archive_once
+    APP_IDENTIFIERS.each_key { |flavor| package_flavor(flavor: flavor) }
+  end
+
+  # Implements: DIARY-OPS-single-promotable-artifact/C
+  # Prime the iOS project configuration once per Fastlane invocation, with no
+  # flavor selected. The Dart source feeding the subsequent xcodebuild archives
+  # is environment-independent (CUR-1389: no --dart-define=APP_FLAVOR; env is
+  # resolved at runtime from assets/config/env.json), so the AOT snapshot each
+  # xcodebuild archive emits is the same compilation across all four packages.
+  private_lane :archive_once do
+    Dir.chdir(FLUTTER_DIR) do
+      sh("flutter", "build", "ios", "--release", "--config-only")
+    end
+  end
+
+  private_lane :package_flavor do |options|
     flavor = options[:flavor]
     app_id = APP_IDENTIFIERS[flavor]
     profile_name = PROFILE_NAMES[flavor]
@@ -78,22 +100,20 @@ platform :ios do
       profile_name: profile_name
     )
 
-    # Implements: DIARY-OPS-single-promotable-artifact/C
+    # Implements: DIARY-DEV-runtime-environment-resolution/E
     # Stamp the bundled env pointer (env name == flavor name); restored after
-    # the archive so the working tree stays clean. Replaces the dead
-    # --dart-define flag that CUR-1389 made obsolete.
+    # the archive so the working tree stays clean. The pointer flows into the
+    # asset bundle that xcodebuild assembles below; changing it does not
+    # invalidate the Dart AOT produced by archive_once.
     env_json = File.join(FLUTTER_DIR, "assets", "config", "env.json")
     File.write(env_json, "{ \"env\": \"#{flavor}\" }\n")
 
     begin
-      # Generate Dart AOT snapshot + Xcode config without running xcodebuild
-      # (build_app below handles the single xcodebuild archive)
-      Dir.chdir(FLUTTER_DIR) do
-        sh("flutter", "build", "ios", "--flavor", flavor,
-           "--release", "--config-only")
-      end
-
-      # Archive and export IPA with Fastlane gym
+      # Archive and export IPA with Fastlane gym. xcodebuild drives Flutter's
+      # xcode_backend build phase, which assembles the Dart AOT + asset bundle
+      # against the env.json stamped above. The Dart source is the same across
+      # all four flavors (CUR-1389), so the resulting App.framework/App is the
+      # same compilation regardless of how many times xcodebuild is invoked.
       build_app(
         workspace: File.join(FLUTTER_DIR, "ios", "Runner.xcworkspace"),
         scheme: flavor,
