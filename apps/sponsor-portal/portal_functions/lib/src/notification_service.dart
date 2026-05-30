@@ -270,7 +270,7 @@ class NotificationService {
     required String fcmToken,
     required String questionnaireType,
     required String questionnaireInstanceId,
-    required String patientId,
+    required String participantId,
   }) async {
     return _sendFcmMessage(
       fcmToken: fcmToken,
@@ -283,7 +283,7 @@ class NotificationService {
       notificationTitle: 'New Questionnaire Available',
       notificationBody: 'You have a new questionnaire to complete.',
       messageType: 'questionnaire_sent',
-      patientId: patientId,
+      participantId: participantId,
     );
   }
 
@@ -294,7 +294,7 @@ class NotificationService {
   Future<NotificationResult> sendQuestionnaireDeletedNotification({
     required String fcmToken,
     required String questionnaireInstanceId,
-    required String patientId,
+    required String participantId,
   }) async {
     return _sendFcmMessage(
       fcmToken: fcmToken,
@@ -304,7 +304,7 @@ class NotificationService {
         'action': 'remove_task',
       },
       messageType: 'questionnaire_deleted',
-      patientId: patientId,
+      participantId: participantId,
     );
   }
 
@@ -312,7 +312,7 @@ class NotificationService {
   Future<NotificationResult> sendQuestionnaireUnlockedNotification({
     required String fcmToken,
     required String questionnaireInstanceId,
-    required String patientId,
+    required String participantId,
   }) async {
     return _sendFcmMessage(
       fcmToken: fcmToken,
@@ -324,7 +324,7 @@ class NotificationService {
       notificationTitle: 'Questionnaire Unlocked',
       notificationBody: 'A questionnaire has been unlocked for editing.',
       messageType: 'questionnaire_unlocked',
-      patientId: patientId,
+      participantId: participantId,
     );
   }
 
@@ -332,7 +332,7 @@ class NotificationService {
   Future<NotificationResult> sendQuestionnaireFinalizedNotification({
     required String fcmToken,
     required String questionnaireInstanceId,
-    required String patientId,
+    required String participantId,
   }) async {
     return _sendFcmMessage(
       fcmToken: fcmToken,
@@ -344,15 +344,15 @@ class NotificationService {
       notificationTitle: 'Questionnaire Finalized',
       notificationBody: 'Your questionnaire has been finalized.',
       messageType: 'questionnaire_finalized',
-      patientId: patientId,
+      participantId: participantId,
     );
   }
 
   /// Send a patient-status-change notification (disconnect, reconnect,
   /// mark_not_participating, reactivate, start_trial).
-  Future<NotificationResult> sendPatientStatusNotification({
+  Future<NotificationResult> sendParticipantStatusNotification({
     required String fcmToken,
-    required String patientId,
+    required String participantId,
     required String action,
     required String title,
     required String body,
@@ -369,7 +369,7 @@ class NotificationService {
       notificationTitle: title,
       notificationBody: body,
       messageType: 'patient_status_update',
-      patientId: patientId,
+      participantId: participantId,
     );
   }
 
@@ -381,7 +381,7 @@ class NotificationService {
     required String fcmToken,
     required Map<String, String> data,
     required String messageType,
-    required String patientId,
+    required String participantId,
     String? notificationTitle,
     String? notificationBody,
   }) async {
@@ -409,10 +409,10 @@ class NotificationService {
         logWithTrace(
           'INFO',
           'FCM console mode: would send $messageType',
-          labels: {'patient_id': patientId, 'message_type': messageType},
+          labels: {'patient_id': participantId, 'message_type': messageType},
         );
         await _logNotificationAudit(
-          patientId: patientId,
+          participantId: participantId,
           messageType: messageType,
           status: 'console',
           data: data,
@@ -426,12 +426,12 @@ class NotificationService {
           'INFO',
           'FCM sent $messageType',
           labels: {
-            'patient_id': patientId,
+            'patient_id': participantId,
             'message_id': result.messageId ?? 'unknown',
           },
         );
         await _logNotificationAudit(
-          patientId: patientId,
+          participantId: participantId,
           messageType: messageType,
           status: 'sent',
           messageId: result.messageId,
@@ -450,10 +450,10 @@ class NotificationService {
       logWithTrace(
         'ERROR',
         'FCM failed to send $messageType',
-        labels: {'patient_id': patientId, 'error': errorMessage},
+        labels: {'patient_id': participantId, 'error': errorMessage},
       );
       await _logNotificationAudit(
-        patientId: patientId,
+        participantId: participantId,
         messageType: messageType,
         status: 'failed',
         error: errorMessage,
@@ -467,10 +467,10 @@ class NotificationService {
       logWithTrace(
         'ERROR',
         'FCM exception sending $messageType',
-        labels: {'patient_id': patientId, 'error': errorMessage},
+        labels: {'patient_id': participantId, 'error': errorMessage},
       );
       await _logNotificationAudit(
-        patientId: patientId,
+        participantId: participantId,
         messageType: messageType,
         status: 'failed',
         error: errorMessage,
@@ -482,7 +482,7 @@ class NotificationService {
 
   /// Log notification to audit table (FDA compliance).
   Future<void> _logNotificationAudit({
-    required String patientId,
+    required String participantId,
     required String messageType,
     required String status,
     String? messageId,
@@ -505,7 +505,7 @@ class NotificationService {
         ''',
         parameters: {
           'actionType': 'FCM_NOTIFICATION',
-          'targetResource': 'patient:$patientId',
+          'targetResource': 'participant:$participantId',
           'actionDetails': jsonEncode({
             'message_type': messageType,
             'status': status,

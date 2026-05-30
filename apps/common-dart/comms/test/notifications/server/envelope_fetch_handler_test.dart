@@ -21,18 +21,18 @@ Router _routerFor(
     '/api/v1/notifications/<id>',
     envelopeFetchHandler(
       repo: repo,
-      patientResolver: (req) async => resolver(req),
+      participantResolver: (req) async => resolver(req),
     ),
   );
 }
 
 Envelope _seed(
   InMemoryNotificationRepository repo, {
-  required String patientId,
+  required String participantId,
 }) {
   final envelope = Envelope(
     notificationId: 'env-1',
-    participantId: patientId,
+    participantId: participantId,
     type: NotificationType.participantStatusUpdate,
     title: 'Account Disconnected',
     payload: const <String, dynamic>{'action': 'disconnect'},
@@ -48,7 +48,7 @@ void main() {
   group('envelopeFetchHandler', () {
     test('200 returns the envelope JSON', () async {
       final repo = InMemoryNotificationRepository();
-      _seed(repo, patientId: 'pat-1');
+      _seed(repo, participantId: 'pat-1');
       final router = _routerFor(repo, resolver: (_) => 'pat-1');
 
       final response = await router.call(
@@ -64,7 +64,7 @@ void main() {
 
     test('401 when patientResolver returns null', () async {
       final repo = InMemoryNotificationRepository();
-      _seed(repo, patientId: 'pat-1');
+      _seed(repo, participantId: 'pat-1');
       final router = _routerFor(repo, resolver: (_) => null);
 
       final response = await router.call(
@@ -76,7 +76,7 @@ void main() {
 
     test('404 when envelope does not exist for this patient', () async {
       final repo = InMemoryNotificationRepository();
-      _seed(repo, patientId: 'pat-OTHER');
+      _seed(repo, participantId: 'pat-OTHER');
       // Caller is pat-1 but the envelope belongs to pat-OTHER.
       final router = _routerFor(repo, resolver: (_) => 'pat-1');
 
@@ -91,7 +91,7 @@ void main() {
       'first read transitions status to delivered (idempotent on second)',
       () async {
         final repo = InMemoryNotificationRepository();
-        _seed(repo, patientId: 'pat-1');
+        _seed(repo, participantId: 'pat-1');
         final router = _routerFor(repo, resolver: (_) => 'pat-1');
 
         await router.call(

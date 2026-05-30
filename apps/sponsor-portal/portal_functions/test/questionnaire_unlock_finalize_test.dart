@@ -39,7 +39,7 @@ Future<void> _initOTel() async {
 }
 
 /// Test patient and user data
-const _testPatientId = 'patient-001';
+const _testParticipantId = 'patient-001';
 const _testSiteId = 'site-001';
 const _testUserId = 'user-001';
 const _testInstanceId = '00000000-0000-0000-0000-000000000001';
@@ -70,11 +70,11 @@ PortalUser _investigator({
 }
 
 /// Standard patient row returned by DB: [patient_id, site_id, trial_started, linking_status]
-List<dynamic> _patientRow({
+List<dynamic> _participantRow({
   bool trialStarted = true,
   String siteId = _testSiteId,
 }) {
-  return [_testPatientId, siteId, trialStarted, 'linked'];
+  return [_testParticipantId, siteId, trialStarted, 'linked'];
 }
 
 /// Standard questionnaire instance row:
@@ -88,7 +88,7 @@ List<dynamic> _instanceRow({
   String siteId = _testSiteId,
   String? studyEvent = 'Cycle 1 Day 1',
 }) {
-  return [id, type, status, _testPatientId, deletedAt, siteId, studyEvent];
+  return [id, type, status, _testParticipantId, deletedAt, siteId, studyEvent];
 }
 
 /// Build a shelf Request with optional body and headers.
@@ -332,7 +332,7 @@ void main() {
 
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow()];
+          return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances')) {
           return [];
@@ -343,7 +343,7 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': _testPatientId},
+        headers: {'x-patient-id': _testParticipantId},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -359,7 +359,7 @@ void main() {
     test('returns all questionnaire types with defaults', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow()];
+          return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances')) {
           return []; // No instances yet
@@ -370,14 +370,14 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': _testPatientId},
+        headers: {'x-patient-id': _testParticipantId},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
 
       expect(response.statusCode, 200);
       final body = await _json(response);
-      expect(body['patient_id'], _testPatientId);
+      expect(body['patient_id'], _testParticipantId);
 
       final questionnaires = body['questionnaires'] as List<dynamic>;
       expect(questionnaires, hasLength(3));
@@ -396,7 +396,7 @@ void main() {
 
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow()];
+          return [_participantRow()];
         }
         // CUR-856: Last-finalized query (2-column result)
         if (query.contains("status = 'finalized'") &&
@@ -431,7 +431,7 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': _testPatientId},
+        headers: {'x-patient-id': _testParticipantId},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -471,7 +471,7 @@ void main() {
       // Patient is at a different site than the user
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow(siteId: 'other-site')];
+          return [_participantRow(siteId: 'other-site')];
         }
         return [];
       };
@@ -479,7 +479,7 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': _testPatientId},
+        headers: {'x-patient-id': _testParticipantId},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -501,7 +501,7 @@ void main() {
 
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow()];
+          return [_participantRow()];
         }
         // Last-finalized query (runs per type to populate last_finalized_*)
         // columns: [questionnaire_type, finalized_at, study_event]
@@ -542,7 +542,7 @@ void main() {
       final request = _request(
         'GET',
         '/api/v1/portal/participants/questionnaires',
-        headers: {'x-patient-id': _testPatientId},
+        headers: {'x-patient-id': _testParticipantId},
       );
 
       final response = await getQuestionnaireStatusHandler(request);
@@ -576,7 +576,7 @@ void main() {
         capturedQueries.add((query: query, params: parameters));
 
         if (query.contains('FROM patients')) {
-          return [_patientRow()];
+          return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances') &&
             query.contains('deleted_at IS NULL')) {
@@ -600,7 +600,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testPatientId,
+          'patientId': _testParticipantId,
           'questionnaireType': 'nose_hht',
           'study_event': 'Cycle 1 Day 1',
         }),
@@ -627,7 +627,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testPatientId,
+          'patientId': _testParticipantId,
           'questionnaireType': 'invalid_type',
         }),
       );
@@ -643,7 +643,7 @@ void main() {
       for (final type in ['nose_hht', 'qol', 'eq']) {
         databaseQueryOverride = (query, {parameters, required context}) async {
           if (query.contains('FROM patients')) {
-            return [_patientRow()];
+            return [_participantRow()];
           }
           if (query.contains('FROM questionnaire_instances') &&
               query.contains('deleted_at IS NULL')) {
@@ -667,7 +667,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/questionnaires/send',
           body: jsonEncode({
-            'patientId': _testPatientId,
+            'patientId': _testParticipantId,
             'questionnaireType': type,
             if (type == 'nose_hht' || type == 'qol')
               'study_event': 'Cycle 1 Day 1',
@@ -705,7 +705,7 @@ void main() {
     test('returns 409 when trial not started (REQ-CAL-p00079)', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow(trialStarted: false)];
+          return [_participantRow(trialStarted: false)];
         }
         return [];
       };
@@ -714,7 +714,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testPatientId,
+          'patientId': _testParticipantId,
           'questionnaireType': 'nose_hht',
         }),
       );
@@ -729,7 +729,7 @@ void main() {
     test('returns 409 when active instance exists', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow()];
+          return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances') &&
             query.contains('deleted_at IS NULL')) {
@@ -744,7 +744,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testPatientId,
+          'patientId': _testParticipantId,
           'questionnaireType': 'nose_hht',
         }),
       );
@@ -759,7 +759,7 @@ void main() {
     test('returns 403 when user has no site access', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow(siteId: 'other-site')];
+          return [_participantRow(siteId: 'other-site')];
         }
         return [];
       };
@@ -768,7 +768,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testPatientId,
+          'patientId': _testParticipantId,
           'questionnaireType': 'nose_hht',
         }),
       );
@@ -783,7 +783,7 @@ void main() {
         capturedQueries.add((query: query, params: parameters));
 
         if (query.contains('FROM patients')) {
-          return [_patientRow()];
+          return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances') &&
             query.contains('deleted_at IS NULL')) {
@@ -808,7 +808,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testPatientId,
+          'patientId': _testParticipantId,
           'questionnaireType': 'nose_hht',
           'study_event': 'Cycle 1 Day 1',
         }),
@@ -833,7 +833,7 @@ void main() {
       // a clean 409 before the INSERT reaches the DB constraint.
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow()];
+          return [_participantRow()];
         }
         // No active non-finalized instance
         if (query.contains("status != 'finalized'")) {
@@ -863,7 +863,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testPatientId,
+          'patientId': _testParticipantId,
           'questionnaireType': 'nose_hht',
           'study_event': 'Cycle 2 Day 1',
         }),
@@ -889,7 +889,7 @@ void main() {
         Map<String, dynamic>? auditDetails;
         databaseQueryOverride = (query, {parameters, required context}) async {
           captured.add(query);
-          if (query.contains('FROM patients')) return [_patientRow()];
+          if (query.contains('FROM patients')) return [_participantRow()];
           if (query.contains('FROM questionnaire_instances') &&
               query.contains('deleted_at IS NULL')) {
             return []; // no existing active instance
@@ -955,7 +955,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/questionnaires/send',
           body: jsonEncode({
-            'patientId': _testPatientId,
+            'patientId': _testParticipantId,
             'questionnaireType': 'nose_hht',
             'study_event': 'Cycle 1 Day 1',
           }),
@@ -983,7 +983,7 @@ void main() {
           databaseQueryOverride =
               (query, {parameters, required context}) async {
                 captured.add(query);
-                if (query.contains('FROM patients')) return [_patientRow()];
+                if (query.contains('FROM patients')) return [_participantRow()];
                 if (query.contains('FROM questionnaire_instances') &&
                     query.contains('deleted_at IS NULL')) {
                   return [];
@@ -1022,7 +1022,7 @@ void main() {
             'POST',
             '/api/v1/portal/participants/questionnaires/send',
             body: jsonEncode({
-              'patientId': _testPatientId,
+              'patientId': _testParticipantId,
               'questionnaireType': 'nose_hht',
               'study_event': 'Cycle 1 Day 1',
             }),
@@ -2102,7 +2102,7 @@ void main() {
     test('returns 409 when end event is finalized for that type', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow()];
+          return [_participantRow()];
         }
         // No active non-finalized instance
         if (query.contains('FROM questionnaire_instances') &&
@@ -2122,7 +2122,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testPatientId,
+          'patientId': _testParticipantId,
           'questionnaireType': 'nose_hht',
           'study_event': 'Cycle 6 Day 1',
         }),
@@ -2140,7 +2140,7 @@ void main() {
     test('does not block when no end event finalized', () async {
       databaseQueryOverride = (query, {parameters, required context}) async {
         if (query.contains('FROM patients')) {
-          return [_patientRow()];
+          return [_participantRow()];
         }
         if (query.contains('FROM questionnaire_instances') &&
             query.contains("status != 'finalized'")) {
@@ -2175,7 +2175,7 @@ void main() {
         'POST',
         '/api/v1/portal/participants/questionnaires/send',
         body: jsonEncode({
-          'patientId': _testPatientId,
+          'patientId': _testParticipantId,
           'questionnaireType': 'nose_hht',
         }),
       );
@@ -2205,7 +2205,7 @@ void main() {
           // because Next Cycle = Finalized Cycle (1) + 1 = 2.
           databaseQueryOverride = (query, {parameters, required context}) async {
             if (query.contains('FROM patients')) {
-              return [_patientRow()];
+              return [_participantRow()];
             }
             // No active non-finalized instance — Cycle 2 was soft-deleted
             if (query.contains('FROM questionnaire_instances') &&
@@ -2242,7 +2242,7 @@ void main() {
             'POST',
             '/api/v1/portal/participants/questionnaires/send',
             body: jsonEncode({
-              'patientId': _testPatientId,
+              'patientId': _testParticipantId,
               'questionnaireType': 'nose_hht',
             }),
           );
@@ -2269,7 +2269,7 @@ void main() {
           databaseQueryOverride =
               (query, {parameters, required context}) async {
                 if (query.contains('FROM patients')) {
-                  return [_patientRow()];
+                  return [_participantRow()];
                 }
                 if (query.contains('FROM questionnaire_instances') &&
                     query.contains("status != 'finalized'")) {
@@ -2304,7 +2304,7 @@ void main() {
             'POST',
             '/api/v1/portal/participants/questionnaires/send',
             body: jsonEncode({
-              'patientId': _testPatientId,
+              'patientId': _testParticipantId,
               'questionnaireType': 'nose_hht',
             }),
           );
@@ -2340,7 +2340,7 @@ void main() {
         // Expected: 200 — system allows a new send.
         databaseQueryOverride = (query, {parameters, required context}) async {
           if (query.contains('FROM patients')) {
-            return [_patientRow()];
+            return [_participantRow()];
           }
           // No active non-finalized instance (deleted one is excluded)
           if (query.contains('FROM questionnaire_instances') &&
@@ -2374,7 +2374,7 @@ void main() {
           'POST',
           '/api/v1/portal/participants/questionnaires/send',
           body: jsonEncode({
-            'patientId': _testPatientId,
+            'patientId': _testParticipantId,
             'questionnaireType': 'nose_hht',
             'study_event': 'Cycle 1 Day 1',
           }),

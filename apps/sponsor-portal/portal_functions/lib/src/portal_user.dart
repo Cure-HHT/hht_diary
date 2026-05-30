@@ -1093,7 +1093,7 @@ Future<Response> getPortalSitesHandler(Request request) async {
 /// IMPLEMENTS REQUIREMENTS:
 ///   REQ-CAL-p00063: EDC Patient Ingestion
 ///   REQ-CAL-p00073: Patient Status Definitions
-Future<Response> getPortalPatientsHandler(Request request) async {
+Future<Response> getPortalParticipantsHandler(Request request) async {
   final user = await requirePortalAuth(request);
   if (user == null) {
     return _jsonResponse({'error': 'Unauthorized'}, 403);
@@ -1176,7 +1176,7 @@ Future<Response> getPortalPatientsHandler(Request request) async {
     ''', context: serviceContext);
   }
 
-  final patients = result.map((r) {
+  final participants = result.map((r) {
     return {
       'patient_id': r[0] as String,
       'site_id': r[1] as String,
@@ -1190,7 +1190,7 @@ Future<Response> getPortalPatientsHandler(Request request) async {
     };
   }).toList();
 
-  final response = <String, dynamic>{'patients': patients};
+  final response = <String, dynamic>{'patients': participants};
   if (syncResult != null) {
     response['sync'] = syncResult.toJson();
   }

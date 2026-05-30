@@ -38,16 +38,16 @@ enum _DialogState { confirm, loading, success, error }
 /// );
 /// ```
 class DisconnectParticipantDialog extends StatefulWidget {
-  final String patientId;
-  final String patientDisplayId;
+  final String participantId;
+  final String participantDisplayId;
   final ApiClient apiClient;
   // REQ-p70010-C: true = predefined dropdown, false = free text field
   final bool useDropdown;
 
   const DisconnectParticipantDialog({
     super.key,
-    required this.patientId,
-    required this.patientDisplayId,
+    required this.participantId,
+    required this.participantDisplayId,
     required this.apiClient,
     this.useDropdown = true,
   });
@@ -55,8 +55,8 @@ class DisconnectParticipantDialog extends StatefulWidget {
   /// Shows the dialog and returns true if the patient was disconnected successfully.
   static Future<bool> show({
     required BuildContext context,
-    required String patientId,
-    required String patientDisplayId,
+    required String participantId,
+    required String participantDisplayId,
     required ApiClient apiClient,
     bool useDropdown = true,
   }) async {
@@ -64,8 +64,8 @@ class DisconnectParticipantDialog extends StatefulWidget {
       context: context,
       barrierDismissible: false,
       builder: (context) => DisconnectParticipantDialog(
-        patientId: patientId,
-        patientDisplayId: patientDisplayId,
+        participantId: participantId,
+        participantDisplayId: participantDisplayId,
         apiClient: apiClient,
         useDropdown: useDropdown,
       ),
@@ -106,7 +106,7 @@ class _DisconnectParticipantDialogState
         : _reasonTextController.text.trim();
     final response = await widget.apiClient.post(
       '/api/v1/portal/participants/disconnect',
-      {'patientId': widget.patientId, 'reason': reason},
+      {'patientId': widget.participantId, 'reason': reason},
     );
 
     if (!mounted) return;
@@ -210,7 +210,7 @@ class _DisconnectParticipantDialogState
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      widget.patientDisplayId,
+                      widget.participantDisplayId,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -328,7 +328,7 @@ class _DisconnectParticipantDialogState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Participant ${widget.patientDisplayId} has been disconnected from the mobile app.',
+              'Participant ${widget.participantDisplayId} has been disconnected from the mobile app.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),

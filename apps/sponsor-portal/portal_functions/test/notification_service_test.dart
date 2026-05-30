@@ -167,7 +167,7 @@ void main() {
             fcmToken: 'test-token-1234567890',
             questionnaireType: 'nose_hht',
             questionnaireInstanceId: 'inst-001',
-            patientId: 'pat-001',
+            participantId: 'pat-001',
           );
 
       expect(result.success, isFalse);
@@ -181,7 +181,7 @@ void main() {
             .sendQuestionnaireDeletedNotification(
               fcmToken: 'test-token-1234567890',
               questionnaireInstanceId: 'inst-001',
-              patientId: 'pat-001',
+              participantId: 'pat-001',
             );
 
         expect(result.success, isFalse);
@@ -196,7 +196,7 @@ void main() {
             .sendQuestionnaireUnlockedNotification(
               fcmToken: 'test-token-1234567890',
               questionnaireInstanceId: 'inst-001',
-              patientId: 'pat-001',
+              participantId: 'pat-001',
             );
 
         expect(result.success, isFalse);
@@ -225,7 +225,7 @@ void main() {
               fcmToken: 'test-token-1234567890',
               questionnaireType: 'qol',
               questionnaireInstanceId: 'inst-002',
-              patientId: 'pat-002',
+              participantId: 'pat-002',
             );
 
         expect(result.success, isFalse);

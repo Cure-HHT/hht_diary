@@ -65,7 +65,7 @@ Future<Response> submitQuestionnaireHandler(
       return _jsonResponse({'error': 'Patient not found'}, 401);
     }
 
-    final patientId = userResult.first[0] as String;
+    final participantId = userResult.first[0] as String;
 
     // Verify questionnaire instance exists and belongs to this patient
     final instanceResult = await db.execute(
@@ -84,10 +84,10 @@ Future<Response> submitQuestionnaireHandler(
     final instanceRow = instanceResult.first;
     final status = instanceRow[0] as String;
     final deletedAt = instanceRow[1];
-    final instancePatientId = instanceRow[2] as String;
+    final instanceParticipantId = instanceRow[2] as String;
 
     // REQ-d00113-A: Check if instance belongs to this patient
-    if (instancePatientId != patientId) {
+    if (instanceParticipantId != participantId) {
       return _jsonResponse({'error': 'Questionnaire not found'}, 404);
     }
 
@@ -96,7 +96,7 @@ Future<Response> submitQuestionnaireHandler(
       logWithTrace(
         'WARN',
         'Submit attempt on deleted questionnaire',
-        labels: {'instanceId': instanceId, 'patientId': patientId},
+        labels: {'instanceId': instanceId, 'patientId': participantId},
       );
       return _jsonResponse({
         'error': 'questionnaire_deleted',
@@ -181,11 +181,11 @@ Future<Response> submitQuestionnaireHandler(
       )
       ''',
       parameters: {
-        'adminId': patientId,
+        'adminId': participantId,
         'targetResource': 'questionnaire:$instanceId',
         'actionDetails': jsonEncode({
           'instance_id': instanceId,
-          'patient_id': patientId,
+          'patient_id': participantId,
           'response_count': responses.length,
           'submitted_at': DateTime.now().toUtc().toIso8601String(),
         }),
@@ -198,7 +198,7 @@ Future<Response> submitQuestionnaireHandler(
       'Questionnaire submitted',
       labels: {
         'instanceId': instanceId,
-        'patientId': patientId,
+        'patientId': participantId,
         'responseCount': responses.length,
       },
     );

@@ -70,30 +70,30 @@ class _QuestionnaireInfo {
 /// Shows Nose HHT and QoL questionnaire cards with status chips and
 /// contextual action buttons (Send Now, Revoke, Unlock, Finalize).
 class ManageQuestionnairesDialog extends StatefulWidget {
-  final String patientId;
-  final String patientDisplayId;
+  final String participantId;
+  final String participantDisplayId;
   final ApiClient apiClient;
 
   const ManageQuestionnairesDialog({
     super.key,
-    required this.patientId,
-    required this.patientDisplayId,
+    required this.participantId,
+    required this.participantDisplayId,
     required this.apiClient,
   });
 
   /// Shows the dialog. Returns when the dialog is closed.
   static Future<void> show({
     required BuildContext context,
-    required String patientId,
-    required String patientDisplayId,
+    required String participantId,
+    required String participantDisplayId,
     required ApiClient apiClient,
   }) async {
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
       builder: (context) => ManageQuestionnairesDialog(
-        patientId: patientId,
-        patientDisplayId: patientDisplayId,
+        participantId: participantId,
+        participantDisplayId: participantDisplayId,
         apiClient: apiClient,
       ),
     );
@@ -152,7 +152,7 @@ class _ManageQuestionnairesDialogState
 
     final response = await widget.apiClient.get(
       '/api/v1/portal/participants/questionnaires',
-      extraHeaders: {'X-Patient-Id': widget.patientId},
+      extraHeaders: {'X-Patient-Id': widget.participantId},
     );
 
     if (!mounted) return;
@@ -227,7 +227,7 @@ class _ManageQuestionnairesDialogState
       final selectedCycle = await SelectStartingCycleDialog.show(
         context: context,
         questionnaireDisplayName: q.displayName,
-        patientDisplayId: widget.patientDisplayId,
+        participantDisplayId: widget.participantDisplayId,
         suggestedCycle: q.suggestedCycle,
       );
       if (selectedCycle == null || !mounted) return;
@@ -237,7 +237,7 @@ class _ManageQuestionnairesDialogState
       final confirmed = await StartNextCycleDialog.show(
         context: context,
         cycleLabel: q.suggestedStudyEvent ?? 'Next Cycle',
-        patientDisplayId: widget.patientDisplayId,
+        participantDisplayId: widget.participantDisplayId,
         questionnaireDisplayName: q.displayName,
       );
       if (confirmed != true || !mounted) return;
@@ -250,7 +250,7 @@ class _ManageQuestionnairesDialogState
         : <String, dynamic>{};
     final response = await widget.apiClient.post(
       '/api/v1/portal/participants/questionnaires/send',
-      {...body, 'patientId': widget.patientId, 'questionnaireType': type},
+      {...body, 'patientId': widget.participantId, 'questionnaireType': type},
     );
 
     if (!mounted) return;
@@ -504,7 +504,7 @@ class _ManageQuestionnairesDialogState
                         '${q.displayName} questionnaire for patient ',
                     children: [
                       TextSpan(
-                        text: widget.patientDisplayId,
+                        text: widget.participantDisplayId,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const TextSpan(text: '?'),
@@ -632,7 +632,7 @@ class _ManageQuestionnairesDialogState
                           ),
                           const TextSpan(text: ' questionnaire for patient '),
                           TextSpan(
-                            text: widget.patientDisplayId,
+                            text: widget.participantDisplayId,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const TextSpan(text: '?'),
@@ -859,7 +859,7 @@ class _ManageQuestionnairesDialogState
                       ),
                       const TextSpan(text: ' questionnaires to patient '),
                       TextSpan(
-                        text: widget.patientDisplayId,
+                        text: widget.participantDisplayId,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const TextSpan(text: '. Are you sure?'),
@@ -927,7 +927,7 @@ class _ManageQuestionnairesDialogState
                     text: 'View and manage questionnaire status for patient ',
                     children: [
                       TextSpan(
-                        text: widget.patientDisplayId,
+                        text: widget.participantDisplayId,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -993,7 +993,7 @@ class _ManageQuestionnairesDialogState
             ..._questionnaires.map(
               (q) => _QuestionnaireCard(
                 q: q,
-                patientDisplayId: widget.patientDisplayId,
+                participantDisplayId: widget.participantDisplayId,
                 actionInProgress: _actionInProgress,
                 onSend: () => _sendQuestionnaire(q.type),
                 onRevoke: () => _revokeQuestionnaire(q),
@@ -1026,7 +1026,7 @@ class _ManageQuestionnairesDialogState
 class _QuestionnaireCard extends StatelessWidget {
   const _QuestionnaireCard({
     required this.q,
-    required this.patientDisplayId,
+    required this.participantDisplayId,
     required this.actionInProgress,
     required this.onSend,
     required this.onRevoke,
@@ -1034,7 +1034,7 @@ class _QuestionnaireCard extends StatelessWidget {
   });
 
   final _QuestionnaireInfo q;
-  final String patientDisplayId;
+  final String participantDisplayId;
   final bool actionInProgress;
   final VoidCallback onSend;
   final VoidCallback onRevoke;

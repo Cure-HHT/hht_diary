@@ -18,13 +18,13 @@ import 'portal_dropdown.dart';
 /// null if cancelled.
 class SelectStartingCycleDialog extends StatefulWidget {
   final String questionnaireDisplayName;
-  final String patientDisplayId;
+  final String participantDisplayId;
   final int? suggestedCycle;
 
   const SelectStartingCycleDialog({
     super.key,
     required this.questionnaireDisplayName,
-    required this.patientDisplayId,
+    required this.participantDisplayId,
     this.suggestedCycle,
   });
 
@@ -33,7 +33,7 @@ class SelectStartingCycleDialog extends StatefulWidget {
   static Future<int?> show({
     required BuildContext context,
     required String questionnaireDisplayName,
-    required String patientDisplayId,
+    required String participantDisplayId,
     int? suggestedCycle,
   }) {
     return showDialog<int>(
@@ -41,7 +41,7 @@ class SelectStartingCycleDialog extends StatefulWidget {
       barrierDismissible: false,
       builder: (context) => SelectStartingCycleDialog(
         questionnaireDisplayName: questionnaireDisplayName,
-        patientDisplayId: patientDisplayId,
+        participantDisplayId: participantDisplayId,
         suggestedCycle: suggestedCycle,
       ),
     );

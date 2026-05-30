@@ -29,8 +29,8 @@ enum ParticipantActionResult {
 /// - not_participating: Reactivate
 /// - other statuses: relevant actions (link, show code, etc.)
 class ParticipantActionsDialog extends StatelessWidget {
-  final String patientId;
-  final String patientDisplayId;
+  final String participantId;
+  final String participantDisplayId;
   final String mobileLinkingStatus;
   final ApiClient apiClient;
   // REQ-p70010-C: passed through to DisconnectParticipantDialog
@@ -38,8 +38,8 @@ class ParticipantActionsDialog extends StatelessWidget {
 
   const ParticipantActionsDialog({
     super.key,
-    required this.patientId,
-    required this.patientDisplayId,
+    required this.participantId,
+    required this.participantDisplayId,
     required this.mobileLinkingStatus,
     required this.apiClient,
     this.disconnectReasonDropdown = true,
@@ -48,8 +48,8 @@ class ParticipantActionsDialog extends StatelessWidget {
   /// Shows the dialog and returns whether an action was taken.
   static Future<ParticipantActionResult> show({
     required BuildContext context,
-    required String patientId,
-    required String patientDisplayId,
+    required String participantId,
+    required String participantDisplayId,
     required String mobileLinkingStatus,
     required ApiClient apiClient,
     bool disconnectReasonDropdown = true,
@@ -57,8 +57,8 @@ class ParticipantActionsDialog extends StatelessWidget {
     final result = await showDialog<ParticipantActionResult>(
       context: context,
       builder: (context) => ParticipantActionsDialog(
-        patientId: patientId,
-        patientDisplayId: patientDisplayId,
+        participantId: participantId,
+        participantDisplayId: participantDisplayId,
         mobileLinkingStatus: mobileLinkingStatus,
         apiClient: apiClient,
         disconnectReasonDropdown: disconnectReasonDropdown,
@@ -101,7 +101,7 @@ class ParticipantActionsDialog extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    patientDisplayId,
+                    participantDisplayId,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -139,8 +139,8 @@ class ParticipantActionsDialog extends StatelessWidget {
               Navigator.of(context).pop(ParticipantActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
                 context: context,
-                patientId: patientId,
-                patientDisplayId: patientDisplayId,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
                 apiClient: apiClient,
                 isReference: true,
               );
@@ -155,8 +155,8 @@ class ParticipantActionsDialog extends StatelessWidget {
             onTap: () async {
               final success = await ReconnectParticipantDialog.show(
                 context: context,
-                patientId: patientId,
-                patientDisplayId: patientDisplayId,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
                 apiClient: apiClient,
               );
               if (context.mounted) {
@@ -179,8 +179,8 @@ class ParticipantActionsDialog extends StatelessWidget {
             onTap: () async {
               final success = await MarkNotParticipatingDialog.show(
                 context: context,
-                patientId: patientId,
-                patientDisplayId: patientDisplayId,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
                 apiClient: apiClient,
               );
               if (context.mounted) {
@@ -204,8 +204,8 @@ class ParticipantActionsDialog extends StatelessWidget {
               Navigator.of(context).pop(ParticipantActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
                 context: context,
-                patientId: patientId,
-                patientDisplayId: patientDisplayId,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
                 apiClient: apiClient,
               );
             },
@@ -225,8 +225,8 @@ class ParticipantActionsDialog extends StatelessWidget {
               Navigator.of(context).pop(ParticipantActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
                 context: context,
-                patientId: patientId,
-                patientDisplayId: patientDisplayId,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
                 apiClient: apiClient,
                 isReference: true,
               );
@@ -242,8 +242,8 @@ class ParticipantActionsDialog extends StatelessWidget {
             onTap: () async {
               final success = await DisconnectParticipantDialog.show(
                 context: context,
-                patientId: patientId,
-                patientDisplayId: patientDisplayId,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
                 apiClient: apiClient,
                 useDropdown: disconnectReasonDropdown,
               );
@@ -300,8 +300,8 @@ class ParticipantActionsDialog extends StatelessWidget {
               Navigator.of(context).pop(ParticipantActionResult.cancelled);
               await ShowLinkingCodeDialog.show(
                 context: context,
-                patientId: patientId,
-                patientDisplayId: patientDisplayId,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
                 apiClient: apiClient,
                 isReference: true,
               );

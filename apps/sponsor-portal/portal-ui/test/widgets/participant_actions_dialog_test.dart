@@ -72,8 +72,8 @@ Future<void> _pumpDialog(
               showDialog<ParticipantActionResult>(
                 context: context,
                 builder: (_) => ParticipantActionsDialog(
-                  patientId: 'PAT-TEST-001',
-                  patientDisplayId: '999-002-320',
+                  participantId: 'PAT-TEST-001',
+                  participantDisplayId: '999-002-320',
                   mobileLinkingStatus: mobileLinkingStatus,
                   apiClient: apiClient,
                 ),

@@ -135,9 +135,9 @@ Future<_StatusPushResult> _dispatchParticipantStatusPush({
     for (final entry in extraPayload.entries) entry.key: entry.value.toString(),
   };
   final result = await NotificationService.instance
-      .sendPatientStatusNotification(
+      .sendParticipantStatusNotification(
         fcmToken: fcmToken,
-        patientId: participantId,
+        participantId: participantId,
         action: action,
         title: title,
         body: body,

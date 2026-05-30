@@ -40,7 +40,7 @@ enum ParticipantStatusFilter {
 
 /// Model for a participant in the Study Coordinator view
 class _ParticipantData {
-  final String patientId;
+  final String participantId;
   final String siteId;
   final String edcSubjectKey;
   final String mobileLinkingStatus;
@@ -51,7 +51,7 @@ class _ParticipantData {
   final bool hasActiveLinkingCode;
 
   _ParticipantData({
-    required this.patientId,
+    required this.participantId,
     required this.siteId,
     required this.edcSubjectKey,
     required this.mobileLinkingStatus,
@@ -64,7 +64,7 @@ class _ParticipantData {
 
   factory _ParticipantData.fromJson(Map<String, dynamic> json) {
     return _ParticipantData(
-      patientId: json['patient_id'] as String,
+      participantId: json['patient_id'] as String,
       siteId: json['site_id'] as String,
       edcSubjectKey: json['edc_subject_key'] as String,
       mobileLinkingStatus: json['mobile_linking_status'] as String,
@@ -235,7 +235,7 @@ class _StudyCoordinatorParticipantsTabState
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       filtered = filtered.where((p) {
-        return p.patientId.toLowerCase().contains(query) ||
+        return p.participantId.toLowerCase().contains(query) ||
             p.siteName.toLowerCase().contains(query) ||
             p.siteNumber.toLowerCase().contains(query);
       }).toList();
@@ -521,7 +521,7 @@ class _StudyCoordinatorParticipantsTabState
         // Participant ID
         DataCell(
           Text(
-            participant.patientId,
+            participant.participantId,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
@@ -652,8 +652,8 @@ class _StudyCoordinatorParticipantsTabState
   ) async {
     final success = await LinkParticipantDialog.show(
       context: context,
-      patientId: participant.patientId,
-      patientDisplayId: participant.edcSubjectKey,
+      participantId: participant.participantId,
+      participantDisplayId: participant.edcSubjectKey,
       apiClient: apiClient,
     );
 
@@ -670,8 +670,8 @@ class _StudyCoordinatorParticipantsTabState
   ) async {
     await ShowLinkingCodeDialog.show(
       context: context,
-      patientId: participant.patientId,
-      patientDisplayId: participant.edcSubjectKey,
+      participantId: participant.participantId,
+      participantDisplayId: participant.edcSubjectKey,
       apiClient: apiClient,
     );
   }
@@ -683,8 +683,8 @@ class _StudyCoordinatorParticipantsTabState
   ) async {
     final success = await StartTrialDialog.show(
       context: context,
-      patientId: participant.patientId,
-      patientDisplayId: participant.edcSubjectKey,
+      participantId: participant.participantId,
+      participantDisplayId: participant.edcSubjectKey,
       apiClient: apiClient,
     );
 
@@ -702,8 +702,8 @@ class _StudyCoordinatorParticipantsTabState
     final authService = context.read<AuthService>();
     final result = await ParticipantActionsDialog.show(
       context: context,
-      patientId: participant.patientId,
-      patientDisplayId: participant.edcSubjectKey,
+      participantId: participant.participantId,
+      participantDisplayId: participant.edcSubjectKey,
       mobileLinkingStatus: participant.mobileLinkingStatus,
       apiClient: apiClient,
       disconnectReasonDropdown: authService.disconnectReasonDropdown,
@@ -722,8 +722,8 @@ class _StudyCoordinatorParticipantsTabState
   ) async {
     await ManageQuestionnairesDialog.show(
       context: context,
-      patientId: participant.patientId,
-      patientDisplayId: participant.edcSubjectKey,
+      participantId: participant.participantId,
+      participantDisplayId: participant.edcSubjectKey,
       apiClient: apiClient,
     );
   }
@@ -735,8 +735,8 @@ class _StudyCoordinatorParticipantsTabState
   ) async {
     final success = await ReactivateParticipantDialog.show(
       context: context,
-      patientId: participant.patientId,
-      patientDisplayId: participant.edcSubjectKey,
+      participantId: participant.participantId,
+      participantDisplayId: participant.edcSubjectKey,
       apiClient: apiClient,
     );
 

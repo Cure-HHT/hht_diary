@@ -28,30 +28,30 @@ enum _DialogState { confirm, loading, success, error }
 /// );
 /// ```
 class ReconnectParticipantDialog extends StatefulWidget {
-  final String patientId;
-  final String patientDisplayId;
+  final String participantId;
+  final String participantDisplayId;
   final ApiClient apiClient;
 
   const ReconnectParticipantDialog({
     super.key,
-    required this.patientId,
-    required this.patientDisplayId,
+    required this.participantId,
+    required this.participantDisplayId,
     required this.apiClient,
   });
 
   /// Shows the dialog and returns true if reconnection was successful.
   static Future<bool> show({
     required BuildContext context,
-    required String patientId,
-    required String patientDisplayId,
+    required String participantId,
+    required String participantDisplayId,
     required ApiClient apiClient,
   }) async {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => ReconnectParticipantDialog(
-        patientId: patientId,
-        patientDisplayId: patientDisplayId,
+        participantId: participantId,
+        participantDisplayId: participantDisplayId,
         apiClient: apiClient,
       ),
     );
@@ -87,7 +87,7 @@ class _ReconnectParticipantDialogState
 
     final response = await widget.apiClient
         .post('/api/v1/portal/participants/link-code', {
-          'patientId': widget.patientId,
+          'patientId': widget.participantId,
           'reconnect_reason': _reasonController.text.trim(),
         });
 
@@ -214,7 +214,7 @@ class _ReconnectParticipantDialogState
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      widget.patientDisplayId,
+                      widget.participantDisplayId,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -303,7 +303,7 @@ class _ReconnectParticipantDialogState
               const SizedBox(height: 4),
             ],
             Text(
-              'Participant: ${widget.patientDisplayId}',
+              'Participant: ${widget.participantDisplayId}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

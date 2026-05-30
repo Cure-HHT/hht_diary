@@ -57,12 +57,12 @@ Future<Response> getTasksHandler(Request request) async {
     }
 
     final row = userResult.first;
-    final patientId = row[1] as String?;
+    final participantId = row[1] as String?;
     final mobileLinkingStatus = row[2] as String?;
     final trialStarted = row[3] as bool?;
     final trialStartedAt = row[4] as DateTime?;
 
-    if (patientId == null) {
+    if (participantId == null) {
       return _jsonResponse({
         'tasks': <Map<String, dynamic>>[],
         if (mobileLinkingStatus != null)
@@ -90,12 +90,12 @@ Future<Response> getTasksHandler(Request request) async {
       SELECT id, questionnaire_type::text, status::text,
              study_event, version, sent_at
       FROM questionnaire_instances
-      WHERE patient_id = @patientId
+      WHERE patient_id = @participantId
         AND status IN ('sent', 'in_progress', 'ready_to_review')
         AND deleted_at IS NULL
       ORDER BY sent_at DESC
       ''',
-      parameters: {'patientId': patientId},
+      parameters: {'patientId': participantId},
     );
 
     final tasks = tasksResult.map((r) {
@@ -121,12 +121,12 @@ Future<Response> getTasksHandler(Request request) async {
       '''
       SELECT id, questionnaire_type::text, deleted_at
       FROM questionnaire_instances
-      WHERE patient_id = @patientId
+      WHERE patient_id = @participantId
         AND deleted_at IS NOT NULL
         AND deleted_at >= NOW() - INTERVAL '30 days'
       ORDER BY deleted_at DESC
       ''',
-      parameters: {'patientId': patientId},
+      parameters: {'patientId': participantId},
     );
 
     final cancelled = cancelledResult.map((r) {
@@ -140,7 +140,7 @@ Future<Response> getTasksHandler(Request request) async {
     logWithTrace(
       'INFO',
       'Tasks fetched',
-      labels: {'patientId': patientId, 'taskCount': tasks.length},
+      labels: {'patientId': participantId, 'taskCount': tasks.length},
     );
 
     return _jsonResponse({

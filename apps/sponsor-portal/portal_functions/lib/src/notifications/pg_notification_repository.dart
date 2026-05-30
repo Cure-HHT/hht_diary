@@ -89,7 +89,7 @@ class PgNotificationRepository implements NotificationRepository {
       LIMIT 1
       ''',
       parameters: {'id': id, 'patientId': participantId},
-      context: UserContext.patient(participantId),
+      context: UserContext.participant(participantId),
     );
     if (result.isEmpty) return null;
     return _rowToEnvelope(result.first);
@@ -118,7 +118,7 @@ class PgNotificationRepository implements NotificationRepository {
         'since': since.toUtc(),
         'limit': limit,
       },
-      context: UserContext.patient(participantId),
+      context: UserContext.participant(participantId),
     );
     return result.map(_rowToEnvelope).toList();
   }
@@ -172,7 +172,7 @@ class PgNotificationRepository implements NotificationRepository {
         AND delivered_at IS NULL
       ''',
       parameters: {'ids': ids, 'patientId': participantId},
-      context: UserContext.patient(participantId),
+      context: UserContext.participant(participantId),
     );
   }
 

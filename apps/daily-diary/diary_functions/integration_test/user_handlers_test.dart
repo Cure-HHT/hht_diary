@@ -372,13 +372,13 @@ void main() {
       final testCode =
           'CA${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase().padLeft(8, 'X')}'
               .substring(0, 10);
-      late String testPatientId;
+      late String testParticipantId;
       late String testSiteId;
 
       setUpAll(() async {
         final ts = DateTime.now().millisecondsSinceEpoch;
         testSiteId = 'SITE_CUR1049_$ts';
-        testPatientId = 'PAT_CUR1049_$ts';
+        testParticipantId = 'PAT_CUR1049_$ts';
         final testSiteNumber = 'T1049-$ts';
 
         // Create test site
@@ -397,7 +397,7 @@ void main() {
           VALUES (@patientId, @siteId, @edcKey, 'not_connected', now(), now())
         ''',
           parameters: {
-            'patientId': testPatientId,
+            'patientId': testParticipantId,
             'siteId': testSiteId,
             'edcKey': 'EDC-SUBJ-1049-$ts',
           },
@@ -425,7 +425,7 @@ void main() {
           )
         ''',
           parameters: {
-            'patientId': testPatientId,
+            'patientId': testParticipantId,
             'code': testCode,
             'codeHash': codeHash,
           },
@@ -436,7 +436,7 @@ void main() {
         // Collect user IDs before deleting linking codes
         final linkedCodes = await Database.instance.execute(
           'SELECT used_by_user_id FROM patient_linking_codes WHERE patient_id = @patientId',
-          parameters: {'patientId': testPatientId},
+          parameters: {'patientId': testParticipantId},
         );
         final userIds = linkedCodes
             .map((row) => row[0])
@@ -447,7 +447,7 @@ void main() {
         // Delete ALL linking codes referencing these users (not just our test patient)
         await Database.instance.execute(
           'DELETE FROM patient_linking_codes WHERE patient_id = @patientId',
-          parameters: {'patientId': testPatientId},
+          parameters: {'patientId': testParticipantId},
         );
         for (final uid in userIds) {
           await Database.instance.execute(
@@ -461,7 +461,7 @@ void main() {
         }
         await Database.instance.execute(
           'DELETE FROM patients WHERE patient_id = @patientId',
-          parameters: {'patientId': testPatientId},
+          parameters: {'patientId': testParticipantId},
         );
         await Database.instance.execute(
           'DELETE FROM sites WHERE site_id = @siteId',

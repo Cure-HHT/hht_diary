@@ -29,30 +29,30 @@ enum _DialogState { confirm, loading, success, error }
 /// );
 /// ```
 class LinkParticipantDialog extends StatefulWidget {
-  final String patientId;
-  final String patientDisplayId;
+  final String participantId;
+  final String participantDisplayId;
   final ApiClient apiClient;
 
   const LinkParticipantDialog({
     super.key,
-    required this.patientId,
-    required this.patientDisplayId,
+    required this.participantId,
+    required this.participantDisplayId,
     required this.apiClient,
   });
 
   /// Shows the dialog and returns true if a code was generated successfully.
   static Future<bool> show({
     required BuildContext context,
-    required String patientId,
-    required String patientDisplayId,
+    required String participantId,
+    required String participantDisplayId,
     required ApiClient apiClient,
   }) async {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => LinkParticipantDialog(
-        patientId: patientId,
-        patientDisplayId: patientDisplayId,
+        participantId: participantId,
+        participantDisplayId: participantDisplayId,
         apiClient: apiClient,
       ),
     );
@@ -75,7 +75,7 @@ class _LinkParticipantDialogState extends State<LinkParticipantDialog> {
 
     final response = await widget.apiClient.post(
       '/api/v1/portal/participants/link-code',
-      {'patientId': widget.patientId},
+      {'patientId': widget.participantId},
     );
 
     if (!mounted) return;
@@ -199,7 +199,7 @@ class _LinkParticipantDialogState extends State<LinkParticipantDialog> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    widget.patientDisplayId,
+                    widget.participantDisplayId,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -240,7 +240,7 @@ class _LinkParticipantDialogState extends State<LinkParticipantDialog> {
               const SizedBox(height: 4),
             ],
             Text(
-              'Participant: ${widget.patientDisplayId}',
+              'Participant: ${widget.participantDisplayId}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -361,8 +361,8 @@ class _LinkParticipantDialogState extends State<LinkParticipantDialog> {
 ///
 /// Fetches the active linking code for a patient and displays it.
 class ShowLinkingCodeDialog extends StatefulWidget {
-  final String patientId;
-  final String patientDisplayId;
+  final String participantId;
+  final String participantDisplayId;
   final ApiClient apiClient;
 
   /// When true, displays the Participant Linking Code (previously used code,
@@ -373,8 +373,8 @@ class ShowLinkingCodeDialog extends StatefulWidget {
 
   const ShowLinkingCodeDialog({
     super.key,
-    required this.patientId,
-    required this.patientDisplayId,
+    required this.participantId,
+    required this.participantDisplayId,
     required this.apiClient,
     this.isReference = false,
   });
@@ -382,16 +382,16 @@ class ShowLinkingCodeDialog extends StatefulWidget {
   /// Shows the dialog.
   static Future<void> show({
     required BuildContext context,
-    required String patientId,
-    required String patientDisplayId,
+    required String participantId,
+    required String participantDisplayId,
     required ApiClient apiClient,
     bool isReference = false,
   }) async {
     await showDialog<void>(
       context: context,
       builder: (context) => ShowLinkingCodeDialog(
-        patientId: patientId,
-        patientDisplayId: patientDisplayId,
+        participantId: participantId,
+        participantDisplayId: participantDisplayId,
         apiClient: apiClient,
         isReference: isReference,
       ),
@@ -422,7 +422,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
   Future<void> _fetchCode() async {
     final response = await widget.apiClient.get(
       '/api/v1/portal/participants/link-code/active',
-      extraHeaders: {'X-Patient-Id': widget.patientId},
+      extraHeaders: {'X-Patient-Id': widget.participantId},
     );
 
     if (!mounted) return;
@@ -453,7 +453,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
 
     final response = await widget.apiClient.post(
       '/api/v1/portal/participants/link-code',
-      {'patientId': widget.patientId},
+      {'patientId': widget.participantId},
     );
 
     if (!mounted) return;
@@ -631,7 +631,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Participant: ${widget.patientDisplayId}',
+          'Participant: ${widget.participantDisplayId}',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -697,7 +697,7 @@ class _ShowLinkingCodeDialogState extends State<ShowLinkingCodeDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Participant: ${widget.patientDisplayId}',
+          'Participant: ${widget.participantDisplayId}',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

@@ -7,8 +7,8 @@
 // `delivered` on the first successful read so the server has a
 // confirmed-receipt audit point.
 //
-// The factory's `patientResolver` argument is the app-side bridge from
-// the request's auth header to a patient row id — each sponsor's auth
+// The factory's `participantResolver` argument is the app-side bridge from
+// the request's auth header to a participant row id — each sponsor's auth
 // model differs (Identity Platform claims vs. JWT subject vs. session
 // cookie), so resolution lives in the consuming app.
 
@@ -23,10 +23,10 @@ import 'package:shelf_router/shelf_router.dart';
 /// Mount as: `router.get('/api/v1/notifications/<id>', envelopeFetchHandler(...))`
 Handler envelopeFetchHandler({
   required NotificationRepository repo,
-  required Future<String?> Function(Request) patientResolver,
+  required Future<String?> Function(Request) participantResolver,
 }) {
   return (Request request) async {
-    final participantId = await patientResolver(request);
+    final participantId = await participantResolver(request);
     if (participantId == null) {
       return Response.unauthorized(
         jsonEncode({'error': 'Unauthorized'}),

@@ -21,7 +21,7 @@ import 'package:sponsor_portal_ui/services/api_client.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
 
 /// Test data: patients with various statuses
-final _testPatients = [
+final _testParticipants = [
   {
     'patient_id': 'PAT-001',
     'site_id': 'site-1',
@@ -109,7 +109,10 @@ MockClient _createMockHttpClient() {
     // GET /api/v1/portal/participants
     if (path == '/api/v1/portal/participants' && request.method == 'GET') {
       return http.Response(
-        jsonEncode({'patients': _testPatients, 'assigned_sites': _testSites}),
+        jsonEncode({
+          'patients': _testParticipants,
+          'assigned_sites': _testSites,
+        }),
         200,
         headers: {'content-type': 'application/json'},
       );

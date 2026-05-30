@@ -92,8 +92,8 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
                 context: context,
                 barrierDismissible: false,
                 builder: (_) => ReactivateParticipantDialog(
-                  patientId: 'PAT-TEST-001',
-                  patientDisplayId: '999-002-320',
+                  participantId: 'PAT-TEST-001',
+                  participantDisplayId: '999-002-320',
                   apiClient: apiClient,
                 ),
               );

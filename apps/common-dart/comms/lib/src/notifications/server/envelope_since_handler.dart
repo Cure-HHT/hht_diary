@@ -3,7 +3,7 @@
 //     (cursor-based since query — primary reliability mechanism)
 //
 // Shelf handler factory for `GET /api/v1/notifications?since=<iso8601>&limit=<n>`.
-// Returns the patient's envelopes created strictly after `since`,
+// Returns the participant's envelopes created strictly after `since`,
 // paginated by `limit` (server-enforced ceiling). Mobile uses this on
 // app resume / cold start to reconcile state without trusting any FCM
 // payload (envelope pattern).
@@ -23,12 +23,12 @@ import 'package:shelf/shelf.dart';
 ///     a misbehaving client cannot pull the entire history in one call.
 Handler envelopeSinceHandler({
   required NotificationRepository repo,
-  required Future<String?> Function(Request) patientResolver,
+  required Future<String?> Function(Request) participantResolver,
   int defaultLimit = 50,
   int maxLimit = 200,
 }) {
   return (Request request) async {
-    final participantId = await patientResolver(request);
+    final participantId = await participantResolver(request);
     if (participantId == null) {
       return Response.unauthorized(
         jsonEncode({'error': 'Unauthorized'}),

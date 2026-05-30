@@ -187,7 +187,7 @@ Future<Response> linkHandler(Request request) async {
 
     final codeRow = codeResult.first;
     final codeId = codeRow[0] as String;
-    final patientId = codeRow[1] as String;
+    final participantId = codeRow[1] as String;
     final siteId = codeRow[2] as String;
     final edcSubjectKey = codeRow[3] as String;
     final siteName = codeRow[4] as String;
@@ -313,9 +313,9 @@ Future<Response> linkHandler(Request request) async {
       UPDATE patients
       SET mobile_linking_status = 'connected',
           updated_at = now()
-      WHERE patient_id = @patientId
+      WHERE patient_id = @participantId
       ''',
-      parameters: {'patientId': patientId},
+      parameters: {'patientId': participantId},
     );
 
     // Note: The app user → patient → site relationship is established through:
@@ -344,7 +344,7 @@ Future<Response> linkHandler(Request request) async {
       'success': true,
       'jwt': jwtToken,
       'userId': userId,
-      'patientId': patientId,
+      'patientId': participantId,
       'linkingCode': code,
       'siteId': siteId,
       'siteName': siteName,
@@ -407,7 +407,7 @@ Future<Response> syncHandler(Request request) async {
     final row = userResult.first;
     final userId = row[0] as String;
     final siteId = row[1] as String?;
-    final patientId =
+    final participantId =
         row[2] as String? ?? userId; // Use userId if no linked patient
     final mobileLinkingStatus = row[4] as String?;
 
@@ -447,13 +447,13 @@ Future<Response> syncHandler(Request request) async {
             event_uuid, patient_id, site_id, operation, data,
             created_by, role, client_timestamp, change_reason
           ) VALUES (
-            @eventId::uuid, @patientId, @siteId, @operation, @data::jsonb,
+            @eventId::uuid, @participantId, @siteId, @operation, @data::jsonb,
             @userId, 'USER', @clientTimestamp::timestamptz, @changeReason
           )
           ''',
           parameters: {
             'eventId': eventId,
-            'patientId': patientId,
+            'patientId': participantId,
             'siteId': siteId ?? 'DEFAULT', // Fallback for non-enrolled users
             'operation': operation,
             'data': jsonEncode(event['data'] ?? {}),
@@ -481,7 +481,7 @@ Future<Response> syncHandler(Request request) async {
       'INFO',
       'Events synced',
       labels: {
-        'patientId': patientId,
+        'patientId': participantId,
         'syncedCount': syncedEventIds.length,
         'totalSubmitted': events.length,
       },
@@ -541,7 +541,7 @@ Future<Response> getRecordsHandler(Request request) async {
 
     final row = userResult.first;
     final userId = row[0] as String;
-    final patientId =
+    final participantId =
         row[1] as String? ?? userId; // Use userId if no linked patient
     final mobileLinkingStatus = row[2] as String?;
 
@@ -550,10 +550,10 @@ Future<Response> getRecordsHandler(Request request) async {
       '''
       SELECT event_uuid, current_data, version, updated_at
       FROM record_state
-      WHERE patient_id = @patientId AND is_deleted = false
+      WHERE patient_id = @participantId AND is_deleted = false
       ORDER BY updated_at DESC
       ''',
-      parameters: {'patientId': patientId},
+      parameters: {'patientId': participantId},
     );
 
     final records = recordsResult.map((r) {

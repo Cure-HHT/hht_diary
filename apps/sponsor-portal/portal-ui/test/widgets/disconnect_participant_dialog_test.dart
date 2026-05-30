@@ -102,8 +102,8 @@ Future<void> _pumpDialog(
                 context: context,
                 barrierDismissible: false,
                 builder: (_) => DisconnectParticipantDialog(
-                  patientId: 'PAT-TEST-001',
-                  patientDisplayId: '999-002-320',
+                  participantId: 'PAT-TEST-001',
+                  participantDisplayId: '999-002-320',
                   apiClient: apiClient,
                   useDropdown: useDropdown,
                 ),

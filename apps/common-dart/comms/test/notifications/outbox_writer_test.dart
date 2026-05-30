@@ -11,7 +11,7 @@ import '_helpers/in_memory_repository.dart';
 
 Envelope _buildEnvelope({
   String id = 'env-1',
-  String patientId = 'pat-1',
+  String participantId = 'pat-1',
   String title = 'Account Disconnected',
   String? body = 'You have been disconnected.',
   bool userVisible = true,
@@ -21,7 +21,7 @@ Envelope _buildEnvelope({
 }) {
   return Envelope(
     notificationId: id,
-    participantId: patientId,
+    participantId: participantId,
     type: NotificationType.participantStatusUpdate,
     title: title,
     body: body,

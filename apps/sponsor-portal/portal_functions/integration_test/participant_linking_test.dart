@@ -46,10 +46,10 @@ void main() {
   const testSiteId = 'test-linking-site-001';
   const testSiteName = 'Linking Test Site';
 
-  const testPatientNotConnected = 'test-link-patient-001';
-  const testPatientConnected = 'test-link-patient-002';
-  const testPatientDisconnected = 'test-link-patient-003';
-  const testPatientLinking = 'test-link-patient-004';
+  const testParticipantNotConnected = 'test-link-patient-001';
+  const testParticipantConnected = 'test-link-patient-002';
+  const testParticipantDisconnected = 'test-link-patient-003';
+  const testParticipantLinking = 'test-link-patient-004';
 
   setUpAll(() async {
     // Initialize database
@@ -146,18 +146,22 @@ void main() {
     // Create test patients with various statuses
     for (final patient in [
       {
-        'id': testPatientNotConnected,
+        'id': testParticipantNotConnected,
         'status': 'not_connected',
         'key': 'LINK-001',
       },
-      {'id': testPatientConnected, 'status': 'connected', 'key': 'LINK-002'},
       {
-        'id': testPatientDisconnected,
+        'id': testParticipantConnected,
+        'status': 'connected',
+        'key': 'LINK-002',
+      },
+      {
+        'id': testParticipantDisconnected,
         'status': 'disconnected',
         'key': 'LINK-003',
       },
       {
-        'id': testPatientLinking,
+        'id': testParticipantLinking,
         'status': 'linking_in_progress',
         'key': 'LINK-004',
       },
@@ -185,7 +189,7 @@ void main() {
       ON CONFLICT DO NOTHING
       ''',
       parameters: {
-        'patientId': testPatientLinking,
+        'patientId': testParticipantLinking,
         'code': 'CATEST1234',
         'codeHash': hashLinkingCode('CATEST1234'),
         'generatedBy': testInvestigatorId,
@@ -226,7 +230,7 @@ void main() {
     test('returns 401 without authorization header', () async {
       final request = createPostRequest(
         '/api/v1/portal/participants/link-code',
-        body: {'patientId': testPatientNotConnected},
+        body: {'patientId': testParticipantNotConnected},
       );
       final response = await generateParticipantLinkingCodeHandler(request);
 
@@ -238,7 +242,7 @@ void main() {
     test('returns 401 with invalid Bearer token', () async {
       final request = createPostRequest(
         '/api/v1/portal/participants/link-code',
-        body: {'patientId': testPatientNotConnected},
+        body: {'patientId': testParticipantNotConnected},
         headers: {'authorization': 'Bearer invalid-token'},
       );
       final response = await generateParticipantLinkingCodeHandler(request);
@@ -249,7 +253,7 @@ void main() {
     test('returns 401 without Bearer prefix', () async {
       final request = createPostRequest(
         '/api/v1/portal/participants/link-code',
-        body: {'patientId': testPatientNotConnected},
+        body: {'patientId': testParticipantNotConnected},
         headers: {'authorization': 'some-token'},
       );
       final response = await generateParticipantLinkingCodeHandler(request);
@@ -286,7 +290,7 @@ void main() {
     test('returns 401 without authorization header', () async {
       final request = createGetRequest(
         '/api/v1/portal/participants/link-code',
-        headers: {'x-patient-id': testPatientLinking},
+        headers: {'x-patient-id': testParticipantLinking},
       );
       final response = await getParticipantLinkingCodeHandler(request);
 
@@ -322,7 +326,10 @@ void main() {
     test('returns 401 without authorization header', () async {
       final request = createPostRequest(
         '/api/v1/portal/participants/disconnect',
-        body: {'patientId': testPatientConnected, 'reason': 'Device Issues'},
+        body: {
+          'patientId': testParticipantConnected,
+          'reason': 'Device Issues',
+        },
       );
       final response = await disconnectParticipantHandler(request);
 

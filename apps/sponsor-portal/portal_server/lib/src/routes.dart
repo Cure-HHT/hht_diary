@@ -52,7 +52,7 @@ Router createRouter() {
     deletePendingPortalUserHandler,
   );
   router.get('/api/v1/portal/sites', getPortalSitesHandler);
-  router.get('/api/v1/portal/participants', getPortalPatientsHandler);
+  router.get('/api/v1/portal/participants', getPortalParticipantsHandler);
 
   // Participant operations (CUR-1220 renamed path segment from "patients").
   // patientId in request body/header, not URL (CUR-1064):

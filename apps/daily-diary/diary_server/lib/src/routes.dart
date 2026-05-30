@@ -59,14 +59,14 @@ Router createRouter() {
     '/api/v1/notifications/<id>',
     envelopeFetchHandler(
       repo: notificationRepo,
-      patientResolver: jwtParticipantResolver,
+      participantResolver: jwtParticipantResolver,
     ),
   );
   router.get(
     '/api/v1/notifications',
     envelopeSinceHandler(
       repo: notificationRepo,
-      patientResolver: jwtParticipantResolver,
+      participantResolver: jwtParticipantResolver,
     ),
   );
 

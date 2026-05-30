@@ -120,7 +120,7 @@ class NextCycleNeedsSelection extends NextCycleResult {
 Future<NextCycleResult> _computeNextCycleInfo(
   Database db,
   UserContext ctx,
-  String patientId,
+  String participantId,
   String questionnaireType, {
   SponsorFeatureFlags? sponsorFlags,
 }) async {
@@ -130,14 +130,14 @@ Future<NextCycleResult> _computeNextCycleInfo(
     final anyFinalized = await db.executeWithContext(
       '''
       SELECT 1 FROM questionnaire_instances
-      WHERE patient_id = @patientId
+      WHERE patient_id = @participantId
         AND questionnaire_type = @questionnaireType::questionnaire_type
         AND status = 'finalized'
         AND deleted_at IS NULL
       LIMIT 1
       ''',
       parameters: {
-        'patientId': patientId,
+        'patientId': participantId,
         'questionnaireType': questionnaireType,
       },
       context: ctx,
@@ -156,7 +156,7 @@ Future<NextCycleResult> _computeNextCycleInfo(
     '''
     SELECT qi.end_event::text, qi.study_event
     FROM questionnaire_instances qi
-    WHERE qi.patient_id = @patientId
+    WHERE qi.patient_id = @participantId
       AND qi.questionnaire_type = @questionnaireType::questionnaire_type
       AND qi.status = 'finalized'
       AND qi.deleted_at IS NULL
@@ -164,7 +164,7 @@ Future<NextCycleResult> _computeNextCycleInfo(
     LIMIT 1
     ''',
     parameters: {
-      'patientId': patientId,
+      'patientId': participantId,
       'questionnaireType': questionnaireType,
     },
     context: ctx,
@@ -187,14 +187,14 @@ Future<NextCycleResult> _computeNextCycleInfo(
     '''
     SELECT qi.study_event
     FROM questionnaire_instances qi
-    WHERE qi.patient_id = @patientId
+    WHERE qi.patient_id = @participantId
       AND qi.questionnaire_type = @questionnaireType::questionnaire_type
       AND qi.status = 'finalized'
       AND qi.deleted_at IS NULL
       AND qi.study_event ~ '^Cycle [1-9]\\d* Day 1\$'  -- matches StudyEvent._cyclePattern
     ''',
     parameters: {
-      'patientId': patientId,
+      'patientId': participantId,
       'questionnaireType': questionnaireType,
     },
     context: ctx,
@@ -273,7 +273,7 @@ enum _QuestionnaireAction {
 /// alert (priority 10, lock-screen visible).
 Future<_QuestionnairePushResult> _dispatchQuestionnairePush({
   required String fcmToken,
-  required String patientId,
+  required String participantId,
   required String questionnaireInstanceId,
   required _QuestionnaireAction action,
   required bool useEnvelope,
@@ -300,7 +300,7 @@ Future<_QuestionnairePushResult> _dispatchQuestionnairePush({
     if (outboxWriter != null) {
       final envelope = Envelope(
         notificationId: const Uuid().v4(),
-        participantId: patientId,
+        participantId: participantId,
         type: NotificationType.questionnaireUpdate,
         // The envelope still stores a title for audit / UI fallback,
         // even on silent actions — it just isn't sent over FCM.
@@ -323,7 +323,7 @@ Future<_QuestionnairePushResult> _dispatchQuestionnairePush({
         );
         final stored = await outboxWriter.repo.findById(
           notificationId,
-          participantId: patientId,
+          participantId: participantId,
         );
         if (stored?.status == EnvelopeStatus.failed) {
           logWithTrace(
@@ -364,25 +364,25 @@ Future<_QuestionnairePushResult> _dispatchQuestionnairePush({
         fcmToken: fcmToken,
         questionnaireType: questionnaireType ?? '',
         questionnaireInstanceId: questionnaireInstanceId,
-        patientId: patientId,
+        participantId: participantId,
       ),
     _QuestionnaireAction.deleted =>
       await NotificationService.instance.sendQuestionnaireDeletedNotification(
         fcmToken: fcmToken,
         questionnaireInstanceId: questionnaireInstanceId,
-        patientId: patientId,
+        participantId: participantId,
       ),
     _QuestionnaireAction.unlocked =>
       await NotificationService.instance.sendQuestionnaireUnlockedNotification(
         fcmToken: fcmToken,
         questionnaireInstanceId: questionnaireInstanceId,
-        patientId: patientId,
+        participantId: participantId,
       ),
     _QuestionnaireAction.finalized =>
       await NotificationService.instance.sendQuestionnaireFinalizedNotification(
         fcmToken: fcmToken,
         questionnaireInstanceId: questionnaireInstanceId,
-        patientId: patientId,
+        participantId: participantId,
       ),
   };
   if (!result.success) {
@@ -410,38 +410,38 @@ Future<Response> getQuestionnaireStatusHandler(Request request) async {
   }
 
   // CUR-1064: patientId moved from URL path to X-Patient-Id header (GET request)
-  final patientId = request.headers['x-patient-id'];
-  if (patientId == null || patientId.isEmpty) {
+  final participantId = request.headers['x-patient-id'];
+  if (participantId == null || participantId.isEmpty) {
     return _jsonResponse({'error': 'Missing X-Patient-Id header'}, 400);
   }
 
   logWithTrace(
     'INFO',
     'getQuestionnaireStatusHandler',
-    labels: {'patient_id': patientId},
+    labels: {'patient_id': participantId},
   );
 
   final db = Database.instance;
   const serviceContext = UserContext.service;
 
   // Verify patient exists and user has site access
-  final patientResult = await db.executeWithContext(
+  final participantResult = await db.executeWithContext(
     '''
     SELECT p.patient_id, p.site_id, p.trial_started
     FROM patients p
-    WHERE p.patient_id = @patientId
+    WHERE p.patient_id = @participantId
     ''',
-    parameters: {'patientId': patientId},
+    parameters: {'patientId': participantId},
     context: serviceContext,
   );
 
-  if (patientResult.isEmpty) {
+  if (participantResult.isEmpty) {
     return _jsonResponse({'error': 'Patient not found'}, 404);
   }
 
-  final patientSiteId = patientResult.first[1] as String;
+  final participantSiteId = participantResult.first[1] as String;
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
-  if (!userSiteIds.contains(patientSiteId)) {
+  if (!userSiteIds.contains(participantSiteId)) {
     return _jsonResponse({
       'error': 'You do not have access to patients at this site',
     }, 403);
@@ -454,11 +454,11 @@ Future<Response> getQuestionnaireStatusHandler(Request request) async {
            qi.version, qi.sent_at, qi.submitted_at, qi.finalized_at,
            qi.score, qi.sent_by
     FROM questionnaire_instances qi
-    WHERE qi.patient_id = @patientId
+    WHERE qi.patient_id = @participantId
       AND qi.deleted_at IS NULL
     ORDER BY qi.created_at DESC
     ''',
-    parameters: {'patientId': patientId},
+    parameters: {'patientId': participantId},
     context: serviceContext,
   );
 
@@ -498,13 +498,13 @@ Future<Response> getQuestionnaireStatusHandler(Request request) async {
     SELECT DISTINCT ON (qi.questionnaire_type)
            qi.questionnaire_type::text, qi.finalized_at, qi.study_event
     FROM questionnaire_instances qi
-    WHERE qi.patient_id = @patientId
+    WHERE qi.patient_id = @participantId
       AND qi.questionnaire_type IN ('nose_hht'::questionnaire_type, 'qol'::questionnaire_type)
       AND qi.status = 'finalized'
       AND qi.deleted_at IS NULL
     ORDER BY qi.questionnaire_type, qi.finalized_at DESC
     ''',
-    parameters: {'patientId': patientId},
+    parameters: {'patientId': participantId},
     context: serviceContext,
   );
 
@@ -552,7 +552,7 @@ Future<Response> getQuestionnaireStatusHandler(Request request) async {
       final nextCycleInfo = await _computeNextCycleInfo(
         db,
         serviceContext,
-        patientId,
+        participantId,
         type,
         sponsorFlags: sponsorFlags,
       );
@@ -561,7 +561,7 @@ Future<Response> getQuestionnaireStatusHandler(Request request) async {
   }
 
   return _jsonResponse({
-    'patient_id': patientId,
+    'patient_id': participantId,
     'questionnaires': statusMap.values.toList(),
   });
 }
@@ -597,9 +597,11 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
     return _jsonResponse({'error': 'Invalid JSON in request body'}, 400);
   }
 
-  final patientId = bodyJson['patientId'] as String?;
-  if (patientId == null || patientId.isEmpty) {
-    return _jsonResponse({'error': 'Missing patientId in request body'}, 400);
+  final participantId = bodyJson['patientId'] as String?;
+  if (participantId == null || participantId.isEmpty) {
+    return _jsonResponse({
+      'error': 'Missing participantId in request body',
+    }, 400);
   }
 
   final questionnaireType = bodyJson['questionnaireType'] as String?;
@@ -622,7 +624,10 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
   logWithTrace(
     'INFO',
     'sendQuestionnaireHandler',
-    labels: {'patient_id': patientId, 'questionnaire_type': questionnaireType},
+    labels: {
+      'patient_id': participantId,
+      'questionnaire_type': questionnaireType,
+    },
   );
 
   final db = Database.instance;
@@ -644,27 +649,27 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
   }
 
   // Verify patient exists, has trial started, and user has site access
-  final patientResult = await db.executeWithContext(
+  final participantResult = await db.executeWithContext(
     '''
     SELECT p.patient_id, p.site_id, p.trial_started,
            p.mobile_linking_status::text
     FROM patients p
-    WHERE p.patient_id = @patientId
+    WHERE p.patient_id = @participantId
     ''',
-    parameters: {'patientId': patientId},
+    parameters: {'patientId': participantId},
     context: serviceContext,
   );
 
-  if (patientResult.isEmpty) {
+  if (participantResult.isEmpty) {
     return _jsonResponse({'error': 'Patient not found'}, 404);
   }
 
-  final patientSiteId = patientResult.first[1] as String;
-  final trialStarted = patientResult.first[2] as bool;
+  final participantSiteId = participantResult.first[1] as String;
+  final trialStarted = participantResult.first[2] as bool;
 
   // Verify site access
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
-  if (!userSiteIds.contains(patientSiteId)) {
+  if (!userSiteIds.contains(participantSiteId)) {
     return _jsonResponse({
       'error': 'You do not have access to patients at this site',
     }, 403);
@@ -681,7 +686,7 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
   final existingResult = await db.executeWithContext(
     '''
     SELECT id, status::text FROM questionnaire_instances
-    WHERE patient_id = @patientId
+    WHERE patient_id = @participantId
       AND questionnaire_type = @questionnaireType::questionnaire_type
       AND deleted_at IS NULL
       AND status != 'finalized'
@@ -689,7 +694,7 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
     LIMIT 1
     ''',
     parameters: {
-      'patientId': patientId,
+      'patientId': participantId,
       'questionnaireType': questionnaireType,
     },
     context: serviceContext,
@@ -709,7 +714,7 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
     final nextCycleInfo = await _computeNextCycleInfo(
       db,
       serviceContext,
-      patientId,
+      participantId,
       questionnaireType,
     );
 
@@ -749,14 +754,14 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
     final conflictResult = await db.executeWithContext(
       '''
       SELECT 1 FROM questionnaire_instances
-      WHERE patient_id = @patientId
+      WHERE patient_id = @participantId
         AND questionnaire_type = @questionnaireType::questionnaire_type
         AND study_event = @studyEvent
         AND deleted_at IS NULL
       LIMIT 1
       ''',
       parameters: {
-        'patientId': patientId,
+        'patientId': participantId,
         'questionnaireType': questionnaireType,
         'studyEvent': studyEvent,
       },
@@ -793,13 +798,13 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
         version, sent_by, sent_at, created_at, updated_at
       )
       VALUES (
-        @patientId, @questionnaireType::questionnaire_type, 'sent', @studyEvent,
+        @participantId, @questionnaireType::questionnaire_type, 'sent', @studyEvent,
         @version, @sentBy, @sentAt, @sentAt, @sentAt
       )
       RETURNING id
       ''',
       parameters: {
-        'patientId': patientId,
+        'patientId': participantId,
         'questionnaireType': questionnaireType,
         'studyEvent': studyEvent,
         'version': version,
@@ -842,11 +847,11 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
   final fcmTokenResult = await db.executeWithContext(
     '''
     SELECT fcm_token FROM patient_fcm_tokens
-    WHERE patient_id = @patientId AND is_active = true
+    WHERE patient_id = @participantId AND is_active = true
     ORDER BY updated_at DESC
     LIMIT 1
     ''',
-    parameters: {'patientId': patientId},
+    parameters: {'patientId': participantId},
     context: serviceContext,
   );
 
@@ -861,7 +866,7 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
   } else if (fcmTokenResult.isNotEmpty) {
     final pushResult = await _dispatchQuestionnairePush(
       fcmToken: fcmTokenResult.first[0] as String,
-      patientId: patientId,
+      participantId: participantId,
       questionnaireInstanceId: instanceId,
       action: _QuestionnaireAction.sent,
       questionnaireType: questionnaireType,
@@ -875,7 +880,7 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
     logWithTrace(
       'INFO',
       'No FCM token found, patient will discover via sync',
-      labels: {'patient_id': patientId},
+      labels: {'patient_id': participantId},
     );
   }
 
@@ -896,7 +901,7 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
       'targetResource': 'questionnaire:$instanceId',
       'actionDetails': jsonEncode({
         'instance_id': instanceId,
-        'patient_id': patientId,
+        'patient_id': participantId,
         'questionnaire_type': questionnaireType,
         'study_event': studyEvent,
         'version': version,
@@ -919,7 +924,7 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
     'Questionnaire sent',
     labels: {
       'instance_id': instanceId,
-      'patient_id': patientId,
+      'patient_id': participantId,
       'questionnaire_type': questionnaireType,
     },
   );
@@ -927,7 +932,7 @@ Future<Response> sendQuestionnaireHandler(Request request) async {
   return _jsonResponse({
     'success': true,
     'instance_id': instanceId,
-    'patient_id': patientId,
+    'patient_id': participantId,
     'questionnaire_type': questionnaireType,
     'status': 'sent',
     'study_event': studyEvent,
@@ -1012,10 +1017,10 @@ Future<Response> deleteQuestionnaireHandler(
     return _jsonResponse({'error': 'Questionnaire instance not found'}, 404);
   }
 
-  final patientId = instanceResult.first[3] as String;
-  final patientSiteId = instanceResult.first[5] as String;
+  final participantId = instanceResult.first[3] as String;
+  final participantSiteId = instanceResult.first[5] as String;
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
-  if (!userSiteIds.contains(patientSiteId)) {
+  if (!userSiteIds.contains(participantSiteId)) {
     return _jsonResponse({
       'error': 'You do not have access to patients at this site',
     }, 403);
@@ -1024,7 +1029,7 @@ Future<Response> deleteQuestionnaireHandler(
   logWithTrace(
     'INFO',
     'deleteQuestionnaireHandler',
-    labels: {'instance_id': instanceId, 'patient_id': patientId},
+    labels: {'instance_id': instanceId, 'patient_id': participantId},
   );
 
   final currentStatus = instanceResult.first[2] as String;
@@ -1079,11 +1084,11 @@ Future<Response> deleteQuestionnaireHandler(
   final fcmTokenResult = await db.executeWithContext(
     '''
     SELECT fcm_token FROM patient_fcm_tokens
-    WHERE patient_id = @patientId AND is_active = true
+    WHERE patient_id = @participantId AND is_active = true
     ORDER BY updated_at DESC
     LIMIT 1
     ''',
-    parameters: {'patientId': patientId},
+    parameters: {'patientId': participantId},
     context: serviceContext,
   );
 
@@ -1092,7 +1097,7 @@ Future<Response> deleteQuestionnaireHandler(
   if (fcmTokenResult.isNotEmpty) {
     final pushResult = await _dispatchQuestionnairePush(
       fcmToken: fcmTokenResult.first[0] as String,
-      patientId: patientId,
+      participantId: participantId,
       questionnaireInstanceId: instanceId,
       action: _QuestionnaireAction.deleted,
       useEnvelope:
@@ -1120,7 +1125,7 @@ Future<Response> deleteQuestionnaireHandler(
       'targetResource': 'questionnaire:$instanceId',
       'actionDetails': jsonEncode({
         'instance_id': instanceId,
-        'patient_id': patientId,
+        'patient_id': participantId,
         'questionnaire_type': instanceResult.first[1] as String,
         'study_event': instanceResult.first[6] as String?,
         'previous_status': currentStatus,
@@ -1142,13 +1147,13 @@ Future<Response> deleteQuestionnaireHandler(
   logWithTrace(
     'INFO',
     'Questionnaire deleted',
-    labels: {'instance_id': instanceId, 'patient_id': patientId},
+    labels: {'instance_id': instanceId, 'patient_id': participantId},
   );
 
   return _jsonResponse({
     'success': true,
     'instance_id': instanceId,
-    'patient_id': patientId,
+    'patient_id': participantId,
     'deleted_at': now.toIso8601String(),
     'reason': reason.trim(),
   });
@@ -1201,10 +1206,10 @@ Future<Response> unlockQuestionnaireHandler(
     return _jsonResponse({'error': 'Questionnaire instance not found'}, 404);
   }
 
-  final patientId = instanceResult.first[3] as String;
-  final patientSiteId = instanceResult.first[5] as String;
+  final participantId = instanceResult.first[3] as String;
+  final participantSiteId = instanceResult.first[5] as String;
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
-  if (!userSiteIds.contains(patientSiteId)) {
+  if (!userSiteIds.contains(participantSiteId)) {
     return _jsonResponse({
       'error': 'You do not have access to patients at this site',
     }, 403);
@@ -1213,7 +1218,7 @@ Future<Response> unlockQuestionnaireHandler(
   logWithTrace(
     'INFO',
     'unlockQuestionnaireHandler',
-    labels: {'instance_id': instanceId, 'patient_id': patientId},
+    labels: {'instance_id': instanceId, 'patient_id': participantId},
   );
 
   final currentStatus = instanceResult.first[2] as String;
@@ -1251,11 +1256,11 @@ Future<Response> unlockQuestionnaireHandler(
   final fcmTokenResult = await db.executeWithContext(
     '''
     SELECT fcm_token FROM patient_fcm_tokens
-    WHERE patient_id = @patientId AND is_active = true
+    WHERE patient_id = @participantId AND is_active = true
     ORDER BY updated_at DESC
     LIMIT 1
     ''',
-    parameters: {'patientId': patientId},
+    parameters: {'patientId': participantId},
     context: serviceContext,
   );
 
@@ -1264,7 +1269,7 @@ Future<Response> unlockQuestionnaireHandler(
   if (fcmTokenResult.isNotEmpty) {
     final pushResult = await _dispatchQuestionnairePush(
       fcmToken: fcmTokenResult.first[0] as String,
-      patientId: patientId,
+      participantId: participantId,
       questionnaireInstanceId: instanceId,
       action: _QuestionnaireAction.unlocked,
       useEnvelope:
@@ -1292,7 +1297,7 @@ Future<Response> unlockQuestionnaireHandler(
       'targetResource': 'questionnaire:$instanceId',
       'actionDetails': jsonEncode({
         'instance_id': instanceId,
-        'patient_id': patientId,
+        'patient_id': participantId,
         'questionnaire_type': instanceResult.first[1] as String,
         'study_event': instanceResult.first[6] as String?,
         'previous_status': currentStatus,
@@ -1314,13 +1319,13 @@ Future<Response> unlockQuestionnaireHandler(
   logWithTrace(
     'INFO',
     'Questionnaire unlocked',
-    labels: {'instance_id': instanceId, 'patient_id': patientId},
+    labels: {'instance_id': instanceId, 'patient_id': participantId},
   );
 
   return _jsonResponse({
     'success': true,
     'instance_id': instanceId,
-    'patient_id': patientId,
+    'patient_id': participantId,
     'status': 'sent',
     'unlocked_at': now.toIso8601String(),
   });
@@ -1374,10 +1379,10 @@ Future<Response> finalizeQuestionnaireHandler(
     return _jsonResponse({'error': 'Questionnaire instance not found'}, 404);
   }
 
-  final patientId = instanceResult.first[3] as String;
-  final patientSiteId = instanceResult.first[5] as String;
+  final participantId = instanceResult.first[3] as String;
+  final participantSiteId = instanceResult.first[5] as String;
   final userSiteIds = user.sites.map((s) => s['site_id'] as String).toList();
-  if (!userSiteIds.contains(patientSiteId)) {
+  if (!userSiteIds.contains(participantSiteId)) {
     return _jsonResponse({
       'error': 'You do not have access to patients at this site',
     }, 403);
@@ -1386,7 +1391,7 @@ Future<Response> finalizeQuestionnaireHandler(
   logWithTrace(
     'INFO',
     'finalizeQuestionnaireHandler',
-    labels: {'instance_id': instanceId, 'patient_id': patientId},
+    labels: {'instance_id': instanceId, 'patient_id': participantId},
   );
 
   final currentStatus = instanceResult.first[2] as String;
@@ -1459,11 +1464,11 @@ Future<Response> finalizeQuestionnaireHandler(
   final fcmTokenResult = await db.executeWithContext(
     '''
     SELECT fcm_token FROM patient_fcm_tokens
-    WHERE patient_id = @patientId AND is_active = true
+    WHERE patient_id = @participantId AND is_active = true
     ORDER BY updated_at DESC
     LIMIT 1
     ''',
-    parameters: {'patientId': patientId},
+    parameters: {'patientId': participantId},
     context: serviceContext,
   );
 
@@ -1472,7 +1477,7 @@ Future<Response> finalizeQuestionnaireHandler(
   if (fcmTokenResult.isNotEmpty) {
     final pushResult = await _dispatchQuestionnairePush(
       fcmToken: fcmTokenResult.first[0] as String,
-      patientId: patientId,
+      participantId: participantId,
       questionnaireInstanceId: instanceId,
       action: _QuestionnaireAction.finalized,
       useEnvelope: NotificationConfig.fromEnvironment()
@@ -1500,7 +1505,7 @@ Future<Response> finalizeQuestionnaireHandler(
       'targetResource': 'questionnaire:$instanceId',
       'actionDetails': jsonEncode({
         'instance_id': instanceId,
-        'patient_id': patientId,
+        'patient_id': participantId,
         'questionnaire_type': instanceResult.first[1] as String,
         'study_event': instanceResult.first[6] as String?,
         'previous_status': currentStatus,
@@ -1528,7 +1533,7 @@ Future<Response> finalizeQuestionnaireHandler(
     'Questionnaire finalized',
     labels: {
       'instance_id': instanceId,
-      'patient_id': patientId,
+      'patient_id': participantId,
       'score': score.toString(),
       if (endEvent != null) 'end_event': endEvent,
     },
@@ -1537,7 +1542,7 @@ Future<Response> finalizeQuestionnaireHandler(
   return _jsonResponse({
     'success': true,
     'instance_id': instanceId,
-    'patient_id': patientId,
+    'patient_id': participantId,
     'status': 'finalized',
     'end_event': endEvent,
     'score': score,

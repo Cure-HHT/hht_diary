@@ -140,8 +140,8 @@ Future<void> _pumpShowLinkingCodeDialog(
               showDialog<void>(
                 context: context,
                 builder: (_) => ShowLinkingCodeDialog(
-                  patientId: 'PAT-TEST-001',
-                  patientDisplayId: '999-002-320',
+                  participantId: 'PAT-TEST-001',
+                  participantDisplayId: '999-002-320',
                   apiClient: apiClient,
                   isReference: isReference,
                 ),
@@ -176,8 +176,8 @@ Future<void> _pumpLinkParticipantDialog(
                 context: context,
                 barrierDismissible: false,
                 builder: (_) => LinkParticipantDialog(
-                  patientId: 'PAT-TEST-001',
-                  patientDisplayId: '999-002-320',
+                  participantId: 'PAT-TEST-001',
+                  participantDisplayId: '999-002-320',
                   apiClient: apiClient,
                 ),
               );

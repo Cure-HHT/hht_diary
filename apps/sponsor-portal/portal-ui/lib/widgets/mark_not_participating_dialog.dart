@@ -31,30 +31,30 @@ enum _DialogState { confirm, loading, success, error }
 /// Shows a confirmation with reason dropdown, then calls the API,
 /// and displays the result.
 class MarkNotParticipatingDialog extends StatefulWidget {
-  final String patientId;
-  final String patientDisplayId;
+  final String participantId;
+  final String participantDisplayId;
   final ApiClient apiClient;
 
   const MarkNotParticipatingDialog({
     super.key,
-    required this.patientId,
-    required this.patientDisplayId,
+    required this.participantId,
+    required this.participantDisplayId,
     required this.apiClient,
   });
 
   /// Shows the dialog and returns true if the patient was marked successfully.
   static Future<bool> show({
     required BuildContext context,
-    required String patientId,
-    required String patientDisplayId,
+    required String participantId,
+    required String participantDisplayId,
     required ApiClient apiClient,
   }) async {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => MarkNotParticipatingDialog(
-        patientId: patientId,
-        patientDisplayId: patientDisplayId,
+        participantId: participantId,
+        participantDisplayId: participantDisplayId,
         apiClient: apiClient,
       ),
     );
@@ -95,7 +95,7 @@ class _MarkNotParticipatingDialogState
 
     final response = await widget.apiClient
         .post('/api/v1/portal/participants/not-participating', {
-          'patientId': widget.patientId,
+          'patientId': widget.participantId,
           'reason': _selectedReason!.label,
           if (_notesController.text.trim().isNotEmpty)
             'notes': _notesController.text.trim(),
@@ -136,7 +136,7 @@ class _MarkNotParticipatingDialogState
           children: [
             const Text('Mark Participant as Not Participating'),
             Text(
-              'Participant ID: ${widget.patientDisplayId}',
+              'Participant ID: ${widget.participantDisplayId}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -259,7 +259,7 @@ class _MarkNotParticipatingDialogState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Participant ${widget.patientDisplayId} has been marked as not participating.',
+              'Participant ${widget.participantDisplayId} has been marked as not participating.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),

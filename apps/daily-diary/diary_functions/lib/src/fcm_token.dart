@@ -53,8 +53,8 @@ Future<Response> registerFcmTokenHandler(Request request) async {
       return _jsonResponse({'error': 'User not found'}, 401);
     }
 
-    final patientId = userResult.first[1] as String?;
-    if (patientId == null) {
+    final participantId = userResult.first[1] as String?;
+    if (participantId == null) {
       return _jsonResponse({
         'error': 'No linked patient. Complete patient linking first.',
       }, 409);
@@ -89,11 +89,11 @@ Future<Response> registerFcmTokenHandler(Request request) async {
       '''
       UPDATE patient_fcm_tokens
       SET is_active = false, updated_at = now()
-      WHERE patient_id = @patientId
+      WHERE patient_id = @participantId
         AND platform = @platform
         AND is_active = true
       ''',
-      parameters: {'patientId': patientId, 'platform': platform},
+      parameters: {'patientId': participantId, 'platform': platform},
     );
 
     // Also deactivate any other-patient rows that share this exact fcm_token.
@@ -106,10 +106,10 @@ Future<Response> registerFcmTokenHandler(Request request) async {
       UPDATE patient_fcm_tokens
       SET is_active = false, updated_at = now()
       WHERE fcm_token = @fcmToken
-        AND patient_id <> @patientId
+        AND patient_id <> @participantId
         AND is_active = true
       ''',
-      parameters: {'fcmToken': fcmToken, 'patientId': patientId},
+      parameters: {'fcmToken': fcmToken, 'patientId': participantId},
     );
 
     await db.execute(
@@ -117,10 +117,10 @@ Future<Response> registerFcmTokenHandler(Request request) async {
       INSERT INTO patient_fcm_tokens (
         patient_id, fcm_token, platform, app_version, is_active
       )
-      VALUES (@patientId, @fcmToken, @platform, @appVersion, true)
+      VALUES (@participantId, @fcmToken, @platform, @appVersion, true)
       ''',
       parameters: {
-        'patientId': patientId,
+        'patientId': participantId,
         'fcmToken': fcmToken,
         'platform': platform,
         'appVersion': appVersion,
@@ -131,7 +131,7 @@ Future<Response> registerFcmTokenHandler(Request request) async {
       'INFO',
       'FCM token registered',
       labels: {
-        'patientId': patientId,
+        'patientId': participantId,
         'platform': platform,
         'tokenPrefix': fcmToken.substring(0, 20),
       },

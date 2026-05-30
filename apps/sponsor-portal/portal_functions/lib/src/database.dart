@@ -62,28 +62,28 @@ class UserContext {
     allowedRoles: ['service_role'],
   );
 
-  /// CUR-1311 (Phase 1B): Patient-scoped context for notifications
+  /// CUR-1311 (Phase 1B): Participant-scoped context for notifications
   /// reads/updates. Drives the `app.current_patient_id` session variable
   /// that the `notifications_patient_select` / `_update` RLS policies
-  /// read — so RLS scopes the result set to the calling patient even
+  /// read — so RLS scopes the result set to the calling participant even
   /// if the SQL forgets a `WHERE patient_id = ?` predicate.
   ///
   /// Use only after the request's auth has been resolved to a concrete
   /// `patient_id`. Apps wire the resolver inside the
   /// `comms.envelopeFetchHandler` / `envelopeSinceHandler` factories.
-  factory UserContext.patient(String patientId) {
+  factory UserContext.participant(String participantId) {
     return UserContext(
       pgRole: 'authenticated',
-      userId: patientId,
+      userId: participantId,
       role: 'patient',
       allowedRoles: const ['patient'],
     );
   }
 
   /// CUR-1311 (Phase 1B): the [patient_id] this context is scoped to,
-  /// or null if the context isn't a patient context. Carried via
-  /// [userId] for the patient factory; null for service / other roles.
-  String? get patientId => role == 'patient' ? userId : null;
+  /// or null if the context isn't a participant context. Carried via
+  /// [userId] for the participant factory; null for service / other roles.
+  String? get participantId => role == 'patient' ? userId : null;
 }
 
 /// Database connection configuration from environment
@@ -246,7 +246,7 @@ class Database {
       // returns '' which won't match any real patient_id.
       await connection.execute(
         Sql("SELECT set_config('app.current_patient_id', \$1, true)"),
-        parameters: [context.patientId ?? ''],
+        parameters: [context.participantId ?? ''],
       );
 
       // Execute the actual query with RLS context set
@@ -298,7 +298,7 @@ class Database {
       );
       await session.execute(
         Sql("SELECT set_config('app.current_patient_id', \$1, true)"),
-        parameters: [context.patientId ?? ''],
+        parameters: [context.participantId ?? ''],
       );
 
       // Execute the transaction

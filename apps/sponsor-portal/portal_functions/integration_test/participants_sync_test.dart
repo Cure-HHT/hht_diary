@@ -35,9 +35,9 @@ void main() {
   // Test data using unique IDs to avoid conflicts
   const testSiteId1 = 'test-patient-sync-site-001';
   const testSiteId2 = 'test-patient-sync-site-002';
-  const testPatientId1 = 'PSYNC-001-001';
-  const testPatientId2 = 'PSYNC-001-002';
-  const testPatientId3 = 'PSYNC-002-001';
+  const testParticipantId1 = 'PSYNC-001-001';
+  const testParticipantId2 = 'PSYNC-001-002';
+  const testParticipantId3 = 'PSYNC-002-001';
 
   // For handler tests
   const testUserId = '99996000-0000-0000-0000-000000000001';
@@ -96,7 +96,7 @@ void main() {
     // so tests must account for existing patients in the database.
 
     setUp(() async {
-      await _cleanupPatients();
+      await _cleanupParticipants();
     });
 
     test('returns false when any patient was synced recently', () async {
@@ -115,9 +115,9 @@ void main() {
         ON CONFLICT (patient_id) DO UPDATE SET edc_synced_at = now()
         ''',
         parameters: {
-          'patientId': testPatientId1,
+          'patientId': testParticipantId1,
           'siteId': testSiteId1,
-          'subjectKey': testPatientId1,
+          'subjectKey': testParticipantId1,
         },
       );
 
@@ -141,9 +141,9 @@ void main() {
         ON CONFLICT (patient_id) DO UPDATE SET edc_synced_at = NULL
         ''',
         parameters: {
-          'patientId': testPatientId1,
+          'patientId': testParticipantId1,
           'siteId': testSiteId1,
-          'subjectKey': testPatientId1,
+          'subjectKey': testParticipantId1,
         },
       );
 
@@ -172,9 +172,9 @@ void main() {
         ON CONFLICT (patient_id) DO UPDATE SET edc_synced_at = now() - interval '2 days'
         ''',
         parameters: {
-          'patientId': testPatientId1,
+          'patientId': testParticipantId1,
           'siteId': testSiteId1,
-          'subjectKey': testPatientId1,
+          'subjectKey': testParticipantId1,
         },
       );
 
@@ -195,16 +195,24 @@ void main() {
 
   group('getPortalPatientsHandler site-scoped filtering', () {
     setUp(() async {
-      await _cleanupPatients();
+      await _cleanupParticipants();
       await _cleanupTestUser();
 
       final db = Database.instance;
 
       // Insert test patients across two sites
       for (final patient in [
-        {'id': testPatientId1, 'site': testSiteId1, 'status': 'not_connected'},
-        {'id': testPatientId2, 'site': testSiteId1, 'status': 'connected'},
-        {'id': testPatientId3, 'site': testSiteId2, 'status': 'not_connected'},
+        {
+          'id': testParticipantId1,
+          'site': testSiteId1,
+          'status': 'not_connected',
+        },
+        {'id': testParticipantId2, 'site': testSiteId1, 'status': 'connected'},
+        {
+          'id': testParticipantId3,
+          'site': testSiteId2,
+          'status': 'not_connected',
+        },
       ]) {
         await db.execute(
           '''
@@ -295,10 +303,10 @@ void main() {
 
       // Should only see patients from site 1 (2 patients), not site 2
       expect(result.length, equals(2));
-      final patientIds = result.map((r) => r[0] as String).toList();
-      expect(patientIds, contains(testPatientId1));
-      expect(patientIds, contains(testPatientId2));
-      expect(patientIds, isNot(contains(testPatientId3)));
+      final participantIds = result.map((r) => r[0] as String).toList();
+      expect(participantIds, contains(testParticipantId1));
+      expect(participantIds, contains(testParticipantId2));
+      expect(participantIds, isNot(contains(testParticipantId3)));
     });
 
     test('Admin sees all patients (no site filtering)', () async {
@@ -315,9 +323,9 @@ void main() {
         ORDER BY p.patient_id
         ''',
         parameters: {
-          'p1': testPatientId1,
-          'p2': testPatientId2,
-          'p3': testPatientId3,
+          'p1': testParticipantId1,
+          'p2': testParticipantId2,
+          'p3': testParticipantId3,
         },
         context: serviceContext,
       );
@@ -362,7 +370,7 @@ void main() {
 
   group('patient upsert behavior', () {
     setUp(() async {
-      await _cleanupPatients();
+      await _cleanupParticipants();
     });
 
     test('insert creates patient with not_connected status', () async {
@@ -383,9 +391,9 @@ void main() {
         )
         ''',
         parameters: {
-          'patientId': testPatientId1,
+          'patientId': testParticipantId1,
           'siteId': testSiteId1,
-          'edcSubjectKey': testPatientId1,
+          'edcSubjectKey': testParticipantId1,
           'syncedAt': DateTime.now().toUtc(),
         },
         context: serviceContext,
@@ -396,7 +404,7 @@ void main() {
         SELECT mobile_linking_status::text FROM patients
         WHERE patient_id = @patientId
         ''',
-        parameters: {'patientId': testPatientId1},
+        parameters: {'patientId': testParticipantId1},
         context: serviceContext,
       );
 
@@ -422,9 +430,9 @@ void main() {
         )
         ''',
         parameters: {
-          'patientId': testPatientId1,
+          'patientId': testParticipantId1,
           'siteId': testSiteId1,
-          'edcSubjectKey': testPatientId1,
+          'edcSubjectKey': testParticipantId1,
         },
         context: serviceContext,
       );
@@ -435,7 +443,7 @@ void main() {
         UPDATE patients SET mobile_linking_status = 'connected'
         WHERE patient_id = @patientId
         ''',
-        parameters: {'patientId': testPatientId1},
+        parameters: {'patientId': testParticipantId1},
         context: serviceContext,
       );
 
@@ -458,9 +466,9 @@ void main() {
           updated_at = now()
         ''',
         parameters: {
-          'patientId': testPatientId1,
+          'patientId': testParticipantId1,
           'siteId': testSiteId1,
-          'edcSubjectKey': testPatientId1,
+          'edcSubjectKey': testParticipantId1,
           'syncedAt': DateTime.now().toUtc(),
         },
         context: serviceContext,
@@ -472,7 +480,7 @@ void main() {
         SELECT mobile_linking_status::text FROM patients
         WHERE patient_id = @patientId
         ''',
-        parameters: {'patientId': testPatientId1},
+        parameters: {'patientId': testParticipantId1},
         context: serviceContext,
       );
 
@@ -505,9 +513,9 @@ void main() {
         RETURNING (xmax = 0) as is_insert
         ''',
         parameters: {
-          'patientId': testPatientId1,
+          'patientId': testParticipantId1,
           'siteId': testSiteId1,
-          'edcSubjectKey': testPatientId1,
+          'edcSubjectKey': testParticipantId1,
           'syncedAt': syncedAt,
         },
         context: serviceContext,
@@ -535,9 +543,9 @@ void main() {
         RETURNING (xmax = 0) as is_insert
         ''',
         parameters: {
-          'patientId': testPatientId1,
+          'patientId': testParticipantId1,
           'siteId': testSiteId1,
-          'edcSubjectKey': testPatientId1,
+          'edcSubjectKey': testParticipantId1,
           'syncedAt': syncedAt,
         },
         context: serviceContext,
@@ -582,7 +590,7 @@ void main() {
 
     setUp(() async {
       mockClient = MockRaveClient();
-      await _cleanupPatients();
+      await _cleanupParticipants();
     });
 
     tearDown(() {
@@ -594,8 +602,14 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer(
         (_) async => [
-          const RaveSubject(subjectKey: testPatientId1, siteOid: testSiteId1),
-          const RaveSubject(subjectKey: testPatientId2, siteOid: testSiteId1),
+          const RaveSubject(
+            subjectKey: testParticipantId1,
+            siteOid: testSiteId1,
+          ),
+          const RaveSubject(
+            subjectKey: testParticipantId2,
+            siteOid: testSiteId1,
+          ),
         ],
       );
 
@@ -613,7 +627,7 @@ void main() {
       final db = Database.instance;
       final rows = await db.execute(
         "SELECT patient_id, mobile_linking_status::text FROM patients WHERE patient_id IN (@p1, @p2) ORDER BY patient_id",
-        parameters: {'p1': testPatientId1, 'p2': testPatientId2},
+        parameters: {'p1': testParticipantId1, 'p2': testParticipantId2},
       );
       expect(rows.length, equals(2));
       expect(rows[0][1], equals('not_connected'));
@@ -625,7 +639,10 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer(
         (_) async => [
-          const RaveSubject(subjectKey: testPatientId1, siteOid: testSiteId1),
+          const RaveSubject(
+            subjectKey: testParticipantId1,
+            siteOid: testSiteId1,
+          ),
         ],
       );
 
@@ -653,9 +670,18 @@ void main() {
         () => mockClient.getSubjects(studyOid: any(named: 'studyOid')),
       ).thenAnswer(
         (_) async => [
-          const RaveSubject(subjectKey: testPatientId1, siteOid: testSiteId1),
-          const RaveSubject(subjectKey: testPatientId2, siteOid: testSiteId1),
-          const RaveSubject(subjectKey: testPatientId3, siteOid: testSiteId2),
+          const RaveSubject(
+            subjectKey: testParticipantId1,
+            siteOid: testSiteId1,
+          ),
+          const RaveSubject(
+            subjectKey: testParticipantId2,
+            siteOid: testSiteId1,
+          ),
+          const RaveSubject(
+            subjectKey: testParticipantId3,
+            siteOid: testSiteId2,
+          ),
         ],
       );
 
@@ -687,13 +713,13 @@ void main() {
 }
 
 Future<void> _cleanup() async {
-  await _cleanupPatients();
+  await _cleanupParticipants();
   await _cleanupTestUser();
   await _cleanupSyncLogs();
   await _cleanupSites();
 }
 
-Future<void> _cleanupPatients() async {
+Future<void> _cleanupParticipants() async {
   final db = Database.instance;
   await db.execute("DELETE FROM patients WHERE patient_id LIKE 'PSYNC-%'");
 }

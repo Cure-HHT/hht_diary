@@ -39,7 +39,7 @@ void main() {
 
   Envelope buildEnvelope({
     String id = '11111111-1111-1111-1111-111111111111',
-    String patientId = '840-001',
+    String participantId = '840-001',
     NotificationType type = NotificationType.participantStatusUpdate,
     String title = 'Account Disconnected',
     String? body = 'Your study account has been disconnected.',
@@ -50,7 +50,7 @@ void main() {
   }) {
     return Envelope(
       notificationId: id,
-      participantId: patientId,
+      participantId: participantId,
       type: type,
       title: title,
       body: body,
@@ -139,7 +139,7 @@ void main() {
 
       expect(result, isNull);
       expect(calls.single.context.role, equals('patient'));
-      expect(calls.single.context.patientId, equals('840-001'));
+      expect(calls.single.context.participantId, equals('840-001'));
     });
 
     test('parses a row into an Envelope with all fields', () async {
@@ -192,7 +192,7 @@ void main() {
       await repo.findById('id-1', participantId: '840-001');
 
       expect(calls.single.context.role, equals('patient'));
-      expect(calls.single.context.patientId, equals('840-001'));
+      expect(calls.single.context.participantId, equals('840-001'));
       expect(calls.single.query, contains('WHERE notification_id = @id'));
       expect(calls.single.query, contains('AND patient_id = @patientId'));
     });
@@ -282,7 +282,7 @@ void main() {
         );
         expect(calls.single.query, contains('AND patient_id = @patientId'));
         expect(calls.single.context.role, equals('patient'));
-        expect(calls.single.context.patientId, equals('840-001'));
+        expect(calls.single.context.participantId, equals('840-001'));
         expect(calls.single.parameters!['ids'], equals(['id-1', 'id-2']));
       },
     );

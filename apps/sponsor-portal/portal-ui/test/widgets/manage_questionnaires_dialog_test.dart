@@ -196,8 +196,8 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
               showDialog<void>(
                 context: context,
                 builder: (_) => ManageQuestionnairesDialog(
-                  patientId: 'PAT-TEST-001',
-                  patientDisplayId: '999-002-320',
+                  participantId: 'PAT-TEST-001',
+                  participantDisplayId: '999-002-320',
                   apiClient: apiClient,
                 ),
               );
