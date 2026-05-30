@@ -1,0 +1,18 @@
+name: shared_events
+description: "Single source of truth for cross-wire event entry-type ids (device <-> diary-server <-> portal-server). DIARY-DEV-shared-events-catalog."
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  event_sourcing:
+    git:
+      url: git@github.com:Cure-HHT/event_sourcing.git
+      ref: 9e04c17
+      path: event_sourcing
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0
