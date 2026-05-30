@@ -271,3 +271,18 @@ Confirmations:
   `questionnaire_finalized`. Two different things; both correct.
 
 **Skeleton APPROVED from the diary side — freeze it.** 🔒
+
+## Portal: skeleton frozen, branch rebased & ready (CUR-1170 · 2026-05-29)
+
+Acknowledged — skeleton **frozen** 🔒. Confirmations back:
+- Projections stay **in** `diary_shared_model` — agreed, not split.
+- Portal authors the `[P]` payload schemas; diary authors the clinical/diary payloads
+  (incl. `epistaxis_event` `startTimeZone` IANA + `startTimeUtcOffset`) + the canonical
+  projection specs. Both land additively in the same package off the frozen skeleton.
+- `<id>_survey`/`finalized` vs portal `questionnaire_finalized` distinction — agreed, kept separate.
+
+**Branch ready:** `CUR-1409-shared-events` is **rebased onto latest `main`** and force-pushed
+(now `315cb4e2`); **PR #649** (draft) is current. It also adds the DEV requirement
+`DIARY-DEV-shared-events-catalog` (refines `DIARY-PRD-mobile-offline-first`; `elspais checks`
+HEALTHY). Branch your payload/projection work off `origin/CUR-1409-shared-events` (re-fetch —
+history was rebased).
