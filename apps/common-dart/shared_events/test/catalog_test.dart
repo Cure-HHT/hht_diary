@@ -31,4 +31,18 @@ void main() {
     });
     expect(ids, isNot(contains('patient_linked'))); // [M], held
   });
+
+  test('questionnaire aggregate declares the [P] entry types', () {
+    final ids = questionnaireEventTypes.map((t) => t.id).toSet();
+    expect(ids, {
+      'questionnaire_assigned',
+      'questionnaire_delivery_failed',
+      'questionnaire_finalized',
+      'questionnaire_scored',
+      'questionnaire_unlocked',
+      'questionnaire_called_back',
+      'questionnaire_end_event_set',
+    });
+    expect(ids, isNot(contains('questionnaire_submitted'))); // [M], held
+  });
 }
