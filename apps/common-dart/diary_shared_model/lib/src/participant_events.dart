@@ -4,80 +4,80 @@ import 'package:event_sourcing/event_sourcing.dart';
 
 import 'event_origin.dart';
 
-/// Patient / participant lifecycle (`[home: shared]`). Portal-originated except
-/// EDC-sync facts (edge). The mobile-authored `patient_linked` ack is held for
+/// Participant lifecycle (`[home: shared]`). Portal-originated except
+/// EDC-sync facts (edge). The mobile-authored `participant_linked` ack is held for
 /// the cross-post.
-const List<SharedEventType> patientEventTypes = <SharedEventType>[
+const List<SharedEventType> participantEventTypes = <SharedEventType>[
   SharedEventType(
     origin: EventOrigin.edge,
     definition: EntryTypeDefinition(
-      id: 'patient_synced_from_edc',
+      id: 'participant_synced_from_edc',
       registeredVersion: 1,
-      name: 'Patient Synced From EDC',
+      name: 'Participant Synced From EDC',
     ),
   ),
   SharedEventType(
     origin: EventOrigin.portal,
     definition: EntryTypeDefinition(
-      id: 'patient_linking_code_issued',
+      id: 'participant_linking_code_issued',
       registeredVersion: 1,
-      name: 'Patient Linking Code Issued',
+      name: 'Participant Linking Code Issued',
     ),
   ),
   SharedEventType(
     origin: EventOrigin.portal,
     definition: EntryTypeDefinition(
-      id: 'patient_linking_code_revoked',
+      id: 'participant_linking_code_revoked',
       registeredVersion: 1,
-      name: 'Patient Linking Code Revoked',
+      name: 'Participant Linking Code Revoked',
     ),
   ),
   SharedEventType(
     origin: EventOrigin.portal,
     definition: EntryTypeDefinition(
-      id: 'patient_trial_started',
+      id: 'participant_trial_started',
       registeredVersion: 1,
-      name: 'Patient Trial Started',
+      name: 'Participant Trial Started',
     ),
   ),
   SharedEventType(
     origin: EventOrigin.portal,
     definition: EntryTypeDefinition(
-      id: 'patient_disconnected',
+      id: 'participant_disconnected',
       registeredVersion: 1,
-      name: 'Patient Disconnected',
+      name: 'Participant Disconnected',
     ),
   ),
   SharedEventType(
     origin: EventOrigin.portal,
     definition: EntryTypeDefinition(
-      id: 'patient_reconnected',
+      id: 'participant_reconnected',
       registeredVersion: 1,
-      name: 'Patient Reconnected',
+      name: 'Participant Reconnected',
     ),
   ),
   SharedEventType(
     origin: EventOrigin.portal,
     definition: EntryTypeDefinition(
-      id: 'patient_marked_not_participating',
+      id: 'participant_marked_not_participating',
       registeredVersion: 1,
-      name: 'Patient Marked Not Participating',
+      name: 'Participant Marked Not Participating',
     ),
   ),
   SharedEventType(
     origin: EventOrigin.portal,
     definition: EntryTypeDefinition(
-      id: 'patient_reactivated',
+      id: 'participant_reactivated',
       registeredVersion: 1,
-      name: 'Patient Reactivated',
+      name: 'Participant Reactivated',
     ),
   ),
   SharedEventType(
     origin: EventOrigin.edge,
     definition: EntryTypeDefinition(
-      id: 'patient_enrollment_status_changed',
+      id: 'participant_enrollment_status_changed',
       registeredVersion: 1,
-      name: 'Patient Enrollment Status Changed',
+      name: 'Participant Enrollment Status Changed',
     ),
   ),
 ];

@@ -1,6 +1,6 @@
 name: diary_shared_model
 description: "Shared cross-wire event entry-types + payload schemas + canonical projections for the diary/portal event-sourcing surface (frozen 2026-05-29). Actions stay per-app."
-version: 0.1.0
+version: 0.1.1
 publish_to: none
 
 environment:
