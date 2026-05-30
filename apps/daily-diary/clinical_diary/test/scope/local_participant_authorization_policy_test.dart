@@ -18,6 +18,17 @@ void main() {
     expect(await policy.isPermitted(participant, perm, null), isA<Allow>());
   });
 
+  test(
+    'permits a permission NOT in grantedPermissions for a participant',
+    () async {
+      // By design: isPermitted ignores grantedPermissions (the server is the gate).
+      const policy = LocalParticipantAuthorizationPolicy(
+        grantedPermissions: {},
+      );
+      expect(await policy.isPermitted(participant, perm, null), isA<Allow>());
+    },
+  );
+
   test('denies an anonymous principal', () async {
     final policy = LocalParticipantAuthorizationPolicy(
       grantedPermissions: {perm},

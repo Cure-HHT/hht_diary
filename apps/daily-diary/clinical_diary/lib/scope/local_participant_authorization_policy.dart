@@ -18,6 +18,12 @@ class LocalParticipantAuthorizationPolicy extends AuthorizationPolicy {
   /// Typically `ActionRegistry.allDeclaredPermissions`.
   final Set<Permission> grantedPermissions;
 
+  // NOTE: isPermitted intentionally IGNORES [grantedPermissions] — it grants any
+  // permission to any UserPrincipal because the diary-server is the authoritative
+  // gate (the local participant acts on their own device). [grantedPermissions] is
+  // used only by [effectivePermissionsFor] to drive PermissionGate UI. The two
+  // methods therefore answer differently for a permission not in the declared set
+  // (isPermitted=Allow, effectivePermissionsFor=absent) — by design.
   @override
   Future<AuthorizationDecision> isPermitted(
     Principal principal,
