@@ -376,13 +376,18 @@ class _AppRootState extends State<AppRoot> {
             '${docsDir.path}/diary_es.db',
           );
         }
-        diaryScope = await bootstrapDiaryScope(
-          backend: SembastBackend(database: esDb),
-          deviceId: deviceId,
-          softwareVersion: softwareVersion,
-          localUserId: deviceId, // stable per-install id; recording is never
-          // enrollment-gated
-        );
+        try {
+          diaryScope = await bootstrapDiaryScope(
+            backend: SembastBackend(database: esDb),
+            deviceId: deviceId,
+            softwareVersion: softwareVersion,
+            localUserId: deviceId, // stable per-install id; recording is never
+            // enrollment-gated
+          );
+        } catch (_) {
+          await esDb.close();
+          rethrow;
+        }
       }
 
       if (mounted) {
@@ -519,7 +524,10 @@ class _AppRootState extends State<AppRoot> {
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
     _runtime?.dispose();
-    unawaited(_diaryScope?.dispose());
+    _diaryScope?.dispose().catchError(
+      (Object e, StackTrace st) =>
+          debugPrint('[DiaryScope] dispose error: $e\n$st'),
+    );
     super.dispose();
   }
 
