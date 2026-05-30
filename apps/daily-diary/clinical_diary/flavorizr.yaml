@@ -24,16 +24,31 @@ app:
     flavorDimensions: "environment"
 
 flavors:
+  # `local` is a Dart-side EnvProfile only — no native build config (Android/
+  # iOS scaffolding doesn't have a `local` flavor; flutter_flavorizr does NOT
+  # process this entry because `native: false`). Mobile invocations of
+  # `tool/run local` fall back to the dev native flavor. Defaults web/desktop
+  # to the diary-server published by deployment/local-stack on the sponsor
+  # repo (http://localhost:8081); mobile devices need --api-base.
+  local:
+    native: false
+
   dev:
     app:
       name: "CureHHT Tracker DEV"
     android:
       applicationId: "org.anspar.curehht.app.dev"
       icon: "assets/icons/dev/app_icon.png"
+      # Output format for signed builds (apk = sideload, aab = Play Store).
+      # Read by tool/build android <env> --signed. Not consumed by flutter_flavorizr.
+      signedFormat: "apk"
       firebase:
         config: "android/app/src/dev/google-services.json"
     ios:
       bundleId: "org.anspar.curehht.app.dev"
+      # Consumed by ios/fastlane/Fastfile (PROFILE_NAMES projection); not read
+      # by flutter_flavorizr — extending the schema with an iOS-only knob.
+      provisioningProfile: "ClinicalDiary_DEV_AppStore"
       icon: "assets/icons/dev/app_icon.png"
       firebase:
         config: "ios/Runner/dev/GoogleService-Info.plist"
@@ -47,10 +62,12 @@ flavors:
     android:
       applicationId: "org.anspar.curehht.app.qa"
       icon: "assets/icons/qa/app_icon.png"
+      signedFormat: "apk"
       firebase:
         config: "android/app/src/qa/google-services.json"
     ios:
       bundleId: "org.anspar.curehht.app.qa"
+      provisioningProfile: "ClinicalDiary_QA_AppStore"
       icon: "assets/icons/qa/app_icon.png"
       firebase:
         config: "ios/Runner/qa/GoogleService-Info.plist"
@@ -62,17 +79,19 @@ flavors:
     app:
       name: "Clinical Diary"
     android:
-      applicationId: "org.anspar.curehht.app-uat"
+      applicationId: "org.anspar.curehht.app.uat"
       icon: "assets/icons/uat/app_icon.png"
+      signedFormat: "aab"
       firebase:
         config: "android/app/src/uat/google-services.json"
     ios:
-      bundleId: "org.anspar.curehht.app-uat"
+      bundleId: "org.anspar.curehht.app.uat"
+      provisioningProfile: "ClinicalDiary_UAT_AppStore"
       icon: "assets/icons/uat/app_icon.png"
       firebase:
         config: "ios/Runner/uat/GoogleService-Info.plist"
     macos:
-      bundleId: "org.anspar.curehht.app-uat"
+      bundleId: "org.anspar.curehht.app.uat"
       icon: "assets/icons/uat/app_icon.png"
 
   prod:
@@ -81,10 +100,12 @@ flavors:
     android:
       applicationId: "org.anspar.curehht.app"
       icon: "assets/icons/prod/app_icon.png"
+      signedFormat: "aab"
       firebase:
         config: "android/app/src/prod/google-services.json"
     ios:
       bundleId: "org.anspar.curehht.app"
+      provisioningProfile: "ClinicalDiary_PROD_AppStore"
       icon: "assets/icons/prod/app_icon.png"
       firebase:
         config: "ios/Runner/prod/GoogleService-Info.plist"

@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# Implements: DIARY-OPS-single-promotable-artifact/C
+# Parametric run entrypoint: ./tool/run <env> [flags]
+#
+# Replaces the per-env script duplication (run_dev.sh, run_qa.sh, run_uat.sh)
+# with one dispatcher that reads the env list from flavorizr.yaml.
+#
+# Usage:
+#   ./tool/run <env> [--device <d>] [--web] [--import-file <path>]
+#                    [--api-base <url>] [--force]
+#
+# Examples:
+#   ./tool/run dev                                       # default device, dev env
+#   ./tool/run qa --web                                  # Chrome, qa env
+#   ./tool/run uat --device macos --import-file data.json
+#   ./tool/run local                                     # Chrome -> localhost:8081 (local diary-server)
+#   ./tool/run local --device emulator-5554 \
+#       --api-base http://10.0.2.2:8081                  # Android emulator -> host machine
+#   ./tool/run prod --force                              # prod (requires --force; almost always wrong)
+#
+# Flags:
+#   --device <d>          Flutter device id (e.g. chrome, macos, iPhone, emulator-5554)
+#   --web                 Shortcut for --device chrome
+#   --import-file <path>  JSON export file to auto-import on startup
+#   --api-base <url>      Override DIARY_API_BASE (mainly for `local` env on
+#                         mobile, since localhost on the device is the device)
+#   --force               Required for prod; running prod locally points the
+#                         app at prod APIs/Firebase with dev creds — almost
+#                         always wrong. Pass --force if you're sure.
+#
+# Requires:
+#   yq          (mikefarah/yq; brew install yq)
+#   bash 4+     (brew install bash)
+#   doppler     (brew install dopplerhq/cli/doppler)
+set -euo pipefail
+
+usage() {
+  sed -n '/^# Usage:/,/^set -/p' "$0" | sed '$d' | sed -E 's/^#( |$)//'
+  exit "${1:-2}"
+}
+
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+  echo "ERROR: requires Bash 4+; this is bash ${BASH_VERSION:-unknown}" >&2
+  echo "On macOS: brew install bash && /opt/homebrew/bin/bash $0 \"\$@\"" >&2
+  exit 1
+fi
+command -v yq >/dev/null 2>&1 || {
+  echo "ERROR: yq not found. Install via 'brew install yq'." >&2
+  exit 1
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+MANIFEST="$APP_DIR/flavorizr.yaml"
+
+[ $# -ge 1 ] || usage
+case "$1" in
+  -h|--help) usage 0 ;;
+esac
+
+ENV="$1"
+shift
+
+DEVICE=""
+IMPORT_FILE=""
+API_BASE=""
+FORCE=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --device)      DEVICE="$2"; shift 2 ;;
+    --import-file) IMPORT_FILE="$2"; shift 2 ;;
+    --api-base)    API_BASE="$2"; shift 2 ;;
+    --web)         DEVICE="chrome"; shift ;;
+    --force)       FORCE=1; shift ;;
+    -h|--help)     usage 0 ;;
+    *) echo "Unknown flag: $1" >&2; usage ;;
+  esac
+done
+
+# Validate env against manifest.
+known_envs="$(yq -r '.flavors | keys | .[]' "$MANIFEST")"
+echo "$known_envs" | grep -qx "$ENV" || {
+  echo "ERROR: unknown env '$ENV'; known: $(echo "$known_envs" | tr '\n' ' ')" >&2
+  exit 2
+}
+
+# Refuse prod unless forced. There's no run_prod.sh in the pre-refactor
+# world for a reason: running prod locally points the app at prod APIs and
+# Firebase with dev signing/creds — almost always wrong.
+if [ "$ENV" = "prod" ] && [ "$FORCE" -ne 1 ]; then
+  echo "ERROR: running prod locally is almost always wrong (prod APIs, prod" >&2
+  echo "Firebase, real users' data). If you're sure, pass --force." >&2
+  exit 2
+fi
+
+# Envs with `native: false` (e.g. `local`) have no native build config; fall
+# back to dev for the --flavor knob on mobile targets.
+native="$(yq -r ".flavors.$ENV.native // \"true\"" "$MANIFEST")"
+if [ "$native" = "false" ]; then
+  NATIVE_FLAVOR="dev"
+  echo "Running Clinical Diary ($ENV env; Dart-only, native config = dev)..."
+else
+  NATIVE_FLAVOR="$ENV"
+  echo "Running Clinical Diary ($ENV flavor)..."
+fi
+
+# Stamp env pointer; restored on exit by the sourced helper.
+# shellcheck source=_write_env_pointer.sh
+source "$SCRIPT_DIR/_write_env_pointer.sh" "$ENV"
+
+CMD="flutter run"
+if [ -n "$DEVICE" ]; then
+  CMD="$CMD -d $DEVICE"
+  # Web/desktop don't accept --flavor (Flutter only flavors mobile builds).
+  case "$DEVICE" in
+    chrome|macos|linux|windows) ;;
+    *) CMD="$CMD --flavor $NATIVE_FLAVOR" ;;
+  esac
+else
+  CMD="$CMD --flavor $NATIVE_FLAVOR"
+fi
+
+if [ -n "$API_BASE" ]; then
+  CMD="$CMD --dart-define=DIARY_API_BASE=$API_BASE"
+fi
+
+if [ -n "$IMPORT_FILE" ]; then
+  [[ "$IMPORT_FILE" = /* ]] || IMPORT_FILE="$(pwd)/$IMPORT_FILE"
+  echo "Will import data from: $IMPORT_FILE"
+  CMD="$CMD --dart-define=IMPORT_FILE=$IMPORT_FILE"
+fi
+
+echo "Command: doppler run -- $CMD"
+echo
+exec doppler run -- $CMD
