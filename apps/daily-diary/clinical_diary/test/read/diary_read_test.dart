@@ -26,6 +26,30 @@ void main() {
     });
   });
 
+  group('yesterday / gap helpers', () {
+    test('hasNosebleedRelatedEntryOn', () {
+      expect(hasNosebleedRelatedEntryOn([epistaxis], '2025-10-15'), isTrue);
+      expect(hasNosebleedRelatedEntryOn([epistaxis], '2025-10-16'), isFalse);
+    });
+
+    test('uncoveredDays returns the notRecorded days in the window', () {
+      final days = ['2025-10-15', '2025-10-16', '2025-10-17', '2025-10-18'];
+      // 15 covered (epistaxis), 16 (noBleed), 17 (unknown); 18 uncovered.
+      expect(uncoveredDays([epistaxis, noBleed, unknown], days), [
+        '2025-10-18',
+      ]);
+      // An incomplete checkpoint on 18 makes it covered (incomplete != notRecorded).
+      expect(
+        uncoveredDays(
+          [epistaxis, noBleed, unknown],
+          days,
+          incompleteDates: {'2025-10-18'},
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   group('dayStatusForLocalDate precedence', () {
     test('nosebleed wins over a same-day no-bleed marker', () {
       final sameDayNoBleed = _row('P:2025-10-15', 'no_epistaxis_event', const {

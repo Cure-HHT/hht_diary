@@ -77,3 +77,40 @@ DayStatus dayStatusForLocalDate(
   if (incompleteDates.contains(localDate)) return DayStatus.incomplete;
   return DayStatus.notRecorded;
 }
+
+/// The nosebleed-related entry types that contribute to day coverage.
+const Set<String> nosebleedRelatedEntryTypes = <String>{
+  'epistaxis_event',
+  'no_epistaxis_event',
+  'unknown_day_event',
+};
+
+/// Whether any nosebleed-related entry exists on [localDate] — backs the
+/// "you didn't record yesterday" reminder (DIARY-PRD-notification-yesterday-entry).
+bool hasNosebleedRelatedEntryOn(
+  Iterable<DiaryEntryRow> rows,
+  String localDate,
+) {
+  return entriesOnLocalDate(
+    rows,
+    localDate,
+  ).any((r) => nosebleedRelatedEntryTypes.contains(r.entryType));
+}
+
+/// Local dates (`yyyy-MM-dd`) in the inclusive [days] window with no recorded
+/// coverage (`notRecorded`) — backs the historical-gap reminder
+/// (DIARY-PRD-notification-historical-gap). [days] is the caller-supplied list
+/// of local calendar days to check (the caller owns timezone/calendar walking).
+List<String> uncoveredDays(
+  Iterable<DiaryEntryRow> rows,
+  List<String> days, {
+  Set<String> incompleteDates = const <String>{},
+}) {
+  return days
+      .where(
+        (d) =>
+            dayStatusForLocalDate(rows, d, incompleteDates: incompleteDates) ==
+            DayStatus.notRecorded,
+      )
+      .toList();
+}
