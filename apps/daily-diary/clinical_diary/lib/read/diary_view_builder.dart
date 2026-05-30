@@ -17,8 +17,14 @@ class DiaryViewBuilder extends StatelessWidget {
 
   final DiaryViewWidgetBuilder builder;
 
-  static List<DiaryEntryRow> _rows(ViewState<DiaryEntryRow> s) =>
-      s is Ready<DiaryEntryRow> ? s.rows.toList() : const <DiaryEntryRow>[];
+  // Retain last-known rows while Stale (transport disconnected) so the diary
+  // doesn't blank out on a dropped connection. Unreachable under LocalScope
+  // today, but correct for a future RemoteScope / sync path.
+  static List<DiaryEntryRow> _rows(ViewState<DiaryEntryRow> s) => switch (s) {
+    Ready<DiaryEntryRow>(:final rows) => rows.toList(),
+    Stale<DiaryEntryRow>(:final lastRows) => lastRows.toList(),
+    _ => const <DiaryEntryRow>[],
+  };
 
   @override
   Widget build(BuildContext context) {

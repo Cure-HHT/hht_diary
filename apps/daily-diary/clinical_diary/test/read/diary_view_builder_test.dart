@@ -12,23 +12,22 @@ void main() {
   testWidgets(
     'DiaryViewBuilder yields a DiaryView reflecting a recorded entry',
     (tester) async {
-      DiaryScopeRuntime? rt;
-      await tester.runAsync(() async {
+      final rt = (await tester.runAsync(() async {
         final db = await newDatabaseFactoryMemory().openDatabase(
           'dvb-${DateTime.now().microsecondsSinceEpoch}.db',
         );
-        rt = await bootstrapDiaryScope(
+        return bootstrapDiaryScope(
           backend: SembastBackend(database: db),
           deviceId: 'D',
           softwareVersion: 'clinical_diary@0.0.0-test',
           localUserId: 'P',
         );
-      });
-      addTearDown(() => rt!.dispose());
+      }))!;
+      addTearDown(rt.dispose);
 
       await tester.pumpWidget(
         ReActionScope(
-          scope: rt!.scope,
+          scope: rt.scope,
           child: MaterialApp(
             home: Scaffold(
               body: DiaryViewBuilder(
@@ -42,7 +41,7 @@ void main() {
         ),
       );
       await tester.runAsync(() async {
-        await rt!.scope.actionSubmitter.submit(
+        await rt.scope.actionSubmitter.submit(
           const ActionSubmission(
             actionName: 'record_no_epistaxis_day',
             rawInput: {'date': '2025-10-15'},
