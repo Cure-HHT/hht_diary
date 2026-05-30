@@ -1,4 +1,4 @@
-/// Represents a clinical trial subject (patient) from the RAVE EDC system.
+/// Represents a clinical trial subject (participant) from the RAVE EDC system.
 ///
 /// Subjects are extracted from ODM ClinicalData/SubjectData elements returned by
 /// the `/RaveWebServices/studies/{studyOid}/subjects` endpoint.

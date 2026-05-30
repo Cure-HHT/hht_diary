@@ -13,9 +13,9 @@ import 'package:trial_data_types/trial_data_types.dart';
 ///
 /// CUR-1292: When [isReadOnly] is true the screen renders the same
 /// list layout but suppresses the Submit button and the per-item edit
-/// affordance. This is the surface a patient sees after the portal
+/// affordance. This is the surface a participant sees after the portal
 /// coordinator has finalized the submission — answers are immutable;
-/// the patient just verifies what was submitted.
+/// the participant just verifies what was submitted.
 class ReviewScreen extends StatelessWidget {
   const ReviewScreen({
     required this.definition,
@@ -33,11 +33,11 @@ class ReviewScreen extends StatelessWidget {
   /// Map of questionId -> QuestionResponse
   final Map<String, QuestionResponse> responses;
 
-  /// Called when patient taps a question to edit it. Ignored when
+  /// Called when participant taps a question to edit it. Ignored when
   /// [isReadOnly] is true.
   final ValueChanged<int> onEdit;
 
-  /// Called when patient taps "Submit". Ignored when [isReadOnly] is
+  /// Called when participant taps "Submit". Ignored when [isReadOnly] is
   /// true (the Submit button is not rendered).
   final VoidCallback onSubmit;
 
@@ -52,7 +52,7 @@ class ReviewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final allQuestions = definition.allQuestions;
-    // CUR-1292: Group review items by category so the patient can see
+    // CUR-1292: Group review items by category so the participant can see
     // each section's prompt (the `stem`) alongside the answers below
     // it. NOSE HHT puts the actual question on the category — without
     // the stem, items like "Travel (e.g. by plane) — No difficulty"

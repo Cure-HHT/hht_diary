@@ -104,7 +104,7 @@ class DiaryEntry {
   /// Entry-type identifier (e.g., `"epistaxis_event"`, `"nose_hht_survey"`).
   final String entryType;
 
-  /// Patient-facing date the entry pertains to (may differ from `updatedAt`).
+  /// Participant-facing date the entry pertains to (may differ from `updatedAt`).
   /// Null when neither the entry type's `effective_date_path` nor the
   /// fallback yielded a value.
   final DateTime? effectiveDate;

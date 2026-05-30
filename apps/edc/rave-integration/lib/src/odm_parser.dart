@@ -148,7 +148,7 @@ class OdmParser {
     }
   }
 
-  /// Parses subjects (patients) from the RAVE subjects endpoint response.
+  /// Parses subjects (participants) from the RAVE subjects endpoint response.
   ///
   /// Expected format:
   /// ```xml

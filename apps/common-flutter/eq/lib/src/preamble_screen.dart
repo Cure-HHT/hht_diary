@@ -7,7 +7,7 @@ import 'package:trial_data_types/trial_data_types.dart';
 
 /// Preamble pages shown one at a time before the questions.
 ///
-/// Patient must acknowledge each page by tapping "Continue"
+/// Participant must acknowledge each page by tapping "Continue"
 /// per REQ-p01070-G,H,I / REQ-p01071-G,H,I.
 class PreambleScreen extends StatelessWidget {
   const PreambleScreen({
@@ -27,7 +27,7 @@ class PreambleScreen extends StatelessWidget {
   /// Total number of preamble items
   final int totalCount;
 
-  /// Called when patient taps "Continue"
+  /// Called when participant taps "Continue"
   final VoidCallback onContinue;
 
   @override

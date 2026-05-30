@@ -173,7 +173,7 @@ class StoredEvent {
   /// Type of aggregate (e.g., 'DiaryEntry').
   final String aggregateType;
 
-  /// Kind of patient-recorded or administered entry (e.g., 'epistaxis_event',
+  /// Kind of participant-recorded or administered entry (e.g., 'epistaxis_event',
   /// 'nose_hht_survey'). First-class per REQ-d00118-A.
   final String entryType;
 

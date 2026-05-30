@@ -19,10 +19,10 @@ class ReadinessScreen extends StatelessWidget {
   /// The questionnaire definition (for session config)
   final QuestionnaireDefinition definition;
 
-  /// Called when patient taps "I'm ready"
+  /// Called when participant taps "I'm ready"
   final VoidCallback onReady;
 
-  /// Called when patient taps "Not now"
+  /// Called when participant taps "Not now"
   final VoidCallback onDefer;
 
   @override
