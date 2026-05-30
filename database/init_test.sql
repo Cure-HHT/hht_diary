@@ -31,7 +31,7 @@ ON CONFLICT (site_id) DO UPDATE SET is_active = true;
 DELETE FROM record_audit WHERE created_by IN (
     SELECT user_id FROM app_users WHERE auth_code LIKE 'test-sync-%'
 );
-DELETE FROM user_site_assignments WHERE patient_id IN (
+DELETE FROM user_site_assignments WHERE participant_id IN (
     SELECT user_id FROM app_users WHERE auth_code LIKE 'test-sync-%'
 );
 DELETE FROM app_users WHERE auth_code LIKE 'test-sync-%';
@@ -47,14 +47,14 @@ VALUES (
 
 -- Link test user at DEFAULT site
 INSERT INTO user_site_assignments (
-    patient_id,
+    participant_id,
     site_id,
-    study_patient_id,
+    study_participant_id,
     enrollment_status
 ) VALUES (
     '11111111-1111-1111-1111-111111111111',
     'DEFAULT',
-    'TEST-PATIENT-001',
+    'TEST-PARTICIPANT-001',
     'ACTIVE'
 );
 

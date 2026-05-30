@@ -7,7 +7,7 @@
 --   REQ-p00005: Role-Based Access Control
 --   REQ-p00014: Least Privilege Access
 --   REQ-p00015: Database-Level Access Enforcement
---   REQ-p00035: Patient Data Isolation
+--   REQ-p00035: Participant Data Isolation
 --   REQ-p00036: Investigator Site-Scoped Access
 --   REQ-p00037: Investigator Annotation Restrictions
 --   REQ-p00022: Analyst Read-Only Site-Scoped Access
@@ -16,7 +16,7 @@
 --   REQ-p00039: Administrator Break-Glass Access
 --   REQ-p00040: Event Sourcing State Protection
 --   REQ-o00007: Role-Based Permission Configuration
---   REQ-o00020: Patient Data Isolation Policy Deployment
+--   REQ-o00020: Participant Data Isolation Policy Deployment
 --   REQ-o00021: Investigator Site-Scoped Access Policy Deployment
 --   REQ-o00022: Investigator Annotation Access Policy Deployment
 --   REQ-o00023: Analyst Read-Only Access Policy Deployment
@@ -24,7 +24,7 @@
 --   REQ-o00025: Auditor Compliance Access Policy Deployment
 --   REQ-o00026: Administrator Access Policy Deployment
 --   REQ-o00027: Event Sourcing State Protection Policy Deployment
---   REQ-d00019: Patient Data Isolation RLS Implementation
+--   REQ-d00019: Participant Data Isolation RLS Implementation
 --   REQ-d00020: Investigator Site-Scoped Access RLS Implementation
 --   REQ-d00021: Investigator Annotation RLS Implementation
 --   REQ-d00022: Analyst Read-Only RLS Implementation
@@ -39,7 +39,7 @@
 --   Each sponsor's database contains only their sites and users.
 --
 -- ROLE-BASED ACCESS:
---   - USER: Access only their own diary entries (REQ-p00035)
+--   - USER: Access only their own diary entries (REQ-p00035, participant-scoped)
 --   - INVESTIGATOR: Access data for assigned sites within this sponsor (REQ-p00036)
 --   - ANALYST: Read-only access to assigned sites within this sponsor (REQ-p00022)
 --   - SPONSOR: Read access to all data within this sponsor's database (REQ-p00023)
@@ -99,7 +99,7 @@ CREATE POLICY audit_user_select ON record_audit
     FOR SELECT
     TO authenticated
     USING (
-        patient_id = current_user_id()
+        participant_id = current_user_id()
         OR current_user_role() IN ('ADMIN', 'INVESTIGATOR', 'ANALYST')
     );
 
@@ -108,7 +108,7 @@ CREATE POLICY audit_user_insert ON record_audit
     FOR INSERT
     TO authenticated
     WITH CHECK (
-        patient_id = current_user_id()
+        participant_id = current_user_id()
         AND role = 'USER'
         AND created_by = current_user_id()
     );
@@ -186,7 +186,7 @@ CREATE POLICY state_user_select ON record_state
     FOR SELECT
     TO authenticated
     USING (
-        patient_id = current_user_id()
+        participant_id = current_user_id()
         AND NOT is_deleted
     );
 
@@ -283,7 +283,7 @@ CREATE POLICY annotations_user_select ON investigator_annotations
         event_uuid IN (
             SELECT event_uuid
             FROM record_state
-            WHERE patient_id = current_user_id()
+            WHERE participant_id = current_user_id()
         )
     );
 
@@ -346,7 +346,7 @@ CREATE POLICY user_assignments_select ON user_site_assignments
     FOR SELECT
     TO authenticated
     USING (
-        patient_id = current_user_id()
+        participant_id = current_user_id()
         OR current_user_role() IN ('ADMIN', 'INVESTIGATOR')
     );
 
@@ -419,14 +419,14 @@ CREATE POLICY analyst_assignments_admin_all ON analyst_site_assignments
 CREATE POLICY conflicts_user_select ON sync_conflicts
     FOR SELECT
     TO authenticated
-    USING (patient_id = current_user_id());
+    USING (participant_id = current_user_id());
 
 -- Users can update resolution of their own conflicts
 CREATE POLICY conflicts_user_update ON sync_conflicts
     FOR UPDATE
     TO authenticated
-    USING (patient_id = current_user_id())
-    WITH CHECK (patient_id = current_user_id());
+    USING (participant_id = current_user_id())
+    WITH CHECK (participant_id = current_user_id());
 
 -- Investigators can view conflicts at their sites
 CREATE POLICY conflicts_investigator_select ON sync_conflicts
@@ -508,7 +508,7 @@ CREATE POLICY admin_log_sponsor_select ON admin_action_log
     USING (current_user_role() = 'SPONSOR');
 
 -- SERVICE ROLE: Full access for backend operations (REQ-p70007)
--- Required for linking code generation, patient workflows, etc.
+-- Required for linking code generation, participant workflows, etc.
 DROP POLICY IF EXISTS admin_log_service ON admin_action_log;
 CREATE POLICY admin_log_service ON admin_action_log
     FOR ALL TO service_role
@@ -902,7 +902,7 @@ CREATE POLICY email_audit_log_admin_select ON email_audit_log
     USING (current_user_role() IN ('Administrator', 'Developer Admin', 'Auditor'));
 
 -- =====================================================
--- PATIENT LINKING CODE POLICIES
+-- PARTICIPANT LINKING CODE POLICIES
 -- =====================================================
 -- IMPLEMENTS REQUIREMENTS:
 --   REQ-p70007: Linking Code Lifecycle Management
@@ -910,23 +910,23 @@ CREATE POLICY email_audit_log_admin_select ON email_audit_log
 --   REQ-CAL-p00049: Mobile Linking Codes
 --
 -- These tables are managed by the backend service
--- Investigators can generate codes for patients at their assigned sites
+-- Investigators can generate codes for participants at their assigned sites
 
--- patient_linking_codes: Service role full access (backend manages lifecycle)
-CREATE POLICY patient_linking_codes_service_all ON patient_linking_codes
+-- participant_linking_codes: Service role full access (backend manages lifecycle)
+CREATE POLICY participant_linking_codes_service_all ON participant_linking_codes
     FOR ALL
     TO service_role
     USING (true)
     WITH CHECK (true);
 
--- Investigators can view linking codes for patients at their assigned sites
-CREATE POLICY patient_linking_codes_investigator_select ON patient_linking_codes
+-- Investigators can view linking codes for participants at their assigned sites
+CREATE POLICY participant_linking_codes_investigator_select ON participant_linking_codes
     FOR SELECT
     TO authenticated
     USING (
         current_user_role() = 'Investigator'
-        AND patient_id IN (
-            SELECT p.patient_id FROM patients p
+        AND participant_id IN (
+            SELECT p.participant_id FROM participants p
             WHERE p.site_id IN (
                 SELECT pusa.site_id FROM portal_user_site_access pusa
                 WHERE pusa.user_id = current_user_id()::uuid
@@ -934,11 +934,11 @@ CREATE POLICY patient_linking_codes_investigator_select ON patient_linking_codes
         )
     );
 
--- Grant service_role access to patient_linking_codes
-GRANT ALL ON patient_linking_codes TO service_role;
+-- Grant service_role access to participant_linking_codes
+GRANT ALL ON participant_linking_codes TO service_role;
 
--- Grant investigators SELECT on their site's patient linking codes
-GRANT SELECT ON patient_linking_codes TO authenticated;
+-- Grant investigators SELECT on their site's participant linking codes
+GRANT SELECT ON participant_linking_codes TO authenticated;
 
 -- Grant service_role access to new tables
 GRANT ALL ON email_otp_codes TO service_role;
@@ -952,7 +952,7 @@ GRANT SELECT ON email_audit_log TO authenticated;
 -- QUESTIONNAIRE INSTANCES RLS (REQ-CAL-p00023)
 -- =====================================================
 -- Written by portal server (service_role), read by both servers.
--- Investigators can view/manage questionnaires for patients at their sites.
+-- Investigators can view/manage questionnaires for participants at their sites.
 
 -- Service role: full access (both portal and diary servers use service_role)
 CREATE POLICY qi_service_all ON questionnaire_instances
@@ -961,14 +961,14 @@ CREATE POLICY qi_service_all ON questionnaire_instances
     USING (true)
     WITH CHECK (true);
 
--- Investigators can view questionnaires for patients at their assigned sites
+-- Investigators can view questionnaires for participants at their assigned sites
 CREATE POLICY qi_investigator_select ON questionnaire_instances
     FOR SELECT
     TO authenticated
     USING (
         current_user_role() = 'Investigator'
-        AND patient_id IN (
-            SELECT p.patient_id FROM patients p
+        AND participant_id IN (
+            SELECT p.participant_id FROM participants p
             WHERE p.site_id IN (
                 SELECT pusa.site_id FROM portal_user_site_access pusa
                 WHERE pusa.user_id = current_user_id()::uuid
@@ -991,7 +991,7 @@ CREATE POLICY qr_service_all ON questionnaire_responses
     USING (true)
     WITH CHECK (true);
 
--- Investigators can view responses for patients at their assigned sites
+-- Investigators can view responses for participants at their assigned sites
 CREATE POLICY qr_investigator_select ON questionnaire_responses
     FOR SELECT
     TO authenticated
@@ -999,8 +999,8 @@ CREATE POLICY qr_investigator_select ON questionnaire_responses
         current_user_role() = 'Investigator'
         AND questionnaire_instance_id IN (
             SELECT qi.id FROM questionnaire_instances qi
-            WHERE qi.patient_id IN (
-                SELECT p.patient_id FROM patients p
+            WHERE qi.participant_id IN (
+                SELECT p.participant_id FROM participants p
                 WHERE p.site_id IN (
                     SELECT pusa.site_id FROM portal_user_site_access pusa
                     WHERE pusa.user_id = current_user_id()::uuid
@@ -1013,44 +1013,44 @@ GRANT ALL ON questionnaire_responses TO service_role;
 GRANT SELECT ON questionnaire_responses TO authenticated;
 
 -- =====================================================
--- PATIENT FCM TOKENS RLS (REQ-CAL-p00082)
+-- PARTICIPANT FCM TOKENS RLS (REQ-CAL-p00082)
 -- =====================================================
 -- Written by diary server, read by portal server.
 -- Both use service_role, so only service_role needs access.
 
 -- Service role: full access
-CREATE POLICY fcm_tokens_service_all ON patient_fcm_tokens
+CREATE POLICY fcm_tokens_service_all ON participant_fcm_tokens
     FOR ALL
     TO service_role
     USING (true)
     WITH CHECK (true);
 
-GRANT ALL ON patient_fcm_tokens TO service_role;
+GRANT ALL ON participant_fcm_tokens TO service_role;
 
 -- =====================================================
 -- NOTIFICATIONS RLS (REQ-d00194, REQ-d00195) — Phase 1B
 -- =====================================================
 -- Server (service_role) writes envelopes via OutboxWriter; mobile
--- (authenticated, scoped by app.current_patient_id) polls. Defense
--- in depth — every repository query already filters by patient_id,
+-- (authenticated, scoped by app.current_participant_id) polls. Defense
+-- in depth — every repository query already filters by participant_id,
 -- but RLS guarantees a forgotten predicate cannot leak another
--- patient's rows.
+-- participant's rows.
 
--- Patients SELECT their own envelopes only. The session variable
--- app.current_patient_id is set by Database.executeWithContext when
--- called with UserContext.patient(patientId).
-CREATE POLICY notifications_patient_select ON notifications
+-- Participants SELECT their own envelopes only. The session variable
+-- app.current_participant_id is set by Database.executeWithContext when
+-- called with UserContext.participant(participantId).
+CREATE POLICY notifications_participant_select ON notifications
     FOR SELECT
     TO authenticated
-    USING (patient_id = current_setting('app.current_patient_id', true));
+    USING (participant_id = current_setting('app.current_participant_id', true));
 
--- Patients UPDATE their own envelopes — the envelopeFetchHandler
+-- Participants UPDATE their own envelopes — the envelopeFetchHandler
 -- stamps delivered_at on first read. INSERT is server-side only.
-CREATE POLICY notifications_patient_update ON notifications
+CREATE POLICY notifications_participant_update ON notifications
     FOR UPDATE
     TO authenticated
-    USING (patient_id = current_setting('app.current_patient_id', true))
-    WITH CHECK (patient_id = current_setting('app.current_patient_id', true));
+    USING (participant_id = current_setting('app.current_participant_id', true))
+    WITH CHECK (participant_id = current_setting('app.current_participant_id', true));
 
 -- Service role: full access for OutboxWriter inserts + status updates.
 CREATE POLICY notifications_service_all ON notifications

@@ -29,22 +29,22 @@
 
 BEGIN;
 
--- Set up test fixtures: site and patient enrollment
+-- Set up test fixtures: site and participant enrollment
 INSERT INTO sites (site_id, site_name, site_number)
 VALUES ('test_site_001', 'Test Site 001', 'TS001')
 ON CONFLICT (site_id) DO NOTHING;
 
-INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
-VALUES ('test_patient_001', 'test_site_001', 'STUDY-001', 'ACTIVE')
-ON CONFLICT (patient_id, site_id) DO NOTHING;
+INSERT INTO user_site_assignments (participant_id, site_id, study_participant_id, enrollment_status)
+VALUES ('test_participant_001', 'test_site_001', 'STUDY-001', 'ACTIVE')
+ON CONFLICT (participant_id, site_id) DO NOTHING;
 
 -- Insert test audit entry with valid EventRecord data
 INSERT INTO record_audit (
-    event_uuid, patient_id, site_id, operation,
+    event_uuid, participant_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    '00000000-0000-0000-0000-000000000001'::UUID, 'test_patient_001', 'test_site_001', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000001'::UUID, 'test_participant_001', 'test_site_001', 'USER_CREATE',
     '{"id": "00000000-0000-0000-0000-000000000001", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "11111111-1111-1111-1111-111111111111", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
     'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
@@ -59,17 +59,17 @@ BEGIN
     -- Store original value
     SELECT data INTO v_original_data
     FROM record_audit
-    WHERE patient_id = 'test_patient_001';
+    WHERE participant_id = 'test_participant_001';
 
     -- Attempt to update
     UPDATE record_audit
     SET data = '{"modified": "data"}'::jsonb
-    WHERE patient_id = 'test_patient_001';
+    WHERE participant_id = 'test_participant_001';
 
     -- Check if data unchanged
     SELECT data INTO v_updated_data
     FROM record_audit
-    WHERE patient_id = 'test_patient_001';
+    WHERE participant_id = 'test_participant_001';
 
     IF v_original_data = v_updated_data THEN
         RAISE NOTICE 'PASS: Audit entry is immutable (UPDATE prevented)';
@@ -93,16 +93,16 @@ INSERT INTO sites (site_id, site_name, site_number)
 VALUES ('test_site_002', 'Test Site 002', 'TS002')
 ON CONFLICT (site_id) DO NOTHING;
 
-INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
-VALUES ('test_patient_002', 'test_site_002', 'STUDY-002', 'ACTIVE')
-ON CONFLICT (patient_id, site_id) DO NOTHING;
+INSERT INTO user_site_assignments (participant_id, site_id, study_participant_id, enrollment_status)
+VALUES ('test_participant_002', 'test_site_002', 'STUDY-002', 'ACTIVE')
+ON CONFLICT (participant_id, site_id) DO NOTHING;
 
 INSERT INTO record_audit (
-    event_uuid, patient_id, site_id, operation,
+    event_uuid, participant_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    '00000000-0000-0000-0000-000000000002'::UUID, 'test_patient_002', 'test_site_002', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000002'::UUID, 'test_participant_002', 'test_site_002', 'USER_CREATE',
     '{"id": "00000000-0000-0000-0000-000000000002", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "22222222-2222-2222-2222-222222222222", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
     'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
@@ -115,15 +115,15 @@ DECLARE
 BEGIN
     SELECT COUNT(*) INTO v_count_before
     FROM record_audit
-    WHERE patient_id = 'test_patient_002';
+    WHERE participant_id = 'test_participant_002';
 
     -- Attempt to delete
     DELETE FROM record_audit
-    WHERE patient_id = 'test_patient_002';
+    WHERE participant_id = 'test_participant_002';
 
     SELECT COUNT(*) INTO v_count_after
     FROM record_audit
-    WHERE patient_id = 'test_patient_002';
+    WHERE participant_id = 'test_participant_002';
 
     IF v_count_before = v_count_after AND v_count_after > 0 THEN
         RAISE NOTICE 'PASS: Audit entry cannot be deleted (permanent)';
@@ -147,16 +147,16 @@ INSERT INTO sites (site_id, site_name, site_number)
 VALUES ('test_site_003', 'Test Site 003', 'TS003')
 ON CONFLICT (site_id) DO NOTHING;
 
-INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
-VALUES ('test_patient_003', 'test_site_003', 'STUDY-003', 'ACTIVE')
-ON CONFLICT (patient_id, site_id) DO NOTHING;
+INSERT INTO user_site_assignments (participant_id, site_id, study_participant_id, enrollment_status)
+VALUES ('test_participant_003', 'test_site_003', 'STUDY-003', 'ACTIVE')
+ON CONFLICT (participant_id, site_id) DO NOTHING;
 
 INSERT INTO record_audit (
-    event_uuid, patient_id, site_id, operation,
+    event_uuid, participant_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    '00000000-0000-0000-0000-000000000003'::UUID, 'test_patient_003', 'test_site_003', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000003'::UUID, 'test_participant_003', 'test_site_003', 'USER_CREATE',
     '{"id": "00000000-0000-0000-0000-000000000003", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "33333333-3333-3333-3333-333333333333", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
     'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
@@ -168,7 +168,7 @@ DECLARE
 BEGIN
     SELECT signature_hash INTO v_hash
     FROM record_audit
-    WHERE patient_id = 'test_patient_003';
+    WHERE participant_id = 'test_participant_003';
 
     IF v_hash IS NOT NULL AND length(v_hash) = 64 THEN
         RAISE NOTICE 'PASS: Signature hash automatically computed (SHA-256)';
@@ -192,16 +192,16 @@ INSERT INTO sites (site_id, site_name, site_number)
 VALUES ('test_site_004', 'Test Site 004', 'TS004')
 ON CONFLICT (site_id) DO NOTHING;
 
-INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
-VALUES ('test_patient_004', 'test_site_004', 'STUDY-004', 'ACTIVE')
-ON CONFLICT (patient_id, site_id) DO NOTHING;
+INSERT INTO user_site_assignments (participant_id, site_id, study_participant_id, enrollment_status)
+VALUES ('test_participant_004', 'test_site_004', 'STUDY-004', 'ACTIVE')
+ON CONFLICT (participant_id, site_id) DO NOTHING;
 
 INSERT INTO record_audit (
-    event_uuid, patient_id, site_id, operation,
+    event_uuid, participant_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    '00000000-0000-0000-0000-000000000004'::UUID, 'test_patient_004', 'test_site_004', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000004'::UUID, 'test_participant_004', 'test_site_004', 'USER_CREATE',
     '{"id": "00000000-0000-0000-0000-000000000004", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "44444444-4444-4444-4444-444444444444", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
     'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
@@ -214,7 +214,7 @@ DECLARE
 BEGIN
     SELECT audit_id INTO v_audit_id
     FROM record_audit
-    WHERE patient_id = 'test_patient_004';
+    WHERE participant_id = 'test_participant_004';
 
     v_is_valid := verify_audit_hash(v_audit_id);
 
@@ -240,16 +240,16 @@ INSERT INTO sites (site_id, site_name, site_number)
 VALUES ('test_site_005', 'Test Site 005', 'TS005')
 ON CONFLICT (site_id) DO NOTHING;
 
-INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
-VALUES ('test_patient_005', 'test_site_005', 'STUDY-005', 'ACTIVE')
-ON CONFLICT (patient_id, site_id) DO NOTHING;
+INSERT INTO user_site_assignments (participant_id, site_id, study_participant_id, enrollment_status)
+VALUES ('test_participant_005', 'test_site_005', 'STUDY-005', 'ACTIVE')
+ON CONFLICT (participant_id, site_id) DO NOTHING;
 
 INSERT INTO record_audit (
-    event_uuid, patient_id, site_id, operation,
+    event_uuid, participant_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    '00000000-0000-0000-0000-000000000005'::UUID, 'test_patient_005', 'test_site_005', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000005'::UUID, 'test_participant_005', 'test_site_005', 'USER_CREATE',
     '{"id": "00000000-0000-0000-0000-000000000005", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "55555555-5555-5555-5555-555555555555", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
     'test_user', 'USER', now(), 'initial entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
@@ -291,16 +291,16 @@ INSERT INTO sites (site_id, site_name, site_number)
 VALUES ('test_site_006', 'Test Site 006', 'TS006')
 ON CONFLICT (site_id) DO NOTHING;
 
-INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
-VALUES ('test_patient_006', 'test_site_006', 'STUDY-006', 'ACTIVE')
-ON CONFLICT (patient_id, site_id) DO NOTHING;
+INSERT INTO user_site_assignments (participant_id, site_id, study_participant_id, enrollment_status)
+VALUES ('test_participant_006', 'test_site_006', 'STUDY-006', 'ACTIVE')
+ON CONFLICT (participant_id, site_id) DO NOTHING;
 
 INSERT INTO record_audit (
-    event_uuid, patient_id, site_id, operation,
+    event_uuid, participant_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    '00000000-0000-0000-0000-000000000006'::UUID, 'test_patient_006', 'test_site_006', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000006'::UUID, 'test_participant_006', 'test_site_006', 'USER_CREATE',
     '{"id": "00000000-0000-0000-0000-000000000006", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "66666666-6666-6666-6666-666666666666", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
     'test_user', 'USER', now(), 'test entry',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
@@ -313,7 +313,7 @@ DECLARE
 BEGIN
     SELECT * INTO v_record
     FROM record_audit
-    WHERE patient_id = 'test_patient_006';
+    WHERE participant_id = 'test_participant_006';
 
     -- Check all required ALCOA+ fields
     IF v_record.created_by IS NULL THEN v_all_present := false; END IF;
@@ -348,17 +348,17 @@ INSERT INTO sites (site_id, site_name, site_number)
 VALUES ('test_site_007', 'Test Site 007', 'TS007')
 ON CONFLICT (site_id) DO NOTHING;
 
-INSERT INTO user_site_assignments (patient_id, site_id, study_patient_id, enrollment_status)
-VALUES ('test_patient_007', 'test_site_007', 'STUDY-007', 'ACTIVE')
-ON CONFLICT (patient_id, site_id) DO NOTHING;
+INSERT INTO user_site_assignments (participant_id, site_id, study_participant_id, enrollment_status)
+VALUES ('test_participant_007', 'test_site_007', 'STUDY-007', 'ACTIVE')
+ON CONFLICT (participant_id, site_id) DO NOTHING;
 
 -- Create parent entry
 INSERT INTO record_audit (
-    event_uuid, patient_id, site_id, operation,
+    event_uuid, participant_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id
 ) VALUES (
-    '00000000-0000-0000-0000-000000000007'::UUID, 'test_patient_007', 'test_site_007', 'USER_CREATE',
+    '00000000-0000-0000-0000-000000000007'::UUID, 'test_participant_007', 'test_site_007', 'USER_CREATE',
     '{"id": "00000000-0000-0000-0000-000000000007", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "77777777-7777-7777-7777-777777777771", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:05:00Z", "severity": "mild"}}'::jsonb,
     'test_user', 'USER', now(), 'initial',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session'
@@ -366,15 +366,15 @@ INSERT INTO record_audit (
 
 -- Create child entry with parent reference
 INSERT INTO record_audit (
-    event_uuid, patient_id, site_id, operation,
+    event_uuid, participant_id, site_id, operation,
     data, created_by, role, client_timestamp, change_reason,
     device_info, ip_address, session_id, parent_audit_id
 ) VALUES (
-    '00000000-0000-0000-0000-000000000007'::UUID, 'test_patient_007', 'test_site_007', 'USER_UPDATE',
+    '00000000-0000-0000-0000-000000000007'::UUID, 'test_participant_007', 'test_site_007', 'USER_UPDATE',
     '{"id": "00000000-0000-0000-0000-000000000007", "versioned_type": "epistaxis-v1.0", "event_data": {"id": "77777777-7777-7777-7777-777777777772", "startTime": "2024-01-01T10:00:00Z", "lastModified": "2024-01-01T10:10:00Z", "severity": "moderate"}}'::jsonb,
     'test_user', 'USER', now(), 'update',
     '{"device": "test"}'::jsonb, '127.0.0.1'::inet, 'test_session',
-    (SELECT audit_id FROM record_audit WHERE patient_id = 'test_patient_007' ORDER BY audit_id LIMIT 1)
+    (SELECT audit_id FROM record_audit WHERE participant_id = 'test_participant_007' ORDER BY audit_id LIMIT 1)
 );
 
 DO $$

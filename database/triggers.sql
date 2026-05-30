@@ -54,7 +54,7 @@ BEGIN
         -- Insert or update the read model
         INSERT INTO record_state (
             event_uuid,
-            patient_id,
+            participant_id,
             site_id,
             current_data,
             version,
@@ -65,7 +65,7 @@ BEGIN
         )
         VALUES (
             NEW.event_uuid,
-            NEW.patient_id,
+            NEW.participant_id,
             NEW.site_id,
             NEW.data,
             1,
@@ -105,31 +105,31 @@ BEGIN
     -- Validate JSONB data structure
     PERFORM validate_diary_data(NEW.data);
 
-    -- Ensure patient/site relationship is valid for USER operations
-    -- Check in order: patients table (EDC), user_site_assignments (legacy), DEFAULT site
+    -- Ensure participant/site relationship is valid for USER operations
+    -- Check in order: participants table (EDC), user_site_assignments (legacy), DEFAULT site
     IF NEW.role = 'USER' THEN
-        -- Check if this is a known patient from EDC (patients table)
-        IF EXISTS (SELECT 1 FROM patients WHERE patient_id = NEW.patient_id) THEN
-            -- Verify the site matches the patient's assigned site
+        -- Check if this is a known participant from EDC (participants table)
+        IF EXISTS (SELECT 1 FROM participants WHERE participant_id = NEW.participant_id) THEN
+            -- Verify the site matches the participant's assigned site
             IF NOT EXISTS (
-                SELECT 1 FROM patients
-                WHERE patient_id = NEW.patient_id
+                SELECT 1 FROM participants
+                WHERE participant_id = NEW.participant_id
                 AND site_id = NEW.site_id
             ) THEN
-                RAISE EXCEPTION 'Patient % is not assigned to site %', NEW.patient_id, NEW.site_id;
+                RAISE EXCEPTION 'Participant % is not assigned to site %', NEW.participant_id, NEW.site_id;
             END IF;
         -- Check legacy enrollment in user_site_assignments
         ELSIF EXISTS (
             SELECT 1 FROM user_site_assignments
-            WHERE patient_id = NEW.patient_id
+            WHERE participant_id = NEW.participant_id
             AND site_id = NEW.site_id
             AND enrollment_status = 'ACTIVE'
         ) THEN
-            -- Patient enrolled via legacy flow - allow
+            -- Participant enrolled via legacy flow - allow
             NULL;
         ELSIF NEW.site_id != 'DEFAULT' THEN
-            -- Non-linked users (patient_id = user_id) must use DEFAULT site
-            RAISE EXCEPTION 'Unlinked user % cannot sync to site %', NEW.patient_id, NEW.site_id;
+            -- Non-linked users (participant_id = user_id) must use DEFAULT site
+            RAISE EXCEPTION 'Unlinked user % cannot sync to site %', NEW.participant_id, NEW.site_id;
         END IF;
     END IF;
 
@@ -148,7 +148,7 @@ BEGIN
             -- Create conflict record
             INSERT INTO sync_conflicts (
                 event_uuid,
-                patient_id,
+                participant_id,
                 site_id,
                 client_version,
                 server_version,
@@ -157,7 +157,7 @@ BEGIN
             )
             SELECT
                 NEW.event_uuid,
-                NEW.patient_id,
+                NEW.participant_id,
                 NEW.site_id,
                 (SELECT COUNT(*) FROM record_audit WHERE event_uuid = NEW.event_uuid AND audit_id <= NEW.parent_audit_id),
                 rs.version,
@@ -270,7 +270,7 @@ BEGIN
         -- Insert or update the read model
         INSERT INTO record_state (
             event_uuid,
-            patient_id,
+            participant_id,
             site_id,
             current_data,
             version,
@@ -281,7 +281,7 @@ BEGIN
         )
         VALUES (
             NEW.event_uuid,
-            NEW.patient_id,
+            NEW.participant_id,
             NEW.site_id,
             NEW.data,
             1,

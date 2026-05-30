@@ -23,8 +23,8 @@
 
 -- Role type for validation
 CREATE TYPE app_role AS ENUM (
-    'PATIENT',       -- Read/write own data only
-    'INVESTIGATOR',  -- Site-scoped read/write, link/disconnect patients
+    'PARTICIPANT',   -- Read/write own data only
+    'INVESTIGATOR',  -- Site-scoped read/write, link/disconnect participants
     'SPONSOR',       -- De-identified only, user management, oversight
     'AUDITOR',       -- Read-only across study, compliance monitoring
     'ANALYST',       -- Site-scoped read, de-identified datasets
@@ -486,11 +486,11 @@ BEGIN
         RETURN true;
     END IF;
 
-    -- Patients can access sites where they're linked
-    IF active_role = 'PATIENT' THEN
+    -- Participants can access sites where they're linked
+    IF active_role = 'PARTICIPANT' THEN
         RETURN EXISTS (
             SELECT 1 FROM user_site_assignments
-            WHERE patient_id = current_user_id()
+            WHERE participant_id = current_user_id()
             AND site_id = check_site_id
             AND enrollment_status = 'ACTIVE'
         );
