@@ -22,7 +22,7 @@ Map<String, dynamic> _buildEnvelope({
   required String id,
   String type = 'questionnaire_update',
   String action = 'sent',
-  String patientId = 'patient-1',
+  String participantId = 'patient-1',
   String title = 'Test',
   DateTime? createdAt,
   Map<String, dynamic>? extraPayload,
@@ -30,7 +30,7 @@ Map<String, dynamic> _buildEnvelope({
   final payload = <String, dynamic>{'action': action, ...?extraPayload};
   return {
     'notification_id': id,
-    'patient_id': patientId,
+    'patient_id': participantId,
     'type': type,
     'title': title,
     'user_visible': true,

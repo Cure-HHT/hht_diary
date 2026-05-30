@@ -208,16 +208,16 @@ void main() {
         expect(enrollment.enrolledAt, testEnrolledAt);
       });
 
-      // CUR-1049: linkingCode must be stored separately from patientId
+      // CUR-1049: linkingCode must be stored separately from participantId
       // The linking code (e.g., "CAXXXXXXXX") is what the user sees on the
-      // profile screen. The patientId is an internal database identifier.
-      // Previously the app displayed patientId where it should show linkingCode.
-      test('linkingCode is preserved distinct from patientId (CUR-1049)', () {
+      // profile screen. The participantId is an internal database identifier.
+      // Previously the app displayed participantId where it should show linkingCode.
+      test('linkingCode is preserved distinct from participantId (CUR-1049)', () {
         final original = UserEnrollment(
           userId: 'link-code-user',
           jwtToken: 'link-code-token',
           enrolledAt: testEnrolledAt,
-          patientId: 'PAT-DB-12345',
+          participantId: 'PAT-DB-12345',
           linkingCode: 'CAABCD1234',
           siteId: 'SITE-001',
         );
@@ -225,14 +225,14 @@ void main() {
         final json = original.toJson();
         final restored = UserEnrollment.fromJson(json);
 
-        // linkingCode must round-trip and be distinct from patientId
+        // linkingCode must round-trip and be distinct from participantId
         expect(restored.linkingCode, equals('CAABCD1234'));
-        expect(restored.patientId, equals('PAT-DB-12345'));
+        expect(restored.participantId, equals('PAT-DB-12345'));
         expect(
           restored.linkingCode,
-          isNot(equals(restored.patientId)),
+          isNot(equals(restored.participantId)),
           reason:
-              'linkingCode and patientId are different identifiers (CUR-1049)',
+              'linkingCode and participantId are different identifiers (CUR-1049)',
         );
       });
 

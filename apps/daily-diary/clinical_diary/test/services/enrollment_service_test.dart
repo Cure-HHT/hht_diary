@@ -151,7 +151,7 @@ void main() {
 
         expect(result.userId, 'server-user-id');
         expect(result.jwtToken, 'server-returned-jwt');
-        expect(result.patientId, 'patient-123');
+        expect(result.participantId, 'patient-123');
         expect(result.siteId, 'site-001');
         expect(result.siteName, 'Test Site');
         expect(result.enrolledAt, isNotNull);
@@ -160,7 +160,7 @@ void main() {
         // Verify it was saved
         final saved = await service.getEnrollment();
         expect(saved, isNotNull);
-        expect(saved!.patientId, 'patient-123');
+        expect(saved!.participantId, 'patient-123');
       });
 
       test('normalizes code to uppercase and removes dash', () async {

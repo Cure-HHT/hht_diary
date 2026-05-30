@@ -16,11 +16,11 @@ class UserEnrollment {
     required this.enrolledAt,
     this.sponsorId,
     this.backendUrl,
-    this.patientId,
+    this.participantId,
     this.siteId,
     this.siteName,
     this.sitePhoneNumber,
-    this.studyPatientId,
+    this.studyParticipantId,
     this.linkingCode,
   });
 
@@ -32,11 +32,11 @@ class UserEnrollment {
       enrolledAt: DateTime.parse(json['enrolledAt'] as String),
       sponsorId: json['sponsorId'] as String?,
       backendUrl: json['backendUrl'] as String?,
-      patientId: json['patientId'] as String?,
+      participantId: json['patientId'] as String?,
       siteId: json['siteId'] as String?,
       siteName: json['siteName'] as String?,
       sitePhoneNumber: json['sitePhoneNumber'] as String?,
-      studyPatientId: json['studyPatientId'] as String?,
+      studyParticipantId: json['studyPatientId'] as String?,
       linkingCode: json['linkingCode'] as String?,
     );
   }
@@ -53,27 +53,27 @@ class UserEnrollment {
   /// Used for subsequent API calls (sync, records, etc.)
   final String? backendUrl;
 
-  /// Patient ID from linking code (links to patients table)
-  final String? patientId;
+  /// Participant ID from linking code (links to participants table)
+  final String? participantId;
 
-  /// Site ID where the patient is linked
+  /// Site ID where the participant is linked
   final String? siteId;
 
   /// Human-readable site name
   final String? siteName;
 
-  /// Site phone number for patient contact (REQ-CAL-p00077)
+  /// Site phone number for participant contact (REQ-CAL-p00077)
   final String? sitePhoneNumber;
 
-  /// De-identified patient ID for the study (from EDC)
-  final String? studyPatientId;
+  /// De-identified participant ID for the study (from EDC)
+  final String? studyParticipantId;
 
   /// The linking code used to connect this device (CUR-1049)
-  /// Distinct from patientId — this is what the user sees on the profile screen
+  /// Distinct from participantId — this is what the user sees on the profile screen
   final String? linkingCode;
 
   /// Whether this linking includes clinical trial connection
-  bool get isLinkedToClinicalTrial => patientId != null && siteId != null;
+  bool get isLinkedToClinicalTrial => participantId != null && siteId != null;
   SponsorInfo? get sponsorDetail => SponsorRegistry.getById(sponsorId ?? '');
 
   /// Convert to JSON for secure storage
@@ -84,11 +84,11 @@ class UserEnrollment {
       'enrolledAt': enrolledAt.toIso8601String(),
       if (sponsorId != null) 'sponsorId': sponsorId,
       if (backendUrl != null) 'backendUrl': backendUrl,
-      if (patientId != null) 'patientId': patientId,
+      if (participantId != null) 'patientId': participantId,
       if (siteId != null) 'siteId': siteId,
       if (siteName != null) 'siteName': siteName,
       if (sitePhoneNumber != null) 'sitePhoneNumber': sitePhoneNumber,
-      if (studyPatientId != null) 'studyPatientId': studyPatientId,
+      if (studyParticipantId != null) 'studyPatientId': studyParticipantId,
       if (linkingCode != null) 'linkingCode': linkingCode,
     };
   }
