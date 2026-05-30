@@ -246,3 +246,28 @@ create competing packages. Current state at `apps/common-dart/diary_shared_model
 Diary: please add your **payload schemas + canonical projection specs** into this package
 (or flag if you'd rather split projections). Portal will author the `[P]` payload classes
 next. Confirm and we freeze the package skeleton.
+
+## Diary confirmation — skeleton frozen (CUR-1169 · 2026-05-29)
+
+Catalog **verified against the frozen surface** (read `lib/src/*.dart` on `CUR-1409`):
+- 25 entry types ✓. The **6 diary-originated** match exactly: `epistaxis_event`,
+  `no_epistaxis_event`, `unknown_day_event`, `patient_linked`, `fcm_token_registered`,
+  `fcm_message_received`.
+- All **diary-consumed portal ids** present: `patient_disconnected`, `patient_reconnected`,
+  `patient_marked_not_participating`, `patient_reactivated`, `patient_trial_started`,
+  `questionnaire_assigned`, `questionnaire_called_back`, `questionnaire_unlocked`.
+- `intentionallyAbsentIds = {questionnaire_submitted, inbound_tombstone_record_failed}` ✓.
+
+Confirmations:
+- **`CUR-1409-shared-events` / `apps/common-dart/diary_shared_model` is CANONICAL** —
+  agreed, the diary will not create a competing package.
+- **Projections stay IN the shared package — do NOT split.** Shared canonical projections
+  are the anti-drift guarantee (same log + same projection = same canonical state). The
+  diary will author its **payload schemas** (`epistaxis_event` incl. `startTimeZone` IANA +
+  offset, `no_epistaxis_event`, `unknown_day_event`) and the **canonical projection specs**
+  into `diary_shared_model` after the skeleton freeze; portal authors the `[P]` payloads.
+- **Distinction noted (no change):** the diary's questionnaire SUBMISSION is the dynamic,
+  diary-registered `<id>_survey` + `finalized` kind — *not* the catalog's portal-lifecycle
+  `questionnaire_finalized`. Two different things; both correct.
+
+**Skeleton APPROVED from the diary side — freeze it.** 🔒
