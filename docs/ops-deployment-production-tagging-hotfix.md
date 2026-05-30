@@ -397,7 +397,7 @@ gh workflow run build-integrated.yml -f archive_artifacts=true
 gh workflow run tag-production-candidate.yml \
   -f version=v1.1.0 \
   -f github_run_id=12345679 \
-  -f description="Added patient questionnaire feature"
+  -f description="Added participant questionnaire feature"
 
 # 3. Announce
 gh release view v1.1.0 --web

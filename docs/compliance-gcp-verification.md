@@ -297,7 +297,7 @@ WHERE ia.resolved = false
   AND ia.created_at > now() - interval '30 days'
 ORDER BY ia.created_at DESC;
 
--- Check for duplicate entries (same patient, same timestamp)
+-- Check for duplicate entries (same participant, same timestamp)
 SELECT patient_id, client_timestamp, COUNT(*) as entry_count
 FROM record_audit
 WHERE operation = 'USER_CREATE_ENTRY'
@@ -334,7 +334,7 @@ HAVING COUNT(*) > 1;
 
 **Ongoing Monitoring**:
 - [ ] Weekly: Check for incomplete audit trail entries
-- [ ] Monthly: Review data completeness across patients
+- [ ] Monthly: Review data completeness across participants
 - [ ] Monthly: Verify offline sync queue is empty (all synced)
 - [ ] Quarterly: Data completeness audit by site
 - [ ] Annually: Full data capture verification
@@ -359,7 +359,7 @@ WHERE ra.operation = 'USER_CREATE_ENTRY'
   AND rs.patient_id IS NULL;
 -- Expected result: 0 (except for deleted entries)
 
--- Check for patients with suspiciously low entry counts
+-- Check for participants with suspiciously low entry counts
 SELECT
     patient_id,
     COUNT(*) as entry_count,
@@ -368,7 +368,7 @@ FROM record_audit
 WHERE operation = 'USER_CREATE_ENTRY'
 GROUP BY patient_id
 HAVING COUNT(*) < 5 AND MAX(server_timestamp) < now() - interval '30 days';
--- Expected: Review these patients for enrollment status
+-- Expected: Review these participants for enrollment status
 ```
 
 **Reference**: `database/schema.sql:record_audit` (NOT NULL constraints)
@@ -832,7 +832,7 @@ WHERE operation LIKE '%UPDATE%'
 
 ## Summary
 - Total Entries: [count]
-- Patients: [count]
+- Participants: [count]
 - Sites: [count]
 - Compliance Status: [Pass/Fail/Issues]
 

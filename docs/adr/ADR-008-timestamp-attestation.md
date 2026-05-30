@@ -8,7 +8,7 @@ Proposed
 
 ### Problem Statement
 
-Clinical trial diary applications collect patient-reported outcomes on personal devices. Regulatory frameworks (FDA 21 CFR Part 11, ICH E6 GCP) require that electronic records demonstrate:
+Clinical trial diary applications collect participant-reported outcomes on personal devices. Regulatory frameworks (FDA 21 CFR Part 11, ICH E6 GCP) require that electronic records demonstrate:
 
 1. **Temporal integrity** - Proof that data existed at a specific point in time
 2. **Tamper evidence** - Detection of any post-hoc modification

@@ -98,7 +98,7 @@ Today RLS policies are the authorization surface. CUR-1170 introduces a role-per
 - **D2.** Retain RLS as a coarse-grained backstop (e.g. patient_id isolation) while the matrix handles fine-grained permissions.
 - **D3.** Restructure RLS so it consumes the same matrix (matrix is the source of truth, RLS reads it via session variable).
 
-Frame: defense-in-depth is the FDA-friendly answer, but D2/D3 add complexity. CUR-1170 declares scope-aware permissions out of scope; D2 might cover patient-scoping during the transition.
+Frame: defense-in-depth is the FDA-friendly answer, but D2/D3 add complexity. CUR-1170 declares scope-aware permissions out of scope; D2 might cover participant-scoping during the transition.
 
 #### E. Audit-log consolidation strategy
 

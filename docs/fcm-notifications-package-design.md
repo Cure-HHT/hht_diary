@@ -116,9 +116,9 @@ The package never imports `package:postgres` — only the apps do. This keeps th
 
 These are `shelf.Handler` factories. Each takes the repos + a `PatientResolver` callback (the app's logic for "JWT → patient_id") and returns a handler ready to mount on a router.
 
-- **`envelope_fetch_handler.dart`** — `GET /notifications/{id}`. Verifies JWT, resolves patient, looks up the envelope, **rejects if `envelope.patient_id != caller's patient`** (defense in depth — RLS already covers it, but the handler doesn't trust RLS alone), idempotently sets `delivered_at`, returns the envelope as JSON.
+- **`envelope_fetch_handler.dart`** — `GET /notifications/{id}`. Verifies JWT, resolves participant, looks up the envelope, **rejects if `envelope.patient_id != caller's patient_id`** (defense in depth — RLS already covers it, but the handler doesn't trust RLS alone), idempotently sets `delivered_at`, returns the envelope as JSON.
 - **`envelope_since_handler.dart`** — `GET /notifications?since=<ts>`. Same auth pattern; bulk version. Sets `delivered_at` on every returned envelope. **This is the polling endpoint** — it's the primary catch-up for missed pushes, so it has to be correct.
-- **`token_registration_handler.dart`** — `POST /fcm-token`. Hoists today's `registerFcmTokenHandler` from diary_functions, plus the **shared-device fix** (Issue #1): deactivate any other patient's row holding the same token before inserting.
+- **`token_registration_handler.dart`** — `POST /fcm-token`. Hoists today's `registerFcmTokenHandler` from diary_functions, plus the **shared-device fix** (Issue #1): deactivate any other participant's row holding the same token before inserting.
 - **`token_delete_handler.dart`** — `DELETE /fcm-token`. Brand new endpoint (Issue #8). Mobile calls it on logout / unlink; server marks the row `is_active=false`.
 
 ### `receiver/` (mobile)
@@ -144,7 +144,7 @@ final fcmSender = FcmSender(
   tokenRepo: tokenRepo,                                           // for UNREGISTERED self-heal
 );
 
-// In every handler that mutates patient/questionnaire state:
+// In every handler that mutates participant/questionnaire state:
 final envelope = Envelope.questionnaireSent(
   patientId: pid,
   questionnaireInstanceId: id,

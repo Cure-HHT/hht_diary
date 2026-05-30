@@ -65,9 +65,9 @@ sendQuestionnaireHandler  (questionnaire.dart:~570)
 
 Important quirks of this path:
 
-- **Failure is swallowed.** If `LIMIT 1` finds nothing, or FCM returns 4xx, the handler logs a warning but still returns 200. The admin sees success; the patient never gets pinged.
-- **Tokens don't get cleaned up.** A `404 UNREGISTERED` from FCM means the device is gone, but `is_active` stays `true`. Every future send to that patient will log the same failure forever.
-- **The `LIMIT 1` is the silent killer for dual-device patients.** iPhone + iPad, or phone + reinstall = some of those devices never get notified.
+- **Failure is swallowed.** If `LIMIT 1` finds nothing, or FCM returns 4xx, the handler logs a warning but still returns 200. The admin sees success; the participant never gets pinged.
+- **Tokens don't get cleaned up.** A `404 UNREGISTERED` from FCM means the device is gone, but `is_active` stays `true`. Every future send to that participant will log the same failure forever.
+- **The `LIMIT 1` is the silent killer for dual-device participants.** iPhone + iPad, or phone + reinstall = some of those devices never get notified.
 
 ### Path 3 — Cross-project auth (the part most people don't see)
 
@@ -114,7 +114,7 @@ Three layers, in increasing scope. Pick the layer that matches what you actually
 
 Stays inline, stays simple, fixes the silent-failure traps:
 
-1. **Send to all active devices, not `LIMIT 1`.** Loop over every `is_active=true` row for the patient. Per-token success/failure, all logged.
+1. **Send to all active devices, not `LIMIT 1`.** Loop over every `is_active=true` row for the participant. Per-token success/failure, all logged.
 2. **Mark UNREGISTERED tokens inactive.** When FCM responds 404 with `UNREGISTERED`, set `is_active=false` for that exact token. Self-healing — bad tokens stop being retried forever.
 3. **Extract one helper.** `getActiveTokensForPatient(patientId)` replaces the four copy-pasted SQL blocks (`questionnaire.dart` ×3, `patient_linking.dart` ×1).
 4. **Add `fcmSender` to Terraform.** `google_project_iam_member` on `cure-hht-admin`, granted to each sponsor's run-sa. Removes the manual onboarding step that's quietly broken at least one sponsor before.

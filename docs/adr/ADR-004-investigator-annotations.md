@@ -14,22 +14,22 @@ Accepted
 
 Clinical trial workflows involve two distinct types of data modifications:
 
-### 1. Patient-Generated Data
+### 1. Participant-Generated Data
 - Study participants enter diary data (symptoms, medications, activities)
-- Patient owns and controls their data
-- May be edited by patient within allowed timeframes
+- Participant owns and controls their data
+- May be edited by participant within allowed timeframes
 - Source data for clinical analysis
 
 ### 2. Investigator Oversight
-- Clinical investigators review patient diary entries
+- Clinical investigators review participant diary entries
 - May add notes, queries, or corrections
-- Cannot directly modify original patient data
+- Cannot directly modify original participant data
 - Required for data quality and compliance
 
 ### Regulatory Requirements
 
 **21 CFR Part 11 & Good Clinical Practice (GCP)**:
-- Original patient data must be preserved
+- Original participant data must be preserved
 - Any investigator changes must be documented separately
 - Clear attribution (who made what change)
 - Audit trail for all modifications
@@ -39,14 +39,14 @@ Clinical trial workflows involve two distinct types of data modifications:
 
 How should we handle investigator modifications to diary data?
 
-**Option A**: Modify patient data directly
+**Option A**: Modify participant data directly
 ```sql
--- Bad: Overwrites original patient data
+-- Bad: Overwrites original participant data
 UPDATE diary_entries
 SET data = jsonb_set(data, '{symptoms}', '...')
 WHERE id = 'xxx';
 ```
-- ❌ Loses original patient input
+- ❌ Loses original participant input
 - ❌ Unclear if data is original or modified
 - ❌ Violates FDA requirements
 
@@ -57,7 +57,7 @@ INSERT INTO record_audit (operation, data, ...)
 VALUES ('INVESTIGATOR_UPDATE', modified_data, ...);
 ```
 - ✅ Preserves history
-- ⚠️ Mixes patient and investigator operations
+- ⚠️ Mixes participant and investigator operations
 - ⚠️ Hard to distinguish notes vs. data changes
 
 ---
@@ -77,9 +77,9 @@ CREATE TABLE investigator_annotations (
     annotation_text TEXT NOT NULL,
     annotation_type TEXT CHECK (annotation_type IN (
         'NOTE',          -- Investigator comment
-        'QUERY',         -- Question for patient
+        'QUERY',         -- Question for participant
         'CORRECTION',    -- Data quality issue noted
-        'CLARIFICATION' -- Explanation of patient entry
+        'CLARIFICATION' -- Explanation of participant entry
     )),
     requires_response BOOLEAN DEFAULT false,
     resolved BOOLEAN DEFAULT false,
@@ -93,7 +93,7 @@ CREATE TABLE investigator_annotations (
 
 ### Workflow
 
-**1. Patient Creates Entry**:
+**1. Participant Creates Entry**:
 ```sql
 INSERT INTO record_audit (
     event_uuid, patient_id, operation, data, ...
@@ -112,9 +112,9 @@ INSERT INTO investigator_annotations (
 );
 ```
 
-**3. Patient Responds**:
+**3. Participant Responds**:
 ```sql
--- Patient creates new audit entry with clarification
+-- Participant creates new audit entry with clarification
 INSERT INTO record_audit (
     event_uuid, patient_id, operation, data, parent_audit_id, change_reason, ...
 ) VALUES (
@@ -137,12 +137,12 @@ WHERE annotation_id = 123;
 ### Positive Consequences
 
 ✅ **Preserves Original Data**
-- Patient data never modified by investigators
+- Participant data never modified by investigators
 - Original entries always accessible
-- Audit trail shows exact patient input
+- Audit trail shows exact participant input
 
 ✅ **Clear Attribution**
-- Patient data in `record_audit`
+- Participant data in `record_audit`
 - Investigator notes in `investigator_annotations`
 - No ambiguity about data source
 
@@ -157,7 +157,7 @@ in both human-readable and electronic form"
 - Both preserved and auditable
 
 ✅ **Workflow Support**
-- Queries require patient response
+- Queries require participant response
 - Annotations can be nested (replies)
 - Resolution tracking built-in
 - Different annotation types for different workflows
@@ -181,7 +181,7 @@ AND resolved = false;
 ```
 
 ✅ **Access Control**
-- Patients see annotations on their entries
+- Participants see annotations on their entries
 - Investigators see annotations at their sites
 - Separate RLS policies for annotations table
 
@@ -216,7 +216,7 @@ GROUP BY rs.event_uuid, rs.current_data;
 
 ⚠️ **No Direct Data Correction**
 - Investigators cannot fix obvious typos directly
-- Must query patient or admin must intervene
+- Must query participant or admin must intervene
 - **Mitigation**: Admin role can create correction events
 
 ---
@@ -237,7 +237,7 @@ INSERT INTO record_audit (
 ```
 
 **Why Rejected**:
-- ❌ Mixes patient data and investigator notes in same table
+- ❌ Mixes participant data and investigator notes in same table
 - ❌ Harder to query just notes
 - ❌ Data and notes have different schemas
 - ❌ Complicates state reconstruction
@@ -265,7 +265,7 @@ INSERT INTO record_audit (
 ```
 
 **Why Rejected**:
-- ❌ Modifies patient data structure
+- ❌ Modifies participant data structure
 - ❌ Hard to query annotations across entries
 - ❌ No table-level constraints
 - ❌ Harder to enforce RLS
@@ -316,7 +316,7 @@ INSERT INTO record_audit (
 ### When to Use Annotations
 
 ✅ **Use `investigator_annotations` for**:
-- Questions for the patient
+- Questions for the participant
 - Clarification requests
 - Clinical observations about entry
 - Notes for other investigators
@@ -326,7 +326,7 @@ INSERT INTO record_audit (
 
 ✅ **Use `record_audit` for**:
 - Data corrections (by admin with justification)
-- Transcription (investigator enters data on patient's behalf)
+- Transcription (investigator enters data on participant's behalf)
 - Administrative actions (merging, splitting entries)
 
 ### Annotation Types
@@ -334,10 +334,10 @@ INSERT INTO record_audit (
 **NOTE**: General comment
 ```sql
 INSERT INTO investigator_annotations (...)
-VALUES (..., 'NOTE', 'Patient reports this is typical for them', false);
+VALUES (..., 'NOTE', 'Participant reports this is typical for them', false);
 ```
 
-**QUERY**: Requires patient response
+**QUERY**: Requires participant response
 ```sql
 INSERT INTO investigator_annotations (...)
 VALUES (..., 'QUERY', 'Please specify time of day', true);
@@ -352,14 +352,14 @@ VALUES (..., 'CORRECTION', 'Severity seems inconsistent with description', false
 **CLARIFICATION**: Explains context
 ```sql
 INSERT INTO investigator_annotations (...)
-VALUES (..., 'CLARIFICATION', 'Patient confirmed this occurred during exercise', false);
+VALUES (..., 'CLARIFICATION', 'Participant confirmed this occurred during exercise', false);
 ```
 
 ---
 
 ## UI/UX Implications
 
-**Display to Patients**:
+**Display to Participants**:
 - Show annotations on their diary entries
 - Highlight queries requiring response
 - Indicate when annotation resolved

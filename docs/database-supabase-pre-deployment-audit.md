@@ -44,7 +44,7 @@ This audit reviews the Supabase database design for the Clinical Trial Diary sys
 - Role-based access control (RBAC) fully implemented
 - 6 distinct roles with appropriate separation: USER, INVESTIGATOR, ANALYST, SPONSOR, AUDITOR, ADMIN
 - Site-scoped access enforced for multi-site clinical trials
-- Patient data isolation enforced at database level
+- Participant data isolation enforced at database level
 
 **Strengths**:
 1. **Least privilege enforcement**: Each role has minimum necessary permissions
@@ -142,7 +142,7 @@ This audit reviews the Supabase database design for the Clinical Trial Diary sys
 
 **Findings**:
 - Comprehensive indexes for all query patterns (`database/indexes.sql`)
-- Composite indexes for common joins (patient+site, site+timestamp)
+- Composite indexes for common joins (participant+site, site+timestamp)
 - Partial indexes for filtered queries (active records, unresolved conflicts)
 - GIN indexes for JSONB columns (diary data, metadata)
 - Materialized views for reporting (`daily_site_summary`, `patient_activity_summary`)
@@ -171,12 +171,12 @@ This audit reviews the Supabase database design for the Clinical Trial Diary sys
 
 **Recommendations**:
 1. **CRITICAL**: Run EXPLAIN ANALYZE on all common queries before deployment
-   - Site-level queries (investigators viewing assigned patients)
-   - Patient-level queries (users viewing own diary)
+   - Site-level queries (investigators viewing assigned participants)
+   - Participant-level queries (users viewing own diary)
    - Time-range queries (auditors exporting data)
    - Reporting queries (sponsor viewing all data)
 2. **High Priority**: Establish performance baselines:
-   - Target: <100ms for patient queries
+   - Target: <100ms for participant queries
    - Target: <500ms for site-level queries
    - Target: <2s for sponsor-level reporting
 3. **High Priority**: Document slow query log monitoring procedures
@@ -212,9 +212,9 @@ This audit reviews the Supabase database design for the Clinical Trial Diary sys
 
 **Recommendations**:
 1. **CRITICAL**: Document database sizing for different sponsor scales:
-   - Small sponsor (1-5 sites, 50-200 patients): Free/Pro tier
-   - Medium sponsor (6-20 sites, 200-1000 patients): Pro tier
-   - Large sponsor (20+ sites, 1000+ patients): Enterprise tier
+   - Small sponsor (1-5 sites, 50-200 participants): Free/Pro tier
+   - Medium sponsor (6-20 sites, 200-1000 participants): Pro tier
+   - Large sponsor (20+ sites, 1000+ participants): Enterprise tier
 2. **High Priority**: Configure connection pooling (PgBouncer) for mobile app connections
 3. **High Priority**: Implement read replicas for reporting queries (separate from transactional load)
 4. **Medium Priority**: Document vertical scaling procedures (Supabase plan upgrades)
@@ -259,7 +259,7 @@ This audit reviews the Supabase database design for the Clinical Trial Diary sys
 
 **Strengths**:
 1. "If it was not documented, it was not done" - Event sourcing captures everything
-2. Investigator annotations maintain separation (don't modify patient data)
+2. Investigator annotations maintain separation (don't modify participant data)
 3. Complete change history supports source data verification
 
 **Recommendations**:
@@ -272,9 +272,9 @@ This audit reviews the Supabase database design for the Clinical Trial Diary sys
 
 **Findings**:
 - No PHI stored: Data is de-identified (`database/schema.sql:79-86`)
-- Patient identity managed separately via Supabase Auth
+- Participant identity managed separately via Supabase Auth
 - No re-identification keys stored in database
-- Contact info limited to business contacts (sites), not patients
+- Contact info limited to business contacts (sites), not participants
 
 **Strengths**:
 1. Privacy-by-design: Clinical data separated from identity
@@ -317,15 +317,15 @@ This audit reviews the Supabase database design for the Clinical Trial Diary sys
 - Sites table per sponsor (`database/schema.sql:sites`)
 - RLS policies enforce site-scoped access
 - Investigator and analyst site assignments tracked
-- Patient enrollment per site tracked
+- Participant enrollment per site tracked
 
 **Strengths**:
 1. **Flexible architecture**: Supports 1-1000+ sites per sponsor
 2. **Site isolation**: Investigators only see assigned sites
-3. **Multi-site enrollment**: Patients can move between sites
+3. **Multi-site enrollment**: Participants can move between sites
 
 **Recommendations**:
-1. **Medium Priority**: Add site transfer audit trail (patient moving between sites)
+1. **Medium Priority**: Add site transfer audit trail (participant moving between sites)
 2. **Low Priority**: Document maximum sites per sponsor (performance testing)
 
 ### 4.3 Offline-First / Sync Architecture
@@ -394,7 +394,7 @@ This audit reviews the Supabase database design for the Clinical Trial Diary sys
    - Performance metrics (query latency, cache hit ratio)
 4. **High Priority**: Implement application-level logging (APM)
 5. **Medium Priority**: Add custom metrics for clinical trial KPIs:
-   - Patient enrollment rate
+   - Participant enrollment rate
    - Data entry completeness
    - Investigator annotation rate
 

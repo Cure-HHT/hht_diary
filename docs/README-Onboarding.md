@@ -6,7 +6,7 @@ Welcome to the Diary Platform team. This document will orient you to our system 
 
 At its core, this system does one thing: **collect diary entries from clinical trial participants**.
 
-Patients open a mobile app, record information about their symptoms (primarily epistaxis/nosebleeds for HHT patients), and that data flows to researchers. Simple, right?
+Participants open a mobile app, record information about their symptoms (primarily epistaxis/nosebleeds for HHT participants), and that data flows to researchers. Simple, right?
 
 ## The Complex Reality
 
@@ -25,7 +25,7 @@ The regulation requires:
 ### The Audit Reality
 
 During a regulatory audit, an FDA inspector may ask questions like:
-- "Show me every change made to Patient X's record on Date Y"
+- "Show me every change made to Participant X's record on Date Y"
 - "Prove this data hasn't been tampered with"
 - "Who had access to modify this record and when?"
 
@@ -41,7 +41,7 @@ During a regulatory audit, an FDA inspector may ask questions like:
 │                                                                  │
 │  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐    │
 │  │  Mobile App  │     │  Web Portal  │     │   EDC/CRF    │    │
-│  │  (Patient)   │     │ (Investigator│     │  (External)  │    │
+│  │(Participant) │     │ (Investigator│     │  (External)  │    │
 │  │              │     │   Sponsor)   │     │              │    │
 │  └──────┬───────┘     └──────┬───────┘     └──────▲───────┘    │
 │         │                    │                    │             │
@@ -61,7 +61,7 @@ During a regulatory audit, an FDA inspector may ask questions like:
 
 | Component | Purpose | Where to Learn More |
 | --------- | ------- | ------------------- |
-| Mobile App (Flutter) | Patient diary entry | `apps/daily-diary/clinical_diary/`, `spec/prd-diary-app.md` |
+| Mobile App (Flutter) | Participant diary entry | `apps/daily-diary/clinical_diary/`, `spec/prd-diary-app.md` |
 | Web Portal (Flutter) | Investigator/sponsor/admin interface | `apps/portal/`, `spec/prd-portal.md` |
 | Database (PostgreSQL) | Event store, audit trails, RLS | `database/`, `spec/dev-database.md` |
 | EDC Integration | Export to sponsor's Electronic Data Capture | `spec/dev-CDISC.md` |

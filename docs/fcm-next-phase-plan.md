@@ -202,7 +202,7 @@ class EnvelopeFetcher {
 |-------|--------|-------|
 | Phase 0 — IAM grant on cure-hht-admin | ✅ Done | `roles/cloudmessaging.admin` granted to sponsor compute SA |
 | S1 — Migration 010 (admin_action_log constraint) | ✅ Done | Applied locally + committed |
-| S2 — Server senders for all status transitions | ✅ Done | 5 patient handlers + finalize wired; fcm_message_id captured in audit; cross-patient token uniqueness in diary_functions |
+| S2 — Server senders for all status transitions | ✅ Done | 5 participant handlers + finalize wired; fcm_message_id captured in audit; cross-participant token uniqueness in diary_functions |
 | S3 — Mobile dispatcher + BG handler | ⏳ Pending | This document |
 | Phase 1A — Extract `comms` package (FCM only) | ⏳ Pending | Pure refactor, no behavior change |
 | Phase 1B — Envelope pattern + polling | ⏳ Pending | Builds on Phase 1A |
@@ -377,7 +377,7 @@ Handler envelopeFetchHandler({
 **Test plan:**
 - `envelope_test.dart` — round-trip toJson/fromJson, payload immutability
 - `outbox_writer_test.dart` — uses fake repo + fake channel, verifies pending → sent / pending → failed sequences
-- `envelope_fetch_handler_test.dart` — fake repo + fake resolver, verifies cross-patient access is rejected
+- `envelope_fetch_handler_test.dart` — fake repo + fake resolver, verifies cross-participant access is rejected
 
 #### 1A.4 — Wire `portal_functions` to depend on `comms`
 
@@ -389,7 +389,7 @@ Handler envelopeFetchHandler({
 
 ### Phase 1A behavior contract
 
-After Phase 1A, the runtime behavior of S2 (every patient/questionnaire status change writes both a status-change audit row AND an `FCM_NOTIFICATION` audit row, sends FCM, captures `fcm_message_id`) is **unchanged**. This is a pure refactor — the domain protocol files are present but not yet wired into the request flow. They light up in Phase 1B when:
+After Phase 1A, the runtime behavior of S2 (every participant/questionnaire status change writes both a status-change audit row AND an `FCM_NOTIFICATION` audit row, sends FCM, captures `fcm_message_id`) is **unchanged**. This is a pure refactor — the domain protocol files are present but not yet wired into the request flow. They light up in Phase 1B when:
 - The Postgres `NotificationRepository` impl lands
 - The `notifications` table migration applies
 - Handlers are mounted on `diary_server` / `portal_server`
@@ -449,14 +449,14 @@ CREATE INDEX notifications_patient_pending_idx
   WHERE delivered_at IS NULL;
 ```
 
-**Why this index:** mobile polling query is "give me everything for this patient since X that I haven't ack'd". The partial index on `delivered_at IS NULL` keeps it tight.
+**Why this index:** mobile polling query is "give me everything for this participant since X that I haven't ack'd". The partial index on `delivered_at IS NULL` keeps it tight.
 
 **Migration:** `database/migrations/011_create_notifications_table.sql` + rollback. NOT VALID + VALIDATE pattern not needed (CREATE TABLE doesn't lock anything pre-existing).
 
 ### API contract (P1.4)
 
 #### `GET /api/v1/notifications?since=<iso8601>&limit=50`
-Authorization: Bearer <patient JWT>
+Authorization: Bearer <participant JWT>
 
 ```json
 Response 200:
@@ -477,7 +477,7 @@ Response 200:
 ```
 
 #### `POST /api/v1/notifications/<id>/ack`
-Authorization: Bearer <patient JWT>
+Authorization: Bearer <participant JWT>
 
 ```json
 Response 200: { "delivered_at": "..." }
@@ -585,9 +585,9 @@ router.get('/api/v1/notifications',
   envelopeSinceHandler(repo: notificationRepo, patientResolver: patientResolver));
 ```
 
-**Auth:** patient JWT (same as the existing diary_server token registration). RLS policy: patient can only see/ack their own notifications.
+**Auth:** participant JWT (same as the existing diary_server token registration). RLS policy: participant can only see/ack their own notifications.
 
-**RLS test:** patient A's token cannot fetch patient B's notifications.
+**RLS test:** participant A's token cannot fetch participant B's notifications.
 
 #### P1B.5 — Mobile polling integration
 
@@ -625,9 +625,9 @@ router.get('/api/v1/notifications',
 | Mobile fetches notification but crashes before ack | `delivered_at IS NULL` → next poll re-fetches. Idempotent UI consumes by `notification_id`. |
 | Cutover double-fires (old path + envelope) | Per-handler feature flag. Default OFF. Validate per-handler before flipping. |
 | `delivered_at` race: server INSERT not yet committed when mobile polls | Outbox INSERT is in same transaction as the action. Mobile won't see uncommitted rows. |
-| Patient with multiple devices: which device's `delivered_at` wins? | First device to ack wins. Other devices fetch but skip ack if `delivered_at` already set. |
+| Participant with multiple devices: which device's `delivered_at` wins? | First device to ack wins. Other devices fetch but skip ack if `delivered_at` already set. |
 | Schema migration rolling forward but P1.2 not deployed | Safe — empty table sits unused. |
-| RLS misconfigured → patient sees other patients' notifications | RLS test in CI: spin up two patient JWTs, attempt cross-patient read, expect 0 rows. |
+| RLS misconfigured → participant sees other participants' notifications | RLS test in CI: spin up two participant JWTs, attempt cross-participant read, expect 0 rows. |
 
 ### Estimate
 

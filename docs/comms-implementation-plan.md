@@ -57,7 +57,7 @@ This plan started from the FCM redesign work in `docs/fcm-notification-redesign-
 |------|--------|-------|
 | Phase 0 — IAM grant on `cure-hht-admin` (DONE) | redesign + implementation plans | Cross-project grant of `cloudmessaging.admin` to sponsor compute SA |
 | S1 — Migration 010 (DONE) | implementation plan | Add `'FCM_NOTIFICATION'` to admin_action_log constraint |
-| S2 — Server senders (DONE) | implementation plan | Wire FCM into all 5 patient-status handlers + finalize; capture `fcm_message_id`; cross-patient token uniqueness; 10s timeout |
+| S2 — Server senders (DONE) | implementation plan | Wire FCM into all 5 participant-status handlers + finalize; capture `fcm_message_id`; cross-participant token uniqueness; 10s timeout |
 | S3 — Mobile dispatcher + BG handler | implementation plan | Dispatcher cases for new types, real BG handler, APNS user-visible vs data-only split |
 | Phase 1A — Bootstrap `comms` package | redesign plan + CEO directive | Package skeleton, FCM channel, notifications domain protocol, wire portal_functions |
 | Phase 1B — Envelope pattern + polling | redesign plan | Schema, Postgres repo, outbox-routed handlers, mount API on diary_server, mobile polling, cleanup |
@@ -702,7 +702,7 @@ CREATE INDEX notifications_patient_pending_idx
   ON notifications (patient_id, created_at DESC)
   WHERE delivered_at IS NULL;
 
--- RLS policy for patient access
+-- RLS policy for participant access
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 CREATE POLICY notifications_patient_select ON notifications
   FOR SELECT USING (patient_id = current_setting('app.current_patient_id', true));
@@ -714,7 +714,7 @@ CREATE POLICY notifications_patient_update ON notifications
 
 #### `GET /api/v1/notifications?since=<iso8601>&limit=50`
 
-Authorization: Bearer <patient JWT>
+Authorization: Bearer <participant JWT>
 
 ```json
 Response 200:
@@ -759,7 +759,7 @@ If FDA later asks for "user actually saw this" timestamps, add a separate `viewe
 - Migration applies + rolls back cleanly on local DB.
 - `PgNotificationRepository` integration-tested against the docker postgres.
 - EXPLAIN of polling query shows `notifications_patient_pending_idx` used.
-- RLS test: spin up two patient JWTs; patient A cannot read/update patient B's rows.
+- RLS test: spin up two participant JWTs; participant A cannot read/update participant B's rows.
 
 **Rollback:** drop notifications table, drop type. Safe — table is new.
 
@@ -821,7 +821,7 @@ router.get('/api/v1/notifications',
   envelopeSinceHandler(repo: notificationRepo, patientResolver: patientResolver));
 ```
 
-**RLS test:** patient A's token cannot fetch patient B's notifications.
+**RLS test:** participant A's token cannot fetch participant B's notifications.
 
 #### P1B.5 — Mobile polling integration
 
@@ -843,7 +843,7 @@ router.get('/api/v1/notifications',
 1. Flutter init
 2. Hive open + read auth state
 3. If authenticated:
-   a. Fetch patient context
+   a. Fetch participant context
    b. POLL /api/v1/notifications?since=<lastSeen>
    c. Apply incoming envelopes (mutate local state — task list, disconnection notice, badge)
 4. Render Main Screen — always
@@ -862,7 +862,7 @@ If launched from a notification tap: `FirebaseMessaging.getInitialMessage()` is 
 
 **Lifecycle reset (REQ-d00195-K):** clear both `notification_lastSeen` and `notification_recent_ids` on:
 - `AuthService.signOut()` — explicit logout
-- `PatientLinkingService.unlink()` — patient unlinked from device (covered by `disconnect` and `mark_not_participating` actions)
+- `PatientLinkingService.unlink()` — participant unlinked from device (covered by `disconnect` and `mark_not_participating` actions)
 
 **Dispatch on arrival:** map `Envelope.type` → existing handler:
 - `questionnaireUpdate` → `task_service.handleEnvelope(envelope)`
@@ -874,7 +874,7 @@ If launched from a notification tap: `FirebaseMessaging.getInitialMessage()` is 
 **Test plan:**
 - Integration test on emulator — start app, no notifications visible. Server-side: insert a row directly. Mobile: verify it appears within 60 s without any FCM.
 - Dedupe test: deliver the same `notification_id` via both FCM and polling; verify the apply-handler runs exactly once.
-- Logout test: sign out, sign back in as a different patient; verify polling does not return any of the previous patient's envelopes.
+- Logout test: sign out, sign back in as a different participant; verify polling does not return any of the previous participant's envelopes.
 - Cold-start test: tap a push from terminated state; verify app lands on Main Screen, not the questionnaire / disconnection screen.
 
 #### P1B.6 — Cleanup + retire old direct-FCM path
@@ -893,9 +893,9 @@ After 2 weeks of envelope-on in production with no incidents:
 | Mobile fetches notification but crashes before ack | `delivered_at IS NULL` → next poll re-fetches. Idempotent UI consumes by `notification_id`. |
 | Cutover double-fires (old path + envelope) | Per-handler feature flag. Default OFF. Validate per-handler before flipping. |
 | `delivered_at` race: server INSERT not yet committed when mobile polls | Outbox INSERT in same transaction as the action. Mobile won't see uncommitted rows. |
-| Patient with multiple devices: which device wins on `delivered_at`? | First device to fetch wins. Other devices fetch but `markDeliveredIfNull` is a no-op. |
+| Participant with multiple devices: which device wins on `delivered_at`? | First device to fetch wins. Other devices fetch but `markDeliveredIfNull` is a no-op. |
 | Schema migration deployed but P1B.2 code not deployed | Safe — empty table sits unused. |
-| RLS misconfigured → patient sees other patients' notifications | RLS test in CI: spin up two patient JWTs, attempt cross-patient read, expect 0 rows. |
+| RLS misconfigured → participant sees other participants' notifications | RLS test in CI: spin up two participant JWTs, attempt cross-participant read, expect 0 rows. |
 
 ---
 
@@ -913,7 +913,7 @@ Implement the one server-side scheduled job currently in spec scope: the Yesterd
 
 **Cron cadence:** every 5 minutes (a participant whose local 09:00 falls in any 5-minute bucket gets evaluated when that bucket's job fires).
 
-**Eligibility (REQ-d00200 A–D, REQ-d00201):** for each active patient with a registered `device_timezone`:
+**Eligibility (REQ-d00200 A–D, REQ-d00201):** for each active participant with a registered `device_timezone`:
 1. Compute `now()` in that timezone.
 2. If the participant's local clock is currently in the configured `Yesterday Reminder Time` window (e.g. 09:00–09:04 for cadence 5 min) — proceed; otherwise skip.
 3. If a `daily_status` row exists for the participant's previous local calendar day — skip (REQ-d00201-A).
@@ -954,7 +954,7 @@ The cron infrastructure (`cron_routes.dart`, `cron_auth.dart`, `eligibility_help
 |------|------------|
 | Cron job duplicate-fires (Cloud Scheduler retry on transient failure) | Idempotency-via-row-presence: second invocation finds the existing notifications row and skips |
 | Server clock drift | Time comparisons use `now()` from Postgres, not the app server; participant timezone resolved from `device_timezone` column |
-| Mobile fails to send timezone → defaults to UTC | Reminder fires at UTC 09:00 instead of local 09:00. Acceptable degraded behaviour; logs warn once per patient/day |
+| Mobile fails to send timezone → defaults to UTC | Reminder fires at UTC 09:00 instead of local 09:00. Acceptable degraded behaviour; logs warn once per participant/day |
 | `Yesterday Reminder Time` config missing | Eligibility evaluator short-circuits on missing config; emits a WARN log once at startup |
 | Cron auth bypass | OIDC token verification + Cloud Scheduler SA allowlist; bare HTTP request returns 401 |
 
@@ -1013,7 +1013,7 @@ Single PR (P1C.1 above). Roll forward: deploy with cron trigger paused; flip on 
 | Unit (app) | `PgNotificationRepository`, route mounting | `dart test` against docker postgres |
 | Integration | Console-mode end-to-end: trigger handler → audit rows + notifications row | local server + docker postgres |
 | Integration (qa) | Real FCM end-to-end: trigger handler → real device receives push → fetches envelope | callisto4-qa + real Android/iOS device |
-| RLS | Cross-patient access attempts must return 0 rows / 403 | `dart test` integration suite |
+| RLS | Cross-participant access attempts must return 0 rows / 403 | `dart test` integration suite |
 | Mobile dispatcher | Each `(type, action)` pair routes to correct handler | flutter test |
 | Mobile polling | Server-inserted row appears in app within 60 s without FCM | emulator integration |
 
@@ -1076,8 +1076,8 @@ docker exec -i sponsor-portal-postgres psql -U postgres -d sponsor_portal -c "
 | `PayloadGuard` false positives | 1A | Tune regex; allow opt-out only in tests |
 | Outbox row commits but dispatch crashes | 1B | Phase 2 reconciler |
 | Cutover double-fires | 1B | Per-handler feature flags |
-| RLS misconfigured | 1B | Cross-patient access CI test |
-| Patient with multiple devices | 1B | First-fetch wins; idempotent ack |
+| RLS misconfigured | 1B | Cross-participant access CI test |
+| Participant with multiple devices | 1B | First-fetch wins; idempotent ack |
 | Email/Slack auth model differs from FCM | 3 | Sibling writers, not unified |
 
 ---
@@ -1125,8 +1125,8 @@ Plus 2 weeks of soak time before P1B.6.
 13. **Does `comms` need `otel_common` dep, or should observability be injected by the consumer?** Initial proposal: depend directly (matches what `notification_service.dart` does today). Revisit if `comms` is consumed outside the GCP/OTel-instrumented services.
 14. **`FcmChannel` lifecycle.** Singleton-per-app or instance-per-call? Today's `NotificationService` is a singleton. Recommendation: instance-per-app (one per server boot); the package itself doesn't enforce singleton — consumer manages lifecycle.
 15. **`PayloadGuard` regex tuning** (Gap 5 / REQ-d00194-E). The spec mandates `\d{3}-\d{3}-\d{3}` for SubjectKey, but real-world IDs include a letter (e.g. `999-001A-125`). Plan ships both the strict spec regex AND an extended regex that covers the real format. Open: should `common_name` patterns be configured per-sponsor (proposed), or is a platform-default name list sufficient?
-16. **Dedupe set size and eviction** (Gap 6 / REQ-d00195-J). Plan uses a Hive `Set<String>` capped at 500 entries with FIFO eviction. Alternative: time-based eviction (drop ids older than 7 days). 500 entries comfortably covers a high-volume month for one patient. Revisit if patients accumulate >500 notifications between launches.
-17. **Bootstrap window for first-launch `lastSeen`** (Gap 3). Plan uses 30 days. Could go 90 days (more historical recovery) or epoch (full backfill). 30 is a reasonable clinical-trial default; revisit if patients report missed historical notifications.
+16. **Dedupe set size and eviction** (Gap 6 / REQ-d00195-J). Plan uses a Hive `Set<String>` capped at 500 entries with FIFO eviction. Alternative: time-based eviction (drop ids older than 7 days). 500 entries comfortably covers a high-volume month for one participant. Revisit if participants accumulate >500 notifications between launches.
+17. **Bootstrap window for first-launch `lastSeen`** (Gap 3). Plan uses 30 days. Could go 90 days (more historical recovery) or epoch (full backfill). 30 is a reasonable clinical-trial default; revisit if participants report missed historical notifications.
 18. **Cron mechanism for Phase 1C.** Plan proposes Cloud Scheduler → HTTPS → portal_server cron route group, OIDC-authenticated. Alternative: an in-process scheduler in portal_server (simpler, no GCP dependency for local dev) but loses durability across deploys. Recommendation stays with Cloud Scheduler.
 19. **Suppression rules in P1B.3** (REQ-d00199-B, C). Plan adds two pre-flight checks (already-submitted, called-back) inside the same transaction as the outbox insert. Open: define the exact "called-back" predicate against the current questionnaire schema before P1B.3 lands.
 20. **Deferred scope in dev-notifications-v2.md.** The spec has been narrowed since the previous gap analysis: Lock Warning, Epistaxis Reminder, Historical Gap Reminder, Task List domain, Disconnection Notification, Participation Status Badge, and most sponsor config slots have been removed. If they return, Phase 1C's cron infrastructure is reusable for the schedulers; the mobile UI work would need its own planning pass.
@@ -1137,7 +1137,7 @@ Plus 2 weeks of soak time before P1B.6.
 
 | Term | Meaning |
 |------|---------|
-| **Envelope** | A row in the `notifications` table. Contains the title/body the patient sees and a JSONB payload for app-specific routing. |
+| **Envelope** | A row in the `notifications` table. Contains the title/body the participant sees and a JSONB payload for app-specific routing. |
 | **Channel** | A transport (FCM, email, Slack). Each channel implements `Channel<T>.dispatch(T) → DispatchResult`. |
 | **OutboxWriter** | The persist-then-dispatch helper. Writes a `pending` envelope, calls `Channel.dispatch`, marks `sent` or `failed`. |
 | **NotificationRepository** | The interface the package needs against the `notifications` table. Apps provide a Postgres impl. |

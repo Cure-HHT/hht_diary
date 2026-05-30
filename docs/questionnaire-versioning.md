@@ -81,7 +81,7 @@ Concrete example of a versioned questionnaire response event (see `dev-data-mode
 | `localization.translation_version` | string | Yes | Translation version for that language |
 | `responses[].question_id` | string | Yes | Stable question identifier |
 | `responses[].response_canonical` | any | Yes | Normalized value for analysis (REQ-p01052-F) |
-| `responses[].response_displayed` | any | No | Value as shown to patient (REQ-p01052-E) |
+| `responses[].response_displayed` | any | No | Value as shown to participant (REQ-p01052-E) |
 | `responses[].translation_method` | string | No | "auto", "manual", or "verified" (REQ-p01052-G) |
 
 The `renderer_class` + `renderer_version` pair together satisfy REQ-p01051-L (record the GUI version identifier).
@@ -178,7 +178,7 @@ All catalog entries, translations, and renderer classes are bundled with the app
 1. Read stored version identifiers from response
 2. Locate the catalog entry version that produced the response
 3. Locate the renderer class version that rendered it; render via that version (or a compatible later version) using the same content
-4. Use the recorded translation_version to display question text in the patient's original language
+4. Use the recorded translation_version to display question text in the participant's original language
 
 This enables the reconstruction guarantees in REQ-p01051-M/N.
 
