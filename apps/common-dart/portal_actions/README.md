@@ -13,41 +13,43 @@ Realizes `DIARY-PRD-action-inventory`. Cross-wire events the actions also emit c
 - `buildPortalActionRegistry()` — builds and returns an `ActionRegistry` with all 23 actions.
 - `FlowTokenMinter` / `SerialFlowTokenMinter` — audit-scannable serial tokens injected into
   state-changing actions; each token is unique per `execute` call and appears in emitted events.
+  Per-aggregate stream prefixes: participant actions use `PAT`, questionnaire actions use `QST`,
+  user-account actions use `USR` (e.g. `PAT000001`, `QST000001`, `USR000001`).
 
 ### Participant actions (7) — site-scoped, `lib/src/actions/participant/`
 
-| ACT id      | Class                          | Events emitted                      |
-|-------------|-------------------------------|-------------------------------------|
-| ACT-PAT-001 | `LinkParticipantAction`        | `participant_linked`                |
-| ACT-PAT-002 | `StartTrialAction`             | `participant_trial_started`         |
-| ACT-PAT-003 | `DisconnectParticipantAction`  | `participant_disconnected`          |
-| ACT-PAT-004 | `ReconnectParticipantAction`   | `participant_reconnected`           |
-| ACT-PAT-005 | `MarkNotParticipatingAction`   | `participant_marked_not_participating` |
-| ACT-PAT-006 | `ReactivateParticipantAction`  | `participant_reactivated`           |
-| ACT-PAT-007 | `ViewParticipantAction`        | _(none — read gate)_                |
+| ACT id      | Class                          | Events emitted                                                          |
+|-------------|-------------------------------|-------------------------------------------------------------------------|
+| ACT-PAT-001 | `LinkParticipantAction`        | `participant_linking_code_issued`                                       |
+| ACT-PAT-002 | `StartTrialAction`             | `participant_trial_started`                                             |
+| ACT-PAT-003 | `DisconnectParticipantAction`  | `participant_disconnected`                                              |
+| ACT-PAT-004 | `ReconnectParticipantAction`   | `participant_linking_code_issued`, `participant_reconnected`            |
+| ACT-PAT-005 | `MarkNotParticipatingAction`   | `participant_marked_not_participating`                                  |
+| ACT-PAT-006 | `ReactivateParticipantAction`  | `participant_reactivated`, `participant_linking_code_issued`            |
+| ACT-PAT-007 | `ViewParticipantAction`        | _(none — read gate)_                                                    |
 
 ### Questionnaire actions (4) — site-scoped, `lib/src/actions/questionnaire/`
 
-| ACT id      | Class                           | Events emitted                  |
-|-------------|--------------------------------|---------------------------------|
-| ACT-QST-001 | `SendQuestionnaireAction`       | `questionnaire_sent`            |
-| ACT-QST-002 | `CallBackQuestionnaireAction`   | `questionnaire_called_back`     |
-| ACT-QST-003 | `FinalizeQuestionnaireAction`   | `questionnaire_finalized`       |
-| ACT-QST-004 | `UnlockQuestionnaireAction`     | `questionnaire_unlocked`        |
+| ACT id      | Class                           | Events emitted              |
+|-------------|--------------------------------|-----------------------------|
+| ACT-QST-001 | `SendQuestionnaireAction`       | `questionnaire_assigned`    |
+| ACT-QST-002 | `CallBackQuestionnaireAction`   | `questionnaire_called_back` |
+| ACT-QST-003 | `FinalizeQuestionnaireAction`   | `questionnaire_finalized`   |
+| ACT-QST-004 | `UnlockQuestionnaireAction`     | `questionnaire_unlocked`    |
 
 ### User-account actions (9) — unscoped, `lib/src/actions/user_account/` (+ root)
 
-| ACT id      | Class                           | Events emitted                      |
-|-------------|--------------------------------|-------------------------------------|
-| ACT-USR-001 | `CreateUserAccountAction`       | `user_account_created`              |
-| ACT-USR-002 | `EditUserAccountAction`         | `user_account_edited`               |
-| ACT-USR-003 | `DeactivateUserAccountAction`   | `user_account_deactivated` + `sessions_revoked` |
-| ACT-USR-004 | `ReactivateUserAccountAction`   | `user_account_reactivated`          |
-| ACT-USR-005 | `UnlockUserAccountAction`       | `user_account_unlocked`             |
-| ACT-USR-006 | `ResendActivationEmailAction`   | `activation_email_resent`           |
-| ACT-USR-007 | `AssignRoleAction`              | `user_role_assigned`                |
-| ACT-USR-008 | `AssignSiteAction`              | `user_site_assigned`                |
-| ACT-USR-009 | `DeletePendingUserAction`       | `pending_user_deleted`              |
+| ACT id      | Class                           | Events emitted                                                              |
+|-------------|--------------------------------|-----------------------------------------------------------------------------|
+| ACT-USR-001 | `CreateUserAccountAction`       | `user_created`, `user_activation_code_issued`                               |
+| ACT-USR-002 | `EditUserAccountAction`         | `user_profile_changed` and/or `user_email_change_requested`                 |
+| ACT-USR-003 | `DeactivateUserAccountAction`   | `user_deactivated`, `user_sessions_revoked`                                 |
+| ACT-USR-004 | `ReactivateUserAccountAction`   | `user_reactivated`, `user_activation_code_issued`                           |
+| ACT-USR-005 | `UnlockUserAccountAction`       | `user_account_unlocked`                                                     |
+| ACT-USR-006 | `ResendActivationEmailAction`   | `user_activation_code_issued`                                               |
+| ACT-USR-007 | `AssignRoleAction`              | `user_roles_changed` (+ `user_sessions_revoked` when authz narrows)         |
+| ACT-USR-008 | `AssignSiteAction`              | `user_sites_changed` (+ `user_sessions_revoked` when authz narrows)         |
+| ACT-USR-009 | `DeletePendingUserAction`       | `user_deleted`                                                              |
 
 ### View actions (3) — unscoped, zero-event read gates, `lib/src/actions/views/`
 

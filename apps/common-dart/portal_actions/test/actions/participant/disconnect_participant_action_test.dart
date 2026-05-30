@@ -91,8 +91,8 @@ void main() {
       final e = r.events.single;
       expect(e.aggregateType, 'participant');
       expect(e.aggregateId, 'p1');
-      expect(e.flowToken, isNotNull);
-      expect(e.flowToken, 'FT000003');
+      expect(e.flowToken, matches(RegExp(r'^PAT\d{6}$')));
+      expect(e.flowToken, 'PAT000003');
       expect(e.data['reason'], 'device lost');
       expect(e.data['by'], 'sc-1');
     },

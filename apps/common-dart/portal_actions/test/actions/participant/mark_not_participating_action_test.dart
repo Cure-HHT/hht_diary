@@ -93,8 +93,8 @@ void main() {
       final e = r.events.single;
       expect(e.aggregateType, 'participant');
       expect(e.aggregateId, 'p1');
-      expect(e.flowToken, isNotNull);
-      expect(e.flowToken, 'FT000002');
+      expect(e.flowToken, matches(RegExp(r'^PAT\d{6}$')));
+      expect(e.flowToken, 'PAT000002');
       expect(e.data['reason'], 'withdrew');
       expect(e.data['by'], 'sc-1');
     },

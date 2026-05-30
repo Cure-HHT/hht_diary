@@ -81,7 +81,7 @@ class StartTrialAction extends Action<StartTrialInput, StartTrialResult> {
     StartTrialInput input,
     ActionContext ctx,
   ) async {
-    final flowToken = flowTokenMinter.next();
+    final flowToken = flowTokenMinter.next(stream: 'PAT');
     return ExecutionResult<StartTrialResult>(
       result: StartTrialResult(participantId: input.participantId),
       events: <EventDraft>[

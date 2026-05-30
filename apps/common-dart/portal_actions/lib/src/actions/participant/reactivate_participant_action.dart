@@ -121,7 +121,7 @@ class ReactivateParticipantAction
     ReactivateParticipantInput input,
     ActionContext ctx,
   ) async {
-    final flowToken = flowTokenMinter.next();
+    final flowToken = flowTokenMinter.next(stream: 'PAT');
     return ExecutionResult<ReactivateParticipantResult>(
       result: ReactivateParticipantResult(participantId: input.participantId),
       events: <EventDraft>[

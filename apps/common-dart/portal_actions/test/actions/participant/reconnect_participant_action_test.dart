@@ -112,9 +112,9 @@ void main() {
         'participant_linking_code_issued',
         'participant_reconnected',
       ]);
-      expect(r.events[0].flowToken, isNotNull);
+      expect(r.events[0].flowToken, matches(RegExp(r'^PAT\d{6}$')));
       expect(r.events[0].flowToken, r.events[1].flowToken);
-      expect(r.events[0].flowToken, 'FT000005');
+      expect(r.events[0].flowToken, 'PAT000005');
       expect(r.events[0].data['purpose'], 'reconnect');
       expect(r.events[0].data['linking_code'], 'LC456');
       expect(r.events[1].data['by'], 'sc-1');

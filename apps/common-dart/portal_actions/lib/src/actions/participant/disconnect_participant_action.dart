@@ -93,7 +93,7 @@ class DisconnectParticipantAction
     DisconnectParticipantInput input,
     ActionContext ctx,
   ) async {
-    final flowToken = flowTokenMinter.next();
+    final flowToken = flowTokenMinter.next(stream: 'PAT');
     return ExecutionResult<DisconnectParticipantResult>(
       result: DisconnectParticipantResult(participantId: input.participantId),
       events: <EventDraft>[

@@ -113,7 +113,7 @@ class ReconnectParticipantAction
     ReconnectParticipantInput input,
     ActionContext ctx,
   ) async {
-    final flowToken = flowTokenMinter.next();
+    final flowToken = flowTokenMinter.next(stream: 'PAT');
     return ExecutionResult<ReconnectParticipantResult>(
       result: ReconnectParticipantResult(participantId: input.participantId),
       events: <EventDraft>[

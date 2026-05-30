@@ -72,7 +72,7 @@ void main() {
       final e = r.events.single;
       expect(e.aggregateType, 'participant');
       expect(e.aggregateId, 'p1');
-      expect(e.flowToken, 'FT000007');
+      expect(e.flowToken, 'PAT000007');
       expect(e.data['by'], 'sc-1');
       expect(e.data['started_at'], '2026-05-30T00:00:00.000Z');
     },

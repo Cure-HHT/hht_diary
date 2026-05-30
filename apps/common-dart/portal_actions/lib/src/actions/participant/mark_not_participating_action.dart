@@ -94,7 +94,7 @@ class MarkNotParticipatingAction
     MarkNotParticipatingInput input,
     ActionContext ctx,
   ) async {
-    final flowToken = flowTokenMinter.next();
+    final flowToken = flowTokenMinter.next(stream: 'PAT');
     return ExecutionResult<MarkNotParticipatingResult>(
       result: MarkNotParticipatingResult(participantId: input.participantId),
       events: <EventDraft>[
