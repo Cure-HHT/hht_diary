@@ -7,7 +7,7 @@
 
 name: portal_functions
 description: CureHHT Sponsor Portal Server Side Functions
-version: 0.1.38+58
+version: 0.1.39+59
 publish_to: none
 
 environment:

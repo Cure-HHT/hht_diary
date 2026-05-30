@@ -14,8 +14,8 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:sponsor_portal_ui/config/app_config.dart';
 import 'package:sponsor_portal_ui/firebase_options.dart';
-import 'package:sponsor_portal_ui/flavors.dart';
 import 'package:sponsor_portal_ui/router/app_router.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
 import 'package:sponsor_portal_ui/services/sponsor_branding_service.dart';
@@ -51,9 +51,8 @@ Future<void> initializeFirebaseForTests() async {
   // Ensure widgets are initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize flavor (local for emulator tests)
-  // Integration tests always use the local flavor with Firebase emulator
-  FlavorConfig.initializeLocal();
+  // Integration tests always run against the Firebase emulator (local env).
+  AppConfig.initializeLocal();
   debugPrint(
     'Integration tests: Using Firebase emulator at ${IntegrationTestConfig.firebaseEmulatorHost}',
   );

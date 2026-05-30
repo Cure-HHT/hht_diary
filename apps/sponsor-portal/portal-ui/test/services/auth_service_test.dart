@@ -18,7 +18,7 @@ import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:sponsor_portal_ui/flavors.dart';
+import 'package:sponsor_portal_ui/config/env_profile.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
 
 void main() {
@@ -2043,13 +2043,13 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // CUR-1296: uid_not_bound 401 — Flavor-gated developer banner
+  // CUR-1296: uid_not_bound 401 — environment-gated developer banner
   // ---------------------------------------------------------------------------
   /// Verifies REQ-d00167-B, REQ-d00167-C
-  group('CUR-1296 uid_not_bound 401 — Flavor-gated banner', () {
+  group('CUR-1296 uid_not_bound 401 — environment-gated banner', () {
     // Helper: build an AuthService whose /portal/me returns 401 uid_not_bound
     // and sign in, then flush microtasks.
-    AuthService buildAndSignIn(FakeAsync fake, {required Flavor flavor}) {
+    AuthService buildAndSignIn(FakeAsync fake, {required AppEnv env}) {
       final mockUser = MockUser(
         uid: 'test-uid',
         email: 'a@example.com',
@@ -2074,7 +2074,7 @@ void main() {
         firebaseAuth: mockFirebaseAuth,
         httpClient: mockHttpClient,
         enableInactivityTimer: false,
-        flavor: flavor,
+        env: env,
       );
       svc.signIn('a@example.com', 'pw');
       fake.flushMicrotasks();
@@ -2083,19 +2083,19 @@ void main() {
 
     // Verifies: REQ-d00167-B
     test(
-      'REQ-d00167-B: Flavor.local sets local-stack rebind banner on uid_not_bound',
+      'REQ-d00167-B: AppEnv.local sets local-stack rebind banner on uid_not_bound',
       () {
         fakeAsync((fake) {
-          final svc = buildAndSignIn(fake, flavor: Flavor.local);
+          final svc = buildAndSignIn(fake, env: AppEnv.local);
           expect(svc.error, contains('./local-stack rebind'));
         });
       },
     );
 
     // Verifies: REQ-d00167-C
-    test('REQ-d00167-C: Flavor.dev sets generic banner on uid_not_bound', () {
+    test('REQ-d00167-C: AppEnv.dev sets generic banner on uid_not_bound', () {
       fakeAsync((fake) {
-        final svc = buildAndSignIn(fake, flavor: Flavor.dev);
+        final svc = buildAndSignIn(fake, env: AppEnv.dev);
         expect(
           svc.error,
           equals('Account not found — contact your administrator.'),
