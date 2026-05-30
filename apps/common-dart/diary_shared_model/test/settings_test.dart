@@ -62,4 +62,39 @@ void main() {
       }
     });
   });
+
+  group('entryRestrictionConfigFromSettings', () {
+    SettingPayload sponsor(String key, Object? value) => SettingPayload(
+      key: key,
+      value: value,
+      source: SettingSource.sponsor,
+      locked: true,
+    );
+
+    test('maps clinical threshold hours into Durations', () {
+      final cfg = entryRestrictionConfigFromSettings(<String, SettingPayload>{
+        'clinical.justificationThresholdHours': sponsor(
+          'clinical.justificationThresholdHours',
+          24,
+        ),
+        'clinical.lockThresholdHours': sponsor(
+          'clinical.lockThresholdHours',
+          48,
+        ),
+      }, trialStart: DateTime.utc(2025, 10, 1));
+      expect(cfg.justificationThreshold, const Duration(hours: 24));
+      expect(cfg.lockThreshold, const Duration(hours: 48));
+      expect(cfg.trialStart, DateTime.utc(2025, 10, 1));
+    });
+
+    test('absent threshold keys yield null thresholds (gate = allowed)', () {
+      final cfg = entryRestrictionConfigFromSettings(
+        const <String, SettingPayload>{},
+        trialStart: null,
+      );
+      expect(cfg.justificationThreshold, isNull);
+      expect(cfg.lockThreshold, isNull);
+      expect(cfg.trialStart, isNull);
+    });
+  });
 }
