@@ -1,0 +1,20 @@
+name: portal_actions
+description: "Portal concrete Action catalog + [home: portal] private events, on the event_sourcing Action framework. Realizes DIARY-PRD-action-inventory."
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  event_sourcing:
+    git:
+      url: git@github.com:Cure-HHT/event_sourcing.git
+      ref: 9e04c17
+      path: event_sourcing
+  diary_shared_model:
+    path: ../diary_shared_model
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0
