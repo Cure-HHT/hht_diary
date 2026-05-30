@@ -14,6 +14,13 @@ sealed class DiaryEntryView {
   String? get localDate => row.localDate;
 }
 
+/// Typed view of an `epistaxis_event` row.
+///
+/// Constructed eagerly from `row.data` via [EpistaxisEventPayload.fromJson];
+/// **throws** (`FormatException`/`TypeError`) if the row does not conform to the
+/// `EpistaxisEventPayload` schema. The event log is authoritative, so a
+/// non-conforming row is a bug, not a recoverable condition — callers should not
+/// expect to construct this from untrusted data.
 class EpistaxisEntryView extends DiaryEntryView {
   EpistaxisEntryView(super.row, {required super.isComplete})
     : _payload = EpistaxisEventPayload.fromJson(row.data);
@@ -35,9 +42,17 @@ class EpistaxisEntryView extends DiaryEntryView {
     final endTs = _payload.endTime;
     if (endTs == null) return false;
     // Compare the local wall-clock date portions directly from the raw ISO
-    // timestamps (first 10 chars). DateTime.parse normalises to UTC, so using
-    // .year/.month/.day would silently shift the date for non-UTC offsets.
-    return _payload.startTime.substring(0, 10) != endTs.substring(0, 10);
+    // timestamps. DateTime.parse normalises to UTC, so using .year/.month/.day
+    // would silently shift the date for non-UTC offsets. _wallClockDate is
+    // length-safe (no RangeError on a malformed short string).
+    return _wallClockDate(_payload.startTime) != _wallClockDate(endTs);
+  }
+
+  /// The `yyyy-MM-dd` wall-clock date prefix of an ISO timestamp — the substring
+  /// before `T`, mirroring how `canonicalEntryDate` derives the day. Length-safe.
+  static String _wallClockDate(String iso) {
+    final t = iso.indexOf('T');
+    return t >= 0 ? iso.substring(0, t) : iso;
   }
 }
 
