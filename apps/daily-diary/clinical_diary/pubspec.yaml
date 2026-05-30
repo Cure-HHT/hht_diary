@@ -2,7 +2,7 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: "none"
 
-version: 0.9.25+47
+version: 0.9.38+70
 
 environment:
   sdk: ^3.10.7
@@ -13,9 +13,34 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  # Event-sourcing datastore for FDA 21 CFR Part 11 compliant event sourcing
+  # Event-sourcing datastore for FDA 21 CFR Part 11 compliant event sourcing.
+  # KEPT during the port to act as the differential-test oracle alongside the
+  # new event_sourcing stack; removed once parity is proven (CUR-1169 Integration).
   event_sourcing_datastore:
     path: ../../common-dart/event_sourcing_datastore
+  # New external event-sourcing stack (Phase 0+ of the EVS lib port). Git refs so
+  # the consumption branch builds without waiting on PR #649 to merge; gitignored
+  # pubspec_overrides.yaml points these at local sibling clones for fast dev.
+  event_sourcing:
+    git:
+      url: git@github.com:Cure-HHT/event_sourcing.git
+      ref: 9e04c17
+      path: event_sourcing
+  reaction:
+    git:
+      url: git@github.com:Cure-HHT/event_sourcing.git
+      ref: 9e04c17
+      path: reaction
+  reaction_widgets:
+    git:
+      url: git@github.com:Cure-HHT/event_sourcing.git
+      ref: 9e04c17
+      path: reaction_widgets
+  diary_shared_model:
+    git:
+      url: git@github.com:Cure-HHT/hht_diary.git
+      ref: CUR-1409-diary-payloads
+      path: apps/common-dart/diary_shared_model
   trial_data_types:
     path: ../../common-dart/trial_data_types
   eq:
@@ -61,6 +86,11 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
+  reaction_widgets_testing:
+    git:
+      url: git@github.com:Cure-HHT/event_sourcing.git
+      ref: 9e04c17
+      path: reaction_widgets_testing
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.0.0
   flutter_launcher_icons: ^0.14.4
