@@ -9,6 +9,10 @@ import 'actions/participant/reactivate_participant_action.dart';
 import 'actions/participant/reconnect_participant_action.dart';
 import 'actions/participant/start_trial_action.dart';
 import 'actions/participant/view_participant_action.dart';
+import 'actions/questionnaire/call_back_questionnaire_action.dart';
+import 'actions/questionnaire/finalize_questionnaire_action.dart';
+import 'actions/questionnaire/send_questionnaire_action.dart';
+import 'actions/questionnaire/unlock_questionnaire_action.dart';
 import 'flow_token_minter.dart';
 
 /// Build the portal's ActionRegistry. Extend as concrete actions land.
@@ -22,6 +26,10 @@ ActionRegistry buildPortalActionRegistry({FlowTokenMinter? flowTokenMinter}) {
     ..register(ReconnectParticipantAction(flowTokenMinter: minter))
     ..register(MarkNotParticipatingAction(flowTokenMinter: minter))
     ..register(ReactivateParticipantAction(flowTokenMinter: minter))
-    ..register(ViewParticipantAction());
+    ..register(ViewParticipantAction())
+    ..register(SendQuestionnaireAction(flowTokenMinter: minter))
+    ..register(CallBackQuestionnaireAction(flowTokenMinter: minter))
+    ..register(FinalizeQuestionnaireAction())
+    ..register(UnlockQuestionnaireAction(flowTokenMinter: minter));
   return registry;
 }
