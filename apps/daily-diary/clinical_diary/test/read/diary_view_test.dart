@@ -50,4 +50,18 @@ void main() {
     expect(view.entriesOn('2025-10-15').single.aggregateId, 'e1');
     expect(view.entriesOn('2025-10-14'), isEmpty);
   });
+
+  test('recent returns only entries in the given days', () {
+    final view = DiaryView(
+      finalized: [
+        _ep('e1', '2025-10-15T10:00:00.000Z'),
+        _ep('e2', '2025-10-14T10:00:00.000Z'),
+        _ep('e3', '2025-10-10T10:00:00.000Z'),
+      ],
+      incomplete: const [],
+    );
+    final recent = view.recent(['2025-10-15', '2025-10-14']);
+    expect(recent.map((v) => v.aggregateId), containsAll(['e1', 'e2']));
+    expect(recent.map((v) => v.aggregateId), isNot(contains('e3')));
+  });
 }

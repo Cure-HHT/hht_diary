@@ -19,10 +19,13 @@ class DiaryView {
   final List<DiaryEntryRow> _finalized;
   final List<DiaryEntryRow> _incomplete;
 
-  /// Local dates (`yyyy-MM-dd`) that have an open checkpoint.
+  /// Local dates (`yyyy-MM-dd`) that have an open checkpoint. Exposed for direct
+  /// date-membership checks; prefer [dayStatus] for precedence-aware status.
   final Set<String> incompleteDates;
 
   /// Finalized entries as view-models, newest-first (by localDate desc, stable).
+  /// Null-localDate entries (e.g. surveys with no date) sort to the front
+  /// (empty string precedes any `yyyy-MM-dd`).
   List<DiaryEntryView> get entries {
     final rows = [..._finalized]
       ..sort((a, b) => (b.localDate ?? '').compareTo(a.localDate ?? ''));
@@ -40,6 +43,8 @@ class DiaryView {
   ).map((r) => diaryEntryViewOf(r, isComplete: true)).toList();
 
   /// Finalized entries whose localDate is in [days] (e.g. today + yesterday).
+  /// Note: builds on [entries] (a copy+sort); avoid calling both in one build
+  /// cycle when the sorted list is already in hand.
   List<DiaryEntryView> recent(List<String> days) => entries
       .where((v) => v.localDate != null && days.contains(v.localDate))
       .toList();
