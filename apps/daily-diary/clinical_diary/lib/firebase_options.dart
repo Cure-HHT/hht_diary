@@ -14,6 +14,11 @@ import 'package:flutter/foundation.dart'
 ///   options: DefaultFirebaseOptions.currentPlatform,
 /// );
 /// ```
+// CUR-1399: This compiled-in Firebase config (project `hht-diary-mvp`) is a
+// deferred-removal seam. Target: drop these constants; fetch FCM client options
+// at runtime from the diary server at enrollment and init the DEFAULT app from
+// them. Routing source of truth: hht_sponsor_iac fcm/routing.yaml. See
+// Linear CUR-1399 (deferred runtime-init) and CUR-1416 (routing seam).
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {

@@ -2297,6 +2297,8 @@
 
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
+- DIARY-OPS-fcm-project-routing-A
+- DIARY-OPS-fcm-project-routing-D
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G
