@@ -58,6 +58,8 @@ final Map<String, Permission> portalPermissionsByActId = <String, Permission>{
   'ACT-USR-007': const Permission('portal.user.assign_role'),
   'ACT-USR-008': const Permission('portal.user.assign_site'),
   'ACT-USR-009': const Permission('portal.user.delete_pending'),
+  'ACT-USR-010': const Permission('portal.user.revoke_role'),
+  'ACT-USR-011': const Permission('portal.user.revoke_site'),
   'ACT-SIT-001': const Permission('portal.site.view', scopeClass: 'site'),
   'ACT-AUD-001': const Permission('portal.audit.view'),
   'ACT-ADM-001': const Permission('portal.admin.view_settings'),

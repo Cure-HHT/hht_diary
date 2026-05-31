@@ -22,6 +22,7 @@ import 'actions/user_account/delete_pending_user_action.dart';
 import 'actions/user_account/edit_user_account_action.dart';
 import 'actions/user_account/reactivate_user_account_action.dart';
 import 'actions/user_account/resend_activation_email_action.dart';
+import 'actions/user_account/revoke_role_action.dart';
 import 'actions/user_account/unlock_user_account_action.dart';
 import 'actions/views/view_admin_settings_action.dart';
 import 'actions/views/view_audit_log_action.dart';
@@ -51,6 +52,7 @@ ActionRegistry buildPortalActionRegistry({FlowTokenMinter? flowTokenMinter}) {
     ..register(ResendActivationEmailAction(flowTokenMinter: minter))
     ..register(AssignRoleAction())
     ..register(AssignSiteAction())
+    ..register(RevokeRoleAction())
     ..register(DeletePendingUserAction())
     ..register(ViewSitesAction())
     ..register(ViewAuditLogAction())
