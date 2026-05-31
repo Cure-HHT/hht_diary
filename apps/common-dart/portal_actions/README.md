@@ -37,7 +37,7 @@ Realizes `DIARY-PRD-action-inventory`. Cross-wire events the actions also emit c
 | ACT-QST-003 | `FinalizeQuestionnaireAction`   | `questionnaire_finalized`   |
 | ACT-QST-004 | `UnlockQuestionnaireAction`     | `questionnaire_unlocked`    |
 
-### User-account actions (9) — unscoped, `lib/src/actions/user_account/` (+ root)
+### User-account actions (11) — unscoped, `lib/src/actions/user_account/` (+ root)
 
 | ACT id      | Class                           | Events emitted                                                              |
 |-------------|--------------------------------|-----------------------------------------------------------------------------|
@@ -47,9 +47,11 @@ Realizes `DIARY-PRD-action-inventory`. Cross-wire events the actions also emit c
 | ACT-USR-004 | `ReactivateUserAccountAction`   | `user_reactivated`, `user_activation_code_issued`                           |
 | ACT-USR-005 | `UnlockUserAccountAction`       | `user_account_unlocked`                                                     |
 | ACT-USR-006 | `ResendActivationEmailAction`   | `user_activation_code_issued`                                               |
-| ACT-USR-007 | `AssignRoleAction`              | `user_roles_changed` (+ `user_sessions_revoked` when authz narrows)         |
-| ACT-USR-008 | `AssignSiteAction`              | `user_sites_changed` (+ `user_sessions_revoked` when authz narrows)         |
+| ACT-USR-007 | `AssignRoleAction`              | `role_assigned` (one (user, role, scope) tuple)                             |
+| ACT-USR-008 | `AssignSiteAction`              | `role_assigned` (scope = `BoundScope('site', X)`)                           |
 | ACT-USR-009 | `DeletePendingUserAction`       | `user_deleted`                                                              |
+| ACT-USR-010 | `RevokeRoleAction`              | `role_unassigned` (one (user, role, scope) tuple)                          |
+| ACT-USR-011 | `RevokeSiteAction`              | `role_unassigned` (scope = `BoundScope('site', X)`)                        |
 
 ### View actions (3) — unscoped, zero-event read gates, `lib/src/actions/views/`
 

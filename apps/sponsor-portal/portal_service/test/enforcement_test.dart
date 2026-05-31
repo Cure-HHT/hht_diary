@@ -46,7 +46,7 @@ _openSeeded({
 }
 
 /// Seed a participant->site mapping by appending a participant_synced_from_edc
-/// event the test-local participant_site_index projects.
+/// event the registered participant_site_index projects.
 Future<void> _seedParticipantSite(
   EventStore store, {
   required String participantId,
