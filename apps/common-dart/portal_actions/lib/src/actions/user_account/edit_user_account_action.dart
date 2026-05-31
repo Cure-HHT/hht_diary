@@ -7,13 +7,10 @@ class EditUserAccountInput {
   EditUserAccountInput({
     required this.userId,
     required this.name,
-    required this.previousName,
     required this.newEmail,
   });
   final String userId;
   final String? name;
-  // Phase 2: previousName is caller-supplied; Phase 2 reads it from a projection.
-  final String? previousName;
   final String? newEmail;
 }
 
@@ -62,7 +59,6 @@ class EditUserAccountAction
     return EditUserAccountInput(
       userId: userId.trim(),
       name: optString('name'),
-      previousName: optString('previousName'),
       newEmail: optString('newEmail')?.trim(),
     );
   }
@@ -72,7 +68,7 @@ class EditUserAccountAction
     if (input.userId.trim().isEmpty) {
       throw ArgumentError.value(input.userId, 'userId', 'must be non-empty');
     }
-    final nameChanged = input.name != null && input.name != input.previousName;
+    final nameChanged = input.name != null && input.name!.trim().isNotEmpty;
     final emailChanged =
         input.newEmail != null && input.newEmail!.trim().isNotEmpty;
     if (!(nameChanged || emailChanged)) {
@@ -85,7 +81,7 @@ class EditUserAccountAction
     EditUserAccountInput input,
     ActionContext ctx,
   ) async {
-    final nameChanged = input.name != null && input.name != input.previousName;
+    final nameChanged = input.name != null && input.name!.trim().isNotEmpty;
     final emailChanged =
         input.newEmail != null && input.newEmail!.trim().isNotEmpty;
     final events = <EventDraft>[];
@@ -97,7 +93,6 @@ class EditUserAccountAction
           entryType: 'user_profile_changed',
           eventType: 'user_profile_changed',
           data: <String, Object?>{
-            'before': input.previousName,
             'after': input.name,
             'changed_by': ctx.principal.id,
           },

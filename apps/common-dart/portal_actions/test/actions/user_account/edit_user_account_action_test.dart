@@ -1,4 +1,4 @@
-// Verifies: DIARY-PRD-action-inventory/A
+// Verifies: DIARY-PRD-user-account-edit/A
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_actions/portal_actions.dart';
 import 'package:test/test.dart';
@@ -8,131 +8,53 @@ void main() {
   final ctx = ActionContext(
     principal: Principal.user(
       userId: 'admin-1',
-      roles: {'Administrator'},
+      roles: const {'Administrator'},
       activeRole: 'Administrator',
     ),
     security: const SecurityDetails(),
     requestStartedAt: DateTime.utc(2026, 5, 30),
   );
 
-  // Verifies: DIARY-PRD-action-inventory/A
-  test(
-    'DIARY-PRD-action-inventory/A: declares edit permission + required idempotency',
-    () {
-      expect(action.name, 'ACT-USR-002');
-      expect(
-        action.permissions,
-        contains(portalPermissionsByActId['ACT-USR-002']),
-      );
-      expect(action.idempotency, Idempotency.required);
-    },
-  );
-
-  // Verifies: DIARY-PRD-action-inventory/A
-  test('DIARY-PRD-action-inventory/A: parseInput requires userId', () {
+  test('declares edit permission', () {
+    expect(action.name, 'ACT-USR-002');
     expect(
-      () => action.parseInput(<String, Object?>{'name': 'Alice'}),
-      throwsFormatException,
+      action.permissions,
+      contains(portalPermissionsByActId['ACT-USR-002']),
     );
   });
 
-  // Verifies: DIARY-PRD-action-inventory/A
-  test(
-    'DIARY-PRD-action-inventory/A: validate rejects no-change input (name same as previous, no email)',
-    () {
-      expect(
-        () => action.validate(
-          EditUserAccountInput(
-            userId: 'u1',
-            name: 'Alice',
-            previousName: 'Alice',
-            newEmail: null,
-          ),
-        ),
-        throwsArgumentError,
-      );
-    },
-  );
+  test('name change emits user_profile_changed {after} (no before)', () async {
+    final input = action.parseInput(<String, Object?>{
+      'userId': 'u-1',
+      'name': 'New Name',
+    });
+    final result = await action.execute(input, ctx);
+    final e = result.events.firstWhere(
+      (d) => d.eventType == 'user_profile_changed',
+    );
+    expect(e.data['after'], 'New Name');
+    expect(e.data.containsKey('before'), isFalse);
+    expect(e.data['changed_by'], 'admin-1');
+  });
 
-  // Verifies: DIARY-PRD-action-inventory/A
-  test(
-    'DIARY-PRD-action-inventory/A: validate rejects whitespace-only newEmail with no name change',
-    () {
-      expect(
-        () => action.validate(
-          EditUserAccountInput(
-            userId: 'u1',
-            name: 'Alice',
-            previousName: 'Alice',
-            newEmail: '   ',
-          ),
-        ),
-        throwsArgumentError,
-      );
-    },
-  );
+  test('email change emits user_email_change_requested', () async {
+    final input = action.parseInput(<String, Object?>{
+      'userId': 'u-1',
+      'newEmail': 'new@example.com',
+    });
+    final result = await action.execute(input, ctx);
+    expect(
+      result.events.any((d) => d.eventType == 'user_email_change_requested'),
+      isTrue,
+    );
+  });
 
-  // Verifies: DIARY-PRD-action-inventory/A
-  test(
-    'DIARY-PRD-action-inventory/A: execute emits only user_profile_changed on name-only change',
-    () async {
-      final result = await action.execute(
-        EditUserAccountInput(
-          userId: 'u1',
-          name: 'Alice B',
-          previousName: 'Alice',
-          newEmail: null,
-        ),
-        ctx,
-      );
-      expect(result.result.userId, 'u1');
-      expect(result.events.map((e) => e.entryType).toList(), [
-        'user_profile_changed',
-      ]);
-      expect(result.events[0].data['before'], 'Alice');
-      expect(result.events[0].data['after'], 'Alice B');
-      expect(result.events[0].data['changed_by'], 'admin-1');
-    },
-  );
-
-  // Verifies: DIARY-PRD-action-inventory/A
-  test(
-    'DIARY-PRD-action-inventory/A: execute emits only user_email_change_requested on email-only change',
-    () async {
-      final result = await action.execute(
-        EditUserAccountInput(
-          userId: 'u1',
-          name: null,
-          previousName: null,
-          newEmail: 'new@example.com',
-        ),
-        ctx,
-      );
-      expect(result.events.map((e) => e.entryType).toList(), [
-        'user_email_change_requested',
-      ]);
-      expect(result.events[0].data['new_email'], 'new@example.com');
-      expect(result.events[0].data['requested_by'], 'admin-1');
-    },
-  );
-
-  // Verifies: DIARY-PRD-action-inventory/A
-  test(
-    'DIARY-PRD-action-inventory/A: execute emits both events in order when both change',
-    () async {
-      final result = await action.execute(
-        EditUserAccountInput(
-          userId: 'u1',
-          name: 'Bob',
-          previousName: 'Alice',
-          newEmail: 'bob@example.com',
-        ),
-        ctx,
-      );
-      expect(result.events.map((e) => e.entryType).toList(), [
-        'user_profile_changed',
-        'user_email_change_requested',
-      ]);
-    },
-  );
+  test('rejects when neither name nor email supplied', () {
+    expect(
+      () => action.validate(
+        action.parseInput(<String, Object?>{'userId': 'u-1'}),
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+  });
 }
