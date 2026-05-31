@@ -3,5 +3,6 @@
 library;
 
 export 'src/scope_classes.dart';
+export 'src/role_seed.dart';
 
-// Further exports (role_seed, authz, dispatcher) are added as each lands.
+// Further exports (authz, dispatcher) are added as each lands.
