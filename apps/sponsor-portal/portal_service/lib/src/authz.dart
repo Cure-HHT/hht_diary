@@ -5,6 +5,7 @@ import 'package:event_sourcing/event_sourcing.dart';
 // portal_actions re-exports diary_shared_model's sharedEventCatalog.
 import 'package:portal_actions/portal_actions.dart';
 
+import 'projections.dart';
 import 'role_seed.dart';
 import 'scope_classes.dart';
 
@@ -60,14 +61,18 @@ List<EntryTypeDefinition> portalEntryTypes() {
 
 /// Bootstrap a fresh portal EventStore over [backend]. Registers the
 /// role_permission_grants and user_role_scopes table projections (which drive
-/// the authorization policy's grant + scope-coverage checks) and every portal
-/// entry type. Returns the live [EventStore].
+/// the authorization policy's grant + scope-coverage checks), the
+/// participant_site_index projection (which backs containment resolution), and
+/// every portal entry type. Returns the live [EventStore].
+// Implements: DIARY-DEV-participant-site-index/B — openPortalEventStore registers
+//   participant_site_index so the policy's ContainmentResolver reads it in-txn.
 Future<EventStore> openPortalEventStore({
   required StorageBackend backend,
 }) async {
   final projections = ProjectionRegistry()
     ..register(rolePermissionGrantsSpec)
-    ..register(userRoleScopesSpec);
+    ..register(userRoleScopesSpec)
+    ..register(participantSiteIndexSpec);
 
   final bundle = await bootstrapEventStore(
     backend: backend,
