@@ -11,7 +11,26 @@ void main() {
       reason: 'no duplicate action names',
     );
     expect(names.toSet(), containsAll(portalPermissionsByActId.keys));
-    expect(names.length, portalPermissionsByActId.length); // 23
+    expect(names.length, portalPermissionsByActId.length); // 26
+    expect(
+      names.toSet(),
+      containsAll(<String>['ACT-OPS-001', 'ACT-OPS-002', 'ACT-OPS-003']),
+    );
+  });
+
+  test('registry declares the ops-action permissions', () {
+    final declared = buildPortalActionRegistry().all
+        .expand((a) => a.permissions)
+        .map((p) => p.name)
+        .toSet();
+    expect(
+      declared,
+      containsAll(<String>[
+        'portal.rave.unwedge',
+        'portal.user.create_sysop',
+        'portal.user.create_admin',
+      ]),
+    );
   });
 
   test('every registered action declares a permission from the catalog', () {

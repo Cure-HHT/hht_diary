@@ -2,6 +2,8 @@
 import 'package:event_sourcing/event_sourcing.dart';
 
 import 'actions/deactivate_user_account_action.dart';
+import 'actions/ops/create_privileged_user_action.dart';
+import 'actions/ops/unwedge_rave_sync_action.dart';
 import 'actions/participant/disconnect_participant_action.dart';
 import 'actions/participant/link_participant_action.dart';
 import 'actions/participant/mark_not_participating_action.dart';
@@ -52,6 +54,9 @@ ActionRegistry buildPortalActionRegistry({FlowTokenMinter? flowTokenMinter}) {
     ..register(DeletePendingUserAction())
     ..register(ViewSitesAction())
     ..register(ViewAuditLogAction())
-    ..register(ViewAdminSettingsAction());
+    ..register(ViewAdminSettingsAction())
+    ..register(UnwedgeRaveSyncAction())
+    ..register(CreateAdministratorAction())
+    ..register(CreateSystemOperatorAction());
   return registry;
 }
