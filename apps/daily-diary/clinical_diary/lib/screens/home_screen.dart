@@ -13,6 +13,7 @@ import 'dart:convert';
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_entry_view_legacy_bridge.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
@@ -21,7 +22,6 @@ import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
-import 'package:clinical_diary/screens/simple_recording_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/diary_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
@@ -263,23 +263,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _navigateToRecording() async {
     // CUR-464: Result is now record ID (String) instead of bool
-    // CUR-508: Use feature flag to determine which recording screen to show
-    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
     final result = await Navigator.push<String?>(
       context,
-      AppPageRoute(
-        builder: (context) => useOnePage
-            ? SimpleRecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                allEntries: _entries,
-              )
-            : RecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                allEntries: _entries,
-              ),
-      ),
+      AppPageRoute(builder: (context) => const RecordingScreen()),
     );
 
     if (result != null && result.isNotEmpty) {
@@ -329,24 +315,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _handleYesterdayHadNosebleeds() async {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
     // CUR-464: Result is now record ID (String) instead of bool
-    // CUR-508: Use feature flag to determine which recording screen to show
-    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
     final result = await Navigator.push<String?>(
       context,
       AppPageRoute(
-        builder: (context) => useOnePage
-            ? SimpleRecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                initialStartDate: yesterday,
-                allEntries: _entries,
-              )
-            : RecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                diaryEntryDate: yesterday,
-                allEntries: _entries,
-              ),
+        builder: (context) => RecordingScreen(initialDate: yesterday),
       ),
     );
 
@@ -841,43 +813,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _handleIncompleteRecordsClick() async {
     if (_incompleteEntries.isEmpty) return;
 
-    // Navigate to edit the first incomplete entry
-    // CUR-508: Use feature flag to determine which recording screen to show
-    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
+    // Navigate to edit (resume) the first incomplete entry.
     final firstIncomplete = _incompleteEntries.first;
-    final firstStart = _readStartTime(firstIncomplete);
-
-    Future<void> tombstone(String reason) async {
-      await widget.runtime.entryService.record(
-        entryType: firstIncomplete.entryType,
-        aggregateId: firstIncomplete.entryId,
-        eventType: 'tombstone',
-        answers: const <String, Object?>{},
-        changeReason: reason,
-      );
-      unawaited(_loadRecords());
-    }
 
     final result = await Navigator.push<bool>(
       context,
       AppPageRoute(
-        builder: (context) => useOnePage
-            ? SimpleRecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                initialStartDate: firstStart,
-                existingEntry: firstIncomplete,
-                allEntries: _entries,
-                onDelete: tombstone,
-              )
-            : RecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                diaryEntryDate: firstStart,
-                existingEntry: firstIncomplete,
-                allEntries: _entries,
-                onDelete: tombstone,
-              ),
+        builder: (context) =>
+            RecordingScreen(existing: _epistaxisViewOf(firstIncomplete)),
       ),
     );
 
@@ -888,38 +831,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _navigateToEditRecord(DiaryEntry entry) async {
     // CUR-464: Result is now record ID (String) instead of bool
-    // CUR-508: Use feature flag to determine which recording screen to show
-    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
-
-    Future<void> tombstone(String reason) async {
-      await widget.runtime.entryService.record(
-        entryType: entry.entryType,
-        aggregateId: entry.entryId,
-        eventType: 'tombstone',
-        answers: const <String, Object?>{},
-        changeReason: reason,
-      );
-      unawaited(_loadRecords());
-    }
-
     final result = await Navigator.push<String?>(
       context,
       AppPageRoute(
-        builder: (context) => useOnePage
-            ? SimpleRecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                existingEntry: entry,
-                allEntries: _entries,
-                onDelete: tombstone,
-              )
-            : RecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                existingEntry: entry,
-                allEntries: _entries,
-                onDelete: tombstone,
-              ),
+        builder: (context) =>
+            RecordingScreen(existing: _epistaxisViewOf(entry)),
       ),
     );
 
@@ -930,6 +846,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       await _loadRecords();
       _scrollToRecord(result);
     }
+  }
+
+  /// Bridge a legacy nosebleed [DiaryEntry] to an [EpistaxisEntryView] for the
+  /// (new-stack) RecordingScreen. Returns null for non-epistaxis entries (the
+  /// recording screen only edits nosebleeds).
+  static EpistaxisEntryView? _epistaxisViewOf(DiaryEntry entry) {
+    final view = diaryEntryViewFromLegacy(entry);
+    return view is EpistaxisEntryView ? view : null;
   }
 
   /// Read the `startTime` answer from a [DiaryEntry], or fall back to its

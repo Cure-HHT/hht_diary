@@ -127,23 +127,6 @@ void main() {
       });
 
       testWidgets(
-        'toggling third switch (One-Page Recording Screen) updates service',
-        (tester) async {
-          await tester.pumpWidget(buildTestWidget());
-          await tester.pumpAndSettle();
-
-          expect(featureFlagService.useOnePageRecordingScreen, false);
-
-          // Find the third SwitchListTile and tap it
-          final switchTiles = find.byType(SwitchListTile);
-          await tester.tap(switchTiles.at(2));
-          await tester.pumpAndSettle();
-
-          expect(featureFlagService.useOnePageRecordingScreen, true);
-        },
-      );
-
-      testWidgets(
         'CUR-1116: toggling Show Share with CureHHT switch updates service',
         (tester) async {
           await tester.pumpWidget(buildTestWidget());

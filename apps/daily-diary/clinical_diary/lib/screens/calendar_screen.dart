@@ -3,6 +3,8 @@
 //   REQ-p00008: Mobile App Diary Entry
 
 import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_entry_view_legacy_bridge.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
@@ -38,7 +40,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, DayStatus> _dayStatuses = {};
-  List<DiaryEntry> _allEntries = [];
 
   @override
   void initState() {
@@ -68,26 +69,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     final statuses = await widget.reader.dayStatusRange(firstDay, lastDay);
 
-    // Also load all entries for overlap checking. Use a wide date range so
-    // every relevant entry is covered; the reader filters by local-day.
-    final allEntries = await widget.reader.entriesForDateRange(
-      DateTime.utc(1970, 1, 1),
-      DateTime.utc(9999, 1, 1),
-    );
-
     // CUR-586: Check mounted after async operations
     if (!mounted) return;
     setState(() {
       _dayStatuses = statuses;
-      _allEntries = allEntries
-          .where(
-            (e) =>
-                !e.isDeleted &&
-                (e.entryType == 'epistaxis_event' ||
-                    e.entryType == 'no_epistaxis_event' ||
-                    e.entryType == 'unknown_day_event'),
-          )
-          .toList();
     });
   }
 
@@ -251,38 +236,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
     DateTime selectedDay, {
     DiaryEntry? existingEntry,
   }) async {
-    // CUR-543: RecordingScreen returns String (record ID) on save, bool on delete/cancel
-    // Using dynamic to handle both return types
-    // CUR-543: Only pass diaryEntryDate for new records, not when editing existing records.
-    // RecordingScreen asserts that only one of diaryEntryDate or existingEntry can be non-null.
-    // CUR-543: Must pass onDelete callback when existingEntry is non-null.
+    // CUR-543: RecordingScreen returns String (record ID) on save, bool on
+    // delete/cancel — use dynamic to handle both return types. A new entry gets
+    // the selected day; an edit gets the bridged view-model.
     final result = await Navigator.push<dynamic>(
       context,
       AppPageRoute(
-        builder: (context) => RecordingScreen(
-          entryService: widget.entryService,
-          enrollmentService: widget.enrollmentService,
-          diaryEntryDate: existingEntry == null ? selectedDay : null,
-          existingEntry: existingEntry,
-          allEntries: _allEntries,
-          onDelete: existingEntry != null
-              ? (reason) async {
-                  await widget.entryService.record(
-                    entryType: existingEntry.entryType,
-                    aggregateId: existingEntry.entryId,
-                    eventType: 'tombstone',
-                    answers: const <String, Object?>{},
-                    changeReason: reason,
-                  );
-                }
-              : null,
-        ),
+        builder: (context) => existingEntry == null
+            ? RecordingScreen(initialDate: selectedDay)
+            : RecordingScreen(existing: _epistaxisViewOf(existingEntry)),
       ),
     );
 
     // CUR-586: Return the result to the caller instead of handling refresh here.
     // The caller (_showDateRecordsScreen) handles the refresh in its loop pattern.
     return result;
+  }
+
+  /// Bridge a legacy nosebleed [DiaryEntry] to an [EpistaxisEntryView] for the
+  /// (new-stack) RecordingScreen. Returns null for non-epistaxis entries.
+  static EpistaxisEntryView? _epistaxisViewOf(DiaryEntry entry) {
+    final view = diaryEntryViewFromLegacy(entry);
+    return view is EpistaxisEntryView ? view : null;
   }
 
   @override

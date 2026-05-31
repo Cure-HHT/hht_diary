@@ -11,7 +11,6 @@ import 'dart:async';
 
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
-import 'package:clinical_diary/screens/simple_recording_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
@@ -24,6 +23,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
+import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -108,8 +109,12 @@ void main() {
     late ClinicalDiaryRuntime runtime;
     late MockEnrollmentService enrollment;
     late TaskService tasks;
+    late FakeReaction fake;
 
     setUp(() async {
+      // A FakeReaction provides the ReActionScope the (new-stack) RecordingScreen
+      // requires when HomeScreen navigates to it during the transition.
+      fake = FakeReaction();
       // Fix device timezone to UTC+0 so that toDisplayedDateTime with
       // startTimeZone='UTC' is an identity transform (stored == displayed).
       TimezoneConverter.testDeviceOffsetMinutes = 0;
@@ -121,6 +126,7 @@ void main() {
     });
 
     tearDown(() async {
+      await fake.dispose();
       await runtime.dispose();
       tasks.dispose();
       TimezoneConverter.testDeviceOffsetMinutes = null;
@@ -136,12 +142,15 @@ void main() {
       });
 
       await tester.pumpWidget(
-        wrapWithMaterialApp(
-          HomeScreen(
-            runtime: runtime,
-            deviceId: _deviceId,
-            enrollmentService: enrollment,
-            taskService: tasks,
+        ReActionScope(
+          scope: fake,
+          child: wrapWithMaterialApp(
+            HomeScreen(
+              runtime: runtime,
+              deviceId: _deviceId,
+              enrollmentService: enrollment,
+              taskService: tasks,
+            ),
           ),
         ),
       );
@@ -278,16 +287,10 @@ void main() {
         await tester.tap(recordButton, warnIfMissed: false);
         await _settle(tester);
 
-        // Default feature flag uses the multi-page RecordingScreen, but
-        // the simple-page variant is also acceptable under different
-        // sponsor configurations.
-        final found =
-            find.byType(RecordingScreen).evaluate().isNotEmpty ||
-            find.byType(SimpleRecordingScreen).evaluate().isNotEmpty;
         expect(
-          found,
-          isTrue,
-          reason: 'Tapping the record button should push a recording screen',
+          find.byType(RecordingScreen),
+          findsOneWidget,
+          reason: 'Tapping the record button should push the recording screen',
         );
       },
     );

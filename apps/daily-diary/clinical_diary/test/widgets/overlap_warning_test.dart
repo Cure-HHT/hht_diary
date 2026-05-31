@@ -1,10 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-p00043: Temporal Entry Validation - Overlap Prevention
+// Verifies: DIARY-GUI-entry-overlap-resolution
 
-import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:diary_shared_model/diary_shared_model.dart' as shared;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -13,15 +11,16 @@ import '../helpers/test_helpers.dart';
 
 void main() {
   group('OverlapWarning', () {
-    DiaryEntry createTestEntry({
+    EpistaxisEntryView createTestEntry({
       required DateTime startTime,
       required DateTime endTime,
     }) {
-      return buildEpistaxisEntry(
-        entryId: 'test-${startTime.millisecondsSinceEpoch}',
+      return buildEpistaxisView(
+        aggregateId: 'test-${startTime.millisecondsSinceEpoch}',
         startTime: startTime,
         endTime: endTime,
-        intensity: NosebleedIntensity.spotting,
+        endTimeZone: 'UTC',
+        intensity: shared.NosebleedIntensity.spotting,
       );
     }
 
@@ -252,7 +251,7 @@ void main() {
         ),
       ];
 
-      DiaryEntry? tappedEntry;
+      EpistaxisEntryView? tappedEntry;
 
       await tester.pumpWidget(
         wrapWithScaffold(
@@ -270,7 +269,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tappedEntry, isNotNull);
-      expect(tappedEntry!.entryId, overlappingEntries.first.entryId);
+      expect(tappedEntry!.aggregateId, overlappingEntries.first.aggregateId);
     });
   });
 }

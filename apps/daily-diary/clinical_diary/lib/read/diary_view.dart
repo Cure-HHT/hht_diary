@@ -23,6 +23,11 @@ class DiaryView {
   /// date-membership checks; prefer [dayStatus] for precedence-aware status.
   final Set<String> incompleteDates;
 
+  /// The raw finalized canonical rows. Exposed for row-level query helpers that
+  /// operate on [DiaryEntryRow] (e.g. `overlappingEpistaxisEntries`) rather than
+  /// the typed view-models.
+  List<DiaryEntryRow> get finalizedRows => List.unmodifiable(_finalized);
+
   /// Finalized entries as view-models, newest-first (by localDate desc, stable).
   /// Null-localDate entries (e.g. surveys with no date) sort to the front
   /// (empty string precedes any `yyyy-MM-dd`).

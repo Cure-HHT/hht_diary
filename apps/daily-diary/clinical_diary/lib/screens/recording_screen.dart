@@ -1,19 +1,11 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-CAL-p00001: Old Entry Modification Justification
-//   REQ-CAL-p00002: Short Duration Nosebleed Confirmation
-//   REQ-CAL-p00003: Long Duration Nosebleed Confirmation
-//   REQ-p01066-A: Capture nosebleed start time as a required field
-//   REQ-p01066-B: Capture nosebleed end time as an optional field
-//   REQ-p01066-H: Validate that end time is after start time
-//   REQ-p01066-K: Prevent entry of nosebleed records for future dates or times
-//   REQ-p01066-L: Store timestamps with patient's wall-clock time and timezone offset
-//   REQ-p01069-A: Provide an intuitive time picker for start and end times
-//   REQ-p01069-E: Support editing of records regardless of completion state
+import 'dart:async';
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_read.dart';
+import 'package:clinical_diary/read/diary_view.dart';
+import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
@@ -23,129 +15,36 @@ import 'package:clinical_diary/widgets/duration_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/intensity_picker.dart';
 import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
-// CUR-408: notes_input import removed - notes step removed from recording flow
 import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
 
-/// Recording flow screen for creating new nosebleed records.
-/// Creation
-/// The screen is created in three ways:
-/// 1) The "Record Nosebleed" button on the home page to create a new entry for today.
-///    The diaryEntryDate is null
-///    The existingRecord is null
-///    The onDelete callback is null
-///    The State\<RecordingScreen>'s _startDateTime initializes to DateTime.now()
-///    The State\<RecordingScreen>'s _endDateTime initializes to null
+/// Multi-step recording flow for creating, resuming, or editing a nosebleed
+/// (`epistaxis_event`).
 ///
-/// 2) The a selected date from the "Calendar" button on the home page.
-///    The diaryEntryDate is the selected date from the Calendar
-///    The existingRecord is null
-///    The onDelete callback is null
-///    The State\<RecordingScreen>'s _startTime initializes to diaryEntryDate with DateTime.now()'s time
-///    The State\<RecordingScreen>'s _endDateTime initializes to null
-///
-/// 3) Editing an existing record.
-///    The diaryEntryDate is null
-///    The existingRecord is not null
-///    The onDelete callback is not null
-///    The State\<RecordingScreen>'s _startDateTime initializes to the existingRecords' startTime
-///    The State\<RecordingScreen>'s _endDateTime initializes to the existingRecords' endDateTime
-///
-/// Widgets - all text is i18n'ed, all times and dates are l10n'ed.
-/// Navigation
-///     Top left: a Back button that goes back to the previous page, saving
-///         the record, which might be an incomplete record.
-///     Top reight: a Delete button which either calls
-///         the record, which might be an incomplete record.
-/// DateHeader - This is the dairy entry date, which is always the start date.
-/// It's not editable (any longer, editable: false).
-/// The displayed value changes when _startDateTime changes
-/// (See Start DateTimeTZ Content)
-///
-/// Summary Row - the Summary Row is 3 widgets that track the user's progress.
-/// (1) Start DateTimeTZ, it display's:
-///         - the start time.
-///         - the start date if different from the non-null endDate's date.
-///         - the start timezone if different from the non-null endDate's timezone.
-/// (2) Intensity - display's the Intensity text or "Tap to Set"
-/// (3) End DateTimeTZ, it display's:
-///         - the end time, or if null "Not set".
-///         - the end date if different from the startDate's date.
-///         - the end timezone if different from the startDate's timezone.
-/// The Start DateTimeTZ content is always initially selected.
-/// Clicking on a summary widget changes the content container below it so the user
-/// can enter a datum into the nosebleed record. Exception: If user clicks the
-/// end date and the Intensity is null, the content is not changed and the
-/// Intensity summary block flashes twice to remind the user that Intensity
-/// is required.
-///
-/// Content
-/// (1) Start DateTimeTZ Content
-///     Title: Nosebleed Start Time
-///     Date Display:
-///         When clicked, shows the calendar picker widget.
-///         When the user picks a new date, it changes _startDateTime's
-///         y/m/d (keeping the time) and sets diaryEntryDate to _startDateTime
-///         If _endDateTime is null, it sets _endDateTime to _startDateTime
-///     Time Display: Displays:
-///         - the start time.
-///         - the date if different from the non-null endDate's date.
-///         - the timezone if different from the non-null endDate's timezone.
-///         When clicked, shows the time picker widget.
-///         When the user picks a new time, it changes _startDateTime
-///             and set the diaryEntryDate to the new _startDateTime
-///     Decrement/Increment Buttons: when clicked, moves _startDateTime
-///         forward or backwards by the number of minutes on the button
-/// (2) Intensity Content - a grid of Intensity's, when click, sets _intensity.
-/// (3) End DateTimeTZ Content
-///     Title: Nosebleed End Time
-///     Time Display: When clicked, shows the time picker widget.
-///         When the user picks a new time, it changes _endDateTime
-///     Date Display: When clicked, shows the calendar picker widget.
-///         When the user picks a new date, it changes _endDateTime's
-///         y/m/d (keeping the old date's time)
-///     Decrement/Increment Buttons: when clicked, moves the _endDateTime
-///         forward or backwards by the number of minutes on the button
+/// Reads (overlap detection) come from the live diary views via
+/// [DiaryViewBuilder]; writes go through the diary Actions
+/// (`record_epistaxis_event`, `edit_epistaxis_event`,
+/// `checkpoint_epistaxis_event`, `delete_entry`) submitted through the scope's
+/// `actionSubmitter`. The screen holds no authoritative state.
 class RecordingScreen extends StatefulWidget {
-  const RecordingScreen({
-    required this.entryService,
-    required this.enrollmentService,
-    super.key,
-    // from calendar
-    this.diaryEntryDate,
-    // edit mode
-    this.existingEntry,
-    this.allEntries = const [],
-    this.onDelete,
-  }) : assert(
-         diaryEntryDate == null || existingEntry == null,
-         'Cannot specify both initialDate and existingEntry',
-       ),
-       assert(
-         existingEntry == null || onDelete != null,
-         'Must specify an onDelete callback when existingEntry is non null.',
-       );
+  const RecordingScreen({super.key, this.existing, this.initialDate})
+    : assert(
+        existing == null || initialDate == null,
+        'Cannot specify both existing and initialDate',
+      );
 
-  final EntryService entryService;
-  final EnrollmentService enrollmentService;
-  final DateTime? diaryEntryDate;
+  /// The entry to edit or resume. `null` for a brand-new entry.
+  final EpistaxisEntryView? existing;
 
-  /// Existing nosebleed entry (`epistaxis_event`) to edit. Pulled fields:
-  /// `entryId`, `currentAnswers['startTime' | 'endTime' | 'intensity' |
-  /// 'startTimeTimezone' | 'endTimeTimezone']`, `isComplete`.
-  final DiaryEntry? existingEntry;
-
-  /// All nosebleed-related entries (`epistaxis_event` only matters here)
-  /// used to detect overlapping time ranges.
-  final List<DiaryEntry> allEntries;
-
-  final Future<void> Function(String)? onDelete;
+  /// Preselected day for a NEW entry (calendar / yesterday banner). Ignored
+  /// when [existing] is non-null.
+  final DateTime? initialDate;
 
   @override
   State<RecordingScreen> createState() => _RecordingScreenState();
@@ -155,86 +54,91 @@ class RecordingScreen extends StatefulWidget {
 enum RecordingStep { startTime, intensity, endTime, complete }
 
 class _RecordingScreenState extends State<RecordingScreen> {
-  // The start date/time shown in the summary, timepicker and clock
+  // The aggregate id of the entry being edited/resumed; null for a brand-new
+  // entry until the first save mints one (and stores it back here).
+  String? _aggregateId;
+
+  // Whether the entry being edited is already finalized (data-complete). Drives
+  // the back-out auto-save decision (never downgrade a finalized entry to a
+  // checkpoint).
+  bool _isComplete = false;
+
+  // The start date/time shown in the summary, timepicker and clock.
   DateTime _startDateTime = DateTime.now();
 
-  // The intensity shown in the summary and intensity display
+  // The intensity shown in the summary and intensity display.
   NosebleedIntensity? _intensity;
 
-  // The end date/time shown in the summary, timepicker and clock
+  // The end date/time shown in the summary, timepicker and clock.
   DateTime? _endDateTime;
 
-  // CUR-516: Track selected timezone for start time (IANA format, e.g., "America/Los_Angeles")
-  // This is used to restore the timezone selection when reopening records.
+  // CUR-516: Selected timezone for start time (IANA, e.g. "America/Los_Angeles").
   String? _startTimeTimezone;
 
-  // CUR-516: Track selected timezone for end time (IANA format)
-  // This is used to restore the timezone selection when reopening records.
+  // CUR-516: Selected timezone for end time (IANA).
   String? _endTimeTimezone;
-
-  // CUR-408: Notes field removed from recording flow TODO - needs to be put back
 
   RecordingStep _currentStep = RecordingStep.startTime;
   bool _isSaving = false;
 
-  // CUR-464: Flash intensity field when user tries to set end time without intensity
+  // CUR-464: Flash intensity field when user tries to set end time without it.
   bool _flashIntensity = false;
 
-  // REQ-CAL-p00001: Old entry justification if required
+  // DIARY-PRD-entry-time-restrictions: Old entry justification if required.
   OldEntryJustification? _oldEntryJustification;
-
-  // --- DiaryEntry answer accessors (existingEntry only) ------------------
-
-  /// Read a `DateTime` answer from `DiaryEntry.currentAnswers`. Returns
-  /// `null` when the answer is missing or malformed.
-  static DateTime? _readDateTimeAnswer(DiaryEntry e, String key) {
-    final raw = e.currentAnswers[key];
-    if (raw is String) return DateTimeFormatter.parse(raw);
-    return null;
-  }
-
-  static String? _readStringAnswer(DiaryEntry e, String key) {
-    final raw = e.currentAnswers[key];
-    return raw is String ? raw : null;
-  }
-
-  static NosebleedIntensity? _readIntensity(DiaryEntry e) {
-    final raw = e.currentAnswers['intensity'];
-    return raw is String ? NosebleedIntensity.fromString(raw) : null;
-  }
 
   @override
   void initState() {
     super.initState();
     final now = DateTime.now();
-    final existing = widget.existingEntry;
+    final existing = widget.existing;
     if (existing == null) {
-      if (widget.diaryEntryDate == null) {
-        _startDateTime = now;
-      } else {
-        _startDateTime = widget.diaryEntryDate!;
-      }
-      // Leave _endDateTime null for new records - it will be set when user
-      // explicitly sets it. The end time picker will use _startDateTime as default.
+      _aggregateId = null;
+      _isComplete = false;
+      _startDateTime = widget.initialDate ?? now;
+      // Leave _endDateTime null for new records - set when the user explicitly
+      // sets it. The end time picker uses _startDateTime as default.
       _endDateTime = null;
       _intensity = null;
-      _currentStep = RecordingStep.startTime;
-      // CUR-516: Initialize timezones to null for new records - will be set by TimePickerDial
       _startTimeTimezone = null;
       _endTimeTimezone = null;
+      _currentStep = RecordingStep.startTime;
     } else {
-      //defensive, startTime should always be set but json conversion could fail
-      _startDateTime = _readDateTimeAnswer(existing, 'startTime') ?? now;
-      _endDateTime = _readDateTimeAnswer(existing, 'endTime');
-      _intensity = _readIntensity(existing);
-      _currentStep = _getInitialStepForExisting();
-      // CUR-516: Restore timezones from existing record to restore UI selection
-      _startTimeTimezone = _readStringAnswer(existing, 'startTimeTimezone');
-      _endTimeTimezone = _readStringAnswer(existing, 'endTimeTimezone');
+      _aggregateId = existing.aggregateId;
+      _isComplete = existing.isComplete;
+      _startDateTime = existing.startTime;
+      _endDateTime = existing.endTime;
+      _intensity = _toWidgetIntensity(existing.intensity);
+      _startTimeTimezone = existing.startTimeZone;
+      _endTimeTimezone = existing.endTimeZone;
+      _currentStep = _getInitialStepForExisting(existing);
     }
   }
 
-  /// REQ-CAL-p00001: Check if this is an old entry (more than one calendar day old)
+  /// Maps the shared-model intensity (carried by [EpistaxisEntryView]) to the
+  /// UI-only [NosebleedIntensity] used by the picker/summary. Both enums share
+  /// identical value names, so the conversion is by enum-name.
+  static NosebleedIntensity? _toWidgetIntensity(Object? shared) {
+    if (shared == null) return null;
+    return NosebleedIntensity.fromString((shared as Enum).name);
+  }
+
+  RecordingStep _getInitialStepForExisting(EpistaxisEntryView existing) {
+    if (existing.intensity == null) {
+      return RecordingStep.intensity;
+    }
+    if (existing.endTime == null) {
+      return RecordingStep.endTime;
+    }
+    // For complete records: show review screen if enabled, otherwise start time.
+    if (FeatureFlagService.instance.useReviewScreen) {
+      return RecordingStep.complete;
+    }
+    return RecordingStep.startTime;
+  }
+
+  /// DIARY-PRD-entry-time-restrictions: Check if this is an old entry (more
+  /// than one calendar day old).
   bool _isOldEntry() {
     final yesterday = DateUtils.addDaysToDate(
       DateUtils.dateOnly(DateTime.now()),
@@ -244,7 +148,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return entryDate.isBefore(yesterday);
   }
 
-  /// REQ-CAL-p00001: Check if old entry justification is required and not yet provided
+  /// Whether old-entry justification is required and not yet provided.
   bool get _needsOldEntryJustification {
     if (!FeatureFlagService.instance.requireOldEntryJustification) {
       return false;
@@ -252,7 +156,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return _isOldEntry() && _oldEntryJustification == null;
   }
 
-  /// REQ-CAL-p00002: Check if short duration confirmation is needed
+  /// Whether short duration confirmation is needed.
   bool get _needsShortDurationConfirmation {
     if (!FeatureFlagService.instance.enableShortDurationConfirmation) {
       return false;
@@ -261,7 +165,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return duration != null && duration <= 1;
   }
 
-  /// REQ-CAL-p00003: Check if long duration confirmation is needed
+  /// Whether long duration confirmation is needed.
   bool get _needsLongDurationConfirmation {
     if (!FeatureFlagService.instance.enableLongDurationConfirmation) {
       return false;
@@ -271,11 +175,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return duration != null && duration > threshold;
   }
 
-  /// REQ-CAL: Run all validation checks before saving
-  /// Returns true if save should proceed, false if cancelled
+  /// Run all validation checks before saving.
+  /// Returns true if save should proceed, false if cancelled.
   Future<bool> _runValidationChecks() async {
-    // CUR-492: Reject negative duration (end time before start time)
-    // This must be checked first before any confirmation dialogs
+    // CUR-492: Reject negative duration (end time before start time) first.
     final duration = _durationMinutes();
     if (duration != null && duration < 0) {
       final l10n = AppLocalizations.of(context);
@@ -285,7 +188,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       return false;
     }
 
-    // REQ-CAL-p00001: Old entry justification check
+    // DIARY-PRD-entry-time-restrictions: Old entry justification check.
     if (_needsOldEntryJustification) {
       final justification = await OldEntryJustificationDialog.show(
         context: context,
@@ -299,7 +202,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       setState(() => _oldEntryJustification = justification);
     }
 
-    // REQ-CAL-p00002: Short duration confirmation
+    // Short duration confirmation.
     if (_needsShortDurationConfirmation) {
       final confirmed = await DurationConfirmationDialog.show(
         context: context,
@@ -314,7 +217,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       }
     }
 
-    // REQ-CAL-p00003: Long duration confirmation
+    // Long duration confirmation.
     if (_needsLongDurationConfirmation) {
       final confirmed = await DurationConfirmationDialog.show(
         context: context,
@@ -334,32 +237,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return true;
   }
 
-  // CUR-408: _loadLinkingStatus removed - notes step removed from recording flow - TODO PUT BACK
-
-  RecordingStep _getInitialStepForExisting() {
-    final existing = widget.existingEntry;
-    if (existing == null) {
-      return RecordingStep.startTime;
-    }
-    if (_readIntensity(existing) == null) {
-      return RecordingStep.intensity;
-    }
-    if (_readDateTimeAnswer(existing, 'endTime') == null) {
-      return RecordingStep.endTime;
-    }
-    // For complete records: show review screen if enabled, otherwise start time
-    if (FeatureFlagService.instance.useReviewScreen) {
-      return RecordingStep.complete;
-    }
-    return RecordingStep.startTime;
-  }
-
-  // CUR-408: _shouldRequireNotes removed - notes step removed from recording flow - TODO - put back
-
-  /// CUR-488: Use localized "Not set" instead of "--:--" for better UX
-  /// CUR-583: Display start time in the selected timezone.
-  /// The stored _startDateTime is adjusted for UTC correctness, so we convert
-  /// it back to the user-selected time/date/timezone for display.
+  /// CUR-488/CUR-583: Format the start time in the selected timezone.
   String _formatStartTime(String locale, AppLocalizations l10n) {
     final displayTime = _getDisplayedDateTime(
       _startDateTime,
@@ -368,16 +246,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return DateFormat.jm(locale).format(displayTime);
   }
 
-  /// Format end time with day offset indicator if dates differ from start.
-  /// Shows "(+1 day)" or "(+N days)" suffix when end date is after start date.
-  /// CUR-583: Display end time in the selected timezone, compare dates in
-  /// their respective timezones.
+  /// CUR-583: Format end time with day-offset suffix when the displayed dates
+  /// differ from start.
   String _formatEndTime(String locale, AppLocalizations l10n) {
     if (_endDateTime == null) {
       return l10n.notSet;
     }
 
-    // CUR-583: Convert stored DateTimes to display times in their timezones
     final startDisplayTime = _getDisplayedDateTime(
       _startDateTime,
       _startTimeTimezone,
@@ -389,7 +264,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     final timeStr = DateFormat.jm(locale).format(endDisplayTime);
 
-    // Add day difference suffix based on displayed dates
     final startDate = DateUtils.dateOnly(startDisplayTime);
     final endDate = DateUtils.dateOnly(endDisplayTime);
     final dayDiff = endDate.difference(startDate).inDays;
@@ -410,53 +284,121 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return _endDateTime!.difference(_startDateTime).inMinutes;
   }
 
-  List<DiaryEntry> _getOverlappingEvents() {
+  /// Overlapping finalized epistaxis entries (as typed view-models) for the
+  /// current candidate range, excluding the entry being edited. Returns an
+  /// empty list when there is no end time yet (an open-ended candidate is not
+  /// matched against neighbours here).
+  // Implements: DIARY-DEV-reactive-read-path/A
+  List<EpistaxisEntryView> _overlappingEvents(DiaryView view) {
     if (_endDateTime == null) {
-      return [];
+      return const <EpistaxisEntryView>[];
     }
-
-    return widget.allEntries.where((entry) {
-      // You can't overlap yourself
-      if (widget.existingEntry != null &&
-          entry.entryId == widget.existingEntry!.entryId) {
-        return false;
-      }
-
-      // Only check real (not unknown or no nosebleed) events with
-      // both start and end times
-      if (entry.entryType != 'epistaxis_event' || entry.isDeleted) {
-        return false;
-      }
-      final start = _readDateTimeAnswer(entry, 'startTime');
-      final end = _readDateTimeAnswer(entry, 'endTime');
-      if (start == null || end == null) return false;
-
-      // Check if events overlap
-      return _startDateTime.isBefore(end) && _endDateTime!.isAfter(start);
-    }).toList();
+    final rows = overlappingEpistaxisEntries(
+      view.finalizedRows,
+      _startDateTime,
+      _endDateTime!,
+      excludeAggregateId: _aggregateId,
+    );
+    return rows
+        .map((r) => diaryEntryViewOf(r, isComplete: true))
+        .whereType<EpistaxisEntryView>()
+        .toList();
   }
 
-  /// Saves the record and returns the record ID, or null if save failed.
-  Future<String?> _saveRecord({bool fromBack = false}) async {
-    debugPrint(
-      '[RecordingScreen] _saveRecord: start=$_startDateTime, '
-      'intensity=$_intensity, end=$_endDateTime',
-    );
-    // CUR-408: Notes validation removed - notes step removed from recording flow - TODO - put back
+  /// Builds the `EpistaxisEventPayload` JSON for the current screen state. The
+  /// required start fields are always present; the optional end/intensity keys
+  /// are omitted when unset so a checkpoint can carry just the start.
+  Map<String, Object?> _buildPayload() {
+    final startIso = DateTimeFormatter.format(_startDateTime);
+    final payload = <String, Object?>{
+      'startTime': startIso,
+      'startTimeZone': _startTimeTimezone ?? 'UTC',
+      'startTimeUtcOffset': _utcOffsetOf(startIso, _startTimeTimezone),
+    };
+    if (_endDateTime != null) {
+      final endIso = DateTimeFormatter.format(_endDateTime!);
+      payload['endTime'] = endIso;
+      payload['endTimeZone'] = _endTimeTimezone ?? _startTimeTimezone ?? 'UTC';
+      payload['endTimeUtcOffset'] = _utcOffsetOf(endIso, _endTimeTimezone);
+    }
+    if (_intensity != null) {
+      payload['intensity'] = _intensity!.name;
+    }
+    return payload;
+  }
 
-    // REQ-CAL: Run validation checks before saving
+  /// Derives the ISO UTC offset (e.g. `-05:00`) for a formatted timestamp.
+  /// Prefers the offset embedded in [iso] (the screen formats wall-clock time
+  /// with the device offset); falls back to computing it from the selected
+  /// [timezone] when the embedded offset is absent.
+  static String _utcOffsetOf(String iso, String? timezone) {
+    final embedded = DateTimeFormatter.extractTimezoneOffset(iso);
+    if (embedded != null && embedded != 'Z') return embedded;
+    if (embedded == 'Z') return '+00:00';
+    final mins = TimezoneConverter.getTimezoneOffsetMinutes(timezone);
+    if (mins == null) return '+00:00';
+    final sign = mins.isNegative ? '-' : '+';
+    final h = (mins.abs() ~/ 60).toString().padLeft(2, '0');
+    final m = (mins.abs() % 60).toString().padLeft(2, '0');
+    return '$sign$h:$m';
+  }
+
+  /// Submits [actionName] with [rawInput] and returns the dispatched result's
+  /// aggregate id (for actions that mint/return one), or null on failure.
+  ///
+  /// Surfaces a save-failure snackbar on any non-success outcome.
+  Future<String?> _submitAction(
+    String actionName,
+    Map<String, Object?> rawInput,
+  ) async {
+    final result = await ReActionScope.of(context).actionSubmitter.submit(
+      ActionSubmission(actionName: actionName, rawInput: rawInput),
+    );
+    switch (result) {
+      case DispatchSuccess<Object?>(:final result):
+        return result is String ? result : null;
+      case DispatchIdempotencyHit<Object?>(:final cachedResult):
+        return cachedResult is String ? cachedResult : null;
+      default:
+        if (mounted) {
+          final l10n = AppLocalizations.of(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.failedToSave),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+        return null;
+    }
+  }
+
+  /// Save-decision table for a "Complete Record" tap (an explicit finalize).
+  ///
+  /// - new entry (`_aggregateId == null`)  -> `record_epistaxis_event`
+  /// - existing entry                      -> `edit_epistaxis_event`
+  ///
+  /// Finalizing a resumed draft via `edit_epistaxis_event` on the SAME
+  /// aggregate makes the incomplete projection self-remove the checkpoint (it
+  /// tombstones on `finalized`).
+  // Implements: DIARY-PRD-incomplete-entry-preservation/A+C
+  // Implements: DIARY-GUI-epistaxis-record/A
+  // Implements: DIARY-PRD-entry-time-restrictions/D
+  // Implements: DIARY-DEV-action-write-path/A
+  Future<String?> _saveRecord({bool fromBack = false}) async {
     final shouldProceed = await _runValidationChecks();
-    debugPrint('[RecordingScreen] _saveRecord: shouldProceed=$shouldProceed');
     if (!shouldProceed) {
       return null;
     }
-    final overlapping = _getOverlappingEvents();
 
-    if (overlapping.isNotEmpty) {
-      if (mounted) {
-        final l10n = AppLocalizations.of(context);
-
-        if (!fromBack) {
+    // Explicit (non-back) saves are blocked by an overlap. We read the live
+    // view via a one-shot lookup against the same DiaryViewBuilder-provided
+    // view captured at build time (passed through _latestView).
+    if (!fromBack) {
+      final overlapping = _overlappingEvents(_latestView ?? _emptyView);
+      if (overlapping.isNotEmpty) {
+        if (mounted) {
+          final l10n = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.overlappingRecordNotAllowed),
@@ -464,54 +406,35 @@ class _RecordingScreenState extends State<RecordingScreen> {
             ),
           );
         }
+        return null;
       }
-      return null;
     }
 
     setState(() => _isSaving = true);
-
     try {
-      // CUR-447: Use _startDateTime as the primary date for the record
-      // CUR-516: Pass timezone to preserve UI selection for incomplete records
-      final existing = widget.existingEntry;
-      final recordId = existing?.entryId ?? const Uuid().v7();
-
-      final answers = <String, Object?>{
-        'startTime': DateTimeFormatter.format(_startDateTime),
-        if (_endDateTime != null)
-          'endTime': DateTimeFormatter.format(_endDateTime!),
-        if (_intensity != null) 'intensity': _intensity!.name,
-        if (_startTimeTimezone != null) 'startTimeTimezone': _startTimeTimezone,
-        if (_endTimeTimezone != null) 'endTimeTimezone': _endTimeTimezone,
-      };
-
-      await widget.entryService.record(
-        entryType: 'epistaxis_event',
-        aggregateId: recordId,
-        eventType: 'finalized',
-        answers: answers,
-        changeReason: existing != null ? 'edited' : null,
-      );
-
-      if (mounted) {
-        // Return record ID so home screen can scroll to and highlight it
-        Navigator.pop(context, recordId);
+      final payload = _buildPayload();
+      final justification = _oldEntryJustification?.name;
+      final String? newId;
+      if (_aggregateId == null) {
+        newId = await _submitAction('record_epistaxis_event', <String, Object?>{
+          ...payload,
+          'entryJustification': ?justification,
+        });
+      } else {
+        newId = await _submitAction('edit_epistaxis_event', <String, Object?>{
+          'aggregateId': _aggregateId,
+          ...payload,
+          'entryJustification': ?justification,
+        });
       }
-      return recordId;
-    } catch (e, s) {
-      debugPrint('$e');
-      debugPrintStack(stackTrace: s);
-      // Show error snackbar to user
-      if (mounted) {
-        final l10n = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.failedToSave),
-            duration: const Duration(seconds: 5),
-          ),
-        );
+      if (newId == null) {
+        return null; // _submitAction already surfaced the failure.
       }
-      return null;
+      _aggregateId = newId;
+      if (mounted) {
+        Navigator.pop(context, newId);
+      }
+      return newId;
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -523,31 +446,23 @@ class _RecordingScreenState extends State<RecordingScreen> {
     setState(() => _currentStep = step);
   }
 
-  /// CUR-464: Handle end time tap - flash intensity if not set, otherwise navigate
+  /// CUR-464: Handle end time tap - flash intensity if not set, else navigate.
   void _handleEndTimeTap() {
     if (_intensity == null) {
-      // Flash the intensity field to remind user to set it first
       setState(() => _flashIntensity = true);
     } else {
       _goToStep(RecordingStep.endTime);
     }
   }
 
-  /// CUR-583: Handle start time confirmation with future time validation
-  // Implements: REQ-p01066-K — reject start times that resolve to the future
-  // after timezone conversion (e.g., a displayed time in a timezone behind the
-  // device that converts to a future UTC moment).
-  // Implements: REQ-p01066-L — convert displayed (wall-clock) time to stored
-  // UTC-equivalent using the patient's selected timezone.
+  /// CUR-583: Handle start time confirmation with future-time validation.
+  // Implements: DIARY-PRD-entry-time-restrictions/D
   void _handleStartTimeConfirm(DateTime displayedTime) {
-    // Convert displayed time to stored DateTime using selected timezone
     final storedStartTime = TimezoneConverter.toStoredDateTime(
       displayedTime,
       _startTimeTimezone,
     );
 
-    // Validate stored start time is not in the future
-    // This can happen when timezone conversion shifts the time forward
     if (storedStartTime.isAfter(DateTime.now())) {
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
@@ -558,20 +473,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     setState(() {
       _startDateTime = storedStartTime;
-      // CUR-560: If intensity is already set, skip to end time instead of
-      // forcing the user to re-select intensity after modifying start time.
+      // CUR-560: skip intensity if already set.
       _currentStep = _intensity != null
           ? RecordingStep.endTime
           : RecordingStep.intensity;
     });
   }
-
-  // void _handleStartTimeConfirm(DateTime time) {
-  //   setState(() {
-  //     _startDateTime = time;
-  //     _currentStep = RecordingStep.intensity;
-  //   });
-  // }
 
   void _handleIntensitySelect(NosebleedIntensity intensity) {
     setState(() {
@@ -580,18 +487,14 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
-  // Implements: REQ-p01066-H — validate end time is after start time.
-  // Implements: REQ-p01066-K — reject end times that resolve to the future.
-  // Implements: REQ-p01066-L — convert wall-clock display time to stored
-  // representation using the patient's selected timezone.
+  /// CUR-516/583: validate end time and (when no review screen) save.
+  // Implements: DIARY-PRD-entry-time-restrictions/D
   Future<void> _handleEndTimeConfirm(DateTime displayedTime) async {
-    // CUR-583: Convert displayed time to stored DateTime using selected timezone
     final storedEndTime = TimezoneConverter.toStoredDateTime(
       displayedTime,
       _endTimeTimezone,
     );
 
-    // Validate end time is after start time
     if (storedEndTime.isBefore(_startDateTime)) {
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
@@ -600,9 +503,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
       return;
     }
 
-    // CUR-583: Validate stored end time is not in the future
-    // This can happen when timezone conversion shifts the time forward
-    // (e.g., picking Hawaii time from CET device shifts stored time +11 hours)
     if (storedEndTime.isAfter(DateTime.now())) {
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
@@ -615,29 +515,35 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _endDateTime = storedEndTime;
     });
 
-    // CUR-464: When useReviewScreen is false, save immediately and return
+    // CUR-464: When useReviewScreen is false, save immediately and return.
     if (!FeatureFlagService.instance.useReviewScreen) {
       await _saveRecord();
       return;
     }
 
-    // CUR-408: Go directly to complete step, notes step removed (TODO - put back)
     setState(() {
       _currentStep = RecordingStep.complete;
     });
   }
 
-  // CUR-408: _handleNotesChange, _handleNotesBack, _handleNotesNext removed
-
+  /// Delete pressed: tombstone the aggregate via `delete_entry`.
+  // Implements: DIARY-PRD-incomplete-entry-preservation/A+C
+  // Implements: DIARY-DEV-action-write-path/A
   Future<void> _handleDelete() async {
+    final aggregateId = _aggregateId;
+    if (aggregateId == null) {
+      // Nothing persisted yet; just pop.
+      if (mounted) Navigator.pop(context, true);
+      return;
+    }
     await DeleteConfirmationDialog.show(
       context: context,
       onConfirmDelete: (String reason) async {
-        if (widget.onDelete != null) {
-          await widget.onDelete!(reason);
-        }
-        // Pop the recording screen after the dialog closes
-        //If no existing record/onDelete, pop without saving the partial.
+        await _submitAction('delete_entry', <String, Object?>{
+          'aggregateId': aggregateId,
+          'entryType': 'epistaxis_event',
+          'changeReason': 'entered-in-error',
+        });
         if (mounted) {
           Navigator.pop(context, true);
         }
@@ -645,74 +551,91 @@ class _RecordingScreenState extends State<RecordingScreen> {
     );
   }
 
-  /// Check if we have unsaved changes that could be saved as a partial record
-  /// Save even if the user just comes in and goes back.  The nosebleed started,
-  /// it records the start, they can pick it up later, easy-peasy
+  /// Whether there are unsaved changes worth auto-saving on back-out.
   bool _hasUnsavedPartialRecord() {
-    final existing = widget.existingEntry;
-    // If we're editing an existing record, check if values changed
+    final existing = widget.existing;
     if (existing != null) {
-      final priorStart = _readDateTimeAnswer(existing, 'startTime');
-      final priorEnd = _readDateTimeAnswer(existing, 'endTime');
-      final priorIntensity = _readIntensity(existing);
-      return _startDateTime != priorStart ||
-          _endDateTime != priorEnd ||
-          _intensity != priorIntensity;
+      return _startDateTime != existing.startTime ||
+          _endDateTime != existing.endTime ||
+          _intensity != _toWidgetIntensity(existing.intensity);
     }
-    // For new records, we have unsaved data if
-    // we're not at the complete step (which has its own save button)
+    // For new records, we have unsaved data unless we're at the complete step
+    // (which has its own save button).
     return _currentStep != RecordingStep.complete;
   }
 
-  /// Auto-save partial record when user navigates away with unsaved changes.
-  /// REQ-p00001: Incomplete Entry Preservation - automatically saves partial
-  /// records without prompting the user.
+  /// Auto-save on back-out (DIARY-PRD-incomplete-entry-preservation).
+  ///
+  /// - editing an already-finalized entry (`_isComplete == true`) ->
+  ///   `edit_epistaxis_event` (never downgrade to a checkpoint).
+  /// - new or resumed draft (`!_isComplete`) -> `checkpoint_epistaxis_event`
+  ///   (aggregateId may be null; the action mints one and returns it).
+  // Implements: DIARY-PRD-incomplete-entry-preservation/A+C
+  // Implements: DIARY-DEV-action-write-path/A
   Future<bool> _handleExit() async {
-    try {
-      final hasUnsaved = _hasUnsavedPartialRecord();
-      debugPrint(
-        '[RecordingScreen] _handleExit: hasUnsavedPartialRecord=$hasUnsaved, '
-        'step=$_currentStep, intensity=$_intensity, endTime=$_endDateTime',
-      );
-      if (!hasUnsaved) {
-        return true;
-      }
-
-      // Auto-save the partial record without prompting
-      debugPrint('[RecordingScreen] _handleExit: calling _saveRecord()');
-      final recordId = await _saveRecord(fromBack: true);
-      if (recordId == null) {
-        if (mounted) {
-          final l10n = AppLocalizations.of(context);
-          // TODO - need an error dialog with an error id and o11y
-          final controller = ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: SelectableText(
-                l10n.failedToSave,
-                style: const TextStyle(color: Colors.white),
-              ),
-              duration: const Duration(seconds: 5),
-            ),
-          );
-          await controller.closed;
-        }
-        // _saveRecord won't pop on error so we have to
-        return true;
-      }
-      // _saveRecord handles navigation via Navigator.pop, so return false
-      // to prevent double navigation
-      return false;
-    } catch (e, s) {
-      //TODO - improve error handling
-      debugPrint('Error exiting $e');
-      debugPrintStack(stackTrace: s);
+    if (!_hasUnsavedPartialRecord()) {
       return true;
+    }
+
+    final shouldProceed = await _runValidationChecks();
+    if (!shouldProceed) {
+      // Validation cancelled — stay on the screen.
+      return false;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final payload = _buildPayload();
+      final String? newId;
+      if (_isComplete) {
+        newId = await _submitAction('edit_epistaxis_event', <String, Object?>{
+          'aggregateId': _aggregateId,
+          ...payload,
+        });
+      } else {
+        newId = await _submitAction(
+          'checkpoint_epistaxis_event',
+          <String, Object?>{'aggregateId': _aggregateId, ...payload},
+        );
+      }
+      if (newId == null) {
+        // _submitAction surfaced the failure; allow the pop so the user isn't
+        // trapped, mirroring the prior behavior.
+        return true;
+      }
+      _aggregateId = newId;
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      // We popped ourselves; tell PopScope not to pop again.
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
+  // The most recent DiaryView from the builder, captured so the imperative save
+  // path can run an overlap check against live rows.
+  DiaryView? _latestView;
+  static final DiaryView _emptyView = DiaryView(
+    finalized: const [],
+    incomplete: const [],
+  );
+
   @override
   Widget build(BuildContext context) {
-    final overlappingEvents = _getOverlappingEvents();
+    return DiaryViewBuilder(
+      builder: (context, view) {
+        _latestView = view;
+        return _buildScaffold(context, view);
+      },
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, DiaryView view) {
+    final overlappingEvents = _overlappingEvents(view);
     final l10n = AppLocalizations.of(context);
 
     return PopScope(
@@ -776,7 +699,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   child: OverlapWarning(
                     overlappingEntries: overlappingEvents,
                     onViewConflict: (conflictingEntry) {
-                      // Pop back to view the conflicting entry in context
                       Navigator.pop(context, false);
                     },
                   ),
@@ -796,16 +718,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildSummaryBar(AppLocalizations l10n) {
     final locale = Localizations.localeOf(context).languageCode;
 
-    // CUR-516: Get timezone abbreviations to show when different from device TZ
-    // Normalize device TZ to abbreviation for proper comparison
-    // Use TimezoneService to allow test overrides
     final timeZoneName =
         TimezoneService.instance.currentTimezone ?? DateTime.now().timeZoneName;
-    debugPrint('timeZoneName: $timeZoneName');
     final deviceTzAbbr = normalizeDeviceTimezone(timeZoneName);
-    debugPrint('normalized deviceTzAbbr: $deviceTzAbbr');
-    debugPrint('_startTimeTimezone: $_startTimeTimezone');
-    debugPrint('_endTimeTimezone: $_endTimeTimezone');
     final startTzAbbr = _startTimeTimezone != null
         ? getTimezoneAbbreviation(
             _startTimeTimezone!,
@@ -825,25 +740,14 @@ class _RecordingScreenState extends State<RecordingScreen> {
           )
         : null;
 
-    debugPrint('startTzAbbr: $startTzAbbr');
-    debugPrint('endTzAbbr: $endTzAbbr');
-
-    // Show timezone in summary when different from device or from each other
     final startDiffersFromDevice =
         startTzAbbr != null && startTzAbbr != deviceTzAbbr;
     final endDiffersFromDevice = endTzAbbr != null && endTzAbbr != deviceTzAbbr;
     final timezonesDiffer =
         startTzAbbr != null && endTzAbbr != null && startTzAbbr != endTzAbbr;
 
-    debugPrint('startDiffersFromDevice: $startDiffersFromDevice');
-    debugPrint('endDiffersFromDevice: $endDiffersFromDevice');
-    debugPrint('timezonesDiffer: $timezonesDiffer');
-
-    // Show timezone only if it differs from device OR start/end differ
     final showStartTz = startDiffersFromDevice || timezonesDiffer;
     final showEndTz = endDiffersFromDevice || timezonesDiffer;
-    debugPrint('showStartTz: $showStartTz');
-    debugPrint('showEndTz: $showEndTz');
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -888,7 +792,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           _buildDivider(),
 
-          // End time - CUR-464: use _handleEndTimeTap to flash intensity if not set
+          // End time - CUR-464: flash intensity if not set
           _buildSummaryItem(
             label: l10n.end,
             value: _formatEndTime(locale, l10n),
@@ -905,7 +809,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     required String label,
     required String value,
     required bool isActive,
-    String? subtitle, // CUR-516: Optional timezone display
+    String? subtitle,
     VoidCallback? onTap,
     Color? highlightColor,
   }) {
@@ -914,7 +818,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          // CUR-464: Use highlight color when flashing, otherwise normal styling
           color:
               highlightColor ??
               (isActive
@@ -946,7 +849,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
                     : Theme.of(context).colorScheme.onSurface,
               ),
             ),
-            // CUR-516: Show timezone when different from device TZ
             if (subtitle != null) ...[
               const SizedBox(height: 2),
               Text(
@@ -980,8 +882,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildCurrentStep(AppLocalizations l10n) {
     switch (_currentStep) {
       case RecordingStep.startTime:
-        // CUR-516: Pass and track timezone for start time to restore UI selection
-        // for incomplete records
         return TimePickerDial(
           key: const ValueKey('start_time_picker'),
           title: l10n.nosebleedStart,
@@ -1004,12 +904,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
         );
 
       case RecordingStep.endTime:
-        // Use start time as default for end time picker when not yet set
-        // CUR-583: Convert stored DateTime to displayed time
         final endInitialTime = _endDateTime != null
             ? _getDisplayedDateTime(_endDateTime!, _endTimeTimezone)
             : _getDisplayedDateTime(_startDateTime, _startTimeTimezone);
-        // CUR-516: Pass and track timezone for end time to restore UI selection
         return TimePickerDial(
           key: const ValueKey('end_time_picker'),
           title: l10n.nosebleedEndTime,
@@ -1021,20 +918,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
           confirmLabel: l10n.setEndTime,
         );
 
-      // CUR-408: Notes case removed from recording flow - TODO PUT BACK
-
       case RecordingStep.complete:
         return _buildCompleteStep(l10n);
     }
   }
 
-  /// CUR-583: Convert stored DateTime to displayed time for the selected timezone.
-  /// Uses TimezoneConverter utility for the conversion logic.
+  /// CUR-583: Convert stored DateTime to displayed time for the selected tz.
   DateTime _getDisplayedDateTime(DateTime storedDateTime, String? timezone) {
     return TimezoneConverter.toDisplayedDateTime(storedDateTime, timezone);
   }
 
-  /// CUR-583: Handle start time/date change - convert displayed time to stored DateTime
   void _setStartDateTime(DateTime displayedDateTime) {
     final storedTime = TimezoneConverter.toStoredDateTime(
       displayedDateTime,
@@ -1045,7 +938,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
-  /// CUR-583: Handle end time/date change - convert displayed time to stored DateTime
   void _setEndDateTime(DateTime displayedDateTime) {
     final storedTime = TimezoneConverter.toStoredDateTime(
       displayedDateTime,
@@ -1056,7 +948,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
-  /// CUR-583: Handle start timezone change - recalculate stored DateTime for new timezone
   void _handleStartTimezoneChanged(String newTimezone) {
     final adjustedTime = TimezoneConverter.recalculateForTimezoneChange(
       _startDateTime,
@@ -1069,7 +960,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
-  /// CUR-583: Handle end timezone change - recalculate stored DateTime for new timezone
   void _handleEndTimezoneChanged(String newTimezone) {
     if (_endDateTime == null) {
       setState(() {
@@ -1089,19 +979,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
-  /// @return a DateTime where the Date is date and the time is time
-  DateTime dateTimeForDateAndTime(DateTime date, DateTime time) {
-    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
-  }
-
   Widget _buildCompleteStep(AppLocalizations l10n) {
-    final existing = widget.existingEntry;
-    final isExistingComplete = existing != null && existing.isComplete;
+    final isEditing = _aggregateId != null;
+    final isExistingComplete = _isComplete;
 
-    // CUR-408: Notes-related currentRecord and needsNotes removed
-    // CUR-443: hasOverlaps removed - overlaps show warning but don't block save
-
-    final buttonText = existing != null
+    final buttonText = isEditing
         ? (isExistingComplete ? l10n.saveChanges : l10n.completeRecord)
         : l10n.finished;
 
@@ -1112,9 +994,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            existing != null && !isExistingComplete
+            isEditing && !isExistingComplete
                 ? l10n.completeRecord
-                : existing != null
+                : isEditing
                 ? l10n.editRecord
                 : l10n.recordComplete,
             style: Theme.of(
@@ -1125,7 +1007,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           const SizedBox(height: 8),
 
           Text(
-            existing != null && !isExistingComplete
+            isEditing && !isExistingComplete
                 ? l10n.reviewAndSave
                 : l10n.tapFieldToEdit,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -1150,10 +1032,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
             ),
           ],
 
-          // CUR-408: Notes display section removed from complete step
           const Spacer(),
 
-          // CUR-443: Overlaps show warning but don't block save
           SizedBox(
             width: double.infinity,
             child: FilledButton(
