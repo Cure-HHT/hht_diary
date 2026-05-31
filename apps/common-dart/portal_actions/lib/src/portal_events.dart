@@ -13,8 +13,6 @@ final List<EntryTypeDefinition> portalPrivateEventTypes = <EntryTypeDefinition>[
   _e('user_profile_changed', 'User Profile Changed'),
   _e('user_email_change_requested', 'User Email Change Requested'),
   _e('user_email_changed', 'User Email Changed'),
-  _e('user_roles_changed', 'User Roles Changed'),
-  _e('user_sites_changed', 'User Sites Changed'),
   _e('user_deactivated', 'User Deactivated'),
   _e('user_reactivated', 'User Reactivated'),
   _e('user_sessions_revoked', 'User Sessions Revoked'),
