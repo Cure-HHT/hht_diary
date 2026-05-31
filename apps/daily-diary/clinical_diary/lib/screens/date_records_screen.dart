@@ -2,6 +2,7 @@
 //   REQ-p00008: Mobile App Diary Entry
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
@@ -168,7 +169,7 @@ class DateRecordsScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final entry = sortedEntries[index];
         return EventListItem(
-          entry: entry,
+          view: diaryEntryViewFromLegacy(entry),
           onTap: () => onEditEvent(entry),
           hasOverlap: _hasOverlap(entry),
         );
