@@ -24,6 +24,7 @@ export 'src/actions/user_account/edit_user_account_action.dart';
 export 'src/actions/user_account/reactivate_user_account_action.dart';
 export 'src/actions/user_account/resend_activation_email_action.dart';
 export 'src/actions/user_account/revoke_role_action.dart';
+export 'src/actions/user_account/revoke_site_action.dart';
 export 'src/actions/user_account/unlock_user_account_action.dart';
 export 'src/actions/views/view_admin_settings_action.dart';
 export 'src/actions/views/view_audit_log_action.dart';

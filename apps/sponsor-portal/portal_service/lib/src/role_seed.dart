@@ -42,6 +42,7 @@ grants:
     - portal.user.assign_role
     - portal.user.assign_site
     - portal.user.revoke_role
+    - portal.user.revoke_site
     - portal.user.delete_pending
     - portal.audit.view
     - portal.admin.view_settings
