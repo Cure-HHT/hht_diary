@@ -782,6 +782,7 @@
 **DIARY:**
 
 - DIARY-DEV-node-sync-topology-A
+- DIARY-DEV-participant-site-index-B
 
 ## Failed Attempt Threshold
 
@@ -1263,6 +1264,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-participant-site-index
 - DIARY-GUI-participant-task-list
 - DIARY-PRD-participant-registration
 - DIARY-PRD-participant-link-new
@@ -1275,6 +1277,7 @@
 - DIARY-BASE-system-operator-role-B
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-B
+- DIARY-DEV-participant-site-index-A
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-study-coordinator-B
 - DIARY-GUI-audit-log-cra-A
@@ -1469,6 +1472,8 @@
 - DIARY-OPS-rave-sync-cooldown-D
 - DIARY-OPS-rave-sync-hard-lockout-B
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-participant-site-index:section:0
+- DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
@@ -2123,6 +2128,7 @@
 - DIARY-GUI-user-information-modal-H
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-participant-site-index:section:1
 - rem:spec/glossary-core.md:745
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -2293,7 +2299,10 @@
 
 **DIARY:**
 
+- DIARY-DEV-participant-site-index
 - DIARY-PRD-user-account-site-assignment
+- DIARY-DEV-participant-site-index-A
+- DIARY-DEV-participant-site-index-B
 - DIARY-GUI-audit-log-cra-A
 - DIARY-GUI-audit-log-cra-B
 - DIARY-GUI-audit-log-cra-D
@@ -2314,6 +2323,8 @@
 - DIARY-GUI-user-information-modal-D
 - DIARY-GUI-user-information-modal-E
 - DIARY-GUI-user-information-modal-G
+- DIARY-DEV-participant-site-index:section:0
+- DIARY-DEV-participant-site-index:section:1
 - DIARY-GUI-audit-log-cra:section:0
 - DIARY-GUI-audit-log-cra:section:3
 - DIARY-PRD-data-backup-and-archival:section:0

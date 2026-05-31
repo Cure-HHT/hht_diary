@@ -77,6 +77,8 @@ D. The System SHALL support **Sponsor-Level *Action* Extensions** to the **Actio
 |  | ACT-USR-007 | Assign *Role* to *User* Account |
 |  | ACT-USR-008 | Assign *Site* to *User* Account |
 |  | ACT-USR-009 | Delete Pending *User* Account |
+|  | ACT-USR-010 | Revoke *Role* from *User* Account |
+|  | ACT-USR-011 | Revoke *Site* from *User* Account |
 | **Site** | ACT-SIT-001 | View Sites |
 | **Audit Log** | ACT-AUD-001 | View audit log |
 | **Administrator Settings** | ACT-ADM-001 | View ***Administrator** Settings* |
