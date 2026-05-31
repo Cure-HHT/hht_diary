@@ -12,12 +12,14 @@ import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
+import 'package:clinical_diary/scope/diary_sync_triggers.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/debug_bridge.dart';
@@ -32,6 +34,12 @@ import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:common_widgets/common_widgets.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
+// Prefixed to disambiguate the new-stack AutomationInitiator from the legacy
+// `event_sourcing_datastore` AutomationInitiator imported above; the new diary
+// scope's DestinationRegistry.setStartDate takes the new-stack Initiator.
+import 'package:event_sourcing/event_sourcing.dart'
+    as esd
+    show AutomationInitiator;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
@@ -153,6 +161,16 @@ class _AppRootState extends State<AppRoot> {
   /// reaction widgets can resolve a `LocalScope` during the transition.
   DiaryScopeRuntime? _diaryScope;
 
+  /// CUR-1169 I2a: foreground drain triggers (app-resume / connectivity /
+  /// periodic) for the new-stack native outbound sync. The post-action-submit
+  /// drain is wired through the bootstrap's `syncCycleTrigger`; these cover the
+  /// remaining trigger sources. Disposed with the runtime.
+  DiarySyncTriggerHandles? _diarySyncTriggers;
+
+  /// HTTP client owned by the native outbound [DiaryServerDestination]. Closed
+  /// on [dispose] so the destination's transport is torn down cleanly.
+  http.Client? _diaryIngestClient;
+
   /// Persistent device install UUID, minted on first launch and reused
   /// thereafter. Forwarded to [HomeScreen] for the export payload.
   String? _deviceId;
@@ -272,6 +290,28 @@ class _AppRootState extends State<AppRoot> {
             '${docsDir.path}/diary_es.db',
           );
         }
+        // CUR-1169 I2a: the end-state NATIVE outbound destination. Ships the
+        // canonical esd/batch@1 BatchEnvelope to the diary-server event-sourcing
+        // ingest. The ingest endpoint is the native handler the diary-server
+        // rebuild (evs-portal Beta topology) will expose; until then the POST
+        // simply retries (SendTransient) — diary entries already do not sync
+        // post-cluster and the app is greenfield. Resolve URL + JWT lazily so
+        // the destination picks up enrollment the moment the participant links,
+        // with no bootstrap-time restart.
+        final ingestClient = http.Client();
+        _diaryIngestClient = ingestClient;
+        final destination = DiaryServerDestination(
+          client: ingestClient,
+          // Native ingest endpoint: <backend>/api/v1/ingest/batch. Returns null
+          // pre-enrollment, which the destination treats as "skip this cycle".
+          resolveIngestUrl: () async {
+            final base = await _enrollmentService.getBackendUrl();
+            if (base == null) return null;
+            return Uri.parse('$base/api/v1/ingest/batch');
+          },
+          authToken: _enrollmentService.getJwtToken,
+        );
+
         try {
           diaryScope = await bootstrapDiaryScope(
             backend: SembastBackend(database: esDb),
@@ -279,10 +319,54 @@ class _AppRootState extends State<AppRoot> {
             softwareVersion: softwareVersion,
             localUserId: deviceId, // stable per-install id; recording is never
             // enrollment-gated
+            outboundDestination: destination,
           );
         } catch (_) {
+          ingestClient.close();
+          _diaryIngestClient = null;
           await esDb.close();
           rethrow;
+        }
+
+        // Implements: DIARY-DEV-native-outbound-sync/C
+        // Activate the native destination at the trial-start watermark so
+        // pre-trial events stay local (parity with the legacy destinations,
+        // which anchor at first-install "now"). Greenfield: no events exist
+        // before the app does, so "now" at first activation IS the trial start.
+        // setStartDate is monotonically non-increasing — skip the write when
+        // already activated so a process restart is a no-op.
+        const watermarkInitiator = esd.AutomationInitiator(
+          service: 'mobile-bootstrap',
+        );
+        try {
+          final schedule = await diaryScope.bundle.destinations.scheduleOf(
+            DiaryServerDestination.destinationId,
+          );
+          if (schedule.startDate == null) {
+            await diaryScope.bundle.destinations.setStartDate(
+              DiaryServerDestination.destinationId,
+              DateTime.now().toUtc(),
+              initiator: watermarkInitiator,
+            );
+          }
+        } catch (e, stack) {
+          debugPrint(
+            '[Bootstrap] native destination activation failed: $e\n$stack',
+          );
+        }
+
+        // Install the foreground drain triggers (app-resume / connectivity /
+        // periodic). The post-action-submit drain is already wired through the
+        // bootstrap's syncCycleTrigger; these route into the same SyncCycle.
+        final syncCycle = diaryScope.syncCycle;
+        if (syncCycle != null) {
+          try {
+            _diarySyncTriggers = await installDiarySyncTriggers(
+              onTrigger: syncCycle.call,
+            );
+          } catch (e, stack) {
+            debugPrint('[Bootstrap] diary sync triggers failed: $e\n$stack');
+          }
         }
       }
 
@@ -420,6 +504,15 @@ class _AppRootState extends State<AppRoot> {
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
     _runtime?.dispose();
+    // CUR-1169 I2a: tear down the native outbound sync triggers + HTTP client
+    // before disposing the scope they drive.
+    unawaited(
+      _diarySyncTriggers?.dispose().catchError(
+        (Object e, StackTrace st) =>
+            debugPrint('[DiarySyncTriggers] dispose error: $e\n$st'),
+      ),
+    );
+    _diaryIngestClient?.close();
     _diaryScope?.dispose().catchError(
       (Object e, StackTrace st) =>
           debugPrint('[DiaryScope] dispose error: $e\n$st'),

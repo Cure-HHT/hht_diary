@@ -13,12 +13,20 @@ class DiaryScopeRuntime {
     required this.bundle,
     required this.authSession,
     required this.permissionSource,
+    this.syncCycle,
   });
 
   final LocalScope scope;
   final EventStoreBundle bundle;
   final LocalAuthSession authSession;
   final LocalPermissionSource permissionSource;
+
+  /// The outbound [SyncCycle] driving the registered destination(s), or `null`
+  /// when bootstrapped with no outbound destination (tests / headless). When
+  /// present, the app installs drain triggers (`installDiarySyncTriggers`) that
+  /// route into [SyncCycle.call]; the post-append fire-and-forget trigger is
+  /// already wired through `bootstrapEventStore`'s `syncCycleTrigger`.
+  final SyncCycle? syncCycle;
 
   /// Disposes all owned resources in dependency order.
   ///
@@ -39,12 +47,22 @@ class DiaryScopeRuntime {
 /// [localUserId] is the stable per-install id (recording is never gated on
 /// study enrollment). [extraEntryTypes] carries dynamic `<id>_survey` defs when
 /// the caller has them (empty is fine for I1).
+///
+/// [outboundDestination] supplies the native outbound [Destination] (the
+/// diary-server ingest). When non-null it is registered with `bootstrapEventStore`
+/// and a [SyncCycle] is constructed and wired as the post-append
+/// `syncCycleTrigger` (fire-and-forget drain after every write). The caller is
+/// responsible for (a) calling `bundle.destinations.setStartDate(deviceId, ...)`
+/// to activate the destination at the trial-start watermark, and (b) installing
+/// the lifecycle / connectivity / periodic triggers via `installDiarySyncTriggers`.
+/// When `null`, the no-destination path is kept for tests / headless boots.
 Future<DiaryScopeRuntime> bootstrapDiaryScope({
   required StorageBackend backend,
   required String deviceId,
   required String softwareVersion,
   required String localUserId,
   List<EntryTypeDefinition> extraEntryTypes = const [],
+  Destination? outboundDestination,
 }) async {
   final entryTypes = <EntryTypeDefinition>[
     for (final t in diaryOriginatedEventTypes) t.definition,
@@ -55,17 +73,40 @@ Future<DiaryScopeRuntime> bootstrapDiaryScope({
     ..register(settingsProjection)
     ..register(diaryIncompleteProjection);
 
+  final source = Source(
+    hopId: 'mobile-device',
+    identifier: deviceId,
+    softwareVersion: softwareVersion,
+  );
+
+  // Implements: DIARY-DEV-native-outbound-sync/A
+  // Implements: DIARY-DEV-evs-stack-adoption/B
+  // Forward-declare the SyncCycle so the post-append trigger closure can capture
+  // the variable; it is assigned after the bundle exists (the registry it drives
+  // lives on the bundle). `bootstrapEventStore` itself appends a registry-init
+  // event that fires this trigger BEFORE assignment, so the variable is plain
+  // nullable (not `late`) and the closure tolerates the not-yet-assigned null.
+  SyncCycle? syncCycle;
+  Future<void> triggerDrain() async => syncCycle?.call();
+
   final bundle = await bootstrapEventStore(
     backend: backend,
-    source: Source(
-      hopId: 'mobile-device',
-      identifier: deviceId,
-      softwareVersion: softwareVersion,
-    ),
+    source: source,
     entryTypes: entryTypes,
-    destinations: const [], // native ingest Destination is I2
+    destinations: outboundDestination == null
+        ? const []
+        : [outboundDestination],
     projections: projections,
+    syncCycleTrigger: outboundDestination == null ? null : triggerDrain,
   );
+
+  syncCycle = outboundDestination == null
+      ? null
+      : SyncCycle(
+          backend: backend,
+          registry: bundle.destinations,
+          source: source,
+        );
 
   // The local participant is authenticated from first launch (stable id).
   final authSession = LocalAuthSession(defaultActiveRole: 'participant')
@@ -102,5 +143,6 @@ Future<DiaryScopeRuntime> bootstrapDiaryScope({
     bundle: bundle,
     authSession: authSession,
     permissionSource: permissionSource,
+    syncCycle: syncCycle,
   );
 }
