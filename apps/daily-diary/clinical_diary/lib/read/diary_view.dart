@@ -47,6 +47,16 @@ class DiaryView {
     localDate,
   ).map((r) => diaryEntryViewOf(r, isComplete: true)).toList();
 
+  /// In-progress (checkpoint) entries on a specific local date. A day may hold
+  /// an incomplete entry with no finalized entry (a partial recording the
+  /// participant backed out of) — the day-records list surfaces these so the
+  /// participant can resume them, rather than treating the day as empty.
+  List<DiaryEntryView> incompleteEntriesOn(String localDate) =>
+      entriesOnLocalDate(
+        _incomplete,
+        localDate,
+      ).map((r) => diaryEntryViewOf(r, isComplete: false)).toList();
+
   /// Finalized entries whose localDate is in [days] (e.g. today + yesterday).
   /// Note: builds on [entries] (a copy+sort); avoid calling both in one build
   /// cycle when the sorted list is already in hand.

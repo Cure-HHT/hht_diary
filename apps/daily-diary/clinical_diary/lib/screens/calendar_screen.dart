@@ -102,7 +102,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
       selectedDay.day,
     );
     final localDate = _localDateKey(selectedDay);
-    final entries = view.entriesOn(localDate);
+    // Surface BOTH finalized entries and in-progress (checkpoint) drafts for the
+    // day: a day may hold only an incomplete draft (rendered black on the grid),
+    // and tapping it must open the records list so the draft can be resumed —
+    // not the 3-option picker, which is only for a day with no entries at all.
+    final entries = <DiaryEntryView>[
+      ...view.entriesOn(localDate),
+      ...view.incompleteEntriesOn(localDate),
+    ];
 
     if (entries.isEmpty) {
       await _showDaySelectionScreen(localDay, localDate);
