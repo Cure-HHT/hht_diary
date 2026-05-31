@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 

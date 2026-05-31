@@ -43,6 +43,7 @@
 
 import 'dart:async';
 
+import 'package:clinical_diary/read/diary_entry_view_legacy_bridge.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
@@ -282,7 +283,7 @@ void main() {
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: _today(),
-            entries: entries,
+            entries: entries.map(diaryEntryViewFromLegacy).toList(),
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),

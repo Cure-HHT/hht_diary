@@ -1,36 +1,28 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-p00008: Mobile App Diary Entry
+import 'dart:async';
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
-import 'package:clinical_diary/read/diary_entry_view_legacy_bridge.dart';
+import 'package:clinical_diary/read/diary_read.dart';
+import 'package:clinical_diary/read/diary_view.dart';
+import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
-import 'package:clinical_diary/services/diary_entry_reader.dart';
-import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
-import 'package:clinical_diary/utils/date_time_formatter.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:uuid/uuid.dart';
 
-/// Calendar screen showing nosebleed history with color-coded days
+/// Calendar screen showing nosebleed history with color-coded days.
+///
+/// Reads day status reactively from the live [DiaryView] (no async loading,
+/// no local status cache); writes (day markers) go through the scope's
+/// `actionSubmitter`.
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({
-    required this.entryService,
-    required this.reader,
-    required this.enrollmentService,
-    super.key,
-  });
-
-  final EntryService entryService;
-  final DiaryEntryReader reader;
-  final EnrollmentService enrollmentService;
+  const CalendarScreen({super.key});
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -39,13 +31,6 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  Map<DateTime, DayStatus> _dayStatuses = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadDayStatuses();
-  }
 
   /// Check if animations are enabled (both feature flag and user preference).
   /// The user side is read reactively from the settings projection.
@@ -53,28 +38,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
       FeatureFlagService.instance.useAnimations &&
       AppPreferencesScope.of(context).useAnimation;
 
-  /// CUR-599: Handle month change - load new data in background
+  /// Month change just moves the focused day; day data is reactive.
   void _handleMonthChange(DateTime focusedDay) {
-    _focusedDay = focusedDay;
-    _loadDayStatuses();
+    setState(() => _focusedDay = focusedDay);
   }
 
-  /// Load day statuses for the current month range.
-  Future<void> _loadDayStatuses() async {
-    if (!mounted) return;
-
-    // Load statuses for current month plus padding
-    final firstDay = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
-    final lastDay = DateTime(_focusedDay.year, _focusedDay.month + 2, 0);
-
-    final statuses = await widget.reader.dayStatusRange(firstDay, lastDay);
-
-    // CUR-586: Check mounted after async operations
-    if (!mounted) return;
-    setState(() {
-      _dayStatuses = statuses;
-    });
-  }
+  /// The `yyyy-MM-dd` local-date key for a calendar [day]. TableCalendar emits
+  /// `DateTime.utc(y,m,d)`, so we read the calendar fields directly rather than
+  /// converting through epoch time.
+  static String _localDateKey(DateTime day) =>
+      '${day.year.toString().padLeft(4, '0')}-'
+      '${day.month.toString().padLeft(2, '0')}-'
+      '${day.day.toString().padLeft(2, '0')}';
 
   Color _getColorForStatus(DayStatus status) {
     switch (status) {
@@ -99,7 +74,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return dateOnly.isAfter(today);
   }
 
-  Future<void> _onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
+  /// Day-tap dispatch: future days are inert; a day with no finalized records
+  /// opens the [DaySelectionScreen], a day with records opens the
+  /// [DateRecordsScreen] populated from the live view.
+  // Implements: DIARY-GUI-calendar-day-view
+  // Implements: DIARY-DEV-reactive-read-path/A
+  Future<void> _onDaySelected(
+    DiaryView view,
+    DateTime selectedDay,
+    DateTime focusedDay,
+  ) async {
     // Don't allow selection of future dates (CUR-407)
     if (_isFutureDate(selectedDay)) {
       return;
@@ -110,158 +94,108 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _focusedDay = focusedDay;
     });
 
-    // CUR-543: TableCalendar returns UTC DateTimes (DateTime.utc(y,m,d)).
-    // Convert to local time for correct timezone handling in RecordingScreen.
-    // This ensures timestamps are stored with the user's local timezone offset.
+    // TableCalendar emits UTC DateTimes; use the local wall-clock day for both
+    // the view lookup and the RecordingScreen's preselected date.
     final localDay = DateTime(
       selectedDay.year,
       selectedDay.month,
       selectedDay.day,
     );
-    final status = _dayStatuses[localDay] ?? DayStatus.notRecorded;
+    final localDate = _localDateKey(selectedDay);
+    final entries = view.entriesOn(localDate);
 
-    // If no records exist for this day, show the day selection screen
-    if (status == DayStatus.notRecorded) {
-      await _showDaySelectionScreen(localDay);
+    if (entries.isEmpty) {
+      await _showDaySelectionScreen(localDay, localDate);
     } else {
-      // Show date records screen with existing events
-      await _showDateRecordsScreen(localDay);
+      await _showDateRecordsScreen(localDay, entries);
     }
   }
 
-  Future<void> _showDateRecordsScreen(DateTime selectedDay) async {
-    // Fetch entries for the selected day (excluding tombstoned + non-nosebleed)
-    final entries = (await widget.reader.entriesForDate(selectedDay))
-        .where(
-          (e) =>
-              !e.isDeleted &&
-              (e.entryType == 'epistaxis_event' ||
-                  e.entryType == 'no_epistaxis_event' ||
-                  e.entryType == 'unknown_day_event'),
-        )
-        .toList();
-
-    if (!mounted) return;
-
-    final result = await Navigator.push<dynamic>(
+  Future<void> _showDateRecordsScreen(
+    DateTime selectedDay,
+    List<DiaryEntryView> entries,
+  ) async {
+    await Navigator.push<void>(
       context,
       AppPageRoute(
         builder: (context) => DateRecordsScreen(
           date: selectedDay,
           entries: entries,
           onAddEvent: () {
-            // CUR-586: Just pop with result, let parent handle navigation
-            Navigator.pop(context, 'add');
+            Navigator.pop(context);
+            unawaited(_navigateToRecording(initialDate: selectedDay));
           },
-          onEditEvent: (entry) {
-            // CUR-586: Just pop with entry, let parent handle navigation
-            Navigator.pop(context, entry);
+          onEditEvent: (EpistaxisEntryView entry) {
+            Navigator.pop(context);
+            unawaited(_navigateToRecording(existing: entry));
           },
         ),
       ),
     );
-
-    if (!mounted) return;
-
-    // CUR-586: Handle result and refresh after ALL navigation is complete
-    if (result == 'add') {
-      await _navigateToRecordingScreen(selectedDay);
-    } else if (result is DiaryEntry) {
-      await _navigateToRecordingScreen(selectedDay, existingEntry: result);
-    }
-
-    // Always refresh after returning
-    if (mounted) {
-      await _loadDayStatuses();
-    }
   }
 
-  Future<void> _showDaySelectionScreen(DateTime selectedDay) async {
-    final result = await Navigator.push<String>(
+  Future<void> _showDaySelectionScreen(
+    DateTime selectedDay,
+    String localDate,
+  ) async {
+    await Navigator.push<void>(
       context,
       AppPageRoute(
         builder: (context) => DaySelectionScreen(
           date: selectedDay,
           onAddNosebleed: () {
-            // CUR-586: Just pop with result, let parent handle navigation
-            Navigator.pop(context, 'add');
+            Navigator.pop(context);
+            unawaited(_navigateToRecording(initialDate: selectedDay));
           },
           onNoNosebleeds: () async {
-            await widget.entryService.record(
-              entryType: 'no_epistaxis_event',
-              aggregateId: const Uuid().v7(),
-              eventType: 'finalized',
-              answers: <String, Object?>{
-                'date': DateTimeFormatter.format(selectedDay),
-              },
-            );
+            await _submitDayMarker('record_no_epistaxis_day', localDate);
             if (context.mounted) {
-              Navigator.pop(context, 'done');
+              Navigator.pop(context);
             }
           },
           onUnknown: () async {
-            await widget.entryService.record(
-              entryType: 'unknown_day_event',
-              aggregateId: const Uuid().v7(),
-              eventType: 'finalized',
-              answers: <String, Object?>{
-                'date': DateTimeFormatter.format(selectedDay),
-              },
-            );
+            await _submitDayMarker('record_unknown_day', localDate);
             if (context.mounted) {
-              Navigator.pop(context, 'done');
+              Navigator.pop(context);
             }
           },
         ),
       ),
     );
-
-    if (!mounted) return;
-
-    // CUR-586: Handle result and refresh after ALL navigation is complete
-    if (result == 'add') {
-      // Navigate to RecordingScreen THEN refresh
-      await _navigateToRecordingScreen(selectedDay);
-    }
-
-    // Always refresh after returning (whether from add, no-nosebleed, unknown, or back)
-    if (mounted) {
-      await _loadDayStatuses();
-    }
   }
 
-  /// Navigate to RecordingScreen and return the result.
-  /// Returns: String (record ID) on save, true on delete, null on cancel, false on conflict.
-  Future<dynamic> _navigateToRecordingScreen(
-    DateTime selectedDay, {
-    DiaryEntry? existingEntry,
-  }) async {
-    // CUR-543: RecordingScreen returns String (record ID) on save, bool on
-    // delete/cancel — use dynamic to handle both return types. A new entry gets
-    // the selected day; an edit gets the bridged view-model.
-    final result = await Navigator.push<dynamic>(
-      context,
-      AppPageRoute(
-        builder: (context) => existingEntry == null
-            ? RecordingScreen(initialDate: selectedDay)
-            : RecordingScreen(existing: _epistaxisViewOf(existingEntry)),
+  /// Submit a whole-day marker (`record_no_epistaxis_day` /
+  /// `record_unknown_day`) for [localDate] (`yyyy-MM-dd`).
+  // Implements: DIARY-DEV-action-write-path/A
+  Future<void> _submitDayMarker(String actionName, String localDate) async {
+    await ReActionScope.of(context).actionSubmitter.submit(
+      ActionSubmission(
+        actionName: actionName,
+        rawInput: <String, Object?>{'date': localDate},
       ),
     );
-
-    // CUR-586: Return the result to the caller instead of handling refresh here.
-    // The caller (_showDateRecordsScreen) handles the refresh in its loop pattern.
-    return result;
   }
 
-  /// Bridge a legacy nosebleed [DiaryEntry] to an [EpistaxisEntryView] for the
-  /// (new-stack) RecordingScreen. Returns null for non-epistaxis entries.
-  static EpistaxisEntryView? _epistaxisViewOf(DiaryEntry entry) {
-    final view = diaryEntryViewFromLegacy(entry);
-    return view is EpistaxisEntryView ? view : null;
+  Future<void> _navigateToRecording({
+    EpistaxisEntryView? existing,
+    DateTime? initialDate,
+  }) async {
+    await Navigator.push<dynamic>(
+      context,
+      AppPageRoute(
+        builder: (context) => existing == null
+            ? RecordingScreen(initialDate: initialDate)
+            : RecordingScreen(existing: existing),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    return DiaryViewBuilder(builder: _buildDialog);
+  }
+
+  Widget _buildDialog(BuildContext context, DiaryView view) {
     final today = DateTime.now();
     final todayNormalized = DateTime(today.year, today.month, today.day);
 
@@ -304,7 +238,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 pageAnimationEnabled: _animationsEnabled(context),
                 selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                 enabledDayPredicate: (day) => !_isFutureDate(day),
-                onDaySelected: _onDaySelected,
+                onDaySelected: (selectedDay, focusedDay) =>
+                    _onDaySelected(view, selectedDay, focusedDay),
                 onPageChanged: _handleMonthChange,
                 headerStyle: HeaderStyle(
                   formatButtonVisible: false,
@@ -331,13 +266,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     );
                   },
                   defaultBuilder: (context, day, focusedDay) {
-                    final normalizedDay = DateTime(
-                      day.year,
-                      day.month,
-                      day.day,
-                    );
-                    final status =
-                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final status = view.dayStatus(_localDateKey(day));
                     final color = _getColorForStatus(status);
 
                     return Container(
@@ -359,13 +288,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     );
                   },
                   outsideBuilder: (context, day, focusedDay) {
-                    final normalizedDay = DateTime(
-                      day.year,
-                      day.month,
-                      day.day,
-                    );
-                    final status =
-                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final status = view.dayStatus(_localDateKey(day));
                     final color = _getColorForStatus(status);
 
                     return Container(
@@ -383,13 +306,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     );
                   },
                   todayBuilder: (context, day, focusedDay) {
-                    final normalizedDay = DateTime(
-                      day.year,
-                      day.month,
-                      day.day,
-                    );
-                    final status =
-                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final status = view.dayStatus(_localDateKey(day));
                     final color = _getColorForStatus(status);
 
                     return Container(
@@ -416,13 +333,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     );
                   },
                   selectedBuilder: (context, day, focusedDay) {
-                    final normalizedDay = DateTime(
-                      day.year,
-                      day.month,
-                      day.day,
-                    );
-                    final status =
-                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final status = view.dayStatus(_localDateKey(day));
                     final color = _getColorForStatus(status);
                     final isToday = isSameDay(day, todayNormalized);
 

@@ -1257,11 +1257,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     onPressed: () async {
                       await showDialog<void>(
                         context: context,
-                        builder: (context) => CalendarScreen(
-                          entryService: widget.runtime.entryService,
-                          reader: widget.runtime.reader,
-                          enrollmentService: widget.enrollmentService,
-                        ),
+                        builder: (context) => const CalendarScreen(),
                       );
                       unawaited(_loadRecords());
                     },

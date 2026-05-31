@@ -1,5 +1,5 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
+// Verifies: DIARY-GUI-calendar-day-view
+//   The three day-selection buttons fire their callbacks.
 
 import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:flutter/material.dart';

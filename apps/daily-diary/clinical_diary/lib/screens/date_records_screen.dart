@@ -1,19 +1,16 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/read/diary_entry_view_legacy_bridge.dart';
-import 'package:clinical_diary/utils/date_time_formatter.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 /// Screen showing all events for a specific date with edit capability.
 ///
-/// Consumes [DiaryEntry] rows directly from the materialized view; the
-/// `currentAnswers['startTime']` and `currentAnswers['endTime']` answer fields
-/// drive overlap detection.
+/// Consumes typed [DiaryEntryView] view-models (sealed:
+/// [EpistaxisEntryView] / [DayMarkerView]) from the live diary view. Only
+/// epistaxis entries are editable; day-markers render but are not edited.
+// Implements: DIARY-DEV-reactive-read-path/A
+// Implements: DIARY-GUI-epistaxis-record/A
 class DateRecordsScreen extends StatelessWidget {
   const DateRecordsScreen({
     required this.date,
@@ -24,9 +21,9 @@ class DateRecordsScreen extends StatelessWidget {
   });
 
   final DateTime date;
-  final List<DiaryEntry> entries;
+  final List<DiaryEntryView> entries;
   final VoidCallback onAddEvent;
-  final void Function(DiaryEntry) onEditEvent;
+  final void Function(EpistaxisEntryView) onEditEvent;
 
   String get _formattedDate => DateFormat('EEEE, MMMM d, y').format(date);
 
@@ -34,42 +31,31 @@ class DateRecordsScreen extends StatelessWidget {
     return l10n.eventCount(entries.length);
   }
 
-  /// Returns the start and end DateTimes from `currentAnswers`, or null if
-  /// the entry's answer payload doesn't carry a parseable time range (e.g.
-  /// no_epistaxis_event / unknown_day_event).
-  ({DateTime? start, DateTime? end}) _timeRange(DiaryEntry entry) {
-    DateTime? parse(Object? raw) =>
-        raw is String ? DateTimeFormatter.parse(raw) : null;
-    return (
-      start: parse(entry.currentAnswers['startTime']),
-      end: parse(entry.currentAnswers['endTime']),
-    );
-  }
-
-  /// Check if an entry overlaps with any other entry in the list.
-  /// CUR-443: Used to show warning icon on overlapping events
-  bool _hasOverlap(DiaryEntry entry) {
-    if (entry.entryType != 'epistaxis_event') return false;
-    final r = _timeRange(entry);
-    if (r.start == null || r.end == null) return false;
+  /// Check if an epistaxis [entry] overlaps with any other epistaxis entry in
+  /// the list. CUR-443: used to show the warning icon on overlapping events.
+  bool _hasOverlap(DiaryEntryView entry) {
+    if (entry is! EpistaxisEntryView) return false;
+    final start = entry.startTime;
+    final end = entry.endTime;
+    if (end == null) return false;
 
     for (final other in entries) {
-      if (other.entryId == entry.entryId) continue;
-      if (other.entryType != 'epistaxis_event') continue;
-      final or = _timeRange(other);
-      if (or.start == null || or.end == null) continue;
-      if (r.start!.isBefore(or.end!) && r.end!.isAfter(or.start!)) {
+      if (other.aggregateId == entry.aggregateId) continue;
+      if (other is! EpistaxisEntryView) continue;
+      final oEnd = other.endTime;
+      if (oEnd == null) continue;
+      if (start.isBefore(oEnd) && end.isAfter(other.startTime)) {
         return true;
       }
     }
     return false;
   }
 
-  /// Sort key: epistaxis_event entries use their startTime; other entry types
-  /// fall back to effectiveDate (or updatedAt).
-  DateTime _sortKey(DiaryEntry entry) {
-    final start = _timeRange(entry).start;
-    return start ?? entry.effectiveDate ?? entry.updatedAt;
+  /// Sort key: epistaxis entries use their startTime; day-markers fall back to
+  /// the start of the local day so they sort consistently.
+  DateTime _sortKey(DiaryEntryView entry) {
+    if (entry is EpistaxisEntryView) return entry.startTime;
+    return date;
   }
 
   @override
@@ -159,7 +145,7 @@ class DateRecordsScreen extends StatelessWidget {
 
   Widget _buildEventsList(BuildContext context) {
     // CUR-585: Sort entries by start time ASC (earliest first) to match home page
-    final sortedEntries = List<DiaryEntry>.from(entries)
+    final sortedEntries = List<DiaryEntryView>.from(entries)
       ..sort((a, b) => _sortKey(a).compareTo(_sortKey(b)));
 
     return ListView.separated(
@@ -169,8 +155,10 @@ class DateRecordsScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final entry = sortedEntries[index];
         return EventListItem(
-          view: diaryEntryViewFromLegacy(entry),
-          onTap: () => onEditEvent(entry),
+          view: entry,
+          // Only epistaxis entries are editable; day-markers render but the tap
+          // is inert.
+          onTap: entry is EpistaxisEntryView ? () => onEditEvent(entry) : null,
           hasOverlap: _hasOverlap(entry),
         );
       },

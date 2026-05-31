@@ -1,11 +1,14 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
+// Verifies: DIARY-DEV-reactive-read-path/A — renders the driven typed
+//   view-models (EpistaxisEntryView / DayMarkerView) via EventListItem.
+// Verifies: DIARY-GUI-epistaxis-record/A — Add Event fires onAddEvent; tapping
+//   an epistaxis item fires onEditEvent with the right view-model.
 
+import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
-import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:diary_shared_model/diary_shared_model.dart'
+    show NosebleedIntensity;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
@@ -119,14 +122,14 @@ void main() {
     // CUR-443: One-line format shows times, not intensity names
     testWidgets('displays list of entries', (tester) async {
       final entries = [
-        buildEpistaxisEntry(
-          entryId: 'test-1',
+        buildEpistaxisView(
+          aggregateId: 'test-1',
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
         ),
-        buildEpistaxisEntry(
-          entryId: 'test-2',
+        buildEpistaxisView(
+          aggregateId: 'test-2',
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
           intensity: NosebleedIntensity.steadyStream,
@@ -151,10 +154,12 @@ void main() {
     });
 
     // CUR-443: One-line format - tap by start time, not intensity name
-    testWidgets('calls onEditEvent when entry is tapped', (tester) async {
-      DiaryEntry? tappedEntry;
-      final entry = buildEpistaxisEntry(
-        entryId: 'test-1',
+    testWidgets('calls onEditEvent with the right view-model when tapped', (
+      tester,
+    ) async {
+      EpistaxisEntryView? tappedEntry;
+      final entry = buildEpistaxisView(
+        aggregateId: 'test-1',
         startTime: DateTime(2025, 11, 28, 10, 30),
         endTime: DateTime(2025, 11, 28, 10, 45),
         intensity: NosebleedIntensity.dripping,
@@ -177,13 +182,13 @@ void main() {
       await tester.pump();
 
       expect(tappedEntry, isNotNull);
-      expect(tappedEntry!.entryId, 'test-1');
+      expect(tappedEntry!.aggregateId, 'test-1');
     });
 
     testWidgets('displays No nosebleed event card correctly', (tester) async {
-      final entry = buildNoEpistaxisEntry(
-        entryId: 'test-1',
-        date: DateTime.now(),
+      final entry = buildDayMarkerView(
+        aggregateId: 'test-1',
+        date: '2025-11-28',
       );
 
       await tester.pumpWidget(
@@ -202,7 +207,11 @@ void main() {
     });
 
     testWidgets('displays Unknown event card correctly', (tester) async {
-      final entry = buildUnknownDayEntry(entryId: 'test-1', date: testDate);
+      final entry = buildDayMarkerView(
+        aggregateId: 'test-1',
+        date: '2025-11-28',
+        entryType: 'unknown_day_event',
+      );
 
       await tester.pumpWidget(
         wrapWithMaterialApp(
@@ -221,14 +230,14 @@ void main() {
 
     testWidgets('displays event count in subtitle', (tester) async {
       final entries = [
-        buildEpistaxisEntry(
-          entryId: 'test-1',
+        buildEpistaxisView(
+          aggregateId: 'test-1',
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
         ),
-        buildEpistaxisEntry(
-          entryId: 'test-2',
+        buildEpistaxisView(
+          aggregateId: 'test-2',
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
           intensity: NosebleedIntensity.steadyStream,
@@ -252,8 +261,8 @@ void main() {
 
     testWidgets('displays "1 event" for single entry', (tester) async {
       final entries = [
-        buildEpistaxisEntry(
-          entryId: 'test-1',
+        buildEpistaxisView(
+          aggregateId: 'test-1',
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
