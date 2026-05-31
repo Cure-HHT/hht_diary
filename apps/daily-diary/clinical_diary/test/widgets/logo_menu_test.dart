@@ -503,6 +503,71 @@ void main() {
       expect(find.text('Check for updates'), findsNothing);
     });
 
+    // Verifies: DIARY-PRD-local-data-reset/B+C — the reset item is disabled
+    //   (greyed, non-tapping, with a reason) when the gate is closed.
+    testWidgets(
+      'reset item is disabled with a reason when resetEnabled=false',
+      (tester) async {
+        var called = false;
+        await tester.pumpWidget(
+          wrapWithScaffold(
+            LogoMenu(
+              onExportData: () {},
+              onImportData: () {},
+              onResetAllData: () => called = true,
+              onFeatureFlags: () {},
+              onEndClinicalTrial: null,
+              onInstructionsAndFeedback: () {},
+              resetEnabled: false,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(Image));
+        await tester.pumpAndSettle();
+
+        // The disabled-reason subtitle is shown.
+        expect(
+          find.text('End your study participation to reset'),
+          findsOneWidget,
+        );
+
+        // The disabled PopupMenuItem does not invoke the callback when tapped.
+        await tester.tap(find.text('Reset All Data?'));
+        await tester.pumpAndSettle();
+        expect(called, isFalse);
+      },
+    );
+
+    // Verifies: DIARY-PRD-local-data-reset/B+C — when the gate is open the
+    //   reset item is enabled, has no disabled reason, and fires its callback.
+    testWidgets('reset item is enabled when resetEnabled=true', (tester) async {
+      var called = false;
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onExportData: () {},
+            onImportData: () {},
+            onResetAllData: () => called = true,
+            onFeatureFlags: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+
+      expect(find.text('End your study participation to reset'), findsNothing);
+
+      await tester.tap(find.text('Reset All Data?'));
+      await tester.pumpAndSettle();
+      expect(called, isTrue);
+    });
+
     testWidgets('menu closes after selecting an option', (tester) async {
       var called = false;
 

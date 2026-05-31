@@ -23,6 +23,7 @@ import 'package:clinical_diary/services/file_save_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/local_reset_policy.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
@@ -49,6 +50,8 @@ class HomeScreen extends StatefulWidget {
     required this.enrollmentService,
     required this.taskService,
     this.onEnrolled,
+    this.onResetAllData,
+    this.resetSettingAllowsReset = true,
     super.key,
   });
 
@@ -65,6 +68,16 @@ class HomeScreen extends StatefulWidget {
   final TaskService taskService;
   // Called after successful linking to register FCM token
   final VoidCallback? onEnrolled;
+
+  /// Performs the real local factory reset (dispose → wipe → re-init), supplied
+  /// by `AppRoot`. Null in contexts that don't wire a reset (the menu item is
+  /// then inert). See DIARY-PRD-local-data-reset/A.
+  final Future<void> Function()? onResetAllData;
+
+  /// The sponsor-controllable layer of the reset gate, folded from the
+  /// event-sourced settings projection (`allow_local_reset`, default true).
+  /// The HARD participation safeguard is layered on top of this in-screen.
+  final bool resetSettingAllowsReset;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -83,6 +96,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _siteName;
   String? _sitePhoneNumber;
 
+  // Whether the local factory reset is currently permitted. Resolved from the
+  // async enrollment state (the HARD participation safeguard) folded with the
+  // sponsor-controllable allow_local_reset setting. Defaults false until the
+  // async checks settle, so the destructive item is never momentarily enabled.
+  bool _canResetData = false;
+
   // CUR-464: Track record to flash/highlight after save
   String? _flashRecordId;
   final ScrollController _scrollController = ScrollController();
@@ -94,6 +113,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _checkEnrollmentStatus();
     _checkDisconnectionStatus();
     _checkNotParticipatingStatus();
+    _refreshResetGate();
     _refreshWedgeStatus();
     // CUR-1164: React immediately when a background sync detects disconnection
     widget.enrollmentService.disconnectedNotifier.addListener(
@@ -156,6 +176,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _isEnrolled = isEnrolled;
       });
     }
+    // Enrollment changes flip the HARD participation safeguard; keep the
+    // reset gate in sync whenever enrollment status is re-read.
+    unawaited(_refreshResetGate());
   }
 
   /// REQ-CAL-p00077: Check if patient is disconnected from the study.
@@ -216,6 +239,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         .isNotParticipating();
     if (isNotParticipating) {
       FeatureFlagService.instance.resetToDefaults();
+    }
+  }
+
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The sponsor-controllable layer arrives via a widget rebuild when the
+    // settings projection emits; re-fold the gate when it changes.
+    if (oldWidget.resetSettingAllowsReset != widget.resetSettingAllowsReset) {
+      _refreshResetGate();
+    }
+  }
+
+  /// Re-fold the local-reset gate: the HARD participation safeguard
+  /// (`isEnrolled && !isNotParticipating`) combined with the sponsor-
+  /// controllable `allow_local_reset` setting. Reset is permitted only when not
+  /// participating AND the setting allows it.
+  // Implements: DIARY-PRD-local-data-reset/B+C
+  Future<void> _refreshResetGate() async {
+    final isEnrolled = await widget.enrollmentService.isEnrolled();
+    final isNotParticipating = await widget.enrollmentService
+        .isNotParticipating();
+    final participating = isEnrolled && !isNotParticipating;
+    final canReset = canResetLocalData(
+      participating: participating,
+      settingAllowsReset: widget.resetSettingAllowsReset,
+    );
+    if (mounted) {
+      setState(() => _canResetData = canReset);
     }
   }
 
@@ -451,7 +503,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  // Implements: DIARY-PRD-local-data-reset/D — the destructive reset requires
+  //   explicit confirmation before the device is wiped.
   Future<void> _handleResetAllData() async {
+    // Defense-in-depth: the menu item is already disabled when the gate is
+    // closed, but never run the destructive wipe if the gate says no.
+    if (!_canResetData) return;
+
+    final reset = widget.onResetAllData;
+    if (reset == null) return;
+
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -475,17 +536,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
 
     if (confirmed ?? false) {
-      // The event-sourcing datastore is append-only; resetting all data is
-      // a dev-only feature in the legacy stack. Show a message instead and
-      // leave the underlying records untouched.
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context).allDataReset),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+      // Full local factory reset: dispose runtimes → wipe device → re-init.
+      // Driven by AppRoot; the app comes back up at first-launch state.
+      await reset();
     }
   }
 
@@ -522,6 +575,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (confirmed ?? false) {
       await widget.enrollmentService.clearEnrollment();
       await widget.taskService.clearAll();
+      // _checkEnrollmentStatus re-folds the reset gate, re-opening it now that
+      // the participant has ended participation.
       unawaited(_checkEnrollmentStatus());
 
       if (mounted) {
@@ -945,6 +1000,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     onImportData: _handleImportData,
                     sponsorLogo: sponsorBranding.appLogoUrl,
                     onResetAllData: _handleResetAllData,
+                    resetEnabled: _canResetData,
                     onFeatureFlags: _handleFeatureFlags,
                     isEnrolled: _isEnrolled,
                     onEndClinicalTrial: _isEnrolled

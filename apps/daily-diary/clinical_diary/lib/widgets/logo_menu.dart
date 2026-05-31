@@ -17,6 +17,8 @@ class LogoMenu extends StatefulWidget {
     required this.onEndClinicalTrial,
     required this.onInstructionsAndFeedback,
     this.showDevTools = true,
+    this.resetEnabled = true,
+    this.resetDisabledReason = 'End your study participation to reset',
     this.isEnrolled,
     this.sponsorLogo,
     super.key,
@@ -28,6 +30,14 @@ class LogoMenu extends StatefulWidget {
   final VoidCallback onFeatureFlags;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
+
+  /// Whether the "Reset all data" item is tappable. When false the item is
+  /// rendered greyed-out and non-tapping (the local factory reset is gated on
+  /// non-participation + the sponsor `allow_local_reset` setting).
+  final bool resetEnabled;
+
+  /// Subtitle shown under a disabled "Reset all data" item explaining why.
+  final String resetDisabledReason;
   final bool? isEnrolled;
   final String? sponsorLogo;
 
@@ -114,7 +124,9 @@ class _LogoMenuState extends State<LogoMenu> {
           case 'import_data':
             widget.onImportData();
           case 'reset_all_data':
-            widget.onResetAllData();
+            // Guarded: a disabled item is non-selectable, but never invoke the
+            // destructive reset when the gate is closed.
+            if (widget.resetEnabled) widget.onResetAllData();
           case 'feature_flags':
             widget.onFeatureFlags();
           case 'end_clinical_trial':
@@ -169,22 +181,44 @@ class _LogoMenuState extends State<LogoMenu> {
               ],
             ),
           ),
+          // Implements: DIARY-PRD-local-data-reset/B+C — the reset item is
+          //   disabled (greyed, non-tapping, with a reason) while the gate is
+          //   closed (participating in a trial, or sponsor-disabled).
           PopupMenuItem<String>(
             value: 'reset_all_data',
+            enabled: widget.resetEnabled,
             child: Row(
               children: [
                 Icon(
                   Icons.delete_outline,
                   size: 20,
-                  color: Theme.of(context).colorScheme.error,
+                  color: widget.resetEnabled
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).disabledColor,
                 ),
                 const SizedBox(width: 12),
                 Flexible(
-                  child: Text(
-                    l10n.resetAllData,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.resetAllData,
+                        style: TextStyle(
+                          color: widget.resetEnabled
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).disabledColor,
+                        ),
+                      ),
+                      if (!widget.resetEnabled)
+                        Text(
+                          widget.resetDisabledReason,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).disabledColor,
+                              ),
+                        ),
+                    ],
                   ),
                 ),
               ],

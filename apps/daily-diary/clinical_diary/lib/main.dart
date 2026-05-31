@@ -24,9 +24,11 @@ import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/debug_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/local_data_reset.dart';
 import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/local_reset_policy.dart';
 import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
@@ -405,6 +407,73 @@ class _AppRootState extends State<AppRoot> {
     }
   }
 
+  /// Full local factory reset: tear down the live runtimes (closing both
+  /// Sembast stores), wipe all on-device state, then re-bootstrap so the app
+  /// comes back up at first-launch state with a freshly-minted device id.
+  ///
+  /// The hard participation gate lives in [HomeScreen] (a participant must end
+  /// participation before this is reachable); this method assumes the gate has
+  /// already allowed the reset.
+  // Implements: DIARY-PRD-local-data-reset/A
+  Future<void> _resetAllData() async {
+    // 1. Capture the documents path (mirrors _initializeRuntime). path_provider
+    //    has no web implementation, so the file wipe is io-only; on web the
+    //    Sembast stores are IndexedDB-backed and there are no files to delete.
+    String? documentsPath;
+    if (!kIsWeb) {
+      try {
+        final docsDir = await getApplicationDocumentsDirectory();
+        documentsPath = docsDir.path;
+      } catch (e, stack) {
+        debugPrint('[Reset] documents-dir lookup failed: $e\n$stack');
+      }
+    }
+
+    // 2. Dispose both runtimes (closes both EventStores so the files unlock),
+    //    plus the I2a sync-trigger handles + ingest client — mirrors dispose().
+    try {
+      await _runtime?.dispose();
+    } catch (e, stack) {
+      debugPrint('[Reset] runtime dispose failed: $e\n$stack');
+    }
+    try {
+      await _diarySyncTriggers?.dispose();
+    } catch (e, stack) {
+      debugPrint('[Reset] sync-trigger dispose failed: $e\n$stack');
+    }
+    _diarySyncTriggers = null;
+    _diaryIngestClient?.close();
+    _diaryIngestClient = null;
+    try {
+      await _diaryScope?.dispose();
+    } catch (e, stack) {
+      debugPrint('[Reset] diary scope dispose failed: $e\n$stack');
+    }
+
+    // 3. Wipe all local state (store files + enrollment + tasks + prefs).
+    if (documentsPath != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await wipeLocalData(
+        documentsPath: documentsPath,
+        enrollmentService: _enrollmentService,
+        taskService: _taskService,
+        prefs: prefs,
+      );
+    }
+
+    // 4. Show the loading scaffold, then re-bootstrap a fresh runtime. The new
+    //    device id (minted by _readOrMintDeviceId against the now-empty prefs)
+    //    re-keys HomeScreen, forcing a fresh State against the new runtime.
+    if (mounted) {
+      setState(() {
+        _runtime = null;
+        _diaryScope = null;
+        _deviceId = null;
+      });
+    }
+    await _initializeRuntime();
+  }
+
   Future<String> _readOrMintDeviceId() async {
     final prefs = await SharedPreferences.getInstance();
     var existing = prefs.getString(_kDeviceIdPrefsKey);
@@ -616,17 +685,26 @@ class _AppRootState extends State<AppRoot> {
         mapper: (r) => r,
         aggregateIdOf: (r) => r['aggregateId'] as String,
         builder: (context, state) {
-          final prefs = userPreferencesFromSettings(_settingsByKey(state));
+          final settingsMap = _settingsByKey(state);
+          final prefs = userPreferencesFromSettings(settingsMap);
           return _buildMaterialApp(
             prefs: prefs,
             home: AppPreferencesScope(
               preferences: prefs,
               child: HomeScreen(
+                // A fresh device id after a factory reset re-keys HomeScreen so
+                // its State is rebuilt from scratch against the new runtime.
+                key: ValueKey(deviceId),
                 runtime: runtime,
                 deviceId: deviceId,
                 enrollmentService: _enrollmentService,
                 taskService: _taskService,
                 onEnrolled: _onPostEnrollment,
+                onResetAllData: _resetAllData,
+                // Implements: DIARY-PRD-local-data-reset/C — the sponsor-
+                //   controllable layer of the reset gate, read from the
+                //   event-sourced settings projection (default true).
+                resetSettingAllowsReset: allowLocalResetSetting(settingsMap),
               ),
             ),
           );
