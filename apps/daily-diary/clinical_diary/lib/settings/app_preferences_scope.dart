@@ -24,6 +24,14 @@ class AppPreferencesScope extends InheritedWidget {
     return scope?.preferences ?? const UserPreferences();
   }
 
+  /// Non-subscribing read for use OUTSIDE a build method (e.g. a route's
+  /// transition-duration getter), where registering an inherited dependency is
+  /// inappropriate. Returns defaults when no scope is present.
+  static UserPreferences read(BuildContext context) {
+    final scope = context.getInheritedWidgetOfExactType<AppPreferencesScope>();
+    return scope?.preferences ?? const UserPreferences();
+  }
+
   @override
   bool updateShouldNotify(AppPreferencesScope oldWidget) =>
       preferences != oldWidget.preferences;

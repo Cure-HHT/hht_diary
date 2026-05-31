@@ -613,9 +613,10 @@ class _AppRootState extends State<AppRoot> {
   //   layer holds no authoritative preference state; it is rebuilt from the
   //   settings projection.
   Widget _buildMaterialApp({required Widget home, UserPreferences? prefs}) {
-    final font = prefs?.selectedFont ?? 'Roboto';
-    final largerText = prefs?.largerTextAndControls ?? false;
-    final languageCode = prefs?.languageCode ?? 'en';
+    final effectivePrefs = prefs ?? const UserPreferences();
+    final font = effectivePrefs.selectedFont;
+    final largerText = effectivePrefs.largerTextAndControls;
+    final languageCode = effectivePrefs.languageCode;
     return MaterialApp(
       title: F.title,
       // Show Flutter debug banner in debug mode (top-right corner).
@@ -642,11 +643,18 @@ class _AppRootState extends State<AppRoot> {
         final textScaleFactor = largerText
             ? mediaQuery.textScaler.scale(1.2)
             : 1.0;
-        return MediaQuery(
-          data: mediaQuery.copyWith(
-            textScaler: TextScaler.linear(textScaleFactor),
+        // AppPreferencesScope is inserted ABOVE the Navigator (here in builder)
+        // so EVERY route — not just `home` — reads the current preferences via
+        // AppPreferencesScope.of(context). Placing it around `home` only would
+        // leave pushed routes (settings, calendar, recording) reading defaults.
+        return AppPreferencesScope(
+          preferences: effectivePrefs,
+          child: MediaQuery(
+            data: mediaQuery.copyWith(
+              textScaler: TextScaler.linear(textScaleFactor),
+            ),
+            child: ResponsiveWebFrame(child: child ?? const SizedBox.shrink()),
           ),
-          child: ResponsiveWebFrame(child: child ?? const SizedBox.shrink()),
         );
       },
       home: home,
@@ -689,23 +697,23 @@ class _AppRootState extends State<AppRoot> {
           final prefs = userPreferencesFromSettings(settingsMap);
           return _buildMaterialApp(
             prefs: prefs,
-            home: AppPreferencesScope(
-              preferences: prefs,
-              child: HomeScreen(
-                // A fresh device id after a factory reset re-keys HomeScreen so
-                // its State is rebuilt from scratch against the new runtime.
-                key: ValueKey(deviceId),
-                runtime: runtime,
-                deviceId: deviceId,
-                enrollmentService: _enrollmentService,
-                taskService: _taskService,
-                onEnrolled: _onPostEnrollment,
-                onResetAllData: _resetAllData,
-                // Implements: DIARY-PRD-local-data-reset/C — the sponsor-
-                //   controllable layer of the reset gate, read from the
-                //   event-sourced settings projection (default true).
-                resetSettingAllowsReset: allowLocalResetSetting(settingsMap),
-              ),
+            // AppPreferencesScope is now provided above the Navigator inside
+            // _buildMaterialApp's builder, so it covers HomeScreen AND every
+            // pushed route. `home` is just the HomeScreen.
+            home: HomeScreen(
+              // A fresh device id after a factory reset re-keys HomeScreen so
+              // its State is rebuilt from scratch against the new runtime.
+              key: ValueKey(deviceId),
+              runtime: runtime,
+              deviceId: deviceId,
+              enrollmentService: _enrollmentService,
+              taskService: _taskService,
+              onEnrolled: _onPostEnrollment,
+              onResetAllData: _resetAllData,
+              // Implements: DIARY-PRD-local-data-reset/C — the sponsor-
+              //   controllable layer of the reset gate, read from the
+              //   event-sourced settings projection (default true).
+              resetSettingAllowsReset: allowLocalResetSetting(settingsMap),
             ),
           );
         },

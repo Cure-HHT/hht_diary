@@ -1264,8 +1264,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             (entry) => Padding(
               // CUR-489: Use GlobalKey for scroll-to-item functionality
               key: _getKeyForRecord(entry.aggregateId),
-              // CUR-464: Use smaller gap when compact view is enabled
-              padding: EdgeInsets.only(bottom: prefs.compactView ? 4 : 8),
+              padding: const EdgeInsets.only(bottom: 8),
               // CUR-464: Wrap with FlashHighlight to animate new records
               child: FlashHighlight(
                 flash: entry.aggregateId == _flashRecordId,

@@ -137,16 +137,6 @@ void main() {
         expect(find.text('Français'), findsOneWidget);
         expect(find.text('Deutsch'), findsOneWidget);
       });
-
-      testWidgets('displays compact view option', (tester) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
-
-        expect(find.text('Compact View'), findsOneWidget);
-      });
     });
 
     group('Reflects driven preferences', () {
@@ -202,22 +192,6 @@ void main() {
         await tester.pumpAndSettle();
 
         final s = submissionFor(prefLargerText);
-        expect(s.rawInput['value'], true);
-      });
-
-      testWidgets('toggling compact view submits set_user_setting', (
-        tester,
-      ) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Compact View'));
-        await tester.pumpAndSettle();
-
-        final s = submissionFor(prefCompactView);
         expect(s.rawInput['value'], true);
       });
     });

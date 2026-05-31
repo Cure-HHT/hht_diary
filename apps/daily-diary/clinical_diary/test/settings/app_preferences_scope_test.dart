@@ -11,7 +11,7 @@ void main() {
     await tester.pumpWidget(
       AppPreferencesScope(
         preferences: const UserPreferences(
-          compactView: true,
+          largerTextAndControls: true,
           languageCode: 'es',
         ),
         child: Builder(
@@ -22,7 +22,7 @@ void main() {
         ),
       ),
     );
-    expect(seen.compactView, isTrue);
+    expect(seen.largerTextAndControls, isTrue);
     expect(seen.languageCode, 'es');
   });
 

@@ -7,22 +7,20 @@
 // Diary-side: the `pref.*` keys are `source: user` settings.
 import 'package:diary_shared_model/diary_shared_model.dart';
 
-/// Settings-stream keys for the six user preferences (`source: user`).
+/// Settings-stream keys for the user preferences (`source: user`).
 const String prefDarkMode = 'pref.darkMode';
 const String prefLargerText = 'pref.largerText';
 const String prefUseAnimation = 'pref.useAnimation';
-const String prefCompactView = 'pref.compactView';
 const String prefLanguageCode = 'pref.languageCode';
 const String prefSelectedFont = 'pref.selectedFont';
 
-/// User preferences value type (six fields/defaults), sourced from the
-/// event-sourced settings projection.
+/// User preferences value type, sourced from the event-sourced settings
+/// projection.
 class UserPreferences {
   const UserPreferences({
     this.isDarkMode = false,
     this.largerTextAndControls = false,
     this.useAnimation = true,
-    this.compactView = false,
     this.languageCode = 'en',
     this.selectedFont = 'Roboto',
   });
@@ -30,7 +28,6 @@ class UserPreferences {
   final bool isDarkMode;
   final bool largerTextAndControls;
   final bool useAnimation;
-  final bool compactView;
   final String languageCode;
 
   /// Selected font family name (e.g. 'Roboto', 'OpenDyslexic',
@@ -41,7 +38,6 @@ class UserPreferences {
     bool? isDarkMode,
     bool? largerTextAndControls,
     bool? useAnimation,
-    bool? compactView,
     String? languageCode,
     String? selectedFont,
   }) {
@@ -50,7 +46,6 @@ class UserPreferences {
       largerTextAndControls:
           largerTextAndControls ?? this.largerTextAndControls,
       useAnimation: useAnimation ?? this.useAnimation,
-      compactView: compactView ?? this.compactView,
       languageCode: languageCode ?? this.languageCode,
       selectedFont: selectedFont ?? this.selectedFont,
     );
@@ -62,7 +57,6 @@ class UserPreferences {
       other.isDarkMode == isDarkMode &&
       other.largerTextAndControls == largerTextAndControls &&
       other.useAnimation == useAnimation &&
-      other.compactView == compactView &&
       other.languageCode == languageCode &&
       other.selectedFont == selectedFont;
 
@@ -71,7 +65,6 @@ class UserPreferences {
     isDarkMode,
     largerTextAndControls,
     useAnimation,
-    compactView,
     languageCode,
     selectedFont,
   );
@@ -103,7 +96,6 @@ UserPreferences userPreferencesFromSettings(
       defaults.largerTextAndControls,
     ),
     useAnimation: boolPref(prefUseAnimation, defaults.useAnimation),
-    compactView: boolPref(prefCompactView, defaults.compactView),
     languageCode: stringPref(prefLanguageCode, defaults.languageCode),
     selectedFont: stringPref(prefSelectedFont, defaults.selectedFont),
   );

@@ -145,18 +145,6 @@ class SettingsScreen extends StatelessWidget {
                             _setSetting(context, prefUseAnimation, value),
                       ),
                     ],
-                    // CUR-464: Compact view option
-                    const SizedBox(height: 12),
-                    _buildAccessibilityOption(
-                      context,
-                      title: AppLocalizations.of(context).compactView,
-                      subtitle: AppLocalizations.of(
-                        context,
-                      ).compactViewDescription,
-                      value: prefs.compactView,
-                      onChanged: (value) =>
-                          _setSetting(context, prefCompactView, value),
-                    ),
 
                     const SizedBox(height: 32),
 

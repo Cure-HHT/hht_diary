@@ -18,7 +18,6 @@ void main() {
       expect(prefs.isDarkMode, isFalse);
       expect(prefs.largerTextAndControls, isFalse);
       expect(prefs.useAnimation, isTrue);
-      expect(prefs.compactView, isFalse);
       expect(prefs.languageCode, 'en');
       expect(prefs.selectedFont, 'Roboto');
       expect(prefs, const UserPreferences());
@@ -29,14 +28,12 @@ void main() {
         prefDarkMode: _user(prefDarkMode, true),
         prefLargerText: _user(prefLargerText, true),
         prefUseAnimation: _user(prefUseAnimation, false),
-        prefCompactView: _user(prefCompactView, true),
         prefLanguageCode: _user(prefLanguageCode, 'es'),
         prefSelectedFont: _user(prefSelectedFont, 'OpenDyslexic'),
       });
       expect(prefs.isDarkMode, isTrue);
       expect(prefs.largerTextAndControls, isTrue);
       expect(prefs.useAnimation, isFalse);
-      expect(prefs.compactView, isTrue);
       expect(prefs.languageCode, 'es');
       expect(prefs.selectedFont, 'OpenDyslexic');
     });
@@ -50,7 +47,6 @@ void main() {
       expect(prefs.languageCode, 'fr');
       // Untouched keys keep their defaults.
       expect(prefs.useAnimation, isTrue);
-      expect(prefs.compactView, isFalse);
       expect(prefs.largerTextAndControls, isFalse);
       expect(prefs.selectedFont, 'Roboto');
     });
