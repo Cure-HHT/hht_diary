@@ -2,7 +2,7 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: "none"
 
-version: 0.9.50+90
+version: 0.9.50+91
 
 environment:
   sdk: ^3.10.7
@@ -36,11 +36,9 @@ dependencies:
       url: git@github.com:Cure-HHT/event_sourcing.git
       ref: 9e04c17
       path: reaction_widgets
+  # In-tree path dep (consolidated onto this branch; single linear branch).
   diary_shared_model:
-    git:
-      url: git@github.com:Cure-HHT/hht_diary.git
-      ref: CUR-1409-diary-model-additions
-      path: apps/common-dart/diary_shared_model
+    path: ../../common-dart/diary_shared_model
   trial_data_types:
     path: ../../common-dart/trial_data_types
   eq:
