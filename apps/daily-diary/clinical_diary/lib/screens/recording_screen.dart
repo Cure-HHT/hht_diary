@@ -46,6 +46,15 @@ class RecordingScreen extends StatefulWidget {
   /// when [existing] is non-null.
   final DateTime? initialDate;
 
+  /// Default start time for a NEW recording. With no preselected day it is
+  /// [now]; for a day preselected on the calendar it is **noon** of that day —
+  /// not midnight, which made nudging the start time backwards (e.g. -5 min)
+  /// wrap onto the previous day.
+  static DateTime defaultStartTime(DateTime? initialDate, DateTime now) {
+    if (initialDate == null) return now;
+    return DateTime(initialDate.year, initialDate.month, initialDate.day, 12);
+  }
+
   @override
   State<RecordingScreen> createState() => _RecordingScreenState();
 }
@@ -95,7 +104,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
     if (existing == null) {
       _aggregateId = null;
       _isComplete = false;
-      _startDateTime = widget.initialDate ?? now;
+      _startDateTime = RecordingScreen.defaultStartTime(
+        widget.initialDate,
+        now,
+      );
       // Leave _endDateTime null for new records - set when the user explicitly
       // sets it. The end time picker uses _startDateTime as default.
       _endDateTime = null;
