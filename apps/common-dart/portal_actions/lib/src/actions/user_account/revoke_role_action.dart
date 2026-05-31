@@ -1,6 +1,8 @@
 // Implements: DIARY-PRD-user-account-edit/E — revoking a role-scope appends a
 //   role_unassigned event removing the (user, role, scope) row from
 //   user_role_scopes, enforced on the next dispatch.
+// Implements: DIARY-PRD-action-inventory/A — declares the portal.user.revoke_role
+//   permission the dispatcher enforces RBAC against.
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../portal_permissions.dart';

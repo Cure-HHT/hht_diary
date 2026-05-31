@@ -1,5 +1,6 @@
 // Verifies: DIARY-PRD-user-account-site-assignment/D
 // Verifies: DIARY-PRD-user-account-edit/E
+// Verifies: DIARY-PRD-action-inventory/A
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_actions/portal_actions.dart';
 import 'package:test/test.dart';

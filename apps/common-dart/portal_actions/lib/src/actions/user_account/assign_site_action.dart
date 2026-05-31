@@ -1,6 +1,9 @@
 // Implements: DIARY-PRD-user-account-site-assignment/D — assign one Site to a
 //   user as a BoundScope('site', X) under a role; emits a single role_assigned.
-// Implements: DIARY-PRD-user-account-edit/E
+// Implements: DIARY-PRD-user-account-edit/E — the Site change is enforced on the
+//   next dispatch (role_assigned folds into user_role_scopes).
+// Implements: DIARY-PRD-action-inventory/A — declares the portal.user.assign_site
+//   permission the dispatcher enforces RBAC against.
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../portal_permissions.dart';

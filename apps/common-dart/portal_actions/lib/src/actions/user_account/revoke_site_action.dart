@@ -1,5 +1,8 @@
-// Implements: DIARY-PRD-user-account-site-assignment/D — revoke one Site from a
-//   user as a role_unassigned of BoundScope('site', X) under a role.
+// Implements: DIARY-PRD-user-account-edit/E — revoking one Site appends a
+//   role_unassigned of BoundScope('site', X) under a role, enforced on the next
+//   dispatch (the row is removed from user_role_scopes).
+// Implements: DIARY-PRD-action-inventory/A — declares the portal.user.revoke_site
+//   permission the dispatcher enforces RBAC against.
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../portal_permissions.dart';

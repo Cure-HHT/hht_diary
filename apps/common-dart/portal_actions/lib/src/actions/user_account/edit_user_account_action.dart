@@ -1,4 +1,8 @@
-// Implements: DIARY-PRD-action-inventory/A
+// Implements: DIARY-PRD-user-account-edit/A — edits a staff user account's profile
+//   name and/or requests an email-address change (emits user_profile_changed
+//   and/or user_email_change_requested).
+// Implements: DIARY-PRD-action-inventory/A — declares the portal.user.edit
+//   permission the dispatcher enforces RBAC against.
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../portal_permissions.dart';

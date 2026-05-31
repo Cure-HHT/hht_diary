@@ -1,4 +1,5 @@
 // Verifies: DIARY-PRD-user-account-edit/A
+// Verifies: DIARY-PRD-action-inventory/A
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_actions/portal_actions.dart';
 import 'package:test/test.dart';
