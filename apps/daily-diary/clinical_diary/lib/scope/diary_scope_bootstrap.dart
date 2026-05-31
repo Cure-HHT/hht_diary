@@ -41,6 +41,18 @@ class DiaryScopeRuntime {
   }
 }
 
+// Implements: DIARY-DEV-action-write-path/A — the dispatcher records an
+//   `action_denial` audit event on every failed dispatch stage (unknown-action /
+//   parse / validate / authorize / execute). The diary scope registers the
+//   (non-materializing) type so a denial returns a clean DispatchResult instead
+//   of throwing `entryType not registered`.
+const EntryTypeDefinition _actionDenialEntryType = EntryTypeDefinition(
+  id: 'action_denial',
+  registeredVersion: 1,
+  name: 'Action Denial',
+  isMaterialized: false,
+);
+
 // Implements: DIARY-DEV-evs-stack-adoption/A+B
 // Implements: DIARY-DEV-local-participant-authorization/A+B+C
 /// Wires the new stack: bootstrapEventStore -> ActionDispatcher -> LocalScope.
@@ -66,6 +78,7 @@ Future<DiaryScopeRuntime> bootstrapDiaryScope({
 }) async {
   final entryTypes = <EntryTypeDefinition>[
     for (final t in diaryOriginatedEventTypes) t.definition,
+    _actionDenialEntryType,
     ...extraEntryTypes,
   ];
   final projections = ProjectionRegistry()
