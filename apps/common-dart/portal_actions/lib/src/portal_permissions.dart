@@ -61,4 +61,8 @@ final Map<String, Permission> portalPermissionsByActId = <String, Permission>{
   'ACT-SIT-001': const Permission('portal.site.view'),
   'ACT-AUD-001': const Permission('portal.audit.view'),
   'ACT-ADM-001': const Permission('portal.admin.view_settings'),
+  // Operations (DIARY-BASE-ops-action-inventory): unscoped, ops-only.
+  'ACT-OPS-001': const Permission('portal.rave.unwedge'),
+  'ACT-OPS-002': const Permission('portal.user.create_sysop'),
+  'ACT-OPS-003': const Permission('portal.user.create_admin'),
 };

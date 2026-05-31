@@ -41,6 +41,25 @@ void main() {
     expect(names.toSet().length, names.length);
   });
 
+  test('ops permissions exist with correct names and scoping', () {
+    expect(
+      portalPermissionsByActId['ACT-OPS-001']!.name,
+      'portal.rave.unwedge',
+    );
+    expect(portalPermissionsByActId['ACT-OPS-001']!.scopeClass, isNull);
+    expect(
+      portalPermissionsByActId['ACT-OPS-002']!.name,
+      'portal.user.create_sysop',
+    );
+    expect(portalPermissionsByActId['ACT-OPS-002']!.scopeClass, isNull);
+    expect(
+      portalPermissionsByActId['ACT-OPS-003']!.name,
+      'portal.user.create_admin',
+    );
+    expect(portalPermissionsByActId['ACT-OPS-003']!.scopeClass, isNull);
+    expect(portalPermissionsByActId.length, 26);
+  });
+
   // Verifies: DIARY-PRD-action-inventory/A
   test(
     'DIARY-PRD-action-inventory/A: registry registers actions with declared permissions',
