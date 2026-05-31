@@ -1,5 +1,6 @@
 // Implements: DIARY-DEV-action-write-path/A — the single registration site for
 //   every diary write-intent dispatched through the core ActionDispatcher.
+import 'package:clinical_diary/actions/checkpoint_epistaxis_event_action.dart';
 import 'package:clinical_diary/actions/delete_entry_action.dart';
 import 'package:clinical_diary/actions/edit_epistaxis_event_action.dart';
 import 'package:clinical_diary/actions/inbound_system_actions.dart';
@@ -17,6 +18,7 @@ ActionRegistry buildDiaryActionRegistry() {
     ..register(const RecordNoEpistaxisDayAction())
     ..register(const RecordUnknownDayAction())
     ..register(const EditEpistaxisEventAction())
+    ..register(const CheckpointEpistaxisEventAction())
     ..register(const DeleteEntryAction())
     ..register(const SubmitQuestionnaireAction())
     ..register(const RecordFcmMessageReceivedAction())

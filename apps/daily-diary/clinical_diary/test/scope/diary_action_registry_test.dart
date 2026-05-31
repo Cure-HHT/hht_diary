@@ -13,6 +13,7 @@ void main() {
         'record_no_epistaxis_day',
         'record_unknown_day',
         'edit_epistaxis_event',
+        'checkpoint_epistaxis_event',
         'delete_entry',
         'submit_questionnaire',
         'record_fcm_message_received',
