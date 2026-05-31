@@ -27,9 +27,9 @@ import 'package:clinical_diary/services/diary_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/file_read_service.dart';
 import 'package:clinical_diary/services/file_save_service.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
@@ -55,11 +55,6 @@ class HomeScreen extends StatefulWidget {
     required this.deviceId,
     required this.enrollmentService,
     required this.taskService,
-    required this.onLocaleChanged,
-    required this.onThemeModeChanged,
-    required this.onLargerTextChanged,
-    required this.preferencesService,
-    this.onFontChanged,
     this.onEnrolled,
     super.key,
   });
@@ -75,13 +70,6 @@ class HomeScreen extends StatefulWidget {
   final EnrollmentService enrollmentService;
   // REQ-CAL-p00081: Task service for questionnaire task management
   final TaskService taskService;
-  final ValueChanged<String> onLocaleChanged;
-  final ValueChanged<bool> onThemeModeChanged;
-  // CUR-488: Callback for larger text preference changes
-  final ValueChanged<bool> onLargerTextChanged;
-  // CUR-528: Callback for font selection changes
-  final ValueChanged<String>? onFontChanged;
-  final PreferencesService preferencesService;
   // REQ-CAL-p00082: Called after successful linking to register FCM token
   final VoidCallback? onEnrolled;
 
@@ -99,8 +87,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Subset of [_entries] that are checkpointed but not finalized.
   List<DiaryEntry> _incompleteEntries = [];
   bool _isEnrolled = false;
-  bool _useAnimation = true; // User preference for animations
-  bool _compactView = false; // User preference for compact list view
   // Wedge banner state — refreshed on init and on resume.
   bool _hasWedgedFifo = false;
 
@@ -118,7 +104,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadRecords();
-    _loadPreferences();
     _checkEnrollmentStatus();
     _checkDisconnectionStatus();
     _checkNotParticipatingStatus();
@@ -151,16 +136,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   SponsorBrandingConfig sponsorBranding = SponsorBrandingConfig.fallback;
-  Future<void> _loadPreferences() async {
-    final useAnimation = await widget.preferencesService.getUseAnimation();
-    final compactView = await widget.preferencesService.getCompactView();
-    if (mounted) {
-      setState(() {
-        _useAnimation = useAnimation;
-        _compactView = compactView;
-      });
-    }
-  }
 
   @override
   void dispose() {
@@ -297,13 +272,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ? SimpleRecordingScreen(
                 entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
                 allEntries: _entries,
               )
             : RecordingScreen(
                 entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
                 allEntries: _entries,
               ),
       ),
@@ -365,14 +338,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ? SimpleRecordingScreen(
                 entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
                 initialStartDate: yesterday,
                 allEntries: _entries,
               )
             : RecordingScreen(
                 entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
                 diaryEntryDate: yesterday,
                 allEntries: _entries,
               ),
@@ -676,17 +647,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           onShowSettings: () async {
             await Navigator.push(
               context,
-              AppPageRoute<void>(
-                builder: (context) => SettingsScreen(
-                  preferencesService: widget.preferencesService,
-                  onLanguageChanged: widget.onLocaleChanged,
-                  onThemeModeChanged: widget.onThemeModeChanged,
-                  onLargerTextChanged: widget.onLargerTextChanged,
-                  onFontChanged: widget.onFontChanged,
-                ),
-              ),
+              AppPageRoute<void>(builder: (context) => const SettingsScreen()),
             );
-            await _loadPreferences();
           },
           onShareWithCureHHT: () {
             // TODO: Implement CureHHT data sharing
@@ -903,7 +865,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ? SimpleRecordingScreen(
                 entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
                 initialStartDate: firstStart,
                 existingEntry: firstIncomplete,
                 allEntries: _entries,
@@ -912,7 +873,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             : RecordingScreen(
                 entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
                 diaryEntryDate: firstStart,
                 existingEntry: firstIncomplete,
                 allEntries: _entries,
@@ -949,7 +909,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ? SimpleRecordingScreen(
                 entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
                 existingEntry: entry,
                 allEntries: _entries,
                 onDelete: tombstone,
@@ -957,7 +916,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             : RecordingScreen(
                 entryService: widget.runtime.entryService,
                 enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
                 existingEntry: entry,
                 allEntries: _entries,
                 onDelete: tombstone,
@@ -1134,17 +1092,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         await Navigator.push(
                           context,
                           AppPageRoute<void>(
-                            builder: (context) => SettingsScreen(
-                              preferencesService: widget.preferencesService,
-                              onLanguageChanged: widget.onLocaleChanged,
-                              onThemeModeChanged: widget.onThemeModeChanged,
-                              onLargerTextChanged: widget.onLargerTextChanged,
-                              onFontChanged: widget.onFontChanged,
-                            ),
+                            builder: (context) => const SettingsScreen(),
                           ),
                         );
-                        // Reload preferences in case they changed
-                        await _loadPreferences();
                       } else if (value == 'privacy') {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -1387,7 +1337,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           entryService: widget.runtime.entryService,
                           reader: widget.runtime.reader,
                           enrollmentService: widget.enrollmentService,
-                          preferencesService: widget.preferencesService,
                         ),
                       );
                       unawaited(_loadRecords());
@@ -1408,6 +1357,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildGroup(BuildContext context, _GroupedRecords group) {
+    final prefs = AppPreferencesScope.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1494,11 +1444,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               // CUR-489: Use GlobalKey for scroll-to-item functionality
               key: _getKeyForRecord(entry.entryId),
               // CUR-464: Use smaller gap when compact view is enabled
-              padding: EdgeInsets.only(bottom: _compactView ? 4 : 8),
+              padding: EdgeInsets.only(bottom: prefs.compactView ? 4 : 8),
               // CUR-464: Wrap with FlashHighlight to animate new records
               child: FlashHighlight(
                 flash: entry.entryId == _flashRecordId,
-                enabled: _useAnimation,
+                enabled: prefs.useAnimation,
                 onFlashComplete: () {
                   if (mounted) {
                     setState(() {

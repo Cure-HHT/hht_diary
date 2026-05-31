@@ -3,7 +3,7 @@
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -51,28 +51,18 @@ class CalendarOverlay extends StatefulWidget {
 
 class _CalendarOverlayState extends State<CalendarOverlay> {
   late DateTime _focusedDay;
-  bool _useAnimation = true;
 
   @override
   void initState() {
     super.initState();
     _focusedDay = widget.selectedDate ?? DateTime.now();
-    _loadAnimationPreference();
   }
 
-  Future<void> _loadAnimationPreference() async {
-    final prefs = PreferencesService();
-    final useAnimation = await prefs.getUseAnimation();
-    if (mounted) {
-      setState(() {
-        _useAnimation = useAnimation;
-      });
-    }
-  }
-
-  /// Check if animations are enabled (both feature flag and user preference)
-  bool get _animationsEnabled =>
-      FeatureFlagService.instance.useAnimations && _useAnimation;
+  /// Check if animations are enabled (both feature flag and user preference).
+  /// The user side is read reactively from the settings projection.
+  bool _animationsEnabled(BuildContext context) =>
+      FeatureFlagService.instance.useAnimations &&
+      AppPreferencesScope.of(context).useAnimation;
 
   DateTime? _entryLocalDate(DiaryEntry e) {
     final eff = e.effectiveDate;
@@ -242,7 +232,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
                       // CUR-599: Always show 6 weeks to prevent height changes
                       sixWeekMonthsEnforced: true,
                       // CUR-599: Respect user animation preference for page transitions
-                      pageAnimationEnabled: _animationsEnabled,
+                      pageAnimationEnabled: _animationsEnabled(context),
                       selectedDayPredicate: (day) {
                         if (widget.selectedDate == null) return false;
                         return isSameDay(day, widget.selectedDate);

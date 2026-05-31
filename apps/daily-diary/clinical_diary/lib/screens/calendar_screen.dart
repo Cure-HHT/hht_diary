@@ -8,7 +8,7 @@ import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/diary_entry_reader.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
@@ -23,14 +23,12 @@ class CalendarScreen extends StatefulWidget {
     required this.entryService,
     required this.reader,
     required this.enrollmentService,
-    required this.preferencesService,
     super.key,
   });
 
   final EntryService entryService;
   final DiaryEntryReader reader;
   final EnrollmentService enrollmentService;
-  final PreferencesService preferencesService;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -41,27 +39,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime? _selectedDay;
   Map<DateTime, DayStatus> _dayStatuses = {};
   List<DiaryEntry> _allEntries = [];
-  bool _useAnimation = true;
 
   @override
   void initState() {
     super.initState();
     _loadDayStatuses();
-    _loadAnimationPreference();
   }
 
-  Future<void> _loadAnimationPreference() async {
-    final useAnimation = await widget.preferencesService.getUseAnimation();
-    if (mounted) {
-      setState(() {
-        _useAnimation = useAnimation;
-      });
-    }
-  }
-
-  /// Check if animations are enabled (both feature flag and user preference)
-  bool get _animationsEnabled =>
-      FeatureFlagService.instance.useAnimations && _useAnimation;
+  /// Check if animations are enabled (both feature flag and user preference).
+  /// The user side is read reactively from the settings projection.
+  bool _animationsEnabled(BuildContext context) =>
+      FeatureFlagService.instance.useAnimations &&
+      AppPreferencesScope.of(context).useAnimation;
 
   /// CUR-599: Handle month change - load new data in background
   void _handleMonthChange(DateTime focusedDay) {
@@ -273,7 +262,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
         builder: (context) => RecordingScreen(
           entryService: widget.entryService,
           enrollmentService: widget.enrollmentService,
-          preferencesService: widget.preferencesService,
           diaryEntryDate: existingEntry == null ? selectedDay : null,
           existingEntry: existingEntry,
           allEntries: _allEntries,
@@ -338,7 +326,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 // CUR-599: Always show 6 weeks to prevent height changes
                 sixWeekMonthsEnforced: true,
                 // CUR-599: Respect user animation preference for page transitions
-                pageAnimationEnabled: _animationsEnabled,
+                pageAnimationEnabled: _animationsEnabled(context),
                 selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                 enabledDayPredicate: (day) => !_isFutureDate(day),
                 onDaySelected: _onDaySelected,

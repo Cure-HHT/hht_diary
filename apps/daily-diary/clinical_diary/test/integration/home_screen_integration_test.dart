@@ -45,7 +45,6 @@ import 'dart:async';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/license_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/services/triggers.dart';
@@ -148,7 +147,6 @@ void main() {
   group('HomeScreen Integration', () {
     late ClinicalDiaryRuntime runtime;
     late MockEnrollmentService enrollment;
-    late PreferencesService preferences;
     late TaskService tasks;
 
     setUp(() async {
@@ -157,7 +155,6 @@ void main() {
       TimezoneConverter.testDeviceOffsetMinutes = 0;
       TimezoneService.instance.testTimezoneOverride = 'Etc/UTC';
       SharedPreferences.setMockInitialValues({});
-      preferences = PreferencesService();
       enrollment = MockEnrollmentService();
       tasks = TaskService();
       runtime = await _bootstrap();
@@ -185,10 +182,6 @@ void main() {
             deviceId: _deviceId,
             enrollmentService: enrollment,
             taskService: tasks,
-            preferencesService: preferences,
-            onLocaleChanged: (_) {},
-            onThemeModeChanged: (_) {},
-            onLargerTextChanged: (_) {},
           ),
         ),
       );

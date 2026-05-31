@@ -15,9 +15,8 @@ const String prefCompactView = 'pref.compactView';
 const String prefLanguageCode = 'pref.languageCode';
 const String prefSelectedFont = 'pref.selectedFont';
 
-/// User preferences value type. Same shape/defaults as the legacy
-/// `PreferencesService.UserPreferences`; now sourced from the settings
-/// projection.
+/// User preferences value type (six fields/defaults), sourced from the
+/// event-sourced settings projection.
 class UserPreferences {
   const UserPreferences({
     this.isDarkMode = false,

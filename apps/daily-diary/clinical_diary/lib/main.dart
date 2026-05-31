@@ -23,18 +23,20 @@ import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/debug_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/notification_service.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:common_widgets/common_widgets.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -120,128 +122,22 @@ class ClinicalDiaryApp extends StatefulWidget {
 }
 
 class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
-  Locale _locale = const Locale('en');
-  // CUR-424: Force light mode for alpha partners (no system/dark mode)
-  ThemeMode _themeMode = ThemeMode.light;
-  // CUR-488: Larger text and controls preference
-  bool _largerTextAndControls = false;
-  // CUR-528: Selected font family
-  String _selectedFont = 'Roboto';
-  final PreferencesService _preferencesService = PreferencesService();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPreferences();
-  }
-
-  Future<void> _loadPreferences() async {
-    final prefs = await _preferencesService.getPreferences();
-    setState(() {
-      _locale = Locale(prefs.languageCode);
-      // CUR-424: Always use light mode for alpha partners
-      _themeMode = ThemeMode.light;
-      // CUR-488: Load larger text preference
-      _largerTextAndControls = prefs.largerTextAndControls;
-      // CUR-528: Load selected font preference
-      _selectedFont = prefs.selectedFont;
-    });
-  }
-
-  void _setLocale(String languageCode) {
-    setState(() {
-      _locale = Locale(languageCode);
-    });
-  }
-
-  void _setThemeMode(bool isDarkMode) {
-    // CUR-424: Ignore dark mode requests, always use light mode for alpha
-    setState(() {
-      _themeMode = ThemeMode.light;
-    });
-  }
-
-  // CUR-488: Update larger text preference
-  void _setLargerTextAndControls(bool value) {
-    setState(() {
-      _largerTextAndControls = value;
-    });
-  }
-
-  // CUR-528: Update selected font preference
-  void _setFont(String fontFamily) {
-    setState(() {
-      _selectedFont = fontFamily;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Wrap with EnvironmentBanner to show DEV/QA ribbon in non-production builds
+    // Wrap with EnvironmentBanner to show DEV/QA ribbon in non-production
+    // builds. The themed [MaterialApp] is built inside [AppRoot] once the
+    // event-sourcing scope is up, so its theme/locale/text-scale can be driven
+    // by the settings projection.
     return EnvironmentBanner(
       show: F.showBanner,
       flavorName: F.name,
-      child: MaterialApp(
-        title: F.title,
-        // Show Flutter debug banner in debug mode (top-right corner)
-        // Environment ribbon (DEV/QA) shows in top-left corner
-        debugShowCheckedModeBanner: kDebugMode,
-        // CUR-528: Use theme with selected font
-        theme: AppTheme.getLightThemeWithFont(fontFamily: _selectedFont),
-        darkTheme: AppTheme.getDarkThemeWithFont(fontFamily: _selectedFont),
-        themeMode: _themeMode,
-        locale: _locale,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        // Wrap all routes with ResponsiveWebFrame to constrain width on web
-        // CUR-488: Apply text scale factor for larger text preference
-        builder: (context, child) {
-          final mediaQuery = MediaQuery.of(context);
-          // Scale text by 1.2x when larger text is enabled
-          final textScaleFactor = _largerTextAndControls
-              ? mediaQuery.textScaler.scale(1.2)
-              : 1.0;
-          return MediaQuery(
-            data: mediaQuery.copyWith(
-              textScaler: TextScaler.linear(textScaleFactor),
-            ),
-            child: ResponsiveWebFrame(child: child ?? const SizedBox.shrink()),
-          );
-        },
-        home: AppRoot(
-          onLocaleChanged: _setLocale,
-          onThemeModeChanged: _setThemeMode,
-          onLargerTextChanged: _setLargerTextAndControls,
-          onFontChanged: _setFont,
-          preferencesService: _preferencesService,
-        ),
-      ),
+      child: const AppRoot(),
     );
   }
 }
 
 class AppRoot extends StatefulWidget {
-  const AppRoot({
-    required this.onLocaleChanged,
-    required this.onThemeModeChanged,
-    required this.onLargerTextChanged,
-    required this.onFontChanged,
-    required this.preferencesService,
-    super.key,
-  });
-
-  final ValueChanged<String> onLocaleChanged;
-  final ValueChanged<bool> onThemeModeChanged;
-  // CUR-488: Callback for larger text preference changes
-  final ValueChanged<bool> onLargerTextChanged;
-  // CUR-528: Callback for font selection changes
-  final ValueChanged<String> onFontChanged;
-  final PreferencesService preferencesService;
+  const AppRoot({super.key});
 
   @override
   State<AppRoot> createState() => _AppRootState();
@@ -531,14 +427,80 @@ class _AppRootState extends State<AppRoot> {
     super.dispose();
   }
 
+  /// Folds the settings view rows into a `{key: SettingPayload}` map.
+  static Map<String, SettingPayload> _settingsByKey(
+    ViewState<Map<String, Object?>> state,
+  ) {
+    final rows = switch (state) {
+      Ready<Map<String, Object?>>(:final rows) => rows,
+      Stale<Map<String, Object?>>(:final lastRows) => lastRows,
+      _ => const <Map<String, Object?>>[],
+    };
+    final out = <String, SettingPayload>{};
+    for (final row in rows) {
+      final payload = SettingPayload.fromJson(row);
+      out[payload.key] = payload;
+    }
+    return out;
+  }
+
+  /// Wraps [home] in the themed [MaterialApp]. When [prefs] is supplied the
+  /// theme/locale/text-scale are driven by the settings projection; the
+  /// pre-bootstrap loading/error screens pass null and get plain defaults.
+  // Implements: DIARY-DEV-reactive-read-path/A — the app-root presentation
+  //   layer holds no authoritative preference state; it is rebuilt from the
+  //   settings projection.
+  Widget _buildMaterialApp({required Widget home, UserPreferences? prefs}) {
+    final font = prefs?.selectedFont ?? 'Roboto';
+    final largerText = prefs?.largerTextAndControls ?? false;
+    final languageCode = prefs?.languageCode ?? 'en';
+    return MaterialApp(
+      title: F.title,
+      // Show Flutter debug banner in debug mode (top-right corner).
+      // Environment ribbon (DEV/QA) shows in top-left corner.
+      debugShowCheckedModeBanner: kDebugMode,
+      // CUR-528: Use theme with selected font.
+      theme: AppTheme.getLightThemeWithFont(fontFamily: font),
+      darkTheme: AppTheme.getDarkThemeWithFont(fontFamily: font),
+      // CUR-424: Always light mode for alpha partners (dark mode stored but a
+      // no-op).
+      themeMode: ThemeMode.light,
+      locale: Locale(languageCode),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      // Wrap all routes with ResponsiveWebFrame to constrain width on web.
+      // CUR-488: Apply text scale factor for larger text preference.
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final textScaleFactor = largerText
+            ? mediaQuery.textScaler.scale(1.2)
+            : 1.0;
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.linear(textScaleFactor),
+          ),
+          child: ResponsiveWebFrame(child: child ?? const SizedBox.shrink()),
+        );
+      },
+      home: home,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_bootstrapError != null) {
-      return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text('Failed to initialize storage: $_bootstrapError'),
+      return _buildMaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Failed to initialize storage: $_bootstrapError'),
+            ),
           ),
         ),
       );
@@ -547,23 +509,35 @@ class _AppRootState extends State<AppRoot> {
     final deviceId = _deviceId;
     final diaryScope = _diaryScope;
     if (runtime == null || deviceId == null || diaryScope == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return _buildMaterialApp(
+        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
     }
-    // CUR-1169 I1: mount the new LocalScope above the existing screens so
-    // reaction widgets can resolve it. Old screens are unchanged.
+    // CUR-1169 B3.1: mount the LocalScope, then drive the themed MaterialApp
+    // (theme/locale/text-scale) and the in-tree [AppPreferencesScope] off the
+    // event-sourced settings projection. No app-root preference state remains.
     return ReActionScope(
       scope: diaryScope.scope,
-      child: HomeScreen(
-        runtime: runtime,
-        deviceId: deviceId,
-        enrollmentService: _enrollmentService,
-        taskService: _taskService,
-        onLocaleChanged: widget.onLocaleChanged,
-        onThemeModeChanged: widget.onThemeModeChanged,
-        onLargerTextChanged: widget.onLargerTextChanged,
-        onFontChanged: widget.onFontChanged,
-        preferencesService: widget.preferencesService,
-        onEnrolled: _onPostEnrollment,
+      child: ViewBuilder<Map<String, Object?>>(
+        viewName: settingsViewName,
+        mapper: (r) => r,
+        aggregateIdOf: (r) => r['aggregateId'] as String,
+        builder: (context, state) {
+          final prefs = userPreferencesFromSettings(_settingsByKey(state));
+          return _buildMaterialApp(
+            prefs: prefs,
+            home: AppPreferencesScope(
+              preferences: prefs,
+              child: HomeScreen(
+                runtime: runtime,
+                deviceId: deviceId,
+                enrollmentService: _enrollmentService,
+                taskService: _taskService,
+                onEnrolled: _onPostEnrollment,
+              ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -8,7 +8,6 @@
 // up the full Sembast write path / Navigator pop.
 
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/intensity_row.dart';
 import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
@@ -116,11 +115,9 @@ void main() {
   group('SimpleRecordingScreen', () {
     late _CapturingEntryService entryService;
     late MockEnrollmentService enrollment;
-    late PreferencesService preferences;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      preferences = PreferencesService();
       enrollment = MockEnrollmentService();
       entryService = await _CapturingEntryService.create();
     });
@@ -147,7 +144,6 @@ void main() {
           SimpleRecordingScreen(
             entryService: entryService,
             enrollmentService: enrollment,
-            preferencesService: preferences,
             existingEntry: existingEntry,
             allEntries: allEntries,
             onDelete: onDelete,

@@ -13,7 +13,6 @@
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/widgets/intensity_picker.dart';
 import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
@@ -109,11 +108,9 @@ void main() {
   group('RecordingScreen', () {
     late _CapturingEntryService entryService;
     late MockEnrollmentService enrollment;
-    late PreferencesService preferences;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      preferences = PreferencesService();
       enrollment = MockEnrollmentService();
       entryService = await _CapturingEntryService.create();
       // Reset feature flags to known defaults.
@@ -150,7 +147,6 @@ void main() {
           RecordingScreen(
             entryService: entryService,
             enrollmentService: enrollment,
-            preferencesService: preferences,
             diaryEntryDate: diaryEntryDate,
             existingEntry: existingEntry,
             allEntries: allEntries,

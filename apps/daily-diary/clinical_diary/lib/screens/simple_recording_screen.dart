@@ -4,7 +4,6 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/inline_time_picker.dart';
@@ -20,7 +19,6 @@ class SimpleRecordingScreen extends StatefulWidget {
   const SimpleRecordingScreen({
     required this.entryService,
     required this.enrollmentService,
-    required this.preferencesService,
     super.key,
     this.initialStartDate,
     this.existingEntry,
@@ -30,7 +28,6 @@ class SimpleRecordingScreen extends StatefulWidget {
 
   final EntryService entryService;
   final EnrollmentService enrollmentService;
-  final PreferencesService preferencesService;
   final DateTime? initialStartDate;
 
   /// Existing nosebleed entry (`epistaxis_event`) to edit. Pulled fields:

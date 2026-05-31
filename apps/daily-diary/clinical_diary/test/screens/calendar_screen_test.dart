@@ -11,7 +11,8 @@ import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/services/diary_entry_reader.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
@@ -162,13 +163,9 @@ void main() {
     late SembastBackend backend;
     late DiaryEntryReader reader;
     late MockEnrollmentService enrollment;
-    late PreferencesService preferences;
 
     setUp(() async {
-      // Disable animations to stop the table-calendar's page animator from
-      // ticking forever inside pumpAndSettle.
-      SharedPreferences.setMockInitialValues({'pref_use_animation': false});
-      preferences = PreferencesService();
+      SharedPreferences.setMockInitialValues({});
       enrollment = MockEnrollmentService();
       final created = await _CapturingEntryService.create();
       entryService = created.service;
@@ -190,11 +187,15 @@ void main() {
 
       await tester.pumpWidget(
         wrapWithMaterialApp(
-          CalendarScreen(
-            entryService: entryService,
-            reader: reader,
-            enrollmentService: enrollment,
-            preferencesService: preferences,
+          // Disable animations to stop the table-calendar's page animator from
+          // ticking forever inside pumpAndSettle.
+          AppPreferencesScope(
+            preferences: const UserPreferences(useAnimation: false),
+            child: CalendarScreen(
+              entryService: entryService,
+              reader: reader,
+              enrollmentService: enrollment,
+            ),
           ),
         ),
       );
