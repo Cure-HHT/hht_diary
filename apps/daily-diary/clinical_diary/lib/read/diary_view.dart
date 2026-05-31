@@ -10,11 +10,27 @@ class DiaryView {
     required List<DiaryEntryRow> finalized,
     required List<DiaryEntryRow> incomplete,
   }) : _finalized = finalized,
-       _incomplete = incomplete,
-       incompleteDates = incomplete
-           .map((r) => r.localDate)
-           .whereType<String>()
-           .toSet();
+       _incomplete = _disjointIncomplete(finalized, incomplete),
+       incompleteDates = _disjointIncomplete(
+         finalized,
+         incomplete,
+       ).map((r) => r.localDate).whereType<String>().toSet();
+
+  /// Incomplete rows that are NOT also finalized. An aggregate that has been
+  /// finalized is complete, even if a stale checkpoint row still lingers in the
+  /// incomplete view (the projection's tombstone-on-finalize may be eventual);
+  /// keeping the two disjoint is what makes the union a clean splice and stops
+  /// the same aggregate id from rendering in both a finalized and an incomplete
+  /// group (which would collide on a shared scroll-to GlobalKey).
+  static List<DiaryEntryRow> _disjointIncomplete(
+    List<DiaryEntryRow> finalized,
+    List<DiaryEntryRow> incomplete,
+  ) {
+    final finalizedIds = finalized.map((r) => r.aggregateId).toSet();
+    return incomplete
+        .where((r) => !finalizedIds.contains(r.aggregateId))
+        .toList();
+  }
 
   final List<DiaryEntryRow> _finalized;
   final List<DiaryEntryRow> _incomplete;
