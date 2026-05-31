@@ -80,4 +80,30 @@ void main() {
       await store.close();
     },
   );
+
+  test('checkpoint adds; tombstone (delete) removes', () async {
+    final store = await _open();
+    await store.append(
+      entryType: 'epistaxis_event',
+      aggregateType: diaryEntryAggregateType,
+      aggregateId: 'e2',
+      eventType: 'checkpoint',
+      data: const {'startTime': '2025-10-15T10:00:00.000Z'},
+      initiator: const UserInitiator('u'),
+    );
+    expect(await _ids(store), contains('e2'));
+
+    // Deleting an open draft must remove it from the incomplete view — a
+    // tombstoned entry is gone, not "incomplete".
+    await store.append(
+      entryType: 'epistaxis_event',
+      aggregateType: diaryEntryAggregateType,
+      aggregateId: 'e2',
+      eventType: 'tombstone',
+      data: const {'changeReason': 'entered-in-error'},
+      initiator: const UserInitiator('u'),
+    );
+    expect(await _ids(store), isNot(contains('e2')));
+    await store.close();
+  });
 }
