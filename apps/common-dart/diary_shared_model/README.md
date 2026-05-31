@@ -8,10 +8,10 @@ team on 2026-05-29** (`docs/evs-lib-port/diary-event-surface.md`). **Actions sta
 
 ## Catalog (`sharedEventCatalog`)
 
-- Portal-originated (`[P]`) + edge: patient lifecycle (9), questionnaire lifecycle (7),
+- Portal-originated (`[P]`) + edge: participant lifecycle (9), questionnaire lifecycle (7),
   notification + fcm_token (3).
 - Diary-originated (`mobile`): clinical `epistaxis_event` / `no_epistaxis_event` /
-  `unknown_day_event`, plus `patient_linked`, `fcm_token_registered`, `fcm_message_received`.
+  `unknown_day_event`, plus `participant_linked`, `fcm_token_registered`, `fcm_message_received`.
 
 Each is the substrate's minimal `EntryTypeDefinition` (`id` / `registeredVersion` / `name` /
 `isMaterialized`). The event **kind** (`finalized` / `tombstone` / `checkpoint`) rides in

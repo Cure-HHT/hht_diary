@@ -59,4 +59,12 @@ const List<SharedEventType> diaryOriginatedEventTypes = <SharedEventType>[
       name: 'FCM Message Received',
     ),
   ),
+  SharedEventType(
+    origin: EventOrigin.mobile,
+    definition: EntryTypeDefinition(
+      id: 'setting_applied',
+      registeredVersion: 1,
+      name: 'Setting Applied',
+    ),
+  ),
 ];
