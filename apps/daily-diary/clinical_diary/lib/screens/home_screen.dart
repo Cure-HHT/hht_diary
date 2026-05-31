@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
@@ -17,10 +16,7 @@ import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
-import 'package:clinical_diary/services/diary_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/services/file_read_service.dart';
-import 'package:clinical_diary/services/file_save_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
@@ -35,7 +31,6 @@ import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:eq/eq.dart';
 import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
@@ -360,148 +355,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Implements: DIARY-DEV-action-write-path/A
   Future<void> _handleYesterdayDontRemember() async {
     await _submitDayMarker('record_unknown_day', _yesterdayKey());
-  }
-
-  /// Export the local event log as JSON via [DiaryExportService] and hand the
-  /// payload to the platform file-save dialog.
-  ///
-  /// Import is deferred to a follow-up ticket — re-importing the JSON would
-  /// require translating legacy event shapes back to the new
-  /// `EntryService.record` API, which would be a one-shot adapter. The button
-  /// stays in the menu so the spec/UX surface is preserved; tapping it shows
-  /// a "not implemented" message.
-  Future<void> _handleExportData() async {
-    final l10n = AppLocalizations.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    try {
-      final exportService = DiaryExportService(
-        backend: widget.runtime.backend,
-        deviceId: widget.deviceId,
-      );
-
-      final result = await exportService.exportAll();
-
-      const encoder = JsonEncoder.withIndent('  ');
-      final jsonData = encoder.convert(result.payload);
-
-      final saved = await FileSaveService.saveFile(
-        fileName: result.filename,
-        data: jsonData,
-        dialogTitle: l10n.exportData,
-      );
-
-      if (saved) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.exportSuccess),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Export error: $e');
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.exportFailed),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  /// Round-trip companion to [_handleExportData]: pick a JSON export file,
-  /// decode it, and feed every event back through `EventStore.ingestEvent`
-  /// via [DiaryExportService.importAll]. The library handles idempotency,
-  /// so re-importing the same export against the same backend is a no-op.
-  ///
-  /// On success we show a SnackBar carrying the imported / duplicate /
-  /// skipped counts and refresh the home screen so any newly-ingested
-  /// entries surface immediately.
-  Future<void> _handleImportData() async {
-    final l10n = AppLocalizations.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    try {
-      final pickResult = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const ['json'],
-        dialogTitle: l10n.importData,
-      );
-
-      if (pickResult == null || pickResult.files.isEmpty) {
-        // User cancelled the picker — nothing to do.
-        return;
-      }
-
-      final picked = pickResult.files.single;
-      final path = picked.path;
-      if (path == null) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.importFailed('no path on selected file')),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
-
-      final raw = await FileReadService.readFile(path);
-      if (raw == null) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.importFailed('unable to read file')),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
-
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, Object?>) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.importFailed('not a diary export object')),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
-
-      final importer = DiaryExportService(
-        backend: widget.runtime.backend,
-        deviceId: widget.deviceId,
-        eventStore: widget.runtime.eventStore,
-      );
-
-      final result = await importer.importAll(decoded);
-
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Imported ${result.imported} events, '
-            '${result.duplicates} duplicates, '
-            '${result.skipped} skipped.',
-          ),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    } on FormatException catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.importFailed(e.message)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    } catch (e, stack) {
-      debugPrint('Import error: $e\n$stack');
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.importFailed(e.toString())),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
   }
 
   // Implements: DIARY-PRD-local-data-reset/D — the destructive reset requires
@@ -1019,8 +872,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   // Logo menu on the left
                   LogoMenu(
-                    onExportData: _handleExportData,
-                    onImportData: _handleImportData,
                     sponsorLogo: sponsorBranding.appLogoUrl,
                     onResetAllData: _handleResetAllData,
                     resetEnabled: _canResetData,

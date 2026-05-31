@@ -10,8 +10,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 /// Logo menu widget with data management and clinical trial options
 class LogoMenu extends StatefulWidget {
   const LogoMenu({
-    required this.onExportData,
-    required this.onImportData,
     required this.onResetAllData,
     required this.onFeatureFlags,
     required this.onEndClinicalTrial,
@@ -24,8 +22,6 @@ class LogoMenu extends StatefulWidget {
     super.key,
   });
 
-  final VoidCallback onExportData;
-  final VoidCallback onImportData;
   final VoidCallback onResetAllData;
   final VoidCallback onFeatureFlags;
   final VoidCallback? onEndClinicalTrial;
@@ -41,7 +37,7 @@ class LogoMenu extends StatefulWidget {
   final bool? isEnrolled;
   final String? sponsorLogo;
 
-  /// Whether to show developer tools (Reset All Data, Import/Export Data, Feature Flags).
+  /// Whether to show developer tools (Reset All Data, Feature Flags).
   /// Should be false in production and UAT environments.
   final bool showDevTools;
 
@@ -119,10 +115,6 @@ class _LogoMenuState extends State<LogoMenu> {
       ),
       onSelected: (value) {
         switch (value) {
-          case 'export_data':
-            widget.onExportData();
-          case 'import_data':
-            widget.onImportData();
           case 'reset_all_data':
             // Guarded: a disabled item is non-selectable, but never invoke the
             // destructive reset when the gate is closed.
@@ -151,34 +143,6 @@ class _LogoMenuState extends State<LogoMenu> {
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),
-            ),
-          ),
-          PopupMenuItem<String>(
-            value: 'export_data',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.upload_outlined,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 12),
-                Flexible(child: Text(l10n.exportData)),
-              ],
-            ),
-          ),
-          PopupMenuItem<String>(
-            value: 'import_data',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.download_outlined,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 12),
-                Flexible(child: Text(l10n.importData)),
-              ],
             ),
           ),
           // Implements: DIARY-PRD-local-data-reset/B+C — the reset item is
