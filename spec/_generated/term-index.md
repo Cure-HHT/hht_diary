@@ -457,6 +457,7 @@
 
 - DIARY-OPS-db-reset-non-prod
 - DIARY-BASE-audit-trail-E
+- DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-schema-version-check-A
 - DIARY-DEV-schema-version-check-B
 - DIARY-DEV-schema-version-check-C
@@ -470,6 +471,7 @@
 - DIARY-PRD-sla-service-availability-E
 - DIARY-PRD-sla-incident-severity-F
 - DIARY-PRD-sla-disaster-recovery-C
+- DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-schema-version-check:section:0
 - DIARY-OPS-db-reset-non-prod:section:0
 - DIARY-OPS-ci-migration-gate:section:0
@@ -533,6 +535,9 @@
 - DIARY-PRD-user-authentication-pin
 - DIARY-BASE-audit-trail-E
 - DIARY-DEV-runtime-environment-resolution-D
+- DIARY-DEV-node-sync-topology-A
+- DIARY-DEV-node-sync-topology-B
+- DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-shared-events-catalog-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
@@ -573,6 +578,7 @@
 - DIARY-GUI-administrator-dashboard-E
 - DIARY-GUI-administrator-dashboard-F
 - DIARY-BASE-audit-trail:section:1
+- DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
@@ -757,6 +763,10 @@
 ## Event Sourcing
 
 ## Event Store
+
+**DIARY:**
+
+- DIARY-DEV-node-sync-topology-A
 
 ## Failed Attempt Threshold
 
@@ -1246,6 +1256,7 @@
 - DIARY-GUI-participant-dashboard
 - DIARY-GUI-link-participant-flow
 - DIARY-BASE-audit-trail-E
+- DIARY-DEV-node-sync-topology-C
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-study-coordinator-B
 - DIARY-GUI-audit-log-cra-A
@@ -2306,6 +2317,9 @@
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
 - DIARY-BASE-audit-trail-E
+- DIARY-DEV-node-sync-topology-A
+- DIARY-DEV-node-sync-topology-B
+- DIARY-DEV-node-sync-topology-C
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G
@@ -2411,6 +2425,7 @@
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-BASE-audit-trail:section:1
+- DIARY-DEV-node-sync-topology:section:1
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:762
 - rem:spec/glossary-core.md:764
@@ -2520,6 +2535,9 @@
 **DIARY:**
 
 - DIARY-BASE-audit-trail-E
+- DIARY-DEV-node-sync-topology-A
+- DIARY-DEV-node-sync-topology-B
+- DIARY-DEV-node-sync-topology-C
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-help-resources-A
 - DIARY-PRD-help-resources-D
@@ -2544,6 +2562,7 @@
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-BASE-audit-trail:section:1
+- DIARY-DEV-node-sync-topology:section:1
 - DIARY-PRD-administrator-settings:section:0
 - rem:spec/prd-common-ui.md:3
 - DIARY-PRD-help-resources:section:0
