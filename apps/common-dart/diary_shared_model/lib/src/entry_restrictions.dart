@@ -60,6 +60,17 @@ class EntryGateRules {
   /// Trial Start date (local midnight). The lock applies only to event dates on
   /// or after this (assertion M); null disables that qualifier.
   final DateTime? trialStart;
+
+  @override
+  bool operator ==(Object other) =>
+      other is EntryGateRules &&
+      other.justificationThreshold == justificationThreshold &&
+      other.lockThreshold == lockThreshold &&
+      other.trialStart == trialStart;
+
+  @override
+  int get hashCode =>
+      Object.hash(justificationThreshold, lockThreshold, trialStart);
 }
 
 /// Decides the [EntryGate] for an entry whose event date is [eventLocalMidnight]
@@ -90,4 +101,86 @@ EntryGate entryGateForDate({
     return EntryGate.requiresJustification;
   }
   return EntryGate.allowed;
+}
+
+/// The full set of configurable clinical entry rules, derived from the folded
+/// settings. Combines the time-window [gate] (justification/lock — shared with
+/// the diary-server's ingest re-validation via [entryGateForDate]) with the
+/// recording-flow flags (duration-reasonableness confirmations + review screen).
+///
+/// Every field defaults to "no restriction": absent keys ⇒ a permissive
+/// [EntryGateRules], confirmations off, review screen off. The same keys can be
+/// written by the participant (`source: user`, voluntary) or by the sponsor
+/// (`source: sponsor, locked`) — the derivation is source-agnostic.
+class ClinicalRules {
+  const ClinicalRules({
+    this.gate = const EntryGateRules(),
+    this.shortDurationConfirm = false,
+    this.longDurationConfirm = false,
+    this.longDurationThresholdMinutes = 240,
+    this.useReviewScreen = false,
+  });
+
+  /// Derives the rules from the folded settings map. [trialStart] (for the gate's
+  /// lock qualifier) comes from the participant-lifecycle projection, NOT
+  /// settings; pass null when unknown (the lock then applies to all dates past
+  /// its threshold). Pure and deterministic.
+  factory ClinicalRules.fromSettings(
+    Map<String, SettingPayload> settings, {
+    required DateTime? trialStart,
+  }) {
+    bool boolOf(String key, {required bool fallback}) {
+      final v = settings[key]?.value;
+      return v is bool ? v : fallback;
+    }
+
+    int intOf(String key, {required int fallback}) {
+      final v = settings[key]?.value;
+      return v is int ? v : fallback;
+    }
+
+    return ClinicalRules(
+      gate: EntryGateRules.fromSettings(settings, trialStart: trialStart),
+      shortDurationConfirm: boolOf(shortDurationConfirmKey, fallback: false),
+      longDurationConfirm: boolOf(longDurationConfirmKey, fallback: false),
+      longDurationThresholdMinutes: intOf(
+        longDurationThresholdMinutesKey,
+        fallback: 240,
+      ),
+      useReviewScreen: boolOf(useReviewScreenKey, fallback: false),
+    );
+  }
+
+  /// Time-window gate (justification/lock thresholds + trial-start qualifier).
+  final EntryGateRules gate;
+
+  /// Confirm before saving an implausibly short nosebleed (≤ 1 minute).
+  final bool shortDurationConfirm;
+
+  /// Confirm before saving a nosebleed longer than [longDurationThresholdMinutes].
+  final bool longDurationConfirm;
+
+  /// Threshold (minutes) above which [longDurationConfirm] triggers.
+  final int longDurationThresholdMinutes;
+
+  /// Show the review step before saving a completed entry.
+  final bool useReviewScreen;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ClinicalRules &&
+      other.gate == gate &&
+      other.shortDurationConfirm == shortDurationConfirm &&
+      other.longDurationConfirm == longDurationConfirm &&
+      other.longDurationThresholdMinutes == longDurationThresholdMinutes &&
+      other.useReviewScreen == useReviewScreen;
+
+  @override
+  int get hashCode => Object.hash(
+    gate,
+    shortDurationConfirm,
+    longDurationConfirm,
+    longDurationThresholdMinutes,
+    useReviewScreen,
+  );
 }

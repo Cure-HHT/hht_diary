@@ -91,3 +91,12 @@ class SettingPayload {
 const String justificationThresholdHoursKey =
     'clinical.justificationThresholdHours';
 const String lockThresholdHoursKey = 'clinical.lockThresholdHours';
+
+/// Additional clinical-rule keys read by `ClinicalRules.fromSettings`: the two
+/// duration-reasonableness confirmations + the long-duration threshold (minutes,
+/// NOT hours) + the review-screen flow flag. All default off / no confirmation.
+const String shortDurationConfirmKey = 'clinical.shortDurationConfirm';
+const String longDurationConfirmKey = 'clinical.longDurationConfirm';
+const String longDurationThresholdMinutesKey =
+    'clinical.longDurationThresholdMinutes';
+const String useReviewScreenKey = 'clinical.useReviewScreen';

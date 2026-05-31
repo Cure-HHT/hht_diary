@@ -97,4 +97,102 @@ void main() {
       expect(cfg.trialStart, isNull);
     });
   });
+
+  group('ClinicalRules.fromSettings', () {
+    SettingPayload of(String key, Object? value, SettingSource source) =>
+        SettingPayload(
+          key: key,
+          value: value,
+          source: source,
+          locked: source == SettingSource.sponsor,
+        );
+
+    test('empty settings yield no restrictions (all off, permissive gate)', () {
+      final r = ClinicalRules.fromSettings(
+        const <String, SettingPayload>{},
+        trialStart: null,
+      );
+      expect(r.shortDurationConfirm, isFalse);
+      expect(r.longDurationConfirm, isFalse);
+      expect(r.longDurationThresholdMinutes, 240);
+      expect(r.useReviewScreen, isFalse);
+      expect(r.gate.justificationThreshold, isNull);
+      expect(r.gate.lockThreshold, isNull);
+    });
+
+    test('maps every clinical key (incl. the gate thresholds)', () {
+      final r = ClinicalRules.fromSettings(<String, SettingPayload>{
+        justificationThresholdHoursKey: of(
+          justificationThresholdHoursKey,
+          24,
+          SettingSource.sponsor,
+        ),
+        lockThresholdHoursKey: of(
+          lockThresholdHoursKey,
+          72,
+          SettingSource.sponsor,
+        ),
+        shortDurationConfirmKey: of(
+          shortDurationConfirmKey,
+          true,
+          SettingSource.sponsor,
+        ),
+        longDurationConfirmKey: of(
+          longDurationConfirmKey,
+          true,
+          SettingSource.sponsor,
+        ),
+        longDurationThresholdMinutesKey: of(
+          longDurationThresholdMinutesKey,
+          240,
+          SettingSource.sponsor,
+        ),
+        useReviewScreenKey: of(useReviewScreenKey, true, SettingSource.sponsor),
+      }, trialStart: DateTime.utc(2025, 10, 1));
+      expect(r.gate.justificationThreshold, const Duration(hours: 24));
+      expect(r.gate.lockThreshold, const Duration(hours: 72));
+      expect(r.gate.trialStart, DateTime.utc(2025, 10, 1));
+      expect(r.shortDurationConfirm, isTrue);
+      expect(r.longDurationConfirm, isTrue);
+      expect(r.longDurationThresholdMinutes, 240);
+      expect(r.useReviewScreen, isTrue);
+    });
+
+    test(
+      'derivation is source-agnostic: a user-set rule reads identically',
+      () {
+        final asUser = ClinicalRules.fromSettings(<String, SettingPayload>{
+          lockThresholdHoursKey: of(
+            lockThresholdHoursKey,
+            48,
+            SettingSource.user,
+          ),
+          shortDurationConfirmKey: of(
+            shortDurationConfirmKey,
+            true,
+            SettingSource.user,
+          ),
+        }, trialStart: null);
+        expect(asUser.gate.lockThreshold, const Duration(hours: 48));
+        expect(asUser.shortDurationConfirm, isTrue);
+      },
+    );
+
+    test('wrong-typed values fall back to defaults', () {
+      final r = ClinicalRules.fromSettings(<String, SettingPayload>{
+        shortDurationConfirmKey: of(
+          shortDurationConfirmKey,
+          'yes',
+          SettingSource.user,
+        ),
+        longDurationThresholdMinutesKey: of(
+          longDurationThresholdMinutesKey,
+          '240',
+          SettingSource.user,
+        ),
+      }, trialStart: null);
+      expect(r.shortDurationConfirm, isFalse);
+      expect(r.longDurationThresholdMinutes, 240);
+    });
+  });
 }

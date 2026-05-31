@@ -28,6 +28,7 @@ import 'package:clinical_diary/services/local_data_reset.dart';
 import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/settings/local_reset_policy.dart';
 import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
@@ -612,8 +613,13 @@ class _AppRootState extends State<AppRoot> {
   // Implements: DIARY-DEV-reactive-read-path/A — the app-root presentation
   //   layer holds no authoritative preference state; it is rebuilt from the
   //   settings projection.
-  Widget _buildMaterialApp({required Widget home, UserPreferences? prefs}) {
+  Widget _buildMaterialApp({
+    required Widget home,
+    UserPreferences? prefs,
+    ClinicalRules? clinicalRules,
+  }) {
     final effectivePrefs = prefs ?? const UserPreferences();
+    final effectiveRules = clinicalRules ?? const ClinicalRules();
     final font = effectivePrefs.selectedFont;
     final largerText = effectivePrefs.largerTextAndControls;
     final languageCode = effectivePrefs.languageCode;
@@ -649,11 +655,16 @@ class _AppRootState extends State<AppRoot> {
         // leave pushed routes (settings, calendar, recording) reading defaults.
         return AppPreferencesScope(
           preferences: effectivePrefs,
-          child: MediaQuery(
-            data: mediaQuery.copyWith(
-              textScaler: TextScaler.linear(textScaleFactor),
+          child: ClinicalRulesScope(
+            rules: effectiveRules,
+            child: MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(textScaleFactor),
+              ),
+              child: ResponsiveWebFrame(
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
-            child: ResponsiveWebFrame(child: child ?? const SizedBox.shrink()),
           ),
         );
       },
@@ -695,8 +706,16 @@ class _AppRootState extends State<AppRoot> {
         builder: (context, state) {
           final settingsMap = _settingsByKey(state);
           final prefs = userPreferencesFromSettings(settingsMap);
+          // trialStart comes from the participant-lifecycle projection (I2c,
+          // portal-gated); null until then — the lock then applies to all dates
+          // past its threshold rather than only post-trial-start dates.
+          final clinicalRules = ClinicalRules.fromSettings(
+            settingsMap,
+            trialStart: null,
+          );
           return _buildMaterialApp(
             prefs: prefs,
+            clinicalRules: clinicalRules,
             // AppPreferencesScope is now provided above the Navigator inside
             // _buildMaterialApp's builder, so it covers HomeScreen AND every
             // pushed route. `home` is just the HomeScreen.
