@@ -1,10 +1,11 @@
-// Implements: DIARY-PRD-action-inventory/A  (ACT-SIT-001 View Sites; unscoped)
+// Implements: DIARY-PRD-action-inventory/A  (ACT-SIT-001 View Sites)
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../portal_permissions.dart';
 
 class ViewSitesInput {
-  const ViewSitesInput({this.filter});
+  const ViewSitesInput({required this.siteId, this.filter});
+  final String siteId;
   final String? filter;
 }
 
@@ -14,7 +15,8 @@ class ViewSitesResult {
 }
 
 /// ACT-SIT-001: gate check — verify the caller has permission to view sites.
-/// Emits no events (read-only gate). UNSCOPED — no scopeFor override.
+/// Emits no events (read-only gate). Site-scoped — scopeFor binds the site
+/// scope so site visibility is gated by the caller's site assignments.
 class ViewSitesAction extends Action<ViewSitesInput, ViewSitesResult> {
   ViewSitesAction();
 
@@ -36,14 +38,29 @@ class ViewSitesAction extends Action<ViewSitesInput, ViewSitesResult> {
 
   @override
   ViewSitesInput parseInput(Map<String, Object?> raw) {
+    final siteId = raw['siteId'];
+    if (siteId is! String) {
+      throw const FormatException('ViewSitesAction expects {siteId}: String');
+    }
     final filter = raw['filter'];
-    return ViewSitesInput(filter: filter is String ? filter : null);
+    return ViewSitesInput(
+      siteId: siteId.trim(),
+      filter: filter is String ? filter : null,
+    );
   }
 
   @override
   void validate(ViewSitesInput input) {
-    // No required fields — nothing to validate.
+    if (input.siteId.trim().isEmpty) {
+      throw ArgumentError.value(input.siteId, 'siteId', 'must be non-empty');
+    }
   }
+
+  @override
+  ScopeValue? scopeFor(Permission perm, ViewSitesInput input) =>
+      perm.scopeClass == 'site'
+      ? BoundScope(class_: 'site', value: input.siteId)
+      : null;
 
   @override
   Future<ExecutionResult<ViewSitesResult>> execute(

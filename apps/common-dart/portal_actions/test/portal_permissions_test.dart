@@ -61,6 +61,13 @@ void main() {
   });
 
   // Verifies: DIARY-PRD-action-inventory/A
+  test('ACT-SIT-001 portal.site.view is site-scoped', () {
+    final perm = portalPermissionsByActId['ACT-SIT-001']!;
+    expect(perm.name, 'portal.site.view');
+    expect(perm.scopeClass, 'site');
+  });
+
+  // Verifies: DIARY-PRD-action-inventory/A
   test(
     'DIARY-PRD-action-inventory/A: registry registers actions with declared permissions',
     () {

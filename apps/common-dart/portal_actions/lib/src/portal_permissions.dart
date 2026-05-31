@@ -58,7 +58,7 @@ final Map<String, Permission> portalPermissionsByActId = <String, Permission>{
   'ACT-USR-007': const Permission('portal.user.assign_role'),
   'ACT-USR-008': const Permission('portal.user.assign_site'),
   'ACT-USR-009': const Permission('portal.user.delete_pending'),
-  'ACT-SIT-001': const Permission('portal.site.view'),
+  'ACT-SIT-001': const Permission('portal.site.view', scopeClass: 'site'),
   'ACT-AUD-001': const Permission('portal.audit.view'),
   'ACT-ADM-001': const Permission('portal.admin.view_settings'),
   // Operations (DIARY-BASE-ops-action-inventory): unscoped, ops-only.
