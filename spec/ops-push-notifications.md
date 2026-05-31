@@ -1,6 +1,6 @@
 # DIARY-OPS-fcm-project-routing: FCM Project Routing
 
-**Level**: OPS | **Status**: Draft | **Implements**: -
+**Level**: OPS | **Status**: Draft
 **Refines**: DIARY-PRD-ancillary-platform-services
 
 ## Assertions
