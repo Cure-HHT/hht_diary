@@ -8,8 +8,13 @@
 
 **DIARY:**
 
+- DIARY-BASE-ops-action-inventory
 - DIARY-PRD-action-inventory
 - DIARY-PRD-sla-corrective-preventive
+- DIARY-BASE-ops-action-inventory-A
+- DIARY-BASE-ops-action-inventory-C
+- DIARY-BASE-system-operator-role-B
+- DIARY-BASE-system-operator-role-C
 - DIARY-GUI-administrator-settings-B
 - DIARY-GUI-administrator-settings-G
 - DIARY-GUI-audit-log-common-A
@@ -80,6 +85,8 @@
 - DIARY-GUI-user-information-modal-K
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-system-operator-role:section:0
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -123,6 +130,7 @@
 
 **DIARY:**
 
+- DIARY-BASE-ops-action-inventory
 - DIARY-PRD-action-inventory
 - DIARY-PRD-action-inventory-A
 - DIARY-PRD-action-inventory-D
@@ -156,6 +164,7 @@
 - DIARY-GUI-administrator-settings
 - DIARY-GUI-audit-log-administrator
 - DIARY-GUI-administrator-dashboard
+- DIARY-BASE-ops-action-inventory-B
 - DIARY-GUI-administrator-settings-A
 - DIARY-GUI-administrator-settings-B
 - DIARY-GUI-audit-log-administrator-A
@@ -187,6 +196,7 @@
 - DIARY-GUI-administrator-dashboard-D
 - DIARY-GUI-administrator-dashboard-F
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-BASE-ops-action-inventory:section:0
 - rem:spec/prd-administrator-settings.md:1
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -281,6 +291,8 @@
 - DIARY-PRD-user-account-deactivate-F
 - DIARY-PRD-user-account-reactivate-D
 - DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-PRD-entry-time-restrictions:section:4
@@ -578,6 +590,8 @@
 - DIARY-GUI-administrator-dashboard-E
 - DIARY-GUI-administrator-dashboard-F
 - DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-outgoing-intent-correlation:section:1
 - DIARY-DEV-shared-events-catalog:section:0
@@ -782,6 +796,7 @@
 **DIARY:**
 
 - DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-system-operator-role:section:0
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-evidence-timestamp-attestation:section:1
 - DIARY-PRD-evidence-bitcoin-timestamp:section:0
@@ -1257,6 +1272,7 @@
 - DIARY-GUI-participant-dashboard
 - DIARY-GUI-link-participant-flow
 - DIARY-BASE-audit-trail-E
+- DIARY-BASE-system-operator-role-B
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-B
 - DIARY-GUI-audit-log-study-coordinator-A
@@ -1452,6 +1468,7 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-OPS-rave-sync-cooldown-D
 - DIARY-OPS-rave-sync-hard-lockout-B
+- DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
@@ -2067,9 +2084,14 @@
 
 **DIARY:**
 
+- DIARY-BASE-system-operator-role
 - DIARY-PRD-rbac-customizable
 - DIARY-PRD-role-definitions
 - DIARY-GUI-role-switching
+- DIARY-BASE-ops-action-inventory-A
+- DIARY-BASE-ops-action-inventory-C
+- DIARY-BASE-system-operator-role-A
+- DIARY-BASE-system-operator-role-B
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-session-management-F
 - DIARY-OPS-rave-unwedge-authz-A
@@ -2100,6 +2122,7 @@
 - DIARY-GUI-user-information-modal-F
 - DIARY-GUI-user-information-modal-H
 - DIARY-GUI-administrator-dashboard-A
+- DIARY-BASE-system-operator-role:section:0
 - rem:spec/glossary-core.md:745
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -2320,6 +2343,8 @@
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
 - DIARY-BASE-audit-trail-E
+- DIARY-BASE-ops-action-inventory-A
+- DIARY-BASE-system-operator-role-A
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
@@ -2429,6 +2454,8 @@
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-node-sync-topology:section:1
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:762
@@ -2845,6 +2872,7 @@
 **DIARY:**
 
 - DIARY-OPS-rave-unwedge-authz
+- DIARY-BASE-ops-action-inventory-B
 - DIARY-OPS-rave-sync-cooldown-C
 - DIARY-OPS-rave-sync-hard-lockout-C
 - DIARY-OPS-rave-unwedge-authz-A
@@ -2854,6 +2882,7 @@
 - DIARY-GUI-dev-admin-rave-sync-card-A
 - DIARY-GUI-dev-admin-rave-sync-card-B
 - DIARY-GUI-dev-admin-rave-sync-card-C
+- DIARY-BASE-system-operator-role:section:0
 - DIARY-OPS-rave-unwedge-authz:section:0
 - DIARY-OPS-rave-alert-notification:section:0
 

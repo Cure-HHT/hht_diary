@@ -92,9 +92,11 @@
 
 ## BASE (SPONSOR-EXCLUDABLE)
 
-| ID                     | Title                  | File                | Hash     |
-| ---------------------- | ---------------------- | ------------------- | -------- |
-| DIARY-BASE-audit-trail | Audit Trail Foundation | base-audit-trail.md | fbf48f17 |
+| ID                              | Title                       | File                         | Hash     |
+| ------------------------------- | --------------------------- | ---------------------------- | -------- |
+| DIARY-BASE-audit-trail          | Audit Trail Foundation      | base-audit-trail.md          | fbf48f17 |
+| DIARY-BASE-ops-action-inventory | Operations Action Inventory | base-ops-action-inventory.md | a1baca2c |
+| DIARY-BASE-system-operator-role | System Operator Role        | base-system-operator-role.md | e9d3432f |
 
 ## INTERFACE
 
