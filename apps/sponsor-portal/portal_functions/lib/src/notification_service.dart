@@ -58,6 +58,10 @@ class NotificationConfig {
     final override = fromEnvironmentOverride;
     if (override != null) return override;
     return NotificationConfig(
+      // CUR-1399: FCM sender project is materialized into FCM_PROJECT_ID at deploy
+      // from the routing manifest (hht_sponsor_iac fcm/routing.yaml); all targets are
+      // `cure-hht-admin` today. Keep reading the env var — do not hardcode a project.
+      // See docs/superpowers/specs/2026-05-30-mobile-runtime-firebase-init-design.md.
       projectId: Platform.environment['FCM_PROJECT_ID'] ?? 'cure-hht-admin',
       enabled: Platform.environment['FCM_ENABLED'] != 'false',
       consoleMode: Platform.environment['FCM_CONSOLE_MODE'] == 'true',

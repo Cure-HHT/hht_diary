@@ -78,6 +78,12 @@ void main() async {
       TimezoneConverter.ensureInitialized();
 
       try {
+        // CUR-1399: passing explicit `options:` overrides the bundled native config, so
+        // every flavor currently inits against `hht-diary-mvp` while the backend sends
+        // FCM from `cure-hht-admin` (mismatch). Deferred target: bootstrap with no
+        // Firebase; on enrollment fetch options for the resolved sponsor+env, persist
+        // them (for the bg-message isolate), and init the DEFAULT app from them.
+        // See docs/superpowers/specs/2026-05-30-mobile-runtime-firebase-init-design.md.
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
