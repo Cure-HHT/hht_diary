@@ -26,7 +26,7 @@ Clinical *Trial* *Sponsor* portals are routinely staffed by individuals who hold
 
 ## DIARY-PRD-action-inventory: Action Inventory
 
-**Level**: PRD | **Status**: Draft | **Template** | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-audit-trail
 
 ### Overview
