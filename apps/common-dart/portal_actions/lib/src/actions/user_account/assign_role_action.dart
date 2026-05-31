@@ -1,3 +1,6 @@
+// Implements: DIARY-PRD-user-account-edit/E — assigning a role-scope appends a
+//   role_assigned event the user_role_scopes projection folds, so the change is
+//   enforced on the next dispatch (single (user, role, scope) tuple).
 // Implements: DIARY-PRD-action-inventory/A
 import 'package:event_sourcing/event_sourcing.dart';
 
@@ -6,13 +9,12 @@ import '../../portal_permissions.dart';
 class AssignRoleInput {
   AssignRoleInput({
     required this.userId,
-    required this.roles,
-    // Phase 2: previousRoles is caller-supplied; Phase 2 reads from a projection.
-    required this.previousRoles,
+    required this.role,
+    required this.scope,
   });
   final String userId;
-  final List<String> roles;
-  final List<String> previousRoles;
+  final String role;
+  final ScopeValue scope;
 }
 
 class AssignRoleResult {
@@ -21,9 +23,8 @@ class AssignRoleResult {
   Map<String, Object?> toJson() => <String, Object?>{'userId': userId};
 }
 
-/// ACT-USR-007: assign roles to a staff user account. Emits user_roles_changed;
-/// if the change narrows authz (a role is removed), also emits
-/// user_sessions_revoked to invalidate existing sessions.
+/// ACT-USR-007: assign one role-scope to a staff user account. Emits a single
+/// role_assigned event for the (userId, role, scope) tuple.
 class AssignRoleAction extends Action<AssignRoleInput, AssignRoleResult> {
   AssignRoleAction();
 
@@ -32,8 +33,8 @@ class AssignRoleAction extends Action<AssignRoleInput, AssignRoleResult> {
 
   @override
   String get description =>
-      'Assign roles to a staff user. Emits user_roles_changed; also emits '
-      'user_sessions_revoked when authz is narrowed (a role is removed).';
+      'Assign one role-scope to a staff user. Emits a single role_assigned '
+      'event for the (user, role, scope) tuple.';
 
   @override
   Set<Permission> get permissions => <Permission>{
@@ -46,33 +47,30 @@ class AssignRoleAction extends Action<AssignRoleInput, AssignRoleResult> {
   @override
   AssignRoleInput parseInput(Map<String, Object?> raw) {
     final userId = raw['userId'];
-    if (userId is! String) {
-      throw const FormatException('AssignRoleAction expects {userId}: String');
-    }
-    final rawRoles = raw['roles'];
-    if (rawRoles is! List || !rawRoles.every((dynamic e) => e is String)) {
+    final role = raw['role'];
+    final scopeJson = raw['scope'];
+    if (userId is! String || role is! String) {
       throw const FormatException(
-        'AssignRoleAction: roles must be a List<String>',
+        'AssignRoleAction expects {userId, role}: String',
       );
     }
-    final rawPreviousRoles = raw['previousRoles'];
-    if (rawPreviousRoles is! List ||
-        !rawPreviousRoles.every((dynamic e) => e is String)) {
-      throw const FormatException(
-        'AssignRoleAction: previousRoles must be a List<String>',
-      );
+    if (scopeJson is! Map) {
+      throw const FormatException('AssignRoleAction expects {scope}: object');
     }
     return AssignRoleInput(
       userId: userId.trim(),
-      roles: List<String>.from(rawRoles),
-      previousRoles: List<String>.from(rawPreviousRoles),
+      role: role.trim(),
+      scope: ScopeValue.fromJson(scopeJson.cast<String, Object?>()),
     );
   }
 
   @override
   void validate(AssignRoleInput input) {
-    if (input.userId.trim().isEmpty) {
+    if (input.userId.isEmpty) {
       throw ArgumentError.value(input.userId, 'userId', 'must be non-empty');
+    }
+    if (input.role.isEmpty) {
+      throw ArgumentError.value(input.role, 'role', 'must be non-empty');
     }
   }
 
@@ -81,41 +79,25 @@ class AssignRoleAction extends Action<AssignRoleInput, AssignRoleResult> {
     AssignRoleInput input,
     ActionContext ctx,
   ) async {
-    final events = <EventDraft>[
-      EventDraft(
-        aggregateType: 'portal_user',
-        aggregateId: input.userId,
-        entryType: 'user_roles_changed',
-        eventType: 'user_roles_changed',
-        data: <String, Object?>{
-          'before': input.previousRoles,
-          'after': input.roles,
-          'changed_by': ctx.principal.id,
-        },
-      ),
-    ];
-    // Narrowing: a role was removed → authz narrows → revoke sessions.
-    final narrowed = input.previousRoles
-        .toSet()
-        .difference(input.roles.toSet())
-        .isNotEmpty;
-    if (narrowed) {
-      events.add(
-        EventDraft(
-          aggregateType: 'portal_user',
-          aggregateId: input.userId,
-          entryType: 'user_sessions_revoked',
-          eventType: 'user_sessions_revoked',
-          data: <String, Object?>{
-            'reason_kind': 'authz_narrowed',
-            'by': ctx.principal.id,
-          },
-        ),
-      );
-    }
     return ExecutionResult<AssignRoleResult>(
       result: AssignRoleResult(userId: input.userId),
-      events: events,
+      events: <EventDraft>[
+        EventDraft(
+          aggregateType: 'user_role_scope',
+          aggregateId: computeRoleAssignmentAggregateId(
+            userId: input.userId,
+            role: input.role,
+            scope: input.scope,
+          ),
+          entryType: 'user_role_scope',
+          eventType: 'role_assigned',
+          data: RoleAssignedPayload(
+            userId: input.userId,
+            role: input.role,
+            scope: input.scope,
+          ).toJson(),
+        ),
+      ],
     );
   }
 }
