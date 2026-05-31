@@ -315,6 +315,7 @@ void main() {
             entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );

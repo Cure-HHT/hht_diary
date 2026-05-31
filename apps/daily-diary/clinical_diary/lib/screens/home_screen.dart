@@ -10,6 +10,7 @@ import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
+import 'package:clinical_diary/screens/day_disposition.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
@@ -850,6 +851,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// Re-disposition a tapped day-[marker]: open the same 3-choice picker the
+  /// calendar uses, seeded with that marker so a "Record nosebleed" choice
+  /// tombstones it on save (convert). Marker↔marker choices re-record on the
+  /// day aggregate (latest-wins). A marker always carries a localDate.
+  // Implements: DIARY-PRD-day-disposition/B
+  Future<void> _redispositionMarker(DayMarkerView marker) async {
+    final localDate = marker.localDate;
+    if (localDate == null) return;
+    final day = DateTime.parse(localDate);
+    await showDayDispositionPicker(
+      context,
+      localDay: DateTime(day.year, day.month, day.day),
+      localDate: localDate,
+      marker: MarkerToReplace(
+        aggregateId: marker.aggregateId,
+        entryType: marker.entryType,
+      ),
+    );
+  }
+
   Future<void> _navigateToEditRecord(EpistaxisEntryView entry) async {
     // CUR-464: Result is now record ID (String) instead of bool. Flash + scroll
     // happen reactively once DiaryViewBuilder splices the edited row back in.
@@ -1407,9 +1428,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
                 builder: (context, highlightColor) => EventListItem(
                   view: entry,
-                  onTap: entry is EpistaxisEntryView
-                      ? () => _navigateToEditRecord(entry)
-                      : null,
+                  // Epistaxis taps edit the record; day-marker taps re-disposition
+                  // the day via the shared 3-choice picker.
+                  // Implements: DIARY-PRD-day-disposition/B
+                  onTap: switch (entry) {
+                    EpistaxisEntryView() => () => _navigateToEditRecord(entry),
+                    DayMarkerView() => () => _redispositionMarker(entry),
+                  },
                   hasOverlap:
                       entry is EpistaxisEntryView && _hasOverlap(view, entry),
                   highlightColor: highlightColor,

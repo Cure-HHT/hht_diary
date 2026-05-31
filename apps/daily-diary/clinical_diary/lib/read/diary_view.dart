@@ -87,6 +87,19 @@ class DiaryView {
     incompleteDates: incompleteDates,
   );
 
+  /// The day-marker view-model for [localDate] iff that day's finalized entries
+  /// are exactly ONE [DayMarkerView] and no [EpistaxisEntryView] — i.e. the day
+  /// holds a lone summary marker that a newly-recorded nosebleed should replace
+  /// (convert). Returns null when the day is empty, holds a nosebleed, or has
+  /// more than one entry. Pure; drives the convert-on-add tombstone target.
+  // Implements: DIARY-PRD-day-disposition/A+C
+  DiaryEntryView? soleMarkerOn(String localDate) {
+    final onDay = entriesOn(localDate);
+    if (onDay.length != 1) return null;
+    final only = onDay.single;
+    return only is DayMarkerView ? only : null;
+  }
+
   bool hadNosebleedOn(String localDate) =>
       hasNosebleedRelatedEntryOn(_finalized, localDate);
 

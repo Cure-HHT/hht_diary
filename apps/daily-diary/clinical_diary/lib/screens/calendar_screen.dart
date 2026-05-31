@@ -6,14 +6,12 @@ import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
-import 'package:clinical_diary/screens/day_selection_screen.dart';
+import 'package:clinical_diary/screens/day_disposition.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
-import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 /// Calendar screen showing nosebleed history with color-coded days.
@@ -75,7 +73,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   /// Day-tap dispatch: future days are inert; a day with no finalized records
-  /// opens the [DaySelectionScreen], a day with records opens the
+  /// opens the 3-choice day-disposition picker, a day with records opens the
   /// [DateRecordsScreen] populated from the live view.
   // Implements: DIARY-GUI-calendar-day-view
   // Implements: DIARY-DEV-reactive-read-path/A
@@ -112,88 +110,82 @@ class _CalendarScreenState extends State<CalendarScreen> {
     ];
 
     if (entries.isEmpty) {
-      await _showDaySelectionScreen(localDay, localDate);
+      // A genuinely empty day has no marker to tombstone — pass null.
+      await showDayDispositionPicker(
+        context,
+        localDay: localDay,
+        localDate: localDate,
+      );
     } else {
-      await _showDateRecordsScreen(localDay, entries);
+      await _showDateRecordsScreen(localDay, localDate, entries, view);
     }
   }
 
   Future<void> _showDateRecordsScreen(
     DateTime selectedDay,
+    String localDate,
     List<DiaryEntryView> entries,
+    DiaryView view,
   ) async {
+    // The lone marker on this day (if any) drives both convert-on-add and the
+    // marker-tap re-disposition's tombstone target.
+    final soleMarker = view.soleMarkerOn(localDate);
+    final markerToReplace = soleMarker == null
+        ? null
+        : MarkerToReplace(
+            aggregateId: soleMarker.aggregateId,
+            entryType: soleMarker.entryType,
+          );
+
     await Navigator.push<void>(
       context,
       AppPageRoute(
         builder: (context) => DateRecordsScreen(
           date: selectedDay,
           entries: entries,
+          // "Add Event": a day whose only entry is a lone marker converts (the
+          // new nosebleed tombstones that marker); a day with nosebleeds just
+          // adds another (no tombstone).
+          // Implements: DIARY-PRD-day-disposition/A+C
           onAddEvent: () {
             Navigator.pop(context);
-            unawaited(_navigateToRecording(initialDate: selectedDay));
+            unawaited(
+              recordNosebleedReplacingMarker(
+                this.context,
+                localDay: selectedDay,
+                marker: markerToReplace,
+              ),
+            );
           },
           onEditEvent: (EpistaxisEntryView entry) {
             Navigator.pop(context);
-            unawaited(_navigateToRecording(existing: entry));
+            unawaited(_navigateToEdit(entry));
           },
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showDaySelectionScreen(
-    DateTime selectedDay,
-    String localDate,
-  ) async {
-    await Navigator.push<void>(
-      context,
-      AppPageRoute(
-        builder: (context) => DaySelectionScreen(
-          date: selectedDay,
-          onAddNosebleed: () {
+          // Tapping a marker re-dispositions the day, seeded with that marker.
+          // Implements: DIARY-PRD-day-disposition/B
+          onRedispositionMarker: (DayMarkerView marker) {
             Navigator.pop(context);
-            unawaited(_navigateToRecording(initialDate: selectedDay));
-          },
-          onNoNosebleeds: () async {
-            await _submitDayMarker('record_no_epistaxis_day', localDate);
-            if (context.mounted) {
-              Navigator.pop(context);
-            }
-          },
-          onUnknown: () async {
-            await _submitDayMarker('record_unknown_day', localDate);
-            if (context.mounted) {
-              Navigator.pop(context);
-            }
+            unawaited(
+              showDayDispositionPicker(
+                this.context,
+                localDay: selectedDay,
+                localDate: localDate,
+                marker: MarkerToReplace(
+                  aggregateId: marker.aggregateId,
+                  entryType: marker.entryType,
+                ),
+              ),
+            );
           },
         ),
       ),
     );
   }
 
-  /// Submit a whole-day marker (`record_no_epistaxis_day` /
-  /// `record_unknown_day`) for [localDate] (`yyyy-MM-dd`).
-  // Implements: DIARY-DEV-action-write-path/A
-  Future<void> _submitDayMarker(String actionName, String localDate) async {
-    await ReActionScope.of(context).actionSubmitter.submit(
-      ActionSubmission(
-        actionName: actionName,
-        rawInput: <String, Object?>{'date': localDate},
-      ),
-    );
-  }
-
-  Future<void> _navigateToRecording({
-    EpistaxisEntryView? existing,
-    DateTime? initialDate,
-  }) async {
+  Future<void> _navigateToEdit(EpistaxisEntryView existing) async {
     await Navigator.push<dynamic>(
       context,
-      AppPageRoute(
-        builder: (context) => existing == null
-            ? RecordingScreen(initialDate: initialDate)
-            : RecordingScreen(existing: existing),
-      ),
+      AppPageRoute(builder: (context) => RecordingScreen(existing: existing)),
     );
   }
 

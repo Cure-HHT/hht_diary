@@ -7,8 +7,9 @@ import 'package:intl/intl.dart';
 /// Screen showing all events for a specific date with edit capability.
 ///
 /// Consumes typed [DiaryEntryView] view-models (sealed:
-/// [EpistaxisEntryView] / [DayMarkerView]) from the live diary view. Only
-/// epistaxis entries are editable; day-markers render but are not edited.
+/// [EpistaxisEntryView] / [DayMarkerView]) from the live diary view. Epistaxis
+/// entries are edited via [onEditEvent]; tapping a day-marker re-dispositions
+/// the day via [onRedispositionMarker] (open the 3-choice picker).
 // Implements: DIARY-DEV-reactive-read-path/A
 // Implements: DIARY-GUI-epistaxis-record/A
 class DateRecordsScreen extends StatelessWidget {
@@ -17,6 +18,7 @@ class DateRecordsScreen extends StatelessWidget {
     required this.entries,
     required this.onAddEvent,
     required this.onEditEvent,
+    required this.onRedispositionMarker,
     super.key,
   });
 
@@ -24,6 +26,10 @@ class DateRecordsScreen extends StatelessWidget {
   final List<DiaryEntryView> entries;
   final VoidCallback onAddEvent;
   final void Function(EpistaxisEntryView) onEditEvent;
+
+  /// Tapping a [DayMarkerView] row re-dispositions the day (open the 3-choice
+  /// day-disposition picker seeded with that marker).
+  final void Function(DayMarkerView) onRedispositionMarker;
 
   String get _formattedDate => DateFormat('EEEE, MMMM d, y').format(date);
 
@@ -156,9 +162,13 @@ class DateRecordsScreen extends StatelessWidget {
         final entry = sortedEntries[index];
         return EventListItem(
           view: entry,
-          // Only epistaxis entries are editable; day-markers render but the tap
-          // is inert.
-          onTap: entry is EpistaxisEntryView ? () => onEditEvent(entry) : null,
+          // Epistaxis rows open the recording screen to edit; day-marker rows
+          // open the 3-choice picker to re-disposition the day.
+          // Implements: DIARY-PRD-day-disposition/B
+          onTap: switch (entry) {
+            EpistaxisEntryView() => () => onEditEvent(entry),
+            DayMarkerView() => () => onRedispositionMarker(entry),
+          },
           hasOverlap: _hasOverlap(entry),
         );
       },

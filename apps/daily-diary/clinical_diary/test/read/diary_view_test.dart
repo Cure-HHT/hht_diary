@@ -1,4 +1,8 @@
 // Verifies: DIARY-DEV-reactive-read-path/B+C
+// Verifies: DIARY-PRD-day-disposition/A+C — soleMarkerOn returns the lone
+//   day-marker (the convert-on-add tombstone target) only for a single-marker
+//   day; null when the day has a nosebleed, multiple entries, or is empty.
+import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
@@ -63,5 +67,55 @@ void main() {
     final recent = view.recent(['2025-10-15', '2025-10-14']);
     expect(recent.map((v) => v.aggregateId), containsAll(['e1', 'e2']));
     expect(recent.map((v) => v.aggregateId), isNot(contains('e3')));
+  });
+
+  group('soleMarkerOn', () {
+    test('single marker → returns it', () {
+      final view = DiaryView(
+        finalized: [
+          _marker('P:2025-10-14', '2025-10-14', 'no_epistaxis_event'),
+        ],
+        incomplete: const [],
+      );
+      final m = view.soleMarkerOn('2025-10-14');
+      expect(m, isA<DayMarkerView>());
+      expect(m!.aggregateId, 'P:2025-10-14');
+      expect(m.entryType, 'no_epistaxis_event');
+    });
+
+    test('marker + nosebleed → null', () {
+      final view = DiaryView(
+        finalized: [
+          _marker('P:2025-10-14', '2025-10-14', 'no_epistaxis_event'),
+          _ep('e1', '2025-10-14T10:00:00.000Z'),
+        ],
+        incomplete: const [],
+      );
+      expect(view.soleMarkerOn('2025-10-14'), isNull);
+    });
+
+    test('two markers → null', () {
+      final view = DiaryView(
+        finalized: [
+          _marker('P:2025-10-14', '2025-10-14', 'no_epistaxis_event'),
+          _marker('P:2025-10-14#b', '2025-10-14', 'unknown_day_event'),
+        ],
+        incomplete: const [],
+      );
+      expect(view.soleMarkerOn('2025-10-14'), isNull);
+    });
+
+    test('empty day → null', () {
+      final view = DiaryView(finalized: const [], incomplete: const []);
+      expect(view.soleMarkerOn('2025-10-14'), isNull);
+    });
+
+    test('nosebleed only → null', () {
+      final view = DiaryView(
+        finalized: [_ep('e1', '2025-10-14T10:00:00.000Z')],
+        incomplete: const [],
+      );
+      expect(view.soleMarkerOn('2025-10-14'), isNull);
+    });
   });
 }

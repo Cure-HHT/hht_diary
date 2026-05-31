@@ -2,6 +2,9 @@
 //   view-models (EpistaxisEntryView / DayMarkerView) via EventListItem.
 // Verifies: DIARY-GUI-epistaxis-record/A — Add Event fires onAddEvent; tapping
 //   an epistaxis item fires onEditEvent with the right view-model.
+// Verifies: DIARY-PRD-day-disposition/B — tapping a day-marker row fires
+//   onRedispositionMarker (re-disposition), while an epistaxis tap stays
+//   onEditEvent.
 
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
@@ -39,6 +42,7 @@ void main() {
             entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -56,6 +60,7 @@ void main() {
             entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -72,6 +77,7 @@ void main() {
             entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -92,6 +98,7 @@ void main() {
             entries: const [],
             onAddEvent: () => called = true,
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -111,6 +118,7 @@ void main() {
             entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -143,6 +151,7 @@ void main() {
             entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -172,6 +181,7 @@ void main() {
             entries: [entry],
             onAddEvent: () {},
             onEditEvent: (e) => tappedEntry = e,
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -198,12 +208,43 @@ void main() {
             entries: [entry],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('No nosebleeds'), findsOneWidget);
+    });
+
+    testWidgets('tapping a day-marker fires onRedispositionMarker', (
+      tester,
+    ) async {
+      DayMarkerView? tapped;
+      final entry = buildDayMarkerView(
+        aggregateId: 'P:2025-11-28',
+        date: '2025-11-28',
+      );
+
+      await tester.pumpWidget(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
+            date: testDate,
+            entries: [entry],
+            onAddEvent: () {},
+            onEditEvent: (_) {},
+            onRedispositionMarker: (m) => tapped = m,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('No nosebleeds'));
+      await tester.pump();
+
+      expect(tapped, isNotNull);
+      expect(tapped!.aggregateId, 'P:2025-11-28');
+      expect(tapped!.entryType, 'no_epistaxis_event');
     });
 
     testWidgets('displays Unknown event card correctly', (tester) async {
@@ -220,6 +261,7 @@ void main() {
             entries: [entry],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -251,6 +293,7 @@ void main() {
             entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -276,6 +319,7 @@ void main() {
             entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
