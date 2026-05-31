@@ -34,3 +34,35 @@ resolver consults so a *Site*-bound *Role* assignment covers *Participant*-scope
 at the *Participant*'s RAVE *Site*, fail-closed when no mapping row exists.
 
 *End* *Participant-Site Index Materializer* | **Hash**: 76e68990
+
+## DIARY-DEV-portal-reaction-server: Portal Reaction Server Shell
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-action-inventory
+
+### Overview
+
+The portal hosts its event-sourced actions and read projections over the `reaction`
+server shell (`<!-- satisfied-by: EVS-PRD-reaction-widget-contract -->`). A thin
+composition wires `ReactionHandlers` over the portal *Event Store* and dispatcher so a
+remote reactive client can subscribe to projections and dispatch actions.
+
+### Assertions
+
+A. The portal SHALL compose `ReactionHandlers` over `openPortalEventStore` and
+`buildPortalDispatcher`, exposing `GET /me`, `POST /actions`, and a WebSocket
+`/subscriptions` endpoint.
+
+B. A `Principal` SHALL be established per connection and per request via a
+`PrincipalAuthValidator`, and every dispatched *Action* SHALL be enforced by the
+event-derived authorization policy regardless of the Principal's claimed *Role*.
+
+### Rationale
+
+The reactive transport (subscriptions + *Action* dispatch over WS/HTTP) is the portal's
+durable client/server seam; standing it up over the SP1/SP2 enforcement core lets the
+real UI subscribe to live projections and dispatch audited, permission-gated actions.
+The credential validator is swappable (a dev credential validator now; Identity
+Platform later) without changing the enforcement path.
+
+*End* *Portal Reaction Server Shell* | **Hash**: 95ceb3ec

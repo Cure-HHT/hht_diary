@@ -15,6 +15,7 @@
 - DIARY-BASE-ops-action-inventory-C
 - DIARY-BASE-system-operator-role-B
 - DIARY-BASE-system-operator-role-C
+- DIARY-DEV-portal-reaction-server-B
 - DIARY-GUI-administrator-settings-B
 - DIARY-GUI-administrator-settings-G
 - DIARY-GUI-audit-log-common-A
@@ -87,6 +88,7 @@
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-portal-reaction-server:section:1
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -783,6 +785,7 @@
 
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-participant-site-index-B
+- DIARY-DEV-portal-reaction-server:section:0
 
 ## Failed Attempt Threshold
 
@@ -2097,6 +2100,7 @@
 - DIARY-BASE-ops-action-inventory-C
 - DIARY-BASE-system-operator-role-A
 - DIARY-BASE-system-operator-role-B
+- DIARY-DEV-portal-reaction-server-B
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-session-management-F
 - DIARY-OPS-rave-unwedge-authz-A
