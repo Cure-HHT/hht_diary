@@ -420,6 +420,66 @@ void main() {
       );
     });
 
+    // Regression: the screen is pushed as `Navigator.push<String?>` (e.g. the
+    // day-disposition + home resume flows). Discarding a brand-new entry via the
+    // trash icon must pop a String? (null), NOT a bool — popping `true` threw
+    // "type 'bool' is not a subtype of type 'String?'" and the trash did nothing.
+    testWidgets('trash on a new entry pops null on a String?-typed route', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      String? popResult = 'sentinel';
+      var popped = false;
+      await tester.pumpWidget(
+        ReActionScope(
+          scope: fake,
+          child: wrapWithMaterialApp(
+            Builder(
+              builder: (hostContext) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      popResult = await Navigator.of(hostContext).push<String?>(
+                        MaterialPageRoute<String?>(
+                          builder: (_) => const ClinicalRulesScope(
+                            rules: ClinicalRules(),
+                            child: RecordingScreen(),
+                          ),
+                        ),
+                      );
+                      popped = true;
+                    },
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      // On the recording screen now; tap the trash (new entry, nothing saved).
+      await tester.tap(find.byIcon(Icons.delete_outline));
+      await tester.pumpAndSettle();
+
+      expect(
+        popped,
+        isTrue,
+        reason: 'route should have popped (no type error)',
+      );
+      expect(popResult, isNull);
+      expect(find.text('open'), findsOneWidget); // back on the host
+    });
+
     // ---------------------------------------------------------------------
     // Overlap.
     // ---------------------------------------------------------------------

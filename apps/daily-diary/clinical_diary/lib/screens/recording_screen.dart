@@ -585,8 +585,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
     final aggregateId = _aggregateId;
     if (aggregateId == null) {
-      // Nothing persisted yet; just pop.
-      if (mounted) Navigator.pop(context, true);
+      // Nothing persisted yet; just discard. The screen returns a String?
+      // aggregate id (null = nothing saved) — NEVER a bool, or the typed
+      // `Navigator.push<String?>` callers throw on the result.
+      if (mounted) Navigator.pop<String?>(context, null);
       return;
     }
     await DeleteConfirmationDialog.show(
@@ -598,7 +600,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
           'changeReason': 'entered-in-error',
         });
         if (mounted) {
-          Navigator.pop(context, true);
+          Navigator.pop<String?>(context, null);
         }
       },
     );
@@ -760,7 +762,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   child: OverlapWarning(
                     overlappingEntries: overlappingEvents,
                     onViewConflict: (conflictingEntry) {
-                      Navigator.pop(context, false);
+                      Navigator.pop<String?>(context, null);
                     },
                   ),
                 ),
