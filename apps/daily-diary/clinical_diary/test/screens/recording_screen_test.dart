@@ -10,10 +10,10 @@
 // (queueDispatchResult + submittedActions); overlap rows are seeded by emitting
 // view updates on the diary_entries view.
 
-import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
+import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/intensity_picker.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
@@ -45,25 +45,22 @@ void main() {
           const DispatchSuccess<Object?>('minted-aggregate-id', <String>[]),
         );
       }
-      FeatureFlagService.instance.useReviewScreen = false;
-      FeatureFlagService.instance.requireOldEntryJustification = false;
-      FeatureFlagService.instance.enableShortDurationConfirmation = false;
-      FeatureFlagService.instance.enableLongDurationConfirmation = false;
     });
 
     tearDown(() async {
-      FeatureFlagService.instance.useReviewScreen = false;
-      FeatureFlagService.instance.requireOldEntryJustification = false;
-      FeatureFlagService.instance.enableShortDurationConfirmation = false;
-      FeatureFlagService.instance.enableLongDurationConfirmation = false;
       TimezoneConverter.testDeviceOffsetMinutes = null;
       await fake.dispose();
     });
 
+    // Clinical rules (justification/lock gate, duration confirmations, review
+    // screen) now come from the event-sourced settings via ClinicalRulesScope —
+    // not FeatureFlagService. Default is "no restriction"; tests that exercise a
+    // rule pass an explicit [rules].
     Future<void> pumpScreen(
       WidgetTester tester, {
       EpistaxisEntryView? existing,
       DateTime? initialDate,
+      ClinicalRules rules = const ClinicalRules(),
     }) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -76,7 +73,13 @@ void main() {
         ReActionScope(
           scope: fake,
           child: wrapWithMaterialApp(
-            RecordingScreen(existing: existing, initialDate: initialDate),
+            ClinicalRulesScope(
+              rules: rules,
+              child: RecordingScreen(
+                existing: existing,
+                initialDate: initialDate,
+              ),
+            ),
           ),
         ),
       );
@@ -360,8 +363,11 @@ void main() {
           intensity: NosebleedIntensity.dripping,
         );
 
-        FeatureFlagService.instance.useReviewScreen = true;
-        await pumpScreen(tester, existing: existing);
+        await pumpScreen(
+          tester,
+          existing: existing,
+          rules: const ClinicalRules(useReviewScreen: true),
+        );
 
         final saveButton = find.widgetWithText(FilledButton, 'Save Changes');
         expect(saveButton, findsOneWidget);
@@ -372,6 +378,47 @@ void main() {
         expect(s.rawInput['aggregateId'], 'agg-edit-1');
       },
     );
+
+    // Verifies: DIARY-PRD-entry-time-restrictions — a date past the lock
+    //   threshold is read-only: lock banner shown, delete hidden, and an
+    //   explicit save is refused (no submission).
+    testWidgets('locked date is read-only (banner, no delete, save blocked)', (
+      tester,
+    ) async {
+      final start = DateTime.now().subtract(const Duration(hours: 5));
+      final existing = buildEpistaxisView(
+        aggregateId: 'agg-locked',
+        startTime: start,
+        endTime: DateTime.now().subtract(const Duration(hours: 4)),
+        endTimeZone: 'UTC',
+        intensity: NosebleedIntensity.dripping,
+      );
+
+      await pumpScreen(
+        tester,
+        existing: existing,
+        // lockThreshold 1h + entry 5h old + trialStart null => locked.
+        rules: const ClinicalRules(
+          gate: EntryGateRules(lockThreshold: Duration(hours: 1)),
+        ),
+      );
+
+      expect(find.textContaining('locked'), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
+
+      // Even if a Save button is reachable, the locked guard refuses to submit.
+      final save = find.widgetWithText(FilledButton, 'Save Changes');
+      if (save.evaluate().isNotEmpty) {
+        await tester.tap(save, warnIfMissed: false);
+        await tester.pump();
+      }
+      expect(
+        fake.submittedActions.where(
+          (s) => s.actionName == 'edit_epistaxis_event',
+        ),
+        isEmpty,
+      );
+    });
 
     // ---------------------------------------------------------------------
     // Overlap.
@@ -402,8 +449,11 @@ void main() {
           intensity: NosebleedIntensity.dripping,
         );
 
-        FeatureFlagService.instance.useReviewScreen = true;
-        await pumpScreen(tester, existing: editing);
+        await pumpScreen(
+          tester,
+          existing: editing,
+          rules: const ClinicalRules(useReviewScreen: true),
+        );
 
         // Seed the overlapping finalized row into the diary_entries view.
         seedDiaryEntries([other]);

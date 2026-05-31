@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
+import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
@@ -19,6 +19,8 @@ import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
+import 'package:diary_shared_model/diary_shared_model.dart'
+    show ClinicalRules, EntryGate, entryGateForDate;
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -96,6 +98,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // DIARY-PRD-entry-time-restrictions: Old entry justification if required.
   OldEntryJustification? _oldEntryJustification;
 
+  // The event-sourced clinical rules (justification/lock thresholds + duration
+  // confirmations + review screen), read reactively from ClinicalRulesScope in
+  // didChangeDependencies — NOT the legacy FeatureFlagService.
+  ClinicalRules _rules = const ClinicalRules();
+  bool _initialStepSet = false;
+
   @override
   void initState() {
     super.initState();
@@ -123,7 +131,22 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _intensity = _toWidgetIntensity(existing.intensity);
       _startTimeTimezone = existing.startTimeZone;
       _endTimeTimezone = existing.endTimeZone;
-      _currentStep = _getInitialStepForExisting(existing);
+      // The review-screen-dependent initial step is finalized in
+      // didChangeDependencies, where ClinicalRulesScope is available.
+      _currentStep = RecordingStep.startTime;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _rules = ClinicalRulesScope.of(context);
+    if (!_initialStepSet) {
+      _initialStepSet = true;
+      final existing = widget.existing;
+      if (existing != null) {
+        _currentStep = _getInitialStepForExisting(existing);
+      }
     }
   }
 
@@ -143,34 +166,32 @@ class _RecordingScreenState extends State<RecordingScreen> {
       return RecordingStep.endTime;
     }
     // For complete records: show review screen if enabled, otherwise start time.
-    if (FeatureFlagService.instance.useReviewScreen) {
+    if (_rules.useReviewScreen) {
       return RecordingStep.complete;
     }
     return RecordingStep.startTime;
   }
 
-  /// DIARY-PRD-entry-time-restrictions: Check if this is an old entry (more
-  /// than one calendar day old).
-  bool _isOldEntry() {
-    final yesterday = DateUtils.addDaysToDate(
-      DateUtils.dateOnly(DateTime.now()),
-      -1,
-    );
-    final entryDate = DateUtils.dateOnly(_startDateTime);
-    return entryDate.isBefore(yesterday);
-  }
+  /// DIARY-PRD-entry-time-restrictions: the sponsor/user time-window gate for
+  /// this entry's date, evaluated now against the event-sourced [ClinicalRules].
+  // Implements: DIARY-PRD-entry-time-restrictions/A+E+L+M
+  EntryGate get _entryGate => entryGateForDate(
+    eventLocalMidnight: DateUtils.dateOnly(_startDateTime),
+    now: DateTime.now(),
+    config: _rules.gate,
+  );
+
+  /// Whether this date is fully locked (no create/edit/delete) — read-only.
+  bool get _isLocked => _entryGate == EntryGate.locked;
 
   /// Whether old-entry justification is required and not yet provided.
-  bool get _needsOldEntryJustification {
-    if (!FeatureFlagService.instance.requireOldEntryJustification) {
-      return false;
-    }
-    return _isOldEntry() && _oldEntryJustification == null;
-  }
+  bool get _needsOldEntryJustification =>
+      _entryGate == EntryGate.requiresJustification &&
+      _oldEntryJustification == null;
 
   /// Whether short duration confirmation is needed.
   bool get _needsShortDurationConfirmation {
-    if (!FeatureFlagService.instance.enableShortDurationConfirmation) {
+    if (!_rules.shortDurationConfirm) {
       return false;
     }
     final duration = _durationMinutes();
@@ -179,17 +200,29 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   /// Whether long duration confirmation is needed.
   bool get _needsLongDurationConfirmation {
-    if (!FeatureFlagService.instance.enableLongDurationConfirmation) {
+    if (!_rules.longDurationConfirm) {
       return false;
     }
     final duration = _durationMinutes();
-    final threshold = FeatureFlagService.instance.longDurationThresholdMinutes;
-    return duration != null && duration > threshold;
+    return duration != null && duration > _rules.longDurationThresholdMinutes;
   }
 
   /// Run all validation checks before saving.
   /// Returns true if save should proceed, false if cancelled.
   Future<bool> _runValidationChecks() async {
+    // DIARY-PRD-entry-time-restrictions: a locked date is read-only — never
+    // save/create/edit. (Entry points keep the user out of here for locked
+    // dates; this is the defense-in-depth backstop.)
+    if (_isLocked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        // TODO(i18n): localize (tracked with the other hardcoded strings).
+        const SnackBar(
+          content: Text('This date is locked and can no longer be changed.'),
+        ),
+      );
+      return false;
+    }
+
     // CUR-492: Reject negative duration (end time before start time) first.
     final duration = _durationMinutes();
     if (duration != null && duration < 0) {
@@ -235,8 +268,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
         context: context,
         type: DurationConfirmationType.long,
         durationMinutes: _durationMinutes() ?? 0,
-        thresholdMinutes:
-            FeatureFlagService.instance.longDurationThresholdMinutes,
+        thresholdMinutes: _rules.longDurationThresholdMinutes,
       );
       if (!mounted) {
         return false;
@@ -528,7 +560,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
 
     // CUR-464: When useReviewScreen is false, save immediately and return.
-    if (!FeatureFlagService.instance.useReviewScreen) {
+    if (!_rules.useReviewScreen) {
       await _saveRecord();
       return;
     }
@@ -542,6 +574,15 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // Implements: DIARY-PRD-incomplete-entry-preservation/A+C
   // Implements: DIARY-DEV-action-write-path/A
   Future<void> _handleDelete() async {
+    if (_isLocked) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        // TODO(i18n): localize.
+        const SnackBar(
+          content: Text('This date is locked and can no longer be changed.'),
+        ),
+      );
+      return;
+    }
     final aggregateId = _aggregateId;
     if (aggregateId == null) {
       // Nothing persisted yet; just pop.
@@ -585,6 +626,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // Implements: DIARY-PRD-incomplete-entry-preservation/A+C
   // Implements: DIARY-DEV-action-write-path/A
   Future<bool> _handleExit() async {
+    // A locked date is read-only; never auto-save on back-out.
+    if (_isLocked) {
+      return true;
+    }
     if (!_hasUnsavedPartialRecord()) {
       return true;
     }
@@ -679,16 +724,20 @@ class _RecordingScreenState extends State<RecordingScreen> {
                       icon: const Icon(Icons.arrow_back),
                       label: Text(l10n.back),
                     ),
-                    // Delete button
-                    IconButton(
-                      onPressed: _handleDelete,
-                      icon: const Icon(Icons.delete_outline),
-                      color: Theme.of(context).colorScheme.error,
-                      tooltip: l10n.deleteRecordTooltip,
-                    ),
+                    // Delete button — hidden on a locked (read-only) date.
+                    if (!_isLocked)
+                      IconButton(
+                        onPressed: _handleDelete,
+                        icon: const Icon(Icons.delete_outline),
+                        color: Theme.of(context).colorScheme.error,
+                        tooltip: l10n.deleteRecordTooltip,
+                      ),
                   ],
                 ),
               ),
+
+              // DIARY-PRD-entry-time-restrictions: read-only lock notice.
+              if (_isLocked) _buildLockBanner(),
 
               // Date header - not editable
               DateHeader(
@@ -718,11 +767,45 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
               if (overlappingEvents.isNotEmpty) const SizedBox(height: 16),
 
-              // Main content area
-              Expanded(child: _buildCurrentStep(l10n)),
+              // Main content area. On a locked date the editing controls are
+              // inert (read-only); the summary bar still navigates between the
+              // read-only step views.
+              Expanded(
+                child: AbsorbPointer(
+                  absorbing: _isLocked,
+                  child: _buildCurrentStep(l10n),
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Read-only banner shown when the entry's date is past the lock threshold.
+  Widget _buildLockBanner() {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lock_outline, size: 20, color: scheme.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              // TODO(i18n): localize.
+              'This date is locked. Entries can be viewed but no longer added, '
+              'edited, or deleted.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
       ),
     );
   }
