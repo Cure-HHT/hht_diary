@@ -579,6 +579,7 @@
 - DIARY-GUI-administrator-dashboard-F
 - DIARY-BASE-audit-trail:section:1
 - DIARY-DEV-node-sync-topology:section:1
+- DIARY-DEV-outgoing-intent-correlation:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
@@ -1257,6 +1258,7 @@
 - DIARY-GUI-link-participant-flow
 - DIARY-BASE-audit-trail-E
 - DIARY-DEV-node-sync-topology-C
+- DIARY-DEV-outgoing-intent-correlation-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-study-coordinator-B
 - DIARY-GUI-audit-log-cra-A
@@ -1797,6 +1799,7 @@
 - DIARY-PRD-questionnaire-localization
 - DIARY-PRD-questionnaire-sponsor-eligibility
 - DIARY-PRD-questionnaire-score-calculation
+- DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-GUI-audit-log-common-G
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-F
@@ -2320,6 +2323,7 @@
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
+- DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G
@@ -2538,6 +2542,7 @@
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
+- DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-help-resources-A
 - DIARY-PRD-help-resources-D

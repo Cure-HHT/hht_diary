@@ -146,10 +146,11 @@
 
 ## DEVELOPMENT
 
-| ID                                         | Title                                      | File                          | Hash     |
-| ------------------------------------------ | ------------------------------------------ | ----------------------------- | -------- |
-| DIARY-DEV-node-sync-topology               | Two-Node Native-Sync Topology              | dev-node-sync-topology.md     | d2cc0577 |
-| DIARY-DEV-rave-auth-failure-classification | Rave Authentication Failure Classification | prd-rave-sync.md              | f2732c70 |
-| DIARY-DEV-runtime-environment-resolution   | Runtime Environment Resolution             | dev-environment-resolution.md | b0c74776 |
-| DIARY-DEV-schema-version-check             | Runtime Schema Version Check               | dev-schema-version-check.md   | 260cb67b |
-| DIARY-DEV-shared-events-catalog            | Shared Cross-Wire Event Catalog            | dev-shared-events-catalog.md  | b157403e |
+| ID                                         | Title                                      | File                               | Hash     |
+| ------------------------------------------ | ------------------------------------------ | ---------------------------------- | -------- |
+| DIARY-DEV-node-sync-topology               | Two-Node Native-Sync Topology              | dev-node-sync-topology.md          | d2cc0577 |
+| DIARY-DEV-outgoing-intent-correlation      | Outgoing Intent and Flow Correlation       | dev-outgoing-intent-correlation.md | 108441a8 |
+| DIARY-DEV-rave-auth-failure-classification | Rave Authentication Failure Classification | prd-rave-sync.md                   | f2732c70 |
+| DIARY-DEV-runtime-environment-resolution   | Runtime Environment Resolution             | dev-environment-resolution.md      | b0c74776 |
+| DIARY-DEV-schema-version-check             | Runtime Schema Version Check               | dev-schema-version-check.md        | 260cb67b |
+| DIARY-DEV-shared-events-catalog            | Shared Cross-Wire Event Catalog            | dev-shared-events-catalog.md       | b157403e |
