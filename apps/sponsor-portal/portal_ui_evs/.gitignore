@@ -46,3 +46,4 @@ app.*.map.json
 
 # Machine-local dependency overrides
 pubspec_overrides.yaml
+pubspec.lock
