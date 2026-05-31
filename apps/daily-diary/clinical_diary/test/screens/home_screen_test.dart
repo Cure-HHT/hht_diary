@@ -1,14 +1,26 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-CAL-p00081: Patient Task System
+// Verifies: DIARY-DEV-reactive-read-path/A — the diary list, incomplete-entry
+//   reminder, and yesterday banner are derived from the live DiaryView driven
+//   through the scope's diary_entries / diary_incomplete views.
+// Verifies: DIARY-GUI-epistaxis-record/A — finalized epistaxis rows in the
+//   driven view render as entry cards in the grouped list.
+// Verifies: DIARY-PRD-incomplete-entry-preservation/B — a driven incomplete row
+//   surfaces the incomplete-entry reminder banner.
+// Verifies: DIARY-DEV-action-write-path/A — the yesterday banner's "No" and
+//   "Don't remember" choices submit record_no_epistaxis_day / record_unknown_day
+//   through the scope's actionSubmitter.
 //
-// Phase 12.5 (CUR-1169): Screen-level coverage for HomeScreen against the
-// new event_sourcing_datastore-backed runtime. Drives the screen with a
-// real bootstrapped ClinicalDiaryRuntime against an in-memory Sembast
-// backend and asserts on event side effects.
+// Phase 12.5 (CUR-1169): Screen-level coverage for HomeScreen's diary surface on
+// the new event_sourcing read/write path. The diary_entries / diary_incomplete
+// views are driven via FakeReaction.emitViewUpdate; writes are asserted via
+// FakeReaction.submittedActions. The kept (non-diary) concerns — disconnection
+// banner, TaskService/FCM — keep their existing stub/mock seams, with a real
+// bootstrapped ClinicalDiaryRuntime supplying the still-required constructor
+// params (wedge check, survey/export paths).
 
 import 'dart:async';
 
+import 'package:clinical_diary/read/diary_incomplete_projection.dart';
+import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
@@ -16,8 +28,11 @@ import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/services/triggers.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
+import 'package:clinical_diary/widgets/disconnection_banner.dart';
+import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -112,9 +127,16 @@ void main() {
     late FakeReaction fake;
 
     setUp(() async {
-      // A FakeReaction provides the ReActionScope the (new-stack) RecordingScreen
-      // requires when HomeScreen navigates to it during the transition.
+      // A FakeReaction provides the ReActionScope the migrated diary surface
+      // reads/writes through (DiaryViewBuilder + actionSubmitter) and that the
+      // (new-stack) RecordingScreen requires when HomeScreen navigates to it.
       fake = FakeReaction();
+      // Day-marker submissions return the canonical per-day aggregate id.
+      for (var i = 0; i < 10; i++) {
+        fake.queueDispatchResult(
+          const DispatchSuccess<Object?>('P:day', <String>[]),
+        );
+      }
       // Fix device timezone to UTC+0 so that toDisplayedDateTime with
       // startTimeZone='UTC' is an identity transform (stored == displayed).
       TimezoneConverter.testDeviceOffsetMinutes = 0;
@@ -133,7 +155,67 @@ void main() {
       TimezoneService.instance.testTimezoneOverride = null;
     });
 
-    Future<void> pumpScreen(WidgetTester tester) async {
+    /// `yyyy-MM-dd` for [day].
+    String dateKey(DateTime day) =>
+        '${day.year.toString().padLeft(4, '0')}-'
+        '${day.month.toString().padLeft(2, '0')}-'
+        '${day.day.toString().padLeft(2, '0')}';
+
+    /// Drive the diary_entries (finalized) view with [finalized] rows and the
+    /// diary_incomplete view with [incomplete] rows, each terminated by an
+    /// EndOfReplay so the DiaryViewBuilder leaves its initial state.
+    void seedDiary({
+      List<DiaryEntryRow> finalized = const [],
+      List<DiaryEntryRow> incomplete = const [],
+    }) {
+      for (final r in finalized) {
+        fake.emitViewUpdate<DiaryEntryRow>(
+          diaryEntriesViewName,
+          Snapshot<DiaryEntryRow>(value: r, sequence: 0),
+        );
+      }
+      fake.emitViewUpdate<DiaryEntryRow>(
+        diaryEntriesViewName,
+        const EndOfReplay<DiaryEntryRow>(sequence: 0),
+      );
+      for (final r in incomplete) {
+        fake.emitViewUpdate<DiaryEntryRow>(
+          diaryIncompleteViewName,
+          Snapshot<DiaryEntryRow>(value: r, sequence: 0),
+        );
+      }
+      fake.emitViewUpdate<DiaryEntryRow>(
+        diaryIncompleteViewName,
+        const EndOfReplay<DiaryEntryRow>(sequence: 0),
+      );
+    }
+
+    DiaryEntryRow epistaxisRow(
+      DateTime start, {
+      required String aggregateId,
+      DateTime? end,
+    }) {
+      final payload = EpistaxisEventPayload(
+        startTime: start.toIso8601String(),
+        startTimeZone: 'UTC',
+        startTimeUtcOffset: '+00:00',
+        endTime: end?.toIso8601String(),
+        endTimeZone: end == null ? null : 'UTC',
+        endTimeUtcOffset: end == null ? null : '+00:00',
+        intensity: NosebleedIntensity.dripping,
+      );
+      return DiaryEntryRow(
+        aggregateId: aggregateId,
+        entryType: 'epistaxis_event',
+        data: payload.toJson(),
+      );
+    }
+
+    Future<void> pumpScreen(
+      WidgetTester tester, {
+      List<DiaryEntryRow> finalized = const [],
+      List<DiaryEntryRow> incomplete = const [],
+    }) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -154,40 +236,19 @@ void main() {
           ),
         ),
       );
+      // Pump a frame so the DiaryViewBuilder subscribes, then feed view rows.
+      await tester.pump();
+      seedDiary(finalized: finalized, incomplete: incomplete);
       await _settle(tester);
     }
 
-    /// Records an event via the real EntryService inside `runAsync` so
-    /// Sembast's internal async (which can use real timers) actually
-    /// fires under TestWidgetsFlutterBinding's fake clock.
-    Future<void> recordEvent(
-      WidgetTester tester, {
-      required String entryType,
-      required String aggregateId,
-      required String eventType,
-      required Map<String, Object?> answers,
-    }) async {
-      await tester.runAsync(() async {
-        await runtime.entryService.record(
-          entryType: entryType,
-          aggregateId: aggregateId,
-          eventType: eventType,
-          answers: answers,
-        );
-      });
-    }
-
-    /// Wraps a backend query in `runAsync` for the same reason as
-    /// [recordEvent].
-    Future<List<StoredEvent>> findEventsByType(
-      WidgetTester tester, {
-      required String entryType,
-    }) async {
-      List<StoredEvent>? all;
-      await tester.runAsync(() async {
-        all = await runtime.backend.findAllEvents();
-      });
-      return all!.where((e) => e.entryType == entryType).toList();
+    /// The single submission for [actionName], or fails if none/many.
+    ActionSubmission submissionFor(String actionName) {
+      final matches = fake.submittedActions
+          .where((s) => s.actionName == actionName)
+          .toList();
+      expect(matches, hasLength(1), reason: 'expected one $actionName');
+      return matches.single;
     }
 
     testWidgets(
@@ -197,64 +258,67 @@ void main() {
 
         expect(find.text('Record Nosebleed'), findsOneWidget);
         expect(find.text('Calendar'), findsOneWidget);
-        // No-yesterday banner is present (no entries → hasYesterdayRecords=false).
+        // No-yesterday banner is present (no entries → no yesterday records).
         expect(find.text('Yes'), findsOneWidget);
         expect(find.text('No'), findsOneWidget);
       },
     );
 
-    testWidgets(
-      'with a finalized epistaxis_event today, the reader returns it',
-      (tester) async {
-        await recordEvent(
-          tester,
-          entryType: 'epistaxis_event',
-          aggregateId: 'agg-home-1',
-          eventType: 'finalized',
-          answers: <String, Object?>{
-            'startTime': DateTime.now().toUtc().toIso8601String(),
-            'endTime': DateTime.now().toUtc().toIso8601String(),
-            'intensity': 'dripping',
-          },
-        );
-
-        await pumpScreen(tester);
-
-        // Verify the seeded entry is queryable via the reader (the home
-        // screen pipes this same path into its grouped record view).
-        List<DiaryEntry>? entries;
-        await tester.runAsync(() async {
-          entries = await runtime.reader.entriesForDate(DateTime.now());
-        });
-        expect(
-          entries!.where((e) => e.entryType == 'epistaxis_event'),
-          hasLength(1),
-        );
-      },
-    );
-
-    testWidgets('tap "No" on yesterday banner records a no_epistaxis_event', (
+    testWidgets('renders a driven finalized epistaxis_event in the list', (
       tester,
     ) async {
-      await pumpScreen(tester);
-
-      final noButton = find.text('No');
-      expect(noButton, findsOneWidget);
-      await tester.tap(noButton, warnIfMissed: false);
-      await _settle(tester);
-
-      final events = await findEventsByType(
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day, 9);
+      await pumpScreen(
         tester,
-        entryType: 'no_epistaxis_event',
+        finalized: [
+          epistaxisRow(
+            today,
+            aggregateId: 'agg-home-1',
+            end: today.add(const Duration(minutes: 30)),
+          ),
+        ],
       );
-      final finalized = events
-          .where((e) => e.eventType == 'finalized')
-          .toList();
-      expect(finalized, hasLength(1));
+
+      // The driven row renders as an entry card with its duration ("30m").
+      expect(find.byType(RecordingScreen), findsNothing);
+      expect(find.byType(EventListItem), findsWidgets);
+      expect(find.text('30m'), findsOneWidget);
     });
 
     testWidgets(
-      'tap "Don\'t remember" on yesterday banner records an unknown_day_event',
+      'shows the incomplete-entry reminder for a driven incomplete row',
+      (tester) async {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day, 10);
+        await pumpScreen(
+          tester,
+          incomplete: [epistaxisRow(today, aggregateId: 'agg-incomplete-1')],
+        );
+
+        // The orange incomplete-records reminder copy ("Tap to complete") shows.
+        expect(find.text('Tap to complete'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'tap "No" on yesterday banner submits record_no_epistaxis_day',
+      (tester) async {
+        await pumpScreen(tester);
+
+        final noButton = find.text('No');
+        expect(noButton, findsOneWidget);
+        await tester.tap(noButton, warnIfMissed: false);
+        await _settle(tester);
+
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        final s = submissionFor('record_no_epistaxis_day');
+        expect(s.rawInput['date'], dateKey(yesterday));
+      },
+    );
+
+    testWidgets(
+      'tap "Don\'t remember" on yesterday banner submits record_unknown_day',
       (tester) async {
         await pumpScreen(tester);
 
@@ -263,36 +327,62 @@ void main() {
         await tester.tap(dontRememberButton, warnIfMissed: false);
         await _settle(tester);
 
-        final events = await findEventsByType(
-          tester,
-          entryType: 'unknown_day_event',
-        );
-        final finalized = events
-            .where((e) => e.eventType == 'finalized')
-            .toList();
-        expect(finalized, hasLength(1));
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        final s = submissionFor('record_unknown_day');
+        expect(s.rawInput['date'], dateKey(yesterday));
       },
     );
 
     testWidgets(
-      'tap "Record Nosebleed" pushes the appropriate recording screen',
+      'a driven finalized day-marker on yesterday hides the yesterday banner',
       (tester) async {
-        await pumpScreen(tester);
-
-        final recordButton = find.widgetWithText(
-          FilledButton,
-          'Record Nosebleed',
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        await pumpScreen(
+          tester,
+          finalized: [
+            DiaryEntryRow(
+              aggregateId: 'P:${dateKey(yesterday)}',
+              entryType: 'no_epistaxis_event',
+              data: <String, Object?>{'date': dateKey(yesterday)},
+            ),
+          ],
         );
-        expect(recordButton, findsOneWidget);
-        await tester.tap(recordButton, warnIfMissed: false);
-        await _settle(tester);
 
-        expect(
-          find.byType(RecordingScreen),
-          findsOneWidget,
-          reason: 'Tapping the record button should push the recording screen',
-        );
+        // With yesterday covered, the confirm banner's choices are gone.
+        expect(find.text("Don't remember"), findsNothing);
       },
     );
+
+    testWidgets('tap "Record Nosebleed" pushes the recording screen', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+
+      final recordButton = find.widgetWithText(
+        FilledButton,
+        'Record Nosebleed',
+      );
+      expect(recordButton, findsOneWidget);
+      await tester.tap(recordButton, warnIfMissed: false);
+      await _settle(tester);
+
+      expect(
+        find.byType(RecordingScreen),
+        findsOneWidget,
+        reason: 'Tapping the record button should push the recording screen',
+      );
+    });
+
+    testWidgets('disconnection banner shows when enrollment is disconnected', (
+      tester,
+    ) async {
+      // Kept (non-diary) concern: drive the legacy enrollment stub to
+      // disconnected and confirm the banner still renders alongside the diary
+      // surface.
+      await enrollment.setDisconnected(true);
+      await pumpScreen(tester);
+
+      expect(find.byType(DisconnectionBanner), findsOneWidget);
+    });
   });
 }

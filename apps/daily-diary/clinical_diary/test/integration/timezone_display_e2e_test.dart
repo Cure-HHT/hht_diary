@@ -43,7 +43,9 @@
 
 import 'dart:async';
 
-import 'package:clinical_diary/read/diary_entry_view_legacy_bridge.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_read.dart';
+import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
@@ -54,12 +56,14 @@ import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -196,6 +200,7 @@ void main() {
 
   group('Timezone display E2E', () {
     late ClinicalDiaryRuntime runtime;
+    late DiaryScopeRuntime diaryScope;
     late MockEnrollmentService enrollment;
     late TaskService tasks;
 
@@ -204,38 +209,56 @@ void main() {
       enrollment = MockEnrollmentService();
       tasks = TaskService();
       runtime = await _bootstrap();
+      final scopeDb = await newDatabaseFactoryMemory().openDatabase(
+        'tz-scope-${DateTime.now().microsecondsSinceEpoch}.db',
+      );
+      diaryScope = await bootstrapDiaryScope(
+        backend: SembastBackend(database: scopeDb),
+        deviceId: _deviceId,
+        softwareVersion: _softwareVersion,
+        localUserId: _userId,
+      );
     });
 
     tearDown(() async {
+      await diaryScope.dispose();
       await runtime.dispose();
       tasks.dispose();
     });
 
-    Future<void> seedEpistaxisEvent(
-      WidgetTester tester, {
-      required String aggregateId,
+    /// Build the `record_epistaxis_event` rawInput the recording flow would
+    /// persist for a stored [startTime] / [endTime] in the given timezones.
+    Map<String, Object?> epistaxisInput({
       required DateTime startTime,
+      required String startTimeZone,
       DateTime? endTime,
-      String? startTimeTimezone,
-      String? endTimeTimezone,
-    }) async {
-      final answers = <String, Object?>{
-        'startTime': startTime.toIso8601String(),
-        // ignore: use_null_aware_elements
-        if (endTime != null) 'endTime': endTime.toIso8601String(),
-        'intensity': 'dripping',
-        // ignore: use_null_aware_elements
-        if (startTimeTimezone != null) 'startTimeTimezone': startTimeTimezone,
-        // ignore: use_null_aware_elements
-        if (endTimeTimezone != null) 'endTimeTimezone': endTimeTimezone,
-      };
+      String? endTimeZone,
+    }) {
+      return EpistaxisEventPayload(
+        startTime: startTime.toIso8601String(),
+        startTimeZone: startTimeZone,
+        startTimeUtcOffset: '+00:00',
+        endTime: endTime?.toIso8601String(),
+        endTimeZone: endTimeZone,
+        endTimeUtcOffset: endTime == null ? null : '+00:00',
+        intensity: NosebleedIntensity.dripping,
+      ).toJson();
+    }
+
+    /// Seed an epistaxis event through the new scope's action submitter so the
+    /// DiaryViewBuilder surfaces it live.
+    Future<void> seedEpistaxisEvent(
+      WidgetTester tester,
+      Map<String, Object?> rawInput,
+    ) async {
       await tester.runAsync(() async {
-        await runtime.entryService.record(
-          entryType: 'epistaxis_event',
-          aggregateId: aggregateId,
-          eventType: 'finalized',
-          answers: answers,
+        await diaryScope.scope.actionSubmitter.submit(
+          ActionSubmission(
+            actionName: 'record_epistaxis_event',
+            rawInput: rawInput,
+          ),
         );
+        await Future<void>.delayed(const Duration(milliseconds: 80));
       });
     }
 
@@ -248,29 +271,35 @@ void main() {
       });
 
       await tester.pumpWidget(
-        wrapWithMaterialApp(
-          HomeScreen(
-            runtime: runtime,
-            deviceId: _deviceId,
-            enrollmentService: enrollment,
-            taskService: tasks,
+        ReActionScope(
+          scope: diaryScope.scope,
+          child: wrapWithMaterialApp(
+            HomeScreen(
+              runtime: runtime,
+              deviceId: _deviceId,
+              enrollmentService: enrollment,
+              taskService: tasks,
+            ),
           ),
         ),
       );
       await _settle(tester);
     }
 
-    Future<List<DiaryEntry>> readEntriesForToday(WidgetTester tester) async {
-      List<DiaryEntry>? entries;
-      await tester.runAsync(() async {
-        entries = await runtime.reader.entriesForDate(_today());
-      });
-      return entries ?? <DiaryEntry>[];
+    /// The seeded entry as a [DiaryEntryView] (cross-screen consistency test
+    /// feeds DateRecordsScreen the same view-model the live view would).
+    EpistaxisEntryView viewModelFor(Map<String, Object?> rawInput) {
+      final row = DiaryEntryRow(
+        aggregateId: 'agg-tz',
+        entryType: 'epistaxis_event',
+        data: rawInput,
+      );
+      return EpistaxisEntryView(row, isComplete: true);
     }
 
     Future<void> pumpDateRecordsScreen(
       WidgetTester tester,
-      List<DiaryEntry> entries,
+      List<DiaryEntryView> entries,
     ) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -283,7 +312,7 @@ void main() {
         wrapWithMaterialApp(
           DateRecordsScreen(
             date: _today(),
-            entries: entries.map(diaryEntryViewFromLegacy).toList(),
+            entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
           ),
@@ -301,16 +330,17 @@ void main() {
       (tester) async {
         // Seed an event whose stored time is 10:00 AM today, with the
         // event's own timezone set to Etc/UTC (matches device).
+        await pumpHomeScreen(tester);
         await seedEpistaxisEvent(
           tester,
-          aggregateId: 'agg-tz-match',
-          startTime: _storedFor10AmInUtc(),
-          endTime: _storedFor10AmInUtc().add(const Duration(minutes: 15)),
-          startTimeTimezone: 'Etc/UTC',
-          endTimeTimezone: 'Etc/UTC',
+          epistaxisInput(
+            startTime: _storedFor10AmInUtc(),
+            endTime: _storedFor10AmInUtc().add(const Duration(minutes: 15)),
+            startTimeZone: 'Etc/UTC',
+            endTimeZone: 'Etc/UTC',
+          ),
         );
-
-        await pumpHomeScreen(tester);
+        await _settle(tester);
 
         // The list item appears.
         expect(find.byType(EventListItem), findsOneWidget);
@@ -365,16 +395,17 @@ void main() {
         // (depending on DST), so the raw stored DateTime would render as
         // ~3:00 PM if not converted. The home screen must convert it
         // BACK to 10:00 AM and decorate the EST/EDT abbreviation.
+        await pumpHomeScreen(tester);
         await seedEpistaxisEvent(
           tester,
-          aggregateId: 'agg-tz-cross',
-          startTime: _storedFor10AmInNy(),
-          endTime: _storedFor10AmInNy().add(const Duration(minutes: 15)),
-          startTimeTimezone: 'America/New_York',
-          endTimeTimezone: 'America/New_York',
+          epistaxisInput(
+            startTime: _storedFor10AmInNy(),
+            endTime: _storedFor10AmInNy().add(const Duration(minutes: 15)),
+            startTimeZone: 'America/New_York',
+            endTimeZone: 'America/New_York',
+          ),
         );
-
-        await pumpHomeScreen(tester);
+        await _settle(tester);
         consumeRenderFlexOverflow(tester);
 
         expect(find.byType(EventListItem), findsOneWidget);
@@ -415,25 +446,16 @@ void main() {
     testWidgets(
       'cross-timezone entry renders consistently on DateRecordsScreen',
       (tester) async {
-        await seedEpistaxisEvent(
-          tester,
-          aggregateId: 'agg-tz-consistency',
+        final rawInput = epistaxisInput(
           startTime: _storedFor10AmInNy(),
           endTime: _storedFor10AmInNy().add(const Duration(minutes: 15)),
-          startTimeTimezone: 'America/New_York',
-          endTimeTimezone: 'America/New_York',
+          startTimeZone: 'America/New_York',
+          endTimeZone: 'America/New_York',
         );
 
-        // Read back via the reader (the screen is fed entries by its
-        // navigator parent in production).
-        final entries = await readEntriesForToday(tester);
-        expect(
-          entries,
-          hasLength(1),
-          reason: 'Stored time effectiveDate must fall on today.',
-        );
-
-        await pumpDateRecordsScreen(tester, entries);
+        // DateRecordsScreen is fed view-models by its navigator parent in
+        // production; feed it the same view-model the live diary view derives.
+        await pumpDateRecordsScreen(tester, [viewModelFor(rawInput)]);
         consumeRenderFlexOverflow(tester);
 
         expect(find.byType(EventListItem), findsOneWidget);

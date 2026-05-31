@@ -1,12 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-CAL-p00020: Patient Disconnection Workflow
-//   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00076: Participation Status Badge
-//   REQ-CAL-p00080: Questionnaire Study Event Association (cycle label stamp)
-//   REQ-CAL-p00081: Patient Task System
-//   REQ-p01065:    Clinical Questionnaire System (D: deactivate sync; not-participating reset)
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -14,7 +5,9 @@ import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
-import 'package:clinical_diary/read/diary_entry_view_legacy_bridge.dart';
+import 'package:clinical_diary/read/diary_read.dart';
+import 'package:clinical_diary/read/diary_view.dart';
+import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
@@ -31,7 +24,6 @@ import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
-import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
@@ -39,14 +31,15 @@ import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/task_list_widget.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:eq/eq.dart';
+import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:uuid/uuid.dart';
 
 /// Main home screen showing recent events and recording button
 class HomeScreen extends StatefulWidget {
@@ -68,9 +61,9 @@ class HomeScreen extends StatefulWidget {
   /// downstream tooling can identify which device produced the JSON dump.
   final String deviceId;
   final EnrollmentService enrollmentService;
-  // REQ-CAL-p00081: Task service for questionnaire task management
+  // Task service for questionnaire task management
   final TaskService taskService;
-  // REQ-CAL-p00082: Called after successful linking to register FCM token
+  // Called after successful linking to register FCM token
   final VoidCallback? onEnrolled;
 
   @override
@@ -78,19 +71,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  /// Materialized nosebleed-related entries (epistaxis_event,
-  /// no_epistaxis_event, unknown_day_event), tombstones excluded.
-  List<DiaryEntry> _entries = [];
-  bool _hasYesterdayRecords = false;
-  bool _isLoading = true;
-
-  /// Subset of [_entries] that are checkpointed but not finalized.
-  List<DiaryEntry> _incompleteEntries = [];
   bool _isEnrolled = false;
   // Wedge banner state — refreshed on init and on resume.
   bool _hasWedgedFifo = false;
+  // Tracks whether the kept (non-diary) async checks have settled, so the
+  // wedge / disconnection / task banners don't flash before their state loads.
+  bool _isLoading = true;
 
-  // REQ-CAL-p00077: Disconnection banner state
+  // Disconnection banner state.
   bool _isDisconnected = false;
   String? _siteName;
   String? _sitePhoneNumber;
@@ -103,7 +91,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadRecords();
     _checkEnrollmentStatus();
     _checkDisconnectionStatus();
     _checkNotParticipatingStatus();
@@ -131,7 +118,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _refreshWedgeStatus() async {
     final wedged = await widget.runtime.backend.anyFifoWedged();
     if (mounted) {
-      setState(() => _hasWedgedFifo = wedged);
+      setState(() {
+        _hasWedgedFifo = wedged;
+        // The wedge check is the last non-diary async to settle on init;
+        // once it returns the kept banners can render their resolved state.
+        _isLoading = false;
+      });
     }
   }
 
@@ -227,53 +219,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _loadRecords() async {
-    setState(() => _isLoading = true);
-
-    // Wide range covers all real entries; the reader filters by local-day.
-    final allEntries = await widget.runtime.reader.entriesForDateRange(
-      DateTime.utc(1970, 1, 1),
-      DateTime.utc(9999, 1, 1),
-    );
-    final entries =
-        allEntries
-            .where(
-              (e) =>
-                  !e.isDeleted &&
-                  (e.entryType == 'epistaxis_event' ||
-                      e.entryType == 'no_epistaxis_event' ||
-                      e.entryType == 'unknown_day_event'),
-            )
-            .toList()
-          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    final hasYesterday = await widget.runtime.reader.hasEntriesForYesterday();
-
-    // Get incomplete real-nosebleed entries.
-    final incomplete = entries
-        .where((e) => !e.isComplete && e.entryType == 'epistaxis_event')
-        .toList();
-
-    setState(() {
-      _entries = entries;
-      _hasYesterdayRecords = hasYesterday;
-      _incompleteEntries = incomplete;
-      _isLoading = false;
-    });
-  }
-
   Future<void> _navigateToRecording() async {
-    // CUR-464: Result is now record ID (String) instead of bool
+    // CUR-464: Result is now record ID (String) instead of bool. The diary list
+    // refreshes reactively via DiaryViewBuilder; we only flash + scroll once the
+    // new row has been spliced into the live view.
     final result = await Navigator.push<String?>(
       context,
       AppPageRoute(builder: (context) => const RecordingScreen()),
     );
 
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        _flashRecordId = result;
-      });
-      await _loadRecords();
-      _scrollToRecord(result);
+    if (result != null && result.isNotEmpty && mounted) {
+      _flashAndScrollTo(result);
     }
   }
 
@@ -285,9 +241,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return _recordKeys.putIfAbsent(recordId, GlobalKey.new);
   }
 
-  /// Scroll to a specific record in the list and ensure it's visible.
-  /// CUR-489: Uses Scrollable.ensureVisible to scroll to actual item position
-  void _scrollToRecord(String recordId) {
+  /// Flag [recordId] for the flash highlight, then scroll it into view once the
+  /// reactive list has rendered the new row.
+  ///
+  /// The diary list is driven by [DiaryViewBuilder], so the row may not be in
+  /// the tree on the frame the recording screen pops. Setting [_flashRecordId]
+  /// and deferring the scroll to a post-frame callback lets the next view
+  /// emission splice the row in before we look up its [GlobalKey].
+  void _flashAndScrollTo(String recordId) {
+    setState(() => _flashRecordId = recordId);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final key = _recordKeys[recordId];
       if (key?.currentContext != null) {
@@ -301,20 +263,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  Future<void> _handleYesterdayNoNosebleeds() async {
+  /// The `yyyy-MM-dd` local-date key for yesterday.
+  static String _yesterdayKey() {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    await widget.runtime.entryService.record(
-      entryType: 'no_epistaxis_event',
-      aggregateId: const Uuid().v7(),
-      eventType: 'finalized',
-      answers: <String, Object?>{'date': DateTimeFormatter.format(yesterday)},
+    return DateFormat('yyyy-MM-dd').format(yesterday);
+  }
+
+  /// Submit a whole-day marker (`record_no_epistaxis_day` /
+  /// `record_unknown_day`) for [localDate] (`yyyy-MM-dd`) through the scope's
+  /// action submitter. The diary list updates reactively, so there is no manual
+  /// reload after the write.
+  // Implements: DIARY-DEV-action-write-path/A
+  Future<void> _submitDayMarker(String actionName, String localDate) async {
+    await ReActionScope.of(context).actionSubmitter.submit(
+      ActionSubmission(
+        actionName: actionName,
+        rawInput: <String, Object?>{'date': localDate},
+      ),
     );
-    unawaited(_loadRecords());
+  }
+
+  // Implements: DIARY-DEV-action-write-path/A
+  Future<void> _handleYesterdayNoNosebleeds() async {
+    await _submitDayMarker('record_no_epistaxis_day', _yesterdayKey());
   }
 
   Future<void> _handleYesterdayHadNosebleeds() async {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    // CUR-464: Result is now record ID (String) instead of bool
+    // CUR-464: Result is now record ID (String) instead of bool. Flash + scroll
+    // happen reactively once DiaryViewBuilder splices the new row in.
     final result = await Navigator.push<String?>(
       context,
       AppPageRoute(
@@ -322,24 +299,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
     );
 
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        _flashRecordId = result;
-      });
-      await _loadRecords();
-      _scrollToRecord(result);
+    if (result != null && result.isNotEmpty && mounted) {
+      _flashAndScrollTo(result);
     }
   }
 
+  // Implements: DIARY-DEV-action-write-path/A
   Future<void> _handleYesterdayDontRemember() async {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    await widget.runtime.entryService.record(
-      entryType: 'unknown_day_event',
-      aggregateId: const Uuid().v7(),
-      eventType: 'finalized',
-      answers: <String, Object?>{'date': DateTimeFormatter.format(yesterday)},
-    );
-    unawaited(_loadRecords());
+    await _submitDayMarker('record_unknown_day', _yesterdayKey());
   }
 
   /// Export the local event log as JSON via [DiaryExportService] and hand the
@@ -456,9 +423,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       final result = await importer.importAll(decoded);
 
-      // Refresh the home screen so any newly-ingested entries surface.
-      await _loadRecords();
-
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -514,8 +478,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // The event-sourcing datastore is append-only; resetting all data is
       // a dev-only feature in the legacy stack. Show a message instead and
       // leave the underlying records untouched.
-      unawaited(_loadRecords());
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -810,89 +772,62 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _handleIncompleteRecordsClick() async {
-    if (_incompleteEntries.isEmpty) return;
+  // Implements: DIARY-DEV-reactive-read-path/A
+  // Implements: DIARY-PRD-incomplete-entry-preservation/B
+  Future<void> _handleIncompleteRecordsClick(DiaryView view) async {
+    final incomplete = view.incompleteEntries;
+    if (incomplete.isEmpty) return;
 
-    // Navigate to edit (resume) the first incomplete entry.
-    final firstIncomplete = _incompleteEntries.first;
+    // Navigate to edit (resume) the first incomplete entry. Only epistaxis
+    // entries are editable in the recording screen.
+    final firstIncomplete = incomplete.first;
+    if (firstIncomplete is! EpistaxisEntryView) return;
 
-    final result = await Navigator.push<bool>(
+    // The diary list refreshes reactively via DiaryViewBuilder; no manual
+    // reload is needed after returning from the recording screen.
+    await Navigator.push<bool>(
       context,
       AppPageRoute(
-        builder: (context) =>
-            RecordingScreen(existing: _epistaxisViewOf(firstIncomplete)),
+        builder: (context) => RecordingScreen(existing: firstIncomplete),
       ),
     );
-
-    if (result ?? false) {
-      unawaited(_loadRecords());
-    }
   }
 
-  Future<void> _navigateToEditRecord(DiaryEntry entry) async {
-    // CUR-464: Result is now record ID (String) instead of bool
+  Future<void> _navigateToEditRecord(EpistaxisEntryView entry) async {
+    // CUR-464: Result is now record ID (String) instead of bool. Flash + scroll
+    // happen reactively once DiaryViewBuilder splices the edited row back in.
     final result = await Navigator.push<String?>(
       context,
-      AppPageRoute(
-        builder: (context) =>
-            RecordingScreen(existing: _epistaxisViewOf(entry)),
-      ),
+      AppPageRoute(builder: (context) => RecordingScreen(existing: entry)),
     );
 
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        _flashRecordId = result;
-      });
-      await _loadRecords();
-      _scrollToRecord(result);
+    if (result != null && result.isNotEmpty && mounted) {
+      _flashAndScrollTo(result);
     }
   }
 
-  /// Bridge a legacy nosebleed [DiaryEntry] to an [EpistaxisEntryView] for the
-  /// (new-stack) RecordingScreen. Returns null for non-epistaxis entries (the
-  /// recording screen only edits nosebleeds).
-  static EpistaxisEntryView? _epistaxisViewOf(DiaryEntry entry) {
-    final view = diaryEntryViewFromLegacy(entry);
-    return view is EpistaxisEntryView ? view : null;
-  }
-
-  /// Read the `startTime` answer from a [DiaryEntry], or fall back to its
-  /// effective date / updated-at.
-  static DateTime _readStartTime(DiaryEntry entry) {
-    final raw = entry.currentAnswers['startTime'];
-    if (raw is String) return DateTimeFormatter.parse(raw);
-    return entry.effectiveDate ?? entry.updatedAt;
-  }
-
-  /// Read the `endTime` answer from a [DiaryEntry] (null when absent).
-  static DateTime? _readEndTime(DiaryEntry entry) {
-    final raw = entry.currentAnswers['endTime'];
-    if (raw is String) return DateTimeFormatter.parse(raw);
-    return null;
-  }
-
-  /// Check if an entry overlaps with any other entry in the list.
-  /// CUR-443: Used to show warning icon on overlapping events
-  bool _hasOverlap(DiaryEntry entry) {
-    if (entry.entryType != 'epistaxis_event') return false;
-    final start = _readStartTime(entry);
-    final end = _readEndTime(entry);
+  /// Whether [entry] overlaps any other epistaxis row in the live [view].
+  /// CUR-443: Used to show a warning icon on overlapping events.
+  // Implements: DIARY-DEV-reactive-read-path/A
+  bool _hasOverlap(DiaryView view, EpistaxisEntryView entry) {
+    final end = entry.endTime;
     if (end == null) return false;
-
-    for (final other in _entries) {
-      if (other.entryId == entry.entryId) continue;
-      if (other.entryType != 'epistaxis_event') continue;
-      final otherEnd = _readEndTime(other);
-      if (otherEnd == null) continue;
-      final otherStart = _readStartTime(other);
-      if (start.isBefore(otherEnd) && end.isAfter(otherStart)) {
-        return true;
-      }
-    }
-    return false;
+    return overlappingEpistaxisEntries(
+      view.finalizedRows,
+      entry.startTime,
+      end,
+      excludeAggregateId: entry.aggregateId,
+    ).isNotEmpty;
   }
 
-  List<_GroupedRecords> _groupRecordsByDay(BuildContext context) {
+  /// Group the live diary [view] into the "older incomplete", "yesterday", and
+  /// "today" sections rendered by the list. Derives everything from [view] (the
+  /// finalized canonical entries + the diary-local incomplete checkpoints).
+  // Implements: DIARY-DEV-reactive-read-path/A
+  List<_GroupedRecords> _groupRecordsByDay(
+    BuildContext context,
+    DiaryView view,
+  ) {
     final l10n = AppLocalizations.of(context);
     final today = DateTime.now();
     final yesterday = today.subtract(const Duration(days: 1));
@@ -900,18 +835,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
     final yesterdayStr = DateFormat('yyyy-MM-dd').format(yesterday);
 
-    String entryDateStr(DiaryEntry e) {
-      return DateFormat('yyyy-MM-dd').format(_readStartTime(e));
+    int byStart(DiaryEntryView a, DiaryEntryView b) {
+      final aStart = a is EpistaxisEntryView ? a.startTime : null;
+      final bStart = b is EpistaxisEntryView ? b.startTime : null;
+      if (aStart == null || bStart == null) return 0;
+      return aStart.compareTo(bStart);
     }
+
+    bool isEpistaxisOn(DiaryEntryView e, String dateStr) =>
+        e is EpistaxisEntryView && e.localDate == dateStr;
 
     final groups = <_GroupedRecords>[];
 
-    // Get incomplete real-nosebleed entries that are older than yesterday.
-    final olderIncompleteEntries = _entries.where((e) {
-      if (e.isComplete || e.entryType != 'epistaxis_event') return false;
-      final dateStr = entryDateStr(e);
+    // Incomplete epistaxis entries older than yesterday (checkpoint rows).
+    final olderIncompleteEntries = view.incompleteEntries.where((e) {
+      if (e is! EpistaxisEntryView) return false;
+      final dateStr = e.localDate;
       return dateStr != todayStr && dateStr != yesterdayStr;
-    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
+    }).toList()..sort(byStart);
 
     if (olderIncompleteEntries.isNotEmpty) {
       groups.add(
@@ -923,16 +864,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
     }
 
-    // Yesterday's real-nosebleed entries (excluding incomplete ones shown above).
-    final yesterdayEntries = _entries.where((e) {
-      return entryDateStr(e) == yesterdayStr &&
-          e.entryType == 'epistaxis_event';
-    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
+    // Yesterday's finalized nosebleed entries.
+    final yesterdayEntries =
+        view
+            .entriesOn(yesterdayStr)
+            .whereType<EpistaxisEntryView>()
+            .cast<DiaryEntryView>()
+            .toList()
+          ..sort(byStart);
 
-    // Check if there are ANY entries for yesterday (including special events).
-    final hasAnyYesterdayEntries = _entries.any(
-      (e) => entryDateStr(e) == yesterdayStr,
-    );
+    // Any entry at all on yesterday (incl. day markers + incomplete checkpoints).
+    final hasAnyYesterdayEntries =
+        view.entriesOn(yesterdayStr).isNotEmpty ||
+        view.incompleteEntries.any((e) => isEpistaxisOn(e, yesterdayStr));
 
     groups.add(
       _GroupedRecords(
@@ -943,12 +887,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
     );
 
-    // Today's real-nosebleed entries (including incomplete - CUR-488).
-    final todayEntries = _entries.where((e) {
-      return entryDateStr(e) == todayStr && e.entryType == 'epistaxis_event';
-    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
+    // Today's finalized nosebleed entries plus today's incomplete checkpoints
+    // (CUR-488: in-progress entries surface in the today section).
+    final todayEntries = <DiaryEntryView>[
+      ...view.entriesOn(todayStr).whereType<EpistaxisEntryView>(),
+      ...view.incompleteEntries.where((e) => isEpistaxisOn(e, todayStr)),
+    ]..sort(byStart);
 
-    final hasAnyTodayEntries = _entries.any((e) => entryDateStr(e) == todayStr);
+    final hasAnyTodayEntries =
+        view.entriesOn(todayStr).isNotEmpty ||
+        view.incompleteEntries.any((e) => isEpistaxisOn(e, todayStr));
 
     groups.add(
       _GroupedRecords(
@@ -964,7 +912,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final groupedRecords = _groupRecordsByDay(context);
+    return DiaryViewBuilder(builder: _buildScaffold);
+  }
+
+  // Implements: DIARY-DEV-reactive-read-path/A
+  Widget _buildScaffold(BuildContext context, DiaryView view) {
+    final groupedRecords = _groupRecordsByDay(context, view);
+    final incompleteEntries = view.incompleteEntries;
+    final hasYesterdayRecords = view
+        .entriesOn(
+          DateFormat(
+            'yyyy-MM-dd',
+          ).format(DateTime.now().subtract(const Duration(days: 1))),
+        )
+        .isNotEmpty;
 
     return Scaffold(
       body: SafeArea(
@@ -1120,12 +1081,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
 
               // Incomplete records banner (orange)
-              if (_incompleteEntries.isNotEmpty)
+              // Incomplete-entry reminder (preserves in-progress entries).
+              // Implements: DIARY-PRD-incomplete-entry-preservation/B
+              if (incompleteEntries.isNotEmpty)
                 Builder(
                   builder: (context) {
                     final l10n = AppLocalizations.of(context);
                     return InkWell(
-                      onTap: _handleIncompleteRecordsClick,
+                      onTap: () => _handleIncompleteRecordsClick(view),
                       child: Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -1147,7 +1110,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             Expanded(
                               child: Text(
                                 l10n.incompleteRecordCount(
-                                  _incompleteEntries.length,
+                                  incompleteEntries.length,
                                 ),
                                 style: TextStyle(
                                   color: Colors.orange.shade800,
@@ -1169,17 +1132,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   },
                 ),
 
-              // REQ-CAL-p00081: Task list (questionnaires, etc.)
+              // Task list (questionnaires, etc.) — kept on the legacy
+              // TaskService path, composed flatly beside the diary surface.
               // CUR-1164: Hide while disconnected — no valid questionnaires.
               if (!_isDisconnected)
                 TaskListWidget(
                   taskService: widget.taskService,
-                  // REQ-CAL-p00081-D: Navigate to relevant screen
                   onTaskTap: _navigateToQuestionnaire,
                 ),
 
               // Yesterday confirmation banner (yellow)
-              if (!_hasYesterdayRecords)
+              if (!hasYesterdayRecords)
                 YesterdayBanner(
                   onNoNosebleeds: _handleYesterdayNoNosebleeds,
                   onHadNosebleeds: _handleYesterdayHadNosebleeds,
@@ -1192,7 +1155,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : RefreshIndicator(
-                      onRefresh: _loadRecords,
+                      // The diary list is reactive (DiaryViewBuilder); pull-to-
+                      // refresh stays for the affordance but has nothing to load.
+                      onRefresh: () async {},
                       child: Scrollbar(
                         thumbVisibility: true,
                         controller: _scrollController,
@@ -1202,7 +1167,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           itemCount: groupedRecords.length,
                           itemBuilder: (context, index) {
                             final group = groupedRecords[index];
-                            return _buildGroup(context, group);
+                            return _buildGroup(context, view, group);
                           },
                         ),
                       ),
@@ -1255,11 +1220,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // Calendar button
                   OutlinedButton.icon(
                     onPressed: () async {
+                      // The calendar reads/writes the same reactive diary store;
+                      // the home list updates on its own when the dialog closes.
                       await showDialog<void>(
                         context: context,
                         builder: (context) => const CalendarScreen(),
                       );
-                      unawaited(_loadRecords());
                     },
                     icon: const Icon(Icons.calendar_today),
                     label: Text(AppLocalizations.of(context).calendar),
@@ -1276,7 +1242,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildGroup(BuildContext context, _GroupedRecords group) {
+  // Implements: DIARY-GUI-epistaxis-record/A
+  Widget _buildGroup(
+    BuildContext context,
+    DiaryView view,
+    _GroupedRecords group,
+  ) {
     final prefs = AppPreferencesScope.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1362,12 +1333,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ...group.entries.map(
             (entry) => Padding(
               // CUR-489: Use GlobalKey for scroll-to-item functionality
-              key: _getKeyForRecord(entry.entryId),
+              key: _getKeyForRecord(entry.aggregateId),
               // CUR-464: Use smaller gap when compact view is enabled
               padding: EdgeInsets.only(bottom: prefs.compactView ? 4 : 8),
               // CUR-464: Wrap with FlashHighlight to animate new records
               child: FlashHighlight(
-                flash: entry.entryId == _flashRecordId,
+                flash: entry.aggregateId == _flashRecordId,
                 enabled: prefs.useAnimation,
                 onFlashComplete: () {
                   if (mounted) {
@@ -1377,9 +1348,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   }
                 },
                 builder: (context, highlightColor) => EventListItem(
-                  view: diaryEntryViewFromLegacy(entry),
-                  onTap: () => _navigateToEditRecord(entry),
-                  hasOverlap: _hasOverlap(entry),
+                  view: entry,
+                  onTap: entry is EpistaxisEntryView
+                      ? () => _navigateToEditRecord(entry)
+                      : null,
+                  hasOverlap:
+                      entry is EpistaxisEntryView && _hasOverlap(view, entry),
                   highlightColor: highlightColor,
                 ),
               ),
@@ -1400,7 +1374,7 @@ class _GroupedRecords {
   });
   final String label;
   final DateTime? date;
-  final List<DiaryEntry> entries;
+  final List<DiaryEntryView> entries;
   final bool isIncomplete;
   final bool isEmpty;
 }
