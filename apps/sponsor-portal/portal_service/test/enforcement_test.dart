@@ -3,7 +3,8 @@
 //   the scope. Built on the event_sourcing library's TableBackedAuthorizationPolicy.
 //
 // NOTE ON SCOPE CLASSES: every portal participant/questionnaire permission is
-// scopeClass 'site'; site.view / audit.view / the ops permissions are UNSCOPED.
+// scopeClass 'site', as is site.view; audit.view / the ops permissions are
+// UNSCOPED.
 // So a BoundScope('site', X) assignment matches a site-scoped request at X by
 // direct value-equality (appliesExact). The participant->site containment in
 // buildPortalScopeRegistry is exercised only when a 'participant'-scoped
@@ -226,46 +227,41 @@ void main() {
       expect((deny as Deny).reason, DenyReason.notGranted);
     });
 
-    test(
-      '5. Administrator (ValueWildcardScope site) -> participant.view at any '
-      'site Allowed; participant.link Denied',
-      () async {
-        // NOTE: portal.site.view is UNSCOPED, so it cannot demonstrate the
-        // value-wildcard "any site" match (a non-null scope on an unscoped
-        // permission yields scopeUnresolvable). portal.participant.view IS
-        // site-scoped and IS granted to Administrator, so it is the right probe
-        // for a ValueWildcardScope('site') assignment matching any site value.
-        final seeded = await _openSeeded(
-          dbName: 'enf-5',
-          assignments: const <RoleAssignmentSeedEntry>[
-            RoleAssignmentSeedEntry(
-              userId: 'admin-1',
-              role: 'Administrator',
-              scope: ValueWildcardScope(class_: 'site'),
-            ),
-          ],
-        );
-        final principal = Principal.user(
-          userId: 'admin-1',
-          roles: const <String>{'Administrator'},
-          activeRole: 'Administrator',
-        );
-        // Granted, site-scoped: value-wildcard covers any site value.
-        final allowA = await seeded.policy.isPermitted(
-          principal,
-          const Permission('portal.participant.view', scopeClass: 'site'),
-          const BoundScope(class_: 'site', value: 'site-99'),
-        );
-        expect(allowA, isA<Allow>());
-        // Not granted to Administrator -> Deny notGranted.
-        final deny = await seeded.policy.isPermitted(
-          principal,
-          const Permission('portal.participant.link', scopeClass: 'site'),
-          const BoundScope(class_: 'site', value: 'site-99'),
-        );
-        expect(deny, isA<Deny>());
-        expect((deny as Deny).reason, DenyReason.notGranted);
-      },
-    );
+    test('5. Administrator (ValueWildcardScope site) -> site.view at any '
+        'site Allowed; participant.link Denied', () async {
+      // portal.site.view is site-scoped and IS granted to Administrator, so
+      // it is the right probe for a ValueWildcardScope('site') assignment
+      // matching any site value.
+      final seeded = await _openSeeded(
+        dbName: 'enf-5',
+        assignments: const <RoleAssignmentSeedEntry>[
+          RoleAssignmentSeedEntry(
+            userId: 'admin-1',
+            role: 'Administrator',
+            scope: ValueWildcardScope(class_: 'site'),
+          ),
+        ],
+      );
+      final principal = Principal.user(
+        userId: 'admin-1',
+        roles: const <String>{'Administrator'},
+        activeRole: 'Administrator',
+      );
+      // Granted, site-scoped: value-wildcard covers any site value.
+      final allowA = await seeded.policy.isPermitted(
+        principal,
+        const Permission('portal.site.view', scopeClass: 'site'),
+        const BoundScope(class_: 'site', value: 'site-99'),
+      );
+      expect(allowA, isA<Allow>());
+      // Not granted to Administrator -> Deny notGranted.
+      final deny = await seeded.policy.isPermitted(
+        principal,
+        const Permission('portal.participant.link', scopeClass: 'site'),
+        const BoundScope(class_: 'site', value: 'site-99'),
+      );
+      expect(deny, isA<Deny>());
+      expect((deny as Deny).reason, DenyReason.notGranted);
+    });
   });
 }
