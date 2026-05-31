@@ -1,4 +1,5 @@
-// Verifies: DIARY-PRD-action-inventory/A
+// Verifies: DIARY-PRD-user-account-site-assignment/D
+// Verifies: DIARY-PRD-user-account-edit/E
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_actions/portal_actions.dart';
 import 'package:test/test.dart';
@@ -8,113 +9,54 @@ void main() {
   final ctx = ActionContext(
     principal: Principal.user(
       userId: 'admin-1',
-      roles: {'Administrator'},
+      roles: const {'Administrator'},
       activeRole: 'Administrator',
     ),
     security: const SecurityDetails(),
     requestStartedAt: DateTime.utc(2026, 5, 30),
   );
 
-  // Verifies: DIARY-PRD-action-inventory/A
-  test(
-    'DIARY-PRD-action-inventory/A: declares assign_site permission + required idempotency',
-    () {
-      expect(action.name, 'ACT-USR-008');
-      expect(
-        action.permissions,
-        contains(portalPermissionsByActId['ACT-USR-008']),
-      );
-      expect(action.idempotency, Idempotency.required);
-    },
-  );
-
-  // Verifies: DIARY-PRD-action-inventory/A
-  test('DIARY-PRD-action-inventory/A: parseInput rejects non-list sites', () {
+  test('declares assign_site permission + required idempotency', () {
+    expect(action.name, 'ACT-USR-008');
     expect(
-      () => action.parseInput(<String, Object?>{
-        'userId': 'u1',
-        'sites': 'site-1',
-        'previousSites': <String>[],
-      }),
-      throwsFormatException,
+      action.permissions,
+      contains(portalPermissionsByActId['ACT-USR-008']),
     );
+    expect(action.idempotency, Idempotency.required);
   });
 
-  // Verifies: DIARY-PRD-action-inventory/A
   test(
-    'DIARY-PRD-action-inventory/A: parseInput rejects non-list previousSites',
-    () {
+    'emits one role_assigned binding the site as a BoundScope under the role',
+    () async {
+      final input = action.parseInput(<String, Object?>{
+        'userId': 'sc-9',
+        'role': 'StudyCoordinator',
+        'site': 'site-3',
+      });
+      final result = await action.execute(input, ctx);
+      expect(result.events, hasLength(1));
+      final e = result.events.single;
+      expect(e.eventType, 'role_assigned');
+      expect(e.aggregateType, 'user_role_scope');
       expect(
-        () => action.parseInput(<String, Object?>{
-          'userId': 'u1',
-          'sites': <String>['site-1'],
-          'previousSites': 'old-site',
-        }),
-        throwsFormatException,
+        e.data['scope'],
+        const BoundScope(class_: 'site', value: 'site-3').toJson(),
+      );
+      expect(
+        e.aggregateId,
+        computeRoleAssignmentAggregateId(
+          userId: 'sc-9',
+          role: 'StudyCoordinator',
+          scope: const BoundScope(class_: 'site', value: 'site-3'),
+        ),
       );
     },
   );
 
-  // Verifies: DIARY-PRD-action-inventory/A
-  test(
-    'DIARY-PRD-action-inventory/A: site widening emits only user_sites_changed',
-    () async {
-      final result = await action.execute(
-        AssignSiteInput(
-          userId: 'u1',
-          sites: <String>['site-1', 'site-2'],
-          previousSites: <String>['site-1'],
-        ),
-        ctx,
-      );
-      expect(result.result.userId, 'u1');
-      expect(result.events.map((e) => e.entryType).toList(), [
-        'user_sites_changed',
-      ]);
-      expect(result.events[0].data['before'], <String>['site-1']);
-      expect(result.events[0].data['after'], <String>['site-1', 'site-2']);
-      expect(result.events[0].data['changed_by'], 'admin-1');
-    },
-  );
-
-  // Verifies: DIARY-PRD-action-inventory/A
-  test(
-    'DIARY-PRD-action-inventory/A: same-set assignment emits only user_sites_changed (no revoke)',
-    () async {
-      final result = await action.execute(
-        AssignSiteInput(
-          userId: 'u1',
-          sites: <String>['A', 'B'],
-          previousSites: <String>['A', 'B'],
-        ),
-        ctx,
-      );
-      expect(result.result.userId, 'u1');
-      expect(result.events.map((e) => e.entryType).toList(), [
-        'user_sites_changed',
-      ]);
-    },
-  );
-
-  // Verifies: DIARY-PRD-action-inventory/A
-  test(
-    'DIARY-PRD-action-inventory/A: site narrowing emits user_sites_changed + user_sessions_revoked',
-    () async {
-      final result = await action.execute(
-        AssignSiteInput(
-          userId: 'u1',
-          sites: <String>['site-1'],
-          previousSites: <String>['site-1', 'site-2'],
-        ),
-        ctx,
-      );
-      expect(result.events.map((e) => e.entryType).toList(), [
-        'user_sites_changed',
-        'user_sessions_revoked',
-      ]);
-      expect(result.events[0].data['before'], <String>['site-1', 'site-2']);
-      expect(result.events[1].data['reason_kind'], 'authz_narrowed');
-      expect(result.events[1].data['by'], 'admin-1');
-    },
-  );
+  test('rejects missing site/role/userId', () {
+    expect(
+      () => action.parseInput(<String, Object?>{'userId': 'u', 'role': 'r'}),
+      throwsA(isA<FormatException>()),
+    );
+  });
 }

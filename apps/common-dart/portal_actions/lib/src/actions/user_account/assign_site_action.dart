@@ -1,4 +1,6 @@
-// Implements: DIARY-PRD-action-inventory/A
+// Implements: DIARY-PRD-user-account-site-assignment/D — assign one Site to a
+//   user as a BoundScope('site', X) under a role; emits a single role_assigned.
+// Implements: DIARY-PRD-user-account-edit/E
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../portal_permissions.dart';
@@ -6,13 +8,14 @@ import '../../portal_permissions.dart';
 class AssignSiteInput {
   AssignSiteInput({
     required this.userId,
-    required this.sites,
-    // Phase 2: previousSites is caller-supplied; Phase 2 reads from a projection.
-    required this.previousSites,
+    required this.role,
+    required this.site,
   });
   final String userId;
-  final List<String> sites;
-  final List<String> previousSites;
+  final String role;
+  final String site;
+
+  ScopeValue get scope => BoundScope(class_: 'site', value: site);
 }
 
 class AssignSiteResult {
@@ -21,9 +24,8 @@ class AssignSiteResult {
   Map<String, Object?> toJson() => <String, Object?>{'userId': userId};
 }
 
-/// ACT-USR-008: assign sites to a staff user account. Emits user_sites_changed;
-/// if the change narrows authz (a site is removed), also emits
-/// user_sessions_revoked to invalidate existing sessions.
+/// ACT-USR-008: assign one Site to a staff user under a role. Emits a single
+/// role_assigned event whose scope is BoundScope('site', site).
 class AssignSiteAction extends Action<AssignSiteInput, AssignSiteResult> {
   AssignSiteAction();
 
@@ -32,8 +34,8 @@ class AssignSiteAction extends Action<AssignSiteInput, AssignSiteResult> {
 
   @override
   String get description =>
-      'Assign sites to a staff user. Emits user_sites_changed; also emits '
-      'user_sessions_revoked when authz is narrowed (a site is removed).';
+      'Assign one Site to a staff user under a role. Emits a single '
+      'role_assigned with scope BoundScope(site, X).';
 
   @override
   Set<Permission> get permissions => <Permission>{
@@ -46,33 +48,30 @@ class AssignSiteAction extends Action<AssignSiteInput, AssignSiteResult> {
   @override
   AssignSiteInput parseInput(Map<String, Object?> raw) {
     final userId = raw['userId'];
-    if (userId is! String) {
-      throw const FormatException('AssignSiteAction expects {userId}: String');
-    }
-    final rawSites = raw['sites'];
-    if (rawSites is! List || !rawSites.every((dynamic e) => e is String)) {
+    final role = raw['role'];
+    final site = raw['site'];
+    if (userId is! String || role is! String || site is! String) {
       throw const FormatException(
-        'AssignSiteAction: sites must be a List<String>',
-      );
-    }
-    final rawPreviousSites = raw['previousSites'];
-    if (rawPreviousSites is! List ||
-        !rawPreviousSites.every((dynamic e) => e is String)) {
-      throw const FormatException(
-        'AssignSiteAction: previousSites must be a List<String>',
+        'AssignSiteAction expects {userId, role, site}: String',
       );
     }
     return AssignSiteInput(
       userId: userId.trim(),
-      sites: List<String>.from(rawSites),
-      previousSites: List<String>.from(rawPreviousSites),
+      role: role.trim(),
+      site: site.trim(),
     );
   }
 
   @override
   void validate(AssignSiteInput input) {
-    if (input.userId.trim().isEmpty) {
+    if (input.userId.isEmpty) {
       throw ArgumentError.value(input.userId, 'userId', 'must be non-empty');
+    }
+    if (input.role.isEmpty) {
+      throw ArgumentError.value(input.role, 'role', 'must be non-empty');
+    }
+    if (input.site.isEmpty) {
+      throw ArgumentError.value(input.site, 'site', 'must be non-empty');
     }
   }
 
@@ -81,41 +80,25 @@ class AssignSiteAction extends Action<AssignSiteInput, AssignSiteResult> {
     AssignSiteInput input,
     ActionContext ctx,
   ) async {
-    final events = <EventDraft>[
-      EventDraft(
-        aggregateType: 'portal_user',
-        aggregateId: input.userId,
-        entryType: 'user_sites_changed',
-        eventType: 'user_sites_changed',
-        data: <String, Object?>{
-          'before': input.previousSites,
-          'after': input.sites,
-          'changed_by': ctx.principal.id,
-        },
-      ),
-    ];
-    // Narrowing: a site was removed → authz narrows → revoke sessions.
-    final narrowed = input.previousSites
-        .toSet()
-        .difference(input.sites.toSet())
-        .isNotEmpty;
-    if (narrowed) {
-      events.add(
-        EventDraft(
-          aggregateType: 'portal_user',
-          aggregateId: input.userId,
-          entryType: 'user_sessions_revoked',
-          eventType: 'user_sessions_revoked',
-          data: <String, Object?>{
-            'reason_kind': 'authz_narrowed',
-            'by': ctx.principal.id,
-          },
-        ),
-      );
-    }
     return ExecutionResult<AssignSiteResult>(
       result: AssignSiteResult(userId: input.userId),
-      events: events,
+      events: <EventDraft>[
+        EventDraft(
+          aggregateType: 'user_role_scope',
+          aggregateId: computeRoleAssignmentAggregateId(
+            userId: input.userId,
+            role: input.role,
+            scope: input.scope,
+          ),
+          entryType: 'user_role_scope',
+          eventType: 'role_assigned',
+          data: RoleAssignedPayload(
+            userId: input.userId,
+            role: input.role,
+            scope: input.scope,
+          ).toJson(),
+        ),
+      ],
     );
   }
 }
