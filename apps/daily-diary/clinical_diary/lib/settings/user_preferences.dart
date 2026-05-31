@@ -3,7 +3,7 @@
 //   settings projection, never from `shared_preferences`.
 //
 // The canonical [UserPreferences] value type plus the pure derivation from the
-// folded settings map (mirrors B1's `entryRestrictionConfigFromSettings`).
+// folded settings map (mirrors B1's `EntryGateRules.fromSettings`).
 // Diary-side: the `pref.*` keys are `source: user` settings.
 import 'package:diary_shared_model/diary_shared_model.dart';
 

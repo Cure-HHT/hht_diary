@@ -63,7 +63,7 @@ void main() {
     });
   });
 
-  group('entryRestrictionConfigFromSettings', () {
+  group('EntryGateRules.fromSettings', () {
     SettingPayload sponsor(String key, Object? value) => SettingPayload(
       key: key,
       value: value,
@@ -72,7 +72,7 @@ void main() {
     );
 
     test('maps clinical threshold hours into Durations', () {
-      final cfg = entryRestrictionConfigFromSettings(<String, SettingPayload>{
+      final cfg = EntryGateRules.fromSettings(<String, SettingPayload>{
         'clinical.justificationThresholdHours': sponsor(
           'clinical.justificationThresholdHours',
           24,
@@ -88,7 +88,7 @@ void main() {
     });
 
     test('absent threshold keys yield null thresholds (gate = allowed)', () {
-      final cfg = entryRestrictionConfigFromSettings(
+      final cfg = EntryGateRules.fromSettings(
         const <String, SettingPayload>{},
         trialStart: null,
       );

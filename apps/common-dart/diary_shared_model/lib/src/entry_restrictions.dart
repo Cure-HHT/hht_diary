@@ -6,6 +6,8 @@
 // the event's local-midnight are supplied by the caller (timezone-aware).
 library;
 
+import 'settings.dart';
+
 /// The gate verdict for creating/editing/deleting an entry on a given day.
 enum EntryGate {
   /// No restriction — save freely.
@@ -19,14 +21,35 @@ enum EntryGate {
   locked,
 }
 
-/// Sponsor-configurable time thresholds (from the settings projection). A null
-/// threshold means that check is not configured for the deployment.
-class EntryRestrictionConfig {
-  const EntryRestrictionConfig({
+/// Sponsor-configurable time thresholds (from the settings projection) that
+/// drive [entryGateForDate]. A null threshold means that check is not
+/// configured for the deployment.
+class EntryGateRules {
+  const EntryGateRules({
     this.justificationThreshold,
     this.lockThreshold,
     this.trialStart,
   });
+
+  /// Derives the rules from the folded settings map. Clinical thresholds are
+  /// sponsor settings (integer hours); [trialStart] comes from the
+  /// participant-lifecycle projection over `participant_trial_started`, NOT
+  /// from settings. Pure and deterministic.
+  factory EntryGateRules.fromSettings(
+    Map<String, SettingPayload> settings, {
+    required DateTime? trialStart,
+  }) {
+    Duration? hours(String key) {
+      final v = settings[key]?.value;
+      return v is int ? Duration(hours: v) : null;
+    }
+
+    return EntryGateRules(
+      justificationThreshold: hours(justificationThresholdHoursKey),
+      lockThreshold: hours(lockThresholdHoursKey),
+      trialStart: trialStart,
+    );
+  }
 
   /// Elapsed time from event-date midnight after which a justification is required.
   final Duration? justificationThreshold;
@@ -45,7 +68,7 @@ class EntryRestrictionConfig {
 EntryGate entryGateForDate({
   required DateTime eventLocalMidnight,
   required DateTime now,
-  required EntryRestrictionConfig config,
+  required EntryGateRules config,
 }) {
   // L: when neither threshold is configured, apply no restrictions.
   if (config.justificationThreshold == null && config.lockThreshold == null) {
