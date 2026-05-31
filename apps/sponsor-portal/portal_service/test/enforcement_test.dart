@@ -17,25 +17,10 @@ import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
-/// Test-local participant->site containment index. The production materializer
-/// is a later sub-project; here we project `participant_synced_from_edc` events
-/// (which carry participant_id + site_id) into the `participant_site_index`
-/// view the ContainmentResolver reads.
-final _participantSiteIndexSpec = TableProjectionSpec(
-  viewName: 'participant_site_index',
-  interest: const SubscriptionFilter(
-    eventTypes: {'participant_synced_from_edc'},
-    aggregateTypes: {'participant'},
-  ),
-  insertEventTypes: const {'participant_synced_from_edc'},
-  removeEventTypes: const {},
-  rowKey: const CompositeKey(['data.participant_id']),
-  rowData: const SelectedFields(['participant_id', 'site_id']),
-);
-
-/// Open a portal event store that ALSO materializes the test-local
-/// participant_site_index, then seed the role-permission grants and the given
-/// role assignments. Returns the live policy + store + dispatcher.
+/// Open a portal event store (using the production [openPortalEventStore] which
+/// already registers participant_site_index), then seed the role-permission
+/// grants and the given role assignments. Returns the live policy + store +
+/// dispatcher.
 Future<
   ({EventStore store, AuthorizationPolicy policy, ActionDispatcher dispatcher})
 >
@@ -44,23 +29,9 @@ _openSeeded({
   required List<RoleAssignmentSeedEntry> assignments,
 }) async {
   final db = await databaseFactoryMemory.openDatabase(dbName);
-  final projections = ProjectionRegistry()
-    ..register(rolePermissionGrantsSpec)
-    ..register(userRoleScopesSpec)
-    ..register(_participantSiteIndexSpec);
-
-  final bundle = await bootstrapEventStore(
+  final store = await openPortalEventStore(
     backend: SembastBackend(database: db),
-    source: const Source(
-      hopId: 'portal-server',
-      identifier: '00000000-0000-4000-8000-0000000000t1',
-      softwareVersion: 'portal_service@0.1.0-test',
-    ),
-    entryTypes: portalEntryTypes(),
-    destinations: const <Destination>[],
-    projections: projections,
   );
-  final store = bundle.eventStore;
 
   final bootstrap = await buildPortalAuthorizationPolicy(eventStore: store);
   expect(bootstrap.isReady, isTrue, reason: 'seed errors: ${bootstrap.errors}');
