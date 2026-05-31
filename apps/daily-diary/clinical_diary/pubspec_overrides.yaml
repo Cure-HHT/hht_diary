@@ -1,0 +1,14 @@
+# gitignored — local sibling clones for fast EVS-lib-port dev
+dependency_overrides:
+  event_sourcing:
+    path: /home/metagamer/cure-hht/event_sourcing/event_sourcing
+  reaction:
+    path: /home/metagamer/cure-hht/event_sourcing/reaction
+  reaction_widgets:
+    path: /home/metagamer/cure-hht/event_sourcing/reaction_widgets
+  reaction_widgets_testing:
+    path: /home/metagamer/cure-hht/event_sourcing/reaction_widgets_testing
+  provenance:
+    path: /home/metagamer/cure-hht/event_sourcing/provenance
+  canonical_json_jcs:
+    path: /home/metagamer/cure-hht/event_sourcing/canonical_json_jcs
