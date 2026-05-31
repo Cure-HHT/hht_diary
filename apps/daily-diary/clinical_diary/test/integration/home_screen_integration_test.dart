@@ -47,7 +47,9 @@ import 'package:clinical_diary/screens/license_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/services/triggers.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
@@ -150,6 +152,10 @@ void main() {
     late TaskService tasks;
 
     setUp(() async {
+      // Fix device timezone to UTC+0 so that toDisplayedDateTime with
+      // startTimeZone='UTC' is an identity transform (stored == displayed).
+      TimezoneConverter.testDeviceOffsetMinutes = 0;
+      TimezoneService.instance.testTimezoneOverride = 'Etc/UTC';
       SharedPreferences.setMockInitialValues({});
       preferences = PreferencesService();
       enrollment = MockEnrollmentService();
@@ -160,6 +166,8 @@ void main() {
     tearDown(() async {
       await runtime.dispose();
       tasks.dispose();
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
     });
 
     Future<void> pumpHomeScreen(WidgetTester tester) async {

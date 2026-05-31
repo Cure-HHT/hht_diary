@@ -2,6 +2,8 @@
 //   REQ-p00008: Mobile App Diary Entry
 
 import 'package:clinical_diary/screens/date_records_screen.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +16,17 @@ import '../helpers/test_helpers.dart';
 void main() {
   group('DateRecordsScreen', () {
     final testDate = DateTime(2025, 11, 28);
+
+    // Fix device timezone to UTC+0 so that toDisplayedDateTime with
+    // startTimeZone='UTC' is an identity transform (stored == displayed).
+    setUp(() {
+      TimezoneConverter.testDeviceOffsetMinutes = 0;
+      TimezoneService.instance.testTimezoneOverride = 'Etc/UTC';
+    });
+    tearDown(() {
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
+    });
 
     testWidgets('displays the formatted date', (tester) async {
       await tester.pumpWidget(

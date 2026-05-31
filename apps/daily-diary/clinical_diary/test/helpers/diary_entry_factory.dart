@@ -30,10 +30,15 @@ DiaryEntry buildEpistaxisEntry({
   bool isDeleted = false,
   DateTime? updatedAt,
 }) {
+  // Use toIso8601String() (no offset) so DateTime.parse returns a local
+  // (non-UTC) DateTime; DateFormat then renders the wall-clock time correctly
+  // regardless of the test host's timezone. DateTimeFormatter.format embeds
+  // the real device offset, which causes DateTime.parse to return UTC and
+  // DateFormat to display the UTC hour instead of the local hour.
   final answers = <String, Object?>{
-    'startTime': DateTimeFormatter.format(startTime),
+    'startTime': startTime.toIso8601String(),
     // ignore: use_null_aware_elements
-    if (endTime != null) 'endTime': DateTimeFormatter.format(endTime),
+    if (endTime != null) 'endTime': endTime.toIso8601String(),
     // ignore: use_null_aware_elements
     if (intensity != null) 'intensity': intensity.name,
     // ignore: use_null_aware_elements
