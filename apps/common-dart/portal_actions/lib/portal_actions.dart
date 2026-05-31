@@ -3,6 +3,7 @@ library;
 
 export 'package:diary_shared_model/diary_shared_model.dart';
 export 'src/actions/deactivate_user_account_action.dart';
+export 'src/actions/ops/create_privileged_user_action.dart';
 export 'src/actions/ops/unwedge_rave_sync_action.dart';
 export 'src/actions/participant/disconnect_participant_action.dart';
 export 'src/actions/participant/link_participant_action.dart';
