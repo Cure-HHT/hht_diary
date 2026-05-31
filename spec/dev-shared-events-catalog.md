@@ -1,7 +1,7 @@
 # DIARY-DEV-shared-events-catalog: Shared Cross-Wire Event Catalog
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-PRD-mobile-offline-first
+**Refines**: DIARY-BASE-audit-trail
 
 ## Assertions
 
