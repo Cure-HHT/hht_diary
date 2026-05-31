@@ -14,6 +14,7 @@ import 'dart:async';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/screens/advanced_settings_screen.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/user_preferences.dart';
@@ -185,6 +186,27 @@ class SettingsScreen extends StatelessWidget {
                       name: 'Deutsch',
                       isSelected: prefs.languageCode == 'de',
                       onTap: () => _setSetting(context, prefLanguageCode, 'de'),
+                    ),
+
+                    // Advanced — detailed clinical entry rules. Available to
+                    // ALL users (not dev-gated); most leave them at "Off".
+                    const SizedBox(height: 32),
+                    _buildSectionHeader(context, 'Advanced', 'Entry rules'),
+                    const SizedBox(height: 16),
+                    _buildNavigationOption(
+                      context,
+                      icon: Icons.tune,
+                      title: 'Advanced',
+                      subtitle: 'Justification, locking, and duration checks',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          AppPageRoute<void>(
+                            builder: (context) =>
+                                const AdvancedSettingsScreen(),
+                          ),
+                        );
+                      },
                     ),
 
                     // Feature Flags - only available in dev/qa builds
