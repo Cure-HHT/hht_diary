@@ -839,8 +839,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (firstIncomplete is! EpistaxisEntryView) return;
 
     // The diary list refreshes reactively via DiaryViewBuilder; no manual
-    // reload is needed after returning from the recording screen.
-    await Navigator.push<bool>(
+    // reload is needed after returning from the recording screen. The recording
+    // screen pops its aggregate id (a String) on save, so the route result type
+    // must be String?-compatible — a <bool> route throws on pop.
+    await Navigator.push<String?>(
       context,
       AppPageRoute(
         builder: (context) => RecordingScreen(existing: firstIncomplete),
