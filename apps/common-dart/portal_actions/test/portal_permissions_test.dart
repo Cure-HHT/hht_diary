@@ -57,7 +57,7 @@ void main() {
       'portal.user.create_admin',
     );
     expect(portalPermissionsByActId['ACT-OPS-003']!.scopeClass, isNull);
-    expect(portalPermissionsByActId.length, 26);
+    expect(portalPermissionsByActId.length, 28);
   });
 
   // Verifies: DIARY-PRD-action-inventory/A
@@ -65,6 +65,17 @@ void main() {
     final perm = portalPermissionsByActId['ACT-SIT-001']!;
     expect(perm.name, 'portal.site.view');
     expect(perm.scopeClass, 'site');
+  });
+
+  test('revoke permissions declared', () {
+    expect(
+      portalPermissionsByActId['ACT-USR-010']!.name,
+      'portal.user.revoke_role',
+    );
+    expect(
+      portalPermissionsByActId['ACT-USR-011']!.name,
+      'portal.user.revoke_site',
+    );
   });
 
   // Verifies: DIARY-PRD-action-inventory/A
