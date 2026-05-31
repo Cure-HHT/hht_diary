@@ -79,6 +79,7 @@
 - DIARY-GUI-user-information-modal-J
 - DIARY-GUI-user-information-modal-K
 - DIARY-GUI-administrator-dashboard-A
+- DIARY-BASE-audit-trail:section:1
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -271,6 +272,7 @@
 
 **DIARY:**
 
+- DIARY-BASE-audit-trail
 - DIARY-PRD-ancillary-platform-services-D
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-system-validation-traceability-E
@@ -278,6 +280,7 @@
 - DIARY-PRD-user-account-deactivate-D
 - DIARY-PRD-user-account-deactivate-F
 - DIARY-PRD-user-account-reactivate-D
+- DIARY-BASE-audit-trail:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-PRD-entry-time-restrictions:section:4
@@ -453,6 +456,7 @@
 **DIARY:**
 
 - DIARY-OPS-db-reset-non-prod
+- DIARY-BASE-audit-trail-E
 - DIARY-DEV-schema-version-check-A
 - DIARY-DEV-schema-version-check-B
 - DIARY-DEV-schema-version-check-C
@@ -527,6 +531,7 @@
 - DIARY-PRD-diary-start-day
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
+- DIARY-BASE-audit-trail-E
 - DIARY-DEV-runtime-environment-resolution-D
 - DIARY-DEV-shared-events-catalog-B
 - DIARY-GUI-audit-log-study-coordinator-A
@@ -567,6 +572,7 @@
 - DIARY-GUI-administrator-dashboard-C
 - DIARY-GUI-administrator-dashboard-E
 - DIARY-GUI-administrator-dashboard-F
+- DIARY-BASE-audit-trail:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
@@ -764,6 +770,7 @@
 
 **DIARY:**
 
+- DIARY-BASE-audit-trail:section:1
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-evidence-timestamp-attestation:section:1
 - DIARY-PRD-evidence-bitcoin-timestamp:section:0
@@ -1238,6 +1245,7 @@
 - DIARY-PRD-participant-reactivate
 - DIARY-GUI-participant-dashboard
 - DIARY-GUI-link-participant-flow
+- DIARY-BASE-audit-trail-E
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-study-coordinator-B
 - DIARY-GUI-audit-log-cra-A
@@ -2297,6 +2305,7 @@
 
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
+- DIARY-BASE-audit-trail-E
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G
@@ -2401,6 +2410,7 @@
 - DIARY-PRD-sla-regulatory-event-support-E
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-BASE-audit-trail:section:1
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:762
 - rem:spec/glossary-core.md:764
@@ -2509,6 +2519,7 @@
 
 **DIARY:**
 
+- DIARY-BASE-audit-trail-E
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-help-resources-A
 - DIARY-PRD-help-resources-D
@@ -2532,6 +2543,7 @@
 - DIARY-GUI-dev-admin-rave-sync-card-C
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-BASE-audit-trail:section:1
 - DIARY-PRD-administrator-settings:section:0
 - rem:spec/prd-common-ui.md:3
 - DIARY-PRD-help-resources:section:0

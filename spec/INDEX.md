@@ -90,6 +90,12 @@
 | DIARY-PRD-user-authentication                    | Diary User Authentication                                | prd-mobile-app.md                         | c516100c |
 | DIARY-PRD-user-authentication-pin                | Diary User Authentication — In-Application PIN Mechanism | prd-mobile-app.md                         | edd1b330 |
 
+## BASE (SPONSOR-EXCLUDABLE)
+
+| ID                     | Title                  | File                | Hash     |
+| ---------------------- | ---------------------- | ------------------- | -------- |
+| DIARY-BASE-audit-trail | Audit Trail Foundation | base-audit-trail.md | fbf48f17 |
+
 ## INTERFACE
 
 | ID                                           | Title                                      | File                                      | Hash     |
