@@ -36,6 +36,12 @@ class EnrollmentService {
   // CUR-1165: Not participating state storage keys
   static const _notParticipatingKey = 'patient_not_participating';
   static const _notParticipatingAtKey = 'patient_not_participating_at';
+  // The session JWT (tied to participation) and the stable install id sent to
+  // the server on link. `_appUuidKey` is the one secure-storage value preserved
+  // across a local factory reset. `_authJwtKey` is a legacy auth-path key, now
+  // only a fallback, cleared when participation ends.
+  static const _authJwtKey = 'auth_jwt';
+  static const _appUuidKey = 'app_uuid';
 
   /// CUR-1164: Real-time notifier for disconnection state.
   /// Updated synchronously by setDisconnected() so the home screen banner
@@ -125,10 +131,10 @@ class EnrollmentService {
       // app_uuid is written here on first enrollment and reused on subsequent calls.
       // This allows the server to detect and reject duplicate enrollment attempts
       // from the same device via ON CONFLICT (app_uuid) in the upsert.
-      var appUuid = await _secureStorage.read(key: 'app_uuid');
+      var appUuid = await _secureStorage.read(key: _appUuidKey);
       if (appUuid == null) {
         appUuid = const Uuid().v4();
-        await _secureStorage.write(key: 'app_uuid', value: appUuid);
+        await _secureStorage.write(key: _appUuidKey, value: appUuid);
       }
 
       // Call the link function via HTTP (REQ-p70007)
@@ -262,9 +268,24 @@ class EnrollmentService {
     );
   }
 
-  /// Clear linking data (for testing or logout)
+  /// Clear linking data when participation ends (unlink / logout / re-link).
+  /// Also clears the session JWT — it is tied to participation, so no stale
+  /// session token should remain after the participant leaves.
   Future<void> clearEnrollment() async {
     await _secureStorage.delete(key: _storageKey);
+    await _secureStorage.delete(key: _authJwtKey);
+  }
+
+  /// Factory-reset secure storage, preserving ONLY the stable install id
+  /// ([_appUuidKey] — the server-facing device identifier reused across
+  /// re-links). Clears enrollment, the session JWT, and any legacy `auth_*`
+  /// artifacts. Used by the local "reset all data" wipe.
+  Future<void> clearSecureStorageForFactoryReset() async {
+    final appUuid = await _secureStorage.read(key: _appUuidKey);
+    await _secureStorage.deleteAll();
+    if (appUuid != null) {
+      await _secureStorage.write(key: _appUuidKey, value: appUuid);
+    }
   }
 
   /// Get JWT token for API calls
@@ -276,7 +297,7 @@ class EnrollmentService {
       return enrollment!.jwtToken;
     }
     // Fall back to auth service JWT (username/password login flow)
-    return _secureStorage.read(key: 'auth_jwt');
+    return _secureStorage.read(key: _authJwtKey);
   }
 
   /// Get user ID from linking data or auth service

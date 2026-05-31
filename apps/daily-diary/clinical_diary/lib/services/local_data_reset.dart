@@ -24,7 +24,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Steps:
 /// 1. Delete the new-stack event store `diary_es.db`.
 /// 2. Delete the legacy store `diary.db` (surveys live here too).
-/// 3. Clear enrollment + auth ([EnrollmentService.clearEnrollment]).
+/// 3. Clear secure storage except the stable install id
+///    ([EnrollmentService.clearSecureStorageForFactoryReset] — drops
+///    enrollment, the session JWT, and legacy `auth_*` keys, keeps `app_uuid`).
 /// 4. Clear cached tasks ([TaskService.clearAll]).
 /// 5. Clear ALL SharedPreferences ([SharedPreferences.clear]) — wipes the
 ///    device id, disconnection / not-participating flags, and any other diary
@@ -49,11 +51,11 @@ Future<void> wipeLocalData({
     }
   }
 
-  // 3: clear enrollment + auth.
+  // 3: clear secure storage except the stable install id (app_uuid).
   try {
-    await enrollmentService.clearEnrollment();
+    await enrollmentService.clearSecureStorageForFactoryReset();
   } catch (e, stack) {
-    debugPrint('[LocalDataReset] clearEnrollment failed: $e\n$stack');
+    debugPrint('[LocalDataReset] secure-storage wipe failed: $e\n$stack');
   }
 
   // 4: clear cached tasks.

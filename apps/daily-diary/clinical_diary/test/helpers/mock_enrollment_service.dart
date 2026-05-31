@@ -36,6 +36,9 @@ class MockEnrollmentService implements EnrollmentService {
   Future<void> clearEnrollment() async {}
 
   @override
+  Future<void> clearSecureStorageForFactoryReset() async {}
+
+  @override
   void dispose() {}
 
   @override

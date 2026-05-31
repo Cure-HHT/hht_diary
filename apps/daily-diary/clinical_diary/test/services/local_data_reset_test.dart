@@ -10,13 +10,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/mock_enrollment_service.dart';
 
-/// EnrollmentService spy that records whether clearEnrollment was invoked.
+/// EnrollmentService spy recording whether the factory-reset secure wipe ran.
 class _SpyEnrollmentService extends MockEnrollmentService {
-  bool clearEnrollmentCalled = false;
+  bool factoryResetCalled = false;
 
   @override
-  Future<void> clearEnrollment() async {
-    clearEnrollmentCalled = true;
+  Future<void> clearSecureStorageForFactoryReset() async {
+    factoryResetCalled = true;
   }
 }
 
@@ -71,7 +71,7 @@ void main() {
         expect(legacyFile.existsSync(), isFalse);
 
         // Enrollment cleared.
-        expect(enrollment.clearEnrollmentCalled, isTrue);
+        expect(enrollment.factoryResetCalled, isTrue);
 
         // Prefs fully wiped (device id + other prefs gone).
         expect(prefs.getString('clinical_diary.device_id'), isNull);
@@ -95,7 +95,7 @@ void main() {
         prefs: prefs,
       );
 
-      expect(enrollment.clearEnrollmentCalled, isTrue);
+      expect(enrollment.factoryResetCalled, isTrue);
       expect(prefs.getKeys(), isEmpty);
     });
   });

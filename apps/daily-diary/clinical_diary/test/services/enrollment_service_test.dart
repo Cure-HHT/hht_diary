@@ -855,6 +855,47 @@ void main() {
         },
       );
     });
+
+    group('secure-storage clearing', () {
+      late MockSecureStorage storage;
+      late EnrollmentService svc;
+
+      setUp(() {
+        storage = MockSecureStorage();
+        svc = EnrollmentService(
+          secureStorage: storage,
+          httpClient: MockClient((_) async => http.Response('', 200)),
+        );
+      });
+      tearDown(() => svc.dispose());
+
+      test(
+        'clearEnrollment clears enrollment + session JWT, keeps app_uuid',
+        () async {
+          storage.data['user_enrollment'] = '{}';
+          storage.data['auth_jwt'] = 'jwt-x';
+          storage.data['app_uuid'] = 'uuid-keep';
+
+          await svc.clearEnrollment();
+
+          expect(storage.data.containsKey('user_enrollment'), isFalse);
+          expect(storage.data.containsKey('auth_jwt'), isFalse);
+          expect(storage.data['app_uuid'], 'uuid-keep');
+        },
+      );
+
+      test('clearSecureStorageForFactoryReset keeps only app_uuid', () async {
+        storage.data['user_enrollment'] = '{}';
+        storage.data['auth_jwt'] = 'jwt-x';
+        storage.data['auth_username'] = 'legacy-user';
+        storage.data['app_uuid'] = 'uuid-keep';
+
+        await svc.clearSecureStorageForFactoryReset();
+
+        expect(storage.data.keys.toList(), ['app_uuid']);
+        expect(storage.data['app_uuid'], 'uuid-keep');
+      });
+    });
   });
 }
 
