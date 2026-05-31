@@ -1,4 +1,4 @@
-// Implements: DIARY-BASE-ops-action-inventory/C
+// Implements: DIARY-BASE-ops-action-inventory/B
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../portal_permissions.dart';

@@ -139,6 +139,59 @@ void main() {
       expect(result, isA<DispatchSuccess<Object?>>());
     });
 
+    test('1b. CRA at site-1 dispatching ACT-PAT-001 link -> '
+        'DispatchAuthorizationDenied + recorded action_denial event', () async {
+      // CRA lacks portal.participant.link, so the dispatch must be denied
+      // end-to-end: it returns the authorization-denied shape AND records an
+      // action_denial entry-type event (eventType authorization_denied).
+      final seeded = await _openSeeded(
+        dbName: 'enf-1b',
+        assignments: const <RoleAssignmentSeedEntry>[
+          RoleAssignmentSeedEntry(
+            userId: 'cra-1',
+            role: 'CRA',
+            scope: BoundScope(class_: 'site', value: 'site-1'),
+          ),
+        ],
+      );
+      await _seedParticipantSite(
+        seeded.store,
+        participantId: 'p-1',
+        siteId: 'site-1',
+      );
+
+      final result = await seeded.dispatcher.dispatch(
+        const ActionSubmission(
+          actionName: 'ACT-PAT-001',
+          rawInput: <String, Object?>{
+            'siteId': 'site-1',
+            'participantId': 'p-1',
+            'linkingCode': 'CODE-123',
+            'expiresAt': '2026-12-31T00:00:00Z',
+          },
+          idempotencyKey: 'link-p-1-cra-denied',
+        ),
+        _ctx(
+          Principal.user(
+            userId: 'cra-1',
+            roles: const <String>{'CRA'},
+            activeRole: 'CRA',
+          ),
+        ),
+      );
+      expect(result, isA<DispatchAuthorizationDenied<Object?>>());
+
+      // The denial SHALL be recorded as an action_denial entry-type event.
+      final denials = await seeded.store.backend.findAllEvents(
+        entryType: 'action_denial',
+      );
+      expect(
+        denials.where((e) => e.eventType == 'authorization_denied'),
+        hasLength(1),
+        reason: 'exactly one authorization_denied event must be recorded',
+      );
+    });
+
     test(
       '2. StudyCoordinator at site-2 (unassigned) -> link at site-2 Denied',
       () async {
