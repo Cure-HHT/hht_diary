@@ -1,6 +1,6 @@
 name: portal_server_evs
 description: "Event-sourced portal server (reaction HTTP/WS shell over portal_service). Beta rebuild of portal_server."
-version: 0.1.0
+version: 0.2.0
 publish_to: none
 
 environment:
@@ -12,6 +12,7 @@ dependencies:
     path: ../portal_service
   portal_actions:
     path: ../../common-dart/portal_actions
+  rave_integration: any
   reaction: any
   sembast: ^3.0.0
   shelf: ^1.4.0

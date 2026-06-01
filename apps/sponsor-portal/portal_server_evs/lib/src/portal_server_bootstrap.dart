@@ -1,8 +1,11 @@
 // Implements: DIARY-DEV-portal-reaction-server/A — composes ReactionHandlers over
 //   openPortalEventStore + buildPortalDispatcher, exposing GET /me, POST /actions,
 //   and the WS /subscriptions endpoint, plus a boot seed.
+import 'dart:io';
+
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_service/portal_service.dart';
+import 'package:rave_integration/rave_integration.dart';
 import 'package:reaction/reaction.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
@@ -60,22 +63,40 @@ Future<PortalServerBoot> bootstrapPortalServer({
       );
   }
 
-  // 3. Grant the Administrator role view:user_role_scopes so the admin client
-  //    can subscribe to that view (ReactionHandlers' default ViewPermissionNamer
-  //    is `view:<viewName>`). This is a view-read permission, not an action
-  //    permission, so it is appended directly rather than via the validated
+  // 3. Grant view-read permissions so clients can subscribe to the views that
+  //    drive their screens (ReactionHandlers' default ViewPermissionNamer is
+  //    `view:<viewName>`). These are view-read permissions, not action
+  //    permissions, so they are appended directly rather than via the validated
   //    action-permission seed.
-  await eventStore.append(
-    entryType: 'role_permission_grant',
-    aggregateType: 'role_permission_grant',
-    aggregateId: 'Administrator:view:user_role_scopes',
-    eventType: 'permission_granted',
-    data: PermissionGrantedPayload(
-      role: 'Administrator',
-      permissionName: 'view:user_role_scopes',
-    ).toJson(),
-    initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
-  );
+  Future<void> grantView(String role, String view) => eventStore.append(
+        entryType: 'role_permission_grant',
+        aggregateType: 'role_permission_grant',
+        aggregateId: '$role:view:$view',
+        eventType: 'permission_granted',
+        data: PermissionGrantedPayload(
+          role: role,
+          permissionName: 'view:$view',
+        ).toJson(),
+        initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
+      );
+
+  // Administrator can subscribe to the role-assignments view.
+  await grantView('Administrator', 'user_role_scopes');
+  // The site list + participant records back the StudyCoordinator/CRA/Admin
+  // operational screens.
+  for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
+    await grantView(role, 'sites_index');
+    await grantView(role, 'participant_record');
+  }
+  // The RAVE-sync status screen is visible to operations roles too.
+  for (final role in const [
+    'StudyCoordinator',
+    'CRA',
+    'Administrator',
+    'SystemOperator',
+  ]) {
+    await grantView(role, 'rave_sync_status');
+  }
 
   // 4. Seed role assignments: an admin (so the admin Principal passes the
   //    membership gate) and a coordinator (to demonstrate enforced denial).
@@ -95,6 +116,40 @@ Future<PortalServerBoot> bootstrapPortalServer({
     ]),
   );
 
+  // 4b. Boot-time RAVE sync: pull sites + subjects into the event log so the
+  //     sites_index / participant_record / participant_site_index views are
+  //     populated at startup. Uses the live RaveClient when RAVE_UAT_* env is
+  //     present, else a fixed dev fixture (DevSeedRaveClient). The sync runs
+  //     inside try/catch and CONTINUES on error: boot must not crash if RAVE is
+  //     down or locked out — the RAVE-Sync screen surfaces the failure.
+  // Implements: DIARY-DEV-rave-edc-ingest/A
+  final env = Platform.environment;
+  final lockoutConfig = LockoutConfig.fromEnv(env);
+  final RaveClient raveClient;
+  final List<String> studyOids;
+  if (env['RAVE_UAT_URL'] != null) {
+    raveClient = RaveClient(
+      baseUrl: env['RAVE_UAT_URL']!,
+      username: env['RAVE_UAT_USERNAME']!,
+      password: env['RAVE_UAT_PWD']!,
+    );
+    studyOids = <String>[env['RAVE_STUDY_OID'] ?? DevSeedRaveClient.studyOid];
+  } else {
+    raveClient = DevSeedRaveClient();
+    studyOids = const <String>[DevSeedRaveClient.studyOid];
+  }
+  final ingester = RaveEdcIngester(
+    client: raveClient,
+    store: eventStore,
+    studyOids: studyOids,
+    lockoutConfig: lockoutConfig,
+  );
+  try {
+    await ingester.syncAll(now: DateTime.now().toUtc());
+  } catch (e, st) {
+    stderr.writeln('portal boot RAVE sync failed (continuing): $e\n$st');
+  }
+
   // 5. Dispatcher (registers all portal actions).
   final dispatcher = await buildPortalDispatcher(eventStore: eventStore);
 
@@ -111,12 +166,35 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //    cannot set WS upgrade headers; credentials arrive in-band). HTTP me/actions
   //    behind CORS + authMiddleware (CORS first so OPTIONS preflight short-circuits
   //    before the auth check).
+  // On-demand RAVE re-sync, gated to operations roles. The authenticated
+  // Principal is attached by authMiddleware and read via principalFromContext.
+  // Implements: DIARY-DEV-rave-edc-ingest/A
+  Future<Response> raveSyncHandler(Request request) async {
+    final principal = principalFromContext(request);
+    final roles =
+        principal is UserPrincipal ? principal.roles : const <String>{};
+    if (!roles.contains('SystemOperator') && !roles.contains('Administrator')) {
+      return Response.forbidden('requires SystemOperator or Administrator');
+    }
+    try {
+      final result = await ingester.syncAll(now: DateTime.now().toUtc());
+      return Response.ok(
+        '{"skipped":${result.skipped},"sites":${result.sitesCount},'
+        '"participants":${result.participantsCount}}',
+        headers: const {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      return Response.internalServerError(body: 'RAVE sync failed: $e');
+    }
+  }
+
   final httpRouter = Router()
     ..get('/me', handlers.me)
     ..post('/actions', handlers.actions)
     // The client's permission source reads this to drive PermissionGate; without
     // it every gate fails closed (no widgets render, for any role).
-    ..get('/permissions/snapshot', handlers.permissions);
+    ..get('/permissions/snapshot', handlers.permissions)
+    ..post('/admin/rave-sync', raveSyncHandler);
 
   final httpPipeline = const Pipeline()
       .addMiddleware(_cors())

@@ -170,4 +170,56 @@ void main() {
       reason: 'revoke removed the wildcard assignment',
     );
   });
+
+  test(
+      'boot-time RAVE sync seeds sites_index + participant_record from the dev '
+      'fixture, and admin can view those + rave_sync_status', () async {
+    // No RAVE_UAT_* env in the test harness -> DevSeedRaveClient is used.
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('skeleton-rave.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+    );
+    addTearDown(boot.dispose);
+
+    // sites_index materialized from the 3 dev-seed sites.
+    final sites = await boot.eventStore.backend.findViewRows('sites_index');
+    final siteIds = sites.map((r) => r['site_id']).toSet();
+    expect(siteIds, containsAll(<String>['site-1', 'site-2', 'site-3']),
+        reason: 'dev-seed sites synced into sites_index');
+
+    // participant_record materialized from the 4 dev-seed subjects.
+    final participants =
+        await boot.eventStore.backend.findViewRows('participant_record');
+    expect(participants, isNotEmpty,
+        reason: 'dev-seed subjects synced into participant_record');
+
+    // participant_site_index too (containment-resolution backing view).
+    final psi =
+        await boot.eventStore.backend.findViewRows('participant_site_index');
+    expect(psi, isNotEmpty,
+        reason: 'dev-seed subjects synced into participant_site_index');
+
+    // Administrator's effective permissions include the new view grants
+    // (drives PermissionGate on the sites / participants / RAVE-sync screens).
+    final bootstrap =
+        await buildPortalAuthorizationPolicy(eventStore: boot.eventStore);
+    final policy = (bootstrap as PolicyReady).policy;
+    final admin = Principal.user(
+      userId: 'admin-1',
+      roles: const {'Administrator'},
+      activeRole: 'Administrator',
+    );
+    final eff = await policy.effectivePermissionsFor(admin);
+    final names = eff.rolePermissions.map((p) => p.name).toSet();
+    expect(
+      names,
+      containsAll(<String>[
+        'view:sites_index',
+        'view:participant_record',
+        'view:rave_sync_status',
+      ]),
+      reason: 'admin granted the operational view-read permissions',
+    );
+  });
 }
