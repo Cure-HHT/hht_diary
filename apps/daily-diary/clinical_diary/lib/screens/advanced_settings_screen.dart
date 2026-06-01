@@ -12,7 +12,11 @@
 // design). Sponsor-locked keys are shown read-only (added with the sponsor path).
 import 'dart:async';
 
+import 'package:clinical_diary/flavors.dart';
+import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
+import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
 import 'package:flutter/material.dart';
@@ -112,6 +116,29 @@ class AdvancedSettingsScreen extends StatelessWidget {
                     locked: rules.isLocked(useReviewScreenKey),
                     onChanged: (v) => _set(context, useReviewScreenKey, v),
                   ),
+                  if (F.showDevTools) ...[
+                    const Divider(),
+                    _sectionHeader(
+                      context,
+                      'Developer', // TODO(i18n)
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.science_outlined),
+                      title: Text(
+                        AppLocalizations.of(context).featureFlagsTitle,
+                      ),
+                      subtitle: Text(
+                        AppLocalizations.of(context).featureFlagsWarning,
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.push(
+                        context,
+                        AppPageRoute<void>(
+                          builder: (context) => const FeatureFlagsScreen(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

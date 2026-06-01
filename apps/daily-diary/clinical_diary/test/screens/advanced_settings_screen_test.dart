@@ -2,7 +2,9 @@
 //   `set_user_setting` for the clinical.* keys through the scope.
 // Verifies: DIARY-DEV-reactive-read-path/A — controls reflect the ClinicalRules
 //   provided by ClinicalRulesScope.
+import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/screens/advanced_settings_screen.dart';
+import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
@@ -12,6 +14,7 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 
 import '../helpers/test_helpers.dart';
+import '../test_helpers/flavor_setup.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +23,7 @@ void main() {
     late FakeReaction fake;
 
     setUp(() {
+      setUpTestFlavor(Flavor.dev); // F.showDevTools = true (default for tests)
       fake = FakeReaction();
       for (var i = 0; i < 10; i++) {
         fake.queueDispatchResult(
@@ -130,6 +134,39 @@ void main() {
       );
       // The long-duration dropdown shows "4 hours" for 240 minutes.
       expect(find.text('4 hours'), findsOneWidget);
+    });
+
+    group('Feature Flags entry (dev-gated)', () {
+      tearDown(() {
+        // Restore the default dev flavor after each test.
+        setUpTestFlavor(Flavor.dev);
+      });
+
+      testWidgets('shows Feature Flags tile when showDevTools is true', (
+        tester,
+      ) async {
+        setUpTestFlavor(Flavor.dev); // F.showDevTools == true
+        await pump(tester);
+        expect(find.text('Feature Flags'), findsOneWidget);
+      });
+
+      testWidgets('hides Feature Flags tile when showDevTools is false', (
+        tester,
+      ) async {
+        setUpTestFlavor(Flavor.prod); // F.showDevTools == false
+        await pump(tester);
+        expect(find.text('Feature Flags'), findsNothing);
+      });
+
+      testWidgets('tapping Feature Flags navigates to FeatureFlagsScreen', (
+        tester,
+      ) async {
+        setUpTestFlavor(Flavor.dev);
+        await pump(tester);
+        await tester.tap(find.text('Feature Flags'));
+        await tester.pumpAndSettle();
+        expect(find.byType(FeatureFlagsScreen), findsOneWidget);
+      });
     });
   });
 }

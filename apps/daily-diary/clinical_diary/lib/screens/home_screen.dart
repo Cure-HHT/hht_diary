@@ -11,7 +11,6 @@ import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/day_disposition.dart';
-import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
@@ -399,13 +398,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // Driven by AppRoot; the app comes back up at first-launch state.
       await reset();
     }
-  }
-
-  void _handleFeatureFlags() {
-    Navigator.push(
-      context,
-      AppPageRoute<void>(builder: (context) => const FeatureFlagsScreen()),
-    );
   }
 
   Future<void> _handleEndClinicalTrial() async {
@@ -914,7 +906,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     sponsorLogo: sponsorBranding.appLogoUrl,
                     onResetAllData: _handleResetAllData,
                     resetEnabled: _canResetData,
-                    onFeatureFlags: _handleFeatureFlags,
                     isEnrolled: _isEnrolled,
                     onEndClinicalTrial: _isEnrolled
                         ? _handleEndClinicalTrial

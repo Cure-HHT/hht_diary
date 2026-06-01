@@ -11,7 +11,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 class LogoMenu extends StatefulWidget {
   const LogoMenu({
     required this.onResetAllData,
-    required this.onFeatureFlags,
     required this.onEndClinicalTrial,
     required this.onInstructionsAndFeedback,
     this.showDevTools = true,
@@ -23,7 +22,6 @@ class LogoMenu extends StatefulWidget {
   });
 
   final VoidCallback onResetAllData;
-  final VoidCallback onFeatureFlags;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
 
@@ -37,7 +35,7 @@ class LogoMenu extends StatefulWidget {
   final bool? isEnrolled;
   final String? sponsorLogo;
 
-  /// Whether to show developer tools (Reset All Data, Feature Flags).
+  /// Whether to show developer tools (Reset All Data).
   /// Should be false in production and UAT environments.
   final bool showDevTools;
 
@@ -119,8 +117,6 @@ class _LogoMenuState extends State<LogoMenu> {
             // Guarded: a disabled item is non-selectable, but never invoke the
             // destructive reset when the gate is closed.
             if (widget.resetEnabled) widget.onResetAllData();
-          case 'feature_flags':
-            widget.onFeatureFlags();
           case 'end_clinical_trial':
             widget.onEndClinicalTrial?.call();
           case 'instructions_feedback':
@@ -185,20 +181,6 @@ class _LogoMenuState extends State<LogoMenu> {
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          PopupMenuItem<String>(
-            value: 'feature_flags',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.science_outlined,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 12),
-                Flexible(child: Text(l10n.featureFlagsTitle)),
               ],
             ),
           ),

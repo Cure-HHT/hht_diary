@@ -12,10 +12,8 @@
 import 'dart:async';
 
 import 'package:clinical_diary/config/feature_flags.dart';
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/advanced_settings_screen.dart';
-import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
@@ -208,33 +206,6 @@ class SettingsScreen extends StatelessWidget {
                         );
                       },
                     ),
-
-                    // Feature Flags - only available in dev/qa builds
-                    if (F.showDevTools) ...[
-                      const SizedBox(height: 32),
-                      _buildSectionHeader(
-                        context,
-                        AppLocalizations.of(context).featureFlagsTitle,
-                        AppLocalizations.of(context).featureFlagsWarning,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildNavigationOption(
-                        context,
-                        icon: Icons.science_outlined,
-                        title: AppLocalizations.of(context).featureFlagsTitle,
-                        subtitle: AppLocalizations.of(
-                          context,
-                        ).featureFlagsWarning,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            AppPageRoute<void>(
-                              builder: (context) => const FeatureFlagsScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
                   ],
                 ),
               ),

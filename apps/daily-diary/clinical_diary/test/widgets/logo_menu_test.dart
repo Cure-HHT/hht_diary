@@ -16,7 +16,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -38,7 +37,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -59,7 +57,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -78,7 +75,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -99,7 +95,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () => called = true,
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -121,7 +116,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -142,7 +136,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () => called = true,
           ),
@@ -164,7 +157,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: () {},
             onInstructionsAndFeedback: () {},
           ),
@@ -183,7 +175,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -204,7 +195,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: () => called = true,
             onInstructionsAndFeedback: () {},
           ),
@@ -226,7 +216,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: () {},
             onInstructionsAndFeedback: () {},
           ),
@@ -247,7 +236,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -268,7 +256,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
             showDevTools: true,
@@ -291,7 +278,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
             showDevTools: false,
@@ -303,56 +289,33 @@ void main() {
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      // Dev-tools items (the section header + Feature Flags) are hidden when
-      // showDevTools is false.
+      // Dev-tools items (the section header + Reset All Data) are hidden when
+      // showDevTools is false. Feature Flags has moved to Settings → Advanced.
       expect(find.text('Data Management'), findsNothing);
-      expect(find.text('Feature Flags'), findsNothing);
     });
 
-    testWidgets('shows Feature Flags option in Dev Tools', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          LogoMenu(
-            onResetAllData: () {},
-            onFeatureFlags: () {},
-            onEndClinicalTrial: null,
-            onInstructionsAndFeedback: () {},
-            showDevTools: true,
+    testWidgets(
+      'does not show Feature Flags in app menu (moved to Advanced settings)',
+      (tester) async {
+        await tester.pumpWidget(
+          wrapWithScaffold(
+            LogoMenu(
+              onResetAllData: () {},
+              onEndClinicalTrial: null,
+              onInstructionsAndFeedback: () {},
+              showDevTools: true,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(Image));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byType(Image));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Feature Flags'), findsOneWidget);
-    });
-
-    testWidgets('calls onFeatureFlags when tapped', (tester) async {
-      var called = false;
-
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          LogoMenu(
-            onResetAllData: () {},
-            onFeatureFlags: () => called = true,
-            onEndClinicalTrial: null,
-            onInstructionsAndFeedback: () {},
-            showDevTools: true,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(Image));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Feature Flags'));
-      await tester.pumpAndSettle();
-
-      expect(called, true);
-    });
+        // Feature Flags is no longer in the app menu — it moved to Settings → Advanced.
+        expect(find.text('Feature Flags'), findsNothing);
+      },
+    );
 
     testWidgets('does not show Check for updates option (CUR-990)', (
       tester,
@@ -361,7 +324,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -386,7 +348,6 @@ void main() {
           wrapWithScaffold(
             LogoMenu(
               onResetAllData: () => called = true,
-              onFeatureFlags: () {},
               onEndClinicalTrial: null,
               onInstructionsAndFeedback: () {},
               resetEnabled: false,
@@ -419,7 +380,6 @@ void main() {
         wrapWithScaffold(
           LogoMenu(
             onResetAllData: () => called = true,
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -437,14 +397,13 @@ void main() {
       expect(called, isTrue);
     });
 
-    testWidgets('menu closes after selecting an option', (tester) async {
+    testWidgets('menu closes after selecting Reset All Data', (tester) async {
       var called = false;
 
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onResetAllData: () {},
-            onFeatureFlags: () => called = true,
+            onResetAllData: () => called = true,
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -455,7 +414,7 @@ void main() {
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Feature Flags'));
+      await tester.tap(find.text('Reset All Data?'));
       await tester.pumpAndSettle();
 
       // Callback should have been called
