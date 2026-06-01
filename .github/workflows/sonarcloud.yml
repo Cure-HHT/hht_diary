@@ -1,14 +1,17 @@
 # SonarCloud CI-based analysis.
 #
-# PREREQUISITES before this can run green (all admin steps, do once):
-#   1. Merge Cure-HHT/hht_workflows `setup-pub-git-auth` action, then pin the two
-#      `Cure-HHT/hht_workflows/...@<sha>` refs below to its merged commit SHA.
-#   2. Install the ops-bot GitHub App on Cure-HHT/event_sourcing (contents:read).
-#   3. Authorize hht_diary CI's Doppler OIDC identity to read the App key, and
-#      set the DOPPLER_* repo vars + the OPS_BOT_APP_* secret names to match the
-#      Doppler config (adjust the `with:`/`env:` names below if they differ).
-#   4. Add the SONAR_TOKEN repo secret (SonarCloud -> My Account -> Security).
-#   5. Disable "Automatic Analysis" in the SonarCloud project (Administration ->
+# Replaces SonarCloud "Automatic Analysis", which runs no build and so cannot
+# `pub get` the event_sourcing deps — reporting every package:event_sourcing
+# import as dart:S2260 "analyzer configuration error" (~43% of port-scoped
+# issues). This job resolves the deps first, so the analyzer is clean and that
+# cluster disappears at the root.
+#
+# event_sourcing is a PUBLIC repo and the pubspecs use https: URLs, so `pub get`
+# resolves it anonymously — no auth step required.
+#
+# PREREQUISITES (admin, do once):
+#   1. Add the SONAR_TOKEN repo secret (SonarCloud -> My Account -> Security).
+#   2. Disable "Automatic Analysis" in the SonarCloud project (Administration ->
 #      Analysis Method) — CI analysis is rejected while it is on.
 name: SonarCloud
 
@@ -18,7 +21,6 @@ on:
   pull_request:
 
 permissions:
-  id-token: write   # Doppler OIDC exchange (doppler-oidc-auth)
   contents: read
 
 jobs:
@@ -31,25 +33,12 @@ jobs:
         with:
           fetch-depth: 0   # full history: accurate new-code period & blame
 
-      # 1. Fetch the ops-bot App key from Doppler via OIDC (no static token).
-      - uses: Cure-HHT/hht_workflows/.github/actions/doppler-oidc-auth@main
-        with:
-          doppler_identity_id: ${{ vars.PUB_AUTH_DOPPLER_IDENTITY_ID }}
-          doppler_project: ${{ vars.PUB_AUTH_DOPPLER_PROJECT }}
-          doppler_config: ${{ vars.PUB_AUTH_DOPPLER_CONFIG }}
-
-      # 2. Mint the App token + rewrite git@ URLs so pub can resolve the private
-      #    event_sourcing deps. App key arrives as masked env vars from step 1.
-      - uses: Cure-HHT/hht_workflows/.github/actions/setup-pub-git-auth@main
-        with:
-          app_id: ${{ env.OPS_BOT_APP_ID }}
-          app_private_key: ${{ env.OPS_BOT_APP_PRIVATE_KEY }}
-
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      # 3. Resolve deps so the Dart analyzer sees package:event_sourcing/... .
+      # Resolve deps so the Dart analyzer sees package:event_sourcing/... .
+      # event_sourcing is public (https: in the pubspecs) -> anonymous, no auth.
       - name: pub get (clinical_diary)
         working-directory: apps/daily-diary/clinical_diary
         run: flutter pub get
@@ -57,8 +46,8 @@ jobs:
         working-directory: apps/common-dart/diary_shared_model
         run: dart pub get
 
-      # 4. Scan. SONAR_TOKEN authenticates to SonarCloud; sonar-project.properties
-      #    carries projectKey/organization/sources.
+      # Scan. SONAR_TOKEN authenticates to SonarCloud; sonar-project.properties
+      # carries projectKey/organization/sources.
       - uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

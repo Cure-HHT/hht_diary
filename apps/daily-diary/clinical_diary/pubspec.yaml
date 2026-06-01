@@ -23,17 +23,17 @@ dependencies:
   # pubspec_overrides.yaml points these at local sibling clones for fast dev.
   event_sourcing:
     git:
-      url: git@github.com:Cure-HHT/event_sourcing.git
+      url: https://github.com/Cure-HHT/event_sourcing.git
       ref: 9e04c17
       path: event_sourcing
   reaction:
     git:
-      url: git@github.com:Cure-HHT/event_sourcing.git
+      url: https://github.com/Cure-HHT/event_sourcing.git
       ref: 9e04c17
       path: reaction
   reaction_widgets:
     git:
-      url: git@github.com:Cure-HHT/event_sourcing.git
+      url: https://github.com/Cure-HHT/event_sourcing.git
       ref: 9e04c17
       path: reaction_widgets
   # In-tree path dep (consolidated onto this branch; single linear branch).
@@ -85,7 +85,7 @@ dev_dependencies:
     sdk: flutter
   reaction_widgets_testing:
     git:
-      url: git@github.com:Cure-HHT/event_sourcing.git
+      url: https://github.com/Cure-HHT/event_sourcing.git
       ref: 9e04c17
       path: reaction_widgets_testing
   flutter_lints: ^6.0.0
