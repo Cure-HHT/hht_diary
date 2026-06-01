@@ -27,8 +27,26 @@ void main() {
       expect(json, containsPair('projectId', isA<String>()));
       expect(json, containsPair('authDomain', isA<String>()));
       expect(json, containsPair('messagingSenderId', isA<String>()));
-      expect(json.length, 5);
+      // The portal web bundle carries no environment identity; the server
+      // reports which deployment environment it is so the client can resolve
+      // its EnvProfile at runtime.
+      // Verifies: DIARY-OPS-single-promotable-artifact/A
+      expect(json, containsPair('environment', isA<String>()));
+      expect(json.length, 6);
     });
+
+    test(
+      'environment reads from ENVIRONMENT then DEPLOY_ENV environment variable',
+      () {
+        // Mirrors raveEnvTag()'s resolution order. Empty string when neither
+        // is set — the client defaults an absent value to dev.
+        final expected =
+            Platform.environment['ENVIRONMENT'] ??
+            Platform.environment['DEPLOY_ENV'] ??
+            '';
+        expect(IdentityConfig.environment, expected);
+      },
+    );
 
     test('apiKey reads from PORTAL_IDENTITY_API_KEY environment variable', () {
       // Test that getter reads from correct env var

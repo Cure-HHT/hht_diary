@@ -278,6 +278,7 @@
 - DIARY-PRD-user-account-deactivate-D
 - DIARY-PRD-user-account-deactivate-F
 - DIARY-PRD-user-account-reactivate-D
+- DIARY-DEV-shared-events-catalog:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-PRD-entry-time-restrictions:section:4
 - DIARY-GUI-epistaxis-delete:section:3
@@ -451,6 +452,12 @@
 
 **DIARY:**
 
+- DIARY-OPS-db-reset-non-prod
+- DIARY-DEV-schema-version-check-A
+- DIARY-DEV-schema-version-check-B
+- DIARY-DEV-schema-version-check-C
+- DIARY-OPS-schema-migrate-on-deploy-A
+- DIARY-OPS-ci-migration-gate-A
 - DIARY-PRD-data-backup-and-archival-A
 - DIARY-PRD-data-backup-and-archival-C
 - DIARY-PRD-questionnaire-versioning-C
@@ -459,6 +466,9 @@
 - DIARY-PRD-sla-service-availability-E
 - DIARY-PRD-sla-incident-severity-F
 - DIARY-PRD-sla-disaster-recovery-C
+- DIARY-DEV-schema-version-check:section:0
+- DIARY-OPS-db-reset-non-prod:section:0
+- DIARY-OPS-ci-migration-gate:section:0
 - DIARY-PRD-questionnaire-versioning:section:0
 - DIARY-GUI-dev-admin-rave-sync-card:section:0
 
@@ -518,6 +528,8 @@
 - DIARY-PRD-diary-start-day
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
+- DIARY-DEV-runtime-environment-resolution-D
+- DIARY-DEV-shared-events-catalog-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
 - DIARY-PRD-entry-overlap-resolution-E
@@ -556,8 +568,10 @@
 - DIARY-GUI-administrator-dashboard-C
 - DIARY-GUI-administrator-dashboard-E
 - DIARY-GUI-administrator-dashboard-F
+- DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
+- DIARY-OPS-single-promotable-artifact:section:1
 - rem:spec/prd-diary-entry-rules.md:1
 - rem:spec/prd-diary-entry-rules.md:3
 - DIARY-PRD-entry-time-restrictions:section:4
@@ -1085,6 +1099,8 @@
 
 - DIARY-PRD-mobile-application
 - DIARY-GUI-mobile-navigation
+- DIARY-DEV-runtime-environment-resolution-A
+- DIARY-OPS-single-promotable-artifact-C
 - DIARY-PRD-mobile-application-A
 - DIARY-PRD-mobile-application-B
 - DIARY-PRD-mobile-application-C
@@ -1416,6 +1432,7 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-OPS-rave-sync-cooldown-D
 - DIARY-OPS-rave-sync-hard-lockout-B
+- DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
@@ -1840,6 +1857,7 @@
 - DIARY-PRD-questionnaire-score-calculation-C
 - DIARY-PRD-score-hht-qol-A
 - DIARY-PRD-score-nose-hht-A
+- DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/prd-common-ui.md:7
 - DIARY-GUI-calendar-day-view:section:7
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
@@ -1962,6 +1980,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-runtime-environment-resolution
 - DIARY-PRD-entry-overlap-resolution
 - DIARY-GUI-entry-overlap-resolution
 - DIARY-PRD-entry-overlap-resolution-E
@@ -1985,6 +2004,7 @@
 - DIARY-PRD-sla-incident-response-times-T
 - DIARY-PRD-sla-customer-notification-L
 - DIARY-PRD-sla-root-cause-analysis-E
+- DIARY-OPS-single-promotable-artifact:section:1
 - rem:spec/prd-diary-entry-rules.md:3
 - DIARY-PRD-entry-overlap-resolution:section:0
 - DIARY-PRD-entry-overlap-resolution:section:7
@@ -2125,6 +2145,7 @@
 - DIARY-PRD-session-management
 - DIARY-PRD-questionnaire-session-timeout
 - DIARY-GUI-questionnaire-session-expiry
+- DIARY-DEV-shared-events-catalog-D
 - DIARY-PRD-session-management-A
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-D
@@ -2280,6 +2301,8 @@
 
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
+- DIARY-OPS-fcm-project-routing-A
+- DIARY-OPS-fcm-project-routing-D
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G

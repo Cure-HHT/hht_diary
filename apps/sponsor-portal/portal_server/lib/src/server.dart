@@ -6,10 +6,12 @@
 //
 // HTTP server setup using shelf
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:otel_common/otel_common.dart';
-import 'package:portal_functions/portal_functions.dart';
+import 'package:portal_functions/portal_functions.dart'
+    show isSchemaStale, foundDbVersion, expectedMinDbVersion;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
@@ -27,6 +29,7 @@ Future<HttpServer> createServer({required int port}) async {
       // any 403 body with the structured `session_revoked` code that
       // the SPA's ApiClient watches for to trigger a clean sign-out.
       .addMiddleware(withSessionRevokedTracking())
+      .addMiddleware(_dbVersionGuardMiddleware())
       .addHandler(createRouter().call);
 
   return shelf_io.serve(handler, InternetAddress.anyIPv4, port);
@@ -63,3 +66,31 @@ const _corsHeaders = {
   'Access-Control-Allow-Headers':
       'Origin, Content-Type, Authorization, X-Active-Role, X-Patient-Id',
 };
+
+/// Returns 503 with a JSON body when the DB schema version is behind.
+/// Passes `/health` through unconditionally so Cloud Run readiness probes
+/// can report the problem rather than hiding it behind the old revision.
+///
+/// Placement: registered AFTER [_corsMiddleware] in the pipeline so it runs
+/// INSIDE the CORS wrapper. The 503 response flows back through
+/// [_corsMiddleware], which appends CORS headers — ensuring browsers can read
+/// the error body without an opaque network failure.
+// Implements: DIARY-DEV-schema-version-check/C
+Middleware _dbVersionGuardMiddleware() {
+  return (Handler innerHandler) {
+    return (Request request) async {
+      if (isSchemaStale && request.url.path != 'health') {
+        return Response(
+          503,
+          body: jsonEncode({
+            'error': 'database schema version behind',
+            'needs': expectedMinDbVersion,
+            'found': foundDbVersion,
+          }),
+          headers: {'Content-Type': 'application/json'},
+        );
+      }
+      return innerHandler(request);
+    };
+  };
+}
