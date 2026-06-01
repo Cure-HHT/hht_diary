@@ -1,6 +1,7 @@
 // Verifies: DIARY-DEV-portal-reaction-server/A
 // Verifies: DIARY-PRD-action-inventory/A+B
 // Verifies: DIARY-DEV-audit-log-read/A+B
+// Verifies: DIARY-DEV-portal-activation-email-delivery/B
 import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
@@ -263,5 +264,29 @@ void main() {
       ),
     );
     expect(coordResp.statusCode, 403);
+  });
+
+  test(
+      'GET /activate/<code> is mounted publicly: unknown code -> '
+      '200 {valid: false}, not 401', () async {
+    // Verifies: DIARY-DEV-portal-activation-email-delivery/B — the /activate
+    // routes are outside authMiddleware (no Authorization header required).
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('skeleton-activate.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+    );
+    addTearDown(boot.dispose);
+
+    // No Authorization header — an unknown code must return 200 {valid:false},
+    // proving the route is reachable without auth (i.e. it does NOT 401).
+    final resp = await boot.router(
+      Request('GET', Uri.parse('http://localhost/activate/UNKNOWN-CODE')),
+    );
+    expect(resp.statusCode, 200,
+        reason: 'public route reachable without auth credentials');
+    final body = jsonDecode(await resp.readAsString()) as Map<String, Object?>;
+    expect(body['valid'], isFalse,
+        reason: 'unknown code reports {valid: false}');
   });
 }

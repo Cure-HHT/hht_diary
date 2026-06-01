@@ -5,12 +5,16 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:event_sourcing/event_sourcing.dart';
+import 'package:portal_identity/portal_identity.dart';
 import 'package:portal_service/portal_service.dart';
 import 'package:rave_integration/rave_integration.dart';
 import 'package:reaction/reaction.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
+import 'activation_code_store.dart';
+import 'activation_reactor.dart';
+import 'activation_routes.dart';
 import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
 
@@ -154,10 +158,33 @@ Future<PortalServerBoot> bootstrapPortalServer({
     stderr.writeln('portal boot RAVE sync failed (continuing): $e\n$st');
   }
 
-  // 5. Dispatcher (registers all portal actions).
+  // 5. Activation reactor + routes: ephemeral code store + email sender +
+  //    reactor that watches for user_activation_code_issued events. Routes are
+  //    PUBLIC (mounted outside authMiddleware on topRouter).
+  // Implements: DIARY-DEV-portal-activation-email-delivery/A+B
+  // Implements: DIARY-DEV-portal-activation-code-lifecycle/A
+  final activationStore = ActivationCodeStore();
+  final activationSender = ActivationEmailSender(
+    transport: EmailTransport.fromConfig(EmailConfig.fromEnvironment()),
+  );
+  final portalUrl =
+      Platform.environment['PORTAL_URL'] ?? 'http://localhost:8084';
+  final activationReactor = ActivationReactor(
+    store: activationStore,
+    emailSender: activationSender,
+    portalUrl: portalUrl,
+  )..start(eventStore); // keep-alive: StreamSubscription inside holds a ref
+
+  final activationRouter = buildActivationRouter(
+    store: activationStore,
+    eventStore: eventStore,
+    provision: IdentityAdmin.lookupOrProvisionByEmail,
+  );
+
+  // 6. Dispatcher (registers all portal actions).
   final dispatcher = await buildPortalDispatcher(eventStore: eventStore);
 
-  // 6. Reaction handlers + dev auth.
+  // 7. Reaction handlers + dev auth.
   const validator = DevCredentialAuthValidator();
   final handlers = ReactionHandlers(
     eventStore: eventStore,
@@ -166,7 +193,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     scopeClassRegistry: buildPortalScopeRegistry(),
   );
 
-  // 7. Routes: WS /subscriptions outside HTTP-auth middleware (Flutter web
+  // 8. Routes: WS /subscriptions outside HTTP-auth middleware (Flutter web
   //    cannot set WS upgrade headers; credentials arrive in-band). HTTP me/actions
   //    behind CORS + authMiddleware (CORS first so OPTIONS preflight short-circuits
   //    before the auth check).
@@ -234,11 +261,18 @@ Future<PortalServerBoot> bootstrapPortalServer({
       .addMiddleware(authMiddleware(validator))
       .addHandler(httpRouter.call);
 
+  // /activate routes are PUBLIC: registered as specific routes on topRouter
+  // BEFORE the catch-all ..mount('/', httpPipeline). This ensures they bypass
+  // authMiddleware while all other routes still flow through the authed pipeline.
+  // The inner activationRouter re-matches its own paths on the original Request.
   final topRouter = Router()
     ..get('/subscriptions', handlers.subscriptions(validator))
+    ..get('/activate/<code>', activationRouter.call)
+    ..post('/activate', activationRouter.call)
     ..mount('/', httpPipeline);
 
   Future<void> dispose() async {
+    await activationReactor.stop();
     await handlers.dispose();
     await eventStore.close();
   }
