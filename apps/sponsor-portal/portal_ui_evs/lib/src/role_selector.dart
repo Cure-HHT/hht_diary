@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 /// Priority order for role display; roles not in this list sort last
 /// (stable relative order among unknowns).
@@ -47,53 +44,27 @@ List<RoleMenuItem> roleMenuItems({
 /// in-session without a confirmation step.
 ///
 /// Hidden when the user has fewer than two roles (GUI/B). Shows the
-/// active role as a labelled dropdown; selecting a different role POSTs
-/// to [serverUrl]/session/active-role with the [sessionToken] Bearer
-/// header, then calls [onSwitched] so the parent can refresh the
-/// principal and route to the new role's landing view.
+/// active role as a labelled dropdown; selecting a different role calls
+/// [onRoleSelected] with the chosen role string so the parent can update
+/// the credential claim and reconnect the WS.
 ///
 // Implements: DIARY-GUI-role-switching/A+B+C+D+E+G
 class RoleSelector extends StatelessWidget {
   const RoleSelector({
     super.key,
-    required this.serverUrl,
-    required this.sessionToken,
     required this.roles,
     required this.activeRole,
-    required this.onSwitched,
-    this.httpClient,
+    required this.onRoleSelected,
   });
 
-  final String serverUrl;
-  final String sessionToken;
   final Set<String> roles;
   final String activeRole;
 
-  /// Called after a successful role-switch so the parent can refresh the
-  /// principal and reset navigation to the role's landing view.
+  /// Called with the chosen role string so the parent can encode a new
+  /// credential claim (`token|role`) and reconnect the WS.
   ///
   // Implements: DIARY-GUI-role-switching/F
-  final Future<void> Function() onSwitched;
-
-  /// Optional HTTP client; defaults to a fresh [http.Client] if omitted.
-  final http.Client? httpClient;
-
-  Future<void> _switch(String role) async {
-    final client = httpClient ?? http.Client();
-    try {
-      final r = await client.post(
-        Uri.parse('$serverUrl/session/active-role'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $sessionToken',
-        },
-        body: jsonEncode({'role': role}),
-      );
-      if (r.statusCode == 200) await onSwitched();
-    } finally {
-      if (httpClient == null) client.close();
-    }
-  }
+  final void Function(String role) onRoleSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +72,7 @@ class RoleSelector extends StatelessWidget {
     final items = roleMenuItems(roles: roles, activeRole: activeRole);
     return PopupMenuButton<String>(
       tooltip: 'Switch role',
-      onSelected: _switch,
+      onSelected: onRoleSelected,
       itemBuilder: (_) => [
         for (final i in items)
           PopupMenuItem<String>(

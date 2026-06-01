@@ -95,23 +95,25 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     _scope.authSession.setCredential(token);
   }
 
-  /// Re-resolves the principal after an active-role switch.
+  /// Switches the active role by encoding a per-request credential claim
+  /// (`token|role`) and reconnecting the WS under the new role.
   ///
-  /// [RemoteAuthSession] has no dedicated refresh() method — the only way
-  /// to re-run GET /me and obtain an updated principal is to cycle the
-  /// credential: setCredential(null) tears down the WS and transitions to
-  /// NotAuthenticated, then setCredential(token) fires _validate() (GET /me)
-  /// which returns the server's new activeRole and transitions back to
-  /// Authenticated. A brief NotAuthenticated→Authenticated flicker is
-  /// acceptable (see DIARY-GUI-role-switching/F: "load role's landing view").
-  /// The re-auth also rebuilds _HomeShell fresh, resetting nav to index 0.
+  /// [setCredential] fires GET /me synchronously, updating the Principal so
+  /// the header and client gating reflect the new role immediately.
+  /// [_scope.reconnect()] re-authenticates the WS and re-issues all live
+  /// subscribes under the new role without triggering a logout or
+  /// NotAuthenticated flicker — AuthStatus stays Authenticated throughout.
   ///
   // Implements: DIARY-GUI-role-switching/E+F
-  Future<void> _onRoleSwitched() async {
+  Future<void> _onRoleSelected(String role) async {
     final token = _sessionToken;
     if (token == null) return;
-    _scope.authSession.setCredential(null);
-    _scope.authSession.setCredential(token);
+    // The active role is a per-request claim carried in the credential.
+    // setCredential refreshes the Principal (header + client gating) via
+    // GET /me; reconnect() re-gates the live WS view subscriptions under
+    // the new role. No logout, no flicker — AuthStatus stays Authenticated.
+    _scope.authSession.setCredential('$token|$role');
+    await _scope.reconnect();
   }
 
   @override
@@ -131,8 +133,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
         onDisconnect: () {
           _disconnect();
         },
-        sessionToken: _sessionToken,
-        onRoleSwitched: _onRoleSwitched,
+        onRoleSelected: _onRoleSelected,
       ),
       Expired() => Scaffold(
         body: _sessionAuth
@@ -192,20 +193,15 @@ class _HomeShell extends StatefulWidget {
   const _HomeShell({
     required this.principal,
     required this.onDisconnect,
-    required this.sessionToken,
-    required this.onRoleSwitched,
+    required this.onRoleSelected,
   });
 
   final Principal principal;
   final VoidCallback onDisconnect;
 
-  /// The current session token; null in dev mode.
-  /// Non-null only when [_sessionAuth] is true (Firebase login flow).
-  final String? sessionToken;
-
-  /// Callback invoked after a successful role switch so the parent can
-  /// re-resolve the principal and this shell rebuilds for the new role.
-  final Future<void> Function() onRoleSwitched;
+  /// Called with the chosen role string so the parent can update the
+  /// credential claim (`token|role`) and reconnect the WS.
+  final Future<void> Function(String role) onRoleSelected;
 
   @override
   State<_HomeShell> createState() => _HomeShellState();
@@ -247,13 +243,11 @@ class _HomeShellState extends State<_HomeShell> {
       appBar: AppBar(
         title: const Text('Portal (EVS skeleton)'),
         actions: <Widget>[
-          if (widget.principal is UserPrincipal && widget.sessionToken != null)
+          if (widget.principal is UserPrincipal)
             RoleSelector(
-              serverUrl: _serverUrl,
-              sessionToken: widget.sessionToken!,
               roles: (widget.principal as UserPrincipal).roles,
               activeRole: (widget.principal as UserPrincipal).activeRole,
-              onSwitched: widget.onRoleSwitched,
+              onRoleSelected: widget.onRoleSelected,
             ),
           Center(
             child: Padding(
