@@ -9,7 +9,7 @@ import 'connect_screen.dart';
 import 'participants_screen.dart';
 import 'rave_sync_screen.dart';
 import 'sites_screen.dart';
-import 'user_role_admin_screen.dart';
+import 'user_accounts_screen.dart';
 
 const String _serverUrl = String.fromEnvironment(
   'PORTAL_SERVER_URL',
@@ -101,7 +101,7 @@ class _HomeShellState extends State<_HomeShell> {
   // own view permission (the screen, not the nav item, enforces access).
   static final List<_NavDestination> _destinations = <_NavDestination>[
     _NavDestination(
-        'User Roles', Icons.admin_panel_settings, UserRoleAdminScreen.new),
+        'User Accounts', Icons.manage_accounts, UserAccountsScreen.new),
     _NavDestination('Sites', Icons.location_city, SitesScreen.new),
     _NavDestination('Participants', Icons.groups, ParticipantsScreen.new),
     _NavDestination('RAVE Sync', Icons.sync, RaveSyncScreen.new),
