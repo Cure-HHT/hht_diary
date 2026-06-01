@@ -25,7 +25,6 @@ String highestPriorityRole(Set<String> roles) =>
 /// that role is active; otherwise the highest-priority held role is used.
 // Implements: DIARY-DEV-portal-session-token/B
 // Implements: DIARY-DEV-portal-session-lifecycle/A+C
-// Implements: DIARY-DEV-portal-active-role-switch/A+B+C
 class SessionTokenValidator implements PrincipalAuthValidator {
   SessionTokenValidator({
     required this.signingKey,

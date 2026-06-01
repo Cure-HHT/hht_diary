@@ -88,7 +88,6 @@
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-system-operator-role:section:0
-- DIARY-DEV-portal-active-role-switch:section:1
 - DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-DEV-user-account-projection:section:1
@@ -2262,7 +2261,6 @@
 - DIARY-DEV-portal-session-lifecycle-A
 - DIARY-DEV-portal-session-lifecycle-C
 - DIARY-DEV-portal-active-role-switch-A
-- DIARY-DEV-portal-active-role-switch-B
 - DIARY-DEV-portal-active-role-switch-C
 - DIARY-DEV-shared-events-catalog-D
 - DIARY-PRD-session-management-A
@@ -3139,6 +3137,7 @@
 - DIARY-DEV-portal-session-lifecycle:section:0
 - DIARY-DEV-portal-session-lifecycle:section:1
 - DIARY-DEV-portal-active-role-switch:section:0
+- DIARY-DEV-portal-active-role-switch:section:1
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
 - rem:spec/glossary-core.md:745

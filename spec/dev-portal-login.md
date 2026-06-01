@@ -95,18 +95,18 @@ Capping idle time bounds the window in which an unattended authenticated worksta
 
 ### Overview
 
-A *User* assigned more than one *Role* acts under one active *Role* at a time, and may change it during a *Session* without re-authenticating. The active *Role* is event-sourced *Session* state: it is seeded at *Session* start to the highest-priority assigned *Role* of the *User* and is changed by appending a *Session* active-*Role*-changed event. The *Session* token carries identity rather than a fixed *Role*, so a switch needs no new token and does not end the *Session*. The validator resolves the active *Role* from current *Session* state on every request.
+A *User* assigned more than one *Role* acts under one acting *Role* at a time and may change it during a *Session* without re-authenticating. The acting *Role* is a per-request claim the client supplies alongside the *Session* credential, which carries identity rather than a fixed *Role*. The portal verifies the claimed *Role* against the *User*'s current assignments on every request and defaults to the highest-priority assigned *Role* when no claim is supplied. Because the *Role* travels with each request, switching is a client-side change that needs no new token and does not end the *Session*.
 
 ### Assertions
 
-A. The portal SHALL resolve the active *Role* of a *Session* from event-sourced *Session* state, defaulting at *Session* start to the highest-priority assigned *Role* of the *User*, so the *Session* token carries identity rather than a fixed *Role*.
+A. The portal SHALL resolve the acting *Role* for each request from a *Role* claim the client supplies with the *Session* credential, defaulting to the highest-priority assigned *Role* of the *User* when no claim is supplied.
 
-B. The portal SHALL allow a *User* holding more than one *Role* to change the active *Role* of the *Session* by appending a *Session* active-*Role*-changed event, without terminating or re-establishing the *Session*, and SHALL reject a switch to a *Role* the *User* does not currently hold.
+B. The portal SHALL authorize each request only under a *Role* the *User* is verified to currently hold, granting no permissions for a claimed *Role* the *User* does not hold.
 
-C. The portal SHALL resolve the active *Role* from current *Session* state on every request, so an active-*Role* change takes effect on the next request of the *User*.
+C. The portal SHALL allow a *User* holding more than one *Role* to change the acting *Role* without re-authenticating or terminating the *Session*, with the change taking effect on subsequent requests.
 
 ### Rationale
 
-Staff who legitimately hold more than one *Role* need to act in different capacities under a single accountable identity, so the active *Role* must be switchable within a *Session* rather than requiring separate accounts or a fresh login per capacity. Making the active *Role* event-sourced *Session* state — not a claim baked into the token — is what lets a switch be a cheap appended fact rather than a re-mint, and keeps the audit log's record of which *Role* each *Action* ran under reconstructible from the one chain. Rejecting a switch to an unheld *Role* keeps *Role* selection from becoming a privilege-escalation path, and resolving from current state on every request means a switch — or a concurrent revocation — takes effect immediately.
+Staff who legitimately hold more than one *Role* need to act in different capacities under a single accountable identity, so the acting *Role* must be switchable within a *Session* rather than requiring separate accounts or a fresh login per capacity. Carrying the *Role* as a per-request claim — verified against the *User*'s current assignments — keeps switching a cheap client-side change while the server stays authoritative over which permissions each *Role* confers and over whether the *User* may act under it at all. Refusing permissions for an unheld claimed *Role* keeps *Role* selection from becoming a privilege-escalation path, and re-deriving membership from the event log on every request means a concurrent revocation takes effect immediately.
 
-*End* *In-session active role switch* | **Hash**: 8251c323
+*End* *In-session active role switch* | **Hash**: 3d941dbc

@@ -157,7 +157,7 @@
 | DIARY-DEV-participant-status-projection      | Participant Linking-Status Projection      | dev-portal-service.md              | aafda27d |
 | DIARY-DEV-portal-activation-code-lifecycle   | Activation code lifecycle                  | dev-portal-activation.md           | ec270b2e |
 | DIARY-DEV-portal-activation-email-delivery   | Activation email delivery                  | dev-portal-activation.md           | 8357a727 |
-| DIARY-DEV-portal-active-role-switch          | In-session active role switch              | dev-portal-login.md                | 8251c323 |
+| DIARY-DEV-portal-active-role-switch          | In-session active role switch              | dev-portal-login.md                | 3d941dbc |
 | DIARY-DEV-portal-identity-provisioning       | Identity Platform provisioning             | dev-portal-activation.md           | 0e3eb2b5 |
 | DIARY-DEV-portal-login-identity-verification | Login identity verification                | dev-portal-login.md                | 4b3d6032 |
 | DIARY-DEV-portal-login-second-factor         | Login second factor                        | dev-portal-login.md                | 9c1195e5 |
