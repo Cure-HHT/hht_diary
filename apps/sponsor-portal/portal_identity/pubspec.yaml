@@ -1,7 +1,7 @@
 name: portal_identity
 description: Identity Platform + Gmail-over-WIF helpers for the portal (no Postgres).
 publish_to: none
-version: 0.1.0
+version: 0.2.0
 
 environment:
   sdk: ^3.5.0
@@ -10,6 +10,7 @@ dependencies:
   http: ^1.2.0
   googleapis: ^15.0.0
   googleapis_auth: ^2.0.0
+  jose: ^0.3.4
 
 dev_dependencies:
   test: ^1.25.0
