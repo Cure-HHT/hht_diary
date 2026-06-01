@@ -48,6 +48,21 @@ class IdentityConfig {
   static String get messagingSenderId =>
       Platform.environment['PORTAL_IDENTITY_MESSAGING_SENDER_ID'] ?? '';
 
+  /// Deployment environment name (dev/qa/uat/prod) the server runs as.
+  ///
+  /// The portal web bundle is a single promotable artifact that carries no
+  /// environment identity of its own; it discovers which environment it is
+  /// talking to from this same-origin runtime config. Resolution mirrors
+  /// `raveEnvTag()`: prefer ENVIRONMENT, fall back to DEPLOY_ENV. Empty when
+  /// neither is set — the client defaults an absent value to dev.
+  ///
+  /// Environment: ENVIRONMENT (or DEPLOY_ENV)
+  // Implements: DIARY-OPS-single-promotable-artifact/A
+  static String get environment =>
+      Platform.environment['ENVIRONMENT'] ??
+      Platform.environment['DEPLOY_ENV'] ??
+      '';
+
   /// Check if Identity Platform is configured
   ///
   /// Returns true if all required environment variables are set.
@@ -65,6 +80,7 @@ class IdentityConfig {
     'projectId': projectId,
     'authDomain': authDomain,
     'messagingSenderId': messagingSenderId,
+    'environment': environment,
   };
 }
 

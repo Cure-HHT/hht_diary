@@ -673,19 +673,19 @@ start_ui() {
             exit 1
         fi
 
-        # APP_FLAVOR=dev tells the app to fetch Identity config from server
-        # PORTAL_API_URL points to the local server (which has the Identity config)
+        # No emulator host → deployed-style runtime resolution: the app fetches
+        # config (and its environment) from the server. PORTAL_API_URL points
+        # to the local server, which has the Identity config.
         flutter run -d chrome \
-            --dart-define=APP_FLAVOR=dev \
             --dart-define=APP_VERSION="$app_version" \
             --dart-define=PORTAL_API_URL=http://localhost:8084 &
         UI_PID=$!
     else
-        # Use local flavor with Firebase emulator
-        log_info "Starting Portal UI (Flutter Web) with local flavor (emulator)..."
+        # Use the Firebase emulator (local mode). Setting the emulator host is
+        # what selects local mode now — there is no build flavor.
+        log_info "Starting Portal UI (Flutter Web) against the Firebase emulator..."
 
         flutter run -d chrome \
-            --dart-define=APP_FLAVOR=local \
             --dart-define=APP_VERSION="$app_version" \
             --dart-define=FIREBASE_AUTH_EMULATOR_HOST=${FIREBASE_HOST}:${FIREBASE_PORT} &
         UI_PID=$!
@@ -840,9 +840,9 @@ main() {
     else
         log_info "UI not started (use without --no-ui to start Flutter)"
         if [ "$USE_DEV_IDENTITY" = true ]; then
-            log_info "To start manually: cd portal-ui && flutter run -d chrome --dart-define=APP_FLAVOR=dev ..."
+            log_info "To start manually: cd portal-ui && flutter run -d chrome --dart-define=PORTAL_API_URL=http://localhost:8084 ..."
         else
-            log_info "To start manually: cd portal-ui && flutter run -d chrome --dart-define=APP_FLAVOR=local"
+            log_info "To start manually: cd portal-ui && flutter run -d chrome --dart-define=FIREBASE_AUTH_EMULATOR_HOST=localhost:9099"
         fi
 
         # Wait for server

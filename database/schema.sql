@@ -1,6 +1,6 @@
 -- =====================================================
 -- Clinical Trial Diary Database Schema
--- Target: Supabase (PostgreSQL 15+)
+-- Target: Cloud SQL (PostgreSQL 17)
 -- Compliance: FDA 21 CFR Part 11, HIPAA, GDPR
 -- Version: 1.0
 -- =====================================================

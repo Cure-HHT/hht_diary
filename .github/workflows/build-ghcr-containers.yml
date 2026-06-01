@@ -5,7 +5,12 @@
 #   REQ-d00035: Security and Compliance
 #
 # Clinical Diary Docker Image Build & Publish
-# Builds, signs, and publishes Docker images to GitHub Container Registry
+# Builds and publishes Docker images to GitHub Container Registry.
+#
+# Image signing + SBOM attestation moved to the UAT/prod deploy gate in
+# hht_diary_callisto (deploy-cloud-run-service-callisto.yml, attest-image
+# job). Push-to-main builds publish images here; they are signed and
+# attested against Sigstore/Rekor only at UAT/prod promotion.
 #
 # Topology: 3 independent images from debian:12-slim (no chained builds)
 #   ci      — All-in-one CI: build, test, lint, scan
@@ -48,7 +53,6 @@ env:
 permissions:
   contents: read
   packages: write
-  id-token: write  # For Cosign signing
 
 jobs:
   # ============================================================
@@ -146,8 +150,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci:buildcache,mode=max
-          provenance: ${{ github.event_name != 'pull_request' }}
-          sbom: ${{ github.event_name != 'pull_request' }}
 
   # ============================================================
   # Build DevOps Image — Terraform + gcloud (parallel with CI)
@@ -210,8 +212,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops:buildcache,mode=max
-          provenance: ${{ github.event_name != 'pull_request' }}
-          sbom: ${{ github.event_name != 'pull_request' }}
 
   # ============================================================
   # Build Audit Image — read-only tools (parallel with CI)
@@ -274,143 +274,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit:buildcache,mode=max
-          provenance: ${{ github.event_name != 'pull_request' }}
-          sbom: ${{ github.event_name != 'pull_request' }}
-
-  # ============================================================
-  # Sign Images & Generate SBOMs
-  # ============================================================
-  sign-and-sbom:
-    name: Sign Images & Generate SBOMs
-    runs-on: ubuntu-latest
-    needs: [build-ci, build-devops, build-audit]
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true')
-
-    steps:
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
-
-      - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Downcase image prefix
-        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
-
-      - name: Sign CI image
-        run: |
-          cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci@${{ needs.build-ci.outputs.image_digest }}
-
-      - name: Sign DevOps image
-        run: |
-          cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops@${{ needs.build-devops.outputs.image_digest }}
-
-      - name: Sign Audit image
-        run: |
-          cosign sign --yes \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit@${{ needs.build-audit.outputs.image_digest }}
-
-      - name: Generate SBOM for CI image
-        run: |
-          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci@${{ needs.build-ci.outputs.image_digest }} \
-            -o spdx-json \
-            --file ci-sbom.spdx.json
-
-      - name: Generate SBOM for DevOps image
-        run: |
-          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops@${{ needs.build-devops.outputs.image_digest }} \
-            -o spdx-json \
-            --file devops-sbom.spdx.json
-
-      - name: Generate SBOM for Audit image
-        run: |
-          syft ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit@${{ needs.build-audit.outputs.image_digest }} \
-            -o spdx-json \
-            --file audit-sbom.spdx.json
-
-      - name: Upload SBOMs as artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sboms-${{ github.sha }}
-          path: |
-            *-sbom.spdx.json
-          retention-days: 90
-
-      - name: Attach SBOM attestation to CI image
-        run: |
-          cosign attest --yes \
-            --predicate ci-sbom.spdx.json \
-            --type spdxjson \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci@${{ needs.build-ci.outputs.image_digest }}
-
-      - name: Attach SBOM attestation to DevOps image
-        run: |
-          cosign attest --yes \
-            --predicate devops-sbom.spdx.json \
-            --type spdxjson \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops@${{ needs.build-devops.outputs.image_digest }}
-
-      - name: Attach SBOM attestation to Audit image
-        run: |
-          cosign attest --yes \
-            --predicate audit-sbom.spdx.json \
-            --type spdxjson \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit@${{ needs.build-audit.outputs.image_digest }}
-
-  # ============================================================
-  # Verify Image Signatures
-  # ============================================================
-  verify-images:
-    name: Verify Image Signatures
-    runs-on: ubuntu-latest
-    needs: [sign-and-sbom, build-ci, build-devops, build-audit]
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event.inputs.push_to_registry == 'true')
-
-    steps:
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Downcase image prefix
-        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
-
-      - name: Verify CI image signature
-        run: |
-          echo "Verifying CI image..."
-          cosign verify \
-            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-ci@${{ needs.build-ci.outputs.image_digest }}
-
-      - name: Verify DevOps image signature
-        run: |
-          echo "Verifying DevOps image..."
-          cosign verify \
-            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-devops@${{ needs.build-devops.outputs.image_digest }}
-
-      - name: Verify Audit image signature
-        run: |
-          echo "Verifying Audit image..."
-          cosign verify \
-            --certificate-identity-regexp="https://github.com/${{ github.repository }}" \
-            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-audit@${{ needs.build-audit.outputs.image_digest }}
 
   # ============================================================
   # Build Summary
@@ -444,8 +307,7 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Images available at: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-*\`" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "- Image signatures verified with Cosign" >> $GITHUB_STEP_SUMMARY
-            echo "- SBOMs generated with Syft" >> $GITHUB_STEP_SUMMARY
+            echo "Signing and SBOM attestation occur at the UAT/prod deploy gate in hht_diary_callisto." >> $GITHUB_STEP_SUMMARY
           else
             echo "## Build Verification Only" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY

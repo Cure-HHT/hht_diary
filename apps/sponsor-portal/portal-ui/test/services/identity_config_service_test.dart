@@ -20,6 +20,7 @@ void main() {
         'projectId': 'test-project',
         'authDomain': 'test-project.firebaseapp.com',
         'messagingSenderId': '123456789',
+        'environment': 'qa',
       };
 
       final config = IdentityPlatformConfig.fromJson(json);
@@ -29,6 +30,9 @@ void main() {
       expect(config.projectId, 'test-project');
       expect(config.authDomain, 'test-project.firebaseapp.com');
       expect(config.messagingSenderId, '123456789');
+      // The server reports its deployment environment so the client can
+      // resolve its EnvProfile at runtime.
+      expect(config.environment, 'qa');
     });
 
     test('fromJson handles missing fields with empty strings', () {
@@ -41,6 +45,8 @@ void main() {
       expect(config.projectId, isEmpty);
       expect(config.authDomain, isEmpty);
       expect(config.messagingSenderId, isEmpty);
+      // Absent environment → empty; EnvProfile.fromServerName maps it to dev.
+      expect(config.environment, isEmpty);
     });
 
     test('fromJson handles null values with empty strings', () {

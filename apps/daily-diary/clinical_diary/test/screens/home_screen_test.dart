@@ -13,6 +13,7 @@ import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/simple_recording_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
+import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/services/triggers.dart';
@@ -29,6 +30,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../helpers/mock_enrollment_service.dart';
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
+
+// CUR-1398: TaskService subclass that records each syncTasks invocation
+// so the pull-to-refresh widget test can assert the call was made
+// without spinning up a real /tasks HTTP roundtrip.
+class _RecordingTaskService extends TaskService {
+  int syncCalls = 0;
+
+  @override
+  Future<void> syncTasks(EnrollmentService enrollmentService) async {
+    syncCalls++;
+  }
+}
 
 // Silent test seams (mirrors clinical_diary_bootstrap_test.dart).
 class _SilentLifecycleObserver extends WidgetsBindingObserver {}
@@ -337,6 +350,58 @@ void main() {
           found,
           isTrue,
           reason: 'Tapping the record button should push a recording screen',
+        );
+      },
+    );
+
+    // CUR-1398: pull-to-refresh triggers TaskService.syncTasks.
+    //
+    // Before the fix, the patient had no manual recovery path when FCM
+    // failed or delivered late — the home-screen pull-down only re-read
+    // the local materialized view, never the server's /tasks endpoint.
+    // After the fix, RefreshIndicator.onRefresh runs both in parallel.
+    testWidgets(
+      'pull-to-refresh triggers TaskService.syncTasks (manual FCM-failure '
+      'recovery path)',
+      (tester) async {
+        // Swap in the recording subclass so we can observe the call.
+        // Dispose the default TaskService set up in the group's setUp
+        // first to avoid leaking its ChangeNotifier.
+        tasks.dispose();
+        final recordingTasks = _RecordingTaskService();
+        tasks = recordingTasks;
+
+        await pumpScreen(tester);
+        expect(
+          recordingTasks.syncCalls,
+          0,
+          reason: 'sanity: no sync should fire until pull-to-refresh',
+        );
+
+        // Programmatically invoke the RefreshIndicator instead of
+        // simulating a fling — gesture-based pull triggers can be flaky
+        // when the scrollable is wrapped in a Scrollbar (home_screen.dart
+        // does both). `show()` runs the same onRefresh callback the
+        // gesture would, so behaviorally it's the same path.
+        final indicator = find.byType(RefreshIndicator);
+        expect(
+          indicator,
+          findsOneWidget,
+          reason:
+              'home screen should render a RefreshIndicator once '
+              'loading completes',
+        );
+
+        final indicatorState = tester.state<RefreshIndicatorState>(indicator);
+        unawaited(indicatorState.show());
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        await _settle(tester);
+
+        expect(
+          recordingTasks.syncCalls,
+          greaterThanOrEqualTo(1),
+          reason: 'pull-to-refresh must call syncTasks at least once',
         );
       },
     );

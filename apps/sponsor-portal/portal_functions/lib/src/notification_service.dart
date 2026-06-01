@@ -58,6 +58,12 @@ class NotificationConfig {
     final override = fromEnvironmentOverride;
     if (override != null) return override;
     return NotificationConfig(
+      // CUR-1399: FCM sender project is materialized into FCM_PROJECT_ID at deploy
+      // from the routing manifest (hht_sponsor_iac fcm/routing.yaml); all targets are
+      // `cure-hht-admin` today, so the `?? 'cure-hht-admin'` fallback below matches the
+      // current routing target (and covers local/dev where the var is unset). Keep
+      // reading FCM_PROJECT_ID; don't add a NEW hardcoded project — per-sponsor
+      // resolution is deferred. See Linear CUR-1399 / CUR-1416.
       projectId: Platform.environment['FCM_PROJECT_ID'] ?? 'cure-hht-admin',
       enabled: Platform.environment['FCM_ENABLED'] != 'false',
       consoleMode: Platform.environment['FCM_CONSOLE_MODE'] == 'true',

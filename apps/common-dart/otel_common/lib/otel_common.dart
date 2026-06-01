@@ -9,7 +9,7 @@
 /// Reporting integration.
 library otel_common;
 
-export 'src/init.dart' show initializeOTel, shutdownOTel;
+export 'src/init.dart' show initializeOTel, otelExportEnabled, shutdownOTel;
 export 'src/middleware.dart' show otelMiddleware;
 export 'src/db_tracing.dart' show tracedQuery, sanitizeSql;
 export 'src/logging.dart' show configureTracedLogging, logWithTrace;

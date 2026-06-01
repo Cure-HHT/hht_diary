@@ -12,7 +12,8 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
-import '../flavors.dart';
+import '../config/app_config.dart';
+import '../config/env_profile.dart';
 import '../services/auth_service.dart';
 import 'license_dialog.dart';
 import 'role_badge.dart';
@@ -131,7 +132,10 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Portal UI: ${F.version}', style: theme.textTheme.bodyLarge),
+            Text(
+              'Portal UI: ${AppConfig.version}',
+              style: theme.textTheme.bodyLarge,
+            ),
             if (serverVersions.isNotEmpty) ...[
               const SizedBox(height: 4),
               ...serverVersions.entries.map(
@@ -162,10 +166,10 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             ),
-            if (F.showDevTools) ...[
+            if (EnvProfile.current.showDevTools) ...[
               const SizedBox(height: 8),
               Text(
-                'Environment: ${F.name}',
+                'Environment: ${EnvProfile.current.name}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.outline,
                 ),

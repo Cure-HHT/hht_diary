@@ -84,7 +84,7 @@ export DB_USER="${DB_USER:-postgres}"
 PORTAL_SERVER_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
 PORTAL_FUNCTIONS_VERSION=$(grep '^version:' ../portal_functions/pubspec.yaml | sed 's/version: //')
 TRIAL_DATA_TYPES_VERSION=$(grep '^version:' ../../common-dart/trial_data_types/pubspec.yaml | sed 's/version: //')
-VERSION_DEFINES="-DPORTAL_SERVER_VERSION=$PORTAL_SERVER_VERSION -DPORTAL_FUNCTIONS_VERSION=$PORTAL_FUNCTIONS_VERSION -DTRIAL_DATA_TYPES_VERSION=$TRIAL_DATA_TYPES_VERSION"
+VERSION_DEFINES="-DPORTAL_SERVER_VERSION=$PORTAL_SERVER_VERSION -DPORTAL_FUNCTIONS_VERSION=$PORTAL_FUNCTIONS_VERSION -DTRIAL_DATA_TYPES_VERSION=$TRIAL_DATA_TYPES_VERSION -DEXPECTED_MIN_DB_VERSION=${EXPECTED_MIN_DB_VERSION:-0}"
 
 if [[ "$1" == "--no-doppler" ]]; then
   # Standalone mode - hardcoded dev values (for quick testing)
