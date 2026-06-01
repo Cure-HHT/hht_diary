@@ -384,5 +384,29 @@ void main() {
 
       expect(find.byType(DisconnectionBanner), findsOneWidget);
     });
+
+    testWidgets('shows the overlap banner when two finalized entries overlap', (
+      tester,
+    ) async {
+      final base = DateTime.now();
+      final day = DateTime(base.year, base.month, base.day);
+      await pumpScreen(
+        tester,
+        finalized: [
+          epistaxisRow(
+            day.add(const Duration(hours: 13)),
+            aggregateId: 'ov-a',
+            end: day.add(const Duration(hours: 14)),
+          ),
+          epistaxisRow(
+            day.add(const Duration(hours: 13, minutes: 30)),
+            aggregateId: 'ov-b',
+            end: day.add(const Duration(hours: 13, minutes: 45)),
+          ),
+        ],
+      );
+
+      expect(find.textContaining('needs resolving'), findsOneWidget);
+    });
   });
 }

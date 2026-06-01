@@ -4,6 +4,7 @@ import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
@@ -11,6 +12,7 @@ import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/day_disposition.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
+import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
@@ -707,6 +709,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// Open the overlap-resolution flow for the first unresolved pair. The home
+  /// surface re-derives reactively (DiaryViewBuilder), so after one pair is
+  /// resolved the banner reflects the remaining count.
+  // Implements: DIARY-GUI-entry-overlap-resolution/A
+  Future<void> _handleResolveOverlaps(DiaryView view) async {
+    final pairs = overlapPairs(view);
+    if (pairs.isEmpty) return;
+    final first = pairs.first;
+    await Navigator.of(context).push(
+      AppPageRoute<void>(
+        builder: (context) => OverlapCompareScreen(
+          leftId: first.preExisting.aggregateId,
+          rightId: first.justTouched.aggregateId,
+        ),
+      ),
+    );
+    // Nothing to do after the screen pops — the home surface re-derives the
+    // banner reactively from the next DiaryView emission.
+  }
+
   /// Re-disposition a tapped day-[marker]: open the same 3-choice picker the
   /// calendar uses, seeded with that marker so a "Record nosebleed" choice
   /// tombstones it on save (convert). Marker↔marker choices re-record on the
@@ -853,6 +875,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildScaffold(BuildContext context, DiaryView view) {
     final groupedRecords = _groupRecordsByDay(context, view);
     final incompleteEntries = view.incompleteEntries;
+    final overlapCount = overlapPairs(view).length;
     final hasYesterdayRecords = view
         .entriesOn(
           DateFormat(
@@ -1076,6 +1099,58 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                     );
                   },
+                ),
+
+              // Unresolved-overlap banner. Uses amber (not the orange of the
+              // incomplete-record banner above) to read as a distinct, lower-
+              // urgency alert. Persistent until every overlapping pair resolves.
+              // Implements: DIARY-PRD-entry-overlap-resolution/B
+              if (overlapCount > 0)
+                InkWell(
+                  onTap: () => _handleResolveOverlaps(view),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.merge_type,
+                          color: Colors.amber.shade900,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          // TODO(i18n): localize + pluralize.
+                          child: Text(
+                            overlapCount == 1
+                                ? '1 overlapping record needs resolving'
+                                : '$overlapCount overlapping records need resolving',
+                            style: TextStyle(
+                              color: Colors.amber.shade900,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        // TODO(i18n): localize.
+                        Text(
+                          'Resolve',
+                          style: TextStyle(
+                            // Lower-contrast call-to-action, matching the
+                            // shade-step-down on the incomplete-record banner.
+                            color: Colors.amber.shade700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
 
               // Task list (questionnaires, etc.) — kept on the legacy
