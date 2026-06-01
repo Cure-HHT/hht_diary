@@ -9,6 +9,8 @@ environment:
 dependencies:
   crypto: ^3.0.7
   event_sourcing: any
+  portal_identity:
+    path: ../portal_identity
   portal_service:
     path: ../portal_service
   portal_actions:
