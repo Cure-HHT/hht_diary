@@ -11,6 +11,8 @@
 //   REQ-p01069-A: Provide an intuitive time picker for start and end times
 //   REQ-p01069-E: Support editing of records regardless of completion state
 
+import 'dart:async';
+
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
@@ -125,6 +127,7 @@ class RecordingScreen extends StatefulWidget {
     this.existingEntry,
     this.allEntries = const [],
     this.onDelete,
+    this.saveTimeout = const Duration(seconds: 10),
   }) : assert(
          diaryEntryDate == null || existingEntry == null,
          'Cannot specify both initialDate and existingEntry',
@@ -149,6 +152,16 @@ class RecordingScreen extends StatefulWidget {
   final List<DiaryEntry> allEntries;
 
   final Future<void> Function(String)? onDelete;
+
+  /// CUR-1397: ceiling on how long a single `entryService.record(...)` call
+  /// is awaited before the save path treats it as a failure. Without this
+  /// timeout, any hung sembast write traps the user — `_handleExit` also
+  /// awaits `_saveRecord`, so PopScope(canPop:false) cannot reach
+  /// `Navigator.pop(context)`. 10s is generous for a local write (typical
+  /// sub-100ms) while still bounded enough that the back-out UX recovers.
+  /// Override in tests via this parameter; production callers take the
+  /// default.
+  final Duration saveTimeout;
 
   @override
   State<RecordingScreen> createState() => _RecordingScreenState();
@@ -488,13 +501,21 @@ class _RecordingScreenState extends State<RecordingScreen> {
         if (_endTimeTimezone != null) 'endTimeTimezone': _endTimeTimezone,
       };
 
-      await widget.entryService.record(
-        entryType: 'epistaxis_event',
-        aggregateId: recordId,
-        eventType: 'finalized',
-        answers: answers,
-        changeReason: existing != null ? 'edited' : null,
-      );
+      // CUR-1397: bound the local-write call so a hung Future cannot
+      // trap the user. Both the Save button (canPop=false, _isSaving
+      // gates onPressed) and the Back path (PopScope awaits _handleExit
+      // → _saveRecord) await this same call; if it hangs, neither
+      // recovers. On timeout, the catch block below surfaces a
+      // failedToSave snackbar and resets _isSaving in the finally.
+      await widget.entryService
+          .record(
+            entryType: 'epistaxis_event',
+            aggregateId: recordId,
+            eventType: 'finalized',
+            answers: answers,
+            changeReason: existing != null ? 'edited' : null,
+          )
+          .timeout(widget.saveTimeout);
 
       if (mounted) {
         // Return record ID so home screen can scroll to and highlight it
