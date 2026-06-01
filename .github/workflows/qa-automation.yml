@@ -66,6 +66,7 @@ jobs:
       checks: write
       packages: read
       actions: read  # Required for gh run watch in start-ci-container
+      id-token: write  # Doppler OIDC for private pub-dep auth (setup-pub-git-auth)
 
     steps:
       - name: Checkout code
@@ -159,6 +160,31 @@ jobs:
         uses: ./.github/actions/start-ci-container
         with:
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Resolve the private event_sourcing git deps inside the CI container
+      # (CUR-1169). See hht_workflows setup-pub-git-auth.
+      - name: Fetch ops-bot App key (Doppler OIDC)
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
+        uses: Cure-HHT/hht_workflows/.github/actions/doppler-oidc-auth@main
+        with:
+          doppler_identity_id: ${{ vars.PUB_AUTH_DOPPLER_IDENTITY_ID }}
+          doppler_project: ${{ vars.PUB_AUTH_DOPPLER_PROJECT }}
+          doppler_config: ${{ vars.PUB_AUTH_DOPPLER_CONFIG }}
+      - name: Mint pub git token
+        id: pubauth
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
+        uses: Cure-HHT/hht_workflows/.github/actions/setup-pub-git-auth@main
+        with:
+          app_id: ${{ env.OPS_BOT_APP_ID }}
+          app_private_key: ${{ env.OPS_BOT_APP_PRIVATE_KEY }}
+      - name: Configure private pub git auth inside the CI container
+        if: steps.check-qa-needed.outputs.qa_needed == 'true'
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e GH_PUB_TOKEN='${{ steps.pubauth.outputs.token }}' ci bash -c '
+            git config --global url."https://x-access-token:${GH_PUB_TOKEN}@github.com/Cure-HHT/".insteadOf "git@github.com:Cure-HHT/"
+          '
 
       # -----------------------------------------------------------------
       # Flutter unit tests (from former qa-tests job)

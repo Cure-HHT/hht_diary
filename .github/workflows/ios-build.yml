@@ -40,6 +40,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write   # Doppler OIDC for private pub-dep auth (setup-pub-git-auth)
 
 concurrency:
   group: ios-build-${{ github.ref }}
@@ -98,6 +99,20 @@ jobs:
           path: ~/.pub-cache
           key: pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
           restore-keys: pub-${{ runner.os }}-
+
+      # Resolve the private event_sourcing git deps (CUR-1169). See
+      # hht_workflows setup-pub-git-auth.
+      - name: Fetch ops-bot App key (Doppler OIDC)
+        uses: Cure-HHT/hht_workflows/.github/actions/doppler-oidc-auth@main
+        with:
+          doppler_identity_id: ${{ vars.PUB_AUTH_DOPPLER_IDENTITY_ID }}
+          doppler_project: ${{ vars.PUB_AUTH_DOPPLER_PROJECT }}
+          doppler_config: ${{ vars.PUB_AUTH_DOPPLER_CONFIG }}
+      - name: Auth to private pub deps
+        uses: Cure-HHT/hht_workflows/.github/actions/setup-pub-git-auth@main
+        with:
+          app_id: ${{ env.OPS_BOT_APP_ID }}
+          app_private_key: ${{ env.OPS_BOT_APP_PRIVATE_KEY }}
 
       - name: Install Flutter dependencies
         working-directory: apps/daily-diary/clinical_diary

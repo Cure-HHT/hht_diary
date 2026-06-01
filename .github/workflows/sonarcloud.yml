@@ -34,9 +34,9 @@ jobs:
       # 1. Fetch the ops-bot App key from Doppler via OIDC (no static token).
       - uses: Cure-HHT/hht_workflows/.github/actions/doppler-oidc-auth@main
         with:
-          doppler_identity_id: ${{ vars.SONAR_DOPPLER_IDENTITY_ID }}
-          doppler_project: ${{ vars.SONAR_DOPPLER_PROJECT }}
-          doppler_config: ${{ vars.SONAR_DOPPLER_CONFIG }}
+          doppler_identity_id: ${{ vars.PUB_AUTH_DOPPLER_IDENTITY_ID }}
+          doppler_project: ${{ vars.PUB_AUTH_DOPPLER_PROJECT }}
+          doppler_config: ${{ vars.PUB_AUTH_DOPPLER_CONFIG }}
 
       # 2. Mint the App token + rewrite git@ URLs so pub can resolve the private
       #    event_sourcing deps. App key arrives as masked env vars from step 1.
