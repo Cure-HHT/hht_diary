@@ -26,7 +26,7 @@ DiaryEntryRow _row(
     endTimeUtcOffset: '+00:00',
     intensity: intensity,
   ).toJson();
-  data['updated_at'] = updatedAt;
+  data['updatedAt'] = updatedAt;
   return DiaryEntryRow(
     aggregateId: id,
     entryType: 'epistaxis_event',

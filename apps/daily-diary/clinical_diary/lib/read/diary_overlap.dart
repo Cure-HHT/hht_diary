@@ -8,7 +8,7 @@ import 'package:clinical_diary/read/diary_view.dart';
 
 /// One unresolved overlap: the [preExisting] entry (rendered on the LEFT) and
 /// the [justTouched] entry (rendered on the RIGHT). "Just touched" is the row
-/// with the later `updated_at`; ties break on `aggregateId`.
+/// with the later `updatedAt`; ties break on `aggregateId`.
 class OverlapPair {
   const OverlapPair({required this.preExisting, required this.justTouched});
   final EpistaxisEntryView preExisting;
@@ -80,11 +80,13 @@ List<OverlapPair> overlapPairs(DiaryView view) {
 }
 
 /// The entry's last-event timestamp, read from the materialized view row's
-/// `updated_at` field (snake_case, emitted by the library's `DiaryEntry.toJson`
-/// via `DiaryEntriesMaterializer`). Falls back to epoch on a missing/malformed
-/// value — not expected on a well-formed row, where it sorts the row as oldest.
+/// `updatedAt` field (camelCase — stamped by the library's `AggregateFold`,
+/// which materializes the diary_entries `AggregateProjectionSpec`; verified
+/// against real rows by `test/scope/diary_overlap_resolution_test.dart`). Falls
+/// back to epoch on a missing/malformed value — not expected on a well-formed
+/// row, where it would sort the row as oldest.
 DateTime _updatedAt(EpistaxisEntryView v) {
-  final raw = v.row.data['updated_at'];
+  final raw = v.row.data['updatedAt'];
   if (raw is String) {
     final parsed = DateTime.tryParse(raw);
     if (parsed != null) return parsed;

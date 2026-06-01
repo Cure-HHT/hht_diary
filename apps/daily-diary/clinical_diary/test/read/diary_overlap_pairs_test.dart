@@ -6,7 +6,7 @@ import 'package:clinical_diary/read/diary_view.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// A finalized epistaxis row with an explicit `updated_at` recency stamp.
+/// A finalized epistaxis row with an explicit `updatedAt` recency stamp.
 DiaryEntryRow _ep(
   String id,
   String start,
@@ -21,7 +21,7 @@ DiaryEntryRow _ep(
     endTimeZone: end == null ? null : 'UTC',
     endTimeUtcOffset: end == null ? null : '+00:00',
   ).toJson();
-  data['updated_at'] = updatedAt;
+  data['updatedAt'] = updatedAt;
   return DiaryEntryRow(
     aggregateId: id,
     entryType: 'epistaxis_event',
@@ -80,7 +80,7 @@ void main() {
       aggregateId: 'm',
       entryType: 'no_epistaxis_event',
       data: const DayMarkerPayload(date: '2025-10-15').toJson()
-        ..['updated_at'] = '2025-10-15T13:30:00.000Z',
+        ..['updatedAt'] = '2025-10-15T13:30:00.000Z',
     );
     final view = _view([
       _ep(
@@ -139,7 +139,31 @@ void main() {
     expect(keys, {'a-b', 'b-c'});
   });
 
-  test('equal updated_at breaks deterministically on aggregateId', () {
+  test('orders by updatedAt, not aggregateId', () {
+    // 'zzz' was touched EARLIER than 'aaa', so 'zzz' is preExisting even though
+    // its id sorts AFTER 'aaa'. This guards the recency-key read: if the wrong
+    // key were read both rows collapse to epoch and the tie-break on id would
+    // (wrongly) make 'aaa' preExisting.
+    final view = _view([
+      _ep(
+        'zzz',
+        '2025-10-15T13:00:00.000Z',
+        '2025-10-15T14:00:00.000Z',
+        updatedAt: '2025-10-15T14:00:00.000Z',
+      ),
+      _ep(
+        'aaa',
+        '2025-10-15T13:30:00.000Z',
+        '2025-10-15T13:45:00.000Z',
+        updatedAt: '2025-10-15T16:00:00.000Z',
+      ),
+    ]);
+    final pair = overlapPairs(view).single;
+    expect(pair.preExisting.aggregateId, 'zzz');
+    expect(pair.justTouched.aggregateId, 'aaa');
+  });
+
+  test('equal updatedAt breaks deterministically on aggregateId', () {
     // Same recency: the lexicographically smaller id is preExisting (left),
     // the larger is justTouched (right). Order of insertion does not matter.
     final view = _view([
