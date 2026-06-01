@@ -7,10 +7,9 @@
 // deletion past the Lock Threshold is enforced at the submission-boundary guard
 // (sponsor config + trial-start + now), not in this pure Action.
 //
-// NOTE (cross-wire vocabulary gap): the frozen changeReason set is
-// {edited, corrected, portal-withdrawn} (D1) — it does not yet name a
-// user-initiated delete reason. Until that is reconciled with the portal, this
-// action only requires a non-empty changeReason rather than enforcing the set.
+// `changeReason` is validated against the closed `changeReasonWireValues` set
+// (no free text). The user-initiated delete reasons `entered-in-error` and
+// `duplicate` are part of that set (the latter backs overlap resolution).
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 

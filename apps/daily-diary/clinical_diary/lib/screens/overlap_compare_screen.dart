@@ -54,9 +54,16 @@ class _OverlapCompareScreenState extends State<OverlapCompareScreen> {
 
   void _popResolved() {
     if (_popped) return;
-    _popped = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) Navigator.of(context).maybePop();
+      if (!mounted) return;
+      // Only pop if WE are the current route. An Edit RecordingScreen may be
+      // pushed on top of this one; a resolving emission that arrives while it
+      // is up must NOT pop that child out from under the user. Latch only once
+      // we actually pop, so the pop is retried on a later build (once the Edit
+      // route has been dismissed and this screen is current again).
+      if (ModalRoute.of(context)?.isCurrent != true) return;
+      _popped = true;
+      Navigator.of(context).maybePop();
     });
   }
 

@@ -1,4 +1,6 @@
 // Verifies: DIARY-GUI-entry-overlap-resolution/A+B+C+D
+import 'dart:async';
+
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
@@ -225,4 +227,85 @@ void main() {
     expect(find.byKey(const Key('overlap-merge')), findsNothing);
     expect(find.text('open'), findsOneWidget);
   });
+
+  testWidgets(
+    'does not pop a child route pushed on top when resolved underneath',
+    (tester) async {
+      // An Edit RecordingScreen is pushed on top of the compare screen. If a
+      // resolving emission arrives while it is up, the compare screen must NOT
+      // pop that child route out from under the user.
+      final navKey = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        ReActionScope(
+          scope: fake,
+          child: MaterialApp(
+            navigatorKey: navKey,
+            home: Builder(
+              builder: (host) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(host).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const OverlapCompareScreen(
+                          leftId: 'older',
+                          rightId: 'newer',
+                        ),
+                      ),
+                    ),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      seed([
+        _row(
+          'older',
+          '2025-10-15T13:00:00.000Z',
+          '2025-10-15T14:00:00.000Z',
+          NosebleedIntensity.dripping,
+          updatedAt: '2025-10-15T14:00:00.000Z',
+        ),
+        _row(
+          'newer',
+          '2025-10-15T13:30:00.000Z',
+          '2025-10-15T13:45:00.000Z',
+          NosebleedIntensity.gushing,
+          updatedAt: '2025-10-15T15:00:00.000Z',
+        ),
+      ]);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('overlap-merge')), findsOneWidget);
+
+      // Push a route ON TOP of the compare screen (stands in for the Edit
+      // RecordingScreen the compare screen would push).
+      unawaited(
+        navKey.currentState!.push(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                const Scaffold(body: Center(child: Text('child-on-top'))),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('child-on-top'), findsOneWidget);
+
+      // Resolve the pair underneath while the child route is on top.
+      fake.emitViewUpdate<DiaryEntryRow>(
+        diaryEntriesViewName,
+        const Tombstone<DiaryEntryRow>(aggregateId: 'newer', sequence: 1),
+      );
+      await tester.pumpAndSettle();
+
+      // The child route MUST still be on top — not popped out from under the
+      // user by the compare screen's auto-pop.
+      expect(find.text('child-on-top'), findsOneWidget);
+    },
+  );
 }
