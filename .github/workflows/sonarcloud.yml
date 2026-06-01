@@ -11,13 +11,14 @@
 #
 # SONAR_TOKEN is fetched from Doppler via OIDC (no static GitHub secret), per the
 # org identity-over-keys convention; doppler-oidc-auth injects it as a masked
-# env var that the scanner reads automatically.
+# env var that the scanner reads automatically. It lives once in admin/prod (the
+# shared home, like the ops-bot App key) — it is a Cure-HHT-wide "Execute
+# Analysis" Global token, not env-specific, so admin/prod is hardcoded here.
 #
 # PREREQUISITES (admin, do once):
-#   1. SONAR_TOKEN present in the Doppler (project, config) targeted by the
-#      SONAR_DOPPLER_* repo vars, and that OIDC identity authorized for hht_diary
-#      CI + that project. (Generate the token in SonarCloud -> My Account ->
-#      Security, ideally a project-scoped token from a bot account.)
+#   1. Set the ADMIN_DOPPLER_IDENTITY_ID repo var to the Doppler OIDC identity
+#      that accepts hht_diary CI as a source and can read admin/prod. (SONAR_TOKEN
+#      already lives in admin/prod.)
 #   2. Disable "Automatic Analysis" in the SonarCloud project (Administration ->
 #      Analysis Method) — CI analysis is rejected while it is on.
 name: SonarCloud
@@ -44,9 +45,9 @@ jobs:
       # Fetch SONAR_TOKEN from Doppler via OIDC -> masked env var for later steps.
       - uses: Cure-HHT/hht_workflows/.github/actions/doppler-oidc-auth@main
         with:
-          doppler_identity_id: ${{ vars.SONAR_DOPPLER_IDENTITY_ID }}
-          doppler_project: ${{ vars.SONAR_DOPPLER_PROJECT }}
-          doppler_config: ${{ vars.SONAR_DOPPLER_CONFIG }}
+          doppler_identity_id: ${{ vars.ADMIN_DOPPLER_IDENTITY_ID }}
+          doppler_project: admin
+          doppler_config: prod
 
       - uses: subosito/flutter-action@v2
         with:
