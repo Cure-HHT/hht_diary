@@ -286,7 +286,7 @@
 - DIARY-PRD-user-account-deactivate-D
 - DIARY-PRD-user-account-deactivate-F
 - DIARY-PRD-user-account-reactivate-D
-- DIARY-DEV-shared-events-catalog:section:0
+- DIARY-DEV-shared-events-catalog:section:1
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-PRD-entry-time-restrictions:section:4
 - DIARY-GUI-epistaxis-delete:section:3
@@ -609,7 +609,7 @@
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-local-participant-authorization:section:1
 - DIARY-DEV-inbound-event-on-receipt:section:0
-- DIARY-DEV-shared-events-catalog:section:0
+- DIARY-DEV-shared-events-catalog:section:1
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
 - DIARY-OPS-single-promotable-artifact:section:1
@@ -1508,7 +1508,7 @@
 - DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-local-participant-authorization:section:1
-- DIARY-DEV-shared-events-catalog:section:0
+- DIARY-DEV-shared-events-catalog:section:1
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
@@ -1937,7 +1937,7 @@
 - DIARY-PRD-questionnaire-score-calculation-C
 - DIARY-PRD-score-hht-qol-A
 - DIARY-PRD-score-nose-hht-A
-- DIARY-DEV-shared-events-catalog:section:0
+- DIARY-DEV-shared-events-catalog:section:1
 - rem:spec/prd-common-ui.md:7
 - DIARY-GUI-calendar-day-view:section:7
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0

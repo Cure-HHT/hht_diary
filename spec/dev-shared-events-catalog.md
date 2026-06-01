@@ -2,6 +2,7 @@
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-mobile-offline-first
+**Integrates**: EVS-PRD-event-log
 
 ## Assertions
 
