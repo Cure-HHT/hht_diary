@@ -1,5 +1,6 @@
 // Implements: DIARY-PRD-action-inventory/A+B
 // Implements: DIARY-DEV-shared-events-catalog/A
+// Implements: DIARY-DEV-user-account-projection/B
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../portal_permissions.dart';
@@ -83,6 +84,7 @@ class DeactivateUserAccountAction
         data: <String, Object?>{
           'reason': input.reason,
           'deactivated_by': ctx.principal.id,
+          'status': 'revoked',
         },
       ),
       EventDraft(

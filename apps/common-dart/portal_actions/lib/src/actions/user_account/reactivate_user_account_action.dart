@@ -1,5 +1,6 @@
 // Implements: DIARY-PRD-action-inventory/A
 // Implements: DIARY-DEV-shared-events-catalog/D
+// Implements: DIARY-DEV-user-account-projection/B
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../flow_token_minter.dart';
@@ -102,6 +103,7 @@ class ReactivateUserAccountAction
           data: <String, Object?>{
             'reason': input.reason,
             'by': ctx.principal.id,
+            'status': 'pending',
           },
         ),
         EventDraft(

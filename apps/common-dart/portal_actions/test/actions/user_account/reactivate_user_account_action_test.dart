@@ -85,6 +85,16 @@ void main() {
       expect(ft0, ft1);
       expect(result.events[0].data['reason'], 'returned to study');
       expect(result.events[0].data['by'], 'admin-1');
+      // user_reactivated carries explicit status for users_index merge
+      final reactivated = result.events.firstWhere(
+        (e) => e.entryType == 'user_reactivated',
+      );
+      expect(reactivated.data['status'], 'pending');
+      // user_activation_code_issued must NOT carry a status fact
+      final code = result.events.firstWhere(
+        (e) => e.entryType == 'user_activation_code_issued',
+      );
+      expect(code.data.containsKey('status'), isFalse);
       expect(result.events[1].data['reissue'], false);
       expect(result.events[1].data['expires_at'], '2026-12-01T00:00:00Z');
       expect(result.events[1].data['issued_by'], 'admin-1');

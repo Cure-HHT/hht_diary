@@ -74,6 +74,11 @@ void main() {
       expect(result.events.first.data['reason'], 'left study');
       expect(result.events.first.data['deactivated_by'], 'admin-1');
       expect(result.events[1].data['reason_kind'], 'deactivated');
+      // user_deactivated carries explicit status for users_index merge
+      final deactivated = result.events.firstWhere(
+        (e) => e.entryType == 'user_deactivated',
+      );
+      expect(deactivated.data['status'], 'revoked');
     },
   );
 

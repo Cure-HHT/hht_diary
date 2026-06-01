@@ -127,6 +127,16 @@ void main() {
       expect(result.events[0].aggregateId, 'alice@example.com');
       expect(result.events[0].data['roles'], <String>['Admin', 'Viewer']);
       expect(result.events[0].data['created_by'], 'admin-1');
+      // user_created carries explicit status for users_index merge
+      final created = result.events.firstWhere(
+        (e) => e.entryType == 'user_created',
+      );
+      expect(created.data['status'], 'pending');
+      // user_activation_code_issued must NOT carry a status fact
+      final code = result.events.firstWhere(
+        (e) => e.entryType == 'user_activation_code_issued',
+      );
+      expect(code.data.containsKey('status'), isFalse);
       // user_activation_code_issued fields
       expect(result.events[1].data['reissue'], false);
       expect(result.events[1].data['issued_by'], 'admin-1');
