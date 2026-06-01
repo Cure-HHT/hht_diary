@@ -25,6 +25,10 @@ final List<EntryTypeDefinition> portalPrivateEventTypes = <EntryTypeDefinition>[
   _e('user_login_otp_issued', 'User Login OTP Issued'),
   _e('user_login_otp_verified', 'User Login OTP Verified'),
   _e('user_login_otp_failed', 'User Login OTP Failed'),
+  // 4.4 session
+  _e('session_started', 'Session Started'),
+  _e('session_terminated', 'Session Terminated'),
+  _e('session_active_role_changed', 'Session Active Role Changed'),
   // 4.3 rbac
   _e('permission_registered', 'Permission Registered'),
   _e('role_permission_granted', 'Role Permission Granted'),

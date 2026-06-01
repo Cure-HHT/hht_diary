@@ -85,6 +85,26 @@ final AggregateProjectionSpec usersIndexSpec = AggregateProjectionSpec(
   tombstoneEventTypes: const {'user_deleted'},
 );
 
+// Implements: DIARY-DEV-portal-session-token/A+B — sessions_index folds the
+//   session lifecycle into one row per session (keyed by the session id).
+//   session_started seeds {user_id, active_role, started_at};
+//   session_active_role_changed key-wise overwrites active_role;
+//   session_terminated tombstones the row so the validator sees only live
+//   sessions.
+// Implements: DIARY-DEV-portal-active-role-switch/A
+final AggregateProjectionSpec sessionsIndexSpec = AggregateProjectionSpec(
+  viewName: 'sessions_index',
+  interest: const SubscriptionFilter(
+    aggregateTypes: {'session'},
+    eventTypes: {
+      'session_started',
+      'session_active_role_changed',
+      'session_terminated',
+    },
+  ),
+  tombstoneEventTypes: const {'session_terminated'},
+);
+
 // Implements: DIARY-DEV-rave-edc-ingest/C — rave_sync_status folds the rave_sync
 //   lockout events into one row; counter-affecting events carry the authoritative
 //   consecutive_auth_failures so the merge yields a correct running counter.

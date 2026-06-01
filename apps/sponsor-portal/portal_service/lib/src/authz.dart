@@ -76,6 +76,7 @@ Future<EventStore> openPortalEventStore({
     ..register(sitesIndexSpec)
     ..register(participantRecordSpec)
     ..register(usersIndexSpec)
+    ..register(sessionsIndexSpec)
     ..register(raveSyncStatusSpec);
 
   final bundle = await bootstrapEventStore(
