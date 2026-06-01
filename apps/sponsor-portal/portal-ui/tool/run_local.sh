@@ -108,10 +108,11 @@ APP_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
 
 
 
-# Run Flutter with local flavor
-# APP_FLAVOR=local enables Firebase emulator connection
+# Run Flutter against the local stack.
+# Setting FIREBASE_AUTH_EMULATOR_HOST puts the app in local (emulator) mode —
+# the environment is no longer a build flavor. Deployed builds set no emulator
+# host and discover their environment from the server's runtime config.
 flutter run -d "$DEVICE" \
-    --dart-define=APP_FLAVOR=local \
     --dart-define=APP_VERSION="$APP_VERSION" \
     --dart-define=PORTAL_API_URL="$PORTAL_API_URL" \
     --dart-define=FIREBASE_AUTH_EMULATOR_HOST="${FIREBASE_HOST}:${FIREBASE_PORT}" \

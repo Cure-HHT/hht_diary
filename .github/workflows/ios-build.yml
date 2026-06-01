@@ -130,16 +130,13 @@ jobs:
         env:
           FLAVOR: ${{ steps.inputs.outputs.flavor }}
         run: |
-          case "$FLAVOR" in
-            dev)  ID="org.anspar.curehht.app.dev"  ;;
-            qa)   ID="org.anspar.curehht.app.qa"   ;;
-            uat)  ID="org.anspar.curehht.app.uat"  ;;
-            prod) ID="org.anspar.curehht.app"      ;;
-            *)
-              echo "::error::Unknown flavor: $FLAVOR"
-              exit 1
-              ;;
-          esac
+          # Single source of truth: apps/daily-diary/clinical_diary/flavorizr.yaml.
+          # ubuntu-latest has yq preinstalled at /usr/bin/yq.
+          ID=$(yq -r ".flavors.${FLAVOR}.ios.bundleId" apps/daily-diary/clinical_diary/flavorizr.yaml)
+          if [ -z "$ID" ] || [ "$ID" = "null" ]; then
+            echo "::error::Unknown flavor: $FLAVOR (not in flavorizr.yaml or has no ios.bundleId)"
+            exit 1
+          fi
           echo "identifier=$ID" >> "$GITHUB_OUTPUT"
           echo "App identifier for flavor '$FLAVOR': $ID"
 
@@ -435,10 +432,11 @@ jobs:
           DEPLOYMENT_TARGET: ${{ needs.gate.outputs.deployment }}
           RELEASE_NOTES: ${{ inputs.release_notes }}
         run: |
+          # Parametric Fastlane lane (replaces the deleted build_<env> wrappers).
           doppler run \
             --project "$DOPPLER_PROJECT" \
             --config "$FLAVOR" \
-            -- bundle exec fastlane "build_${FLAVOR}"
+            -- bundle exec fastlane build "flavor:${FLAVOR}"
 
       - name: Upload IPA artifact
         id: upload-artifact

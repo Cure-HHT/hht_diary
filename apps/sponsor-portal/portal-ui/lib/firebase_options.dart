@@ -3,18 +3,18 @@
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //
 // Firebase configuration for sponsor portal
-// Uses FlavorConfig for environment-specific settings
+// Uses AppConfig for runtime-fetched Firebase credentials
 
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
-import 'flavors.dart';
+import 'config/app_config.dart';
 
 /// Firebase configuration options
 ///
-/// Gets configuration values from FlavorConfig which is initialized
-/// based on the current flavor (local, dev, qa, uat, prod).
+/// Gets configuration values from AppConfig, which is initialized at runtime
+/// from the server-provided config (or emulator placeholders for local-stack).
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -39,9 +39,9 @@ class DefaultFirebaseOptions {
     }
   }
 
-  /// Web configuration - reads from FlavorConfig
+  /// Web configuration - reads from AppConfig
   static FirebaseOptions get web {
-    final values = FlavorConfig.values;
+    final values = AppConfig.values;
     return FirebaseOptions(
       apiKey: values.firebaseApiKey,
       appId: values.firebaseAppId,
@@ -51,13 +51,13 @@ class DefaultFirebaseOptions {
     );
   }
 
-  /// Apple platform configuration (macOS/iOS) - reads from FlavorConfig
+  /// Apple platform configuration (macOS/iOS) - reads from AppConfig
   ///
   /// The native Firebase SDK on Apple platforms requires an Apple-format
   /// app ID (`:ios:` instead of `:web:`). All other credentials are
   /// project-level and identical across platforms.
   static FirebaseOptions get apple {
-    final values = FlavorConfig.values;
+    final values = AppConfig.values;
     // Convert web app ID format to Apple format for native SDK compatibility
     final appleAppId = values.firebaseAppId.replaceFirst(':web:', ':ios:');
     return FirebaseOptions(

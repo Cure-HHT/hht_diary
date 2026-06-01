@@ -278,6 +278,7 @@
 - DIARY-PRD-user-account-deactivate-D
 - DIARY-PRD-user-account-deactivate-F
 - DIARY-PRD-user-account-reactivate-D
+- DIARY-DEV-shared-events-catalog:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-PRD-entry-time-restrictions:section:4
 - DIARY-GUI-epistaxis-delete:section:3
@@ -527,6 +528,7 @@
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
 - DIARY-DEV-runtime-environment-resolution-D
+- DIARY-DEV-shared-events-catalog-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
 - DIARY-PRD-entry-overlap-resolution-E
@@ -565,6 +567,7 @@
 - DIARY-GUI-administrator-dashboard-C
 - DIARY-GUI-administrator-dashboard-E
 - DIARY-GUI-administrator-dashboard-F
+- DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
 - DIARY-OPS-single-promotable-artifact:section:1
@@ -1095,6 +1098,7 @@
 
 - DIARY-PRD-mobile-application
 - DIARY-GUI-mobile-navigation
+- DIARY-DEV-runtime-environment-resolution-A
 - DIARY-OPS-single-promotable-artifact-C
 - DIARY-PRD-mobile-application-A
 - DIARY-PRD-mobile-application-B
@@ -1427,6 +1431,7 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-OPS-rave-sync-cooldown-D
 - DIARY-OPS-rave-sync-hard-lockout-B
+- DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
@@ -1851,6 +1856,7 @@
 - DIARY-PRD-questionnaire-score-calculation-C
 - DIARY-PRD-score-hht-qol-A
 - DIARY-PRD-score-nose-hht-A
+- DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/prd-common-ui.md:7
 - DIARY-GUI-calendar-day-view:section:7
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
@@ -2136,6 +2142,7 @@
 - DIARY-PRD-session-management
 - DIARY-PRD-questionnaire-session-timeout
 - DIARY-GUI-questionnaire-session-expiry
+- DIARY-DEV-shared-events-catalog-D
 - DIARY-PRD-session-management-A
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-D
@@ -2290,6 +2297,8 @@
 
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
+- DIARY-OPS-fcm-project-routing-A
+- DIARY-OPS-fcm-project-routing-D
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G

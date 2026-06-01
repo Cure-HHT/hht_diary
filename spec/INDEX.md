@@ -131,6 +131,7 @@
 | DIARY-OPS-baseline-generated         | Consolidated Baseline Is Built, Not Hand-Shipped | ops-schema-migration.md    | 364bac4d |
 | DIARY-OPS-ci-migration-gate          | CI Migration Soundness Gate                      | ops-schema-migration.md    | aa6d3750 |
 | DIARY-OPS-db-reset-non-prod          | Database Reset Is Manual And Non-Production      | ops-schema-migration.md    | bc7f6fc8 |
+| DIARY-OPS-fcm-project-routing        | FCM Project Routing                              | ops-push-notifications.md  | b650c1cb |
 | DIARY-OPS-rave-alert-notification    | Rave Lockout Operator Alerting                   | prd-rave-sync.md           | 0925f7b5 |
 | DIARY-OPS-rave-sync-cooldown         | Rave Sync Cooldown After Auth Failure            | prd-rave-sync.md           | 2d1cf77c |
 | DIARY-OPS-rave-sync-hard-lockout     | Rave Sync Hard Lockout After Repeated Failures   | prd-rave-sync.md           | 5c2f7d7c |
@@ -143,5 +144,6 @@
 | ID                                         | Title                                      | File                          | Hash     |
 | ------------------------------------------ | ------------------------------------------ | ----------------------------- | -------- |
 | DIARY-DEV-rave-auth-failure-classification | Rave Authentication Failure Classification | prd-rave-sync.md              | f2732c70 |
-| DIARY-DEV-runtime-environment-resolution   | Runtime Environment Resolution             | dev-environment-resolution.md | 32fa8cf9 |
+| DIARY-DEV-runtime-environment-resolution   | Runtime Environment Resolution             | dev-environment-resolution.md | b0c74776 |
 | DIARY-DEV-schema-version-check             | Runtime Schema Version Check               | dev-schema-version-check.md   | 260cb67b |
+| DIARY-DEV-shared-events-catalog            | Shared Cross-Wire Event Catalog            | dev-shared-events-catalog.md  | b157403e |
