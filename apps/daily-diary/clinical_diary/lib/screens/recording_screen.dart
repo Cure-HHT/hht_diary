@@ -354,16 +354,23 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// required start fields are always present; the optional end/intensity keys
   /// are omitted when unset so a checkpoint can carry just the start.
   Map<String, Object?> _buildPayload() {
+    // When the participant hasn't explicitly picked a zone, the entry is in the
+    // DEVICE's zone — store that IANA name, NOT 'UTC'. The stored offset comes
+    // from the device-local _startDateTime, so a 'UTC' name here would disagree
+    // with the offset (e.g. zone 'UTC' + offset '-07:00') and the renderer would
+    // mis-relabel the wall-clock.
+    final deviceZone = TimezoneService.instance.currentTimezone ?? 'UTC';
     final startIso = DateTimeFormatter.format(_startDateTime);
     final payload = <String, Object?>{
       'startTime': startIso,
-      'startTimeZone': _startTimeTimezone ?? 'UTC',
+      'startTimeZone': _startTimeTimezone ?? deviceZone,
       'startTimeUtcOffset': _utcOffsetOf(startIso, _startTimeTimezone),
     };
     if (_endDateTime != null) {
       final endIso = DateTimeFormatter.format(_endDateTime!);
       payload['endTime'] = endIso;
-      payload['endTimeZone'] = _endTimeTimezone ?? _startTimeTimezone ?? 'UTC';
+      payload['endTimeZone'] =
+          _endTimeTimezone ?? _startTimeTimezone ?? deviceZone;
       payload['endTimeUtcOffset'] = _utcOffsetOf(endIso, _endTimeTimezone);
     }
     if (_intensity != null) {

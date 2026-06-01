@@ -25,9 +25,19 @@ class EpistaxisEntryView extends DiaryEntryView {
   EpistaxisEntryView(super.row, {required super.isComplete})
     : _payload = EpistaxisEventPayload.fromJson(row.data);
   final EpistaxisEventPayload _payload;
-  DateTime get startTime => DateTime.parse(_payload.startTime);
-  DateTime? get endTime =>
-      _payload.endTime == null ? null : DateTime.parse(_payload.endTime!);
+
+  /// The start as a **device-local** `DateTime` (the app's "stored DateTime"
+  /// form). The stored ISO string carries an offset, so `DateTime.parse` returns
+  /// a UTC instant; `.toLocal()` converts it to the device-local representation
+  /// that the renderer (`EventListItem` via `TimezoneConverter.toDisplayedDateTime`)
+  /// and the recording-screen edit-init both expect. Without it, display + edit
+  /// are shifted by the device's UTC offset (correct only when the device is
+  /// itself UTC). `.toLocal()` preserves the instant, so interval/duration
+  /// comparisons are unaffected.
+  DateTime get startTime => DateTime.parse(_payload.startTime).toLocal();
+  DateTime? get endTime => _payload.endTime == null
+      ? null
+      : DateTime.parse(_payload.endTime!).toLocal();
   String get startTimeZone => _payload.startTimeZone;
   String? get endTimeZone => _payload.endTimeZone;
   NosebleedIntensity? get intensity => _payload.intensity;

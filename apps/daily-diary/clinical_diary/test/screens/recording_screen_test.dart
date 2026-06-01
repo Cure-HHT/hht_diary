@@ -13,6 +13,7 @@
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/intensity_picker.dart';
@@ -222,6 +223,34 @@ void main() {
         expect(s.rawInput.containsKey('aggregateId'), isFalse);
       },
     );
+
+    // A fresh entry (no explicit zone picked) must store the DEVICE's IANA zone
+    // name — never 'UTC' — so the stored zone agrees with the stored offset.
+    // Storing 'UTC' for a non-UTC device makes the renderer mis-relabel the
+    // wall-clock (the "5:20 PM UTC/PDT" class of bug).
+    testWidgets('fresh entry stores the device IANA zone, not UTC', (
+      tester,
+    ) async {
+      TimezoneService.instance.testTimezoneOverride = 'America/Los_Angeles';
+      addTearDown(() => TimezoneService.instance.testTimezoneOverride = null);
+
+      await pumpScreen(tester);
+      await tester.tap(find.text('Set Start Time'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(IntensityPicker),
+          matching: find.text('Dripping'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Set End Time'));
+      await tester.pump();
+
+      final s = submissionFor('record_epistaxis_event');
+      expect(s.rawInput['startTimeZone'], 'America/Los_Angeles');
+      expect(s.rawInput['endTimeZone'], 'America/Los_Angeles');
+    });
 
     testWidgets(
       'Complete a resumed draft -> edit_epistaxis_event on the same aggregateId',

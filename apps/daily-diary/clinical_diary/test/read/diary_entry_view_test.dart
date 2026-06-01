@@ -25,8 +25,18 @@ void main() {
         ),
         isComplete: true,
       );
-      expect(v.startTime, DateTime.parse('2025-10-15T22:00:00.000-05:00'));
-      expect(v.endTime, DateTime.parse('2025-10-16T00:30:00.000-05:00'));
+      // startTime/endTime are the device-local form of the stored instant (so
+      // the renderer + edit-init, which expect device-local, are correct). Same
+      // moment, device-local kind.
+      expect(
+        v.startTime,
+        DateTime.parse('2025-10-15T22:00:00.000-05:00').toLocal(),
+      );
+      expect(v.startTime.isUtc, isFalse);
+      expect(
+        v.endTime,
+        DateTime.parse('2025-10-16T00:30:00.000-05:00').toLocal(),
+      );
       expect(v.startTimeZone, 'America/New_York');
       expect(v.intensity, NosebleedIntensity.pouring);
       expect(v.durationMinutes, 150);
