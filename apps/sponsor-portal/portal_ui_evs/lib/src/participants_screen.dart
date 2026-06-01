@@ -50,13 +50,14 @@ class _P {
   final String? linkingCode;
 
   static _P fromRow(Map<String, Object?> row) => _P(
-        id: (row['aggregateId'] as String?) ??
-            (row['participant_id'] as String?) ??
-            '?',
-        siteId: (row['site_id'] as String?) ?? '?',
-        status: statusFromEntryType(row['entryType'] as String?),
-        linkingCode: row['linking_code'] as String?,
-      );
+    id:
+        (row['aggregateId'] as String?) ??
+        (row['participant_id'] as String?) ??
+        '?',
+    siteId: (row['site_id'] as String?) ?? '?',
+    status: statusFromEntryType(row['entryType'] as String?),
+    linkingCode: row['linking_code'] as String?,
+  );
 }
 
 /// Generates a short uppercase alphanumeric client-side linking code.
@@ -146,56 +147,54 @@ class ParticipantsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PermissionGate(
-        permission: _viewPerm,
-        fallback: const Center(
-          child: Text("You don't have permission to view participants."),
-        ),
-        child: ViewBuilder<_P>(
-          viewName: 'participant_record',
-          mapper: _P.fromRow,
-          aggregateIdOf: (p) => p.id,
-          builder: (context, state) {
-            final rows = switch (state) {
-              Loading<_P>() => const <_P>[],
-              Ready<_P>(:final rows) => rows,
-              Stale<_P>(:final lastRows) => lastRows,
-            };
-            if (state is Loading<_P>) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (rows.isEmpty) {
-              return const Center(
-                child: Text('(no participants synced yet)'),
-              );
-            }
-            return ListView(
-              children: <Widget>[
-                for (final p in rows)
-                  ExpansionTile(
-                    title: Text(p.id),
-                    subtitle: Text('site ${p.siteId} · ${p.status.label}'),
-                    children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: <Widget>[
-                            for (final action in ParticipantAction.values)
-                              _ParticipantActionButton(
-                                participant: p,
-                                action: action,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
+    permission: _viewPerm,
+    fallback: const Center(
+      child: Text("You don't have permission to view participants."),
+    ),
+    child: ViewBuilder<_P>(
+      viewName: 'participant_record',
+      mapper: _P.fromRow,
+      aggregateIdOf: (p) => p.id,
+      builder: (context, state) {
+        final rows = switch (state) {
+          Loading<_P>() => const <_P>[],
+          Ready<_P>(:final rows) => rows,
+          Stale<_P>(:final lastRows) => lastRows,
+        };
+        if (state is Loading<_P>) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (rows.isEmpty) {
+          return const Center(child: Text('(no participants synced yet)'));
+        }
+        return ListView(
+          children: <Widget>[
+            for (final p in rows)
+              ExpansionTile(
+                title: Text(p.id),
+                subtitle: Text('site ${p.siteId} · ${p.status.label}'),
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        for (final action in ParticipantAction.values)
+                          _ParticipantActionButton(
+                            participant: p,
+                            action: action,
+                          ),
+                      ],
+                    ),
                   ),
-              ],
-            );
-          },
-        ),
-      );
+                ],
+              ),
+          ],
+        );
+      },
+    ),
+  );
 }
 
 /// One lifecycle-action button. Enabled iff enabledActions(status) permits the
@@ -219,10 +218,7 @@ class _ParticipantActionButton extends StatelessWidget {
     if (!permitted) {
       return Tooltip(
         message: _kDisabledTooltip,
-        child: OutlinedButton(
-          onPressed: null,
-          child: Text(action.label),
-        ),
+        child: OutlinedButton(onPressed: null, child: Text(action.label)),
       );
     }
 

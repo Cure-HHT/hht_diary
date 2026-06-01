@@ -47,17 +47,16 @@ enum ParticipantAction {
 ///
 /// Implements: DIARY-DEV-participant-status-projection/B
 ParticipantStatus statusFromEntryType(String? entryType) => switch (entryType) {
-      'participant_synced_from_edc' => ParticipantStatus.notConnected,
-      'participant_linking_code_issued' => ParticipantStatus.pending,
-      'participant_linked' => ParticipantStatus.connected,
-      'participant_trial_started' => ParticipantStatus.trialActive,
-      'participant_disconnected' => ParticipantStatus.disconnected,
-      'participant_reconnected' => ParticipantStatus.pending,
-      'participant_marked_not_participating' =>
-        ParticipantStatus.notParticipating,
-      'participant_reactivated' => ParticipantStatus.pending,
-      _ => ParticipantStatus.unknown,
-    };
+  'participant_synced_from_edc' => ParticipantStatus.notConnected,
+  'participant_linking_code_issued' => ParticipantStatus.pending,
+  'participant_linked' => ParticipantStatus.connected,
+  'participant_trial_started' => ParticipantStatus.trialActive,
+  'participant_disconnected' => ParticipantStatus.disconnected,
+  'participant_reconnected' => ParticipantStatus.pending,
+  'participant_marked_not_participating' => ParticipantStatus.notParticipating,
+  'participant_reactivated' => ParticipantStatus.pending,
+  _ => ParticipantStatus.unknown,
+};
 
 /// The legal lifecycle actions for a participant in [status]. This is the
 /// state machine: a button is enabled iff it is in the returned set.
@@ -68,19 +67,19 @@ Set<ParticipantAction> enabledActions(ParticipantStatus status) =>
       ParticipantStatus.notConnected => {ParticipantAction.issueLinkingCode},
       ParticipantStatus.pending => {ParticipantAction.showCode},
       ParticipantStatus.connected => {
-          ParticipantAction.startTrial,
-          ParticipantAction.disconnect,
-          ParticipantAction.showCode,
-        },
+        ParticipantAction.startTrial,
+        ParticipantAction.disconnect,
+        ParticipantAction.showCode,
+      },
       ParticipantStatus.trialActive => {
-          ParticipantAction.disconnect,
-          ParticipantAction.showCode,
-        },
+        ParticipantAction.disconnect,
+        ParticipantAction.showCode,
+      },
       ParticipantStatus.disconnected => {
-          ParticipantAction.reconnect,
-          ParticipantAction.markNotParticipating,
-          ParticipantAction.showCode,
-        },
+        ParticipantAction.reconnect,
+        ParticipantAction.markNotParticipating,
+        ParticipantAction.showCode,
+      },
       ParticipantStatus.notParticipating => {ParticipantAction.reactivate},
       ParticipantStatus.unknown => <ParticipantAction>{},
     };

@@ -16,11 +16,14 @@ void main() {
       UserAction.resendActivation,
       UserAction.deletePending,
       UserAction.deactivate,
-      UserAction.manageRolesSites
+      UserAction.manageRolesSites,
     });
     expect(enabledUserActions(UserStatus.revoked), {UserAction.reactivate});
-    expect(enabledUserActions(UserStatus.active),
-        {UserAction.edit, UserAction.deactivate, UserAction.manageRolesSites});
+    expect(enabledUserActions(UserStatus.active), {
+      UserAction.edit,
+      UserAction.deactivate,
+      UserAction.manageRolesSites,
+    });
     expect(enabledUserActions(UserStatus.locked), {UserAction.unlock});
     expect(enabledUserActions(UserStatus.unknown), <UserAction>{});
   });
@@ -35,12 +38,14 @@ void main() {
   test('planAssignmentChanges adds site-scoped role per site', () {
     final plan = planAssignmentChanges(
       desired: const [
-        DesiredAssignment(role: 'StudyCoordinator', sites: ['s1', 's2'])
+        DesiredAssignment(role: 'StudyCoordinator', sites: ['s1', 's2']),
       ],
       current: const [],
     );
-    expect(plan.assignSites,
-        [('StudyCoordinator', 's1'), ('StudyCoordinator', 's2')]);
+    expect(plan.assignSites, [
+      ('StudyCoordinator', 's1'),
+      ('StudyCoordinator', 's2'),
+    ]);
     expect(plan.assignRoles, isEmpty);
     expect(plan.revokeSites, isEmpty);
     expect(plan.revokeRoles, isEmpty);
@@ -58,11 +63,11 @@ void main() {
   test('planAssignmentChanges revokes removed site, keeps unchanged', () {
     final plan = planAssignmentChanges(
       desired: const [
-        DesiredAssignment(role: 'StudyCoordinator', sites: ['s1'])
+        DesiredAssignment(role: 'StudyCoordinator', sites: ['s1']),
       ],
       current: const [
         CurrentTuple(role: 'StudyCoordinator', site: 's1'),
-        CurrentTuple(role: 'StudyCoordinator', site: 's2')
+        CurrentTuple(role: 'StudyCoordinator', site: 's2'),
       ],
     );
     expect(plan.assignSites, isEmpty);
@@ -70,8 +75,10 @@ void main() {
   });
 
   group('assignmentSubmissions', () {
-    Object wildcardScopeJsonFor(String role) =>
-        <String, Object?>{'kind': 'wildcard', 'role': role};
+    Object wildcardScopeJsonFor(String role) => <String, Object?>{
+      'kind': 'wildcard',
+      'role': role,
+    };
 
     test('builds assignSite + wildcard assignRole submissions; no keys', () {
       const plan = AssignmentPlan(

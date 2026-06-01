@@ -94,35 +94,35 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
   //   portal.audit.view.
   @override
   Widget build(BuildContext context) => PermissionGate(
-        permission: 'portal.audit.view',
-        fallback: const Center(
-          child: Text("You don't have permission to view the audit log."),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    permission: 'portal.audit.view',
+    fallback: const Center(
+      child: Text("You don't have permission to view the audit log."),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
             children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Text(
-                    'Audit Log',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: 'Refresh',
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _loading ? null : _fetch,
-                  ),
-                ],
+              Text(
+                'Audit Log',
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 8),
-              Expanded(child: _body()),
+              const Spacer(),
+              IconButton(
+                tooltip: 'Refresh',
+                icon: const Icon(Icons.refresh),
+                onPressed: _loading ? null : _fetch,
+              ),
             ],
           ),
-        ),
-      );
+          const SizedBox(height: 8),
+          Expanded(child: _body()),
+        ],
+      ),
+    ),
+  );
 
   // Implements: DIARY-GUI-audit-log-common/A+B+E+H — renders the audit table (Timestamp,
   //   Action, User, Details), in reverse-chronological order as served by the endpoint,

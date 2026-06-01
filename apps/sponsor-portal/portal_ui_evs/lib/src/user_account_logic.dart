@@ -20,12 +20,12 @@ enum UserStatus {
   unknown;
 
   String get label => switch (this) {
-        UserStatus.pending => 'Pending',
-        UserStatus.active => 'Active',
-        UserStatus.revoked => 'Revoked',
-        UserStatus.locked => 'Locked',
-        UserStatus.unknown => 'Unknown',
-      };
+    UserStatus.pending => 'Pending',
+    UserStatus.active => 'Active',
+    UserStatus.revoked => 'Revoked',
+    UserStatus.locked => 'Locked',
+    UserStatus.unknown => 'Unknown',
+  };
 }
 
 enum UserAction {
@@ -35,43 +35,43 @@ enum UserAction {
   deactivate,
   reactivate,
   unlock,
-  manageRolesSites
+  manageRolesSites,
 }
 
 UserStatus statusFromRow(Map<String, Object?> row) => switch (row['status']) {
-      'pending' => UserStatus.pending,
-      'active' => UserStatus.active,
-      'revoked' => UserStatus.revoked,
-      'locked' => UserStatus.locked,
-      _ => UserStatus.unknown,
-    };
+  'pending' => UserStatus.pending,
+  'active' => UserStatus.active,
+  'revoked' => UserStatus.revoked,
+  'locked' => UserStatus.locked,
+  _ => UserStatus.unknown,
+};
 
 Set<UserAction> enabledUserActions(UserStatus s) => switch (s) {
-      UserStatus.pending => {
-          UserAction.edit,
-          UserAction.resendActivation,
-          UserAction.deletePending,
-          UserAction.deactivate,
-          UserAction.manageRolesSites
-        },
-      UserStatus.active => {
-          UserAction.edit,
-          UserAction.deactivate,
-          UserAction.manageRolesSites
-        },
-      UserStatus.revoked => {UserAction.reactivate},
-      UserStatus.locked => {UserAction.unlock},
-      UserStatus.unknown => <UserAction>{},
-    };
+  UserStatus.pending => {
+    UserAction.edit,
+    UserAction.resendActivation,
+    UserAction.deletePending,
+    UserAction.deactivate,
+    UserAction.manageRolesSites,
+  },
+  UserStatus.active => {
+    UserAction.edit,
+    UserAction.deactivate,
+    UserAction.manageRolesSites,
+  },
+  UserStatus.revoked => {UserAction.reactivate},
+  UserStatus.locked => {UserAction.unlock},
+  UserStatus.unknown => <UserAction>{},
+};
 
 enum RoleScopeKind { site, allSites, everything }
 
 RoleScopeKind roleScopeKind(String role) => switch (role) {
-      'StudyCoordinator' || 'CRA' => RoleScopeKind.site,
-      'Administrator' => RoleScopeKind.allSites,
-      'SystemOperator' => RoleScopeKind.everything,
-      _ => RoleScopeKind.site,
-    };
+  'StudyCoordinator' || 'CRA' => RoleScopeKind.site,
+  'Administrator' => RoleScopeKind.allSites,
+  'SystemOperator' => RoleScopeKind.everything,
+  _ => RoleScopeKind.site,
+};
 
 class DesiredAssignment {
   const DesiredAssignment({required this.role, required this.sites});
@@ -149,42 +149,33 @@ List<ActionSubmission> assignmentSubmissions(
   AssignmentPlan plan,
   String userId,
   Object Function(String role) wildcardScopeJsonFor,
-) =>
-    <ActionSubmission>[
-      for (final (role, site) in plan.revokeSites)
-        ActionSubmission(
-          actionName: revokeSiteAction,
-          rawInput: <String, Object?>{
-            'userId': userId,
-            'role': role,
-            'site': site,
-          },
-        ),
-      for (final role in plan.revokeRoles)
-        ActionSubmission(
-          actionName: revokeRoleAction,
-          rawInput: <String, Object?>{
-            'userId': userId,
-            'role': role,
-            'scope': wildcardScopeJsonFor(role),
-          },
-        ),
-      for (final (role, site) in plan.assignSites)
-        ActionSubmission(
-          actionName: assignSiteAction,
-          rawInput: <String, Object?>{
-            'userId': userId,
-            'role': role,
-            'site': site,
-          },
-        ),
-      for (final role in plan.assignRoles)
-        ActionSubmission(
-          actionName: assignRoleAction,
-          rawInput: <String, Object?>{
-            'userId': userId,
-            'role': role,
-            'scope': wildcardScopeJsonFor(role),
-          },
-        ),
-    ];
+) => <ActionSubmission>[
+  for (final (role, site) in plan.revokeSites)
+    ActionSubmission(
+      actionName: revokeSiteAction,
+      rawInput: <String, Object?>{'userId': userId, 'role': role, 'site': site},
+    ),
+  for (final role in plan.revokeRoles)
+    ActionSubmission(
+      actionName: revokeRoleAction,
+      rawInput: <String, Object?>{
+        'userId': userId,
+        'role': role,
+        'scope': wildcardScopeJsonFor(role),
+      },
+    ),
+  for (final (role, site) in plan.assignSites)
+    ActionSubmission(
+      actionName: assignSiteAction,
+      rawInput: <String, Object?>{'userId': userId, 'role': role, 'site': site},
+    ),
+  for (final role in plan.assignRoles)
+    ActionSubmission(
+      actionName: assignRoleAction,
+      rawInput: <String, Object?>{
+        'userId': userId,
+        'role': role,
+        'scope': wildcardScopeJsonFor(role),
+      },
+    ),
+];

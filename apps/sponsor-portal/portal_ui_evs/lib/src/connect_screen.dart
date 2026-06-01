@@ -46,7 +46,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   items: <DropdownMenuItem<String>>[
                     for (final e in _identities.entries)
                       DropdownMenuItem<String>(
-                          value: e.value, child: Text(e.key)),
+                        value: e.value,
+                        child: Text(e.key),
+                      ),
                   ],
                   onChanged: (v) =>
                       setState(() => _credential = v ?? _credential),

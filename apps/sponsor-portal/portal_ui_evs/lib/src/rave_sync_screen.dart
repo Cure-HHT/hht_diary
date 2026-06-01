@@ -33,15 +33,15 @@ class _RaveStatus {
   bool get isLocked => lockedAt != null;
 
   static _RaveStatus fromRow(Map<String, Object?> r) => _RaveStatus(
-        failures: (r['consecutive_auth_failures'] as int?) ?? 0,
-        lastSuccessAt: r['last_success_at'] as String?,
-        lastFailureAt: r['last_failure_at'] as String?,
-        lastSyncErrorAt: r['last_sync_error_at'] as String?,
-        reasonCode: r['reason_code'] as String?,
-        lockedAt: r['locked_at'] as String?,
-        sitesCount: r['sites_count'] as int?,
-        participantsCount: r['participants_count'] as int?,
-      );
+    failures: (r['consecutive_auth_failures'] as int?) ?? 0,
+    lastSuccessAt: r['last_success_at'] as String?,
+    lastFailureAt: r['last_failure_at'] as String?,
+    lastSyncErrorAt: r['last_sync_error_at'] as String?,
+    reasonCode: r['reason_code'] as String?,
+    lockedAt: r['locked_at'] as String?,
+    sitesCount: r['sites_count'] as int?,
+    participantsCount: r['participants_count'] as int?,
+  );
 }
 
 class RaveSyncScreen extends StatelessWidget {
@@ -49,30 +49,31 @@ class RaveSyncScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PermissionGate(
-        permission: 'view:rave_sync_status',
-        fallback: const Center(
-          child: Text("You don't have permission to view RAVE sync status."),
-        ),
-        child: ViewBuilder<_RaveStatus>(
-          viewName: 'rave_sync_status',
-          mapper: _RaveStatus.fromRow,
-          aggregateIdOf: (_) => 'rave_sync',
-          builder: (context, state) {
-            final rows = switch (state) {
-              Loading<_RaveStatus>() => const <_RaveStatus>[],
-              Ready<_RaveStatus>(:final rows) => rows,
-              Stale<_RaveStatus>(:final lastRows) => lastRows,
-            };
-            if (state is Loading<_RaveStatus>) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            // Empty view (no rows yet) reads as a clean OK/empty status.
-            final status =
-                rows.isEmpty ? const _RaveStatus(failures: 0) : rows.first;
-            return _StatusPanel(status: status);
-          },
-        ),
-      );
+    permission: 'view:rave_sync_status',
+    fallback: const Center(
+      child: Text("You don't have permission to view RAVE sync status."),
+    ),
+    child: ViewBuilder<_RaveStatus>(
+      viewName: 'rave_sync_status',
+      mapper: _RaveStatus.fromRow,
+      aggregateIdOf: (_) => 'rave_sync',
+      builder: (context, state) {
+        final rows = switch (state) {
+          Loading<_RaveStatus>() => const <_RaveStatus>[],
+          Ready<_RaveStatus>(:final rows) => rows,
+          Stale<_RaveStatus>(:final lastRows) => lastRows,
+        };
+        if (state is Loading<_RaveStatus>) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        // Empty view (no rows yet) reads as a clean OK/empty status.
+        final status = rows.isEmpty
+            ? const _RaveStatus(failures: 0)
+            : rows.first;
+        return _StatusPanel(status: status);
+      },
+    ),
+  );
 }
 
 class _StatusPanel extends StatelessWidget {
@@ -85,8 +86,8 @@ class _StatusPanel extends StatelessWidget {
     final (String banner, Color color) = status.isLocked
         ? ('LOCKED', theme.colorScheme.error)
         : status.failures > 0
-            ? ('Cooldown / failures: ${status.failures}', Colors.orange)
-            : ('OK', Colors.green);
+        ? ('Cooldown / failures: ${status.failures}', Colors.orange)
+        : ('OK', Colors.green);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(

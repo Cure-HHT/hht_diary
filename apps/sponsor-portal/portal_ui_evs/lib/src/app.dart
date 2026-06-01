@@ -9,6 +9,9 @@ import 'activation_link.dart';
 import 'activation_screen.dart';
 import 'audit_log_screen.dart';
 import 'connect_screen.dart';
+import 'firebase_auth_client.dart';
+import 'identity_config.dart';
+import 'login_screen.dart';
 import 'participants_screen.dart';
 import 'rave_sync_screen.dart';
 import 'sites_screen.dart';
@@ -17,6 +20,14 @@ import 'user_accounts_screen.dart';
 const String _serverUrl = String.fromEnvironment(
   'PORTAL_SERVER_URL',
   defaultValue: 'http://localhost:8084',
+);
+
+/// When true, renders the firebase_auth Login + OTP screens instead of the
+/// dev ConnectScreen. DEFAULT off — the existing dev path is unchanged.
+/// Enable with `--dart-define=PORTAL_SESSION_AUTH=true`.
+const bool _sessionAuth = bool.fromEnvironment(
+  'PORTAL_SESSION_AUTH',
+  defaultValue: false,
 );
 
 class PortalEvsApp extends StatefulWidget {
@@ -40,6 +51,11 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       if (!mounted) return;
       setState(() => _status = next);
     });
+    if (_sessionAuth) {
+      // Fire-and-forget: fetch /config/identity and initialise Firebase.
+      // Errors are surfaced through the LoginScreen UI on first sign-in attempt.
+      initFirebaseFromServer(_serverUrl).ignore();
+    }
   }
 
   @override
@@ -63,12 +79,41 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     }
 
     final Widget home = switch (_status) {
-      Authenticated(:final principal) =>
-        _HomeShell(principal: principal, onDisconnect: _disconnect),
-      Expired() => const Scaffold(
-          body: ConnectScreen(message: 'Session ended — reconnect.'),
-        ),
-      NotAuthenticated() => const Scaffold(body: ConnectScreen()),
+      Authenticated(:final principal) => _HomeShell(
+        principal: principal,
+        onDisconnect: _disconnect,
+      ),
+      Expired() => Scaffold(
+        body: _sessionAuth
+            ? Column(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Session ended — please sign in again.',
+                      style: TextStyle(color: Colors.orange),
+                    ),
+                  ),
+                  Expanded(
+                    child: LoginScreen(
+                      serverUrl: _serverUrl,
+                      authClient: RealFirebaseAuthClient(),
+                      onSession: (t) => _scope.authSession.setCredential(t),
+                    ),
+                  ),
+                ],
+              )
+            : const ConnectScreen(message: 'Session ended — reconnect.'),
+      ),
+      NotAuthenticated() => Scaffold(
+        body: _sessionAuth
+            ? LoginScreen(
+                serverUrl: _serverUrl,
+                authClient: RealFirebaseAuthClient(),
+                onSession: (t) => _scope.authSession.setCredential(t),
+              )
+            : const ConnectScreen(),
+      ),
     };
     return ReActionScope(
       scope: _scope,
@@ -113,7 +158,10 @@ class _HomeShellState extends State<_HomeShell> {
   // own view permission (the screen, not the nav item, enforces access).
   static final List<_NavDestination> _destinations = <_NavDestination>[
     _NavDestination(
-        'User Accounts', Icons.manage_accounts, UserAccountsScreen.new),
+      'User Accounts',
+      Icons.manage_accounts,
+      UserAccountsScreen.new,
+    ),
     _NavDestination('Sites', Icons.location_city, SitesScreen.new),
     _NavDestination('Participants', Icons.groups, ParticipantsScreen.new),
     _NavDestination('RAVE Sync', Icons.sync, RaveSyncScreen.new),

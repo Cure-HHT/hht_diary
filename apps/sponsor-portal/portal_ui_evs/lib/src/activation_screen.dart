@@ -9,8 +9,11 @@ import 'activation_link.dart';
 /// Not part of the reactive authed shell.
 // Implements: DIARY-PRD-user-account-activation-workflow/H
 class ActivationScreen extends StatefulWidget {
-  const ActivationScreen(
-      {super.key, required this.serverUrl, required this.code});
+  const ActivationScreen({
+    super.key,
+    required this.serverUrl,
+    required this.code,
+  });
   final String serverUrl;
   final String code;
 
@@ -42,8 +45,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
   Future<void> _validate() async {
     try {
-      final r = await http
-          .get(Uri.parse('${widget.serverUrl}/activate/${widget.code}'));
+      final r = await http.get(
+        Uri.parse('${widget.serverUrl}/activate/${widget.code}'),
+      );
       final body = jsonDecode(r.body) as Map<String, Object?>;
       setState(() {
         _loading = false;
@@ -102,40 +106,42 @@ class _ActivationScreenState extends State<ActivationScreen> {
             child: _loading
                 ? const CircularProgressIndicator()
                 : _done != null
-                    ? Text(_done!,
-                        style: Theme.of(context).textTheme.titleMedium)
-                    : _maskedEmail == null
-                        ? Text(_error ?? 'Invalid link.')
-                        : Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text('Activating $_maskedEmail'),
-                              const SizedBox(height: 16),
-                              TextField(
-                                controller: _pw,
-                                obscureText: true,
-                                decoration: const InputDecoration(
-                                    labelText: 'Password'),
-                              ),
-                              TextField(
-                                controller: _confirm,
-                                obscureText: true,
-                                decoration: const InputDecoration(
-                                    labelText: 'Confirm password'),
-                              ),
-                              const SizedBox(height: 16),
-                              if (_error != null)
-                                Text(_error!,
-                                    style: const TextStyle(color: Colors.red)),
-                              const SizedBox(height: 8),
-                              FilledButton(
-                                onPressed: _submitting ? null : _submit,
-                                child: Text(
-                                    _submitting ? 'Activating…' : 'Activate'),
-                              ),
-                            ],
-                          ),
+                ? Text(_done!, style: Theme.of(context).textTheme.titleMedium)
+                : _maskedEmail == null
+                ? Text(_error ?? 'Invalid link.')
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('Activating $_maskedEmail'),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _pw,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Password',
+                        ),
+                      ),
+                      TextField(
+                        controller: _confirm,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Confirm password',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (_error != null)
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      const SizedBox(height: 8),
+                      FilledButton(
+                        onPressed: _submitting ? null : _submit,
+                        child: Text(_submitting ? 'Activating…' : 'Activate'),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),

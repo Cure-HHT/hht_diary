@@ -19,11 +19,11 @@ class _Site {
   final bool active;
 
   static _Site fromRow(Map<String, Object?> r) => _Site(
-        id: (r['site_id'] as String?) ?? '?',
-        name: (r['site_name'] as String?) ?? '?',
-        number: (r['site_number'] as String?) ?? '?',
-        active: (r['is_active'] as bool?) ?? true,
-      );
+    id: (r['site_id'] as String?) ?? '?',
+    name: (r['site_name'] as String?) ?? '?',
+    number: (r['site_number'] as String?) ?? '?',
+    active: (r['is_active'] as bool?) ?? true,
+  );
 }
 
 class SitesScreen extends StatelessWidget {
@@ -31,40 +31,39 @@ class SitesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PermissionGate(
-        permission: 'view:sites_index',
-        fallback: const Center(
-          child: Text("You don't have permission to view sites."),
-        ),
-        child: ViewBuilder<_Site>(
-          viewName: 'sites_index',
-          mapper: _Site.fromRow,
-          aggregateIdOf: (s) => s.id,
-          builder: (context, state) {
-            final rows = switch (state) {
-              Loading<_Site>() => const <_Site>[],
-              Ready<_Site>(:final rows) => rows,
-              Stale<_Site>(:final lastRows) => lastRows,
-            };
-            if (state is Loading<_Site>) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (rows.isEmpty) {
-              return const Center(child: Text('(no sites synced yet)'));
-            }
-            final sorted = <_Site>[...rows]
-              ..sort((a, b) => a.number.compareTo(b.number));
-            return ListView(
-              children: <Widget>[
-                for (final s in sorted)
-                  ListTile(
-                    title: Text('${s.number} · ${s.name}'),
-                    subtitle: Text(s.id),
-                    trailing:
-                        s.active ? null : const Chip(label: Text('inactive')),
-                  ),
-              ],
-            );
-          },
-        ),
-      );
+    permission: 'view:sites_index',
+    fallback: const Center(
+      child: Text("You don't have permission to view sites."),
+    ),
+    child: ViewBuilder<_Site>(
+      viewName: 'sites_index',
+      mapper: _Site.fromRow,
+      aggregateIdOf: (s) => s.id,
+      builder: (context, state) {
+        final rows = switch (state) {
+          Loading<_Site>() => const <_Site>[],
+          Ready<_Site>(:final rows) => rows,
+          Stale<_Site>(:final lastRows) => lastRows,
+        };
+        if (state is Loading<_Site>) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (rows.isEmpty) {
+          return const Center(child: Text('(no sites synced yet)'));
+        }
+        final sorted = <_Site>[...rows]
+          ..sort((a, b) => a.number.compareTo(b.number));
+        return ListView(
+          children: <Widget>[
+            for (final s in sorted)
+              ListTile(
+                title: Text('${s.number} · ${s.name}'),
+                subtitle: Text(s.id),
+                trailing: s.active ? null : const Chip(label: Text('inactive')),
+              ),
+          ],
+        );
+      },
+    ),
+  );
 }

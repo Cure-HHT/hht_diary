@@ -61,17 +61,16 @@ String _activationExpiresAt() =>
 /// The wildcard scope JSON a non-site role's role-assignment carries: the
 /// Administrator pins to all-sites; the System Operator to everything.
 Object _wildcardScopeJsonFor(String role) => switch (roleScopeKind(role)) {
-      RoleScopeKind.allSites =>
-        const ValueWildcardScope(class_: 'site').toJson(),
-      RoleScopeKind.everything => const TotalWildcardScope().toJson(),
-      // site-scoped roles never carry a role-level wildcard scope: assignRoles /
-      // revokeRoles only ever contain wildcard roles (planAssignmentChanges
-      // routes site-scoped roles to assignSites/revokeSites). Reaching here is a
-      // bug, not a runtime input condition.
-      RoleScopeKind.site => throw StateError(
-          '_wildcardScopeJsonFor called for site-scoped role $role',
-        ),
-    };
+  RoleScopeKind.allSites => const ValueWildcardScope(class_: 'site').toJson(),
+  RoleScopeKind.everything => const TotalWildcardScope().toJson(),
+  // site-scoped roles never carry a role-level wildcard scope: assignRoles /
+  // revokeRoles only ever contain wildcard roles (planAssignmentChanges
+  // routes site-scoped roles to assignSites/revokeSites). Reaching here is a
+  // bug, not a runtime input condition.
+  RoleScopeKind.site => throw StateError(
+    '_wildcardScopeJsonFor called for site-scoped role $role',
+  ),
+};
 
 /// One users_index row.
 class _UserRow {
@@ -85,11 +84,10 @@ class _UserRow {
   final UserStatus status;
 
   static _UserRow fromRow(Map<String, Object?> row) => _UserRow(
-        email:
-            (row['aggregateId'] as String?) ?? (row['email'] as String?) ?? '?',
-        name: (row['name'] as String?) ?? (row['after'] as String?) ?? '—',
-        status: statusFromRow(row),
-      );
+    email: (row['aggregateId'] as String?) ?? (row['email'] as String?) ?? '?',
+    name: (row['name'] as String?) ?? (row['after'] as String?) ?? '—',
+    status: statusFromRow(row),
+  );
 }
 
 /// One user_role_scopes row (library shape: user_id/role/scope JSON).
@@ -106,17 +104,17 @@ class _Assignment {
   final ScopeValue scope;
 
   String get scopeLabel => switch (scope) {
-        BoundScope(:final class_, :final value) => '$class_=$value',
-        ValueWildcardScope(:final class_) => '$class_=*',
-        TotalWildcardScope() => '(all)',
-      };
+    BoundScope(:final class_, :final value) => '$class_=$value',
+    ValueWildcardScope(:final class_) => '$class_=*',
+    TotalWildcardScope() => '(all)',
+  };
 
   /// The site id this assignment binds (BoundScope value), or null for the
   /// wildcard scopes carried by Administrator/SystemOperator roles.
   String? get boundSite => switch (scope) {
-        BoundScope(:final value) => value,
-        _ => null,
-      };
+    BoundScope(:final value) => value,
+    _ => null,
+  };
 
   static _Assignment fromRow(Map<String, Object?> row) {
     final scopeJson = row['scope'];
@@ -136,71 +134,71 @@ class UserAccountsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PermissionGate(
-        permission: _viewUsersPerm,
-        fallback: const Center(
-          child: Text("You don't have permission to view users."),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              PermissionGate(
-                permission: _createPerm,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('Create User'),
-                    onPressed: () => showDialog<void>(
-                      context: context,
-                      builder: (_) => ReActionScope(
-                        scope: ReActionScope.of(context),
-                        child: const _CreateUserDialog(),
-                      ),
-                    ),
+    permission: _viewUsersPerm,
+    fallback: const Center(
+      child: Text("You don't have permission to view users."),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          PermissionGate(
+            permission: _createPerm,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.person_add),
+                label: const Text('Create User'),
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => ReActionScope(
+                    scope: ReActionScope.of(context),
+                    child: const _CreateUserDialog(),
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: ViewBuilder<_UserRow>(
-                  viewName: 'users_index',
-                  mapper: _UserRow.fromRow,
-                  aggregateIdOf: (u) => u.email,
-                  builder: (context, state) {
-                    final rows = switch (state) {
-                      Loading<_UserRow>() => const <_UserRow>[],
-                      Ready<_UserRow>(:final rows) => rows,
-                      Stale<_UserRow>(:final lastRows) => lastRows,
-                    };
-                    if (state is Loading<_UserRow>) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (rows.isEmpty) {
-                      return const Center(child: Text('(no users yet)'));
-                    }
-                    final sorted = <_UserRow>[...rows]
-                      ..sort((a, b) => a.email.compareTo(b.email));
-                    return ListView(
-                      children: <Widget>[
-                        for (final u in sorted)
-                          ExpansionTile(
-                            title: Text(u.email),
-                            subtitle: Text('${u.name} · ${u.status.label}'),
-                            children: <Widget>[
-                              _UserDetail(email: u.email, status: u.status),
-                            ],
-                          ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      );
+          const SizedBox(height: 12),
+          Expanded(
+            child: ViewBuilder<_UserRow>(
+              viewName: 'users_index',
+              mapper: _UserRow.fromRow,
+              aggregateIdOf: (u) => u.email,
+              builder: (context, state) {
+                final rows = switch (state) {
+                  Loading<_UserRow>() => const <_UserRow>[],
+                  Ready<_UserRow>(:final rows) => rows,
+                  Stale<_UserRow>(:final lastRows) => lastRows,
+                };
+                if (state is Loading<_UserRow>) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (rows.isEmpty) {
+                  return const Center(child: Text('(no users yet)'));
+                }
+                final sorted = <_UserRow>[...rows]
+                  ..sort((a, b) => a.email.compareTo(b.email));
+                return ListView(
+                  children: <Widget>[
+                    for (final u in sorted)
+                      ExpansionTile(
+                        title: Text(u.email),
+                        subtitle: Text('${u.name} · ${u.status.label}'),
+                        children: <Widget>[
+                          _UserDetail(email: u.email, status: u.status),
+                        ],
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Create dialog: email + name, a role multi-select, and (when any selected
@@ -424,8 +422,10 @@ class _UserDetail extends StatelessWidget {
                     children: <Widget>[
                       const Align(
                         alignment: Alignment.centerLeft,
-                        child: Text('Roles & sites',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'Roles & sites',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       if (mine.isEmpty)
@@ -452,8 +452,10 @@ class _UserDetail extends StatelessWidget {
             ),
           const Align(
             alignment: Alignment.centerLeft,
-            child: Text('Lifecycle',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              'Lifecycle',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(height: 4),
           Wrap(
@@ -534,9 +536,9 @@ class _RoleSiteEditorState extends State<_RoleSiteEditor> {
   /// Builds the CurrentTuple list from the live user_role_scopes rows:
   /// site-scoped roles -> (role, boundSite); wildcard roles -> (role, '*').
   List<CurrentTuple> _currentTuples() => <CurrentTuple>[
-        for (final a in widget.current)
-          CurrentTuple(role: a.role, site: a.boundSite ?? '*'),
-      ];
+    for (final a in widget.current)
+      CurrentTuple(role: a.role, site: a.boundSite ?? '*'),
+  ];
 
   Future<void> _apply() async {
     setState(() {
@@ -601,12 +603,12 @@ class _RoleSiteEditorState extends State<_RoleSiteEditor> {
                   onSelected: _submitting
                       ? null
                       : (sel) => setState(() {
-                            if (sel) {
-                              _selRoles.add(r);
-                            } else {
-                              _selRoles.remove(r);
-                            }
-                          }),
+                          if (sel) {
+                            _selRoles.add(r);
+                          } else {
+                            _selRoles.remove(r);
+                          }
+                        }),
                 ),
             ],
           ),
@@ -626,12 +628,12 @@ class _RoleSiteEditorState extends State<_RoleSiteEditor> {
                     onSelected: _submitting
                         ? null
                         : (sel) => setState(() {
-                              if (sel) {
-                                _selSites.add(s);
-                              } else {
-                                _selSites.remove(s);
-                              }
-                            }),
+                            if (sel) {
+                              _selSites.add(s);
+                            } else {
+                              _selSites.remove(s);
+                            }
+                          }),
                   ),
               ],
             ),
@@ -665,41 +667,40 @@ class _LifecycleButton extends StatelessWidget {
   final UserAction action;
 
   String get _permission => switch (action) {
-        UserAction.edit => _editPerm,
-        UserAction.resendActivation => _resendPerm,
-        UserAction.deletePending => _deletePendingPerm,
-        UserAction.deactivate => _deactivatePerm,
-        UserAction.reactivate => _reactivatePerm,
-        UserAction.unlock => _unlockPerm,
-        UserAction.manageRolesSites => _assignRolePerm,
-      };
+    UserAction.edit => _editPerm,
+    UserAction.resendActivation => _resendPerm,
+    UserAction.deletePending => _deletePendingPerm,
+    UserAction.deactivate => _deactivatePerm,
+    UserAction.reactivate => _reactivatePerm,
+    UserAction.unlock => _unlockPerm,
+    UserAction.manageRolesSites => _assignRolePerm,
+  };
 
   String get _label => switch (action) {
-        UserAction.edit => 'Edit',
-        UserAction.resendActivation =>
-          'Resend activation (email not yet wired)',
-        UserAction.deletePending => 'Delete pending',
-        UserAction.deactivate => 'Deactivate',
-        UserAction.reactivate => 'Reactivate',
-        UserAction.unlock => 'Unlock',
-        UserAction.manageRolesSites => 'Manage roles/sites',
-      };
+    UserAction.edit => 'Edit',
+    UserAction.resendActivation => 'Resend activation (email not yet wired)',
+    UserAction.deletePending => 'Delete pending',
+    UserAction.deactivate => 'Deactivate',
+    UserAction.reactivate => 'Reactivate',
+    UserAction.unlock => 'Unlock',
+    UserAction.manageRolesSites => 'Manage roles/sites',
+  };
 
   /// Direct submissions (no dialog) — resend + deletePending.
   ActionSubmission? _directSubmission() => switch (action) {
-        UserAction.resendActivation => ActionSubmission(
-            actionName: _resendAction,
-            rawInput: <String, Object?>{
-              'userId': email,
-              'activationExpiresAt': _activationExpiresAt(),
-            },
-          ),
-        UserAction.deletePending => ActionSubmission(
-            actionName: _deletePendingAction,
-            rawInput: <String, Object?>{'userId': email},
-          ),
-        _ => null,
-      };
+    UserAction.resendActivation => ActionSubmission(
+      actionName: _resendAction,
+      rawInput: <String, Object?>{
+        'userId': email,
+        'activationExpiresAt': _activationExpiresAt(),
+      },
+    ),
+    UserAction.deletePending => ActionSubmission(
+      actionName: _deletePendingAction,
+      rawInput: <String, Object?>{'userId': email},
+    ),
+    _ => null,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -763,12 +764,12 @@ class _LifecycleDialogState extends State<_LifecycleDialog> {
   }
 
   String get _title => switch (widget.action) {
-        UserAction.edit => 'Edit user',
-        UserAction.deactivate => 'Deactivate user',
-        UserAction.reactivate => 'Reactivate user',
-        UserAction.unlock => 'Unlock user',
-        _ => 'Action',
-      };
+    UserAction.edit => 'Edit user',
+    UserAction.deactivate => 'Deactivate user',
+    UserAction.reactivate => 'Reactivate user',
+    UserAction.unlock => 'Unlock user',
+    _ => 'Action',
+  };
 
   ActionSubmission _submission() {
     switch (widget.action) {
@@ -819,7 +820,8 @@ class _LifecycleDialogState extends State<_LifecycleDialog> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.action == UserAction.edit;
-    final needsReason = widget.action == UserAction.deactivate ||
+    final needsReason =
+        widget.action == UserAction.deactivate ||
         widget.action == UserAction.reactivate ||
         widget.action == UserAction.unlock;
     // ActionBuilder wraps the whole dialog so the submission state is available
@@ -922,9 +924,7 @@ Future<void> _applyPlan(
   for (final s in assignmentSubmissions(plan, userId, _wildcardScopeJsonFor)) {
     final r = await client.submit(s);
     if (r is! DispatchSuccess && r is! DispatchIdempotencyHit) {
-      throw _DispatchDeniedException(
-        '${s.actionName}: ${_denialLabel(r)}',
-      );
+      throw _DispatchDeniedException('${s.actionName}: ${_denialLabel(r)}');
     }
   }
 }
@@ -939,10 +939,10 @@ class _DispatchDeniedException implements Exception {
 }
 
 String _denialLabel(DispatchResult<Object?> r) => switch (r) {
-      DispatchAuthorizationDenied(:final permission) => 'denied ($permission)',
-      DispatchValidationDenied(:final error) => 'invalid ($error)',
-      DispatchParseDenied(:final error) => 'parse ($error)',
-      DispatchUnknownAction(:final requestedName) => 'unknown ($requestedName)',
-      DispatchExecutionFailed(:final error) => 'failed ($error)',
-      _ => 'denied',
-    };
+  DispatchAuthorizationDenied(:final permission) => 'denied ($permission)',
+  DispatchValidationDenied(:final error) => 'invalid ($error)',
+  DispatchParseDenied(:final error) => 'parse ($error)',
+  DispatchUnknownAction(:final requestedName) => 'unknown ($requestedName)',
+  DispatchExecutionFailed(:final error) => 'failed ($error)',
+  _ => 'denied',
+};

@@ -3,8 +3,10 @@ import 'package:portal_ui_evs/src/activation_link.dart';
 
 void main() {
   test('extracts code from ?code=', () {
-    expect(activationCodeFromUri(Uri.parse('https://p/activate?code=AB-CD')),
-        'AB-CD');
+    expect(
+      activationCodeFromUri(Uri.parse('https://p/activate?code=AB-CD')),
+      'AB-CD',
+    );
     expect(activationCodeFromUri(Uri.parse('https://p/?code=AB-CD')), 'AB-CD');
     expect(activationCodeFromUri(Uri.parse('https://p/')), isNull);
   });
