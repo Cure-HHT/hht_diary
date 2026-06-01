@@ -1,6 +1,6 @@
 name: portal_service
 description: "Event-sourced portal-server enforcement core (dispatcher + authorization) on the event_sourcing library."
-version: 0.4.2
+version: 0.4.3
 publish_to: none
 
 environment:

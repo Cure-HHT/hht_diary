@@ -62,6 +62,29 @@ final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
   tombstoneEventTypes: const {},
 );
 
+// Implements: DIARY-DEV-user-account-projection/A+B — users_index materializes per-user
+//   identity + an explicit account status from the portal_user lifecycle events. Status is
+//   carried on status-transition events and preserved across non-status events (key-wise
+//   merge only overwrites keys present in the event data); user_deleted tombstones the row.
+final AggregateProjectionSpec usersIndexSpec = AggregateProjectionSpec(
+  viewName: 'users_index',
+  interest: const SubscriptionFilter(
+    aggregateTypes: {'portal_user'},
+    eventTypes: {
+      'user_created',
+      'user_profile_changed',
+      'user_email_change_requested',
+      'user_email_changed',
+      'user_deactivated',
+      'user_reactivated',
+      'user_activated',
+      'user_account_unlocked',
+      'user_deleted',
+    },
+  ),
+  tombstoneEventTypes: const {'user_deleted'},
+);
+
 // Implements: DIARY-DEV-rave-edc-ingest/C — rave_sync_status folds the rave_sync
 //   lockout events into one row; counter-affecting events carry the authoritative
 //   consecutive_auth_failures so the merge yields a correct running counter.
