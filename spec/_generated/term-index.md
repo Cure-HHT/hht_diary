@@ -202,6 +202,7 @@
 - DIARY-GUI-administrator-dashboard-F
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-BASE-ops-action-inventory:section:0
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
@@ -729,6 +730,9 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-identity-provisioning-A
+- DIARY-DEV-portal-activation-email-delivery-B
+- DIARY-DEV-portal-user-activated-binding-A
 - DIARY-PRD-evidence-email-identity-A
 - DIARY-PRD-evidence-email-identity-G
 - DIARY-PRD-password-forgot-A
@@ -750,6 +754,9 @@
 - DIARY-GUI-user-management-tabs-H
 - DIARY-GUI-user-management-tabs-L
 - DIARY-GUI-user-information-modal-A
+- DIARY-DEV-portal-identity-provisioning:section:1
+- DIARY-DEV-portal-activation-email-delivery:section:0
+- DIARY-DEV-portal-user-activated-binding:section:0
 - rem:spec/glossary-core.md:23
 - DIARY-PRD-evidence-email-identity:section:0
 - DIARY-PRD-password-forgot:section:0
@@ -1677,6 +1684,9 @@
 - DIARY-GUI-password-forgot-workflow-R
 - DIARY-GUI-password-forgot-workflow-U
 - DIARY-PRD-user-account-activation-workflow-D
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-portal-identity-provisioning:section:0
+- DIARY-DEV-portal-identity-provisioning:section:1
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-requirements:section:0
 - DIARY-PRD-two-factor-authentication:section:0
@@ -2243,6 +2253,7 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-PRD-rbac-customizable-B
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-DEV-portal-user-activated-binding:section:1
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
@@ -2935,6 +2946,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-user-activated-binding
 - DIARY-DEV-user-account-projection
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
@@ -2946,6 +2958,12 @@
 - DIARY-GUI-user-account-deactivate
 - DIARY-GUI-user-account-reactivate
 - DIARY-GUI-user-information-modal
+- DIARY-DEV-portal-activation-code-lifecycle-D
+- DIARY-DEV-portal-identity-provisioning-A
+- DIARY-DEV-portal-activation-email-delivery-A
+- DIARY-DEV-portal-user-activated-binding-A
+- DIARY-DEV-portal-user-activated-binding-B
+- DIARY-DEV-portal-user-activated-binding-C
 - DIARY-DEV-user-account-projection-A
 - DIARY-DEV-user-account-projection-C
 - DIARY-GUI-audit-log-common-A
@@ -3062,6 +3080,9 @@
 - DIARY-GUI-user-information-modal-M
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-E
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-portal-user-activated-binding:section:0
+- DIARY-DEV-portal-user-activated-binding:section:1
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
 - rem:spec/glossary-core.md:745
@@ -3135,6 +3156,12 @@
 - DIARY-PRD-user-account-reactivate
 - DIARY-GUI-user-account-deactivate
 - DIARY-GUI-user-account-reactivate
+- DIARY-DEV-portal-activation-code-lifecycle-D
+- DIARY-DEV-portal-identity-provisioning-A
+- DIARY-DEV-portal-activation-email-delivery-A
+- DIARY-DEV-portal-user-activated-binding-A
+- DIARY-DEV-portal-user-activated-binding-B
+- DIARY-DEV-portal-user-activated-binding-C
 - DIARY-GUI-audit-log-administrator-A
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-F
@@ -3193,6 +3220,9 @@
 - DIARY-GUI-user-information-modal-D
 - DIARY-GUI-user-information-modal-E
 - DIARY-GUI-user-information-modal-M
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-portal-user-activated-binding:section:0
+- DIARY-DEV-portal-user-activated-binding:section:1
 - DIARY-PRD-password-forgot:section:0
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-PRD-action-inventory:section:1
@@ -3246,6 +3276,8 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-activation-code-lifecycle-A
+- DIARY-DEV-portal-activation-email-delivery-A
 - DIARY-PRD-password-forgot-B
 - DIARY-PRD-password-forgot-D
 - DIARY-PRD-password-forgot-E
@@ -3260,6 +3292,8 @@
 - DIARY-PRD-user-account-activation-workflow-G
 - DIARY-PRD-user-account-activation-workflow-H
 - DIARY-PRD-user-account-edit-F
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-portal-activation-email-delivery:section:0
 - DIARY-PRD-password-forgot:section:0
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-PRD-user-account-activation-resend:section:1

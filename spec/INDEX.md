@@ -155,7 +155,11 @@
 | DIARY-DEV-outgoing-intent-correlation      | Outgoing Intent and Flow Correlation       | dev-outgoing-intent-correlation.md | 108441a8 |
 | DIARY-DEV-participant-site-index           | Participant-Site Index Materializer        | dev-portal-service.md              | 76e68990 |
 | DIARY-DEV-participant-status-projection    | Participant Linking-Status Projection      | dev-portal-service.md              | aafda27d |
+| DIARY-DEV-portal-activation-code-lifecycle | Activation code lifecycle                  | dev-portal-activation.md           | ec270b2e |
+| DIARY-DEV-portal-activation-email-delivery | Activation email delivery                  | dev-portal-activation.md           | 8357a727 |
+| DIARY-DEV-portal-identity-provisioning     | Identity Platform provisioning             | dev-portal-activation.md           | 0e3eb2b5 |
 | DIARY-DEV-portal-reaction-server           | Portal Reaction Server Shell               | dev-portal-service.md              | 95ceb3ec |
+| DIARY-DEV-portal-user-activated-binding    | User-activated binding                     | dev-portal-activation.md           | 25fda53b |
 | DIARY-DEV-rave-auth-failure-classification | Rave Authentication Failure Classification | prd-rave-sync.md                   | f2732c70 |
 | DIARY-DEV-rave-edc-ingest                  | RAVE/EDC Ingest as Edge Events             | dev-portal-service.md              | e93b0ede |
 | DIARY-DEV-runtime-environment-resolution   | Runtime Environment Resolution             | dev-environment-resolution.md      | b0c74776 |
