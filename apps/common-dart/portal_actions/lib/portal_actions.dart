@@ -29,6 +29,8 @@ export 'src/actions/user_account/unlock_user_account_action.dart';
 export 'src/actions/views/view_admin_settings_action.dart';
 export 'src/actions/views/view_audit_log_action.dart';
 export 'src/actions/views/view_sites_action.dart';
+export 'src/payloads/rave_sync_payloads.dart';
+export 'src/payloads/site_synced_from_edc_payload.dart';
 export 'src/portal_action_registry.dart';
 export 'src/portal_events.dart';
 export 'src/portal_permissions.dart';
