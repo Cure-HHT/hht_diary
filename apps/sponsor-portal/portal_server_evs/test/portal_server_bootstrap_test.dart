@@ -218,6 +218,7 @@ void main() {
         'view:sites_index',
         'view:participant_record',
         'view:rave_sync_status',
+        'view:users_index',
       ]),
       reason: 'admin granted the operational view-read permissions',
     );

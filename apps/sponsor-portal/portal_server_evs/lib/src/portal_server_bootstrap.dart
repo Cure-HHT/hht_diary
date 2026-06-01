@@ -80,8 +80,10 @@ Future<PortalServerBoot> bootstrapPortalServer({
         initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
       );
 
-  // Administrator can subscribe to the role-assignments view.
+  // Administrator can subscribe to the role-assignments view + the user-accounts
+  // index (only Administrator holds the user-management permissions).
   await grantView('Administrator', 'user_role_scopes');
+  await grantView('Administrator', 'users_index');
   // The site list + participant records back the StudyCoordinator/CRA/Admin
   // operational screens.
   for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
