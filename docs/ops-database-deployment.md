@@ -20,14 +20,12 @@ This guide covers deploying JSONB validation functions and RLS policies to your 
 
 1. **spec/JSONB_SCHEMA.md** - Primary documentation defining data structures
 2. **database/schema.sql** (validation functions) - Enforces the schema at database level
-3. **database/dart/models.dart** - Implements the schema in the application
 
 These must stay synchronized. When making schema changes:
 
 1. Update `spec/JSONB_SCHEMA.md` first (documentation)
 2. Update validation functions in migration scripts
-3. Update Dart models to match
-4. Run tests to verify synchronization
+3. Run tests to verify synchronization
 
 ### Current Event Types
 

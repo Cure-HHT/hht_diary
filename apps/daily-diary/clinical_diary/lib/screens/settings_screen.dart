@@ -3,8 +3,8 @@
 
 // ignore_for_file: deprecated_member_use
 
+import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/services/preferences_service.dart';
@@ -257,7 +257,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
 
                           // Feature Flags - only available in dev/qa builds
-                          if (F.showDevTools) ...[
+                          if (AppConfig.showDevTools) ...[
                             const SizedBox(height: 32),
                             _buildSectionHeader(
                               context,

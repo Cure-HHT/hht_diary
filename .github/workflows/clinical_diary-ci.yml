@@ -49,6 +49,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify mobile env delta record (controlled delta)
+        # Verifies: DIARY-OPS-single-promotable-artifact/D
+        working-directory: apps/daily-diary/clinical_diary
+        run: bash tool/generate_env_delta_record.sh --check
+
+      - name: Test env delta generator (allowlist negative path)
+        # Verifies: DIARY-OPS-single-promotable-artifact/D
+        # Exercises the "undeclared per-flavor key fails generation" path that
+        # the --check step above does not cover.
+        working-directory: apps/daily-diary/clinical_diary
+        run: bash tool/test/test_env_delta_record.sh
+
       - name: Start CI container
         uses: ./.github/actions/start-ci-container
         with:

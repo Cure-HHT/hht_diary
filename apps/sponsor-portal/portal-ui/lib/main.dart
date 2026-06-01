@@ -19,8 +19,9 @@ import 'package:web/web.dart' as web;
 import 'package:provider/provider.dart';
 import 'package:url_strategy/url_strategy.dart';
 
+import 'config/app_config.dart';
+import 'config/env_profile.dart';
 import 'firebase_options.dart';
-import 'flavors.dart';
 import 'router/app_router.dart';
 import 'services/auth_service.dart';
 import 'services/browser_lifecycle_service.dart';
@@ -45,38 +46,37 @@ void main() async {
   // Remove # from URLs
   setPathUrlStrategy();
 
-  // Initialize flavor from environment
-  // Pass --dart-define=APP_FLAVOR=local (or dev, qa, uat, prod)
-  const flavorName = String.fromEnvironment(
-    'APP_FLAVOR',
-    defaultValue: 'local',
-  );
-  final flavor = flavorFromString(flavorName) ?? Flavor.local;
-
-  debugPrint('Starting portal with flavor: ${flavor.name}');
-
-  // Initialize configuration based on flavor
-  if (flavor == Flavor.local) {
-    // Local development: use emulator config synchronously
-    FlavorConfig.initializeLocal();
+  // Resolve the environment at runtime — the portal web bundle is a single
+  // promotable artifact that carries no environment identity of its own.
+  // Local-stack builds (which target the Firebase emulator) are detected by
+  // the emulator-host build input; every deployed bundle is identical and
+  // discovers its environment from the server's same-origin runtime config.
+  // Implements: DIARY-OPS-single-promotable-artifact/B
+  // Implements: DIARY-DEV-runtime-environment-resolution/A+C
+  if (AppConfig.useEmulator) {
+    // Local development: use emulator config synchronously.
+    AppConfig.initializeLocal();
     debugPrint('Using local emulator configuration');
   } else {
-    // Deployed environments: fetch config from server
+    // Deployed environments: fetch config (and the environment name) from
+    // the server.
     try {
       final config = await IdentityConfigService().fetchConfig();
       final apiBaseUrl = kDebugMode ? 'http://localhost:8084' : Uri.base.origin;
 
-      FlavorConfig.initializeWithConfig(flavor, config, apiBaseUrl: apiBaseUrl);
-      debugPrint('Identity Platform config loaded: ${config.projectId}');
+      AppConfig.initializeFromServer(config, apiBaseUrl: apiBaseUrl);
+      debugPrint(
+        'Identity Platform config loaded: ${config.projectId} '
+        '(${EnvProfile.current.name})',
+      );
     } on IdentityConfigException catch (e) {
-      // CUR-1280: do NOT silently downgrade a deployed-flavor build to the
-      // emulator just because the identity-config endpoint is unreachable.
-      // The previous kDebugMode-only fallback flipped F.appFlavor to
-      // Flavor.local for the rest of the page lifetime, which (a) opened the
+      // CUR-1280: do NOT silently downgrade a deployed build to the emulator
+      // just because the identity-config endpoint is unreachable. Surfacing a
+      // clear error (rather than flipping to emulator mode) avoids opening the
       // trusted-by-locality Auth-emulator code paths in a build that may be
-      // talking to a real backend, and (b) silently masked a config-server
-      // outage. If the developer wants emulator mode, they can rebuild with
-      // --dart-define=APP_FLAVOR=local explicitly.
+      // talking to a real backend, and avoids silently masking a config-server
+      // outage. Emulator mode is reached only by a local-stack build that sets
+      // FIREBASE_AUTH_EMULATOR_HOST.
       debugPrint('Failed to fetch Identity Platform config: $e');
       runApp(ConfigErrorApp(error: e.message));
       return;
@@ -88,9 +88,12 @@ void main() async {
   }
 
   // Validate Firebase configuration
-  FlavorConfig.validateConfig();
+  AppConfig.validateConfig();
 
-  debugPrint('Running with flavor: ${F.name} (${F.title})');
+  debugPrint(
+    'Running in environment: ${EnvProfile.current.name} '
+    '(${EnvProfile.current.title})',
+  );
 
   // Fetch sponsor branding (non-fatal: use fallback if unavailable)
   var sponsorBranding = SponsorBrandingConfig.fallback;
@@ -122,7 +125,7 @@ void main() async {
   // no session restore). Acceptable for local dev; the alternative
   // ("Clear Site Data every time, randomly") is worse. Production
   // flavors are unaffected — they don't run this path.
-  if (F.useEmulator) {
+  if (AppConfig.useEmulator) {
     await BrowserStorageService().forceClearFirebaseAuthDb();
   }
 
@@ -139,7 +142,7 @@ void main() async {
   // staring at activation_page.dart's misleading translation of api-key-
   // not-valid as "Firebase Auth emulator is running (port 9099)" with no
   // actionable signal.
-  if (F.useEmulator) {
+  if (AppConfig.useEmulator) {
     const emulatorHost = String.fromEnvironment(
       'FIREBASE_AUTH_EMULATOR_HOST',
       defaultValue: '',
@@ -241,7 +244,7 @@ void main() async {
   final authService = AuthService(
     sponsorId: sponsorBranding.sponsorId,
     clearStorage: browserStorage.clearStorage,
-    forceClearFirebaseAuthDb: F.useEmulator
+    forceClearFirebaseAuthDb: AppConfig.useEmulator
         ? browserStorage.forceClearFirebaseAuthDb
         : () async {},
     isPageRefresh: isPageRefresh,
@@ -329,13 +332,13 @@ class _CarinaPortalAppState extends State<CarinaPortalApp> {
         Provider<SponsorBrandingConfig>.value(value: widget.branding),
       ],
       child: EnvironmentBanner(
-        show: F.showBanner,
-        flavorName: F.name,
+        show: EnvProfile.current.showBanner,
+        flavorName: EnvProfile.current.name,
         child: MaterialApp.router(
           title: widget.branding.title,
           theme: portalTheme,
           routerConfig: appRouter,
-          debugShowCheckedModeBanner: F.showBanner,
+          debugShowCheckedModeBanner: EnvProfile.current.showBanner,
         ),
       ),
     );

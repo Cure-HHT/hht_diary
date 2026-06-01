@@ -31,17 +31,17 @@
 //
 // Upstream: https://github.com/firebase/flutterfire/issues/9528
 //
-// In production builds (F.useEmulator = false), [ensureAuthEmulatorBound]
+// In deployed builds (AppConfig.useEmulator = false), [ensureAuthEmulatorBound]
 // is a no-op. The function is safe to call from any code path that
 // performs a Firebase Auth network op.
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
-import '../flavors.dart';
+import '../config/app_config.dart';
 
 /// Ensures `FirebaseAuth.instance` is bound to the local Firebase Auth
-/// emulator on local-flavor builds. No-op for any other flavor.
+/// emulator on local-stack (emulator) builds. No-op otherwise.
 ///
 /// Call this BEFORE any network-issuing Firebase Auth operation
 /// (signInWithEmailAndPassword, createUserWithEmailAndPassword,
@@ -53,7 +53,7 @@ import '../flavors.dart';
 /// Throws are swallowed and logged via [debugPrint]; the workaround
 /// is best-effort and must never block the calling auth flow.
 Future<void> ensureAuthEmulatorBound() async {
-  if (!F.useEmulator) return;
+  if (!AppConfig.useEmulator) return;
   const emulatorHost = String.fromEnvironment(
     'FIREBASE_AUTH_EMULATOR_HOST',
     defaultValue: '',

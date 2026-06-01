@@ -25,12 +25,18 @@ class IdentityPlatformConfig {
   final String authDomain;
   final String messagingSenderId;
 
+  /// Deployment environment name (dev/qa/uat/prod) reported by the server.
+  /// Empty when the server does not specify one; the client then resolves to
+  /// dev via [EnvProfile.fromServerName].
+  final String environment;
+
   const IdentityPlatformConfig({
     required this.apiKey,
     required this.appId,
     required this.projectId,
     required this.authDomain,
     this.messagingSenderId = '',
+    this.environment = '',
   });
 
   /// Configuration for local development with Firebase emulator
@@ -40,7 +46,7 @@ class IdentityPlatformConfig {
   static const emulator = IdentityPlatformConfig(
     apiKey: 'demo-api-key',
     appId: '1:000000000000:web:0000000000000000000000',
-    // CUR-1263: aligned with Flavor.local.firebaseProjectId in flavors.dart,
+    // CUR-1263: aligned with AppConfig.initializeLocal()'s firebaseProjectId,
     // the firebase emulator's --project flag, and the seed script's effective
     // project id in hht_diary_callisto/deployment/local-stack/.
     projectId: 'demo-local-stack',
@@ -56,6 +62,7 @@ class IdentityPlatformConfig {
       projectId: json['projectId'] as String? ?? '',
       authDomain: json['authDomain'] as String? ?? '',
       messagingSenderId: json['messagingSenderId'] as String? ?? '',
+      environment: json['environment'] as String? ?? '',
     );
   }
 
