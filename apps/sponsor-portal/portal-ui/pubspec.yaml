@@ -15,9 +15,9 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Shared widgets (EnvironmentBanner, etc.)
-  common_widgets:
-    path: ../../common-flutter/common_widgets
+  # Shared design system (tokens, theme, components)
+  diary_design_system:
+    path: ../../common-flutter/diary_design_system
 
   # Shared data types — StudyEvent validation/formatting, QuestionnaireInstance, etc.
   trial_data_types:

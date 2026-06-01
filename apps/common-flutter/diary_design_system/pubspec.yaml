@@ -1,5 +1,5 @@
-name: common_widgets
-description: Shared Flutter widgets used across CureHHT apps (diary mobile, sponsor portal).
+name: diary_design_system
+description: Shared design system — tokens, theme, and reusable components — used by both the diary mobile app and the sponsor portal.
 version: 0.0.1
 publish_to: none
 
