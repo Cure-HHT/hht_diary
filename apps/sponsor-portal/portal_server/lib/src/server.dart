@@ -11,7 +11,7 @@ import 'dart:io';
 
 import 'package:otel_common/otel_common.dart';
 import 'package:portal_functions/portal_functions.dart'
-    show isSchemaStale, foundDbVersion, expectedMinDbVersion;
+    show isSchemaStale, foundDbVersion, expectedMinDbVersion, withSessionRevokedTracking;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
