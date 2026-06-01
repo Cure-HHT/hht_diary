@@ -1633,7 +1633,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : RefreshIndicator(
-                      onRefresh: _loadRecords,
+                      // CUR-1398: pull-to-refresh now also pulls /tasks so
+                      // the patient has a manual recovery path when FCM is
+                      // slow or fails. _loadRecords reads the local
+                      // materialized view; syncTasks hits the server. They
+                      // run in parallel — no ordering requirement, and the
+                      // refresh indicator stays up until both complete.
+                      onRefresh: () => Future.wait([
+                        _loadRecords(),
+                        widget.taskService.syncTasks(widget.enrollmentService),
+                      ]),
                       child: Scrollbar(
                         thumbVisibility: true,
                         controller: _scrollController,

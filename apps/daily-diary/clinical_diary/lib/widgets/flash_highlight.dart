@@ -47,7 +47,6 @@ class _FlashHighlightState extends State<FlashHighlight>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-  bool _hasFlashed = false;
 
   @override
   void initState() {
@@ -65,7 +64,7 @@ class _FlashHighlightState extends State<FlashHighlight>
 
     _controller.addStatusListener(_onAnimationStatus);
 
-    if (widget.flash && !_hasFlashed) {
+    if (widget.flash) {
       _startFlash();
     }
   }
@@ -73,7 +72,10 @@ class _FlashHighlightState extends State<FlashHighlight>
   @override
   void didUpdateWidget(FlashHighlight oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.flash && !oldWidget.flash && !_hasFlashed) {
+    // CUR-554: re-fire on every false->true transition. The transition check
+    // already prevents re-firing on rebuilds where flash stays true, so no
+    // latch is needed beyond that.
+    if (widget.flash && !oldWidget.flash) {
       _startFlash();
     }
   }
@@ -83,7 +85,11 @@ class _FlashHighlightState extends State<FlashHighlight>
       FeatureFlagService.instance.useAnimations && widget.enabled;
 
   void _startFlash() {
-    _hasFlashed = true;
+    // CUR-554: reset cycle counter so each new flash plays the full two
+    // pulses. _onAnimationStatus increments _flashCount up to 2 and never
+    // resets it; without this the second flash would forward once, never
+    // reverse (count > 2), and freeze.
+    _flashCount = 0;
     if (_animationsEnabled) {
       _controller.forward();
     } else {
