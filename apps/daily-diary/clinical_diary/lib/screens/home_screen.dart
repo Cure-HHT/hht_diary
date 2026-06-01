@@ -95,6 +95,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isEnrolled = false;
   // Wedge banner state — refreshed on init and on resume.
   bool _hasWedgedFifo = false;
+  // The yesterday+today block defaults to showing the newest events; jump it to
+  // the bottom once after the first laid-out frame.
+  bool _didScrollEventsToBottom = false;
   // Tracks whether the kept (non-diary) async checks have settled, so the
   // wedge / disconnection / task banners don't flash before their state loads.
   bool _isLoading = true;
@@ -807,24 +810,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     bool isEpistaxisOn(DiaryEntryView e, String dateStr) =>
         e is EpistaxisEntryView && e.localDate == dateStr;
 
+    // The home block is yesterday + today only; everything older (including
+    // older incomplete checkpoints, which the incomplete alert still surfaces)
+    // is reached through the Calendar.
     final groups = <_GroupedRecords>[];
-
-    // Incomplete epistaxis entries older than yesterday (checkpoint rows).
-    final olderIncompleteEntries = view.incompleteEntries.where((e) {
-      if (e is! EpistaxisEntryView) return false;
-      final dateStr = e.localDate;
-      return dateStr != todayStr && dateStr != yesterdayStr;
-    }).toList()..sort(byStart);
-
-    if (olderIncompleteEntries.isNotEmpty) {
-      groups.add(
-        _GroupedRecords(
-          label: l10n.incompleteRecords,
-          entries: olderIncompleteEntries,
-          isIncomplete: true,
-        ),
-      );
-    }
 
     // Yesterday's finalized nosebleed entries.
     final yesterdayEntries =
@@ -846,6 +835,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         date: yesterday,
         entries: yesterdayEntries,
         isEmpty: !hasAnyYesterdayEntries,
+        isYesterday: true,
       ),
     );
 
@@ -879,34 +869,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // Implements: DIARY-DEV-reactive-read-path/A
   Widget _buildScaffold(BuildContext context, DiaryView view) {
-    final groupedRecords = _groupRecordsByDay(context, view);
+    // Top-to-bottom areas: header · alerts · notifications · yesterday+today ·
+    // record. Each is a clearly-delimited region below.
     final incompleteEntries = view.incompleteEntries;
     final overlapCount = overlapPairs(view).length;
-    final hasYesterdayRecords = view
-        .entriesOn(
-          DateFormat(
-            'yyyy-MM-dd',
-          ).format(DateTime.now().subtract(const Duration(days: 1))),
-        )
-        .isNotEmpty;
-    // Defense-in-depth for the day-level lock: the YesterdayBanner's quick
-    // actions write markers / open recording for yesterday directly. Suppress
-    // it when yesterday is past the lock threshold (only possible under a sub-
-    // day lock); the calendar is the primary read-only gate.
-    final yesterdayLocked =
-        entryGateForDate(
-          eventLocalMidnight: DateUtils.dateOnly(
-            DateTime.now().subtract(const Duration(days: 1)),
-          ),
-          now: DateTime.now(),
-          config: ClinicalRulesScope.of(context).gate,
-        ) ==
-        EntryGate.locked;
-
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
+            // -- 1. HEADER --------------------------------------------------
             // Header with interactive logo and user menu
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -1040,7 +1011,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
 
-            // Banners section
+            // -- 2. ALERTS (errors) -----------------------------------------
             if (!_isLoading) ...[
               // Wedge banner: at least one destination FIFO is wedged on a
               // unknown event-type bridge mismatch — patient should update
@@ -1158,49 +1129,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 ),
 
-              // Task list (questionnaires, etc.) — kept on the legacy
-              // TaskService path, composed flatly beside the diary surface.
-              // CUR-1164: Hide while disconnected — no valid questionnaires.
+              // -- 3. NOTIFICATIONS ------------------------------------------
+              // Task list (questionnaires) — kept on the legacy TaskService
+              // path. CUR-1164: Hide while disconnected — no valid questionnaires.
               if (!_isDisconnected)
                 TaskListWidget(
                   taskService: widget.taskService,
                   onTaskTap: _navigateToQuestionnaire,
                 ),
-
-              // Yesterday confirmation banner (yellow). Hidden when yesterday
-              // is locked (its quick-writes would otherwise bypass the lock).
-              if (!hasYesterdayRecords && !yesterdayLocked)
-                YesterdayBanner(
-                  onNoNosebleeds: _handleYesterdayNoNosebleeds,
-                  onHadNosebleeds: _handleYesterdayHadNosebleeds,
-                  onDontRemember: _handleYesterdayDontRemember,
-                ),
+              // The yesterday confirmation prompt now lives in the Yesterday
+              // section of the events block below, not as a separate banner.
             ],
 
-            // Records list
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : RefreshIndicator(
-                      // The diary list is reactive (DiaryViewBuilder); pull-to-
-                      // refresh stays for the affordance but has nothing to load.
-                      onRefresh: () async {},
-                      child: Scrollbar(
-                        thumbVisibility: true,
-                        controller: _scrollController,
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: groupedRecords.length,
-                          itemBuilder: (context, index) {
-                            final group = groupedRecords[index];
-                            return _buildGroup(context, view, group);
-                          },
-                        ),
-                      ),
-                    ),
-            ),
+            // -- 4 & 5. YESTERDAY + TODAY ----------------------------------
+            // One bounded block of real-estate. It scrolls internally when
+            // yesterday + today overflow, pinned to the bottom (newest) by
+            // default. Everything older is reached through the Calendar.
+            Expanded(child: _buildEventsBlock(context, view)),
 
+            // -- 6. RECORD -------------------------------------------------
             // Bottom action area
             Padding(
               padding: const EdgeInsets.all(24.0),
@@ -1269,6 +1216,88 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// The Yesterday + Today block (areas 4 & 5): a bounded, internally-scrolling
+  /// list of the yesterday and today day-groups, auto-pinned to the bottom
+  /// (newest) on first load. Wrapped in [Expanded] by the caller.
+  // Implements: DIARY-DEV-reactive-read-path/A
+  Widget _buildEventsBlock(BuildContext context, DiaryView view) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final groups = _groupRecordsByDay(context, view);
+    // Default to the most recent events: jump to the bottom once, after the
+    // first laid-out frame that has a scrollable extent.
+    if (!_didScrollEventsToBottom) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _didScrollEventsToBottom) return;
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          _didScrollEventsToBottom = true;
+        }
+      });
+    }
+    return RefreshIndicator(
+      // The diary list is reactive (DiaryViewBuilder); pull-to-refresh stays for
+      // the affordance but has nothing to load.
+      onRefresh: () async {},
+      child: Scrollbar(
+        thumbVisibility: true,
+        controller: _scrollController,
+        child: ListView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: groups.length,
+          itemBuilder: (context, index) =>
+              _buildGroup(context, view, groups[index]),
+        ),
+      ),
+    );
+  }
+
+  /// Empty-state content for a day group. The Yesterday section, when not
+  /// locked, shows the No/Had/Don't-remember confirmation prompt instead of a
+  /// bare empty state (the prompt lives in the Yesterday area, not a separate
+  /// banner). Implements: DIARY-PRD-day-disposition/B
+  Widget _emptyGroupContent(BuildContext context, _GroupedRecords group) {
+    // Only prompt when yesterday has NO entry at all (incl. a day marker or an
+    // incomplete checkpoint) — i.e. the participant hasn't answered yet.
+    if (group.isYesterday && group.isEmpty) {
+      // Defense-in-depth for the day-level lock: the prompt's quick actions
+      // write markers / open recording for yesterday directly, so suppress it
+      // when yesterday is past the lock threshold (only possible under a sub-day
+      // lock); the calendar is the primary read-only gate.
+      final yesterdayLocked =
+          entryGateForDate(
+            eventLocalMidnight: DateUtils.dateOnly(
+              DateTime.now().subtract(const Duration(days: 1)),
+            ),
+            now: DateTime.now(),
+            config: ClinicalRulesScope.of(context).gate,
+          ) ==
+          EntryGate.locked;
+      if (!yesterdayLocked) {
+        return YesterdayBanner(
+          onNoNosebleeds: _handleYesterdayNoNosebleeds,
+          onHadNosebleeds: _handleYesterdayHadNosebleeds,
+          onDontRemember: _handleYesterdayDontRemember,
+        );
+      }
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Center(
+        child: Text(
+          'no events ${group.label.toLowerCase()}',
+          style: TextStyle(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+    );
+  }
+
   // Implements: DIARY-GUI-epistaxis-record/A
   Widget _buildGroup(
     BuildContext context,
@@ -1279,54 +1308,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Divider with label (only show for incomplete records section)
-        if (group.isIncomplete)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                const Expanded(child: Divider()),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    group.label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.orange.shade700,
-                    ),
-                  ),
-                ),
-                const Expanded(child: Divider()),
-              ],
-            ),
-          ),
-
-        // Date display for today and yesterday
-        if (group.date != null && !group.isIncomplete)
+        // Day divider + label (Yesterday / Today) and the full date.
+        if (group.date != null)
           Padding(
             padding: const EdgeInsets.only(top: 8, bottom: 8),
             child: Column(
               children: [
-                if (group.label != 'incomplete records')
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          group.label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        group.label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 Text(
                   DateFormat(
@@ -1342,20 +1347,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
 
         // Records or empty state
-        if (group.entries.isEmpty && !group.isIncomplete)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Center(
-              child: Text(
-                'no events ${group.label.toLowerCase()}',
-                style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          )
+        if (group.entries.isEmpty)
+          _emptyGroupContent(context, group)
         else
           ...group.entries.map(
             (entry) => Padding(
@@ -1399,14 +1392,17 @@ class _GroupedRecords {
     required this.label,
     required this.entries,
     this.date,
-    this.isIncomplete = false,
     this.isEmpty = false,
+    this.isYesterday = false,
   });
   final String label;
   final DateTime? date;
   final List<DiaryEntryView> entries;
-  final bool isIncomplete;
   final bool isEmpty;
+
+  /// The "Yesterday" section. When empty (and not locked) it renders the
+  /// yesterday confirmation prompt instead of a bare empty state.
+  final bool isYesterday;
 }
 
 /// Banner shown when at least one destination FIFO is wedged on a
