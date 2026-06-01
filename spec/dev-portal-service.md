@@ -153,3 +153,51 @@ event raised by the mobile *Diary* application can advance a *Participant* to co
 so neither node can fabricate the linked relationship on its own.
 
 *End* *Participant Linking-Status Projection* | **Hash**: aafda27d
+
+## DIARY-DEV-user-account-projection: User account projection
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-audit-trail
+
+### Overview
+
+The portal materializes a per-*User* record from the portal *User* lifecycle events,
+carrying each *User*'s email, name, and account status. Account status is recorded as an
+explicit fact on each status-transition event so the materialized status survives
+interleaved non-status edits, and a *User*'s roles and sites are realized as per-(*User*,
+*Role*, scope) assignment tuples that an *Administrator* changes by applying the difference
+between the desired and current assignment sets.
+
+### Assertions
+
+A. The portal SHALL materialize a per-*User* record from the portal *User* lifecycle
+events, carrying the *User*'s email, name, and account status, and SHALL remove the
+record when the account is deleted.
+
+B. Account status SHALL be recorded as an explicit fact on each status-transition
+event (account created becomes pending, deactivated becomes revoked, reactivated
+becomes pending) and SHALL be preserved across non-status events such as profile and
+email changes, so the materialized status reflects the latest transition regardless of
+interleaving edits.
+
+C. Creating a *User* SHALL record the account and realize the chosen roles and sites as
+per-(*User*, *Role*, scope) assignment tuples, and an *Administrator* SHALL change a *User*'s
+roles or sites by applying the difference between the desired and current assignment
+sets.
+
+### Rationale
+
+A *User* account is an audited, derived fact: rather than storing mutable account and
+*Role*-assignment columns in side tables, the portal folds the *User* lifecycle events into
+a per-*User* record so the account, its status, and its assignments stay reconstructible
+from the same append-only, tamper-evident chain as every other portal *Action*. Account
+status is carried as an explicit fact on each status-transition event because the *User*
+lifecycle interleaves non-status events — profile and email changes — and a derived
+record must reflect the latest genuine transition regardless of those edits. Roles and
+sites are realized as the cartesian product of the chosen roles over the chosen sites,
+each captured as a single (*User*, *Role*, scope) assignment tuple; an *Administrator* edits
+the set by applying the difference between the desired and current tuples, which the
+`portal_actions` user-administration *Actions* and the `users_index` materializer
+record and fold respectively.
+
+*End* *User account projection* | **Hash**: ae8627b4

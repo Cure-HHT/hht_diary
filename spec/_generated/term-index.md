@@ -90,6 +90,7 @@
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-rave-edc-ingest:section:1
+- DIARY-DEV-user-account-projection:section:1
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -168,6 +169,7 @@
 - DIARY-GUI-audit-log-administrator
 - DIARY-GUI-administrator-dashboard
 - DIARY-BASE-ops-action-inventory-B
+- DIARY-DEV-user-account-projection-C
 - DIARY-GUI-administrator-settings-A
 - DIARY-GUI-administrator-settings-B
 - DIARY-GUI-audit-log-administrator-A
@@ -200,6 +202,8 @@
 - DIARY-GUI-administrator-dashboard-F
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-BASE-ops-action-inventory:section:0
+- DIARY-DEV-user-account-projection:section:0
+- DIARY-DEV-user-account-projection:section:1
 - rem:spec/prd-administrator-settings.md:1
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -2112,6 +2116,7 @@
 - DIARY-BASE-system-operator-role-A
 - DIARY-BASE-system-operator-role-B
 - DIARY-DEV-portal-reaction-server-B
+- DIARY-DEV-user-account-projection-C
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-session-management-F
 - DIARY-OPS-rave-unwedge-authz-A
@@ -2144,6 +2149,8 @@
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-participant-site-index:section:1
+- DIARY-DEV-user-account-projection:section:0
+- DIARY-DEV-user-account-projection:section:1
 - rem:spec/glossary-core.md:745
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -2922,6 +2929,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-user-account-projection
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
 - DIARY-PRD-user-account-create
@@ -2932,6 +2940,8 @@
 - DIARY-GUI-user-account-deactivate
 - DIARY-GUI-user-account-reactivate
 - DIARY-GUI-user-information-modal
+- DIARY-DEV-user-account-projection-A
+- DIARY-DEV-user-account-projection-C
 - DIARY-GUI-audit-log-common-A
 - DIARY-GUI-audit-log-common-C
 - DIARY-GUI-audit-log-administrator-A
@@ -3046,6 +3056,8 @@
 - DIARY-GUI-user-information-modal-M
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-E
+- DIARY-DEV-user-account-projection:section:0
+- DIARY-DEV-user-account-projection:section:1
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
 - rem:spec/prd-audit-log.md:3
@@ -3110,6 +3122,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-user-account-projection
 - DIARY-PRD-user-account-create
 - DIARY-PRD-user-account-edit
 - DIARY-PRD-user-account-deactivate

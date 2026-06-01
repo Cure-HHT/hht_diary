@@ -160,3 +160,4 @@
 | DIARY-DEV-runtime-environment-resolution   | Runtime Environment Resolution             | dev-environment-resolution.md      | b0c74776 |
 | DIARY-DEV-schema-version-check             | Runtime Schema Version Check               | dev-schema-version-check.md        | 260cb67b |
 | DIARY-DEV-shared-events-catalog            | Shared Cross-Wire Event Catalog            | dev-shared-events-catalog.md       | b157403e |
+| DIARY-DEV-user-account-projection          | User account projection                    | dev-portal-service.md              | ae8627b4 |
