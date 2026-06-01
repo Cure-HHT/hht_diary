@@ -61,3 +61,21 @@ final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
   ),
   tombstoneEventTypes: const {},
 );
+
+// Implements: DIARY-DEV-rave-edc-ingest/C — rave_sync_status folds the rave_sync
+//   lockout events into one row; counter-affecting events carry the authoritative
+//   consecutive_auth_failures so the merge yields a correct running counter.
+final AggregateProjectionSpec raveSyncStatusSpec = AggregateProjectionSpec(
+  viewName: 'rave_sync_status',
+  interest: const SubscriptionFilter(
+    aggregateTypes: {'rave_sync'},
+    eventTypes: {
+      'edc_sync_succeeded',
+      'edc_sync_failed',
+      'rave_auth_failed',
+      'rave_hard_lockout_triggered',
+      'rave_unwedged',
+    },
+  ),
+  tombstoneEventTypes: const {},
+);
