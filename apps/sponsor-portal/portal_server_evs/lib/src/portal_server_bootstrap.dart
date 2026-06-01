@@ -273,10 +273,17 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // BEFORE the catch-all ..mount('/', httpPipeline). This ensures they bypass
   // authMiddleware while all other routes still flow through the authed pipeline.
   // The inner activationRouter re-matches its own paths on the original Request.
+  // They get _cors() (the authed pipeline's CORS does not cover them) so a
+  // browser-served activation page on a different origin can read the response;
+  // _cors() also short-circuits the POST preflight (OPTIONS -> 200 + headers).
+  final activationHandler =
+      const Pipeline().addMiddleware(_cors()).addHandler(activationRouter.call);
   final topRouter = Router()
     ..get('/subscriptions', handlers.subscriptions(validator))
-    ..get('/activate/<code>', activationRouter.call)
-    ..post('/activate', activationRouter.call)
+    ..options('/activate/<code>', activationHandler)
+    ..options('/activate', activationHandler)
+    ..get('/activate/<code>', activationHandler)
+    ..post('/activate', activationHandler)
     ..mount('/', httpPipeline);
 
   Future<void> dispose() async {

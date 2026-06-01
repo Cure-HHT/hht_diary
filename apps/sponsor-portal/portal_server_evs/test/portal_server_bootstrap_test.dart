@@ -295,5 +295,30 @@ void main() {
     final body = jsonDecode(await resp.readAsString()) as Map<String, Object?>;
     expect(body['valid'], isFalse,
         reason: 'unknown code reports {valid: false}');
+    // The activation page is served from a different origin than the server, so
+    // the response must carry CORS headers or the browser can't read it.
+    expect(resp.headers['access-control-allow-origin'], '*',
+        reason: 'cross-origin browser must be able to read /activate');
+  });
+
+  test('OPTIONS /activate preflight -> 200 with CORS headers (public, no auth)',
+      () async {
+    // Verifies: DIARY-DEV-portal-activation-email-delivery/B — the POST /activate
+    // preflight must succeed cross-origin without auth, else the browser blocks
+    // the password submission.
+    final db = await newDatabaseFactoryMemory()
+        .openDatabase('skeleton-activate-opt.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
+    );
+    addTearDown(boot.dispose);
+
+    final resp = await boot.router(
+      Request('OPTIONS', Uri.parse('http://localhost/activate')),
+    );
+    expect(resp.statusCode, 200);
+    expect(resp.headers['access-control-allow-origin'], '*');
+    expect(resp.headers['access-control-allow-methods'], contains('POST'));
   });
 }
