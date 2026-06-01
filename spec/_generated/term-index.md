@@ -89,6 +89,7 @@
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-portal-reaction-server:section:1
+- DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -420,6 +421,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-rave-edc-ingest-D
 - DIARY-OPS-rave-sync-cooldown-A
 - DIARY-OPS-rave-sync-cooldown-B
 - DIARY-DEV-rave-auth-failure-classification-A
@@ -552,6 +554,7 @@
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
+- DIARY-DEV-participant-status-projection-B
 - DIARY-DEV-shared-events-catalog-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
@@ -596,6 +599,8 @@
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-outgoing-intent-correlation:section:1
+- DIARY-DEV-participant-status-projection:section:0
+- DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
@@ -1268,6 +1273,7 @@
 **DIARY:**
 
 - DIARY-DEV-participant-site-index
+- DIARY-DEV-participant-status-projection
 - DIARY-GUI-participant-task-list
 - DIARY-PRD-participant-registration
 - DIARY-PRD-participant-link-new
@@ -1281,6 +1287,9 @@
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-B
 - DIARY-DEV-participant-site-index-A
+- DIARY-DEV-rave-edc-ingest-A
+- DIARY-DEV-participant-status-projection-A
+- DIARY-DEV-participant-status-projection-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-study-coordinator-B
 - DIARY-GUI-audit-log-cra-A
@@ -1477,6 +1486,8 @@
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
+- DIARY-DEV-participant-status-projection:section:0
+- DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
@@ -2307,6 +2318,8 @@
 - DIARY-PRD-user-account-site-assignment
 - DIARY-DEV-participant-site-index-A
 - DIARY-DEV-participant-site-index-B
+- DIARY-DEV-rave-edc-ingest-A
+- DIARY-DEV-participant-status-projection-A
 - DIARY-GUI-audit-log-cra-A
 - DIARY-GUI-audit-log-cra-B
 - DIARY-GUI-audit-log-cra-D
@@ -2329,6 +2342,8 @@
 - DIARY-GUI-user-information-modal-G
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
+- DIARY-DEV-rave-edc-ingest:section:0
+- DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-GUI-audit-log-cra:section:0
 - DIARY-GUI-audit-log-cra:section:3
 - DIARY-PRD-data-backup-and-archival:section:0
@@ -2888,6 +2903,7 @@
 
 - DIARY-OPS-rave-unwedge-authz
 - DIARY-BASE-ops-action-inventory-B
+- DIARY-DEV-rave-edc-ingest-D
 - DIARY-OPS-rave-sync-cooldown-C
 - DIARY-OPS-rave-sync-hard-lockout-C
 - DIARY-OPS-rave-unwedge-authz-A
@@ -2898,6 +2914,7 @@
 - DIARY-GUI-dev-admin-rave-sync-card-B
 - DIARY-GUI-dev-admin-rave-sync-card-C
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-OPS-rave-unwedge-authz:section:0
 - DIARY-OPS-rave-alert-notification:section:0
 
