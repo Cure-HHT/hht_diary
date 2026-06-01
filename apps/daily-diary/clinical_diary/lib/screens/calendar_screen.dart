@@ -9,7 +9,10 @@ import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/day_disposition.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
+import 'package:diary_shared_model/diary_shared_model.dart'
+    show EntryGate, entryGateForDate;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -109,7 +112,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ...view.incompleteEntriesOn(localDate),
     ];
 
-    if (entries.isEmpty) {
+    // Day-level lock (the primary gate; recording screen + Actions are
+    // defense-in-depth). A locked date is read-only for EVERYTHING — nosebleeds
+    // AND the day markers — so route to the read-only records view rather than
+    // offering the 3-choice disposition picker or an add button.
+    // Implements: DIARY-PRD-entry-time-restrictions/E+F+G
+    final locked =
+        entryGateForDate(
+          eventLocalMidnight: localDay,
+          now: DateTime.now(),
+          config: ClinicalRulesScope.of(context).gate,
+        ) ==
+        EntryGate.locked;
+    if (locked) {
+      await _showDateRecordsScreen(
+        localDay,
+        localDate,
+        entries,
+        view,
+        locked: true,
+      );
+    } else if (entries.isEmpty) {
       // A genuinely empty day has no marker to tombstone — pass null.
       await showDayDispositionPicker(
         context,
@@ -125,8 +148,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     DateTime selectedDay,
     String localDate,
     List<DiaryEntryView> entries,
-    DiaryView view,
-  ) async {
+    DiaryView view, {
+    bool locked = false,
+  }) async {
     // The lone marker on this day (if any) drives both convert-on-add and the
     // marker-tap re-disposition's tombstone target.
     final soleMarker = view.soleMarkerOn(localDate);
@@ -142,6 +166,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       AppPageRoute(
         builder: (context) => DateRecordsScreen(
           date: selectedDay,
+          locked: locked,
           entries: entries,
           // "Add Event": a day whose only entry is a lone marker converts (the
           // new nosebleed tombstones that marker); a day with nosebleeds just

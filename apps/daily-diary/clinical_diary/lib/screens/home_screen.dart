@@ -20,6 +20,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/settings/local_reset_policy.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
@@ -28,6 +29,8 @@ import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/task_list_widget.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
+import 'package:diary_shared_model/diary_shared_model.dart'
+    show EntryGate, entryGateForDate;
 import 'package:eq/eq.dart';
 import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
@@ -857,6 +860,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ).format(DateTime.now().subtract(const Duration(days: 1))),
         )
         .isNotEmpty;
+    // Defense-in-depth for the day-level lock: the YesterdayBanner's quick
+    // actions write markers / open recording for yesterday directly. Suppress
+    // it when yesterday is past the lock threshold (only possible under a sub-
+    // day lock); the calendar is the primary read-only gate.
+    final yesterdayLocked =
+        entryGateForDate(
+          eventLocalMidnight: DateUtils.dateOnly(
+            DateTime.now().subtract(const Duration(days: 1)),
+          ),
+          now: DateTime.now(),
+          config: ClinicalRulesScope.of(context).gate,
+        ) ==
+        EntryGate.locked;
 
     return Scaffold(
       body: SafeArea(
@@ -1071,8 +1087,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onTaskTap: _navigateToQuestionnaire,
                 ),
 
-              // Yesterday confirmation banner (yellow)
-              if (!hasYesterdayRecords)
+              // Yesterday confirmation banner (yellow). Hidden when yesterday
+              // is locked (its quick-writes would otherwise bypass the lock).
+              if (!hasYesterdayRecords && !yesterdayLocked)
                 YesterdayBanner(
                   onNoNosebleeds: _handleYesterdayNoNosebleeds,
                   onHadNosebleeds: _handleYesterdayHadNosebleeds,

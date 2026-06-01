@@ -10,6 +10,7 @@ import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
+import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:diary_shared_model/diary_shared_model.dart'
     show NosebleedIntensity;
 import 'package:flutter/material.dart';
@@ -51,6 +52,47 @@ void main() {
       final dateStr = DateFormat('EEEE, MMMM d, y').format(testDate);
       expect(find.text(dateStr), findsOneWidget);
     }, skip: true);
+
+    // Verifies: DIARY-PRD-entry-time-restrictions — a locked day is read-only:
+    //   no Add button, a lock banner, and rows are non-tappable (no edit /
+    //   re-disposition), so neither nosebleeds nor markers can be mutated.
+    testWidgets('locked day is read-only (no add, banner, rows not tappable)', (
+      tester,
+    ) async {
+      var added = false;
+      var edited = false;
+      var redispositioned = false;
+      final epi = buildEpistaxisView(
+        aggregateId: 'a',
+        startTime: DateTime(2025, 11, 28, 10),
+        endTime: DateTime(2025, 11, 28, 10, 5),
+        endTimeZone: 'UTC',
+        intensity: NosebleedIntensity.dripping,
+      );
+
+      await tester.pumpWidget(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
+            date: testDate,
+            locked: true,
+            entries: [epi],
+            onAddEvent: () => added = true,
+            onEditEvent: (_) => edited = true,
+            onRedispositionMarker: (_) => redispositioned = true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // No add button; a lock banner is shown instead.
+      expect(find.byIcon(Icons.add), findsNothing);
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+
+      // The entry row is non-tappable (read-only).
+      await tester.tap(find.byType(EventListItem), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(added || edited || redispositioned, isFalse);
+    });
 
     testWidgets('displays back button', (tester) async {
       await tester.pumpWidget(

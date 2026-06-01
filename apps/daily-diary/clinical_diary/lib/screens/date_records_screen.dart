@@ -19,6 +19,7 @@ class DateRecordsScreen extends StatelessWidget {
     required this.onAddEvent,
     required this.onEditEvent,
     required this.onRedispositionMarker,
+    this.locked = false,
     super.key,
   });
 
@@ -30,6 +31,12 @@ class DateRecordsScreen extends StatelessWidget {
   /// Tapping a [DayMarkerView] row re-dispositions the day (open the 3-choice
   /// day-disposition picker seeded with that marker).
   final void Function(DayMarkerView) onRedispositionMarker;
+
+  /// When true the day is past the lock threshold: read-only. No add, edit, or
+  /// re-disposition of any kind (nosebleed OR markers). The day-level lock is
+  /// enforced here (the calendar entry point); the recording screen + Actions
+  /// are defense-in-depth.
+  final bool locked;
 
   String get _formattedDate => DateFormat('EEEE, MMMM d, y').format(date);
 
@@ -95,18 +102,48 @@ class DateRecordsScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Add new event button
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
+          // Locked: read-only banner instead of the add button.
+          if (locked)
+            Container(
               width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: onAddEvent,
-                icon: const Icon(Icons.add),
-                label: Text(l10n.addNewEvent),
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      // TODO(i18n): localize.
+                      'This date is locked. Entries can be viewed but not added, '
+                      'edited, or deleted.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            // Add new event button
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onAddEvent,
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.addNewEvent),
+                ),
               ),
             ),
-          ),
 
           // Events list or empty state
           Expanded(
@@ -162,13 +199,16 @@ class DateRecordsScreen extends StatelessWidget {
         final entry = sortedEntries[index];
         return EventListItem(
           view: entry,
-          // Epistaxis rows open the recording screen to edit; day-marker rows
-          // open the 3-choice picker to re-disposition the day.
+          // Locked day: rows are non-tappable (view-only — no edit/re-disposition).
+          // Otherwise epistaxis rows open the recording screen to edit; day-marker
+          // rows open the 3-choice picker to re-disposition the day.
           // Implements: DIARY-PRD-day-disposition/B
-          onTap: switch (entry) {
-            EpistaxisEntryView() => () => onEditEvent(entry),
-            DayMarkerView() => () => onRedispositionMarker(entry),
-          },
+          onTap: locked
+              ? null
+              : switch (entry) {
+                  EpistaxisEntryView() => () => onEditEvent(entry),
+                  DayMarkerView() => () => onRedispositionMarker(entry),
+                },
           hasOverlap: _hasOverlap(entry),
         );
       },
