@@ -273,6 +273,13 @@ TODO.md
 /apps/coverage/*.info
 # Implementation plans (ephemeral, session-specific)
 docs/plans/
+# EVS-port (CUR-1169) local working artifacts: resume doc, checklist, and the
+# brainstorm/design docs + plans under docs/superpowers/ (kept local, not committed).
+/CONTINUE_EVS_PORT.md
+/diary_completion_checklist.md
+docs/superpowers/
+# common-flutter library packages don't commit pubspec.lock (pub-get artifact).
+apps/common-flutter/*/pubspec.lock
 /apps/coverage/
 /apps/coverage/*.info
 # Implementation plans (ephemeral, session-specific)
