@@ -1,27 +1,28 @@
-# REQ-d00001: Example Requirement Title
+# DIARY-DEV-example: Example Requirement Title
 
-**Level**: Dev | **Status**: Draft | **Implements**: -
+**Level**: DEV | **Status**: Draft | **Refines**: -
 
 ## Assertions
 
-A. The system SHALL demonstrate the assertion format.
-B. The system SHALL show proper use of SHALL language.
+A. The platform SHALL demonstrate the assertion format.
+B. The platform SHALL show proper use of SHALL language.
 
 ## Rationale
 
-This is an example requirement demonstrating the proper format.
-Delete this file after reviewing the structure.
+This is an example requirement demonstrating the proper format. Delete this file after reviewing the structure.
 
 ---
 
 **Format Notes** (delete this section):
 
-- **Title line**: `# REQ-{type}{id}: Title` where type is p/o/d for PRD/OPS/DEV
-- **Metadata line**: Level, Status, and Implements (use `-` for top-level reqs)
-- **Assertions**: Labeled A-Z, each using SHALL for required behavior
-- **Rationale**: Optional explanation section (non-normative)
-- **Footer**: `*End* *Title* | **Hash**: XXXXXXXX` - hash computed by `elspais hash update`
+- **Title line**: `# DIARY-{LEVEL}-{component}: Title` where level is `PRD`, `GUI`, `OPS`, or `DEV`.
+- **Metadata line**: Level, Status, and Refines (use `-` if there is no parent).
+- **Assertions**: Labeled A–Z, each using SHALL for required behavior.
+- **Rationale**: Optional explanation section (non-normative).
+- **Footer**: `*End* *Title* | **Hash**: XXXXXXXX` — hash computed by `elspais hash update`.
+- **`Implements:` is deprecated for REQ→REQ relationships in spec headers.** Use `**Refines**:` (default) for hierarchy / elaboration, or `**Satisfies**:` for template / registry instantiation. The deprecation does not apply to per-class `// Implements:` annotations in production code.
+- **Templates** — REQs that accept incoming `**Satisfies**:` edges MUST be marked with the no-value `**Template**` flag on the metadata line (e.g. `**Level**: PRD | **Status**: Active | **Template**`). Satisfiers can be in this repo or in an associated sibling repo. Code/test evidence annotated against the template assertions flows to every satisfier automatically — write the contract test once.
 
-Run `elspais format` for more templates and `elspais validate` to check this file.
+Run `elspais example` for more templates and `elspais checks` to validate.
 
 *End* *Example Requirement Title* | **Hash**: 00000000
