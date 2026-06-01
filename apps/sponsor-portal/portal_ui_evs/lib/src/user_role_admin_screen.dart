@@ -3,8 +3,15 @@ import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
+// Permission-driven visibility: every action/view-exposing widget is wrapped in
+// a PermissionGate keyed on the permission it needs, so a user only sees the
+// widgets their active role holds. PermissionGate is reactive — it re-gates live
+// on role switch or revocation. This is the template every future screen follows.
 const String _assignSiteAction = 'ACT-USR-008'; // rawInput {userId, role, site}
 const String _revokeSiteAction = 'ACT-USR-011';
+const String _assignSitePerm = 'portal.user.assign_site';
+const String _revokeSitePerm = 'portal.user.revoke_site';
+const String _viewAssignmentsPerm = 'view:user_role_scopes';
 const List<String> _roles = <String>['StudyCoordinator', 'CRA'];
 const List<String> _sites = <String>['site-1', 'site-2', 'site-3'];
 
@@ -78,80 +85,92 @@ class _UserRoleAdminScreenState extends State<UserRoleAdminScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
-          // Assign-site form.
-          Wrap(
-            spacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: <Widget>[
-              const Text('Assign'),
-              DropdownButton<String>(
-                value: _role,
-                items: <DropdownMenuItem<String>>[
-                  for (final r in _roles)
-                    DropdownMenuItem<String>(value: r, child: Text(r)),
-                ],
-                onChanged: (v) => setState(() => _role = v ?? _role),
-              ),
-              const Text('@'),
-              DropdownButton<String>(
-                value: _site,
-                items: <DropdownMenuItem<String>>[
-                  for (final s in _sites)
-                    DropdownMenuItem<String>(value: s, child: Text(s)),
-                ],
-                onChanged: (v) => setState(() => _site = v ?? _site),
-              ),
-              ActionBuilder(
-                submissionFactory: () => ActionSubmission(
-                  actionName: _assignSiteAction,
-                  rawInput: <String, Object?>{
-                    'userId': target,
-                    'role': _role,
-                    'site': _site,
-                  },
+          // Assign-site form — only visible to roles that hold assign_site.
+          PermissionGate(
+            permission: _assignSitePerm,
+            child: Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                const Text('Assign'),
+                DropdownButton<String>(
+                  value: _role,
+                  items: <DropdownMenuItem<String>>[
+                    for (final r in _roles)
+                      DropdownMenuItem<String>(value: r, child: Text(r)),
+                  ],
+                  onChanged: (v) => setState(() => _role = v ?? _role),
                 ),
-                builder: (context, state, submit) => FilledButton(
-                  onPressed: state is Submitting ? null : submit,
-                  child: Text(switch (state) {
-                    Submitting() => '...',
-                    Denied() => 'Denied',
-                    Failed() => 'Failed',
-                    _ => 'Assign Site',
-                  }),
+                const Text('@'),
+                DropdownButton<String>(
+                  value: _site,
+                  items: <DropdownMenuItem<String>>[
+                    for (final s in _sites)
+                      DropdownMenuItem<String>(value: s, child: Text(s)),
+                  ],
+                  onChanged: (v) => setState(() => _site = v ?? _site),
                 ),
-              ),
-            ],
+                ActionBuilder(
+                  submissionFactory: () => ActionSubmission(
+                    actionName: _assignSiteAction,
+                    rawInput: <String, Object?>{
+                      'userId': target,
+                      'role': _role,
+                      'site': _site,
+                    },
+                  ),
+                  builder: (context, state, submit) => FilledButton(
+                    onPressed: state is Submitting ? null : submit,
+                    child: Text(switch (state) {
+                      Submitting() => '...',
+                      Denied() => 'Denied',
+                      Failed() => 'Failed',
+                      _ => 'Assign Site',
+                    }),
+                  ),
+                ),
+              ],
+            ),
           ),
           const Divider(height: 24),
-          // Live list of all assignments (user filters client-side).
+          // Live list — gated on the view permission, so roles without it see a
+          // clear "no access" message instead of a perpetual spinner (the server
+          // denies their subscription).
           Expanded(
-            child: ViewBuilder<_Assignment>(
-              viewName: 'user_role_scopes',
-              mapper: _Assignment.fromRow,
-              aggregateIdOf: (a) => a.aggregateId,
-              builder: (context, state) {
-                final rows = switch (state) {
-                  Loading<_Assignment>() => const <_Assignment>[],
-                  Ready<_Assignment>(:final rows) => rows,
-                  Stale<_Assignment>(:final lastRows) => lastRows,
-                };
-                if (state is Loading<_Assignment>) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final mine = rows.where((a) => a.userId == target).toList();
-                if (mine.isEmpty) {
-                  return Center(child: Text('(no assignments for "$target")'));
-                }
-                return ListView(
-                  children: <Widget>[
-                    for (final a in mine)
-                      ListTile(
-                        title: Text('${a.role}  ·  ${a.scopeLabel}'),
-                        trailing: _RevokeButton(assignment: a),
-                      ),
-                  ],
-                );
-              },
+            child: PermissionGate(
+              permission: _viewAssignmentsPerm,
+              fallback: const Center(
+                child: Text("You don't have permission to view assignments."),
+              ),
+              child: ViewBuilder<_Assignment>(
+                viewName: 'user_role_scopes',
+                mapper: _Assignment.fromRow,
+                aggregateIdOf: (a) => a.aggregateId,
+                builder: (context, state) {
+                  final rows = switch (state) {
+                    Loading<_Assignment>() => const <_Assignment>[],
+                    Ready<_Assignment>(:final rows) => rows,
+                    Stale<_Assignment>(:final lastRows) => lastRows,
+                  };
+                  if (state is Loading<_Assignment>) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final mine = rows.where((a) => a.userId == target).toList();
+                  if (mine.isEmpty) {
+                    return Center(
+                        child: Text('(no assignments for "$target")'));
+                  }
+                  return ListView(
+                    children: <Widget>[
+                      for (final a in mine)
+                        ListTile(
+                          title: Text('${a.role}  ·  ${a.scopeLabel}'),
+                          trailing: _RevokeButton(assignment: a),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -171,24 +190,27 @@ class _RevokeButton extends StatelessWidget {
       // Non-site (wildcard) scopes aren't revocable via the site-only slice.
       return const SizedBox.shrink();
     }
-    return ActionBuilder(
-      submissionFactory: () => ActionSubmission(
-        actionName: _revokeSiteAction,
-        rawInput: <String, Object?>{
-          'userId': assignment.userId,
-          'role': assignment.role,
-          'site': site,
-        },
-      ),
-      builder: (context, state, submit) => IconButton(
-        tooltip: switch (state) {
-          Denied() => 'Denied: ${state.reason}',
-          Failed() => 'Failed',
-          _ => 'Revoke',
-        },
-        onPressed: state is Submitting ? null : submit,
-        icon: Icon(
-          state is Submitting ? Icons.hourglass_empty : Icons.delete_outline,
+    return PermissionGate(
+      permission: _revokeSitePerm,
+      child: ActionBuilder(
+        submissionFactory: () => ActionSubmission(
+          actionName: _revokeSiteAction,
+          rawInput: <String, Object?>{
+            'userId': assignment.userId,
+            'role': assignment.role,
+            'site': site,
+          },
+        ),
+        builder: (context, state, submit) => IconButton(
+          tooltip: switch (state) {
+            Denied() => 'Denied: ${state.reason}',
+            Failed() => 'Failed',
+            _ => 'Revoke',
+          },
+          onPressed: state is Submitting ? null : submit,
+          icon: Icon(
+            state is Submitting ? Icons.hourglass_empty : Icons.delete_outline,
+          ),
         ),
       ),
     );
