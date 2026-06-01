@@ -76,10 +76,13 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     super.dispose();
   }
 
-  /// Dev connect: called by [ConnectScreen] with the bare userId (or
-  /// `userId|role`). Sets the identity credential and wires it to the scope.
+  /// Dev connect: called by [ConnectScreen] with a bare userId (optionally
+  /// `userId|role` for a power-user initial-role choice). The STORED identity
+  /// credential is kept bare (role claim stripped) so a later role switch
+  /// appends a single `|role`; the typed value (with any role) is used for the
+  /// initial connect.
   void _onConnect(String identity) {
-    setState(() => _identityCredential = identity);
+    setState(() => _identityCredential = identity.split('|').first);
     _scope.authSession.setCredential(identity);
   }
 
