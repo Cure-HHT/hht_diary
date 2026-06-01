@@ -198,7 +198,7 @@ void main() {
       expect(icon.color, Colors.amber.shade700);
     });
 
-    testWidgets('does not show View button when onViewConflict is null', (
+    testWidgets('does not show Resolve button when onResolve is null', (
       tester,
     ) async {
       final overlappingEntry = createTestEntry(
@@ -213,10 +213,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('View'), findsNothing);
+      expect(find.text('Resolve'), findsNothing);
     });
 
-    testWidgets('shows View button when onViewConflict is provided', (
+    testWidgets('shows Resolve button when onResolve is provided', (
       tester,
     ) async {
       final overlappingEntry = createTestEntry(
@@ -228,18 +228,16 @@ void main() {
         wrapWithScaffold(
           OverlapWarning(
             overlappingEntries: [overlappingEntry],
-            onViewConflict: (_) {},
+            onResolve: () {},
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('View'), findsOneWidget);
+      expect(find.text('Resolve'), findsOneWidget);
     });
 
-    testWidgets('View button calls onViewConflict with first entry', (
-      tester,
-    ) async {
+    testWidgets('Resolve button invokes onResolve callback', (tester) async {
       final overlappingEntries = [
         createTestEntry(
           startTime: DateTime(2024, 1, 15, 10, 0),
@@ -251,25 +249,24 @@ void main() {
         ),
       ];
 
-      EpistaxisEntryView? tappedEntry;
+      var tapped = false;
 
       await tester.pumpWidget(
         wrapWithScaffold(
           OverlapWarning(
             overlappingEntries: overlappingEntries,
-            onViewConflict: (entry) {
-              tappedEntry = entry;
+            onResolve: () {
+              tapped = true;
             },
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('View'));
+      await tester.tap(find.text('Resolve'));
       await tester.pumpAndSettle();
 
-      expect(tappedEntry, isNotNull);
-      expect(tappedEntry!.aggregateId, overlappingEntries.first.aggregateId);
+      expect(tapped, isTrue);
     });
   });
 }

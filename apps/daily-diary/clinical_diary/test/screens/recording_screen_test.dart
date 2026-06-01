@@ -695,82 +695,50 @@ void main() {
       expect(find.text('open'), findsOneWidget);
     });
 
-    // Regression: tapping the overlap "View" button must NOT discard the
-    // in-progress entry and bounce to the previous screen (the reported defect).
-    // It opens the conflicting record (replacing this screen), so we stay on a
-    // RecordingScreen rather than popping back to the host.
-    testWidgets('overlap "View" opens the conflict instead of discarding', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(1080, 1920);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    // Tapping the inline overlap warning's "Resolve" button finalizes the
+    // in-progress entry and routes straight to the side-by-side compare screen
+    // (replacing the recording screen), not back to the host and not on top.
+    testWidgets(
+      'overlap "Resolve" finalizes the entry and routes to the compare screen',
+      (tester) async {
+        final base = DateTime.now();
+        final other = buildEpistaxisView(
+          aggregateId: 'agg-resolve-other',
+          startTime: DateTime(base.year, base.month, base.day, 13),
+          endTime: DateTime(base.year, base.month, base.day, 14),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        final editing = buildEpistaxisView(
+          aggregateId: 'agg-resolve-self',
+          startTime: DateTime(base.year, base.month, base.day, 13, 30),
+          endTime: DateTime(base.year, base.month, base.day, 13, 45),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
 
-      final base = DateTime.now();
-      final other = buildEpistaxisView(
-        aggregateId: 'agg-view-other',
-        startTime: DateTime(base.year, base.month, base.day, 13),
-        endTime: DateTime(base.year, base.month, base.day, 14),
-        endTimeZone: 'UTC',
-        intensity: NosebleedIntensity.dripping,
-      );
-      final editing = buildEpistaxisView(
-        aggregateId: 'agg-view-self',
-        startTime: DateTime(base.year, base.month, base.day, 13, 30),
-        endTime: DateTime(base.year, base.month, base.day, 13, 45),
-        endTimeZone: 'UTC',
-        intensity: NosebleedIntensity.dripping,
-      );
+        await pumpRecordingFromHost(tester, editing: editing);
+        seedDiaryEntries([other]);
+        await tester.pumpAndSettle();
+        expect(find.text('Overlapping Events Detected'), findsOneWidget);
 
-      await tester.pumpWidget(
-        ReActionScope(
-          scope: fake,
-          child: wrapWithMaterialApp(
-            Builder(
-              builder: (hostContext) => Scaffold(
-                body: Center(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(hostContext).push<String?>(
-                      MaterialPageRoute<String?>(
-                        builder: (_) => ClinicalRulesScope(
-                          rules: const ClinicalRules(useReviewScreen: true),
-                          child: RecordingScreen(existing: editing),
-                        ),
-                      ),
-                    ),
-                    child: const Text('open'),
-                  ),
-                ),
-              ),
-            ),
+        await tester.tap(find.text('Resolve'));
+        // _saveRecord is async; drain the microtask chain before pumping frames.
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        // The entry was finalized (edit_epistaxis_event submitted) and the
+        // screen was replaced with the side-by-side compare screen.
+        expect(
+          fake.submittedActions.where(
+            (a) => a.actionName == 'edit_epistaxis_event',
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
-
-      seedDiaryEntries([other]);
-      await tester.pumpAndSettle();
-      expect(find.text('Overlapping Events Detected'), findsOneWidget);
-
-      await tester.tap(find.text('View'));
-      await tester.pumpAndSettle();
-
-      // Opened the conflict ON TOP of the in-progress entry (not discarded, not
-      // bounced to the host). The conflict itself has no overlap.
-      expect(find.text('open'), findsNothing);
-      expect(find.text('Overlapping Events Detected'), findsNothing);
-
-      // Back from the conflict returns to the IN-PROGRESS entry (NOT home), so
-      // the participant can adjust it — the overlap warning shows again.
-      await tester.tap(find.byIcon(Icons.arrow_back));
-      await tester.pumpAndSettle();
-      expect(find.text('open'), findsNothing);
-      expect(find.text('Overlapping Events Detected'), findsOneWidget);
-    });
+          isNotEmpty,
+        );
+        expect(find.byType(OverlapCompareScreen), findsOneWidget);
+        expect(find.text('open'), findsNothing); // recording screen replaced
+      },
+    );
   });
 }

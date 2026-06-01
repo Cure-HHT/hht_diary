@@ -8,22 +8,23 @@ import 'package:intl/intl.dart';
 /// Warning widget for overlapping events.
 ///
 /// Displays the specific time range of the first conflicting
-/// [EpistaxisEntryView] and provides a button to navigate to view it.
+/// [EpistaxisEntryView] and provides a button to finalize the current entry
+/// and route to the side-by-side resolution screen.
 ///
 /// The time range is read directly from the typed view-model's start/end
 /// times; no answer-map parsing happens here.
 class OverlapWarning extends StatelessWidget {
   const OverlapWarning({
     required this.overlappingEntries,
-    this.onViewConflict,
+    this.onResolve,
     super.key,
   });
 
   final List<EpistaxisEntryView> overlappingEntries;
 
-  /// Callback when user taps "View" to navigate to the conflicting entry.
-  /// Passes the first overlapping entry.
-  final void Function(EpistaxisEntryView entry)? onViewConflict;
+  /// Callback when user taps "Resolve" to finalize the entry and navigate to
+  /// the side-by-side compare screen.
+  final VoidCallback? onResolve;
 
   String _formatTime(DateTime? time, String locale) {
     if (time == null) return '--:--';
@@ -76,10 +77,10 @@ class OverlapWarning extends StatelessWidget {
               ],
             ),
           ),
-          if (onViewConflict != null) ...[
+          if (onResolve != null) ...[
             const SizedBox(width: 8),
             TextButton(
-              onPressed: () => onViewConflict!(firstOverlap),
+              onPressed: onResolve,
               style: TextButton.styleFrom(
                 foregroundColor: Colors.amber.shade900,
                 padding: const EdgeInsets.symmetric(
@@ -89,9 +90,10 @@ class OverlapWarning extends StatelessWidget {
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Text(
-                l10n.viewConflictingRecord,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+              child: const Text(
+                // TODO(i18n): localize.
+                'Resolve',
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],

@@ -643,21 +643,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return _currentStep != RecordingStep.complete;
   }
 
-  /// "View" the overlapping record from the overlap warning. Opens [conflict]
-  /// ON TOP of the in-progress entry (push, not replace) so backing out of it
-  /// returns to the entry being edited — the participant inspects the conflict,
-  /// then adjusts their own entry to resolve the overlap. The in-progress screen
-  /// stays mounted, so its edits are preserved live (no checkpoint needed; the
-  /// normal back-out still checkpoints it as a resumable draft).
-  // Implements: DIARY-GUI-entry-overlap-resolution
-  Future<void> _handleViewConflict(EpistaxisEntryView conflict) async {
-    await Navigator.of(context).push(
-      AppPageRoute<String?>(
-        builder: (_) => RecordingScreen(existing: conflict),
-      ),
-    );
-  }
-
   /// Auto-save on back-out (DIARY-PRD-incomplete-entry-preservation).
   ///
   /// - editing an already-finalized entry (`_isComplete == true`) ->
@@ -807,8 +792,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: OverlapWarning(
                     overlappingEntries: overlappingEvents,
-                    onViewConflict: (conflictingEntry) =>
-                        unawaited(_handleViewConflict(conflictingEntry)),
+                    onResolve: () => unawaited(_saveRecord()),
                   ),
                 ),
 
