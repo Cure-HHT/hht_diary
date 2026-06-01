@@ -37,5 +37,6 @@ void main() {
     expect(result.events.single.entryType, 'rave_unwedged');
     expect(result.events.single.data['by'], 'op-1');
     expect(result.events.single.data['reason'], 'creds rotated');
+    expect(result.events.single.data['consecutive_auth_failures'], 0);
   });
 }

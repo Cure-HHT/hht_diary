@@ -68,6 +68,7 @@ class UnwedgeRaveSyncAction
           data: <String, Object?>{
             'reason': input.reason,
             'by': ctx.principal.id,
+            'consecutive_auth_failures': 0,
           },
         ),
       ],
