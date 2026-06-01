@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
+import 'activation_link.dart';
+import 'activation_screen.dart';
 import 'audit_log_screen.dart';
 import 'connect_screen.dart';
 import 'participants_screen.dart';
@@ -51,6 +53,15 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
 
   @override
   Widget build(BuildContext context) {
+    // If the browser URL carries ?code=, show the public activation screen
+    // instead of the normal authed shell.
+    final activationCode = activationCodeFromUri(Uri.base);
+    if (activationCode != null) {
+      return MaterialApp(
+        home: ActivationScreen(serverUrl: _serverUrl, code: activationCode),
+      );
+    }
+
     final Widget home = switch (_status) {
       Authenticated(:final principal) =>
         _HomeShell(principal: principal, onDisconnect: _disconnect),
