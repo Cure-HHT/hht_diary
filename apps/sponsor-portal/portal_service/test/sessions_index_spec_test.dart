@@ -23,23 +23,15 @@ void main() {
       );
 
   test(
-    'session_started -> active row; active_role_changed updates; terminated removes',
+    'session_started -> live row with user_id; session_terminated -> row removed',
     () async {
       await append('session_started', {
         'user_id': 'jane@site.org',
-        'active_role': 'Study Coordinator',
         'started_at': '2026-06-01T12:00:00.000Z',
       });
       var rows = await store.backend.findViewRows('sessions_index');
       expect(rows, hasLength(1));
       expect(rows.single['user_id'], 'jane@site.org');
-      expect(rows.single['active_role'], 'Study Coordinator');
-
-      await append('session_active_role_changed', {
-        'active_role': 'Administrator',
-      });
-      rows = await store.backend.findViewRows('sessions_index');
-      expect(rows.single['active_role'], 'Administrator');
 
       await append('session_terminated', {'reason': 'logout'});
       rows = await store.backend.findViewRows('sessions_index');

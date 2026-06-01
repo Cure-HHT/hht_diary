@@ -87,20 +87,15 @@ final AggregateProjectionSpec usersIndexSpec = AggregateProjectionSpec(
 
 // Implements: DIARY-DEV-portal-session-token/A+B — sessions_index folds the
 //   session lifecycle into one row per session (keyed by the session id).
-//   session_started seeds {user_id, active_role, started_at};
-//   session_active_role_changed key-wise overwrites active_role;
+//   session_started seeds {user_id, started_at} for liveness/cascade lookup;
 //   session_terminated tombstones the row so the validator sees only live
-//   sessions.
-// Implements: DIARY-DEV-portal-active-role-switch/A
+//   sessions. The active role is no longer stored here — it is resolved
+//   per-request from the credential claim (see SessionTokenValidator).
 final AggregateProjectionSpec sessionsIndexSpec = AggregateProjectionSpec(
   viewName: 'sessions_index',
   interest: const SubscriptionFilter(
     aggregateTypes: {'session'},
-    eventTypes: {
-      'session_started',
-      'session_active_role_changed',
-      'session_terminated',
-    },
+    eventTypes: {'session_started', 'session_terminated'},
   ),
   tombstoneEventTypes: const {'session_terminated'},
 );

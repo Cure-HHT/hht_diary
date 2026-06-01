@@ -7,7 +7,6 @@ import 'package:shelf_router/shelf_router.dart';
 
 import 'otp_store.dart';
 import 'session_token.dart';
-import 'session_token_validator.dart' show highestPriorityRole;
 
 /// Minimal OTP-sender surface so routes are testable without a real transport
 /// and so portal_identity need not be imported by callers as a hard type.
@@ -160,7 +159,6 @@ Router buildLoginRouter({
       eventType: 'session_started',
       data: <String, Object?>{
         'user_id': email,
-        'active_role': highestPriorityRole(roles),
         'started_at': now().toUtc().toIso8601String(),
       },
       initiator: const AnonymousInitiator(ipAddress: null),
@@ -174,11 +172,11 @@ Router buildLoginRouter({
 }
 
 /// Authed session routes — mount INSIDE the authed pipeline (bearer present).
+/// Only /logout remains; active-role switching is now a per-request credential
+/// claim (`<token>|<role>`) resolved by SessionTokenValidator, not a mutation.
 // Implements: DIARY-DEV-portal-session-lifecycle/A
-// Implements: DIARY-DEV-portal-active-role-switch/B
 Router buildAuthedSessionRouter({
   required EventStore eventStore,
-  required StorageBackend backend,
   required String signingKey,
   DateTime Function() now = DateTime.now,
 }) {
@@ -187,8 +185,11 @@ Router buildAuthedSessionRouter({
   SessionToken? tokenFromRequest(Request req) {
     final h = req.headers['Authorization'];
     if (h == null || !h.startsWith('Bearer ')) return null;
-    return parseSessionToken(h.substring('Bearer '.length),
-        signingKey: signingKey);
+    // Strip optional role claim before parsing the token.
+    final raw = h.substring('Bearer '.length);
+    final sep = raw.indexOf('|');
+    final tokenStr = sep < 0 ? raw : raw.substring(0, sep);
+    return parseSessionToken(tokenStr, signingKey: signingKey);
   }
 
   router.post('/logout', (Request req) async {
@@ -203,38 +204,6 @@ Router buildAuthedSessionRouter({
       initiator: const AutomationInitiator(service: 'logout'),
     );
     return _json({'ok': true});
-  });
-
-  router.post('/session/active-role', (Request req) async {
-    final token = tokenFromRequest(req);
-    if (token == null) return _json({'ok': false}, status: 400);
-    final Map<String, Object?> raw;
-    try {
-      final decoded = jsonDecode(await req.readAsString());
-      if (decoded is! Map<String, Object?>) {
-        return _json({'ok': false}, status: 400);
-      }
-      raw = decoded;
-    } on FormatException {
-      return _json({'ok': false}, status: 400);
-    }
-    final role = raw['role'];
-    if (role is! String) return _json({'ok': false}, status: 400);
-    final scopeRows = await backend.findViewRows('user_role_scopes');
-    final holds =
-        scopeRows.any((r) => r['user_id'] == token.userId && r['role'] == role);
-    if (!holds) {
-      return _json({'ok': false, 'error': 'role not held'}, status: 403);
-    }
-    await eventStore.append(
-      entryType: 'session_active_role_changed',
-      aggregateType: 'session',
-      aggregateId: token.sid,
-      eventType: 'session_active_role_changed',
-      data: <String, Object?>{'active_role': role},
-      initiator: UserInitiator(token.userId),
-    );
-    return _json({'ok': true, 'activeRole': role});
   });
 
   return router;

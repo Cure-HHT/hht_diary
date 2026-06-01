@@ -52,7 +52,7 @@ packages:
   canonical_json_jcs:
     dependency: transitive
     description:
-      path: "../../../../../event_sourcing/canonical_json_jcs"
+      path: "../../../../../event_sourcing-worktrees/CUR-1412-remote-reconnect/canonical_json_jcs"
       relative: true
     source: path
     version: "0.1.0"
@@ -138,7 +138,7 @@ packages:
   event_sourcing:
     dependency: "direct main"
     description:
-      path: "../../../../../event_sourcing/event_sourcing"
+      path: "../../../../../event_sourcing-worktrees/CUR-1412-remote-reconnect/event_sourcing"
       relative: true
     source: path
     version: "0.3.0+4"
@@ -368,7 +368,7 @@ packages:
   provenance:
     dependency: transitive
     description:
-      path: "../../../../../event_sourcing/provenance"
+      path: "../../../../../event_sourcing-worktrees/CUR-1412-remote-reconnect/provenance"
       relative: true
     source: path
     version: "0.1.0"

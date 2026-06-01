@@ -23,8 +23,7 @@ void main() {
         eventType: 'session_started',
         data: {
           'user_id': userId,
-          'active_role': 'Administrator',
-          'started_at': t0.toIso8601String()
+          'started_at': t0.toIso8601String(),
         },
         initiator: const AutomationInitiator(service: 'test'),
       );

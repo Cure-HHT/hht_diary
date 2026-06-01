@@ -262,10 +262,8 @@ Future<PortalServerBoot> bootstrapPortalServer({
     identityConfig: identityConfig,
   );
   // Implements: DIARY-DEV-portal-session-lifecycle/A
-  // Implements: DIARY-DEV-portal-active-role-switch/B
   final authedSessionRouter = buildAuthedSessionRouter(
     eventStore: eventStore,
-    backend: backend,
     signingKey: signingKey.isEmpty ? 'dev-unused' : signingKey,
   );
 
@@ -345,10 +343,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
     ..get('/permissions/snapshot', handlers.permissions)
     ..get('/audit', auditHandler)
     ..post('/admin/rave-sync', raveSyncHandler)
-    // Authed session routes (logout, active-role switch) — mounted inside the
-    // authed pipeline so Bearer validation + principal context are present.
+    // Authed session routes (logout) — mounted inside the authed pipeline so
+    // Bearer validation + principal context are present.
     // Implements: DIARY-DEV-portal-session-lifecycle/A
-    // Implements: DIARY-DEV-portal-active-role-switch/B
     ..mount('/', authedSessionRouter.call);
 
   final httpPipeline = const Pipeline()

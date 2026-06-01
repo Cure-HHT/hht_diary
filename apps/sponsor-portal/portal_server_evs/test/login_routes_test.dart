@@ -138,28 +138,22 @@ void main() {
 
   group('authed session routes', () {
     // Verifies: DIARY-DEV-portal-session-lifecycle/A
-    // Verifies: DIARY-DEV-portal-active-role-switch/B
     Handler authed() => buildAuthedSessionRouter(
-        eventStore: store,
-        backend: backend,
-        signingKey: key,
-        now: () => t0).call;
+        eventStore: store, signingKey: key, now: () => t0).call;
 
-    Future<void> startSession(String sid, String userId, String role) =>
-        store.append(
-            entryType: 'session_started',
-            aggregateType: 'session',
-            aggregateId: sid,
-            eventType: 'session_started',
-            data: {
-              'user_id': userId,
-              'active_role': role,
-              'started_at': t0.toIso8601String()
-            },
-            initiator: const AutomationInitiator(service: 'test'));
+    Future<void> startSession(String sid, String userId) => store.append(
+        entryType: 'session_started',
+        aggregateType: 'session',
+        aggregateId: sid,
+        eventType: 'session_started',
+        data: {
+          'user_id': userId,
+          'started_at': t0.toIso8601String(),
+        },
+        initiator: const AutomationInitiator(service: 'test'));
 
     test('POST /logout terminates the bearer session', () async {
-      await startSession('sid-1', 'jane@site.org', 'Administrator');
+      await startSession('sid-1', 'jane@site.org');
       final token = mintSessionToken(
           sid: 'sid-1', userId: 'jane@site.org', signingKey: key, now: t0);
       final r = await authed()(Request('POST', Uri.parse('http://x/logout'),
@@ -168,52 +162,6 @@ void main() {
       final events = await backend.findAllEvents();
       expect(events.where((e) => e.eventType == 'session_terminated'),
           hasLength(1));
-    });
-
-    test(
-        'POST /session/active-role to a held role appends session_active_role_changed',
-        () async {
-      await store.append(
-        entryType: 'user_role_scope',
-        aggregateType: 'user_role_scope',
-        aggregateId: 'jane@site.org:Study Coordinator',
-        eventType: 'role_assigned',
-        data: {
-          'user_id': 'jane@site.org',
-          'role': 'StudyCoordinator',
-          'scope': 'global',
-        },
-        initiator: const AutomationInitiator(service: 'test'),
-      );
-      await startSession('sid-1', 'jane@site.org', 'Administrator');
-      final token = mintSessionToken(
-          sid: 'sid-1', userId: 'jane@site.org', signingKey: key, now: t0);
-      final r = await authed()(Request(
-          'POST', Uri.parse('http://x/session/active-role'),
-          headers: {'Authorization': 'Bearer $token'},
-          body: jsonEncode({'role': 'StudyCoordinator'})));
-      expect(r.statusCode, 200);
-      final events = await backend.findAllEvents();
-      final changed = events
-          .where((e) => e.eventType == 'session_active_role_changed')
-          .toList();
-      expect(changed, hasLength(1));
-      expect(changed.single.data['active_role'], 'StudyCoordinator');
-    });
-
-    test('POST /session/active-role to an unheld role -> 403, no event',
-        () async {
-      await startSession('sid-1', 'jane@site.org', 'Administrator');
-      final token = mintSessionToken(
-          sid: 'sid-1', userId: 'jane@site.org', signingKey: key, now: t0);
-      final r = await authed()(Request(
-          'POST', Uri.parse('http://x/session/active-role'),
-          headers: {'Authorization': 'Bearer $token'},
-          body: jsonEncode({'role': 'StudyCoordinator'})));
-      expect(r.statusCode, 403);
-      final events = await backend.findAllEvents();
-      expect(events.where((e) => e.eventType == 'session_active_role_changed'),
-          isEmpty);
     });
 
     test('GET /dev/users lists assigned users with their roles', () async {

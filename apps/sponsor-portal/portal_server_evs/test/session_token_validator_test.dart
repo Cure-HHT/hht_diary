@@ -10,7 +10,7 @@ import 'package:test/test.dart';
 void main() {
   // Verifies: DIARY-DEV-portal-session-token/B
   // Verifies: DIARY-DEV-portal-session-lifecycle/A+C
-  // Verifies: DIARY-DEV-portal-active-role-switch/A+C
+  // Verifies: DIARY-DEV-portal-active-role-switch/A+B+C
   const key = 'k';
   late EventStore store;
   late StorageBackend backend;
@@ -31,15 +31,14 @@ void main() {
         initiator: const AutomationInitiator(service: 'test'),
       );
 
-  Future<void> startSession(String sid, String userId, String role) =>
-      store.append(
+  // session_started carries only user_id + started_at (no active_role).
+  Future<void> startSession(String sid, String userId) => store.append(
         entryType: 'session_started',
         aggregateType: 'session',
         aggregateId: sid,
         eventType: 'session_started',
         data: {
           'user_id': userId,
-          'active_role': role,
           'started_at': t0.toIso8601String(),
         },
         initiator: const AutomationInitiator(service: 'test'),
@@ -55,18 +54,43 @@ void main() {
         now: now,
       );
 
-  test('live session + held role -> Principal with session active role',
-      () async {
-    await assignRole('jane@site.org', 'StudyCoordinator');
+  test('claimed role (held) is honored', () async {
     await assignRole('jane@site.org', 'Administrator');
-    await startSession('sid-1', 'jane@site.org', 'Administrator');
+    await assignRole('jane@site.org', 'StudyCoordinator');
+    await startSession('sid-1', 'jane@site.org');
     final token = mintSessionToken(
         sid: 'sid-1', userId: 'jane@site.org', signingKey: key, now: t0);
 
-    final p = await validator(() => t0).authenticate(token) as UserPrincipal;
+    final p = await validator(() => t0).authenticate('$token|Administrator')
+        as UserPrincipal;
     expect(p.userId, 'jane@site.org');
     expect(p.activeRole, 'Administrator');
     expect(p.roles, containsAll(<String>{'StudyCoordinator', 'Administrator'}));
+  });
+
+  test('no claim -> highest-priority held role', () async {
+    await assignRole('jane@site.org', 'StudyCoordinator');
+    await assignRole('jane@site.org', 'Administrator');
+    await startSession('sid-1', 'jane@site.org');
+    final token = mintSessionToken(
+        sid: 'sid-1', userId: 'jane@site.org', signingKey: key, now: t0);
+
+    // Administrator > StudyCoordinator in kPortalRolePriority.
+    final p = await validator(() => t0).authenticate(token) as UserPrincipal;
+    expect(p.activeRole, 'Administrator');
+  });
+
+  test('unheld claimed role falls back to highest-priority held role',
+      () async {
+    await assignRole('jane@site.org', 'StudyCoordinator');
+    await startSession('sid-1', 'jane@site.org');
+    final token = mintSessionToken(
+        sid: 'sid-1', userId: 'jane@site.org', signingKey: key, now: t0);
+
+    // Claims Administrator but user only holds StudyCoordinator.
+    final p = await validator(() => t0).authenticate('$token|Administrator')
+        as UserPrincipal;
+    expect(p.activeRole, 'StudyCoordinator');
   });
 
   test('tampered token -> denied', () async {
@@ -76,7 +100,7 @@ void main() {
 
   test('terminated session -> denied', () async {
     await assignRole('jane@site.org', 'Administrator');
-    await startSession('sid-1', 'jane@site.org', 'Administrator');
+    await startSession('sid-1', 'jane@site.org');
     await store.append(
       entryType: 'session_terminated',
       aggregateType: 'session',
@@ -93,7 +117,7 @@ void main() {
 
   test('idle-expired session -> denied + session row removed', () async {
     await assignRole('jane@site.org', 'Administrator');
-    await startSession('sid-1', 'jane@site.org', 'Administrator');
+    await startSession('sid-1', 'jane@site.org');
     final token = mintSessionToken(
         sid: 'sid-1', userId: 'jane@site.org', signingKey: key, now: t0);
 
@@ -107,17 +131,5 @@ void main() {
     final rows = await backend.findViewRows('sessions_index');
     expect(rows.where((r) => r['aggregateId'] == 'sid-1'), isEmpty,
         reason: 'idle terminate appends session_terminated -> row tombstoned');
-  });
-
-  test(
-      'active role not in current roles falls back to highest-priority held role',
-      () async {
-    await assignRole('jane@site.org', 'StudyCoordinator');
-    // session stored with Administrator, but the user no longer holds it
-    await startSession('sid-1', 'jane@site.org', 'Administrator');
-    final token = mintSessionToken(
-        sid: 'sid-1', userId: 'jane@site.org', signingKey: key, now: t0);
-    final p = await validator(() => t0).authenticate(token) as UserPrincipal;
-    expect(p.activeRole, 'StudyCoordinator'); // only role held
   });
 }
