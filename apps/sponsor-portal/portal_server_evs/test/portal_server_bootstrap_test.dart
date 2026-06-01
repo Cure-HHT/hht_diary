@@ -246,11 +246,12 @@ void main() {
     addTearDown(boot.dispose);
 
     // Administrator holds portal.audit.view (per role_seed) -> 200.
+    // Bare userId: the dev validator resolves roles from user_role_scopes.
     final adminResp = await boot.router(
       Request(
         'GET',
         Uri.parse('http://localhost/audit?limit=5'),
-        headers: const {'Authorization': 'Bearer admin-1:Administrator'},
+        headers: const {'Authorization': 'Bearer admin-1'},
       ),
     );
     expect(adminResp.statusCode, 200);
@@ -262,11 +263,12 @@ void main() {
         reason: 'count reflects the number of returned rows');
 
     // StudyCoordinator lacks portal.audit.view -> 403 from our gate.
+    // Bare userId: the dev validator resolves roles from user_role_scopes.
     final coordResp = await boot.router(
       Request(
         'GET',
         Uri.parse('http://localhost/audit'),
-        headers: const {'Authorization': 'Bearer sc-1:StudyCoordinator'},
+        headers: const {'Authorization': 'Bearer sc-1'},
       ),
     );
     expect(coordResp.statusCode, 403);

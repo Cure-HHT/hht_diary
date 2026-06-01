@@ -16,8 +16,10 @@ const String _serverUrl = String.fromEnvironment(
 /// Read-only audit table over the server's `GET /audit` endpoint.
 ///
 /// Unlike the reactive screens, the audit log is fetched over plain HTTP
-/// (the dev credential as a Bearer token) and rendered as a static table
-/// that the user can refresh. Self-gates on `portal.audit.view`.
+/// and rendered as a static table that the user can refresh.
+/// The Bearer credential is `userId|activeRole` — the dev validator honors
+/// the `|`-separated role claim; in session mode the WS credential carries
+/// the full token. Self-gates on `portal.audit.view`.
 class AuditLogScreen extends StatefulWidget {
   const AuditLogScreen({super.key});
 
@@ -62,7 +64,9 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
         return;
       }
       final p = status.principal as UserPrincipal;
-      final cred = '${p.userId}:${p.activeRole}';
+      // Use userId|activeRole: the dev validator honors the |role claim;
+      // session mode uses the ReActionScope credential (WS + GET /me path).
+      final cred = '${p.userId}|${p.activeRole}';
       final resp = await http.get(
         Uri.parse('$_serverUrl/audit?limit=200'),
         headers: <String, String>{'Authorization': 'Bearer $cred'},

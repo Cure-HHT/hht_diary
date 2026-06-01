@@ -44,9 +44,14 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   late final StreamSubscription<AuthStatus> _authSub;
   AuthStatus _status = const NotAuthenticated();
 
-  /// The current session token (opaque string set via Firebase login).
-  /// Null in dev mode (credential is userId:role, not a session token).
-  String? _sessionToken;
+  /// The current identity credential.
+  ///
+  /// In dev mode: the bare userId (or `userId|role` when a specific role was
+  /// requested). In session mode: the opaque Firebase session token (or
+  /// `token|role` with an active-role claim).
+  ///
+  /// Null when not authenticated.
+  String? _identityCredential;
 
   @override
   void initState() {
@@ -71,49 +76,63 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     super.dispose();
   }
 
-  // Implements: DIARY-DEV-portal-session-lifecycle/A
-  Future<void> _disconnect() async {
-    final token = _sessionToken;
-    if (token != null) {
-      try {
-        await http.post(
-          Uri.parse('$_serverUrl/logout'),
-          headers: {'Authorization': 'Bearer $token'},
-        );
-      } catch (_) {
-        // best-effort: clear locally even if the server call fails
-      }
-    }
-    _sessionToken = null;
-    _scope.authSession.setCredential(null);
+  /// Dev connect: called by [ConnectScreen] with the bare userId (or
+  /// `userId|role`). Sets the identity credential and wires it to the scope.
+  void _onConnect(String identity) {
+    setState(() => _identityCredential = identity);
+    _scope.authSession.setCredential(identity);
   }
 
-  /// Called by [LoginScreen] when the user authenticates with Firebase.
-  /// Stores the session token so [_HomeShell] can pass it to [RoleSelector].
+  /// Session auth login: called by [LoginScreen] when the user authenticates
+  /// with Firebase. Stores the session token so [_HomeShell] can pass it to
+  /// [RoleSelector].
   void _onSession(String token) {
-    setState(() => _sessionToken = token);
+    setState(() => _identityCredential = token);
     _scope.authSession.setCredential(token);
   }
 
   /// Switches the active role by encoding a per-request credential claim
-  /// (`token|role`) and reconnecting the WS under the new role.
+  /// (`credential|role`) and reconnecting the WS under the new role.
   ///
-  /// [setCredential] fires GET /me synchronously, updating the Principal so
-  /// the header and client gating reflect the new role immediately.
-  /// [_scope.reconnect()] re-authenticates the WS and re-issues all live
-  /// subscribes under the new role without triggering a logout or
-  /// NotAuthenticated flicker — AuthStatus stays Authenticated throughout.
+  /// Works in both dev mode (credential = bare userId) and session mode
+  /// (credential = session token). [setCredential] fires GET /me
+  /// synchronously, updating the Principal so the header and client gating
+  /// reflect the new role immediately. [_scope.reconnect()] re-authenticates
+  /// the WS and re-issues all live subscribes under the new role without
+  /// triggering a logout or NotAuthenticated flicker.
   ///
   // Implements: DIARY-GUI-role-switching/E+F
   Future<void> _onRoleSelected(String role) async {
-    final token = _sessionToken;
-    if (token == null) return;
+    final credential = _identityCredential;
+    if (credential == null) return;
     // The active role is a per-request claim carried in the credential.
     // setCredential refreshes the Principal (header + client gating) via
     // GET /me; reconnect() re-gates the live WS view subscriptions under
     // the new role. No logout, no flicker — AuthStatus stays Authenticated.
-    _scope.authSession.setCredential('$token|$role');
+    _scope.authSession.setCredential('$credential|$role');
     await _scope.reconnect();
+  }
+
+  // Implements: DIARY-DEV-portal-session-lifecycle/A
+  Future<void> _disconnect() async {
+    // POST /logout only in session mode — the dev credential is a bare userId,
+    // not a parseable session token, and there is no server-side session to
+    // terminate.
+    if (_sessionAuth) {
+      final credential = _identityCredential;
+      if (credential != null) {
+        try {
+          await http.post(
+            Uri.parse('$_serverUrl/logout'),
+            headers: {'Authorization': 'Bearer $credential'},
+          );
+        } catch (_) {
+          // best-effort: clear locally even if the server call fails
+        }
+      }
+    }
+    setState(() => _identityCredential = null);
+    _scope.authSession.setCredential(null);
   }
 
   @override
@@ -156,6 +175,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
                 ],
               )
             : ConnectScreen(
+                onConnect: _onConnect,
                 message: 'Session ended — reconnect.',
                 serverUrl: _serverUrl,
               ),
@@ -167,7 +187,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
                 authClient: RealFirebaseAuthClient(),
                 onSession: _onSession,
               )
-            : ConnectScreen(serverUrl: _serverUrl),
+            : ConnectScreen(onConnect: _onConnect, serverUrl: _serverUrl),
       ),
     };
     return ReActionScope(
@@ -200,7 +220,7 @@ class _HomeShell extends StatefulWidget {
   final VoidCallback onDisconnect;
 
   /// Called with the chosen role string so the parent can update the
-  /// credential claim (`token|role`) and reconnect the WS.
+  /// credential claim (`credential|role`) and reconnect the WS.
   final Future<void> Function(String role) onRoleSelected;
 
   @override

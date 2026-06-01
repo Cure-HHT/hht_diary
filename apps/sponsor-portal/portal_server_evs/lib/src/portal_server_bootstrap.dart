@@ -224,7 +224,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
       idleTimeout: Duration(minutes: idleMinutes),
     );
   } else {
-    validator = const DevCredentialAuthValidator();
+    validator = DevCredentialAuthValidator(backend: backend);
   }
 
   // 7b. Login collaborators (OTP sender, identity config, login/session routes).

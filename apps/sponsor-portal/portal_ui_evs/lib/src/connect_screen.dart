@@ -2,14 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:reaction_widgets/reaction_widgets.dart';
-
-/// The two seeded identities. The value IS the dev credential
-/// ("userId:activeRole") the DevCredentialAuthValidator parses.
-const Map<String, String> _identities = <String, String>{
-  'admin-1 (Administrator)': 'admin-1:Administrator',
-  'sc-1 (StudyCoordinator)': 'sc-1:StudyCoordinator',
-};
 
 /// A user record returned by GET /dev/users.
 class _DevUser {
@@ -18,13 +10,32 @@ class _DevUser {
   final List<String> roles;
 }
 
+/// Dev quick-connect screen. The dev credential is now a bare [userId] (or
+/// optionally `userId|role`), which the server's DevCredentialAuthValidator
+/// resolves against the event-derived `user_role_scopes` view. The active role
+/// is switched in-app via the header Role Selector after connecting — no
+/// per-role quick-connect rows are needed.
+///
+/// In session mode (PORTAL_SESSION_AUTH=true) this screen is not shown; the
+/// Firebase login screen is used instead.
 class ConnectScreen extends StatefulWidget {
-  const ConnectScreen({this.message, this.serverUrl, super.key});
+  const ConnectScreen({
+    required this.onConnect,
+    this.message,
+    this.serverUrl,
+    super.key,
+  });
+
+  /// Called with the identity string (bare userId or typed value) when the
+  /// user initiates a connection. The parent widget (app.dart) sets the
+  /// credential and drives the ReActionScope.
+  final void Function(String identity) onConnect;
+
   final String? message;
 
-  /// The server base URL, used to fetch /dev/users for quick-connect
-  /// buttons. If null, or if the fetch fails (session mode returns 404),
-  /// the screen falls back to the static dropdown.
+  /// The server base URL, used to fetch /dev/users for quick-connect buttons.
+  /// If null, or if the fetch fails (session mode returns 404), the screen
+  /// shows only the manual-entry field.
   final String? serverUrl;
 
   @override
@@ -32,7 +43,7 @@ class ConnectScreen extends StatefulWidget {
 }
 
 class _ConnectScreenState extends State<ConnectScreen> {
-  String _credential = _identities.values.first;
+  final _controller = TextEditingController();
 
   /// Null = not yet attempted; empty list = fetch failed / no users.
   List<_DevUser>? _devUsers;
@@ -45,6 +56,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
     if (url != null) {
       _fetchDevUsers(url);
     }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchDevUsers(String serverUrl) async {
@@ -65,20 +82,16 @@ class _ConnectScreenState extends State<ConnectScreen> {
           ];
         });
       } else {
-        // Non-200 (e.g. 404 in session mode): fall back to static UI.
+        // Non-200 (e.g. 404 in session mode): fall back to manual entry only.
         setState(() => _devUsers = []);
       }
     } catch (_) {
-      // Network error: fall back to static UI.
+      // Network error: fall back to manual entry only.
       setState(() => _devUsers = []);
     } finally {
       setState(() => _loadingUsers = false);
     }
   }
-
-  void _connect([String? credential]) => ReActionScope.of(
-    context,
-  ).authSession.setCredential(credential ?? _credential);
 
   @override
   Widget build(BuildContext context) {
@@ -107,35 +120,38 @@ class _ConnectScreenState extends State<ConnectScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
+                  // One button per user. The role is shown as info only;
+                  // switching roles happens in-app via the header Role Selector.
                   for (final user in devUsers)
-                    for (final role in user.roles)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: OutlinedButton(
-                          onPressed: () => _connect('${user.userId}:$role'),
-                          child: Text('${user.userId} — $role'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: OutlinedButton(
+                        onPressed: () => widget.onConnect(user.userId),
+                        child: Text(
+                          '${user.userId}  (${user.roles.join(', ')})',
                         ),
                       ),
+                    ),
                   const Divider(height: 28),
                 ],
-                const Text('Connect as'),
+                const Text('Connect as (userId or userId|role)'),
                 const SizedBox(height: 8),
-                DropdownButton<String>(
-                  value: _credential,
-                  isExpanded: true,
-                  items: <DropdownMenuItem<String>>[
-                    for (final e in _identities.entries)
-                      DropdownMenuItem<String>(
-                        value: e.value,
-                        child: Text(e.key),
-                      ),
-                  ],
-                  onChanged: (v) =>
-                      setState(() => _credential = v ?? _credential),
+                TextField(
+                  controller: _controller,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. admin-1 or admin-1|StudyCoordinator',
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (v) {
+                    if (v.trim().isNotEmpty) widget.onConnect(v.trim());
+                  },
                 ),
                 const SizedBox(height: 16),
                 FilledButton.icon(
-                  onPressed: _connect,
+                  onPressed: () {
+                    final v = _controller.text.trim();
+                    if (v.isNotEmpty) widget.onConnect(v);
+                  },
                   icon: const Icon(Icons.login),
                   label: const Text('Connect'),
                 ),
