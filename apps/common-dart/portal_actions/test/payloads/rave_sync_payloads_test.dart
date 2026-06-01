@@ -30,6 +30,9 @@ void main() {
     expect(d['sites_count'], 3);
     expect(d['participants_count'], 5);
     expect(d['last_success_at'], '2026-05-31T00:00:00.000Z');
+    // A successful sync clears any hard lockout via null-as-clear merge.
+    expect(d.containsKey('locked_at'), isTrue);
+    expect(d['locked_at'], isNull);
   });
 
   test('raveAuthFailedData carries incremented counter', () {

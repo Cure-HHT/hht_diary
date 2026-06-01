@@ -69,6 +69,12 @@ class UnwedgeRaveSyncAction
             'reason': input.reason,
             'by': ctx.principal.id,
             'consecutive_auth_failures': 0,
+            // Clear the hard lockout and the cooldown clock (null-as-clear
+            // merge) so a re-attempt proceeds immediately. The immutable
+            // rave_auth_failed events remain in the log for audit; we only
+            // reset the derived status row.
+            'locked_at': null,
+            'last_failure_at': null,
           },
         ),
       ],

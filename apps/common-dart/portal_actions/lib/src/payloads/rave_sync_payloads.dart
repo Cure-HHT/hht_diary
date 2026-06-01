@@ -11,6 +11,8 @@ Map<String, Object?> edcSyncSucceededData({
   'sites_count': sitesCount,
   'participants_count': participantsCount,
   'last_success_at': lastSuccessAt,
+  // Clear any hard lockout on a successful sync (null-as-clear merge).
+  'locked_at': null,
 };
 
 Map<String, Object?> raveAuthFailedData({

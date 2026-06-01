@@ -38,5 +38,11 @@ void main() {
     expect(result.events.single.data['by'], 'op-1');
     expect(result.events.single.data['reason'], 'creds rotated');
     expect(result.events.single.data['consecutive_auth_failures'], 0);
+    // Recovery must clear the hard lockout and the cooldown clock so a
+    // re-attempt proceeds immediately (null-as-clear merge on the status row).
+    expect(result.events.single.data.containsKey('locked_at'), isTrue);
+    expect(result.events.single.data['locked_at'], isNull);
+    expect(result.events.single.data.containsKey('last_failure_at'), isTrue);
+    expect(result.events.single.data['last_failure_at'], isNull);
   });
 }

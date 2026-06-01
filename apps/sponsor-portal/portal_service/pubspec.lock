@@ -348,7 +348,7 @@ packages:
       path: "../../common-dart/portal_actions"
       relative: true
     source: path
-    version: "0.3.1"
+    version: "0.3.2"
   postgres:
     dependency: transitive
     description:
