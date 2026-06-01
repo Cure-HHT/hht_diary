@@ -51,6 +51,10 @@ Middleware _cors() => (Handler inner) => (Request request) async {
 /// Compose the reactive portal server over [backend].
 Future<PortalServerBoot> bootstrapPortalServer({
   required StorageBackend backend,
+  // Test seam: force a specific RAVE client (e.g. DevSeedRaveClient) so a unit
+  // test is hermetic regardless of ambient RAVE_UAT_* env. null = the normal
+  // env-based selection below.
+  RaveClient? raveClient,
 }) async {
   // 1. Event store (registers role_permission_grants, user_role_scopes,
   //    participant_site_index, portal entry types + framework types).
@@ -133,21 +137,25 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // Implements: DIARY-DEV-rave-edc-ingest/A
   final env = Platform.environment;
   final lockoutConfig = LockoutConfig.fromEnv(env);
-  final RaveClient raveClient;
+  final RaveClient resolvedRaveClient;
   final List<String> studyOids;
-  if (env['RAVE_UAT_URL'] != null) {
-    raveClient = RaveClient(
+  if (raveClient != null) {
+    // Explicit override (tests): use it as-is, scoped to the dev study oid.
+    resolvedRaveClient = raveClient;
+    studyOids = const <String>[DevSeedRaveClient.studyOid];
+  } else if (env['RAVE_UAT_URL'] != null) {
+    resolvedRaveClient = RaveClient(
       baseUrl: env['RAVE_UAT_URL']!,
       username: env['RAVE_UAT_USERNAME']!,
       password: env['RAVE_UAT_PWD']!,
     );
     studyOids = <String>[env['RAVE_STUDY_OID'] ?? DevSeedRaveClient.studyOid];
   } else {
-    raveClient = DevSeedRaveClient();
+    resolvedRaveClient = DevSeedRaveClient();
     studyOids = const <String>[DevSeedRaveClient.studyOid];
   }
   final ingester = RaveEdcIngester(
-    client: raveClient,
+    client: resolvedRaveClient,
     store: eventStore,
     studyOids: studyOids,
     lockoutConfig: lockoutConfig,

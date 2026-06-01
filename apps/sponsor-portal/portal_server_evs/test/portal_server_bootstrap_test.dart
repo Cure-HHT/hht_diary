@@ -24,6 +24,7 @@ void main() {
     final db = await newDatabaseFactoryMemory().openDatabase('skeleton.db');
     final boot = await bootstrapPortalServer(
       backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
     );
     addTearDown(boot.dispose);
 
@@ -83,6 +84,7 @@ void main() {
         await newDatabaseFactoryMemory().openDatabase('skeleton-perms.db');
     final boot = await bootstrapPortalServer(
       backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
     );
     addTearDown(boot.dispose);
 
@@ -123,6 +125,7 @@ void main() {
         await newDatabaseFactoryMemory().openDatabase('skeleton-wild.db');
     final boot = await bootstrapPortalServer(
       backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
     );
     addTearDown(boot.dispose);
 
@@ -179,11 +182,13 @@ void main() {
   test(
       'boot-time RAVE sync seeds sites_index + participant_record from the dev '
       'fixture, and admin can view those + rave_sync_status', () async {
-    // No RAVE_UAT_* env in the test harness -> DevSeedRaveClient is used.
+    // Forces DevSeedRaveClient so the assertion is hermetic regardless of any
+    // ambient RAVE_UAT_* env (which would otherwise drive a live RAVE fetch).
     final db =
         await newDatabaseFactoryMemory().openDatabase('skeleton-rave.db');
     final boot = await bootstrapPortalServer(
       backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
     );
     addTearDown(boot.dispose);
 
@@ -236,6 +241,7 @@ void main() {
         await newDatabaseFactoryMemory().openDatabase('skeleton-audit.db');
     final boot = await bootstrapPortalServer(
       backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
     );
     addTearDown(boot.dispose);
 
@@ -275,6 +281,7 @@ void main() {
         await newDatabaseFactoryMemory().openDatabase('skeleton-activate.db');
     final boot = await bootstrapPortalServer(
       backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
     );
     addTearDown(boot.dispose);
 
