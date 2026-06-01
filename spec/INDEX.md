@@ -14,7 +14,7 @@
 | DIARY-PRD-architecture-decision-docs             | Architecture Decision Documentation                      | prd-requirements-management.md            | 76c82ce6 |
 | DIARY-PRD-configuration-precedence               | Configuration Precedence                                 | prd-configuration.md                      | f5372beb |
 | DIARY-PRD-data-backup-and-archival               | Data Backup and Archival                                 | prd-data-backup.md                        | 52e8354f |
-| DIARY-PRD-day-disposition                        | Calendar Day Disposition                                 | prd-epistaxis.md                          |          |
+| DIARY-PRD-day-disposition                        | Calendar Day Disposition                                 | prd-epistaxis.md                          | bd38485a |
 | DIARY-PRD-diary-start-day                        | Diary Start Day Definition                               | prd-mobile-app.md                         | b0c35e38 |
 | DIARY-PRD-entry-duration-check                   | Duration Reasonableness Check                            | prd-diary-entry-rules.md                  | bacdd0ae |
 | DIARY-PRD-entry-overlap-resolution               | Overlapping Event Detection and Resolution               | prd-diary-entry-rules.md                  | 1069b1e5 |
@@ -29,7 +29,7 @@
 | DIARY-PRD-evidence-timestamp-attestation         | Third-Party Timestamp Attestation Capability             | prd-evidence-records.md                   | eaee31ad |
 | DIARY-PRD-evidence-timestamp-verification        | Timestamp Verification Interface                         | prd-evidence-records.md                   | 50774a45 |
 | DIARY-PRD-help-resources                         | Help and Resources                                       | prd-help-resources.md                     | caeb1334 |
-| DIARY-PRD-incomplete-entry-preservation          | Incomplete Entry Preservation                            | prd-epistaxis.md                          |          |
+| DIARY-PRD-incomplete-entry-preservation          | Incomplete Entry Preservation                            | prd-epistaxis.md                          | d8cd5a0c |
 | DIARY-PRD-linking-code-entry-errors              | Linking Code Entry Error Handling                        | prd-device-linking.md                     | 1eb043a2 |
 | DIARY-PRD-linking-code-lifecycle                 | Linking Code Lifecycle Management                        | prd-participant.md                        | 6143a7c2 |
 | DIARY-PRD-mobile-application                     | Diary Mobile Application                                 | prd-mobile-app.md                         | 910bb065 |
