@@ -113,7 +113,10 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //    before the auth check).
   final httpRouter = Router()
     ..get('/me', handlers.me)
-    ..post('/actions', handlers.actions);
+    ..post('/actions', handlers.actions)
+    // The client's permission source reads this to drive PermissionGate; without
+    // it every gate fails closed (no widgets render, for any role).
+    ..get('/permissions/snapshot', handlers.permissions);
 
   final httpPipeline = const Pipeline()
       .addMiddleware(_cors())
