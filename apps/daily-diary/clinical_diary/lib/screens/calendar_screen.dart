@@ -80,6 +80,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   /// [DateRecordsScreen] populated from the live view.
   // Implements: DIARY-GUI-calendar-day-view
   // Implements: DIARY-DEV-reactive-read-path/A
+  // Implements: DIARY-PRD-day-disposition/D — a day with finalized records routes
+  //   to DateRecordsScreen, never the re-disposition picker, so a recorded
+  //   nosebleed is changed only by edit/delete, never re-dispositioned (one-way).
   Future<void> _onDaySelected(
     DiaryView view,
     DateTime selectedDay,

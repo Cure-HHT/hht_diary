@@ -3,6 +3,9 @@
 //   actionSubmitter; the screen holds no authoritative state.
 // Implements: DIARY-DEV-reactive-read-path/A — current values come from the
 //   event-sourced settings projection via [ClinicalRulesScope].
+// Implements: DIARY-BASE-sponsor-requested-settings/C+D — a sponsor-locked
+//   control renders read-only (onChanged disabled) with a lock icon and a
+//   visible "Set by your study — can't be changed." note, never hidden.
 //
 // "Advanced" settings: the participant's own clinical entry rules (justification
 // / lock time-window, short+long duration confirmations, review screen). These

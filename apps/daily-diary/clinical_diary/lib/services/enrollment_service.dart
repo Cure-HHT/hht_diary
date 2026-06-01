@@ -8,6 +8,10 @@
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-p05004: Disconnection Notification (persistent banner)
 //   REQ-p01065: Deactivate sync on disconnect (Assertion D)
+//
+// Implements: DIARY-DEV-state-in-event-log/B — the session JWT and the stable
+//   install id (app_uuid) are kept in flutter_secure_storage and are never
+//   written to the event log.
 
 import 'dart:convert';
 
@@ -107,7 +111,8 @@ class EnrollmentService {
       // Normalize code: uppercase, remove dash
       final normalizedCode = code.toUpperCase().replaceAll('-', '').trim();
 
-      debugPrint('Linking with code: $normalizedCode');
+      // Do not log the linking code itself — it is the authentication secret.
+      debugPrint('Linking with provided code');
 
       // Determine which sponsor's backend to call based on code prefix
       String backendUrl;
@@ -146,8 +151,9 @@ class EnrollmentService {
         body: jsonEncode({'code': normalizedCode, 'appUuid': appUuid}),
       );
 
+      // Do not log response.body — the /link success body carries the minted
+      // session JWT and participant/site identifiers.
       debugPrint('Link response status: ${response.statusCode}');
-      debugPrint('Link response body: ${response.body}');
 
       if (response.statusCode == 409) {
         // Server returns two distinct 409 messages — use the body directly
@@ -224,10 +230,8 @@ class EnrollmentService {
       final prefix = SponsorRegistry.extractPrefix(normalizedCode);
       final sponsor = SponsorRegistry.getByPrefix(prefix);
 
-      debugPrint(
-        'Link successful: patientId=$patientId, siteId=$siteId, '
-        'siteName=$siteName, sitePhoneNumber=$sitePhoneNumber, sponsor=${sponsor?.id}',
-      );
+      // Do not log participant/site identifiers (PII). Sponsor id is not PII.
+      debugPrint('Link successful: sponsor=${sponsor?.id}');
 
       final enrollment = UserEnrollment(
         userId: userId,

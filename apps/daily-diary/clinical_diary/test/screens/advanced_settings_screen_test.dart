@@ -2,6 +2,8 @@
 //   `set_user_setting` for the clinical.* keys through the scope.
 // Verifies: DIARY-DEV-reactive-read-path/A — controls reflect the ClinicalRules
 //   provided by ClinicalRulesScope.
+// Verifies: DIARY-BASE-sponsor-requested-settings/C+D — a sponsor-locked key
+//   shows the locked note (visible, read-only) and tapping it writes nothing.
 import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/screens/advanced_settings_screen.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';

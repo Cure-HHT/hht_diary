@@ -7,6 +7,7 @@
 //   docs/superpowers/specs/2026-05-31-day-disposition-conversion-design.md).
 import 'dart:async';
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
@@ -25,17 +26,35 @@ class MarkerToReplace {
 }
 
 /// Submit a whole-day marker (`record_no_epistaxis_day` / `record_unknown_day`)
-/// for [localDate] (`yyyy-MM-dd`) through the scope's action submitter.
+/// for [localDate] (`yyyy-MM-dd`) through the scope's action submitter. Returns
+/// true on a successful (or idempotent) dispatch, false on any failure — the
+/// submitter returns a failure `DispatchResult` without throwing, so the caller
+/// MUST inspect this rather than assume success.
 // Implements: DIARY-DEV-action-write-path/A
-Future<void> _submitDayMarker(
+Future<bool> _submitDayMarker(
   BuildContext context,
   String actionName,
   String localDate,
 ) async {
-  await ReActionScope.of(context).actionSubmitter.submit(
+  final result = await ReActionScope.of(context).actionSubmitter.submit(
     ActionSubmission(
       actionName: actionName,
       rawInput: <String, Object?>{'date': localDate},
+    ),
+  );
+  return result is DispatchSuccess<Object?> ||
+      result is DispatchIdempotencyHit<Object?>;
+}
+
+/// Surface a save-failure snackbar (mirrors `RecordingScreen._submitAction`) so
+/// a failed day-marker write is not silently dismissed as if it succeeded.
+void _showSaveFailed(BuildContext context) {
+  if (!context.mounted) return;
+  final l10n = AppLocalizations.of(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(l10n.failedToSave),
+      duration: const Duration(seconds: 5),
     ),
   );
 }
@@ -114,13 +133,31 @@ Future<void> showDayDispositionPicker(
           );
         },
         onNoNosebleeds: () async {
-          await _submitDayMarker(context, 'record_no_epistaxis_day', localDate);
+          final ok = await _submitDayMarker(
+            context,
+            'record_no_epistaxis_day',
+            localDate,
+          );
+          // On failure keep the picker open and tell the participant, so the
+          // day is not left silently un-dispositioned.
+          if (!ok) {
+            if (pickerContext.mounted) _showSaveFailed(pickerContext);
+            return;
+          }
           if (pickerContext.mounted) {
             Navigator.pop(pickerContext);
           }
         },
         onUnknown: () async {
-          await _submitDayMarker(context, 'record_unknown_day', localDate);
+          final ok = await _submitDayMarker(
+            context,
+            'record_unknown_day',
+            localDate,
+          );
+          if (!ok) {
+            if (pickerContext.mounted) _showSaveFailed(pickerContext);
+            return;
+          }
           if (pickerContext.mounted) {
             Navigator.pop(pickerContext);
           }

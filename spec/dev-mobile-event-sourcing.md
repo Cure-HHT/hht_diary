@@ -165,4 +165,10 @@ C. The System SHALL record acknowledgement of a received command as an *Action* 
 
 Inbound messages are part of what happened on the device and therefore belong in the same append-only record as everything else; emitting an event on receipt makes them reconstructible and auditable rather than transient side effects. The existing FCM-primary / polling-backup interface is retained unchanged because it already meets the delivery requirements — only the handling changes, turning a received message into a first-class event. Recording command acknowledgement as its own event closes the loop, so the log shows not just that a command arrived but that the device acted on it.
 
+> **Deferred:** Assertion C (outbound-routed command acknowledgement) is deferred
+> to the node-to-node cross-post work (CUR-1371); only the local receipt event
+> (assertion B) is realized in this port. C carries no implementation or
+> verification annotation until that work lands — the absence is intentional, not
+> an accidental coverage gap.
+
 *End* *Inbound Receipt Emits an Event* | **Hash**: 9143d6c4

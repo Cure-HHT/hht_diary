@@ -70,6 +70,14 @@ const String appFlavor = String.fromEnvironment('APP_FLAVOR') != ''
 const _kDeviceIdPrefsKey = 'clinical_diary.device_id';
 
 void main() async {
+  // Security (CUR-1169): silence debugPrint in release builds. Flutter's
+  // debugPrint is NOT stripped from release; it forwards to the platform log
+  // stream (logcat/oslog), where any logged response body or identifier becomes
+  // readable by privileged processes / log collectors. Production observability
+  // is server-side (OTel), not device logs, so drop all debug output in release.
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
   // Initialize flavor from native platform configuration
   F.appFlavor = Flavor.values.firstWhere(
     (f) => f.name == appFlavor,
@@ -560,10 +568,7 @@ class _AppRootState extends State<AppRoot> {
       if (response.statusCode == 200) {
         debugPrint('[FCM] Token registered with diary server ($platform)');
       } else {
-        debugPrint(
-          '[FCM] Token registration failed: ${response.statusCode} '
-          '${response.body}',
-        );
+        debugPrint('[FCM] Token registration failed: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('[FCM] Token registration error: $e');

@@ -4,6 +4,9 @@
 //   nosebleed to a day that already has one does NOT delete anything.
 // Verifies: DIARY-PRD-day-disposition/B — marker↔marker re-disposition
 //   (no_epistaxis → unknown) re-records on the shared day aggregate (latest-wins).
+// Verifies: DIARY-PRD-day-disposition/D — adding a nosebleed to a day that already
+//   has one does NOT tombstone/convert; a recorded nosebleed changes only by
+//   edit/delete, never by re-disposition (one-way).
 //
 // Exercises the action sequence the shared re-disposition flow submits
 // (recordNosebleedReplacingMarker: record_epistaxis_event then delete_entry on
