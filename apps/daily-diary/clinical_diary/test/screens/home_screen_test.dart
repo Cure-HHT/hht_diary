@@ -215,6 +215,7 @@ void main() {
       WidgetTester tester, {
       List<DiaryEntryRow> finalized = const [],
       List<DiaryEntryRow> incomplete = const [],
+      Future<bool> Function()? nativeFifoWedged,
     }) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -232,6 +233,7 @@ void main() {
               deviceId: _deviceId,
               enrollmentService: enrollment,
               taskService: tasks,
+              nativeFifoWedged: nativeFifoWedged,
             ),
           ),
         ),
@@ -250,6 +252,30 @@ void main() {
       expect(matches, hasLength(1), reason: 'expected one $actionName');
       return matches.single;
     }
+
+    // Verifies: DIARY-DEV-native-outbound-sync/B — a wedged FIFO on the NEW
+    //   event_sourcing store (diary_es.db), where DiaryServerDestination's
+    //   outbound FIFO lives, is surfaced to the participant. The legacy
+    //   runtime.backend wedge check does not see that store.
+    const wedgeText = 'Some data is not syncing — please update the app.';
+
+    testWidgets(
+      'native-store FIFO wedge surfaces the sync-wedged banner (legacy clean)',
+      (tester) async {
+        // Legacy runtime.backend is a fresh in-memory store with no wedged FIFO;
+        // only the native store is wedged. The banner must still surface.
+        await pumpScreen(tester, nativeFifoWedged: () async => true);
+        expect(find.text(wedgeText), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'no wedge banner when neither legacy nor native store is wedged',
+      (tester) async {
+        await pumpScreen(tester, nativeFifoWedged: () async => false);
+        expect(find.text(wedgeText), findsNothing);
+      },
+    );
 
     testWidgets(
       'renders empty state with the record button and yesterday banner',

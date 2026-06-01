@@ -182,6 +182,11 @@ class _AppRootState extends State<AppRoot> {
   /// on [dispose] so the destination's transport is torn down cleanly.
   http.Client? _diaryIngestClient;
 
+  /// Native outbound FIFO wedge check (the new `diary_es.db` store), forwarded
+  /// to [HomeScreen] so its banner reflects a stuck native sync the legacy
+  /// `runtime.backend` cannot see. DIARY-DEV-native-outbound-sync/B.
+  Future<bool> Function()? _nativeFifoWedged;
+
   /// Persistent device install UUID, minted on first launch and reused
   /// thereafter. Forwarded to [HomeScreen] for the export payload.
   String? _deviceId;
@@ -291,6 +296,7 @@ class _AppRootState extends State<AppRoot> {
       // Failures route to _bootstrapError via the enclosing try/catch, exactly
       // like the old runtime.
       final DiaryScopeRuntime diaryScope;
+      Future<bool> Function()? nativeFifoWedged;
       {
         final Database esDb;
         if (kIsWeb) {
@@ -323,9 +329,15 @@ class _AppRootState extends State<AppRoot> {
           authToken: _enrollmentService.getJwtToken,
         );
 
+        // The native outbound FIFO lives in this (new) store; capture a wedge
+        // check for the home-screen banner — the legacy runtime.backend can't
+        // see it. DIARY-DEV-native-outbound-sync/B.
+        final esBackend = SembastBackend(database: esDb);
+        nativeFifoWedged = esBackend.hasFifoWedged;
+
         try {
           diaryScope = await bootstrapDiaryScope(
-            backend: SembastBackend(database: esDb),
+            backend: esBackend,
             deviceId: deviceId,
             softwareVersion: softwareVersion,
             localUserId: deviceId, // stable per-install id; recording is never
@@ -386,6 +398,7 @@ class _AppRootState extends State<AppRoot> {
           _runtime = runtime;
           _deviceId = deviceId;
           _diaryScope = diaryScope;
+          _nativeFifoWedged = nativeFifoWedged;
         });
       }
 
@@ -493,6 +506,7 @@ class _AppRootState extends State<AppRoot> {
       setState(() {
         _runtime = null;
         _diaryScope = null;
+        _nativeFifoWedged = null;
         _deviceId = null;
       });
     }
@@ -748,6 +762,9 @@ class _AppRootState extends State<AppRoot> {
               deviceId: deviceId,
               enrollmentService: _enrollmentService,
               taskService: _taskService,
+              // Implements: DIARY-DEV-native-outbound-sync/B — surface a wedged
+              //   native outbound FIFO (new diary_es.db store) in the banner.
+              nativeFifoWedged: _nativeFifoWedged,
               onEnrolled: _onPostEnrollment,
               onResetAllData: _resetAllData,
               // Implements: DIARY-BASE-local-data-reset/C — the sponsor-

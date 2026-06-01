@@ -52,6 +52,7 @@ class HomeScreen extends StatefulWidget {
     this.onEnrolled,
     this.onResetAllData,
     this.resetSettingAllowsReset = true,
+    this.nativeFifoWedged,
     super.key,
   });
 
@@ -59,6 +60,13 @@ class HomeScreen extends StatefulWidget {
   /// banner, [ClinicalDiaryRuntime.entryService] for writes, and
   /// [ClinicalDiaryRuntime.reader] for diary-shaped queries.
   final ClinicalDiaryRuntime runtime;
+
+  /// Wedge check for the NEW event-sourcing store (`diary_es.db`), where the
+  /// native `DiaryServerDestination`'s outbound FIFO lives. The legacy
+  /// [runtime] backend's wedge check does not see that store, so this is OR-ed
+  /// in by the wedge banner. Null in contexts without the new scope (the native
+  /// check is then skipped). See DIARY-DEV-native-outbound-sync/B.
+  final Future<bool> Function()? nativeFifoWedged;
 
   /// Persistent device install UUID. Stamped into the export payload so the
   /// downstream tooling can identify which device produced the JSON dump.
@@ -136,10 +144,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _refreshWedgeStatus() async {
-    final wedged = await widget.runtime.backend.anyFifoWedged();
+    final legacyWedged = await widget.runtime.backend.anyFifoWedged();
+    // The native DiaryServerDestination's outbound FIFO lives in the new
+    // event_sourcing store (diary_es.db), which runtime.backend does not see;
+    // OR it in so a stuck native sync is visible to the participant.
+    // See DIARY-DEV-native-outbound-sync/B.
+    final nativeWedged =
+        await (widget.nativeFifoWedged?.call() ?? Future<bool>.value(false));
     if (mounted) {
       setState(() {
-        _hasWedgedFifo = wedged;
+        _hasWedgedFifo = legacyWedged || nativeWedged;
         // The wedge check is the last non-diary async to settle on init;
         // once it returns the kept banners can render their resolved state.
         _isLoading = false;
