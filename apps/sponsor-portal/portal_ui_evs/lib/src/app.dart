@@ -149,6 +149,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     final Widget home = switch (_status) {
       Authenticated(:final principal) => _HomeShell(
         principal: principal,
+        identityCredential: _identityCredential,
         onDisconnect: () {
           _disconnect();
         },
@@ -214,6 +215,7 @@ class _HomeShell extends StatefulWidget {
     required this.principal,
     required this.onDisconnect,
     required this.onRoleSelected,
+    this.identityCredential,
   });
 
   final Principal principal;
@@ -222,6 +224,11 @@ class _HomeShell extends StatefulWidget {
   /// Called with the chosen role string so the parent can update the
   /// credential claim (`credential|role`) and reconnect the WS.
   final Future<void> Function(String role) onRoleSelected;
+
+  /// The bare identity credential passed down from [_PortalEvsAppState].
+  /// Session token in session mode; bare userId in dev mode. Forwarded to
+  /// [AuditLogScreen] so it can build the correct `<identity>|<role>` Bearer.
+  final String? identityCredential;
 
   @override
   State<_HomeShell> createState() => _HomeShellState();
@@ -237,20 +244,6 @@ class _NavDestination {
 class _HomeShellState extends State<_HomeShell> {
   int _selected = 0;
 
-  // Each destination builds an independent reactive widget gated by its
-  // own view permission (the screen, not the nav item, enforces access).
-  static final List<_NavDestination> _destinations = <_NavDestination>[
-    _NavDestination(
-      'User Accounts',
-      Icons.manage_accounts,
-      UserAccountsScreen.new,
-    ),
-    _NavDestination('Sites', Icons.location_city, SitesScreen.new),
-    _NavDestination('Participants', Icons.groups, ParticipantsScreen.new),
-    _NavDestination('RAVE Sync', Icons.sync, RaveSyncScreen.new),
-    _NavDestination('Audit Log', Icons.receipt_long, AuditLogScreen.new),
-  ];
-
   String _credentialLabel() {
     final p = widget.principal;
     if (p is UserPrincipal) return '${p.userId}:${p.activeRole}';
@@ -259,6 +252,25 @@ class _HomeShellState extends State<_HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Built here (not static) so AuditLogScreen can receive widget.identityCredential.
+    // Each destination builds an independent reactive widget gated by its
+    // own view permission (the screen, not the nav item, enforces access).
+    final destinations = <_NavDestination>[
+      _NavDestination(
+        'User Accounts',
+        Icons.manage_accounts,
+        UserAccountsScreen.new,
+      ),
+      _NavDestination('Sites', Icons.location_city, SitesScreen.new),
+      _NavDestination('Participants', Icons.groups, ParticipantsScreen.new),
+      _NavDestination('RAVE Sync', Icons.sync, RaveSyncScreen.new),
+      _NavDestination(
+        'Audit Log',
+        Icons.receipt_long,
+        () =>
+            AuditLogScreen(identityCredential: widget.identityCredential ?? ''),
+      ),
+    ];
     return Scaffold(
       appBar: AppBar(
         title: const Text('Portal (EVS skeleton)'),
@@ -290,7 +302,7 @@ class _HomeShellState extends State<_HomeShell> {
             labelType: NavigationRailLabelType.all,
             onDestinationSelected: (i) => setState(() => _selected = i),
             destinations: <NavigationRailDestination>[
-              for (final d in _destinations)
+              for (final d in destinations)
                 NavigationRailDestination(
                   icon: Icon(d.icon),
                   label: Text(d.label),
@@ -298,7 +310,7 @@ class _HomeShellState extends State<_HomeShell> {
             ],
           ),
           const VerticalDivider(thickness: 1, width: 1),
-          Expanded(child: _destinations[_selected].builder()),
+          Expanded(child: destinations[_selected].builder()),
         ],
       ),
     );

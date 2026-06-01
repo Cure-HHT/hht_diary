@@ -17,11 +17,17 @@ const String _serverUrl = String.fromEnvironment(
 ///
 /// Unlike the reactive screens, the audit log is fetched over plain HTTP
 /// and rendered as a static table that the user can refresh.
-/// The Bearer credential is `userId|activeRole` — the dev validator honors
-/// the `|`-separated role claim; in session mode the WS credential carries
-/// the full token. Self-gates on `portal.audit.view`.
+/// The Bearer credential is `<identityCredential>|<activeRole>` — where
+/// [identityCredential] is the session token (session mode) or userId (dev
+/// mode). The `|`-separated role claim is appended so the server authorizes
+/// the request under the current active role. Self-gates on
+/// `portal.audit.view`.
 class AuditLogScreen extends StatefulWidget {
-  const AuditLogScreen({super.key});
+  const AuditLogScreen({super.key, required this.identityCredential});
+
+  /// The bare identity credential — session token in session mode, userId in
+  /// dev mode. The active-role claim is appended at fetch time.
+  final String identityCredential;
 
   @override
   State<AuditLogScreen> createState() => _AuditLogScreenState();
@@ -64,9 +70,10 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
         return;
       }
       final p = status.principal as UserPrincipal;
-      // Use userId|activeRole: the dev validator honors the |role claim;
-      // session mode uses the ReActionScope credential (WS + GET /me path).
-      final cred = '${p.userId}|${p.activeRole}';
+      // Use identityCredential|activeRole: identityCredential is the session
+      // token (session mode) or bare userId (dev mode), so this produces
+      // token|role or userId|role respectively — both accepted by the server.
+      final cred = '${widget.identityCredential}|${p.activeRole}';
       final resp = await http.get(
         Uri.parse('$_serverUrl/audit?limit=200'),
         headers: <String, String>{'Authorization': 'Bearer $cred'},
