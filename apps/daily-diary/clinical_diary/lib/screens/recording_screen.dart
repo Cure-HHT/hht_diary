@@ -7,6 +7,7 @@ import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
+import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/date_header.dart';
@@ -619,6 +620,21 @@ class _RecordingScreenState extends State<RecordingScreen> {
     return _currentStep != RecordingStep.complete;
   }
 
+  /// "View" the overlapping record from the overlap warning. Opens [conflict]
+  /// ON TOP of the in-progress entry (push, not replace) so backing out of it
+  /// returns to the entry being edited — the participant inspects the conflict,
+  /// then adjusts their own entry to resolve the overlap. The in-progress screen
+  /// stays mounted, so its edits are preserved live (no checkpoint needed; the
+  /// normal back-out still checkpoints it as a resumable draft).
+  // Implements: DIARY-GUI-entry-overlap-resolution
+  Future<void> _handleViewConflict(EpistaxisEntryView conflict) async {
+    await Navigator.of(context).push(
+      AppPageRoute<String?>(
+        builder: (_) => RecordingScreen(existing: conflict),
+      ),
+    );
+  }
+
   /// Auto-save on back-out (DIARY-PRD-incomplete-entry-preservation).
   ///
   /// - editing an already-finalized entry (`_isComplete == true`) ->
@@ -761,9 +777,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: OverlapWarning(
                     overlappingEntries: overlappingEvents,
-                    onViewConflict: (conflictingEntry) {
-                      Navigator.pop<String?>(context, null);
-                    },
+                    onViewConflict: (conflictingEntry) =>
+                        unawaited(_handleViewConflict(conflictingEntry)),
                   ),
                 ),
 
