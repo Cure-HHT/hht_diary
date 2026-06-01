@@ -430,29 +430,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // Implements: DIARY-GUI-epistaxis-record/A
   // Implements: DIARY-PRD-entry-time-restrictions/D
   // Implements: DIARY-DEV-action-write-path/A
-  Future<String?> _saveRecord({bool fromBack = false}) async {
+  // Implements: DIARY-PRD-entry-overlap-resolution/C — an overlapping entry is
+  //   allowed to save; the overlap is resolved afterwards from the home surface.
+  Future<String?> _saveRecord() async {
     final shouldProceed = await _runValidationChecks();
     if (!shouldProceed) {
       return null;
-    }
-
-    // Explicit (non-back) saves are blocked by an overlap. We read the live
-    // view via a one-shot lookup against the same DiaryViewBuilder-provided
-    // view captured at build time (passed through _latestView).
-    if (!fromBack) {
-      final overlapping = _overlappingEvents(_latestView ?? _emptyView);
-      if (overlapping.isNotEmpty) {
-        if (mounted) {
-          final l10n = AppLocalizations.of(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.overlappingRecordNotAllowed),
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
-        return null;
-      }
     }
 
     setState(() => _isSaving = true);
@@ -691,22 +674,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
   }
 
-  // The most recent DiaryView from the builder, captured so the imperative save
-  // path can run an overlap check against live rows.
-  DiaryView? _latestView;
-  static final DiaryView _emptyView = DiaryView(
-    finalized: const [],
-    incomplete: const [],
-  );
-
   @override
   Widget build(BuildContext context) {
-    return DiaryViewBuilder(
-      builder: (context, view) {
-        _latestView = view;
-        return _buildScaffold(context, view);
-      },
-    );
+    return DiaryViewBuilder(builder: _buildScaffold);
   }
 
   Widget _buildScaffold(BuildContext context, DiaryView view) {

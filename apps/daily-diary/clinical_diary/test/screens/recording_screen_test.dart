@@ -485,7 +485,7 @@ void main() {
     // ---------------------------------------------------------------------
 
     testWidgets(
-      'overlap on an explicit save is blocked (snackbar, no submission)',
+      'overlap on an explicit save now succeeds (submits edit_epistaxis_event)',
       (tester) async {
         final base = DateTime.now();
         final today1pm = DateTime(base.year, base.month, base.day, 13);
@@ -498,7 +498,6 @@ void main() {
           intensity: NosebleedIntensity.dripping,
         );
 
-        // Editing entry overlaps the seeded one; lands on the review screen.
         final today130 = DateTime(base.year, base.month, base.day, 13, 30);
         final today145 = DateTime(base.year, base.month, base.day, 13, 45);
         final editing = buildEpistaxisView(
@@ -515,13 +514,13 @@ void main() {
           rules: const ClinicalRules(useReviewScreen: true),
         );
 
-        // Seed the overlapping finalized row into the diary_entries view.
+        // Seed the overlapping finalized row; the inline warning still shows as
+        // a non-blocking heads-up.
         seedDiaryEntries([other]);
         await tester.pumpAndSettle();
-
         expect(find.text('Overlapping Events Detected'), findsOneWidget);
 
-        // An explicit "Save Changes" is blocked.
+        // An explicit "Save Changes" is NO LONGER blocked — it submits.
         await tester.tap(
           find.widgetWithText(FilledButton, 'Save Changes'),
           warnIfMissed: false,
@@ -532,7 +531,7 @@ void main() {
           fake.submittedActions.where(
             (a) => a.actionName == 'edit_epistaxis_event',
           ),
-          isEmpty,
+          isNotEmpty,
         );
       },
     );
