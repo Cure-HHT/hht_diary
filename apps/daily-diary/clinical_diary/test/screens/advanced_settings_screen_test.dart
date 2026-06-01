@@ -97,6 +97,27 @@ void main() {
       );
     });
 
+    testWidgets('sponsor-locked key is read-only (no write on tap)', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        rules: const ClinicalRules(lockedKeys: {shortDurationConfirmKey}),
+      );
+      // The locked note is shown, and tapping the locked control writes nothing.
+      expect(find.textContaining('Set by your study'), findsOneWidget);
+      await tester.tap(find.text('Confirm very short nosebleeds'));
+      await tester.pumpAndSettle();
+      expect(
+        fake.submittedActions.where(
+          (s) =>
+              s.actionName == 'set_user_setting' &&
+              s.rawInput['key'] == shortDurationConfirmKey,
+        ),
+        isEmpty,
+      );
+    });
+
     testWidgets('reflects current rules (long-duration shows the threshold)', (
       tester,
     ) async {

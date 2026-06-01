@@ -178,6 +178,26 @@ void main() {
       },
     );
 
+    test('lockedKeys reflects sponsor-locked settings only', () {
+      final r = ClinicalRules.fromSettings(<String, SettingPayload>{
+        // sponsor-applied => locked
+        lockThresholdHoursKey: of(
+          lockThresholdHoursKey,
+          72,
+          SettingSource.sponsor,
+        ),
+        // user-set => not locked
+        shortDurationConfirmKey: of(
+          shortDurationConfirmKey,
+          true,
+          SettingSource.user,
+        ),
+      }, trialStart: null);
+      expect(r.isLocked(lockThresholdHoursKey), isTrue);
+      expect(r.isLocked(shortDurationConfirmKey), isFalse);
+      expect(r.lockedKeys, {lockThresholdHoursKey});
+    });
+
     test('wrong-typed values fall back to defaults', () {
       final r = ClinicalRules.fromSettings(<String, SettingPayload>{
         shortDurationConfirmKey: of(

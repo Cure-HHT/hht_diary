@@ -119,6 +119,7 @@ class ClinicalRules {
     this.longDurationConfirm = false,
     this.longDurationThresholdMinutes = 240,
     this.useReviewScreen = false,
+    this.lockedKeys = const <String>{},
   });
 
   /// Derives the rules from the folded settings map. [trialStart] (for the gate's
@@ -148,6 +149,10 @@ class ClinicalRules {
         fallback: 240,
       ),
       useReviewScreen: boolOf(useReviewScreenKey, fallback: false),
+      lockedKeys: <String>{
+        for (final e in settings.entries)
+          if (e.value.locked) e.key,
+      },
     );
   }
 
@@ -166,6 +171,14 @@ class ClinicalRules {
   /// Show the review step before saving a completed entry.
   final bool useReviewScreen;
 
+  /// Setting keys currently locked by the sponsor (read-only to the participant
+  /// while participating). A user-settable rule whose key is in here must be
+  /// shown read-only and not written.
+  final Set<String> lockedKeys;
+
+  /// Whether [key] is sponsor-locked (read-only to the participant).
+  bool isLocked(String key) => lockedKeys.contains(key);
+
   @override
   bool operator ==(Object other) =>
       other is ClinicalRules &&
@@ -173,7 +186,9 @@ class ClinicalRules {
       other.shortDurationConfirm == shortDurationConfirm &&
       other.longDurationConfirm == longDurationConfirm &&
       other.longDurationThresholdMinutes == longDurationThresholdMinutes &&
-      other.useReviewScreen == useReviewScreen;
+      other.useReviewScreen == useReviewScreen &&
+      other.lockedKeys.length == lockedKeys.length &&
+      other.lockedKeys.containsAll(lockedKeys);
 
   @override
   int get hashCode => Object.hash(
@@ -182,5 +197,6 @@ class ClinicalRules {
     longDurationConfirm,
     longDurationThresholdMinutes,
     useReviewScreen,
+    Object.hashAllUnordered(lockedKeys),
   );
 }

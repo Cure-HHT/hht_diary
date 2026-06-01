@@ -73,6 +73,7 @@ class AdvancedSettingsScreen extends StatelessWidget {
                         'than the selected age.',
                     currentHours: rules.gate.justificationThreshold?.inHours,
                     presetHours: const [24, 48, 72],
+                    locked: rules.isLocked(justificationThresholdHoursKey),
                     onChanged: (h) =>
                         _set(context, justificationThresholdHoursKey, h),
                   ),
@@ -85,16 +86,17 @@ class AdvancedSettingsScreen extends StatelessWidget {
                         'becomes read-only (no add/edit/delete for that day).',
                     currentHours: rules.gate.lockThreshold?.inHours,
                     presetHours: const [24, 48, 72, 168],
+                    locked: rules.isLocked(lockThresholdHoursKey),
                     onChanged: (h) => _set(context, lockThresholdHoursKey, h),
                   ),
                   const Divider(),
                   _sectionHeader(context, 'Duration checks'),
-                  SwitchListTile(
-                    title: const Text('Confirm very short nosebleeds'),
-                    subtitle: const Text(
-                      'Ask to confirm a nosebleed of one minute or less.',
-                    ),
+                  _switchTile(
+                    title: 'Confirm very short nosebleeds',
+                    subtitle:
+                        'Ask to confirm a nosebleed of one minute or less.',
                     value: rules.shortDurationConfirm,
+                    locked: rules.isLocked(shortDurationConfirmKey),
                     onChanged: (v) => _set(context, shortDurationConfirmKey, v),
                   ),
                   // Long-duration confirmation: one control sets both the bool
@@ -102,12 +104,12 @@ class AdvancedSettingsScreen extends StatelessWidget {
                   _longDurationTile(context, rules),
                   const Divider(),
                   _sectionHeader(context, 'Recording'),
-                  SwitchListTile(
-                    title: const Text('Show a review step before saving'),
-                    subtitle: const Text(
-                      'Review the entry on a summary screen before it is saved.',
-                    ),
+                  _switchTile(
+                    title: 'Show a review step before saving',
+                    subtitle:
+                        'Review the entry on a summary screen before it is saved.',
                     value: rules.useReviewScreen,
+                    locked: rules.isLocked(useReviewScreenKey),
                     onChanged: (v) => _set(context, useReviewScreenKey, v),
                   ),
                 ],
@@ -130,13 +132,33 @@ class AdvancedSettingsScreen extends StatelessWidget {
     ),
   );
 
+  /// A SwitchListTile that renders read-only (disabled + lock icon) when the
+  /// key is sponsor-[locked].
+  Widget _switchTile({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required bool locked,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      title: Text(title),
+      subtitle: Text(locked ? _lockedNote : subtitle),
+      secondary: locked ? const Icon(Icons.lock_outline) : null,
+      value: value,
+      onChanged: locked ? null : onChanged,
+    );
+  }
+
   /// A row whose trailing dropdown selects an "Off / after N hours" value.
+  /// Renders read-only (disabled + lock icon) when the key is sponsor-[locked].
   Widget _hoursTile(
     BuildContext context, {
     required String title,
     required String subtitle,
     required int? currentHours,
     required List<int> presetHours,
+    required bool locked,
     required ValueChanged<int?> onChanged,
   }) {
     // Include the current value in the options so a non-preset (e.g. sponsor-set)
@@ -148,18 +170,21 @@ class AdvancedSettingsScreen extends StatelessWidget {
         currentHours,
     ];
     return ListTile(
+      leading: locked ? const Icon(Icons.lock_outline) : null,
       title: Text(title),
-      subtitle: Text(subtitle),
+      subtitle: Text(locked ? _lockedNote : subtitle),
       trailing: DropdownButton<int?>(
         value: currentHours,
         items: [
           for (final v in values)
             DropdownMenuItem<int?>(value: v, child: Text(_hoursLabel(v))),
         ],
-        onChanged: onChanged,
+        onChanged: locked ? null : onChanged,
       ),
     );
   }
+
+  static const String _lockedNote = "Set by your study — can't be changed.";
 
   String _hoursLabel(int? hours) {
     if (hours == null) return 'Off';
@@ -175,6 +200,9 @@ class AdvancedSettingsScreen extends StatelessWidget {
   }
 
   Widget _longDurationTile(BuildContext context, ClinicalRules rules) {
+    final locked =
+        rules.isLocked(longDurationConfirmKey) ||
+        rules.isLocked(longDurationThresholdMinutesKey);
     final currentMinutes = rules.longDurationConfirm
         ? rules.longDurationThresholdMinutes
         : null;
@@ -186,9 +214,12 @@ class AdvancedSettingsScreen extends StatelessWidget {
         currentMinutes,
     ];
     return ListTile(
+      leading: locked ? const Icon(Icons.lock_outline) : null,
       title: const Text('Confirm very long nosebleeds'),
-      subtitle: const Text(
-        'Ask to confirm a nosebleed longer than the selected duration.',
+      subtitle: Text(
+        locked
+            ? _lockedNote
+            : 'Ask to confirm a nosebleed longer than the selected duration.',
       ),
       trailing: DropdownButton<int?>(
         value: currentMinutes,
@@ -196,14 +227,16 @@ class AdvancedSettingsScreen extends StatelessWidget {
           for (final v in values)
             DropdownMenuItem<int?>(value: v, child: Text(_minutesLabel(v))),
         ],
-        onChanged: (minutes) {
-          if (minutes == null) {
-            _set(context, longDurationConfirmKey, false);
-          } else {
-            _set(context, longDurationConfirmKey, true);
-            _set(context, longDurationThresholdMinutesKey, minutes);
-          }
-        },
+        onChanged: locked
+            ? null
+            : (minutes) {
+                if (minutes == null) {
+                  _set(context, longDurationConfirmKey, false);
+                } else {
+                  _set(context, longDurationConfirmKey, true);
+                  _set(context, longDurationThresholdMinutesKey, minutes);
+                }
+              },
       ),
     );
   }

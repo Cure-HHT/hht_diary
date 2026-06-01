@@ -11,31 +11,38 @@ import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
+import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 
 void main() {
   // Set up flavor for tests
   F.appFlavor = Flavor.dev;
 
   late FeatureFlagService featureFlagService;
+  late FakeReaction fake;
 
   setUp(() {
     featureFlagService = FeatureFlagService.instance..resetToDefaults();
+    fake = FakeReaction();
   });
 
-  tearDown(() {
+  tearDown(() async {
     featureFlagService.resetToDefaults();
+    await fake.dispose();
   });
 
+  // The screen submits actions (the dev sponsor-rule simulation), so it needs a
+  // ReActionScope ancestor.
   Widget buildTestWidget() {
-    return const MaterialApp(
-      localizationsDelegates: [
+    return MaterialApp(
+      localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: [Locale('en')],
-      home: FeatureFlagsScreen(),
+      supportedLocales: const [Locale('en')],
+      home: ReActionScope(scope: fake, child: const FeatureFlagsScreen()),
     );
   }
 
