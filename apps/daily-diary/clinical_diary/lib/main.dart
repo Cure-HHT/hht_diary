@@ -9,7 +9,7 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, pid;
 
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
@@ -399,6 +399,7 @@ class _AppRootState extends State<AppRoot> {
         } catch (e, stack) {
           debugPrint('[DebugBridge] start failed: $e\n$stack');
         }
+        _emitShutdownHelp();
       }
     } catch (e, stack) {
       debugPrint('[Bootstrap] Runtime init failed: $e\n$stack');
@@ -406,6 +407,21 @@ class _AppRootState extends State<AppRoot> {
         setState(() => _bootstrapError = e);
       }
     }
+  }
+
+  /// Prints clean-shutdown instructions to stdout on local-flavor desktop boot,
+  /// so whoever launched a detached `flutter run` doesn't have to remember how
+  /// to stop it cleanly. Clean stops run the app's dispose path (which flushes
+  /// the Sembast stores); a `kill -9` does not.
+  void _emitShutdownHelp() {
+    debugPrint(
+      '\n'
+      '[diary][local] clean shutdown (runs dispose -> flushes diary_es.db):\n'
+      '[diary][local]   - close the app window, OR\n'
+      '[diary][local]   - press q if attached, OR `echo q > /tmp/diary.in`\n'
+      '[diary][local]     when launched detached via the run FIFO (graceful quit).\n'
+      '[diary][local]   force-stop (skips DB flush, last resort): kill $pid\n',
+    );
   }
 
   /// Full local factory reset: tear down the live runtimes (closing both
