@@ -43,9 +43,11 @@ void main() {
     await reactor.handleIssued(event);
 
     expect(transport.to, 'jane@site.org');
+    // Link is built from portalUrl (the UI origin) at the root path with ?code=,
+    // so it opens the Flutter activation page on any host.
     expect(
       transport.email!.text,
-      contains('https://portal.test/activate?code=AB-CD'),
+      contains('https://portal.test/?code=AB-CD'),
     );
     expect(
       store.validate('AB-CD', now: DateTime.utc(2026, 6, 2))?.email,

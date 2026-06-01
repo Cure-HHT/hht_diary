@@ -46,7 +46,11 @@ class ActivationReactor {
     final email = event.aggregateId;
     final expiresAt = DateTime.parse(event.data['expires_at']! as String);
     final code = store.issue(email: email, expiresAt: expiresAt);
-    final url = '$portalUrl/activate?code=$code';
+    // [portalUrl] is the portal UI origin (NOT the server). The link opens the
+    // Flutter activation page, which reads ?code= from its own URL and then
+    // calls the server itself. Root path so it resolves on any UI host (plain
+    // static server or flutter run) without relying on SPA path fallback.
+    final url = '$portalUrl/?code=$code';
     await emailSender.sendActivation(recipientEmail: email, activationUrl: url);
   }
 
