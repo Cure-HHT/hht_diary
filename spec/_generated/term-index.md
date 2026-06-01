@@ -88,6 +88,7 @@
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-portal-active-role-switch:section:1
 - DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-DEV-user-account-projection:section:1
@@ -530,6 +531,8 @@
 - DIARY-GUI-user-account-deactivate-B
 - DIARY-GUI-user-account-deactivate-C
 - DIARY-GUI-user-account-deactivate-E
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-lifecycle:section:1
 - DIARY-PRD-session-management:section:5
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-edit:section:1
@@ -940,6 +943,8 @@
 - DIARY-PRD-user-authentication-K
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-G
+- DIARY-DEV-portal-session-token:section:1
+- DIARY-DEV-portal-session-lifecycle:section:0
 - DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-user-authentication:section:5
 - DIARY-PRD-user-authentication-pin:section:6
@@ -1687,6 +1692,10 @@
 - DIARY-DEV-portal-activation-code-lifecycle:section:0
 - DIARY-DEV-portal-identity-provisioning:section:0
 - DIARY-DEV-portal-identity-provisioning:section:1
+- DIARY-DEV-portal-login-identity-verification:section:0
+- DIARY-DEV-portal-login-identity-verification:section:1
+- DIARY-DEV-portal-login-second-factor:section:0
+- DIARY-DEV-portal-login-second-factor:section:1
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-requirements:section:0
 - DIARY-PRD-two-factor-authentication:section:0
@@ -2124,6 +2133,7 @@
 **DIARY:**
 
 - DIARY-BASE-system-operator-role
+- DIARY-DEV-portal-active-role-switch
 - DIARY-PRD-rbac-customizable
 - DIARY-PRD-role-definitions
 - DIARY-GUI-role-switching
@@ -2131,6 +2141,10 @@
 - DIARY-BASE-ops-action-inventory-C
 - DIARY-BASE-system-operator-role-A
 - DIARY-BASE-system-operator-role-B
+- DIARY-DEV-portal-session-lifecycle-B
+- DIARY-DEV-portal-active-role-switch-A
+- DIARY-DEV-portal-active-role-switch-B
+- DIARY-DEV-portal-active-role-switch-C
 - DIARY-DEV-portal-reaction-server-B
 - DIARY-DEV-user-account-projection-C
 - DIARY-PRD-help-resources-B
@@ -2164,6 +2178,11 @@
 - DIARY-GUI-user-information-modal-H
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-portal-session-token:section:1
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-lifecycle:section:1
+- DIARY-DEV-portal-active-role-switch:section:0
+- DIARY-DEV-portal-active-role-switch:section:1
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
@@ -2220,17 +2239,31 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-login-second-factor
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-G
+- rem:spec/dev-portal-login.md:1
+- DIARY-DEV-portal-login-second-factor:section:0
+- DIARY-DEV-portal-login-second-factor:section:1
 - DIARY-PRD-two-factor-authentication:section:4
 
 ## Session
 
 **DIARY:**
 
+- DIARY-DEV-portal-session-token
+- DIARY-DEV-portal-session-lifecycle
+- DIARY-DEV-portal-active-role-switch
 - DIARY-PRD-session-management
 - DIARY-PRD-questionnaire-session-timeout
 - DIARY-GUI-questionnaire-session-expiry
+- DIARY-DEV-portal-session-token-A
+- DIARY-DEV-portal-session-token-B
+- DIARY-DEV-portal-session-lifecycle-A
+- DIARY-DEV-portal-session-lifecycle-C
+- DIARY-DEV-portal-active-role-switch-A
+- DIARY-DEV-portal-active-role-switch-B
+- DIARY-DEV-portal-active-role-switch-C
 - DIARY-DEV-shared-events-catalog-D
 - DIARY-PRD-session-management-A
 - DIARY-PRD-session-management-C
@@ -2254,6 +2287,13 @@
 - DIARY-PRD-rbac-customizable-B
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-DEV-portal-user-activated-binding:section:1
+- rem:spec/dev-portal-login.md:1
+- DIARY-DEV-portal-session-token:section:0
+- DIARY-DEV-portal-session-token:section:1
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-lifecycle:section:1
+- DIARY-DEV-portal-active-role-switch:section:0
+- DIARY-DEV-portal-active-role-switch:section:1
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
@@ -2340,6 +2380,7 @@
 
 - DIARY-DEV-participant-site-index
 - DIARY-PRD-user-account-site-assignment
+- DIARY-DEV-portal-session-lifecycle-B
 - DIARY-DEV-participant-site-index-A
 - DIARY-DEV-participant-site-index-B
 - DIARY-DEV-rave-edc-ingest-A
@@ -2364,6 +2405,8 @@
 - DIARY-GUI-user-information-modal-D
 - DIARY-GUI-user-information-modal-E
 - DIARY-GUI-user-information-modal-G
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-lifecycle:section:1
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-rave-edc-ingest:section:0
@@ -2964,6 +3007,13 @@
 - DIARY-DEV-portal-user-activated-binding-A
 - DIARY-DEV-portal-user-activated-binding-B
 - DIARY-DEV-portal-user-activated-binding-C
+- DIARY-DEV-portal-login-identity-verification-B
+- DIARY-DEV-portal-login-second-factor-A
+- DIARY-DEV-portal-session-token-A
+- DIARY-DEV-portal-session-lifecycle-B
+- DIARY-DEV-portal-active-role-switch-A
+- DIARY-DEV-portal-active-role-switch-B
+- DIARY-DEV-portal-active-role-switch-C
 - DIARY-DEV-user-account-projection-A
 - DIARY-DEV-user-account-projection-C
 - DIARY-GUI-audit-log-common-A
@@ -3083,6 +3133,12 @@
 - DIARY-DEV-portal-activation-code-lifecycle:section:0
 - DIARY-DEV-portal-user-activated-binding:section:0
 - DIARY-DEV-portal-user-activated-binding:section:1
+- DIARY-DEV-portal-login-identity-verification:section:0
+- DIARY-DEV-portal-session-token:section:0
+- DIARY-DEV-portal-session-token:section:1
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-lifecycle:section:1
+- DIARY-DEV-portal-active-role-switch:section:0
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
 - rem:spec/glossary-core.md:745
@@ -3162,6 +3218,10 @@
 - DIARY-DEV-portal-user-activated-binding-A
 - DIARY-DEV-portal-user-activated-binding-B
 - DIARY-DEV-portal-user-activated-binding-C
+- DIARY-DEV-portal-login-identity-verification-B
+- DIARY-DEV-portal-login-second-factor-A
+- DIARY-DEV-portal-session-token-A
+- DIARY-DEV-portal-session-lifecycle-B
 - DIARY-GUI-audit-log-administrator-A
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-F
@@ -3223,6 +3283,10 @@
 - DIARY-DEV-portal-activation-code-lifecycle:section:0
 - DIARY-DEV-portal-user-activated-binding:section:0
 - DIARY-DEV-portal-user-activated-binding:section:1
+- DIARY-DEV-portal-login-identity-verification:section:0
+- DIARY-DEV-portal-session-token:section:0
+- DIARY-DEV-portal-session-token:section:1
+- DIARY-DEV-portal-session-lifecycle:section:0
 - DIARY-PRD-password-forgot:section:0
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-PRD-action-inventory:section:1
@@ -3265,11 +3329,15 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-login-second-factor-A
+- DIARY-DEV-portal-login-second-factor-B
 - DIARY-PRD-two-factor-authentication-B
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-D
 - DIARY-PRD-two-factor-authentication-E
 - DIARY-PRD-two-factor-authentication-F
+- DIARY-DEV-portal-login-second-factor:section:0
+- DIARY-DEV-portal-login-second-factor:section:1
 - DIARY-PRD-two-factor-authentication:section:4
 
 ## Verification Link
