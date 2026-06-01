@@ -68,8 +68,13 @@ updates:
         update-types: ["version-update:semver-major"]
 
 # Notes:
-# 1. Dependabot does NOT support SHA-pinning GitHub Actions
-#    - For FDA compliance, consider Renovate (see Linear ticket CUR-345)
+# 1. Dependabot DOES update SHA-pinned GitHub Actions: it rewrites the pinned
+#    SHA to the SHA of the action's latest release tag and appends a version
+#    comment, preserving the SHA-pin style required for supply-chain integrity.
+#    This requires the upstream action to publish release tags --
+#    Cure-HHT/hht_workflows now does (see its README "Versioning & releases";
+#    CUR-1422). Cross-repo pin compatibility (hht_diary <-> hht_diary_<sponsor>)
+#    is drift-checked in hht_admin.
 # 2. Docker base images and tool versions are pinned in versions.env
 #    - Updated manually during quarterly maintenance reviews for FDA compliance
 # 3. Security updates are enabled automatically if vulnerability alerts are on
