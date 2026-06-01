@@ -1,0 +1,46 @@
+// Implements: DIARY-DEV-portal-activation-email-delivery/A+B
+class RenderedEmail {
+  const RenderedEmail(
+      {required this.subject, required this.text, required this.html});
+  final String subject;
+  final String text;
+  final String html;
+}
+
+RenderedEmail buildActivationEmail({
+  required String recipientEmail,
+  required String activationUrl,
+}) {
+  const subject = 'Activate your Clinical Trial Portal account';
+  final text = '''
+Welcome to the Clinical Trial Portal.
+
+Activate your account and set your password using the link below
+(valid for a limited time, single use):
+
+$activationUrl
+
+If you did not expect this email, contact your Administrator.
+''';
+  final html = '''
+<p>Welcome to the Clinical Trial Portal.</p>
+<p>Activate your account and set your password using the link below
+(valid for a limited time, single use):</p>
+<p><a href="$activationUrl">$activationUrl</a></p>
+<p>If you did not expect this email, contact your Administrator.</p>
+''';
+  return RenderedEmail(subject: subject, text: text, html: html);
+}
+
+/// Masks an email to `x***@y***.tld` so responses never echo the full address.
+// Implements: DIARY-DEV-portal-activation-email-delivery/B
+String maskEmail(String email) {
+  final at = email.indexOf('@');
+  if (at <= 0) return '***';
+  final local = email.substring(0, at);
+  final domain = email.substring(at + 1);
+  final dot = domain.lastIndexOf('.');
+  final dom = dot <= 0 ? domain : domain.substring(0, dot);
+  final tld = dot <= 0 ? '' : domain.substring(dot); // includes leading '.'
+  return '${local[0]}***@${dom[0]}***$tld';
+}
