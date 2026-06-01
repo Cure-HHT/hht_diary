@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
@@ -70,7 +71,19 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     super.dispose();
   }
 
-  void _disconnect() {
+  // Implements: DIARY-DEV-portal-session-lifecycle/A
+  Future<void> _disconnect() async {
+    final token = _sessionToken;
+    if (token != null) {
+      try {
+        await http.post(
+          Uri.parse('$_serverUrl/logout'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+      } catch (_) {
+        // best-effort: clear locally even if the server call fails
+      }
+    }
     _sessionToken = null;
     _scope.authSession.setCredential(null);
   }
@@ -115,7 +128,9 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     final Widget home = switch (_status) {
       Authenticated(:final principal) => _HomeShell(
         principal: principal,
-        onDisconnect: _disconnect,
+        onDisconnect: () {
+          _disconnect();
+        },
         sessionToken: _sessionToken,
         onRoleSwitched: _onRoleSwitched,
       ),

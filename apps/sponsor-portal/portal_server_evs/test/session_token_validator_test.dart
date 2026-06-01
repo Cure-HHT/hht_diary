@@ -57,7 +57,7 @@ void main() {
 
   test('live session + held role -> Principal with session active role',
       () async {
-    await assignRole('jane@site.org', 'Study Coordinator');
+    await assignRole('jane@site.org', 'StudyCoordinator');
     await assignRole('jane@site.org', 'Administrator');
     await startSession('sid-1', 'jane@site.org', 'Administrator');
     final token = mintSessionToken(
@@ -66,8 +66,7 @@ void main() {
     final p = await validator(() => t0).authenticate(token) as UserPrincipal;
     expect(p.userId, 'jane@site.org');
     expect(p.activeRole, 'Administrator');
-    expect(
-        p.roles, containsAll(<String>{'Study Coordinator', 'Administrator'}));
+    expect(p.roles, containsAll(<String>{'StudyCoordinator', 'Administrator'}));
   });
 
   test('tampered token -> denied', () async {
@@ -113,12 +112,12 @@ void main() {
   test(
       'active role not in current roles falls back to highest-priority held role',
       () async {
-    await assignRole('jane@site.org', 'Study Coordinator');
+    await assignRole('jane@site.org', 'StudyCoordinator');
     // session stored with Administrator, but the user no longer holds it
     await startSession('sid-1', 'jane@site.org', 'Administrator');
     final token = mintSessionToken(
         sid: 'sid-1', userId: 'jane@site.org', signingKey: key, now: t0);
     final p = await validator(() => t0).authenticate(token) as UserPrincipal;
-    expect(p.activeRole, 'Study Coordinator'); // only role held
+    expect(p.activeRole, 'StudyCoordinator'); // only role held
   });
 }

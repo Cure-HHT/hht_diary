@@ -22,7 +22,7 @@ class _CaptureSender implements OtpSender {
 
 void main() {
   // Verifies: DIARY-DEV-portal-login-identity-verification/A+B
-  // Verifies: DIARY-DEV-portal-login-second-factor/A+B
+  // Verifies: DIARY-DEV-portal-login-second-factor/A+B+C
   // Verifies: DIARY-DEV-portal-session-token/A
   const key = 'k';
   late EventStore store;
@@ -180,7 +180,7 @@ void main() {
         eventType: 'role_assigned',
         data: {
           'user_id': 'jane@site.org',
-          'role': 'Study Coordinator',
+          'role': 'StudyCoordinator',
           'scope': 'global',
         },
         initiator: const AutomationInitiator(service: 'test'),
@@ -191,14 +191,14 @@ void main() {
       final r = await authed()(Request(
           'POST', Uri.parse('http://x/session/active-role'),
           headers: {'Authorization': 'Bearer $token'},
-          body: jsonEncode({'role': 'Study Coordinator'})));
+          body: jsonEncode({'role': 'StudyCoordinator'})));
       expect(r.statusCode, 200);
       final events = await backend.findAllEvents();
       final changed = events
           .where((e) => e.eventType == 'session_active_role_changed')
           .toList();
       expect(changed, hasLength(1));
-      expect(changed.single.data['active_role'], 'Study Coordinator');
+      expect(changed.single.data['active_role'], 'StudyCoordinator');
     });
 
     test('POST /session/active-role to an unheld role -> 403, no event',
@@ -209,7 +209,7 @@ void main() {
       final r = await authed()(Request(
           'POST', Uri.parse('http://x/session/active-role'),
           headers: {'Authorization': 'Bearer $token'},
-          body: jsonEncode({'role': 'Study Coordinator'})));
+          body: jsonEncode({'role': 'StudyCoordinator'})));
       expect(r.statusCode, 403);
       final events = await backend.findAllEvents();
       expect(events.where((e) => e.eventType == 'session_active_role_changed'),
