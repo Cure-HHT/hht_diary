@@ -1,32 +1,32 @@
-# SonarCloud CI-based analysis.
+# SonarCloud CI-based analysis. *** PARKED — manual-trigger only ***
 #
-# Replaces SonarCloud "Automatic Analysis", which runs no build and so cannot
-# `pub get` the event_sourcing deps — reporting every package:event_sourcing
-# import as dart:S2260 "analyzer configuration error" (~43% of port-scoped
-# issues). This job resolves the deps first, so the analyzer is clean and that
-# cluster disappears at the root.
+# CI-based analysis requires DISABLING SonarCloud "Automatic Analysis", and on
+# our plan (Teams) that toggle is Enterprise-gated. So this workflow is parked:
+# its auto-triggers are commented out and it runs on workflow_dispatch only, so
+# it never auto-runs (no red PR checks) and isn't flagged as an invalid workflow.
+# A manual run will still fail until Automatic Analysis can be disabled.
 #
-# event_sourcing is a PUBLIC repo and the pubspecs use https: URLs, so `pub get`
-# resolves it anonymously — no dependency auth needed.
+# WHY KEEP IT: it's complete and correct (deps resolve anonymously — event_sourcing
+# is public/https; SONAR_TOKEN comes from Doppler admin/prod via OIDC), so when we
+# move to Enterprise it's a one-line enable. Until then, handle the dart:S2260
+# false-positive flood (~43%, the unresolved-import noise Automatic Analysis can't
+# avoid) by deactivating rule dart:S2260 in the project's Quality Profile.
 #
-# SONAR_TOKEN is fetched from Doppler via OIDC (no static GitHub secret), per the
-# org identity-over-keys convention; doppler-oidc-auth injects it as a masked
-# env var that the scanner reads automatically. It lives once in admin/prod (the
-# shared home, like the ops-bot App key) — it is a Cure-HHT-wide "Execute
-# Analysis" Global token, not env-specific, so admin/prod is hardcoded here.
-#
-# PREREQUISITES (admin, do once):
-#   1. Set the ADMIN_DOPPLER_IDENTITY_ID repo var to the Doppler OIDC identity
-#      that accepts hht_diary CI as a source and can read admin/prod. (SONAR_TOKEN
-#      already lives in admin/prod.)
-#   2. Disable "Automatic Analysis" in the SonarCloud project (Administration ->
+# TO ENABLE (once on Enterprise):
+#   1. Disable "Automatic Analysis" (SonarCloud project -> Administration ->
 #      Analysis Method) — CI analysis is rejected while it is on.
+#   2. Set repo var ADMIN_DOPPLER_IDENTITY_ID = the Doppler OIDC identity that
+#      accepts hht_diary CI and reads admin/prod (where SONAR_TOKEN lives).
+#   3. Restore the push/pull_request triggers below (and drop workflow_dispatch
+#      if you don't want the manual entry).
 name: SonarCloud
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  # Parked: manual-only until Enterprise lets us disable Automatic Analysis.
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  # pull_request:
 
 permissions:
   id-token: write   # Doppler OIDC exchange (fetches SONAR_TOKEN)
