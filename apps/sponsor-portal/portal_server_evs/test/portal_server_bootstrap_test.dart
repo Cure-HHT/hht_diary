@@ -2,6 +2,7 @@
 // Verifies: DIARY-PRD-action-inventory/A+B
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_server_evs/portal_server_evs.dart';
+import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
@@ -68,5 +69,45 @@ void main() {
       _ctx(coordinator),
     );
     expect(denied, isA<DispatchAuthorizationDenied<Object?>>());
+  });
+
+  test(
+      'admin effective permissions include assign_site + view:user_role_scopes '
+      '(drives PermissionGate)', () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('skeleton-perms.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+    );
+    addTearDown(boot.dispose);
+
+    final bootstrap =
+        await buildPortalAuthorizationPolicy(eventStore: boot.eventStore);
+    final policy = (bootstrap as PolicyReady).policy;
+
+    final admin = Principal.user(
+      userId: 'admin-1',
+      roles: const {'Administrator'},
+      activeRole: 'Administrator',
+    );
+    final eff = await policy.effectivePermissionsFor(admin);
+    final names = eff.rolePermissions.map((p) => p.name).toSet();
+
+    expect(names, contains('portal.user.assign_site'),
+        reason: 'admin can assign sites');
+    expect(names, contains('view:user_role_scopes'),
+        reason: 'admin can subscribe to the assignments view');
+
+    // The coordinator's snapshot must NOT carry those, so its PermissionGates
+    // close (no Assign widget; "no access" for the list).
+    final coordinator = Principal.user(
+      userId: 'sc-1',
+      roles: const {'StudyCoordinator'},
+      activeRole: 'StudyCoordinator',
+    );
+    final scEff = await policy.effectivePermissionsFor(coordinator);
+    final scNames = scEff.rolePermissions.map((p) => p.name).toSet();
+    expect(scNames, isNot(contains('portal.user.assign_site')));
+    expect(scNames, isNot(contains('view:user_role_scopes')));
   });
 }
