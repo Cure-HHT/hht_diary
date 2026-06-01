@@ -16,6 +16,8 @@ dependencies:
     path: ../../common-dart/portal_actions
   diary_shared_model:
     path: ../../common-dart/diary_shared_model
+  rave_integration:
+    path: ../../edc/rave-integration
 
 dev_dependencies:
   test: ^1.25.0
