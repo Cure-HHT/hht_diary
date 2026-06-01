@@ -31,4 +31,27 @@ void main() {
         detailsSummary({'aggregate_type': 'site', 'aggregate_id': 'DEV-001'}),
         'site DEV-001');
   });
+
+  group('parseAuditRows', () {
+    test('parses a single well-formed row', () {
+      final rows = parseAuditRows('{"rows":[{"entry_type":"x"}]}');
+      expect(rows, hasLength(1));
+      expect(rows.single['entry_type'], 'x');
+    });
+
+    test('skips non-object elements (null) and keeps valid rows', () {
+      final rows = parseAuditRows('{"rows":[null, {"entry_type":"y"}]}');
+      expect(rows, hasLength(1));
+      expect(rows.single['entry_type'], 'y');
+    });
+
+    test('empty rows list yields empty list', () {
+      expect(parseAuditRows('{"rows":[]}'), isEmpty);
+    });
+
+    test('non-object JSON body yields empty list without throwing', () {
+      expect(parseAuditRows('"[]"'), isEmpty);
+      expect(parseAuditRows('[]'), isEmpty);
+    });
+  });
 }

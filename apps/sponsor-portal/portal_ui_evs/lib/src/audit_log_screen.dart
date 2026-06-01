@@ -18,8 +18,6 @@ const String _serverUrl = String.fromEnvironment(
 /// Unlike the reactive screens, the audit log is fetched over plain HTTP
 /// (the dev credential as a Bearer token) and rendered as a static table
 /// that the user can refresh. Self-gates on `portal.audit.view`.
-// Implements: DIARY-GUI-audit-log-common
-// Implements: DIARY-GUI-audit-log-administrator
 class AuditLogScreen extends StatefulWidget {
   const AuditLogScreen({super.key});
 
@@ -38,6 +36,11 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
     super.didChangeDependencies();
     // Fetch exactly once on first build (we need a BuildContext for the
     // auth session, so this can't go in initState). Refresh is manual.
+    //
+    // No pre-fetch permission check is needed: an unauthorized user's fetch is
+    // harmless. The server enforces `portal.audit.view` and returns 403, and
+    // the PermissionGate in build() suppresses the table body regardless, so
+    // there is no information leak in firing this request.
     if (!_started) {
       _started = true;
       _fetch();
@@ -72,8 +75,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
         });
         return;
       }
-      final body = jsonDecode(resp.body) as Map<String, Object?>;
-      final rows = (body['rows'] as List).cast<Map<String, Object?>>();
+      final rows = parseAuditRows(resp.body);
       setState(() {
         _rows = rows;
         _loading = false;
@@ -87,6 +89,9 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
     }
   }
 
+  // Implements: DIARY-GUI-audit-log-administrator/A — the audit log is presented on its
+  //   own dashboard surface (mounted as the Administrator dashboard's audit tab), gated on
+  //   portal.audit.view.
   @override
   Widget build(BuildContext context) => PermissionGate(
         permission: 'portal.audit.view',
@@ -119,6 +124,9 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
         ),
       );
 
+  // Implements: DIARY-GUI-audit-log-common/A+B+E+H — renders the audit table (Timestamp,
+  //   Action, User, Details), in reverse-chronological order as served by the endpoint,
+  //   with the empty-state message and the per-row "More details" raw-record expansion.
   Widget _body() {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
