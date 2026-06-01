@@ -71,7 +71,7 @@ final AggregateProjectionSpec raveSyncStatusSpec = AggregateProjectionSpec(
     aggregateTypes: {'rave_sync'},
     eventTypes: {
       'edc_sync_succeeded',
-      // edc_sync_failed reserved for a future network-failure emitter (Phase 2); not folded yet.
+      'edc_sync_failed',
       'rave_auth_failed',
       'rave_hard_lockout_triggered',
       'rave_unwedged',

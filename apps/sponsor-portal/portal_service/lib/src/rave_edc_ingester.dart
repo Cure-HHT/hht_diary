@@ -88,8 +88,19 @@ class RaveEdcIngester {
       // C: count the auth failure (and trip lockout at threshold), then rethrow.
       await _recordAuthFailure(now, e.reasonCode ?? 'AUTH');
       rethrow;
-    } on RaveNetworkException {
-      // Transient: record nothing, do not advance the counter.
+    } on RaveNetworkException catch (e) {
+      // C: transient network failure. Record it for audit/display WITHOUT
+      // advancing the lockout counter (network blips must not trip cooldown
+      // or lockout), then rethrow.
+      // Implements: DIARY-DEV-rave-edc-ingest/C
+      await _recordSyncFailure(now, 'NETWORK', e.toString());
+      rethrow;
+    } on RaveException catch (e) {
+      // C: catch-all for other RAVE-library failures (parse/api/incomplete) so
+      // nothing EDC-side fails silently. Recorded for audit, but — like the
+      // network path — it does NOT advance the lockout counter.
+      // Implements: DIARY-DEV-rave-edc-ingest/C
+      await _recordSyncFailure(now, 'EDC_ERROR', e.toString());
       rethrow;
     }
   }
@@ -186,6 +197,30 @@ class RaveEdcIngester {
         initiator: _automation,
       );
     }
+  }
+
+  /// Appends an edc_sync_failed event recording a non-auth sync failure for
+  /// audit/display. Writes only last_sync_error_at + reason_code (+ message);
+  /// does NOT touch consecutive_auth_failures or last_failure_at, so the
+  /// lockout gate is unaffected.
+  // Implements: DIARY-DEV-rave-edc-ingest/C
+  Future<void> _recordSyncFailure(
+    DateTime now,
+    String reasonCode,
+    String message,
+  ) async {
+    await store.append(
+      entryType: 'edc_sync_failed',
+      aggregateType: 'rave_sync',
+      aggregateId: 'rave_sync',
+      eventType: 'edc_sync_failed',
+      data: edcSyncFailedData(
+        reasonCode: reasonCode,
+        failedAt: now.toIso8601String(),
+        message: message,
+      ),
+      initiator: _automation,
+    );
   }
 
   /// Reads the single-row rave_sync_status projection; empty map when absent.

@@ -50,4 +50,32 @@ void main() {
     final d = raveHardLockoutData(lockedAt: '2026-05-31T00:00:00.000Z');
     expect(d['locked_at'], '2026-05-31T00:00:00.000Z');
   });
+
+  test(
+    'edcSyncFailedData records audit fields without touching the counter',
+    () {
+      final d = edcSyncFailedData(
+        reasonCode: 'NETWORK',
+        failedAt: '2026-05-31T00:00:00.000Z',
+        message: 'connection reset',
+      );
+      expect(d['reason_code'], 'NETWORK');
+      expect(d['last_sync_error_at'], '2026-05-31T00:00:00.000Z');
+      expect(d['message'], 'connection reset');
+      // Deliberately NOT a counter-affecting event: it must not carry the
+      // lockout-gate fields, so classifyLockout is unaffected.
+      expect(d.containsKey('consecutive_auth_failures'), isFalse);
+      expect(d.containsKey('last_failure_at'), isFalse);
+    },
+  );
+
+  test('edcSyncFailedData omits message when null', () {
+    final d = edcSyncFailedData(
+      reasonCode: 'EDC_ERROR',
+      failedAt: '2026-05-31T00:00:00.000Z',
+    );
+    expect(d['reason_code'], 'EDC_ERROR');
+    expect(d['last_sync_error_at'], '2026-05-31T00:00:00.000Z');
+    expect(d.containsKey('message'), isFalse);
+  });
 }

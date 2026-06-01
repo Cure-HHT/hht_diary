@@ -208,7 +208,8 @@ void main() {
     );
   });
 
-  test('network failure records nothing', () async {
+  test('network failure records edc_sync_failed but does NOT advance the '
+      'lockout counter (transient, classifyLockout -> proceed)', () async {
     final store = await _open('rei-3');
     final client = _FakeRaveClient(
       sitesThrows: const RaveNetworkException('down'),
@@ -225,9 +226,47 @@ void main() {
       throwsA(isA<RaveNetworkException>()),
     );
     final status = await readStatus(store);
+    // The failure is now recorded for audit/display...
+    expect(status['last_sync_error_at'], isNotNull);
+    expect(status['reason_code'], 'NETWORK');
+    // ...but the lockout counter is NOT advanced (network blips never lock).
     final failures = (status['consecutive_auth_failures'] as int?) ?? 0;
     expect(failures, 0);
-    expect(status['reason_code'], isNull);
+    expect(status['last_failure_at'], isNull);
+    // The lockout gate is unaffected: a network failure leaves us free to retry.
+    expect(
+      classifyLockout(status, now: now, config: cfg).kind,
+      LockoutKind.proceed,
+    );
+  });
+
+  test('other RaveException records edc_sync_failed with EDC_ERROR and does '
+      'NOT advance the lockout counter', () async {
+    final store = await _open('rei-5');
+    final client = _FakeRaveClient(
+      sitesThrows: const RaveParseException('bad odm'),
+    );
+    final ingester = RaveEdcIngester(
+      client: client,
+      store: store,
+      studyOids: const ['STUDY-1'],
+      lockoutConfig: cfg,
+    );
+
+    await expectLater(
+      ingester.syncAll(now: now),
+      throwsA(isA<RaveParseException>()),
+    );
+    final status = await readStatus(store);
+    expect(status['last_sync_error_at'], isNotNull);
+    expect(status['reason_code'], 'EDC_ERROR');
+    final failures = (status['consecutive_auth_failures'] as int?) ?? 0;
+    expect(failures, 0);
+    expect(status['last_failure_at'], isNull);
+    expect(
+      classifyLockout(status, now: now, config: cfg).kind,
+      LockoutKind.proceed,
+    );
   });
 
   test('locked status -> syncAll skips and does not call the client', () async {

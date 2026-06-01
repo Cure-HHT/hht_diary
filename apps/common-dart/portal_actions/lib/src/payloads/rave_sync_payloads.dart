@@ -27,3 +27,19 @@ Map<String, Object?> raveAuthFailedData({
 
 Map<String, Object?> raveHardLockoutData({required String lockedAt}) =>
     <String, Object?>{'locked_at': lockedAt};
+
+/// Records a non-auth EDC sync failure (network blip or other RAVE-library
+/// error) for audit + display. Deliberately does NOT carry
+/// consecutive_auth_failures or last_failure_at: those belong only to
+/// rave_auth_failed, which drives the lockout gate. An edc_sync_failed
+/// therefore leaves classifyLockout's cooldown/lock decision untouched.
+// Implements: DIARY-DEV-rave-edc-ingest/C — records sync failures for audit.
+Map<String, Object?> edcSyncFailedData({
+  required String reasonCode,
+  required String failedAt,
+  String? message,
+}) => <String, Object?>{
+  'reason_code': reasonCode,
+  'last_sync_error_at': failedAt,
+  if (message != null) 'message': message,
+};
