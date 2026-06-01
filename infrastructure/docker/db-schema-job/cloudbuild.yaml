@@ -33,13 +33,13 @@ steps:
   # Step 2: Build the container image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-image'
-    dir: 'infrastructure/docker/db-schema-job'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         VERSION=$(cat /workspace/version.txt)
         docker build \
+          -f infrastructure/docker/db-schema-job/Dockerfile \
           -t "${_REGION}-docker.pkg.dev/${_ARTIFACT_PROJECT}/${_REPOSITORY}/db-schema-job:$${VERSION}" \
           -t "${_REGION}-docker.pkg.dev/${_ARTIFACT_PROJECT}/${_REPOSITORY}/db-schema-job:latest" \
           .

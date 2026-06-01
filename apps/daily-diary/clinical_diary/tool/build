@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+# Implements: DIARY-OPS-single-promotable-artifact/C
+# Parametric build entrypoint: ./tool/build <platform> <env> [flags]
+#
+# Replaces the per-env script duplication (build_web_<env>.sh,
+# build_android_<env>.sh, build_android_<env>_signed.sh, build_ios_<env>.sh,
+# build_ipa_<env>_release.sh) with one dispatcher that reads the env list
+# from flavorizr.yaml and per-env knobs (output format) from the same manifest.
+#
+# Usage:
+#   ./tool/build web     <env>
+#   ./tool/build android <env> [--signed]
+#   ./tool/build ios     <env> [--ipa]
+#
+# Examples:
+#   ./tool/build web qa                          # web bundle, qa env
+#   ./tool/build android dev                     # unsigned APK, dev env
+#   doppler run -- ./tool/build android prod --signed   # signed AAB, prod env
+#   ./tool/build ios dev                         # .app bundle (Xcode-ready)
+#   ./tool/build ios uat --ipa                   # .ipa archive
+#
+# Requires:
+#   yq          (mikefarah/yq; brew install yq)
+#   bash 4+     (brew install bash)
+#   doppler     (only for --signed; brew install dopplerhq/cli/doppler)
+set -euo pipefail
+
+usage() {
+  # Print the # Usage / # Examples / # Requires header comments, with the
+  # leading "# " stripped. Portable sed (no \? extension).
+  sed -n '/^# Usage:/,/^set -/p' "$0" | sed '$d' | sed -E 's/^#( |$)//'
+  exit "${1:-2}"
+}
+
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+  echo "ERROR: requires Bash 4+; this is bash ${BASH_VERSION:-unknown}" >&2
+  echo "On macOS: brew install bash && /opt/homebrew/bin/bash $0 \"\$@\"" >&2
+  exit 1
+fi
+command -v yq >/dev/null 2>&1 || {
+  echo "ERROR: yq not found. Install via 'brew install yq'." >&2
+  exit 1
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+MANIFEST="$APP_DIR/flavorizr.yaml"
+
+# --- Helpers (defined before dispatch) ---------------------------------------
+
+build_web() {
+  local env="$1"
+  echo "Building web ($env)..."
+  # --pwa-strategy=none disables the service worker for previews; CUR-1335
+  # ships the production SW kill-switch separately.
+  flutter build web --release --pwa-strategy=none
+  echo
+  echo "Build complete! Output in build/web/"
+  echo "Preview locally: cd build/web && python3 -m http.server 8080"
+}
+
+build_android_unsigned() {
+  local env="$1"
+  echo "Building Android ($env, unsigned)..."
+  flutter build apk --flavor "$env"
+  echo
+  echo "Build complete! APK at build/app/outputs/flutter-apk/app-$env-release.apk"
+}
+
+build_android_signed() {
+  local env="$1"
+  # Keystore paths are globals (not `local`) so the EXIT trap registered
+  # below can reach them after the function returns — `local` variables
+  # are out of scope by then.
+  KEYSTORE_PATH="$APP_DIR/android/app/key.jks"
+  KEY_PROPS_PATH="$APP_DIR/android/key.properties"
+
+  # Per-env output format from the manifest (apk for sideload, aab for Play
+  # Store). Default to apk if the field is missing.
+  local format
+  format="$(yq -r ".flavors.$env.android.signedFormat // \"apk\"" "$MANIFEST")"
+
+  # Augment the env-pointer trap (registered by _write_env_pointer.sh) with
+  # keystore cleanup. restore_env_pointer is defined by the sourced helper.
+  android_cleanup() {
+    rm -f "$KEYSTORE_PATH" "$KEY_PROPS_PATH"
+    restore_env_pointer
+  }
+  trap android_cleanup EXIT
+
+  : "${ANDROID_KEYSTORE_BASE64:?Doppler secret missing. Run with: doppler run -- $0 android $env --signed}"
+  : "${ANDROID_KEYSTORE_PASSWORD:?Doppler secret missing}"
+  : "${ANDROID_KEY_ALIAS:?Doppler secret missing}"
+  : "${ANDROID_KEY_PASSWORD:?Doppler secret missing}"
+
+  echo "Setting up release signing..."
+  printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+  cat > "$KEY_PROPS_PATH" <<EOF
+storePassword=$ANDROID_KEYSTORE_PASSWORD
+keyPassword=$ANDROID_KEY_PASSWORD
+keyAlias=$ANDROID_KEY_ALIAS
+storeFile=key.jks
+EOF
+
+  echo "Building Android ($env, signed, format=$format)..."
+  case "$format" in
+    apk) flutter build apk --flavor "$env" ;;
+    aab) flutter build appbundle --release --flavor "$env" ;;
+    *)   echo "ERROR: unknown signedFormat '$format'" >&2; exit 1 ;;
+  esac
+
+  echo
+  if [ "$format" = "apk" ]; then
+    echo "Build complete! Signed APK at build/app/outputs/flutter-apk/app-$env-release.apk"
+  else
+    echo "Build complete! Signed AAB at build/app/outputs/bundle/${env}Release/app-$env-release.aab"
+  fi
+}
+
+build_ios_app() {
+  local env="$1"
+  echo "Building iOS ($env)..."
+  flutter build ios --release --flavor "$env"
+  echo
+  echo "Build complete! Open ios/Runner.xcworkspace in Xcode to archive."
+  echo "For App Store packaging + upload: cd ios && bundle exec fastlane build flavor:$env"
+}
+
+build_ios_ipa() {
+  local env="$1"
+  echo "Building iOS IPA ($env)..."
+  flutter build ipa --flavor "$env" --release
+  echo
+  echo "Build complete! IPA in build/ios/ipa/"
+}
+
+# --- Argument parsing --------------------------------------------------------
+
+[ $# -ge 1 ] || usage
+case "$1" in
+  -h|--help) usage 0 ;;
+esac
+[ $# -ge 2 ] || usage
+
+PLATFORM="$1"
+ENV="$2"
+shift 2
+
+SIGNED=0
+IPA=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --signed) SIGNED=1 ;;
+    --ipa)    IPA=1 ;;
+    -h|--help) usage 0 ;;
+    *) echo "Unknown flag: $1" >&2; usage ;;
+  esac
+  shift
+done
+
+# Validate env against manifest, filtering to envs that have a native build
+# config (excludes things like `local` which is Dart-only — see tool/run).
+known_envs="$(yq -r '.flavors | to_entries | .[] | select(.value.native != false) | .key' "$MANIFEST")"
+echo "$known_envs" | grep -qx "$ENV" || {
+  echo "ERROR: unknown buildable env '$ENV'; known: $(echo "$known_envs" | tr '\n' ' ')" >&2
+  echo "(envs with native: false in flavorizr.yaml are run-only; use tool/run)" >&2
+  exit 2
+}
+
+# --- Stamp env pointer (restored on exit by the helper) ----------------------
+# shellcheck source=_write_env_pointer.sh
+source "$SCRIPT_DIR/_write_env_pointer.sh" "$ENV"
+
+# --- Dispatch ----------------------------------------------------------------
+case "$PLATFORM" in
+  web)
+    [ "$SIGNED" -eq 1 ] && { echo "ERROR: --signed not applicable to web" >&2; exit 2; }
+    [ "$IPA"    -eq 1 ] && { echo "ERROR: --ipa not applicable to web" >&2; exit 2; }
+    build_web "$ENV"
+    ;;
+  android)
+    [ "$IPA" -eq 1 ] && { echo "ERROR: --ipa not applicable to android" >&2; exit 2; }
+    if [ "$SIGNED" -eq 1 ]; then
+      build_android_signed "$ENV"
+    else
+      build_android_unsigned "$ENV"
+    fi
+    ;;
+  ios)
+    [ "$SIGNED" -eq 1 ] && { echo "ERROR: --signed not used on iOS — packaging+signing lives in ios/fastlane/Fastfile (run: cd ios && bundle exec fastlane build flavor:$ENV)" >&2; exit 2; }
+    if [ "$IPA" -eq 1 ]; then
+      build_ios_ipa "$ENV"
+    else
+      build_ios_app "$ENV"
+    fi
+    ;;
+  *)
+    echo "ERROR: unknown platform '$PLATFORM'; expected web|android|ios" >&2
+    usage
+    ;;
+esac

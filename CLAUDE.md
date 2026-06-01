@@ -17,7 +17,7 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 ### 1. Requirement Traceability (MANDATORY)
 
 - **PR titles** must include `[CUR-XXX]` — enforced by CI; becomes the squash-merge commit on main.
-- **Commit messages**: no enforced format for CUR-XXX or REQ-XXX references (`ENFORCE_CUR_IN_COMMITS` / `ENFORCE_REQ_IN_COMMITS` disabled).
+- **Commit messages** must start with `[CUR-NNN]` — enforced by the local commit-msg hook (`.githooks/`).
 - **REQ ID conventions vary by repo.** Use the convention of the repo whose spec defines the REQ being cited:
 
   | Repo | REQ ID format | Example |
@@ -58,9 +58,8 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 - **`spec-archive/`** holds the pre-2026-05 spec tree (legacy `REQ-{p|o|d}NNNNN` ids). Read-only reference for the URS-v1 migration. Not scanned by elspais; not part of the active traceability graph.
 
 ### 2. Workflow Enforcement
-- You MUST claim a ticket using the `workflow:workflow` sub-agent
-- You MAY use the `linear-api:linear-api` sub-agent to find an appropriate ticket number
-- When doing a PR you MAY use the `workflow:workflow` sub-agent to release a ticket
+- Claim a ticket and move it to In Progress before starting work; mark it Done (or open its PR) when finishing.
+- Use the **Linear MCP** to find, claim, and update tickets.
 
 ### 3. Documentation Hierarchy
 - **spec/**: Formal requirements defining WHAT to build, organized by audience
@@ -82,15 +81,12 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 ### 5. Branch Protection
 - ALWAYS create a new branch before editing/creating/deleting files if on `main`
 - Never commit directly to `main`
-- Follow branch naming: `feature/`, `fix/`, `release/`
+- Branch naming: `CUR-NNNN-{kebab-slug}` (Linear ticket ref + short kebab description; no user prefix, no slashes). E.g. `CUR-1389-runtime-env-profile`.
 
 ### 6. Investigate root causes
 - ALWAYS investigate root causes for bugs.
-- When encountering an error, use a dedicated debugging sub-agent
-- pass relevant domain information from a domain-expert agent to the debugging sub-agent
-- Tell sub-agents to be aware of the installed plugins and their sub-agents
-- because agents cannot communicate directly with each other, 
-they should report to the orchestrator any messages they want to pass to another sub-agent
+- Use the `superpowers:systematic-debugging` skill; for broad investigation dispatch the `Explore` or `general-purpose` agent.
+- Agents can't talk to each other — relay any cross-agent findings through your own context.
 
 ### 7. Phase Design Spec Requirements
 
@@ -134,42 +130,21 @@ Pre-commit hook enforcement: `.githooks/pre-commit` section 6 checks that `*-des
 ```
 
 
-# Plugins
+# Tooling
 
-You orchestrate common tasks using dedicated sub-agents.
-**ALWAYS** consider using plugin sub-agents for each task first.
-Use sub-agents in parallel when possible. 
-You may use multiple instances of a sub-agent in parallel when appropriate.
+Prefer a specialized agent/skill for multi-step work; run independent calls in parallel.
 
-The following **priority plugins** are provided by the `anspar-wf` package (installed via pip)
+- **Requirements & `spec/INDEX` maintenance**: the **elspais MCP** is the source of truth for
+  the requirements graph (discover/search REQs + assertions, coverage, mutations, INDEX
+  regeneration). Don't hand-edit `spec/INDEX.md` or `spec/_generated/`.
+- **Linear tickets**: use the **Linear MCP** directly (find/create/update issues, claim, comment).
+  There is no Linear plugin sub-agent.
+- **Codebase search / research**: the `Explore` and `general-purpose` agents.
+- **Plugin/skill authoring** (rare): the `plugin-dev` agents/skills.
 
-## use `workflow:workflow` sub-agent for
-- changes in top-level tasks, as indicated by the current ticket or REQuirement
-- changes in tasks phase: new/resume, validation, debug, completion, sharing (e.g. git push)
-- work on sponsor-specific tasks is in the appropriate directory
-
-### Git Workflow Best Practices
+## Git Workflow Best Practices
 - **ALWAYS** `git pull` before creating PRs to ensure branch is up-to-date with main
 - This prevents merge conflicts and ensures CI runs against latest code
-
-## use `linear-api:linear-api` sub-agent for
-- anything related to using the Linear API
-- Fetch/create/update Linear tickets (issues)
-
-## use `requirement-traceability:requirement-traceability` sub-agent for
-- Requirement-to-ticket traceability
-
-## use `simple-requirements:simple-requirements` sub-agent for
-- REQ format, parse, general rules
-
-## use `spec-compliance:spec-compliance` sub-agent to
-- Enforce spec/ directory guidelines
-- Validate content and format of files in spec/
-
-## **ALWAYS** use `plugin-wizard:plugin-wizard` sub-agent to
-- make any changes to sub-agents or plugins
-- research plugins
-- validate plugins
 
 
 # Security Considerations
@@ -181,7 +156,7 @@ The following **priority plugins** are provided by the `anspar-wf` package (inst
 - Database credentials managed via Doppler (see `spec/ops-security.md`)
 - All audit events are tamper-evident (cryptographic hashing)
 
-## Security Scanning (IMPLEMENTS REQ-p01018)
+## Security Scanning
 
 The project uses a **defense-in-depth security scanning strategy** with multiple specialized tools:
 
@@ -242,7 +217,6 @@ When implementing code:
 
 ## Important Notes
 
-- The workflow plugin provides proactive task-switching detection via UserPromptSubmit hooks
 - PR validation runs automatically and blocks merge on validation failures
 
 # External Resources
@@ -253,30 +227,8 @@ When implementing code:
 - Linear API: https://developers.linear.app/
 - Flutter Docs: https://docs.flutter.dev/
 
-# Agent Orchestration Pattern
-<!-- ORCHESTRATION_V1 -->
+# Agent Orchestration
 
-When working with plugins that provide specialized agents:
-
-- **ALWAYS check for available sub-agents** before implementing complex tasks
-  - Use `/agents` command to see available specialized agents
-  - Check plugin documentation for agent capabilities
-
-- **Delegate to sub-agents** when their expertise matches the task
-  - Sub-agents have deep domain knowledge and specialized tools
-  - They follow architectural patterns and best practices
-  - They provide faster, more accurate results than general implementation
-
-- **Act as orchestrator, not implementer** when agents are available
-  - Your role: Understand requirements, select appropriate agent, validate results
-  - Agent's role: Execute specialized tasks using domain-specific knowledge
-  - Avoid reimplementing functionality that agents provide
-
-- **Trust agent expertise** but validate results
-  - Agents are designed to handle specific domains correctly
-  - Review their outputs for correctness and completeness
-  - Escalate to user when agent results are unclear or incorrect
-
-**Example**: When working with plugins, prefer `/plugin-wizard` over manually creating plugin files.
-- always try to use a specific plugin sub-agent
-- When a command or a sequence of commands requires execution within a specific directory, use a subshell to contain the directory change. example: (cd /path/to/specific/directory && command1 && command2)
+- Prefer dispatching a specialized agent (`Explore`, `general-purpose`, `Plan`, `feature-dev:*`) when its scope matches the task; act as orchestrator and validate results rather than reimplementing.
+- Agents can't communicate directly; relay cross-agent messages through your own context.
+- When commands must run in a specific directory, use a subshell: `(cd /path && cmd1 && cmd2)`.

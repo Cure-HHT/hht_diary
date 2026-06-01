@@ -44,3 +44,6 @@ export 'src/questionnaire.dart';
 
 // Observability
 export 'src/portal_metrics.dart';
+
+// Startup checks
+export 'src/db_version_check.dart';

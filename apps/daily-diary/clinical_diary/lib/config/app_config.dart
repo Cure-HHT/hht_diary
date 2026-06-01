@@ -1,7 +1,4 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-
-import 'package:clinical_diary/flavors.dart';
+import 'package:clinical_diary/config/env_profile.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 /// Exception thrown when required configuration is missing.
@@ -17,27 +14,29 @@ class MissingConfigException implements Exception {
 
 /// Application configuration.
 ///
-/// Configuration is derived from the app flavor set at compile time.
-/// Run with: flutter run --dart-define=APP_FLAVOR=dev
+/// Configuration is derived from the runtime [EnvProfile], resolved once
+/// during app bootstrap via [EnvProfile.load] from the bundled
+/// `assets/config/env.json` pointer asset.
 ///
-/// For mobile builds, --flavor dev also works (sets FLUTTER_APP_FLAVOR).
-/// For web builds, use --dart-define=APP_FLAVOR=dev.
+/// The asset is committed as `{ "env": "dev" }` by default. Non-dev builds
+/// stamp it at packaging time via `tool/_write_env_pointer.sh` (CUR-1391
+/// wires this into the qa/uat/prod build scripts).
 ///
-/// All other configuration (apiBase, showDevTools, showBanner, showResetData) is derived
-/// from the flavor via [FlavorConfig].
+/// All environment-dependent configuration (apiBase, showDevTools,
+/// showBanner, showResetData) is derived from [EnvProfile.current].
 class AppConfig {
   // Private constructor - this is a static utility class
   AppConfig._();
 
   // ============================================================
-  // Environment Configuration (from F class)
+  // Environment Configuration (from EnvProfile)
   // ============================================================
 
-  /// Current flavor/environment - delegates to F class
-  static Flavor get environment => F.appFlavor;
+  /// Current environment - delegates to the active EnvProfile.
+  static AppEnv get environment => EnvProfile.current.env;
 
   /// Whether to show the environment banner (DEV/TEST ribbon)
-  static bool get showBanner => F.showBanner;
+  static bool get showBanner => EnvProfile.current.showBanner;
 
   // ============================================================
   // API Configuration
@@ -64,14 +63,15 @@ class AppConfig {
   );
 
   /// Test-only override for API base URL.
-  /// Set this in test setUp() to override the flavor-based apiBase.
+  /// Set this in test setUp() to override the profile-based apiBase.
   @visibleForTesting
   static String? testApiBaseOverride;
 
-  /// API base URL - derived from the current flavor.
+  /// API base URL - derived from the active EnvProfile.
   /// Points to the diary-server Cloud Run service.
   /// Can be overridden at compile time via DIARY_API_BASE (preferred)
   /// or BACKEND_URL dart-define, or at test time via testApiBaseOverride.
+  // Implements: DIARY-DEV-runtime-environment-resolution/C
   static String get apiBase {
     if (testApiBaseOverride != null) {
       return testApiBaseOverride!;
@@ -82,7 +82,7 @@ class AppConfig {
     if (_backendUrlOverride.isNotEmpty) {
       return _backendUrlOverride;
     }
-    return FlavorConfig.byName(F.name).apiBase;
+    return EnvProfile.current.apiBase;
   }
 
   // API Endpoints - paths match diary_server routes.dart
@@ -136,12 +136,12 @@ class AppConfig {
   // ============================================================
 
   /// Whether to show the developer-tools menu section (Export/Import,
-  /// Feature Flags, Add Example Data). Determined by flavor — shown in
+  /// Feature Flags, Add Example Data). Determined by EnvProfile — shown in
   /// local/dev/qa, hidden in uat/prod. Reset All Data is gated separately
   /// via `showResetData`.
-  static bool get showDevTools => F.showDevTools;
+  static bool get showDevTools => EnvProfile.current.showDevTools;
 
   /// Whether to show the Reset All Data feature.
-  /// Determined by flavor - only enabled in dev, qa, uat, and local.
-  static bool get showResetData => F.showResetData;
+  /// Determined by EnvProfile - only enabled in dev, qa, uat, and local.
+  static bool get showResetData => EnvProfile.current.showResetData;
 }

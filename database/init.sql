@@ -22,6 +22,14 @@
 \ir schema.sql
 
 -- =====================================================
+-- STEP 1.5: Migration Tracking Table
+-- =====================================================
+
+\echo 'Step 1.5: Creating migration tracking table...'
+
+\ir schema_migrations.sql
+
+-- =====================================================
 -- STEP 2: Triggers and Automation
 -- =====================================================
 

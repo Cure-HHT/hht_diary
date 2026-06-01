@@ -76,6 +76,8 @@ Future<({ClinicalDiaryRuntime runtime, List<http.Request> requests})>
 _buildRuntime({
   http.Client? httpClient,
   Future<String?> Function()? authToken,
+  bool Function()? isDisconnected,
+  Future<void> Function()? tasksSync,
 }) async {
   final db = await _openDb();
   final captured = <http.Request>[];
@@ -100,6 +102,8 @@ _buildRuntime({
     softwareVersion: _softwareVersion,
     userId: _userId,
     httpClient: client,
+    isDisconnected: isDisconnected,
+    tasksSync: tasksSync,
     // Inject silent factories so installTriggers never touches the
     // production Firebase and connectivity stacks.
     lifecycleObserverFactory: _silentLifecycleFactory,
@@ -527,5 +531,76 @@ void main() {
 
     await runtime.dispose();
     await expectLater(runtime.dispose(), completes);
+  });
+
+  // -----------------------------------------------------------------------
+  // CUR-1398: fullSync invokes the tasksSync callback on every tick
+  //
+  // The mobile relied solely on FCM data messages to discover newly-sent
+  // questionnaires. FCM is best-effort, so messages that don't land in
+  // real time leave the home screen stale until the patient restarts. The
+  // fix wires _taskService.syncTasks into fullSync so each periodic /
+  // resume / connectivity / FCM trigger also re-pulls /tasks.
+  // -----------------------------------------------------------------------
+  group('CUR-1398: tasksSync wired into fullSync', () {
+    test('fullSync invokes tasksSync exactly once per call', () async {
+      var tasksSyncCalls = 0;
+      final (:runtime, :requests) = await _buildRuntime(
+        tasksSync: () async => tasksSyncCalls++,
+      );
+
+      await runtime.fullSync();
+
+      expect(
+        tasksSyncCalls,
+        1,
+        reason: 'tasksSync must be called once per fullSync tick',
+      );
+
+      // Three more ticks → three more invocations (no caching / dedup).
+      await runtime.fullSync();
+      await runtime.fullSync();
+      await runtime.fullSync();
+      expect(tasksSyncCalls, 4);
+
+      await runtime.dispose();
+    });
+
+    test('fullSync skips tasksSync when isDisconnected returns true', () async {
+      var tasksSyncCalls = 0;
+      final (:runtime, :requests) = await _buildRuntime(
+        isDisconnected: () => true,
+        tasksSync: () async => tasksSyncCalls++,
+      );
+
+      await runtime.fullSync();
+
+      // The CUR-1164 disconnected gate at the top of fullSync short-
+      // circuits the whole chain — syncCycle, portalInboundPoll, AND
+      // the new tasksSync must all be skipped together so that a
+      // disconnected patient does not surface server-side tasks.
+      expect(
+        tasksSyncCalls,
+        0,
+        reason:
+            'tasksSync must be gated by the same isDisconnected '
+            'check as the other periodic-tick operations.',
+      );
+
+      await runtime.dispose();
+    });
+
+    test(
+      'tasksSync is optional — fullSync still completes when omitted',
+      () async {
+        // No tasksSync param — backward compatibility with callers that
+        // don't construct a TaskService (most existing tests).
+        final (:runtime, :requests) = await _buildRuntime();
+
+        await expectLater(runtime.fullSync(), completes);
+
+        await runtime.dispose();
+      },
+    );
   });
 }

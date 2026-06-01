@@ -146,7 +146,16 @@ jobs:
         env:
           FLAVOR: ${{ steps.inputs.outputs.flavor }}
         run: |
-          echo "name=org.anspar.curehht.app.${FLAVOR}" >> "$GITHUB_OUTPUT"
+          # Single source of truth: apps/daily-diary/clinical_diary/flavorizr.yaml.
+          # The prior `org.anspar.curehht.app.${FLAVOR}` string-concat was wrong
+          # for prod (yields .prod suffix; real value is bare org.anspar.curehht.app).
+          NAME=$(yq -r ".flavors.${FLAVOR}.android.applicationId" apps/daily-diary/clinical_diary/flavorizr.yaml)
+          if [ -z "$NAME" ] || [ "$NAME" = "null" ]; then
+            echo "::error::Unknown flavor: $FLAVOR (not in flavorizr.yaml or has no android.applicationId)"
+            exit 1
+          fi
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "Package name for flavor '$FLAVOR': $NAME"
 
       - name: Resolve Slack channel from flavor
         id: slack-chan
@@ -423,10 +432,12 @@ jobs:
           DOPPLER_PROJECT: ${{ secrets.DOPPLER_PROJECT }}
           FLAVOR: ${{ needs.gate.outputs.flavor }}
         run: |
+          # Parametric build script (replaces the deleted build_android_<env>_signed.sh).
+          # signedFormat (apk vs aab) is read from flavorizr.yaml by tool/build.
           doppler run \
             --project "$DOPPLER_PROJECT" \
             --config "$FLAVOR" \
-            -- bash "./tool/build_android_${FLAVOR}_signed.sh"
+            -- ./tool/build android "$FLAVOR" --signed
 
       - name: Determine artifact path
         id: artifact
@@ -546,7 +557,7 @@ jobs:
             HINT="dopplerhq/cli-action@v3 failed; transient action infrastructure or Doppler outage."
           elif [ "${{ steps.build-android.outcome }}" = "failure" ]; then
             NAME="Build signed Android"
-            HINT="Gradle/Doppler build failed for flavor '${{ needs.gate.outputs.flavor }}'. Check Doppler config and tool/build_android_*_signed.sh."
+            HINT="Gradle/Doppler build failed for flavor '${{ needs.gate.outputs.flavor }}'. Check Doppler config and tool/build (android <env> --signed)."
           elif [ "${{ steps.artifact.outcome }}" = "failure" ]; then
             NAME="Determine artifact path"
             HINT="pubspec parse for artifact-path naming failed; check pubspec.yaml shape."
