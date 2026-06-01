@@ -2,7 +2,7 @@ name: portal_ui_evs
 description: "Event-sourced portal UI (reaction_widgets reactive web client over portal_server_evs). Beta rebuild of portal-ui."
 publish_to: 'none'
 
-version: 1.0.1+5
+version: 1.0.2+6
 
 environment:
   sdk: ^3.5.0
@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   event_sourcing: any
+  http: ^1.2.0
   reaction: any
   reaction_widgets: any
 

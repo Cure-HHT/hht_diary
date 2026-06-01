@@ -1,0 +1,163 @@
+import 'dart:convert';
+
+import 'package:event_sourcing/event_sourcing.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:reaction/reaction.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
+
+import 'audit_format.dart';
+
+const String _serverUrl = String.fromEnvironment(
+  'PORTAL_SERVER_URL',
+  defaultValue: 'http://localhost:8084',
+);
+
+/// Read-only audit table over the server's `GET /audit` endpoint.
+///
+/// Unlike the reactive screens, the audit log is fetched over plain HTTP
+/// (the dev credential as a Bearer token) and rendered as a static table
+/// that the user can refresh. Self-gates on `portal.audit.view`.
+// Implements: DIARY-GUI-audit-log-common
+// Implements: DIARY-GUI-audit-log-administrator
+class AuditLogScreen extends StatefulWidget {
+  const AuditLogScreen({super.key});
+
+  @override
+  State<AuditLogScreen> createState() => _AuditLogScreenState();
+}
+
+class _AuditLogScreenState extends State<AuditLogScreen> {
+  bool _started = false;
+  bool _loading = false;
+  String? _error;
+  List<Map<String, Object?>> _rows = const <Map<String, Object?>>[];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Fetch exactly once on first build (we need a BuildContext for the
+    // auth session, so this can't go in initState). Refresh is manual.
+    if (!_started) {
+      _started = true;
+      _fetch();
+    }
+  }
+
+  Future<void> _fetch() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final status = ReActionScope.of(context).authSession.current;
+      if (status is! Authenticated || status.principal is! UserPrincipal) {
+        setState(() {
+          _error = 'Not authenticated.';
+          _loading = false;
+        });
+        return;
+      }
+      final p = status.principal as UserPrincipal;
+      final cred = '${p.userId}:${p.activeRole}';
+      final resp = await http.get(
+        Uri.parse('$_serverUrl/audit?limit=200'),
+        headers: <String, String>{'Authorization': 'Bearer $cred'},
+      );
+      if (!mounted) return;
+      if (resp.statusCode != 200) {
+        setState(() {
+          _error = 'HTTP ${resp.statusCode}';
+          _loading = false;
+        });
+        return;
+      }
+      final body = jsonDecode(resp.body) as Map<String, Object?>;
+      final rows = (body['rows'] as List).cast<Map<String, Object?>>();
+      setState(() {
+        _rows = rows;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = '$e';
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => PermissionGate(
+        permission: 'portal.audit.view',
+        fallback: const Center(
+          child: Text("You don't have permission to view the audit log."),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Text(
+                    'Audit Log',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: 'Refresh',
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _loading ? null : _fetch,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Expanded(child: _body()),
+            ],
+          ),
+        ),
+      );
+
+  Widget _body() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(_error!),
+            const SizedBox(height: 8),
+            TextButton(onPressed: _fetch, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+    if (_rows.isEmpty) {
+      return const Center(child: Text('No audit entries.'));
+    }
+    return ListView(
+      children: <Widget>[
+        for (final r in _rows)
+          ExpansionTile(
+            title: Text(humanizeEntryType((r['entry_type'] as String?) ?? '')),
+            subtitle: Text(
+              '${r['timestamp']} · '
+              '${initiatorLabel(r['initiator'] as Map<String, Object?>?)} · '
+              '${detailsSummary(r)}',
+            ),
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: SelectableText(
+                  const JsonEncoder.withIndent('  ').convert(r),
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}

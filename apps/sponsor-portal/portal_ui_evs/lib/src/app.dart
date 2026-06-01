@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
+import 'audit_log_screen.dart';
 import 'connect_screen.dart';
 import 'participants_screen.dart';
 import 'rave_sync_screen.dart';
@@ -105,6 +106,7 @@ class _HomeShellState extends State<_HomeShell> {
     _NavDestination('Sites', Icons.location_city, SitesScreen.new),
     _NavDestination('Participants', Icons.groups, ParticipantsScreen.new),
     _NavDestination('RAVE Sync', Icons.sync, RaveSyncScreen.new),
+    _NavDestination('Audit Log', Icons.receipt_long, AuditLogScreen.new),
   ];
 
   String _credentialLabel() {
