@@ -72,7 +72,9 @@ Future<EventStore> openPortalEventStore({
   final projections = ProjectionRegistry()
     ..register(rolePermissionGrantsSpec)
     ..register(userRoleScopesSpec)
-    ..register(participantSiteIndexSpec);
+    ..register(participantSiteIndexSpec)
+    ..register(sitesIndexSpec)
+    ..register(participantRecordSpec);
 
   final bundle = await bootstrapEventStore(
     backend: backend,

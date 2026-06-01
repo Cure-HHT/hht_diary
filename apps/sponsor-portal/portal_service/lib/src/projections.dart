@@ -19,3 +19,45 @@ final TableProjectionSpec participantSiteIndexSpec = TableProjectionSpec(
   rowKey: const CompositeKey(['data.participant_id']),
   rowData: const SelectedFields(['participant_id', 'site_id']),
 );
+
+// Implements: DIARY-DEV-rave-edc-ingest/A — sites_index materializes the portal's
+//   site list from RAVE-sourced site_synced_from_edc events. Re-sync upserts by
+//   site_id; deactivation is is_active=false via re-sync (no row removal).
+final TableProjectionSpec sitesIndexSpec = TableProjectionSpec(
+  viewName: 'sites_index',
+  interest: const SubscriptionFilter(
+    eventTypes: {'site_synced_from_edc'},
+    aggregateTypes: {'site'},
+  ),
+  insertEventTypes: const {'site_synced_from_edc'},
+  removeEventTypes: const {},
+  rowKey: const CompositeKey(['data.site_id']),
+  rowData: const SelectedFields([
+    'site_id',
+    'site_name',
+    'site_number',
+    'is_active',
+  ]),
+);
+
+// Implements: DIARY-DEV-participant-status-projection/A+B — participant_record folds the
+//   participant linking-lifecycle events (excluding enrollment) into one row per
+//   participant; the fold stamps the latest event's entryType, from which the client
+//   derives linking status. pending->connected requires a diary participant_linked.
+final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
+  viewName: 'participant_record',
+  interest: const SubscriptionFilter(
+    aggregateTypes: {'participant'},
+    eventTypes: {
+      'participant_synced_from_edc',
+      'participant_linking_code_issued',
+      'participant_linked',
+      'participant_trial_started',
+      'participant_disconnected',
+      'participant_reconnected',
+      'participant_marked_not_participating',
+      'participant_reactivated',
+    },
+  ),
+  tombstoneEventTypes: const {},
+);
