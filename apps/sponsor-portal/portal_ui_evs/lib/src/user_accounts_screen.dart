@@ -15,10 +15,12 @@ import 'user_account_logic.dart';
 // controls their active role holds (re-gated live on role switch/revocation).
 //
 // Multi-step flows (create-then-assign; apply-a-whole-assignment-plan) dispatch
-// directly through ReActionScope.of(context).actionSubmitter.submit(...) — the
-// same entrypoint ActionBuilder uses under the hood — in sequence, awaiting each
-// DispatchResult. Single-shot lifecycle buttons stay on ActionBuilder for its
-// idempotency-key lifecycle + per-button state rendering.
+// through an ActionClient (ReActionScope.of(context).actionSubmitter) in
+// sequence, awaiting each DispatchResult. ActionClient mints the idempotency key
+// these actions require (Idempotency.required) and each result is checked so a
+// denied submission surfaces a real failure rather than a false 'Applied.'.
+// Single-shot lifecycle buttons stay on ActionBuilder for its idempotency-key
+// lifecycle + per-button state rendering.
 //
 // Implements: DIARY-DEV-user-account-projection/A+C
 
@@ -31,11 +33,10 @@ const String _deactivateAction = 'ACT-USR-003';
 const String _reactivateAction = 'ACT-USR-004';
 const String _unlockAction = 'ACT-USR-005';
 const String _resendAction = 'ACT-USR-006';
-const String _assignRoleAction = 'ACT-USR-007';
-const String _assignSiteAction = 'ACT-USR-008';
 const String _deletePendingAction = 'ACT-USR-009';
-const String _revokeRoleAction = 'ACT-USR-010';
-const String _revokeSiteAction = 'ACT-USR-011';
+// The assign/revoke action names (ACT-USR-007/008/010/011) live in
+// user_account_logic.dart, where the pure assignmentSubmissions builder uses
+// them; the screen dispatches that builder's submissions via ActionClient.
 
 const String _createPerm = 'portal.user.create';
 const String _editPerm = 'portal.user.edit';
@@ -63,9 +64,13 @@ Object _wildcardScopeJsonFor(String role) => switch (roleScopeKind(role)) {
       RoleScopeKind.allSites =>
         const ValueWildcardScope(class_: 'site').toJson(),
       RoleScopeKind.everything => const TotalWildcardScope().toJson(),
-      // site-scoped roles never use a role-level wildcard scope; callers gate on
-      // roleScopeKind before reaching here.
-      RoleScopeKind.site => const ValueWildcardScope(class_: 'site').toJson(),
+      // site-scoped roles never carry a role-level wildcard scope: assignRoles /
+      // revokeRoles only ever contain wildcard roles (planAssignmentChanges
+      // routes site-scoped roles to assignSites/revokeSites). Reaching here is a
+      // bug, not a runtime input condition.
+      RoleScopeKind.site => throw StateError(
+          '_wildcardScopeJsonFor called for site-scoped role $role',
+        ),
     };
 
 /// One users_index row.
@@ -237,11 +242,14 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
       _submitting = true;
       _error = null;
     });
-    final submitter = ReActionScope.of(context).actionSubmitter;
+    // ActionClient mints the per-submission idempotency key the actions require
+    // (Idempotency.required) — raw actionSubmitter.submit(...) would be
+    // parse-denied for these programmatic submissions.
+    final client = ActionClient(ReActionScope.of(context).actionSubmitter);
     final sites = _selectedSites.toList();
     try {
       // 1. Create the account (Pending). userId == email.
-      final created = await submitter.submit(
+      final created = await client.submit(
         ActionSubmission(
           actionName: _createAction,
           rawInput: <String, Object?>{
@@ -272,7 +280,7 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
         ],
         current: const <CurrentTuple>[],
       );
-      await _applyPlan(submitter, email, plan);
+      await _applyPlan(client, email, plan);
 
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -495,10 +503,22 @@ class _RoleSiteEditorState extends State<_RoleSiteEditor> {
   @override
   void didUpdateWidget(covariant _RoleSiteEditor old) {
     super.didUpdateWidget(old);
-    // Re-seed when the live assignments change underneath us and we're not
-    // mid-edit.
-    if (!_submitting) _seedFromCurrent();
+    // Re-seed only when the live assignments actually changed underneath us and
+    // we're not mid-edit. An unrelated user_role_scopes update rebuilds this
+    // widget with the same current set; reseeding then would discard the admin's
+    // in-progress (role, site) edits.
+    if (!_submitting && _tupleSet(widget.current) != _tupleSet(old.current)) {
+      _seedFromCurrent();
+    }
   }
+
+  /// The (role, boundSite) tuples of [assignments] as a set, so widget updates
+  /// that don't change the assignment set don't trigger a reseed. Wildcard roles
+  /// (no bound site) use '*' as their site marker.
+  Set<(String, String)> _tupleSet(List<_Assignment> assignments) =>
+      <(String, String)>{
+        for (final a in assignments) (a.role, a.boundSite ?? '*'),
+      };
 
   void _seedFromCurrent() {
     _selRoles = <String>{for (final a in widget.current) a.role};
@@ -523,7 +543,10 @@ class _RoleSiteEditorState extends State<_RoleSiteEditor> {
       _submitting = true;
       _msg = null;
     });
-    final submitter = ReActionScope.of(context).actionSubmitter;
+    // ActionClient mints the per-submission idempotency key the assign/revoke
+    // actions require; _applyPlan throws on any non-success result so a denied
+    // tuple surfaces a real failure instead of a false 'Applied.'.
+    final client = ActionClient(ReActionScope.of(context).actionSubmitter);
     final sites = _selSites.toList();
     final plan = planAssignmentChanges(
       desired: <DesiredAssignment>[
@@ -536,7 +559,7 @@ class _RoleSiteEditorState extends State<_RoleSiteEditor> {
       current: _currentTuples(),
     );
     try {
-      await _applyPlan(submitter, widget.email, plan);
+      await _applyPlan(client, widget.email, plan);
       if (!mounted) return;
       setState(() {
         _submitting = false;
@@ -799,61 +822,71 @@ class _LifecycleDialogState extends State<_LifecycleDialog> {
     final needsReason = widget.action == UserAction.deactivate ||
         widget.action == UserAction.reactivate ||
         widget.action == UserAction.unlock;
-    return AlertDialog(
-      title: Text(_title),
-      content: SizedBox(
-        width: 380,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            if (isEdit) ...<Widget>[
-              TextField(
-                controller: _name,
-                decoration: const InputDecoration(
-                  labelText: 'New name (optional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _newEmail,
-                decoration: const InputDecoration(
-                  labelText: 'New email (optional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-            if (needsReason)
-              TextField(
-                controller: _reason,
-                decoration: const InputDecoration(
-                  labelText: 'Reason',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ActionBuilder(
-          submissionFactory: _submission,
-          builder: (context, state, submit) {
-            // Close the dialog once the submission lands successfully; the
-            // reactive views (users_index / user_role_scopes) reflect the
-            // change on their own.
-            if (state is Success) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).pop();
-                }
-              });
+    // ActionBuilder wraps the whole dialog so the submission state is available
+    // to both the in-content error line (M1) and the submit button.
+    return ActionBuilder(
+      submissionFactory: _submission,
+      builder: (context, state, submit) {
+        // Close the dialog once the submission lands successfully; the reactive
+        // views (users_index / user_role_scopes) reflect the change on their own.
+        if (state is Success) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
             }
-            return FilledButton(
+          });
+        }
+        final detail = switch (state) {
+          Denied(:final reason) => reason,
+          Failed(:final error) => '$error',
+          _ => null,
+        };
+        return AlertDialog(
+          title: Text(_title),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                if (isEdit) ...<Widget>[
+                  TextField(
+                    controller: _name,
+                    decoration: const InputDecoration(
+                      labelText: 'New name (optional)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _newEmail,
+                    decoration: const InputDecoration(
+                      labelText: 'New email (optional)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+                if (needsReason)
+                  TextField(
+                    controller: _reason,
+                    decoration: const InputDecoration(
+                      labelText: 'Reason',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                if (detail != null) ...<Widget>[
+                  const SizedBox(height: 8),
+                  Text(detail, style: const TextStyle(color: Colors.red)),
+                ],
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
               onPressed: state is Submitting ? null : submit,
               child: Text(switch (state) {
                 Submitting() => '...',
@@ -862,56 +895,47 @@ class _LifecycleDialogState extends State<_LifecycleDialog> {
                 Success() => 'Done',
                 _ => 'Submit',
               }),
-            );
-          },
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-/// Dispatches an [AssignmentPlan] for [userId] in sequence through [submitter]:
+/// Dispatches an [AssignmentPlan] for [userId] in sequence through [client]:
 /// revoke sites/roles first, then assign sites/roles. Site-scoped pairs use
 /// ACT-USR-008/011 (role + site); wildcard roles use ACT-USR-007/010 (role +
-/// the role's wildcard ScopeValue). Awaits each result so the materialized
-/// user_role_scopes view converges deterministically.
+/// the role's wildcard ScopeValue). The [ActionClient] mints each submission's
+/// idempotency key. Awaits each result so the materialized user_role_scopes view
+/// converges deterministically.
+///
+/// Throws [_DispatchDeniedException] on the first non-success result so the
+/// caller (create / role-site editor) surfaces a real failure rather than a
+/// false 'Applied.'. The submissions themselves come from the pure
+/// [assignmentSubmissions] builder.
 Future<void> _applyPlan(
-  ActionSubmitter submitter,
+  ActionClient client,
   String userId,
   AssignmentPlan plan,
 ) async {
-  for (final (role, site) in plan.revokeSites) {
-    await submitter.submit(ActionSubmission(
-      actionName: _revokeSiteAction,
-      rawInput: <String, Object?>{'userId': userId, 'role': role, 'site': site},
-    ));
+  for (final s in assignmentSubmissions(plan, userId, _wildcardScopeJsonFor)) {
+    final r = await client.submit(s);
+    if (r is! DispatchSuccess && r is! DispatchIdempotencyHit) {
+      throw _DispatchDeniedException(
+        '${s.actionName}: ${_denialLabel(r)}',
+      );
+    }
   }
-  for (final role in plan.revokeRoles) {
-    await submitter.submit(ActionSubmission(
-      actionName: _revokeRoleAction,
-      rawInput: <String, Object?>{
-        'userId': userId,
-        'role': role,
-        'scope': _wildcardScopeJsonFor(role),
-      },
-    ));
-  }
-  for (final (role, site) in plan.assignSites) {
-    await submitter.submit(ActionSubmission(
-      actionName: _assignSiteAction,
-      rawInput: <String, Object?>{'userId': userId, 'role': role, 'site': site},
-    ));
-  }
-  for (final role in plan.assignRoles) {
-    await submitter.submit(ActionSubmission(
-      actionName: _assignRoleAction,
-      rawInput: <String, Object?>{
-        'userId': userId,
-        'role': role,
-        'scope': _wildcardScopeJsonFor(role),
-      },
-    ));
-  }
+}
+
+/// Raised by [_applyPlan] when a submission returns a non-success
+/// [DispatchResult]; its message carries the action + denial reason for display.
+class _DispatchDeniedException implements Exception {
+  const _DispatchDeniedException(this.message);
+  final String message;
+  @override
+  String toString() => message;
 }
 
 String _denialLabel(DispatchResult<Object?> r) => switch (r) {

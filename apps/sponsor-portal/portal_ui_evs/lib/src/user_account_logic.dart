@@ -2,6 +2,16 @@
 // Implements: DIARY-DEV-user-account-projection/C — pure desired-vs-current assignment diff
 //   (cartesian over roles x sites), realized via the single-tuple assign/revoke actions.
 
+import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
+
+/// Action names the user-account assign/revoke plan dispatches. Kept here (not
+/// just in the screen) so the pure submission builder and its test reference
+/// the same constants.
+const String assignRoleAction = 'ACT-USR-007';
+const String assignSiteAction = 'ACT-USR-008';
+const String revokeRoleAction = 'ACT-USR-010';
+const String revokeSiteAction = 'ACT-USR-011';
+
 enum UserStatus {
   pending,
   active,
@@ -121,3 +131,60 @@ AssignmentPlan planAssignmentChanges({
     revokeSites: currentSitePairs.difference(desiredSitePairs).toList(),
   );
 }
+
+/// Builds the ordered [ActionSubmission] list realizing an [AssignmentPlan] for
+/// [userId]: revoke sites/roles first, then assign sites/roles. Site-scoped
+/// pairs use ACT-USR-008/011 (role + site); wildcard roles use ACT-USR-007/010
+/// (role + the role-level wildcard scope from [wildcardScopeJsonFor]).
+///
+/// No idempotency keys are minted here: the screen submits each through an
+/// `ActionClient`, which mints the per-submission key at submit time (the
+/// actions declare `Idempotency.required`, so a missing key is parse-denied and
+/// nothing commits).
+///
+/// Pure: no widget/scope dependency, so the screen can build the submissions
+/// here and the test can assert action/rawInput shapes + revoke-before-assign
+/// ordering.
+List<ActionSubmission> assignmentSubmissions(
+  AssignmentPlan plan,
+  String userId,
+  Object Function(String role) wildcardScopeJsonFor,
+) =>
+    <ActionSubmission>[
+      for (final (role, site) in plan.revokeSites)
+        ActionSubmission(
+          actionName: revokeSiteAction,
+          rawInput: <String, Object?>{
+            'userId': userId,
+            'role': role,
+            'site': site,
+          },
+        ),
+      for (final role in plan.revokeRoles)
+        ActionSubmission(
+          actionName: revokeRoleAction,
+          rawInput: <String, Object?>{
+            'userId': userId,
+            'role': role,
+            'scope': wildcardScopeJsonFor(role),
+          },
+        ),
+      for (final (role, site) in plan.assignSites)
+        ActionSubmission(
+          actionName: assignSiteAction,
+          rawInput: <String, Object?>{
+            'userId': userId,
+            'role': role,
+            'site': site,
+          },
+        ),
+      for (final role in plan.assignRoles)
+        ActionSubmission(
+          actionName: assignRoleAction,
+          rawInput: <String, Object?>{
+            'userId': userId,
+            'role': role,
+            'scope': wildcardScopeJsonFor(role),
+          },
+        ),
+    ];

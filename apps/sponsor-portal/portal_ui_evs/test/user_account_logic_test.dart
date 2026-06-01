@@ -68,4 +68,57 @@ void main() {
     expect(plan.assignSites, isEmpty);
     expect(plan.revokeSites, [('StudyCoordinator', 's2')]);
   });
+
+  group('assignmentSubmissions', () {
+    Object wildcardScopeJsonFor(String role) =>
+        <String, Object?>{'kind': 'wildcard', 'role': role};
+
+    test('builds assignSite + wildcard assignRole submissions; no keys', () {
+      const plan = AssignmentPlan(
+        assignRoles: ['Administrator'],
+        assignSites: [('StudyCoordinator', 'site-1')],
+        revokeRoles: [],
+        revokeSites: [],
+      );
+      final subs = assignmentSubmissions(plan, 'u@x.io', wildcardScopeJsonFor);
+
+      expect(subs, hasLength(2));
+      // assignSites come before assignRoles.
+      expect(subs[0].actionName, assignSiteAction); // ACT-USR-008
+      expect(subs[0].rawInput, {
+        'userId': 'u@x.io',
+        'role': 'StudyCoordinator',
+        'site': 'site-1',
+      });
+      expect(subs[1].actionName, assignRoleAction); // ACT-USR-007
+      expect(subs[1].rawInput, {
+        'userId': 'u@x.io',
+        'role': 'Administrator',
+        'scope': wildcardScopeJsonFor('Administrator'),
+      });
+      // ActionClient mints keys at submit; the builder leaves them null.
+      expect(subs[0].idempotencyKey, isNull);
+      expect(subs[1].idempotencyKey, isNull);
+    });
+
+    test('orders revokes before assigns', () {
+      const plan = AssignmentPlan(
+        assignRoles: ['Administrator'],
+        assignSites: [('CRA', 'site-2')],
+        revokeRoles: ['SystemOperator'],
+        revokeSites: [('CRA', 'site-1')],
+      );
+      final subs = assignmentSubmissions(plan, 'u@x.io', wildcardScopeJsonFor);
+
+      expect(subs.map((s) => s.actionName).toList(), [
+        revokeSiteAction, // ACT-USR-011
+        revokeRoleAction, // ACT-USR-010
+        assignSiteAction, // ACT-USR-008
+        assignRoleAction, // ACT-USR-007
+      ]);
+      // revoke role / assign role carry the wildcard scope, not a site.
+      expect(subs[1].rawInput['scope'], wildcardScopeJsonFor('SystemOperator'));
+      expect(subs[3].rawInput['scope'], wildcardScopeJsonFor('Administrator'));
+    });
+  });
 }
