@@ -150,6 +150,7 @@
 
 | ID                                         | Title                                      | File                               | Hash     |
 | ------------------------------------------ | ------------------------------------------ | ---------------------------------- | -------- |
+| DIARY-DEV-audit-log-read                   | Audit log read                             | dev-portal-service.md              | 34892437 |
 | DIARY-DEV-node-sync-topology               | Two-Node Native-Sync Topology              | dev-node-sync-topology.md          | d2cc0577 |
 | DIARY-DEV-outgoing-intent-correlation      | Outgoing Intent and Flow Correlation       | dev-outgoing-intent-correlation.md | 108441a8 |
 | DIARY-DEV-participant-site-index           | Participant-Site Index Materializer        | dev-portal-service.md              | 76e68990 |

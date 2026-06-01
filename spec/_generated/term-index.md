@@ -204,6 +204,7 @@
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
+- DIARY-DEV-audit-log-read:section:1
 - rem:spec/prd-administrator-settings.md:1
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -290,6 +291,8 @@
 **DIARY:**
 
 - DIARY-BASE-audit-trail
+- DIARY-DEV-audit-log-read-A
+- DIARY-DEV-audit-log-read-B
 - DIARY-PRD-ancillary-platform-services-D
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-system-validation-traceability-E
@@ -300,6 +303,8 @@
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-audit-log-read:section:0
+- DIARY-DEV-audit-log-read:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-PRD-entry-time-restrictions:section:4
@@ -605,6 +610,7 @@
 - DIARY-DEV-outgoing-intent-correlation:section:1
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
+- DIARY-DEV-audit-log-read:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771

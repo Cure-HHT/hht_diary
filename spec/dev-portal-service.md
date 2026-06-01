@@ -201,3 +201,44 @@ the set by applying the difference between the desired and current tuples, which
 record and fold respectively.
 
 *End* *User account projection* | **Hash**: ae8627b4
+
+## DIARY-DEV-audit-log-read: Audit log read
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-audit-trail
+
+### Overview
+
+The portal serves the *Audit Trail* by reading the append-only event log directly, in
+reverse-chronological order, projecting each stored event into a row that names the
+initiator, the entry type, the timestamp, and the recorded details. Access to that
+trail is a privileged operation: the server admits the request only for a principal
+that holds the audit-view permission, and enforces that check itself rather than
+trusting the client.
+
+### Assertions
+
+A. The portal SHALL expose the *Audit Trail* by reading the append-only event log in
+reverse-chronological order; each returned entry SHALL surface who performed the
+operation (the initiator), what occurred (the entry type), when it occurred (the
+timestamp), and the recorded details (the event payload and any change reason).
+
+B. Access to the *Audit Trail* SHALL be restricted to principals holding the audit-view
+permission, and that restriction SHALL be enforced on the server independent of the
+client.
+
+### Rationale
+
+The event log *is* the *Audit Trail*: every state-changing event is already attributable
+to an initiator and stamped with the time it occurred, so reading the log in reverse-
+chronological order yields the audit record without a separate audit store. The portal
+reads the log directly rather than the event-by-security-context join because the
+security context is attached to events later in the pipeline; joining now would return
+an empty result, so the direct read is the correct source until that upgrade lands and
+a richer `queryAudit` can fold the security context in. Authority to view the trail is
+enforced server-side because a privileged read must not depend on client cooperation;
+the audit-view permission is the gate, and the presentation requirements
+`DIARY-GUI-audit-log-common` and `DIARY-GUI-audit-log-administrator` render the rows
+this read produces.
+
+*End* *Audit log read* | **Hash**: 34892437
