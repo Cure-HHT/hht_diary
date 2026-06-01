@@ -7,10 +7,17 @@
 # cluster disappears at the root.
 #
 # event_sourcing is a PUBLIC repo and the pubspecs use https: URLs, so `pub get`
-# resolves it anonymously — no auth step required.
+# resolves it anonymously — no dependency auth needed.
+#
+# SONAR_TOKEN is fetched from Doppler via OIDC (no static GitHub secret), per the
+# org identity-over-keys convention; doppler-oidc-auth injects it as a masked
+# env var that the scanner reads automatically.
 #
 # PREREQUISITES (admin, do once):
-#   1. Add the SONAR_TOKEN repo secret (SonarCloud -> My Account -> Security).
+#   1. SONAR_TOKEN present in the Doppler (project, config) targeted by the
+#      SONAR_DOPPLER_* repo vars, and that OIDC identity authorized for hht_diary
+#      CI + that project. (Generate the token in SonarCloud -> My Account ->
+#      Security, ideally a project-scoped token from a bot account.)
 #   2. Disable "Automatic Analysis" in the SonarCloud project (Administration ->
 #      Analysis Method) — CI analysis is rejected while it is on.
 name: SonarCloud
@@ -21,6 +28,7 @@ on:
   pull_request:
 
 permissions:
+  id-token: write   # Doppler OIDC exchange (fetches SONAR_TOKEN)
   contents: read
 
 jobs:
@@ -32,6 +40,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # full history: accurate new-code period & blame
+
+      # Fetch SONAR_TOKEN from Doppler via OIDC -> masked env var for later steps.
+      - uses: Cure-HHT/hht_workflows/.github/actions/doppler-oidc-auth@main
+        with:
+          doppler_identity_id: ${{ vars.SONAR_DOPPLER_IDENTITY_ID }}
+          doppler_project: ${{ vars.SONAR_DOPPLER_PROJECT }}
+          doppler_config: ${{ vars.SONAR_DOPPLER_CONFIG }}
 
       - uses: subosito/flutter-action@v2
         with:
@@ -46,9 +61,8 @@ jobs:
         working-directory: apps/common-dart/diary_shared_model
         run: dart pub get
 
-      # Scan. SONAR_TOKEN authenticates to SonarCloud; sonar-project.properties
-      # carries projectKey/organization/sources.
+      # Scan. SONAR_TOKEN is already in the environment (injected by the Doppler
+      # step above); sonar-project.properties carries projectKey/org/sources.
       - uses: SonarSource/sonarqube-scan-action@v5
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
