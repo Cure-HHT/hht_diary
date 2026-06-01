@@ -5,6 +5,7 @@ import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
+import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
@@ -36,14 +37,23 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 /// `checkpoint_epistaxis_event`, `delete_entry`) submitted through the scope's
 /// `actionSubmitter`. The screen holds no authoritative state.
 class RecordingScreen extends StatefulWidget {
-  const RecordingScreen({super.key, this.existing, this.initialDate})
-    : assert(
-        existing == null || initialDate == null,
-        'Cannot specify both existing and initialDate',
-      );
+  const RecordingScreen({
+    super.key,
+    this.existing,
+    this.initialDate,
+    this.fromOverlapResolution = false,
+  }) : assert(
+         existing == null || initialDate == null,
+         'Cannot specify both existing and initialDate',
+       );
 
   /// The entry to edit or resume. `null` for a brand-new entry.
   final EpistaxisEntryView? existing;
+
+  /// True when this screen was opened from the overlap-resolution flow (an Edit
+  /// on the compare screen). A finalize that still overlaps then just pops back
+  /// to that compare screen (which re-derives) instead of pushing a NEW one.
+  final bool fromOverlapResolution;
 
   /// Preselected day for a NEW entry (calendar / yesterday banner). Ignored
   /// when [existing] is non-null.
@@ -465,9 +475,32 @@ class _RecordingScreenState extends State<RecordingScreen> {
       if (newId == null) {
         return null; // _submitAction already surfaced the failure.
       }
-      _aggregateId = newId;
+      final savedId = newId;
+      _aggregateId = savedId;
       if (mounted) {
-        Navigator.pop(context, newId);
+        // If this finalize created/left an overlap, go STRAIGHT to the
+        // side-by-side resolve screen (replacing this one) instead of returning
+        // to the previous screen. When we were ourselves opened from the overlap
+        // flow (an Edit on the compare screen) just pop back — that compare
+        // screen re-derives and re-renders or auto-pops.
+        final conflict = widget.fromOverlapResolution
+            ? null
+            : _firstOverlapConflict();
+        if (conflict != null) {
+          unawaited(
+            Navigator.pushReplacement(
+              context,
+              AppPageRoute<void>(
+                builder: (_) => OverlapCompareScreen(
+                  leftId: conflict.aggregateId,
+                  rightId: savedId,
+                ),
+              ),
+            ),
+          );
+        } else {
+          Navigator.pop(context, savedId);
+        }
       }
       return newId;
     } finally {
@@ -683,7 +716,27 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DiaryViewBuilder(builder: _buildScaffold);
+    return DiaryViewBuilder(
+      builder: (context, view) {
+        _latestView = view;
+        return _buildScaffold(context, view);
+      },
+    );
+  }
+
+  // The most recent DiaryView from the builder, captured so the imperative
+  // finalize path can detect an overlap and route into the compare screen.
+  DiaryView? _latestView;
+  static final DiaryView _emptyView = DiaryView(
+    finalized: const [],
+    incomplete: const [],
+  );
+
+  /// The pre-existing finalized entry the current candidate overlaps, or null.
+  /// Used at finalize to route straight into overlap resolution.
+  EpistaxisEntryView? _firstOverlapConflict() {
+    final overlaps = _overlappingEvents(_latestView ?? _emptyView);
+    return overlaps.isEmpty ? null : overlaps.first;
   }
 
   Widget _buildScaffold(BuildContext context, DiaryView view) {

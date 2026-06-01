@@ -109,11 +109,13 @@ class _OverlapCompareScreenState extends State<OverlapCompareScreen> {
   Future<void> _edit(EpistaxisEntryView entry) async {
     await Navigator.of(context).push(
       MaterialPageRoute<String?>(
-        builder: (_) => RecordingScreen(existing: entry),
+        builder: (_) =>
+            RecordingScreen(existing: entry, fromOverlapResolution: true),
       ),
     );
     // On return the DiaryViewBuilder re-derives: still overlapping -> re-render;
-    // resolved -> auto-pop.
+    // resolved -> auto-pop. The `fromOverlapResolution` flag keeps the edit's
+    // finalize from pushing ANOTHER compare screen on top of this one.
   }
 
   @override

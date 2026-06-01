@@ -12,6 +12,7 @@
 
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
+import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
@@ -62,6 +63,7 @@ void main() {
       EpistaxisEntryView? existing,
       DateTime? initialDate,
       ClinicalRules rules = const ClinicalRules(),
+      bool fromOverlapResolution = false,
     }) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -79,6 +81,7 @@ void main() {
               child: RecordingScreen(
                 existing: existing,
                 initialDate: initialDate,
+                fromOverlapResolution: fromOverlapResolution,
               ),
             ),
           ),
@@ -564,6 +567,133 @@ void main() {
         );
       },
     );
+
+    // Finalizing an entry that overlaps another routes STRAIGHT to the
+    // side-by-side compare screen (replacing this screen) — not back to the
+    // host / summary. The screen is pushed from a host route (as in production),
+    // so the route replacement has somewhere to land.
+    Future<void> pumpRecordingFromHost(
+      WidgetTester tester, {
+      required EpistaxisEntryView editing,
+      bool fromOverlapResolution = false,
+    }) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        ReActionScope(
+          scope: fake,
+          child: wrapWithMaterialApp(
+            Builder(
+              builder: (host) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(host).push<String?>(
+                      MaterialPageRoute<String?>(
+                        builder: (_) => ClinicalRulesScope(
+                          rules: const ClinicalRules(useReviewScreen: true),
+                          child: RecordingScreen(
+                            existing: editing,
+                            fromOverlapResolution: fromOverlapResolution,
+                          ),
+                        ),
+                      ),
+                    ),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    EpistaxisEntryView overlapPair(String id, {required int startMinute}) =>
+        buildEpistaxisView(
+          aggregateId: id,
+          startTime: DateTime(2026, 5, 31, 13, startMinute),
+          endTime: DateTime(2026, 5, 31, 13, startMinute + 15),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+
+    testWidgets(
+      'finalizing an overlapping entry routes to the compare screen',
+      (tester) async {
+        final pre = buildEpistaxisView(
+          aggregateId: 'agg-pre',
+          startTime: DateTime(2026, 5, 31, 13),
+          endTime: DateTime(2026, 5, 31, 14),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        final editing = overlapPair('agg-self', startMinute: 30);
+
+        await pumpRecordingFromHost(tester, editing: editing);
+        seedDiaryEntries([pre]);
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+          warnIfMissed: false,
+        );
+        // _saveRecord is async (multiple awaits). runAsync drains the microtask
+        // chain so pushReplacement fires before we pump frames.
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(OverlapCompareScreen), findsOneWidget);
+        expect(
+          find.text('open'),
+          findsNothing,
+        ); // recording screen was replaced
+      },
+    );
+
+    // When opened FROM the overlap flow (an Edit on the compare screen), a
+    // finalize that still overlaps must NOT push another compare screen — it
+    // pops back (to the existing compare screen, here the host).
+    testWidgets('finalizing from the overlap flow does not re-route', (
+      tester,
+    ) async {
+      final pre = buildEpistaxisView(
+        aggregateId: 'agg-pre2',
+        startTime: DateTime(2026, 5, 31, 13),
+        endTime: DateTime(2026, 5, 31, 14),
+        endTimeZone: 'UTC',
+        intensity: NosebleedIntensity.dripping,
+      );
+      final editing = overlapPair('agg-self2', startMinute: 30);
+
+      await pumpRecordingFromHost(
+        tester,
+        editing: editing,
+        fromOverlapResolution: true,
+      );
+      seedDiaryEntries([pre]);
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Save Changes'),
+        warnIfMissed: false,
+      );
+      // Give the async _saveRecord microtask chain time to complete before pumping frames.
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // The flag suppresses the re-route; it pops back to the host instead.
+      expect(find.byType(OverlapCompareScreen), findsNothing);
+      expect(find.text('open'), findsOneWidget);
+    });
 
     // Regression: tapping the overlap "View" button must NOT discard the
     // in-progress entry and bounce to the previous screen (the reported defect).
