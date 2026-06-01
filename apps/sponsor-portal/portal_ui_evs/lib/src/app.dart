@@ -14,6 +14,7 @@ import 'identity_config.dart';
 import 'login_screen.dart';
 import 'participants_screen.dart';
 import 'rave_sync_screen.dart';
+import 'role_selector.dart';
 import 'sites_screen.dart';
 import 'user_accounts_screen.dart';
 
@@ -42,6 +43,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   late final StreamSubscription<AuthStatus> _authSub;
   AuthStatus _status = const NotAuthenticated();
 
+  /// The current session token (opaque string set via Firebase login).
+  /// Null in dev mode (credential is userId:role, not a session token).
+  String? _sessionToken;
+
   @override
   void initState() {
     super.initState();
@@ -65,7 +70,36 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     super.dispose();
   }
 
-  void _disconnect() => _scope.authSession.setCredential(null);
+  void _disconnect() {
+    _sessionToken = null;
+    _scope.authSession.setCredential(null);
+  }
+
+  /// Called by [LoginScreen] when the user authenticates with Firebase.
+  /// Stores the session token so [_HomeShell] can pass it to [RoleSelector].
+  void _onSession(String token) {
+    setState(() => _sessionToken = token);
+    _scope.authSession.setCredential(token);
+  }
+
+  /// Re-resolves the principal after an active-role switch.
+  ///
+  /// [RemoteAuthSession] has no dedicated refresh() method — the only way
+  /// to re-run GET /me and obtain an updated principal is to cycle the
+  /// credential: setCredential(null) tears down the WS and transitions to
+  /// NotAuthenticated, then setCredential(token) fires _validate() (GET /me)
+  /// which returns the server's new activeRole and transitions back to
+  /// Authenticated. A brief NotAuthenticated→Authenticated flicker is
+  /// acceptable (see DIARY-GUI-role-switching/F: "load role's landing view").
+  /// The re-auth also rebuilds _HomeShell fresh, resetting nav to index 0.
+  ///
+  // Implements: DIARY-GUI-role-switching/E+F
+  Future<void> _onRoleSwitched() async {
+    final token = _sessionToken;
+    if (token == null) return;
+    _scope.authSession.setCredential(null);
+    _scope.authSession.setCredential(token);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +116,8 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       Authenticated(:final principal) => _HomeShell(
         principal: principal,
         onDisconnect: _disconnect,
+        sessionToken: _sessionToken,
+        onRoleSwitched: _onRoleSwitched,
       ),
       Expired() => Scaffold(
         body: _sessionAuth
@@ -98,21 +134,24 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
                     child: LoginScreen(
                       serverUrl: _serverUrl,
                       authClient: RealFirebaseAuthClient(),
-                      onSession: (t) => _scope.authSession.setCredential(t),
+                      onSession: _onSession,
                     ),
                   ),
                 ],
               )
-            : const ConnectScreen(message: 'Session ended — reconnect.'),
+            : ConnectScreen(
+                message: 'Session ended — reconnect.',
+                serverUrl: _serverUrl,
+              ),
       ),
       NotAuthenticated() => Scaffold(
         body: _sessionAuth
             ? LoginScreen(
                 serverUrl: _serverUrl,
                 authClient: RealFirebaseAuthClient(),
-                onSession: (t) => _scope.authSession.setCredential(t),
+                onSession: _onSession,
               )
-            : const ConnectScreen(),
+            : ConnectScreen(serverUrl: _serverUrl),
       ),
     };
     return ReActionScope(
@@ -135,10 +174,23 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
 /// for all four destinations — an unauthorized screen renders its own
 /// clean "no access" fallback. No per-item permission hiding here.
 class _HomeShell extends StatefulWidget {
-  const _HomeShell({required this.principal, required this.onDisconnect});
+  const _HomeShell({
+    required this.principal,
+    required this.onDisconnect,
+    required this.sessionToken,
+    required this.onRoleSwitched,
+  });
 
   final Principal principal;
   final VoidCallback onDisconnect;
+
+  /// The current session token; null in dev mode.
+  /// Non-null only when [_sessionAuth] is true (Firebase login flow).
+  final String? sessionToken;
+
+  /// Callback invoked after a successful role switch so the parent can
+  /// re-resolve the principal and this shell rebuilds for the new role.
+  final Future<void> Function() onRoleSwitched;
 
   @override
   State<_HomeShell> createState() => _HomeShellState();
@@ -180,6 +232,14 @@ class _HomeShellState extends State<_HomeShell> {
       appBar: AppBar(
         title: const Text('Portal (EVS skeleton)'),
         actions: <Widget>[
+          if (widget.principal is UserPrincipal && widget.sessionToken != null)
+            RoleSelector(
+              serverUrl: _serverUrl,
+              sessionToken: widget.sessionToken!,
+              roles: (widget.principal as UserPrincipal).roles,
+              activeRole: (widget.principal as UserPrincipal).activeRole,
+              onSwitched: widget.onRoleSwitched,
+            ),
           Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
