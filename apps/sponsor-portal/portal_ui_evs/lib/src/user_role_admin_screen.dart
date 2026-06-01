@@ -7,13 +7,35 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 // a PermissionGate keyed on the permission it needs, so a user only sees the
 // widgets their active role holds. PermissionGate is reactive — it re-gates live
 // on role switch or revocation. This is the template every future screen follows.
-const String _assignSiteAction = 'ACT-USR-008'; // rawInput {userId, role, site}
-const String _revokeSiteAction = 'ACT-USR-011';
-const String _assignSitePerm = 'portal.user.assign_site';
-const String _revokeSitePerm = 'portal.user.revoke_site';
+//
+// Assign/Revoke Role (ACT-USR-007/010) take a full ScopeValue, so they generalize
+// the site-only ACT-USR-008/011: the scope picker constructs BoundScope (one
+// site), ValueWildcardScope (all sites — Administrator), or TotalWildcardScope
+// (everything — System Operator). The user never types raw scope JSON.
+const String _assignRoleAction =
+    'ACT-USR-007'; // rawInput {userId, role, scope}
+const String _revokeRoleAction =
+    'ACT-USR-010'; // rawInput {userId, role, scope}
+const String _assignRolePerm = 'portal.user.assign_role';
+const String _revokeRolePerm = 'portal.user.revoke_role';
 const String _viewAssignmentsPerm = 'view:user_role_scopes';
-const List<String> _roles = <String>['StudyCoordinator', 'CRA'];
+const List<String> _roles = <String>[
+  'StudyCoordinator',
+  'CRA',
+  'Administrator',
+  'SystemOperator',
+];
 const List<String> _sites = <String>['site-1', 'site-2', 'site-3'];
+
+/// Scope-picker choices; the screen builds a ScopeValue from the choice (+ the
+/// selected site for [thisSite]).
+enum _ScopeKind { thisSite, allSites, everything }
+
+String _scopeKindLabel(_ScopeKind k) => switch (k) {
+      _ScopeKind.thisSite => 'this site',
+      _ScopeKind.allSites => 'all sites',
+      _ScopeKind.everything => 'everything',
+    };
 
 /// One user_role_scopes row (library shape: user_id/role/scope JSON).
 class _Assignment {
@@ -33,9 +55,6 @@ class _Assignment {
         ValueWildcardScope(:final class_) => '$class_=*',
         TotalWildcardScope() => '(all)',
       };
-
-  String? get siteValue =>
-      scope is BoundScope ? (scope as BoundScope).value : null;
 
   static _Assignment fromRow(Map<String, Object?> row) {
     final scopeJson = row['scope'];
@@ -57,10 +76,18 @@ class UserRoleAdminScreen extends StatefulWidget {
 }
 
 class _UserRoleAdminScreenState extends State<UserRoleAdminScreen> {
-  final TextEditingController _targetUser =
-      TextEditingController(text: 'target-1');
+  final TextEditingController _targetUser = TextEditingController(
+    text: 'target-1',
+  );
   String _role = _roles.first;
+  _ScopeKind _scopeKind = _ScopeKind.thisSite;
   String _site = _sites.first;
+
+  ScopeValue _selectedScope() => switch (_scopeKind) {
+        _ScopeKind.thisSite => BoundScope(class_: 'site', value: _site),
+        _ScopeKind.allSites => const ValueWildcardScope(class_: 'site'),
+        _ScopeKind.everything => const TotalWildcardScope(),
+      };
 
   @override
   void dispose() {
@@ -85,9 +112,9 @@ class _UserRoleAdminScreenState extends State<UserRoleAdminScreen> {
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
-          // Assign-site form — only visible to roles that hold assign_site.
+          // Assign-role form — only visible to roles that hold assign_role.
           PermissionGate(
-            permission: _assignSitePerm,
+            permission: _assignRolePerm,
             child: Wrap(
               spacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
@@ -102,21 +129,34 @@ class _UserRoleAdminScreenState extends State<UserRoleAdminScreen> {
                   onChanged: (v) => setState(() => _role = v ?? _role),
                 ),
                 const Text('@'),
-                DropdownButton<String>(
-                  value: _site,
-                  items: <DropdownMenuItem<String>>[
-                    for (final s in _sites)
-                      DropdownMenuItem<String>(value: s, child: Text(s)),
+                DropdownButton<_ScopeKind>(
+                  value: _scopeKind,
+                  items: <DropdownMenuItem<_ScopeKind>>[
+                    for (final k in _ScopeKind.values)
+                      DropdownMenuItem<_ScopeKind>(
+                        value: k,
+                        child: Text(_scopeKindLabel(k)),
+                      ),
                   ],
-                  onChanged: (v) => setState(() => _site = v ?? _site),
+                  onChanged: (v) =>
+                      setState(() => _scopeKind = v ?? _scopeKind),
                 ),
+                if (_scopeKind == _ScopeKind.thisSite)
+                  DropdownButton<String>(
+                    value: _site,
+                    items: <DropdownMenuItem<String>>[
+                      for (final s in _sites)
+                        DropdownMenuItem<String>(value: s, child: Text(s)),
+                    ],
+                    onChanged: (v) => setState(() => _site = v ?? _site),
+                  ),
                 ActionBuilder(
                   submissionFactory: () => ActionSubmission(
-                    actionName: _assignSiteAction,
+                    actionName: _assignRoleAction,
                     rawInput: <String, Object?>{
                       'userId': target,
                       'role': _role,
-                      'site': _site,
+                      'scope': _selectedScope().toJson(),
                     },
                   ),
                   builder: (context, state, submit) => FilledButton(
@@ -125,7 +165,7 @@ class _UserRoleAdminScreenState extends State<UserRoleAdminScreen> {
                       Submitting() => '...',
                       Denied() => 'Denied',
                       Failed() => 'Failed',
-                      _ => 'Assign Site',
+                      _ => 'Assign Role',
                     }),
                   ),
                 ),
@@ -158,7 +198,8 @@ class _UserRoleAdminScreenState extends State<UserRoleAdminScreen> {
                   final mine = rows.where((a) => a.userId == target).toList();
                   if (mine.isEmpty) {
                     return Center(
-                        child: Text('(no assignments for "$target")'));
+                      child: Text('(no assignments for "$target")'),
+                    );
                   }
                   return ListView(
                     children: <Widget>[
@@ -185,20 +226,17 @@ class _RevokeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final site = assignment.siteValue;
-    if (site == null) {
-      // Non-site (wildcard) scopes aren't revocable via the site-only slice.
-      return const SizedBox.shrink();
-    }
+    // ACT-USR-010 takes the full ScopeValue, so it revokes any assignment —
+    // BoundScope, value-wildcard, or total-wildcard alike.
     return PermissionGate(
-      permission: _revokeSitePerm,
+      permission: _revokeRolePerm,
       child: ActionBuilder(
         submissionFactory: () => ActionSubmission(
-          actionName: _revokeSiteAction,
+          actionName: _revokeRoleAction,
           rawInput: <String, Object?>{
             'userId': assignment.userId,
             'role': assignment.role,
-            'site': site,
+            'scope': assignment.scope.toJson(),
           },
         ),
         builder: (context, state, submit) => IconButton(

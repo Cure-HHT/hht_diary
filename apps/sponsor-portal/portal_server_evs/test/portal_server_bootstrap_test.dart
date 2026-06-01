@@ -110,4 +110,64 @@ void main() {
     expect(scNames, isNot(contains('portal.user.assign_site')));
     expect(scNames, isNot(contains('view:user_role_scopes')));
   });
+
+  test(
+      'admin assigns a wildcard-scoped role (ACT-USR-007) and revokes it '
+      '(ACT-USR-010)', () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('skeleton-wild.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+    );
+    addTearDown(boot.dispose);
+
+    final admin = Principal.user(
+      userId: 'admin-1',
+      roles: const {'Administrator'},
+      activeRole: 'Administrator',
+    );
+    const wildcard = ValueWildcardScope(class_: 'site');
+
+    final assign = await boot.dispatcher.dispatch(
+      ActionSubmission(
+        actionName: 'ACT-USR-007',
+        rawInput: <String, Object?>{
+          'userId': 'target-w',
+          'role': 'Administrator',
+          'scope': wildcard.toJson(),
+        },
+        idempotencyKey: 'assign-targetw-wild',
+      ),
+      _ctx(admin),
+    );
+    expect(assign, isA<DispatchSuccess<Object?>>());
+
+    var rows = await boot.eventStore.backend.findViewRows('user_role_scopes');
+    expect(
+      rows.where((r) => r['user_id'] == 'target-w'),
+      isNotEmpty,
+      reason: 'wildcard-scoped assignment materialized',
+    );
+
+    final revoke = await boot.dispatcher.dispatch(
+      ActionSubmission(
+        actionName: 'ACT-USR-010',
+        rawInput: <String, Object?>{
+          'userId': 'target-w',
+          'role': 'Administrator',
+          'scope': wildcard.toJson(),
+        },
+        idempotencyKey: 'revoke-targetw-wild',
+      ),
+      _ctx(admin),
+    );
+    expect(revoke, isA<DispatchSuccess<Object?>>());
+
+    rows = await boot.eventStore.backend.findViewRows('user_role_scopes');
+    expect(
+      rows.where((r) => r['user_id'] == 'target-w'),
+      isEmpty,
+      reason: 'revoke removed the wildcard assignment',
+    );
+  });
 }
