@@ -17,6 +17,11 @@ import 'activation_reactor.dart';
 import 'activation_routes.dart';
 import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
+import 'login_routes.dart';
+import 'otp_store.dart';
+import 'session_cascade_reactor.dart';
+import 'session_store.dart';
+import 'session_token_validator.dart';
 
 /// Composed server: the top-level shelf [router] (ready for shelf_io.serve),
 /// the live [eventStore] + [dispatcher] (for tests), and a [dispose] callback.
@@ -192,8 +197,85 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // 6. Dispatcher (registers all portal actions).
   final dispatcher = await buildPortalDispatcher(eventStore: eventStore);
 
-  // 7. Reaction handlers + dev auth.
-  const validator = DevCredentialAuthValidator();
+  // 7. Validator selection — default is dev so the existing admin-1/sc-1
+  //    workflow is unchanged. Set PORTAL_AUTH_MODE=session + PORTAL_SESSION_SIGNING_KEY
+  //    to enable production session-token authentication.
+  // Implements: DIARY-DEV-portal-session-token/A+B
+  // Implements: DIARY-DEV-portal-session-lifecycle/A
+  final authMode = Platform.environment['PORTAL_AUTH_MODE'] ?? 'dev';
+  final signingKey = Platform.environment['PORTAL_SESSION_SIGNING_KEY'] ?? '';
+  final sessionStore = SessionStore();
+  final idleMinutes =
+      int.tryParse(Platform.environment['PORTAL_SESSION_IDLE_MINUTES'] ?? '') ??
+          10;
+
+  final PrincipalAuthValidator validator;
+  if (authMode == 'session') {
+    if (signingKey.isEmpty) {
+      throw StateError(
+          'PORTAL_AUTH_MODE=session requires PORTAL_SESSION_SIGNING_KEY');
+    }
+    // Implements: DIARY-DEV-portal-session-token/B
+    validator = SessionTokenValidator(
+      signingKey: signingKey,
+      backend: backend,
+      eventStore: eventStore,
+      sessionStore: sessionStore,
+      idleTimeout: Duration(minutes: idleMinutes),
+    );
+  } else {
+    validator = const DevCredentialAuthValidator();
+  }
+
+  // 7b. Login collaborators (OTP sender, identity config, login/session routes).
+  //     Built unconditionally — login routes are always mounted; in dev mode the
+  //     signingKey defaults to 'dev-unused' so the token math still runs.
+  // Implements: DIARY-DEV-portal-login-second-factor/A+B+C
+  final otpStore = OtpStore(
+    ttl: Duration(
+      minutes:
+          int.tryParse(Platform.environment['PORTAL_OTP_TTL_MINUTES'] ?? '') ??
+              10,
+    ),
+  );
+  final emailConfig = EmailConfig.fromEnvironment();
+  final otpSender = _LoginOtpSenderAdapter(
+      LoginOtpSender(transport: EmailTransport.fromConfig(emailConfig)));
+  final identityConfig = <String, Object?>{
+    'projectId': Platform.environment['PORTAL_IDENTITY_PROJECT_ID'] ??
+        'demo-local-stack',
+    'apiKey': Platform.environment['PORTAL_IDENTITY_API_KEY'] ?? 'demo-api-key',
+    'appId': Platform.environment['PORTAL_IDENTITY_APP_ID'] ?? '',
+    'authDomain': Platform.environment['PORTAL_IDENTITY_AUTH_DOMAIN'] ?? '',
+    'messagingSenderId':
+        Platform.environment['PORTAL_IDENTITY_SENDER_ID'] ?? '',
+    'emulatorHost': Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ?? '',
+  };
+  // Implements: DIARY-DEV-portal-login-identity-verification/A+B
+  final loginRouter = buildLoginRouter(
+    eventStore: eventStore,
+    backend: backend,
+    otpStore: otpStore,
+    otpSender: otpSender,
+    signingKey: signingKey.isEmpty ? 'dev-unused' : signingKey,
+    verifyIdToken: verifyIdToken,
+    identityConfig: identityConfig,
+  );
+  // Implements: DIARY-DEV-portal-session-lifecycle/A
+  // Implements: DIARY-DEV-portal-active-role-switch/B
+  final authedSessionRouter = buildAuthedSessionRouter(
+    eventStore: eventStore,
+    backend: backend,
+    signingKey: signingKey.isEmpty ? 'dev-unused' : signingKey,
+  );
+
+  // 7c. Session cascade reactor — mirrors exact treatment of ActivationReactor:
+  //     started here, retained as a local final (StreamSubscription inside keeps
+  //     it alive), stopped in dispose.
+  // Implements: DIARY-DEV-portal-session-lifecycle/B
+  final sessionCascadeReactor =
+      SessionCascadeReactor(eventStore: eventStore, backend: backend)..start();
+
   final handlers = ReactionHandlers(
     eventStore: eventStore,
     dispatcher: dispatcher,
@@ -262,32 +344,67 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // it every gate fails closed (no widgets render, for any role).
     ..get('/permissions/snapshot', handlers.permissions)
     ..get('/audit', auditHandler)
-    ..post('/admin/rave-sync', raveSyncHandler);
+    ..post('/admin/rave-sync', raveSyncHandler)
+    // Authed session routes (logout, active-role switch) — mounted inside the
+    // authed pipeline so Bearer validation + principal context are present.
+    // Implements: DIARY-DEV-portal-session-lifecycle/A
+    // Implements: DIARY-DEV-portal-active-role-switch/B
+    ..mount('/', authedSessionRouter.call);
 
   final httpPipeline = const Pipeline()
       .addMiddleware(_cors())
       .addMiddleware(authMiddleware(validator))
       .addHandler(httpRouter.call);
 
-  // /activate routes are PUBLIC: registered as specific routes on topRouter
-  // BEFORE the catch-all ..mount('/', httpPipeline). This ensures they bypass
-  // authMiddleware while all other routes still flow through the authed pipeline.
-  // The inner activationRouter re-matches its own paths on the original Request.
-  // They get _cors() (the authed pipeline's CORS does not cover them) so a
-  // browser-served activation page on a different origin can read the response;
-  // _cors() also short-circuits the POST preflight (OPTIONS -> 200 + headers).
+  // Public route handlers — each wrapped in _cors() so the browser can read
+  // responses from a different origin, and OPTIONS preflights short-circuit
+  // before any auth check.  All are registered on topRouter BEFORE the
+  // catch-all ..mount('/', httpPipeline).
+  //
+  // /activate: ephemeral code validation + password-set (no session yet).
+  // Implements: DIARY-DEV-portal-activation-email-delivery/B
   final activationHandler =
       const Pipeline().addMiddleware(_cors()).addHandler(activationRouter.call);
+
+  // /login, /login/verify-otp, /config/identity: unauthenticated login flow.
+  // Implements: DIARY-DEV-portal-login-identity-verification/A+B
+  // Implements: DIARY-DEV-portal-login-second-factor/A+B+C
+  final loginHandler =
+      const Pipeline().addMiddleware(_cors()).addHandler(loginRouter.call);
+
   final topRouter = Router()
     ..get('/subscriptions', handlers.subscriptions(validator))
+    // Activation routes (public).
     ..options('/activate/<code>', activationHandler)
     ..options('/activate', activationHandler)
     ..get('/activate/<code>', activationHandler)
     ..post('/activate', activationHandler)
-    ..mount('/', httpPipeline);
+    // Login routes (public).
+    ..options('/config/identity', loginHandler)
+    ..get('/config/identity', loginHandler)
+    ..options('/login', loginHandler)
+    ..post('/login', loginHandler)
+    ..options('/login/verify-otp', loginHandler)
+    ..post('/login/verify-otp', loginHandler);
+
+  // Dev-only: /dev/users exposes the role-assignment list so the dev
+  // ConnectScreen can populate a dropdown. Not mounted in session mode.
+  // Implements: DIARY-DEV-portal-reaction-server/B
+  if (authMode != 'session') {
+    final devUsersRouter = buildDevUsersRouter(backend: backend);
+    final devUsersHandler =
+        const Pipeline().addMiddleware(_cors()).addHandler(devUsersRouter.call);
+    topRouter
+      ..options('/dev/users', devUsersHandler)
+      ..get('/dev/users', devUsersHandler);
+  }
+
+  // Catch-all authed pipeline — must come last on topRouter.
+  topRouter.mount('/', httpPipeline);
 
   Future<void> dispose() async {
     await activationReactor.stop();
+    await sessionCascadeReactor.stop();
     await handlers.dispose();
     await eventStore.close();
   }
@@ -298,4 +415,17 @@ Future<PortalServerBoot> bootstrapPortalServer({
     dispatcher: dispatcher,
     dispose: dispose,
   );
+}
+
+/// Bridges portal_identity's [LoginOtpSender] to the [OtpSender] interface
+/// declared in login_routes.dart, so portal_server_evs needs no direct
+/// dependency on the internal LoginOtpSender type at every call site.
+class _LoginOtpSenderAdapter implements OtpSender {
+  _LoginOtpSenderAdapter(this._sender);
+  final LoginOtpSender _sender;
+  // Implements: DIARY-DEV-portal-login-second-factor/A
+  @override
+  Future<void> sendOtp(
+          {required String recipientEmail, required String code}) =>
+      _sender.sendOtp(recipientEmail: recipientEmail, code: code);
 }
