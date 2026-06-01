@@ -273,7 +273,6 @@ class FeatureFlagService {
       debugPrint(
         '[FeatureFlagService] Response status: ${response.statusCode}',
       );
-      debugPrint('[FeatureFlagService] Response body: ${response.body}');
 
       if (response.statusCode != 200) {
         _lastError = 'Server error: ${response.statusCode}';

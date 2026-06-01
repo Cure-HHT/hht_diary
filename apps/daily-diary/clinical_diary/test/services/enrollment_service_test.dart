@@ -163,6 +163,45 @@ void main() {
         expect(saved!.patientId, 'patient-123');
       });
 
+      test('CUR-1379: never logs the JWT returned by /link', () async {
+        const secretJwt =
+            'eyJhbGciOiJIUzI1NiIs.SECRET-JWT-MUST-NOT-LEAK.signature';
+        final mockClient = MockClient((_) async {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'jwt': secretJwt,
+              'userId': 'uid',
+              'patientId': 'p1',
+              'siteId': 's1',
+            }),
+            200,
+          );
+        });
+
+        service = EnrollmentService(
+          secureStorage: mockStorage,
+          httpClient: mockClient,
+        );
+
+        final originalDebugPrint = debugPrint;
+        final captured = <String>[];
+        debugPrint = (String? message, {int? wrapWidth}) {
+          captured.add(message ?? '');
+        };
+        try {
+          await service.enroll('CAXXX-XXXXX');
+        } finally {
+          debugPrint = originalDebugPrint;
+        }
+
+        expect(
+          captured.any((line) => line.contains(secretJwt)),
+          isFalse,
+          reason: 'JWT must never appear in mobile logs (CUR-1379)',
+        );
+      });
+
       test('normalizes code to uppercase and removes dash', () async {
         String? capturedCode;
         final mockClient = MockClient((request) async {
