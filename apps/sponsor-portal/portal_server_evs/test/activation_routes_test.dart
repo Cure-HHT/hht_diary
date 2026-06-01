@@ -48,12 +48,14 @@ void main() {
         email: 'jane@site.org', expiresAt: t0.add(const Duration(days: 14)));
     final ok = await router()
         .call(Request('GET', Uri.parse('http://x/activate/AB-CD')));
+    expect(ok.statusCode, 200);
     final okBody = jsonDecode(await ok.readAsString()) as Map<String, Object?>;
     expect(okBody['valid'], isTrue);
     expect(okBody['maskedEmail'], 'j***@s***.org');
 
     final bad = await router()
         .call(Request('GET', Uri.parse('http://x/activate/NOPE')));
+    expect(bad.statusCode, 200);
     final badBody =
         jsonDecode(await bad.readAsString()) as Map<String, Object?>;
     expect(badBody['valid'], isFalse);
@@ -79,7 +81,9 @@ void main() {
     expect(activated.single.aggregateId, 'jane@site.org');
     expect(activated.single.data['firebase_uid'], 'uid-1');
     expect(activated.single.data['status'], 'active');
-    expect(activated.single.initiator, isA<AutomationInitiator>());
+    final initiator = activated.single.initiator as AutomationInitiator;
+    expect(initiator.service, 'activation');
+    expect(activated.single.data['activated_at'], isNotNull);
 
     final again = await router().call(Request(
         'POST', Uri.parse('http://x/activate'),
@@ -102,6 +106,14 @@ void main() {
     final resp = await r.call(Request('POST', Uri.parse('http://x/activate'),
         body: jsonEncode({'code': code, 'password': 'pw123456'})));
     expect(resp.statusCode, 502);
+    final events = await eventStore.backend.findAllEvents();
+    expect(events.where((e) => e.eventType == 'user_activated'), isEmpty);
+  });
+
+  test('POST with malformed body -> 400, no event', () async {
+    final resp = await router().call(
+        Request('POST', Uri.parse('http://x/activate'), body: 'not json'));
+    expect(resp.statusCode, 400);
     final events = await eventStore.backend.findAllEvents();
     expect(events.where((e) => e.eventType == 'user_activated'), isEmpty);
   });

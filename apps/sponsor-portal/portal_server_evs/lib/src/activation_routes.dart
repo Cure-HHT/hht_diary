@@ -49,7 +49,17 @@ Router buildActivationRouter({
   });
 
   router.post('/activate', (Request req) async {
-    final raw = jsonDecode(await req.readAsString()) as Map<String, Object?>;
+    final Map<String, Object?> raw;
+    try {
+      final decoded = jsonDecode(await req.readAsString());
+      if (decoded is! Map<String, Object?>) {
+        return _json({'ok': false, 'message': kInvalidLinkMessage},
+            status: 400);
+      }
+      raw = decoded;
+    } on FormatException {
+      return _json({'ok': false, 'message': kInvalidLinkMessage}, status: 400);
+    }
     final code = raw['code'];
     final password = raw['password'];
     if (code is! String || password is! String || password.isEmpty) {
