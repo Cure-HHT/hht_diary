@@ -15,4 +15,11 @@ void main() {
     expect(maskEmail('jane@site.org'), 'j***@s***.org');
     expect(maskEmail('a@b.io'), 'a***@b***.io');
   });
+
+  test('otp email contains the code and recipient context', () {
+    final e = buildOtpEmail(recipientEmail: 'jane@site.org', code: '123456');
+    expect(e.subject, contains('verification code'));
+    expect(e.text, contains('123456'));
+    expect(e.html, contains('123456'));
+  });
 }

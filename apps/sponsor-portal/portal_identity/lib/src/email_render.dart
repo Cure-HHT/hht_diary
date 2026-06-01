@@ -32,6 +32,29 @@ If you did not expect this email, contact your Administrator.
   return RenderedEmail(subject: subject, text: text, html: html);
 }
 
+// Implements: DIARY-DEV-portal-login-second-factor/A
+RenderedEmail buildOtpEmail({
+  required String recipientEmail,
+  required String code,
+}) {
+  const subject = 'Your Clinical Trial Portal verification code';
+  final text = '''
+Your one-time verification code is:
+
+    $code
+
+Enter it to finish signing in. It expires shortly and can be used once.
+If you did not try to sign in, contact your Administrator.
+''';
+  final html = '''
+<p>Your one-time verification code is:</p>
+<p style="font-size:24px;font-weight:bold;letter-spacing:3px">$code</p>
+<p>Enter it to finish signing in. It expires shortly and can be used once.</p>
+<p>If you did not try to sign in, contact your Administrator.</p>
+''';
+  return RenderedEmail(subject: subject, text: text, html: html);
+}
+
 /// Masks an email to `x***@y***.tld` so responses never echo the full address.
 // Implements: DIARY-DEV-portal-activation-email-delivery/B
 String maskEmail(String email) {
