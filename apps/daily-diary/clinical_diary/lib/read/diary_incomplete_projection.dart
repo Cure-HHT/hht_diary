@@ -1,4 +1,4 @@
-// Implements: DIARY-DEV-reactive-read-path/B — diary-LOCAL projection of
+// Implements: DIARY-DEV-reactive-read-path/B — device-local projection of
 //   in-progress (checkpoint) entries. A `checkpoint` adds the aggregate; a later
 //   `finalized` (entry completed) OR `tombstone` (entry deleted) removes it, so
 //   this view holds only entries that are still open drafts and is disjoint from

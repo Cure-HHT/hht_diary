@@ -1,4 +1,4 @@
-// Verifies: DIARY-PRD-local-data-reset/A — wipeLocalData deletes both store
+// Verifies: DIARY-BASE-local-data-reset/A — wipeLocalData deletes both store
 //   files, clears enrollment + tasks, and wipes SharedPreferences so the app
 //   returns to first-launch state.
 import 'dart:io';

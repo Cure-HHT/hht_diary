@@ -1,4 +1,4 @@
-// Verifies: DIARY-PRD-local-data-reset/B+C — reset is forbidden while
+// Verifies: DIARY-BASE-local-data-reset/B+C — reset is forbidden while
 //   participating regardless of the setting; the sponsor-controllable
 //   allow_local_reset setting gates it otherwise (default enabled).
 import 'package:clinical_diary/settings/local_reset_policy.dart';

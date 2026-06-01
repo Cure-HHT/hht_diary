@@ -71,7 +71,7 @@ class HomeScreen extends StatefulWidget {
 
   /// Performs the real local factory reset (dispose → wipe → re-init), supplied
   /// by `AppRoot`. Null in contexts that don't wire a reset (the menu item is
-  /// then inert). See DIARY-PRD-local-data-reset/A.
+  /// then inert). See DIARY-BASE-local-data-reset/A.
   final Future<void> Function()? onResetAllData;
 
   /// The sponsor-controllable layer of the reset gate, folded from the
@@ -256,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// (`isEnrolled && !isNotParticipating`) combined with the sponsor-
   /// controllable `allow_local_reset` setting. Reset is permitted only when not
   /// participating AND the setting allows it.
-  // Implements: DIARY-PRD-local-data-reset/B+C
+  // Implements: DIARY-BASE-local-data-reset/B+C
   Future<void> _refreshResetGate() async {
     final isEnrolled = await widget.enrollmentService.isEnrolled();
     final isNotParticipating = await widget.enrollmentService
@@ -361,7 +361,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _submitDayMarker('record_unknown_day', _yesterdayKey());
   }
 
-  // Implements: DIARY-PRD-local-data-reset/D — the destructive reset requires
+  // Implements: DIARY-BASE-local-data-reset/D — the destructive reset requires
   //   explicit confirmation before the device is wiped.
   Future<void> _handleResetAllData() async {
     // Defense-in-depth: the menu item is already disabled when the gate is

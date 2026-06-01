@@ -1,6 +1,6 @@
 // Implements: DIARY-DEV-action-write-path/A — the write flows through the core
 //   ActionDispatcher rather than a direct append.
-// Implements: DIARY-DEV-shared-events-catalog/A — emits the diary-originated
+// Implements: DIARY-DEV-shared-events-catalog/A — emits the diary node's
 //   `participant_linked` event (surface P4) recording participant identity.
 //   Refines: DIARY-PRD-linking-code-lifecycle
 //

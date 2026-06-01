@@ -14,6 +14,7 @@
 | DIARY-PRD-architecture-decision-docs             | Architecture Decision Documentation                      | prd-requirements-management.md            | 76c82ce6 |
 | DIARY-PRD-configuration-precedence               | Configuration Precedence                                 | prd-configuration.md                      | f5372beb |
 | DIARY-PRD-data-backup-and-archival               | Data Backup and Archival                                 | prd-data-backup.md                        | 52e8354f |
+| DIARY-PRD-day-disposition                        | Calendar Day Disposition                                 | prd-epistaxis.md                          |          |
 | DIARY-PRD-diary-start-day                        | Diary Start Day Definition                               | prd-mobile-app.md                         | b0c35e38 |
 | DIARY-PRD-entry-duration-check                   | Duration Reasonableness Check                            | prd-diary-entry-rules.md                  | bacdd0ae |
 | DIARY-PRD-entry-overlap-resolution               | Overlapping Event Detection and Resolution               | prd-diary-entry-rules.md                  | 1069b1e5 |
@@ -28,6 +29,7 @@
 | DIARY-PRD-evidence-timestamp-attestation         | Third-Party Timestamp Attestation Capability             | prd-evidence-records.md                   | eaee31ad |
 | DIARY-PRD-evidence-timestamp-verification        | Timestamp Verification Interface                         | prd-evidence-records.md                   | 50774a45 |
 | DIARY-PRD-help-resources                         | Help and Resources                                       | prd-help-resources.md                     | caeb1334 |
+| DIARY-PRD-incomplete-entry-preservation          | Incomplete Entry Preservation                            | prd-epistaxis.md                          |          |
 | DIARY-PRD-linking-code-entry-errors              | Linking Code Entry Error Handling                        | prd-device-linking.md                     | 1eb043a2 |
 | DIARY-PRD-linking-code-lifecycle                 | Linking Code Lifecycle Management                        | prd-participant.md                        | 6143a7c2 |
 | DIARY-PRD-mobile-application                     | Diary Mobile Application                                 | prd-mobile-app.md                         | 910bb065 |
@@ -90,6 +92,13 @@
 | DIARY-PRD-user-authentication                    | Diary User Authentication                                | prd-mobile-app.md                         | c516100c |
 | DIARY-PRD-user-authentication-pin                | Diary User Authentication — In-Application PIN Mechanism | prd-mobile-app.md                         | edd1b330 |
 
+## BASE (SPONSOR-EXCLUDABLE)
+
+| ID                                    | Title                                                         | File                     | Hash     |
+| ------------------------------------- | ------------------------------------------------------------- | ------------------------ | -------- |
+| DIARY-BASE-local-data-reset           | Local Data Reset to First-Launch State                        | base-local-data-reset.md | 824fef24 |
+| DIARY-BASE-sponsor-requested-settings | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md | a8de6e0a |
+
 ## INTERFACE
 
 | ID                                           | Title                                      | File                                      | Hash     |
@@ -141,9 +150,16 @@
 
 ## DEVELOPMENT
 
-| ID                                         | Title                                      | File                          | Hash     |
-| ------------------------------------------ | ------------------------------------------ | ----------------------------- | -------- |
-| DIARY-DEV-rave-auth-failure-classification | Rave Authentication Failure Classification | prd-rave-sync.md              | f2732c70 |
-| DIARY-DEV-runtime-environment-resolution   | Runtime Environment Resolution             | dev-environment-resolution.md | b0c74776 |
-| DIARY-DEV-schema-version-check             | Runtime Schema Version Check               | dev-schema-version-check.md   | 260cb67b |
-| DIARY-DEV-shared-events-catalog            | Shared Cross-Wire Event Catalog            | dev-shared-events-catalog.md  | b157403e |
+| ID                                         | Title                                                 | File                          | Hash     |
+| ------------------------------------------ | ----------------------------------------------------- | ----------------------------- | -------- |
+| DIARY-DEV-action-write-path                | Writes Flow Through the Action Dispatcher             | dev-mobile-event-sourcing.md  | ea6148a0 |
+| DIARY-DEV-evs-stack-adoption               | Diary Adopts the Event-Sourcing Stack                 | dev-mobile-event-sourcing.md  | 663897f8 |
+| DIARY-DEV-inbound-event-on-receipt         | Inbound Receipt Emits an Event                        | dev-mobile-event-sourcing.md  | 9143d6c4 |
+| DIARY-DEV-local-participant-authorization  | On-Device Authorization Permits the Local Participant | dev-mobile-event-sourcing.md  | 5b6674c2 |
+| DIARY-DEV-native-outbound-sync             | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md  | 5b88b915 |
+| DIARY-DEV-rave-auth-failure-classification | Rave Authentication Failure Classification            | prd-rave-sync.md              | f2732c70 |
+| DIARY-DEV-reactive-read-path               | Screens Read via Reactive Subscriptions               | dev-mobile-event-sourcing.md  | f37501bb |
+| DIARY-DEV-runtime-environment-resolution   | Runtime Environment Resolution                        | dev-environment-resolution.md | b0c74776 |
+| DIARY-DEV-schema-version-check             | Runtime Schema Version Check                          | dev-schema-version-check.md   | 260cb67b |
+| DIARY-DEV-shared-events-catalog            | Shared Cross-Wire Event Catalog                       | dev-shared-events-catalog.md  | b157403e |
+| DIARY-DEV-state-in-event-log               | Qualifying App State Lives in the Event Log           | dev-mobile-event-sourcing.md  | d6fb9049 |

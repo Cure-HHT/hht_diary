@@ -1,7 +1,7 @@
-// Verifies: DIARY-PRD-local-data-reset/B+C — HomeScreen disables the reset
+// Verifies: DIARY-BASE-local-data-reset/B+C — HomeScreen disables the reset
 //   menu item while participating (HARD safeguard) or when the sponsor setting
 //   disallows it; enables it when not-participating + setting true.
-// Verifies: DIARY-PRD-local-data-reset/D — tapping the enabled reset item shows
+// Verifies: DIARY-BASE-local-data-reset/D — tapping the enabled reset item shows
 //   the confirm dialog and invokes onResetAllData only on confirm.
 import 'dart:async';
 

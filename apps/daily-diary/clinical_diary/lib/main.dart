@@ -431,7 +431,7 @@ class _AppRootState extends State<AppRoot> {
   /// The hard participation gate lives in [HomeScreen] (a participant must end
   /// participation before this is reachable); this method assumes the gate has
   /// already allowed the reset.
-  // Implements: DIARY-PRD-local-data-reset/A
+  // Implements: DIARY-BASE-local-data-reset/A
   Future<void> _resetAllData() async {
     // 1. Capture the documents path (mirrors _initializeRuntime). path_provider
     //    has no web implementation, so the file wipe is io-only; on web the
@@ -745,7 +745,7 @@ class _AppRootState extends State<AppRoot> {
               taskService: _taskService,
               onEnrolled: _onPostEnrollment,
               onResetAllData: _resetAllData,
-              // Implements: DIARY-PRD-local-data-reset/C — the sponsor-
+              // Implements: DIARY-BASE-local-data-reset/C — the sponsor-
               //   controllable layer of the reset gate, read from the
               //   event-sourced settings projection (default true).
               resetSettingAllowsReset: allowLocalResetSetting(settingsMap),

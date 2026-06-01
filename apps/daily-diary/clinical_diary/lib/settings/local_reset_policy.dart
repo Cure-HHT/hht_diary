@@ -1,4 +1,4 @@
-// Implements: DIARY-PRD-local-data-reset/B+C — whether the participant may wipe
+// Implements: DIARY-BASE-local-data-reset/B+C — whether the participant may wipe
 //   all local data right now. A HARD safeguard forbids it while participating in
 //   a trial (regardless of any setting); a sponsor-controllable, lockable
 //   `allow_local_reset` setting layers on top.

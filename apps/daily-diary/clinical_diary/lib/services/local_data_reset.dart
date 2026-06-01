@@ -31,7 +31,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 5. Clear ALL SharedPreferences ([SharedPreferences.clear]) — wipes the
 ///    device id, disconnection / not-participating flags, and any other diary
 ///    prefs, so re-init mints a fresh device id.
-// Implements: DIARY-PRD-local-data-reset/A
+// Implements: DIARY-BASE-local-data-reset/A
 Future<void> wipeLocalData({
   required String documentsPath,
   required EnrollmentService enrollmentService,

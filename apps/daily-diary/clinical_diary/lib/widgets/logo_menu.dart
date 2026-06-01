@@ -141,7 +141,7 @@ class _LogoMenuState extends State<LogoMenu> {
               ),
             ),
           ),
-          // Implements: DIARY-PRD-local-data-reset/B+C — the reset item is
+          // Implements: DIARY-BASE-local-data-reset/B+C — the reset item is
           //   disabled (greyed, non-tapping, with a reason) while the gate is
           //   closed (participating in a trial, or sponsor-disabled).
           PopupMenuItem<String>(

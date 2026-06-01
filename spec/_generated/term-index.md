@@ -8,8 +8,12 @@
 
 **DIARY:**
 
+- DIARY-DEV-action-write-path
 - DIARY-PRD-action-inventory
 - DIARY-PRD-sla-corrective-preventive
+- DIARY-DEV-action-write-path-B
+- DIARY-DEV-inbound-event-on-receipt-B
+- DIARY-DEV-inbound-event-on-receipt-C
 - DIARY-GUI-administrator-settings-B
 - DIARY-GUI-administrator-settings-G
 - DIARY-GUI-audit-log-common-A
@@ -79,6 +83,10 @@
 - DIARY-GUI-user-information-modal-J
 - DIARY-GUI-user-information-modal-K
 - DIARY-GUI-administrator-dashboard-A
+- rem:spec/dev-mobile-event-sourcing.md:3
+- DIARY-DEV-action-write-path:section:0
+- DIARY-DEV-action-write-path:section:1
+- DIARY-DEV-inbound-event-on-receipt:section:0
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -299,8 +307,10 @@
 
 **DIARY:**
 
+- DIARY-PRD-day-disposition
 - DIARY-GUI-calendar-day-view
 - DIARY-PRD-epistaxis-capture-standard-A
+- DIARY-PRD-day-disposition-A
 - DIARY-PRD-evidence-bitcoin-timestamp-C
 - DIARY-PRD-diary-start-day-I
 - DIARY-GUI-main-screen-layout-J
@@ -319,6 +329,8 @@
 - DIARY-PRD-notification-yesterday-entry-E
 - DIARY-PRD-notification-historical-gap-A
 - DIARY-PRD-notification-historical-gap-C
+- DIARY-PRD-day-disposition:section:0
+- DIARY-PRD-day-disposition:section:1
 - DIARY-PRD-diary-start-day:section:1
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-main-screen-layout:section:5
@@ -442,6 +454,7 @@
 - DIARY-PRD-notification-yesterday-entry-A
 - DIARY-PRD-notification-yesterday-entry-D
 - DIARY-PRD-epistaxis-capture-standard:section:1
+- DIARY-PRD-day-disposition:section:1
 - DIARY-GUI-participant-task-list:section:6
 - DIARY-PRD-notification-yesterday-entry:section:0
 - DIARY-PRD-notification-yesterday-entry:section:5
@@ -523,11 +536,22 @@
 
 **DIARY:**
 
+- DIARY-DEV-evs-stack-adoption
 - DIARY-PRD-mobile-application
 - DIARY-PRD-diary-start-day
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
+- DIARY-BASE-local-data-reset-A
 - DIARY-DEV-runtime-environment-resolution-D
+- DIARY-DEV-evs-stack-adoption-A
+- DIARY-DEV-evs-stack-adoption-B
+- DIARY-DEV-evs-stack-adoption-C
+- DIARY-DEV-action-write-path-A
+- DIARY-DEV-action-write-path-B
+- DIARY-DEV-reactive-read-path-A
+- DIARY-DEV-native-outbound-sync-A
+- DIARY-DEV-local-participant-authorization-B
+- DIARY-DEV-local-participant-authorization-D
 - DIARY-DEV-shared-events-catalog-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
@@ -535,6 +559,7 @@
 - DIARY-PRD-epistaxis-capture-standard-A
 - DIARY-PRD-epistaxis-capture-standard-B
 - DIARY-GUI-epistaxis-delete-F
+- DIARY-PRD-incomplete-entry-preservation-D
 - DIARY-PRD-evidence-timestamp-attestation-A
 - DIARY-PRD-evidence-bitcoin-timestamp-B
 - DIARY-PRD-evidence-bitcoin-timestamp-G
@@ -567,6 +592,23 @@
 - DIARY-GUI-administrator-dashboard-C
 - DIARY-GUI-administrator-dashboard-E
 - DIARY-GUI-administrator-dashboard-F
+- DIARY-BASE-local-data-reset:section:0
+- DIARY-BASE-sponsor-requested-settings:section:0
+- DIARY-BASE-sponsor-requested-settings:section:1
+- rem:spec/dev-mobile-event-sourcing.md:1
+- rem:spec/dev-mobile-event-sourcing.md:3
+- DIARY-DEV-evs-stack-adoption:section:0
+- DIARY-DEV-evs-stack-adoption:section:1
+- DIARY-DEV-state-in-event-log:section:0
+- DIARY-DEV-state-in-event-log:section:1
+- DIARY-DEV-action-write-path:section:0
+- DIARY-DEV-action-write-path:section:1
+- DIARY-DEV-reactive-read-path:section:0
+- DIARY-DEV-native-outbound-sync:section:0
+- DIARY-DEV-native-outbound-sync:section:1
+- DIARY-DEV-local-participant-authorization:section:0
+- DIARY-DEV-local-participant-authorization:section:1
+- DIARY-DEV-inbound-event-on-receipt:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
@@ -575,6 +617,8 @@
 - rem:spec/prd-diary-entry-rules.md:3
 - DIARY-PRD-entry-time-restrictions:section:4
 - DIARY-PRD-entry-overlap-resolution:section:7
+- DIARY-PRD-incomplete-entry-preservation:section:0
+- DIARY-PRD-incomplete-entry-preservation:section:1
 - rem:spec/prd-evidence-records.md:3
 - DIARY-PRD-evidence-bitcoin-timestamp:section:0
 - rem:spec/prd-mobile-app.md:3
@@ -740,7 +784,13 @@
 - DIARY-PRD-epistaxis-capture-standard-G
 - DIARY-GUI-epistaxis-delete-E
 - DIARY-GUI-epistaxis-delete-G
+- DIARY-PRD-day-disposition-A
+- DIARY-PRD-day-disposition-B
+- DIARY-PRD-day-disposition-C
+- DIARY-PRD-day-disposition-D
 - DIARY-PRD-epistaxis-capture-standard:section:1
+- DIARY-PRD-day-disposition:section:0
+- DIARY-PRD-day-disposition:section:1
 - DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:5
@@ -751,6 +801,11 @@
 ## Event Sourcing
 
 ## Event Store
+
+**DIARY:**
+
+- DIARY-DEV-inbound-event-on-receipt-B
+- DIARY-DEV-inbound-event-on-receipt:section:0
 
 ## Failed Attempt Threshold
 
@@ -1212,6 +1267,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-action-write-path-B
 - DIARY-PRD-entry-overlap-resolution-A
 - DIARY-PRD-entry-overlap-resolution-B
 - DIARY-PRD-entry-overlap-resolution-C
@@ -1230,6 +1286,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-local-participant-authorization
 - DIARY-GUI-participant-task-list
 - DIARY-PRD-participant-registration
 - DIARY-PRD-participant-link-new
@@ -1238,6 +1295,14 @@
 - DIARY-PRD-participant-reactivate
 - DIARY-GUI-participant-dashboard
 - DIARY-GUI-link-participant-flow
+- DIARY-BASE-local-data-reset-B
+- DIARY-BASE-sponsor-requested-settings-A
+- DIARY-BASE-sponsor-requested-settings-C
+- DIARY-BASE-sponsor-requested-settings-D
+- DIARY-BASE-sponsor-requested-settings-E
+- DIARY-DEV-native-outbound-sync-D
+- DIARY-DEV-local-participant-authorization-A
+- DIARY-DEV-local-participant-authorization-D
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-study-coordinator-B
 - DIARY-GUI-audit-log-cra-A
@@ -1282,6 +1347,11 @@
 - DIARY-GUI-epistaxis-delete-E
 - DIARY-GUI-epistaxis-delete-F
 - DIARY-GUI-epistaxis-delete-G
+- DIARY-PRD-day-disposition-B
+- DIARY-PRD-day-disposition-C
+- DIARY-PRD-incomplete-entry-preservation-A
+- DIARY-PRD-incomplete-entry-preservation-B
+- DIARY-PRD-incomplete-entry-preservation-C
 - DIARY-PRD-diary-start-day-B
 - DIARY-PRD-diary-start-day-C
 - DIARY-PRD-diary-start-day-H
@@ -1431,6 +1501,13 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-OPS-rave-sync-cooldown-D
 - DIARY-OPS-rave-sync-hard-lockout-B
+- DIARY-BASE-local-data-reset:section:0
+- DIARY-BASE-local-data-reset:section:1
+- DIARY-BASE-sponsor-requested-settings:section:0
+- DIARY-BASE-sponsor-requested-settings:section:1
+- DIARY-DEV-native-outbound-sync:section:1
+- DIARY-DEV-local-participant-authorization:section:0
+- DIARY-DEV-local-participant-authorization:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
@@ -1457,6 +1534,10 @@
 - DIARY-GUI-epistaxis-record:section:5
 - DIARY-GUI-epistaxis-delete:section:0
 - DIARY-GUI-epistaxis-delete:section:3
+- DIARY-PRD-day-disposition:section:0
+- DIARY-PRD-day-disposition:section:1
+- DIARY-PRD-incomplete-entry-preservation:section:0
+- DIARY-PRD-incomplete-entry-preservation:section:1
 - DIARY-PRD-help-resources:section:5
 - DIARY-PRD-mobile-application:section:1
 - DIARY-PRD-mobile-offline-first:section:1
@@ -2297,6 +2378,10 @@
 
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
+- DIARY-BASE-local-data-reset-C
+- DIARY-BASE-sponsor-requested-settings-A
+- DIARY-BASE-sponsor-requested-settings-B
+- DIARY-BASE-sponsor-requested-settings-E
 - DIARY-OPS-fcm-project-routing-A
 - DIARY-OPS-fcm-project-routing-D
 - DIARY-PRD-administrator-settings-A
@@ -2403,6 +2488,10 @@
 - DIARY-PRD-sla-regulatory-event-support-E
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-BASE-local-data-reset:section:0
+- DIARY-BASE-local-data-reset:section:1
+- DIARY-BASE-sponsor-requested-settings:section:0
+- DIARY-BASE-sponsor-requested-settings:section:1
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:762
 - rem:spec/glossary-core.md:764
@@ -2709,6 +2798,9 @@
 **DIARY:**
 
 - DIARY-PRD-privacy-policy
+- DIARY-BASE-local-data-reset-B
+- DIARY-DEV-state-in-event-log-A
+- DIARY-DEV-native-outbound-sync-C
 - DIARY-PRD-entry-time-restrictions-M
 - DIARY-PRD-evidence-timestamp-attestation-A
 - DIARY-PRD-evidence-timestamp-attestation-C
@@ -2727,6 +2819,10 @@
 - DIARY-PRD-questionnaire-sponsor-eligibility-B
 - DIARY-PRD-questionnaire-sponsor-eligibility-C
 - DIARY-PRD-sla-service-availability-J
+- DIARY-BASE-local-data-reset:section:0
+- DIARY-DEV-state-in-event-log:section:0
+- DIARY-DEV-native-outbound-sync:section:0
+- DIARY-DEV-native-outbound-sync:section:1
 - rem:spec/glossary-core.md:745
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-linking-code-entry-errors:section:4
@@ -2790,6 +2886,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-native-outbound-sync-C
 - DIARY-PRD-questionnaire-system-C
 - DIARY-PRD-questionnaire-system-E
 - DIARY-PRD-questionnaire-system:section:4
@@ -2951,6 +3048,7 @@
 - DIARY-GUI-user-information-modal-M
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-E
+- DIARY-DEV-local-participant-authorization:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
 - rem:spec/prd-audit-log.md:3

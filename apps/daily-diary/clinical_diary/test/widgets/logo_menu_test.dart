@@ -338,7 +338,7 @@ void main() {
       expect(find.text('Check for updates'), findsNothing);
     });
 
-    // Verifies: DIARY-PRD-local-data-reset/B+C — the reset item is disabled
+    // Verifies: DIARY-BASE-local-data-reset/B+C — the reset item is disabled
     //   (greyed, non-tapping, with a reason) when the gate is closed.
     testWidgets(
       'reset item is disabled with a reason when resetEnabled=false',
@@ -372,7 +372,7 @@ void main() {
       },
     );
 
-    // Verifies: DIARY-PRD-local-data-reset/B+C — when the gate is open the
+    // Verifies: DIARY-BASE-local-data-reset/B+C — when the gate is open the
     //   reset item is enabled, has no disabled reason, and fires its callback.
     testWidgets('reset item is enabled when resetEnabled=true', (tester) async {
       var called = false;
