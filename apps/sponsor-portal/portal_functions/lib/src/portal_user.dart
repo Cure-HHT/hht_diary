@@ -561,30 +561,14 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     currentSiteIds = (sitesResult.first[0] as List).cast<String>();
   }
 
-  // Non-developer admins cannot modify admin users — guards against
-  // privilege escalation (roles/sites/status changes) by a peer admin.
-  //
-  // Carve-out for REQ-CAL-p00033 (Resend Activation Email): a *pending*
-  // admin cannot sign in yet, so allowing another Administrator to
-  // resend their activation email is non-privilege-changing — the role
-  // assignment already exists and is not modified by this path. A
-  // *revoked* admin re-invite still requires Developer Admin because
-  // it would restore access. The resend body has the literal shape
-  // {'regenerate_activation': true} and no other fields, so we
-  // narrow the bypass to that exact signal.
-  final isTargetAdmin =
-      targetRoles.contains('Administrator') ||
-      targetRoles.contains('Developer Admin');
-  final isResendOnly =
-      body['regenerate_activation'] == true &&
-      body['name'] == null &&
-      body['status'] == null &&
-      body['roles'] == null &&
-      body['site_ids'] == null;
-  final allowResendBypass = isResendOnly && currentStatus == 'pending';
-  if (isTargetAdmin && !user.hasRole('Developer Admin') && !allowResendBypass) {
+  // Implements: DIARY-PRD-user-account-edit/A+H, DIARY-PRD-user-account-deactivate/A
+  // Regular Administrators may modify each other (assertion A); only a
+  // Developer Admin may modify a Developer Admin (assertion H) — the
+  // operator tier is the recovery floor for the deployment.
+  final targetIsDeveloperAdmin = targetRoles.contains('Developer Admin');
+  if (targetIsDeveloperAdmin && !user.hasRole('Developer Admin')) {
     return _jsonResponse({
-      'error': 'Only Developer Admin can modify admin users',
+      'error': 'Only Developer Admin can modify a Developer Admin account',
     }, 403);
   }
 

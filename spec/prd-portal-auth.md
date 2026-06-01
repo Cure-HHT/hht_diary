@@ -226,12 +226,14 @@ E. When a **User Account** is deactivated, the **System** SHALL terminate all ac
 
 F. When a **User Account**'s **Role** or **Site** assignment is changed, the **System** SHALL terminate all active **Sessions** associated with that **User Account** immediately.
 
+H. When the **System** terminates a **Session** under assertion E or F, the **System** SHALL reject every subsequent request authenticated by a **Session** established before the termination timestamp.
+
 **Configuration**
 
 G. The **System** SHALL support *Sponsor*-configurable **Session Idle Timeout** per deployment, with a default of 10 minutes.
 
 ### Rationale
 
-A **Session** in the **Sponsor Portal** is a high-value authentication artifact — it represents a successful two-factor login and confers access to clinical data and *User* Account management capabilities for its duration. The *Idle Timeout* caps the window in which an unattended workstation could be exploited; tracking inactivity from the *User*'s most recent interaction (rather than from *Session* creation) is the standard pattern that balances security against operational disruption. The cascade rules (*Deactivation*, *Role* change, *Site* change immediately terminate sessions) ensure that authorization changes take effect synchronously rather than waiting for the next login: a Coordinator who has lost their *Role* for cause cannot continue acting under the old *Role* until their **Session** happens to time out. *Sponsor*-configurability of the timeout duration acknowledges that the right tradeoff between security and operator disruption varies by deployment; the 10-minute default reflects clinical-portal industry baseline.
+A **Session** in the **Sponsor Portal** is a high-value authentication artifact — it represents a successful two-factor login and confers access to clinical data and *User* Account management capabilities for its duration. The *Idle Timeout* caps the window in which an unattended workstation could be exploited; tracking inactivity from the *User*'s most recent interaction (rather than from *Session* creation) is the standard pattern that balances security against operational disruption. The cascade rules (*Deactivation*, *Role* change, *Site* change immediately terminate sessions) ensure that authorization changes take effect synchronously rather than waiting for the next login: a Coordinator who has lost their *Role* for cause cannot continue acting under the old *Role* until their **Session** happens to time out. Assertion H states the enforcement obligation explicitly: terminating a **Session** must reject every request bearing that **Session** on every subsequent authenticated endpoint, not merely mark the **Session** as terminated in storage — a bookkeeping flip without an enforcement check would leave the pre-termination credential operational until natural expiry and defeat the whole cascade. *Sponsor*-configurability of the timeout duration acknowledges that the right tradeoff between security and operator disruption varies by deployment; the 10-minute default reflects clinical-portal industry baseline.
 
-*End* *Session Management* | **Hash**: a942824d
+*End* *Session Management* | **Hash**: 21fe5107
