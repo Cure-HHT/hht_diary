@@ -7,9 +7,10 @@ import 'session_token.dart';
 /// Named-role priority for choosing a default/fallback active role. Highest
 /// privilege first (mirrors the reaction example's RoleAwareTrustingValidator).
 const List<String> kPortalRolePriority = <String>[
+  'SystemOperator',
   'Administrator',
-  'Clinical Research Associate',
-  'Study Coordinator',
+  'CRA',
+  'StudyCoordinator',
 ];
 
 /// Picks the highest-priority role from [roles].

@@ -6,9 +6,10 @@ import 'package:http/http.dart' as http;
 /// Priority order for role display; roles not in this list sort last
 /// (stable relative order among unknowns).
 const List<String> _priority = <String>[
+  'SystemOperator',
   'Administrator',
-  'Clinical Research Associate',
-  'Study Coordinator',
+  'CRA',
+  'StudyCoordinator',
 ];
 
 /// Returns true when a role-switching selector should be shown.
@@ -77,18 +78,21 @@ class RoleSelector extends StatelessWidget {
   /// Optional HTTP client; defaults to a fresh [http.Client] if omitted.
   final http.Client? httpClient;
 
-  http.Client get _http => httpClient ?? http.Client();
-
   Future<void> _switch(String role) async {
-    final r = await _http.post(
-      Uri.parse('$serverUrl/session/active-role'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $sessionToken',
-      },
-      body: jsonEncode({'role': role}),
-    );
-    if (r.statusCode == 200) await onSwitched();
+    final client = httpClient ?? http.Client();
+    try {
+      final r = await client.post(
+        Uri.parse('$serverUrl/session/active-role'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $sessionToken',
+        },
+        body: jsonEncode({'role': role}),
+      );
+      if (r.statusCode == 200) await onSwitched();
+    } finally {
+      if (httpClient == null) client.close();
+    }
   }
 
   @override
