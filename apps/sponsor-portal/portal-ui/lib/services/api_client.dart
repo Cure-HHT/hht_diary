@@ -4,6 +4,7 @@
 //
 // HTTP client for portal API calls with authentication
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -152,6 +153,21 @@ class ApiClient {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return ApiResponse(statusCode: response.statusCode, data: data);
       } else {
+        // Implements: DIARY-PRD-session-management/H
+        // The server emits {"code":"session_revoked"} on a 403 when
+        // the user's session was terminated server-side (admin changed
+        // their roles/sites or deactivated them). Sign out so the
+        // router redirects to /login instead of leaving the user
+        // staring at a localized "Failed to load X" error. We only
+        // act on this specific code; ordinary per-endpoint 403s
+        // (insufficient permission for one action) continue to bubble
+        // to the calling widget unchanged. Fire-and-forget — the
+        // resulting authStateChanges event drives the redirect.
+        if (response.statusCode == 403 &&
+            data is Map &&
+            data['code'] == 'session_revoked') {
+          unawaited(_authService.signOut());
+        }
         return ApiResponse(
           statusCode: response.statusCode,
           error: data is Map ? (data['error'] as String?) : 'Request failed',
