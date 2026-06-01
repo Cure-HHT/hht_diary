@@ -1,9 +1,13 @@
 // Verifies: DIARY-DEV-portal-reaction-server/A
 // Verifies: DIARY-PRD-action-inventory/A+B
+// Verifies: DIARY-DEV-audit-log-read/A+B
+import 'dart:convert';
+
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_server_evs/portal_server_evs.dart';
 import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
+import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 ActionContext _ctx(Principal p) => ActionContext(
@@ -222,5 +226,42 @@ void main() {
       ]),
       reason: 'admin granted the operational view-read permissions',
     );
+  });
+
+  test(
+      'GET /audit: admin (portal.audit.view) -> 200 with {rows, count}; '
+      'coordinator (no portal.audit.view) -> 403', () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('skeleton-audit.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+    );
+    addTearDown(boot.dispose);
+
+    // Administrator holds portal.audit.view (per role_seed) -> 200.
+    final adminResp = await boot.router(
+      Request(
+        'GET',
+        Uri.parse('http://localhost/audit?limit=5'),
+        headers: const {'Authorization': 'Bearer admin-1:Administrator'},
+      ),
+    );
+    expect(adminResp.statusCode, 200);
+    final body = jsonDecode(await adminResp.readAsString());
+    expect(body, isA<Map<String, Object?>>());
+    expect((body as Map)['rows'], isA<List<Object?>>());
+    expect(body['count'], isA<int>());
+    expect(body['count'], (body['rows'] as List).length,
+        reason: 'count reflects the number of returned rows');
+
+    // StudyCoordinator lacks portal.audit.view -> 403 from our gate.
+    final coordResp = await boot.router(
+      Request(
+        'GET',
+        Uri.parse('http://localhost/audit'),
+        headers: const {'Authorization': 'Bearer sc-1:StudyCoordinator'},
+      ),
+    );
+    expect(coordResp.statusCode, 403);
   });
 }

@@ -1,6 +1,7 @@
 // Implements: DIARY-DEV-portal-reaction-server/A — composes ReactionHandlers over
 //   openPortalEventStore + buildPortalDispatcher, exposing GET /me, POST /actions,
 //   and the WS /subscriptions endpoint, plus a boot seed.
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:event_sourcing/event_sourcing.dart';
@@ -10,6 +11,7 @@ import 'package:reaction/reaction.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
+import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
 
 /// Composed server: the top-level shelf [router] (ready for shelf_io.serve),
@@ -190,12 +192,41 @@ Future<PortalServerBoot> bootstrapPortalServer({
     }
   }
 
+  // Audit-trail read, gated to principals holding portal.audit.view. Reads the
+  // event log reverse-chronological and maps each event to an audit row via the
+  // shared auditRowJson mapper. The authenticated Principal is attached by
+  // authMiddleware and read via principalFromContext.
+  // Implements: DIARY-DEV-audit-log-read/A+B
+  Future<Response> auditHandler(Request request) async {
+    final principal = principalFromContext(request);
+    final Iterable<String> perms;
+    if (principal is UserPrincipal) {
+      final eff = await policy.effectivePermissionsFor(principal);
+      perms = eff.rolePermissions.map((p) => p.name);
+    } else {
+      perms = const <String>[];
+    }
+    if (!auditAccessAllowed(perms)) {
+      return Response.forbidden('requires $auditViewPermission');
+    }
+    final requested =
+        int.tryParse(request.url.queryParameters['limit'] ?? '') ?? 200;
+    final limit = requested.clamp(1, 1000);
+    final events = await backend.readEventsReverse().take(limit).toList();
+    final rows = events.map(auditRowJson).toList();
+    return Response.ok(
+      jsonEncode(<String, Object?>{'rows': rows, 'count': rows.length}),
+      headers: const {'Content-Type': 'application/json'},
+    );
+  }
+
   final httpRouter = Router()
     ..get('/me', handlers.me)
     ..post('/actions', handlers.actions)
     // The client's permission source reads this to drive PermissionGate; without
     // it every gate fails closed (no widgets render, for any role).
     ..get('/permissions/snapshot', handlers.permissions)
+    ..get('/audit', auditHandler)
     ..post('/admin/rave-sync', raveSyncHandler);
 
   final httpPipeline = const Pipeline()
