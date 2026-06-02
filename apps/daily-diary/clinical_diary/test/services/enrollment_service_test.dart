@@ -682,7 +682,9 @@ void main() {
           linkingCode: 'CAOLDCODE',
         );
         mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
-        SharedPreferences.setMockInitialValues({'participant_disconnected': true});
+        SharedPreferences.setMockInitialValues({
+          'participant_disconnected': true,
+        });
 
         service = EnrollmentService(
           secureStorage: mockStorage,
@@ -735,7 +737,9 @@ void main() {
           enrolledAt: DateTime.now(),
         );
         mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
-        SharedPreferences.setMockInitialValues({'participant_disconnected': false});
+        SharedPreferences.setMockInitialValues({
+          'participant_disconnected': false,
+        });
 
         service = EnrollmentService(
           secureStorage: mockStorage,

@@ -1396,8 +1396,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // reload. CUR-1398: pull-to-refresh re-pulls /tasks so the patient has a
       // manual recovery path when FCM is slow or fails (questionnaires shown as
       // "Sent" in the portal but not yet surfaced on the home screen).
-      onRefresh: () =>
-          widget.taskService.syncTasks(widget.enrollmentService),
+      onRefresh: () => widget.taskService.syncTasks(widget.enrollmentService),
       child: Scrollbar(
         thumbVisibility: true,
         controller: _scrollController,
