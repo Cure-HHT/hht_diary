@@ -110,6 +110,28 @@ void main() {
     expect(events.where((e) => e.eventType == 'user_activated'), isEmpty);
   });
 
+  test('POST with non-IdentityAdmin provisioning failure -> 502, no event',
+      () async {
+    // e.g. the local-dev ADC/credential-acquisition failure (invalid_rapt)
+    // thrown by the Identity Platform client before the REST call — NOT an
+    // IdentityAdminException. The handler must return a clean 502, not a 500.
+    final code = store.issue(
+        email: 'jane@site.org', expiresAt: t0.add(const Duration(days: 14)));
+    final r = router(
+      provision: (
+              {required email,
+              required displayName,
+              required password}) async =>
+          throw StateError(
+              'Failed to obtain access credentials (invalid_rapt)'),
+    );
+    final resp = await r.call(Request('POST', Uri.parse('http://x/activate'),
+        body: jsonEncode({'code': code, 'password': 'pw123456'})));
+    expect(resp.statusCode, 502);
+    final events = await eventStore.backend.findAllEvents();
+    expect(events.where((e) => e.eventType == 'user_activated'), isEmpty);
+  });
+
   test('POST with malformed body -> 400, no event', () async {
     final resp = await router().call(
         Request('POST', Uri.parse('http://x/activate'), body: 'not json'));

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_identity/portal_identity.dart';
@@ -73,7 +74,26 @@ Router buildActivationRouter({
     try {
       provisioned = await provision(
           email: found.email, displayName: found.email, password: password);
-    } on IdentityAdminException {
+    } on IdentityAdminException catch (e) {
+      stderr.writeln('[activate] identity provisioning failed: $e');
+      return _json({'ok': false, 'message': 'Activation failed, please retry.'},
+          status: 502);
+    } catch (e) {
+      // Any other provisioning failure. The common local-dev case: the auth
+      // emulator isn't configured, so provisioning falls through to real
+      // Identity Platform via Application Default Credentials and fails (e.g.
+      // invalid_grant / invalid_rapt). Return a clean handled 502 instead of a
+      // raw 500, and print a dev hint to the server console.
+      stderr.writeln('[activate] identity provisioning failed: $e');
+      final emulator = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'];
+      if (emulator == null || emulator.isEmpty) {
+        stderr.writeln(
+          '[activate] HINT: FIREBASE_AUTH_EMULATOR_HOST is not set, so '
+          'provisioning used Application Default Credentials against real '
+          'Identity Platform. For local dev, start the auth emulator and set '
+          'FIREBASE_AUTH_EMULATOR_HOST + PORTAL_IDENTITY_PROJECT_ID.',
+        );
+      }
       return _json({'ok': false, 'message': 'Activation failed, please retry.'},
           status: 502);
     }
