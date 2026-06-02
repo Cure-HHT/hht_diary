@@ -63,6 +63,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // env-based selection below.
   RaveClient? raveClient,
   IdempotencyStore? idempotency,
+  // Optional, env-driven Administrator seed for session mode (real Identity
+  // Platform auth has no dev login, so a real admin must exist to drive E2E).
+  // Falls back to PORTAL_BOOTSTRAP_ADMIN_EMAIL. null/empty = no-op. Applied
+  // ONCE, inside the seed-once gate, so restarts do not re-append it. Keyed by
+  // email because the portal's user identity is the email address; the IdP
+  // account + portal user are provisioned out-of-band via activation later.
+  String? bootstrapAdminEmail,
 }) async {
   // 1. Event store (registers role_permission_grants, user_role_scopes,
   //    participant_site_index, portal entry types + framework types).
@@ -196,6 +203,28 @@ Future<PortalServerBoot> bootstrapPortalServer({
         ),
       ]),
     );
+
+    // 4a. Optional env-driven Administrator seed. In session mode there is no
+    //     dev login, so a real admin must exist to drive the E2E flows. Seeds
+    //     ONLY the role assignment (Administrator, all sites); the portal user
+    //     record + IdP account are created out-of-band via activation later.
+    //     Keyed by email (the portal's user identity). Inside the seed-once
+    //     gate so restarts do not re-append it; default null/empty is a no-op.
+    // Implements: DIARY-DEV-portal-durable-event-store/C
+    final adminEmail = bootstrapAdminEmail ??
+        Platform.environment['PORTAL_BOOTSTRAP_ADMIN_EMAIL'];
+    if (adminEmail != null && adminEmail.isNotEmpty) {
+      await bootstrapRoleAssignments(
+        eventStore: eventStore,
+        seed: RoleAssignmentSeed(entries: <RoleAssignmentSeedEntry>[
+          RoleAssignmentSeedEntry(
+            userId: adminEmail,
+            role: 'Administrator',
+            scope: const ValueWildcardScope(class_: 'site'),
+          ),
+        ]),
+      );
+    }
 
     // 4b. Boot-time RAVE sync (the on-demand handler below re-uses `ingester`).
     //     The sync runs inside try/catch and CONTINUES on error: boot must not
