@@ -21,10 +21,25 @@ import 'role_selector.dart';
 import 'sites_screen.dart';
 import 'user_accounts_screen.dart';
 
-const String _serverUrl = String.fromEnvironment(
+/// Optional compile-time override for the portal server URL. Set via
+/// `--dart-define=PORTAL_SERVER_URL=...` for `flutter run` local dev (points at
+/// the standalone server on :8084). Empty by default.
+const String _serverUrlOverride = String.fromEnvironment(
   'PORTAL_SERVER_URL',
-  defaultValue: 'http://localhost:8084',
+  defaultValue: '',
 );
+
+/// The portal server base URL.
+///
+/// In the deployed / local-stack bundle the SPA is served by nginx and must
+/// talk to its OWN browser origin: the reaction client builds WS/HTTP URLs via
+/// `baseUrl.replace(...)`, which needs an absolute base carrying a host. A
+/// single bundle serves every environment, so the origin is resolved at RUNTIME
+/// from [Uri.base] rather than baked in. When the compile-time override is set
+/// (local dev), it wins.
+final String _serverUrl = _serverUrlOverride.isNotEmpty
+    ? _serverUrlOverride
+    : Uri.base.origin;
 
 /// When true, renders the firebase_auth Login + OTP screens instead of the
 /// dev ConnectScreen. DEFAULT off — the existing dev path is unchanged.
