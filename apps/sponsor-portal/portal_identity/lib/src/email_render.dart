@@ -55,6 +55,30 @@ If you did not try to sign in, contact your Administrator.
   return RenderedEmail(subject: subject, text: text, html: html);
 }
 
+// Implements: DIARY-DEV-portal-reset-code-lifecycle/A
+RenderedEmail buildPasswordResetEmail({
+  required String recipientEmail,
+  required String resetUrl,
+}) {
+  const subject = 'Reset your Clinical Trial Portal password';
+  final text = '''
+We received a request to reset your Clinical Trial Portal password.
+
+Set a new password using the link below (valid for 24 hours, single use):
+
+$resetUrl
+
+If you did not request this, you can ignore this email — your password is unchanged.
+''';
+  final html = '''
+<p>We received a request to reset your Clinical Trial Portal password.</p>
+<p>Set a new password using the link below (valid for 24 hours, single use):</p>
+<p><a href="$resetUrl">$resetUrl</a></p>
+<p>If you did not request this, you can ignore this email — your password is unchanged.</p>
+''';
+  return RenderedEmail(subject: subject, text: text, html: html);
+}
+
 /// Masks an email to `x***@y***.tld` so responses never echo the full address.
 // Implements: DIARY-DEV-portal-activation-email-delivery/B
 String maskEmail(String email) {

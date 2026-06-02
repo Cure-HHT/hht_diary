@@ -22,4 +22,13 @@ void main() {
     expect(e.text, contains('123456'));
     expect(e.html, contains('123456'));
   });
+
+  test('password reset email contains the reset link', () {
+    final e = buildPasswordResetEmail(
+        recipientEmail: 'jane@site.org', resetUrl: 'https://p/?reset=R-1');
+    expect(e.subject.toLowerCase(), contains('password'));
+    expect(e.text, contains('https://p/?reset=R-1'));
+    expect(e.html, contains('https://p/?reset=R-1'));
+    expect(e.text.toLowerCase(), contains('24'));
+  });
 }
