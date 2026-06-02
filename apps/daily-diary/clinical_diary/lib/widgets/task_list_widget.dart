@@ -16,7 +16,12 @@ import 'package:trial_data_types/trial_data_types.dart';
 /// Shows actionable items (questionnaires, incomplete records, etc.)
 /// sorted by priority per REQ-CAL-p00081-C.
 class TaskListWidget extends StatelessWidget {
-  const TaskListWidget({required this.taskService, this.onTaskTap, super.key});
+  const TaskListWidget({
+    required this.taskService,
+    this.onTaskTap,
+    this.limit,
+    super.key,
+  });
 
   final TaskService taskService;
 
@@ -24,12 +29,20 @@ class TaskListWidget extends StatelessWidget {
   /// REQ-CAL-p00081-D)
   final ValueChanged<Task>? onTaskTap;
 
+  /// When set, render at most [limit] highest-priority tasks. Used by the home
+  /// screen to show only the single top task in its collapsed inline slot;
+  /// null (the default) renders the full list (e.g. on the Important page).
+  final int? limit;
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: taskService,
       builder: (context, _) {
-        final tasks = taskService.tasks;
+        final allTasks = taskService.tasks;
+        final tasks = limit == null
+            ? allTasks
+            : allTasks.take(limit!).toList(growable: false);
         if (tasks.isEmpty) return const SizedBox.shrink();
 
         return Column(

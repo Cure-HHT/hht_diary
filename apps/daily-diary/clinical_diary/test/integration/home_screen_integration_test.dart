@@ -30,7 +30,7 @@
 //     HomeScreen -> EventListItem and surfaces in the rendered list with the
 //     FlashHighlight wrapper applied.
 //  2. A pre-recorded incomplete event surfaces both as an EventListItem AND
-//     as the orange "Tap to complete" banner.
+//     as the orange incomplete-records banner.
 //  3. The yesterday banner hides once a yesterday-dated entry exists.
 //  4. The LogoMenu opens, navigates to the Licenses page, and the legacy
 //     "Check for updates" affordance is gone (CUR-990).
@@ -268,7 +268,7 @@ void main() {
 
     // -----------------------------------------------------------------------
     // 2. End-to-end: a checkpointed (incomplete) event renders both as a
-    //    list item AND as the orange "Tap to complete" banner above the list.
+    //    list item AND as the orange incomplete-records banner above the list.
     // -----------------------------------------------------------------------
     testWidgets(
       'incomplete (checkpoint) event surfaces in list and incomplete banner',
@@ -285,8 +285,10 @@ void main() {
 
         // Surfaces as one list item.
         expect(find.byType(EventListItem), findsOneWidget);
-        // The "Tap to complete" affordance on the orange incomplete banner.
-        expect(find.text('Tap to complete'), findsOneWidget);
+        // The orange incomplete banner shows its count (as the only active
+        // important item it occupies the inline top slot). The "tap to
+        // complete" affordance is now the banner's chevron + tooltip.
+        expect(find.text('1 incomplete record'), findsOneWidget);
       },
     );
 

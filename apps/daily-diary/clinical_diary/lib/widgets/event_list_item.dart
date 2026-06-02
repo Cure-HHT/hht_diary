@@ -265,12 +265,15 @@ class EventListItem extends StatelessWidget {
     AppLocalizations l10n,
     String locale,
   ) {
-    // Fixed widths for column alignment
-    // Time column: "12:59 AM" needs ~80px, 24h "23:59" needs ~45px
+    // Fixed column widths for cross-row alignment (these fit horizontally even
+    // worst-case at the narrowest supported 360dp width). The row's height is a
+    // MINIMUM, not fixed: with a larger or wider font (Larger Text / OpenDyslexic)
+    // the time/duration may wrap and the row grows to fit, instead of being
+    // clamped to a fixed height and overflowing. "12:59 AM" ~80px, 24h ~45px.
     final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
-    final timeWidth = use24Hour ? 45.0 : 80.0;
+    final timeWidth = use24Hour ? 52.0 : 100.0;
     const iconWidth = 32.0;
-    const durationWidth = 90.0;
+    const durationWidth = 84.0;
 
     final (durationText, isIncompleteDuration) = _getDurationInfo(l10n);
 
@@ -279,7 +282,7 @@ class EventListItem extends StatelessWidget {
 
     final timezoneText = _timezoneDisplay;
     final showTimezone = timezoneText != null;
-    final cardHeight = showTimezone ? 52.0 : 40.0;
+    final minCardHeight = showTimezone ? 52.0 : 40.0;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -289,10 +292,10 @@ class EventListItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          height: cardHeight,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: minCardHeight),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Row(
               children: [
                 // Start time - fixed width, right aligned

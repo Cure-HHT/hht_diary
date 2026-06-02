@@ -423,5 +423,89 @@ void main() {
         expect(card.color, Colors.yellow.shade50);
       });
     });
+
+    // The nosebleed row must not overflow at the smallest/largest supported
+    // logical widths under large text scales (Larger Text / OpenDyslexic widen
+    // or wrap the time). The row height is a MINIMUM that grows to fit; column
+    // widths are fixed and fit the narrowest 360dp worst-case.
+    group('responsive layout (no overflow across sizes/scales)', () {
+      // Supported logical widths: Android compact 360, iPhone SE 375, large 412.
+      const widths = <double>[360, 375, 412];
+      // 1.0 baseline; 2.0/3.0 force the time to wrap (as OpenDyslexic does at the
+      // app's 1.2x), exercising grow-not-clamp well beyond the shipped range.
+      const scales = <double>[1.0, 2.0, 3.0];
+
+      Future<void> pumpRow(
+        WidgetTester tester, {
+        required double width,
+        required double scale,
+        required Widget child,
+      }) async {
+        await tester.pumpWidget(
+          wrapWithScaffold(
+            Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(scale)),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(width: width, child: child),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+      }
+
+      for (final width in widths) {
+        for (final scale in scales) {
+          testWidgets(
+            'w=${width.toInt()} scale=$scale: complete+overlap row does not '
+            'overflow',
+            (tester) async {
+              final view = buildEpistaxisView(
+                startTime: DateTime(2024, 1, 15, 12, 59),
+                endTime: DateTime(2024, 1, 15, 14, 58),
+                intensity: NosebleedIntensity.gushing,
+              );
+              await pumpRow(
+                tester,
+                width: width,
+                scale: scale,
+                child: EventListItem(
+                  view: view,
+                  hasOverlap: true,
+                  onTap: () {},
+                ),
+              );
+              expect(
+                tester.takeException(),
+                isNull,
+                reason: 'overflow at width=$width scale=$scale',
+              );
+            },
+          );
+        }
+      }
+
+      testWidgets('incomplete row (edit + overlap icons) fits 360dp @ 2x', (
+        tester,
+      ) async {
+        final view = buildEpistaxisView(
+          startTime: DateTime(2024, 1, 15, 12, 59),
+          intensity: NosebleedIntensity.gushing,
+          isComplete: false,
+        );
+        await pumpRow(
+          tester,
+          width: 360,
+          scale: 2.0,
+          child: EventListItem(view: view, hasOverlap: true, onTap: () {}),
+        );
+        expect(tester.takeException(), isNull);
+      });
+    });
   });
 }

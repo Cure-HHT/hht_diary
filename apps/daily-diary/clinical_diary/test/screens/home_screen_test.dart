@@ -22,6 +22,7 @@ import 'dart:async';
 import 'package:clinical_diary/read/diary_incomplete_projection.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
+import 'package:clinical_diary/screens/important_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/task_service.dart';
@@ -322,8 +323,10 @@ void main() {
           incomplete: [epistaxisRow(today, aggregateId: 'agg-incomplete-1')],
         );
 
-        // The orange incomplete-records reminder copy ("Tap to complete") shows.
-        expect(find.text('Tap to complete'), findsOneWidget);
+        // The orange incomplete-records reminder shows its count. As the only
+        // active important item it occupies the inline top slot (no collapse).
+        expect(find.text('1 incomplete record'), findsOneWidget);
+        expect(find.textContaining('more important item'), findsNothing);
       },
     );
 
@@ -433,6 +436,56 @@ void main() {
       );
 
       expect(find.textContaining('needs resolving'), findsOneWidget);
+    });
+
+    // Verifies: DIARY-GUI-main-screen-layout-A — when more than one important
+    //   item is active, only the single most-urgent one shows inline and the
+    //   rest collapse into one "N more important items" row (so the alert area
+    //   stays bounded regardless of how many fire at once).
+    testWidgets(
+      'multiple alerts collapse: top inline + "N more important items" row',
+      (tester) async {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day, 10);
+        // Disconnection (highest priority) + an incomplete record = two alerts.
+        await enrollment.setDisconnected(true);
+        await pumpScreen(
+          tester,
+          incomplete: [epistaxisRow(today, aggregateId: 'agg-inc-1')],
+        );
+
+        // Disconnection wins the inline top slot.
+        expect(find.byType(DisconnectionBanner), findsOneWidget);
+        // The incomplete alert collapses into the summary row...
+        expect(find.text('1 more important item'), findsOneWidget);
+        // ...and is therefore NOT shown inline on the home screen.
+        expect(find.text('1 incomplete record'), findsNothing);
+      },
+    );
+
+    // Verifies: DIARY-GUI-main-screen-layout-A — the collapsed summary row
+    //   opens the Important page listing every active item.
+    testWidgets('the summary row opens the Important page with all items', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day, 10);
+      await enrollment.setDisconnected(true);
+      await pumpScreen(
+        tester,
+        incomplete: [epistaxisRow(today, aggregateId: 'agg-inc-1')],
+      );
+
+      await tester.tap(find.text('1 more important item'));
+      await _settle(tester);
+
+      expect(find.byType(ImportantScreen), findsOneWidget);
+      expect(find.text('Important'), findsOneWidget);
+      // The full list: the Alerts section shows both the top item and the one
+      // that was collapsed on the home screen.
+      expect(find.text('ALERTS'), findsOneWidget);
+      expect(find.text('Disconnected from Study'), findsWidgets);
+      expect(find.text('1 incomplete record'), findsOneWidget);
     });
   });
 }

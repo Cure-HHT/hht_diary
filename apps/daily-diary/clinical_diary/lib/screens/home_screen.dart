@@ -11,6 +11,7 @@ import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/day_disposition.dart';
+import 'package:clinical_diary/screens/important_screen.dart';
 import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
@@ -871,7 +872,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildScaffold(BuildContext context, DiaryView view) {
     // Top-to-bottom areas: header · alerts · notifications · yesterday+today ·
     // record. Each is a clearly-delimited region below.
-    final incompleteEntries = view.incompleteEntries;
+    final incompleteCount = view.incompleteEntries.length;
     final overlapCount = overlapPairs(view).length;
     return Scaffold(
       body: SafeArea(
@@ -1011,135 +1012,55 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
 
-            // -- 2. ALERTS (errors) -----------------------------------------
-            if (!_isLoading) ...[
-              // Wedge banner: at least one destination FIFO is wedged on a
-              // unknown event-type bridge mismatch — patient should update
-              // the app to drain it.
-              if (_hasWedgedFifo) const _SyncWedgedBanner(),
-
-              // REQ-CAL-p00077: Disconnection banner (red, persistent, non-dismissible per REQ-p05004)
-              if (_isDisconnected)
-                DisconnectionBanner(
-                  siteName: _siteName,
-                  sitePhoneNumber: _sitePhoneNumber,
-                ),
-
-              // Incomplete records banner (orange)
-              // Incomplete-entry reminder (preserves in-progress entries).
-              // Implements: DIARY-PRD-incomplete-entry-preservation/B
-              if (incompleteEntries.isNotEmpty)
-                Builder(
-                  builder: (context) {
-                    final l10n = AppLocalizations.of(context);
-                    return InkWell(
-                      onTap: () => _handleIncompleteRecordsClick(view),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              color: Colors.orange.shade800,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                l10n.incompleteRecordCount(
-                                  incompleteEntries.length,
-                                ),
-                                style: TextStyle(
-                                  color: Colors.orange.shade800,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              l10n.tapToComplete,
-                              style: TextStyle(
-                                color: Colors.orange.shade600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-
-              // Unresolved-overlap banner. Uses amber (not the orange of the
-              // incomplete-record banner above) to read as a distinct, lower-
-              // urgency alert. Persistent until every overlapping pair resolves.
-              // Implements: DIARY-PRD-entry-overlap-resolution/B
-              if (overlapCount > 0)
-                InkWell(
-                  onTap: () => _handleResolveOverlaps(view),
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.merge_type,
-                          color: Colors.amber.shade900,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          // TODO(i18n): localize + pluralize.
-                          child: Text(
-                            overlapCount == 1
-                                ? '1 overlapping record needs resolving'
-                                : '$overlapCount overlapping records need resolving',
-                            style: TextStyle(
-                              color: Colors.amber.shade900,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        // TODO(i18n): localize.
-                        Text(
-                          'Resolve',
-                          style: TextStyle(
-                            // Lower-contrast call-to-action, matching the
-                            // shade-step-down on the incomplete-record banner.
-                            color: Colors.amber.shade700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // -- 3. NOTIFICATIONS ------------------------------------------
-              // Task list (questionnaires) — kept on the legacy TaskService
-              // path. CUR-1164: Hide while disconnected — no valid questionnaires.
-              if (!_isDisconnected)
-                TaskListWidget(
-                  taskService: widget.taskService,
-                  onTaskTap: _navigateToQuestionnaire,
-                ),
-              // The yesterday confirmation prompt now lives in the Yesterday
-              // section of the events block below, not as a separate banner.
-            ],
+            // -- 2 & 3. ALERTS + NOTIFICATIONS ------------------------------
+            // The single most-urgent "important item" shows inline (top slot);
+            // everything else collapses into one "N more important items" row
+            // that opens the Important page. This keeps the home screen
+            // uncluttered and bounded no matter how many alerts/tasks fire at
+            // once. Priority: disconnection > sync-wedged > incomplete >
+            // overlap > tasks.
+            // Implements: DIARY-GUI-main-screen-layout-A+C
+            // NOTE: the inline-top + collapse model is not yet in the
+            // requirement's assertions (which still describe separate notice +
+            // task zones); divergence to be reconciled in a later spec pass.
+            if (!_isLoading)
+              ListenableBuilder(
+                listenable: widget.taskService,
+                builder: (context, _) {
+                  final alerts = _buildAlerts(
+                    context,
+                    view,
+                    incompleteCount,
+                    overlapCount,
+                  );
+                  // Tasks are hidden while disconnected (no valid
+                  // questionnaires — CUR-1164).
+                  final tasks = _isDisconnected
+                      ? const <Task>[]
+                      : widget.taskService.tasks;
+                  final totalImportant = alerts.length + tasks.length;
+                  // Top slot: the most-urgent alert, else the top task.
+                  final topInline = alerts.isNotEmpty
+                      ? alerts.first.banner
+                      : (tasks.isNotEmpty
+                            ? TaskListWidget(
+                                taskService: widget.taskService,
+                                onTaskTap: _navigateToQuestionnaire,
+                                limit: 1,
+                              )
+                            : null);
+                  final moreCount = topInline == null ? 0 : totalImportant - 1;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ?topInline,
+                      if (moreCount > 0)
+                        _buildMoreImportantRow(context, moreCount, alerts),
+                    ],
+                  );
+                },
+              ),
 
             // -- 4 & 5. YESTERDAY + TODAY ----------------------------------
             // One bounded block of real-estate. It scrolls internally when
@@ -1172,19 +1093,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         elevation: 4,
                         shadowColor: Colors.black.withValues(alpha: 0.3),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.add, size: 32),
-                          const SizedBox(width: 12),
-                          Text(
-                            AppLocalizations.of(context).recordNosebleed,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
+                      // FittedBox (as the header title) scales the label down to
+                      // fit rather than overflowing with a wide/large font.
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.add, size: 32),
+                            const SizedBox(width: 12),
+                            Text(
+                              AppLocalizations.of(context).recordNosebleed,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1211,6 +1137,235 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds the active alerts in priority order (most urgent first):
+  /// disconnection > sync-wedged > incomplete > overlap. Each alert carries
+  /// both its bespoke inline banner (shown when it wins the top slot) and the
+  /// simple icon/title/onTap projection used by the Important page and the
+  /// "N more important items" summary row.
+  // Implements: DIARY-GUI-main-screen-layout-A
+  List<_HomeAlert> _buildAlerts(
+    BuildContext context,
+    DiaryView view,
+    int incompleteCount,
+    int overlapCount,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      // Disconnection (red, persistent, non-dismissible per REQ-p05004).
+      if (_isDisconnected)
+        _HomeAlert(
+          icon: Icons.warning_amber_rounded,
+          color: Colors.red.shade700,
+          // TODO(i18n): localize.
+          title: 'Disconnected from Study',
+          subtitle: 'Please contact your study site.',
+          banner: DisconnectionBanner(
+            siteName: _siteName,
+            sitePhoneNumber: _sitePhoneNumber,
+          ),
+        ),
+      // Sync wedged: a destination FIFO is wedged on an unknown event-type
+      // bridge mismatch — patient should update the app to drain it.
+      if (_hasWedgedFifo)
+        _HomeAlert(
+          icon: Icons.sync_problem,
+          color: Colors.red.shade400,
+          // TODO(i18n): localize.
+          title: 'Some data is not syncing',
+          subtitle: 'Please update the app.',
+          banner: const _SyncWedgedBanner(),
+        ),
+      // Incomplete-entry reminder (preserves in-progress entries).
+      // Implements: DIARY-PRD-incomplete-entry-preservation/B
+      if (incompleteCount > 0)
+        _HomeAlert(
+          icon: Icons.warning_amber_rounded,
+          color: Colors.orange.shade800,
+          title: l10n.incompleteRecordCount(incompleteCount),
+          onTap: () => _handleIncompleteRecordsClick(view),
+          banner: _incompleteBanner(context, view, incompleteCount),
+        ),
+      // Unresolved overlaps (amber — distinct, lower-urgency than incomplete).
+      // Implements: DIARY-PRD-entry-overlap-resolution/B
+      if (overlapCount > 0)
+        _HomeAlert(
+          icon: Icons.merge_type,
+          color: Colors.amber.shade900,
+          // TODO(i18n): localize + pluralize.
+          title: overlapCount == 1
+              ? '1 overlapping record needs resolving'
+              : '$overlapCount overlapping records need resolving',
+          onTap: () => _handleResolveOverlaps(view),
+          banner: _overlapBanner(context, view, overlapCount),
+        ),
+    ];
+  }
+
+  /// Orange incomplete-records banner (the bespoke inline form).
+  Widget _incompleteBanner(
+    BuildContext context,
+    DiaryView view,
+    int incompleteCount,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    return InkWell(
+      onTap: () => _handleIncompleteRecordsClick(view),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.orange.shade800,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l10n.incompleteRecordCount(incompleteCount),
+                style: TextStyle(
+                  color: Colors.orange.shade800,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            // Tappable affordance (whole banner is an InkWell). A chevron —
+            // rather than a second competing text label — keeps the count
+            // readable on narrow screens and at large text scales.
+            const SizedBox(width: 8),
+            Tooltip(
+              message: l10n.tapToComplete,
+              child: Icon(Icons.chevron_right, color: Colors.orange.shade600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Amber unresolved-overlap banner (the bespoke inline form).
+  Widget _overlapBanner(
+    BuildContext context,
+    DiaryView view,
+    int overlapCount,
+  ) {
+    return InkWell(
+      onTap: () => _handleResolveOverlaps(view),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.amber.shade100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.merge_type, color: Colors.amber.shade900, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              // TODO(i18n): localize + pluralize.
+              child: Text(
+                overlapCount == 1
+                    ? '1 overlapping record needs resolving'
+                    : '$overlapCount overlapping records need resolving',
+                style: TextStyle(
+                  color: Colors.amber.shade900,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // TODO(i18n): localize tooltip.
+            Tooltip(
+              message: 'Resolve',
+              child: Icon(Icons.chevron_right, color: Colors.amber.shade700),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The collapsed "N more important items" row that opens the Important page.
+  Widget _buildMoreImportantRow(
+    BuildContext context,
+    int moreCount,
+    List<_HomeAlert> alerts,
+  ) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Material(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _openImportant(context, alerts),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.notifications_none,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  // TODO(i18n): localize + pluralize.
+                  child: Text(
+                    moreCount == 1
+                        ? '1 more important item'
+                        : '$moreCount more important items',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Opens the Important page: the full alert list (page-row projection) plus
+  /// the full task list, in two sections.
+  Future<void> _openImportant(
+    BuildContext context,
+    List<_HomeAlert> alerts,
+  ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ImportantScreen(
+          alerts: [
+            for (final a in alerts)
+              ImportantAlert(
+                icon: a.icon,
+                color: a.color,
+                title: a.title,
+                subtitle: a.subtitle,
+                onTap: a.onTap,
+              ),
+          ],
+          taskService: widget.taskService,
+          onTaskTap: _navigateToQuestionnaire,
         ),
       ),
     );
@@ -1408,6 +1563,32 @@ class _GroupedRecords {
 /// Banner shown when at least one destination FIFO is wedged on a
 /// `unknown_event_type` bridge.  Surfaces the situation so the patient
 /// updates the app; underlying scope is "visible state", not UX polish.
+/// One active home alert: its bespoke inline [banner] (shown when it wins the
+/// single top slot) plus the simple icon/title/[onTap] projection used by the
+/// Important page rows and the collapsed summary count.
+class _HomeAlert {
+  const _HomeAlert({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.banner,
+    this.subtitle,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String? subtitle;
+
+  /// Action when the row/banner is tapped. Null for informational alerts
+  /// (e.g. the non-dismissible disconnection notice).
+  final VoidCallback? onTap;
+
+  /// The rich, bespoke inline banner for the home top slot.
+  final Widget banner;
+}
+
 class _SyncWedgedBanner extends StatelessWidget {
   const _SyncWedgedBanner();
 
