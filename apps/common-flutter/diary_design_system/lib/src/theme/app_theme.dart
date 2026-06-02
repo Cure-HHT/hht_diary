@@ -33,12 +33,16 @@ ThemeData buildAppTheme({
       ? AppSemanticColors.light
       : AppSemanticColors.dark;
 
+  final buttonColors = brightness == Brightness.light
+      ? AppButtonColors.light
+      : AppButtonColors.dark;
+
   return ThemeData(
     useMaterial3: true,
     brightness: brightness,
     colorScheme: colorScheme,
     textTheme: buildAppTextTheme(font),
-    extensions: <ThemeExtension<dynamic>>[semanticColors],
+    extensions: <ThemeExtension<dynamic>>[semanticColors, buttonColors],
     appBarTheme: const AppBarTheme(
       centerTitle: false,
       elevation: 0,

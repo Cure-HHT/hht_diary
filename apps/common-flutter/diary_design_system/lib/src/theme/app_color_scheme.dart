@@ -28,10 +28,10 @@ ColorScheme buildAppLightColorScheme({BrandPalette? brandOverride}) {
         brandOverride?.onSecondaryContainer ?? ColorTokens.primary800,
 
     // Semantic (NOT overridable)
-    error: ColorTokens.danger500,
-    onError: ColorTokens.neutral0,
-    errorContainer: ColorTokens.danger100,
-    onErrorContainer: ColorTokens.danger700,
+    error: ColorTokens.critical,
+    onError: ColorTokens.white,
+    errorContainer: ColorTokens.criticalBg,
+    onErrorContainer: ColorTokens.criticalDark,
 
     // Surface scale (neutral; constant)
     surface: ColorTokens.neutral0,
@@ -74,10 +74,10 @@ ColorScheme buildAppDarkColorScheme({BrandPalette? brandOverride}) {
         brandOverride?.secondaryContainer ?? ColorTokens.primary700,
     onSecondaryContainer:
         brandOverride?.onSecondaryContainer ?? ColorTokens.primary50,
-    error: ColorTokens.danger500,
-    onError: ColorTokens.neutral0,
-    errorContainer: ColorTokens.danger700,
-    onErrorContainer: ColorTokens.danger100,
+    error: ColorTokens.critical,
+    onError: ColorTokens.white,
+    errorContainer: ColorTokens.criticalDark,
+    onErrorContainer: ColorTokens.criticalBg,
     surface: ColorTokens.neutral900,
     onSurface: ColorTokens.neutral50,
     surfaceContainerLowest: ColorTokens.neutral1000,

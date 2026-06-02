@@ -11,75 +11,100 @@ import 'package:flutter/material.dart';
 /// Components consume the resolved theme (Theme.of(context)), not these
 /// constants directly. Importing this file outside src/theme/ is forbidden.
 ///
-/// TODO(CUR-1426): Reconcile each value against the Figma UI Kit color palette
-/// (file qWMfvnr455NSByXqsDcok7, node 54:9692). Some shades below are placeholders
-/// based on the existing portal teal/Carina blue; the explicit Figma palette has
-/// not yet been audited frame-by-frame.
+/// TODO(CUR-1426): Reconcile remaining values against the Figma UI Kit color
+/// palette (file qWMfvnr455NSByXqsDcok7, node 54:9692). Primary state tokens
+/// below were confirmed against Figma in Phase 3 iteration; secondary state
+/// tokens and the full neutral/semantic palettes still pending audit.
 class ColorTokens {
   ColorTokens._();
 
   // ---------------------------------------------------------------------------
-  // Brand — Carina blue (default; sponsor overrides via BrandPalette)
+  // Brand — primary (default; sponsor overrides via BrandPalette)
+  //
+  // Named state tokens are confirmed against Figma. The chromatic ladder
+  // (primary50–900) is kept for surface tints / containers but the live button
+  // states use the four named tokens below, not the ladder.
   // ---------------------------------------------------------------------------
-  static const Color primary50 = Color(0xFFE6F3FB);
-  static const Color primary100 = Color(0xFFC0E0F4);
-  static const Color primary200 = Color(0xFF96CCEC);
-  static const Color primary300 = Color(0xFF6BB8E3);
-  static const Color primary400 = Color(0xFF4AA9DC);
-  static const Color primary500 = Color(0xFF0175C2); // Carina blue
-  static const Color primary600 = Color(0xFF016BB5);
-  static const Color primary700 = Color(0xFF015FA4);
-  static const Color primary800 = Color(0xFF015393);
-  static const Color primary900 = Color(0xFF013D74);
+  static const Color primary = Color(0xFF165C7D);
+  static const Color primaryHover = Color(0xFF4094BC);
+  static const Color primaryPressed = Color(0xFF0F425A);
+  static const Color primaryDisabled = Color(0xFFE8F3F7);
+
+  // Chromatic ladder — used for surface tints / Material container slots.
+  // Realigned around the confirmed primary; intermediate shades remain
+  // estimated and will be tightened when the full Figma palette is audited.
+  static const Color primary50 = primaryDisabled;
+  static const Color primary100 = Color(0xFFCFE3EC);
+  static const Color primary200 = Color(0xFFA8CBDC);
+  static const Color primary300 = Color(0xFF7AB1C9);
+  static const Color primary400 = primaryHover;
+  static const Color primary500 = primary;
+  static const Color primary600 = Color(0xFF124F6C);
+  static const Color primary700 = primaryPressed;
+  static const Color primary800 = Color(0xFF093047);
+  static const Color primary900 = Color(0xFF051F2F);
 
   // ---------------------------------------------------------------------------
-  // Neutral — grayscale (overridable as part of BrandPalette, but rarely changed)
+  // Page background — light wash used for app shells.
   // ---------------------------------------------------------------------------
-  static const Color neutral0 = Color(0xFFFFFFFF);
-  static const Color neutral50 = Color(0xFFFAFAFA);
-  static const Color neutral100 = Color(0xFFF5F5F5);
-  static const Color neutral200 = Color(0xFFE5E5E5);
-  static const Color neutral300 = Color(0xFFD4D4D4);
-  static const Color neutral400 = Color(0xFFA3A3A3);
-  static const Color neutral500 = Color(0xFF737373);
-  static const Color neutral600 = Color(0xFF525252);
-  static const Color neutral700 = Color(0xFF404040);
-  static const Color neutral800 = Color(0xFF262626);
-  static const Color neutral900 = Color(0xFF171717);
+  static const Color primaryBg = Color(0xFFF7FAFB); // Figma: Primary Bg
+
+  // ---------------------------------------------------------------------------
+  // Neutrals — confirmed against Figma.
+  // ---------------------------------------------------------------------------
+  static const Color black = Color(0xFF04161E); // Figma: Black
+  static const Color darkGrey = Color(0xFF54636A); // Figma: Dark Grey
+  static const Color grey = Color(0xFFA4B9C2); // Figma: Grey
+  static const Color lightGray = Color(0xFFECEEF0); // Figma: Light Gray
+  static const Color white = Color(0xFFFFFFFF); // Figma: White
+
+  // Legacy chromatic ladder — preserved for Material slots that still want
+  // intermediate steps. Endpoints anchor on Figma named neutrals; intermediate
+  // shades stay as estimates until / unless Figma defines them.
+  static const Color neutral0 = white;
+  static const Color neutral50 = primaryBg;
+  static const Color neutral100 = lightGray;
+  static const Color neutral200 = Color(0xFFDDE2E5);
+  static const Color neutral300 = grey;
+  static const Color neutral400 = Color(0xFF8597A0);
+  static const Color neutral500 = Color(0xFF67767E);
+  static const Color neutral600 = darkGrey;
+  static const Color neutral700 = Color(0xFF38474E);
+  static const Color neutral800 = Color(0xFF1E2C32);
+  static const Color neutral900 = black;
   static const Color neutral1000 = Color(0xFF000000);
 
   // ---------------------------------------------------------------------------
   // Semantic — universal across sponsors. NOT overridable.
+  //
+  // Token names use technical severity (critical/pending/approved/info); these
+  // map to Figma names in comments. Consumers reach them through
+  // AppSemanticColors with API-level severity names (success/warning/error/info).
   // ---------------------------------------------------------------------------
-  static const Color danger50 = Color(0xFFFEF2F2);
-  static const Color danger100 = Color(0xFFFEE2E2);
-  static const Color danger500 = Color(0xFFDC2626);
-  static const Color danger600 = Color(0xFFB91C1C);
-  static const Color danger700 = Color(0xFF991B1B);
+  static const Color critical = Color(0xFFCB333B); // Figma: Critical (error)
+  static const Color criticalDark = Color(0xFFB42B33); // Figma: Critical Dark
+  static const Color criticalBg = Color(0xFFFDEBEC); // Figma: Critical Bg
 
-  static const Color success50 = Color(0xFFF0FDF4);
-  static const Color success100 = Color(0xFFDCFCE7);
-  static const Color success500 = Color(0xFF16A34A);
-  static const Color success600 = Color(0xFF15803D);
-  static const Color success700 = Color(0xFF166534);
+  static const Color pending = Color(0xFF8A5A00); // Figma: Pending (warning)
+  static const Color pendingDark = Color(0xFF6F4600); // Figma: Pending Dark
+  static const Color pendingBg = Color(0xFFFFF5DE); // Figma: Pending Bg
 
-  static const Color warning50 = Color(0xFFFFFBEB);
-  static const Color warning100 = Color(0xFFFEF3C7);
-  static const Color warning500 = Color(0xFFD97706);
-  static const Color warning600 = Color(0xFFB45309);
-  static const Color warning700 = Color(0xFF92400E);
+  static const Color approved = Color(0xFF1E7A51); // Figma: Approved (success)
+  static const Color approvedDark = Color(0xFF16613F); // Figma: Approved Dark
+  static const Color approvedBg = Color(0xFFEAF7F1); // Figma: Approved Bg
 
-  static const Color info50 = Color(0xFFEFF6FF);
-  static const Color info100 = Color(0xFFDBEAFE);
+  // Info — Figma did NOT define info colors. Placeholders retained until/unless
+  // a Figma decision lands. Banners with severity: info render with these.
+  // TODO(CUR-1426): confirm or remove the info severity once Figma decides.
   static const Color info500 = Color(0xFF2563EB);
-  static const Color info600 = Color(0xFF1D4ED8);
-  static const Color info700 = Color(0xFF1E40AF);
+  static const Color info100 = Color(0xFFDBEAFE);
 
   // ---------------------------------------------------------------------------
   // Status — for patient/cycle state badges. NOT overridable.
+  // Each maps to the Figma severity color of the same semantic.
   // ---------------------------------------------------------------------------
-  static const Color statusActive = success500;
-  static const Color statusAttention = warning500;
-  static const Color statusAtRisk = danger500;
-  static const Color statusNoData = neutral400;
+  static const Color statusActive = approved;
+  static const Color statusAttention = pending;
+  static const Color statusAtRisk = critical;
+  static const Color statusNoData = grey;
 }

@@ -2,6 +2,9 @@ import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:widgetbook/widgetbook.dart';
 
+import 'use_cases/app_banner.dart';
+import 'use_cases/app_button.dart';
+
 void main() {
   runApp(const DesignSystemBook());
 }
@@ -19,8 +22,11 @@ class DesignSystemBook extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Widgetbook.material(
-      directories: const [
-        // Use cases land here as each component phase ships.
+      directories: [
+        WidgetbookFolder(
+          name: 'Components',
+          children: [appButtonComponent(), appBannerComponent()],
+        ),
       ],
       addons: [
         MaterialThemeAddon(
