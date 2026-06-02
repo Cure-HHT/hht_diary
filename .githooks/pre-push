@@ -286,10 +286,16 @@ printf '%b\n' "${BLUE}Running secret detection...${NC}"
 echo ""
 
 if command -v gitleaks &> /dev/null; then
+    # Suppress the baselined historical findings (benign; see CUR-1424) so the
+    # restored ruleset is green-on-clean while still catching new leaks.
+    BASELINE_ARG=()
+    if [ -f "$REPO_ROOT/.gitleaks-baseline.json" ]; then
+        BASELINE_ARG=(--baseline-path "$REPO_ROOT/.gitleaks-baseline.json")
+    fi
     # Run gitleaks on the commits being pushed
     if [ -n "$REMOTE_BRANCH" ]; then
         # Check commits between remote and local
-        if ! gitleaks detect --source="$REPO_ROOT" --log-opts="$REMOTE_BRANCH..HEAD" --no-banner --redact 2>&1; then
+        if ! gitleaks detect --source="$REPO_ROOT" --log-opts="$REMOTE_BRANCH..HEAD" "${BASELINE_ARG[@]}" --no-banner --redact 2>&1; then
             VALIDATION_FAILED=true
             echo ""
             printf '%b\n' "${RED}Gitleaks detected secrets!${NC}"
@@ -300,7 +306,7 @@ if command -v gitleaks &> /dev/null; then
         fi
     else
         # No remote - scan the whole repo
-        if ! gitleaks detect --source="$REPO_ROOT" --no-banner --redact 2>&1; then
+        if ! gitleaks detect --source="$REPO_ROOT" "${BASELINE_ARG[@]}" --no-banner --redact 2>&1; then
             VALIDATION_FAILED=true
             echo ""
             printf '%b\n' "${RED}Gitleaks detected secrets!${NC}"

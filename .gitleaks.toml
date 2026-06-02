@@ -1,14 +1,23 @@
 # Gitleaks Configuration for Clinical Diary Project
-# Version: 2.0.0 - Simplified to use built-in rules
-# Last Updated: 2025-11-08
+# Version: 2.1.0 - Restore built-in rules; broaden github-app-token (CUR-1424)
+# Last Updated: 2026-06-01
 #
-# This configuration relies on gitleaks' built-in generic secret detection.
-# We do not define custom rules as they are too specific and don't catch
-# variations of secrets. The built-in rules are comprehensive and battle-tested.
+# This configuration uses gitleaks' built-in, battle-tested ruleset via
+# `[extend] useDefault = true`. Without that line, a present .gitleaks.toml
+# REPLACES the defaults with whatever it declares -- so a config with no
+# [[rules]] runs ZERO rules and detects nothing. The defaults are enabled
+# below; the only custom rule is a broadened github-app-token (see comment).
 #
 # Documentation: https://github.com/gitleaks/gitleaks
 
 title = "Clinical Diary Gitleaks Configuration"
+
+# =====================================================
+# Inherit gitleaks' built-in ruleset
+# =====================================================
+# REQUIRED: a present config file otherwise discards the embedded defaults.
+[extend]
+useDefault = true
 
 # =====================================================
 # Global Allowlist
@@ -68,4 +77,26 @@ regexes = [
     '''^EXAMPLE_API_KEY_VALUE$''',
     '''^EXAMPLE_SECRET_VALUE$''',
     '''^example@fake\.email$''',
+]
+
+# =====================================================
+# Custom rule overrides (merged over the built-in defaults above)
+# =====================================================
+
+# Broaden the built-in github-app-token rule for GitHub's new "stateless"
+# installation-token format (GitHub changelog 2026-05-15): ghs_-prefixed,
+# ~520 chars, base64url payload containing '.', '-' and '_'. The default
+# rule -- (?:ghu|ghs)_[0-9a-zA-Z]{36} -- is alnum-only, so it only matches a
+# new-format token when the first 36 post-prefix chars happen to be an
+# uninterrupted alnum run; a '-'/'_' inside that window makes it miss.
+# Same id as the built-in rule, so this replaces it. Pattern per GitHub's
+# guidance: ghs_[A-Za-z0-9._-]{36,}. Drop when upstream gitleaks ships a fix.
+[[rules]]
+id = "github-app-token"
+description = "Identified a GitHub App Token (stateless ghs_/ghu_ format)"
+regex = '''(?:ghu|ghs)_[0-9A-Za-z._-]{36,}'''
+entropy = 3
+keywords = [
+    "ghu_",
+    "ghs_",
 ]
