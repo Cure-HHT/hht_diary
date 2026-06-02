@@ -22,6 +22,6 @@ undeclared per-flavor key appears in either.
 | iOS bundle id | org.anspar.curehht.app.dev | org.anspar.curehht.app.qa | org.anspar.curehht.app.uat | org.anspar.curehht.app |
 | launcher metadata (app_name) | CureHHT Tracker DEV | Diary QA | Clinical Diary | Clinical Diary |
 | launcher icon | android/app/src/dev/res/mipmap-*/ic_launcher.png | android/app/src/qa/res/mipmap-*/ic_launcher.png | android/app/src/uat/res/mipmap-*/ic_launcher.png | android/app/src/prod/res/mipmap-*/ic_launcher.png |
-| native service config | android/app/google-services.json (default) | android/app/google-services.json (default) | android/app/google-services.json (default) | android/app/src/prod/google-services.json |
+| native service config | android/app/src/dev/google-services.json | android/app/src/qa/google-services.json | android/app/src/uat/google-services.json | android/app/src/prod/google-services.json |
 | iOS provisioning profile | ClinicalDiary_DEV_AppStore | ClinicalDiary_QA_AppStore | ClinicalDiary_UAT_AppStore | ClinicalDiary_PROD_AppStore |
 | code-signing identity (Doppler config) | dev | qa | uat | prod |
