@@ -1,4 +1,6 @@
-import 'package:diary_design_system/diary_design_system.dart';
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-d00029: Portal UI Design System
+
 import 'package:flutter/material.dart';
 
 final portalTheme = ThemeData(
