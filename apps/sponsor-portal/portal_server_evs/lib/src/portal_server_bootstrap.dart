@@ -62,6 +62,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // test is hermetic regardless of ambient RAVE_UAT_* env. null = the normal
   // env-based selection below.
   RaveClient? raveClient,
+  IdempotencyStore? idempotency,
 }) async {
   // 1. Event store (registers role_permission_grants, user_role_scopes,
   //    participant_site_index, portal entry types + framework types).
@@ -210,7 +211,8 @@ Future<PortalServerBoot> bootstrapPortalServer({
   );
 
   // 6. Dispatcher (registers all portal actions).
-  final dispatcher = await buildPortalDispatcher(eventStore: eventStore);
+  final dispatcher = await buildPortalDispatcher(
+      eventStore: eventStore, idempotency: idempotency);
 
   // 7. Validator selection — default is dev so the existing admin-1/sc-1
   //    workflow is unchanged. Set PORTAL_AUTH_MODE=session + PORTAL_SESSION_SIGNING_KEY

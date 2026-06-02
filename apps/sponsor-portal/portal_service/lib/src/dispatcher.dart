@@ -12,6 +12,7 @@ import 'authz.dart';
 /// fail-safe policy would silently deny every dispatch.
 Future<ActionDispatcher> buildPortalDispatcher({
   required EventStore eventStore,
+  IdempotencyStore? idempotency,
 }) async {
   final bootstrap = await buildPortalAuthorizationPolicy(
     eventStore: eventStore,
@@ -30,6 +31,6 @@ Future<ActionDispatcher> buildPortalDispatcher({
     registry: buildPortalActionRegistry(),
     authorization: policy,
     events: eventStore,
-    idempotency: InMemoryIdempotencyStore(),
+    idempotency: idempotency ?? InMemoryIdempotencyStore(),
   );
 }
