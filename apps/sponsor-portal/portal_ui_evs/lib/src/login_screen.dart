@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'firebase_auth_client.dart';
+import 'forgot_password_request_screen.dart';
 import 'login_logic.dart';
 import 'otp_screen.dart';
 
@@ -109,6 +110,16 @@ class _LoginScreenState extends State<LoginScreen> {
             FilledButton(
               onPressed: (!ready || _busy) ? null : _submit,
               child: Text(_busy ? 'Signing in…' : 'Sign in'),
+            ),
+            // Implements: DIARY-GUI-password-forgot-workflow/A
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      ForgotPasswordRequestScreen(serverUrl: widget.serverUrl),
+                ),
+              ),
+              child: const Text('Forgot password?'),
             ),
           ],
         ),

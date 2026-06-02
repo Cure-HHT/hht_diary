@@ -8,6 +8,8 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 
 import 'activation_link.dart';
 import 'activation_screen.dart';
+import 'password_reset_screen.dart';
+import 'reset_link.dart';
 import 'audit_log_screen.dart';
 import 'connect_screen.dart';
 import 'firebase_auth_client.dart';
@@ -146,6 +148,14 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     if (activationCode != null) {
       return MaterialApp(
         home: ActivationScreen(serverUrl: _serverUrl, code: activationCode),
+      );
+    }
+
+    // If the browser URL carries ?reset=, show the public password-reset screen.
+    final resetCode = resetCodeFromUri(Uri.base);
+    if (resetCode != null) {
+      return MaterialApp(
+        home: PasswordResetScreen(serverUrl: _serverUrl, code: resetCode),
       );
     }
 
