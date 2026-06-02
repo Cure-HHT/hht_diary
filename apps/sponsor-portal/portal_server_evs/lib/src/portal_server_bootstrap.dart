@@ -130,6 +130,19 @@ Future<PortalServerBoot> bootstrapPortalServer({
         role: 'StudyCoordinator',
         scope: BoundScope(class_: 'site', value: 'site-1'),
       ),
+      // A multi-role dev user so the dev quick-connect can exercise the header
+      // Role Selector + in-session switching (Administrator <-> StudyCoordinator)
+      // without the Firebase/OTP session flow. Dev-seed only.
+      RoleAssignmentSeedEntry(
+        userId: 'multi-1',
+        role: 'Administrator',
+        scope: ValueWildcardScope(class_: 'site'),
+      ),
+      RoleAssignmentSeedEntry(
+        userId: 'multi-1',
+        role: 'StudyCoordinator',
+        scope: BoundScope(class_: 'site', value: 'site-1'),
+      ),
     ]),
   );
 
