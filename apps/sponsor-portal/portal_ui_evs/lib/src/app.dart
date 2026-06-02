@@ -46,6 +46,11 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   late final StreamSubscription<AuthStatus> _authSub;
   AuthStatus _status = const NotAuthenticated();
 
+  /// Set to true after the user taps "Back to Login" on the password-reset done
+  /// view so [build] falls through to the normal auth switch instead of
+  /// re-showing the reset screen (the ?reset= code is still in the URL).
+  bool _resetDismissed = false;
+
   /// The current identity credential.
   ///
   /// In dev mode: the bare userId (or `userId|role` when a specific role was
@@ -152,10 +157,16 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     }
 
     // If the browser URL carries ?reset=, show the public password-reset screen.
+    // _resetDismissed is flipped by onBackToLogin so build() falls through to
+    // the normal auth switch after the user confirms the password change.
     final resetCode = resetCodeFromUri(Uri.base);
-    if (resetCode != null) {
+    if (resetCode != null && !_resetDismissed) {
       return MaterialApp(
-        home: PasswordResetScreen(serverUrl: _serverUrl, code: resetCode),
+        home: PasswordResetScreen(
+          serverUrl: _serverUrl,
+          code: resetCode,
+          onBackToLogin: () => setState(() => _resetDismissed = true),
+        ),
       );
     }
 

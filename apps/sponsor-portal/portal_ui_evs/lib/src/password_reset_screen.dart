@@ -15,10 +15,15 @@ class PasswordResetScreen extends StatefulWidget {
     required this.serverUrl,
     required this.code,
     this.httpClient,
+    this.onBackToLogin,
   });
   final String serverUrl;
   final String code;
   final http.Client? httpClient;
+
+  /// Called when the user taps "Back to Login" on the success (done) view.
+  /// If null, falls back to [Navigator.maybePop].
+  final VoidCallback? onBackToLogin;
 
   @override
   State<PasswordResetScreen> createState() => _PasswordResetScreenState();
@@ -135,7 +140,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         Text(_done!, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 24),
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed:
+              widget.onBackToLogin ?? () => Navigator.of(context).maybePop(),
           child: const Text('Back to Login'),
         ),
       ],

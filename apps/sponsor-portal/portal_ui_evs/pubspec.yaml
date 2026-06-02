@@ -2,7 +2,7 @@ name: portal_ui_evs
 description: "Event-sourced portal UI (reaction_widgets reactive web client over portal_server_evs). Beta rebuild of portal-ui."
 publish_to: 'none'
 
-version: 1.4.0+14
+version: 1.4.1+15
 
 environment:
   sdk: ^3.10.7

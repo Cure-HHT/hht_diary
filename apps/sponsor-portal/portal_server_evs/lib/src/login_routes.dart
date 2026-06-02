@@ -25,6 +25,7 @@ Response _json(Object? body, {int status = 200}) => Response(
 /// Public login routes — mount OUTSIDE authMiddleware (no session yet).
 // Implements: DIARY-DEV-portal-login-identity-verification/A+B
 // Implements: DIARY-DEV-portal-login-second-factor/A+B+C
+// Implements: DIARY-DEV-portal-reset-session-termination/B
 // Implements: DIARY-DEV-portal-session-token/A
 Router buildLoginRouter({
   required EventStore eventStore,
