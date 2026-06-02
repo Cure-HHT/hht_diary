@@ -1,165 +1,117 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 
-/// App theme configuration
+/// Mobile app theme — thin wrapper around `diary_design_system`'s `buildAppTheme`.
+///
+/// All real theme construction now lives in the shared package. This class
+/// preserves the legacy string-typed API one release for safety; new call sites
+/// should use [buildAppTheme] directly with [AppFontFamily].
 class AppTheme {
-  // Brand colors - calming teal for health/medical app
-  static const Color primaryTeal = Color(0xFF0D9488); // teal-600
-  static const Color primaryTealDark = Color(0xFF0F766E); // teal-700
-  static const Color primaryTealLight = Color(0xFF14B8A6); // teal-500
+  AppTheme._();
 
-  // Intensity indicator colors (neutral scale, not alarming)
-  static const Color intensityLow = Color(0xFFE0F2FE); // sky-100
-  static const Color intensityMedium = Color(0xFFFEF3C7); // amber-100
-  static const Color intensityHigh = Color(0xFFFFE4E6); // rose-100
+  // ---------------------------------------------------------------------------
+  // Font family constants — kept for backward compatibility with FontOption
+  // (lib/config/feature_flags.dart) and any persisted preference values.
+  // ---------------------------------------------------------------------------
 
-  // Warning/Alert colors
-  static const Color warningYellow = Color(0xFFFEF9C3); // yellow-50
-  static const Color warningOrange = Color(0xFFFFEDD5); // orange-100
-  static const Color infoBlue = Color(0xFFDBEAFE); // blue-100
-
-  /// OpenDyslexic font family name for dyslexia-friendly text
-  @Deprecated('Use fontFamilyName instead')
+  /// OpenDyslexic font family name (CUR-528).
+  @Deprecated('Use AppFontFamily.openDyslexic from diary_design_system')
   static const String openDyslexicFontFamily = 'OpenDyslexic';
 
-  /// CUR-528: Atkinson Hyperlegible font family name
+  /// Atkinson Hyperlegible font family name (CUR-528).
+  @Deprecated('Use AppFontFamily.atkinsonHyperlegible from diary_design_system')
   static const String atkinsonHyperlegibleFontFamily = 'AtkinsonHyperlegible';
 
-  /// Get light theme with optional dyslexia-friendly font
-  @Deprecated('Use getLightThemeWithFont instead')
+  // ---------------------------------------------------------------------------
+  // Legacy color constants — preserved to avoid breaking outside callers, but
+  // the live theme now uses Carina blue (decision #7 in the design system plan).
+  // Callers reading these should migrate to `Theme.of(context).colorScheme`.
+  // ---------------------------------------------------------------------------
+
+  @Deprecated('Use Theme.of(context).colorScheme.primary')
+  static const Color primaryTeal = Color(0xFF0D9488);
+
+  @Deprecated('Use Theme.of(context).colorScheme.primary')
+  static const Color primaryTealDark = Color(0xFF0F766E);
+
+  @Deprecated('Use Theme.of(context).colorScheme.primary')
+  static const Color primaryTealLight = Color(0xFF14B8A6);
+
+  @Deprecated('Use AppSemanticColors via Theme.of(context).extension')
+  static const Color intensityLow = Color(0xFFE0F2FE);
+
+  @Deprecated('Use AppSemanticColors via Theme.of(context).extension')
+  static const Color intensityMedium = Color(0xFFFEF3C7);
+
+  @Deprecated('Use AppSemanticColors via Theme.of(context).extension')
+  static const Color intensityHigh = Color(0xFFFFE4E6);
+
+  @Deprecated('Use AppSemanticColors via Theme.of(context).extension')
+  static const Color warningYellow = Color(0xFFFEF9C3);
+
+  @Deprecated('Use AppSemanticColors via Theme.of(context).extension')
+  static const Color warningOrange = Color(0xFFFFEDD5);
+
+  @Deprecated('Use AppSemanticColors via Theme.of(context).extension')
+  static const Color infoBlue = Color(0xFFDBEAFE);
+
+  // ---------------------------------------------------------------------------
+  // Theme builders
+  // ---------------------------------------------------------------------------
+
+  /// Map the persisted font-family string to [AppFontFamily].
+  ///
+  /// `'Roboto'` (the historical system-default sentinel) and `null` both map to
+  /// [AppFontFamily.inter] — the shared default per decision #2.
+  static AppFontFamily fontFromString(String? value) {
+    return switch (value) {
+      'OpenDyslexic' => AppFontFamily.openDyslexic,
+      'AtkinsonHyperlegible' => AppFontFamily.atkinsonHyperlegible,
+      _ => AppFontFamily.inter,
+    };
+  }
+
+  /// Light theme with optional dyslexia-friendly font.
+  @Deprecated(
+    'Use buildAppTheme(font: AppFontFamily.X) from diary_design_system',
+  )
   static ThemeData getLightTheme({bool useDyslexicFont = false}) {
-    // ignore: deprecated_member_use_from_same_package
-    final fontFamily = useDyslexicFont ? openDyslexicFontFamily : null;
-    return _buildLightTheme(fontFamily: fontFamily);
-  }
-
-  /// Get dark theme with optional dyslexia-friendly font
-  @Deprecated('Use getDarkThemeWithFont instead')
-  static ThemeData getDarkTheme({bool useDyslexicFont = false}) {
-    // ignore: deprecated_member_use_from_same_package
-    final fontFamily = useDyslexicFont ? openDyslexicFontFamily : null;
-    return _buildDarkTheme(fontFamily: fontFamily);
-  }
-
-  /// CUR-528: Get light theme with selected font
-  /// Pass 'Roboto' or null for default, 'OpenDyslexic', or 'AtkinsonHyperlegible'
-  static ThemeData getLightThemeWithFont({String? fontFamily}) {
-    // 'Roboto' uses system default (null), others use their font family name
-    final effectiveFontFamily = (fontFamily == null || fontFamily == 'Roboto')
-        ? null
-        : fontFamily;
-    return _buildLightTheme(fontFamily: effectiveFontFamily);
-  }
-
-  /// CUR-528: Get dark theme with selected font
-  /// Pass 'Roboto' or null for default, 'OpenDyslexic', or 'AtkinsonHyperlegible'
-  static ThemeData getDarkThemeWithFont({String? fontFamily}) {
-    // 'Roboto' uses system default (null), others use their font family name
-    final effectiveFontFamily = (fontFamily == null || fontFamily == 'Roboto')
-        ? null
-        : fontFamily;
-    return _buildDarkTheme(fontFamily: effectiveFontFamily);
-  }
-
-  static ThemeData _buildLightTheme({String? fontFamily}) {
-    return ThemeData(
-      useMaterial3: true,
+    return buildAppTheme(
+      font: useDyslexicFont ? AppFontFamily.openDyslexic : AppFontFamily.inter,
       brightness: Brightness.light,
-      fontFamily: fontFamily,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryTeal,
-        brightness: Brightness.light,
-        primary: primaryTeal,
-      ),
-      appBarTheme: const AppBarTheme(
-        centerTitle: true,
-        elevation: 0,
-        scrolledUnderElevation: 1,
-      ),
-      cardTheme: CardThemeData(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.grey.shade200),
-        ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryTeal, width: 2),
-        ),
-      ),
     );
   }
 
-  static ThemeData _buildDarkTheme({String? fontFamily}) {
-    return ThemeData(
-      useMaterial3: true,
+  /// Dark theme with optional dyslexia-friendly font.
+  @Deprecated(
+    'Use buildAppTheme(font: AppFontFamily.X) from diary_design_system',
+  )
+  static ThemeData getDarkTheme({bool useDyslexicFont = false}) {
+    return buildAppTheme(
+      font: useDyslexicFont ? AppFontFamily.openDyslexic : AppFontFamily.inter,
       brightness: Brightness.dark,
-      fontFamily: fontFamily,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryTeal,
-        brightness: Brightness.dark,
-        primary: primaryTeal,
-      ),
-      appBarTheme: const AppBarTheme(
-        centerTitle: true,
-        elevation: 0,
-        scrolledUnderElevation: 1,
-      ),
-      cardTheme: CardThemeData(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.grey.shade800),
-        ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
+    );
+  }
+
+  /// CUR-528: Light theme with selected font.
+  @Deprecated(
+    'Use buildAppTheme(font: AppFontFamily.X) from diary_design_system',
+  )
+  static ThemeData getLightThemeWithFont({String? fontFamily}) {
+    return buildAppTheme(
+      font: fontFromString(fontFamily),
+      brightness: Brightness.light,
+    );
+  }
+
+  /// CUR-528: Dark theme with selected font.
+  @Deprecated(
+    'Use buildAppTheme(font: AppFontFamily.X) from diary_design_system',
+  )
+  static ThemeData getDarkThemeWithFont({String? fontFamily}) {
+    return buildAppTheme(
+      font: fontFromString(fontFamily),
+      brightness: Brightness.dark,
     );
   }
 }

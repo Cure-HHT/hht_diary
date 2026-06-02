@@ -205,14 +205,21 @@ void main() {
         expect(theme.useMaterial3, isTrue);
       });
 
-      test('light theme uses primaryTeal as seed color', () {
+      // CUR-1426 / decision #7: mobile shifted from teal (#0D9488) to Carina
+      // blue (#0175C2) when AppTheme migrated to buildAppTheme. The deprecated
+      // AppTheme.primaryTeal constant is preserved for any outside callers but
+      // no longer reflects the live theme primary.
+      test('light theme primary is Carina blue', () {
         final theme = AppTheme.getLightTheme();
-        expect(theme.colorScheme.primary, equals(AppTheme.primaryTeal));
+        expect(theme.colorScheme.primary, equals(const Color(0xFF0175C2)));
       });
 
-      test('dark theme uses primaryTeal as seed color', () {
+      test('dark theme primary is Carina blue tone', () {
+        // Dark scheme uses primary300 from ColorTokens — see
+        // diary_design_system/lib/src/theme/app_color_scheme.dart.
         final theme = AppTheme.getDarkTheme();
-        expect(theme.colorScheme.primary, equals(AppTheme.primaryTeal));
+        expect(theme.colorScheme.brightness, equals(Brightness.dark));
+        expect(theme.colorScheme.primary, isNot(equals(AppTheme.primaryTeal)));
       });
     });
   });
