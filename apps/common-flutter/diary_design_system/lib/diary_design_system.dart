@@ -4,7 +4,7 @@
 /// Public API:
 /// - Theme construction: [buildAppTheme], [AppFontFamily], [BrandPalette]
 /// - Semantic colors: [AppSemanticColors] (read via Theme.of(context).extension)
-/// - Components: [EnvironmentBanner] (more land in later phases)
+/// - Components: [AppButton], [AppBanner], [EnvironmentBanner] (more land in later phases)
 ///
 /// Raw tokens (color/spacing/radius/etc.) are intentionally NOT exported.
 /// Components consume the resolved theme, never raw tokens — see Principle #3
@@ -19,3 +19,7 @@ export 'src/theme/app_text_theme.dart';
 export 'src/theme/app_theme.dart';
 export 'src/theme/app_theme_extension.dart';
 export 'src/theme/brand_palette.dart';
+
+// Components
+export 'src/buttons/app_button.dart';
+export 'src/feedback/app_banner.dart';
