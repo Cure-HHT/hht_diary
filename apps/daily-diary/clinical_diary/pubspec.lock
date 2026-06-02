@@ -140,9 +140,11 @@ packages:
   canonical_json_jcs:
     dependency: "direct overridden"
     description:
-      path: "/home/metagamer/cure-hht/event_sourcing/canonical_json_jcs"
-      relative: false
-    source: path
+      path: canonical_json_jcs
+      ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      resolved-ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      url: "https://github.com/Cure-HHT/event_sourcing.git"
+    source: git
     version: "0.1.0"
   cel:
     dependency: transitive
@@ -368,9 +370,11 @@ packages:
   event_sourcing:
     dependency: "direct main"
     description:
-      path: "/home/metagamer/cure-hht/event_sourcing/event_sourcing"
-      relative: false
-    source: path
+      path: event_sourcing
+      ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      resolved-ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      url: "https://github.com/Cure-HHT/event_sourcing.git"
+    source: git
     version: "0.3.0+4"
   event_sourcing_datastore:
     dependency: "direct main"
@@ -1113,9 +1117,11 @@ packages:
   provenance:
     dependency: "direct overridden"
     description:
-      path: "/home/metagamer/cure-hht/event_sourcing/provenance"
-      relative: false
-    source: path
+      path: provenance
+      ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      resolved-ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      url: "https://github.com/Cure-HHT/event_sourcing.git"
+    source: git
     version: "0.1.0"
   pub_semver:
     dependency: transitive
@@ -1136,23 +1142,29 @@ packages:
   reaction:
     dependency: "direct main"
     description:
-      path: "/home/metagamer/cure-hht/event_sourcing/reaction"
-      relative: false
-    source: path
+      path: reaction
+      ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      resolved-ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      url: "https://github.com/Cure-HHT/event_sourcing.git"
+    source: git
     version: "0.1.0-dev"
   reaction_widgets:
     dependency: "direct main"
     description:
-      path: "/home/metagamer/cure-hht/event_sourcing/reaction_widgets"
-      relative: false
-    source: path
+      path: reaction_widgets
+      ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      resolved-ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      url: "https://github.com/Cure-HHT/event_sourcing.git"
+    source: git
     version: "0.1.0-dev"
   reaction_widgets_testing:
     dependency: "direct dev"
     description:
-      path: "/home/metagamer/cure-hht/event_sourcing/reaction_widgets_testing"
-      relative: false
-    source: path
+      path: reaction_widgets_testing
+      ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      resolved-ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      url: "https://github.com/Cure-HHT/event_sourcing.git"
+    source: git
     version: "0.1.0-dev"
   record_use:
     dependency: transitive
