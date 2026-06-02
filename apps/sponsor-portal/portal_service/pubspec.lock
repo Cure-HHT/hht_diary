@@ -52,9 +52,11 @@ packages:
   canonical_json_jcs:
     dependency: transitive
     description:
-      path: "../../../../../event_sourcing-worktrees/CUR-1412-remote-reconnect/canonical_json_jcs"
-      relative: true
-    source: path
+      path: canonical_json_jcs
+      ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      resolved-ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      url: "https://github.com/Cure-HHT/event_sourcing.git"
+    source: git
     version: "0.1.0"
   charcode:
     dependency: transitive
@@ -138,9 +140,11 @@ packages:
   event_sourcing:
     dependency: "direct main"
     description:
-      path: "../../../../../event_sourcing-worktrees/CUR-1412-remote-reconnect/event_sourcing"
-      relative: true
-    source: path
+      path: event_sourcing
+      ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      resolved-ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      url: "https://github.com/Cure-HHT/event_sourcing.git"
+    source: git
     version: "0.3.0+4"
   file:
     dependency: transitive
@@ -368,9 +372,11 @@ packages:
   provenance:
     dependency: transitive
     description:
-      path: "../../../../../event_sourcing-worktrees/CUR-1412-remote-reconnect/provenance"
-      relative: true
-    source: path
+      path: provenance
+      ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      resolved-ref: "4c2904f3daecf722a2d04fd788b4182caf2f074a"
+      url: "https://github.com/Cure-HHT/event_sourcing.git"
+    source: git
     version: "0.1.0"
   pub_semver:
     dependency: transitive
@@ -605,3 +611,4 @@ packages:
     version: "3.1.3"
 sdks:
   dart: ">=3.11.0 <4.0.0"
+  flutter: ">=3.38.7"

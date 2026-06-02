@@ -8,7 +8,11 @@ environment:
 
 dependencies:
   crypto: ^3.0.7
-  event_sourcing: any
+  event_sourcing:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: event_sourcing
   portal_identity:
     path: ../portal_identity
   portal_service:
@@ -16,7 +20,11 @@ dependencies:
   portal_actions:
     path: ../../common-dart/portal_actions
   rave_integration: any
-  reaction: any
+  reaction:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: reaction
   sembast: ^3.0.0
   shelf: ^1.4.0
   shelf_router: ^1.1.0
