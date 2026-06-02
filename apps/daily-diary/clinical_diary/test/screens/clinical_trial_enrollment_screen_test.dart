@@ -65,7 +65,7 @@ void main() {
 
         expect(
           find.text(
-            'Please enter the 10-digit linking code provided by your study coordinator.',
+            'Please enter the 10-digit linking code provided by your research coordinator.',
           ),
           findsOneWidget,
         );

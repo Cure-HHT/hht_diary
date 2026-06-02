@@ -29,4 +29,4 @@ follow-on work.
 
 `pubspec_overrides.yaml` (gitignored) points `event_sourcing` at a sibling clone at
 `../../../../../event_sourcing/event_sourcing`. The committed `pubspec.yaml` pins the git
-ref (`9e04c17`).
+ref (`4c2904f3daecf722a2d04fd788b4182caf2f074a`).

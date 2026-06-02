@@ -1,15 +1,17 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 
-import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/flavors.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  // Set up env profile for tests
-  EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
+  // Set up flavor for tests
+  F.appFlavor = Flavor.dev;
 
   late FeatureFlagService featureFlagService;
 
@@ -97,6 +99,50 @@ void main() {
         // Should be back immediately
         expect(find.text('Navigate'), findsOneWidget);
       });
+    });
+
+    // Verifies: the user's `useAnimation` preference also gates transitions —
+    // when the feature flag is ON but the user turned animations OFF (read from
+    // an AppPreferencesScope above the Navigator, as in the real app), the
+    // transition is instant.
+    group('navigation behavior with user preference disabled', () {
+      testWidgets(
+        'navigates immediately when user disables animations (flag on)',
+        (tester) async {
+          featureFlagService.useAnimations = true;
+
+          await tester.pumpWidget(
+            MaterialApp(
+              // AppPreferencesScope above the Navigator, mirroring main.dart's
+              // MaterialApp.builder placement.
+              builder: (context, child) => AppPreferencesScope(
+                preferences: const UserPreferences(useAnimation: false),
+                child: child!,
+              ),
+              home: Builder(
+                builder: (context) => Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      AppPageRoute<void>(
+                        builder: (context) =>
+                            const Scaffold(body: Text('Destination')),
+                      ),
+                    ),
+                    child: const Text('Navigate'),
+                  ),
+                ),
+              ),
+            ),
+          );
+
+          await tester.tap(find.text('Navigate'));
+          // One pump: immediate because the user preference disables animation.
+          await tester.pump();
+
+          expect(find.text('Destination'), findsOneWidget);
+        },
+      );
     });
 
     group('navigation behavior with animations enabled', () {

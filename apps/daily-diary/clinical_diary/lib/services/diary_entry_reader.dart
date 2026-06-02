@@ -42,18 +42,9 @@ const List<String> _kNosebleedRelatedTypes = [
 // Implements: REQ-p00004-E+L — event-derived materialized view rows are the
 // sole source for this reader; no raw-event access required.
 class DiaryEntryReader {
-  DiaryEntryReader({
-    required SembastBackend backend,
-    DateTime Function() clock = DateTime.now,
-  }) : _backend = backend,
-       _clock = clock;
+  DiaryEntryReader({required SembastBackend backend}) : _backend = backend;
 
   final SembastBackend _backend;
-
-  /// Returns the current moment for time-relative queries (e.g.
-  /// [hasEntriesForYesterday]). Defaults to [DateTime.now]; tests inject a
-  /// fixed or skewed clock to exercise time-boundary branches deterministically.
-  final DateTime Function() _clock;
 
   // ---------------------------------------------------------------------------
   // entriesForDate
@@ -129,7 +120,7 @@ class DiaryEntryReader {
   /// return value is a compliance proxy: "did the participant report anything
   /// yesterday?"
   Future<bool> hasEntriesForYesterday() async {
-    final yesterday = _clock().subtract(const Duration(days: 1));
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
     for (final type in _kNosebleedRelatedTypes) {
       final entries = await entriesForDate(yesterday, entryType: type);
       if (entries.isNotEmpty) return true;
@@ -225,41 +216,6 @@ class DiaryEntryReader {
           .toList();
 
       result[dayKey] = _statusForEntries(onThisDay);
-    }
-    return result;
-  }
-
-  // ---------------------------------------------------------------------------
-  // daysWithCompletedQuestionnaires
-  // ---------------------------------------------------------------------------
-
-  /// Returns the set of local-midnight `DateTime` keys (one per day with at
-  /// least one finalized, non-tombstoned questionnaire entry) within the
-  /// inclusive range `[from, to]`.
-  ///
-  /// "Questionnaire entry" is identified by `entryType` ending in `_survey`
-  /// (e.g., `nose_hht_survey`, `qol_survey`). The day key is derived from
-  /// `effectiveDate.toLocal()`. Entries with a null `effectiveDate` are
-  /// ignored.
-  ///
-  /// Used by HomeScreen (yesterday section) and the calendar surfaces (blue
-  /// dot indicator) to flag days where the participant submitted a questionnaire.
-  Future<Set<DateTime>> daysWithCompletedQuestionnaires(
-    DateTime from,
-    DateTime to,
-  ) async {
-    final all = await _backend.findEntries();
-    final localFrom = _localDateOnly(from);
-    final localTo = _localDateOnly(to);
-    final result = <DateTime>{};
-    for (final e in all) {
-      if (e.isDeleted || !e.isComplete) continue;
-      if (!e.entryType.endsWith('_survey')) continue;
-      final eff = e.effectiveDate;
-      if (eff == null) continue;
-      final localDay = _localDateOnly(eff);
-      if (localDay.isBefore(localFrom) || localDay.isAfter(localTo)) continue;
-      result.add(localDay);
     }
     return result;
   }

@@ -1,55 +1,47 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-CAL-p00020: Participant Disconnection Workflow
-//   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00076: Participation Status Badge
-//   REQ-CAL-p00080: Questionnaire Study Event Association (cycle label stamp)
-//   REQ-CAL-p00081: Participant Task System
-//   REQ-p01065:    Clinical Questionnaire System (D: deactivate sync; not-participating reset)
-
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/models/mobile_linking_status.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_overlap.dart';
+import 'package:clinical_diary/read/diary_read.dart';
+import 'package:clinical_diary/read/diary_view.dart';
+import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
-import 'package:clinical_diary/screens/feature_flags_screen.dart';
+import 'package:clinical_diary/screens/day_disposition.dart';
+import 'package:clinical_diary/screens/important_screen.dart';
+import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
-import 'package:clinical_diary/screens/simple_recording_screen.dart';
-import 'package:clinical_diary/services/auth_service.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
-import 'package:clinical_diary/services/diary_export_service.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/services/file_read_service.dart';
-import 'package:clinical_diary/services/file_save_service.dart';
-import 'package:clinical_diary/services/notification_poll_service.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
-import 'package:clinical_diary/services/reset_data_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/clinical_rules_scope.dart';
+import 'package:clinical_diary/settings/local_reset_policy.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
-import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/task_list_widget.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
+import 'package:diary_shared_model/diary_shared_model.dart'
+    show EntryGate, entryGateForDate;
 import 'package:eq/eq.dart';
+import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:uuid/uuid.dart';
 
 /// Main home screen showing recent events and recording button
 class HomeScreen extends StatefulWidget {
@@ -58,147 +50,122 @@ class HomeScreen extends StatefulWidget {
     required this.deviceId,
     required this.enrollmentService,
     required this.taskService,
-    required this.onLocaleChanged,
-    required this.onThemeModeChanged,
-    required this.onLargerTextChanged,
-    required this.preferencesService,
-    this.onFontChanged,
     this.onEnrolled,
-    this.clock = DateTime.now,
+    this.onResetAllData,
+    this.resetSettingAllowsReset = true,
+    this.nativeFifoWedged,
     super.key,
   });
-
-  /// Returns the current moment for time-relative writes (yesterday-banner
-  /// handlers). Defaults to [DateTime.now]; tests inject a fixed clock so the
-  /// stored `date` answer is verifiable.
-  final DateTime Function() clock;
 
   /// Composed runtime — exposes [ClinicalDiaryRuntime.backend] for the wedge
   /// banner, [ClinicalDiaryRuntime.entryService] for writes, and
   /// [ClinicalDiaryRuntime.reader] for diary-shaped queries.
   final ClinicalDiaryRuntime runtime;
 
+  /// Wedge check for the NEW event-sourcing store (`diary_es.db`), where the
+  /// native `DiaryServerDestination`'s outbound FIFO lives. The legacy
+  /// [runtime] backend's wedge check does not see that store, so this is OR-ed
+  /// in by the wedge banner. Null in contexts without the new scope (the native
+  /// check is then skipped). See DIARY-DEV-native-outbound-sync/B.
+  final Future<bool> Function()? nativeFifoWedged;
+
   /// Persistent device install UUID. Stamped into the export payload so the
   /// downstream tooling can identify which device produced the JSON dump.
   final String deviceId;
   final EnrollmentService enrollmentService;
-  // REQ-CAL-p00081: Task service for questionnaire task management
+  // Task service for questionnaire task management
   final TaskService taskService;
-  final ValueChanged<String> onLocaleChanged;
-  final ValueChanged<bool> onThemeModeChanged;
-  // CUR-488: Callback for larger text preference changes
-  final ValueChanged<bool> onLargerTextChanged;
-  // CUR-528: Callback for font selection changes
-  final ValueChanged<String>? onFontChanged;
-  final PreferencesService preferencesService;
-  // REQ-CAL-p00082: Called after successful linking to register FCM token
+  // Called after successful linking to register FCM token
   final VoidCallback? onEnrolled;
+
+  /// Performs the real local factory reset (dispose → wipe → re-init), supplied
+  /// by `AppRoot`. Null in contexts that don't wire a reset (the menu item is
+  /// then inert). See DIARY-BASE-local-data-reset/A.
+  final Future<void> Function()? onResetAllData;
+
+  /// The sponsor-controllable layer of the reset gate, folded from the
+  /// event-sourced settings projection (`allow_local_reset`, default true).
+  /// The HARD participation safeguard is layered on top of this in-screen.
+  final bool resetSettingAllowsReset;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  /// Materialized nosebleed-related entries (epistaxis_event,
-  /// no_epistaxis_event, unknown_day_event), tombstones excluded.
-  List<DiaryEntry> _entries = [];
-  bool _hasYesterdayRecords = false;
-  bool _isLoading = true;
-
-  /// Subset of [_entries] that are checkpointed but not finalized.
-  List<DiaryEntry> _incompleteEntries = [];
-
-  /// CUR-1292: aggregate ids of questionnaires the participant has started
-  /// but not yet submitted, surfaced to [TaskListWidget] so the
-  /// matching task card renders an "In progress" pill.
-  Set<String> _wipQuestionnaireAggregateIds = const <String>{};
-
-  /// CUR-1294: finalized, non-tombstoned questionnaire entries
-  /// (entryType endsWith `_survey`). Surfaced in the yesterday section
-  /// and used to derive the blue-dot indicator passed into the calendar
-  /// overlay.
-  List<DiaryEntry> _completedQuestionnaireEntries = [];
   bool _isEnrolled = false;
-  bool _useAnimation = true; // User preference for animations
-  bool _compactView = false; // User preference for compact list view
   // Wedge banner state — refreshed on init and on resume.
   bool _hasWedgedFifo = false;
+  // The yesterday+today block defaults to showing the newest events; jump it to
+  // the bottom once after the first laid-out frame.
+  bool _didScrollEventsToBottom = false;
+  // Tracks whether the kept (non-diary) async checks have settled, so the
+  // wedge / disconnection / task banners don't flash before their state loads.
+  bool _isLoading = true;
 
-  // REQ-CAL-p00077: Disconnection banner state
+  // Disconnection banner state.
   bool _isDisconnected = false;
-  // CUR-1342: Mirror of EnrollmentService.notParticipatingNotifier so the
-  // header LogoMenu can swap to the default CureHHT logo in not-participating.
-  bool _isNotParticipating = false;
   String? _siteName;
   String? _sitePhoneNumber;
 
-  // CUR-1343 / REQ-p70011/F: Fine-grained mobile linking status, used to
-  // distinguish a fully disconnected participant from one with a freshly issued
-  // linking code waiting to be entered.
-  MobileLinkingStatus _linkingStatus = MobileLinkingStatus.connected;
+  // Whether the local factory reset is currently permitted. Resolved from the
+  // async enrollment state (the HARD participation safeguard) folded with the
+  // sponsor-controllable allow_local_reset setting. Defaults false until the
+  // async checks settle, so the destructive item is never momentarily enabled.
+  bool _canResetData = false;
 
   // CUR-464: Track record to flash/highlight after save
   String? _flashRecordId;
   final ScrollController _scrollController = ScrollController();
 
-  /// CUR-1292: Re-entrancy guard so a double-tap on the questionnaire
-  /// task can't push two identical [QuestionnaireFlowScreen] modals.
-  bool _questionnaireRouteActive = false;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadRecords();
-    _loadPreferences();
     _checkEnrollmentStatus();
     _checkDisconnectionStatus();
     _checkNotParticipatingStatus();
+    _refreshResetGate();
     _refreshWedgeStatus();
     // CUR-1164: React immediately when a background sync detects disconnection
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
     );
-    // CUR-1311: React when a `mark_not_participating` / `reactivate` FCM
-    // (or any background sync) flips not-participating state, so feature
-    // flags reset without the participant having to navigate to profile.
-    widget.enrollmentService.notParticipatingNotifier.addListener(
-      _onNotParticipatingChanged,
-    );
-    // CUR-1343 / REQ-p70011/F: React when the linking status changes so the
-    // banner copy and tap behavior flip between "Disconnected" and
-    // "New linking code issued" without requiring a navigation.
-    widget.enrollmentService.linkingStatusNotifier.addListener(
-      _onLinkingStatusChanged,
-    );
-    _linkingStatus = widget.enrollmentService.linkingStatusNotifier.value;
+    // Forward-looking: surface incomplete surveys via a modal route. The
+    // FCM-prompt handler that creates the checkpoint is out of scope for this
+    // ticket, but the routing exists so it can land later without screen edits.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybePushIncompleteSurvey();
+    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshWedgeStatus();
+      _maybePushIncompleteSurvey();
     }
   }
 
   Future<void> _refreshWedgeStatus() async {
-    final wedged = await widget.runtime.backend.anyFifoWedged();
+    final legacyWedged = await widget.runtime.backend.anyFifoWedged();
+    // The native DiaryServerDestination's outbound FIFO lives in the new
+    // event_sourcing store (diary_es.db), which runtime.backend does not see;
+    // OR it in so a stuck native sync is visible to the participant.
+    // See DIARY-DEV-native-outbound-sync/B.
+    final nativeWedged =
+        await (widget.nativeFifoWedged?.call() ?? Future<bool>.value(false));
     if (mounted) {
-      setState(() => _hasWedgedFifo = wedged);
+      setState(() {
+        _hasWedgedFifo = legacyWedged || nativeWedged;
+        // The wedge check is the last non-diary async to settle on init;
+        // once it returns the kept banners can render their resolved state.
+        _isLoading = false;
+      });
     }
   }
 
   SponsorBrandingConfig sponsorBranding = SponsorBrandingConfig.fallback;
-  Future<void> _loadPreferences() async {
-    final useAnimation = await widget.preferencesService.getUseAnimation();
-    final compactView = await widget.preferencesService.getCompactView();
-    if (mounted) {
-      setState(() {
-        _useAnimation = useAnimation;
-        _compactView = compactView;
-      });
-    }
-  }
 
   @override
   void dispose() {
@@ -206,22 +173,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.disconnectedNotifier.removeListener(
       _onDisconnectionChanged,
     );
-    widget.enrollmentService.notParticipatingNotifier.removeListener(
-      _onNotParticipatingChanged,
-    );
-    widget.enrollmentService.linkingStatusNotifier.removeListener(
-      _onLinkingStatusChanged,
-    );
     _scrollController.dispose();
     super.dispose();
-  }
-
-  // Implements: REQ-p70011/F
-  void _onLinkingStatusChanged() {
-    if (!mounted) return;
-    setState(() {
-      _linkingStatus = widget.enrollmentService.linkingStatusNotifier.value;
-    });
   }
 
   Future<void> _checkEnrollmentStatus() async {
@@ -241,6 +194,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _isEnrolled = isEnrolled;
       });
     }
+    // Enrollment changes flip the HARD participation safeguard; keep the
+    // reset gate in sync whenever enrollment status is re-read.
+    unawaited(_refreshResetGate());
   }
 
   /// REQ-CAL-p00077: Check if participant is disconnected from the study.
@@ -282,20 +238,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// CUR-1311: Mirror of [_onDisconnectionChanged] for the
-  /// not-participating notifier. When the participant flips into
-  /// not-participating, sponsor-specific feature flags must reset to
-  /// neutral defaults (REQ-p01065-D). On reactivation we leave flags
-  /// alone — they re-hydrate from sponsor config on next launch.
-  void _onNotParticipatingChanged() {
-    if (!mounted) return;
-    final value = widget.enrollmentService.notParticipatingNotifier.value;
-    setState(() => _isNotParticipating = value);
-    if (value) {
-      FeatureFlagService.instance.resetToDefaults();
-    }
-  }
-
   /// Refresh site name and phone number from stored enrollment data.
   Future<void> _refreshSiteInfo() async {
     final enrollment = await widget.enrollmentService.getEnrollment();
@@ -313,109 +255,51 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _checkNotParticipatingStatus() async {
     final isNotParticipating = await widget.enrollmentService
         .isNotParticipating();
-    if (mounted) {
-      setState(() => _isNotParticipating = isNotParticipating);
-    }
     if (isNotParticipating) {
       FeatureFlagService.instance.resetToDefaults();
     }
   }
 
-  Future<void> _loadRecords() async {
-    setState(() => _isLoading = true);
+  @override
+  void didUpdateWidget(HomeScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The sponsor-controllable layer arrives via a widget rebuild when the
+    // settings projection emits; re-fold the gate when it changes.
+    if (oldWidget.resetSettingAllowsReset != widget.resetSettingAllowsReset) {
+      _refreshResetGate();
+    }
+  }
 
-    // Wide range covers all real entries; the reader filters by local-day.
-    final allEntries = await widget.runtime.reader.entriesForDateRange(
-      DateTime.utc(1970, 1, 1),
-      DateTime.utc(9999, 1, 1),
+  /// Re-fold the local-reset gate: the HARD participation safeguard
+  /// (`isEnrolled && !isNotParticipating`) combined with the sponsor-
+  /// controllable `allow_local_reset` setting. Reset is permitted only when not
+  /// participating AND the setting allows it.
+  // Implements: DIARY-BASE-local-data-reset/B+C
+  Future<void> _refreshResetGate() async {
+    final isEnrolled = await widget.enrollmentService.isEnrolled();
+    final isNotParticipating = await widget.enrollmentService
+        .isNotParticipating();
+    final participating = isEnrolled && !isNotParticipating;
+    final canReset = canResetLocalData(
+      participating: participating,
+      settingAllowsReset: widget.resetSettingAllowsReset,
     );
-    final entries =
-        allEntries
-            .where(
-              (e) =>
-                  !e.isDeleted &&
-                  (e.entryType == 'epistaxis_event' ||
-                      e.entryType == 'no_epistaxis_event' ||
-                      e.entryType == 'unknown_day_event'),
-            )
-            .toList()
-          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    final hasYesterday = await widget.runtime.reader.hasEntriesForYesterday();
-
-    // Get incomplete real-nosebleed entries.
-    final incomplete = entries
-        .where((e) => !e.isComplete && e.entryType == 'epistaxis_event')
-        .toList();
-
-    // CUR-1292: aggregate ids of in-progress questionnaire surveys.
-    // Surfaced to the task list so the matching task card shows the
-    // "In progress" pill — participants see at a glance that tapping the
-    // task will resume rather than restart. Derived from `allEntries`
-    // (already loaded above with a 1970..9999 range) instead of a
-    // separate `reader.incompleteEntries()` call to avoid a duplicate
-    // backend query on every refresh.
-    final wipQIds = <String>{
-      for (final e in allEntries)
-        if (!e.isComplete &&
-            !e.isDeleted &&
-            (e.entryType == 'nose_hht_survey' || e.entryType == 'qol_survey'))
-          e.entryId,
-    };
-
-    // CUR-1294: finalized questionnaire submissions (any *_survey entry
-    // type). The yesterday section surfaces yesterday's submissions;
-    // the calendar overlay uses the union of dates to render a blue-dot
-    // indicator.
-    final questionnaires =
-        allEntries
-            .where(
-              (e) =>
-                  !e.isDeleted &&
-                  e.isComplete &&
-                  e.entryType.endsWith('_survey'),
-            )
-            .toList()
-          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-
-    setState(() {
-      _entries = entries;
-      _hasYesterdayRecords = hasYesterday;
-      _incompleteEntries = incomplete;
-      _wipQuestionnaireAggregateIds = wipQIds;
-      _completedQuestionnaireEntries = questionnaires;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() => _canResetData = canReset);
+    }
   }
 
   Future<void> _navigateToRecording() async {
-    // CUR-464: Result is now record ID (String) instead of bool
-    // CUR-508: Use feature flag to determine which recording screen to show
-    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
+    // CUR-464: Result is now record ID (String) instead of bool. The diary list
+    // refreshes reactively via DiaryViewBuilder; we only flash + scroll once the
+    // new row has been spliced into the live view.
     final result = await Navigator.push<String?>(
       context,
-      AppPageRoute(
-        builder: (context) => useOnePage
-            ? SimpleRecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
-                allEntries: _entries,
-              )
-            : RecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
-                allEntries: _entries,
-              ),
-      ),
+      AppPageRoute(builder: (context) => const RecordingScreen()),
     );
 
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        _flashRecordId = result;
-      });
-      await _loadRecords();
-      _scrollToRecord(result);
+    if (result != null && result.isNotEmpty && mounted) {
+      _flashAndScrollTo(result);
     }
   }
 
@@ -427,9 +311,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return _recordKeys.putIfAbsent(recordId, GlobalKey.new);
   }
 
-  /// Scroll to a specific record in the list and ensure it's visible.
-  /// CUR-489: Uses Scrollable.ensureVisible to scroll to actual item position
-  void _scrollToRecord(String recordId) {
+  /// Flag [recordId] for the flash highlight, then scroll it into view once the
+  /// reactive list has rendered the new row.
+  ///
+  /// The diary list is driven by [DiaryViewBuilder], so the row may not be in
+  /// the tree on the frame the recording screen pops. Setting [_flashRecordId]
+  /// and deferring the scroll to a post-frame callback lets the next view
+  /// emission splice the row in before we look up its [GlobalKey].
+  void _flashAndScrollTo(String recordId) {
+    setState(() => _flashRecordId = recordId);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final key = _recordKeys[recordId];
       if (key?.currentContext != null) {
@@ -443,209 +333,62 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  Future<void> _handleYesterdayNoNosebleeds() async {
-    final yesterday = widget.clock().subtract(const Duration(days: 1));
-    await widget.runtime.entryService.record(
-      entryType: 'no_epistaxis_event',
-      aggregateId: const Uuid().v7(),
-      eventType: 'finalized',
-      answers: <String, Object?>{'date': DateTimeFormatter.format(yesterday)},
+  /// The `yyyy-MM-dd` local-date key for yesterday.
+  static String _yesterdayKey() {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    return DateFormat('yyyy-MM-dd').format(yesterday);
+  }
+
+  /// Submit a whole-day marker (`record_no_epistaxis_day` /
+  /// `record_unknown_day`) for [localDate] (`yyyy-MM-dd`) through the scope's
+  /// action submitter. The diary list updates reactively, so there is no manual
+  /// reload after the write.
+  // Implements: DIARY-DEV-action-write-path/A
+  Future<void> _submitDayMarker(String actionName, String localDate) async {
+    await ReActionScope.of(context).actionSubmitter.submit(
+      ActionSubmission(
+        actionName: actionName,
+        rawInput: <String, Object?>{'date': localDate},
+      ),
     );
-    unawaited(_loadRecords());
+  }
+
+  // Implements: DIARY-DEV-action-write-path/A
+  Future<void> _handleYesterdayNoNosebleeds() async {
+    await _submitDayMarker('record_no_epistaxis_day', _yesterdayKey());
   }
 
   Future<void> _handleYesterdayHadNosebleeds() async {
-    final yesterday = widget.clock().subtract(const Duration(days: 1));
-    // CUR-464: Result is now record ID (String) instead of bool
-    // CUR-508: Use feature flag to determine which recording screen to show
-    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    // CUR-464: Result is now record ID (String) instead of bool. Flash + scroll
+    // happen reactively once DiaryViewBuilder splices the new row in.
     final result = await Navigator.push<String?>(
       context,
       AppPageRoute(
-        builder: (context) => useOnePage
-            ? SimpleRecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
-                initialStartDate: yesterday,
-                allEntries: _entries,
-              )
-            : RecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
-                diaryEntryDate: yesterday,
-                allEntries: _entries,
-              ),
+        builder: (context) => RecordingScreen(initialDate: yesterday),
       ),
     );
 
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        _flashRecordId = result;
-      });
-      await _loadRecords();
-      _scrollToRecord(result);
+    if (result != null && result.isNotEmpty && mounted) {
+      _flashAndScrollTo(result);
     }
   }
 
+  // Implements: DIARY-DEV-action-write-path/A
   Future<void> _handleYesterdayDontRemember() async {
-    final yesterday = widget.clock().subtract(const Duration(days: 1));
-    await widget.runtime.entryService.record(
-      entryType: 'unknown_day_event',
-      aggregateId: const Uuid().v7(),
-      eventType: 'finalized',
-      answers: <String, Object?>{'date': DateTimeFormatter.format(yesterday)},
-    );
-    unawaited(_loadRecords());
+    await _submitDayMarker('record_unknown_day', _yesterdayKey());
   }
 
-  /// Export the local event log as JSON via [DiaryExportService] and hand the
-  /// payload to the platform file-save dialog.
-  ///
-  /// Import is deferred to a follow-up ticket — re-importing the JSON would
-  /// require translating legacy event shapes back to the new
-  /// `EntryService.record` API, which would be a one-shot adapter. The button
-  /// stays in the menu so the spec/UX surface is preserved; tapping it shows
-  /// a "not implemented" message.
-  Future<void> _handleExportData() async {
-    final l10n = AppLocalizations.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    try {
-      final exportService = DiaryExportService(
-        backend: widget.runtime.backend,
-        deviceId: widget.deviceId,
-      );
-
-      final result = await exportService.exportAll();
-
-      const encoder = JsonEncoder.withIndent('  ');
-      final jsonData = encoder.convert(result.payload);
-
-      final saved = await FileSaveService.saveFile(
-        fileName: result.filename,
-        data: jsonData,
-        dialogTitle: l10n.exportData,
-      );
-
-      if (saved) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.exportSuccess),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Export error: $e');
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.exportFailed),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  /// Round-trip companion to [_handleExportData]: pick a JSON export file,
-  /// decode it, and feed every event back through `EventStore.ingestEvent`
-  /// via [DiaryExportService.importAll]. The library handles idempotency,
-  /// so re-importing the same export against the same backend is a no-op.
-  ///
-  /// On success we show a SnackBar carrying the imported / duplicate /
-  /// skipped counts and refresh the home screen so any newly-ingested
-  /// entries surface immediately.
-  Future<void> _handleImportData() async {
-    final l10n = AppLocalizations.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    try {
-      final pickResult = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const ['json'],
-        dialogTitle: l10n.importData,
-      );
-
-      if (pickResult == null || pickResult.files.isEmpty) {
-        // User cancelled the picker — nothing to do.
-        return;
-      }
-
-      final picked = pickResult.files.single;
-      final path = picked.path;
-      if (path == null) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.importFailed('no path on selected file')),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
-
-      final raw = await FileReadService.readFile(path);
-      if (raw == null) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.importFailed('unable to read file')),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
-
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, Object?>) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text(l10n.importFailed('not a diary export object')),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
-
-      final importer = DiaryExportService(
-        backend: widget.runtime.backend,
-        deviceId: widget.deviceId,
-        eventStore: widget.runtime.eventStore,
-      );
-
-      final result = await importer.importAll(decoded);
-
-      // Refresh the home screen so any newly-ingested entries surface.
-      await _loadRecords();
-
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Imported ${result.imported} events, '
-            '${result.duplicates} duplicates, '
-            '${result.skipped} skipped.',
-          ),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    } on FormatException catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.importFailed(e.message)),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    } catch (e, stack) {
-      debugPrint('Import error: $e\n$stack');
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(l10n.importFailed(e.toString())),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
+  // Implements: DIARY-BASE-local-data-reset/D — the destructive reset requires
+  //   explicit confirmation before the device is wiped.
   Future<void> _handleResetAllData() async {
+    // Defense-in-depth: the menu item is already disabled when the gate is
+    // closed, but never run the destructive wipe if the gate says no.
+    if (!_canResetData) return;
+
+    final reset = widget.onResetAllData;
+    if (reset == null) return;
+
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -669,52 +412,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
 
     if (confirmed ?? false) {
-      final service = ResetDataService(
-        // Option (b): construct a local AuthService instance here rather than
-        // adding authService to the HomeScreen constructor — avoids touching
-        // main.dart and multiple test call sites. AuthService is stateless
-        // beyond its FlutterSecureStorage field, so a fresh instance is safe.
-        authService: AuthService(),
-        taskService: widget.taskService,
-        runtime: widget.runtime,
-      );
-      try {
-        await service.resetEverything();
-      } catch (e, st) {
-        debugPrint('[HomeScreen] Reset All Data failed: $e\n$st');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Reset failed: $e'),
-              duration: const Duration(seconds: 4),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
-        return;
-      }
-      // Datastore is now closed/deleted; do NOT call _loadRecords here.
-      // Fire _checkEnrollmentStatus without awaiting (matches the
-      // _handleEndClinicalTrial pattern) so the snackbar renders before
-      // any navigation away from the home screen.
-      unawaited(_checkEnrollmentStatus());
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.allDataReset),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+      // Full local factory reset: dispose runtimes → wipe device → re-init.
+      // Driven by AppRoot; the app comes back up at first-launch state.
+      await reset();
     }
-  }
-
-  void _handleFeatureFlags() {
-    Navigator.push(
-      context,
-      AppPageRoute<void>(builder: (context) => const FeatureFlagsScreen()),
-    );
   }
 
   Future<void> _handleEndClinicalTrial() async {
@@ -743,9 +444,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (confirmed ?? false) {
       await widget.enrollmentService.clearEnrollment();
       await widget.taskService.clearAll();
-      // CUR-1311 P1B.5 / REQ-d00169-K: Clear notification cursor on
-      // lifecycle reset so the next enrollment starts with a fresh window.
-      await NotificationPollService.clearCursor();
+      // _checkEnrollmentStatus re-folds the reset gate, re-opening it now that
+      // the participant has ended participation.
       unawaited(_checkEnrollmentStatus());
 
       if (mounted) {
@@ -763,31 +463,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final url = Uri.parse('https://curehht.org/app-support');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  /// CUR-1343 / REQ-p70011/F: Shared navigation into the enrollment screen.
-  /// Called from the menu "Enroll" action and from the disconnection banner's
-  /// "tap to enter your new code" CTA. Refreshes enrollment/disconnect state
-  /// after the user returns so the home screen reflects the new linking.
-  Future<void> _openEnrollmentScreen() async {
-    final wasEnrolled = _isEnrolled;
-    await Navigator.push(
-      context,
-      AppPageRoute<void>(
-        builder: (context) => ClinicalTrialEnrollmentScreen(
-          enrollmentService: widget.enrollmentService,
-        ),
-      ),
-    );
-    await _checkEnrollmentStatus();
-    if (_isEnrolled) {
-      widget.onEnrolled?.call();
-    }
-    await _checkDisconnectionStatus();
-    // CUR-1114: Open profile only if enrollment state changed
-    if (!wasEnrolled && _isEnrolled && mounted) {
-      await _handleShowProfile();
     }
   }
 
@@ -830,17 +505,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           onShowSettings: () async {
             await Navigator.push(
               context,
-              AppPageRoute<void>(
-                builder: (context) => SettingsScreen(
-                  preferencesService: widget.preferencesService,
-                  onLanguageChanged: widget.onLocaleChanged,
-                  onThemeModeChanged: widget.onThemeModeChanged,
-                  onLargerTextChanged: widget.onLargerTextChanged,
-                  onFontChanged: widget.onFontChanged,
-                ),
-              ),
+              AppPageRoute<void>(builder: (context) => const SettingsScreen()),
             );
-            await _loadPreferences();
           },
           onShareWithCureHHT: () {
             // TODO: Implement CureHHT data sharing
@@ -852,11 +518,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           isEnrolledInTrial: _isEnrolled,
           isDisconnected: isDisconnected,
           isNotParticipating: isNotParticipating,
-          linkingStatus: _linkingStatus,
           enrollmentStatus: _isEnrolled ? 'active' : 'none',
           isSharingWithCureHHT: false,
           sponsorLogo: sponsorBranding.appLogoUrl,
           userName: 'User',
+          onUpdateUserName: (name) {
+            // TODO: Implement username update
+          },
           enrollmentCode: enrollment?.linkingCode,
           enrollmentDateTime: enrollment?.enrolledAt,
           enrollmentEndDateTime: notParticipatingAt,
@@ -896,92 +564,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final definition = await _loadQuestionnaireDefinition(qType);
     if (definition == null || !mounted) return;
-    if (_questionnaireRouteActive) return;
 
     final aggregateId = task.targetId ?? task.id;
     final entryType = '${qType.value}_survey';
-    // CUR-1292: when an in-progress (checkpointed-but-not-finalized) row
-    // already exists for this aggregate, seed the flow with the prior
-    // responses so tap-task and resume-on-launch land the participant in
-    // the same place. Without this, tapping a task with prior state
-    // would open a fresh flow whose first answer would overwrite the
-    // saved responses (the materializer replaces the `responses` key
-    // wholesale on every checkpoint).
-    final initialResponses = await _readInitialResponses(
-      entryType: entryType,
-      aggregateId: aggregateId,
-    );
-    if (!mounted) return;
 
-    _questionnaireRouteActive = true;
-    try {
-      await Navigator.of(context).push(
-        AppPageRoute<void>(
-          builder: (context) => QuestionnaireFlowScreen(
-            definition: definition,
-            instanceId: aggregateId,
-            initialResponses: initialResponses,
-            onSubmit: (submission) async {
-              try {
-                await _recordSurveySubmission(
-                  entryType: entryType,
-                  aggregateId: aggregateId,
-                  submission: submission,
-                  studyEvent: task.studyEvent,
-                );
-                return const SubmitResult(success: true);
-              } catch (e) {
-                return SubmitResult(success: false, error: e.toString());
-              }
-            },
-            // CUR-1292: persist a checkpoint after every answer so the flow
-            // can resume after the app is killed mid-questionnaire. The
-            // study_event cycle label is stamped on every checkpoint of a
-            // freshly-started survey; subsequent checkpoints (from the
-            // resume modal) rely on the materializer's key-wise merge to
-            // preserve it.
-            onCheckpoint: (partial) {
-              unawaited(
-                widget.runtime.entryService.record(
-                  entryType: entryType,
-                  aggregateId: aggregateId,
-                  eventType: 'checkpoint',
-                  answers: <String, Object?>{
-                    ...partial.toJson(),
-                    'study_event': ?task.studyEvent,
-                  },
-                  checkpointReason: 'in-progress',
-                ),
+    await Navigator.of(context).push(
+      AppPageRoute<void>(
+        builder: (context) => QuestionnaireFlowScreen(
+          definition: definition,
+          instanceId: aggregateId,
+          onSubmit: (submission) async {
+            try {
+              await _recordSurveySubmission(
+                entryType: entryType,
+                aggregateId: aggregateId,
+                submission: submission,
+                studyEvent: task.studyEvent,
               );
-            },
-            onComplete: () {
-              // CUR-1292: Don't remove the task on participant submit. The
-              // sponsor's contract is that a participant-completed
-              // questionnaire stays editable until the portal
-              // coordinator clicks Finalize. While status is
-              // 'ready_to_review' on the server, /tasks keeps returning
-              // it; once the coordinator finalizes, server status flips
-              // to 'finalized', /tasks drops it, and the next
-              // task-sync removes it from the local list. Tombstones
-              // from portalInboundPoll do the same thing through a
-              // different path. Either way, the diary follows the
-              // server, not the participant's submit.
-              Navigator.of(context).pop();
-            },
-            onDefer: () => Navigator.of(context).pop(),
-          ),
+              return const SubmitResult(success: true);
+            } catch (e) {
+              return SubmitResult(success: false, error: e.toString());
+            }
+          },
+          onComplete: () {
+            // REQ-CAL-p00081-E: Remove task after completion
+            widget.taskService.removeTask(task.id);
+            Navigator.of(context).pop();
+          },
+          onDefer: () => Navigator.of(context).pop(),
         ),
-      );
-    } finally {
-      _questionnaireRouteActive = false;
-    }
-    // CUR-1292: refresh the WIP set so the "In progress" pill appears
-    // (or disappears) on the task card based on what landed during the
-    // flow — the participant may have answered some questions and Home'd
-    // out, or they may have fully submitted.
-    if (mounted) {
-      unawaited(_loadRecords());
-    }
+      ),
+    );
   }
 
   /// Cached questionnaire definitions, lazy-loaded once from the bundled asset.
@@ -1027,301 +640,195 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// CUR-1292: handle a tap on a completed-questionnaire entry rendered
-  /// in the today/yesterday list. If the matching task still exists
-  /// (server status is in {sent, in_progress, ready_to_review}), route
-  /// to the editable flow — the same path as tapping the task at the
-  /// top of the screen. If no matching task exists, the portal has
-  /// finalized the submission; open the flow in view-only mode so the
-  /// participant can verify the answers but cannot edit or re-submit.
-  Future<void> _onQuestionnaireEntryTapped(DiaryEntry entry) async {
-    Task? matchingTask;
-    for (final t in widget.taskService.tasks) {
-      if ((t.targetId ?? t.id) == entry.entryId) {
-        matchingTask = t;
+  /// Surfaces an incomplete survey via a modal route on resume / mount.
+  ///
+  /// Forward-looking: the FCM-prompt handler that creates an in-progress
+  /// survey checkpoint is OUT OF SCOPE for this ticket. So in normal
+  /// operation `incomplete` will be empty. The modal route is wired up
+  /// regardless so it can light up automatically once checkpoints land.
+  Future<void> _maybePushIncompleteSurvey() async {
+    if (!mounted) return;
+    final incomplete = await widget.runtime.reader.incompleteEntries();
+    DiaryEntry? survey;
+    for (final entry in incomplete) {
+      if (entry.entryType == 'nose_hht_survey' ||
+          entry.entryType == 'qol_survey') {
+        survey = entry;
         break;
       }
     }
-    if (matchingTask != null) {
-      await _navigateToQuestionnaire(matchingTask);
-      return;
-    }
+    if (survey == null || !mounted) return;
 
-    // Finalized path. Resolve the questionnaire definition from the
-    // entry's currentAnswers; without a definition we have no labels
-    // to render, so we silently bail.
-    if (_questionnaireRouteActive) return;
-    final qTypeStr = entry.currentAnswers['questionnaire_type'];
-    QuestionnaireType? qType;
-    if (qTypeStr is String) {
-      try {
-        qType = QuestionnaireType.fromValue(qTypeStr);
-      } catch (_) {
-        qType = null;
-      }
-    }
-    if (qType == null) return;
+    final qType = survey.entryType == 'nose_hht_survey'
+        ? QuestionnaireType.noseHht
+        : QuestionnaireType.qol;
     final definition = await _loadQuestionnaireDefinition(qType);
     if (definition == null || !mounted) return;
-    final initialResponses = _parseSurveyResponses(entry.currentAnswers);
-    if (initialResponses.isEmpty || !mounted) return;
 
-    _questionnaireRouteActive = true;
-    try {
-      await Navigator.of(context).push(
-        AppPageRoute<void>(
-          builder: (context) => QuestionnaireFlowScreen(
+    final aggregateId = survey.entryId;
+    final entryType = survey.entryType;
+
+    await Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        opaque: true,
+        barrierDismissible: false,
+        pageBuilder: (context, animation, secondaryAnimation) => PopScope(
+          canPop: false,
+          child: QuestionnaireFlowScreen(
             definition: definition,
-            instanceId: entry.entryId,
-            initialResponses: initialResponses,
-            isReadOnly: true,
-            // onSubmit / onCheckpoint are unreachable in read-only mode
-            // (no Submit button, no answer taps), but the flow's API
-            // requires non-null callbacks. Provide harmless no-ops.
-            onSubmit: (_) async => const SubmitResult(success: true),
+            instanceId: aggregateId,
+            onSubmit: (submission) async {
+              try {
+                await _recordSurveySubmission(
+                  entryType: entryType,
+                  aggregateId: aggregateId,
+                  submission: submission,
+                );
+                return const SubmitResult(success: true);
+              } catch (e) {
+                return SubmitResult(success: false, error: e.toString());
+              }
+            },
             onComplete: () => Navigator.of(context).pop(),
           ),
         ),
-      );
-    } finally {
-      _questionnaireRouteActive = false;
-    }
-  }
-
-  /// Read prior responses for [aggregateId] from the materialized view,
-  /// or `null` when no row exists yet. Used by
-  /// [_navigateToQuestionnaire] to seed the flow on every re-tap.
-  ///
-  /// CUR-1292: seed regardless of `isComplete`. A questionnaire that
-  /// the participant has already submitted (isComplete=true,
-  /// server-side status='ready_to_review') stays editable until the
-  /// portal coordinator clicks Finalize. Tombstoned rows
-  /// (`isDeleted=true`) return null — the participant should never see
-  /// stale post-tombstone state.
-  Future<List<QuestionResponse>?> _readInitialResponses({
-    required String entryType,
-    required String aggregateId,
-  }) async {
-    final rows = await widget.runtime.backend.findEntries(entryType: entryType);
-    for (final row in rows) {
-      if (row.entryId == aggregateId && !row.isDeleted) {
-        return _parseSurveyResponses(row.currentAnswers);
-      }
-    }
-    return null;
-  }
-
-  /// Parse the `responses` list out of a survey's materialized answers map.
-  ///
-  /// The materializer merges every `partial.toJson()` payload into
-  /// `current_answers`, which means the most recent checkpoint's full
-  /// `responses` array (List of question_id/value/display_label/
-  /// normalized_label maps) is the live truth for resume.
-  static List<QuestionResponse> _parseSurveyResponses(
-    Map<String, Object?> answers,
-  ) {
-    final raw = answers['responses'];
-    if (raw is! List) return const <QuestionResponse>[];
-    final result = <QuestionResponse>[];
-    for (final entry in raw) {
-      if (entry is Map) {
-        result.add(QuestionResponse.fromJson(Map<String, dynamic>.from(entry)));
-      }
-    }
-    return result;
-  }
-
-  Future<void> _handleIncompleteRecordsClick() async {
-    if (_incompleteEntries.isEmpty) return;
-
-    // Navigate to edit the first incomplete entry
-    // CUR-508: Use feature flag to determine which recording screen to show
-    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
-    final firstIncomplete = _incompleteEntries.first;
-    final firstStart = _readStartTime(firstIncomplete);
-
-    Future<void> tombstone(String reason) async {
-      await widget.runtime.entryService.record(
-        entryType: firstIncomplete.entryType,
-        aggregateId: firstIncomplete.entryId,
-        eventType: 'tombstone',
-        answers: const <String, Object?>{},
-        changeReason: reason,
-      );
-      unawaited(_loadRecords());
-    }
-
-    final result = await Navigator.push<bool>(
-      context,
-      AppPageRoute(
-        builder: (context) => useOnePage
-            ? SimpleRecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
-                initialStartDate: firstStart,
-                existingEntry: firstIncomplete,
-                allEntries: _entries,
-                onDelete: tombstone,
-              )
-            : RecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
-                diaryEntryDate: firstStart,
-                existingEntry: firstIncomplete,
-                allEntries: _entries,
-                onDelete: tombstone,
-              ),
       ),
     );
-
-    if (result ?? false) {
-      unawaited(_loadRecords());
-    }
   }
 
-  Future<void> _navigateToEditRecord(DiaryEntry entry) async {
-    // CUR-464: Result is now record ID (String) instead of bool
-    // CUR-508: Use feature flag to determine which recording screen to show
-    final useOnePage = FeatureFlagService.instance.useOnePageRecordingScreen;
+  // Implements: DIARY-DEV-reactive-read-path/A
+  // Implements: DIARY-PRD-incomplete-entry-preservation/B
+  Future<void> _handleIncompleteRecordsClick(DiaryView view) async {
+    final incomplete = view.incompleteEntries;
+    if (incomplete.isEmpty) return;
 
-    Future<void> tombstone(String reason) async {
-      await widget.runtime.entryService.record(
-        entryType: entry.entryType,
-        aggregateId: entry.entryId,
-        eventType: 'tombstone',
-        answers: const <String, Object?>{},
-        changeReason: reason,
-      );
-      unawaited(_loadRecords());
-    }
+    // Navigate to edit (resume) the first incomplete entry. Only epistaxis
+    // entries are editable in the recording screen.
+    final firstIncomplete = incomplete.first;
+    if (firstIncomplete is! EpistaxisEntryView) return;
 
+    // The diary list refreshes reactively via DiaryViewBuilder; no manual
+    // reload is needed after returning from the recording screen. The recording
+    // screen pops its aggregate id (a String) on save, so the route result type
+    // must be String?-compatible — a <bool> route throws on pop.
+    await Navigator.push<String?>(
+      context,
+      AppPageRoute(
+        builder: (context) => RecordingScreen(existing: firstIncomplete),
+      ),
+    );
+  }
+
+  /// Open the overlap-resolution flow for the first unresolved pair. The home
+  /// surface re-derives reactively (DiaryViewBuilder), so after one pair is
+  /// resolved the banner reflects the remaining count.
+  // Implements: DIARY-GUI-entry-overlap-resolution/A
+  Future<void> _handleResolveOverlaps(DiaryView view) async {
+    final pairs = overlapPairs(view);
+    if (pairs.isEmpty) return;
+    final first = pairs.first;
+    await Navigator.of(context).push(
+      AppPageRoute<void>(
+        builder: (context) => OverlapCompareScreen(
+          leftId: first.preExisting.aggregateId,
+          rightId: first.justTouched.aggregateId,
+        ),
+      ),
+    );
+    // Nothing to do after the screen pops — the home surface re-derives the
+    // banner reactively from the next DiaryView emission.
+  }
+
+  /// Re-disposition a tapped day-[marker]: open the same 3-choice picker the
+  /// calendar uses, seeded with that marker so a "Record nosebleed" choice
+  /// tombstones it on save (convert). Marker↔marker choices re-record on the
+  /// day aggregate (latest-wins). A marker always carries a localDate.
+  // Implements: DIARY-PRD-day-disposition/B
+  Future<void> _redispositionMarker(DayMarkerView marker) async {
+    final localDate = marker.localDate;
+    if (localDate == null) return;
+    final day = DateTime.parse(localDate);
+    await showDayDispositionPicker(
+      context,
+      localDay: DateTime(day.year, day.month, day.day),
+      localDate: localDate,
+      marker: MarkerToReplace(
+        aggregateId: marker.aggregateId,
+        entryType: marker.entryType,
+      ),
+    );
+  }
+
+  Future<void> _navigateToEditRecord(EpistaxisEntryView entry) async {
+    // CUR-464: Result is now record ID (String) instead of bool. Flash + scroll
+    // happen reactively once DiaryViewBuilder splices the edited row back in.
     final result = await Navigator.push<String?>(
       context,
-      AppPageRoute(
-        builder: (context) => useOnePage
-            ? SimpleRecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
-                existingEntry: entry,
-                allEntries: _entries,
-                onDelete: tombstone,
-              )
-            : RecordingScreen(
-                entryService: widget.runtime.entryService,
-                enrollmentService: widget.enrollmentService,
-                preferencesService: widget.preferencesService,
-                existingEntry: entry,
-                allEntries: _entries,
-                onDelete: tombstone,
-              ),
-      ),
+      AppPageRoute(builder: (context) => RecordingScreen(existing: entry)),
     );
 
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        _flashRecordId = result;
-      });
-      await _loadRecords();
-      _scrollToRecord(result);
+    if (result != null && result.isNotEmpty && mounted) {
+      _flashAndScrollTo(result);
     }
   }
 
-  /// Read the `startTime` answer from a [DiaryEntry], or fall back to its
-  /// effective date / updated-at.
-  static DateTime _readStartTime(DiaryEntry entry) {
-    final raw = entry.currentAnswers['startTime'];
-    if (raw is String) return DateTimeFormatter.parse(raw);
-    return entry.effectiveDate ?? entry.updatedAt;
-  }
-
-  /// Read the `endTime` answer from a [DiaryEntry] (null when absent).
-  static DateTime? _readEndTime(DiaryEntry entry) {
-    final raw = entry.currentAnswers['endTime'];
-    if (raw is String) return DateTimeFormatter.parse(raw);
-    return null;
-  }
-
-  /// Check if an entry overlaps with any other entry in the list.
-  /// CUR-443: Used to show warning icon on overlapping events
-  bool _hasOverlap(DiaryEntry entry) {
-    if (entry.entryType != 'epistaxis_event') return false;
-    final start = _readStartTime(entry);
-    final end = _readEndTime(entry);
+  /// Whether [entry] overlaps any other epistaxis row in the live [view].
+  /// CUR-443: Used to show a warning icon on overlapping events.
+  // Implements: DIARY-DEV-reactive-read-path/A
+  bool _hasOverlap(DiaryView view, EpistaxisEntryView entry) {
+    final end = entry.endTime;
     if (end == null) return false;
-
-    for (final other in _entries) {
-      if (other.entryId == entry.entryId) continue;
-      if (other.entryType != 'epistaxis_event') continue;
-      final otherEnd = _readEndTime(other);
-      if (otherEnd == null) continue;
-      final otherStart = _readStartTime(other);
-      if (start.isBefore(otherEnd) && end.isAfter(otherStart)) {
-        return true;
-      }
-    }
-    return false;
+    return overlappingEpistaxisEntries(
+      view.finalizedRows,
+      entry.startTime,
+      end,
+      excludeAggregateId: entry.aggregateId,
+    ).isNotEmpty;
   }
 
-  List<_GroupedRecords> _groupRecordsByDay(BuildContext context) {
+  /// Group the live diary [view] into the "older incomplete", "yesterday", and
+  /// "today" sections rendered by the list. Derives everything from [view] (the
+  /// finalized canonical entries + the diary-local incomplete checkpoints).
+  // Implements: DIARY-DEV-reactive-read-path/A
+  List<_GroupedRecords> _groupRecordsByDay(
+    BuildContext context,
+    DiaryView view,
+  ) {
     final l10n = AppLocalizations.of(context);
-    final today = widget.clock();
+    final today = DateTime.now();
     final yesterday = today.subtract(const Duration(days: 1));
 
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
     final yesterdayStr = DateFormat('yyyy-MM-dd').format(yesterday);
 
-    // Compare in local-calendar terms. Survey rows have no startTime
-    // answer and fall back to effectiveDate / updatedAt, which are
-    // recorded in UTC; without `.toLocal()` a 04:44Z event would format
-    // to its UTC date and never match today's local date during the
-    // evening of the same calendar day.
-    String entryDateStr(DiaryEntry e) {
-      return DateFormat('yyyy-MM-dd').format(_readStartTime(e).toLocal());
+    int byStart(DiaryEntryView a, DiaryEntryView b) {
+      final aStart = a is EpistaxisEntryView ? a.startTime : null;
+      final bStart = b is EpistaxisEntryView ? b.startTime : null;
+      if (aStart == null || bStart == null) return 0;
+      return aStart.compareTo(bStart);
     }
 
+    bool isEpistaxisOn(DiaryEntryView e, String dateStr) =>
+        e is EpistaxisEntryView && e.localDate == dateStr;
+
+    // The home block is yesterday + today only; everything older (including
+    // older incomplete checkpoints, which the incomplete alert still surfaces)
+    // is reached through the Calendar.
     final groups = <_GroupedRecords>[];
 
-    // Get incomplete real-nosebleed entries that are older than yesterday.
-    final olderIncompleteEntries = _entries.where((e) {
-      if (e.isComplete || e.entryType != 'epistaxis_event') return false;
-      final dateStr = entryDateStr(e);
-      return dateStr != todayStr && dateStr != yesterdayStr;
-    }).toList()..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
+    // Yesterday's finalized nosebleed entries.
+    final yesterdayEntries =
+        view
+            .entriesOn(yesterdayStr)
+            .whereType<EpistaxisEntryView>()
+            .cast<DiaryEntryView>()
+            .toList()
+          ..sort(byStart);
 
-    if (olderIncompleteEntries.isNotEmpty) {
-      groups.add(
-        _GroupedRecords(
-          label: l10n.incompleteRecords,
-          entries: olderIncompleteEntries,
-          isIncomplete: true,
-        ),
-      );
-    }
-
-    // Yesterday's nosebleed-related entries plus any completed
-    // questionnaire submitted yesterday. Incomplete epistaxis entries land
-    // here too (they're not strictly older than yesterday, so they're
-    // excluded from `olderIncompleteEntries`).
-    final yesterdayNosebleed = _entries.where((e) {
-      return entryDateStr(e) == yesterdayStr &&
-          e.entryType == 'epistaxis_event';
-    });
-    final yesterdayQuestionnaires = _completedQuestionnaireEntries.where(
-      (e) => entryDateStr(e) == yesterdayStr,
-    );
-    final yesterdayEntries = [...yesterdayNosebleed, ...yesterdayQuestionnaires]
-      ..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
-
-    // Check if there are ANY entries for yesterday (including special events
-    // and completed questionnaires).
+    // Any entry at all on yesterday (incl. day markers + incomplete checkpoints).
     final hasAnyYesterdayEntries =
-        _entries.any((e) => entryDateStr(e) == yesterdayStr) ||
-        _completedQuestionnaireEntries.any(
-          (e) => entryDateStr(e) == yesterdayStr,
-        );
+        view.entriesOn(yesterdayStr).isNotEmpty ||
+        view.incompleteEntries.any((e) => isEpistaxisOn(e, yesterdayStr));
 
     groups.add(
       _GroupedRecords(
@@ -1329,23 +836,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         date: yesterday,
         entries: yesterdayEntries,
         isEmpty: !hasAnyYesterdayEntries,
+        isYesterday: true,
       ),
     );
 
-    // Today's real-nosebleed entries (including incomplete - CUR-488),
-    // plus any completed questionnaires submitted today (CUR-1292).
-    final todayNosebleed = _entries.where((e) {
-      return entryDateStr(e) == todayStr && e.entryType == 'epistaxis_event';
-    });
-    final todayQuestionnaires = _completedQuestionnaireEntries.where(
-      (e) => entryDateStr(e) == todayStr,
-    );
-    final todayEntries = [...todayNosebleed, ...todayQuestionnaires]
-      ..sort((a, b) => _readStartTime(a).compareTo(_readStartTime(b)));
+    // Today's finalized nosebleed entries plus today's incomplete checkpoints
+    // (CUR-488: in-progress entries surface in the today section).
+    final todayEntries = <DiaryEntryView>[
+      ...view.entriesOn(todayStr).whereType<EpistaxisEntryView>(),
+      ...view.incompleteEntries.where((e) => isEpistaxisOn(e, todayStr)),
+    ]..sort(byStart);
 
     final hasAnyTodayEntries =
-        _entries.any((e) => entryDateStr(e) == todayStr) ||
-        _completedQuestionnaireEntries.any((e) => entryDateStr(e) == todayStr);
+        view.entriesOn(todayStr).isNotEmpty ||
+        view.incompleteEntries.any((e) => isEpistaxisOn(e, todayStr));
 
     groups.add(
       _GroupedRecords(
@@ -1361,12 +865,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final groupedRecords = _groupRecordsByDay(context);
+    return DiaryViewBuilder(builder: _buildScaffold);
+  }
 
+  // Implements: DIARY-DEV-reactive-read-path/A
+  Widget _buildScaffold(BuildContext context, DiaryView view) {
+    // Top-to-bottom areas: header · alerts · notifications · yesterday+today ·
+    // record. Each is a clearly-delimited region below.
+    final incompleteCount = view.incompleteEntries.length;
+    final overlapCount = overlapPairs(view).length;
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
+            // -- 1. HEADER --------------------------------------------------
             // Header with interactive logo and user menu
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -1377,55 +889,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   // Logo menu on the left
                   LogoMenu(
-                    onExportData: _handleExportData,
-                    onImportData: _handleImportData,
                     sponsorLogo: sponsorBranding.appLogoUrl,
                     onResetAllData: _handleResetAllData,
-                    onFeatureFlags: _handleFeatureFlags,
+                    resetEnabled: _canResetData,
                     isEnrolled: _isEnrolled,
-                    isDisconnected: _isDisconnected,
-                    isNotParticipating: _isNotParticipating,
                     onEndClinicalTrial: _isEnrolled
                         ? _handleEndClinicalTrial
                         : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                     showDevTools: AppConfig.showDevTools,
-                    showResetData: AppConfig.showResetData,
                   ),
-                  // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens.
-                  // CUR-1292: tap the title to manually trigger a task-sync. This is
-                  // the dev-mode fallback for environments without FCM (Linux desktop
-                  // local-stack), where the participant otherwise has to wait up to the
-                  // next periodic-trigger tick to discover a freshly-assigned
-                  // questionnaire. Production keeps the same affordance — a manual
-                  // pull is a reasonable participant gesture.
+                  // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens
                   Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () async {
-                        // CUR-1292: syncTasks must finish before
-                        // _loadRecords so any tombstone events
-                        // recorded for cancelled questionnaires have
-                        // landed in the materialized view by the
-                        // time the home screen re-reads it.
-                        // Otherwise the timeline card for a
-                        // just-cancelled questionnaire lingers until
-                        // the next refresh.
-                        await widget.taskService.syncTasks(
-                          widget.enrollmentService,
-                        );
-                        if (!mounted) return;
-                        unawaited(_loadRecords());
-                        unawaited(_refreshWedgeStatus());
-                      },
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          AppLocalizations.of(context).appTitle,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w500),
-                          textAlign: TextAlign.center,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        AppLocalizations.of(context).appTitle,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
@@ -1440,17 +923,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         await Navigator.push(
                           context,
                           AppPageRoute<void>(
-                            builder: (context) => SettingsScreen(
-                              preferencesService: widget.preferencesService,
-                              onLanguageChanged: widget.onLocaleChanged,
-                              onThemeModeChanged: widget.onThemeModeChanged,
-                              onLargerTextChanged: widget.onLargerTextChanged,
-                              onFontChanged: widget.onFontChanged,
-                            ),
+                            builder: (context) => const SettingsScreen(),
                           ),
                         );
-                        // Reload preferences in case they changed
-                        await _loadPreferences();
                       } else if (value == 'privacy') {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -1462,7 +937,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                         );
                       } else if (value == 'enroll') {
-                        await _openEnrollmentScreen();
+                        final wasEnrolled = _isEnrolled;
+                        await Navigator.push(
+                          context,
+                          AppPageRoute<void>(
+                            builder: (context) => ClinicalTrialEnrollmentScreen(
+                              enrollmentService: widget.enrollmentService,
+                            ),
+                          ),
+                        );
+                        await _checkEnrollmentStatus();
+                        if (_isEnrolled) {
+                          widget.onEnrolled?.call();
+                        }
+                        await _checkDisconnectionStatus();
+                        // CUR-1114: Open profile only if enrollment state changed
+                        if (!wasEnrolled && _isEnrolled && mounted) {
+                          await _handleShowProfile();
+                        }
                       }
                     },
                     itemBuilder: (context) {
@@ -1520,136 +1012,63 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
 
-            // Banners section
-            if (!_isLoading) ...[
-              // Wedge banner: at least one destination FIFO is wedged on a
-              // unknown event-type bridge mismatch — participant should update
-              // the app to drain it.
-              if (_hasWedgedFifo) const _SyncWedgedBanner(),
+            // -- 2 & 3. ALERTS + NOTIFICATIONS ------------------------------
+            // The single most-urgent "important item" shows inline (top slot);
+            // everything else collapses into one "N more important items" row
+            // that opens the Important page. This keeps the home screen
+            // uncluttered and bounded no matter how many alerts/tasks fire at
+            // once. Priority: disconnection > sync-wedged > incomplete >
+            // overlap > tasks.
+            // Implements: DIARY-GUI-main-screen-layout-A+C
+            // NOTE: the inline-top + collapse model is not yet in the
+            // requirement's assertions (which still describe separate notice +
+            // task zones); divergence to be reconciled in a later spec pass.
+            if (!_isLoading)
+              ListenableBuilder(
+                listenable: widget.taskService,
+                builder: (context, _) {
+                  final alerts = _buildAlerts(
+                    context,
+                    view,
+                    incompleteCount,
+                    overlapCount,
+                  );
+                  // Tasks are hidden while disconnected (no valid
+                  // questionnaires — CUR-1164).
+                  final tasks = _isDisconnected
+                      ? const <Task>[]
+                      : widget.taskService.tasks;
+                  final totalImportant = alerts.length + tasks.length;
+                  // Top slot: the most-urgent alert, else the top task.
+                  final topInline = alerts.isNotEmpty
+                      ? alerts.first.banner
+                      : (tasks.isNotEmpty
+                            ? TaskListWidget(
+                                taskService: widget.taskService,
+                                onTaskTap: _navigateToQuestionnaire,
+                                limit: 1,
+                              )
+                            : null);
+                  final moreCount = topInline == null ? 0 : totalImportant - 1;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ?topInline,
+                      if (moreCount > 0)
+                        _buildMoreImportantRow(context, moreCount, alerts),
+                    ],
+                  );
+                },
+              ),
 
-              // REQ-CAL-p00077 / REQ-p70011/F: Banner is shown for both
-              // `disconnected` (contact site) and `linkingInProgress` (new
-              // code issued, tap to enter it). The widget switches copy and
-              // tap behavior based on `status`.
-              if (_isDisconnected ||
-                  _linkingStatus == MobileLinkingStatus.linkingInProgress)
-                DisconnectionBanner(
-                  status: _linkingStatus,
-                  siteName: _siteName,
-                  sitePhoneNumber: _sitePhoneNumber,
-                  onTapReconnect: _openEnrollmentScreen,
-                ),
+            // -- 4 & 5. YESTERDAY + TODAY ----------------------------------
+            // One bounded block of real-estate. It scrolls internally when
+            // yesterday + today overflow, pinned to the bottom (newest) by
+            // default. Everything older is reached through the Calendar.
+            Expanded(child: _buildEventsBlock(context, view)),
 
-              // Incomplete records banner (orange)
-              if (_incompleteEntries.isNotEmpty)
-                Builder(
-                  builder: (context) {
-                    final l10n = AppLocalizations.of(context);
-                    return InkWell(
-                      onTap: _handleIncompleteRecordsClick,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              color: Colors.orange.shade800,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                l10n.incompleteRecordCount(
-                                  _incompleteEntries.length,
-                                ),
-                                style: TextStyle(
-                                  color: Colors.orange.shade800,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              l10n.tapToComplete,
-                              style: TextStyle(
-                                color: Colors.orange.shade600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-
-              // REQ-CAL-p00081: Task list (questionnaires, etc.)
-              // CUR-1164: Hide while disconnected — no valid questionnaires.
-              if (!_isDisconnected)
-                TaskListWidget(
-                  taskService: widget.taskService,
-                  // REQ-CAL-p00081-D: Navigate to relevant screen.
-                  // CUR-1292: cancelledQuestionnaire tasks dismiss on
-                  // tap rather than navigating — they're passive
-                  // notifications, not actionable items.
-                  onTaskTap: (task) {
-                    if (task.taskType == TaskType.cancelledQuestionnaire) {
-                      widget.taskService.removeTask(task.id);
-                      return;
-                    }
-                    _navigateToQuestionnaire(task);
-                  },
-                  // CUR-1292: render the "In progress" pill on tasks
-                  // whose aggregate has a checkpointed-but-not-finalized
-                  // row in the materialized view.
-                  wipAggregateIds: _wipQuestionnaireAggregateIds,
-                  // CUR-1292: hide the task entry once the participant has
-                  // submitted (a `finalized` event landed locally) —
-                  // it lives in the today/yesterday timeline from
-                  // there until the portal Finalizes or tombstones.
-                  submittedAggregateIds: <String>{
-                    for (final e in _completedQuestionnaireEntries) e.entryId,
-                  },
-                ),
-
-              // Yesterday confirmation banner (yellow)
-              if (!_hasYesterdayRecords)
-                YesterdayBanner(
-                  onNoNosebleeds: _handleYesterdayNoNosebleeds,
-                  onHadNosebleeds: _handleYesterdayHadNosebleeds,
-                  onDontRemember: _handleYesterdayDontRemember,
-                ),
-            ],
-
-            // Records list
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : RefreshIndicator(
-                      onRefresh: _loadRecords,
-                      child: Scrollbar(
-                        thumbVisibility: true,
-                        controller: _scrollController,
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: groupedRecords.length,
-                          itemBuilder: (context, index) {
-                            final group = groupedRecords[index];
-                            return _buildGroup(context, group);
-                          },
-                        ),
-                      ),
-                    ),
-            ),
-
+            // -- 6. RECORD -------------------------------------------------
             // Bottom action area
             Padding(
               padding: const EdgeInsets.all(24.0),
@@ -1674,19 +1093,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         elevation: 4,
                         shadowColor: Colors.black.withValues(alpha: 0.3),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.add, size: 32),
-                          const SizedBox(width: 12),
-                          Text(
-                            AppLocalizations.of(context).recordNosebleed,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
+                      // FittedBox (as the header title) scales the label down to
+                      // fit rather than overflowing with a wide/large font.
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.add, size: 32),
+                            const SizedBox(width: 12),
+                            Text(
+                              AppLocalizations.of(context).recordNosebleed,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1696,27 +1120,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   // Calendar button
                   OutlinedButton.icon(
                     onPressed: () async {
-                      // CUR-1292: the dialog can return a *_survey
-                      // DiaryEntry when the participant taps a completed
-                      // questionnaire on the calendar's day-view; in
-                      // that case we close the calendar and route the
-                      // tap through the same handler used on the home
-                      // timeline (editable vs read-only based on
-                      // server status).
-                      final result = await showDialog<DiaryEntry?>(
+                      // The calendar reads/writes the same reactive diary store;
+                      // the home list updates on its own when the dialog closes.
+                      await showDialog<void>(
                         context: context,
-                        builder: (context) => CalendarScreen(
-                          entryService: widget.runtime.entryService,
-                          reader: widget.runtime.reader,
-                          enrollmentService: widget.enrollmentService,
-                          preferencesService: widget.preferencesService,
-                        ),
+                        builder: (context) => const CalendarScreen(),
                       );
-                      if (result != null &&
-                          result.entryType.endsWith('_survey')) {
-                        await _onQuestionnaireEntryTapped(result);
-                      }
-                      unawaited(_loadRecords());
                     },
                     icon: const Icon(Icons.calendar_today),
                     label: Text(AppLocalizations.of(context).calendar),
@@ -1733,35 +1142,329 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildGroup(BuildContext context, _GroupedRecords group) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Divider with label (only show for incomplete records section)
-        if (group.isIncomplete)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+  /// Builds the active alerts in priority order (most urgent first):
+  /// disconnection > sync-wedged > incomplete > overlap. Each alert carries
+  /// both its bespoke inline banner (shown when it wins the top slot) and the
+  /// simple icon/title/onTap projection used by the Important page and the
+  /// "N more important items" summary row.
+  // Implements: DIARY-GUI-main-screen-layout-A
+  List<_HomeAlert> _buildAlerts(
+    BuildContext context,
+    DiaryView view,
+    int incompleteCount,
+    int overlapCount,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      // Disconnection (red, persistent, non-dismissible per REQ-p05004).
+      if (_isDisconnected)
+        _HomeAlert(
+          icon: Icons.warning_amber_rounded,
+          color: Colors.red.shade700,
+          // TODO(i18n): localize.
+          title: 'Disconnected from Study',
+          subtitle: 'Please contact your study site.',
+          banner: DisconnectionBanner(
+            siteName: _siteName,
+            sitePhoneNumber: _sitePhoneNumber,
+          ),
+        ),
+      // Sync wedged: a destination FIFO is wedged on an unknown event-type
+      // bridge mismatch — participant should update the app to drain it.
+      if (_hasWedgedFifo)
+        _HomeAlert(
+          icon: Icons.sync_problem,
+          color: Colors.red.shade400,
+          // TODO(i18n): localize.
+          title: 'Some data is not syncing',
+          subtitle: 'Please update the app.',
+          banner: const _SyncWedgedBanner(),
+        ),
+      // Incomplete-entry reminder (preserves in-progress entries).
+      // Implements: DIARY-PRD-incomplete-entry-preservation/B
+      if (incompleteCount > 0)
+        _HomeAlert(
+          icon: Icons.warning_amber_rounded,
+          color: Colors.orange.shade800,
+          title: l10n.incompleteRecordCount(incompleteCount),
+          onTap: () => _handleIncompleteRecordsClick(view),
+          banner: _incompleteBanner(context, view, incompleteCount),
+        ),
+      // Unresolved overlaps (amber — distinct, lower-urgency than incomplete).
+      // Implements: DIARY-PRD-entry-overlap-resolution/B
+      if (overlapCount > 0)
+        _HomeAlert(
+          icon: Icons.merge_type,
+          color: Colors.amber.shade900,
+          // TODO(i18n): localize + pluralize.
+          title: overlapCount == 1
+              ? '1 overlapping record needs resolving'
+              : '$overlapCount overlapping records need resolving',
+          onTap: () => _handleResolveOverlaps(view),
+          banner: _overlapBanner(context, view, overlapCount),
+        ),
+    ];
+  }
+
+  /// Orange incomplete-records banner (the bespoke inline form).
+  Widget _incompleteBanner(
+    BuildContext context,
+    DiaryView view,
+    int incompleteCount,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    return InkWell(
+      onTap: () => _handleIncompleteRecordsClick(view),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.orange.shade800,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l10n.incompleteRecordCount(incompleteCount),
+                style: TextStyle(
+                  color: Colors.orange.shade800,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            // Tappable affordance (whole banner is an InkWell). A chevron —
+            // rather than a second competing text label — keeps the count
+            // readable on narrow screens and at large text scales.
+            const SizedBox(width: 8),
+            Tooltip(
+              message: l10n.tapToComplete,
+              child: Icon(Icons.chevron_right, color: Colors.orange.shade600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Amber unresolved-overlap banner (the bespoke inline form).
+  Widget _overlapBanner(
+    BuildContext context,
+    DiaryView view,
+    int overlapCount,
+  ) {
+    return InkWell(
+      onTap: () => _handleResolveOverlaps(view),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.amber.shade100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.merge_type, color: Colors.amber.shade900, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              // TODO(i18n): localize + pluralize.
+              child: Text(
+                overlapCount == 1
+                    ? '1 overlapping record needs resolving'
+                    : '$overlapCount overlapping records need resolving',
+                style: TextStyle(
+                  color: Colors.amber.shade900,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // TODO(i18n): localize tooltip.
+            Tooltip(
+              message: 'Resolve',
+              child: Icon(Icons.chevron_right, color: Colors.amber.shade700),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The collapsed "N more important items" row that opens the Important page.
+  Widget _buildMoreImportantRow(
+    BuildContext context,
+    int moreCount,
+    List<_HomeAlert> alerts,
+  ) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Material(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _openImportant(context, alerts),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                const Expanded(child: Divider()),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                Icon(
+                  Icons.notifications_none,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  // TODO(i18n): localize + pluralize.
                   child: Text(
-                    group.label,
+                    moreCount == 1
+                        ? '1 more important item'
+                        : '$moreCount more important items',
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.orange.shade700,
+                      color: theme.colorScheme.onSurface,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-                const Expanded(child: Divider()),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
 
-        // Date display for today and yesterday
-        if (group.date != null && !group.isIncomplete)
+  /// Opens the Important page: the full alert list (page-row projection) plus
+  /// the full task list, in two sections.
+  Future<void> _openImportant(
+    BuildContext context,
+    List<_HomeAlert> alerts,
+  ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ImportantScreen(
+          alerts: [
+            for (final a in alerts)
+              ImportantAlert(
+                icon: a.icon,
+                color: a.color,
+                title: a.title,
+                subtitle: a.subtitle,
+                onTap: a.onTap,
+              ),
+          ],
+          taskService: widget.taskService,
+          onTaskTap: _navigateToQuestionnaire,
+        ),
+      ),
+    );
+  }
+
+  /// The Yesterday + Today block (areas 4 & 5): a bounded, internally-scrolling
+  /// list of the yesterday and today day-groups, auto-pinned to the bottom
+  /// (newest) on first load. Wrapped in [Expanded] by the caller.
+  // Implements: DIARY-DEV-reactive-read-path/A
+  Widget _buildEventsBlock(BuildContext context, DiaryView view) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final groups = _groupRecordsByDay(context, view);
+    // Default to the most recent events: jump to the bottom once, after the
+    // first laid-out frame that has a scrollable extent.
+    if (!_didScrollEventsToBottom) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _didScrollEventsToBottom) return;
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          _didScrollEventsToBottom = true;
+        }
+      });
+    }
+    return RefreshIndicator(
+      // The diary list is reactive (DiaryViewBuilder); pull-to-refresh stays for
+      // the affordance but has nothing to load.
+      onRefresh: () async {},
+      child: Scrollbar(
+        thumbVisibility: true,
+        controller: _scrollController,
+        child: ListView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: groups.length,
+          itemBuilder: (context, index) =>
+              _buildGroup(context, view, groups[index]),
+        ),
+      ),
+    );
+  }
+
+  /// Empty-state content for a day group. The Yesterday section, when not
+  /// locked, shows the No/Had/Don't-remember confirmation prompt instead of a
+  /// bare empty state (the prompt lives in the Yesterday area, not a separate
+  /// banner). Implements: DIARY-PRD-day-disposition/B
+  Widget _emptyGroupContent(BuildContext context, _GroupedRecords group) {
+    // Only prompt when yesterday has NO entry at all (incl. a day marker or an
+    // incomplete checkpoint) — i.e. the participant hasn't answered yet.
+    if (group.isYesterday && group.isEmpty) {
+      // Defense-in-depth for the day-level lock: the prompt's quick actions
+      // write markers / open recording for yesterday directly, so suppress it
+      // when yesterday is past the lock threshold (only possible under a sub-day
+      // lock); the calendar is the primary read-only gate.
+      final yesterdayLocked =
+          entryGateForDate(
+            eventLocalMidnight: DateUtils.dateOnly(
+              DateTime.now().subtract(const Duration(days: 1)),
+            ),
+            now: DateTime.now(),
+            config: ClinicalRulesScope.of(context).gate,
+          ) ==
+          EntryGate.locked;
+      if (!yesterdayLocked) {
+        return YesterdayBanner(
+          onNoNosebleeds: _handleYesterdayNoNosebleeds,
+          onHadNosebleeds: _handleYesterdayHadNosebleeds,
+          onDontRemember: _handleYesterdayDontRemember,
+        );
+      }
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Center(
+        child: Text(
+          'no events ${group.label.toLowerCase()}',
+          style: TextStyle(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Implements: DIARY-GUI-epistaxis-record/A
+  Widget _buildGroup(
+    BuildContext context,
+    DiaryView view,
+    _GroupedRecords group,
+  ) {
+    final prefs = AppPreferencesScope.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Day divider + label (Yesterday / Today) and the full date.
+        if (group.date != null)
           Padding(
             padding: const EdgeInsets.only(top: 8, bottom: 8),
             child: Column(
@@ -1799,31 +1502,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
 
         // Records or empty state
-        if (group.entries.isEmpty && !group.isIncomplete)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Center(
-              child: Text(
-                'no events ${group.label.toLowerCase()}',
-                style: TextStyle(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          )
+        if (group.entries.isEmpty)
+          _emptyGroupContent(context, group)
         else
           ...group.entries.map(
             (entry) => Padding(
               // CUR-489: Use GlobalKey for scroll-to-item functionality
-              key: _getKeyForRecord(entry.entryId),
-              // CUR-464: Use smaller gap when compact view is enabled
-              padding: EdgeInsets.only(bottom: _compactView ? 4 : 8),
+              key: _getKeyForRecord(entry.aggregateId),
+              padding: const EdgeInsets.only(bottom: 8),
               // CUR-464: Wrap with FlashHighlight to animate new records
               child: FlashHighlight(
-                flash: entry.entryId == _flashRecordId,
-                enabled: _useAnimation,
+                flash: entry.aggregateId == _flashRecordId,
+                enabled: prefs.useAnimation,
                 onFlashComplete: () {
                   if (mounted) {
                     setState(() {
@@ -1832,22 +1522,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   }
                 },
                 builder: (context, highlightColor) => EventListItem(
-                  entry: entry,
-                  onTap: entry.entryType.endsWith('_survey')
-                      ? () => _onQuestionnaireEntryTapped(entry)
-                      : () => _navigateToEditRecord(entry),
-                  hasOverlap: _hasOverlap(entry),
+                  view: entry,
+                  // Epistaxis taps edit the record; day-marker taps re-disposition
+                  // the day via the shared 3-choice picker.
+                  // Implements: DIARY-PRD-day-disposition/B
+                  onTap: switch (entry) {
+                    EpistaxisEntryView() => () => _navigateToEditRecord(entry),
+                    DayMarkerView() => () => _redispositionMarker(entry),
+                  },
+                  hasOverlap:
+                      entry is EpistaxisEntryView && _hasOverlap(view, entry),
                   highlightColor: highlightColor,
-                  // CUR-1292: a questionnaire is "finalized" (locked)
-                  // when its aggregate is no longer surfaced as a task.
-                  // /tasks drops finalized rows server-side, and the
-                  // next syncTasks removes the matching local task —
-                  // so absence in TaskService is the correct test.
-                  isFinalized:
-                      entry.entryType.endsWith('_survey') &&
-                      !widget.taskService.tasks.any(
-                        (t) => (t.targetId ?? t.id) == entry.entryId,
-                      ),
                 ),
               ),
             ),
@@ -1862,19 +1547,48 @@ class _GroupedRecords {
     required this.label,
     required this.entries,
     this.date,
-    this.isIncomplete = false,
     this.isEmpty = false,
+    this.isYesterday = false,
   });
   final String label;
   final DateTime? date;
-  final List<DiaryEntry> entries;
-  final bool isIncomplete;
+  final List<DiaryEntryView> entries;
   final bool isEmpty;
+
+  /// The "Yesterday" section. When empty (and not locked) it renders the
+  /// yesterday confirmation prompt instead of a bare empty state.
+  final bool isYesterday;
 }
 
 /// Banner shown when at least one destination FIFO is wedged on a
 /// `unknown_event_type` bridge.  Surfaces the situation so the participant
 /// updates the app; underlying scope is "visible state", not UX polish.
+/// One active home alert: its bespoke inline [banner] (shown when it wins the
+/// single top slot) plus the simple icon/title/[onTap] projection used by the
+/// Important page rows and the collapsed summary count.
+class _HomeAlert {
+  const _HomeAlert({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.banner,
+    this.subtitle,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String? subtitle;
+
+  /// Action when the row/banner is tapped. Null for informational alerts
+  /// (e.g. the non-dismissible disconnection notice).
+  final VoidCallback? onTap;
+
+  /// The rich, bespoke inline banner for the home top slot.
+  final Widget banner;
+}
+
 class _SyncWedgedBanner extends StatelessWidget {
   const _SyncWedgedBanner();
 

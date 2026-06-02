@@ -131,7 +131,10 @@ class _RibbonPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color
+      // Translucent so UI beneath the corner (e.g. an app menu / logo) shows
+      // through the ribbon, while it still clearly marks the non-prod
+      // environment. The label text stays fully opaque for readability.
+      ..color = color.withValues(alpha: 0.55)
       ..style = PaintingStyle.fill;
 
     final path = Path()

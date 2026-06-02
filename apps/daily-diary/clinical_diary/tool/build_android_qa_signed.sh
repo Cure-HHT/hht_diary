@@ -1,5 +1,6 @@
 #!/bin/bash
-# Implements: DIARY-OPS-single-promotable-artifact/C
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006: Mobile App Build and Release Process
 
 # Build the Clinical Diary SIGNED Android app with QA flavor
 # Usage: doppler run -- ./tool/build_android_qa_signed.sh
@@ -15,13 +16,8 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 KEYSTORE_PATH="$PROJECT_DIR/android/app/key.jks"
 KEY_PROPS_PATH="$PROJECT_DIR/android/key.properties"
 
-# Stamp the bundled env pointer (env name == flavor name); the helper also
-# registers an EXIT trap to restore env.json. Re-trap so BOTH the keystore
-# cleanup and the env-pointer restore run on exit.
-source "$SCRIPT_DIR/_write_env_pointer.sh" qa
 cleanup() {
   rm -f "$KEYSTORE_PATH" "$KEY_PROPS_PATH"
-  restore_env_pointer
 }
 trap cleanup EXIT
 
@@ -41,7 +37,7 @@ storeFile=key.jks
 EOF
 
 echo "Building Clinical Diary for Android (QA flavor, signed)..."
-flutter build apk --flavor qa
+flutter build apk --flavor qa --dart-define=APP_FLAVOR=qa
 
 echo ""
 echo "Build complete! Signed APK at build/app/outputs/flutter-apk/app-qa-release.apk"

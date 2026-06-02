@@ -3,11 +3,9 @@
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-CAL-p00065: Reactivate Participant
 //   REQ-p05004: Disconnection Notification (persistent, non-dismissible)
-//   REQ-p70011: Participant Reconnection Workflow (linking_in_progress variant)
 //
 // Widget tests for DisconnectionBanner
 
-import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,24 +13,16 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers/test_helpers.dart';
 
 void main() {
-  group('DisconnectionBanner — disconnected variant', () {
+  group('DisconnectionBanner', () {
     testWidgets('displays disconnection title', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(status: MobileLinkingStatus.disconnected),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       expect(find.text('Disconnected from Study'), findsOneWidget);
     });
 
     testWidgets('displays contact site message', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(status: MobileLinkingStatus.disconnected),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       expect(find.text('Please contact your study site.'), findsOneWidget);
@@ -41,10 +31,7 @@ void main() {
     testWidgets('displays site name when provided', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          const DisconnectionBanner(
-            status: MobileLinkingStatus.disconnected,
-            siteName: 'Test Medical Center',
-          ),
+          const DisconnectionBanner(siteName: 'Test Medical Center'),
         ),
       );
       await tester.pumpAndSettle();
@@ -53,11 +40,7 @@ void main() {
     });
 
     testWidgets('has warning icon', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(status: MobileLinkingStatus.disconnected),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
@@ -65,22 +48,14 @@ void main() {
 
     // REQ-p05004: Banner must be persistent and non-dismissible
     testWidgets('has no dismiss (close) button', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(status: MobileLinkingStatus.disconnected),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.close), findsNothing);
     });
 
     testWidgets('has red background color', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(status: MobileLinkingStatus.disconnected),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       // Find the Container with decoration
@@ -98,11 +73,7 @@ void main() {
     });
 
     testWidgets('spans full width of parent', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(status: MobileLinkingStatus.disconnected),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       // The banner should be visible and rendered
@@ -111,12 +82,7 @@ void main() {
 
     testWidgets('renders without site name', (tester) async {
       await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(
-            status: MobileLinkingStatus.disconnected,
-            siteName: null,
-          ),
-        ),
+        wrapWithScaffold(const DisconnectionBanner(siteName: null)),
       );
       await tester.pumpAndSettle();
 
@@ -131,7 +97,6 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           const DisconnectionBanner(
-            status: MobileLinkingStatus.disconnected,
             siteName: 'Test Site',
             sitePhoneNumber: '+1-555-123-4567',
           ),
@@ -146,11 +111,7 @@ void main() {
     testWidgets('does not show expand indicator when no contact info', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(status: MobileLinkingStatus.disconnected),
-        ),
-      );
+      await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
       // Should not show expand/collapse icons
@@ -162,7 +123,6 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           const DisconnectionBanner(
-            status: MobileLinkingStatus.disconnected,
             siteName: 'Test Medical Center',
             sitePhoneNumber: '+1-555-123-4567',
           ),
@@ -187,7 +147,6 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           const DisconnectionBanner(
-            status: MobileLinkingStatus.disconnected,
             siteName: 'Test Site',
             sitePhoneNumber: '+1-555-123-4567',
           ),
@@ -207,7 +166,6 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           const DisconnectionBanner(
-            status: MobileLinkingStatus.disconnected,
             siteName: 'Test Site',
             sitePhoneNumber: '+1-555-123-4567',
           ),
@@ -229,10 +187,7 @@ void main() {
     testWidgets('shows only site name when no phone number', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          const DisconnectionBanner(
-            status: MobileLinkingStatus.disconnected,
-            siteName: 'Test Medical Center',
-          ),
+          const DisconnectionBanner(siteName: 'Test Medical Center'),
         ),
       );
       await tester.pumpAndSettle();
@@ -249,10 +204,7 @@ void main() {
     testWidgets('shows only phone when no site name', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
-          const DisconnectionBanner(
-            status: MobileLinkingStatus.disconnected,
-            sitePhoneNumber: '+1-555-123-4567',
-          ),
+          const DisconnectionBanner(sitePhoneNumber: '+1-555-123-4567'),
         ),
       );
       await tester.pumpAndSettle();
@@ -264,114 +216,6 @@ void main() {
       // Should show phone icon but not location icon
       expect(find.byIcon(Icons.phone), findsOneWidget);
       expect(find.byIcon(Icons.location_city), findsNothing);
-    });
-  });
-
-  group('DisconnectionBanner — linkingInProgress variant', () {
-    // Verifies: REQ-p70011/F
-    testWidgets('displays "new linking code issued" title', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(
-            status: MobileLinkingStatus.linkingInProgress,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('New linking code issued'), findsOneWidget);
-    });
-
-    // Verifies: REQ-p70011/F
-    testWidgets('displays "tap to enter your new code" body', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(
-            status: MobileLinkingStatus.linkingInProgress,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Tap to enter your new code'), findsOneWidget);
-    });
-
-    // Verifies: REQ-p70011/F
-    testWidgets('does not show "contact your site" copy', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          const DisconnectionBanner(
-            status: MobileLinkingStatus.linkingInProgress,
-            siteName: 'Test Medical Center',
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Please contact Test Medical Center.'), findsNothing);
-      expect(find.text('Disconnected from Study'), findsNothing);
-    });
-
-    // Verifies: REQ-p70011/F
-    testWidgets('invokes onTapReconnect when tapped', (tester) async {
-      var tapCount = 0;
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          DisconnectionBanner(
-            status: MobileLinkingStatus.linkingInProgress,
-            onTapReconnect: () => tapCount++,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(InkWell).first);
-      await tester.pumpAndSettle();
-
-      expect(tapCount, 1);
-    });
-
-    // Verifies: REQ-p70011/F
-    testWidgets('does not expand contact details on tap', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          DisconnectionBanner(
-            status: MobileLinkingStatus.linkingInProgress,
-            siteName: 'Test Site',
-            sitePhoneNumber: '+1-555-123-4567',
-            onTapReconnect: () {},
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(InkWell).first);
-      await tester.pumpAndSettle();
-
-      // Contact details should never appear in the linkingInProgress variant —
-      // the banner is a single-action call-to-action, not an expander.
-      expect(find.text('+1-555-123-4567'), findsNothing);
-      expect(find.byIcon(Icons.phone), findsNothing);
-    });
-
-    // Verifies: REQ-p70011/F
-    testWidgets('shows forward-arrow indicator, not expand chevron', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          DisconnectionBanner(
-            status: MobileLinkingStatus.linkingInProgress,
-            onTapReconnect: () {},
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // One arrow_forward_ios in the banner row (no expanded section icons).
-      expect(find.byIcon(Icons.arrow_forward_ios), findsOneWidget);
-      expect(find.byIcon(Icons.keyboard_arrow_down), findsNothing);
-      expect(find.byIcon(Icons.keyboard_arrow_up), findsNothing);
     });
   });
 }

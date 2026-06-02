@@ -1,37 +1,29 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-p00008: Mobile App Diary Entry
+import 'dart:async';
 
 import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_read.dart';
+import 'package:clinical_diary/read/diary_view.dart';
+import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
-import 'package:clinical_diary/screens/day_selection_screen.dart';
+import 'package:clinical_diary/screens/day_disposition.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
-import 'package:clinical_diary/services/diary_entry_reader.dart';
-import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
-import 'package:clinical_diary/utils/date_time_formatter.dart';
-import 'package:clinical_diary/widgets/questionnaire_dot.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:diary_shared_model/diary_shared_model.dart'
+    show EntryGate, entryGateForDate;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:uuid/uuid.dart';
 
-/// Calendar screen showing nosebleed history with color-coded days
+/// Calendar screen showing nosebleed history with color-coded days.
+///
+/// Reads day status reactively from the live [DiaryView] (no async loading,
+/// no local status cache); writes (day markers) go through the scope's
+/// `actionSubmitter`.
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({
-    required this.entryService,
-    required this.reader,
-    required this.enrollmentService,
-    required this.preferencesService,
-    super.key,
-  });
-
-  final EntryService entryService;
-  final DiaryEntryReader reader;
-  final EnrollmentService enrollmentService;
-  final PreferencesService preferencesService;
+  const CalendarScreen({super.key});
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -40,92 +32,25 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  Map<DateTime, DayStatus> _dayStatuses = {};
-  Set<DateTime> _daysWithCompletedQuestionnaires = const <DateTime>{};
-  List<DiaryEntry> _allEntries = [];
-  bool _useAnimation = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadDayStatuses();
-    _loadAnimationPreference();
-  }
+  /// Check if animations are enabled (both feature flag and user preference).
+  /// The user side is read reactively from the settings projection.
+  bool _animationsEnabled(BuildContext context) =>
+      FeatureFlagService.instance.useAnimations &&
+      AppPreferencesScope.of(context).useAnimation;
 
-  Future<void> _loadAnimationPreference() async {
-    final useAnimation = await widget.preferencesService.getUseAnimation();
-    if (mounted) {
-      setState(() {
-        _useAnimation = useAnimation;
-      });
-    }
-  }
-
-  /// Check if animations are enabled (both feature flag and user preference)
-  bool get _animationsEnabled =>
-      FeatureFlagService.instance.useAnimations && _useAnimation;
-
-  /// CUR-599: Handle month change - load new data in background
+  /// Month change just moves the focused day; day data is reactive.
   void _handleMonthChange(DateTime focusedDay) {
-    _focusedDay = focusedDay;
-    _loadDayStatuses();
+    setState(() => _focusedDay = focusedDay);
   }
 
-  /// Load day statuses for the current month range.
-  Future<void> _loadDayStatuses() async {
-    if (!mounted) return;
-
-    // Load statuses for current month plus padding
-    final firstDay = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
-    final lastDay = DateTime(_focusedDay.year, _focusedDay.month + 2, 0);
-
-    final statuses = await widget.reader.dayStatusRange(firstDay, lastDay);
-    final questionnaireDays = await widget.reader
-        .daysWithCompletedQuestionnaires(firstDay, lastDay);
-
-    // Also load all entries for overlap checking. Use a wide date range so
-    // every relevant entry is covered; the reader filters by local-day.
-    final allEntries = await widget.reader.entriesForDateRange(
-      DateTime.utc(1970, 1, 1),
-      DateTime.utc(9999, 1, 1),
-    );
-
-    // CUR-586: Check mounted after async operations
-    if (!mounted) return;
-    setState(() {
-      _dayStatuses = statuses;
-      _daysWithCompletedQuestionnaires = questionnaireDays;
-      _allEntries = allEntries
-          .where(
-            (e) =>
-                !e.isDeleted &&
-                (e.entryType == 'epistaxis_event' ||
-                    e.entryType == 'no_epistaxis_event' ||
-                    e.entryType == 'unknown_day_event'),
-          )
-          .toList();
-    });
-  }
-
-  /// Wraps a calendar cell so that, if the day has at least one finalized
-  /// questionnaire submission, a small blue dot is rendered in the
-  /// lower-right corner of the cell.
-  ///
-  /// Each day cell is a `Container(margin: 4, borderRadius: 8)` inside
-  /// the Stack, so the colored square is inset 4px from the Stack's
-  /// outer bounds and has rounded corners. The dot is positioned 7px
-  /// from the Stack edge, which puts its corner ~3px inside the colored
-  /// square — past the rounded corner with a 1-2px green gutter showing.
-  Widget _withQuestionnaireDot(DateTime normalizedDay, Widget cell) {
-    if (!_daysWithCompletedQuestionnaires.contains(normalizedDay)) return cell;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        cell,
-        const Positioned(right: 7, bottom: 7, child: QuestionnaireDot()),
-      ],
-    );
-  }
+  /// The `yyyy-MM-dd` local-date key for a calendar [day]. TableCalendar emits
+  /// `DateTime.utc(y,m,d)`, so we read the calendar fields directly rather than
+  /// converting through epoch time.
+  static String _localDateKey(DateTime day) =>
+      '${day.year.toString().padLeft(4, '0')}-'
+      '${day.month.toString().padLeft(2, '0')}-'
+      '${day.day.toString().padLeft(2, '0')}';
 
   Color _getColorForStatus(DayStatus status) {
     switch (status) {
@@ -150,7 +75,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return dateOnly.isAfter(today);
   }
 
-  Future<void> _onDaySelected(DateTime selectedDay, DateTime focusedDay) async {
+  /// Day-tap dispatch: future days are inert; a day with no finalized records
+  /// opens the 3-choice day-disposition picker, a day with records opens the
+  /// [DateRecordsScreen] populated from the live view.
+  // Implements: DIARY-GUI-calendar-day-view
+  // Implements: DIARY-DEV-reactive-read-path/A
+  // Implements: DIARY-PRD-day-disposition/D — a day with finalized records routes
+  //   to DateRecordsScreen, never the re-disposition picker, so a recorded
+  //   nosebleed is changed only by edit/delete, never re-dispositioned (one-way).
+  Future<void> _onDaySelected(
+    DiaryView view,
+    DateTime selectedDay,
+    DateTime focusedDay,
+  ) async {
     // Don't allow selection of future dates (CUR-407)
     if (_isFutureDate(selectedDay)) {
       return;
@@ -161,178 +98,131 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _focusedDay = focusedDay;
     });
 
-    // CUR-543: TableCalendar returns UTC DateTimes (DateTime.utc(y,m,d)).
-    // Convert to local time for correct timezone handling in RecordingScreen.
-    // This ensures timestamps are stored with the user's local timezone offset.
+    // TableCalendar emits UTC DateTimes; use the local wall-clock day for both
+    // the view lookup and the RecordingScreen's preselected date.
     final localDay = DateTime(
       selectedDay.year,
       selectedDay.month,
       selectedDay.day,
     );
-    final status = _dayStatuses[localDay] ?? DayStatus.notRecorded;
+    final localDate = _localDateKey(selectedDay);
+    // Surface BOTH finalized entries and in-progress (checkpoint) drafts for the
+    // day: a day may hold only an incomplete draft (rendered black on the grid),
+    // and tapping it must open the records list so the draft can be resumed —
+    // not the 3-option picker, which is only for a day with no entries at all.
+    final entries = <DiaryEntryView>[
+      ...view.entriesOn(localDate),
+      ...view.incompleteEntriesOn(localDate),
+    ];
 
-    // If no records exist for this day, show the day selection screen
-    if (status == DayStatus.notRecorded) {
-      await _showDaySelectionScreen(localDay);
+    // Day-level lock (the primary gate; recording screen + Actions are
+    // defense-in-depth). A locked date is read-only for EVERYTHING — nosebleeds
+    // AND the day markers — so route to the read-only records view rather than
+    // offering the 3-choice disposition picker or an add button.
+    // Implements: DIARY-PRD-entry-time-restrictions/E+F+G
+    final locked =
+        entryGateForDate(
+          eventLocalMidnight: localDay,
+          now: DateTime.now(),
+          config: ClinicalRulesScope.of(context).gate,
+        ) ==
+        EntryGate.locked;
+    if (locked) {
+      await _showDateRecordsScreen(
+        localDay,
+        localDate,
+        entries,
+        view,
+        locked: true,
+      );
+    } else if (entries.isEmpty) {
+      // A genuinely empty day has no marker to tombstone — pass null.
+      await showDayDispositionPicker(
+        context,
+        localDay: localDay,
+        localDate: localDate,
+      );
     } else {
-      // Show date records screen with existing events
-      await _showDateRecordsScreen(localDay);
+      await _showDateRecordsScreen(localDay, localDate, entries, view);
     }
   }
 
-  Future<void> _showDateRecordsScreen(DateTime selectedDay) async {
-    // CUR-1292: include completed *_survey entries alongside the
-    // nosebleed-related types. Tombstones still excluded.
-    final entries = (await widget.reader.entriesForDate(selectedDay))
-        .where(
-          (e) =>
-              !e.isDeleted &&
-              (e.entryType == 'epistaxis_event' ||
-                  e.entryType == 'no_epistaxis_event' ||
-                  e.entryType == 'unknown_day_event' ||
-                  e.entryType.endsWith('_survey')),
-        )
-        .toList();
+  Future<void> _showDateRecordsScreen(
+    DateTime selectedDay,
+    String localDate,
+    List<DiaryEntryView> entries,
+    DiaryView view, {
+    bool locked = false,
+  }) async {
+    // The lone marker on this day (if any) drives both convert-on-add and the
+    // marker-tap re-disposition's tombstone target.
+    final soleMarker = view.soleMarkerOn(localDate);
+    final markerToReplace = soleMarker == null
+        ? null
+        : MarkerToReplace(
+            aggregateId: soleMarker.aggregateId,
+            entryType: soleMarker.entryType,
+          );
 
-    if (!mounted) return;
-
-    final result = await Navigator.push<dynamic>(
+    await Navigator.push<void>(
       context,
       AppPageRoute(
         builder: (context) => DateRecordsScreen(
           date: selectedDay,
+          locked: locked,
           entries: entries,
+          // "Add Event": a day whose only entry is a lone marker converts (the
+          // new nosebleed tombstones that marker); a day with nosebleeds just
+          // adds another (no tombstone).
+          // Implements: DIARY-PRD-day-disposition/A+C
           onAddEvent: () {
-            // CUR-586: Just pop with result, let parent handle navigation
-            Navigator.pop(context, 'add');
+            Navigator.pop(context);
+            unawaited(
+              recordNosebleedReplacingMarker(
+                this.context,
+                localDay: selectedDay,
+                marker: markerToReplace,
+              ),
+            );
           },
-          onEditEvent: (entry) {
-            // CUR-586: Just pop with entry, let parent handle navigation
-            Navigator.pop(context, entry);
+          onEditEvent: (EpistaxisEntryView entry) {
+            Navigator.pop(context);
+            unawaited(_navigateToEdit(entry));
+          },
+          // Tapping a marker re-dispositions the day, seeded with that marker.
+          // Implements: DIARY-PRD-day-disposition/B
+          onRedispositionMarker: (DayMarkerView marker) {
+            Navigator.pop(context);
+            unawaited(
+              showDayDispositionPicker(
+                this.context,
+                localDay: selectedDay,
+                localDate: localDate,
+                marker: MarkerToReplace(
+                  aggregateId: marker.aggregateId,
+                  entryType: marker.entryType,
+                ),
+              ),
+            );
           },
         ),
       ),
     );
-
-    if (!mounted) return;
-
-    // CUR-586: Handle result and refresh after ALL navigation is complete
-    if (result == 'add') {
-      await _navigateToRecordingScreen(selectedDay);
-    } else if (result is DiaryEntry) {
-      // CUR-1292: questionnaire entries route through home_screen's
-      // questionnaire-tap handler (editable / read-only based on
-      // server status). Close this dialog and bubble the entry up.
-      if (result.entryType.endsWith('_survey')) {
-        Navigator.of(context).pop(result);
-        return;
-      }
-      await _navigateToRecordingScreen(selectedDay, existingEntry: result);
-    }
-
-    // Always refresh after returning
-    if (mounted) {
-      await _loadDayStatuses();
-    }
   }
 
-  Future<void> _showDaySelectionScreen(DateTime selectedDay) async {
-    final result = await Navigator.push<String>(
+  Future<void> _navigateToEdit(EpistaxisEntryView existing) async {
+    await Navigator.push<dynamic>(
       context,
-      AppPageRoute(
-        builder: (context) => DaySelectionScreen(
-          date: selectedDay,
-          onAddNosebleed: () {
-            // CUR-586: Just pop with result, let parent handle navigation
-            Navigator.pop(context, 'add');
-          },
-          onNoNosebleeds: () async {
-            await widget.entryService.record(
-              entryType: 'no_epistaxis_event',
-              aggregateId: const Uuid().v7(),
-              eventType: 'finalized',
-              answers: <String, Object?>{
-                'date': DateTimeFormatter.format(selectedDay),
-              },
-            );
-            if (context.mounted) {
-              Navigator.pop(context, 'done');
-            }
-          },
-          onUnknown: () async {
-            await widget.entryService.record(
-              entryType: 'unknown_day_event',
-              aggregateId: const Uuid().v7(),
-              eventType: 'finalized',
-              answers: <String, Object?>{
-                'date': DateTimeFormatter.format(selectedDay),
-              },
-            );
-            if (context.mounted) {
-              Navigator.pop(context, 'done');
-            }
-          },
-        ),
-      ),
+      AppPageRoute(builder: (context) => RecordingScreen(existing: existing)),
     );
-
-    if (!mounted) return;
-
-    // CUR-586: Handle result and refresh after ALL navigation is complete
-    if (result == 'add') {
-      // Navigate to RecordingScreen THEN refresh
-      await _navigateToRecordingScreen(selectedDay);
-    }
-
-    // Always refresh after returning (whether from add, no-nosebleed, unknown, or back)
-    if (mounted) {
-      await _loadDayStatuses();
-    }
-  }
-
-  /// Navigate to RecordingScreen and return the result.
-  /// Returns: String (record ID) on save, true on delete, null on cancel, false on conflict.
-  Future<dynamic> _navigateToRecordingScreen(
-    DateTime selectedDay, {
-    DiaryEntry? existingEntry,
-  }) async {
-    // CUR-543: RecordingScreen returns String (record ID) on save, bool on delete/cancel
-    // Using dynamic to handle both return types
-    // CUR-543: Only pass diaryEntryDate for new records, not when editing existing records.
-    // RecordingScreen asserts that only one of diaryEntryDate or existingEntry can be non-null.
-    // CUR-543: Must pass onDelete callback when existingEntry is non-null.
-    final result = await Navigator.push<dynamic>(
-      context,
-      AppPageRoute(
-        builder: (context) => RecordingScreen(
-          entryService: widget.entryService,
-          enrollmentService: widget.enrollmentService,
-          preferencesService: widget.preferencesService,
-          diaryEntryDate: existingEntry == null ? selectedDay : null,
-          existingEntry: existingEntry,
-          allEntries: _allEntries,
-          onDelete: existingEntry != null
-              ? (reason) async {
-                  await widget.entryService.record(
-                    entryType: existingEntry.entryType,
-                    aggregateId: existingEntry.entryId,
-                    eventType: 'tombstone',
-                    answers: const <String, Object?>{},
-                    changeReason: reason,
-                  );
-                }
-              : null,
-        ),
-      ),
-    );
-
-    // CUR-586: Return the result to the caller instead of handling refresh here.
-    // The caller (_showDateRecordsScreen) handles the refresh in its loop pattern.
-    return result;
   }
 
   @override
   Widget build(BuildContext context) {
+    return DiaryViewBuilder(builder: _buildDialog);
+  }
+
+  Widget _buildDialog(BuildContext context, DiaryView view) {
     final today = DateTime.now();
     final todayNormalized = DateTime(today.year, today.month, today.day);
 
@@ -372,10 +262,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 // CUR-599: Always show 6 weeks to prevent height changes
                 sixWeekMonthsEnforced: true,
                 // CUR-599: Respect user animation preference for page transitions
-                pageAnimationEnabled: _animationsEnabled,
+                pageAnimationEnabled: _animationsEnabled(context),
                 selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                 enabledDayPredicate: (day) => !_isFutureDate(day),
-                onDaySelected: _onDaySelected,
+                onDaySelected: (selectedDay, focusedDay) =>
+                    _onDaySelected(view, selectedDay, focusedDay),
                 onPageChanged: _handleMonthChange,
                 headerStyle: HeaderStyle(
                   formatButtonVisible: false,
@@ -402,133 +293,97 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     );
                   },
                   defaultBuilder: (context, day, focusedDay) {
-                    final normalizedDay = DateTime(
-                      day.year,
-                      day.month,
-                      day.day,
-                    );
-                    final status =
-                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final status = view.dayStatus(_localDateKey(day));
                     final color = _getColorForStatus(status);
 
-                    return _withQuestionnaireDot(
-                      normalizedDay,
-                      Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              color: status == DayStatus.notRecorded
-                                  ? Colors.black87
-                                  : Colors.white,
-                            ),
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            color: status == DayStatus.notRecorded
+                                ? Colors.black87
+                                : Colors.white,
                           ),
                         ),
                       ),
                     );
                   },
                   outsideBuilder: (context, day, focusedDay) {
-                    final normalizedDay = DateTime(
-                      day.year,
-                      day.month,
-                      day.day,
-                    );
-                    final status =
-                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final status = view.dayStatus(_localDateKey(day));
                     final color = _getColorForStatus(status);
 
-                    return _withQuestionnaireDot(
-                      normalizedDay,
-                      Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(color: Colors.grey.shade600),
                         ),
                       ),
                     );
                   },
                   todayBuilder: (context, day, focusedDay) {
-                    final normalizedDay = DateTime(
-                      day.year,
-                      day.month,
-                      day.day,
-                    );
-                    final status =
-                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final status = view.dayStatus(_localDateKey(day));
                     final color = _getColorForStatus(status);
 
-                    return _withQuestionnaireDot(
-                      normalizedDay,
-                      Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.primary,
-                            width: 2,
-                          ),
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
                         ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              color: status == DayStatus.notRecorded
-                                  ? Colors.black87
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            color: status == DayStatus.notRecorded
+                                ? Colors.black87
+                                : Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     );
                   },
                   selectedBuilder: (context, day, focusedDay) {
-                    final normalizedDay = DateTime(
-                      day.year,
-                      day.month,
-                      day.day,
-                    );
-                    final status =
-                        _dayStatuses[normalizedDay] ?? DayStatus.notRecorded;
+                    final status = view.dayStatus(_localDateKey(day));
                     final color = _getColorForStatus(status);
                     final isToday = isSameDay(day, todayNormalized);
 
-                    return _withQuestionnaireDot(
-                      normalizedDay,
-                      Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isToday
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).colorScheme.onSurface,
-                            width: 2,
-                          ),
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isToday
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurface,
+                          width: 2,
                         ),
-                        child: Center(
-                          child: Text(
-                            '${day.day}',
-                            style: TextStyle(
-                              color: status == DayStatus.notRecorded
-                                  ? Colors.black87
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            color: status == DayStatus.notRecorded
+                                ? Colors.black87
+                                : Colors.white,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
@@ -577,15 +432,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                       ),
                       Expanded(child: _buildLegendItemWithBorder('Today')),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Row(
-                    children: [
-                      Expanded(
-                        child: _QuestionnaireLegendItem(label: 'Questionnaire'),
-                      ),
-                      Expanded(child: SizedBox.shrink()),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -638,30 +484,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
             borderRadius: BorderRadius.circular(4),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(label, style: Theme.of(context).textTheme.bodySmall),
-        ),
-      ],
-    );
-  }
-}
-
-/// Legend row for the questionnaire-dot indicator.
-class _QuestionnaireLegendItem extends StatelessWidget {
-  const _QuestionnaireLegendItem({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const SizedBox(
-          width: 16,
-          height: 16,
-          child: Center(child: QuestionnaireDot()),
         ),
         const SizedBox(width: 8),
         Expanded(

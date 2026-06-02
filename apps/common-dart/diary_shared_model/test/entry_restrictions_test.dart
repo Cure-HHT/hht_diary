@@ -4,17 +4,17 @@ import 'package:test/test.dart';
 
 void main() {
   final day = DateTime.utc(2025, 10, 1); // event-date local midnight
-  EntryGate gate(DateTime now, EntryRestrictionConfig c) =>
+  EntryGate gate(DateTime now, EntryGateRules c) =>
       entryGateForDate(eventLocalMidnight: day, now: now, config: c);
 
   test('L: no thresholds configured -> always allowed', () {
     expect(
-      gate(day.add(const Duration(days: 365)), const EntryRestrictionConfig()),
+      gate(day.add(const Duration(days: 365)), const EntryGateRules()),
       EntryGate.allowed,
     );
   });
 
-  const cfg = EntryRestrictionConfig(
+  const cfg = EntryGateRules(
     justificationThreshold: Duration(days: 2),
     lockThreshold: Duration(days: 7),
   );
@@ -38,7 +38,7 @@ void main() {
   );
 
   test('M: lock does not apply to event dates before Trial Start', () {
-    final preTrial = EntryRestrictionConfig(
+    final preTrial = EntryGateRules(
       justificationThreshold: const Duration(days: 2),
       lockThreshold: const Duration(days: 7),
       trialStart: day.add(

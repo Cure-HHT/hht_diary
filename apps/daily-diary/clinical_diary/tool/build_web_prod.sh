@@ -1,22 +1,16 @@
 #!/bin/bash
-# Implements: DIARY-DEV-runtime-environment-resolution/A
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006: Mobile App Build and Release Process
 
-# Build the Clinical Diary web app for the prod environment (manual/local preview).
+# Build the Clinical Diary web app with PROD flavor
 # Usage: ./tool/build_web_prod.sh
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-echo "Building Clinical Diary for web (prod)..."
-
-# Stamp the bundled env pointer so the web build resolves prod at runtime;
-# restored on exit by the sourced helper. (Web reads assets/config/env.json at
-# runtime, same as mobile; --dart-define=APP_FLAVOR is no longer read.)
-source "$SCRIPT_DIR/_write_env_pointer.sh" prod
+echo "Building Clinical Diary for web (PROD flavor)..."
 
 # --pwa-strategy=none disables service worker to prevent aggressive caching
-flutter build web --release --pwa-strategy=none
+flutter build web --release --dart-define=APP_FLAVOR=prod --pwa-strategy=none
 
 echo ""
 echo "Build complete! Output in build/web/"

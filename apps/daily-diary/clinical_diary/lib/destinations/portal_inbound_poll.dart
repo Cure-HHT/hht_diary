@@ -75,12 +75,6 @@ Future<void> portalInboundPoll({
   required http.Client client,
   required Future<Uri?> Function() resolveBaseUrl,
   Future<String?> Function()? authToken,
-  // CUR-1292: invoked once per applied survey-tombstone so callers
-  // (e.g. clinical_diary's TaskService) can surface a "questionnaire
-  // cancelled" notification to the participant. Receives the entry's
-  // aggregate id and entry_type ('nose_hht_survey', 'qol_survey'…);
-  // mapping to a display name is the caller's responsibility.
-  void Function(String aggregateId, String entryType)? onSurveyTombstoned,
 }) async {
   try {
     final baseUrl = await resolveBaseUrl();
@@ -171,15 +165,6 @@ Future<void> portalInboundPoll({
           answers: const <String, Object?>{},
           changeReason: 'portal-withdrawn',
         );
-        // CUR-1292: notify the caller about survey tombstones so the
-        // mobile UI can surface a passive "questionnaire cancelled"
-        // notification on the next render. Other entry types
-        // (epistaxis_event, no_epistaxis_event, …) don't need this —
-        // the participant initiated those locally; they're not surprised
-        // when they disappear.
-        if (entryType.endsWith('_survey')) {
-          onSurveyTombstoned?.call(entryId, entryType);
-        }
       } catch (e) {
         // REQ-d00163-D + REQ-d00165-B — the EntryService.record call
         // refused this tombstone (e.g. the entry_type is not registered

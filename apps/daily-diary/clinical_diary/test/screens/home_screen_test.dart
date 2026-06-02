@@ -1,28 +1,46 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-CAL-p00081: Participant Task System
+// Verifies: DIARY-DEV-reactive-read-path/A — the diary list, incomplete-entry
+//   reminder, and yesterday banner are derived from the live DiaryView driven
+//   through the scope's diary_entries / diary_incomplete views.
+// Verifies: DIARY-GUI-epistaxis-record/A — finalized epistaxis rows in the
+//   driven view render as entry cards in the grouped list.
+// Verifies: DIARY-PRD-incomplete-entry-preservation/B — a driven incomplete row
+//   surfaces the incomplete-entry reminder banner.
+// Verifies: DIARY-DEV-action-write-path/A — the yesterday banner's "No" and
+//   "Don't remember" choices submit record_no_epistaxis_day / record_unknown_day
+//   through the scope's actionSubmitter.
 //
-// Phase 12.5 (CUR-1169): Screen-level coverage for HomeScreen against the
-// new event_sourcing_datastore-backed runtime. Drives the screen with a
-// real bootstrapped ClinicalDiaryRuntime against an in-memory Sembast
-// backend and asserts on event side effects.
+// Phase 12.5 (CUR-1169): Screen-level coverage for HomeScreen's diary surface on
+// the new event_sourcing read/write path. The diary_entries / diary_incomplete
+// views are driven via FakeReaction.emitViewUpdate; writes are asserted via
+// FakeReaction.submittedActions. The kept (non-diary) concerns — disconnection
+// banner, TaskService/FCM — keep their existing stub/mock seams, with a real
+// bootstrapped ClinicalDiaryRuntime supplying the still-required constructor
+// params (wedge check, survey/export paths).
 
 import 'dart:async';
 
+import 'package:clinical_diary/read/diary_incomplete_projection.dart';
+import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
+import 'package:clinical_diary/screens/important_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
-import 'package:clinical_diary/screens/simple_recording_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/services/triggers.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
+import 'package:clinical_diary/widgets/disconnection_banner.dart';
+import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
+import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -106,25 +124,99 @@ void main() {
   group('HomeScreen', () {
     late ClinicalDiaryRuntime runtime;
     late MockEnrollmentService enrollment;
-    late PreferencesService preferences;
     late TaskService tasks;
+    late FakeReaction fake;
 
     setUp(() async {
+      // A FakeReaction provides the ReActionScope the migrated diary surface
+      // reads/writes through (DiaryViewBuilder + actionSubmitter) and that the
+      // (new-stack) RecordingScreen requires when HomeScreen navigates to it.
+      fake = FakeReaction();
+      // Day-marker submissions return the canonical per-day aggregate id.
+      for (var i = 0; i < 10; i++) {
+        fake.queueDispatchResult(
+          const DispatchSuccess<Object?>('P:day', <String>[]),
+        );
+      }
+      // Fix device timezone to UTC+0 so that toDisplayedDateTime with
+      // startTimeZone='UTC' is an identity transform (stored == displayed).
+      TimezoneConverter.testDeviceOffsetMinutes = 0;
+      TimezoneService.instance.testTimezoneOverride = 'Etc/UTC';
       SharedPreferences.setMockInitialValues({});
-      preferences = PreferencesService();
       enrollment = MockEnrollmentService();
       tasks = TaskService();
       runtime = await _bootstrap();
     });
 
     tearDown(() async {
+      await fake.dispose();
       await runtime.dispose();
       tasks.dispose();
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
     });
+
+    /// `yyyy-MM-dd` for [day].
+    String dateKey(DateTime day) =>
+        '${day.year.toString().padLeft(4, '0')}-'
+        '${day.month.toString().padLeft(2, '0')}-'
+        '${day.day.toString().padLeft(2, '0')}';
+
+    /// Drive the diary_entries (finalized) view with [finalized] rows and the
+    /// diary_incomplete view with [incomplete] rows, each terminated by an
+    /// EndOfReplay so the DiaryViewBuilder leaves its initial state.
+    void seedDiary({
+      List<DiaryEntryRow> finalized = const [],
+      List<DiaryEntryRow> incomplete = const [],
+    }) {
+      for (final r in finalized) {
+        fake.emitViewUpdate<DiaryEntryRow>(
+          diaryEntriesViewName,
+          Snapshot<DiaryEntryRow>(value: r, sequence: 0),
+        );
+      }
+      fake.emitViewUpdate<DiaryEntryRow>(
+        diaryEntriesViewName,
+        const EndOfReplay<DiaryEntryRow>(sequence: 0),
+      );
+      for (final r in incomplete) {
+        fake.emitViewUpdate<DiaryEntryRow>(
+          diaryIncompleteViewName,
+          Snapshot<DiaryEntryRow>(value: r, sequence: 0),
+        );
+      }
+      fake.emitViewUpdate<DiaryEntryRow>(
+        diaryIncompleteViewName,
+        const EndOfReplay<DiaryEntryRow>(sequence: 0),
+      );
+    }
+
+    DiaryEntryRow epistaxisRow(
+      DateTime start, {
+      required String aggregateId,
+      DateTime? end,
+    }) {
+      final payload = EpistaxisEventPayload(
+        startTime: start.toIso8601String(),
+        startTimeZone: 'UTC',
+        startTimeUtcOffset: '+00:00',
+        endTime: end?.toIso8601String(),
+        endTimeZone: end == null ? null : 'UTC',
+        endTimeUtcOffset: end == null ? null : '+00:00',
+        intensity: NosebleedIntensity.dripping,
+      );
+      return DiaryEntryRow(
+        aggregateId: aggregateId,
+        entryType: 'epistaxis_event',
+        data: payload.toJson(),
+      );
+    }
 
     Future<void> pumpScreen(
       WidgetTester tester, {
-      DateTime Function()? clock,
+      List<DiaryEntryRow> finalized = const [],
+      List<DiaryEntryRow> incomplete = const [],
+      Future<bool> Function()? nativeFifoWedged,
     }) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -134,55 +226,57 @@ void main() {
       });
 
       await tester.pumpWidget(
-        wrapWithMaterialApp(
-          HomeScreen(
-            runtime: runtime,
-            deviceId: _deviceId,
-            enrollmentService: enrollment,
-            taskService: tasks,
-            preferencesService: preferences,
-            onLocaleChanged: (_) {},
-            onThemeModeChanged: (_) {},
-            onLargerTextChanged: (_) {},
-            clock: clock ?? DateTime.now,
+        ReActionScope(
+          scope: fake,
+          child: wrapWithMaterialApp(
+            HomeScreen(
+              runtime: runtime,
+              deviceId: _deviceId,
+              enrollmentService: enrollment,
+              taskService: tasks,
+              nativeFifoWedged: nativeFifoWedged,
+            ),
           ),
         ),
       );
+      // Pump a frame so the DiaryViewBuilder subscribes, then feed view rows.
+      await tester.pump();
+      seedDiary(finalized: finalized, incomplete: incomplete);
       await _settle(tester);
     }
 
-    /// Records an event via the real EntryService inside `runAsync` so
-    /// Sembast's internal async (which can use real timers) actually
-    /// fires under TestWidgetsFlutterBinding's fake clock.
-    Future<void> recordEvent(
-      WidgetTester tester, {
-      required String entryType,
-      required String aggregateId,
-      required String eventType,
-      required Map<String, Object?> answers,
-    }) async {
-      await tester.runAsync(() async {
-        await runtime.entryService.record(
-          entryType: entryType,
-          aggregateId: aggregateId,
-          eventType: eventType,
-          answers: answers,
-        );
-      });
+    /// The single submission for [actionName], or fails if none/many.
+    ActionSubmission submissionFor(String actionName) {
+      final matches = fake.submittedActions
+          .where((s) => s.actionName == actionName)
+          .toList();
+      expect(matches, hasLength(1), reason: 'expected one $actionName');
+      return matches.single;
     }
 
-    /// Wraps a backend query in `runAsync` for the same reason as
-    /// [recordEvent].
-    Future<List<StoredEvent>> findEventsByType(
-      WidgetTester tester, {
-      required String entryType,
-    }) async {
-      List<StoredEvent>? all;
-      await tester.runAsync(() async {
-        all = await runtime.backend.findAllEvents();
-      });
-      return all!.where((e) => e.entryType == entryType).toList();
-    }
+    // Verifies: DIARY-DEV-native-outbound-sync/B — a wedged FIFO on the NEW
+    //   event_sourcing store (diary_es.db), where DiaryServerDestination's
+    //   outbound FIFO lives, is surfaced to the participant. The legacy
+    //   runtime.backend wedge check does not see that store.
+    const wedgeText = 'Some data is not syncing — please update the app.';
+
+    testWidgets(
+      'native-store FIFO wedge surfaces the sync-wedged banner (legacy clean)',
+      (tester) async {
+        // Legacy runtime.backend is a fresh in-memory store with no wedged FIFO;
+        // only the native store is wedged. The banner must still surface.
+        await pumpScreen(tester, nativeFifoWedged: () async => true);
+        expect(find.text(wedgeText), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'no wedge banner when neither legacy nor native store is wedged',
+      (tester) async {
+        await pumpScreen(tester, nativeFifoWedged: () async => false);
+        expect(find.text(wedgeText), findsNothing);
+      },
+    );
 
     testWidgets(
       'renders empty state with the record button and yesterday banner',
@@ -191,64 +285,69 @@ void main() {
 
         expect(find.text('Record Nosebleed'), findsOneWidget);
         expect(find.text('Calendar'), findsOneWidget);
-        // No-yesterday banner is present (no entries → hasYesterdayRecords=false).
+        // No-yesterday banner is present (no entries → no yesterday records).
         expect(find.text('Yes'), findsOneWidget);
         expect(find.text('No'), findsOneWidget);
       },
     );
 
-    testWidgets(
-      'with a finalized epistaxis_event today, the reader returns it',
-      (tester) async {
-        await recordEvent(
-          tester,
-          entryType: 'epistaxis_event',
-          aggregateId: 'agg-home-1',
-          eventType: 'finalized',
-          answers: <String, Object?>{
-            'startTime': DateTime.now().toUtc().toIso8601String(),
-            'endTime': DateTime.now().toUtc().toIso8601String(),
-            'intensity': 'dripping',
-          },
-        );
-
-        await pumpScreen(tester);
-
-        // Verify the seeded entry is queryable via the reader (the home
-        // screen pipes this same path into its grouped record view).
-        List<DiaryEntry>? entries;
-        await tester.runAsync(() async {
-          entries = await runtime.reader.entriesForDate(DateTime.now());
-        });
-        expect(
-          entries!.where((e) => e.entryType == 'epistaxis_event'),
-          hasLength(1),
-        );
-      },
-    );
-
-    testWidgets('tap "No" on yesterday banner records a no_epistaxis_event', (
+    testWidgets('renders a driven finalized epistaxis_event in the list', (
       tester,
     ) async {
-      await pumpScreen(tester);
-
-      final noButton = find.text('No');
-      expect(noButton, findsOneWidget);
-      await tester.tap(noButton, warnIfMissed: false);
-      await _settle(tester);
-
-      final events = await findEventsByType(
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day, 9);
+      await pumpScreen(
         tester,
-        entryType: 'no_epistaxis_event',
+        finalized: [
+          epistaxisRow(
+            today,
+            aggregateId: 'agg-home-1',
+            end: today.add(const Duration(minutes: 30)),
+          ),
+        ],
       );
-      final finalized = events
-          .where((e) => e.eventType == 'finalized')
-          .toList();
-      expect(finalized, hasLength(1));
+
+      // The driven row renders as an entry card with its duration ("30m").
+      expect(find.byType(RecordingScreen), findsNothing);
+      expect(find.byType(EventListItem), findsWidgets);
+      expect(find.text('30m'), findsOneWidget);
     });
 
     testWidgets(
-      'tap "Don\'t remember" on yesterday banner records an unknown_day_event',
+      'shows the incomplete-entry reminder for a driven incomplete row',
+      (tester) async {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day, 10);
+        await pumpScreen(
+          tester,
+          incomplete: [epistaxisRow(today, aggregateId: 'agg-incomplete-1')],
+        );
+
+        // The orange incomplete-records reminder shows its count. As the only
+        // active important item it occupies the inline top slot (no collapse).
+        expect(find.text('1 incomplete record'), findsOneWidget);
+        expect(find.textContaining('more important item'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'tap "No" on yesterday banner submits record_no_epistaxis_day',
+      (tester) async {
+        await pumpScreen(tester);
+
+        final noButton = find.text('No');
+        expect(noButton, findsOneWidget);
+        await tester.tap(noButton, warnIfMissed: false);
+        await _settle(tester);
+
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        final s = submissionFor('record_no_epistaxis_day');
+        expect(s.rawInput['date'], dateKey(yesterday));
+      },
+    );
+
+    testWidgets(
+      'tap "Don\'t remember" on yesterday banner submits record_unknown_day',
       (tester) async {
         await pumpScreen(tester);
 
@@ -257,88 +356,136 @@ void main() {
         await tester.tap(dontRememberButton, warnIfMissed: false);
         await _settle(tester);
 
-        final events = await findEventsByType(
-          tester,
-          entryType: 'unknown_day_event',
-        );
-        final finalized = events
-            .where((e) => e.eventType == 'finalized')
-            .toList();
-        expect(finalized, hasLength(1));
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        final s = submissionFor('record_unknown_day');
+        expect(s.rawInput['date'], dateKey(yesterday));
       },
     );
 
     testWidgets(
-      'tap "No" on yesterday banner stamps yesterday relative to injected clock',
+      'a driven finalized day-marker on yesterday hides the yesterday banner',
       (tester) async {
-        // Pin "now" to 2026-05-05 12:00 local; the handler should write a
-        // date answer one day earlier (2026-05-04).
-        final fixedNow = DateTime(2026, 5, 5, 12);
-        await pumpScreen(tester, clock: () => fixedNow);
-
-        await tester.tap(find.text('No'), warnIfMissed: false);
-        await _settle(tester);
-
-        final events = await findEventsByType(
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        await pumpScreen(
           tester,
-          entryType: 'no_epistaxis_event',
+          finalized: [
+            DiaryEntryRow(
+              aggregateId: 'P:${dateKey(yesterday)}',
+              entryType: 'no_epistaxis_event',
+              data: <String, Object?>{'date': dateKey(yesterday)},
+            ),
+          ],
         );
-        final finalized = events.singleWhere((e) => e.eventType == 'finalized');
-        final dateAnswer =
-            (finalized.data['answers'] as Map<String, Object?>?)?['date']
-                as String?;
-        expect(dateAnswer, isNotNull);
-        expect(dateAnswer, startsWith('2026-05-04T'));
+
+        // With yesterday covered, the confirm banner's choices are gone.
+        expect(find.text("Don't remember"), findsNothing);
       },
     );
 
+    testWidgets('tap "Record Nosebleed" pushes the recording screen', (
+      tester,
+    ) async {
+      await pumpScreen(tester);
+
+      final recordButton = find.widgetWithText(
+        FilledButton,
+        'Record Nosebleed',
+      );
+      expect(recordButton, findsOneWidget);
+      await tester.tap(recordButton, warnIfMissed: false);
+      await _settle(tester);
+
+      expect(
+        find.byType(RecordingScreen),
+        findsOneWidget,
+        reason: 'Tapping the record button should push the recording screen',
+      );
+    });
+
+    testWidgets('disconnection banner shows when enrollment is disconnected', (
+      tester,
+    ) async {
+      // Kept (non-diary) concern: drive the legacy enrollment stub to
+      // disconnected and confirm the banner still renders alongside the diary
+      // surface.
+      await enrollment.setDisconnected(true);
+      await pumpScreen(tester);
+
+      expect(find.byType(DisconnectionBanner), findsOneWidget);
+    });
+
+    testWidgets('shows the overlap banner when two finalized entries overlap', (
+      tester,
+    ) async {
+      final base = DateTime.now();
+      final day = DateTime(base.year, base.month, base.day);
+      await pumpScreen(
+        tester,
+        finalized: [
+          epistaxisRow(
+            day.add(const Duration(hours: 13)),
+            aggregateId: 'ov-a',
+            end: day.add(const Duration(hours: 14)),
+          ),
+          epistaxisRow(
+            day.add(const Duration(hours: 13, minutes: 30)),
+            aggregateId: 'ov-b',
+            end: day.add(const Duration(hours: 13, minutes: 45)),
+          ),
+        ],
+      );
+
+      expect(find.textContaining('needs resolving'), findsOneWidget);
+    });
+
+    // Verifies: DIARY-GUI-main-screen-layout-A — when more than one important
+    //   item is active, only the single most-urgent one shows inline and the
+    //   rest collapse into one "N more important items" row (so the alert area
+    //   stays bounded regardless of how many fire at once).
     testWidgets(
-      'tap "Don\'t remember" stamps yesterday relative to injected clock',
+      'multiple alerts collapse: top inline + "N more important items" row',
       (tester) async {
-        final fixedNow = DateTime(2026, 5, 5, 12);
-        await pumpScreen(tester, clock: () => fixedNow);
-
-        await tester.tap(find.text("Don't remember"), warnIfMissed: false);
-        await _settle(tester);
-
-        final events = await findEventsByType(
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day, 10);
+        // Disconnection (highest priority) + an incomplete record = two alerts.
+        await enrollment.setDisconnected(true);
+        await pumpScreen(
           tester,
-          entryType: 'unknown_day_event',
+          incomplete: [epistaxisRow(today, aggregateId: 'agg-inc-1')],
         );
-        final finalized = events.singleWhere((e) => e.eventType == 'finalized');
-        final dateAnswer =
-            (finalized.data['answers'] as Map<String, Object?>?)?['date']
-                as String?;
-        expect(dateAnswer, isNotNull);
-        expect(dateAnswer, startsWith('2026-05-04T'));
+
+        // Disconnection wins the inline top slot.
+        expect(find.byType(DisconnectionBanner), findsOneWidget);
+        // The incomplete alert collapses into the summary row...
+        expect(find.text('1 more important item'), findsOneWidget);
+        // ...and is therefore NOT shown inline on the home screen.
+        expect(find.text('1 incomplete record'), findsNothing);
       },
     );
 
-    testWidgets(
-      'tap "Record Nosebleed" pushes the appropriate recording screen',
-      (tester) async {
-        await pumpScreen(tester);
+    // Verifies: DIARY-GUI-main-screen-layout-A — the collapsed summary row
+    //   opens the Important page listing every active item.
+    testWidgets('the summary row opens the Important page with all items', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day, 10);
+      await enrollment.setDisconnected(true);
+      await pumpScreen(
+        tester,
+        incomplete: [epistaxisRow(today, aggregateId: 'agg-inc-1')],
+      );
 
-        final recordButton = find.widgetWithText(
-          FilledButton,
-          'Record Nosebleed',
-        );
-        expect(recordButton, findsOneWidget);
-        await tester.tap(recordButton, warnIfMissed: false);
-        await _settle(tester);
+      await tester.tap(find.text('1 more important item'));
+      await _settle(tester);
 
-        // Default feature flag uses the multi-page RecordingScreen, but
-        // the simple-page variant is also acceptable under different
-        // sponsor configurations.
-        final found =
-            find.byType(RecordingScreen).evaluate().isNotEmpty ||
-            find.byType(SimpleRecordingScreen).evaluate().isNotEmpty;
-        expect(
-          found,
-          isTrue,
-          reason: 'Tapping the record button should push a recording screen',
-        );
-      },
-    );
+      expect(find.byType(ImportantScreen), findsOneWidget);
+      expect(find.text('Important'), findsOneWidget);
+      // The full list: the Alerts section shows both the top item and the one
+      // that was collapsed on the home screen.
+      expect(find.text('ALERTS'), findsOneWidget);
+      expect(find.text('Disconnected from Study'), findsWidgets);
+      expect(find.text('1 incomplete record'), findsOneWidget);
+    });
   });
 }

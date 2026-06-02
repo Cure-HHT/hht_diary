@@ -1,17 +1,16 @@
 #!/bin/bash
-# Implements: DIARY-DEV-runtime-environment-resolution/A
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006: Mobile App Build and Release Process
 
-# Build the Clinical Diary web app for the dev environment (manual/local preview).
+# Build the Clinical Diary web app with DEV flavor
 # Usage: ./tool/build_web_dev.sh
 
 set -e
 
-echo "Building Clinical Diary for web (dev)..."
+echo "Building Clinical Diary for web (DEV flavor)..."
 
-# Env = committed default (dev) in assets/config/env.json; no stamp needed.
-# Web reads the bundled pointer at runtime; --dart-define=APP_FLAVOR is no longer read.
 # --pwa-strategy=none disables service worker to prevent aggressive caching
-flutter build web --release --pwa-strategy=none
+flutter build web --release --dart-define=APP_FLAVOR=dev --pwa-strategy=none
 
 echo ""
 echo "Build complete! Output in build/web/"

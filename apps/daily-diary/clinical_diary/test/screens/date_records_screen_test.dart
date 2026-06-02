@@ -1,9 +1,18 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
+// Verifies: DIARY-DEV-reactive-read-path/A — renders the driven typed
+//   view-models (EpistaxisEntryView / DayMarkerView) via EventListItem.
+// Verifies: DIARY-GUI-epistaxis-record/A — Add Event fires onAddEvent; tapping
+//   an epistaxis item fires onEditEvent with the right view-model.
+// Verifies: DIARY-PRD-day-disposition/B — tapping a day-marker row fires
+//   onRedispositionMarker (re-disposition), while an epistaxis tap stays
+//   onEditEvent.
 
+import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
-import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
+import 'package:clinical_diary/widgets/event_list_item.dart';
+import 'package:diary_shared_model/diary_shared_model.dart'
+    show NosebleedIntensity;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
@@ -15,6 +24,17 @@ void main() {
   group('DateRecordsScreen', () {
     final testDate = DateTime(2025, 11, 28);
 
+    // Fix device timezone to UTC+0 so that toDisplayedDateTime with
+    // startTimeZone='UTC' is an identity transform (stored == displayed).
+    setUp(() {
+      TimezoneConverter.testDeviceOffsetMinutes = 0;
+      TimezoneService.instance.testTimezoneOverride = 'Etc/UTC';
+    });
+    tearDown(() {
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
+    });
+
     testWidgets('displays the formatted date', (tester) async {
       await tester.pumpWidget(
         wrapWithMaterialApp(
@@ -23,6 +43,7 @@ void main() {
             entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -32,6 +53,47 @@ void main() {
       expect(find.text(dateStr), findsOneWidget);
     }, skip: true);
 
+    // Verifies: DIARY-PRD-entry-time-restrictions — a locked day is read-only:
+    //   no Add button, a lock banner, and rows are non-tappable (no edit /
+    //   re-disposition), so neither nosebleeds nor markers can be mutated.
+    testWidgets('locked day is read-only (no add, banner, rows not tappable)', (
+      tester,
+    ) async {
+      var added = false;
+      var edited = false;
+      var redispositioned = false;
+      final epi = buildEpistaxisView(
+        aggregateId: 'a',
+        startTime: DateTime(2025, 11, 28, 10),
+        endTime: DateTime(2025, 11, 28, 10, 5),
+        endTimeZone: 'UTC',
+        intensity: NosebleedIntensity.dripping,
+      );
+
+      await tester.pumpWidget(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
+            date: testDate,
+            locked: true,
+            entries: [epi],
+            onAddEvent: () => added = true,
+            onEditEvent: (_) => edited = true,
+            onRedispositionMarker: (_) => redispositioned = true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // No add button; a lock banner is shown instead.
+      expect(find.byIcon(Icons.add), findsNothing);
+      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+
+      // The entry row is non-tappable (read-only).
+      await tester.tap(find.byType(EventListItem), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(added || edited || redispositioned, isFalse);
+    });
+
     testWidgets('displays back button', (tester) async {
       await tester.pumpWidget(
         wrapWithMaterialApp(
@@ -40,6 +102,7 @@ void main() {
             entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -56,6 +119,7 @@ void main() {
             entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -76,6 +140,7 @@ void main() {
             entries: const [],
             onAddEvent: () => called = true,
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -95,6 +160,7 @@ void main() {
             entries: const [],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -106,14 +172,14 @@ void main() {
     // CUR-443: One-line format shows times, not intensity names
     testWidgets('displays list of entries', (tester) async {
       final entries = [
-        buildEpistaxisEntry(
-          entryId: 'test-1',
+        buildEpistaxisView(
+          aggregateId: 'test-1',
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
         ),
-        buildEpistaxisEntry(
-          entryId: 'test-2',
+        buildEpistaxisView(
+          aggregateId: 'test-2',
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
           intensity: NosebleedIntensity.steadyStream,
@@ -127,6 +193,7 @@ void main() {
             entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -138,10 +205,12 @@ void main() {
     });
 
     // CUR-443: One-line format - tap by start time, not intensity name
-    testWidgets('calls onEditEvent when entry is tapped', (tester) async {
-      DiaryEntry? tappedEntry;
-      final entry = buildEpistaxisEntry(
-        entryId: 'test-1',
+    testWidgets('calls onEditEvent with the right view-model when tapped', (
+      tester,
+    ) async {
+      EpistaxisEntryView? tappedEntry;
+      final entry = buildEpistaxisView(
+        aggregateId: 'test-1',
         startTime: DateTime(2025, 11, 28, 10, 30),
         endTime: DateTime(2025, 11, 28, 10, 45),
         intensity: NosebleedIntensity.dripping,
@@ -154,6 +223,7 @@ void main() {
             entries: [entry],
             onAddEvent: () {},
             onEditEvent: (e) => tappedEntry = e,
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -164,13 +234,13 @@ void main() {
       await tester.pump();
 
       expect(tappedEntry, isNotNull);
-      expect(tappedEntry!.entryId, 'test-1');
+      expect(tappedEntry!.aggregateId, 'test-1');
     });
 
     testWidgets('displays No nosebleed event card correctly', (tester) async {
-      final entry = buildNoEpistaxisEntry(
-        entryId: 'test-1',
-        date: DateTime.now(),
+      final entry = buildDayMarkerView(
+        aggregateId: 'test-1',
+        date: '2025-11-28',
       );
 
       await tester.pumpWidget(
@@ -180,6 +250,7 @@ void main() {
             entries: [entry],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -188,8 +259,14 @@ void main() {
       expect(find.text('No nosebleeds'), findsOneWidget);
     });
 
-    testWidgets('displays Unknown event card correctly', (tester) async {
-      final entry = buildUnknownDayEntry(entryId: 'test-1', date: testDate);
+    testWidgets('tapping a day-marker fires onRedispositionMarker', (
+      tester,
+    ) async {
+      DayMarkerView? tapped;
+      final entry = buildDayMarkerView(
+        aggregateId: 'P:2025-11-28',
+        date: '2025-11-28',
+      );
 
       await tester.pumpWidget(
         wrapWithMaterialApp(
@@ -198,6 +275,35 @@ void main() {
             entries: [entry],
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (m) => tapped = m,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('No nosebleeds'));
+      await tester.pump();
+
+      expect(tapped, isNotNull);
+      expect(tapped!.aggregateId, 'P:2025-11-28');
+      expect(tapped!.entryType, 'no_epistaxis_event');
+    });
+
+    testWidgets('displays Unknown event card correctly', (tester) async {
+      final entry = buildDayMarkerView(
+        aggregateId: 'test-1',
+        date: '2025-11-28',
+        entryType: 'unknown_day_event',
+      );
+
+      await tester.pumpWidget(
+        wrapWithMaterialApp(
+          DateRecordsScreen(
+            date: testDate,
+            entries: [entry],
+            onAddEvent: () {},
+            onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -208,14 +314,14 @@ void main() {
 
     testWidgets('displays event count in subtitle', (tester) async {
       final entries = [
-        buildEpistaxisEntry(
-          entryId: 'test-1',
+        buildEpistaxisView(
+          aggregateId: 'test-1',
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
         ),
-        buildEpistaxisEntry(
-          entryId: 'test-2',
+        buildEpistaxisView(
+          aggregateId: 'test-2',
           startTime: DateTime(2025, 11, 28, 14, 0),
           endTime: DateTime(2025, 11, 28, 14, 20),
           intensity: NosebleedIntensity.steadyStream,
@@ -229,6 +335,7 @@ void main() {
             entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );
@@ -239,8 +346,8 @@ void main() {
 
     testWidgets('displays "1 event" for single entry', (tester) async {
       final entries = [
-        buildEpistaxisEntry(
-          entryId: 'test-1',
+        buildEpistaxisView(
+          aggregateId: 'test-1',
           startTime: DateTime(2025, 11, 28, 10, 30),
           endTime: DateTime(2025, 11, 28, 10, 45),
           intensity: NosebleedIntensity.dripping,
@@ -254,6 +361,7 @@ void main() {
             entries: entries,
             onAddEvent: () {},
             onEditEvent: (_) {},
+            onRedispositionMarker: (_) {},
           ),
         ),
       );

@@ -48,6 +48,7 @@ void main() {
           enrollmentStatus: enrollmentStatus,
           isSharingWithCureHHT: isSharingWithCureHHT,
           userName: 'Test User',
+          onUpdateUserName: (_) {},
           enrollmentCode: enrollmentCode,
           enrollmentDateTime: enrollmentDateTime,
           enrollmentEndDateTime: enrollmentEndDateTime,
@@ -322,6 +323,7 @@ void main() {
               enrollmentStatus: 'active',
               isSharingWithCureHHT: false,
               userName: 'Test User',
+              onUpdateUserName: (_) {},
             ),
           ),
         );
@@ -374,6 +376,7 @@ void main() {
                 enrollmentStatus: 'none',
                 isSharingWithCureHHT: true,
                 userName: 'Test User',
+                onUpdateUserName: (_) {},
               ),
             ),
           );
@@ -465,6 +468,7 @@ void main() {
               enrollmentStatus: 'none',
               isSharingWithCureHHT: false,
               userName: 'Test User',
+              onUpdateUserName: (_) {},
             ),
           ),
         );
@@ -496,6 +500,7 @@ void main() {
               enrollmentStatus: 'none',
               isSharingWithCureHHT: false,
               userName: 'Test User',
+              onUpdateUserName: (_) {},
             ),
           ),
         );
@@ -565,10 +570,7 @@ void main() {
         expect(cardFinder, findsOneWidget);
 
         final card = tester.widget<Card>(cardFinder);
-        expect(
-          card.color,
-          equals(const Color(0xffe4e4e4).withValues(alpha: 0.7)),
-        );
+        expect(card.color, equals(const Color(0xFFF9FAFB)));
       });
 
       testWidgets('badge shows "Study participation: Ended" message', (
@@ -679,7 +681,7 @@ void main() {
           expect(find.byType(Image), findsWidgets);
 
           final image = tester.widget<Image>(find.byType(Image).first);
-          expect(image.image, isA<NetworkImage>());
+          expect(image.image, isA<AssetImage>());
         },
       );
 
@@ -699,7 +701,7 @@ void main() {
           expect(find.byType(Image), findsWidgets);
 
           final image = tester.widget<Image>(find.byType(Image).first);
-          expect(image.image, isA<NetworkImage>());
+          expect(image.image, isA<AssetImage>());
         },
       );
     });

@@ -13,41 +13,49 @@
 // does not cover (multi-section layout, sponsor dropdown selection, the
 // long-duration threshold slider gating, and a full reset round-trip).
 
-import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
+import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
+
+// The screen submits actions (the dev sponsor-rule simulation), so it needs a
+// ReActionScope ancestor.
+late FakeReaction _fake;
 
 Widget _buildScreen() {
-  return const MaterialApp(
-    locale: Locale('en'),
+  return MaterialApp(
+    locale: const Locale('en'),
     supportedLocales: AppLocalizations.supportedLocales,
-    localizationsDelegates: [
+    localizationsDelegates: const [
       AppLocalizations.delegate,
       GlobalMaterialLocalizations.delegate,
       GlobalWidgetsLocalizations.delegate,
       GlobalCupertinoLocalizations.delegate,
     ],
-    home: FeatureFlagsScreen(),
+    home: ReActionScope(scope: _fake, child: const FeatureFlagsScreen()),
   );
 }
 
 void main() {
   setUpAll(() {
-    EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
+    F.appFlavor = Flavor.dev;
   });
 
   late FeatureFlagService featureFlags;
 
   setUp(() {
     featureFlags = FeatureFlagService.instance..resetToDefaults();
+    _fake = FakeReaction();
   });
 
-  tearDown(() {
+  tearDown(() async {
     featureFlags.resetToDefaults();
+    await _fake.dispose();
   });
 
   group('FeatureFlagsScreen Integration', () {

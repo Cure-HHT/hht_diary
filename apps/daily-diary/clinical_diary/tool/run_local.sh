@@ -1,5 +1,6 @@
 #!/bin/bash
-# Implements: DIARY-OPS-single-promotable-artifact/C
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006: Mobile App Build and Release Process
 
 # Run the Clinical Diary app with the LOCAL flavor (talks to the
 # diary-server published by deployment/local-stack on the sponsor repo).
@@ -11,8 +12,8 @@
 # host.
 #
 # Note: flavorizr.yaml has no `local` native flavor (only dev/qa/uat/prod).
-# Mobile invocations use --flavor dev for the native build config; the
-# Dart-side env comes from the stamped assets/config/env.json (local).
+# Mobile invocations therefore use --flavor dev for the native build
+# config but --dart-define=APP_FLAVOR=local for the Dart-side selection.
 #
 # Usage: ./tool/run_local.sh [OPTIONS]
 #
@@ -30,8 +31,6 @@
 #   ./tool/run_local.sh --import-file ./test/data/export.json     # Run with test data
 
 set -e
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 IMPORT_FILE=""
 DEVICE="chrome"
@@ -65,10 +64,7 @@ done
 
 echo "Running Clinical Diary (LOCAL flavor) on device: ${DEVICE}"
 
-# Stamp the bundled env pointer so `flutter run` targets local; restored on exit.
-source "$SCRIPT_DIR/_write_env_pointer.sh" local
-
-CMD="flutter run -d ${DEVICE}"
+CMD="flutter run -d ${DEVICE} --dart-define=APP_FLAVOR=local"
 
 # flavorizr only knows dev/qa/uat/prod. For non-desktop/web targets we still
 # need a native flavor; dev's bundle id and Firebase config are the closest fit.

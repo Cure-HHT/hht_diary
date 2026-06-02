@@ -1,13 +1,17 @@
-import 'package:clinical_diary/config/app_config.dart';
-import 'package:clinical_diary/config/env_profile.dart';
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-d00005: Sponsor Configuration Detection Implementation
 
-/// Sets up the environment profile for tests.
+import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/flavors.dart';
+
+/// Sets up the flavor for tests.
 ///
 /// Call this in setUp() or setUpAll() for any tests that access
-/// environment-dependent configuration.
+/// flavor-dependent configuration.
 ///
-/// The [env] parameter selects the [AppEnv] to activate (defaults to dev).
-/// Use [testApiBase] to override [AppConfig.apiBase] with a custom test URL.
+/// Note: apiBase is now derived from FlavorConfig based on the flavor,
+/// so you only need to set the flavor. Use [testApiBase] parameter to
+/// override with a custom test URL if needed.
 ///
 /// Example:
 /// ```dart
@@ -15,8 +19,8 @@ import 'package:clinical_diary/config/env_profile.dart';
 ///   setUpTestFlavor();
 /// });
 /// ```
-void setUpTestFlavor([AppEnv env = AppEnv.dev, String? testApiBase]) {
-  EnvProfile.current = EnvProfile.forEnv(env);
+void setUpTestFlavor([Flavor flavor = Flavor.dev, String? testApiBase]) {
+  F.appFlavor = flavor;
   // Optional: override apiBase for tests that need a specific URL
   AppConfig.testApiBaseOverride = testApiBase;
 }

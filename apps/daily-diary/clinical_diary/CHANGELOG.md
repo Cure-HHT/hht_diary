@@ -4,7 +4,7 @@
 
 ### Changed
 
-- **Patient writes flow through `event_sourcing_datastore`.** Nosebleed entries, "no nosebleeds" markers, "unknown day" markers, and questionnaire submissions all write through `EntryService.record(...)` to the local event log first, materialize to the `diary_entries` view, and drain to the diary server through a per-destination FIFO. Network failures no longer lose data; app suspension no longer loses partial work.
+- **Participant writes flow through `event_sourcing_datastore`.** Nosebleed entries, "no nosebleeds" markers, "unknown day" markers, and questionnaire submissions all write through `EntryService.record(...)` to the local event log first, materialize to the `diary_entries` view, and drain to the diary server through a per-destination FIFO. Network failures no longer lose data; app suspension no longer loses partial work.
 - **Questionnaires now persist locally before submission.** NOSE-HHT and Quality-of-Life questionnaires inherit the same hash-chained provenance and offline-queue behavior as nosebleed events. Withdrawn-by-server questionnaires materialize as tombstoned entries via the portal inbound poll instead of surfacing a submit-time error dialog.
 - **Sync triggers run foreground-only.** Lifecycle resume, periodic timer (15 min default), connectivity restored, FCM `onMessage`, and FCM `onMessageOpenedApp` all invoke `syncCycle()` while the app is in the foreground. No background isolate.
 

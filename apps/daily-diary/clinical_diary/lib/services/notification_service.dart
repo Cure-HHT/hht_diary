@@ -110,7 +110,7 @@ class MobileNotificationService {
     try {
       _currentToken = await _messaging.getToken();
       if (_currentToken != null) {
-        debugPrint('[FCM] Token: ${_currentToken!.substring(0, 20)}...');
+        debugPrint('[FCM] Token acquired');
         onTokenRefresh?.call(_currentToken!);
       } else {
         debugPrint('[FCM] No token available');

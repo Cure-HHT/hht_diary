@@ -12,8 +12,6 @@ library;
 
 import 'package:event_sourcing/event_sourcing.dart';
 
-import 'entry_restrictions.dart';
-
 /// Aggregate type stamped on every settings event (one aggregate per key).
 const String settingAggregateType = 'Setting';
 
@@ -89,27 +87,16 @@ class SettingPayload {
   };
 }
 
-/// Setting keys read by [entryRestrictionConfigFromSettings] (integer hours).
+/// Setting keys read by [EntryGateRules.fromSettings] (integer hours).
 const String justificationThresholdHoursKey =
     'clinical.justificationThresholdHours';
 const String lockThresholdHoursKey = 'clinical.lockThresholdHours';
 
-/// Derives the [EntryRestrictionConfig] consumed by `entryGateForDate` from the
-/// folded settings. Clinical thresholds are sponsor settings (integer hours);
-/// [trialStart] comes from the participant-lifecycle projection over
-/// `participant_trial_started`, NOT from settings. Pure and deterministic.
-EntryRestrictionConfig entryRestrictionConfigFromSettings(
-  Map<String, SettingPayload> settings, {
-  required DateTime? trialStart,
-}) {
-  Duration? hours(String key) {
-    final v = settings[key]?.value;
-    return v is int ? Duration(hours: v) : null;
-  }
-
-  return EntryRestrictionConfig(
-    justificationThreshold: hours(justificationThresholdHoursKey),
-    lockThreshold: hours(lockThresholdHoursKey),
-    trialStart: trialStart,
-  );
-}
+/// Additional clinical-rule keys read by `ClinicalRules.fromSettings`: the two
+/// duration-reasonableness confirmations + the long-duration threshold (minutes,
+/// NOT hours) + the review-screen flow flag. All default off / no confirmation.
+const String shortDurationConfirmKey = 'clinical.shortDurationConfirm';
+const String longDurationConfirmKey = 'clinical.longDurationConfirm';
+const String longDurationThresholdMinutesKey =
+    'clinical.longDurationThresholdMinutes';
+const String useReviewScreenKey = 'clinical.useReviewScreen';

@@ -8,13 +8,16 @@
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-p05004: Disconnection Notification (persistent banner)
 //   REQ-p01065: Deactivate sync on disconnect (Assertion D)
+//
+// Implements: DIARY-DEV-state-in-event-log/B — the session JWT and the stable
+//   install id (app_uuid) are kept in flutter_secure_storage and are never
+//   written to the event log.
 
 import 'dart:convert';
 
 import 'package:clinical_diary/config/sponsor_registry.dart';
-import 'package:clinical_diary/models/mobile_linking_status.dart';
+import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
-import 'package:comms/comms.dart';
 import 'package:flutter/foundation.dart' show ValueNotifier, debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -37,27 +40,18 @@ class EnrollmentService {
   // CUR-1165: Not participating state storage keys
   static const _notParticipatingKey = 'participant_not_participating';
   static const _notParticipatingAtKey = 'participant_not_participating_at';
+  // The session JWT (tied to participation) and the stable install id sent to
+  // the server on link. `_appUuidKey` is the one secure-storage value preserved
+  // across a local factory reset. `_authJwtKey` is a legacy auth-path key, now
+  // only a fallback, cleared when participation ends.
+  static const _authJwtKey = 'auth_jwt';
+  static const _appUuidKey = 'app_uuid';
 
   /// CUR-1164: Real-time notifier for disconnection state.
   /// Updated synchronously by setDisconnected() so the home screen banner
   /// appears immediately when a background sync detects disconnection,
   /// without requiring a page navigation or app restart.
   final ValueNotifier<bool> disconnectedNotifier = ValueNotifier(false);
-
-  /// CUR-1311: Real-time notifier for not-participating state.
-  /// Mirrors [disconnectedNotifier] so a `mark_not_participating` /
-  /// `reactivate` FCM that triggers `syncTasks` propagates immediately
-  /// to listeners (feature-flag reset, profile screen) without waiting
-  /// for the participant to navigate.
-  final ValueNotifier<bool> notParticipatingNotifier = ValueNotifier(false);
-
-  /// CUR-1343: Fine-grained mobile linking status. Distinguishes
-  /// `linkingInProgress` (new code issued, participant must enter it) from
-  /// `disconnected` (no new code yet) so the banner and profile badge can
-  /// render the correct "enter your new code" call-to-action.
-  /// REQ-p70011/F.
-  final ValueNotifier<MobileLinkingStatus> linkingStatusNotifier =
-      ValueNotifier(MobileLinkingStatus.connected);
   final FlutterSecureStorage _secureStorage;
   final http.Client _httpClient;
   SharedPreferences? _sharedPreferences;
@@ -117,12 +111,16 @@ class EnrollmentService {
       // Normalize code: uppercase, remove dash
       final normalizedCode = code.toUpperCase().replaceAll('-', '').trim();
 
-      debugPrint('Linking with code: $normalizedCode');
+      // Do not log the linking code itself — it is the authentication secret.
+      debugPrint('Linking with provided code');
 
       // Determine which sponsor's backend to call based on code prefix
       String backendUrl;
       try {
-        backendUrl = SponsorRegistry.getBackendUrlForCode(normalizedCode);
+        backendUrl = SponsorRegistry.getBackendUrlForCode(
+          normalizedCode,
+          F.appFlavor,
+        );
         debugPrint('Resolved backend URL: $backendUrl');
       } on SponsorRegistryException catch (e) {
         throw EnrollmentException(
@@ -138,10 +136,10 @@ class EnrollmentService {
       // app_uuid is written here on first enrollment and reused on subsequent calls.
       // This allows the server to detect and reject duplicate enrollment attempts
       // from the same device via ON CONFLICT (app_uuid) in the upsert.
-      var appUuid = await _secureStorage.read(key: 'app_uuid');
+      var appUuid = await _secureStorage.read(key: _appUuidKey);
       if (appUuid == null) {
         appUuid = const Uuid().v4();
-        await _secureStorage.write(key: 'app_uuid', value: appUuid);
+        await _secureStorage.write(key: _appUuidKey, value: appUuid);
       }
 
       // Call the link function via HTTP (REQ-p70007)
@@ -153,8 +151,9 @@ class EnrollmentService {
         body: jsonEncode({'code': normalizedCode, 'appUuid': appUuid}),
       );
 
+      // Do not log response.body — the /link success body carries the minted
+      // session JWT and participant/site identifiers.
       debugPrint('Link response status: ${response.statusCode}');
-      debugPrint('Link response body: ${response.body}');
 
       if (response.statusCode == 409) {
         // Server returns two distinct 409 messages — use the body directly
@@ -166,7 +165,7 @@ class EnrollmentService {
             serverMessage.toLowerCase().contains('already linked');
         throw EnrollmentException(
           serverMessage ??
-              'This code has already been used. Please request a new code from your study coordinator.',
+              'This code has already been used. Please request a new code from your research coordinator.',
           isDeviceDuplicate
               ? EnrollmentErrorType.deviceAlreadyEnrolled
               : EnrollmentErrorType.codeAlreadyUsed,
@@ -231,10 +230,8 @@ class EnrollmentService {
       final prefix = SponsorRegistry.extractPrefix(normalizedCode);
       final sponsor = SponsorRegistry.getByPrefix(prefix);
 
-      debugPrint(
-        'Link successful: participantId=$participantId, siteId=$siteId, '
-        'siteName=$siteName, sitePhoneNumber=$sitePhoneNumber, sponsor=${sponsor?.id}',
-      );
+      // Do not log participant/site identifiers (PII). Sponsor id is not PII.
+      debugPrint('Link successful: sponsor=${sponsor?.id}');
 
       final enrollment = UserEnrollment(
         userId: userId,
@@ -251,9 +248,6 @@ class EnrollmentService {
       );
 
       await _saveEnrollment(enrollment);
-      // CUR-1343 / REQ-p70011/G: Mobile linking status only transitions to
-      // `connected` after the new code is successfully redeemed at the server.
-      linkingStatusNotifier.value = MobileLinkingStatus.connected;
       return enrollment;
     } on http.ClientException catch (e) {
       debugPrint('HTTP error: $e');
@@ -278,9 +272,24 @@ class EnrollmentService {
     );
   }
 
-  /// Clear linking data (for testing or logout)
+  /// Clear linking data when participation ends (unlink / logout / re-link).
+  /// Also clears the session JWT — it is tied to participation, so no stale
+  /// session token should remain after the participant leaves.
   Future<void> clearEnrollment() async {
     await _secureStorage.delete(key: _storageKey);
+    await _secureStorage.delete(key: _authJwtKey);
+  }
+
+  /// Factory-reset secure storage, preserving ONLY the stable install id
+  /// ([_appUuidKey] — the server-facing device identifier reused across
+  /// re-links). Clears enrollment, the session JWT, and any legacy `auth_*`
+  /// artifacts. Used by the local "reset all data" wipe.
+  Future<void> clearSecureStorageForFactoryReset() async {
+    final appUuid = await _secureStorage.read(key: _appUuidKey);
+    await _secureStorage.deleteAll();
+    if (appUuid != null) {
+      await _secureStorage.write(key: _appUuidKey, value: appUuid);
+    }
   }
 
   /// Get JWT token for API calls
@@ -292,7 +301,7 @@ class EnrollmentService {
       return enrollment!.jwtToken;
     }
     // Fall back to auth service JWT (username/password login flow)
-    return _secureStorage.read(key: 'auth_jwt');
+    return _secureStorage.read(key: _authJwtKey);
   }
 
   /// Get user ID from linking data or auth service
@@ -359,13 +368,10 @@ class EnrollmentService {
 
   /// Set the not participating status.
   /// Pass [at] to record the timestamp when the status was first detected.
-  /// Updates [notParticipatingNotifier] synchronously so listeners react
-  /// without waiting for the SharedPreferences write to flush.
   Future<void> setNotParticipating(
     bool notParticipating, {
     DateTime? at,
   }) async {
-    notParticipatingNotifier.value = notParticipating;
     final prefs = await _getPrefs();
     await prefs.setBool(_notParticipatingKey, notParticipating);
     if (notParticipating && at != null) {
@@ -387,7 +393,6 @@ class EnrollmentService {
 
   /// Process a sync/records response to check for disconnection status
   /// Returns true if the participant is disconnected
-  // Implements: REQ-p70011/F,G
   bool processDisconnectionStatus(Map<String, dynamic> response) {
     final isDisconnected = response['isDisconnected'] as bool? ?? false;
     final isNotParticipating = response['isNotParticipating'] as bool? ?? false;
@@ -398,18 +403,8 @@ class EnrollmentService {
       'isNotParticipating=$isNotParticipating',
     );
 
-    final parsedStatus = parseMobileLinkingStatus(status);
-    linkingStatusNotifier.value = parsedStatus;
-
-    // CUR-1343 / REQ-p70011/F: A server-reported `linking_in_progress` means
-    // the portal has issued a new linking code; mobile must hold the participant
-    // in a disconnected state until the new code is entered. This is the
-    // recovery path if the FCM `reconnect` push was lost.
-    final effectiveDisconnected =
-        isDisconnected || parsedStatus == MobileLinkingStatus.linkingInProgress;
-
     // Update local disconnection state asynchronously
-    setDisconnected(effectiveDisconnected);
+    setDisconnected(isDisconnected);
 
     // CUR-1165: Store not_participating state; record detection time on first detection
     if (isNotParticipating) {
@@ -421,44 +416,13 @@ class EnrollmentService {
       setNotParticipating(false);
     }
 
-    return effectiveDisconnected;
-  }
-
-  /// CUR-1311 P1B.5: Route an envelope-fetched participant status notification.
-  ///
-  /// Sub-action is in `payload.action`. `start_trial` is a no-op here —
-  /// it is handled by the /tasks path.
-  // Implements: REQ-p70011/F
-  void handleEnvelopeStatusUpdate(Envelope envelope) {
-    final action = envelope.payload['action'] as String?;
-    switch (action) {
-      case 'disconnect':
-        linkingStatusNotifier.value = MobileLinkingStatus.disconnected;
-        setDisconnected(true);
-      case 'reconnect':
-        // CUR-1343 / REQ-p70011/F: the reconnect push means "a new linking
-        // code has been issued"; the participant still needs to enter it. Keep
-        // the disconnected flag set so the banner stays visible and the
-        // existing enroll() re-link path remains the only way out.
-        linkingStatusNotifier.value = MobileLinkingStatus.linkingInProgress;
-        setDisconnected(true);
-      case 'mark_not_participating':
-        setNotParticipating(true, at: DateTime.now());
-      case 'reactivate':
-        setNotParticipating(false);
-      case 'start_trial':
-        break; // no-op — handled by /tasks path
-      default:
-        debugPrint('[EnrollmentService] Unknown status action: $action');
-    }
+    return isDisconnected;
   }
 
   /// Dispose resources
   void dispose() {
     _httpClient.close();
     disconnectedNotifier.dispose();
-    notParticipatingNotifier.dispose();
-    linkingStatusNotifier.dispose();
   }
 }
 

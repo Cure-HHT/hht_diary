@@ -2,6 +2,8 @@
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-audit-trail
+**Refines**: DIARY-PRD-mobile-offline-first
+**Integrates**: EVS-PRD-event-log
 
 ## Assertions
 

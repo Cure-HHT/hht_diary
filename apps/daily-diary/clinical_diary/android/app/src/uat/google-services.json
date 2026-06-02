@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "149504828360",
+    "project_id": "cure-hht-admin",
+    "storage_bucket": "cure-hht-admin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149504828360:android:35c3a8485d6e3c2d4616fd",
+        "android_client_info": {
+          "package_name": "org.anspar.curehht.app.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiYN-ZS2ahRt9sc3rfMNdADzNI1t4xy5A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149504828360:android:cfc348ada42423034616fd",
+        "android_client_info": {
+          "package_name": "org.anspar.curehht.app.qa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiYN-ZS2ahRt9sc3rfMNdADzNI1t4xy5A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149504828360:android:f03bfeade6c23aab4616fd",
+        "android_client_info": {
+          "package_name": "org.anspar.curehht.app.uat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiYN-ZS2ahRt9sc3rfMNdADzNI1t4xy5A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

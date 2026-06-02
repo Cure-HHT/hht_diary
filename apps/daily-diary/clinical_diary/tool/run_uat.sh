@@ -1,5 +1,6 @@
 #!/bin/bash
-# Implements: DIARY-OPS-single-promotable-artifact/C
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006: Mobile App Build and Release Process
 
 # Run the Clinical Diary app with UAT flavor
 # Usage: ./tool/run_uat.sh [OPTIONS]
@@ -16,8 +17,6 @@
 #   ./tool/run_uat.sh --device macos --import-file data.json    # Run on macOS with data
 
 set -e
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 IMPORT_FILE=""
 DEVICE=""
@@ -47,11 +46,8 @@ done
 
 echo "Running Clinical Diary (UAT flavor)..."
 
-# Stamp the bundled env pointer so `flutter run` targets uat; restored on exit.
-source "$SCRIPT_DIR/_write_env_pointer.sh" uat
-
 # Build the flutter run command
-CMD="flutter run"
+CMD="flutter run --dart-define=APP_FLAVOR=uat"
 
 # Add device if specified
 if [[ -n "$DEVICE" ]]; then

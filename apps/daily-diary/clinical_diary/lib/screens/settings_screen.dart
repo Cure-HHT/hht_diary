@@ -1,86 +1,50 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
+// Implements: DIARY-DEV-action-write-path/A — each toggle writes one
+//   `set_user_setting` action through the core ActionDispatcher (via the scope's
+//   actionSubmitter); the screen holds no authoritative state.
+// Implements: DIARY-DEV-reactive-read-path/A — current values are read from the
+//   settings projection through [AppPreferencesScope] (fed by the app-level
+//   settings ViewBuilder), not from a local cache.
 
+// The font dropdown uses DropdownButtonFormField.value (reactively reflects the
+// current setting); the newer initialValue API is set-once and unsuitable here.
 // ignore_for_file: deprecated_member_use
 
-import 'package:clinical_diary/config/app_config.dart';
+import 'dart:async';
+
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/screens/feature_flags_screen.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/screens/advanced_settings_screen.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
+import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
 import 'package:flutter/material.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
 
-/// Settings screen for accessibility and preferences
-class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({
-    required this.preferencesService,
-    this.onLanguageChanged,
-    this.onThemeModeChanged,
-    this.onLargerTextChanged,
-    this.onFontChanged,
-    super.key,
-  });
+/// Settings screen for accessibility and preferences.
+///
+/// Reads the current [UserPreferences] from [AppPreferencesScope] (the settings
+/// projection) and writes each change as a `set_user_setting` action.
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
 
-  final PreferencesService preferencesService;
-  final ValueChanged<String>? onLanguageChanged;
-  final ValueChanged<bool>? onThemeModeChanged;
-  final ValueChanged<bool>? onLargerTextChanged;
-  final ValueChanged<String>? onFontChanged;
-
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isDarkMode = false;
-  String _selectedFont = 'Roboto';
-  bool _largerTextAndControls = false;
-  bool _useAnimation = true;
-  bool _compactView = false;
-  String _languageCode = 'en';
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPreferences();
-  }
-
-  Future<void> _loadPreferences() async {
-    final prefs = await widget.preferencesService.getPreferences();
-    setState(() {
-      _isDarkMode = prefs.isDarkMode;
-      _selectedFont = prefs.selectedFont;
-      _largerTextAndControls = prefs.largerTextAndControls;
-      _useAnimation = prefs.useAnimation;
-      _compactView = prefs.compactView;
-      _languageCode = prefs.languageCode;
-      _isLoading = false;
-    });
-  }
-
-  Future<void> _savePreferences() async {
-    await widget.preferencesService.savePreferences(
-      UserPreferences(
-        isDarkMode: _isDarkMode,
-        selectedFont: _selectedFont,
-        largerTextAndControls: _largerTextAndControls,
-        useAnimation: _useAnimation,
-        compactView: _compactView,
-        languageCode: _languageCode,
+  /// Submits a `set_user_setting` action for [key]/[value] via the scope.
+  void _setSetting(BuildContext context, String key, Object? value) {
+    // Fire-and-forget: the settings projection is the source of truth and the
+    // ViewBuilder at the app root rebuilds the tree on the resulting event.
+    unawaited(
+      ReActionScope.of(context).actionSubmitter.submit(
+        ActionSubmission(
+          actionName: 'set_user_setting',
+          rawInput: <String, Object?>{'key': key, 'value': value},
+        ),
       ),
     );
   }
 
-  void _selectLanguage(String code) {
-    setState(() => _languageCode = code);
-    _savePreferences();
-    widget.onLanguageChanged?.call(code);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final prefs = AppPreferencesScope.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -108,186 +72,143 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // Content
             Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Color Scheme Section
-                          _buildSectionHeader(
-                            context,
-                            AppLocalizations.of(context).colorScheme,
-                            AppLocalizations.of(context).chooseAppearance,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildColorSchemeOption(
-                            context,
-                            icon: Icons.light_mode,
-                            title: AppLocalizations.of(context).lightMode,
-                            subtitle: AppLocalizations.of(
-                              context,
-                            ).lightModeDescription,
-                            isSelected: !_isDarkMode,
-                            onTap: () {
-                              setState(() => _isDarkMode = false);
-                              _savePreferences();
-                              widget.onThemeModeChanged?.call(false);
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          // Dark mode disabled for alpha release
-                          _buildColorSchemeOption(
-                            context,
-                            icon: Icons.dark_mode,
-                            title: AppLocalizations.of(context).darkMode,
-                            subtitle: 'Coming soon',
-                            isSelected: false,
-                            onTap: null,
-                            isDisabled: true,
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Accessibility Section
-                          _buildSectionHeader(
-                            context,
-                            AppLocalizations.of(context).accessibility,
-                            AppLocalizations.of(
-                              context,
-                            ).accessibilityDescription,
-                          ),
-                          const SizedBox(height: 16),
-                          // CUR-528: Font selection dropdown
-                          if (FeatureFlagService
-                              .instance
-                              .shouldShowFontSelector)
-                            _buildFontSelector(context),
-                          if (FeatureFlagService
-                              .instance
-                              .shouldShowFontSelector)
-                            const SizedBox(height: 12),
-                          _buildAccessibilityOption(
-                            context,
-                            title: AppLocalizations.of(
-                              context,
-                            ).largerTextAndControls,
-                            subtitle: AppLocalizations.of(
-                              context,
-                            ).largerTextDescription,
-                            value: _largerTextAndControls,
-                            onChanged: (value) {
-                              setState(() => _largerTextAndControls = value);
-                              _savePreferences();
-                              // CUR-488: Notify parent to apply text scaling
-                              widget.onLargerTextChanged?.call(value);
-                            },
-                          ),
-                          // Use Animation option - only show if feature flag is enabled
-                          if (FeatureFlagService.instance.useAnimations) ...[
-                            const SizedBox(height: 12),
-                            _buildAccessibilityOption(
-                              context,
-                              title: AppLocalizations.of(context).useAnimation,
-                              subtitle: AppLocalizations.of(
-                                context,
-                              ).useAnimationDescription,
-                              value: _useAnimation,
-                              onChanged: (value) {
-                                setState(() => _useAnimation = value);
-                                _savePreferences();
-                              },
-                            ),
-                          ],
-                          // CUR-464: Compact view option
-                          const SizedBox(height: 12),
-                          _buildAccessibilityOption(
-                            context,
-                            title: AppLocalizations.of(context).compactView,
-                            subtitle: AppLocalizations.of(
-                              context,
-                            ).compactViewDescription,
-                            value: _compactView,
-                            onChanged: (value) {
-                              setState(() => _compactView = value);
-                              _savePreferences();
-                            },
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Language Section
-                          _buildSectionHeader(
-                            context,
-                            AppLocalizations.of(context).language,
-                            AppLocalizations.of(context).languageDescription,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildLanguageOption(
-                            context,
-                            code: 'en',
-                            name: 'English',
-                            isSelected: _languageCode == 'en',
-                            onTap: () => _selectLanguage('en'),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildLanguageOption(
-                            context,
-                            code: 'es',
-                            name: 'Español',
-                            isSelected: _languageCode == 'es',
-                            onTap: () => _selectLanguage('es'),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildLanguageOption(
-                            context,
-                            code: 'fr',
-                            name: 'Français',
-                            isSelected: _languageCode == 'fr',
-                            onTap: () => _selectLanguage('fr'),
-                          ),
-                          const SizedBox(height: 12),
-                          _buildLanguageOption(
-                            context,
-                            code: 'de',
-                            name: 'Deutsch',
-                            isSelected: _languageCode == 'de',
-                            onTap: () => _selectLanguage('de'),
-                          ),
-
-                          // Feature Flags - only available in dev/qa builds
-                          if (AppConfig.showDevTools) ...[
-                            const SizedBox(height: 32),
-                            _buildSectionHeader(
-                              context,
-                              AppLocalizations.of(context).featureFlagsTitle,
-                              AppLocalizations.of(context).featureFlagsWarning,
-                            ),
-                            const SizedBox(height: 16),
-                            _buildNavigationOption(
-                              context,
-                              icon: Icons.science_outlined,
-                              title: AppLocalizations.of(
-                                context,
-                              ).featureFlagsTitle,
-                              subtitle: AppLocalizations.of(
-                                context,
-                              ).featureFlagsWarning,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  AppPageRoute<void>(
-                                    builder: (context) =>
-                                        const FeatureFlagsScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ],
-                      ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Color Scheme Section
+                    _buildSectionHeader(
+                      context,
+                      AppLocalizations.of(context).colorScheme,
+                      AppLocalizations.of(context).chooseAppearance,
                     ),
+                    const SizedBox(height: 16),
+                    _buildColorSchemeOption(
+                      context,
+                      icon: Icons.light_mode,
+                      title: AppLocalizations.of(context).lightMode,
+                      subtitle: AppLocalizations.of(
+                        context,
+                      ).lightModeDescription,
+                      isSelected: !prefs.isDarkMode,
+                      onTap: () => _setSetting(context, prefDarkMode, false),
+                    ),
+                    const SizedBox(height: 12),
+                    // Dark mode disabled for alpha release
+                    _buildColorSchemeOption(
+                      context,
+                      icon: Icons.dark_mode,
+                      title: AppLocalizations.of(context).darkMode,
+                      subtitle: 'Coming soon',
+                      isSelected: false,
+                      onTap: null,
+                      isDisabled: true,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Accessibility Section
+                    _buildSectionHeader(
+                      context,
+                      AppLocalizations.of(context).accessibility,
+                      AppLocalizations.of(context).accessibilityDescription,
+                    ),
+                    const SizedBox(height: 16),
+                    // CUR-528: Font selection dropdown
+                    if (FeatureFlagService.instance.shouldShowFontSelector)
+                      _buildFontSelector(context, prefs),
+                    if (FeatureFlagService.instance.shouldShowFontSelector)
+                      const SizedBox(height: 12),
+                    _buildAccessibilityOption(
+                      context,
+                      title: AppLocalizations.of(context).largerTextAndControls,
+                      subtitle: AppLocalizations.of(
+                        context,
+                      ).largerTextDescription,
+                      value: prefs.largerTextAndControls,
+                      onChanged: (value) =>
+                          _setSetting(context, prefLargerText, value),
+                    ),
+                    // Use Animation option - only show if feature flag is enabled
+                    if (FeatureFlagService.instance.useAnimations) ...[
+                      const SizedBox(height: 12),
+                      _buildAccessibilityOption(
+                        context,
+                        title: AppLocalizations.of(context).useAnimation,
+                        subtitle: AppLocalizations.of(
+                          context,
+                        ).useAnimationDescription,
+                        value: prefs.useAnimation,
+                        onChanged: (value) =>
+                            _setSetting(context, prefUseAnimation, value),
+                      ),
+                    ],
+
+                    const SizedBox(height: 32),
+
+                    // Language Section
+                    _buildSectionHeader(
+                      context,
+                      AppLocalizations.of(context).language,
+                      AppLocalizations.of(context).languageDescription,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildLanguageOption(
+                      context,
+                      code: 'en',
+                      name: 'English',
+                      isSelected: prefs.languageCode == 'en',
+                      onTap: () => _setSetting(context, prefLanguageCode, 'en'),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildLanguageOption(
+                      context,
+                      code: 'es',
+                      name: 'Español',
+                      isSelected: prefs.languageCode == 'es',
+                      onTap: () => _setSetting(context, prefLanguageCode, 'es'),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildLanguageOption(
+                      context,
+                      code: 'fr',
+                      name: 'Français',
+                      isSelected: prefs.languageCode == 'fr',
+                      onTap: () => _setSetting(context, prefLanguageCode, 'fr'),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildLanguageOption(
+                      context,
+                      code: 'de',
+                      name: 'Deutsch',
+                      isSelected: prefs.languageCode == 'de',
+                      onTap: () => _setSetting(context, prefLanguageCode, 'de'),
+                    ),
+
+                    // Advanced — detailed clinical entry rules. Available to
+                    // ALL users (not dev-gated); most leave them at "Off".
+                    const SizedBox(height: 32),
+                    _buildSectionHeader(context, 'Advanced', 'Entry rules'),
+                    const SizedBox(height: 16),
+                    _buildNavigationOption(
+                      context,
+                      icon: Icons.tune,
+                      title: 'Advanced',
+                      subtitle: 'Justification, locking, and duration checks',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          AppPageRoute<void>(
+                            builder: (context) =>
+                                const AdvancedSettingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -323,7 +244,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// CUR-528: Build font selection dropdown
-  Widget _buildFontSelector(BuildContext context) {
+  Widget _buildFontSelector(BuildContext context, UserPreferences prefs) {
     final l10n = AppLocalizations.of(context);
     final availableFonts = FeatureFlagService.instance.availableFonts;
 
@@ -355,8 +276,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: availableFonts.any((f) => f.fontFamily == _selectedFont)
-                ? _selectedFont
+            value: availableFonts.any((f) => f.fontFamily == prefs.selectedFont)
+                ? prefs.selectedFont
                 : availableFonts.first.fontFamily,
             decoration: InputDecoration(
               border: OutlineInputBorder(
@@ -375,10 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }).toList(),
             onChanged: (value) {
               if (value != null) {
-                setState(() => _selectedFont = value);
-                _savePreferences();
-                // CUR-528: Notify parent to update theme font
-                widget.onFontChanged?.call(value);
+                _setSetting(context, prefSelectedFont, value);
               }
             },
           ),

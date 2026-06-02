@@ -30,7 +30,7 @@
 //     HomeScreen -> EventListItem and surfaces in the rendered list with the
 //     FlashHighlight wrapper applied.
 //  2. A pre-recorded incomplete event surfaces both as an EventListItem AND
-//     as the orange "Tap to complete" banner.
+//     as the orange incomplete-records banner.
 //  3. The yesterday banner hides once a yesterday-dated entry exists.
 //  4. The LogoMenu opens, navigates to the Licenses page, and the legacy
 //     "Check for updates" affordance is gone (CUR-990).
@@ -42,22 +42,27 @@
 
 import 'dart:async';
 
+import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/license_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/services/triggers.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -145,21 +150,39 @@ void main() {
 
   group('HomeScreen Integration', () {
     late ClinicalDiaryRuntime runtime;
+    late DiaryScopeRuntime diaryScope;
     late MockEnrollmentService enrollment;
-    late PreferencesService preferences;
     late TaskService tasks;
 
     setUp(() async {
+      // Fix device timezone to UTC+0 so that toDisplayedDateTime with
+      // startTimeZone='UTC' is an identity transform (stored == displayed).
+      TimezoneConverter.testDeviceOffsetMinutes = 0;
+      TimezoneService.instance.testTimezoneOverride = 'Etc/UTC';
       SharedPreferences.setMockInitialValues({});
-      preferences = PreferencesService();
       enrollment = MockEnrollmentService();
       tasks = TaskService();
       runtime = await _bootstrap();
+      // The migrated diary surface reads/writes through the new reactive
+      // composition root. Build a real in-memory diary scope and seed it via
+      // its action submitter so the DiaryViewBuilder surfaces entries live.
+      final scopeDb = await newDatabaseFactoryMemory().openDatabase(
+        'home-int-scope-${DateTime.now().microsecondsSinceEpoch}.db',
+      );
+      diaryScope = await bootstrapDiaryScope(
+        backend: SembastBackend(database: scopeDb),
+        deviceId: _deviceId,
+        softwareVersion: _softwareVersion,
+        localUserId: _userId,
+      );
     });
 
     tearDown(() async {
+      await diaryScope.dispose();
       await runtime.dispose();
       tasks.dispose();
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      TimezoneService.instance.testTimezoneOverride = null;
     });
 
     Future<void> pumpHomeScreen(WidgetTester tester) async {
@@ -171,41 +194,48 @@ void main() {
       });
 
       await tester.pumpWidget(
-        wrapWithMaterialApp(
-          HomeScreen(
-            runtime: runtime,
-            deviceId: _deviceId,
-            enrollmentService: enrollment,
-            taskService: tasks,
-            preferencesService: preferences,
-            onLocaleChanged: (_) {},
-            onThemeModeChanged: (_) {},
-            onLargerTextChanged: (_) {},
+        ReActionScope(
+          scope: diaryScope.scope,
+          child: wrapWithMaterialApp(
+            HomeScreen(
+              runtime: runtime,
+              deviceId: _deviceId,
+              enrollmentService: enrollment,
+              taskService: tasks,
+            ),
           ),
         ),
       );
       await _settle(tester);
     }
 
-    /// Seed an event via the real EntryService inside `runAsync` so
-    /// Sembast's internal real-timer async actually fires under
-    /// TestWidgetsFlutterBinding's fake clock. Mirrors the pattern from
-    /// home_screen_test.dart (Task 12.5).
-    Future<void> seedEvent(
-      WidgetTester tester, {
-      required String entryType,
-      required String aggregateId,
-      required String eventType,
-      required Map<String, Object?> answers,
-    }) async {
+    /// Submit a diary action through the new scope inside `runAsync` so the
+    /// store's internal real-timer async fires under the fake test clock, then
+    /// pump so the resulting view emission reaches the DiaryViewBuilder.
+    Future<void> submitAction(
+      WidgetTester tester,
+      String actionName,
+      Map<String, Object?> rawInput,
+    ) async {
       await tester.runAsync(() async {
-        await runtime.entryService.record(
-          entryType: entryType,
-          aggregateId: aggregateId,
-          eventType: eventType,
-          answers: answers,
+        await diaryScope.scope.actionSubmitter.submit(
+          ActionSubmission(actionName: actionName, rawInput: rawInput),
         );
+        await Future<void>.delayed(const Duration(milliseconds: 80));
       });
+    }
+
+    /// `EpistaxisEventPayload.toJson` rawInput for [start] / optional [end].
+    Map<String, Object?> epistaxisInput(DateTime start, {DateTime? end}) {
+      return EpistaxisEventPayload(
+        startTime: start.toIso8601String(),
+        startTimeZone: 'UTC',
+        startTimeUtcOffset: '+00:00',
+        endTime: end?.toIso8601String(),
+        endTimeZone: end == null ? null : 'UTC',
+        endTimeUtcOffset: end == null ? null : '+00:00',
+        intensity: end == null ? null : NosebleedIntensity.dripping,
+      ).toJson();
     }
 
     // -----------------------------------------------------------------------
@@ -217,31 +247,16 @@ void main() {
       'seeded finalized event renders as an EventListItem inside FlashHighlight',
       (tester) async {
         final now = DateTime.now();
-        await seedEvent(
-          tester,
-          entryType: 'epistaxis_event',
-          aggregateId: 'agg-home-int-1',
-          eventType: 'finalized',
-          answers: <String, Object?>{
-            'startTime': DateTime(
-              now.year,
-              now.month,
-              now.day,
-              10,
-              0,
-            ).toIso8601String(),
-            'endTime': DateTime(
-              now.year,
-              now.month,
-              now.day,
-              10,
-              30,
-            ).toIso8601String(),
-            'intensity': 'dripping',
-          },
-        );
-
         await pumpHomeScreen(tester);
+        await submitAction(
+          tester,
+          'record_epistaxis_event',
+          epistaxisInput(
+            DateTime(now.year, now.month, now.day, 10),
+            end: DateTime(now.year, now.month, now.day, 10, 30),
+          ),
+        );
+        await _settle(tester);
 
         // The event surfaces as exactly one list item.
         expect(find.byType(EventListItem), findsOneWidget);
@@ -253,35 +268,27 @@ void main() {
 
     // -----------------------------------------------------------------------
     // 2. End-to-end: a checkpointed (incomplete) event renders both as a
-    //    list item AND as the orange "Tap to complete" banner above the list.
+    //    list item AND as the orange incomplete-records banner above the list.
     // -----------------------------------------------------------------------
     testWidgets(
       'incomplete (checkpoint) event surfaces in list and incomplete banner',
       (tester) async {
         final now = DateTime.now();
-        await seedEvent(
-          tester,
-          entryType: 'epistaxis_event',
-          aggregateId: 'agg-home-int-incomplete',
-          eventType: 'checkpoint',
-          answers: <String, Object?>{
-            'startTime': DateTime(
-              now.year,
-              now.month,
-              now.day,
-              9,
-              0,
-            ).toIso8601String(),
-            // No endTime / no intensity — checkpoint is incomplete.
-          },
-        );
-
         await pumpHomeScreen(tester);
+        // No endTime / no intensity — checkpoint is incomplete.
+        await submitAction(
+          tester,
+          'checkpoint_epistaxis_event',
+          epistaxisInput(DateTime(now.year, now.month, now.day, 9)),
+        );
+        await _settle(tester);
 
         // Surfaces as one list item.
         expect(find.byType(EventListItem), findsOneWidget);
-        // The "Tap to complete" affordance on the orange incomplete banner.
-        expect(find.text('Tap to complete'), findsOneWidget);
+        // The orange incomplete banner shows its count (as the only active
+        // important item it occupies the inline top slot). The "tap to
+        // complete" affordance is now the banner's chevron + tooltip.
+        expect(find.text('1 incomplete record'), findsOneWidget);
       },
     );
 
@@ -295,31 +302,22 @@ void main() {
       'yesterday banner is hidden when a yesterday-dated entry exists',
       (tester) async {
         final yesterday = DateTime.now().subtract(const Duration(days: 1));
-        await seedEvent(
+        await pumpHomeScreen(tester);
+        await submitAction(
           tester,
-          entryType: 'epistaxis_event',
-          aggregateId: 'agg-home-int-yesterday',
-          eventType: 'finalized',
-          answers: <String, Object?>{
-            'startTime': DateTime(
-              yesterday.year,
-              yesterday.month,
-              yesterday.day,
-              10,
-              0,
-            ).toIso8601String(),
-            'endTime': DateTime(
+          'record_epistaxis_event',
+          epistaxisInput(
+            DateTime(yesterday.year, yesterday.month, yesterday.day, 10),
+            end: DateTime(
               yesterday.year,
               yesterday.month,
               yesterday.day,
               10,
               30,
-            ).toIso8601String(),
-            'intensity': 'dripping',
-          },
+            ),
+          ),
         );
-
-        await pumpHomeScreen(tester);
+        await _settle(tester);
 
         // YesterdayBanner widget is gone — hasYesterdayRecords=true short-
         // circuits the conditional in HomeScreen.build.
