@@ -1392,9 +1392,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       });
     }
     return RefreshIndicator(
-      // The diary list is reactive (DiaryViewBuilder); pull-to-refresh stays for
-      // the affordance but has nothing to load.
-      onRefresh: () async {},
+      // The diary list itself is reactive (DiaryViewBuilder) and needs no
+      // reload. CUR-1398: pull-to-refresh re-pulls /tasks so the patient has a
+      // manual recovery path when FCM is slow or fails (questionnaires shown as
+      // "Sent" in the portal but not yet surfaced on the home screen).
+      onRefresh: () =>
+          widget.taskService.syncTasks(widget.enrollmentService),
       child: Scrollbar(
         thumbVisibility: true,
         controller: _scrollController,

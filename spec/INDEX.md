@@ -69,7 +69,7 @@
 | DIARY-PRD-role-definitions                       | Role Definitions                                         | prd-rbac.md                               | b03a41dc |
 | DIARY-PRD-score-hht-qol                          | HHT-QoL Score Calculation                                | prd-score-calculation.md                  | 67ca87e3 |
 | DIARY-PRD-score-nose-hht                         | NOSE HHT Score Calculation                               | prd-score-calculation.md                  | 634f9daf |
-| DIARY-PRD-session-management                     | Session Management                                       | prd-portal-auth.md                        | a942824d |
+| DIARY-PRD-session-management                     | Session Management                                       | prd-portal-auth.md                        | 21fe5107 |
 | DIARY-PRD-sla-chronic-failure-escalation         | Chronic Failure Escalation                               | prd-sla.md                                | 18eb2eed |
 | DIARY-PRD-sla-corrective-preventive              | Corrective and Preventive Action                         | prd-sla.md                                | 168ba70d |
 | DIARY-PRD-sla-customer-notification              | Customer Incident Notification                           | prd-sla.md                                | 93c0d962 |
@@ -85,8 +85,8 @@
 | DIARY-PRD-user-account-activation-resend         | Resend Activation Email                                  | prd-user-account.md                       | fb61a75a |
 | DIARY-PRD-user-account-activation-workflow       | Account Activation Workflow                              | prd-user-account.md                       | bc27bb86 |
 | DIARY-PRD-user-account-create                    | Create User Account                                      | prd-user-account.md                       | 862753f8 |
-| DIARY-PRD-user-account-deactivate                | Deactivate User Account                                  | prd-user-account.md                       | 5dc7acf8 |
-| DIARY-PRD-user-account-edit                      | Edit User Account                                        | prd-user-account.md                       | c4d1c981 |
+| DIARY-PRD-user-account-deactivate                | Deactivate User Account                                  | prd-user-account.md                       | 7e1c1907 |
+| DIARY-PRD-user-account-edit                      | Edit User Account                                        | prd-user-account.md                       | 9565897b |
 | DIARY-PRD-user-account-reactivate                | Reactivate User Account                                  | prd-user-account.md                       | eb83c7e5 |
 | DIARY-PRD-user-account-site-assignment           | Site Assignment                                          | prd-user-account.md                       | 3aa95698 |
 | DIARY-PRD-user-authentication                    | Diary User Authentication                                | prd-mobile-app.md                         | c516100c |

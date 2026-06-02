@@ -111,6 +111,20 @@ void main() async {
           options: DefaultFirebaseOptions.currentPlatform,
         );
         debugPrint('Firebase initialized successfully');
+      } on FirebaseException catch (e) {
+        // CUR-1278: on Android the google-services Gradle plugin's
+        // FirebaseInitProvider auto-initializes the [DEFAULT] app before
+        // Dart's main() runs (iOS does the same via FirebaseApp.configure()
+        // in AppDelegate). The Dart-side Firebase.apps list is NOT eagerly
+        // synced from that native registry, so we can't pre-check
+        // Firebase.apps.isEmpty — the init call trips the native
+        // "already exists" check and surfaces as `duplicate-app`. Treat that
+        // as success (the native app is correct); other codes still surface.
+        if (e.code == 'duplicate-app') {
+          debugPrint('Firebase already initialized by native side');
+        } else {
+          debugPrint('Firebase initialization error: $e');
+        }
       } catch (e, stack) {
         debugPrint('Firebase initialization error: $e');
         debugPrint('Stack trace:\n$stack');
@@ -257,6 +271,11 @@ class _AppRootState extends State<AppRoot> {
         // CUR-1164: Skip outbound sync + inbound poll while disconnected.
         // Closure over the notifier value keeps the check sync.
         isDisconnected: () => _enrollmentService.disconnectedNotifier.value,
+        // CUR-1398: include task-sync in every periodic / resume /
+        // connectivity / FCM-triggered tick so foreground state stays
+        // correct even when FCM delivery is slow or fails. Cold-start sync
+        // is still done separately in _initializeNotifications.
+        tasksSync: () => _taskService.syncTasks(_enrollmentService),
       );
 
       // Activate both legacy-shim destinations once at first install.

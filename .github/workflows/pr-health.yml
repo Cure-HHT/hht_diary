@@ -117,7 +117,14 @@ jobs:
       - name: Scan for secrets
         run: |
           set -euo pipefail
-          if gitleaks detect --verbose --no-banner --redact --log-level info; then
+          # Suppress the baselined historical findings (benign; see CUR-1424)
+          # so the restored ruleset is green-on-clean while catching new leaks.
+          baseline_arg=()
+          if [ -f .gitleaks-baseline.json ]; then
+            echo "Using gitleaks baseline: .gitleaks-baseline.json"
+            baseline_arg=(--baseline-path .gitleaks-baseline.json)
+          fi
+          if gitleaks detect --verbose --no-banner --redact --log-level info "${baseline_arg[@]}"; then
             echo "No secrets detected"
           else
             echo "::error::Gitleaks detected secrets in the repository"

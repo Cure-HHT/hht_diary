@@ -42,6 +42,7 @@ class RecordingScreen extends StatefulWidget {
     this.existing,
     this.initialDate,
     this.fromOverlapResolution = false,
+    this.saveTimeout = const Duration(seconds: 10),
   }) : assert(
          existing == null || initialDate == null,
          'Cannot specify both existing and initialDate',
@@ -58,6 +59,15 @@ class RecordingScreen extends StatefulWidget {
   /// Preselected day for a NEW entry (calendar / yesterday banner). Ignored
   /// when [existing] is non-null.
   final DateTime? initialDate;
+
+  /// CUR-1397: ceiling on how long a single action dispatch (the save path)
+  /// is awaited before [_RecordingScreenState._submitAction] treats it as a
+  /// failure. Without it a hung submit traps the user — the Back path
+  /// (PopScope → _handleExit → _saveRecord) awaits the same call, so
+  /// `canPop: false` never reaches `Navigator.pop`. 10s is generous for a
+  /// local write (typically sub-100ms) while still bounding the back-out UX.
+  /// Override in tests.
+  final Duration saveTimeout;
 
   /// Default start time for a NEW recording. With no preselected day it is
   /// [now]; for a day preselected on the calendar it is **noon** of that day —
@@ -413,26 +423,35 @@ class _RecordingScreenState extends State<RecordingScreen> {
     String actionName,
     Map<String, Object?> rawInput,
   ) async {
-    final result = await ReActionScope.of(context).actionSubmitter.submit(
-      ActionSubmission(actionName: actionName, rawInput: rawInput),
-    );
-    switch (result) {
-      case DispatchSuccess<Object?>(:final result):
-        return result is String ? result : null;
-      case DispatchIdempotencyHit<Object?>(:final cachedResult):
-        return cachedResult is String ? cachedResult : null;
-      default:
-        if (mounted) {
-          final l10n = AppLocalizations.of(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.failedToSave),
-              duration: const Duration(seconds: 5),
-            ),
-          );
-        }
-        return null;
+    try {
+      // CUR-1397: bound the dispatch so a hung submit can't trap the user.
+      // Both the Save button and the Back path (PopScope → _handleExit →
+      // _saveRecord) await this same call; on timeout fall through to the
+      // failure handling below so callers un-trap and reset _isSaving.
+      final result = await ReActionScope.of(context).actionSubmitter
+          .submit(ActionSubmission(actionName: actionName, rawInput: rawInput))
+          .timeout(widget.saveTimeout);
+      switch (result) {
+        case DispatchSuccess<Object?>(:final result):
+          return result is String ? result : null;
+        case DispatchIdempotencyHit<Object?>(:final cachedResult):
+          return cachedResult is String ? cachedResult : null;
+        default:
+          break;
+      }
+    } on TimeoutException {
+      // fall through to the shared failure path below
     }
+    if (mounted) {
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.failedToSave),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+    return null;
   }
 
   /// Save-decision table for a "Complete Record" tap (an explicit finalize).

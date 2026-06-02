@@ -393,4 +393,98 @@ void main() {
       expect(response.error, 'Not authenticated');
     });
   });
+
+  // Implements: DIARY-PRD-session-management/H
+  // When the backend signals server-side session revocation via
+  // {"code":"session_revoked"} on a 403, the ApiClient must trigger
+  // AuthService.signOut so the router redirects to /login. Other 403s
+  // (per-endpoint permission denials) must bubble up unchanged.
+  group('ApiClient session_revoked handling', () {
+    Future<({AuthService authService, ApiClient apiClient})> setupSignedIn(
+      MockClient mockHttpClient,
+    ) async {
+      final mockUser = MockUser(
+        uid: 'session-uid',
+        email: 'session@example.com',
+        displayName: 'Session User',
+      );
+      final mockFirebaseAuth = MockFirebaseAuth(
+        mockUser: mockUser,
+        signedIn: true,
+      );
+      final authService = AuthService(
+        firebaseAuth: mockFirebaseAuth,
+        httpClient: mockHttpClient,
+      );
+      await authService.signIn('session@example.com', 'password');
+      final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+      return (authService: authService, apiClient: apiClient);
+    }
+
+    MockClient meThen(http.Response Function() afterMe) {
+      return MockClient((request) async {
+        if (request.url.path == '/api/v1/portal/me') {
+          return http.Response(
+            jsonEncode({
+              'id': 'session-user',
+              'email': 'session@example.com',
+              'name': 'Session User',
+              'status': 'active',
+              'roles': ['Investigator'],
+              'active_role': 'Investigator',
+              'mfa_type': 'email_otp',
+              'email_otp_required': true,
+              'sites': [],
+            }),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return afterMe();
+      });
+    }
+
+    test(
+      'signs the user out when a 403 carries code=session_revoked',
+      () async {
+        final mockHttpClient = meThen(
+          () => http.Response(
+            jsonEncode({'error': 'session_revoked', 'code': 'session_revoked'}),
+            403,
+            headers: {'content-type': 'application/json'},
+          ),
+        );
+        final setup = await setupSignedIn(mockHttpClient);
+        expect(setup.authService.isAuthenticated, isTrue);
+
+        final response = await setup.apiClient.get('/api/v1/portal/users');
+
+        expect(response.statusCode, equals(403));
+        // signOut is fire-and-forget; let the microtask drain.
+        await Future<void>.delayed(Duration.zero);
+        expect(setup.authService.isAuthenticated, isFalse);
+      },
+    );
+
+    test(
+      'leaves the user signed in on a 403 without the session_revoked code',
+      () async {
+        final mockHttpClient = meThen(
+          () => http.Response(
+            jsonEncode({'error': 'Not authorized for this action'}),
+            403,
+            headers: {'content-type': 'application/json'},
+          ),
+        );
+        final setup = await setupSignedIn(mockHttpClient);
+        expect(setup.authService.isAuthenticated, isTrue);
+
+        final response = await setup.apiClient.get('/api/v1/portal/users');
+
+        expect(response.statusCode, equals(403));
+        await Future<void>.delayed(Duration.zero);
+        expect(setup.authService.isAuthenticated, isTrue);
+      },
+    );
+  });
 }

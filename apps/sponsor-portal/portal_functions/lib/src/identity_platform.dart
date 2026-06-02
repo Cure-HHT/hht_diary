@@ -97,12 +97,21 @@ class VerificationResult {
   /// MFA info extracted from the token (null if parsing failed)
   final MfaInfo? mfaInfo;
 
+  /// Firebase `auth_time` claim — when the user most recently authenticated
+  /// (i.e. when the underlying session was established). Compared against
+  /// portal_users.tokens_revoked_at in requirePortalAuth to enforce
+  /// session termination on permission changes.
+  ///
+  /// Implements: DIARY-PRD-session-management/H
+  final DateTime? authTime;
+
   VerificationResult({
     this.uid,
     this.email,
     this.emailVerified = false,
     this.error,
     this.mfaInfo,
+    this.authTime,
   });
 
   /// A token is valid when it carries a uid and has no parse error.
@@ -241,10 +250,24 @@ Future<VerificationResult> verifyIdToken(String idToken) async {
       email: email,
       emailVerified: emailVerified,
       mfaInfo: mfaInfo,
+      authTime: _parseAuthTime(payload['auth_time']),
     );
   } catch (e) {
     return VerificationResult(error: 'Token verification failed: $e');
   }
+}
+
+/// Parse the Firebase `auth_time` claim (seconds since epoch) into a
+/// [DateTime]. Returns null when the claim is absent or malformed; callers
+/// treat a null authTime as "session-revocation enforcement cannot be
+/// applied to this token" and proceed with the other checks unchanged.
+///
+/// Implements: DIARY-PRD-session-management/H
+DateTime? _parseAuthTime(Object? raw) {
+  if (raw is num) {
+    return DateTime.fromMillisecondsSinceEpoch(raw.toInt() * 1000, isUtc: true);
+  }
+  return null;
 }
 
 /// Verify token from Firebase emulator (simplified verification)
@@ -323,6 +346,7 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
       email: email,
       emailVerified: emailVerified,
       mfaInfo: mfaInfo,
+      authTime: _parseAuthTime(payload['auth_time']),
     );
   } catch (e) {
     print('[AUTH] Emulator: Token parsing failed: $e');

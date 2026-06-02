@@ -87,6 +87,14 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   // EnrollmentService.disconnectedNotifier so the predicate is sync and
   // O(1). Bootstrap stays neutral — no EnrollmentService dependency.
   bool Function()? isDisconnected,
+  // CUR-1398: hook TaskService.syncTasks into the trigger chain so each
+  // periodic / resume / connectivity / FCM tick re-pulls /tasks. Without
+  // this, FCM is the only way a foreground patient discovers a newly sent
+  // questionnaire — and FCM delivery is best-effort, so a slow/dropped push
+  // leaves the home screen stale until cold start. Optional so existing
+  // tests (which don't construct a TaskService) keep working. Bootstrap
+  // stays neutral — the caller owns the EnrollmentService dependency.
+  Future<void> Function()? tasksSync,
   // --- test seams for trigger factories (use production defaults when omitted) ---
   // These use the concrete function-type signatures (not the @visibleForTesting
   // typedefs from triggers.dart) so this production file avoids @visibleForTesting
@@ -212,6 +220,11 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
         resolveBaseUrl: resolveBaseUrl,
         authToken: authToken,
       );
+      // CUR-1398: backstop FCM unreliability — re-pull /tasks on every
+      // periodic / resume / connectivity / FCM-triggered tick so a missed
+      // notification doesn't leave the home screen stale. Gated by the same
+      // isDisconnected short-circuit above.
+      await tasksSync?.call();
     },
     lifecycleObserverFactory: lifecycleObserverFactory,
     periodicTimerFactory: periodicTimerFactory,

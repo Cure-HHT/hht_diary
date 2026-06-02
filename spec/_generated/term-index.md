@@ -539,6 +539,7 @@
 
 **DIARY:**
 
+- DIARY-PRD-user-account-deactivate-A
 - DIARY-PRD-user-account-deactivate-B
 - DIARY-GUI-user-account-deactivate-A
 - DIARY-GUI-user-account-deactivate-B
@@ -2264,6 +2265,8 @@
 - DIARY-PRD-user-account-create-C
 - DIARY-PRD-user-account-edit-B
 - DIARY-PRD-user-account-edit-E
+- DIARY-PRD-user-account-edit-H
+- DIARY-PRD-user-account-deactivate-A
 - DIARY-GUI-user-management-tabs-L
 - DIARY-GUI-user-information-modal-A
 - DIARY-GUI-user-information-modal-B
@@ -2367,6 +2370,7 @@
 - DIARY-PRD-session-management-A
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-D
+- DIARY-PRD-session-management-H
 - DIARY-PRD-session-management-G
 - DIARY-PRD-questionnaire-portal-sent-rules-K
 - DIARY-PRD-questionnaire-session-timeout-A
@@ -3212,6 +3216,7 @@
 - DIARY-PRD-user-account-edit-E
 - DIARY-PRD-user-account-edit-F
 - DIARY-PRD-user-account-edit-G
+- DIARY-PRD-user-account-edit-H
 - DIARY-PRD-user-account-deactivate-A
 - DIARY-PRD-user-account-deactivate-B
 - DIARY-PRD-user-account-deactivate-C
@@ -3383,6 +3388,7 @@
 - DIARY-PRD-user-account-edit-E
 - DIARY-PRD-user-account-edit-F
 - DIARY-PRD-user-account-edit-G
+- DIARY-PRD-user-account-edit-H
 - DIARY-PRD-user-account-deactivate-A
 - DIARY-PRD-user-account-deactivate-B
 - DIARY-PRD-user-account-deactivate-C
