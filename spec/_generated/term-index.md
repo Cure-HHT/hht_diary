@@ -1659,9 +1659,15 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-reset-code-lifecycle
+- DIARY-DEV-portal-reset-password-update
+- DIARY-DEV-portal-reset-session-termination
 - DIARY-PRD-password-requirements
 - DIARY-PRD-password-forgot
 - DIARY-GUI-password-forgot-workflow
+- DIARY-DEV-portal-reset-password-update-A
+- DIARY-DEV-portal-reset-password-update-B
+- DIARY-DEV-portal-reset-session-termination-A
 - DIARY-PRD-password-requirements-A
 - DIARY-PRD-password-requirements-B
 - DIARY-PRD-password-requirements-C
@@ -1695,6 +1701,12 @@
 - DIARY-DEV-portal-login-identity-verification:section:1
 - DIARY-DEV-portal-login-second-factor:section:0
 - DIARY-DEV-portal-login-second-factor:section:1
+- rem:spec/dev-portal-password-reset.md:1
+- DIARY-DEV-portal-reset-code-lifecycle:section:0
+- DIARY-DEV-portal-reset-code-lifecycle:section:1
+- DIARY-DEV-portal-reset-password-update:section:0
+- DIARY-DEV-portal-reset-password-update:section:1
+- DIARY-DEV-portal-reset-session-termination:section:0
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-requirements:section:0
 - DIARY-PRD-two-factor-authentication:section:0
@@ -2239,11 +2251,14 @@
 **DIARY:**
 
 - DIARY-DEV-portal-login-second-factor
+- DIARY-DEV-portal-reset-session-termination-B
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-G
 - rem:spec/dev-portal-login.md:1
 - DIARY-DEV-portal-login-second-factor:section:0
 - DIARY-DEV-portal-login-second-factor:section:1
+- DIARY-DEV-portal-reset-session-termination:section:0
+- DIARY-DEV-portal-reset-session-termination:section:1
 - DIARY-PRD-two-factor-authentication:section:4
 
 ## Session
@@ -2253,6 +2268,7 @@
 - DIARY-DEV-portal-session-token
 - DIARY-DEV-portal-session-lifecycle
 - DIARY-DEV-portal-active-role-switch
+- DIARY-DEV-portal-reset-session-termination
 - DIARY-PRD-session-management
 - DIARY-PRD-questionnaire-session-timeout
 - DIARY-GUI-questionnaire-session-expiry
@@ -2292,6 +2308,8 @@
 - DIARY-DEV-portal-session-lifecycle:section:1
 - DIARY-DEV-portal-active-role-switch:section:0
 - DIARY-DEV-portal-active-role-switch:section:1
+- DIARY-DEV-portal-reset-session-termination:section:0
+- DIARY-DEV-portal-reset-session-termination:section:1
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
@@ -3012,6 +3030,8 @@
 - DIARY-DEV-portal-active-role-switch-A
 - DIARY-DEV-portal-active-role-switch-B
 - DIARY-DEV-portal-active-role-switch-C
+- DIARY-DEV-portal-reset-code-lifecycle-C
+- DIARY-DEV-portal-reset-session-termination-A
 - DIARY-DEV-user-account-projection-A
 - DIARY-DEV-user-account-projection-C
 - DIARY-GUI-audit-log-common-A
@@ -3138,6 +3158,10 @@
 - DIARY-DEV-portal-session-lifecycle:section:1
 - DIARY-DEV-portal-active-role-switch:section:0
 - DIARY-DEV-portal-active-role-switch:section:1
+- DIARY-DEV-portal-reset-code-lifecycle:section:0
+- DIARY-DEV-portal-reset-password-update:section:0
+- DIARY-DEV-portal-reset-password-update:section:1
+- DIARY-DEV-portal-reset-session-termination:section:0
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
 - rem:spec/glossary-core.md:745

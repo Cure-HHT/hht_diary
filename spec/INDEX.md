@@ -162,6 +162,9 @@
 | DIARY-DEV-portal-login-identity-verification | Login identity verification                | dev-portal-login.md                | 4b3d6032 |
 | DIARY-DEV-portal-login-second-factor         | Login second factor                        | dev-portal-login.md                | 9c1195e5 |
 | DIARY-DEV-portal-reaction-server             | Portal Reaction Server Shell               | dev-portal-service.md              | 95ceb3ec |
+| DIARY-DEV-portal-reset-code-lifecycle        | Password reset code lifecycle              | dev-portal-password-reset.md       | 8bc6a227 |
+| DIARY-DEV-portal-reset-password-update       | Password reset credential update           | dev-portal-password-reset.md       | 4972e2a5 |
+| DIARY-DEV-portal-reset-session-termination   | Password reset session termination         | dev-portal-password-reset.md       | 7805b6aa |
 | DIARY-DEV-portal-session-lifecycle           | Portal session lifecycle                   | dev-portal-login.md                | 32f18e2d |
 | DIARY-DEV-portal-session-token               | Portal session token                       | dev-portal-login.md                | 37177d93 |
 | DIARY-DEV-portal-user-activated-binding      | User-activated binding                     | dev-portal-activation.md           | 25fda53b |
