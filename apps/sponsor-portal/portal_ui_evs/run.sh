@@ -13,6 +13,20 @@ UI_PORT=8088
 # hitting the old (stale) one. `fuser -k` kills whatever holds the port.
 fuser -k "${SERVER_PORT}/tcp" "${UI_PORT}/tcp" 2>/dev/null || true
 
+# Show the auth-related env the SERVER process will inherit, so it's obvious at
+# launch (not only at failure time) whether activation will reach the emulator.
+# These are read by the server from its own environment; this script does NOT
+# set them — `export` them (or prefix this script) before launching.
+echo "[run.sh] server auth env -> PORTAL_AUTH_MODE=${PORTAL_AUTH_MODE:-dev}" \
+  "FIREBASE_AUTH_EMULATOR_HOST=${FIREBASE_AUTH_EMULATOR_HOST:-<unset>}" \
+  "PORTAL_IDENTITY_PROJECT_ID=${PORTAL_IDENTITY_PROJECT_ID:-<unset>}"
+if [ -z "${FIREBASE_AUTH_EMULATOR_HOST:-}" ]; then
+  echo "[run.sh] NOTE: FIREBASE_AUTH_EMULATOR_HOST is unset — account activation" \
+    "will try REAL Identity Platform via gcloud ADC (likely fails locally). For" \
+    "dev, start the auth emulator and re-launch with" \
+    "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 PORTAL_IDENTITY_PROJECT_ID=demo-local-stack." >&2
+fi
+
 # PORTAL_URL is the portal UI origin (NOT the server). The activation magic link
 # is built as $PORTAL_URL/?code=... and must open the Flutter activation page,
 # which reads ?code= from its own URL and then calls the server itself. The UI
