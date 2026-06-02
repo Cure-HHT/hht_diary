@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../buttons/app_button.dart';
 import '../feedback/app_banner.dart';
+import '../inputs/app_dropdown.dart';
+import '../inputs/app_text_field.dart';
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 import 'app_dialog_size.dart';
@@ -173,6 +175,41 @@ class AppDialog extends StatelessWidget {
     );
   }
 
+  /// Prompts for a reason. Returns the entered/selected string, or `null` if
+  /// the user cancelled.
+  ///
+  /// Pass [reasons] for the predefined-list (dropdown) variant; omit it for
+  /// the free-text variant. The submit button stays disabled until the user
+  /// has selected an option or entered non-empty text.
+  static Future<String?> reason({
+    required BuildContext context,
+    required String title,
+    String? message,
+    List<AppDropdownItem<String>>? reasons,
+    String submitLabel = 'Submit',
+    String cancelLabel = 'Cancel',
+    String reasonLabel = 'Reason',
+    String hintText = 'Enter reason',
+    bool requiredField = true,
+    AppDialogSize size = AppDialogSize.medium,
+  }) {
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _ReasonDialog(
+        title: title,
+        message: message,
+        reasons: reasons,
+        submitLabel: submitLabel,
+        cancelLabel: cancelLabel,
+        reasonLabel: reasonLabel,
+        hintText: hintText,
+        requiredField: requiredField,
+        size: size,
+      ),
+    );
+  }
+
   /// An async workflow dialog — wraps [AsyncActionDialog] in `showDialog` so a
   /// single call site gets the modal + state machine + typed result.
   ///
@@ -263,6 +300,96 @@ class AppDialog extends StatelessWidget {
       },
     );
     return result ?? false;
+  }
+}
+
+class _ReasonDialog extends StatefulWidget {
+  final String title;
+  final String? message;
+  final List<AppDropdownItem<String>>? reasons;
+  final String submitLabel;
+  final String cancelLabel;
+  final String reasonLabel;
+  final String hintText;
+  final bool requiredField;
+  final AppDialogSize size;
+
+  const _ReasonDialog({
+    required this.title,
+    required this.message,
+    required this.reasons,
+    required this.submitLabel,
+    required this.cancelLabel,
+    required this.reasonLabel,
+    required this.hintText,
+    required this.requiredField,
+    required this.size,
+  });
+
+  @override
+  State<_ReasonDialog> createState() => _ReasonDialogState();
+}
+
+class _ReasonDialogState extends State<_ReasonDialog> {
+  String? _selected;
+  String _text = '';
+
+  bool get _isDropdown => widget.reasons != null;
+  bool get _canSubmit =>
+      _isDropdown ? _selected != null : _text.trim().isNotEmpty;
+
+  void _submit() {
+    final value = _isDropdown ? _selected! : _text.trim();
+    Navigator.of(context).pop(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AppDialog(
+      size: widget.size,
+      dismissible: false,
+      title: widget.title,
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.message != null) ...[
+            Text(widget.message!, style: theme.textTheme.bodyMedium),
+            SizedBox(height: SpacingTokens.lg),
+          ],
+          if (_isDropdown)
+            AppDropdown<String>(
+              label: widget.reasonLabel,
+              required: widget.requiredField,
+              hintText: widget.hintText,
+              value: _selected,
+              items: widget.reasons!,
+              onChanged: (v) => setState(() => _selected = v),
+            )
+          else
+            AppTextField(
+              label: widget.reasonLabel,
+              required: widget.requiredField,
+              hintText: widget.hintText,
+              maxLines: 3,
+              minLines: 1,
+              onChanged: (v) => setState(() => _text = v),
+            ),
+        ],
+      ),
+      actions: [
+        AppButton(
+          variant: AppButtonVariant.secondary,
+          label: widget.cancelLabel,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        AppButton(
+          label: widget.submitLabel,
+          onPressed: _canSubmit ? _submit : null,
+        ),
+      ],
+    );
   }
 }
 

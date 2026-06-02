@@ -243,6 +243,36 @@ class _AppDialogGallery extends StatelessWidget {
           ],
         ),
 
+        // ---- .reason — overlay launchers
+        _Section(
+          title: '.reason — overlay launchers',
+          children: [
+            _OverlayLauncher(
+              label: 'Open reason dialog (free text)',
+              onPressed: (ctx) => AppDialog.reason(
+                context: ctx,
+                title: 'Why are you disconnecting?',
+                message:
+                    'Enter a brief reason. This is stored with the audit log.',
+                hintText: 'Reason for disconnection',
+              ),
+            ),
+            _OverlayLauncher(
+              label: 'Open reason dialog (predefined list)',
+              onPressed: (ctx) => AppDialog.reason(
+                context: ctx,
+                title: 'Why are you disconnecting?',
+                message: 'Pick the closest matching reason.',
+                reasons: const [
+                  AppDropdownItem(value: 'device', label: 'Device Issues'),
+                  AppDropdownItem(value: 'tech', label: 'Technical Issues'),
+                  AppDropdownItem(value: 'other', label: 'Other'),
+                ],
+              ),
+            ),
+          ],
+        ),
+
         // ---- AsyncActionDialog phases
         _Section(
           title: 'AsyncActionDialog — phases',
