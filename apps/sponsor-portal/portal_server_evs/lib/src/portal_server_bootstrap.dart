@@ -19,6 +19,8 @@ import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
 import 'login_routes.dart';
 import 'otp_store.dart';
+import 'password_reset_code_store.dart';
+import 'password_reset_routes.dart';
 import 'session_cascade_reactor.dart';
 import 'session_store.dart';
 import 'session_token_validator.dart';
@@ -280,6 +282,22 @@ Future<PortalServerBoot> bootstrapPortalServer({
     signingKey: signingKey.isEmpty ? 'dev-unused' : signingKey,
   );
 
+  // 7d. Password-reset collaborators (code store + email sender + router).
+  //     Routes are PUBLIC — mounted outside authMiddleware on topRouter.
+  // Implements: DIARY-DEV-portal-reset-code-lifecycle/D
+  // Implements: DIARY-DEV-portal-reset-password-update/B
+  // Implements: DIARY-DEV-portal-reset-session-termination/A
+  final passwordResetStore = PasswordResetCodeStore();
+  final passwordResetRouter = buildPasswordResetRouter(
+    eventStore: eventStore,
+    backend: backend,
+    store: passwordResetStore,
+    emailSender: _PasswordResetEmailSenderAdapter(
+        EmailTransport.fromConfig(emailConfig)),
+    updatePassword: IdentityAdmin.updatePasswordByEmail,
+    portalUrl: portalUrl,
+  );
+
   // 7c. Session cascade reactor — mirrors exact treatment of ActivationReactor:
   //     started here, retained as a local final (StreamSubscription inside keeps
   //     it alive), stopped in dispose.
@@ -382,6 +400,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final loginHandler =
       const Pipeline().addMiddleware(_cors()).addHandler(loginRouter.call);
 
+  // /password-reset/request, /password-reset/<code>, /password-reset: public
+  // password-reset flow (no session required).
+  // Implements: DIARY-DEV-portal-reset-code-lifecycle/D
+  // Implements: DIARY-DEV-portal-reset-password-update/B
+  final passwordResetHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(passwordResetRouter.call);
+
   final topRouter = Router()
     ..get('/subscriptions', handlers.subscriptions(validator))
     // Activation routes (public).
@@ -395,7 +421,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
     ..options('/login', loginHandler)
     ..post('/login', loginHandler)
     ..options('/login/verify-otp', loginHandler)
-    ..post('/login/verify-otp', loginHandler);
+    ..post('/login/verify-otp', loginHandler)
+    // Password-reset routes (public).
+    ..options('/password-reset/request', passwordResetHandler)
+    ..post('/password-reset/request', passwordResetHandler)
+    ..get('/password-reset/<code>', passwordResetHandler)
+    ..options('/password-reset', passwordResetHandler)
+    ..post('/password-reset', passwordResetHandler);
 
   // Dev-only: /dev/users exposes the role-assignment list so the dev
   // ConnectScreen can populate a dropdown. Not mounted in session mode.
@@ -438,4 +470,21 @@ class _LoginOtpSenderAdapter implements OtpSender {
   Future<void> sendOtp(
           {required String recipientEmail, required String code}) =>
       _sender.sendOtp(recipientEmail: recipientEmail, code: code);
+}
+
+/// Bridges [EmailTransport] to [ResetEmailSender] declared in
+/// password_reset_routes.dart, building the rendered email via
+/// [buildPasswordResetEmail] from portal_identity.
+// Implements: DIARY-DEV-portal-reset-password-update/B
+class _PasswordResetEmailSenderAdapter implements ResetEmailSender {
+  _PasswordResetEmailSenderAdapter(this._transport);
+  final EmailTransport _transport;
+  @override
+  Future<void> sendReset(
+          {required String recipientEmail, required String resetUrl}) =>
+      _transport.send(
+        buildPasswordResetEmail(
+            recipientEmail: recipientEmail, resetUrl: resetUrl),
+        to: recipientEmail,
+      );
 }

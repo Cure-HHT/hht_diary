@@ -2,6 +2,7 @@
 // Verifies: DIARY-PRD-action-inventory/A+B
 // Verifies: DIARY-DEV-audit-log-read/A+B
 // Verifies: DIARY-DEV-portal-activation-email-delivery/B
+// Verifies: DIARY-DEV-portal-reset-code-lifecycle/D
 import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
@@ -322,5 +323,30 @@ void main() {
     expect(resp.statusCode, 200);
     expect(resp.headers['access-control-allow-origin'], '*');
     expect(resp.headers['access-control-allow-methods'], contains('POST'));
+  });
+
+  test(
+      'password-reset request is mounted publicly (unknown email -> 200, not 401)',
+      () async {
+    // Verifies: DIARY-DEV-portal-reset-code-lifecycle/D — the /password-reset
+    // routes are outside authMiddleware (no Authorization header required).
+    final db = await newDatabaseFactoryMemory().openDatabase('boot-reset.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
+    );
+    addTearDown(boot.dispose);
+
+    // No Authorization header — an unknown email must return 200 (enumeration-
+    // resistant), proving the route is reachable without auth (i.e. does NOT 401).
+    final resp = await boot.router(Request(
+        'POST', Uri.parse('http://localhost/password-reset/request'),
+        body: jsonEncode({'email': 'nobody@x.org'}),
+        headers: const {'Content-Type': 'application/json'}));
+    expect(resp.statusCode, 200,
+        reason: 'public route reachable without auth credentials');
+    final body = jsonDecode(await resp.readAsString()) as Map<String, Object?>;
+    expect(body['ok'], isTrue,
+        reason: 'enumeration-resistant: always confirms regardless of match');
   });
 }
