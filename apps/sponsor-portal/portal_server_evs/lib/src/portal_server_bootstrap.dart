@@ -69,8 +69,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final eventStore = await openPortalEventStore(backend: backend);
 
   // Implements: DIARY-DEV-portal-durable-event-store/C — seed once. The marker is
-  //   appended LAST in the seed block, so on a seeded store a reverse scan finds it
-  //   among the newest events. A fresh store has no marker -> seed runs.
+  //   appended LAST in the seed block under aggregate id 'singleton'; a targeted
+  //   per-aggregate read finds it on a seeded store. A fresh store has no marker
+  //   -> seed runs.
   final alreadySeeded = await _portalSeedMarkerPresent(backend);
 
   // 2. Authorization policy from the SP1/SP2 role-permission seed.
@@ -86,12 +87,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
       );
   }
 
-  // 4b. Boot-time RAVE sync: pull sites + subjects into the event log so the
-  //     sites_index / participant_record / participant_site_index views are
-  //     populated at startup. Uses the live RaveClient when RAVE_UAT_* env is
-  //     present, else a fixed dev fixture (DevSeedRaveClient). The sync runs
-  //     inside try/catch and CONTINUES on error: boot must not crash if RAVE is
-  //     down or locked out — the RAVE-Sync screen surfaces the failure.
+  // RAVE client resolution + ingester construction, declared at function scope
+  //     (OUTSIDE the seed gate) so the on-demand /admin/rave-sync handler can
+  //     reuse the same `ingester`. Uses the live RaveClient when RAVE_UAT_* env
+  //     is present, else a fixed dev fixture (DevSeedRaveClient). The boot-time
+  //     `syncAll` that populates the sites_index / participant_record /
+  //     participant_site_index views at startup is GATED inside the
+  //     `if (!alreadySeeded)` seed block below (see step 4b there).
   // Implements: DIARY-DEV-rave-edc-ingest/A
   final env = Platform.environment;
   final lockoutConfig = LockoutConfig.fromEnv(env);
@@ -124,8 +126,8 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //   sync) are all side-effecting appends; against a durable store they must
   //   run exactly once. The `ingester` is DECLARED above this block (it is reused
   //   later by the on-demand /admin/rave-sync handler); only its boot-time
-  //   `syncAll` is gated here. The marker is appended LAST so a reverse scan on a
-  //   seeded store finds it cheaply.
+  //   `syncAll` is gated here. The marker is appended LAST under aggregate id
+  //   'singleton' so the targeted read in _portalSeedMarkerPresent finds it.
   if (!alreadySeeded) {
     // 3. Grant view-read permissions so clients can subscribe to the views that
     //    drive their screens (ReactionHandlers' default ViewPermissionNamer is
@@ -205,8 +207,8 @@ Future<PortalServerBoot> bootstrapPortalServer({
       stderr.writeln('portal boot RAVE sync failed (continuing): $e\n$st');
     }
 
-    // Marker — appended LAST so the reverse scan in _portalSeedMarkerPresent
-    //   short-circuits on the newest events of a seeded store.
+    // Marker — appended LAST under aggregate id 'singleton'; the targeted
+    //   per-aggregate read in _portalSeedMarkerPresent looks it up directly.
     await eventStore.append(
       entryType: 'portal_seed_marker',
       aggregateType: 'portal_seed',
@@ -493,10 +495,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
 
 // Implements: DIARY-DEV-portal-durable-event-store/C
 Future<bool> _portalSeedMarkerPresent(StorageBackend backend) async {
-  await for (final e in backend.readEventsReverse()) {
-    if (e.entryType == 'portal_seed_marker') return true;
-  }
-  return false;
+  // Targeted per-aggregate read: the seed marker is the only event written under
+  // aggregate id 'singleton', so findEventsForAggregate filters at the store
+  // level instead of scanning the whole log. The entryType guard keeps this
+  // correct even if 'singleton' were ever reused by another aggregate type.
+  final events = await backend.findEventsForAggregate('singleton');
+  return events.any((e) =>
+      e.entryType == 'portal_seed_marker' || e.aggregateType == 'portal_seed');
 }
 
 /// Bridges portal_identity's [LoginOtpSender] to the [OtpSender] interface
