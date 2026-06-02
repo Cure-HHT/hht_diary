@@ -124,4 +124,49 @@ class IdentityAdmin {
       if (overrideClient == null) client.close();
     }
   }
+
+  /// Updates the Identity Platform password for an EXISTING account, looked up
+  /// by email. Never creates an account (reset must not provision). Throws
+  /// IdentityAdminException if the account is absent or the update is rejected
+  /// (e.g. weak password -> statusCode 400). Returns the account uid.
+  // Implements: DIARY-DEV-portal-reset-password-update/A
+  static Future<String> updatePasswordByEmail({
+    required String email,
+    required String password,
+  }) async {
+    final client = await _client();
+    final headers = {'Content-Type': 'application/json', ..._emulatorHeaders()};
+    try {
+      final lookupRes = await client.post(
+        Uri.parse('$_base/projects/$_projectId/accounts:lookup'),
+        headers: headers,
+        body: jsonEncode({
+          'email': [email]
+        }),
+      );
+      if (lookupRes.statusCode != 200) {
+        throw IdentityAdminException('lookup failed: ${lookupRes.body}',
+            statusCode: lookupRes.statusCode);
+      }
+      final users = ((jsonDecode(lookupRes.body)
+              as Map<String, dynamic>)['users'] as List?) ??
+          const [];
+      if (users.isEmpty) {
+        throw IdentityAdminException('no account for email', statusCode: 404);
+      }
+      final uid = (users[0] as Map<String, dynamic>)['localId'] as String;
+      final updateRes = await client.post(
+        Uri.parse('$_base/projects/$_projectId/accounts:update'),
+        headers: headers,
+        body: jsonEncode({'localId': uid, 'password': password}),
+      );
+      if (updateRes.statusCode != 200) {
+        throw IdentityAdminException('update failed: ${updateRes.body}',
+            statusCode: updateRes.statusCode);
+      }
+      return uid;
+    } finally {
+      if (overrideClient == null) client.close();
+    }
+  }
 }
