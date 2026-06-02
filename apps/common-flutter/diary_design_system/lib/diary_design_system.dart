@@ -22,4 +22,7 @@ export 'src/theme/brand_palette.dart';
 
 // Components
 export 'src/buttons/app_button.dart';
+export 'src/dialogs/app_dialog.dart';
+export 'src/dialogs/app_dialog_size.dart';
+export 'src/dialogs/async_action_dialog.dart';
 export 'src/feedback/app_banner.dart';

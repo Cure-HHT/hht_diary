@@ -4,6 +4,7 @@ import 'package:widgetbook/widgetbook.dart';
 
 import 'use_cases/app_banner.dart';
 import 'use_cases/app_button.dart';
+import 'use_cases/app_dialog.dart';
 
 void main() {
   runApp(const DesignSystemBook());
@@ -25,7 +26,11 @@ class DesignSystemBook extends StatelessWidget {
       directories: [
         WidgetbookFolder(
           name: 'Components',
-          children: [appButtonComponent(), appBannerComponent()],
+          children: [
+            appButtonComponent(),
+            appBannerComponent(),
+            appDialogComponent(),
+          ],
         ),
       ],
       addons: [
