@@ -19,7 +19,8 @@ dependencies:
     path: ../portal_service
   portal_actions:
     path: ../../common-dart/portal_actions
-  rave_integration: any
+  rave_integration:
+    path: ../../edc/rave-integration
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
