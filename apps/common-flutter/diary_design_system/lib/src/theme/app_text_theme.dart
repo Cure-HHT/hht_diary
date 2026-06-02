@@ -4,24 +4,32 @@ import '../tokens/typography_tokens.dart';
 
 /// Supported font families.
 ///
-/// - [inter]: default. Variable font bundled with diary_design_system.
-/// - [atkinsonHyperlegible] and [openDyslexic]: accessibility options exposed
-///   through the mobile font picker (CUR-528). Their assets currently live in
-///   clinical_diary's pubspec; they will be relocated into diary_design_system
-///   in Phase 1b. Until then, these enum values resolve only when used from
-///   clinical_diary (which still declares the assets in its own pubspec).
+/// - [inter]: default. Variable font bundled with `diary_design_system`.
+/// - [atkinsonHyperlegible] and [openDyslexic]: mobile-only accessibility options
+///   exposed through the font picker (CUR-528). Their assets live in
+///   `clinical_diary`'s own pubspec — the portal does not bundle them (saves
+///   5–15 MB of font assets the portal never renders). These families resolve
+///   in any binary that declares the assets; selecting them from the portal
+///   would silently fall back to Inter.
+///
+/// The per-family [package] field is what makes this work: it's the package
+/// argument Flutter uses to resolve `fontFamily` lookups. `'diary_design_system'`
+/// scopes the lookup to fonts declared in this package's pubspec; `null` falls
+/// through to the binary's global font registry (where `clinical_diary`'s own
+/// declarations live).
 enum AppFontFamily {
-  inter('Inter'),
-  atkinsonHyperlegible('AtkinsonHyperlegible'),
-  openDyslexic('OpenDyslexic');
+  inter('Inter', 'diary_design_system'),
+  atkinsonHyperlegible('AtkinsonHyperlegible', null),
+  openDyslexic('OpenDyslexic', null);
 
   final String familyName;
-  const AppFontFamily(this.familyName);
+  final String? package;
+  const AppFontFamily(this.familyName, this.package);
 }
 
 /// Build a Material TextTheme using the chosen font family.
 ///
-/// The explicit ['Inter'] fallback chain matters: Flutter silently substitutes
+/// The explicit `['Inter']` fallback chain matters: Flutter silently substitutes
 /// the platform default font (.SF on iOS, Roboto on Android) when an asset
 /// fails to load. In a clinical app where text-rendering bugs can mask data,
 /// an explicit fallback to Inter keeps the failure mode predictable.
@@ -29,7 +37,7 @@ TextTheme buildAppTextTheme(AppFontFamily family) {
   return _baseTextTheme.apply(
     fontFamily: family.familyName,
     fontFamilyFallback: const ['Inter'],
-    package: 'diary_design_system',
+    package: family.package,
   );
 }
 
