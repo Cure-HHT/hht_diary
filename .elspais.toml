@@ -291,6 +291,23 @@ changed = "warning"
 formats = []
 dir = ""
 
+# Cross-repo federation scope (elspais >= 0.117.31)
+#
+# Read operations (health checks, summary, cross-repo reference resolution)
+# always federate; these flags only gate WRITE/GENERATE surfaces. With both
+# false, `elspais fix` (and MCP mutations) only modify THIS repo's spec files
+# and never fold the event_sourcing (EVS) associate's requirements into our
+# INDEX.md / term-index.md.
+#
+# Set explicitly to false to retire the prior workaround where
+# `.elspais.local.toml` had to be moved aside before every commit so the
+# pre-commit `elspais fix` wouldn't rewrite the event_sourcing repo's spec
+# tree and bloat our INDEX. See ~/elspais/fedfix.md (the bug report) — this
+# section is the upstream fix landing.
+[federation]
+write_associates = false
+index_associates = false
+
 # Associated repository definitions for cross-repo federation
 # Populated by `elspais associate <path>`; do not edit by hand.
 
