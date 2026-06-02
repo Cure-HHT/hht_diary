@@ -504,6 +504,19 @@ Future<PortalServerBoot> bootstrapPortalServer({
       ..get('/dev/users', devUsersHandler);
   }
 
+  // Public liveness/readiness for the container start gate + deploy smoke check.
+  Response healthResponse(Request _) => Response.ok(
+        jsonEncode(const <String, Object?>{
+          'status': 'ok',
+          'service': 'portal_server_evs',
+          'versions': <String, Object?>{},
+        }),
+        headers: const {'Content-Type': 'application/json'},
+      );
+  topRouter
+    ..get('/health', healthResponse)
+    ..get('/ready', healthResponse);
+
   // Catch-all authed pipeline — must come last on topRouter.
   topRouter.mount('/', httpPipeline);
 
