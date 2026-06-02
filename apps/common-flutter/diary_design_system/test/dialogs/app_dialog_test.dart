@@ -173,6 +173,61 @@ void main() {
       });
     });
 
+    group('.reason', () {
+      testWidgets('free-text variant: returns the trimmed input', (
+        tester,
+      ) async {
+        String? result;
+        await tester.pumpWidget(
+          _hostHarness((ctx) async {
+            result = await AppDialog.reason(context: ctx, title: 'Why?');
+          }),
+        );
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+        // Submit is disabled until the field is non-empty.
+        final submit = tester.widget<AppButton>(
+          find.widgetWithText(AppButton, 'Submit'),
+        );
+        expect(submit.onPressed, isNull);
+        await tester.enterText(find.byType(TextFormField), '  device issues  ');
+        await tester.pump();
+        await tester.tap(find.widgetWithText(AppButton, 'Submit'));
+        await tester.pumpAndSettle();
+        expect(result, equals('device issues'));
+      });
+
+      testWidgets('dropdown variant: returns the selected value', (
+        tester,
+      ) async {
+        String? result;
+        await tester.pumpWidget(
+          _hostHarness((ctx) async {
+            result = await AppDialog.reason(
+              context: ctx,
+              title: 'Why?',
+              hintText: 'Pick a reason',
+              reasons: const [
+                AppDropdownItem(value: 'a', label: 'Reason A'),
+                AppDropdownItem(value: 'b', label: 'Reason B'),
+              ],
+            );
+          }),
+        );
+        await tester.tap(find.text('Open'));
+        await tester.pumpAndSettle();
+        // Trigger field shows the hint text — tap it to open the popup.
+        await tester.tap(find.text('Pick a reason'));
+        await tester.pumpAndSettle();
+        // Both options visible in the popup.
+        await tester.tap(find.text('Reason B'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(AppButton, 'Submit'));
+        await tester.pumpAndSettle();
+        expect(result, equals('b'));
+      });
+    });
+
     group('.acknowledgment', () {
       testWidgets('completes when OK is tapped', (tester) async {
         var completed = false;

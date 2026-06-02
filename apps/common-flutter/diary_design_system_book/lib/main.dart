@@ -4,7 +4,10 @@ import 'package:widgetbook/widgetbook.dart';
 
 import 'use_cases/app_banner.dart';
 import 'use_cases/app_button.dart';
+import 'use_cases/app_checkbox.dart';
 import 'use_cases/app_dialog.dart';
+import 'use_cases/app_dropdown.dart';
+import 'use_cases/app_text_field.dart';
 
 void main() {
   runApp(const DesignSystemBook());
@@ -30,6 +33,9 @@ class DesignSystemBook extends StatelessWidget {
             appButtonComponent(),
             appBannerComponent(),
             appDialogComponent(),
+            appTextFieldComponent(),
+            appDropdownComponent(),
+            appCheckboxComponent(),
           ],
         ),
       ],
