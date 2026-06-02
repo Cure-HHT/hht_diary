@@ -68,6 +68,11 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //    participant_site_index, portal entry types + framework types).
   final eventStore = await openPortalEventStore(backend: backend);
 
+  // Implements: DIARY-DEV-portal-durable-event-store/C — seed once. The marker is
+  //   appended LAST in the seed block, so on a seeded store a reverse scan finds it
+  //   among the newest events. A fresh store has no marker -> seed runs.
+  final alreadySeeded = await _portalSeedMarkerPresent(backend);
+
   // 2. Authorization policy from the SP1/SP2 role-permission seed.
   final bootstrap =
       await buildPortalAuthorizationPolicy(eventStore: eventStore);
@@ -80,74 +85,6 @@ Future<PortalServerBoot> bootstrapPortalServer({
         'portal authorization seed failed: ${bootstrap.errors.join('; ')}',
       );
   }
-
-  // 3. Grant view-read permissions so clients can subscribe to the views that
-  //    drive their screens (ReactionHandlers' default ViewPermissionNamer is
-  //    `view:<viewName>`). These are view-read permissions, not action
-  //    permissions, so they are appended directly rather than via the validated
-  //    action-permission seed.
-  Future<void> grantView(String role, String view) => eventStore.append(
-        entryType: 'role_permission_grant',
-        aggregateType: 'role_permission_grant',
-        aggregateId: '$role:view:$view',
-        eventType: 'permission_granted',
-        data: PermissionGrantedPayload(
-          role: role,
-          permissionName: 'view:$view',
-        ).toJson(),
-        initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
-      );
-
-  // Administrator can subscribe to the role-assignments view + the user-accounts
-  // index (only Administrator holds the user-management permissions).
-  await grantView('Administrator', 'user_role_scopes');
-  await grantView('Administrator', 'users_index');
-  // The site list + participant records back the StudyCoordinator/CRA/Admin
-  // operational screens.
-  for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
-    await grantView(role, 'sites_index');
-    await grantView(role, 'participant_record');
-  }
-  // The RAVE-sync status screen is visible to operations roles too.
-  for (final role in const [
-    'StudyCoordinator',
-    'CRA',
-    'Administrator',
-    'SystemOperator',
-  ]) {
-    await grantView(role, 'rave_sync_status');
-  }
-
-  // 4. Seed role assignments: an admin (so the admin Principal passes the
-  //    membership gate) and a coordinator (to demonstrate enforced denial).
-  await bootstrapRoleAssignments(
-    eventStore: eventStore,
-    seed: const RoleAssignmentSeed(entries: <RoleAssignmentSeedEntry>[
-      RoleAssignmentSeedEntry(
-        userId: 'admin-1',
-        role: 'Administrator',
-        scope: ValueWildcardScope(class_: 'site'),
-      ),
-      RoleAssignmentSeedEntry(
-        userId: 'sc-1',
-        role: 'StudyCoordinator',
-        scope: BoundScope(class_: 'site', value: 'site-1'),
-      ),
-      // A multi-role dev user so the dev quick-connect can exercise the header
-      // Role Selector + in-session switching (Administrator <-> StudyCoordinator)
-      // without the Firebase/OTP session flow. Dev-seed only.
-      RoleAssignmentSeedEntry(
-        userId: 'multi-1',
-        role: 'Administrator',
-        scope: ValueWildcardScope(class_: 'site'),
-      ),
-      RoleAssignmentSeedEntry(
-        userId: 'multi-1',
-        role: 'StudyCoordinator',
-        scope: BoundScope(class_: 'site', value: 'site-1'),
-      ),
-    ]),
-  );
 
   // 4b. Boot-time RAVE sync: pull sites + subjects into the event log so the
   //     sites_index / participant_record / participant_site_index views are
@@ -181,10 +118,103 @@ Future<PortalServerBoot> bootstrapPortalServer({
     studyOids: studyOids,
     lockoutConfig: lockoutConfig,
   );
-  try {
-    await ingester.syncAll(now: DateTime.now().toUtc());
-  } catch (e, st) {
-    stderr.writeln('portal boot RAVE sync failed (continuing): $e\n$st');
+
+  // Implements: DIARY-DEV-portal-durable-event-store/C — one-time seed gate.
+  //   Steps 3 (view-permission grants), 4 (role assignments) and 4b (boot RAVE
+  //   sync) are all side-effecting appends; against a durable store they must
+  //   run exactly once. The `ingester` is DECLARED above this block (it is reused
+  //   later by the on-demand /admin/rave-sync handler); only its boot-time
+  //   `syncAll` is gated here. The marker is appended LAST so a reverse scan on a
+  //   seeded store finds it cheaply.
+  if (!alreadySeeded) {
+    // 3. Grant view-read permissions so clients can subscribe to the views that
+    //    drive their screens (ReactionHandlers' default ViewPermissionNamer is
+    //    `view:<viewName>`). These are view-read permissions, not action
+    //    permissions, so they are appended directly rather than via the validated
+    //    action-permission seed.
+    Future<void> grantView(String role, String view) => eventStore.append(
+          entryType: 'role_permission_grant',
+          aggregateType: 'role_permission_grant',
+          aggregateId: '$role:view:$view',
+          eventType: 'permission_granted',
+          data: PermissionGrantedPayload(
+            role: role,
+            permissionName: 'view:$view',
+          ).toJson(),
+          initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
+        );
+
+    // Administrator can subscribe to the role-assignments view + the user-accounts
+    // index (only Administrator holds the user-management permissions).
+    await grantView('Administrator', 'user_role_scopes');
+    await grantView('Administrator', 'users_index');
+    // The site list + participant records back the StudyCoordinator/CRA/Admin
+    // operational screens.
+    for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
+      await grantView(role, 'sites_index');
+      await grantView(role, 'participant_record');
+    }
+    // The RAVE-sync status screen is visible to operations roles too.
+    for (final role in const [
+      'StudyCoordinator',
+      'CRA',
+      'Administrator',
+      'SystemOperator',
+    ]) {
+      await grantView(role, 'rave_sync_status');
+    }
+
+    // 4. Seed role assignments: an admin (so the admin Principal passes the
+    //    membership gate) and a coordinator (to demonstrate enforced denial).
+    await bootstrapRoleAssignments(
+      eventStore: eventStore,
+      seed: const RoleAssignmentSeed(entries: <RoleAssignmentSeedEntry>[
+        RoleAssignmentSeedEntry(
+          userId: 'admin-1',
+          role: 'Administrator',
+          scope: ValueWildcardScope(class_: 'site'),
+        ),
+        RoleAssignmentSeedEntry(
+          userId: 'sc-1',
+          role: 'StudyCoordinator',
+          scope: BoundScope(class_: 'site', value: 'site-1'),
+        ),
+        // A multi-role dev user so the dev quick-connect can exercise the header
+        // Role Selector + in-session switching (Administrator <-> StudyCoordinator)
+        // without the Firebase/OTP session flow. Dev-seed only.
+        RoleAssignmentSeedEntry(
+          userId: 'multi-1',
+          role: 'Administrator',
+          scope: ValueWildcardScope(class_: 'site'),
+        ),
+        RoleAssignmentSeedEntry(
+          userId: 'multi-1',
+          role: 'StudyCoordinator',
+          scope: BoundScope(class_: 'site', value: 'site-1'),
+        ),
+      ]),
+    );
+
+    // 4b. Boot-time RAVE sync (the on-demand handler below re-uses `ingester`).
+    //     The sync runs inside try/catch and CONTINUES on error: boot must not
+    //     crash if RAVE is down or locked out — the RAVE-Sync screen surfaces the
+    //     failure.
+    try {
+      await ingester.syncAll(now: DateTime.now().toUtc());
+    } catch (e, st) {
+      stderr.writeln('portal boot RAVE sync failed (continuing): $e\n$st');
+    }
+
+    // Marker — appended LAST so the reverse scan in _portalSeedMarkerPresent
+    //   short-circuits on the newest events of a seeded store.
+    await eventStore.append(
+      entryType: 'portal_seed_marker',
+      aggregateType: 'portal_seed',
+      aggregateId: 'singleton',
+      eventType: 'seeded',
+      data: const <String, Object?>{},
+      initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
+    );
   }
 
   // 5. Activation reactor + routes: ephemeral code store + email sender +
@@ -459,6 +489,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
     dispatcher: dispatcher,
     dispose: dispose,
   );
+}
+
+// Implements: DIARY-DEV-portal-durable-event-store/C
+Future<bool> _portalSeedMarkerPresent(StorageBackend backend) async {
+  await for (final e in backend.readEventsReverse()) {
+    if (e.entryType == 'portal_seed_marker') return true;
+  }
+  return false;
 }
 
 /// Bridges portal_identity's [LoginOtpSender] to the [OtpSender] interface

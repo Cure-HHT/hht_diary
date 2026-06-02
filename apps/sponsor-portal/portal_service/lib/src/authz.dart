@@ -55,6 +55,16 @@ List<EntryTypeDefinition> portalEntryTypes() {
       name: 'Action Denial',
     ),
   );
+  // Implements: DIARY-DEV-portal-durable-event-store/C — one-time boot-seed
+  //   marker. Appended last in the seed block; its presence on a durable store
+  //   gates re-seeding on subsequent boots.
+  add(
+    const EntryTypeDefinition(
+      id: 'portal_seed_marker',
+      registeredVersion: 1,
+      name: 'Portal Boot-Seed Marker',
+    ),
+  );
 
   return byId.values.toList(growable: false);
 }
