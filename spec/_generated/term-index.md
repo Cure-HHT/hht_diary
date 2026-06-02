@@ -484,6 +484,7 @@
 - DIARY-OPS-db-reset-non-prod
 - DIARY-BASE-audit-trail-E
 - DIARY-DEV-node-sync-topology-A
+- DIARY-DEV-portal-durable-event-store-A
 - DIARY-DEV-schema-version-check-A
 - DIARY-DEV-schema-version-check-B
 - DIARY-DEV-schema-version-check-C
@@ -807,9 +808,13 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-durable-event-store
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-participant-site-index-B
+- DIARY-DEV-portal-durable-event-store-A
+- DIARY-DEV-portal-durable-event-store-C
 - DIARY-DEV-portal-reaction-server:section:0
+- DIARY-DEV-portal-durable-event-store:section:0
 
 ## Failed Attempt Threshold
 
@@ -2158,6 +2163,7 @@
 - DIARY-DEV-portal-active-role-switch-C
 - DIARY-DEV-portal-reaction-server-B
 - DIARY-DEV-user-account-projection-C
+- DIARY-DEV-portal-durable-event-store-C
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-session-management-F
 - DIARY-OPS-rave-unwedge-authz-A
@@ -2197,6 +2203,7 @@
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
+- DIARY-DEV-portal-durable-event-store:section:1
 - rem:spec/glossary-core.md:745
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5

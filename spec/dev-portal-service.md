@@ -242,3 +242,37 @@ the audit-view permission is the gate, and the presentation requirements
 this read produces.
 
 *End* *Audit log read* | **Hash**: 34892437
+
+## DIARY-DEV-portal-durable-event-store: Durable, environment-selected event store
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-DEV-portal-reaction-server
+
+### Overview
+
+The reactive portal's *Event Store* is its system of record, so a deployed node persists it to
+managed Postgres while local and test runs stay in-memory — the same composition root selects the
+backend from the environment. The originating-node identity is fixed so a restarted process keeps
+appending under one identity, and one-time seed data is written once rather than re-appended on
+every boot.
+
+### Assertions
+
+A. The portal SHALL select its *Event Store* backend by environment — a durable Postgres-backed store with a matching durable idempotency store when *Database* configuration is present, and an in-memory store otherwise — without a code change.
+
+B. The deployed portal SHALL derive a stable originating-node identity from configuration that persists across process restarts, so events appended after a restart retain the same originator identity.
+
+C. Boot-time seeding of authorization, *Role*, and reference data SHALL be idempotent against a populated *Event Store*, so repeated restarts append no duplicate seeded events.
+
+### Rationale
+
+A deployed portal restarts (new revisions, scale-to-zero) and must not lose its users, sessions, or
+activations, so the event log lives in the already-attached Cloud SQL instance via the library's
+managed-Postgres backend; tests and local runs keep the in-memory store, and the choice is made from
+`DB_*` configuration with no code branch so the verified path is the shipped path. A fixed
+originating-node identifier keeps the originator stable across restarts (the originator of the first
+event is the canonicalization authority). Seeding is gated behind a one-time marker because, unlike
+the always-fresh in-memory store, a durable store would otherwise accumulate duplicate grant and
+*Role*-assignment events on every restart.
+
+*End* *Durable, environment-selected event store* | **Hash**: cfb9c8c5

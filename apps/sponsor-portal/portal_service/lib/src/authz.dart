@@ -12,6 +12,8 @@ import 'scope_classes.dart';
 /// Stable per-installation identity stamped onto every appended event's
 /// provenance (see `Source.identifier`). A real deployment persists a UUIDv4
 /// across boots; the in-memory enforcement core uses this fixed value.
+// Implements: DIARY-DEV-portal-durable-event-store/B — fixed originating-node
+//   identity, stable across process restarts.
 const String _portalInstallIdentifier = '00000000-0000-4000-8000-0000000000p1';
 
 /// Every entry type the portal server writes through the EventStore: the
