@@ -84,9 +84,13 @@ final TableProjectionSpec linkingCodesSpec = TableProjectionSpec(
 //   participant linking-lifecycle events (excluding enrollment) into one row per
 //   participant; the fold stamps the latest event's entryType, from which the client
 //   derives linking status. pending->connected requires a diary participant_linked.
-// Implements: DIARY-DEV-linking-code-lifecycle/C — also folds the linking-code
-//   used/revoked lifecycle events, key-wise merging mobile_linking_status and
-//   app_uuid forward so the per-participant row reflects the latest link state.
+// Implements: DIARY-DEV-linking-code-lifecycle/C — also folds the
+//   participant_linking_code_used event, key-wise merging mobile_linking_status
+//   and app_uuid forward so the relink gate can read them off the per-participant
+//   row. A superseded code's revocation is intentionally NOT folded here: the
+//   revoke event carries the old code, so merging it would clobber the
+//   participant's current active code. Per-code status lives in the linking_codes
+//   view.
 final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
   viewName: 'participant_record',
   interest: const SubscriptionFilter(
@@ -95,7 +99,6 @@ final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
       'participant_synced_from_edc',
       'participant_linking_code_issued',
       'participant_linking_code_used',
-      'participant_linking_code_revoked',
       'participant_linked',
       'participant_trial_started',
       'participant_disconnected',

@@ -378,7 +378,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     signingKey: signingKey.isEmpty ? 'dev-unused' : signingKey,
   );
 
-  // 7d. Password-reset collaborators (code store + email sender + router).
+  // 7c. Password-reset collaborators (code store + email sender + router).
   //     Routes are PUBLIC — mounted outside authMiddleware on topRouter.
   // Implements: DIARY-DEV-portal-reset-code-lifecycle/D
   // Implements: DIARY-DEV-portal-reset-password-update/B
@@ -394,14 +394,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
     portalUrl: portalUrl,
   );
 
-  // 7c. Session cascade reactor — mirrors exact treatment of ActivationReactor:
+  // 7d. Session cascade reactor — mirrors exact treatment of ActivationReactor:
   //     started here, retained as a local final (StreamSubscription inside keeps
   //     it alive), stopped in dispose.
   // Implements: DIARY-DEV-portal-session-lifecycle/B
   final sessionCascadeReactor =
       SessionCascadeReactor(eventStore: eventStore, backend: backend)..start();
 
-  // 7d. Linking-code lifecycle reactor — on participant_linking_code_issued,
+  // 7e. Linking-code lifecycle reactor — on participant_linking_code_issued,
   //     supersedes the participant's prior active code and self-heals the rare
   //     case where two participants are issued the same code.
   // Implements: DIARY-DEV-linking-code-lifecycle/B+D
@@ -411,7 +411,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
   )..start();
 
-  // 7e. User tier reactor — keeps user_tier_index correct by emitting
+  // 7f. User tier reactor — keeps user_tier_index correct by emitting
   //     user_tier_changed whenever a user's SystemOperator assignment changes.
   // Implements: DIARY-DEV-operator-tier-authz/A
   final userTierReactor =

@@ -14,6 +14,7 @@ void main() {
     final db = await newDatabaseFactoryMemory().openDatabase('lcl.db');
     backend = SembastBackend(database: db);
     store = await openPortalEventStore(backend: backend);
+    addTearDown(() => store.close());
   });
 
   Future<void> issue(
@@ -80,6 +81,13 @@ void main() {
     final c2 = rows.firstWhere((r) => r['linking_code'] == 'XXCODE0002');
     expect(c1['status'], 'revoked');
     expect(c2['status'], 'active');
+
+    // participant_record must NOT be clobbered by the revoke of the old code:
+    // it must reflect the current active code C2, not the revoked C1.
+    final precs = await backend.findViewRows('participant_record');
+    final p1 = precs.firstWhere((r) => r['aggregateId'] == 'P-1');
+    expect(p1['linking_code'], 'XXCODE0002');
+    expect(p1['status'], 'active');
   });
 
   test('collision self-heal: same code on two participants reissues fresh code',
