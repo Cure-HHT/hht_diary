@@ -166,6 +166,7 @@
 | DIARY-DEV-outgoing-intent-correlation        | Outgoing Intent and Flow Correlation                  | dev-outgoing-intent-correlation.md | 108441a8 |
 | DIARY-DEV-participant-site-index             | Participant-Site Index Materializer                   | dev-portal-service.md              | 76e68990 |
 | DIARY-DEV-participant-status-projection      | Participant Linking-Status Projection                 | dev-portal-service.md              | aafda27d |
+| DIARY-DEV-patient-ingest                     | Patient Clinical-Record Ingest Edge                   | dev-patient-ingest.md              | fea6f77a |
 | DIARY-DEV-portal-activation-code-lifecycle   | Activation code lifecycle                             | dev-portal-activation.md           | ec270b2e |
 | DIARY-DEV-portal-activation-email-delivery   | Activation email delivery                             | dev-portal-activation.md           | 8357a727 |
 | DIARY-DEV-portal-active-role-switch          | In-session active role switch                         | dev-portal-login.md                | 3d941dbc |

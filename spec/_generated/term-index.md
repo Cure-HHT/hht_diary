@@ -663,6 +663,7 @@
 - DIARY-DEV-inbound-event-on-receipt:section:0
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-outgoing-intent-correlation:section:1
+- DIARY-DEV-patient-ingest:section:1
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
@@ -1384,6 +1385,9 @@
 - DIARY-DEV-local-participant-authorization-D
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-B
+- DIARY-DEV-patient-ingest-A
+- DIARY-DEV-patient-ingest-B
+- DIARY-DEV-patient-ingest-D
 - DIARY-DEV-participant-site-index-A
 - DIARY-DEV-rave-edc-ingest-A
 - DIARY-DEV-participant-status-projection-A
@@ -1822,6 +1826,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-patient-ingest
 - DIARY-PRD-evidence-patient-authentication
 - DIARY-PRD-evidence-device-fingerprint-I
 - DIARY-PRD-evidence-patient-authentication-E
@@ -1841,6 +1846,7 @@
 - DIARY-PRD-questionnaire-localization-I
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-sla-incident-severity-B
+- DIARY-DEV-patient-ingest:section:1
 - rem:spec/glossary-core.md:745
 - rem:spec/prd-evidence-records.md:3
 - DIARY-PRD-evidence-device-fingerprint:section:0
@@ -2684,6 +2690,7 @@
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-node-sync-topology:section:1
+- DIARY-DEV-patient-ingest:section:1
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:762
 - rem:spec/glossary-core.md:764
@@ -2822,6 +2829,7 @@
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-BASE-audit-trail:section:1
 - DIARY-DEV-node-sync-topology:section:1
+- DIARY-DEV-patient-ingest:section:1
 - DIARY-PRD-administrator-settings:section:0
 - rem:spec/prd-common-ui.md:3
 - DIARY-PRD-help-resources:section:0
