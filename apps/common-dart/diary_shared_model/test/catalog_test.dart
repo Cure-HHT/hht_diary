@@ -23,6 +23,7 @@ void main() {
       'participant_synced_from_edc',
       'participant_linking_code_issued',
       'participant_linking_code_revoked',
+      'participant_linking_code_used',
       'participant_trial_started',
       'participant_disconnected',
       'participant_reconnected',
@@ -64,8 +65,8 @@ void main() {
       final ids = sharedEventCatalog.map((t) => t.id).toList();
       expect(
         ids.length,
-        26,
-      ); // 9 participant + 7 questionnaire + 3 notification/fcm + 7 diary-originated
+        27,
+      ); // 10 participant + 7 questionnaire + 3 notification/fcm + 7 diary-originated
       expect(ids.toSet().length, ids.length, reason: 'duplicate entry-type id');
     },
   );
