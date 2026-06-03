@@ -2,8 +2,10 @@
 //   validates a coordinator-issued linking code, mints a participant-identity
 //   JWT, and atomically consumes the code (appends participant_linking_code_used
 //   in the same transaction as the validation read, so single-use is atomic).
-//   Reads participant_record + sites_index only to build the response; the
-//   relink/device gate (B2) and /ingest ownership (B3) are layered on later.
+//   Reads participant_record + sites_index only to build the response. The
+//   relink/device gate (B2) is implemented here (step 3b-i); only the /ingest
+//   ownership check (B3) remains pending, and that lives in a different file
+//   (patient_ingest_handler.dart).
 import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
@@ -141,7 +143,9 @@ Handler patientLinkHandler({required EventStore eventStore}) {
         //   to a DIFFERENT device. Allowed: an explicit disconnect (status
         //   'disconnected' clears the binding for reconnect), the same app_uuid
         //   re-presenting (factory-reset continuity), not-yet-connected (no
-        //   stored app_uuid -> first link), or no appUuid submitted.
+        //   stored app_uuid -> first link), or no appUuid submitted (the gate
+        //   intentionally allows this: back-compat for app versions that don't
+        //   send appUuid).
         //
         //   We gate on the stored app_uuid rather than on
         //   mobile_linking_status == 'connected' alone: a coordinator re-issue

@@ -285,6 +285,32 @@ void main() {
   });
 
   test(
+      'device-bound participant + code submitted with NO appUuid -> 200 '
+      '(intentional back-compat allow); fresh code is consumed', () async {
+    // Locks the documented "no appUuid submitted -> gate allows" path: app
+    // versions that don't send appUuid are not blocked by the relink gate.
+    final store = await _openStore('link-relink-no-appuuid');
+    await _seed(store);
+    await seedConnectedThenReissue(
+      store,
+      participantId: 'P-1',
+      connectedAppUuid: 'DEVICE-A',
+      freshCode: 'CAFRESH001',
+    );
+    final handler = patientLinkHandler(eventStore: store);
+
+    // Body carries the fresh valid code but NO appUuid field.
+    final res = await handler(_post(body: {'code': 'CAFRESH001'}));
+    expect(res.statusCode, 200);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    expect(body['jwt'], isNotNull);
+
+    final rows = await store.backend.findViewRows('linking_codes');
+    final row = rows.firstWhere((r) => r['linking_code'] == 'CAFRESH001');
+    expect(row['status'], 'used');
+  });
+
+  test(
       'relink to a different device AFTER disconnect -> 200 (reconnect '
       'allowed)', () async {
     final store = await _openStore('link-relink-disc');
@@ -296,8 +322,8 @@ void main() {
       freshCode: 'CAFRESH001',
     );
     // Disconnect the participant so participant_record.mobile_linking_status
-    // becomes 'disconnected'. (Seeded directly: the disconnect ACTION may not
-    // emit mobile_linking_status — that is a separate concern, not fixed here.)
+    // becomes 'disconnected'. (Appended directly here, mirroring what
+    // DisconnectParticipantAction now emits.)
     await store.append(
       entryType: 'participant_disconnected',
       aggregateType: 'participant',
