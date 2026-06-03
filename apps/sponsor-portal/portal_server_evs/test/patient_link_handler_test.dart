@@ -179,6 +179,7 @@ void main() {
   });
 
   // --- B2 relink/device gate -------------------------------------------------
+  // Verifies: DIARY-DEV-relink-device-gate/A+B+C
 
   /// Seed the participant as already `connected` to [appUuid] by appending a
   /// `participant_linking_code_used` event (what a prior successful /link would

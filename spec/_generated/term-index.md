@@ -94,6 +94,7 @@
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-linking-code-lifecycle:section:0
 - rem:spec/dev-mobile-event-sourcing.md:3
 - DIARY-DEV-action-write-path:section:0
 - DIARY-DEV-action-write-path:section:1
@@ -647,6 +648,7 @@
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-linking-code-lifecycle:section:0
 - rem:spec/dev-mobile-event-sourcing.md:1
 - rem:spec/dev-mobile-event-sourcing.md:3
 - DIARY-DEV-evs-stack-adoption:section:0
@@ -664,6 +666,7 @@
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-outgoing-intent-correlation:section:1
 - DIARY-DEV-participant-ingest:section:1
+- DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
@@ -1089,6 +1092,8 @@
 - DIARY-PRD-linking-code-entry-errors
 - DIARY-PRD-linking-code-lifecycle
 - DIARY-GUI-show-linking-code
+- DIARY-DEV-linking-code-lifecycle-A
+- DIARY-DEV-participant-link-issuance-A
 - DIARY-PRD-linking-code-entry-errors-A
 - DIARY-PRD-linking-code-entry-errors-C
 - DIARY-PRD-linking-code-entry-errors-D
@@ -1115,6 +1120,7 @@
 - DIARY-GUI-show-linking-code-C
 - DIARY-GUI-link-participant-flow-A
 - DIARY-GUI-link-participant-flow-B
+- DIARY-DEV-linking-code-lifecycle:section:0
 - DIARY-PRD-linking-code-entry-errors:section:0
 - DIARY-GUI-join-study-screen:section:0
 - DIARY-GUI-join-study-screen:section:1
@@ -1364,6 +1370,7 @@
 
 - DIARY-DEV-local-participant-authorization
 - DIARY-DEV-participant-ingest
+- DIARY-DEV-participant-link-issuance
 - DIARY-DEV-participant-site-index
 - DIARY-DEV-participant-status-projection
 - DIARY-GUI-participant-task-list
@@ -1381,6 +1388,8 @@
 - DIARY-BASE-sponsor-requested-settings-D
 - DIARY-BASE-sponsor-requested-settings-E
 - DIARY-BASE-system-operator-role-B
+- DIARY-DEV-linking-code-lifecycle-B
+- DIARY-DEV-linking-code-lifecycle-D
 - DIARY-DEV-native-outbound-sync-D
 - DIARY-DEV-local-participant-authorization-A
 - DIARY-DEV-local-participant-authorization-D
@@ -1389,10 +1398,18 @@
 - DIARY-DEV-participant-ingest-A
 - DIARY-DEV-participant-ingest-B
 - DIARY-DEV-participant-ingest-D
+- DIARY-DEV-participant-ingest-E
+- DIARY-DEV-participant-link-issuance-A
+- DIARY-DEV-participant-link-issuance-B
+- DIARY-DEV-participant-link-issuance-C
+- DIARY-DEV-participant-link-issuance-D
 - DIARY-DEV-participant-site-index-A
 - DIARY-DEV-rave-edc-ingest-A
 - DIARY-DEV-participant-status-projection-A
 - DIARY-DEV-participant-status-projection-B
+- DIARY-DEV-relink-device-gate-A
+- DIARY-DEV-relink-device-gate-B
+- DIARY-DEV-relink-device-gate-C
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-study-coordinator-B
 - DIARY-GUI-audit-log-cra-A
@@ -1596,15 +1613,18 @@
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-linking-code-lifecycle:section:0
 - DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-local-participant-authorization:section:1
 - DIARY-DEV-participant-ingest:section:1
+- DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-operator-tier-authz:section:0
+- DIARY-DEV-relink-device-gate:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
@@ -2054,6 +2074,7 @@
 - DIARY-PRD-questionnaire-score-calculation-C
 - DIARY-PRD-score-hht-qol-A
 - DIARY-PRD-score-nose-hht-A
+- DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/prd-common-ui.md:7
 - DIARY-GUI-calendar-day-view:section:7
@@ -2410,6 +2431,7 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-PRD-rbac-customizable-B
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-DEV-linking-code-lifecycle:section:0
 - DIARY-DEV-portal-user-activated-binding:section:1
 - rem:spec/dev-portal-login.md:1
 - DIARY-DEV-portal-session-token:section:0
@@ -2506,6 +2528,7 @@
 
 - DIARY-DEV-participant-site-index
 - DIARY-PRD-user-account-site-assignment
+- DIARY-DEV-participant-link-issuance-D
 - DIARY-DEV-portal-session-lifecycle-B
 - DIARY-DEV-participant-site-index-A
 - DIARY-DEV-participant-site-index-B
@@ -2531,6 +2554,7 @@
 - DIARY-GUI-user-information-modal-D
 - DIARY-GUI-user-information-modal-E
 - DIARY-GUI-user-information-modal-G
+- DIARY-DEV-linking-code-lifecycle:section:0
 - DIARY-DEV-portal-session-lifecycle:section:0
 - DIARY-DEV-portal-session-lifecycle:section:1
 - DIARY-DEV-participant-site-index:section:0
@@ -2572,6 +2596,7 @@
 - DIARY-BASE-sponsor-requested-settings-B
 - DIARY-BASE-sponsor-requested-settings-E
 - DIARY-BASE-system-operator-role-A
+- DIARY-DEV-linking-code-lifecycle-A
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C

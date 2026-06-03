@@ -2,9 +2,9 @@
 //   code (real ACT-PAT-001 dispatch) -> participant redeems it at the real
 //   /api/v1/user/link edge -> gets a participant-identity JWT and the code is
 //   consumed.
-// Verifies: DIARY-DEV-participant-ingest/D — the minted JWT carries the
-//   participant identity; a device batch on the participant's own aggregate
-//   ingests + materializes, and a cross-participant batch is rejected 403.
+// Verifies: DIARY-DEV-participant-ingest/D+E — the minted JWT carries the
+//   participant identity (D); a device batch on the participant's own aggregate
+//   ingests + materializes, and a cross-participant batch is rejected 403 (E).
 import 'dart:async';
 import 'dart:convert';
 

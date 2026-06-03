@@ -1,4 +1,5 @@
-// Verifies: DIARY-DEV-linking-code-lifecycle/A — linking-code lifecycle event types exist.
+// Verifies: DIARY-DEV-linking-code-lifecycle/C — the lifecycle event types the
+//   per-code projection folds (the used + revoked types) are registered.
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';

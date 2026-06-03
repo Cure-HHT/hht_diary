@@ -1,4 +1,6 @@
 // Verifies: DIARY-PRD-action-inventory/A+C  (ACT-PAT-003)
+// Verifies: DIARY-DEV-relink-device-gate/B — disconnect emits mobile_linking_status
+//   = disconnected, which lets the relink gate allow a later re-link.
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_actions/portal_actions.dart';
 import 'package:test/test.dart';

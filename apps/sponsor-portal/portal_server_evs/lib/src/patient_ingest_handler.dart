@@ -22,7 +22,7 @@ Handler patientIngestHandler({required EventStore eventStore}) {
     final chunks = await request.read().toList();
     final bytes = Uint8List.fromList(chunks.expand((c) => c).toList());
 
-    // Implements: DIARY-DEV-participant-ingest/D — the authenticated participant
+    // Implements: DIARY-DEV-participant-ingest/E — the authenticated participant
     //   must own every participant-prefixed aggregate the batch writes. The JWT
     //   userId IS the participantId. Day-marker aggregates carry the participant
     //   identity as a `{participantId}:{localDate}` aggregate id, so we reject a
