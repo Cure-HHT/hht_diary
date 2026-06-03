@@ -134,6 +134,50 @@ Handler patientLinkHandler({required EventStore eventStore}) {
         }
         final siteId = codeRow['site_id'] as String?;
 
+        // 3b-i. Relink/device gate. Read the participant's current link state
+        //   from participant_record (merged by participant_linking_code_used /
+        //   participant_linking_code_issued). A participant still bound to a
+        //   device (a non-null stored app_uuid) must not be silently re-linked
+        //   to a DIFFERENT device. Allowed: an explicit disconnect (status
+        //   'disconnected' clears the binding for reconnect), the same app_uuid
+        //   re-presenting (factory-reset continuity), not-yet-connected (no
+        //   stored app_uuid -> first link), or no appUuid submitted.
+        //
+        //   We gate on the stored app_uuid rather than on
+        //   mobile_linking_status == 'connected' alone: a coordinator re-issue
+        //   appends participant_linking_code_issued, whose merge re-stamps
+        //   mobile_linking_status to 'linking_in_progress' while leaving the
+        //   bound app_uuid intact — so the participant is still device-bound
+        //   even though the latest status is no longer literally 'connected'.
+        //   Only an explicit 'disconnected' status releases the binding.
+        //
+        //   Runs only for an otherwise-valid active code, so expired/used/
+        //   unknown codes still return their own status above.
+        // Implements: DIARY-DEV-relink-device-gate/A+B+C
+        {
+          final precs =
+              await backend.findViewRowsInTxn(txn, 'participant_record');
+          Map<String, dynamic>? precRow;
+          for (final row in precs) {
+            if (row['aggregateId'] == participantId ||
+                row['participant_id'] == participantId) {
+              precRow = row;
+              break;
+            }
+          }
+          final storedStatus = precRow?['mobile_linking_status'] as String?;
+          final storedAppUuid = precRow?['app_uuid'] as String?;
+          final boundToDevice =
+              storedAppUuid != null && storedStatus != 'disconnected';
+          if (boundToDevice && appUuid != null && storedAppUuid != appUuid) {
+            return _LinkOutcome.failure(
+              409,
+              'This device is already linked to a different participant '
+              'device.',
+            );
+          }
+        }
+
         // 3c. Read site info for the response (participant_record is read for
         //     B2's relink gate later; not needed for the B1 response itself).
         String? siteName;

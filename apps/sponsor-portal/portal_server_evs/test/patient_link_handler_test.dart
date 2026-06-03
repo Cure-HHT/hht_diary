@@ -177,4 +177,142 @@ void main() {
       isNot(contains('already linked')),
     );
   });
+
+  // --- B2 relink/device gate -------------------------------------------------
+
+  /// Seed the participant as already `connected` to [appUuid] by appending a
+  /// `participant_linking_code_used` event (what a prior successful /link would
+  /// have produced). This merges mobile_linking_status:'connected' + the device
+  /// uuid onto participant_record. Then re-issue a FRESH active code for the
+  /// same participant (a coordinator re-issue).
+  Future<void> seedConnectedThenReissue(
+    EventStore store, {
+    required String participantId,
+    required String connectedAppUuid,
+    required String freshCode,
+    String siteId = 'S-1',
+  }) async {
+    // A prior successful link: participant_record now connected to the device.
+    await store.append(
+      entryType: 'participant_linking_code_used',
+      aggregateType: 'participant',
+      aggregateId: participantId,
+      eventType: 'participant_linking_code_used',
+      data: <String, Object?>{
+        'linking_code': 'CAOLDCODE0',
+        'participant_id': participantId,
+        'app_uuid': connectedAppUuid,
+        'status': 'used',
+        'mobile_linking_status': 'connected',
+      },
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+
+    // Coordinator re-issues a fresh active code for the same participant.
+    final expires =
+        DateTime.now().toUtc().add(const Duration(hours: 1)).toIso8601String();
+    await store.append(
+      entryType: 'participant_linking_code_issued',
+      aggregateType: 'participant',
+      aggregateId: participantId,
+      eventType: 'participant_linking_code_issued',
+      data: <String, Object?>{
+        'linking_code': freshCode,
+        'participant_id': participantId,
+        'site_id': siteId,
+        'generated_by': 'coordinator-1',
+        'expires_at': expires,
+        'purpose': 'link',
+        'status': 'active',
+        'mobile_linking_status': 'linking_in_progress',
+      },
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+  }
+
+  test(
+      'relink to a DIFFERENT device -> 409 "already linked"; fresh code '
+      'is NOT consumed', () async {
+    final store = await _openStore('link-relink-diff');
+    await _seed(store); // site + participant + an (unused) issued code.
+    await seedConnectedThenReissue(
+      store,
+      participantId: 'P-1',
+      connectedAppUuid: 'DEVICE-A',
+      freshCode: 'CAFRESH001',
+    );
+    final handler = patientLinkHandler(eventStore: store);
+
+    final res = await handler(
+      _post(body: {'code': 'CAFRESH001', 'appUuid': 'DEVICE-B'}),
+    );
+    expect(res.statusCode, 409);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    expect(
+      (body['error'] as String).toLowerCase(),
+      contains('already linked'),
+    );
+
+    // The rejected relink must NOT consume the fresh code.
+    final rows = await store.backend.findViewRows('linking_codes');
+    final row = rows.firstWhere((r) => r['linking_code'] == 'CAFRESH001');
+    expect(row['status'], 'active');
+  });
+
+  test(
+      'relink with the SAME device uuid -> 200 (same-device continuity); '
+      'fresh code is consumed', () async {
+    final store = await _openStore('link-relink-same');
+    await _seed(store);
+    await seedConnectedThenReissue(
+      store,
+      participantId: 'P-1',
+      connectedAppUuid: 'DEVICE-A',
+      freshCode: 'CAFRESH001',
+    );
+    final handler = patientLinkHandler(eventStore: store);
+
+    final res = await handler(
+      _post(body: {'code': 'CAFRESH001', 'appUuid': 'DEVICE-A'}),
+    );
+    expect(res.statusCode, 200);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    expect(body['jwt'], isNotNull);
+
+    final rows = await store.backend.findViewRows('linking_codes');
+    final row = rows.firstWhere((r) => r['linking_code'] == 'CAFRESH001');
+    expect(row['status'], 'used');
+  });
+
+  test(
+      'relink to a different device AFTER disconnect -> 200 (reconnect '
+      'allowed)', () async {
+    final store = await _openStore('link-relink-disc');
+    await _seed(store);
+    await seedConnectedThenReissue(
+      store,
+      participantId: 'P-1',
+      connectedAppUuid: 'DEVICE-A',
+      freshCode: 'CAFRESH001',
+    );
+    // Disconnect the participant so participant_record.mobile_linking_status
+    // becomes 'disconnected'. (Seeded directly: the disconnect ACTION may not
+    // emit mobile_linking_status — that is a separate concern, not fixed here.)
+    await store.append(
+      entryType: 'participant_disconnected',
+      aggregateType: 'participant',
+      aggregateId: 'P-1',
+      eventType: 'participant_disconnected',
+      data: <String, Object?>{'mobile_linking_status': 'disconnected'},
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+    final handler = patientLinkHandler(eventStore: store);
+
+    final res = await handler(
+      _post(body: {'code': 'CAFRESH001', 'appUuid': 'DEVICE-B'}),
+    );
+    expect(res.statusCode, 200);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    expect(body['jwt'], isNotNull);
+  });
 }
