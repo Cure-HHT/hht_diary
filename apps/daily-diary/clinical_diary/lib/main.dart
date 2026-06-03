@@ -11,12 +11,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform, pid;
 
+import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/firebase_options.dart';
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/scope/diary_sync_triggers.dart';
@@ -36,13 +36,13 @@ import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:common_widgets/common_widgets.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
-import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
 // Prefixed to disambiguate the new-stack AutomationInitiator from the legacy
 // `event_sourcing_datastore` AutomationInitiator imported above; the new diary
 // scope's DestinationRegistry.setStartDate takes the new-stack Initiator.
 import 'package:event_sourcing/event_sourcing.dart'
     as esd
     show AutomationInitiator;
+import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
@@ -58,14 +58,6 @@ import 'package:sembast_web/sembast_web.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-/// Flavor name from build configuration.
-/// APP_FLAVOR (--dart-define) takes priority over FLUTTER_APP_FLAVOR (--flavor).
-/// This allows local dev to use --dart-define=APP_FLAVOR=local while keeping
-/// --flavor dev for the Android build (which has no 'local' product flavor).
-const String appFlavor = String.fromEnvironment('APP_FLAVOR') != ''
-    ? String.fromEnvironment('APP_FLAVOR')
-    : String.fromEnvironment('FLUTTER_APP_FLAVOR');
-
 /// SharedPreferences key for the persisted device install UUID.
 const _kDeviceIdPrefsKey = 'clinical_diary.device_id';
 
@@ -78,12 +70,6 @@ void main() async {
   if (kReleaseMode) {
     debugPrint = (String? message, {int? wrapWidth}) {};
   }
-  // Initialize flavor from native platform configuration
-  F.appFlavor = Flavor.values.firstWhere(
-    (f) => f.name == appFlavor,
-    orElse: () => Flavor.dev, // Default to dev if not specified
-  );
-  debugPrint('Running with flavor: ${F.name}');
   // Catch all errors in the Flutter framework
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
@@ -102,6 +88,13 @@ void main() async {
   await runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+
+      // Implements: DIARY-DEV-runtime-environment-resolution/A+B
+      // Resolve the environment once from the bundled assets/config/env.json
+      // pointer (stamped per-env at packaging time). Must run after binding
+      // init — EnvProfile.load() reads rootBundle.
+      EnvProfile.current = await EnvProfile.load();
+      debugPrint('Running with environment: ${EnvProfile.current.name}');
 
       // Initialize IANA timezone database for DST-aware time calculations
       TimezoneConverter.ensureInitialized();
@@ -162,8 +155,8 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
     // event-sourcing scope is up, so its theme/locale/text-scale can be driven
     // by the settings projection.
     return EnvironmentBanner(
-      show: F.showBanner,
-      flavorName: F.name,
+      show: EnvProfile.current.showBanner,
+      flavorName: EnvProfile.current.name,
       child: const AppRoot(),
     );
   }
@@ -422,10 +415,10 @@ class _AppRootState extends State<AppRoot> {
       }
 
       // Start the local-only HTTP debug bridge. Loopback-bound and gated
-      // on Flavor.local + !kIsWeb (shelf needs dart:io). Failure to bind
+      // on AppEnv.local + !kIsWeb (shelf needs dart:io). Failure to bind
       // is logged and swallowed so a port collision does not block app
       // bring-up.
-      if (F.appFlavor == Flavor.local && !kIsWeb) {
+      if (EnvProfile.current.env == AppEnv.local && !kIsWeb) {
         try {
           final bridge = DebugBridge(
             runtime: runtime,
@@ -678,7 +671,7 @@ class _AppRootState extends State<AppRoot> {
     final largerText = effectivePrefs.largerTextAndControls;
     final languageCode = effectivePrefs.languageCode;
     return MaterialApp(
-      title: F.title,
+      title: EnvProfile.current.title,
       // Show Flutter debug banner in debug mode (top-right corner).
       // Environment ribbon (DEV/QA) shows in top-left corner.
       debugShowCheckedModeBanner: kDebugMode,

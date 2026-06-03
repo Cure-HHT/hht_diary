@@ -16,7 +16,6 @@
 import 'dart:convert';
 
 import 'package:clinical_diary/config/sponsor_registry.dart';
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:flutter/foundation.dart' show ValueNotifier, debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -117,10 +116,7 @@ class EnrollmentService {
       // Determine which sponsor's backend to call based on code prefix
       String backendUrl;
       try {
-        backendUrl = SponsorRegistry.getBackendUrlForCode(
-          normalizedCode,
-          F.appFlavor,
-        );
+        backendUrl = SponsorRegistry.getBackendUrlForCode(normalizedCode);
         debugPrint('Resolved backend URL: $backendUrl');
       } on SponsorRegistryException catch (e) {
         throw EnrollmentException(

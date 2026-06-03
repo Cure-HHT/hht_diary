@@ -1,7 +1,7 @@
 // Local-only HTTP debug surface for the clinical_diary runtime. Listens
 // on 127.0.0.1 (loopback only) so the bridge is unreachable from any
-// other host. Wired into the bootstrap behind a `F.appFlavor ==
-// Flavor.local && !kIsWeb` guard so it never ships in dev/qa/uat/prod
+// other host. Wired into the bootstrap behind an `EnvProfile.current.env ==
+// AppEnv.local && !kIsWeb` guard so it never ships in dev/qa/uat/prod
 // and never compiles into a web bundle (shelf needs dart:io).
 //
 // All endpoints return application/json (UTF-8). Routes:

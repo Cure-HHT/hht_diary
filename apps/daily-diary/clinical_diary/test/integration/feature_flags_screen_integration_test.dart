@@ -13,8 +13,8 @@
 // does not cover (multi-section layout, sponsor dropdown selection, the
 // long-duration threshold slider gating, and a full reset round-trip).
 
+import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:flutter/material.dart';
@@ -43,7 +43,7 @@ Widget _buildScreen() {
 
 void main() {
   setUpAll(() {
-    F.appFlavor = Flavor.dev;
+    EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
   });
 
   late FeatureFlagService featureFlags;

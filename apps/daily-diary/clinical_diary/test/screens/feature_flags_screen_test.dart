@@ -4,8 +4,8 @@
 //   REQ-CAL-p00002: Short Duration Nosebleed Confirmation
 //   REQ-CAL-p00003: Long Duration Nosebleed Confirmation
 
+import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +16,7 @@ import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 
 void main() {
   // Set up flavor for tests
-  F.appFlavor = Flavor.dev;
+  EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
 
   late FeatureFlagService featureFlagService;
   late FakeReaction fake;

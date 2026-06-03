@@ -4,7 +4,7 @@
 //   provided by ClinicalRulesScope.
 // Verifies: DIARY-BASE-sponsor-requested-settings/C+D — a sponsor-locked key
 //   shows the locked note (visible, read-only) and tapping it writes nothing.
-import 'package:clinical_diary/flavors.dart';
+import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/screens/advanced_settings_screen.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
@@ -25,7 +25,7 @@ void main() {
     late FakeReaction fake;
 
     setUp(() {
-      setUpTestFlavor(Flavor.dev); // F.showDevTools = true (default for tests)
+      setUpTestFlavor(AppEnv.dev); // F.showDevTools = true (default for tests)
       fake = FakeReaction();
       for (var i = 0; i < 10; i++) {
         fake.queueDispatchResult(
@@ -141,13 +141,13 @@ void main() {
     group('Feature Flags entry (dev-gated)', () {
       tearDown(() {
         // Restore the default dev flavor after each test.
-        setUpTestFlavor(Flavor.dev);
+        setUpTestFlavor(AppEnv.dev);
       });
 
       testWidgets('shows Feature Flags tile when showDevTools is true', (
         tester,
       ) async {
-        setUpTestFlavor(Flavor.dev); // F.showDevTools == true
+        setUpTestFlavor(AppEnv.dev); // F.showDevTools == true
         await pump(tester);
         expect(find.text('Feature Flags'), findsOneWidget);
       });
@@ -155,7 +155,7 @@ void main() {
       testWidgets('hides Feature Flags tile when showDevTools is false', (
         tester,
       ) async {
-        setUpTestFlavor(Flavor.prod); // F.showDevTools == false
+        setUpTestFlavor(AppEnv.prod); // F.showDevTools == false
         await pump(tester);
         expect(find.text('Feature Flags'), findsNothing);
       });
@@ -163,7 +163,7 @@ void main() {
       testWidgets('tapping Feature Flags navigates to FeatureFlagsScreen', (
         tester,
       ) async {
-        setUpTestFlavor(Flavor.dev);
+        setUpTestFlavor(AppEnv.dev);
         await pump(tester);
         await tester.tap(find.text('Feature Flags'));
         await tester.pumpAndSettle();

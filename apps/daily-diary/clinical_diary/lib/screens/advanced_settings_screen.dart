@@ -15,7 +15,7 @@
 // design). Sponsor-locked keys are shown read-only (added with the sponsor path).
 import 'dart:async';
 
-import 'package:clinical_diary/flavors.dart';
+import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/feature_flags_screen.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
@@ -119,7 +119,7 @@ class AdvancedSettingsScreen extends StatelessWidget {
                     locked: rules.isLocked(useReviewScreenKey),
                     onChanged: (v) => _set(context, useReviewScreenKey, v),
                   ),
-                  if (F.showDevTools) ...[
+                  if (AppConfig.showDevTools) ...[
                     const Divider(),
                     _sectionHeader(
                       context,

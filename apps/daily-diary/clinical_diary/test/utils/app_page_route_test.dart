@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 
+import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
-import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   // Set up flavor for tests
-  F.appFlavor = Flavor.dev;
+  EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
 
   late FeatureFlagService featureFlagService;
 
