@@ -400,8 +400,13 @@ void main() {
       connectivity.add([ConnectivityResult.none]);
       await Future<void>.delayed(Duration.zero);
       connectivity.add([ConnectivityResult.wifi]);
-      // Trigger chain awaits a Future, give it a couple microtasks to drain.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      // The trigger chain awaits syncCycle -> portalInboundPoll -> tasksSync;
+      // a fixed delay flakes on loaded CI, so poll until the POST lands (bounded).
+      final deadline = DateTime.now().add(const Duration(seconds: 2));
+      while (captured.where((r) => r.method == 'POST').isEmpty &&
+          DateTime.now().isBefore(deadline)) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
 
       expect(
         captured.where((r) => r.method == 'POST').toList(),
