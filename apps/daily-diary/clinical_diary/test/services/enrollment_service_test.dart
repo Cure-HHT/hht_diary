@@ -291,8 +291,8 @@ void main() {
         () async {
           final mockClient = MockClient((request) async {
             return http.Response(
-              '{"error": "This device is already linked to a study. '
-              'Please contact your research coordinator if you need to re-link."}',
+              '{"error": "This device is already linked to a different '
+              'participant device."}',
               409,
             );
           });
