@@ -11,6 +11,15 @@ import 'package:shelf/shelf.dart';
 
 import 'patient_token_validator.dart';
 
+/// Build a JSON error response `{"error": <message>}`. The diary app's
+/// enrollment_service jsonDecodes every non-success body and reads
+/// `errorBody['error']`, so all error paths MUST return this shape.
+Response _err(int code, String message) => Response(
+      code,
+      body: jsonEncode(<String, Object?>{'error': message}),
+      headers: const {'Content-Type': 'application/json'},
+    );
+
 /// Outcome of the in-transaction validate+consume step. On success carries the
 /// minted [jwt] plus the response fields; on failure carries the HTTP
 /// [statusCode] + a short [message] (and no consume event was appended).
@@ -53,23 +62,23 @@ Handler patientLinkHandler({required EventStore eventStore}) {
     final String? appUuid;
     try {
       final decoded = jsonDecode(await request.readAsString());
-      if (decoded is! Map) return Response(400, body: 'malformed request body');
+      if (decoded is! Map) return _err(400, 'malformed request body');
       final code = decoded['code'];
       if (code is! String || code.trim().isEmpty) {
-        return Response(400, body: 'missing linking code');
+        return _err(400, 'missing linking code');
       }
       rawCode = code;
       final uuid = decoded['appUuid'];
       appUuid = uuid is String ? uuid : null;
     } catch (_) {
-      return Response(400, body: 'malformed request body');
+      return _err(400, 'malformed request body');
     }
 
     // 2. Normalize: strip the display dash/spaces; stored codes are uppercase.
     final normalizedCode =
         rawCode.trim().toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
     if (normalizedCode.isEmpty) {
-      return Response(400, body: 'missing linking code');
+      return _err(400, 'missing linking code');
     }
 
     // 3. Validate + consume atomically inside one transaction. The decision
@@ -95,10 +104,18 @@ Handler patientLinkHandler({required EventStore eventStore}) {
 
         final status = codeRow['status'];
         if (status == 'used') {
-          return _LinkOutcome.failure(409, 'code already used');
+          // Wording matters: the diary app distinguishes a device-relink
+          // rejection (B2, message contains "already linked") from a
+          // code-already-used 409 by substring. Keep "already linked" OUT here.
+          return _LinkOutcome.failure(409, 'This code has already been used.');
         }
         if (status == 'revoked') {
           return _LinkOutcome.failure(410, 'code revoked');
+        }
+        // Explicitly require 'active'; any other (e.g. a future 'suspended')
+        // is invalid rather than silently falling through to consume.
+        if (status != 'active') {
+          return _LinkOutcome.failure(400, 'invalid or unknown code');
         }
 
         // Active but expired -> 410.
@@ -111,7 +128,10 @@ Handler patientLinkHandler({required EventStore eventStore}) {
         }
 
         // 3b. Active + unexpired: continue.
-        final participantId = codeRow['participant_id'] as String;
+        final participantId = codeRow['participant_id'] as String?;
+        if (participantId == null) {
+          return _LinkOutcome.failure(500, 'corrupt linking code record');
+        }
         final siteId = codeRow['site_id'] as String?;
 
         // 3c. Read site info for the response (participant_record is read for
@@ -174,7 +194,7 @@ Handler patientLinkHandler({required EventStore eventStore}) {
 
     // 4. Map the outcome to an HTTP response.
     if (!outcome.success) {
-      return Response(outcome.statusCode, body: outcome.message);
+      return _err(outcome.statusCode, outcome.message ?? 'request failed');
     }
     final participantId = outcome.participantId;
     return Response.ok(

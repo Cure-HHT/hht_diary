@@ -128,6 +128,8 @@ void main() {
 
     final res = await handler(_post(body: {'code': 'ZZZNOPE999'}));
     expect(res.statusCode, 400);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    expect(body['error'], isA<String>());
   });
 
   test('missing/blank code -> 400', () async {
@@ -151,6 +153,8 @@ void main() {
 
     final res = await handler(_post(body: {'code': 'CAABCDE123'}));
     expect(res.statusCode, 410);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    expect(body['error'], isA<String>());
   });
 
   test('second redemption of the same code -> 409 (already used)', () async {
@@ -163,5 +167,14 @@ void main() {
 
     final second = await handler(_post(body: {'code': 'CAABCDE123'}));
     expect(second.statusCode, 409);
+    final body =
+        jsonDecode(await second.readAsString()) as Map<String, dynamic>;
+    expect(body['error'], isA<String>());
+    // B1's "already used" 409 must NOT collide with B2's device-relink 409,
+    // which the diary app distinguishes by the "already linked" substring.
+    expect(
+      (body['error'] as String).toLowerCase(),
+      isNot(contains('already linked')),
+    );
   });
 }
