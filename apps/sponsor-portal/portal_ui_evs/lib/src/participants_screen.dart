@@ -1,10 +1,9 @@
-import 'dart:math';
-
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
+import 'activation_code_display.dart';
 import 'participant_status.dart';
 
 // Reactive Participants list over the participant_record view (gated
@@ -18,17 +17,15 @@ import 'participant_status.dart';
 
 const String _viewPerm = 'view:participant_record';
 
-const String _kLinkAction =
-    'ACT-PAT-001'; // {siteId, participantId, linkingCode, expiresAt}
+const String _kLinkAction = 'ACT-PAT-001'; // {siteId, participantId}
 const String _kStartTrialAction = 'ACT-PAT-002'; // {siteId, participantId}
 const String _kDisconnectAction =
     'ACT-PAT-003'; // {siteId, participantId, reason}
-const String _kReconnectAction =
-    'ACT-PAT-004'; // {siteId, participantId, linkingCode, expiresAt}
+const String _kReconnectAction = 'ACT-PAT-004'; // {siteId, participantId}
 const String _kMarkNotParticipatingAction =
     'ACT-PAT-005'; // {siteId, participantId, reason}
 const String _kReactivateAction =
-    'ACT-PAT-006'; // {siteId, participantId, reason, linkingCode, expiresAt}
+    'ACT-PAT-006'; // {siteId, participantId, reason}
 
 const String _kDisabledTooltip = 'Available once a connected diary is running';
 const String _kPlaceholderReason = 'portal action';
@@ -60,24 +57,14 @@ class _P {
   );
 }
 
-/// Generates a short uppercase alphanumeric client-side linking code.
-String _generateLinkingCode() {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  final rng = Random();
-  return String.fromCharCodes(
-    Iterable<int>.generate(
-      8,
-      (_) => alphabet.codeUnitAt(rng.nextInt(alphabet.length)),
-    ),
-  );
-}
-
-String _expiresAt72h() =>
-    DateTime.now().toUtc().add(const Duration(hours: 72)).toIso8601String();
-
 /// Maps an enabled [ParticipantAction] to its (actionName, rawInput). Returns
 /// null for [ParticipantAction.showCode], which is a view-only no-op handled
 /// separately (a dialog), and for any action not dispatchable for [p].
+///
+/// The issuing actions (ACT-PAT-001/004/006) submit ONLY identity
+/// ({siteId, participantId}, plus `reason` for reactivate). The linking code
+/// and 72h expiry are generated SERVER-SIDE by the action and returned in its
+/// result — the client never supplies them.
 ({String name, Map<String, Object?> input})? _submissionFor(
   ParticipantAction action,
   _P p,
@@ -86,12 +73,7 @@ String _expiresAt72h() =>
     case ParticipantAction.issueLinkingCode:
       return (
         name: _kLinkAction,
-        input: <String, Object?>{
-          'siteId': p.siteId,
-          'participantId': p.id,
-          'linkingCode': _generateLinkingCode(),
-          'expiresAt': _expiresAt72h(),
-        },
+        input: <String, Object?>{'siteId': p.siteId, 'participantId': p.id},
       );
     case ParticipantAction.startTrial:
       return (
@@ -110,12 +92,7 @@ String _expiresAt72h() =>
     case ParticipantAction.reconnect:
       return (
         name: _kReconnectAction,
-        input: <String, Object?>{
-          'siteId': p.siteId,
-          'participantId': p.id,
-          'linkingCode': _generateLinkingCode(),
-          'expiresAt': _expiresAt72h(),
-        },
+        input: <String, Object?>{'siteId': p.siteId, 'participantId': p.id},
       );
     case ParticipantAction.markNotParticipating:
       return (
@@ -133,14 +110,36 @@ String _expiresAt72h() =>
           'siteId': p.siteId,
           'participantId': p.id,
           'reason': _kPlaceholderReason,
-          'linkingCode': _generateLinkingCode(),
-          'expiresAt': _expiresAt72h(),
         },
       );
     case ParticipantAction.showCode:
       return null;
   }
 }
+
+/// The lifecycle actions that cause the SERVER to generate (or re-generate) a
+/// linking code: issue (001), reconnect (004), and reactivate (006). On
+/// success the action result carries `{linkingCode, expiresAt}`, which the UI
+/// surfaces inline.
+const Set<ParticipantAction> _kIssuingActions = <ParticipantAction>{
+  ParticipantAction.issueLinkingCode,
+  ParticipantAction.reconnect,
+  ParticipantAction.reactivate,
+};
+
+/// Test-only accessor for [_submissionFor]: lets tests assert that an issuing
+/// submission carries ONLY identity keys (no client-generated linkingCode /
+/// expiresAt). Returns the (actionName, rawInput) record, or null for the
+/// view-only showCode pseudo-action.
+@visibleForTesting
+({String name, Map<String, Object?> input})? submissionForTest(
+  ParticipantAction action, {
+  required String siteId,
+  required String participantId,
+}) => _submissionFor(
+  action,
+  _P(id: participantId, siteId: siteId, status: ParticipantStatus.unknown),
+);
 
 class ParticipantsScreen extends StatelessWidget {
   const ParticipantsScreen({super.key});
@@ -231,20 +230,42 @@ class _ParticipantActionButton extends StatelessWidget {
     }
 
     final submission = _submissionFor(action, participant)!;
+    final isIssuing = _kIssuingActions.contains(action);
     return ActionBuilder(
       submissionFactory: () => ActionSubmission(
         actionName: submission.name,
         rawInput: submission.input,
       ),
-      builder: (context, state, submit) => FilledButton(
-        onPressed: state is Submitting ? null : submit,
-        child: Text(switch (state) {
-          Submitting() => '...',
-          Denied() => 'Denied',
-          Failed() => 'Failed',
-          _ => action.label,
-        }),
-      ),
+      builder: (context, state, submit) {
+        // On a successful issuing action, surface the SERVER-generated code
+        // inline (instead of the bare button), with copy + expiry. The code
+        // comes from the action result, NOT a client-side guess.
+        if (isIssuing && state is Success) {
+          final result = state.result;
+          if (result is DispatchSuccess<Object?>) {
+            final data = result.result;
+            if (data is Map) {
+              final code = data['linkingCode'] as String?;
+              if (code != null) {
+                return ActivationCodeDisplay(
+                  code: code,
+                  label: 'Linking code',
+                  expiresAt: data['expiresAt'] as String?,
+                );
+              }
+            }
+          }
+        }
+        return FilledButton(
+          onPressed: state is Submitting ? null : submit,
+          child: Text(switch (state) {
+            Submitting() => '...',
+            Denied() => 'Denied',
+            Failed() => 'Failed',
+            _ => action.label,
+          }),
+        );
+      },
     );
   }
 
@@ -253,7 +274,12 @@ class _ParticipantActionButton extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Linking code · ${participant.id}'),
-        content: Text(participant.linkingCode ?? '(none)'),
+        content: participant.linkingCode == null
+            ? const Text('(none)')
+            : ActivationCodeDisplay(
+                code: participant.linkingCode!,
+                fontSize: 20,
+              ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -263,4 +289,29 @@ class _ParticipantActionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Test-only harness that renders the issuing-action button for a
+/// fresh (notConnected) participant — i.e. the Issue Linking Code button,
+/// whose ActionBuilder surfaces the SERVER-returned code on success.
+@visibleForTesting
+class ActionBuilderHarness extends StatelessWidget {
+  const ActionBuilderHarness({
+    super.key,
+    required this.siteId,
+    required this.participantId,
+  });
+
+  final String siteId;
+  final String participantId;
+
+  @override
+  Widget build(BuildContext context) => _ParticipantActionButton(
+    participant: _P(
+      id: participantId,
+      siteId: siteId,
+      status: ParticipantStatus.notConnected,
+    ),
+    action: ParticipantAction.issueLinkingCode,
+  );
 }
