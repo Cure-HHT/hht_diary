@@ -20,14 +20,14 @@ Dart library containing business logic for the HHT Diary API.
 - `app_uuid`: Device/app instance identifier
 
 **user_site_assignments** - Links app users to clinical sites
-- `patient_id`: References app_users.user_id
+- `participant_id`: References app_users.user_id
 - `site_id`: Clinical trial site
 - `study_patient_id`: De-identified ID from sponsor EDC
 - `enrollment_status`: ACTIVE, COMPLETED, WITHDRAWN
 
 **patient_linking_codes** - One-time codes for patient-app linking (generated via sponsor portal)
 - `code`: 10-char linking code (2-char sponsor prefix + 8 random)
-- `patient_id`: EDC patient being linked
+- `participant_id`: EDC patient being linked
 - `expires_at`: 72-hour expiration
 
 **record_audit** - Event store for all user data (existing table)
