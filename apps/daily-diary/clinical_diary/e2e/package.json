@@ -1,0 +1,13 @@
+{
+  "name": "clinical-diary-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Playwright UI automation for the clinical_diary Flutter-web client (font-options coverage).",
+  "scripts": {
+    "test": "playwright test",
+    "install-browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}

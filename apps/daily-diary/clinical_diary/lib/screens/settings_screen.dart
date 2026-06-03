@@ -354,33 +354,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: availableFonts.any((f) => f.fontFamily == _selectedFont)
-                ? _selectedFont
-                : availableFonts.first.fontFamily,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+          // CUR-1307: identified for Playwright web automation.
+          Semantics(
+            identifier: 'font-selector',
+            container: true,
+            explicitChildNodes: true,
+            child: DropdownButtonFormField<String>(
+              value: availableFonts.any((f) => f.fontFamily == _selectedFont)
+                  ? _selectedFont
+                  : availableFonts.first.fontFamily,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
+              items: availableFonts.map((font) {
+                return DropdownMenuItem<String>(
+                  value: font.fontFamily,
+                  // CUR-1307: each option targetable when the menu is open.
+                  child: Semantics(
+                    identifier: 'font-option-${font.fontFamily}',
+                    child: Text(font.displayName),
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedFont = value);
+                  _savePreferences();
+                  // CUR-528: Notify parent to update theme font
+                  widget.onFontChanged?.call(value);
+                }
+              },
             ),
-            items: availableFonts.map((font) {
-              return DropdownMenuItem<String>(
-                value: font.fontFamily,
-                child: Text(font.displayName),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => _selectedFont = value);
-                _savePreferences();
-                // CUR-528: Notify parent to update theme font
-                widget.onFontChanged?.call(value);
-              }
-            },
+          ),
+          // CUR-1307: machine-readable readout of the active font selection
+          // for Playwright assertions (surfaces via the node's aria-label).
+          // A zero-size semantics node gets pruned from the web tree, so the
+          // readout carries a 1x1 footprint to keep its node alive.
+          Semantics(
+            identifier: 'active-font',
+            value: _selectedFont,
+            container: true,
+            child: const SizedBox(width: 1, height: 1),
           ),
         ],
       ),
