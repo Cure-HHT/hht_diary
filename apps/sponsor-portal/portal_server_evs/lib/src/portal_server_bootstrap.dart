@@ -23,8 +23,8 @@ import 'password_reset_code_store.dart';
 import 'password_reset_routes.dart';
 import 'session_cascade_reactor.dart';
 import 'session_store.dart';
-import 'user_tier_reactor.dart';
 import 'session_token_validator.dart';
+import 'user_tier_reactor.dart';
 
 /// Composed server: the top-level shelf [router] (ready for shelf_io.serve),
 /// the live [eventStore] + [dispatcher] (for tests), and a [dispose] callback.
