@@ -244,14 +244,22 @@ class _RecordingScreenState extends State<RecordingScreen> {
       return false;
     }
 
-    // CUR-492: Reject negative duration (end time before start time) first.
-    final duration = _durationMinutes();
-    if (duration != null && duration < 0) {
-      final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.endTimeAfterStart)));
-      return false;
+    // CUR-492: Reject end time that is before start time. Equal start/end is
+    // permitted only when the sponsor enables shortDurationConfirm — the
+    // confirmation dialog below is the gate. With shortDurationConfirm off,
+    // equal start/end is also rejected here so the user sees the specific
+    // "End time must be after start time" message rather than the generic
+    // save-failure snackbar from a dispatcher rejection.
+    if (_endDateTime != null) {
+      final endsBeforeStart = _endDateTime!.isBefore(_startDateTime);
+      final endsAtStart = _endDateTime!.isAtSameMomentAs(_startDateTime);
+      if (endsBeforeStart || (endsAtStart && !_rules.shortDurationConfirm)) {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.endTimeAfterStart)));
+        return false;
+      }
     }
 
     // DIARY-PRD-entry-time-restrictions: Old entry justification check.
@@ -582,7 +590,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _endTimeTimezone,
     );
 
-    if (storedEndTime.isBefore(_startDateTime)) {
+    final endsBeforeStart = storedEndTime.isBefore(_startDateTime);
+    final endsAtStart = storedEndTime.isAtSameMomentAs(_startDateTime);
+    if (endsBeforeStart || (endsAtStart && !_rules.shortDurationConfirm)) {
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
         context,

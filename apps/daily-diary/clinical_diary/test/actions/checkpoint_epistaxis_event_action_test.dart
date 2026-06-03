@@ -75,6 +75,21 @@ void main() {
     expect(() => action.validate(input), throwsA(isA<ArgumentError>()));
   });
 
+  // Equal start/end is structurally valid; the sponsor's shortDurationConfirm
+  // clinical rule (UI layer) is the gate for whether equal times can be
+  // submitted.
+  test('validate accepts an endTime equal to startTime', () {
+    final input = action.parseInput(const {
+      'startTime': '2025-10-15T14:30:00.000Z',
+      'startTimeZone': 'UTC',
+      'startTimeUtcOffset': '+00:00',
+      'endTime': '2025-10-15T14:30:00.000Z',
+      'endTimeZone': 'UTC',
+      'endTimeUtcOffset': '+00:00',
+    });
+    expect(() => action.validate(input), returnsNormally);
+  });
+
   test(
     'execute mints a fresh id for a new draft and emits a checkpoint',
     () async {
