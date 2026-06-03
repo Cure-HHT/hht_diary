@@ -48,6 +48,7 @@ import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
+import 'package:flutter/semantics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -130,6 +131,11 @@ void main() async {
         debugPrint('Feature flag loading error: $e');
         debugPrint('Stack trace:\n$stack');
       }
+
+      // CUR-1307: Force-enable the semantics tree on web so the Flutter
+      // accessibility nodes (and their `flt-semantics-identifier`
+      // attributes) are emitted into the DOM for Playwright automation.
+      if (kIsWeb) SemanticsBinding.instance.ensureSemantics();
 
       runApp(const ClinicalDiaryApp());
     },
