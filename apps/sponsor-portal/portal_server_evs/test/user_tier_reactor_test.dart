@@ -27,6 +27,29 @@ Future<void> _appendRoleAssigned(
       initiator: const AutomationInitiator(service: 'test'),
     );
 
+Future<void> _appendRoleAssignedAt(
+  EventStore store, {
+  required String userId,
+  required String role,
+  required ScopeValue scope,
+}) =>
+    store.append(
+      entryType: 'user_role_scope',
+      aggregateType: 'user_role_scope',
+      aggregateId: computeRoleAssignmentAggregateId(
+        userId: userId,
+        role: role,
+        scope: scope,
+      ),
+      eventType: 'role_assigned',
+      data: RoleAssignedPayload(
+        userId: userId,
+        role: role,
+        scope: scope,
+      ).toJson(),
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+
 Future<void> _appendRoleUnassigned(
   EventStore store, {
   required String userId,
@@ -45,6 +68,29 @@ Future<void> _appendRoleUnassigned(
         userId: userId,
         role: role,
         scope: const ValueWildcardScope(class_: 'site'),
+      ).toJson(),
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+
+Future<void> _appendRoleUnassignedAt(
+  EventStore store, {
+  required String userId,
+  required String role,
+  required ScopeValue scope,
+}) =>
+    store.append(
+      entryType: 'user_role_scope',
+      aggregateType: 'user_role_scope',
+      aggregateId: computeRoleAssignmentAggregateId(
+        userId: userId,
+        role: role,
+        scope: scope,
+      ),
+      eventType: 'role_unassigned',
+      data: RoleUnassignedPayload(
+        userId: userId,
+        role: role,
+        scope: scope,
       ).toJson(),
       initiator: const AutomationInitiator(service: 'test'),
     );
@@ -184,5 +230,72 @@ void main() {
 
     expect(after, equals(before),
         reason: 'no-op tier change must not emit another user_tier_changed');
+  });
+
+  // Verifies: DIARY-DEV-operator-tier-authz/A
+  test(
+      'revoking one of two distinct SystemOperator assignments keeps operator '
+      'tier; revoking the second reverts to staff', () async {
+    final reactor = UserTierReactor(eventStore: store, backend: backend)
+      ..start();
+    addTearDown(reactor.stop);
+
+    const scopeA = BoundScope(class_: 'site', value: 'site-alpha');
+    const scopeB = BoundScope(class_: 'site', value: 'site-beta');
+
+    // (a) Assign SystemOperator at scope-A -> tier becomes 'operator'.
+    await _appendRoleAssignedAt(
+      store,
+      userId: 'u5',
+      role: 'SystemOperator',
+      scope: scopeA,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    var rows = await backend.findViewRows('user_tier_index');
+    expect(_tierFor(rows, 'u5'), equals('operator'),
+        reason: 'first SystemOperator assignment (scope-A) must set tier to operator');
+
+    // (b) Assign SystemOperator at scope-B (second distinct assignment).
+    await _appendRoleAssignedAt(
+      store,
+      userId: 'u5',
+      role: 'SystemOperator',
+      scope: scopeB,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    rows = await backend.findViewRows('user_tier_index');
+    expect(_tierFor(rows, 'u5'), equals('operator'),
+        reason: 'second SystemOperator assignment (scope-B) must keep tier at operator');
+
+    // (c) Revoke scope-A assignment -> scope-B still active; tier stays 'operator'.
+    await _appendRoleUnassignedAt(
+      store,
+      userId: 'u5',
+      role: 'SystemOperator',
+      scope: scopeA,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    rows = await backend.findViewRows('user_tier_index');
+    expect(_tierFor(rows, 'u5'), equals('operator'),
+        reason:
+            'revoking one of two SystemOperator assignments must keep tier at '
+            'operator while the other assignment remains');
+
+    // (d) Revoke scope-B assignment -> no SystemOperator assignments remain; tier reverts.
+    await _appendRoleUnassignedAt(
+      store,
+      userId: 'u5',
+      role: 'SystemOperator',
+      scope: scopeB,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    rows = await backend.findViewRows('user_tier_index');
+    expect(_tierFor(rows, 'u5'), equals('staff'),
+        reason:
+            'revoking the last SystemOperator assignment must revert tier to staff');
   });
 }
