@@ -559,7 +559,7 @@ CREATE OR REPLACE FUNCTION verify_audit_batch(
 RETURNS TABLE(
     audit_id BIGINT,
     event_uuid UUID,
-    patient_id TEXT,
+    participant_id TEXT,
     server_timestamp TIMESTAMPTZ,
     is_valid BOOLEAN,
     error_message TEXT
@@ -569,7 +569,7 @@ BEGIN
     SELECT
         ra.audit_id,
         ra.event_uuid,
-        ra.patient_id,
+        ra.participant_id,
         ra.server_timestamp,
         verify_audit_hash(ra.audit_id) as is_valid,
         CASE

@@ -30,7 +30,7 @@ BEGIN
             NEW.audit_id::text ||
             NEW.event_uuid::text ||
             NEW.operation ||
-            NEW.patient_id ||
+            NEW.participant_id ||
             NEW.site_id ||
             NEW.data::text ||
             NEW.created_by ||
@@ -83,7 +83,7 @@ BEGIN
             v_record.audit_id::text ||
             v_record.event_uuid::text ||
             v_record.operation ||
-            v_record.patient_id ||
+            v_record.participant_id ||
             v_record.site_id ||
             v_record.data::text ||
             v_record.created_by ||
@@ -157,7 +157,7 @@ CREATE OR REPLACE FUNCTION verify_audit_hashes_batch(
 RETURNS TABLE(
     audit_id BIGINT,
     event_uuid UUID,
-    patient_id TEXT,
+    participant_id TEXT,
     server_timestamp TIMESTAMPTZ,
     is_valid BOOLEAN,
     error_message TEXT
@@ -167,7 +167,7 @@ BEGIN
     SELECT
         ra.audit_id,
         ra.event_uuid,
-        ra.patient_id,
+        ra.participant_id,
         ra.server_timestamp,
         verify_audit_hash(ra.audit_id) as is_valid,
         CASE
@@ -194,7 +194,7 @@ CREATE OR REPLACE FUNCTION detect_tampered_records(
 RETURNS TABLE(
     audit_id BIGINT,
     event_uuid UUID,
-    patient_id TEXT,
+    participant_id TEXT,
     site_id TEXT,
     operation TEXT,
     server_timestamp TIMESTAMPTZ,
@@ -207,7 +207,7 @@ BEGIN
     SELECT
         ra.audit_id,
         ra.event_uuid,
-        ra.patient_id,
+        ra.participant_id,
         ra.site_id,
         ra.operation,
         ra.server_timestamp,

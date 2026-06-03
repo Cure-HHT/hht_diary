@@ -198,7 +198,7 @@ BEGIN
         -- Get primary site for context
         SELECT site_id INTO v_site_id
         FROM user_site_assignments
-        WHERE patient_id = p_user_id
+        WHERE participant_id = p_user_id
         LIMIT 1;
     END IF;
 

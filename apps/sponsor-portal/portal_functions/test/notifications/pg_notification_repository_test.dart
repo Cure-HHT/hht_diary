@@ -39,8 +39,8 @@ void main() {
 
   Envelope buildEnvelope({
     String id = '11111111-1111-1111-1111-111111111111',
-    String patientId = '840-001',
-    NotificationType type = NotificationType.patientStatusUpdate,
+    String participantId = '840-001',
+    NotificationType type = NotificationType.participantStatusUpdate,
     String title = 'Account Disconnected',
     String? body = 'Your study account has been disconnected.',
     bool userVisible = true,
@@ -50,7 +50,7 @@ void main() {
   }) {
     return Envelope(
       notificationId: id,
-      patientId: patientId,
+      participantId: participantId,
       type: type,
       title: title,
       body: body,
@@ -95,8 +95,8 @@ void main() {
 
       final params = calls[0].parameters!;
       expect(params['notificationId'], equals(envelope.notificationId));
-      expect(params['patientId'], equals(envelope.patientId));
-      expect(params['notificationType'], equals('patient_status_update'));
+      expect(params['participantId'], equals(envelope.participantId));
+      expect(params['notificationType'], equals('participant_status_update'));
       expect(params['title'], equals(envelope.title));
       expect(params['body'], equals(envelope.body));
       expect(params['userVisible'], isTrue);
@@ -134,12 +134,12 @@ void main() {
 
       final result = await repo.findById(
         '00000000-0000-0000-0000-000000000000',
-        patientId: '840-001',
+        participantId: '840-001',
       );
 
       expect(result, isNull);
-      expect(calls.single.context.role, equals('patient'));
-      expect(calls.single.context.patientId, equals('840-001'));
+      expect(calls.single.context.role, equals('participant'));
+      expect(calls.single.context.participantId, equals('840-001'));
     });
 
     test('parses a row into an Envelope with all fields', () async {
@@ -149,7 +149,7 @@ void main() {
         <dynamic>[
           '11111111-1111-1111-1111-111111111111',
           '840-001',
-          'patient_status_update',
+          'participant_status_update',
           'Account Disconnected',
           'You have been disconnected.',
           true,
@@ -166,7 +166,7 @@ void main() {
 
       final result = await repo.findById(
         '11111111-1111-1111-1111-111111111111',
-        patientId: '840-001',
+        participantId: '840-001',
       );
 
       expect(result, isNotNull);
@@ -174,7 +174,7 @@ void main() {
         result!.notificationId,
         equals('11111111-1111-1111-1111-111111111111'),
       );
-      expect(result.type, equals(NotificationType.patientStatusUpdate));
+      expect(result.type, equals(NotificationType.participantStatusUpdate));
       expect(result.status, equals(EnvelopeStatus.sent));
       expect(result.payload, equals(<String, dynamic>{'action': 'disconnect'}));
       expect(result.userVisible, isTrue);
@@ -187,14 +187,17 @@ void main() {
       expect(result.deliveredAt, isNull);
     });
 
-    test('uses patient context, includes WHERE patient_id', () async {
+    test('uses participant context, includes WHERE participant_id', () async {
       final repo = PgNotificationRepository();
-      await repo.findById('id-1', patientId: '840-001');
+      await repo.findById('id-1', participantId: '840-001');
 
-      expect(calls.single.context.role, equals('patient'));
-      expect(calls.single.context.patientId, equals('840-001'));
+      expect(calls.single.context.role, equals('participant'));
+      expect(calls.single.context.participantId, equals('840-001'));
       expect(calls.single.query, contains('WHERE notification_id = @id'));
-      expect(calls.single.query, contains('AND patient_id = @patientId'));
+      expect(
+        calls.single.query,
+        contains('AND participant_id = @participantId'),
+      );
     });
   });
 
@@ -204,15 +207,15 @@ void main() {
       final repo = PgNotificationRepository();
       final since = DateTime.utc(2026, 5, 8, 9, 0);
 
-      await repo.findSince(since, patientId: '840-001', limit: 25);
+      await repo.findSince(since, participantId: '840-001', limit: 25);
 
       expect(calls.single.query, contains('ORDER BY created_at ASC'));
       expect(calls.single.query, contains('LIMIT @limit'));
       final params = calls.single.parameters!;
       expect(params['since'], equals(since));
       expect(params['limit'], equals(25));
-      expect(params['patientId'], equals('840-001'));
-      expect(calls.single.context.role, equals('patient'));
+      expect(params['participantId'], equals('840-001'));
+      expect(calls.single.context.role, equals('participant'));
     });
   });
 
@@ -259,18 +262,18 @@ void main() {
   group('PgNotificationRepository.markDeliveredIfNull', () {
     test('no-op for empty id list', () async {
       final repo = PgNotificationRepository();
-      await repo.markDeliveredIfNull(<String>[], patientId: '840-001');
+      await repo.markDeliveredIfNull(<String>[], participantId: '840-001');
       expect(calls, isEmpty);
     });
 
     test(
-      'updates only rows where delivered_at IS NULL — patient context',
+      'updates only rows where delivered_at IS NULL — participant context',
       () async {
         final repo = PgNotificationRepository();
         await repo.markDeliveredIfNull(<String>[
           'id-1',
           'id-2',
-        ], patientId: '840-001');
+        ], participantId: '840-001');
 
         expect(calls.single.query, contains('UPDATE notifications'));
         expect(calls.single.query, contains("SET status = 'delivered'"));
@@ -280,9 +283,12 @@ void main() {
           contains('AND delivered_at IS NULL'),
           reason: 'idempotent — duplicate fetch must not bump the timestamp',
         );
-        expect(calls.single.query, contains('AND patient_id = @patientId'));
-        expect(calls.single.context.role, equals('patient'));
-        expect(calls.single.context.patientId, equals('840-001'));
+        expect(
+          calls.single.query,
+          contains('AND participant_id = @participantId'),
+        );
+        expect(calls.single.context.role, equals('participant'));
+        expect(calls.single.context.participantId, equals('840-001'));
         expect(calls.single.parameters!['ids'], equals(['id-1', 'id-2']));
       },
     );

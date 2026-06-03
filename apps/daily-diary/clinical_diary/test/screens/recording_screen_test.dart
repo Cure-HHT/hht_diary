@@ -1,142 +1,69 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-CAL-p00001: Old Entry Modification Justification
-//   REQ-CAL-p00002: Short Duration Nosebleed Confirmation
-//   REQ-CAL-p00003: Long Duration Nosebleed Confirmation
-//   REQ-p01066-A+B+H+K: Nosebleed start/end time validation
-//   REQ-p01069-A+E: Time picker / edit support
+// Verifies: DIARY-PRD-incomplete-entry-preservation/A+C
+// Verifies: DIARY-GUI-epistaxis-record/A
+// Verifies: DIARY-PRD-entry-time-restrictions/D
+// Verifies: DIARY-DEV-action-write-path/A
+// Verifies: DIARY-DEV-reactive-read-path/A
+// Verifies: DIARY-GUI-entry-overlap-resolution
 //
-// Phase 12.5 (CUR-1169): Screen-level coverage for the multi-page
-// RecordingScreen. Drives the screen with a recording-EntryService double
-// that captures record() calls so tests can assert on the API contract
-// without bringing up the full Sembast write path.
+// Screen-level coverage for the multi-step RecordingScreen on the new
+// event_sourcing write path. Writes are asserted via FakeReaction
+// (queueDispatchResult + submittedActions); overlap rows are seeded by emitting
+// view updates on the diary_entries view.
 
-import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_read.dart';
+import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/services/timezone_service.dart';
+import 'package:clinical_diary/settings/clinical_rules_scope.dart';
+import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/intensity_picker.dart';
-import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
-import 'package:clinical_diary/widgets/time_picker_dial.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sembast/sembast_memory.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
+import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../helpers/diary_entry_factory.dart';
-import '../helpers/mock_enrollment_service.dart';
 import '../helpers/test_helpers.dart';
-
-EntryTypeDefinition _epistaxisDef() => const EntryTypeDefinition(
-  id: 'epistaxis_event',
-  registeredVersion: 1,
-  name: 'Nosebleed',
-  widgetId: 'epistaxis_form_v1',
-  widgetConfig: <String, Object?>{},
-  effectiveDatePath: 'startTime',
-);
-
-class _RecordedCall {
-  _RecordedCall({
-    required this.entryType,
-    required this.aggregateId,
-    required this.eventType,
-    required this.answers,
-    required this.changeReason,
-  });
-  final String entryType;
-  final String aggregateId;
-  final String eventType;
-  final Map<String, Object?> answers;
-  final String? changeReason;
-}
-
-class _CapturingEntryService extends EntryService {
-  _CapturingEntryService._({
-    required super.backend,
-    required super.entryTypes,
-    required super.deviceInfo,
-  }) : super(syncCycleTrigger: _noop);
-
-  static Future<void> _noop() async {}
-
-  static Future<_CapturingEntryService> create() async {
-    final db = await newDatabaseFactoryMemory().openDatabase(
-      'recording-${DateTime.now().microsecondsSinceEpoch}.db',
-    );
-    final backend = SembastBackend(database: db);
-    final registry = EntryTypeRegistry()..register(_epistaxisDef());
-    return _CapturingEntryService._(
-      backend: backend,
-      entryTypes: registry,
-      deviceInfo: const DeviceInfo(
-        deviceId: 'device-test',
-        softwareVersion: 'clinical_diary@0.0.0',
-        userId: 'user-test',
-      ),
-    );
-  }
-
-  final List<_RecordedCall> calls = [];
-
-  @override
-  Future<StoredEvent?> record({
-    required String entryType,
-    required String aggregateId,
-    required String eventType,
-    required Map<String, Object?> answers,
-    String? checkpointReason,
-    String? changeReason,
-  }) async {
-    calls.add(
-      _RecordedCall(
-        entryType: entryType,
-        aggregateId: aggregateId,
-        eventType: eventType,
-        answers: Map<String, Object?>.from(answers),
-        changeReason: changeReason,
-      ),
-    );
-    return null;
-  }
-
-  Future<void> dispose() => (backend as SembastBackend).close();
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('RecordingScreen', () {
-    late _CapturingEntryService entryService;
-    late MockEnrollmentService enrollment;
-    late PreferencesService preferences;
+    late FakeReaction fake;
 
-    setUp(() async {
+    setUp(() {
       SharedPreferences.setMockInitialValues({});
-      preferences = PreferencesService();
-      enrollment = MockEnrollmentService();
-      entryService = await _CapturingEntryService.create();
-      // Reset feature flags to known defaults.
-      FeatureFlagService.instance.useReviewScreen = false;
-      FeatureFlagService.instance.requireOldEntryJustification = false;
-      FeatureFlagService.instance.enableShortDurationConfirmation = false;
-      FeatureFlagService.instance.enableLongDurationConfirmation = false;
+      fake = FakeReaction();
+      // Device timezone fixed to UTC so stored == displayed (identity).
+      TimezoneConverter.testDeviceOffsetMinutes = 0;
+      // Generous queue of successes for every submit(). Actions that return an
+      // aggregate id (record/checkpoint) get a String result.
+      for (var i = 0; i < 10; i++) {
+        fake.queueDispatchResult(
+          const DispatchSuccess<Object?>('minted-aggregate-id', <String>[]),
+        );
+      }
     });
 
     tearDown(() async {
-      FeatureFlagService.instance.useReviewScreen = false;
-      FeatureFlagService.instance.requireOldEntryJustification = false;
-      FeatureFlagService.instance.enableShortDurationConfirmation = false;
-      FeatureFlagService.instance.enableLongDurationConfirmation = false;
-      await entryService.dispose();
+      TimezoneConverter.testDeviceOffsetMinutes = null;
+      await fake.dispose();
     });
 
+    // Clinical rules (justification/lock gate, duration confirmations, review
+    // screen) now come from the event-sourced settings via ClinicalRulesScope —
+    // not FeatureFlagService. Default is "no restriction"; tests that exercise a
+    // rule pass an explicit [rules].
     Future<void> pumpScreen(
       WidgetTester tester, {
-      DateTime? diaryEntryDate,
-      DiaryEntry? existingEntry,
-      List<DiaryEntry> allEntries = const [],
-      Future<void> Function(String)? onDelete,
+      EpistaxisEntryView? existing,
+      DateTime? initialDate,
+      ClinicalRules rules = const ClinicalRules(),
+      bool fromOverlapResolution = false,
     }) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -146,27 +73,62 @@ void main() {
       });
 
       await tester.pumpWidget(
-        wrapWithMaterialApp(
-          RecordingScreen(
-            entryService: entryService,
-            enrollmentService: enrollment,
-            preferencesService: preferences,
-            diaryEntryDate: diaryEntryDate,
-            existingEntry: existingEntry,
-            allEntries: allEntries,
-            onDelete: onDelete,
+        ReActionScope(
+          scope: fake,
+          child: wrapWithMaterialApp(
+            ClinicalRulesScope(
+              rules: rules,
+              child: RecordingScreen(
+                existing: existing,
+                initialDate: initialDate,
+                fromOverlapResolution: fromOverlapResolution,
+              ),
+            ),
           ),
         ),
       );
       await tester.pumpAndSettle();
     }
 
+    /// Drive the diary_entries view with one finalized [rows] snapshot followed
+    /// by EndOfReplay, so the screen's DiaryViewBuilder sees them as live.
+    void seedDiaryEntries(List<EpistaxisEntryView> rows) {
+      for (final r in rows) {
+        fake.emitViewUpdate<DiaryEntryRow>(
+          diaryEntriesViewName,
+          Snapshot<DiaryEntryRow>(value: r.row, sequence: 0),
+        );
+      }
+      fake.emitViewUpdate<DiaryEntryRow>(
+        diaryEntriesViewName,
+        const EndOfReplay<DiaryEntryRow>(sequence: 0),
+      );
+    }
+
+    /// The single submission for [actionName], or fails if none/many.
+    ActionSubmission submissionFor(String actionName) {
+      final matches = fake.submittedActions
+          .where((s) => s.actionName == actionName)
+          .toList();
+      expect(
+        matches,
+        hasLength(1),
+        reason:
+            'expected exactly one $actionName submission, '
+            'got ${fake.submittedActions.map((s) => s.actionName).toList()}',
+      );
+      return matches.single;
+    }
+
+    // ---------------------------------------------------------------------
+    // Step-flow / clinical-rule coverage (adapted to the new write path).
+    // ---------------------------------------------------------------------
+
     testWidgets(
       'initial render shows start time picker, summary bar, and date header',
       (tester) async {
         await pumpScreen(tester);
 
-        expect(find.byType(TimePickerDial), findsOneWidget);
         expect(find.text('Start'), findsOneWidget);
         expect(find.text('Max Intensity'), findsOneWidget);
         expect(find.text('End'), findsOneWidget);
@@ -185,31 +147,22 @@ void main() {
       },
     );
 
-    // CUR-560: When intensity is already set on an existing entry, modifying
-    // the start time should skip the intensity step and advance directly to
-    // the end-time step. Previously the recording flow forced the user back
-    // through intensity even when no change was needed.
+    // CUR-560: modifying start time on an entry with intensity already set
+    // skips the intensity step.
     testWidgets(
       'skips intensity and advances to end time when intensity already set',
       (tester) async {
         final start = DateTime.now().subtract(const Duration(hours: 2));
-        final existing = buildEpistaxisEntry(
-          entryId: 'entry-cur560',
+        final existing = buildEpistaxisView(
+          aggregateId: 'agg-cur560',
           startTime: start,
           intensity: NosebleedIntensity.dripping,
           isComplete: false,
         );
 
-        // Initial step lands on endTime (intensity is set, endTime is not).
-        await pumpScreen(
-          tester,
-          existingEntry: existing,
-          onDelete: (_) async {},
-        );
+        await pumpScreen(tester, existing: existing);
         expect(find.text('Nosebleed End Time'), findsOneWidget);
 
-        // Navigate back to the startTime step via the summary bar's "Start"
-        // chip, then re-confirm the start time.
         await tester.tap(find.text('Start'));
         await tester.pumpAndSettle();
         expect(find.text('Nosebleed Start'), findsOneWidget);
@@ -217,24 +170,41 @@ void main() {
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Should land on end time, NOT intensity.
         expect(find.text('Nosebleed End Time'), findsOneWidget);
         expect(find.byType(IntensityPicker), findsNothing);
       },
     );
 
     testWidgets(
-      'completing all three steps records a finalized epistaxis_event '
-      'with startTime, intensity, and endTime in answers',
+      'editing entry that is missing intensity opens the intensity step',
+      (tester) async {
+        final start = DateTime.now().subtract(const Duration(hours: 1));
+        final existing = buildEpistaxisView(
+          aggregateId: 'agg-incomplete-1',
+          startTime: start,
+          isComplete: false,
+        );
+
+        await pumpScreen(tester, existing: existing);
+
+        expect(find.byType(IntensityPicker), findsOneWidget);
+      },
+    );
+
+    // ---------------------------------------------------------------------
+    // Decision-table coverage.
+    // ---------------------------------------------------------------------
+
+    testWidgets(
+      'Complete a brand-new entry -> one record_epistaxis_event submission',
       (tester) async {
         await pumpScreen(tester);
 
-        // Step 1: confirm start time → moves to intensity.
+        // Step 1: confirm start -> intensity.
         await tester.tap(find.text('Set Start Time'));
         await tester.pumpAndSettle();
 
-        // Step 2: pick an intensity (Dripping). The IntensityPicker exposes
-        // each intensity as a tappable card with its localized label.
+        // Step 2: pick Dripping.
         await tester.tap(
           find.descendant(
             of: find.byType(IntensityPicker),
@@ -243,75 +213,159 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Step 3: confirm end time. With useReviewScreen=false, this saves
-        // immediately.
+        // Step 3: confirm end -> saves immediately (useReviewScreen=false).
         await tester.tap(find.text('Set End Time'));
         await tester.pump();
 
-        expect(entryService.calls, hasLength(1));
-        final call = entryService.calls.single;
-        expect(call.entryType, 'epistaxis_event');
-        expect(call.eventType, 'finalized');
-        expect(call.answers['startTime'], isNotNull);
-        expect(call.answers['endTime'], isNotNull);
-        expect(call.answers['intensity'], 'dripping');
+        final s = submissionFor('record_epistaxis_event');
+        expect(s.rawInput['startTime'], isNotNull);
+        expect(s.rawInput['startTimeZone'], isNotNull);
+        expect(s.rawInput['startTimeUtcOffset'], isNotNull);
+        expect(s.rawInput['endTime'], isNotNull);
+        expect(s.rawInput['intensity'], 'dripping');
+        expect(s.rawInput.containsKey('aggregateId'), isFalse);
       },
     );
 
+    // A fresh entry (no explicit zone picked) must store the DEVICE's IANA zone
+    // name — never 'UTC' — so the stored zone agrees with the stored offset.
+    // Storing 'UTC' for a non-UTC device makes the renderer mis-relabel the
+    // wall-clock (the "5:20 PM UTC/PDT" class of bug).
+    testWidgets('fresh entry stores the device IANA zone, not UTC', (
+      tester,
+    ) async {
+      TimezoneService.instance.testTimezoneOverride = 'America/Los_Angeles';
+      addTearDown(() => TimezoneService.instance.testTimezoneOverride = null);
+
+      await pumpScreen(tester);
+      await tester.tap(find.text('Set Start Time'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(IntensityPicker),
+          matching: find.text('Dripping'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Set End Time'));
+      await tester.pump();
+
+      final s = submissionFor('record_epistaxis_event');
+      expect(s.rawInput['startTimeZone'], 'America/Los_Angeles');
+      expect(s.rawInput['endTimeZone'], 'America/Los_Angeles');
+    });
+
     testWidgets(
-      'editing existing entry on the review screen records with the same '
-      'aggregateId and a non-null changeReason',
+      'Complete a resumed draft -> edit_epistaxis_event on the same aggregateId',
       (tester) async {
-        final start = DateTime.now().subtract(const Duration(hours: 2));
-        final end = DateTime.now().subtract(const Duration(hours: 1));
-        final existing = buildEpistaxisEntry(
-          entryId: 'agg-edit-1',
+        final now = DateTime.now();
+        // Whole-minute start safely in the past, so the end-time dial (which
+        // snaps to minutes) does not produce a value before start.
+        final start = DateTime(now.year, now.month, now.day - 1, 10);
+        // Resumed draft: has start + intensity, no end, not complete.
+        final existing = buildEpistaxisView(
+          aggregateId: 'agg-resume-1',
+          startTime: start,
+          intensity: NosebleedIntensity.dripping,
+          isComplete: false,
+        );
+
+        await pumpScreen(tester, existing: existing);
+        // Lands on the end-time step.
+        expect(find.text('Nosebleed End Time'), findsOneWidget);
+
+        await tester.tap(find.text('Set End Time'));
+        await tester.pump();
+
+        final s = submissionFor('edit_epistaxis_event');
+        expect(s.rawInput['aggregateId'], 'agg-resume-1');
+        expect(s.rawInput['intensity'], 'dripping');
+        expect(s.rawInput['endTime'], isNotNull);
+        // A finalize must NOT also write a checkpoint.
+        expect(
+          fake.submittedActions.where(
+            (a) => a.actionName == 'checkpoint_epistaxis_event',
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    testWidgets('Back out of a brand-new partial -> checkpoint_epistaxis_event '
+        '(aggregateId null) with the partial payload', (tester) async {
+      await pumpScreen(tester);
+
+      // Confirm only the start time (partial: no intensity, no end).
+      await tester.tap(find.text('Set Start Time'));
+      await tester.pumpAndSettle();
+
+      // Back out -> auto-save as a checkpoint.
+      await tester.tap(find.text('Back'));
+      await tester.pumpAndSettle();
+
+      final s = submissionFor('checkpoint_epistaxis_event');
+      expect(s.rawInput['aggregateId'], isNull);
+      expect(s.rawInput['startTime'], isNotNull);
+      // Partial: no end time / intensity carried.
+      expect(s.rawInput.containsKey('endTime'), isFalse);
+      expect(s.rawInput.containsKey('intensity'), isFalse);
+    });
+
+    testWidgets(
+      'Back out while editing a finalized entry -> edit_epistaxis_event '
+      '(NOT checkpoint)',
+      (tester) async {
+        final start = DateTime.now().subtract(const Duration(hours: 3));
+        final end = DateTime.now().subtract(const Duration(hours: 2));
+        final existing = buildEpistaxisView(
+          aggregateId: 'agg-finalized-1',
           startTime: start,
           endTime: end,
+          endTimeZone: 'UTC',
           intensity: NosebleedIntensity.dripping,
         );
 
-        FeatureFlagService.instance.useReviewScreen = true;
-        await pumpScreen(
-          tester,
-          existingEntry: existing,
-          onDelete: (_) async {},
+        await pumpScreen(tester, existing: existing);
+
+        // Change something so there is an unsaved partial to auto-save.
+        await tester.tap(find.text('Max Intensity'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: find.byType(IntensityPicker),
+            matching: find.text('Spotting'),
+          ),
         );
+        await tester.pumpAndSettle();
 
-        // The complete step renders a "Save Changes" FilledButton.
-        final saveButton = find.widgetWithText(FilledButton, 'Save Changes');
-        expect(saveButton, findsOneWidget);
-        await tester.tap(saveButton, warnIfMissed: false);
-        await tester.pump();
+        await tester.tap(find.text('Back'));
+        await tester.pumpAndSettle();
 
-        expect(entryService.calls, hasLength(1));
-        final call = entryService.calls.single;
-        expect(call.aggregateId, 'agg-edit-1');
-        expect(call.changeReason, isNotNull);
-        expect(call.changeReason, isNot('initial'));
+        final s = submissionFor('edit_epistaxis_event');
+        expect(s.rawInput['aggregateId'], 'agg-finalized-1');
+        expect(
+          fake.submittedActions.where(
+            (a) => a.actionName == 'checkpoint_epistaxis_event',
+          ),
+          isEmpty,
+        );
       },
     );
 
     testWidgets(
-      'delete from edit mode invokes onDelete with a non-empty reason',
+      'Delete -> delete_entry with {aggregateId, entryType, changeReason}',
       (tester) async {
         final start = DateTime.now().subtract(const Duration(hours: 2));
         final end = DateTime.now().subtract(const Duration(hours: 1));
-        final existing = buildEpistaxisEntry(
-          entryId: 'agg-del-1',
+        final existing = buildEpistaxisView(
+          aggregateId: 'agg-del-1',
           startTime: start,
           endTime: end,
+          endTimeZone: 'UTC',
           intensity: NosebleedIntensity.spotting,
         );
 
-        String? capturedReason;
-        await pumpScreen(
-          tester,
-          existingEntry: existing,
-          onDelete: (reason) async {
-            capturedReason = reason;
-          },
-        );
+        await pumpScreen(tester, existing: existing);
 
         await tester.tap(find.byIcon(Icons.delete_outline));
         await tester.pumpAndSettle();
@@ -320,72 +374,370 @@ void main() {
         await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
         await tester.pump();
 
-        expect(capturedReason, 'Entered by mistake');
+        final s = submissionFor('delete_entry');
+        expect(s.rawInput['aggregateId'], 'agg-del-1');
+        expect(s.rawInput['entryType'], 'epistaxis_event');
+        expect(s.rawInput['changeReason'], 'entered-in-error');
       },
     );
 
     testWidgets(
-      'editing entry that is missing intensity opens the intensity step '
-      'instead of the start step',
+      'editing existing entry on the review screen submits edit_epistaxis_event '
+      'with the same aggregateId',
       (tester) async {
-        final start = DateTime.now().subtract(const Duration(hours: 1));
-        final existing = DiaryEntry(
-          entryId: 'agg-incomplete-1',
-          entryType: 'epistaxis_event',
-          effectiveDate: start,
-          currentAnswers: <String, Object?>{
-            'startTime': start.toUtc().toIso8601String(),
-          },
-          isComplete: false,
-          isDeleted: false,
-          latestEventId: 'evt-incomplete-1',
-          updatedAt: start,
+        final start = DateTime.now().subtract(const Duration(hours: 2));
+        final end = DateTime.now().subtract(const Duration(hours: 1));
+        final existing = buildEpistaxisView(
+          aggregateId: 'agg-edit-1',
+          startTime: start,
+          endTime: end,
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
         );
 
         await pumpScreen(
           tester,
-          existingEntry: existing,
-          onDelete: (_) async {},
+          existing: existing,
+          rules: const ClinicalRules(useReviewScreen: true),
         );
 
-        // Initial step for an entry missing intensity is the intensity step.
-        expect(find.byType(IntensityPicker), findsOneWidget);
+        final saveButton = find.widgetWithText(FilledButton, 'Save Changes');
+        expect(saveButton, findsOneWidget);
+        await tester.tap(saveButton, warnIfMissed: false);
+        await tester.pump();
+
+        final s = submissionFor('edit_epistaxis_event');
+        expect(s.rawInput['aggregateId'], 'agg-edit-1');
       },
     );
 
+    // Verifies: DIARY-PRD-entry-time-restrictions — a date past the lock
+    //   threshold is read-only: lock banner shown, delete hidden, and an
+    //   explicit save is refused (no submission).
+    testWidgets('locked date is read-only (banner, no delete, save blocked)', (
+      tester,
+    ) async {
+      final start = DateTime.now().subtract(const Duration(hours: 5));
+      final existing = buildEpistaxisView(
+        aggregateId: 'agg-locked',
+        startTime: start,
+        endTime: DateTime.now().subtract(const Duration(hours: 4)),
+        endTimeZone: 'UTC',
+        intensity: NosebleedIntensity.dripping,
+      );
+
+      await pumpScreen(
+        tester,
+        existing: existing,
+        // lockThreshold 1h + entry 5h old + trialStart null => locked.
+        rules: const ClinicalRules(
+          gate: EntryGateRules(lockThreshold: Duration(hours: 1)),
+        ),
+      );
+
+      expect(find.textContaining('locked'), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
+
+      // Even if a Save button is reachable, the locked guard refuses to submit.
+      final save = find.widgetWithText(FilledButton, 'Save Changes');
+      if (save.evaluate().isNotEmpty) {
+        await tester.tap(save, warnIfMissed: false);
+        await tester.pump();
+      }
+      expect(
+        fake.submittedActions.where(
+          (s) => s.actionName == 'edit_epistaxis_event',
+        ),
+        isEmpty,
+      );
+    });
+
+    // Regression: the screen is pushed as `Navigator.push<String?>` (e.g. the
+    // day-disposition + home resume flows). Discarding a brand-new entry via the
+    // trash icon must pop a String? (null), NOT a bool — popping `true` threw
+    // "type 'bool' is not a subtype of type 'String?'" and the trash did nothing.
+    testWidgets('trash on a new entry pops null on a String?-typed route', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      String? popResult = 'sentinel';
+      var popped = false;
+      await tester.pumpWidget(
+        ReActionScope(
+          scope: fake,
+          child: wrapWithMaterialApp(
+            Builder(
+              builder: (hostContext) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      popResult = await Navigator.of(hostContext).push<String?>(
+                        MaterialPageRoute<String?>(
+                          builder: (_) => const ClinicalRulesScope(
+                            rules: ClinicalRules(),
+                            child: RecordingScreen(),
+                          ),
+                        ),
+                      );
+                      popped = true;
+                    },
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      // On the recording screen now; tap the trash (new entry, nothing saved).
+      await tester.tap(find.byIcon(Icons.delete_outline));
+      await tester.pumpAndSettle();
+
+      expect(
+        popped,
+        isTrue,
+        reason: 'route should have popped (no type error)',
+      );
+      expect(popResult, isNull);
+      expect(find.text('open'), findsOneWidget); // back on the host
+    });
+
+    // ---------------------------------------------------------------------
+    // Overlap.
+    // ---------------------------------------------------------------------
+
     testWidgets(
-      'overlap warning appears when editing an entry that overlaps another',
+      'overlap on an explicit save now succeeds (submits edit_epistaxis_event)',
       (tester) async {
-        // Two complete entries with overlapping time windows. The screen
-        // detects overlap on render via _getOverlappingEvents().
         final base = DateTime.now();
         final today1pm = DateTime(base.year, base.month, base.day, 13);
         final today2pm = DateTime(base.year, base.month, base.day, 14);
-        final overlapEntry = buildEpistaxisEntry(
-          entryId: 'agg-overlap-other',
+        final other = buildEpistaxisView(
+          aggregateId: 'agg-overlap-other',
           startTime: today1pm,
           endTime: today2pm,
+          endTimeZone: 'UTC',
           intensity: NosebleedIntensity.dripping,
         );
 
         final today130 = DateTime(base.year, base.month, base.day, 13, 30);
         final today145 = DateTime(base.year, base.month, base.day, 13, 45);
-        final editing = buildEpistaxisEntry(
-          entryId: 'agg-overlap-self',
+        final editing = buildEpistaxisView(
+          aggregateId: 'agg-overlap-self',
           startTime: today130,
           endTime: today145,
+          endTimeZone: 'UTC',
           intensity: NosebleedIntensity.dripping,
         );
 
-        FeatureFlagService.instance.useReviewScreen = true;
         await pumpScreen(
           tester,
-          existingEntry: editing,
-          allEntries: [overlapEntry],
-          onDelete: (_) async {},
+          existing: editing,
+          rules: const ClinicalRules(useReviewScreen: true),
         );
 
+        // Seed the overlapping finalized row; the inline warning still shows as
+        // a non-blocking heads-up.
+        seedDiaryEntries([other]);
+        await tester.pumpAndSettle();
         expect(find.text('Overlapping Events Detected'), findsOneWidget);
+
+        // An explicit "Save Changes" is NO LONGER blocked — it submits.
+        await tester.tap(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+          warnIfMissed: false,
+        );
+        await tester.pump();
+
+        expect(
+          fake.submittedActions.where(
+            (a) => a.actionName == 'edit_epistaxis_event',
+          ),
+          isNotEmpty,
+        );
+      },
+    );
+
+    // Finalizing an entry that overlaps another routes STRAIGHT to the
+    // side-by-side compare screen (replacing this screen) — not back to the
+    // host / summary. The screen is pushed from a host route (as in production),
+    // so the route replacement has somewhere to land.
+    Future<void> pumpRecordingFromHost(
+      WidgetTester tester, {
+      required EpistaxisEntryView editing,
+      bool fromOverlapResolution = false,
+    }) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        ReActionScope(
+          scope: fake,
+          child: wrapWithMaterialApp(
+            Builder(
+              builder: (host) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(host).push<String?>(
+                      MaterialPageRoute<String?>(
+                        builder: (_) => ClinicalRulesScope(
+                          rules: const ClinicalRules(useReviewScreen: true),
+                          child: RecordingScreen(
+                            existing: editing,
+                            fromOverlapResolution: fromOverlapResolution,
+                          ),
+                        ),
+                      ),
+                    ),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    EpistaxisEntryView overlapPair(String id, {required int startMinute}) =>
+        buildEpistaxisView(
+          aggregateId: id,
+          startTime: DateTime(2026, 5, 31, 13, startMinute),
+          endTime: DateTime(2026, 5, 31, 13, startMinute + 15),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+
+    testWidgets(
+      'finalizing an overlapping entry routes to the compare screen',
+      (tester) async {
+        final pre = buildEpistaxisView(
+          aggregateId: 'agg-pre',
+          startTime: DateTime(2026, 5, 31, 13),
+          endTime: DateTime(2026, 5, 31, 14),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        final editing = overlapPair('agg-self', startMinute: 30);
+
+        await pumpRecordingFromHost(tester, editing: editing);
+        seedDiaryEntries([pre]);
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+          warnIfMissed: false,
+        );
+        // _saveRecord is async (multiple awaits). runAsync drains the microtask
+        // chain so pushReplacement fires before we pump frames.
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(OverlapCompareScreen), findsOneWidget);
+        expect(
+          find.text('open'),
+          findsNothing,
+        ); // recording screen was replaced
+      },
+    );
+
+    // When opened FROM the overlap flow (an Edit on the compare screen), a
+    // finalize that still overlaps must NOT push another compare screen — it
+    // pops back (to the existing compare screen, here the host).
+    testWidgets('finalizing from the overlap flow does not re-route', (
+      tester,
+    ) async {
+      final pre = buildEpistaxisView(
+        aggregateId: 'agg-pre2',
+        startTime: DateTime(2026, 5, 31, 13),
+        endTime: DateTime(2026, 5, 31, 14),
+        endTimeZone: 'UTC',
+        intensity: NosebleedIntensity.dripping,
+      );
+      final editing = overlapPair('agg-self2', startMinute: 30);
+
+      await pumpRecordingFromHost(
+        tester,
+        editing: editing,
+        fromOverlapResolution: true,
+      );
+      seedDiaryEntries([pre]);
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Save Changes'),
+        warnIfMissed: false,
+      );
+      // Give the async _saveRecord microtask chain time to complete before pumping frames.
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      // The flag suppresses the re-route; it pops back to the host instead.
+      expect(find.byType(OverlapCompareScreen), findsNothing);
+      expect(find.text('open'), findsOneWidget);
+    });
+
+    // Tapping the inline overlap warning's "Resolve" button finalizes the
+    // in-progress entry and routes straight to the side-by-side compare screen
+    // (replacing the recording screen), not back to the host and not on top.
+    testWidgets(
+      'overlap "Resolve" finalizes the entry and routes to the compare screen',
+      (tester) async {
+        final base = DateTime.now();
+        final other = buildEpistaxisView(
+          aggregateId: 'agg-resolve-other',
+          startTime: DateTime(base.year, base.month, base.day, 13),
+          endTime: DateTime(base.year, base.month, base.day, 14),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        final editing = buildEpistaxisView(
+          aggregateId: 'agg-resolve-self',
+          startTime: DateTime(base.year, base.month, base.day, 13, 30),
+          endTime: DateTime(base.year, base.month, base.day, 13, 45),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+
+        await pumpRecordingFromHost(tester, editing: editing);
+        seedDiaryEntries([other]);
+        await tester.pumpAndSettle();
+        expect(find.text('Overlapping Events Detected'), findsOneWidget);
+
+        await tester.tap(find.text('Resolve'));
+        // _saveRecord is async; drain the microtask chain before pumping frames.
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        // The entry was finalized (edit_epistaxis_event submitted) and the
+        // screen was replaced with the side-by-side compare screen.
+        expect(
+          fake.submittedActions.where(
+            (a) => a.actionName == 'edit_epistaxis_event',
+          ),
+          isNotEmpty,
+        );
+        expect(find.byType(OverlapCompareScreen), findsOneWidget);
+        expect(find.text('open'), findsNothing); // recording screen replaced
       },
     );
   });

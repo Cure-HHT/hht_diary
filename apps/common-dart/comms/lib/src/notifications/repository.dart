@@ -17,19 +17,19 @@ abstract class NotificationRepository {
   /// same id without duplicate rows.
   Future<void> insertPending(Envelope envelope);
 
-  /// Fetch a single envelope. The [patientId] argument enforces RLS at
-  /// the query level so a leaked id from another patient does not
-  /// surface. Returns null when no row exists for the (id, patient)
+  /// Fetch a single envelope. The [participantId] argument enforces RLS at
+  /// the query level so a leaked id from another participant does not
+  /// surface. Returns null when no row exists for the (id, participant)
   /// pair — distinguishes "not found" from "permission denied".
-  Future<Envelope?> findById(String id, {required String patientId});
+  Future<Envelope?> findById(String id, {required String participantId});
 
   /// Polled by the mobile app on resume / wake. Returns envelopes
-  /// created strictly after [since], scoped to the patient. Implementations
-  /// MUST cap the result at [limit] rows even if the patient has more —
+  /// created strictly after [since], scoped to the participant. Implementations
+  /// MUST cap the result at [limit] rows even if the participant has more —
   /// the mobile fetches the rest with a fresher [since] cursor.
   Future<List<Envelope>> findSince(
     DateTime since, {
-    required String patientId,
+    required String participantId,
     required int limit,
   });
 
@@ -47,6 +47,6 @@ abstract class NotificationRepository {
   /// — a duplicate fetch from mobile must not re-stamp the timestamp.
   Future<void> markDeliveredIfNull(
     List<String> ids, {
-    required String patientId,
+    required String participantId,
   });
 }

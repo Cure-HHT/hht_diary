@@ -2,8 +2,13 @@
 #
 # Defines the formal-requirement ID format, level hierarchy, and file
 # scanning surface for this repo. Authored by hand to use the DIARY
-# namespace with named (kebab-case) component IDs and four audience
-# levels (PRD/GUI/OPS/DEV). Modeled after Cure-HHT/event_sourcing.
+# namespace with named (kebab-case) component IDs and five levels
+# (PRD/BASE/GUI/OPS/DEV). Modeled after Cure-HHT/event_sourcing.
+#
+# BASE is a product-tier root that mirrors PRD (GUI/OPS/DEV may refine it
+# exactly as they refine PRD), but marks behavior a Sponsor may OPT TO
+# EXCLUDE from their documentation set. Use it for product obligations
+# that are real and traceable but not part of every sponsor's URS.
 #
 # Companion: spec/README.md and (eventually) spec/requirements-spec.md.
 
@@ -24,7 +29,7 @@ name = "Cure-HHT Diary Platform"
 # Requirement ID format
 #
 # Canonical form: DIARY-{level}-{component}[-{assertion}]
-#   level     — three-letter audience tag (PRD, GUI, OPS, DEV)
+#   level     — audience tag (PRD, BASE, GUI, OPS, DEV)
 #   component — kebab-case noun describing the requirement subject
 #   assertion — optional A–Z label (multi-assertion via "+")
 #
@@ -62,36 +67,46 @@ separator = "-"
 
 # Requirement-level definitions
 #
-# Four levels: PRD (product obligations), GUI (presentation obligations
-# — interface behavior, layout, interaction patterns), OPS (operational
-# obligations), and DEV (implementation obligations).
+# Five levels: PRD (product obligations), BASE (product obligations a
+# Sponsor may exclude from their documentation set — refinable exactly
+# like PRD), GUI (presentation obligations — interface behavior, layout,
+# interaction patterns), OPS (operational obligations), and DEV
+# (implementation obligations).
 #
-# GUI sits between PRD and OPS in the hierarchy because a GUI REQ
-# typically Refines a PRD parent (presentation elaborates function).
+# PRD and BASE are both product-tier roots (each implements only itself).
+# GUI/OPS/DEV may Refine either. GUI sits above OPS because a GUI REQ
+# typically Refines a PRD/BASE parent (presentation elaborates function).
+# `rank` is a display/ordering total order; BASE is placed adjacent to PRD.
 
 [levels.PRD]
 rank = 1
 letter = "PRD"
 display_name = "Product"
-implements = ["PRD"]
+implements = ["PRD", "BASE"]
+
+[levels.BASE]
+rank = 2
+letter = "BASE"
+display_name = "Base (sponsor-excludable)"
+implements = ["BASE", "PRD"]
 
 [levels.GUI]
-rank = 2
+rank = 3
 letter = "GUI"
 display_name = "Interface"
-implements = ["GUI", "PRD"]
+implements = ["GUI", "PRD", "BASE"]
 
 [levels.OPS]
-rank = 3
+rank = 4
 letter = "OPS"
 display_name = "Operations"
-implements = ["OPS", "PRD"]
+implements = ["OPS", "PRD", "BASE"]
 
 [levels.DEV]
-rank = 4
+rank = 5
 letter = "DEV"
 display_name = "Development"
-implements = ["DEV", "GUI", "OPS", "PRD"]
+implements = ["DEV", "GUI", "OPS", "PRD", "BASE"]
 
 # File scanning configuration
 
@@ -275,6 +290,23 @@ changed = "warning"
 [output]
 formats = []
 dir = ""
+
+# Cross-repo federation scope (elspais >= 0.117.31)
+#
+# Read operations (health checks, summary, cross-repo reference resolution)
+# always federate; these flags only gate WRITE/GENERATE surfaces. With both
+# false, `elspais fix` (and MCP mutations) only modify THIS repo's spec files
+# and never fold the event_sourcing (EVS) associate's requirements into our
+# INDEX.md / term-index.md.
+#
+# Set explicitly to false to retire the prior workaround where
+# `.elspais.local.toml` had to be moved aside before every commit so the
+# pre-commit `elspais fix` wouldn't rewrite the event_sourcing repo's spec
+# tree and bloat our INDEX. See ~/elspais/fedfix.md (the bug report) — this
+# section is the upstream fix landing.
+[federation]
+write_associates = false
+index_associates = false
 
 # Associated repository definitions for cross-repo federation
 # Populated by `elspais associate <path>`; do not edit by hand.

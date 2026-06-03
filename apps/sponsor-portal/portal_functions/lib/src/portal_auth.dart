@@ -10,7 +10,6 @@
 // Supports multi-role users with role selection at login
 // Supports conditional MFA: TOTP for Developer Admin, Email OTP for others
 
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:meta/meta.dart';
@@ -27,56 +26,6 @@ import 'portal_metrics.dart';
 /// Set to null to restore production behavior.
 @visibleForTesting
 Future<PortalUser?> Function(Request request)? requirePortalAuthOverride;
-
-// Implements: DIARY-PRD-session-management/H
-// Per-request marker that requirePortalAuth sets when it rejects
-// because portal_users.tokens_revoked_at is newer than the token's
-// auth_time. The shelf middleware [withSessionRevokedTracking] reads
-// this marker after the handler returns and rewrites any 403 body to
-// {"error":"session_revoked","code":"session_revoked"} so the SPA can
-// distinguish "your session is dead, sign out" from a per-endpoint
-// permission denial. A List is used (not a bool) because Zone values
-// are read-only references — the list itself stays the same; only its
-// contents change per request.
-const _sessionRevokedZoneKey = #portalAuthSessionRevoked;
-
-/// Marks the current request as having been rejected due to session
-/// revocation. Safe to call outside the tracking zone — becomes a
-/// no-op if [withSessionRevokedTracking] is not on the pipeline (so
-/// unit tests and direct handler calls work unchanged).
-void markSessionRevoked() {
-  final holder = Zone.current[_sessionRevokedZoneKey];
-  if (holder is List<bool>) {
-    holder.add(true);
-  }
-}
-
-/// Shelf middleware that runs each request inside a zone whose
-/// per-request marker tracks session-revocation rejections, and
-/// rewrites the response body of any 403 carrying that marker to
-/// signal the cause to the SPA. All other 403s pass through unchanged.
-///
-/// Implements: DIARY-PRD-session-management/H
-Middleware withSessionRevokedTracking() {
-  return (Handler inner) {
-    return (Request request) async {
-      final holder = <bool>[];
-      return runZoned(() async {
-        final response = await inner(request);
-        if (response.statusCode != 403 || holder.isEmpty) {
-          return response;
-        }
-        return response.change(
-          body: jsonEncode({
-            'error': 'session_revoked',
-            'code': 'session_revoked',
-          }),
-          headers: {'content-type': 'application/json'},
-        );
-      }, zoneValues: {_sessionRevokedZoneKey: holder});
-    };
-  };
-}
 
 /// Portal user information from database
 /// Supports multiple roles per user with active role selection
@@ -405,7 +354,7 @@ Future<PortalUser?> requirePortalAuth(
   // Uid-only lookup — no email-keyed fallback (CUR-1296 / REQ-d00167-A,B).
   final result = await db.executeWithContext(
     '''
-    SELECT id, firebase_uid, email, name, status, tokens_revoked_at
+    SELECT id, firebase_uid, email, name, status
     FROM portal_users
     WHERE firebase_uid = @firebaseUid
     ''',
@@ -424,28 +373,9 @@ Future<PortalUser?> requirePortalAuth(
   final row = result.first;
   final userId = row[0] as String;
   final userStatus = row[4] as String;
-  final tokensRevokedAt = row[5] as DateTime?;
 
   if (userStatus == 'revoked' || userStatus == 'pending') {
     return null;
-  }
-
-  // Implements: DIARY-PRD-session-management/H
-  // Reject any token issued before the most recent session-revocation
-  // event for this account. updatePortalUserHandler sets
-  // tokens_revoked_at whenever roles, sites, or status change; without
-  // this check the column would be a write-only field and the cascade
-  // assertions DIARY-PRD-session-management/E+F would only be honored
-  // by natural token expiry. authTime missing means we cannot prove the
-  // token predates the revocation — fail closed. The marker tells the
-  // tracking middleware to surface the cause as session_revoked so the
-  // SPA can sign out instead of treating it as a per-endpoint 403.
-  if (tokensRevokedAt != null) {
-    final authTime = verification.authTime;
-    if (authTime == null || authTime.isBefore(tokensRevokedAt)) {
-      markSessionRevoked();
-      return null;
-    }
   }
 
   // Fetch all roles for this user

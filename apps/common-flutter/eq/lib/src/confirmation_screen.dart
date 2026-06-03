@@ -18,7 +18,7 @@ class ConfirmationScreen extends StatelessWidget {
   /// Name of the submitted questionnaire
   final String questionnaireName;
 
-  /// Called when patient taps "Done"
+  /// Called when participant taps "Done"
   final VoidCallback onDone;
 
   @override

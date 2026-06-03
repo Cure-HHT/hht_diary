@@ -17,22 +17,26 @@ class InMemoryNotificationRepository implements NotificationRepository {
   }
 
   @override
-  Future<Envelope?> findById(String id, {required String patientId}) async {
+  Future<Envelope?> findById(String id, {required String participantId}) async {
     final envelope = envelopes[id];
-    if (envelope == null || envelope.patientId != patientId) return null;
+    if (envelope == null || envelope.participantId != participantId) {
+      return null;
+    }
     return envelope;
   }
 
   @override
   Future<List<Envelope>> findSince(
     DateTime since, {
-    required String patientId,
+    required String participantId,
     required int limit,
   }) async {
     final filtered =
         envelopes.values
             .where(
-              (e) => e.patientId == patientId && e.createdAt.isAfter(since),
+              (e) =>
+                  e.participantId == participantId &&
+                  e.createdAt.isAfter(since),
             )
             .toList()
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
@@ -65,11 +69,11 @@ class InMemoryNotificationRepository implements NotificationRepository {
   @override
   Future<void> markDeliveredIfNull(
     List<String> ids, {
-    required String patientId,
+    required String participantId,
   }) async {
     for (final id in ids) {
       final existing = envelopes[id];
-      if (existing == null || existing.patientId != patientId) continue;
+      if (existing == null || existing.participantId != participantId) continue;
       if (existing.deliveredAt != null) continue;
       envelopes[id] = existing.copyWith(
         status: EnvelopeStatus.delivered,

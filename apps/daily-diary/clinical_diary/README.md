@@ -1,6 +1,6 @@
 # Clinical Diary
 
-Flutter application for FDA-compliant clinical trial data collection, focusing on nosebleed incident tracking for HHT (Hereditary Hemorrhagic Telangiectasia) patients.
+Flutter application for FDA-compliant clinical trial data collection, focusing on nosebleed incident tracking for HHT (Hereditary Hemorrhagic Telangiectasia) participants.
 
 ## Features
 
@@ -19,8 +19,6 @@ Flutter application for FDA-compliant clinical trial data collection, focusing o
 - Flutter SDK 3.38.7 or higher
 - Doppler CLI (for secrets management)
 - lcov (for coverage reports)
-- Bash 4+ (for `tool/build`, `tool/run`, `tool/generate_env_delta_record.sh`; macOS ships Bash 3.2, so `brew install bash`). CI's ubuntu runner has Bash 5 unconditionally.
-- yq (mikefarah/yq) for parsing `flavorizr.yaml` from the tool scripts. `brew install yq`. CI runners have it preinstalled.
 
 ### Installation
 
@@ -75,115 +73,78 @@ Each flavor has:
 - **Separate Firebase project** - Isolated data per environment
 - **Environment-specific API base URL**
 
-### Running with Environments
+### Running with Flavors
 
-All configuration (API base URL, feature flags, etc.) is derived from the resolved
-environment — the bundled `assets/config/env.json` pointer (`EnvProfile`), not a build flag.
+All configuration (API base URL, feature flags, etc.) is derived from a single `APP_FLAVOR` value.
+This simplifies build commands and IDE configurations.
 
-**Single source of truth for the env list**: `flavorizr.yaml` at the project root.
-Adding a new env means adding an entry there; the tool scripts pick it up automatically.
+**Using IDE Run Configurations (Recommended):**
 
-**Using IDE Run Configurations:**
+Pre-configured run configurations are available for both IDEs:
+- **IntelliJ IDEA**: `.idea/runConfigurations/` (dev, qa, uat, prod, plus profile/release variants)
+- **VS Code**: `.vscode/launch.json`
 
-VS Code launch configurations are in `.vscode/launch.json` (one entry per env per
-debug/profile/release mode — adding a new env to `flavorizr.yaml` requires adding
-matching launch.json entries by hand for now).
+Simply select the desired flavor from your IDE's run configuration dropdown.
 
 **Using Command Line:**
 
 ```bash
-# Run with parametric ./tool/run <env> [flags]
-./tool/run dev                          # default device, dev env
-./tool/run qa --web                     # Chrome, qa env
-./tool/run uat --device macos           # macOS, uat env
-./tool/run local                        # Chrome -> localhost:8081 (local diary-server)
-./tool/run local --device emulator-5554 --api-base http://10.0.2.2:8081  # Android emu
-./tool/run prod --force                 # prod locally — almost always wrong (hence --force)
+# Web builds (--flavor doesn't work on web, use --dart-define only)
+flutter run -d chrome --dart-define=APP_FLAVOR=dev
+flutter run -d chrome --dart-define=APP_FLAVOR=qa
+flutter run -d chrome --dart-define=APP_FLAVOR=prod
+
+# Mobile builds (--flavor sets FLUTTER_APP_FLAVOR for native config)
+# Include both for cross-platform compatibility
+flutter run --flavor dev --dart-define=APP_FLAVOR=dev
+flutter run --flavor qa --dart-define=APP_FLAVOR=qa
+flutter run --flavor prod --dart-define=APP_FLAVOR=prod
 ```
 
-For one-off preview without the wrapper, stamp the pointer in a subshell so it's restored on exit:
-```bash
-( source tool/_write_env_pointer.sh qa && flutter run -d chrome )
-```
+### How Flavor Configuration Works
 
-### How Environment Configuration Works
+The app reads `APP_FLAVOR` (or `FLUTTER_APP_FLAVOR` on mobile) in `main.dart` and derives all
+other settings from `FlavorConfig` in `lib/flavors.dart`:
 
-The app resolves the active environment at runtime from the bundled
-`assets/config/env.json` pointer in `main.dart` (`EnvProfile.load()`), and derives all
-other settings from the resolved `EnvProfile` via `AppConfig`:
+| Setting        | Derived From                          |
+|----------------|---------------------------------------|
+| `apiBase`      | `FlavorConfig.byName(flavor).apiBase` |
+| `showDevTools` | `F.showDevTools` (true for dev/qa)    |
+| `showBanner`   | `F.showBanner` (true for dev/qa)      |
 
-| Setting        | Derived From                               |
-|----------------|--------------------------------------------|
-| `apiBase`      | `AppConfig.apiBase`                        |
-| `showDevTools` | `AppConfig.showDevTools` (true for dev/qa) |
-| `showBanner`   | `AppConfig.showBanner` (true for dev/qa)   |
-
-> **Note**: The environment is resolved at runtime from the bundled
-> `assets/config/env.json` on every platform (mobile and web), stamped by the `tool/`
-> build/run scripts and defaulting to dev. `--flavor` additionally selects native config
-> on mobile (bundle IDs, app names, icons, signing). `--dart-define=APP_FLAVOR` is no
-> longer read.
+> **Note**: The `--flavor` flag only affects native platform builds (iOS/Android bundle IDs,
+> app names, icons). For web builds, `--dart-define=APP_FLAVOR` is required.
 
 ### Building for Release
 
-One parametric build entrypoint: `./tool/build <platform> <env> [flags]`.
+Build scripts are available in `tool/` for common build operations:
 
 ```bash
-# Web
-./tool/build web dev
-./tool/build web qa
-./tool/build web prod
+# Web builds
+./tool/build_web_dev.sh
+./tool/build_web_qa.sh
+./tool/build_web_prod.sh
 
-# Android — unsigned (sideload-style)
-./tool/build android dev
-./tool/build android qa
+# iOS builds
+./tool/build_ios_dev.sh
+./tool/build_ios_prod.sh
 
-# Android — signed (requires Doppler keystore secrets)
-# Per-env output format (apk vs aab) comes from flavorizr.yaml's android.signedFormat.
-doppler run -- ./tool/build android prod --signed   # produces AAB for Play Store
-doppler run -- ./tool/build android qa --signed     # produces APK for sideload
-
-# iOS — local .app bundle for Xcode archive
-./tool/build ios dev
-
-# iOS — .ipa archive (no signing; for Xcode-driven device install)
-./tool/build ios uat --ipa
-
-# Full iOS App Store packaging + signing + upload — use Fastlane:
-cd ios && bundle exec fastlane build flavor:dev
-cd ios && bundle exec fastlane build_all          # all four envs from one Dart compile
+# Android builds
+./tool/build_android_dev.sh
+./tool/build_android_prod.sh
 ```
 
-Or build manually (the scripts stamp `assets/config/env.json` and restore on exit;
-do this yourself if invoking flutter directly):
+Or build manually:
 
 ```bash
-( source tool/_write_env_pointer.sh prod && flutter build apk --release --flavor prod )
+# Web (use --dart-define only)
+flutter build web --release --dart-define=APP_FLAVOR=prod
+
+# Mobile (include both --flavor and --dart-define)
+flutter build apk --release --flavor prod --dart-define=APP_FLAVOR=prod
+flutter build ios --release --flavor prod --dart-define=APP_FLAVOR=prod
+flutter build appbundle --release --flavor prod --dart-define=APP_FLAVOR=prod
 ```
-
-### Adding a new environment
-
-The single source of truth is `flavorizr.yaml`. To add a new env (say `staging`):
-
-1. Add a `staging:` block under `flavors:` in `flavorizr.yaml` with the per-env
-   `app.name`, `android.applicationId` + `signedFormat`, `ios.bundleId` +
-   `provisioningProfile`, `macos.bundleId`, icon paths, Firebase plist paths.
-2. Regenerate the native scaffolding for the new env. For most changes (adding
-   a flavor, fixing a bundle id), prefer hand-editing `android/app/flavorizr.gradle.kts`
-   directly — it's small and reviewable. Only run `dart run flutter_flavorizr -f`
-   when you genuinely need to recreate IDE configs / asset catalogs / Xcode
-   schemes from scratch: that command is destructive and overwrites unrelated
-   files (`ios/Podfile`, `lib/main.dart`, `lib/flavors.dart`, asset catalogs).
-   If you do run it, inspect the diff carefully and revert anything that isn't
-   strictly part of the new-env delta. The delta-record generator's yaml-vs-Gradle
-   cross-check will catch any divergence either way.
-3. Add per-flavor assets: `android/app/src/staging/google-services.json`,
-   `ios/Runner/staging/GoogleService-Info.plist`, launcher icons.
-4. Regenerate the controlled-delta record:
-   `/opt/homebrew/bin/bash tool/generate_env_delta_record.sh`
-5. Commit. `tool/build`, `tool/run`, Fastlane, and the CI workflows will pick up
-   the new env automatically (the workflow `flavor` dispatch input is the only
-   hand-maintained list — add `staging` there too).
 
 ### Environment Features
 
@@ -201,43 +162,44 @@ The single source of truth is `flavorizr.yaml`. To add a new env (say `staging`)
 ### Using in Code
 
 ```dart
+import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/config/app_config.dart';
-import 'package:clinical_diary/config/env_profile.dart';
 
-// Check the current environment
-if (EnvProfile.current.env == AppEnv.prod) {
+// Check current flavor
+if (F.appFlavor == Flavor.prod) {
   // Production-specific logic
 }
 
-// Check if dev tools should be shown (AppConfig delegates to the resolved EnvProfile)
+// Check if dev tools should be shown
+if (F.showDevTools) {
+  // Show debug menu items
+}
+
+// Or use AppConfig (delegates to F)
 if (AppConfig.showDevTools) {
   // Show debug menu items
 }
 
-// Get app title for the current environment
-print(EnvProfile.current.title); // "Diary DEV", "Diary QA", or "Clinical Diary"
+// Get app title for current flavor
+print(F.title); // "Diary DEV", "Diary QA", or "Clinical Diary"
 ```
 
 ### CI/CD Integration
 
-Production mobile builds run through the workflows under `.github/workflows/`:
+In GitHub Actions workflows:
 
-- **`android-build.yml`** — manual `workflow_dispatch`. Resolves the package name
-  from `flavorizr.yaml` (via `yq`), then runs
-  `doppler run ... -- ./tool/build android <flavor> --signed`. Output format
-  (APK vs AAB) is per-env in the manifest's `android.signedFormat` field.
-- **`ios-build.yml`** — manual `workflow_dispatch`. Resolves the bundle id from
-  `flavorizr.yaml`, then runs
-  `doppler run ... -- bundle exec fastlane build flavor:<flavor>` from `ios/`.
-  Fastlane handles `archive_once` (one Dart compile) + `package_flavor` (per-env
-  signing, env.json stamp, Firebase plist swap, App Store upload).
+```yaml
+# Build for web (dev)
+- name: Build Web
+  run: flutter build web --release --dart-define=APP_FLAVOR=dev
 
-For local CI parity, invoke the same scripts directly:
+# Build for Production APK
+- name: Build Production APK
+  run: flutter build apk --release --flavor prod --dart-define=APP_FLAVOR=prod
 
-```bash
-./tool/build web prod
-doppler run -- ./tool/build android prod --signed
-cd ios && bundle exec fastlane build flavor:prod
+# Build iOS
+- name: Build Production iOS
+  run: flutter build ios --release --flavor prod --dart-define=APP_FLAVOR=prod --no-codesign
 ```
 
 ### Firebase Configuration
@@ -270,10 +232,10 @@ Portal Server (per-sponsor GCP project)          Diary Server (per-sponsor GCP p
   │                                                 ▲
   │  Coordinator clicks "Send Questionnaire"        │  Mobile app registers FCM token
   │  → Creates questionnaire_instances row           │  POST /api/v1/user/fcm-token
-  │  → Looks up FCM token from shared DB             │  → Stores in patient_fcm_tokens table
+  │  → Looks up FCM token from shared DB             │  → Stores in participant_fcm_tokens table
   │  → Sends FCM via HTTP v1 API                     │
   │                                                 │
-  │  FCM HTTP v1 API                              Patient's Mobile App
+  │  FCM HTTP v1 API                              Participant's Mobile App
   │  (WIF/ADC auth, no key files)                   │
   │                                                 ├── MobileNotificationService
   ▼                                                 │   - Requests permission (iOS/Android 13+)
@@ -283,24 +245,24 @@ Firebase (cure-hht-admin GCP project)               │   - Gets FCM registratio
   │                                                 │
   └──────────────────────────────────────────────►  └── TaskService
                                                         - Routes FCM data by 'type' field
-              ┌──────────────────┐                      - Manages task list (ChangeNotifier)
-              │  Shared Database │                      - Persists to SharedPreferences
-              │  (PostgreSQL)    │
-              │                  │
-              │  patient_fcm_    │  ◄── Written by diary server
-              │    tokens        │  ◄── Read by portal server
-              │  questionnaire_  │  ◄── Written by portal server
-              │    instances     │  ◄── (future: read by diary server for sync)
-              └──────────────────┘
+              ┌────────────────────┐                      - Manages task list (ChangeNotifier)
+              │  Shared Database   │                      - Persists to SharedPreferences
+              │  (PostgreSQL)      │
+              │                    │
+              │  participant_fcm_  │  ◄── Written by diary server
+              │    tokens          │  ◄── Read by portal server
+              │  questionnaire_    │  ◄── Written by portal server
+              │    instances       │  ◄── (future: read by diary server for sync)
+              └────────────────────┘
 ```
 
 ### How Device Targeting Works
 
 1. **App startup**: `MobileNotificationService` requests an FCM registration token from Firebase. This is a unique ~150-char string identifying this app installation on this device.
-2. **Token registration** (TODO): The app sends this token to the **diary server** via `POST /api/v1/user/fcm-token` (JWT auth). The diary server stores it in the `patient_fcm_tokens` database table linked to the patient's ID.
+2. **Token registration** (TODO): The app sends this token to the **diary server** via `POST /api/v1/user/fcm-token` (JWT auth). The diary server stores it in the `participant_fcm_tokens` database table linked to the participant's ID.
 3. **Token refresh**: Firebase may rotate the token at any time. The app listens for `onTokenRefresh` and re-registers with the diary server.
-4. **Sending**: When a coordinator clicks "Send Questionnaire", the **portal server** looks up the patient's active FCM token from the **shared database** and calls the FCM HTTP v1 API to deliver a data-only message to that specific device.
-5. **No token?**: If no token is registered (e.g., app not installed), the questionnaire is still created server-side. The patient discovers it via data sync.
+4. **Sending**: When a coordinator clicks "Send Questionnaire", the **portal server** looks up the participant's active FCM token from the **shared database** and calls the FCM HTTP v1 API to deliver a data-only message to that specific device.
+5. **No token?**: If no token is registered (e.g., app not installed), the questionnaire is still created server-side. The participant discovers it via data sync.
 
 **Why two servers?** The mobile app only talks to the diary server (JWT auth via linking codes). The portal UI only talks to the portal server (Firebase Auth). They share the same PostgreSQL database, so the portal server can read tokens that the diary server wrote.
 
@@ -311,7 +273,7 @@ Messages are **data-only** (no PHI in the notification payload):
 ```json
 {
   "message": {
-    "token": "<patient_fcm_token>",
+    "token": "<participant_fcm_token>",
     "data": {
       "type": "questionnaire_sent",
       "questionnaire_type": "nose_hht",
@@ -374,7 +336,7 @@ This script calls the portal server's questionnaire API, which will log the FCM 
 
 ### Remaining Work
 
-- [ ] Database migration: `patient_fcm_tokens` and `questionnaire_instances` tables
+- [ ] Database migration: `participant_fcm_tokens` and `questionnaire_instances` tables
 - [ ] Token registration endpoint: `POST /api/v1/user/fcm-token` on diary server (mobile app talks to diary server, not portal)
 - [ ] Mobile app: send FCM token to diary server on startup and refresh
 - [ ] Task tap navigation: route to questionnaire screen
@@ -504,10 +466,10 @@ project. This eliminates insecure secret sharing via Slack, email, or .env files
 5. **Run with Doppler** (injects secrets as environment variables):
    ```bash
    # For web
-   doppler run -- flutter run -d chrome
+   doppler run -- flutter run -d chrome --dart-define=APP_FLAVOR=dev
 
    # For mobile
-   doppler run -- flutter run --flavor dev
+   doppler run -- flutter run --flavor dev --dart-define=APP_FLAVOR=dev
    ```
 
 ### Team Secret Sharing
@@ -551,8 +513,8 @@ doppler secrets get CUREHHT_QA_API_KEY
 |----------------------|-------------------------------------|--------------|---------------------------------|
 | `CUREHHT_QA_API_KEY` | API key for sponsor config endpoint | dev, qa only | Flutter app, Firebase Functions |
 
-> **Note**: Configuration like `apiBase` is not passed via dart-define. It's derived from the
-> resolved environment (`EnvProfile.current`, from the bundled `assets/config/env.json`).
+> **Note**: Configuration like `apiBase` is no longer passed via dart-define. It's derived from
+> the `APP_FLAVOR` setting in `lib/flavors.dart`.
 
 ### Firebase Functions Secrets (Doppler Integration)
 
@@ -619,15 +581,16 @@ authentication, not a shared test key.
 
 ### Accessing Configuration in Flutter Code
 
-Most configuration is derived from the resolved environment, not dart-defines:
+Most configuration is derived from the flavor, not dart-defines:
 
 ```dart
+import 'package:clinical_diary/flavors.dart';
 import 'package:clinical_diary/config/app_config.dart';
 
-// API base URL (derived from the resolved EnvProfile)
-final apiUrl = AppConfig.apiBase;
+// API base URL (derived from FlavorConfig)
+final apiUrl = AppConfig.apiBase;  // e.g., "https://hht-diary-mvp.web.app/api"
 
-// Feature flags (derived from the resolved EnvProfile)
+// Feature flags (derived from flavor)
 if (AppConfig.showDevTools) {
   // Show debug menu
 }
@@ -636,7 +599,7 @@ if (AppConfig.showDevTools) {
 static const String _qaApiKeyRaw = String.fromEnvironment('CUREHHT_QA_API_KEY');
 ```
 
-On every platform the environment comes from the bundled `assets/config/env.json` (use `tool/run <env>` or `tool/build web <env>` to target a non-dev env); `--dart-define=APP_FLAVOR` is no longer read.
+The IDE run configurations only need to pass `--dart-define=APP_FLAVOR=<flavor>`.
 
 ## 🧪 Testing
 
@@ -649,61 +612,56 @@ The app supports loading test data on startup via the `IMPORT_FILE` dart-define.
 - Demo presentations
 - QA testing specific scenarios
 
-**Using the run script (recommended):**
+**Using run scripts (recommended):**
 
 ```bash
 # Run dev flavor with test data
-./tool/run dev --import-file ./test/data/hht-diary-export-2025-12-14-123050.json
+./tool/run_dev.sh --import-file ./test/data/hht-diary-export-2025-12-14-123050.json
 
 # Run on web with test data
-./tool/run dev --web --import-file ./test/data/export.json
+./tool/run_dev.sh --web --import-file ./test/data/export.json
 
 # Run QA flavor with test data
-./tool/run qa --import-file ./test/data/export.json
+./tool/run_qa.sh --import-file ./test/data/export.json
 
 # Run UAT flavor
-./tool/run uat --import-file ./test/data/export.json
+./tool/run_uat.sh --import-file ./test/data/export.json
 ```
 
 **Using flutter run directly:**
 
 ```bash
-# Web (absolute path required; env = bundled dev pointer)
-flutter run -d chrome \
+# Web (absolute path required)
+flutter run -d chrome --dart-define=APP_FLAVOR=dev \
     --dart-define=IMPORT_FILE=/full/path/to/export.json
 
 # Mobile (absolute path required)
-flutter run --flavor dev \
+flutter run --flavor dev --dart-define=APP_FLAVOR=dev \
     --dart-define=IMPORT_FILE=/full/path/to/export.json
 ```
 
 **Notes:**
 - The file path must be absolute when using `--dart-define` directly
-- The run script automatically converts relative paths to absolute
+- The run scripts automatically convert relative paths to absolute
 - IMPORT_FILE only works on native platforms (iOS, Android, macOS, Linux, Windows)
 - On web, IMPORT_FILE is ignored (browsers cannot read local files)
 - Import merges with existing data (duplicates are skipped by record ID)
 - To start fresh, use "Reset All Data" from the logo menu before running with IMPORT_FILE
 
-### Run Script
+### Run Scripts
 
-One parametric script in `tool/run` accepts any env from `flavorizr.yaml`:
+Convenience scripts in `tool/` for running the app with different flavors:
 
-```bash
-./tool/run dev               # dev with dev tools
-./tool/run qa                # qa with dev tools
-./tool/run uat               # uat (no dev tools)
-./tool/run local             # Dart-only local env (default Chrome -> localhost:8081)
-./tool/run prod --force      # prod (requires --force — almost always wrong)
-```
+| Script              | Flavor | Dev Tools |
+|---------------------|--------|-----------|
+| `./tool/run_dev.sh` | dev    | Yes       |
+| `./tool/run_qa.sh`  | qa     | Yes       |
+| `./tool/run_uat.sh` | uat    | No        |
 
-Supported flags:
-- `--import-file <path>` — Auto-import JSON export file on startup
-- `--device <device>` — Specify device (e.g., `chrome`, `macos`, `iPhone 15`, `emulator-5554`)
-- `--web` — Shortcut for `--device chrome`
-- `--api-base <url>` — Override `DIARY_API_BASE` (mainly for `local` env on mobile)
-- `--force` — Required for prod (running prod locally points the app at prod
-  APIs/Firebase with dev creds — almost always wrong)
+All scripts support these options:
+- `--import-file <path>` - Auto-import JSON export file on startup
+- `--device <device>` - Specify device (e.g., `chrome`, `macos`, `iPhone 15`)
+- `--web` - Shortcut for `--device chrome`
 
 ### Test Architecture
 
@@ -1196,4 +1154,4 @@ See repository root LICENSE file.
 
 ---
 
-**Remember**: This app handles sensitive patient health information. Security and compliance are paramount. 🏥
+**Remember**: This app handles sensitive participant health information. Security and compliance are paramount. 🏥

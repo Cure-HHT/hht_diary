@@ -66,7 +66,7 @@ void main() {
     );
 
     // Mirror the inline DB setup used by sites_sync_test.dart /
-    // patients_sync_test.dart — no shared helper exists yet.
+    // participants_sync_test.dart — no shared helper exists yet.
     final sslEnv = Platform.environment['DB_SSL'];
     final useSsl = sslEnv == 'true';
 

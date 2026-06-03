@@ -26,7 +26,8 @@ Clinical *Trial* *Sponsor* portals are routinely staffed by individuals who hold
 
 ## DIARY-PRD-action-inventory: Action Inventory
 
-**Level**: PRD | **Status**: Draft | **Template** | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-audit-trail
 
 ### Overview
 
@@ -66,6 +67,7 @@ D. The System SHALL support **Sponsor-Level *Action* Extensions** to the **Actio
 | **Questionnaire** | ACT-QST-001 | Send *Questionnaire* |
 |  | ACT-QST-002 | Call back *Questionnaire* |
 |  | ACT-QST-003 | Finalize *Questionnaire* |
+|  | ACT-QST-004 | Unlock *Questionnaire* |
 | **User Account** | ACT-USR-001 | Create *User* Account |
 |  | ACT-USR-002 | Edit *User* Account |
 |  | ACT-USR-003 | Deactivate *User* Account |
@@ -74,6 +76,9 @@ D. The System SHALL support **Sponsor-Level *Action* Extensions** to the **Actio
 |  | ACT-USR-006 | Resend activation email |
 |  | ACT-USR-007 | Assign *Role* to *User* Account |
 |  | ACT-USR-008 | Assign *Site* to *User* Account |
+|  | ACT-USR-009 | Delete Pending *User* Account |
+|  | ACT-USR-010 | Revoke *Role* from *User* Account |
+|  | ACT-USR-011 | Revoke *Site* from *User* Account |
 | **Site** | ACT-SIT-001 | View Sites |
 | **Audit Log** | ACT-AUD-001 | View audit log |
 | **Administrator Settings** | ACT-ADM-001 | View ***Administrator** Settings* |

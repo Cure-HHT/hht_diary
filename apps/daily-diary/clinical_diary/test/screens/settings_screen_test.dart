@@ -1,13 +1,19 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
+// Verifies: DIARY-DEV-action-write-path/A — settings toggles submit
+//   `set_user_setting` through the scope's actionSubmitter.
+// Verifies: DIARY-DEV-reactive-read-path/A — the screen renders the values
+//   provided by the settings projection (via AppPreferencesScope).
 
+import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/user_preferences.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
+import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 
-import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
 
 void main() {
@@ -15,38 +21,62 @@ void main() {
   setUpTestFlavor();
 
   group('SettingsScreen', () {
-    late PreferencesService preferencesService;
+    late FakeReaction fake;
 
-    setUp(() async {
-      SharedPreferences.setMockInitialValues({});
-      preferencesService = PreferencesService();
+    setUp(() {
+      fake = FakeReaction();
     });
 
+    tearDown(() async {
+      await fake.dispose();
+    });
+
+    /// Mount the screen under [ReActionScope] + [AppPreferencesScope] with the
+    /// given current [prefs]. Every submit() needs a queued result, so prime a
+    /// generous run of successes.
     Widget buildSettingsScreen({
-      ValueChanged<String>? onLanguageChanged,
-      ValueChanged<bool>? onThemeModeChanged,
-      ValueChanged<bool>? onLargerTextChanged,
+      UserPreferences prefs = const UserPreferences(),
     }) {
-      return wrapWithMaterialApp(
-        SettingsScreen(
-          preferencesService: preferencesService,
-          onLanguageChanged: onLanguageChanged,
-          onThemeModeChanged: onThemeModeChanged,
-          onLargerTextChanged: onLargerTextChanged,
+      for (var i = 0; i < 10; i++) {
+        fake.queueDispatchResult(
+          const DispatchSuccess<Object?>('ok', <String>[]),
+        );
+      }
+      return ReActionScope(
+        scope: fake,
+        child: MaterialApp(
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: AppPreferencesScope(
+            preferences: prefs,
+            child: const SettingsScreen(),
+          ),
         ),
       );
     }
 
-    /// Set up a larger screen size for testing to avoid overflow errors
     void setUpTestScreenSize(WidgetTester tester) {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
     }
 
-    /// Reset screen size after test
     void resetTestScreenSize(WidgetTester tester) {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
+    }
+
+    /// The single `set_user_setting` submission for [key], or fails if none.
+    ActionSubmission submissionFor(String key) {
+      return fake.submittedActions.firstWhere(
+        (s) => s.actionName == 'set_user_setting' && s.rawInput['key'] == key,
+        orElse: () => fail('no set_user_setting submitted for $key'),
+      );
     }
 
     group('Basic Rendering', () {
@@ -91,8 +121,6 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Accessibility'), findsOneWidget);
-        // Font selector is only shown when feature flag allows multiple fonts
-        // So we just check for the accessibility section header and larger text option
         expect(find.text('Larger Text and Controls'), findsOneWidget);
       });
 
@@ -109,229 +137,112 @@ void main() {
         expect(find.text('Français'), findsOneWidget);
         expect(find.text('Deutsch'), findsOneWidget);
       });
+    });
 
-      testWidgets('displays compact view option', (tester) async {
+    group('Reflects driven preferences', () {
+      testWidgets('renders the larger-text checkbox as checked when set on', (
+        tester,
+      ) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
-        await tester.pumpWidget(buildSettingsScreen());
+        await tester.pumpWidget(
+          buildSettingsScreen(
+            prefs: const UserPreferences(largerTextAndControls: true),
+          ),
+        );
         await tester.pumpAndSettle();
 
-        expect(find.text('Compact View'), findsOneWidget);
+        // First checkbox is the larger-text option.
+        final checkbox = tester.widget<Checkbox>(find.byType(Checkbox).first);
+        expect(checkbox.value, isTrue);
       });
     });
 
     group('Color Scheme Interaction', () {
-      testWidgets('light mode is selected by default', (tester) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
+      testWidgets(
+        'submits set_user_setting(pref.darkMode, false) on Light Mode',
+        (tester) async {
+          setUpTestScreenSize(tester);
+          addTearDown(() => resetTestScreenSize(tester));
 
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
+          await tester.pumpWidget(buildSettingsScreen());
+          await tester.pumpAndSettle();
 
-        // Light mode should be selected by default (show check icon)
-        // We verify by checking the light_mode icon exists
-        expect(find.byIcon(Icons.light_mode), findsOneWidget);
-      });
+          await tester.tap(find.text('Light Mode'));
+          await tester.pumpAndSettle();
 
-      testWidgets('calls onThemeModeChanged when light mode tapped', (
-        tester,
-      ) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        bool? themeModeChanged;
-        await tester.pumpWidget(
-          buildSettingsScreen(onThemeModeChanged: (v) => themeModeChanged = v),
-        );
-        await tester.pumpAndSettle();
-
-        // Tap light mode option
-        await tester.tap(find.text('Light Mode'));
-        await tester.pumpAndSettle();
-
-        expect(themeModeChanged, false);
-      });
+          final s = submissionFor(prefDarkMode);
+          expect(s.rawInput['value'], false);
+        },
+      );
     });
 
     group('Accessibility Options', () {
-      testWidgets('can toggle dyslexia-friendly font', (tester) async {
+      testWidgets('toggling larger text submits set_user_setting', (
+        tester,
+      ) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
         await tester.pumpWidget(buildSettingsScreen());
         await tester.pumpAndSettle();
 
-        // Find and tap the checkbox for dyslexia font
-        final checkboxes = find.byType(Checkbox);
-        expect(checkboxes, findsWidgets);
-
-        // First checkbox should be dyslexia font
-        await tester.tap(checkboxes.first);
+        await tester.tap(find.byType(Checkbox).first);
         await tester.pumpAndSettle();
+
+        final s = submissionFor(prefLargerText);
+        expect(s.rawInput['value'], true);
       });
-
-      testWidgets('can toggle larger text option', (tester) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        bool? largerTextChanged;
-        await tester.pumpWidget(
-          buildSettingsScreen(
-            onLargerTextChanged: (v) => largerTextChanged = v,
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Find and tap the larger text checkbox (first checkbox after font dropdown removal)
-        final checkboxes = find.byType(Checkbox);
-        expect(checkboxes, findsWidgets);
-
-        await tester.tap(checkboxes.first);
-        await tester.pumpAndSettle();
-
-        expect(largerTextChanged, true);
-      });
-
-      testWidgets('can toggle compact view option', (tester) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
-
-        // Compact view is the third or later checkbox
-        final compactViewText = find.text('Compact View');
-        expect(compactViewText, findsOneWidget);
-
-        // Tap on the compact view text to toggle
-        await tester.tap(compactViewText);
-        await tester.pumpAndSettle();
-      });
-
-      // Note: The dyslexia link test was removed because the OpenDyslexic toggle
-      // was replaced with a font dropdown in CUR-528.
     });
 
     group('Language Selection', () {
-      testWidgets('English is selected by default', (tester) async {
+      testWidgets('selecting Spanish submits pref.languageCode=es', (
+        tester,
+      ) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
         await tester.pumpWidget(buildSettingsScreen());
         await tester.pumpAndSettle();
 
-        // English should be in the list
-        expect(find.text('English'), findsOneWidget);
-      });
-
-      testWidgets('calls onLanguageChanged when Spanish selected', (
-        tester,
-      ) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        String? languageChanged;
-        await tester.pumpWidget(
-          buildSettingsScreen(onLanguageChanged: (v) => languageChanged = v),
-        );
-        await tester.pumpAndSettle();
-
-        // Tap Spanish option
         await tester.tap(find.text('Español'));
         await tester.pumpAndSettle();
 
-        expect(languageChanged, 'es');
+        final s = submissionFor(prefLanguageCode);
+        expect(s.rawInput['value'], 'es');
       });
 
-      testWidgets('calls onLanguageChanged when French selected', (
+      testWidgets('selecting French submits pref.languageCode=fr', (
         tester,
       ) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
-        String? languageChanged;
-        await tester.pumpWidget(
-          buildSettingsScreen(onLanguageChanged: (v) => languageChanged = v),
-        );
+        await tester.pumpWidget(buildSettingsScreen());
         await tester.pumpAndSettle();
 
-        // Tap French option
         await tester.tap(find.text('Français'));
         await tester.pumpAndSettle();
 
-        expect(languageChanged, 'fr');
+        final s = submissionFor(prefLanguageCode);
+        expect(s.rawInput['value'], 'fr');
       });
 
-      testWidgets('calls onLanguageChanged when German selected', (
+      testWidgets('selecting German submits pref.languageCode=de', (
         tester,
       ) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
-        String? languageChanged;
-        await tester.pumpWidget(
-          buildSettingsScreen(onLanguageChanged: (v) => languageChanged = v),
-        );
+        await tester.pumpWidget(buildSettingsScreen());
         await tester.pumpAndSettle();
 
-        // Tap German option
         await tester.tap(find.text('Deutsch'));
         await tester.pumpAndSettle();
 
-        expect(languageChanged, 'de');
-      });
-    });
-
-    group('Loading State', () {
-      testWidgets('shows loading indicator initially', (tester) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(buildSettingsScreen());
-        // Don't settle - check for initial loading state
-        await tester.pump();
-
-        // Should show progress indicator while loading
-        expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      });
-
-      testWidgets('hides loading indicator after preferences load', (
-        tester,
-      ) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
-
-        // Should not show progress indicator after loading
-        expect(find.byType(CircularProgressIndicator), findsNothing);
-      });
-    });
-
-    group('Preferences Persistence', () {
-      testWidgets('loads saved preferences on init', (tester) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        // Pre-set some preferences
-        await preferencesService.savePreferences(
-          const UserPreferences(
-            isDarkMode: false,
-            largerTextAndControls: true,
-            useAnimation: true,
-            compactView: false,
-            languageCode: 'es',
-          ),
-        );
-
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
-
-        // Spanish should be selected based on saved preferences
-        // (We can't easily verify checkbox state, but the screen loads)
-        expect(find.text('Español'), findsOneWidget);
+        final s = submissionFor(prefLanguageCode);
+        expect(s.rawInput['value'], 'de');
       });
     });
   });

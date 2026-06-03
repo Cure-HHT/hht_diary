@@ -1,0 +1,26 @@
+name: portal_service
+description: "Event-sourced portal-server enforcement core (dispatcher + authorization) on the event_sourcing library."
+version: 0.5.1
+publish_to: none
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  event_sourcing:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: event_sourcing
+  portal_actions:
+    path: ../../common-dart/portal_actions
+  diary_shared_model:
+    path: ../../common-dart/diary_shared_model
+  rave_integration:
+    path: ../../edc/rave-integration
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0
+  sembast: ^3.7.3
+  yaml: ^3.1.2

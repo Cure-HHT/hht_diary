@@ -175,7 +175,6 @@ class AppLocalizations {
       'confirmedNoEvents': 'Confirmed no events for this day',
       'unknown': 'Unknown',
       'unableToRecallEvents': 'Unable to recall events for this day',
-      'questionnaireSubmitted': 'Submitted',
       'plusOneDay': '(+1 day)',
       'incomplete': 'Incomplete',
       'incompleteMissing': 'Incomplete/Missing',
@@ -307,6 +306,8 @@ class AppLocalizations {
 
       // Profile screen
       'userProfile': 'User Profile',
+      'enterYourName': 'Enter your name',
+      'editName': 'Edit name',
       'shareWithCureHHT': 'Share with CureHHT',
       'stopSharingWithCureHHT': 'Stop Sharing with CureHHT',
       'privacyDataProtection': 'Privacy & Data Protection',
@@ -453,12 +454,6 @@ class AppLocalizations {
       'contactYourSiteWithName': 'Please contact {0}.',
       'siteContactInfo': 'Site Contact Information',
       'tapToCall': 'Tap phone number to call',
-
-      // Reconnection (REQ-p70011/F)
-      'reconnectionRequired': 'New linking code issued',
-      'tapToEnterNewCode': 'Tap to enter your new code',
-      'participationStatusAwaitingReconnectMessage':
-          'Reconnection required - enter your new linking code to resume the study.',
     },
     'es': {
       // General
@@ -600,7 +595,6 @@ class AppLocalizations {
       'confirmedNoEvents': 'Confirmado sin eventos para este dia',
       'unknown': 'Desconocido',
       'unableToRecallEvents': 'No se pueden recordar los eventos de este dia',
-      'questionnaireSubmitted': 'Enviado',
       'plusOneDay': '(+1 dia)',
       'incomplete': 'Incompleto',
       'incompleteMissing': 'Incompleto/Faltante',
@@ -736,6 +730,8 @@ class AppLocalizations {
 
       // Profile screen
       'userProfile': 'Perfil de Usuario',
+      'enterYourName': 'Ingresa tu nombre',
+      'editName': 'Editar nombre',
       'shareWithCureHHT': 'Compartir con CureHHT',
       'stopSharingWithCureHHT': 'Dejar de Compartir con CureHHT',
       'privacyDataProtection': 'Privacidad y Proteccion de Datos',
@@ -887,12 +883,6 @@ class AppLocalizations {
       'contactYourSiteWithName': 'Por favor, contacte a {0}.',
       'siteContactInfo': 'Informacion de Contacto del Sitio',
       'tapToCall': 'Toque el numero para llamar',
-
-      // Reconnection (REQ-p70011/F)
-      'reconnectionRequired': 'Nuevo codigo de vinculacion emitido',
-      'tapToEnterNewCode': 'Toque para ingresar su nuevo codigo',
-      'participationStatusAwaitingReconnectMessage':
-          'Reconexion requerida - ingrese su nuevo codigo de vinculacion para reanudar el estudio.',
     },
     'fr': {
       // General
@@ -1040,7 +1030,6 @@ class AppLocalizations {
       'unknown': 'Inconnu',
       'unableToRecallEvents':
           'Impossible de se souvenir des evenements de ce jour',
-      'questionnaireSubmitted': 'Envoye',
       'plusOneDay': '(+1 jour)',
       'incomplete': 'Incomplet',
       'incompleteMissing': 'Incomplet/Manquant',
@@ -1180,6 +1169,8 @@ class AppLocalizations {
 
       // Profile screen
       'userProfile': 'Profil Utilisateur',
+      'enterYourName': 'Entrez votre nom',
+      'editName': 'Modifier le nom',
       'shareWithCureHHT': 'Partager avec CureHHT',
       'stopSharingWithCureHHT': 'Arreter le Partage avec CureHHT',
       'privacyDataProtection': 'Confidentialite et Protection des Donnees',
@@ -1333,12 +1324,6 @@ class AppLocalizations {
       'contactYourSiteWithName': 'Veuillez contacter {0}.',
       'siteContactInfo': 'Coordonnees du Site',
       'tapToCall': 'Appuyez pour appeler',
-
-      // Reconnection (REQ-p70011/F)
-      'reconnectionRequired': 'Nouveau code de liaison emis',
-      'tapToEnterNewCode': 'Appuyez pour saisir votre nouveau code',
-      'participationStatusAwaitingReconnectMessage':
-          "Reconnexion requise - saisissez votre nouveau code de liaison pour reprendre l'etude.",
     },
     'de': {
       // General
@@ -1481,7 +1466,6 @@ class AppLocalizations {
       'unknown': 'Unbekannt',
       'unableToRecallEvents':
           'Ereignisse fur diesen Tag konnen nicht erinnert werden',
-      'questionnaireSubmitted': 'Eingereicht',
       'plusOneDay': '(+1 Tag)',
       'incomplete': 'Unvollstandig',
       'incompleteMissing': 'Unvollstandig/Fehlend',
@@ -1620,6 +1604,8 @@ class AppLocalizations {
 
       // Profile screen
       'userProfile': 'Benutzerprofil',
+      'enterYourName': 'Geben Sie Ihren Namen ein',
+      'editName': 'Name bearbeiten',
       'shareWithCureHHT': 'Mit CureHHT teilen',
       'stopSharingWithCureHHT': 'Teilen mit CureHHT beenden',
       'privacyDataProtection': 'Datenschutz & Datensicherheit',
@@ -1772,12 +1758,6 @@ class AppLocalizations {
       'contactYourSiteWithName': 'Bitte kontaktieren Sie {0}.',
       'siteContactInfo': 'Kontaktinformationen der Studienstelle',
       'tapToCall': 'Tippen Sie auf die Telefonnummer, um anzurufen',
-
-      // Reconnection (REQ-p70011/F)
-      'reconnectionRequired': 'Neuer Verknuepfungscode ausgestellt',
-      'tapToEnterNewCode': 'Tippen Sie, um Ihren neuen Code einzugeben',
-      'participationStatusAwaitingReconnectMessage':
-          'Wiederverbindung erforderlich - geben Sie Ihren neuen Verknuepfungscode ein, um die Studie fortzusetzen.',
     },
   };
 
@@ -2092,6 +2072,8 @@ class AppLocalizations {
 
   // Profile screen
   String get userProfile => translate('userProfile');
+  String get enterYourName => translate('enterYourName');
+  String get editName => translate('editName');
   String get shareWithCureHHT => translate('shareWithCureHHT');
   String get stopSharingWithCureHHT => translate('stopSharingWithCureHHT');
   String get privacyDataProtection => translate('privacyDataProtection');
@@ -2200,12 +2182,6 @@ class AppLocalizations {
       translateWithParams('contactYourSiteWithName', [siteName]);
   String get siteContactInfo => translate('siteContactInfo');
   String get tapToCall => translate('tapToCall');
-
-  // Reconnection (REQ-p70011/F)
-  String get reconnectionRequired => translate('reconnectionRequired');
-  String get tapToEnterNewCode => translate('tapToEnterNewCode');
-  String get participationStatusAwaitingReconnectMessage =>
-      translate('participationStatusAwaitingReconnectMessage');
 
   // REQ-CAL-p00076: Participation Status Badge
   String get profile => translate('profile');

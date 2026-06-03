@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
-// Placeholder screen shown when a patient taps a questionnaire task.
+// Placeholder screen shown when a participant taps a questionnaire task.
 // Will be replaced with the actual questionnaire form in a future ticket.
 
 import 'package:flutter/material.dart';

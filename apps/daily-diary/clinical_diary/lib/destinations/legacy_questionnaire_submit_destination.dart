@@ -172,7 +172,7 @@ class LegacyQuestionnaireSubmitDestination extends Destination {
     if (baseUrl == null) {
       return _logged(
         const SendTransient(
-          error: 'patient not enrolled — base URL unavailable',
+          error: 'participant not enrolled — base URL unavailable',
         ),
         url: null,
       );

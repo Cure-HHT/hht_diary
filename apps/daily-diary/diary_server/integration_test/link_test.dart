@@ -2,7 +2,7 @@
 //   REQ-p70007: Linking Code Lifecycle Management
 //   REQ-d00078: Linking Code Validation
 //
-// Integration tests for patient linking endpoint
+// Integration tests for participant linking endpoint
 // Requires PostgreSQL database to be running
 
 @TestOn('vm')

@@ -154,3 +154,53 @@ The delete *Action* is exposed on every screen of the recording flow because the
 See: ![Delete Record — Reason Dialog](./images/image-18.jpg)
 
 *End* *Nosebleed Event Delete* | **Hash**: 0cb2cfd1
+
+## DIARY-PRD-day-disposition: Calendar Day Disposition
+
+**Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-epistaxis-capture-standard
+
+### Overview
+
+A *Calendar* day carries at most one *summary* disposition: a recorded nosebleed (one or more **Epistaxis Events**), a No-Nosebleed marker, or a Don't-Remember marker. A day-level marker and a recorded **Epistaxis Event** never coexist in the day's summary. The *Participant* can re-disposition a day whose current disposition is a marker; recording a nosebleed on a marker-only day converts the day — the marker is replaced — whereas a recorded nosebleed is changed only by editing or deleting it.
+
+### Assertions
+
+A. The System SHALL derive a single summary disposition for each *Calendar* day — one or more recorded **Epistaxis Events**, a No-Nosebleed marker, or a Don't-Remember marker — such that a day-level marker and a recorded **Epistaxis Event** never coexist in the day's summary.
+
+B. The System SHALL allow the *Participant* to re-disposition a day whose current disposition is a marker, choosing No-Nosebleed, Don't-Remember, or recording an **Epistaxis Event**.
+
+C. When a *Participant* records an **Epistaxis Event** on a day whose only entry is a marker, the System SHALL replace the marker; when the day already has one or more **Epistaxis Events**, the System SHALL add the new event to that day.
+
+D. The System SHALL treat marker-to-**Epistaxis Event** conversion as one-way; once recorded, an **Epistaxis Event** is changed only by editing or deleting it, not by re-disposition.
+
+### Rationale
+
+The recording-time rule that a *Participant* records one **Daily Status** per day answers "what may be entered"; this requirement governs the *derived* day summary the *Calendar* and home views present — collapsing a day's events and markers into one disposition so the *Participant* sees a coherent "what happened that day" at a glance. A marker and a real nosebleed cannot both stand as the day's summary, so recording a nosebleed on a marker-only day converts the day by replacing the marker, while additional nosebleeds simply accumulate. Conversion is one-way because a marker is a lightweight assertion about a day whereas a recorded **Epistaxis Event** is captured clinical data; once captured, it is edited or deleted explicitly, never silently overwritten by a re-disposition tap.
+
+*End* *Calendar Day Disposition* | **Hash**: bd38485a
+
+## DIARY-PRD-incomplete-entry-preservation: Incomplete Entry Preservation
+
+**Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-epistaxis-capture-standard
+
+### Overview
+
+A *Participant* interrupted partway through recording must not lose what they entered, and an unfinished entry must not masquerade as a finished clinical record. The *Diary* auto-preserves a partial entry as a resumable draft, surfaces it as an incomplete-entry reminder, and promotes it to a finalized entry only on explicit completion. Drafts are *Diary*-local until finalized.
+
+### Assertions
+
+A. When a *Participant* exits the recording flow with an incomplete entry, the System SHALL auto-preserve it as a resumable draft without prompting the *Participant*.
+
+B. The System SHALL surface preserved drafts to the *Participant* as incomplete-entry reminders that can be re-opened for completion.
+
+C. When a *Participant* completes a draft, the System SHALL promote it to a finalized entry on the same record, and the draft SHALL no longer appear as incomplete.
+
+D. The System SHALL keep preserved drafts *Diary*-local — excluded from the shared canonical entry view and not synchronized as canonical clinical data until finalized.
+
+### Rationale
+
+Recording can be interrupted — a phone call, a closed app, a low battery — and a *Participant* who loses a half-entered nosebleed is unlikely to re-enter it accurately, costing dataset completeness; auto-preserving the partial entry as a draft, without an interrupting prompt, keeps the path frictionless. The draft surfaces as an incomplete-entry reminder so the *Participant* is nudged to finish rather than forgetting it exists. Promoting on the same record (rather than creating a second entry) keeps the event lineage intact. Holding drafts *Diary*-local until finalized is the integrity boundary: an unfinished record never enters the shared canonical view or syncs as clinical data, so "in progress" can never be mistaken for "reported".
+
+*End* *Incomplete Entry Preservation* | **Hash**: d8cd5a0c

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 /// Displays a category name and optional stem text.
 ///
-/// Shown when the patient enters a new category section.
+/// Shown when the participant enters a new category section.
 class CategoryHeader extends StatelessWidget {
   const CategoryHeader({required this.categoryName, this.stem, super.key});
 

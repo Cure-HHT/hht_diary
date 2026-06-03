@@ -6,9 +6,14 @@
 
 // ignore_for_file: deprecated_member_use
 
+import 'dart:async';
+
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
+import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
 import 'package:flutter/material.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
 
 /// Screen for viewing and modifying feature flags.
 /// Only available in dev and qa builds for testing purposes.
@@ -34,6 +39,68 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
     _selectedSponsor =
         _featureFlagService.currentSponsorId ??
         FeatureFlags.knownSponsors.first;
+  }
+
+  // A sample locked clinical-rule set, as a sponsor would apply at link time.
+  static const Map<String, Object?> _sampleSponsorRules = <String, Object?>{
+    justificationThresholdHoursKey: 24,
+    lockThresholdHoursKey: 72,
+    shortDurationConfirmKey: true,
+    longDurationConfirmKey: true,
+    longDurationThresholdMinutesKey: 240,
+    useReviewScreenKey: true,
+  };
+
+  /// DEV-only: simulate the portal applying / clearing the sponsor's clinical
+  /// rules over the event-sourced settings path (the real path is the link-time
+  /// `/sponsor/config` fetch). Apply locks them (read-only to the participant +
+  /// enforced at recording); Unlock returns control to the participant.
+  Widget _buildSponsorSimSection(BuildContext context) {
+    final submitter = ReActionScope.of(context).actionSubmitter;
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sponsor rule simulation (dev)',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              FilledButton.tonal(
+                onPressed: () => unawaited(
+                  submitter.submit(
+                    const ActionSubmission(
+                      actionName: 'apply_sponsor_settings',
+                      rawInput: <String, Object?>{
+                        'settings': _sampleSponsorRules,
+                      },
+                    ),
+                  ),
+                ),
+                child: const Text('Apply sample rules (locked)'),
+              ),
+              OutlinedButton(
+                onPressed: () => unawaited(
+                  submitter.submit(
+                    const ActionSubmission(
+                      actionName: 'unlock_sponsor_settings',
+                      rawInput: <String, Object?>{
+                        'lockedSettings': _sampleSponsorRules,
+                      },
+                    ),
+                  ),
+                ),
+                child: const Text('Unlock (return to participant)'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -179,21 +246,6 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
           ),
           const Divider(height: 1),
 
-          // CUR-508: Use One-Page Recording Screen
-          SwitchListTile(
-            title: Text(l10n.featureFlagsUseOnePageRecordingScreen),
-            subtitle: Text(
-              l10n.featureFlagsUseOnePageRecordingScreenDescription,
-            ),
-            value: _featureFlagService.useOnePageRecordingScreen,
-            onChanged: (value) {
-              setState(() {
-                _featureFlagService.useOnePageRecordingScreen = value;
-              });
-            },
-          ),
-          const Divider(height: 1),
-
           // CUR-1116: Show "Share with CureHHT" Button
           SwitchListTile(
             title: Text(l10n.featureFlagsShowShareWithCureHHT),
@@ -331,6 +383,11 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
               ),
             ),
           ),
+          const Divider(),
+          // DEV: simulate the sponsor applying / clearing (locked) clinical
+          // rules over the event-sourced settings path, so the locked/read-only
+          // state and recording enforcement can be exercised without the portal.
+          _buildSponsorSimSection(context),
         ],
       ),
     );

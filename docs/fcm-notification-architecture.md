@@ -57,7 +57,7 @@ Cloud SQL ─── patient_fcm_tokens table
 ```
 Admin (Sponsor Portal UI)
     |
-    |  e.g. "Send Questionnaire to Patient"
+    |  e.g. "Send Questionnaire to Participant"
     |
     v
 Portal Server (Cloud Run, sponsor project)
@@ -109,7 +109,7 @@ Mobile App (registered with cure-hht-admin Firebase)
 | `questionnaire_sent`     | Investigator sends questionnaire | "New Questionnaire Available"               |
 | `questionnaire_deleted`  | Investigator deletes questionnaire | Data-only (removes task from app)          |
 | `questionnaire_unlocked` | Investigator unlocks questionnaire | "Questionnaire Unlocked"                  |
-| `trial_started`          | Investigator starts patient trial | (via sendQuestionnaireNotification)         |
+| `trial_started`          | Investigator starts participant trial | (via sendQuestionnaireNotification)         |
 
 **Code locations:**
 - Send handler: `portal_functions/lib/src/questionnaire.dart` (lines 667-677, 905-912, 1079-1086)
@@ -133,7 +133,7 @@ if (!notificationResult.success) {
 
 FCM send happens inside the HTTP request handler. If FCM API is slow (500ms–2s), the admin waits. The business action (DB write) is already done — the notification shouldn't block the response.
 
-### 3. Single Device Per Patient
+### 3. Single Device Per Participant
 
 ```sql
 SELECT fcm_token FROM patient_fcm_tokens
@@ -142,11 +142,11 @@ ORDER BY updated_at DESC
 LIMIT 1    -- ← Only one device gets notified
 ```
 
-If a patient has both an iPhone and Android device, only the most recently updated one receives notifications.
+If a participant has both an iPhone and Android device, only the most recently updated one receives notifications.
 
 ### 4. No Stale Token Cleanup
 
-When FCM returns HTTP 404 with `UNREGISTERED` error (token expired, app uninstalled), the token stays `is_active = true`. Every future send to that patient fails silently.
+When FCM returns HTTP 404 with `UNREGISTERED` error (token expired, app uninstalled), the token stays `is_active = true`. Every future send to that participant fails silently.
 
 ### 5. Duplicated Token Lookup
 
@@ -166,7 +166,7 @@ The `fcmSender` IAM grant on `cure-hht-admin` for each sponsor's Cloud Run SA is
 | # | Improvement | What to Do |
 |---|---|---|
 | 1 | **Handle UNREGISTERED tokens** | On FCM 404, set `is_active = false` in `patient_fcm_tokens` |
-| 2 | **Send to all active devices** | Remove `LIMIT 1`, loop over all active tokens for the patient |
+| 2 | **Send to all active devices** | Remove `LIMIT 1`, loop over all active tokens for the participant |
 | 3 | **Extract token lookup** | Single `getActiveTokensForPatient()` helper, replace 4 copies |
 | 4 | **Add fcmSender to Terraform** | `google_project_iam_member` in sponsor-envs for cross-project FCM |
 

@@ -33,7 +33,7 @@ final portalTheme = ThemeData(
   ),
 );
 
-// Status badge colors for patient monitoring
+// Status badge colors for participant monitoring
 class StatusColors {
   static const Color active = Color(0xFF4CAF50); // Green
   static const Color attention = Color(0xFFFFC107); // Yellow/Amber

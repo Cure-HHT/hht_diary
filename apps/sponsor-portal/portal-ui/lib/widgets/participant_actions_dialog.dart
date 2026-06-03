@@ -1,0 +1,406 @@
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-CAL-p00064: Mark Participant as Not Participating
+//   REQ-CAL-p00072: View Linking Code Button
+//   REQ-CAL-p00073: Participant Status Definitions
+//
+// Modal dialog showing available actions for a participant based on their status
+
+import 'package:flutter/material.dart';
+
+import '../services/api_client.dart';
+import 'disconnect_participant_dialog.dart';
+import 'link_participant_dialog.dart';
+import 'mark_not_participating_dialog.dart';
+import 'reconnect_participant_dialog.dart';
+
+/// Result from opening a participant action dialog
+enum ParticipantActionResult {
+  /// No action taken, dialog was cancelled
+  cancelled,
+
+  /// An action was taken that requires refreshing the participant list
+  actionTaken,
+}
+
+/// Dialog showing available actions for a participant.
+///
+/// Actions vary based on the participant's current status:
+/// - disconnected: Show Linking Code, Reconnect Participant, Mark as Not Participating
+/// - not_participating: Reactivate
+/// - other statuses: relevant actions (link, show code, etc.)
+class ParticipantActionsDialog extends StatelessWidget {
+  final String participantId;
+  final String participantDisplayId;
+  final String mobileLinkingStatus;
+  final ApiClient apiClient;
+  // REQ-p70010-C: passed through to DisconnectParticipantDialog
+  final bool disconnectReasonDropdown;
+
+  const ParticipantActionsDialog({
+    super.key,
+    required this.participantId,
+    required this.participantDisplayId,
+    required this.mobileLinkingStatus,
+    required this.apiClient,
+    this.disconnectReasonDropdown = true,
+  });
+
+  /// Shows the dialog and returns whether an action was taken.
+  static Future<ParticipantActionResult> show({
+    required BuildContext context,
+    required String participantId,
+    required String participantDisplayId,
+    required String mobileLinkingStatus,
+    required ApiClient apiClient,
+    bool disconnectReasonDropdown = true,
+  }) async {
+    final result = await showDialog<ParticipantActionResult>(
+      context: context,
+      builder: (context) => ParticipantActionsDialog(
+        participantId: participantId,
+        participantDisplayId: participantDisplayId,
+        mobileLinkingStatus: mobileLinkingStatus,
+        apiClient: apiClient,
+        disconnectReasonDropdown: disconnectReasonDropdown,
+      ),
+    );
+    return result ?? ParticipantActionResult.cancelled;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.person, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          const Text('Participant Actions'),
+        ],
+      ),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Participant ID display
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Participant ID: ',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    participantDisplayId,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Actions based on status
+            ..._buildActions(context, theme),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () =>
+              Navigator.of(context).pop(ParticipantActionResult.cancelled),
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildActions(BuildContext context, ThemeData theme) {
+    switch (mobileLinkingStatus) {
+      case 'disconnected':
+        return [
+          _ActionTile(
+            icon: Icons.history,
+            title: 'Show Participant Linking Code',
+            description:
+                'View the code used to link this device (reference only)',
+            onTap: () async {
+              Navigator.of(context).pop(ParticipantActionResult.cancelled);
+              await ShowLinkingCodeDialog.show(
+                context: context,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
+                apiClient: apiClient,
+                isReference: true,
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          _ActionTile(
+            icon: Icons.link,
+            title: 'Reconnect Participant',
+            description: 'Generate new linking code to reconnect',
+            iconColor: theme.colorScheme.primary,
+            onTap: () async {
+              final success = await ReconnectParticipantDialog.show(
+                context: context,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
+                apiClient: apiClient,
+              );
+              if (context.mounted) {
+                Navigator.of(context).pop(
+                  success
+                      ? ParticipantActionResult.actionTaken
+                      : ParticipantActionResult.cancelled,
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+          _ActionTile(
+            icon: Icons.person_off,
+            title: 'Mark as Not Participating',
+            description:
+                'Participant completed trial, withdrew, or discontinued',
+            iconColor: theme.colorScheme.error,
+            titleColor: theme.colorScheme.error,
+            onTap: () async {
+              final success = await MarkNotParticipatingDialog.show(
+                context: context,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
+                apiClient: apiClient,
+              );
+              if (context.mounted) {
+                Navigator.of(context).pop(
+                  success
+                      ? ParticipantActionResult.actionTaken
+                      : ParticipantActionResult.cancelled,
+                );
+              }
+            },
+          ),
+        ];
+
+      case 'linking_in_progress':
+        return [
+          _ActionTile(
+            icon: Icons.qr_code,
+            title: 'Show Linking Code',
+            description: 'View the active linking code',
+            onTap: () async {
+              Navigator.of(context).pop(ParticipantActionResult.cancelled);
+              await ShowLinkingCodeDialog.show(
+                context: context,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
+                apiClient: apiClient,
+              );
+            },
+          ),
+        ];
+
+      // CUR-1069: connected participants see the Participant Linking Code (reference)
+      // per GUI-CAL-p00001-F and GUI-CAL-p00001-I.
+      case 'connected':
+        return [
+          _ActionTile(
+            icon: Icons.history,
+            title: 'Show Participant Linking Code',
+            description:
+                'View the code used to link this device (reference only)',
+            onTap: () async {
+              Navigator.of(context).pop(ParticipantActionResult.cancelled);
+              await ShowLinkingCodeDialog.show(
+                context: context,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
+                apiClient: apiClient,
+                isReference: true,
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          _ActionTile(
+            icon: Icons.link_off,
+            title: 'Disconnect Participant',
+            description: 'Disconnect participant from the mobile app',
+            iconColor: theme.colorScheme.error,
+            titleColor: theme.colorScheme.error,
+            onTap: () async {
+              final success = await DisconnectParticipantDialog.show(
+                context: context,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
+                apiClient: apiClient,
+                useDropdown: disconnectReasonDropdown,
+              );
+              if (context.mounted) {
+                Navigator.of(context).pop(
+                  success
+                      ? ParticipantActionResult.actionTaken
+                      : ParticipantActionResult.cancelled,
+                );
+              }
+            },
+          ),
+        ];
+
+      // CUR-1069: not_participating participants can view the Participant Linking
+      // Code for reference/troubleshooting (GUI-CAL-p00001-F, GUI-CAL-p00001-I).
+      case 'not_participating':
+        return [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: theme.colorScheme.error.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 20,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'This participant is marked as not participating. Sponsor rules are not applied.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          _ActionTile(
+            icon: Icons.history,
+            title: 'Show Participant Linking Code',
+            description:
+                'View the code used to link this device (reference only)',
+            onTap: () async {
+              Navigator.of(context).pop(ParticipantActionResult.cancelled);
+              await ShowLinkingCodeDialog.show(
+                context: context,
+                participantId: participantId,
+                participantDisplayId: participantDisplayId,
+                apiClient: apiClient,
+                isReference: true,
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'To reactivate this participant, use the "Reactivate" button in the participant list.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ];
+
+      default:
+        return [
+          Text(
+            'No actions available for this participant status.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ];
+    }
+  }
+}
+
+/// Action tile widget for the participant actions dialog
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+  final Color? iconColor;
+  final Color? titleColor;
+  final VoidCallback onTap;
+
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.iconColor,
+    this.titleColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: theme.colorScheme.outline.withValues(alpha: 0.3),
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 24,
+                color: iconColor ?? theme.colorScheme.onSurface,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: titleColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -78,7 +78,7 @@ final _testRoleMappings = {
     {
       'sponsorName': 'Study Coordinator',
       'systemRole': 'Investigator',
-      'description': 'Patient management and questionnaire workflows',
+      'description': 'Participant management and questionnaire workflows',
     },
     {
       'sponsorName': 'CRA',

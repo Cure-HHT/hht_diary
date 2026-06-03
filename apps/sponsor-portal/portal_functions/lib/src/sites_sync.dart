@@ -457,7 +457,7 @@ Future<SitesSyncResult> syncSitesFromEdc({
     // any of those fields. When Rave reassigns site_number 001 from OID Y
     // to OID X, we need to free the site_number slot before X can be
     // inserted — the unique constraint won't let two rows hold the same
-    // number. We deactivate (don't DELETE — patients / audit rows still
+    // number. We deactivate (don't DELETE — participants / audit rows still
     // FK to Y) and tombstone the old site_number with an 'OLD-…' prefix.
     final incomingNumbers = raveSites
         .map((s) => s.studySiteNumber ?? s.oid)

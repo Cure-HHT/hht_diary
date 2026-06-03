@@ -43,7 +43,7 @@ The Diary Platform uses event sourcing for FDA 21 CFR Part 11 compliance. Severa
 **Decision**: Include `diary_sync_timestamp` in metadata sent to the EDC.
 
 **Rationale**: ALCOA+ "Contemporaneous" principle requires complete chain of custody. Three timestamps exist:
-1. `client_timestamp` - when patient performed action
+1. `client_timestamp` - when participant performed action
 2. `diary_sync_timestamp` - when received by Diary Platform backend
 3. `edc_timestamp` - when received by EDC (captured by EDC)
 

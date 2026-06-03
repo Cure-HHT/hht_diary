@@ -8,8 +8,20 @@
 
 **DIARY:**
 
+- DIARY-BASE-ops-action-inventory
+- DIARY-DEV-action-write-path
 - DIARY-PRD-action-inventory
 - DIARY-PRD-sla-corrective-preventive
+- DIARY-BASE-ops-action-inventory-A
+- DIARY-BASE-ops-action-inventory-C
+- DIARY-BASE-system-operator-role-B
+- DIARY-BASE-system-operator-role-C
+- DIARY-DEV-action-write-path-B
+- DIARY-DEV-inbound-event-on-receipt-B
+- DIARY-DEV-inbound-event-on-receipt-C
+- DIARY-DEV-portal-reaction-server-B
+- DIARY-DEV-operator-tier-authz-C
+- DIARY-DEV-operator-tier-authz-F
 - DIARY-GUI-administrator-settings-B
 - DIARY-GUI-administrator-settings-G
 - DIARY-GUI-audit-log-common-A
@@ -79,6 +91,18 @@
 - DIARY-GUI-user-information-modal-J
 - DIARY-GUI-user-information-modal-K
 - DIARY-GUI-administrator-dashboard-A
+- DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-system-operator-role:section:0
+- rem:spec/dev-mobile-event-sourcing.md:3
+- DIARY-DEV-action-write-path:section:0
+- DIARY-DEV-action-write-path:section:1
+- DIARY-DEV-inbound-event-on-receipt:section:0
+- DIARY-DEV-portal-reaction-server:section:1
+- DIARY-DEV-rave-edc-ingest:section:1
+- DIARY-DEV-user-account-projection:section:1
+- DIARY-DEV-operator-tier-authz:section:0
+- DIARY-DEV-operator-tier-authz:section:1
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -122,6 +146,7 @@
 
 **DIARY:**
 
+- DIARY-BASE-ops-action-inventory
 - DIARY-PRD-action-inventory
 - DIARY-PRD-action-inventory-A
 - DIARY-PRD-action-inventory-D
@@ -155,6 +180,9 @@
 - DIARY-GUI-administrator-settings
 - DIARY-GUI-audit-log-administrator
 - DIARY-GUI-administrator-dashboard
+- DIARY-BASE-ops-action-inventory-B
+- DIARY-DEV-user-account-projection-C
+- DIARY-DEV-operator-tier-authz-E
 - DIARY-GUI-administrator-settings-A
 - DIARY-GUI-administrator-settings-B
 - DIARY-GUI-audit-log-administrator-A
@@ -186,6 +214,13 @@
 - DIARY-GUI-administrator-dashboard-D
 - DIARY-GUI-administrator-dashboard-F
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-BASE-ops-action-inventory:section:0
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-user-account-projection:section:0
+- DIARY-DEV-user-account-projection:section:1
+- DIARY-DEV-audit-log-read:section:1
+- DIARY-DEV-operator-tier-authz:section:0
+- DIARY-DEV-operator-tier-authz:section:1
 - rem:spec/prd-administrator-settings.md:1
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -271,6 +306,9 @@
 
 **DIARY:**
 
+- DIARY-BASE-audit-trail
+- DIARY-DEV-audit-log-read-A
+- DIARY-DEV-audit-log-read-B
 - DIARY-PRD-ancillary-platform-services-D
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-system-validation-traceability-E
@@ -278,6 +316,12 @@
 - DIARY-PRD-user-account-deactivate-D
 - DIARY-PRD-user-account-deactivate-F
 - DIARY-PRD-user-account-reactivate-D
+- DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-audit-log-read:section:0
+- DIARY-DEV-audit-log-read:section:1
+- DIARY-DEV-operator-tier-authz:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-PRD-entry-time-restrictions:section:4
@@ -299,8 +343,10 @@
 
 **DIARY:**
 
+- DIARY-PRD-day-disposition
 - DIARY-GUI-calendar-day-view
 - DIARY-PRD-epistaxis-capture-standard-A
+- DIARY-PRD-day-disposition-A
 - DIARY-PRD-evidence-bitcoin-timestamp-C
 - DIARY-PRD-diary-start-day-I
 - DIARY-GUI-main-screen-layout-J
@@ -319,6 +365,8 @@
 - DIARY-PRD-notification-yesterday-entry-E
 - DIARY-PRD-notification-historical-gap-A
 - DIARY-PRD-notification-historical-gap-C
+- DIARY-PRD-day-disposition:section:0
+- DIARY-PRD-day-disposition:section:1
 - DIARY-PRD-diary-start-day:section:1
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-main-screen-layout:section:5
@@ -403,6 +451,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-rave-edc-ingest-D
 - DIARY-OPS-rave-sync-cooldown-A
 - DIARY-OPS-rave-sync-cooldown-B
 - DIARY-DEV-rave-auth-failure-classification-A
@@ -442,6 +491,7 @@
 - DIARY-PRD-notification-yesterday-entry-A
 - DIARY-PRD-notification-yesterday-entry-D
 - DIARY-PRD-epistaxis-capture-standard:section:1
+- DIARY-PRD-day-disposition:section:1
 - DIARY-GUI-participant-task-list:section:6
 - DIARY-PRD-notification-yesterday-entry:section:0
 - DIARY-PRD-notification-yesterday-entry:section:5
@@ -453,6 +503,9 @@
 **DIARY:**
 
 - DIARY-OPS-db-reset-non-prod
+- DIARY-BASE-audit-trail-E
+- DIARY-DEV-node-sync-topology-A
+- DIARY-DEV-portal-durable-event-store-A
 - DIARY-DEV-schema-version-check-A
 - DIARY-DEV-schema-version-check-B
 - DIARY-DEV-schema-version-check-C
@@ -466,6 +519,7 @@
 - DIARY-PRD-sla-service-availability-E
 - DIARY-PRD-sla-incident-severity-F
 - DIARY-PRD-sla-disaster-recovery-C
+- DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-schema-version-check:section:0
 - DIARY-OPS-db-reset-non-prod:section:0
 - DIARY-OPS-ci-migration-gate:section:0
@@ -499,6 +553,8 @@
 - DIARY-GUI-user-account-deactivate-B
 - DIARY-GUI-user-account-deactivate-C
 - DIARY-GUI-user-account-deactivate-E
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-lifecycle:section:1
 - DIARY-PRD-session-management:section:5
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-edit:section:1
@@ -524,11 +580,27 @@
 
 **DIARY:**
 
+- DIARY-DEV-evs-stack-adoption
 - DIARY-PRD-mobile-application
 - DIARY-PRD-diary-start-day
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
+- DIARY-BASE-audit-trail-E
+- DIARY-BASE-local-data-reset-A
 - DIARY-DEV-runtime-environment-resolution-D
+- DIARY-DEV-evs-stack-adoption-A
+- DIARY-DEV-evs-stack-adoption-B
+- DIARY-DEV-evs-stack-adoption-C
+- DIARY-DEV-action-write-path-A
+- DIARY-DEV-action-write-path-B
+- DIARY-DEV-reactive-read-path-A
+- DIARY-DEV-native-outbound-sync-A
+- DIARY-DEV-local-participant-authorization-B
+- DIARY-DEV-local-participant-authorization-D
+- DIARY-DEV-node-sync-topology-A
+- DIARY-DEV-node-sync-topology-B
+- DIARY-DEV-node-sync-topology-C
+- DIARY-DEV-participant-status-projection-B
 - DIARY-DEV-shared-events-catalog-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
@@ -536,6 +608,7 @@
 - DIARY-PRD-epistaxis-capture-standard-A
 - DIARY-PRD-epistaxis-capture-standard-B
 - DIARY-GUI-epistaxis-delete-F
+- DIARY-PRD-incomplete-entry-preservation-D
 - DIARY-PRD-evidence-timestamp-attestation-A
 - DIARY-PRD-evidence-bitcoin-timestamp-B
 - DIARY-PRD-evidence-bitcoin-timestamp-G
@@ -568,6 +641,32 @@
 - DIARY-GUI-administrator-dashboard-C
 - DIARY-GUI-administrator-dashboard-E
 - DIARY-GUI-administrator-dashboard-F
+- DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-local-data-reset:section:0
+- DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-sponsor-requested-settings:section:0
+- DIARY-BASE-sponsor-requested-settings:section:1
+- DIARY-BASE-system-operator-role:section:0
+- rem:spec/dev-mobile-event-sourcing.md:1
+- rem:spec/dev-mobile-event-sourcing.md:3
+- DIARY-DEV-evs-stack-adoption:section:0
+- DIARY-DEV-evs-stack-adoption:section:1
+- DIARY-DEV-state-in-event-log:section:0
+- DIARY-DEV-state-in-event-log:section:1
+- DIARY-DEV-action-write-path:section:0
+- DIARY-DEV-action-write-path:section:1
+- DIARY-DEV-reactive-read-path:section:0
+- DIARY-DEV-native-outbound-sync:section:0
+- DIARY-DEV-native-outbound-sync:section:1
+- DIARY-DEV-local-participant-authorization:section:0
+- DIARY-DEV-local-participant-authorization:section:1
+- DIARY-DEV-inbound-event-on-receipt:section:0
+- DIARY-DEV-node-sync-topology:section:1
+- DIARY-DEV-outgoing-intent-correlation:section:1
+- DIARY-DEV-participant-status-projection:section:0
+- DIARY-DEV-participant-status-projection:section:1
+- DIARY-DEV-audit-log-read:section:1
+- DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
@@ -576,6 +675,8 @@
 - rem:spec/prd-diary-entry-rules.md:3
 - DIARY-PRD-entry-time-restrictions:section:4
 - DIARY-PRD-entry-overlap-resolution:section:7
+- DIARY-PRD-incomplete-entry-preservation:section:0
+- DIARY-PRD-incomplete-entry-preservation:section:1
 - rem:spec/prd-evidence-records.md:3
 - DIARY-PRD-evidence-bitcoin-timestamp:section:0
 - rem:spec/prd-mobile-app.md:3
@@ -686,6 +787,9 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-identity-provisioning-A
+- DIARY-DEV-portal-activation-email-delivery-B
+- DIARY-DEV-portal-user-activated-binding-A
 - DIARY-PRD-evidence-email-identity-A
 - DIARY-PRD-evidence-email-identity-G
 - DIARY-PRD-password-forgot-A
@@ -707,6 +811,9 @@
 - DIARY-GUI-user-management-tabs-H
 - DIARY-GUI-user-management-tabs-L
 - DIARY-GUI-user-information-modal-A
+- DIARY-DEV-portal-identity-provisioning:section:1
+- DIARY-DEV-portal-activation-email-delivery:section:0
+- DIARY-DEV-portal-user-activated-binding:section:0
 - rem:spec/glossary-core.md:23
 - DIARY-PRD-evidence-email-identity:section:0
 - DIARY-PRD-password-forgot:section:0
@@ -741,7 +848,13 @@
 - DIARY-PRD-epistaxis-capture-standard-G
 - DIARY-GUI-epistaxis-delete-E
 - DIARY-GUI-epistaxis-delete-G
+- DIARY-PRD-day-disposition-A
+- DIARY-PRD-day-disposition-B
+- DIARY-PRD-day-disposition-C
+- DIARY-PRD-day-disposition-D
 - DIARY-PRD-epistaxis-capture-standard:section:1
+- DIARY-PRD-day-disposition:section:0
+- DIARY-PRD-day-disposition:section:1
 - DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:5
@@ -752,6 +865,18 @@
 ## Event Sourcing
 
 ## Event Store
+
+**DIARY:**
+
+- DIARY-DEV-portal-durable-event-store
+- DIARY-DEV-inbound-event-on-receipt-B
+- DIARY-DEV-node-sync-topology-A
+- DIARY-DEV-participant-site-index-B
+- DIARY-DEV-portal-durable-event-store-A
+- DIARY-DEV-portal-durable-event-store-C
+- DIARY-DEV-inbound-event-on-receipt:section:0
+- DIARY-DEV-portal-reaction-server:section:0
+- DIARY-DEV-portal-durable-event-store:section:0
 
 ## Failed Attempt Threshold
 
@@ -765,6 +890,8 @@
 
 **DIARY:**
 
+- DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-system-operator-role:section:0
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-evidence-timestamp-attestation:section:1
 - DIARY-PRD-evidence-bitcoin-timestamp:section:0
@@ -882,6 +1009,8 @@
 - DIARY-PRD-user-authentication-K
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-G
+- DIARY-DEV-portal-session-token:section:1
+- DIARY-DEV-portal-session-lifecycle:section:0
 - DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-user-authentication:section:5
 - DIARY-PRD-user-authentication-pin:section:6
@@ -1213,6 +1342,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-action-write-path-B
 - DIARY-PRD-entry-overlap-resolution-A
 - DIARY-PRD-entry-overlap-resolution-B
 - DIARY-PRD-entry-overlap-resolution-C
@@ -1231,6 +1361,9 @@
 
 **DIARY:**
 
+- DIARY-DEV-local-participant-authorization
+- DIARY-DEV-participant-site-index
+- DIARY-DEV-participant-status-projection
 - DIARY-GUI-participant-task-list
 - DIARY-PRD-participant-registration
 - DIARY-PRD-participant-link-new
@@ -1239,6 +1372,22 @@
 - DIARY-PRD-participant-reactivate
 - DIARY-GUI-participant-dashboard
 - DIARY-GUI-link-participant-flow
+- DIARY-BASE-audit-trail-E
+- DIARY-BASE-local-data-reset-B
+- DIARY-BASE-sponsor-requested-settings-A
+- DIARY-BASE-sponsor-requested-settings-C
+- DIARY-BASE-sponsor-requested-settings-D
+- DIARY-BASE-sponsor-requested-settings-E
+- DIARY-BASE-system-operator-role-B
+- DIARY-DEV-native-outbound-sync-D
+- DIARY-DEV-local-participant-authorization-A
+- DIARY-DEV-local-participant-authorization-D
+- DIARY-DEV-node-sync-topology-C
+- DIARY-DEV-outgoing-intent-correlation-B
+- DIARY-DEV-participant-site-index-A
+- DIARY-DEV-rave-edc-ingest-A
+- DIARY-DEV-participant-status-projection-A
+- DIARY-DEV-participant-status-projection-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-study-coordinator-B
 - DIARY-GUI-audit-log-cra-A
@@ -1283,6 +1432,11 @@
 - DIARY-GUI-epistaxis-delete-E
 - DIARY-GUI-epistaxis-delete-F
 - DIARY-GUI-epistaxis-delete-G
+- DIARY-PRD-day-disposition-B
+- DIARY-PRD-day-disposition-C
+- DIARY-PRD-incomplete-entry-preservation-A
+- DIARY-PRD-incomplete-entry-preservation-B
+- DIARY-PRD-incomplete-entry-preservation-C
 - DIARY-PRD-diary-start-day-B
 - DIARY-PRD-diary-start-day-C
 - DIARY-PRD-diary-start-day-H
@@ -1432,6 +1586,19 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-OPS-rave-sync-cooldown-D
 - DIARY-OPS-rave-sync-hard-lockout-B
+- DIARY-BASE-local-data-reset:section:0
+- DIARY-BASE-local-data-reset:section:1
+- DIARY-BASE-sponsor-requested-settings:section:0
+- DIARY-BASE-sponsor-requested-settings:section:1
+- DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-native-outbound-sync:section:1
+- DIARY-DEV-local-participant-authorization:section:0
+- DIARY-DEV-local-participant-authorization:section:1
+- DIARY-DEV-participant-site-index:section:0
+- DIARY-DEV-participant-site-index:section:1
+- DIARY-DEV-participant-status-projection:section:0
+- DIARY-DEV-participant-status-projection:section:1
+- DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
@@ -1458,6 +1625,10 @@
 - DIARY-GUI-epistaxis-record:section:5
 - DIARY-GUI-epistaxis-delete:section:0
 - DIARY-GUI-epistaxis-delete:section:3
+- DIARY-PRD-day-disposition:section:0
+- DIARY-PRD-day-disposition:section:1
+- DIARY-PRD-incomplete-entry-preservation:section:0
+- DIARY-PRD-incomplete-entry-preservation:section:1
 - DIARY-PRD-help-resources:section:5
 - DIARY-PRD-mobile-application:section:1
 - DIARY-PRD-mobile-offline-first:section:1
@@ -1582,9 +1753,15 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-reset-code-lifecycle
+- DIARY-DEV-portal-reset-password-update
+- DIARY-DEV-portal-reset-session-termination
 - DIARY-PRD-password-requirements
 - DIARY-PRD-password-forgot
 - DIARY-GUI-password-forgot-workflow
+- DIARY-DEV-portal-reset-password-update-A
+- DIARY-DEV-portal-reset-password-update-B
+- DIARY-DEV-portal-reset-session-termination-A
 - DIARY-PRD-password-requirements-A
 - DIARY-PRD-password-requirements-B
 - DIARY-PRD-password-requirements-C
@@ -1611,6 +1788,19 @@
 - DIARY-GUI-password-forgot-workflow-R
 - DIARY-GUI-password-forgot-workflow-U
 - DIARY-PRD-user-account-activation-workflow-D
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-portal-identity-provisioning:section:0
+- DIARY-DEV-portal-identity-provisioning:section:1
+- DIARY-DEV-portal-login-identity-verification:section:0
+- DIARY-DEV-portal-login-identity-verification:section:1
+- DIARY-DEV-portal-login-second-factor:section:0
+- DIARY-DEV-portal-login-second-factor:section:1
+- rem:spec/dev-portal-password-reset.md:1
+- DIARY-DEV-portal-reset-code-lifecycle:section:0
+- DIARY-DEV-portal-reset-code-lifecycle:section:1
+- DIARY-DEV-portal-reset-password-update:section:0
+- DIARY-DEV-portal-reset-password-update:section:1
+- DIARY-DEV-portal-reset-session-termination:section:0
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-requirements:section:0
 - DIARY-PRD-two-factor-authentication:section:0
@@ -1779,6 +1969,7 @@
 - DIARY-PRD-questionnaire-localization
 - DIARY-PRD-questionnaire-sponsor-eligibility
 - DIARY-PRD-questionnaire-score-calculation
+- DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-GUI-audit-log-common-G
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-F
@@ -2046,9 +2237,25 @@
 
 **DIARY:**
 
+- DIARY-BASE-system-operator-role
+- DIARY-DEV-portal-active-role-switch
 - DIARY-PRD-rbac-customizable
 - DIARY-PRD-role-definitions
 - DIARY-GUI-role-switching
+- DIARY-BASE-ops-action-inventory-A
+- DIARY-BASE-ops-action-inventory-C
+- DIARY-BASE-system-operator-role-A
+- DIARY-BASE-system-operator-role-B
+- DIARY-DEV-portal-session-lifecycle-B
+- DIARY-DEV-portal-active-role-switch-A
+- DIARY-DEV-portal-active-role-switch-B
+- DIARY-DEV-portal-active-role-switch-C
+- DIARY-DEV-portal-reaction-server-B
+- DIARY-DEV-user-account-projection-C
+- DIARY-DEV-portal-durable-event-store-C
+- DIARY-DEV-operator-tier-authz-A
+- DIARY-DEV-operator-tier-authz-D
+- DIARY-DEV-operator-tier-authz-E
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-session-management-F
 - DIARY-OPS-rave-unwedge-authz-A
@@ -2081,6 +2288,18 @@
 - DIARY-GUI-user-information-modal-F
 - DIARY-GUI-user-information-modal-H
 - DIARY-GUI-administrator-dashboard-A
+- DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-portal-session-token:section:1
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-lifecycle:section:1
+- DIARY-DEV-portal-active-role-switch:section:0
+- DIARY-DEV-portal-active-role-switch:section:1
+- DIARY-DEV-participant-site-index:section:1
+- DIARY-DEV-user-account-projection:section:0
+- DIARY-DEV-user-account-projection:section:1
+- DIARY-DEV-portal-durable-event-store:section:1
+- DIARY-DEV-operator-tier-authz:section:0
+- DIARY-DEV-operator-tier-authz:section:1
 - rem:spec/glossary-core.md:745
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -2134,17 +2353,34 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-login-second-factor
+- DIARY-DEV-portal-reset-session-termination-B
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-G
+- rem:spec/dev-portal-login.md:1
+- DIARY-DEV-portal-login-second-factor:section:0
+- DIARY-DEV-portal-login-second-factor:section:1
+- DIARY-DEV-portal-reset-session-termination:section:0
+- DIARY-DEV-portal-reset-session-termination:section:1
 - DIARY-PRD-two-factor-authentication:section:4
 
 ## Session
 
 **DIARY:**
 
+- DIARY-DEV-portal-session-token
+- DIARY-DEV-portal-session-lifecycle
+- DIARY-DEV-portal-active-role-switch
+- DIARY-DEV-portal-reset-session-termination
 - DIARY-PRD-session-management
 - DIARY-PRD-questionnaire-session-timeout
 - DIARY-GUI-questionnaire-session-expiry
+- DIARY-DEV-portal-session-token-A
+- DIARY-DEV-portal-session-token-B
+- DIARY-DEV-portal-session-lifecycle-A
+- DIARY-DEV-portal-session-lifecycle-C
+- DIARY-DEV-portal-active-role-switch-A
+- DIARY-DEV-portal-active-role-switch-C
 - DIARY-DEV-shared-events-catalog-D
 - DIARY-PRD-session-management-A
 - DIARY-PRD-session-management-C
@@ -2168,6 +2404,16 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-PRD-rbac-customizable-B
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-DEV-portal-user-activated-binding:section:1
+- rem:spec/dev-portal-login.md:1
+- DIARY-DEV-portal-session-token:section:0
+- DIARY-DEV-portal-session-token:section:1
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-lifecycle:section:1
+- DIARY-DEV-portal-active-role-switch:section:0
+- DIARY-DEV-portal-active-role-switch:section:1
+- DIARY-DEV-portal-reset-session-termination:section:0
+- DIARY-DEV-portal-reset-session-termination:section:1
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
@@ -2252,7 +2498,13 @@
 
 **DIARY:**
 
+- DIARY-DEV-participant-site-index
 - DIARY-PRD-user-account-site-assignment
+- DIARY-DEV-portal-session-lifecycle-B
+- DIARY-DEV-participant-site-index-A
+- DIARY-DEV-participant-site-index-B
+- DIARY-DEV-rave-edc-ingest-A
+- DIARY-DEV-participant-status-projection-A
 - DIARY-GUI-audit-log-cra-A
 - DIARY-GUI-audit-log-cra-B
 - DIARY-GUI-audit-log-cra-D
@@ -2273,6 +2525,12 @@
 - DIARY-GUI-user-information-modal-D
 - DIARY-GUI-user-information-modal-E
 - DIARY-GUI-user-information-modal-G
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-lifecycle:section:1
+- DIARY-DEV-participant-site-index:section:0
+- DIARY-DEV-participant-site-index:section:1
+- DIARY-DEV-rave-edc-ingest:section:0
+- DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-GUI-audit-log-cra:section:0
 - DIARY-GUI-audit-log-cra:section:3
 - DIARY-PRD-data-backup-and-archival:section:0
@@ -2301,6 +2559,17 @@
 
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
+- DIARY-BASE-audit-trail-E
+- DIARY-BASE-local-data-reset-C
+- DIARY-BASE-ops-action-inventory-A
+- DIARY-BASE-sponsor-requested-settings-A
+- DIARY-BASE-sponsor-requested-settings-B
+- DIARY-BASE-sponsor-requested-settings-E
+- DIARY-BASE-system-operator-role-A
+- DIARY-DEV-node-sync-topology-A
+- DIARY-DEV-node-sync-topology-B
+- DIARY-DEV-node-sync-topology-C
+- DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-OPS-fcm-project-routing-A
 - DIARY-OPS-fcm-project-routing-D
 - DIARY-PRD-administrator-settings-A
@@ -2407,6 +2676,14 @@
 - DIARY-PRD-sla-regulatory-event-support-E
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-local-data-reset:section:0
+- DIARY-BASE-local-data-reset:section:1
+- DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-sponsor-requested-settings:section:0
+- DIARY-BASE-sponsor-requested-settings:section:1
+- DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-node-sync-topology:section:1
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:762
 - rem:spec/glossary-core.md:764
@@ -2515,6 +2792,11 @@
 
 **DIARY:**
 
+- DIARY-BASE-audit-trail-E
+- DIARY-DEV-node-sync-topology-A
+- DIARY-DEV-node-sync-topology-B
+- DIARY-DEV-node-sync-topology-C
+- DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-help-resources-A
 - DIARY-PRD-help-resources-D
@@ -2538,6 +2820,8 @@
 - DIARY-GUI-dev-admin-rave-sync-card-C
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-BASE-audit-trail:section:1
+- DIARY-DEV-node-sync-topology:section:1
 - DIARY-PRD-administrator-settings:section:0
 - rem:spec/prd-common-ui.md:3
 - DIARY-PRD-help-resources:section:0
@@ -2713,6 +2997,9 @@
 **DIARY:**
 
 - DIARY-PRD-privacy-policy
+- DIARY-BASE-local-data-reset-B
+- DIARY-DEV-state-in-event-log-A
+- DIARY-DEV-native-outbound-sync-C
 - DIARY-PRD-entry-time-restrictions-M
 - DIARY-PRD-evidence-timestamp-attestation-A
 - DIARY-PRD-evidence-timestamp-attestation-C
@@ -2731,6 +3018,10 @@
 - DIARY-PRD-questionnaire-sponsor-eligibility-B
 - DIARY-PRD-questionnaire-sponsor-eligibility-C
 - DIARY-PRD-sla-service-availability-J
+- DIARY-BASE-local-data-reset:section:0
+- DIARY-DEV-state-in-event-log:section:0
+- DIARY-DEV-native-outbound-sync:section:0
+- DIARY-DEV-native-outbound-sync:section:1
 - rem:spec/glossary-core.md:745
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-linking-code-entry-errors:section:4
@@ -2794,6 +3085,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-native-outbound-sync-C
 - DIARY-PRD-questionnaire-system-C
 - DIARY-PRD-questionnaire-system-E
 - DIARY-PRD-questionnaire-system:section:4
@@ -2815,6 +3107,8 @@
 **DIARY:**
 
 - DIARY-OPS-rave-unwedge-authz
+- DIARY-BASE-ops-action-inventory-B
+- DIARY-DEV-rave-edc-ingest-D
 - DIARY-OPS-rave-sync-cooldown-C
 - DIARY-OPS-rave-sync-hard-lockout-C
 - DIARY-OPS-rave-unwedge-authz-A
@@ -2824,6 +3118,8 @@
 - DIARY-GUI-dev-admin-rave-sync-card-A
 - DIARY-GUI-dev-admin-rave-sync-card-B
 - DIARY-GUI-dev-admin-rave-sync-card-C
+- DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-OPS-rave-unwedge-authz:section:0
 - DIARY-OPS-rave-alert-notification:section:0
 
@@ -2831,6 +3127,9 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-user-activated-binding
+- DIARY-DEV-user-account-projection
+- DIARY-DEV-operator-tier-authz
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
 - DIARY-PRD-user-account-create
@@ -2841,6 +3140,27 @@
 - DIARY-GUI-user-account-deactivate
 - DIARY-GUI-user-account-reactivate
 - DIARY-GUI-user-information-modal
+- DIARY-DEV-portal-activation-code-lifecycle-D
+- DIARY-DEV-portal-identity-provisioning-A
+- DIARY-DEV-portal-activation-email-delivery-A
+- DIARY-DEV-portal-user-activated-binding-A
+- DIARY-DEV-portal-user-activated-binding-B
+- DIARY-DEV-portal-user-activated-binding-C
+- DIARY-DEV-portal-login-identity-verification-B
+- DIARY-DEV-portal-login-second-factor-A
+- DIARY-DEV-portal-session-token-A
+- DIARY-DEV-portal-session-lifecycle-B
+- DIARY-DEV-portal-active-role-switch-A
+- DIARY-DEV-portal-active-role-switch-B
+- DIARY-DEV-portal-active-role-switch-C
+- DIARY-DEV-portal-reset-code-lifecycle-C
+- DIARY-DEV-portal-reset-session-termination-A
+- DIARY-DEV-user-account-projection-A
+- DIARY-DEV-user-account-projection-C
+- DIARY-DEV-operator-tier-authz-A
+- DIARY-DEV-operator-tier-authz-B
+- DIARY-DEV-operator-tier-authz-C
+- DIARY-DEV-operator-tier-authz-F
 - DIARY-GUI-audit-log-common-A
 - DIARY-GUI-audit-log-common-C
 - DIARY-GUI-audit-log-administrator-A
@@ -2956,6 +3276,24 @@
 - DIARY-GUI-user-information-modal-M
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-E
+- DIARY-DEV-local-participant-authorization:section:0
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-portal-user-activated-binding:section:0
+- DIARY-DEV-portal-user-activated-binding:section:1
+- DIARY-DEV-portal-login-identity-verification:section:0
+- DIARY-DEV-portal-session-token:section:0
+- DIARY-DEV-portal-session-token:section:1
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-lifecycle:section:1
+- DIARY-DEV-portal-active-role-switch:section:0
+- DIARY-DEV-portal-active-role-switch:section:1
+- DIARY-DEV-portal-reset-code-lifecycle:section:0
+- DIARY-DEV-portal-reset-password-update:section:0
+- DIARY-DEV-portal-reset-password-update:section:1
+- DIARY-DEV-portal-reset-session-termination:section:0
+- DIARY-DEV-user-account-projection:section:0
+- DIARY-DEV-user-account-projection:section:1
+- DIARY-DEV-operator-tier-authz:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
 - rem:spec/prd-audit-log.md:3
@@ -3020,12 +3358,23 @@
 
 **DIARY:**
 
+- DIARY-DEV-user-account-projection
 - DIARY-PRD-user-account-create
 - DIARY-PRD-user-account-edit
 - DIARY-PRD-user-account-deactivate
 - DIARY-PRD-user-account-reactivate
 - DIARY-GUI-user-account-deactivate
 - DIARY-GUI-user-account-reactivate
+- DIARY-DEV-portal-activation-code-lifecycle-D
+- DIARY-DEV-portal-identity-provisioning-A
+- DIARY-DEV-portal-activation-email-delivery-A
+- DIARY-DEV-portal-user-activated-binding-A
+- DIARY-DEV-portal-user-activated-binding-B
+- DIARY-DEV-portal-user-activated-binding-C
+- DIARY-DEV-portal-login-identity-verification-B
+- DIARY-DEV-portal-login-second-factor-A
+- DIARY-DEV-portal-session-token-A
+- DIARY-DEV-portal-session-lifecycle-B
 - DIARY-GUI-audit-log-administrator-A
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-F
@@ -3085,6 +3434,14 @@
 - DIARY-GUI-user-information-modal-D
 - DIARY-GUI-user-information-modal-E
 - DIARY-GUI-user-information-modal-M
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-portal-user-activated-binding:section:0
+- DIARY-DEV-portal-user-activated-binding:section:1
+- DIARY-DEV-portal-login-identity-verification:section:0
+- DIARY-DEV-portal-session-token:section:0
+- DIARY-DEV-portal-session-token:section:1
+- DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-operator-tier-authz:section:0
 - DIARY-PRD-password-forgot:section:0
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-PRD-action-inventory:section:1
@@ -3127,17 +3484,23 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-login-second-factor-A
+- DIARY-DEV-portal-login-second-factor-B
 - DIARY-PRD-two-factor-authentication-B
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-D
 - DIARY-PRD-two-factor-authentication-E
 - DIARY-PRD-two-factor-authentication-F
+- DIARY-DEV-portal-login-second-factor:section:0
+- DIARY-DEV-portal-login-second-factor:section:1
 - DIARY-PRD-two-factor-authentication:section:4
 
 ## Verification Link
 
 **DIARY:**
 
+- DIARY-DEV-portal-activation-code-lifecycle-A
+- DIARY-DEV-portal-activation-email-delivery-A
 - DIARY-PRD-password-forgot-B
 - DIARY-PRD-password-forgot-D
 - DIARY-PRD-password-forgot-E
@@ -3152,6 +3515,8 @@
 - DIARY-PRD-user-account-activation-workflow-G
 - DIARY-PRD-user-account-activation-workflow-H
 - DIARY-PRD-user-account-edit-F
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-portal-activation-email-delivery:section:0
 - DIARY-PRD-password-forgot:section:0
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-PRD-user-account-activation-resend:section:1

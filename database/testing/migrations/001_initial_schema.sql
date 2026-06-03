@@ -86,10 +86,10 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM pg_indexes
-        WHERE indexname = 'idx_state_patient_site'
+        WHERE indexname = 'idx_state_participant_site'
     ) THEN
-        RAISE NOTICE 'Creating missing index: idx_state_patient_site';
-        CREATE INDEX idx_state_patient_site ON record_state(patient_id, site_id);
+        RAISE NOTICE 'Creating missing index: idx_state_participant_site';
+        CREATE INDEX idx_state_participant_site ON record_state(participant_id, site_id);
     END IF;
 
     RAISE NOTICE 'Critical indexes verified';

@@ -15,7 +15,7 @@ Accepted
 The clinical trial diary database serves multiple stakeholders with different access requirements:
 
 1. **Study Participants (USERS)**: Should only see their own diary entries
-2. **Investigators**: Should see data for patients at their assigned sites
+2. **Investigators**: Should see data for participants at their assigned sites
 3. **Analysts**: Should have read-only access to assigned sites
 4. **Admins**: May need cross-site access for system management
 
@@ -25,7 +25,7 @@ The clinical trial diary database serves multiple stakeholders with different ac
 - **Site Isolation**: Investigators limited to assigned sites
 - **Defense in Depth**: Access control enforced at database level, not just application
 - **Audit Trail**: Access attempts logged
-- **Compliance**: HIPAA requires access controls for patient data
+- **Compliance**: HIPAA requires access controls for participant data
 - **Multi-Tenancy**: Single database serves multiple clinical sites
 
 ### Traditional Approach Limitations
@@ -330,7 +330,7 @@ CREATE POLICY user_select_own ON record_state
     USING (patient_id = current_user_id());
 
 COMMENT ON POLICY user_select_own ON record_state IS
-  'Users can view their own diary entries only. Enforces patient data privacy.';
+  'Users can view their own diary entries only. Enforces participant data privacy.';
 ```
 
 ### Common Patterns

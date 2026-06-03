@@ -87,9 +87,9 @@ BEGIN
         BEGIN
             -- Try to insert directly into record_state
             INSERT INTO record_state (
-                event_uuid, patient_id, site_id, data, version, created_by
+                event_uuid, participant_id, site_id, data, version, created_by
             ) VALUES (
-                v_test_uuid, 'test_patient_007', 'test_site_007',
+                v_test_uuid, 'test_participant_007', 'test_site_007',
                 '{"test": "TICKET-007 verification"}'::jsonb, 1, 'test_user'
             );
 
@@ -119,11 +119,11 @@ BEGIN
 
     -- Insert via audit trail
     INSERT INTO record_audit (
-        event_uuid, patient_id, site_id, operation, data,
+        event_uuid, participant_id, site_id, operation, data,
         created_by, role, client_timestamp, change_reason,
         device_info, ip_address, session_id
     ) VALUES (
-        v_test_uuid, 'test_patient_007', 'test_site_007', 'USER_CREATE',
+        v_test_uuid, 'test_participant_007', 'test_site_007', 'USER_CREATE',
         '{"test": "TICKET-007 audit trail test"}'::jsonb,
         'test_user', 'USER', now(), 'TICKET-007 verification test',
         '{"device": "test"}'::jsonb, '127.0.0.1', 'test_session'
@@ -140,11 +140,11 @@ BEGIN
 
         -- Clean up: soft delete via audit trail
         INSERT INTO record_audit (
-            event_uuid, patient_id, site_id, operation, data,
+            event_uuid, participant_id, site_id, operation, data,
             created_by, role, client_timestamp, change_reason,
             device_info, ip_address, session_id
         ) VALUES (
-            v_test_uuid, 'test_patient_007', 'test_site_007', 'USER_DELETE',
+            v_test_uuid, 'test_participant_007', 'test_site_007', 'USER_DELETE',
             '{"test": "cleanup"}'::jsonb,
             'test_user', 'USER', now(), 'cleanup test data',
             '{"device": "test"}'::jsonb, '127.0.0.1', 'test_session'
@@ -169,9 +169,9 @@ BEGIN
         BEGIN
             -- Try to insert directly (should fail)
             INSERT INTO record_state (
-                event_uuid, patient_id, site_id, data, version, created_by
+                event_uuid, participant_id, site_id, data, version, created_by
             ) VALUES (
-                v_test_uuid, 'test_patient_007', 'test_site_007',
+                v_test_uuid, 'test_participant_007', 'test_site_007',
                 '{"test": "should fail"}'::jsonb, 1, 'test_user'
             );
 

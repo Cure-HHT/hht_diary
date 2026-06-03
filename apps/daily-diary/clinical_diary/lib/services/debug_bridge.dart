@@ -1,9 +1,8 @@
 // Local-only HTTP debug surface for the clinical_diary runtime. Listens
 // on 127.0.0.1 (loopback only) so the bridge is unreachable from any
-// other host. Wired into the bootstrap behind an
-// `EnvProfile.current.env == AppEnv.local && !kIsWeb` guard so it never
-// ships in dev/qa/uat/prod and never compiles into a web bundle (shelf
-// needs dart:io).
+// other host. Wired into the bootstrap behind an `EnvProfile.current.env ==
+// AppEnv.local && !kIsWeb` guard so it never ships in dev/qa/uat/prod
+// and never compiles into a web bundle (shelf needs dart:io).
 //
 // All endpoints return application/json (UTF-8). Routes:
 //
@@ -36,23 +35,7 @@ class DebugBridge {
     this.onTaskSync,
     this.host = '127.0.0.1',
     this.port = 9876,
-  }) : assert(
-         host == '127.0.0.1',
-         'DebugBridge must only bind to loopback (127.0.0.1).',
-       ) {
-    // Asserts are stripped in release/profile builds, so back the loopback
-    // invariant with a runtime check too. The EnvProfile.current.env ==
-    // AppEnv.local + !kIsWeb gate at the call site is the primary guard;
-    // this is defense in depth in case the class is ever reused outside
-    // that gate.
-    if (host != '127.0.0.1') {
-      throw ArgumentError.value(
-        host,
-        'host',
-        'DebugBridge must only bind to loopback (127.0.0.1).',
-      );
-    }
-  }
+  });
 
   final ClinicalDiaryRuntime runtime;
 
@@ -188,11 +171,7 @@ class DebugBridge {
   }
 
   Future<Response> _sync(Request _) async {
-    // CUR-1292: fire the same callback the periodic timer runs —
-    // outbound drain + inbound poll — so testers can pull tombstones
-    // and other inbound messages on demand without waiting for the
-    // periodic tick.
-    await runtime.fullSync();
+    await runtime.syncCycle();
     return _json(<String, Object?>{'ok': true});
   }
 

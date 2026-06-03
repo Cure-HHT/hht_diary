@@ -4,57 +4,72 @@
 //   REQ-p00006: Offline-First Data Entry
 //   REQ-d00006: Mobile App Build and Release Process
 //   REQ-p00008: Single App Architecture
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as developer;
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, pid;
 
 import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
+import 'package:clinical_diary/scope/diary_sync_triggers.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/debug_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/services/notification_poll_service.dart';
+import 'package:clinical_diary/services/local_data_reset.dart';
 import 'package:clinical_diary/services/notification_service.dart';
-import 'package:clinical_diary/services/preferences_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
+import 'package:clinical_diary/settings/app_preferences_scope.dart';
+import 'package:clinical_diary/settings/clinical_rules_scope.dart';
+import 'package:clinical_diary/settings/local_reset_policy.dart';
+import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:common_widgets/common_widgets.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
+// Prefixed to disambiguate the new-stack AutomationInitiator from the legacy
+// `event_sourcing_datastore` AutomationInitiator imported above; the new diary
+// scope's DestinationRegistry.setStartDate takes the new-stack Initiator.
+import 'package:event_sourcing/event_sourcing.dart'
+    as esd
+    show AutomationInitiator;
+import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:sembast/sembast_io.dart';
 import 'package:sembast_web/sembast_web.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:trial_data_types/trial_data_types.dart';
 import 'package:uuid/uuid.dart';
 
 /// SharedPreferences key for the persisted device install UUID.
 const _kDeviceIdPrefsKey = 'clinical_diary.device_id';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Implements: DIARY-DEV-runtime-environment-resolution/A+B
-  EnvProfile.current = await EnvProfile.load();
-  debugPrint('Running with environment: ${EnvProfile.current.name}');
-
+  // Security (CUR-1169): silence debugPrint in release builds. Flutter's
+  // debugPrint is NOT stripped from release; it forwards to the platform log
+  // stream (logcat/oslog), where any logged response body or identifier becomes
+  // readable by privileged processes / log collectors. Production observability
+  // is server-side (OTel), not device logs, so drop all debug output in release.
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
   // Catch all errors in the Flutter framework
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
@@ -74,34 +89,30 @@ void main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
+      // Implements: DIARY-DEV-runtime-environment-resolution/A+B
+      // Resolve the environment once from the bundled assets/config/env.json
+      // pointer (stamped per-env at packaging time). Must run after binding
+      // init — EnvProfile.load() reads rootBundle.
+      EnvProfile.current = await EnvProfile.load();
+      debugPrint('Running with environment: ${EnvProfile.current.name}');
+
       // Initialize IANA timezone database for DST-aware time calculations
       TimezoneConverter.ensureInitialized();
 
-      // CUR-1278: on Android the google-services Gradle plugin's
-      // FirebaseInitProvider (a ContentProvider) auto-initializes the
-      // [DEFAULT] app from google-services.json before Dart's main()
-      // runs; on iOS the same happens via FirebaseApp.configure() in
-      // AppDelegate. The Dart-side `Firebase.apps` list is NOT eagerly
-      // populated from that native registry — it stays empty until the
-      // first `Firebase.initializeApp()` call, which then trips the
-      // native "already exists" check and surfaces as `duplicate-app`.
-      // So we can't pre-check `Firebase.apps.isEmpty`; instead we
-      // attempt the init and treat `duplicate-app` as success. The
-      // FlutterFire CLI generates both google-services.json and
-      // firebase_options.dart together, so the options are identical
-      // either way.
       try {
-        // CUR-1399: passing explicit `options:` overrides the bundled native config, so
-        // every flavor currently inits against `hht-diary-mvp` while the backend sends
-        // FCM from `cure-hht-admin` (mismatch). Deferred target: bootstrap with no
-        // Firebase; on enrollment fetch options for the resolved sponsor+env, persist
-        // them (for the bg-message isolate), and init the DEFAULT app from them.
-        // See Linear CUR-1399 (deferred runtime-init) and CUR-1416 (routing seam).
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
-        debugPrint('Firebase initialized from Dart');
+        debugPrint('Firebase initialized successfully');
       } on FirebaseException catch (e) {
+        // CUR-1278: on Android the google-services Gradle plugin's
+        // FirebaseInitProvider auto-initializes the [DEFAULT] app before
+        // Dart's main() runs (iOS does the same via FirebaseApp.configure()
+        // in AppDelegate). The Dart-side Firebase.apps list is NOT eagerly
+        // synced from that native registry, so we can't pre-check
+        // Firebase.apps.isEmpty — the init call trips the native
+        // "already exists" check and surfaces as `duplicate-app`. Treat that
+        // as success (the native app is correct); other codes still surface.
         if (e.code == 'duplicate-app') {
           debugPrint('Firebase already initialized by native side');
         } else {
@@ -137,128 +148,22 @@ class ClinicalDiaryApp extends StatefulWidget {
 }
 
 class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
-  Locale _locale = const Locale('en');
-  // CUR-424: Force light mode for alpha partners (no system/dark mode)
-  ThemeMode _themeMode = ThemeMode.light;
-  // CUR-488: Larger text and controls preference
-  bool _largerTextAndControls = false;
-  // CUR-528: Selected font family
-  String _selectedFont = 'Roboto';
-  final PreferencesService _preferencesService = PreferencesService();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPreferences();
-  }
-
-  Future<void> _loadPreferences() async {
-    final prefs = await _preferencesService.getPreferences();
-    setState(() {
-      _locale = Locale(prefs.languageCode);
-      // CUR-424: Always use light mode for alpha partners
-      _themeMode = ThemeMode.light;
-      // CUR-488: Load larger text preference
-      _largerTextAndControls = prefs.largerTextAndControls;
-      // CUR-528: Load selected font preference
-      _selectedFont = prefs.selectedFont;
-    });
-  }
-
-  void _setLocale(String languageCode) {
-    setState(() {
-      _locale = Locale(languageCode);
-    });
-  }
-
-  void _setThemeMode(bool isDarkMode) {
-    // CUR-424: Ignore dark mode requests, always use light mode for alpha
-    setState(() {
-      _themeMode = ThemeMode.light;
-    });
-  }
-
-  // CUR-488: Update larger text preference
-  void _setLargerTextAndControls(bool value) {
-    setState(() {
-      _largerTextAndControls = value;
-    });
-  }
-
-  // CUR-528: Update selected font preference
-  void _setFont(String fontFamily) {
-    setState(() {
-      _selectedFont = fontFamily;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Wrap with EnvironmentBanner to show DEV/QA ribbon in non-production builds
+    // Wrap with EnvironmentBanner to show DEV/QA ribbon in non-production
+    // builds. The themed [MaterialApp] is built inside [AppRoot] once the
+    // event-sourcing scope is up, so its theme/locale/text-scale can be driven
+    // by the settings projection.
     return EnvironmentBanner(
       show: EnvProfile.current.showBanner,
       flavorName: EnvProfile.current.name,
-      child: MaterialApp(
-        title: EnvProfile.current.title,
-        // Show Flutter debug banner in debug mode (top-right corner)
-        // Environment ribbon (DEV/QA) shows in top-left corner
-        debugShowCheckedModeBanner: kDebugMode,
-        // CUR-528: Use theme with selected font
-        theme: AppTheme.getLightThemeWithFont(fontFamily: _selectedFont),
-        darkTheme: AppTheme.getDarkThemeWithFont(fontFamily: _selectedFont),
-        themeMode: _themeMode,
-        locale: _locale,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        // Wrap all routes with ResponsiveWebFrame to constrain width on web
-        // CUR-488: Apply text scale factor for larger text preference
-        builder: (context, child) {
-          final mediaQuery = MediaQuery.of(context);
-          // Scale text by 1.2x when larger text is enabled
-          final textScaleFactor = _largerTextAndControls
-              ? mediaQuery.textScaler.scale(1.2)
-              : 1.0;
-          return MediaQuery(
-            data: mediaQuery.copyWith(
-              textScaler: TextScaler.linear(textScaleFactor),
-            ),
-            child: ResponsiveWebFrame(child: child ?? const SizedBox.shrink()),
-          );
-        },
-        home: AppRoot(
-          onLocaleChanged: _setLocale,
-          onThemeModeChanged: _setThemeMode,
-          onLargerTextChanged: _setLargerTextAndControls,
-          onFontChanged: _setFont,
-          preferencesService: _preferencesService,
-        ),
-      ),
+      child: const AppRoot(),
     );
   }
 }
 
 class AppRoot extends StatefulWidget {
-  const AppRoot({
-    required this.onLocaleChanged,
-    required this.onThemeModeChanged,
-    required this.onLargerTextChanged,
-    required this.onFontChanged,
-    required this.preferencesService,
-    super.key,
-  });
-
-  final ValueChanged<String> onLocaleChanged;
-  final ValueChanged<bool> onThemeModeChanged;
-  // CUR-488: Callback for larger text preference changes
-  final ValueChanged<bool> onLargerTextChanged;
-  // CUR-528: Callback for font selection changes
-  final ValueChanged<String> onFontChanged;
-  final PreferencesService preferencesService;
+  const AppRoot({super.key});
 
   @override
   State<AppRoot> createState() => _AppRootState();
@@ -266,66 +171,28 @@ class AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
-  late final TaskService _taskService = TaskService(
-    onCancelled: _onSurveyCancelledFromTasksResponse,
-    enrollmentService: _enrollmentService,
-  );
-
-  /// CUR-1292: invoked when `/tasks` response surfaces a cancelled
-  /// questionnaire. Records a local tombstone event so the
-  /// materialized view row flips to `is_deleted=true` (and the
-  /// timeline card disappears) and queues a patient-visible
-  /// "questionnaire cancelled" notification. Both sides are
-  /// idempotent — calling for an already-applied cancellation is a
-  /// no-op via `EntryService.record`'s tombstone-on-tombstone
-  /// detection and `TaskService.notifyQuestionnaireCancelled`'s
-  /// duplicate guard.
-  Future<void> _onSurveyCancelledFromTasksResponse(
-    String aggregateId,
-    String entryType,
-  ) async {
-    final runtime = _runtime;
-    if (runtime != null) {
-      // Awaited so syncTasks doesn't return until the local
-      // materialized view reflects the tombstone — otherwise the
-      // home screen's `_loadRecords` (called right after) reads the
-      // pre-tombstone state and the today/yesterday card lingers
-      // until the next refresh.
-      await runtime.entryService.record(
-        entryType: entryType,
-        aggregateId: aggregateId,
-        eventType: 'tombstone',
-        answers: const <String, Object?>{},
-        changeReason: 'portal-withdrawn',
-      );
-    }
-    _taskService.notifyQuestionnaireCancelled(
-      aggregateId: aggregateId,
-      displayName: _displayNameForSurveyEntryType(entryType),
-    );
-  }
-
-  /// Resolve the patient-facing display name for a survey entry type
-  /// ('nose_hht_survey', 'qol_survey', …). Strips the `_survey`
-  /// suffix and looks up [QuestionnaireType] — the single source of
-  /// truth for these labels — falling back to the stripped string.
-  static String _displayNameForSurveyEntryType(String entryType) {
-    final base = entryType.replaceAll(RegExp(r'_survey$'), '');
-    try {
-      return QuestionnaireType.fromValue(base).displayName;
-    } catch (_) {
-      return base;
-    }
-  }
-
-  /// CUR-1311 P1B.5: Envelope-based notification polling service.
-  late final NotificationPollService _notificationPollService =
-      NotificationPollService(
-        enrollmentService: _enrollmentService,
-        taskService: _taskService,
-      );
-
+  final TaskService _taskService = TaskService();
   ClinicalDiaryRuntime? _runtime;
+
+  /// CUR-1169 I1: the new reactive composition root, built alongside (not
+  /// replacing) [_runtime]. Mounted into the tree via [ReActionScope] so
+  /// reaction widgets can resolve a `LocalScope` during the transition.
+  DiaryScopeRuntime? _diaryScope;
+
+  /// CUR-1169 I2a: foreground drain triggers (app-resume / connectivity /
+  /// periodic) for the new-stack native outbound sync. The post-action-submit
+  /// drain is wired through the bootstrap's `syncCycleTrigger`; these cover the
+  /// remaining trigger sources. Disposed with the runtime.
+  DiarySyncTriggerHandles? _diarySyncTriggers;
+
+  /// HTTP client owned by the native outbound [DiaryServerDestination]. Closed
+  /// on [dispose] so the destination's transport is torn down cleanly.
+  http.Client? _diaryIngestClient;
+
+  /// Native outbound FIFO wedge check (the new `diary_es.db` store), forwarded
+  /// to [HomeScreen] so its banner reflects a stuck native sync the legacy
+  /// `runtime.backend` cannot see. DIARY-DEV-native-outbound-sync/B.
+  Future<bool> Function()? _nativeFifoWedged;
 
   /// Persistent device install UUID, minted on first launch and reused
   /// thereafter. Forwarded to [HomeScreen] for the export payload.
@@ -337,7 +204,6 @@ class _AppRootState extends State<AppRoot> {
   @override
   void initState() {
     super.initState();
-    _taskService.trialStartedAtNotifier.addListener(_onTrialStartedAtChanged);
     _initializeRuntime();
     _initializeNotifications();
   }
@@ -378,10 +244,10 @@ class _AppRootState extends State<AppRoot> {
       final runtime = await bootstrapClinicalDiary(
         sembastDatabase: db,
         authToken: _enrollmentService.getJwtToken,
-        // The patient's backend URL is resolved from their linking code at
+        // The participant's backend URL is resolved from their linking code at
         // enrollment time and persisted by EnrollmentService. Resolve it
         // lazily on every use so the destination + inbound poll automatically
-        // pick up the URL the moment the patient links, without requiring a
+        // pick up the URL the moment the participant links, without requiring a
         // bootstrap-time restart. Returns null pre-enrollment, which the
         // destination + inbound poll handle as "skip this cycle".
         resolveBaseUrl: () async {
@@ -398,51 +264,155 @@ class _AppRootState extends State<AppRoot> {
         // CUR-1164: Skip outbound sync + inbound poll while disconnected.
         // Closure over the notifier value keeps the check sync.
         isDisconnected: () => _enrollmentService.disconnectedNotifier.value,
-        // CUR-1292: surface a "questionnaire cancelled" notification
-        // when the coordinator tombstones a survey. The aggregate is
-        // already tombstoned in the event log by portalInboundPoll;
-        // this just adds a passive notification to the task list with
-        // tap-to-dismiss behavior.
-        onSurveyTombstoned: (aggregateId, entryType) {
-          _taskService.notifyQuestionnaireCancelled(
-            aggregateId: aggregateId,
-            displayName: _displayNameForSurveyEntryType(entryType),
-          );
-        },
-        // CUR-1311 P1B.5: Hook notification poll into the trigger chain.
-        onAfterSync: () => _notificationPollService.poll(),
         // CUR-1398: include task-sync in every periodic / resume /
         // connectivity / FCM-triggered tick so foreground state stays
-        // correct even when FCM delivery is slow or fails. Cold-start
-        // sync is still done separately in _initializeNotifications.
+        // correct even when FCM delivery is slow or fails. Cold-start sync
+        // is still done separately in _initializeNotifications.
         tasksSync: () => _taskService.syncTasks(_enrollmentService),
       );
 
-      // The legacy-shim destinations stay dormant until the portal
-      // sends a `start_trial` inbound message (handled by
-      // portalInboundPoll's onStartTrial callback wired in the
-      // bootstrap). Their start_date is durable, so on a process
-      // restart of an already-activated patient there is nothing for
-      // bootstrap to do here. Personal-use (unenrolled) and
-      // post-enrollment-pre-Send-EQ patients never have legacy_sync
-      // active, so they never wedge against the trial diary server.
+      // Activate both legacy-shim destinations once at first install.
+      // The startDate is "today" on first install: there are no events
+      // recorded before the app exists, so anchoring the destination
+      // there is the correct watermark. setStartDate is monotonically
+      // non-increasing (REQ-d00129-C) — read the current schedule and
+      // skip the write when the destination is already activated so a
+      // process restart is a no-op. Each activation runs in its own
+      // try/catch so a failure on one destination does not prevent the
+      // other from coming online.
+      const initiator = AutomationInitiator(service: 'mobile-bootstrap');
+      final activationStartAt = DateTime.now().toUtc();
+      for (final destinationId in <String>[
+        LegacySyncDestination.destinationId,
+        LegacyQuestionnaireSubmitDestination.destinationId,
+      ]) {
+        try {
+          final schedule = await runtime.destinations.scheduleOf(destinationId);
+          if (schedule.startDate != null) continue;
+          await runtime.destinations.setStartDate(
+            destinationId,
+            activationStartAt,
+            initiator: initiator,
+          );
+        } catch (e, stack) {
+          debugPrint(
+            '[Bootstrap] activation($destinationId) failed: $e\n$stack',
+          );
+        }
+      }
+
+      // CUR-1169 I1: build the new reactive composition root alongside the
+      // old runtime. Backed by a SEPARATE Sembast store (diary_es.db) so it
+      // shares nothing with the legacy store; mirrors the web/native factory
+      // selection above. Reuses the already-computed deviceId/softwareVersion.
+      // Failures route to _bootstrapError via the enclosing try/catch, exactly
+      // like the old runtime.
+      final DiaryScopeRuntime diaryScope;
+      Future<bool> Function()? nativeFifoWedged;
+      {
+        final Database esDb;
+        if (kIsWeb) {
+          esDb = await databaseFactoryWeb.openDatabase('diary_es.db');
+        } else {
+          final docsDir = await getApplicationDocumentsDirectory();
+          esDb = await databaseFactoryIo.openDatabase(
+            '${docsDir.path}/diary_es.db',
+          );
+        }
+        // CUR-1169 I2a: the end-state NATIVE outbound destination. Ships the
+        // canonical esd/batch@1 BatchEnvelope to the diary-server event-sourcing
+        // ingest. The ingest endpoint is the native handler the diary-server
+        // rebuild (evs-portal Beta topology) will expose; until then the POST
+        // simply retries (SendTransient) — diary entries already do not sync
+        // post-cluster and the app is greenfield. Resolve URL + JWT lazily so
+        // the destination picks up enrollment the moment the participant links,
+        // with no bootstrap-time restart.
+        final ingestClient = http.Client();
+        _diaryIngestClient = ingestClient;
+        final destination = DiaryServerDestination(
+          client: ingestClient,
+          // Native ingest endpoint: <backend>/api/v1/ingest/batch. Returns null
+          // pre-enrollment, which the destination treats as "skip this cycle".
+          resolveIngestUrl: () async {
+            final base = await _enrollmentService.getBackendUrl();
+            if (base == null) return null;
+            return Uri.parse('$base/api/v1/ingest/batch');
+          },
+          authToken: _enrollmentService.getJwtToken,
+        );
+
+        // The native outbound FIFO lives in this (new) store; capture a wedge
+        // check for the home-screen banner — the legacy runtime.backend can't
+        // see it. DIARY-DEV-native-outbound-sync/B.
+        final esBackend = SembastBackend(database: esDb);
+        nativeFifoWedged = esBackend.hasFifoWedged;
+
+        try {
+          diaryScope = await bootstrapDiaryScope(
+            backend: esBackend,
+            deviceId: deviceId,
+            softwareVersion: softwareVersion,
+            localUserId: deviceId, // stable per-install id; recording is never
+            // enrollment-gated
+            outboundDestination: destination,
+          );
+        } catch (_) {
+          ingestClient.close();
+          _diaryIngestClient = null;
+          await esDb.close();
+          rethrow;
+        }
+
+        // Implements: DIARY-DEV-native-outbound-sync/C
+        // Activate the native destination at the trial-start watermark so
+        // pre-trial events stay local (parity with the legacy destinations,
+        // which anchor at first-install "now"). Greenfield: no events exist
+        // before the app does, so "now" at first activation IS the trial start.
+        // setStartDate is monotonically non-increasing — skip the write when
+        // already activated so a process restart is a no-op.
+        const watermarkInitiator = esd.AutomationInitiator(
+          service: 'mobile-bootstrap',
+        );
+        try {
+          final schedule = await diaryScope.bundle.destinations.scheduleOf(
+            DiaryServerDestination.destinationId,
+          );
+          if (schedule.startDate == null) {
+            await diaryScope.bundle.destinations.setStartDate(
+              DiaryServerDestination.destinationId,
+              DateTime.now().toUtc(),
+              initiator: watermarkInitiator,
+            );
+          }
+        } catch (e, stack) {
+          debugPrint(
+            '[Bootstrap] native destination activation failed: $e\n$stack',
+          );
+        }
+
+        // Install the foreground drain triggers (app-resume / connectivity /
+        // periodic). The post-action-submit drain is already wired through the
+        // bootstrap's syncCycleTrigger; these route into the same SyncCycle.
+        final syncCycle = diaryScope.syncCycle;
+        if (syncCycle != null) {
+          try {
+            _diarySyncTriggers = await installDiarySyncTriggers(
+              onTrigger: syncCycle.call,
+            );
+          } catch (e, stack) {
+            debugPrint('[Bootstrap] diary sync triggers failed: $e\n$stack');
+          }
+        }
+      }
 
       if (mounted) {
         setState(() {
           _runtime = runtime;
           _deviceId = deviceId;
+          _diaryScope = diaryScope;
+          _nativeFifoWedged = nativeFifoWedged;
         });
       }
-
-      // CUR-1292: handle the boot-time race where _initializeNotifications
-      // (which kicks off in parallel with _initializeRuntime) calls
-      // _taskService.syncTasks before _runtime is assigned. If the /tasks
-      // response carried trial_started_at, the notifier transitioned
-      // correctly but `_onTrialStartedAtChanged` saw `_runtime == null` and
-      // skipped the activation. Re-run the listener now that _runtime is
-      // available; setStartDate is monotonic so an idempotent re-fire is
-      // harmless when the destinations are already on the right schedule.
-      _onTrialStartedAtChanged();
 
       // Start the local-only HTTP debug bridge. Loopback-bound and gated
       // on AppEnv.local + !kIsWeb (shelf needs dart:io). Failure to bind
@@ -462,6 +432,7 @@ class _AppRootState extends State<AppRoot> {
         } catch (e, stack) {
           debugPrint('[DebugBridge] start failed: $e\n$stack');
         }
+        _emitShutdownHelp();
       }
     } catch (e, stack) {
       debugPrint('[Bootstrap] Runtime init failed: $e\n$stack');
@@ -469,6 +440,89 @@ class _AppRootState extends State<AppRoot> {
         setState(() => _bootstrapError = e);
       }
     }
+  }
+
+  /// Prints clean-shutdown instructions to stdout on local-flavor desktop boot,
+  /// so whoever launched a detached `flutter run` doesn't have to remember how
+  /// to stop it cleanly. Clean stops run the app's dispose path (which flushes
+  /// the Sembast stores); a `kill -9` does not.
+  void _emitShutdownHelp() {
+    debugPrint(
+      '\n'
+      '[diary][local] clean shutdown (runs dispose -> flushes diary_es.db):\n'
+      '[diary][local]   - close the app window, OR\n'
+      '[diary][local]   - press q if attached, OR `echo q > /tmp/diary.in`\n'
+      '[diary][local]     when launched detached via the run FIFO (graceful quit).\n'
+      '[diary][local]   force-stop (skips DB flush, last resort): kill $pid\n',
+    );
+  }
+
+  /// Full local factory reset: tear down the live runtimes (closing both
+  /// Sembast stores), wipe all on-device state, then re-bootstrap so the app
+  /// comes back up at first-launch state with a freshly-minted device id.
+  ///
+  /// The hard participation gate lives in [HomeScreen] (a participant must end
+  /// participation before this is reachable); this method assumes the gate has
+  /// already allowed the reset.
+  // Implements: DIARY-BASE-local-data-reset/A
+  Future<void> _resetAllData() async {
+    // 1. Capture the documents path (mirrors _initializeRuntime). path_provider
+    //    has no web implementation, so the file wipe is io-only; on web the
+    //    Sembast stores are IndexedDB-backed and there are no files to delete.
+    String? documentsPath;
+    if (!kIsWeb) {
+      try {
+        final docsDir = await getApplicationDocumentsDirectory();
+        documentsPath = docsDir.path;
+      } catch (e, stack) {
+        debugPrint('[Reset] documents-dir lookup failed: $e\n$stack');
+      }
+    }
+
+    // 2. Dispose both runtimes (closes both EventStores so the files unlock),
+    //    plus the I2a sync-trigger handles + ingest client — mirrors dispose().
+    try {
+      await _runtime?.dispose();
+    } catch (e, stack) {
+      debugPrint('[Reset] runtime dispose failed: $e\n$stack');
+    }
+    try {
+      await _diarySyncTriggers?.dispose();
+    } catch (e, stack) {
+      debugPrint('[Reset] sync-trigger dispose failed: $e\n$stack');
+    }
+    _diarySyncTriggers = null;
+    _diaryIngestClient?.close();
+    _diaryIngestClient = null;
+    try {
+      await _diaryScope?.dispose();
+    } catch (e, stack) {
+      debugPrint('[Reset] diary scope dispose failed: $e\n$stack');
+    }
+
+    // 3. Wipe all local state (store files + enrollment + tasks + prefs).
+    if (documentsPath != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await wipeLocalData(
+        documentsPath: documentsPath,
+        enrollmentService: _enrollmentService,
+        taskService: _taskService,
+        prefs: prefs,
+      );
+    }
+
+    // 4. Show the loading scaffold, then re-bootstrap a fresh runtime. The new
+    //    device id (minted by _readOrMintDeviceId against the now-empty prefs)
+    //    re-keys HomeScreen, forcing a fresh State against the new runtime.
+    if (mounted) {
+      setState(() {
+        _runtime = null;
+        _diaryScope = null;
+        _nativeFifoWedged = null;
+        _deviceId = null;
+      });
+    }
+    await _initializeRuntime();
   }
 
   Future<String> _readOrMintDeviceId() async {
@@ -492,8 +546,6 @@ class _AppRootState extends State<AppRoot> {
 
     // REQ-CAL-p00081: Poll for tasks on app start (FCM fallback)
     unawaited(_taskService.syncTasks(_enrollmentService));
-    // CUR-1311 P1B.5: Envelope poll on cold start (runs alongside syncTasks).
-    unawaited(_notificationPollService.poll());
 
     _notificationService = MobileNotificationService(
       onDataMessage: _taskService.handleFcmMessage,
@@ -512,7 +564,7 @@ class _AppRootState extends State<AppRoot> {
   /// Register the FCM token with the diary server.
   ///
   /// Called on initial token retrieval and on token refresh.
-  /// REQ-CAL-p00082: Patient Alert Delivery
+  /// REQ-CAL-p00082: Participant Alert Delivery
   Future<void> _registerFcmToken(String token) async {
     final jwt = await _enrollmentService.getJwtToken();
     if (jwt == null) {
@@ -542,10 +594,7 @@ class _AppRootState extends State<AppRoot> {
       if (response.statusCode == 200) {
         debugPrint('[FCM] Token registered with diary server ($platform)');
       } else {
-        debugPrint(
-          '[FCM] Token registration failed: ${response.statusCode} '
-          '${response.body}',
-        );
+        debugPrint('[FCM] Token registration failed: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('[FCM] Token registration error: $e');
@@ -556,129 +605,188 @@ class _AppRootState extends State<AppRoot> {
   /// Registers the cached FCM token with the diary server now that
   /// the JWT and backend URL are available.
   ///
-  /// REQ-CAL-p00082: Patient Alert Delivery
+  /// REQ-CAL-p00082: Participant Alert Delivery
   void _onPostEnrollment() {
     final token = _notificationService?.currentToken;
     if (token != null) {
       _registerFcmToken(token);
     }
-    // REQ-CAL-p00081: Discover tasks immediately after linking. The
-    // task sync also surfaces `trial_started_at` if the coordinator
-    // has already clicked "Send EQ"; the trial-start listener picks
-    // it up and activates outbound destinations.
+    // REQ-CAL-p00081: Discover tasks immediately after linking
     unawaited(_taskService.syncTasks(_enrollmentService));
-  }
-
-  /// REQ-CAL-p00079: Activate the legacy-shim outbound destinations
-  /// with the portal's "Send EQ" click timestamp as their start_date
-  /// watermark. Events recorded before this point are personal-use
-  /// (no trial server existed yet) and intentionally don't ship;
-  /// events recorded at or after it ship to the trial server.
-  ///
-  /// Driven by [TaskService.trialStartedAtNotifier], which publishes
-  /// the timestamp once the `/tasks` endpoint reports a non-null
-  /// `trial_started_at`. setStartDate is monotonically non-increasing
-  /// (REQ-d00129-C), so re-fires of the same value are no-ops and the
-  /// destinations stay at the canonical click time across restarts.
-  Future<void> _activateShimDestinationsAt(
-    ClinicalDiaryRuntime runtime,
-    DateTime startAt,
-  ) async {
-    const initiator = AutomationInitiator(service: 'mobile-trial-start');
-    for (final destinationId in <String>[
-      LegacySyncDestination.destinationId,
-      LegacyQuestionnaireSubmitDestination.destinationId,
-    ]) {
-      try {
-        final schedule = await runtime.destinations.scheduleOf(destinationId);
-        if (schedule.startDate != null) {
-          debugPrint(
-            '[TrialStart] $destinationId already activated at ${schedule.startDate}, skipping',
-          );
-          continue;
-        }
-        await runtime.destinations.setStartDate(
-          destinationId,
-          startAt,
-          initiator: initiator,
-        );
-        debugPrint('[TrialStart] activated $destinationId at $startAt');
-      } catch (e, stack) {
-        debugPrint(
-          '[TrialStart] activation($destinationId) failed: $e\n$stack',
-        );
-      }
-    }
-  }
-
-  void _onTrialStartedAtChanged() {
-    final at = _taskService.trialStartedAtNotifier.value;
-    final runtime = _runtime;
-    if (at != null && runtime != null) {
-      unawaited(_activateShimDestinationsAt(runtime, at));
-    }
   }
 
   @override
   void dispose() {
-    _taskService.trialStartedAtNotifier.removeListener(
-      _onTrialStartedAtChanged,
-    );
     _notificationService?.dispose();
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
-    // dispose() override is sync, so this is best-effort fire-and-forget:
-    // unawaited makes the intent explicit (no analyzer warning, no silent
-    // Future drop higher up the chain) and the .catchError surfaces a
-    // failed close instead of an unhandled async error. It does NOT
-    // guarantee the Sembast close completes before process exit — a
-    // graceful shutdown still depends on the platform giving the app
-    // enough time. For FDA audit-log durability we rely on Sembast's
-    // per-write fsync, not on dispose completing.
-    final disposeFuture = _runtime?.dispose();
-    if (disposeFuture != null) {
-      unawaited(
-        disposeFuture.catchError((Object e, StackTrace st) {
-          developer.log(
-            'ClinicalDiaryRuntime.dispose() failed during app shutdown',
-            name: 'main',
-            error: e,
-            stackTrace: st,
-          );
-        }),
-      );
-    }
+    _runtime?.dispose();
+    // CUR-1169 I2a: tear down the native outbound sync triggers + HTTP client
+    // before disposing the scope they drive.
+    unawaited(
+      _diarySyncTriggers?.dispose().catchError(
+        (Object e, StackTrace st) =>
+            debugPrint('[DiarySyncTriggers] dispose error: $e\n$st'),
+      ),
+    );
+    _diaryIngestClient?.close();
+    _diaryScope?.dispose().catchError(
+      (Object e, StackTrace st) =>
+          debugPrint('[DiaryScope] dispose error: $e\n$st'),
+    );
     super.dispose();
+  }
+
+  /// Folds the settings view rows into a `{key: SettingPayload}` map.
+  static Map<String, SettingPayload> _settingsByKey(
+    ViewState<Map<String, Object?>> state,
+  ) {
+    final rows = switch (state) {
+      Ready<Map<String, Object?>>(:final rows) => rows,
+      Stale<Map<String, Object?>>(:final lastRows) => lastRows,
+      _ => const <Map<String, Object?>>[],
+    };
+    final out = <String, SettingPayload>{};
+    for (final row in rows) {
+      final payload = SettingPayload.fromJson(row);
+      out[payload.key] = payload;
+    }
+    return out;
+  }
+
+  /// Wraps [home] in the themed [MaterialApp]. When [prefs] is supplied the
+  /// theme/locale/text-scale are driven by the settings projection; the
+  /// pre-bootstrap loading/error screens pass null and get plain defaults.
+  // Implements: DIARY-DEV-reactive-read-path/A — the app-root presentation
+  //   layer holds no authoritative preference state; it is rebuilt from the
+  //   settings projection.
+  Widget _buildMaterialApp({
+    required Widget home,
+    UserPreferences? prefs,
+    ClinicalRules? clinicalRules,
+  }) {
+    final effectivePrefs = prefs ?? const UserPreferences();
+    final effectiveRules = clinicalRules ?? const ClinicalRules();
+    final font = effectivePrefs.selectedFont;
+    final largerText = effectivePrefs.largerTextAndControls;
+    final languageCode = effectivePrefs.languageCode;
+    return MaterialApp(
+      title: EnvProfile.current.title,
+      // Show Flutter debug banner in debug mode (top-right corner).
+      // Environment ribbon (DEV/QA) shows in top-left corner.
+      debugShowCheckedModeBanner: kDebugMode,
+      // CUR-528: Use theme with selected font.
+      theme: AppTheme.getLightThemeWithFont(fontFamily: font),
+      darkTheme: AppTheme.getDarkThemeWithFont(fontFamily: font),
+      // CUR-424: Always light mode for alpha partners (dark mode stored but a
+      // no-op).
+      themeMode: ThemeMode.light,
+      locale: Locale(languageCode),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      // Wrap all routes with ResponsiveWebFrame to constrain width on web.
+      // CUR-488: Apply text scale factor for larger text preference.
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        final textScaleFactor = largerText
+            ? mediaQuery.textScaler.scale(1.2)
+            : 1.0;
+        // AppPreferencesScope is inserted ABOVE the Navigator (here in builder)
+        // so EVERY route — not just `home` — reads the current preferences via
+        // AppPreferencesScope.of(context). Placing it around `home` only would
+        // leave pushed routes (settings, calendar, recording) reading defaults.
+        return AppPreferencesScope(
+          preferences: effectivePrefs,
+          child: ClinicalRulesScope(
+            rules: effectiveRules,
+            child: MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(textScaleFactor),
+              ),
+              child: ResponsiveWebFrame(
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        );
+      },
+      home: home,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_bootstrapError != null) {
-      return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text('Failed to initialize storage: $_bootstrapError'),
+      return _buildMaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text('Failed to initialize storage: $_bootstrapError'),
+            ),
           ),
         ),
       );
     }
     final runtime = _runtime;
     final deviceId = _deviceId;
-    if (runtime == null || deviceId == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final diaryScope = _diaryScope;
+    if (runtime == null || deviceId == null || diaryScope == null) {
+      return _buildMaterialApp(
+        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
     }
-    return HomeScreen(
-      runtime: runtime,
-      deviceId: deviceId,
-      enrollmentService: _enrollmentService,
-      taskService: _taskService,
-      onLocaleChanged: widget.onLocaleChanged,
-      onThemeModeChanged: widget.onThemeModeChanged,
-      onLargerTextChanged: widget.onLargerTextChanged,
-      onFontChanged: widget.onFontChanged,
-      preferencesService: widget.preferencesService,
-      onEnrolled: _onPostEnrollment,
+    // CUR-1169 B3.1: mount the LocalScope, then drive the themed MaterialApp
+    // (theme/locale/text-scale) and the in-tree [AppPreferencesScope] off the
+    // event-sourced settings projection. No app-root preference state remains.
+    return ReActionScope(
+      scope: diaryScope.scope,
+      child: ViewBuilder<Map<String, Object?>>(
+        viewName: settingsViewName,
+        mapper: (r) => r,
+        aggregateIdOf: (r) => r['aggregateId'] as String,
+        builder: (context, state) {
+          final settingsMap = _settingsByKey(state);
+          final prefs = userPreferencesFromSettings(settingsMap);
+          // trialStart comes from the participant-lifecycle projection (I2c,
+          // portal-gated); null until then — the lock then applies to all dates
+          // past its threshold rather than only post-trial-start dates.
+          final clinicalRules = ClinicalRules.fromSettings(
+            settingsMap,
+            trialStart: null,
+          );
+          return _buildMaterialApp(
+            prefs: prefs,
+            clinicalRules: clinicalRules,
+            // AppPreferencesScope is now provided above the Navigator inside
+            // _buildMaterialApp's builder, so it covers HomeScreen AND every
+            // pushed route. `home` is just the HomeScreen.
+            home: HomeScreen(
+              // A fresh device id after a factory reset re-keys HomeScreen so
+              // its State is rebuilt from scratch against the new runtime.
+              key: ValueKey(deviceId),
+              runtime: runtime,
+              deviceId: deviceId,
+              enrollmentService: _enrollmentService,
+              taskService: _taskService,
+              // Implements: DIARY-DEV-native-outbound-sync/B — surface a wedged
+              //   native outbound FIFO (new diary_es.db store) in the banner.
+              nativeFifoWedged: _nativeFifoWedged,
+              onEnrolled: _onPostEnrollment,
+              onResetAllData: _resetAllData,
+              // Implements: DIARY-BASE-local-data-reset/C — the sponsor-
+              //   controllable layer of the reset gate, read from the
+              //   event-sourced settings projection (default true).
+              resetSettingAllowsReset: allowLocalResetSetting(settingsMap),
+            ),
+          );
+        },
+      ),
     );
   }
 }

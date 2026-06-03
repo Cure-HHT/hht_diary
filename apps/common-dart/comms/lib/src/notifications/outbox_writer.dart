@@ -17,7 +17,7 @@
 //      message level, then POSTs)
 //   4. repo.markSent / markFailed — closes the row out
 //   5. onUnregistered — fires only for dead-token terminal so the app
-//      can deactivate the row in `patient_fcm_tokens`.
+//      can deactivate the row in `participant_fcm_tokens`.
 
 import 'dart:convert';
 
@@ -47,7 +47,7 @@ class OutboxWriter {
 
   /// Optional callback invoked when the channel terminates with
   /// UNREGISTERED. Apps wire this to deactivate the matching row in
-  /// `patient_fcm_tokens` so subsequent sends do not re-target the
+  /// `participant_fcm_tokens` so subsequent sends do not re-target the
   /// dead token.
   final Future<void> Function(String fcmToken)? onUnregistered;
 

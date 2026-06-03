@@ -14,7 +14,7 @@
 --   REQ-p00016: Separation of Identity and Clinical Data
 --   REQ-p00017: Data Encryption
 --   REQ-p00018: Multi-Site Support Per Sponsor
---   REQ-p00035: Patient Data Isolation
+--   REQ-p00035: Participant Data Isolation
 --   REQ-p00036: Investigator Site-Scoped Access
 --   REQ-p00037: Investigator Annotation Restrictions
 --   REQ-p00022: Analyst Read-Only Site-Scoped Access
@@ -24,7 +24,7 @@
 --   REQ-p00040: Event Sourcing State Protection
 --   REQ-o00004: Database Schema Deployment
 --   REQ-o00011: Multi-Site Data Configuration Per Sponsor
---   REQ-o00020: Patient Data Isolation Policy Deployment
+--   REQ-o00020: Participant Data Isolation Policy Deployment
 --   REQ-o00021: Investigator Site-Scoped Access Policy Deployment
 --   REQ-o00022: Investigator Annotation Access Policy Deployment
 --   REQ-o00023: Analyst Read-Only Access Policy Deployment
@@ -33,7 +33,7 @@
 --   REQ-o00026: Administrator Access Policy Deployment
 --   REQ-o00027: Event Sourcing State Protection Policy Deployment
 --   REQ-d00011: Multi-Site Schema Implementation
---   REQ-d00019: Patient Data Isolation RLS Implementation
+--   REQ-d00019: Participant Data Isolation RLS Implementation
 --   REQ-d00020: Investigator Site-Scoped Access RLS Implementation
 --   REQ-d00021: Investigator Annotation RLS Implementation
 --   REQ-d00022: Analyst Read-Only RLS Implementation
@@ -55,7 +55,7 @@
 --
 -- DATA PRIVACY ARCHITECTURE:
 -- This database implements privacy-by-design with de-identified clinical data.
--- Patient identity is managed separately by Supabase Auth.
+-- Participant identity is managed separately by Supabase Auth.
 -- No PHI (Protected Health Information) or PII (Personally Identifiable Information)
 -- is stored in this database.
 --
@@ -66,7 +66,7 @@
 -- - Key Management: Automatic rotation via Supabase infrastructure
 --
 -- DATA CLASSIFICATION:
--- - Patient IDs: De-identified study participant IDs (not real names)
+-- - Participant IDs: De-identified study participant IDs (not real names)
 -- - Diary Data: Clinical observations (no identifying information)
 -- - Site Info: Business contact information (not personal health data)
 -- - Audit Trail: Complete change history for compliance
@@ -78,7 +78,7 @@
 --
 -- NO PHI/PII STORED:
 -- This database does NOT contain:
--- ❌ Patient real names
+-- ❌ Participant real names
 -- ❌ Social Security Numbers
 -- ❌ Dates of birth
 -- ❌ Medical record numbers
@@ -159,9 +159,9 @@ COMMENT ON COLUMN sites.edc_oid IS 'Original OID from RAVE EDC system';
 COMMENT ON COLUMN sites.edc_synced_at IS 'Timestamp of last sync from EDC';
 
 -- =====================================================
--- PATIENTS TABLE (REQ-CAL-p00063, REQ-CAL-p00073)
+-- PARTICIPANTS TABLE (REQ-CAL-p00063, REQ-CAL-p00073)
 -- =====================================================
--- Stores patient (subject) records synced from EDC (RAVE)
+-- Stores participant (subject) records synced from EDC (RAVE)
 -- One-way sync: portal reads from EDC, does not write back
 
 -- Mobile linking status enum (REQ-CAL-p00073)
@@ -173,8 +173,8 @@ CREATE TYPE mobile_linking_status AS ENUM (
     'not_participating'
 );
 
-CREATE TABLE patients (
-    patient_id TEXT PRIMARY KEY,
+CREATE TABLE participants (
+    participant_id TEXT PRIMARY KEY,
     site_id TEXT NOT NULL REFERENCES sites(site_id),
     edc_subject_key TEXT NOT NULL,
     mobile_linking_status mobile_linking_status NOT NULL DEFAULT 'not_connected',
@@ -188,22 +188,22 @@ CREATE TABLE patients (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_patients_site_id ON patients(site_id);
-CREATE INDEX idx_patients_linking_status ON patients(mobile_linking_status);
-CREATE INDEX idx_patients_edc_synced_at ON patients(edc_synced_at);
-CREATE INDEX idx_patients_trial_started ON patients(trial_started)
+CREATE INDEX idx_participants_site_id ON participants(site_id);
+CREATE INDEX idx_participants_linking_status ON participants(mobile_linking_status);
+CREATE INDEX idx_participants_edc_synced_at ON participants(edc_synced_at);
+CREATE INDEX idx_participants_trial_started ON participants(trial_started)
   WHERE mobile_linking_status = 'connected' AND trial_started = false;
 
-COMMENT ON TABLE patients IS 'Patient (subject) records synced from EDC (REQ-CAL-p00063). One-way sync from RAVE.';
-COMMENT ON COLUMN patients.patient_id IS 'RAVE SubjectKey (e.g., "840-001-001") used as primary identifier';
-COMMENT ON COLUMN patients.site_id IS 'FK to sites table, derived from SiteRef.LocationOID in RAVE';
-COMMENT ON COLUMN patients.edc_subject_key IS 'Original SubjectKey from RAVE EDC (same as patient_id, kept for traceability)';
-COMMENT ON COLUMN patients.mobile_linking_status IS 'Patient mobile app linking status (REQ-CAL-p00073)';
-COMMENT ON COLUMN patients.edc_synced_at IS 'Timestamp of last sync from EDC';
-COMMENT ON COLUMN patients.metadata IS 'Additional patient metadata from EDC';
-COMMENT ON COLUMN patients.trial_started IS 'Whether Start Trial workflow completed - enables EQ questionnaire and data sync (REQ-CAL-p00079)';
-COMMENT ON COLUMN patients.trial_started_at IS 'Timestamp when trial was started';
-COMMENT ON COLUMN patients.trial_started_by IS 'Portal user ID who started the trial';
+COMMENT ON TABLE participants IS 'Participant (subject) records synced from EDC (REQ-CAL-p00063). One-way sync from RAVE.';
+COMMENT ON COLUMN participants.participant_id IS 'RAVE SubjectKey (e.g., "840-001-001") used as primary identifier';
+COMMENT ON COLUMN participants.site_id IS 'FK to sites table, derived from SiteRef.LocationOID in RAVE';
+COMMENT ON COLUMN participants.edc_subject_key IS 'Original SubjectKey from RAVE EDC (same as participant_id, kept for traceability)';
+COMMENT ON COLUMN participants.mobile_linking_status IS 'Participant mobile app linking status (REQ-CAL-p00073)';
+COMMENT ON COLUMN participants.edc_synced_at IS 'Timestamp of last sync from EDC';
+COMMENT ON COLUMN participants.metadata IS 'Additional participant metadata from EDC';
+COMMENT ON COLUMN participants.trial_started IS 'Whether Start Trial workflow completed - enables EQ questionnaire and data sync (REQ-CAL-p00079)';
+COMMENT ON COLUMN participants.trial_started_at IS 'Timestamp when trial was started';
+COMMENT ON COLUMN participants.trial_started_by IS 'Portal user ID who started the trial';
 
 -- =====================================================
 -- EDC SYNC LOG (REQ-CAL-p00010, REQ-CAL-p00011)
@@ -215,7 +215,7 @@ CREATE TABLE edc_sync_log (
     sync_id BIGSERIAL PRIMARY KEY,
     sync_timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
     source_system TEXT NOT NULL CHECK (source_system IN ('RAVE', 'MEDIDATA', 'OTHER')),
-    operation TEXT NOT NULL CHECK (operation IN ('SITES_SYNC', 'PATIENTS_SYNC', 'METADATA_SYNC', 'FULL_SYNC', 'UNWEDGE')),
+    operation TEXT NOT NULL CHECK (operation IN ('SITES_SYNC', 'PARTICIPANTS_SYNC', 'METADATA_SYNC', 'FULL_SYNC', 'UNWEDGE')),
     sites_created INTEGER NOT NULL DEFAULT 0,
     sites_updated INTEGER NOT NULL DEFAULT 0,
     sites_deactivated INTEGER NOT NULL DEFAULT 0,
@@ -257,7 +257,7 @@ COMMENT ON COLUMN edc_sync_log.metadata IS 'Additional sync metadata (study OID,
 CREATE TABLE record_audit (
     audit_id BIGSERIAL PRIMARY KEY,
     event_uuid UUID NOT NULL,
-    patient_id TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
     site_id TEXT NOT NULL REFERENCES sites(site_id),
     operation TEXT NOT NULL CHECK (operation IN (
         'USER_CREATE', 'USER_UPDATE', 'USER_DELETE',
@@ -302,7 +302,7 @@ COMMENT ON COLUMN record_audit.session_id IS 'Session identifier for event corre
 -- Read model table - queries use this, writes go to event store
 CREATE TABLE record_state (
     event_uuid UUID PRIMARY KEY,
-    patient_id TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
     site_id TEXT NOT NULL REFERENCES sites(site_id),
     current_data JSONB NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
@@ -340,30 +340,30 @@ CREATE TABLE investigator_annotations (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-COMMENT ON TABLE investigator_annotations IS 'Investigator notes and corrections - does not modify original patient data';
+COMMENT ON TABLE investigator_annotations IS 'Investigator notes and corrections - does not modify original participant data';
 COMMENT ON COLUMN investigator_annotations.annotation_type IS 'Type of annotation for workflow management';
-COMMENT ON COLUMN investigator_annotations.requires_response IS 'Flags queries requiring patient response';
+COMMENT ON COLUMN investigator_annotations.requires_response IS 'Flags queries requiring participant response';
 
 -- =====================================================
 -- USER-SITE ASSIGNMENTS
 -- =====================================================
 
--- Patient enrollment at sites
+-- Participant enrollment at sites
 CREATE TABLE user_site_assignments (
     assignment_id BIGSERIAL PRIMARY KEY,
-    patient_id TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
     site_id TEXT NOT NULL REFERENCES sites(site_id),
-    study_patient_id TEXT NOT NULL,
+    study_participant_id TEXT NOT NULL,
     enrolled_at TIMESTAMPTZ DEFAULT now(),
     enrollment_status TEXT DEFAULT 'ACTIVE' CHECK (enrollment_status IN ('ACTIVE', 'COMPLETED', 'WITHDRAWN', 'SCREENING')),
     withdrawn_at TIMESTAMPTZ,
     withdrawal_reason TEXT,
     metadata JSONB DEFAULT '{}'::jsonb,
-    UNIQUE(patient_id, site_id)
+    UNIQUE(participant_id, site_id)
 );
 
-COMMENT ON TABLE user_site_assignments IS 'Patient enrollment and site assignment';
-COMMENT ON COLUMN user_site_assignments.study_patient_id IS 'De-identified patient ID for the study';
+COMMENT ON TABLE user_site_assignments IS 'Participant enrollment and site assignment';
+COMMENT ON COLUMN user_site_assignments.study_participant_id IS 'De-identified participant ID for the study';
 
 -- =====================================================
 -- INVESTIGATOR-SITE ASSIGNMENTS
@@ -413,7 +413,7 @@ COMMENT ON TABLE analyst_site_assignments IS 'Analyst read-only access rights pe
 CREATE TABLE sync_conflicts (
     conflict_id BIGSERIAL PRIMARY KEY,
     event_uuid UUID NOT NULL REFERENCES record_state(event_uuid),
-    patient_id TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
     site_id TEXT NOT NULL REFERENCES sites(site_id),
     client_version INTEGER NOT NULL,
     server_version INTEGER NOT NULL,
@@ -443,8 +443,8 @@ CREATE TABLE admin_action_log (
         'ASSIGN_USER', 'ASSIGN_INVESTIGATOR', 'ASSIGN_ANALYST',
         'DATA_CORRECTION', 'ROLE_CHANGE', 'SYSTEM_CONFIG',
         'EMERGENCY_ACCESS', 'BULK_OPERATION',
-        'GENERATE_LINKING_CODE', 'REVOKE_LINKING_CODE', 'DISCONNECT_PATIENT', 'RECONNECT_PATIENT',
-        'MARK_NOT_PARTICIPATING', 'REACTIVATE_PATIENT', 'START_TRIAL',
+        'GENERATE_LINKING_CODE', 'REVOKE_LINKING_CODE', 'DISCONNECT_PARTICIPANT', 'RECONNECT_PARTICIPANT',
+        'MARK_NOT_PARTICIPATING', 'REACTIVATE_PARTICIPANT', 'START_TRIAL',
         'QUESTIONNAIRE_SENT', 'QUESTIONNAIRE_DELETED',
         'QUESTIONNAIRE_UNLOCKED', 'QUESTIONNAIRE_FINALIZED',
         'QUESTIONNAIRE_SUBMITTED',
@@ -562,7 +562,7 @@ COMMENT ON COLUMN system_config.config_key IS 'Configuration parameter name (e.g
 --   REQ-p00008: User Account Management
 --
 -- Mobile app user accounts - any user can use the app to track nosebleeds
--- Patient linking handled via patient_linking_codes table
+-- Participant linking handled via participant_linking_codes table
 
 CREATE TABLE app_users (
     user_id TEXT PRIMARY KEY,
@@ -594,7 +594,7 @@ CREATE INDEX idx_app_users_auth_code ON app_users(auth_code);
 --   REQ-p00024: Portal User Roles and Permissions
 --
 -- Portal staff accounts (Investigators, Sponsors, Auditors, etc.)
--- Separate from app_users (patients using the mobile diary)
+-- Separate from app_users (participants using the mobile diary)
 
 -- User roles - common roles across all sponsors
 -- IMPLEMENTS REQUIREMENTS:
@@ -650,7 +650,7 @@ CREATE INDEX idx_portal_users_mfa_enrolled ON portal_users(mfa_enrolled, status)
 
 ALTER TABLE portal_users ENABLE ROW LEVEL SECURITY;
 
-COMMENT ON TABLE portal_users IS 'Portal staff accounts (Investigators, Sponsors, Auditors, etc.) - separate from patient app_users';
+COMMENT ON TABLE portal_users IS 'Portal staff accounts (Investigators, Sponsors, Auditors, etc.) - separate from participant app_users';
 COMMENT ON COLUMN portal_users.firebase_uid IS 'Identity Platform UID - linked after first login via email match';
 COMMENT ON COLUMN portal_users.role IS 'Primary role (backwards compat) - use portal_user_roles for multi-role support';
 COMMENT ON COLUMN portal_users.linking_code IS 'Device enrollment code for Investigators (XXXXX-XXXXX format)';
@@ -671,7 +671,7 @@ COMMENT ON COLUMN portal_users.status_changed_at IS 'Timestamp when account stat
 COMMENT ON COLUMN portal_users.status_changed_by IS 'UUID of admin who last changed the account status';
 
 -- =====================================================
--- PATIENT LINKING CODES (REQ-p70007, REQ-d00078, REQ-d00079)
+-- PARTICIPANT LINKING CODES (REQ-p70007, REQ-d00078, REQ-d00079)
 -- =====================================================
 -- IMPLEMENTS REQUIREMENTS:
 --   REQ-p70007: Linking Code Lifecycle Management
@@ -679,14 +679,14 @@ COMMENT ON COLUMN portal_users.status_changed_by IS 'UUID of admin who last chan
 --   REQ-d00079: Linking Code Pattern Matching
 --   REQ-CAL-p00049: Mobile Linking Codes
 --
--- Stores time-limited linking codes for patient mobile app enrollment
+-- Stores time-limited linking codes for participant mobile app enrollment
 -- Codes are displayed once at generation (stored plaintext) and hashed for secure validation
 --
 -- NOTE: This table is defined after portal_users and app_users because it references both.
 
-CREATE TABLE patient_linking_codes (
+CREATE TABLE participant_linking_codes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id TEXT NOT NULL REFERENCES patients(patient_id) ON DELETE CASCADE,
+    participant_id TEXT NOT NULL REFERENCES participants(participant_id) ON DELETE CASCADE,
     code TEXT NOT NULL UNIQUE,              -- Full 10-char code (2-char prefix + 8 random)
     code_hash TEXT NOT NULL,                -- SHA-256 hash for secure validation lookup
     generated_by UUID NOT NULL REFERENCES portal_users(id),
@@ -702,25 +702,25 @@ CREATE TABLE patient_linking_codes (
     metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_patient_linking_patient ON patient_linking_codes(patient_id);
-CREATE INDEX idx_patient_linking_code_hash ON patient_linking_codes(code_hash);
-CREATE INDEX idx_patient_linking_user ON patient_linking_codes(used_by_user_id)
+CREATE INDEX idx_participant_linking_participant ON participant_linking_codes(participant_id);
+CREATE INDEX idx_participant_linking_code_hash ON participant_linking_codes(code_hash);
+CREATE INDEX idx_participant_linking_user ON participant_linking_codes(used_by_user_id)
     WHERE used_by_user_id IS NOT NULL;
-CREATE INDEX idx_patient_linking_expires ON patient_linking_codes(expires_at)
+CREATE INDEX idx_participant_linking_expires ON participant_linking_codes(expires_at)
     WHERE used_at IS NULL AND revoked_at IS NULL;
-CREATE INDEX idx_patient_linking_cleanup ON patient_linking_codes(generated_at)
+CREATE INDEX idx_participant_linking_cleanup ON participant_linking_codes(generated_at)
     WHERE used_at IS NOT NULL OR revoked_at IS NOT NULL;
 
-ALTER TABLE patient_linking_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE participant_linking_codes ENABLE ROW LEVEL SECURITY;
 
-COMMENT ON TABLE patient_linking_codes IS 'Time-limited linking codes for patient mobile app enrollment (REQ-p70007)';
-COMMENT ON COLUMN patient_linking_codes.code IS '10-character code: 2-char sponsor prefix + 8-char random (REQ-d00079)';
-COMMENT ON COLUMN patient_linking_codes.code_hash IS 'SHA-256 hash for secure validation from mobile app';
-COMMENT ON COLUMN patient_linking_codes.expires_at IS '72-hour expiration from generation';
-COMMENT ON COLUMN patient_linking_codes.used_at IS 'Timestamp when code was validated - codes are single-use';
-COMMENT ON COLUMN patient_linking_codes.used_by_user_id IS 'App user (patient) who validated the code - establishes patient-app link';
-COMMENT ON COLUMN patient_linking_codes.used_by_app_uuid IS 'Mobile app/device UUID that validated the code';
-COMMENT ON COLUMN patient_linking_codes.revoked_at IS 'Manual revocation timestamp (e.g., patient disconnect)';
+COMMENT ON TABLE participant_linking_codes IS 'Time-limited linking codes for participant mobile app enrollment (REQ-p70007)';
+COMMENT ON COLUMN participant_linking_codes.code IS '10-character code: 2-char sponsor prefix + 8-char random (REQ-d00079)';
+COMMENT ON COLUMN participant_linking_codes.code_hash IS 'SHA-256 hash for secure validation from mobile app';
+COMMENT ON COLUMN participant_linking_codes.expires_at IS '72-hour expiration from generation';
+COMMENT ON COLUMN participant_linking_codes.used_at IS 'Timestamp when code was validated - codes are single-use';
+COMMENT ON COLUMN participant_linking_codes.used_by_user_id IS 'App user (participant) who validated the code - establishes participant-app link';
+COMMENT ON COLUMN participant_linking_codes.used_by_app_uuid IS 'Mobile app/device UUID that validated the code';
+COMMENT ON COLUMN participant_linking_codes.revoked_at IS 'Manual revocation timestamp (e.g., participant disconnect)';
 
 -- =====================================================
 -- UPDATED_AT TRIGGER FUNCTION (defined early for use by multiple tables)
@@ -1043,7 +1043,7 @@ CREATE TYPE end_event_type AS ENUM ('end_of_treatment', 'end_of_study');
 
 CREATE TABLE questionnaire_instances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id TEXT NOT NULL REFERENCES patients(patient_id),
+    participant_id TEXT NOT NULL REFERENCES participants(participant_id),
     questionnaire_type questionnaire_type NOT NULL,
     status questionnaire_status NOT NULL DEFAULT 'not_sent',
     study_event TEXT CHECK (char_length(study_event) <= 32),
@@ -1062,8 +1062,8 @@ CREATE TABLE questionnaire_instances (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_qi_patient_id ON questionnaire_instances(patient_id);
-CREATE INDEX idx_qi_patient_type ON questionnaire_instances(patient_id, questionnaire_type)
+CREATE INDEX idx_qi_participant_id ON questionnaire_instances(participant_id);
+CREATE INDEX idx_qi_participant_type ON questionnaire_instances(participant_id, questionnaire_type)
     WHERE deleted_at IS NULL;
 CREATE INDEX idx_qi_status ON questionnaire_instances(status)
     WHERE deleted_at IS NULL;
@@ -1071,17 +1071,17 @@ CREATE INDEX idx_qi_status ON questionnaire_instances(status)
 -- The equivalent migration (007_study_event_uniqueness.sql) uses CONCURRENTLY
 -- for safe production application.
 CREATE UNIQUE INDEX idx_qi_unique_study_event
-    ON questionnaire_instances (patient_id, questionnaire_type, study_event)
+    ON questionnaire_instances (participant_id, questionnaire_type, study_event)
     WHERE deleted_at IS NULL AND study_event IS NOT NULL;
--- REQ-CAL-p00080-G: at most one terminal-cycle (end_event IS NOT NULL) per patient + type
+-- REQ-CAL-p00080-G: at most one terminal-cycle (end_event IS NOT NULL) per participant + type
 CREATE UNIQUE INDEX idx_qi_unique_end_event
-    ON questionnaire_instances (patient_id, questionnaire_type)
+    ON questionnaire_instances (participant_id, questionnaire_type)
     WHERE end_event IS NOT NULL AND deleted_at IS NULL;
 
 ALTER TABLE questionnaire_instances ENABLE ROW LEVEL SECURITY;
 
 COMMENT ON TABLE questionnaire_instances IS 'Questionnaire lifecycle tracking per REQ-CAL-p00023. Written by portal server, read by diary server via shared DB.';
-COMMENT ON COLUMN questionnaire_instances.patient_id IS 'FK to patients - uses TEXT patient_id (RAVE SubjectKey)';
+COMMENT ON COLUMN questionnaire_instances.participant_id IS 'FK to participants - uses TEXT participant_id (RAVE SubjectKey)';
 COMMENT ON COLUMN questionnaire_instances.questionnaire_type IS 'Type of questionnaire: nose_hht, qol, eq per REQ-CAL-p00047';
 COMMENT ON COLUMN questionnaire_instances.status IS 'Lifecycle status per REQ-CAL-p00023';
 COMMENT ON COLUMN questionnaire_instances.study_event IS 'Study event association per REQ-CAL-p00080 (e.g., "Cycle 1 Day 1")';
@@ -1125,20 +1125,20 @@ COMMENT ON COLUMN questionnaire_responses.display_label IS 'Human-readable respo
 COMMENT ON COLUMN questionnaire_responses.normalized_label IS 'Normalized label for cross-questionnaire comparison';
 
 -- =====================================================
--- PATIENT FCM TOKENS (REQ-CAL-p00082)
+-- PARTICIPANT FCM TOKENS (REQ-CAL-p00082)
 -- =====================================================
 -- IMPLEMENTS REQUIREMENTS:
---   REQ-CAL-p00082: Patient Alert Delivery
+--   REQ-CAL-p00082: Participant Alert Delivery
 --   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 --   REQ-p00049: Ancillary Platform Services (push notifications)
 --
--- FCM registration tokens for patient devices.
+-- FCM registration tokens for participant devices.
 -- Written by diary server (mobile app registers token).
 -- Read by portal server (to send notifications).
 
-CREATE TABLE patient_fcm_tokens (
+CREATE TABLE participant_fcm_tokens (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id TEXT NOT NULL REFERENCES patients(patient_id),
+    participant_id TEXT NOT NULL REFERENCES participants(participant_id),
     fcm_token TEXT NOT NULL,
     platform TEXT NOT NULL CHECK (platform IN ('android', 'ios')),
     app_version TEXT,
@@ -1147,22 +1147,22 @@ CREATE TABLE patient_fcm_tokens (
     is_active BOOLEAN NOT NULL DEFAULT true
 );
 
--- One active token per patient per platform (upsert pattern)
-CREATE UNIQUE INDEX idx_fcm_patient_platform_active
-    ON patient_fcm_tokens(patient_id, platform)
+-- One active token per participant per platform (upsert pattern)
+CREATE UNIQUE INDEX idx_fcm_participant_platform_active
+    ON participant_fcm_tokens(participant_id, platform)
     WHERE is_active = true;
 
-CREATE INDEX idx_fcm_patient_active ON patient_fcm_tokens(patient_id)
+CREATE INDEX idx_fcm_participant_active ON participant_fcm_tokens(participant_id)
     WHERE is_active = true;
 
-ALTER TABLE patient_fcm_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE participant_fcm_tokens ENABLE ROW LEVEL SECURITY;
 
-COMMENT ON TABLE patient_fcm_tokens IS 'FCM registration tokens for push notifications. Written by diary server, read by portal server.';
-COMMENT ON COLUMN patient_fcm_tokens.patient_id IS 'FK to patients - uses TEXT patient_id (RAVE SubjectKey)';
-COMMENT ON COLUMN patient_fcm_tokens.fcm_token IS 'Firebase Cloud Messaging registration token (~150 chars, rotates periodically)';
-COMMENT ON COLUMN patient_fcm_tokens.platform IS 'Device platform: android or ios';
-COMMENT ON COLUMN patient_fcm_tokens.app_version IS 'App version at time of token registration';
-COMMENT ON COLUMN patient_fcm_tokens.is_active IS 'False when token is invalidated (e.g., patient disconnected)';
+COMMENT ON TABLE participant_fcm_tokens IS 'FCM registration tokens for push notifications. Written by diary server, read by portal server.';
+COMMENT ON COLUMN participant_fcm_tokens.participant_id IS 'FK to participants - uses TEXT participant_id (RAVE SubjectKey)';
+COMMENT ON COLUMN participant_fcm_tokens.fcm_token IS 'Firebase Cloud Messaging registration token (~150 chars, rotates periodically)';
+COMMENT ON COLUMN participant_fcm_tokens.platform IS 'Device platform: android or ios';
+COMMENT ON COLUMN participant_fcm_tokens.app_version IS 'App version at time of token registration';
+COMMENT ON COLUMN participant_fcm_tokens.is_active IS 'False when token is invalidated (e.g., participant disconnected)';
 
 -- =====================================================
 -- NOTIFICATIONS — outbox / envelope pattern (Phase 1B)
@@ -1179,14 +1179,14 @@ COMMENT ON COLUMN patient_fcm_tokens.is_active IS 'False when token is invalidat
 
 CREATE TYPE notification_type AS ENUM (
     'questionnaire_update',
-    'patient_status_update',
+    'participant_status_update',
     'reminder'
 );
 
 CREATE TABLE notifications (
     notification_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id        TEXT NOT NULL
-                      REFERENCES patients(patient_id) ON DELETE CASCADE,
+    participant_id     TEXT NOT NULL
+                      REFERENCES participants(participant_id) ON DELETE CASCADE,
     notification_type notification_type NOT NULL,
     title             TEXT NOT NULL,
     body              TEXT,
@@ -1201,20 +1201,20 @@ CREATE TABLE notifications (
     delivered_at      TIMESTAMPTZ
 );
 
-CREATE INDEX notifications_patient_pending_idx
-    ON notifications (patient_id, created_at DESC)
+CREATE INDEX notifications_participant_pending_idx
+    ON notifications (participant_id, created_at DESC)
     WHERE delivered_at IS NULL;
 
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 COMMENT ON TABLE notifications IS 'Outbox / envelope record for push notifications. Written before FCM dispatch (REQ-d00194), polled by mobile via /api/v1/notifications (REQ-d00195).';
-COMMENT ON COLUMN notifications.patient_id IS 'FK to patients (RAVE SubjectKey). RLS scope key.';
+COMMENT ON COLUMN notifications.participant_id IS 'FK to participants (RAVE SubjectKey). RLS scope key.';
 COMMENT ON COLUMN notifications.notification_type IS '3-value enum. Sub-action lives in payload->>"action".';
 COMMENT ON COLUMN notifications.user_visible IS 'True for alerts (priority 10 + lock-screen). False for silent data pushes (priority 5 + content-available).';
 COMMENT ON COLUMN notifications.payload IS 'Opaque IDs + categorical sub-action only — never PHI. Enforced by PayloadGuard before insert.';
 COMMENT ON COLUMN notifications.status IS 'State machine: pending → sent → delivered, with failed as terminal.';
 COMMENT ON COLUMN notifications.message_id IS 'FCM resource name from a successful dispatch.';
-COMMENT ON COLUMN notifications.last_error IS 'Failure reason when status=failed. Literal "UNREGISTERED" triggers patient_fcm_tokens deactivation.';
+COMMENT ON COLUMN notifications.last_error IS 'Failure reason when status=failed. Literal "UNREGISTERED" triggers participant_fcm_tokens deactivation.';
 COMMENT ON COLUMN notifications.delivered_at IS 'Stamped idempotently when the mobile fetches the envelope.';
 
 -- =====================================================
@@ -1695,5 +1695,5 @@ CREATE TRIGGER update_app_users_updated_at BEFORE UPDATE ON app_users
 CREATE TRIGGER update_questionnaire_instances_updated_at BEFORE UPDATE ON questionnaire_instances
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_patient_fcm_tokens_updated_at BEFORE UPDATE ON patient_fcm_tokens
+CREATE TRIGGER update_participant_fcm_tokens_updated_at BEFORE UPDATE ON participant_fcm_tokens
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

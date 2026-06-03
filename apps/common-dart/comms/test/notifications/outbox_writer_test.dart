@@ -11,7 +11,7 @@ import '_helpers/in_memory_repository.dart';
 
 Envelope _buildEnvelope({
   String id = 'env-1',
-  String patientId = 'pat-1',
+  String participantId = 'pat-1',
   String title = 'Account Disconnected',
   String? body = 'You have been disconnected.',
   bool userVisible = true,
@@ -21,8 +21,8 @@ Envelope _buildEnvelope({
 }) {
   return Envelope(
     notificationId: id,
-    patientId: patientId,
-    type: NotificationType.patientStatusUpdate,
+    participantId: participantId,
+    type: NotificationType.participantStatusUpdate,
     title: title,
     body: body,
     userVisible: userVisible,
@@ -51,7 +51,7 @@ void main() {
       expect(id, equals('env-1'));
       expect(repo.transitions, equals(<String>['insert:env-1', 'sent:env-1']));
       expect(channel.dispatches, hasLength(1));
-      final stored = await repo.findById(id, patientId: 'pat-1');
+      final stored = await repo.findById(id, participantId: 'pat-1');
       expect(stored!.status, equals(EnvelopeStatus.sent));
       expect(stored.messageId, equals('projects/x/messages/0:99'));
     });
@@ -65,7 +65,7 @@ void main() {
 
       await writer.send(_buildEnvelope(), fcmToken: 'tok-1');
 
-      final stored = await repo.findById('env-1', patientId: 'pat-1');
+      final stored = await repo.findById('env-1', participantId: 'pat-1');
       expect(stored!.status, equals(EnvelopeStatus.failed));
       expect(stored.error, contains('500'));
     });
@@ -89,7 +89,7 @@ void main() {
         await writer.send(_buildEnvelope(), fcmToken: 'dead-token');
 
         expect(deactivatedToken, equals('dead-token'));
-        final stored = await repo.findById('env-1', patientId: 'pat-1');
+        final stored = await repo.findById('env-1', participantId: 'pat-1');
         expect(stored!.status, equals(EnvelopeStatus.failed));
         expect(stored.error, equals('UNREGISTERED'));
       },
@@ -106,7 +106,7 @@ void main() {
           () => writer.send(
             // SubjectKey embedded in title — guard must reject before
             // the row reaches the repo.
-            _buildEnvelope(title: 'Patient 999-001-125 disconnected'),
+            _buildEnvelope(title: 'Participant 999-001-125 disconnected'),
             fcmToken: 'tok-1',
           ),
           throwsA(isA<PhiLeakException>()),
@@ -187,7 +187,7 @@ void main() {
         );
 
         final sent = channel.dispatches.single;
-        expect(sent.data['type'], equals('patient_status_update'));
+        expect(sent.data['type'], equals('participant_status_update'));
         expect(sent.data['notification_id'], equals('env-1'));
         expect(sent.data['action'], equals('disconnect'));
         expect(sent.data['study_id'], equals('s-1'));

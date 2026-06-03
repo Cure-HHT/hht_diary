@@ -10,7 +10,7 @@
 
 The current FCM flow works (once IAM is granted — see Phase 0 below) but two gaps motivate a redesign:
 
-1. **Compliance.** Even though no PHI is in the FCM payload today, business-object IDs (`questionnaire_instance_id`) flow through Google's FCM service. Under HIPAA Safe Harbor / GDPR, identifiers that link to a patient record can themselves be considered PHI.
+1. **Compliance.** Even though no PHI is in the FCM payload today, business-object IDs (`questionnaire_instance_id`) flow through Google's FCM service. Under HIPAA Safe Harbor / GDPR, identifiers that link to a participant record can themselves be considered PHI.
 2. **Reliability.** FCM sends are fire-and-forget today. If FCM 5xx's, if the token is stale, or if the server crashes between DB write and FCM call, the notification is lost with no retry.
 
 Two plans were on the table when this redesign started:
@@ -142,16 +142,16 @@ So the existing system is partway to the envelope pattern. What's missing:
 Key design choices:
 
 - **One table, `notifications`** — envelope store. No retry queue: failed sends stay `failed` and are caught on the mobile via polling.
-- **FCM payload = `{notification_id}` + generic localized title.** Generic title is patient-neutral, OS-friendly fallback.
+- **FCM payload = `{notification_id}` + generic localized title.** Generic title is participant-neutral, OS-friendly fallback.
 - **Synchronous send, no backend retry.** If FCM fails (transient or permanent), the row is marked `failed` and no retry happens server-side. The mobile's `?since=` polling on app resume is the **primary catch-up mechanism**, not a fallback. This keeps the backend simple.
 - **Mobile fetches the envelope to render the real notification.** Fallback chain on FCM-fetch failure.
 - **`since` polling endpoint** is required-path, not optional. Runs on app foreground (immediate + every N minutes while foregrounded). Returns all envelopes since `ts` regardless of FCM `status`, so envelopes that never reached the device via FCM still surface.
-- **Every patient-status change → notification.** All five status-change handlers send FCM. See "Status-change matrix" below.
+- **Every participant-status change → notification.** All five status-change handlers send FCM. See "Status-change matrix" below.
 - **Sync is separate.** Existing diff endpoints stay as they are.
 
 ## Status-change matrix — every transition gets a notification
 
-Design rule: **whenever a handler mutates patient status (or questionnaire status), it sends an FCM envelope.** No silent state changes.
+Design rule: **whenever a handler mutates participant status (or questionnaire status), it sends an FCM envelope.** No silent state changes.
 
 All entries below produce a row with the noted `notification_type` enum + `payload.action`.
 
@@ -176,12 +176,12 @@ All entries below produce a row with the noted `notification_type` enum + `paylo
 
 ### Token-deactivation ordering for status changes
 
-The status changes that **invalidate the patient's mobile session** are `disconnect` and `not-participating`. Both must:
+The status changes that **invalidate the participant's mobile session** are `disconnect` and `not-participating`. Both must:
 
 1. Send the notification first (synchronous, await result).
 2. Update `patient_fcm_tokens SET is_active=false WHERE patient_id=$1` afterwards.
 
-`reconnect` and `reactivate` go the other way — they don't touch tokens (the patient may register a fresh token when they next open the app; old tokens were already deactivated on the previous disconnect).
+`reconnect` and `reactivate` go the other way — they don't touch tokens (the participant may register a fresh token when they next open the app; old tokens were already deactivated on the previous disconnect).
 
 ### What if FCM fails on a status-change notification?
 
@@ -230,7 +230,7 @@ CREATE INDEX notifications_patient_created_idx
 
 | Concern | Field(s) | Used by |
 |---|---|---|
-| **Display** — what the patient sees | `title`, `body` | Mobile renders verbatim. Compliance-safe: rows must contain no PHI (no patient name, no DOB). |
+| **Display** — what the participant sees | `title`, `body` | Mobile renders verbatim. Compliance-safe: rows must contain no PHI (no participant name, no DOB). |
 | **Behavior** — what code path runs | `notification_type`, `payload.action` | Mobile dispatches: type → category handler, action → specific action handler. |
 
 The mobile uses `title`/`body` for the visible notification but uses `notification_type` + `payload.action` for everything else (creating tasks, clearing banners, deeplink routing, audit categorization).
@@ -241,12 +241,12 @@ Stored copy must be **generic and sponsor-neutral**, e.g.:
 - ✅ "New Questionnaire Available" / "You have a new questionnaire to complete."
 - ❌ "John Smith — your nose_hht for Visit 3 is ready" (contains identifier + business detail)
 
-The same `PayloadGuard` we add for `payload` should run a regex check on `title`/`body` rejecting strings that look like patient IDs, names, etc. Belt-and-braces: server-side validation prevents copy mistakes from leaking PHI.
+The same `PayloadGuard` we add for `payload` should run a regex check on `title`/`body` rejecting strings that look like participant IDs, names, etc. Belt-and-braces: server-side validation prevents copy mistakes from leaking PHI.
 
 ### Localization
 
 Today there's no `patients.language` column. For now, copy is English-only — generic enough that a single language is acceptable for MVP. When localization becomes needed:
-- Option A: add `patients.language` column; sender picks copy per patient.
+- Option A: add `patients.language` column; sender picks copy per participant.
 - Option B: store `title_key` / `body_key` alongside `title` / `body`; mobile uses key if it has a translation, falls back to literal `title`. Lets the server be progressive.
 
 Don't pre-build either. Ship English-only until product asks.
@@ -342,18 +342,18 @@ No `sending`, no `dead`, no `attempts` counter — those were artifacts of the d
 Server work (portal_functions / portal_server):
 
 - New helper to write envelope rows in same transaction as business writes.
-- Refactor every FCM call site (now nine: 4 questionnaire + 5 patient-status — see status-change matrix above).
+- Refactor every FCM call site (now nine: 4 questionnaire + 5 participant-status — see status-change matrix above).
 - FCM payload becomes `{ notification_id }` data only, plus `notification: { title: "<generic>" }`.
 - `NotificationService` updates `notifications.status` on result. No retry. On UNREGISTERED, deactivate the token and mark the envelope `failed` (mobile catches up via polling once a fresh token is registered).
 
 Mobile API on diary_server:
 
 - `GET /api/v1/notifications/{id}` — returns the envelope (title, body, type, payload). JWT-authenticated, must verify `notifications.patient_id == JWT's linked patient`. Sets `delivered_at = now()` if currently NULL (see "Delivery semantics" below). Mobile displays `title`/`body` directly; uses `type` + `payload.action` for behavior; derives deeplink locally.
-- `GET /api/v1/notifications?since=<ts>` — returns envelopes for the patient where `created_at > since`. **Same delivery rule applies**: every envelope returned has its `delivered_at` set on the way out, idempotent on already-delivered rows.
+- `GET /api/v1/notifications?since=<ts>` — returns envelopes for the participant where `created_at > since`. **Same delivery rule applies**: every envelope returned has its `delivered_at` set on the way out, idempotent on already-delivered rows.
 
 ### Delivery semantics
 
-`delivered_at` means **"the envelope was successfully transmitted to the patient's device"**, evidenced by a JWT-authenticated fetch returning that envelope. It does NOT mean "the patient saw it" (that would be a `read_at` field, future work).
+`delivered_at` means **"the envelope was successfully transmitted to the participant's device"**, evidenced by a JWT-authenticated fetch returning that envelope. It does NOT mean "the participant saw it" (that would be a `read_at` field, future work).
 
 Both fetch endpoints share the same `UPDATE` semantics — run as part of the response transaction:
 
@@ -367,7 +367,7 @@ UPDATE notifications
 
 The `delivered_at IS NULL` guard makes retries safe: if the mobile drops the response and re-polls, the same envelopes come back, and `delivered_at` stays pinned to the first successful fetch. No flapping, no race.
 
-**Why update for the bulk endpoint at all?** Audit completeness. Without it, FDA-relevant questions like "when did patient X first see notification Y?" can't be answered for envelopes the mobile got via polling rather than via direct fetch (which is most of them, given polling is the primary catch-up mechanism).
+**Why update for the bulk endpoint at all?** Audit completeness. Without it, FDA-relevant questions like "when did participant X first see notification Y?" can't be answered for envelopes the mobile got via polling rather than via direct fetch (which is most of them, given polling is the primary catch-up mechanism).
 
 **Future work**: a separate `POST /api/v1/notifications/{id}/read` endpoint when product wants per-notification read tracking. Different concern, doesn't change this design.
 
@@ -387,7 +387,7 @@ Mobile-only:
 - While foregrounded: poll every N minutes (default 60s, sponsor-configurable).
 - After receiving a push via FCM: still update `lastSeen` so the polling cursor doesn't reprocess.
 - **No background timer**, no `WorkManager`, no `background_fetch`. Apple/Google both throttle background work; we don't fight that.
-- Persist `lastSeen` per-patient in `SharedPreferences`. Reset on logout.
+- Persist `lastSeen` per-participant in `SharedPreferences`. Reset on logout.
 
 Failure modes this catches:
 - FCM permission denied on the device.
@@ -406,8 +406,8 @@ Failure modes this catches:
 
 ## Decisions to make upfront
 
-1. **Localization strategy.** Server stores literal English copy in `title` / `body` for MVP. When localization is needed, add `patients.language` column and have the sender pick copy per patient at write time. Don't pre-build.
-2. **Multi-device.** Phase 1 is the right time to remove the `LIMIT 1` and send to all active tokens for a patient.
+1. **Localization strategy.** Server stores literal English copy in `title` / `body` for MVP. When localization is needed, add `patients.language` column and have the sender pick copy per participant at write time. Don't pre-build.
+2. **Multi-device.** Phase 1 is the right time to remove the `LIMIT 1` and send to all active tokens for a participant.
 3. **Notification inbox UI?** If yes (badge counts, "View all notifications" screen), the `notifications` table powers it. Worth designing the schema with that in mind even if the UI ships later.
 4. **Audit retention.** Notification rows are audit data under 21 CFR Part 11. Likely retention: indefinite (same as `admin_action_log`).
 5. **Generic FCM title text.** Sponsor-neutral, language-localized. Suggest "You have a new message" or similar.
@@ -417,7 +417,7 @@ Failure modes this catches:
 - **iOS data-only throttling.** Apple may suppress data-only pushes if too frequent. Generic-title fallback handles the worst case.
 - **Local notification permission.** Showing local notifications still requires the user grant. If they deny, the polling-on-foreground path is the only way they'll see anything. Design for it.
 - **Cross-project IAM drift.** Phase 4 closes this for new sponsors. Existing sponsors still need a one-time manual grant or a Terraform import.
-- **JWT-to-patient mapping for envelope API.** The diary_server already does this for `/fcm-token` registration — reuse the same lookup.
+- **JWT-to-participant mapping for envelope API.** The diary_server already does this for `/fcm-token` registration — reuse the same lookup.
 
 ---
 
@@ -427,33 +427,33 @@ Found by walking the existing FCM call sites, mobile init, token lifecycle, and 
 
 ## 🔴 Critical — correctness or compliance bugs
 
-### 1. Cross-patient notification leak when devices are shared
+### 1. Cross-participant notification leak when devices are shared
 
 **`patient_fcm_tokens` has no uniqueness on `fcm_token` itself** — the partial unique index is on `(patient_id, platform) WHERE is_active = true` (`migrations/004:117`). Sequence:
 
 ```
-Patient A logs in on device X → row: (A, android, token-T, active=true)
-Patient A logs out, Patient B logs in on same device X
+Participant A logs in on device X → row: (A, android, token-T, active=true)
+Participant A logs out, Participant B logs in on same device X
   → FCM token T is unchanged (it's per-device, not per-user)
   → diary_server inserts: (B, android, token-T, active=true)
   → both rows now active, both pointing at the same physical device
 ```
 
-When portal sends to **Patient A**, FCM delivers to **device X**, currently logged in as Patient B. Patient B sees a notification meant for Patient A.
+When portal sends to **Participant A**, FCM delivers to **device X**, currently logged in as Participant B. Participant B sees a notification meant for Participant A.
 
-**Fix**: when registering a token, deactivate any other patient's row for the same `fcm_token`. Token T can only ever be active for one patient at a time.
+**Fix**: when registering a token, deactivate any other participant's row for the same `fcm_token`. Token T can only ever be active for one participant at a time.
 
 ### 2. Disconnect / not-participating: no notification sent + token not deactivated
 
 Two related gaps in `disconnectPatientHandler` (`patient_linking.dart:469`) and `markNotParticipatingHandler`:
 
-**Gap 2a — patient is never notified.** Both handlers update DB state silently. The patient learns of the change only on the next time they open the app and `syncTasks` runs. They keep getting reminder notifications for questionnaires they're no longer expected to fill.
+**Gap 2a — participant is never notified.** Both handlers update DB state silently. The participant learns of the change only on the next time they open the app and `syncTasks` runs. They keep getting reminder notifications for questionnaires they're no longer expected to fill.
 
-**Gap 2b — FCM tokens stay `is_active=true`** after disconnect / not-participating. The disconnected patient keeps receiving notifications until FCM eventually returns UNREGISTERED (only happens if the app is uninstalled).
+**Gap 2b — FCM tokens stay `is_active=true`** after disconnect / not-participating. The disconnected participant keeps receiving notifications until FCM eventually returns UNREGISTERED (only happens if the app is uninstalled).
 
 **Required behavior:**
 
-1. **Send a notification to the patient first** — new kinds:
+1. **Send a notification to the participant first** — new kinds:
    - `patient_disconnected` — title key `notif.patient_disconnected.title`, body key `notif.patient_disconnected.body`. Suggested copy (sponsor owns localization): "Your trial enrollment has changed — please contact your site for details."
    - `patient_not_participating` — title key `notif.patient_not_participating.title`, body key `notif.patient_not_participating.body`. Suggested copy: "Your participation in the trial has ended."
    - (Future symmetric: `patient_reconnected` and `patient_reactivated` if product wants the positive-event mirror. Out of scope for this round.)
@@ -508,16 +508,16 @@ message['apns'] = {
 ```
 Apple docs: **priority 10 = user-visible alert** (requires `alert`/`badge`/`sound`); **`content-available: 1` = silent background push** (requires priority 5). Combining them violates Apple's contract — APNs may downgrade or throttle. Production reliability concern.
 
-### 27. Finalize doesn't notify the patient — no closure on submitted questionnaires
+### 27. Finalize doesn't notify the participant — no closure on submitted questionnaires
 
-`finalizeQuestionnaireHandler` (`questionnaire.dart:1155`) updates status to `finalized`, writes the `QUESTIONNAIRE_FINALIZED` audit row, and returns. **No FCM send.** Effect on the patient lifecycle:
+`finalizeQuestionnaireHandler` (`questionnaire.dart:1155`) updates status to `finalized`, writes the `QUESTIONNAIRE_FINALIZED` audit row, and returns. **No FCM send.** Effect on the participant lifecycle:
 
 ```
 sent ────► in_progress ────► ready_to_review ────► finalized
  ✅ FCM      (silent)              (silent)         ❌ no FCM
 ```
 
-After the patient submits, they have no acknowledgement that their submission was accepted. This is particularly bad when finalize includes an `end_event` (e.g. `study_completed`) — that's the **end of the patient's trial participation**, the most significant lifecycle moment, and it goes entirely silent.
+After the participant submits, they have no acknowledgement that their submission was accepted. This is particularly bad when finalize includes an `end_event` (e.g. `study_completed`) — that's the **end of the participant's trial participation**, the most significant lifecycle moment, and it goes entirely silent.
 
 **Required behavior:**
 
@@ -532,10 +532,10 @@ After the patient submits, they have no acknowledgement that their submission wa
 2. **Title / body keys** (sponsor owns localization):
    - Regular finalize: `notif.questionnaire_finalized.title` / `.body`. Suggested copy: "Your questionnaire was reviewed."
    - End-event finalize (when `payload.end_event != null`): different keys, e.g. `notif.trial_completed.title` / `.body`. Suggested copy: "You've completed the trial. Thank you for your participation."
-3. **Mobile-side**: handler for `questionnaire_finalized` in `TaskService.handleFcmMessage`. The local task was already removed when the patient submitted, so this notification is informational — no task-state mutation needed. If `end_event` is present, this is also a trial-end signal; the app should reflect "trial ended" status (similar to disconnect path).
+3. **Mobile-side**: handler for `questionnaire_finalized` in `TaskService.handleFcmMessage`. The local task was already removed when the participant submitted, so this notification is informational — no task-state mutation needed. If `end_event` is present, this is also a trial-end signal; the app should reflect "trial ended" status (similar to disconnect path).
 4. **Audit**: capture `fcm_message_id` in the `QUESTIONNAIRE_FINALIZED` audit row, same as `QUESTIONNAIRE_SENT` already does (Issue #12 was already tracking this gap; finalize is one of the affected handlers).
 
-**Edge case to think about**: if the questionnaire is finalized hours or days after the patient submitted, a delayed notification could be confusing. Mitigation: include the questionnaire type / cycle in the body copy so context is clear. This is a copy decision, not architecture.
+**Edge case to think about**: if the questionnaire is finalized hours or days after the participant submitted, a delayed notification could be confusing. Mitigation: include the questionnaire type / cycle in the body copy so context is clear. This is a copy decision, not architecture.
 
 ### 26. `FCM_NOTIFICATION` audit type rejected by check constraint — every FCM send is missing its audit row
 
@@ -568,7 +568,7 @@ Don't skip Fix A waiting for Phase 1 — running with FDA-relevant audit gaps in
 
 ## 🟠 High — broken flows under realistic conditions
 
-### 7. Mobile doesn't retry on 409 "No linked patient"
+### 7. Mobile doesn't retry on 409 "No linked participant"
 
 `main.dart:507`:
 ```dart
@@ -579,14 +579,14 @@ Handler returns 409 if JWT exists but linking row hasn't propagated. Mobile logs
 
 ### 8. No "delete token" call on logout / unlink
 
-No `DELETE /api/v1/user/fcm-token` endpoint exists. On logout / unlink, server keeps the row `is_active=true` and keeps sending; FCM keeps delivering to the (logged-out) app, which has no auth to fetch envelopes. Tokens only get cleaned up on next login of the **same patient** on the same device.
+No `DELETE /api/v1/user/fcm-token` endpoint exists. On logout / unlink, server keeps the row `is_active=true` and keeps sending; FCM keeps delivering to the (logged-out) app, which has no auth to fetch envelopes. Tokens only get cleaned up on next login of the **same participant** on the same device.
 
 ### 9. iOS permission denial is silent
 
 `MobileNotificationService._requestPermission()` (`notification_service.dart:98`) calls `requestPermission()` once. If denied:
 - iOS doesn't allow re-prompting from the app.
 - No UI affordance to deeplink the user to system Settings.
-- No telemetry — server never knows the patient won't get notifications.
+- No telemetry — server never knows the participant won't get notifications.
 
 ### 10. `getInitialMessage()` doesn't deep-link
 
@@ -598,7 +598,7 @@ No `DELETE /api/v1/user/fcm-token` endpoint exists. On logout / unlink, server k
 
 ### 12. Audit log inconsistency
 
-`questionnaire.dart:723` (send) writes `fcm_message_id` into `QUESTIONNAIRE_SENT` audit. The delete flow (`questionnaire.dart:927`) and unlock flow don't capture it — `QUESTIONNAIRE_DELETED` audit row has no link to the notification. Makes "did the deletion notification reach the patient?" investigations harder.
+`questionnaire.dart:723` (send) writes `fcm_message_id` into `QUESTIONNAIRE_SENT` audit. The delete flow (`questionnaire.dart:927`) and unlock flow don't capture it — `QUESTIONNAIRE_DELETED` audit row has no link to the notification. Makes "did the deletion notification reach the participant?" investigations harder.
 
 ## 🟡 Medium — reliability and UX gaps
 
@@ -632,7 +632,7 @@ Should be `ON DELETE CASCADE`. Same audit needed for the new `notifications` tab
 
 ### 19. iOS getToken returns null silently if permission denied
 
-`notification_service.dart:115` — token never registered, no error reported, server silently never gets a token for this patient. UI shows nothing. Companion to #9 in a different code path.
+`notification_service.dart:115` — token never registered, no error reported, server silently never gets a token for this participant. UI shows nothing. Companion to #9 in a different code path.
 
 ### 20. No deduplication beyond questionnaire_sent
 
@@ -642,7 +642,7 @@ Should be `ON DELETE CASCADE`. Same audit needed for the new `notifications` tab
 
 ### 21. Sponsor isolation at FCM level
 
-All sponsors share `cure-hht-admin`. A bug in callisto4 send logic could spam patients in another sponsor's trial. Mitigation: add `sponsor_id` to `notifications`, server-side hard-check on every send.
+All sponsors share `cure-hht-admin`. A bug in callisto4 send logic could spam participants in another sponsor's trial. Mitigation: add `sponsor_id` to `notifications`, server-side hard-check on every send.
 
 ### 22. Timezones for scheduled notifications
 
@@ -656,9 +656,9 @@ No table for "Patient A muted reminders, kept urgent alerts." If sponsors ask fo
 
 Operational, not code: confirm the Apple Developer APNs auth key is uploaded to `cure-hht-admin` Firebase console. iOS pushes silently fail if missing or expired.
 
-### 25. Notification rate limit per patient
+### 25. Notification rate limit per participant
 
-A buggy admin loop could send hundreds of notifications to one patient. Server-side throttle (e.g. max 10/hour per kind per patient) is cheap insurance.
+A buggy admin loop could send hundreds of notifications to one participant. Server-side throttle (e.g. max 10/hour per kind per participant) is cheap insurance.
 
 ## Updates to the implementation plan
 
@@ -687,8 +687,8 @@ The phases above are mostly right, but these explicit work items need to be fold
 - [ ] **Schema change**: add `ON DELETE CASCADE` to `patient_fcm_tokens.patient_id` FK. (Issue #18)
 - [ ] **Schema change**: same `ON DELETE CASCADE` on the new `notifications.patient_id` FK.
 - [ ] **Schema change**: add `device_id` to `notifications` if multi-device addressing is needed.
-- [ ] **Token uniqueness across patients**: registration handler deactivates any other patient's row with the same `fcm_token`. (Issue #1)
-- [ ] **All status-change handlers send envelopes** (per matrix above): five patient-status transitions + finalize. Send synchronously in same handler as the DB write — no retry on failure, polling catches it. (Issues #2, #27)
+- [ ] **Token uniqueness across participants**: registration handler deactivates any other participant's row with the same `fcm_token`. (Issue #1)
+- [ ] **All status-change handlers send envelopes** (per matrix above): five participant-status transitions + finalize. Send synchronously in same handler as the DB write — no retry on failure, polling catches it. (Issues #2, #27)
 - [ ] **Disconnect / not-participating**: send envelope first, **then** deactivate tokens (synchronous order). (Issue #2)
 - [ ] **Mobile message routing**: handlers for all status-change kinds. On envelope-only design, the mobile fetches the envelope by id and routes by `kind`. (Issues #2, #3, #27)
 - [ ] **Background handler**: must fetch envelope and create local task, not just `debugPrint`. (Issue #5)
@@ -714,7 +714,7 @@ The phases above are mostly right, but these explicit work items need to be fold
 - [ ] **`patients.timezone`** column. (Issue #22)
 - [ ] **`notification_preferences` table** if/when product asks. (Issue #23)
 - [ ] **APNs key check on cure-hht-admin** — operational ticket, not code. (Issue #24)
-- [ ] **Per-patient rate limit**. (Issue #25)
+- [ ] **Per-participant rate limit**. (Issue #25)
 
 ## Recommendation update
 
@@ -748,7 +748,7 @@ The original Phase 2 (Cloud Tasks) and Phase 5 (Outbox) are dropped. Mobile poll
 | `apps/sponsor-portal/portal_functions/lib/src/questionnaire.dart` | Stabilize, 1 | `finalizeQuestionnaireHandler` sends; all four sites switch to envelope insert + send |
 | `apps/sponsor-portal/portal_functions/lib/src/patient_linking.dart` | Stabilize, 1 | Five status-change handlers each send their respective envelope |
 | `apps/daily-diary/diary_functions/lib/src/notifications.dart` (new) | 1 | `GET /notifications/{id}`, `GET /notifications?since=` |
-| `apps/daily-diary/diary_functions/lib/src/fcm_token.dart` | Stabilize, 3 | Cross-patient token deactivation; UNREGISTERED handling; `DELETE /fcm-token` |
+| `apps/daily-diary/diary_functions/lib/src/fcm_token.dart` | Stabilize, 3 | Cross-participant token deactivation; UNREGISTERED handling; `DELETE /fcm-token` |
 | `apps/daily-diary/clinical_diary/lib/services/notification_service.dart` | Stabilize, 1, 2 | Mobile handlers for new kinds; envelope fetch; polling on resume |
 | `apps/daily-diary/clinical_diary/lib/services/task_service.dart` | Stabilize | New `case` arms for status-change kinds in `handleFcmMessage` |
 | `infrastructure/terraform/sponsor-envs/main.tf` | 3 | `google_project_iam_member` for `cloudmessaging.admin` on cure-hht-admin |

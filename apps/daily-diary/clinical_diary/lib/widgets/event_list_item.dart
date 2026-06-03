@@ -1,40 +1,35 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-p00008: Mobile App Diary Entry
+// Implements: DIARY-DEV-reactive-read-path/B
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
-import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
-import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:trial_data_types/trial_data_types.dart';
 
 /// List item widget for displaying a nosebleed-related diary entry.
 ///
-/// Reads directly from [DiaryEntry] (the materialized view row) rather than a
-/// legacy intermediate model. The entry's `entryType` selects between the
-/// "no nosebleeds" / "unknown" cards and the regular nosebleed card; for the
-/// regular card the `currentAnswers` map supplies start/end time, intensity,
-/// notes, and IANA timezone names.
+/// Reads from a [DiaryEntryView] (sealed: [EpistaxisEntryView] or
+/// [DayMarkerView]) rather than the legacy materialized-view row.
+/// The view's `entryType` selects between the "no nosebleeds" / "unknown"
+/// cards and the regular nosebleed card; for the regular card [EpistaxisEntryView]
+/// supplies typed start/end time, timezone, intensity, and duration fields.
 ///
 /// Implements CUR-443: One-line history format with intensity icon.
 class EventListItem extends StatelessWidget {
   const EventListItem({
-    required this.entry,
+    required this.view,
     super.key,
     this.onTap,
     this.hasOverlap = false,
     this.highlightColor,
-    this.isFinalized = false,
   });
 
-  /// The materialized diary-entry row to render. Expected `entryType` values:
+  /// The typed diary-entry view to render. Expected `entryType` values:
   /// `epistaxis_event`, `no_epistaxis_event`, or `unknown_day_event`.
-  final DiaryEntry entry;
+  final DiaryEntryView view;
   final VoidCallback? onTap;
 
   /// Whether this entry overlaps with another entry's time range.
@@ -43,57 +38,20 @@ class EventListItem extends StatelessWidget {
   /// Optional highlight color to apply to the card background (for flash animation)
   final Color? highlightColor;
 
-  /// CUR-1292: For questionnaire entries, whether the portal coordinator
-  /// has finalized the submission (server status='finalized'). Finalized
-  /// entries render a "View Only" trailing label and the tap handler
-  /// should route to a read-only view rather than the editable flow.
-  /// Ignored for non-questionnaire entries.
-  final bool isFinalized;
+  // --- Accessors over the view-model -----------------------------------------
 
-  // --- Field accessors over entry.currentAnswers --------------------------
-
-  bool get _isNoNosebleedsEvent => entry.entryType == 'no_epistaxis_event';
-  bool get _isUnknownEvent => entry.entryType == 'unknown_day_event';
-  bool get _isQuestionnaire => entry.entryType.endsWith('_survey');
-  bool get _isIncomplete => !entry.isComplete;
-
-  DateTime get _startTime {
-    final raw = entry.currentAnswers['startTime'];
-    if (raw is String) return DateTimeFormatter.parse(raw);
-    return entry.effectiveDate ?? entry.updatedAt;
-  }
-
-  DateTime? get _endTime {
-    final raw = entry.currentAnswers['endTime'];
-    if (raw is String) return DateTimeFormatter.parse(raw);
-    return null;
-  }
-
-  NosebleedIntensity? get _intensity {
-    final raw = entry.currentAnswers['intensity'];
-    if (raw is String) return NosebleedIntensity.fromString(raw);
-    return null;
-  }
-
-  String? get _startTimeTimezone {
-    final raw = entry.currentAnswers['startTimeTimezone'];
-    return raw is String ? raw : null;
-  }
-
-  String? get _endTimeTimezone {
-    final raw = entry.currentAnswers['endTimeTimezone'];
-    return raw is String ? raw : null;
-  }
+  bool get _isNoNosebleedsEvent => view.entryType == 'no_epistaxis_event';
+  bool get _isUnknownEvent => view.entryType == 'unknown_day_event';
+  bool get _isIncomplete => !view.isComplete;
 
   /// Format start time for one-line display (e.g., "9:09 PM")
   /// CUR-597: Times are displayed in the event's timezone, not device timezone.
   /// If the event has a stored timezone, convert the stored time to that timezone.
   String _startTimeFormatted(String locale) {
-    final stored = _startTime;
-    final tz = _startTimeTimezone;
-    final displayTime = tz != null
-        ? TimezoneConverter.toDisplayedDateTime(stored, tz)
-        : stored;
+    final ep = view as EpistaxisEntryView;
+    final stored = ep.startTime;
+    final tz = ep.startTimeZone;
+    final displayTime = TimezoneConverter.toDisplayedDateTime(stored, tz);
     return DateFormat.jm(locale).format(displayTime);
   }
 
@@ -101,22 +59,18 @@ class EventListItem extends StatelessWidget {
   /// Returns null if timezone matches device TZ, otherwise returns abbreviation(s)
   /// CUR-597: Uses TimezoneService for device timezone to support test overrides.
   String? get _timezoneDisplay {
+    final ep = view as EpistaxisEntryView;
     final deviceTimezone =
         TimezoneService.instance.currentTimezone ?? DateTime.now().timeZoneName;
     final deviceTzAbbr = normalizeDeviceTimezone(deviceTimezone);
-    final startTz = _startTimeTimezone;
-    final endTz = _endTimeTimezone;
+    final startTz = ep.startTimeZone;
+    final endTz = ep.endTimeZone;
 
-    // If no timezone info stored, don't show anything
-    if (startTz == null && endTz == null) return null;
-
-    final startAbbr = startTz != null
-        ? getTimezoneAbbreviation(
-            startTz,
-            at: TimezoneConverter.toDisplayedDateTime(_startTime, startTz),
-          )
-        : null;
-    final endAt = _endTime ?? _startTime;
+    final startAbbr = getTimezoneAbbreviation(
+      startTz,
+      at: TimezoneConverter.toDisplayedDateTime(ep.startTime, startTz),
+    );
+    final endAt = ep.endTime ?? ep.startTime;
     final endAbbr = endTz != null
         ? getTimezoneAbbreviation(
             endTz,
@@ -124,11 +78,10 @@ class EventListItem extends StatelessWidget {
           )
         : null;
 
-    final startDiffersFromDevice =
-        startAbbr != null && startAbbr != deviceTzAbbr;
+    // startAbbr is always a String (getTimezoneAbbreviation never returns null).
+    final startDiffersFromDevice = startAbbr != deviceTzAbbr;
     final endDiffersFromDevice = endAbbr != null && endAbbr != deviceTzAbbr;
-    final timezonesDiffer =
-        startAbbr != null && endAbbr != null && startAbbr != endAbbr;
+    final timezonesDiffer = endAbbr != null && startAbbr != endAbbr;
 
     if (!startDiffersFromDevice && !endDiffersFromDevice && !timezonesDiffer) {
       return null;
@@ -143,12 +96,13 @@ class EventListItem extends StatelessWidget {
     if (endDiffersFromDevice) {
       return endAbbr;
     }
-    return startAbbr ?? endAbbr;
+    return startAbbr;
   }
 
   /// Get the intensity icon image path
   String? get _intensityImagePath {
-    final intensity = _intensity;
+    final ep = view as EpistaxisEntryView;
+    final intensity = ep.intensity;
     if (intensity == null) return null;
     switch (intensity) {
       case NosebleedIntensity.spotting:
@@ -166,35 +120,22 @@ class EventListItem extends StatelessWidget {
     }
   }
 
-  /// Check if the event crosses midnight (ends on a different day)
+  /// Check if the event crosses midnight (ends on a different day).
+  /// Delegated to the view-model which compares wall-clock date prefixes.
   bool get _isMultiDay {
-    final end = _endTime;
-    if (end == null) return false;
-    final start = _startTime;
-
-    final startDay = DateTime(start.year, start.month, start.day);
-    final endDay = DateTime(end.year, end.month, end.day);
-
-    return endDay.isAfter(startDay);
-  }
-
-  /// Calculate duration in minutes (null when no endTime).
-  int? get _durationMinutes {
-    final end = _endTime;
-    if (end == null) return null;
-    final start = _startTime;
-    if (end.isBefore(start)) return null;
-    return end.difference(start).inMinutes;
+    final ep = view as EpistaxisEntryView;
+    return ep.isMultiDay;
   }
 
   /// CUR-488: Show "Incomplete" for ongoing events (no end time set)
   /// Show minimum "1m" if start and end are the same (0 duration)
   /// Returns (text, isIncomplete) tuple for styling
   (String, bool) _getDurationInfo(AppLocalizations l10n) {
-    final minutes = _durationMinutes;
-    if (_endTime == null) {
+    final ep = view as EpistaxisEntryView;
+    if (ep.endTime == null) {
       return (l10n.incomplete, true);
     }
+    final minutes = ep.durationMinutes;
     if (minutes == null) return ('', false);
     if (minutes == 0) return ('1m', false);
     if (minutes < 60) return ('${minutes}m', false);
@@ -217,105 +158,7 @@ class EventListItem extends StatelessWidget {
       return _buildUnknownCard(context, l10n);
     }
 
-    if (_isQuestionnaire) {
-      return _buildQuestionnaireCard(context, l10n);
-    }
-
     return _buildNosebleedCard(context, l10n, locale);
-  }
-
-  /// Build card for a completed questionnaire submission.
-  ///
-  /// Shows a clipboard icon, the questionnaire's display name (the
-  /// questionnaire-type value mapped to its human name; otherwise the
-  /// `_survey`-stripped entry type), a "Completed at HH:MM" subtitle,
-  /// and — when [isFinalized] — a "View Only" trailing label.
-  Widget _buildQuestionnaireCard(BuildContext context, AppLocalizations l10n) {
-    final answers = entry.currentAnswers;
-    final rawType = answers['questionnaire_type'];
-    final fallback = entry.entryType.replaceAll(RegExp(r'_survey$'), '');
-    final displayType = _displayNameFor(
-      rawType is String && rawType.isNotEmpty ? rawType : fallback,
-    );
-
-    // CUR-1292: subtitle reads "Completed at HH:MM" using the time of
-    // the latest finalized event (entry.updatedAt). DateFormat.jm renders
-    // hours-and-minutes in the device locale's short style ("10:16 PM"
-    // in en-US).
-    final completedAt = entry.updatedAt.toLocal();
-    final timeLabel = DateFormat.jm(
-      Localizations.localeOf(context).toString(),
-    ).format(completedAt);
-
-    return Card(
-      margin: EdgeInsets.zero,
-      color: Colors.blue.shade50,
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.15),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            children: [
-              Icon(
-                Icons.assignment_outlined,
-                color: Colors.blue.shade700,
-                size: 32,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      displayType,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blue.shade800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Completed at $timeLabel',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.blue.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isFinalized)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text(
-                    'View Only',
-                    style: TextStyle(
-                      color: Colors.blue.shade700,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                )
-              else if (onTap != null)
-                Icon(Icons.chevron_right, color: Colors.blue.shade400),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Map a questionnaire_type string to a patient-facing display name
-  /// via [QuestionnaireType] (the single source of truth for these
-  /// labels). Falls back to the input string when the value is unknown.
-  static String _displayNameFor(String questionnaireType) {
-    try {
-      return QuestionnaireType.fromValue(questionnaireType).displayName;
-    } catch (_) {
-      return questionnaireType;
-    }
   }
 
   /// Build card for "No nosebleed events" type
@@ -422,12 +265,15 @@ class EventListItem extends StatelessWidget {
     AppLocalizations l10n,
     String locale,
   ) {
-    // Fixed widths for column alignment
-    // Time column: "12:59 AM" needs ~80px, 24h "23:59" needs ~45px
+    // Fixed column widths for cross-row alignment (these fit horizontally even
+    // worst-case at the narrowest supported 360dp width). The row's height is a
+    // MINIMUM, not fixed: with a larger or wider font (Larger Text / OpenDyslexic)
+    // the time/duration may wrap and the row grows to fit, instead of being
+    // clamped to a fixed height and overflowing. "12:59 AM" ~80px, 24h ~45px.
     final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
-    final timeWidth = use24Hour ? 45.0 : 80.0;
+    final timeWidth = use24Hour ? 52.0 : 100.0;
     const iconWidth = 32.0;
-    const durationWidth = 90.0;
+    const durationWidth = 84.0;
 
     final (durationText, isIncompleteDuration) = _getDurationInfo(l10n);
 
@@ -436,7 +282,7 @@ class EventListItem extends StatelessWidget {
 
     final timezoneText = _timezoneDisplay;
     final showTimezone = timezoneText != null;
-    final cardHeight = showTimezone ? 52.0 : 40.0;
+    final minCardHeight = showTimezone ? 52.0 : 40.0;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -446,10 +292,10 @@ class EventListItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          height: cardHeight,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: minCardHeight),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Row(
               children: [
                 // Start time - fixed width, right aligned

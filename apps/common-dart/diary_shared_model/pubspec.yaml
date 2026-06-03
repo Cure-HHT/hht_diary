@@ -1,6 +1,6 @@
 name: diary_shared_model
 description: "Shared cross-wire event entry-types + payload schemas + canonical projections for the diary/portal event-sourcing surface (frozen 2026-05-29). Actions stay per-app."
-version: 0.1.0
+version: 0.9.0
 publish_to: none
 
 environment:
@@ -9,10 +9,11 @@ environment:
 dependencies:
   event_sourcing:
     git:
-      url: git@github.com:Cure-HHT/event_sourcing.git
-      ref: 9e04c17
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
       path: event_sourcing
 
 dev_dependencies:
   test: ^1.25.0
   lints: ^5.0.0
+  sembast: ^3.7.3

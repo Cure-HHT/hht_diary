@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
 // Task list widget displayed at the top of the home screen.
@@ -11,7 +11,7 @@ import 'package:clinical_diary/services/task_service.dart';
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
-/// Widget that displays the patient's task list at the top of the home screen.
+/// Widget that displays the participant's task list at the top of the home screen.
 ///
 /// Shows actionable items (questionnaires, incomplete records, etc.)
 /// sorted by priority per REQ-CAL-p00081-C.
@@ -19,8 +19,7 @@ class TaskListWidget extends StatelessWidget {
   const TaskListWidget({
     required this.taskService,
     this.onTaskTap,
-    this.wipAggregateIds = const <String>{},
-    this.submittedAggregateIds = const <String>{},
+    this.limit,
     super.key,
   });
 
@@ -30,33 +29,20 @@ class TaskListWidget extends StatelessWidget {
   /// REQ-CAL-p00081-D)
   final ValueChanged<Task>? onTaskTap;
 
-  /// CUR-1292: aggregate ids of questionnaires the patient has started
-  /// but not yet submitted. Used to render an "In progress" pill on
-  /// the matching questionnaire task card so the patient knows tapping
-  /// it will resume rather than restart.
-  final Set<String> wipAggregateIds;
-
-  /// CUR-1292: aggregate ids of questionnaires the patient has already
-  /// submitted (a `finalized` event landed locally). Once submitted the
-  /// questionnaire lives in the timeline (today/yesterday/calendar) as
-  /// an event entry; it should not also appear here as a task. The
-  /// matching task remains in [taskService] so the timeline tap can
-  /// look it up and route into the editable flow until the portal
-  /// coordinator clicks Finalize and the server drops it from /tasks.
-  final Set<String> submittedAggregateIds;
+  /// When set, render at most [limit] highest-priority tasks. Used by the home
+  /// screen to show only the single top task in its collapsed inline slot;
+  /// null (the default) renders the full list (e.g. on the Important page).
+  final int? limit;
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: taskService,
       builder: (context, _) {
-        final tasks = taskService.tasks
-            .where(
-              (t) =>
-                  t.taskType != TaskType.questionnaire ||
-                  !submittedAggregateIds.contains(t.targetId ?? t.id),
-            )
-            .toList();
+        final allTasks = taskService.tasks;
+        final tasks = limit == null
+            ? allTasks
+            : allTasks.take(limit!).toList(growable: false);
         if (tasks.isEmpty) return const SizedBox.shrink();
 
         return Column(
@@ -71,9 +57,6 @@ class TaskListWidget extends StatelessWidget {
                 child: _TaskCard(
                   task: task,
                   onTap: () => onTaskTap?.call(task),
-                  isInProgress:
-                      task.taskType == TaskType.questionnaire &&
-                      wipAggregateIds.contains(task.targetId ?? task.id),
                 ),
               ),
           ],
@@ -84,11 +67,10 @@ class TaskListWidget extends StatelessWidget {
 }
 
 class _TaskCard extends StatelessWidget {
-  const _TaskCard({required this.task, this.onTap, this.isInProgress = false});
+  const _TaskCard({required this.task, this.onTap});
 
   final Task task;
   final VoidCallback? onTap;
-  final bool isInProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -112,23 +94,13 @@ class _TaskCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          task.title,
-                          style: TextStyle(
-                            color: _textColor(theme),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      if (isInProgress) ...[
-                        const SizedBox(width: 8),
-                        _InProgressPill(textColor: _textColor(theme)),
-                      ],
-                    ],
+                  Text(
+                    task.title,
+                    style: TextStyle(
+                      color: _textColor(theme),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                   if (task.subtitle != null)
                     Text(
@@ -151,7 +123,6 @@ class _TaskCard extends StatelessWidget {
   IconData get _taskIcon {
     switch (task.taskType) {
       case TaskType.questionnaire:
-      case TaskType.cancelledQuestionnaire:
         return Icons.assignment;
       case TaskType.incompleteRecord:
         return Icons.warning_amber_rounded;
@@ -165,7 +136,6 @@ class _TaskCard extends StatelessWidget {
   Color _backgroundColor(ThemeData theme) {
     switch (task.taskType) {
       case TaskType.questionnaire:
-      case TaskType.cancelledQuestionnaire:
         return Colors.blue.shade50;
       case TaskType.incompleteRecord:
         return Colors.orange.shade50;
@@ -179,7 +149,6 @@ class _TaskCard extends StatelessWidget {
   Color _borderColor(ThemeData theme) {
     switch (task.taskType) {
       case TaskType.questionnaire:
-      case TaskType.cancelledQuestionnaire:
         return Colors.blue.shade200;
       case TaskType.incompleteRecord:
         return Colors.orange.shade200;
@@ -193,7 +162,6 @@ class _TaskCard extends StatelessWidget {
   Color _iconColor(ThemeData theme) {
     switch (task.taskType) {
       case TaskType.questionnaire:
-      case TaskType.cancelledQuestionnaire:
         return Colors.blue.shade700;
       case TaskType.incompleteRecord:
         return Colors.orange.shade700;
@@ -207,7 +175,6 @@ class _TaskCard extends StatelessWidget {
   Color _textColor(ThemeData theme) {
     switch (task.taskType) {
       case TaskType.questionnaire:
-      case TaskType.cancelledQuestionnaire:
         return Colors.blue.shade900;
       case TaskType.incompleteRecord:
         return Colors.orange.shade900;
@@ -216,34 +183,5 @@ class _TaskCard extends StatelessWidget {
       case TaskType.missingDays:
         return Colors.grey.shade800;
     }
-  }
-}
-
-/// CUR-1292: small chip rendered next to a questionnaire task title
-/// when the patient has answered at least one question but hasn't yet
-/// submitted. Tapping the task resumes from where they left off rather
-/// than restarting from readiness.
-class _InProgressPill extends StatelessWidget {
-  const _InProgressPill({required this.textColor});
-
-  final Color textColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: textColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        'In progress',
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.w600,
-          fontSize: 11,
-        ),
-      ),
-    );
   }
 }

@@ -144,7 +144,7 @@ class FcmChannel implements Channel<FcmMessage> {
   /// Returns true when the FCM response signals a permanently dead
   /// token (REQ-d00193-D). The OutboxWriter routes this into
   /// `DispatchResult.unregisteredToken` so the caller can deactivate
-  /// the row in `patient_fcm_tokens`.
+  /// the row in `participant_fcm_tokens`.
   bool _isUnregistered(http.Response response) {
     // A 404 from FCM v1 always means the token is not registered.
     // Some 400s also carry an UNREGISTERED errorCode buried under

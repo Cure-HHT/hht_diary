@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-p00024: Portal User Roles and Permissions
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //
-// Investigator (Study Coordinator) dashboard with patients and audit logs tabs
+// Investigator (Study Coordinator) dashboard with participants and audit logs tabs
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +11,7 @@ import 'package:sponsor_portal_ui/widgets/user_activity_listener.dart';
 
 import '../../services/auth_service.dart';
 import '../../widgets/portal_app_bar.dart';
-import 'patients_tab.dart';
+import 'participants_tab.dart';
 
 /// Investigator dashboard page with navigation rail
 class InvestigatorDashboardPage extends StatefulWidget {
@@ -109,11 +109,11 @@ class _InvestigatorDashboardPageState extends State<InvestigatorDashboardPage> {
   Widget _buildContent(ThemeData theme) {
     switch (_selectedIndex) {
       case 0:
-        return const StudyCoordinatorPatientsTab();
+        return const StudyCoordinatorParticipantsTab();
       case 1:
         return _buildAuditLogsPlaceholder(theme);
       default:
-        return const StudyCoordinatorPatientsTab();
+        return const StudyCoordinatorParticipantsTab();
     }
   }
 

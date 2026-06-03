@@ -70,7 +70,7 @@ class QuestionnaireFlowScreen extends StatefulWidget {
   /// Called when the flow is fully complete (after confirmation "Done")
   final VoidCallback onComplete;
 
-  /// Called when the patient taps "Not now" at readiness gate
+  /// Called when the participant taps "Not now" at readiness gate
   final VoidCallback? onDefer;
 
   /// Fires after every answer with a partial [QuestionnaireSubmission]
@@ -88,7 +88,7 @@ class QuestionnaireFlowScreen extends StatefulWidget {
   /// CUR-1292: when true the flow opens directly on the review screen
   /// in view-only mode — no Submit button, no per-item edit affordances.
   /// Used to surface the answers of a portal-finalized submission so
-  /// the patient can verify what was sent. Requires [initialResponses]
+  /// the participant can verify what was sent. Requires [initialResponses]
   /// to be supplied; otherwise there's nothing to view.
   final bool isReadOnly;
 
@@ -119,7 +119,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
 
     final seed = widget.initialResponses;
     if (seed != null && seed.isNotEmpty) {
-      // Resume path: ignore readiness/preamble — the patient already
+      // Resume path: ignore readiness/preamble — the participant already
       // committed to taking this questionnaire on a prior session, and
       // every recorded response is proof of that consent.
       final knownIds = {for (final q in _allQuestions) q.id};
@@ -306,7 +306,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
         _state = _FlowState.confirmation;
       });
     } else if (result.isDeleted) {
-      // REQ-d00113: Questionnaire was deleted while patient was completing it
+      // REQ-d00113: Questionnaire was deleted while participant was completing it
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(

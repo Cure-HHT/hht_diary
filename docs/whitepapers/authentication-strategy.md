@@ -39,7 +39,7 @@ Modern mobile operating systems provide hardware-backed authentication mechanism
 
 The Cure HHT Tracker requires that device-level authentication be enabled and validates the presence of an active lock screen at application launch and during runtime. Use of the application is prevented if device-level authentication is disabled. This establishes a baseline access-control standard across BYOD devices without introducing additional authentication steps within the application itself.
 
-Where Sponsor policy requires an additional authentication layer, the system supports an optional in-app PIN that may be enabled on a per-Sponsor basis. When enabled, this PIN serves as a fallback mechanism for patients whose devices do not have an active lock screen.
+Where Sponsor policy requires an additional authentication layer, the system supports an optional in-app PIN that may be enabled on a per-Sponsor basis. When enabled, this PIN serves as a fallback mechanism for participants whose devices do not have an active lock screen.
 
 ---
 

@@ -1,7 +1,5 @@
-import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:comms/comms.dart';
 import 'package:flutter/foundation.dart';
 
 /// Mock EnrollmentService for testing
@@ -20,16 +18,6 @@ class MockEnrollmentService implements EnrollmentService {
   bool _isNotParticipating = false;
   DateTime? _notParticipatingAt;
 
-  // CUR-1311: Mirror the real service's not-participating notifier so
-  // listeners under test fire when status flips.
-  @override
-  final ValueNotifier<bool> notParticipatingNotifier = ValueNotifier(false);
-
-  // CUR-1343 / REQ-p70011/F: Mirror the linking-status notifier.
-  @override
-  final ValueNotifier<MobileLinkingStatus> linkingStatusNotifier =
-      ValueNotifier(MobileLinkingStatus.connected);
-
   @override
   Future<String?> getJwtToken() async => jwtToken;
 
@@ -46,6 +34,9 @@ class MockEnrollmentService implements EnrollmentService {
 
   @override
   Future<void> clearEnrollment() async {}
+
+  @override
+  Future<void> clearSecureStorageForFactoryReset() async {}
 
   @override
   void dispose() {}
@@ -78,26 +69,14 @@ class MockEnrollmentService implements EnrollmentService {
   bool processDisconnectionStatus(Map<String, dynamic> response) {
     final isDisconnected = response['isDisconnected'] as bool? ?? false;
     final isNotParticipating = response['isNotParticipating'] as bool? ?? false;
-    final status = response['mobileLinkingStatus'] as String?;
-    final parsedStatus = parseMobileLinkingStatus(status);
-    // CUR-1343 / REQ-p70011/F: treat linking_in_progress as disconnected so
-    // the test surface mirrors the real service's recovery path.
-    final effectiveDisconnected =
-        isDisconnected || parsedStatus == MobileLinkingStatus.linkingInProgress;
-    _isDisconnected = effectiveDisconnected;
+    _isDisconnected = isDisconnected;
     _isNotParticipating = isNotParticipating;
-    // CUR-1311: fire notifiers so listeners under test observe the
-    // status flip — matches the real EnrollmentService which routes
-    // through setDisconnected / setNotParticipating.
-    disconnectedNotifier.value = effectiveDisconnected;
-    notParticipatingNotifier.value = isNotParticipating;
-    linkingStatusNotifier.value = parsedStatus;
     if (isNotParticipating && _notParticipatingAt == null) {
       _notParticipatingAt = DateTime.now();
     } else if (!isNotParticipating) {
       _notParticipatingAt = null;
     }
-    return effectiveDisconnected;
+    return isDisconnected;
   }
 
   // CUR-1165: Not participating mock methods
@@ -110,7 +89,6 @@ class MockEnrollmentService implements EnrollmentService {
     DateTime? at,
   }) async {
     _isNotParticipating = notParticipating;
-    notParticipatingNotifier.value = notParticipating;
     if (notParticipating) {
       _notParticipatingAt ??= at ?? DateTime.now();
     } else {
@@ -120,29 +98,4 @@ class MockEnrollmentService implements EnrollmentService {
 
   @override
   Future<DateTime?> getNotParticipatingAt() async => _notParticipatingAt;
-
-  // CUR-1311 P1B.5: Envelope-based status update handler.
-  @override
-  void handleEnvelopeStatusUpdate(Envelope envelope) {
-    final action = envelope.payload['action'] as String?;
-    switch (action) {
-      case 'disconnect':
-        linkingStatusNotifier.value = MobileLinkingStatus.disconnected;
-        setDisconnected(true);
-      case 'reconnect':
-        // CUR-1343 / REQ-p70011/F: A new linking code has been issued; mobile
-        // must hold the disconnected state until the patient enters the new
-        // code, so the test surface matches the real service.
-        linkingStatusNotifier.value = MobileLinkingStatus.linkingInProgress;
-        setDisconnected(true);
-      case 'mark_not_participating':
-        setNotParticipating(true, at: DateTime.now());
-      case 'reactivate':
-        setNotParticipating(false);
-      case 'start_trial':
-        break;
-      default:
-        debugPrint('[MockEnrollmentService] Unknown status action: $action');
-    }
-  }
 }

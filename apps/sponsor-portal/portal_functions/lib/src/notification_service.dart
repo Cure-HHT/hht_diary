@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//   REQ-CAL-p00082: Patient Alert Delivery
+//   REQ-CAL-p00082: Participant Alert Delivery
 //   REQ-p00049: Ancillary Platform Services (push notifications)
 //   REQ-d00193: FCM Dispatch via cure-hht-admin Project
 //
@@ -9,13 +9,13 @@
 // `comms` package as `FcmChannel`. This service is now a thin
 // orchestrator that:
 //   * holds the FcmChannel + console mode
-//   * exposes per-notification-type helpers used by the patient_linking
+//   * exposes per-notification-type helpers used by the participant_linking
 //     and questionnaire handlers
 //   * builds an FcmMessage and dispatches via the channel
 //   * keeps the FDA audit row + metrics that Phase 1B will move into
 //     the OutboxWriter when envelopes land
 //
-// Public API (sendQuestionnaireNotification, sendPatientStatusNotification,
+// Public API (sendQuestionnaireNotification, sendParticipantStatusNotification,
 // etc.) is unchanged — callers get NotificationResult back as before.
 
 import 'dart:convert';
@@ -58,12 +58,6 @@ class NotificationConfig {
     final override = fromEnvironmentOverride;
     if (override != null) return override;
     return NotificationConfig(
-      // CUR-1399: FCM sender project is materialized into FCM_PROJECT_ID at deploy
-      // from the routing manifest (hht_sponsor_iac fcm/routing.yaml); all targets are
-      // `cure-hht-admin` today, so the `?? 'cure-hht-admin'` fallback below matches the
-      // current routing target (and covers local/dev where the var is unset). Keep
-      // reading FCM_PROJECT_ID; don't add a NEW hardcoded project — per-sponsor
-      // resolution is deferred. See Linear CUR-1399 / CUR-1416.
       projectId: Platform.environment['FCM_PROJECT_ID'] ?? 'cure-hht-admin',
       enabled: Platform.environment['FCM_ENABLED'] != 'false',
       consoleMode: Platform.environment['FCM_CONSOLE_MODE'] == 'true',
@@ -89,24 +83,24 @@ class NotificationConfig {
   /// development without GCP credentials.
   final bool consoleMode;
 
-  /// CUR-1311 (Phase 1B.2): when true, `disconnectPatientHandler` routes
+  /// CUR-1311 (Phase 1B.2): when true, `disconnectParticipantHandler` routes
   /// the disconnect notification through `OutboxWriter` (writes a row to
   /// `notifications` before dispatching FCM). When false, behaviour is
-  /// identical to S2 — direct FCM send via `sendPatientStatusNotification`.
+  /// identical to S2 — direct FCM send via `sendParticipantStatusNotification`.
   /// Per-handler flag so we can validate the envelope path one handler
   /// at a time before flipping the rest in P1B.3.
   final bool useEnvelopeDisconnect;
 
   /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for the
-  /// `markPatientNotParticipatingHandler`.
+  /// `markParticipantNotParticipatingHandler`.
   final bool useEnvelopeNotParticipating;
 
   /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for the
-  /// `reactivatePatientHandler`.
+  /// `reactivateParticipantHandler`.
   final bool useEnvelopeReactivate;
 
   /// CUR-1311 (Phase 1B.3): mirror of [useEnvelopeDisconnect] for the
-  /// reconnect path inside `generatePatientLinkingCodeHandler` (only
+  /// reconnect path inside `generateParticipantLinkingCodeHandler` (only
   /// fires when isReconnection is true).
   final bool useEnvelopeReconnect;
 
@@ -148,7 +142,7 @@ class NotificationResult {
 }
 
 /// FCM orchestrator singleton. Sends data-only / alert push messages to
-/// patient devices. PHI is rejected by `PayloadGuard` inside the channel
+/// participant devices. PHI is rejected by `PayloadGuard` inside the channel
 /// before any network egress (REQ-d00194).
 class NotificationService {
   NotificationService._();
@@ -222,8 +216,8 @@ class NotificationService {
 
   /// CUR-1311 (Phase 1B.2): builds the OutboxWriter that handlers use
   /// when their envelope flag is on. The `onUnregistered` callback
-  /// deactivates the `patient_fcm_tokens` row so subsequent sends to
-  /// the same patient do not re-target a dead token.
+  /// deactivates the `participant_fcm_tokens` row so subsequent sends to
+  /// the same participant do not re-target a dead token.
   static OutboxWriter _buildOutboxWriter(FcmChannel channel) {
     return OutboxWriter(
       repo: PgNotificationRepository(),
@@ -232,14 +226,14 @@ class NotificationService {
     );
   }
 
-  /// CUR-1311 (Phase 1B.2): mark the matching `patient_fcm_tokens` row
+  /// CUR-1311 (Phase 1B.2): mark the matching `participant_fcm_tokens` row
   /// inactive when FCM returns UNREGISTERED. Idempotent — a duplicate
   /// dead-token signal is a no-op (already inactive).
   static Future<void> _deactivateFcmToken(String token) async {
     try {
       await Database.instance.executeWithContext(
         '''
-        UPDATE patient_fcm_tokens
+        UPDATE participant_fcm_tokens
         SET is_active = false, updated_at = now()
         WHERE fcm_token = @token AND is_active = true
         ''',
@@ -268,15 +262,15 @@ class NotificationService {
   /// Check if running in console mode.
   bool get isConsoleMode => _config?.consoleMode ?? false;
 
-  /// Send a questionnaire notification to a patient's device.
+  /// Send a questionnaire notification to a participant's device.
   ///
-  /// Per REQ-CAL-p00023-D: When a questionnaire is sent, the patient
+  /// Per REQ-CAL-p00023-D: When a questionnaire is sent, the participant
   /// SHALL receive a push notification on their Mobile App.
   Future<NotificationResult> sendQuestionnaireNotification({
     required String fcmToken,
     required String questionnaireType,
     required String questionnaireInstanceId,
-    required String patientId,
+    required String participantId,
   }) async {
     return _sendFcmMessage(
       fcmToken: fcmToken,
@@ -289,18 +283,18 @@ class NotificationService {
       notificationTitle: 'New Questionnaire Available',
       notificationBody: 'You have a new questionnaire to complete.',
       messageType: 'questionnaire_sent',
-      patientId: patientId,
+      participantId: participantId,
     );
   }
 
-  /// Send a questionnaire deletion notification to a patient's device.
+  /// Send a questionnaire deletion notification to a participant's device.
   ///
   /// Per REQ-CAL-p00023-H: When a questionnaire is deleted, it SHALL be
-  /// removed from the patient's app. Silent push — no title/body.
+  /// removed from the participant's app. Silent push — no title/body.
   Future<NotificationResult> sendQuestionnaireDeletedNotification({
     required String fcmToken,
     required String questionnaireInstanceId,
-    required String patientId,
+    required String participantId,
   }) async {
     return _sendFcmMessage(
       fcmToken: fcmToken,
@@ -310,15 +304,15 @@ class NotificationService {
         'action': 'remove_task',
       },
       messageType: 'questionnaire_deleted',
-      patientId: patientId,
+      participantId: participantId,
     );
   }
 
-  /// Send a questionnaire unlocked notification to a patient's device.
+  /// Send a questionnaire unlocked notification to a participant's device.
   Future<NotificationResult> sendQuestionnaireUnlockedNotification({
     required String fcmToken,
     required String questionnaireInstanceId,
-    required String patientId,
+    required String participantId,
   }) async {
     return _sendFcmMessage(
       fcmToken: fcmToken,
@@ -330,15 +324,15 @@ class NotificationService {
       notificationTitle: 'Questionnaire Unlocked',
       notificationBody: 'A questionnaire has been unlocked for editing.',
       messageType: 'questionnaire_unlocked',
-      patientId: patientId,
+      participantId: participantId,
     );
   }
 
-  /// Send a questionnaire-finalized notification to a patient's device.
+  /// Send a questionnaire-finalized notification to a participant's device.
   Future<NotificationResult> sendQuestionnaireFinalizedNotification({
     required String fcmToken,
     required String questionnaireInstanceId,
-    required String patientId,
+    required String participantId,
   }) async {
     return _sendFcmMessage(
       fcmToken: fcmToken,
@@ -350,22 +344,22 @@ class NotificationService {
       notificationTitle: 'Questionnaire Finalized',
       notificationBody: 'Your questionnaire has been finalized.',
       messageType: 'questionnaire_finalized',
-      patientId: patientId,
+      participantId: participantId,
     );
   }
 
-  /// Send a patient-status-change notification (disconnect, reconnect,
+  /// Send a participant-status-change notification (disconnect, reconnect,
   /// mark_not_participating, reactivate, start_trial).
-  Future<NotificationResult> sendPatientStatusNotification({
+  Future<NotificationResult> sendParticipantStatusNotification({
     required String fcmToken,
-    required String patientId,
+    required String participantId,
     required String action,
     required String title,
     required String body,
     Map<String, String>? extraData,
   }) async {
     final data = <String, String>{
-      'type': 'patient_status_update',
+      'type': 'participant_status_update',
       'action': action,
       if (extraData != null) ...extraData,
     };
@@ -374,8 +368,8 @@ class NotificationService {
       data: data,
       notificationTitle: title,
       notificationBody: body,
-      messageType: 'patient_status_update',
-      patientId: patientId,
+      messageType: 'participant_status_update',
+      participantId: participantId,
     );
   }
 
@@ -387,7 +381,7 @@ class NotificationService {
     required String fcmToken,
     required Map<String, String> data,
     required String messageType,
-    required String patientId,
+    required String participantId,
     String? notificationTitle,
     String? notificationBody,
   }) async {
@@ -415,10 +409,13 @@ class NotificationService {
         logWithTrace(
           'INFO',
           'FCM console mode: would send $messageType',
-          labels: {'patient_id': patientId, 'message_type': messageType},
+          labels: {
+            'participant_id': participantId,
+            'message_type': messageType,
+          },
         );
         await _logNotificationAudit(
-          patientId: patientId,
+          participantId: participantId,
           messageType: messageType,
           status: 'console',
           data: data,
@@ -432,12 +429,12 @@ class NotificationService {
           'INFO',
           'FCM sent $messageType',
           labels: {
-            'patient_id': patientId,
+            'participant_id': participantId,
             'message_id': result.messageId ?? 'unknown',
           },
         );
         await _logNotificationAudit(
-          patientId: patientId,
+          participantId: participantId,
           messageType: messageType,
           status: 'sent',
           messageId: result.messageId,
@@ -456,10 +453,10 @@ class NotificationService {
       logWithTrace(
         'ERROR',
         'FCM failed to send $messageType',
-        labels: {'patient_id': patientId, 'error': errorMessage},
+        labels: {'participant_id': participantId, 'error': errorMessage},
       );
       await _logNotificationAudit(
-        patientId: patientId,
+        participantId: participantId,
         messageType: messageType,
         status: 'failed',
         error: errorMessage,
@@ -473,10 +470,10 @@ class NotificationService {
       logWithTrace(
         'ERROR',
         'FCM exception sending $messageType',
-        labels: {'patient_id': patientId, 'error': errorMessage},
+        labels: {'participant_id': participantId, 'error': errorMessage},
       );
       await _logNotificationAudit(
-        patientId: patientId,
+        participantId: participantId,
         messageType: messageType,
         status: 'failed',
         error: errorMessage,
@@ -488,7 +485,7 @@ class NotificationService {
 
   /// Log notification to audit table (FDA compliance).
   Future<void> _logNotificationAudit({
-    required String patientId,
+    required String participantId,
     required String messageType,
     required String status,
     String? messageId,
@@ -511,7 +508,7 @@ class NotificationService {
         ''',
         parameters: {
           'actionType': 'FCM_NOTIFICATION',
-          'targetResource': 'patient:$patientId',
+          'targetResource': 'participant:$participantId',
           'actionDetails': jsonEncode({
             'message_type': messageType,
             'status': status,

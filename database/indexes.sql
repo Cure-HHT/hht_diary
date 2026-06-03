@@ -14,7 +14,7 @@
 -- PERFORMANCE OPTIMIZATION:
 --   Indexes designed for multi-site clinical trial query patterns:
 --   - Site-based data access (investigators viewing assigned sites)
---   - Patient-based queries (users viewing own diary entries)
+--   - Participant-based queries (users viewing own diary entries)
 --   - Time-series reporting (audit trail chronological access)
 --
 -- =====================================================
@@ -32,7 +32,7 @@ CREATE INDEX IF NOT EXISTS idx_sites_site_number ON sites(site_number);
 
 -- Primary lookup patterns
 CREATE INDEX IF NOT EXISTS idx_audit_event_uuid ON record_audit(event_uuid);
-CREATE INDEX IF NOT EXISTS idx_audit_patient_id ON record_audit(patient_id);
+CREATE INDEX IF NOT EXISTS idx_audit_participant_id ON record_audit(participant_id);
 CREATE INDEX IF NOT EXISTS idx_audit_site_id ON record_audit(site_id);
 CREATE INDEX IF NOT EXISTS idx_audit_created_by ON record_audit(created_by);
 CREATE INDEX IF NOT EXISTS idx_audit_parent_id ON record_audit(parent_audit_id);
@@ -42,9 +42,9 @@ CREATE INDEX IF NOT EXISTS idx_audit_server_timestamp ON record_audit(server_tim
 CREATE INDEX IF NOT EXISTS idx_audit_client_timestamp ON record_audit(client_timestamp DESC);
 
 -- Composite indexes for common query patterns
-CREATE INDEX IF NOT EXISTS idx_audit_patient_site ON record_audit(patient_id, site_id);
+CREATE INDEX IF NOT EXISTS idx_audit_participant_site ON record_audit(participant_id, site_id);
 CREATE INDEX IF NOT EXISTS idx_audit_site_timestamp ON record_audit(site_id, server_timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_patient_timestamp ON record_audit(patient_id, server_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_participant_timestamp ON record_audit(participant_id, server_timestamp DESC);
 
 -- JSONB GIN index for flexible querying of diary data
 CREATE INDEX IF NOT EXISTS idx_audit_data_gin ON record_audit USING GIN (data);
@@ -69,19 +69,19 @@ CREATE INDEX IF NOT EXISTS idx_audit_device_info_gin ON record_audit USING GIN (
 -- =====================================================
 
 -- Foreign key indexes
-CREATE INDEX IF NOT EXISTS idx_state_patient_id ON record_state(patient_id);
+CREATE INDEX IF NOT EXISTS idx_state_participant_id ON record_state(participant_id);
 CREATE INDEX IF NOT EXISTS idx_state_site_id ON record_state(site_id);
 CREATE INDEX IF NOT EXISTS idx_state_last_audit_id ON record_state(last_audit_id);
 
 -- Common query patterns
-CREATE INDEX IF NOT EXISTS idx_state_patient_site ON record_state(patient_id, site_id);
+CREATE INDEX IF NOT EXISTS idx_state_participant_site ON record_state(participant_id, site_id);
 CREATE INDEX IF NOT EXISTS idx_state_site_updated ON record_state(site_id, updated_at DESC);
 
 -- JSONB GIN index for current data
 CREATE INDEX IF NOT EXISTS idx_state_data_gin ON record_state USING GIN (current_data);
 
 -- Partial index for active records (not deleted)
-CREATE INDEX IF NOT EXISTS idx_state_active ON record_state(patient_id, site_id)
+CREATE INDEX IF NOT EXISTS idx_state_active ON record_state(participant_id, site_id)
     WHERE is_deleted = false;
 
 -- Partial index for sync metadata queries
@@ -117,16 +117,16 @@ CREATE INDEX IF NOT EXISTS idx_annotations_parent ON investigator_annotations(pa
 -- USER_SITE_ASSIGNMENTS TABLE INDEXES
 -- =====================================================
 
-CREATE INDEX IF NOT EXISTS idx_user_site_patient ON user_site_assignments(patient_id);
+CREATE INDEX IF NOT EXISTS idx_user_site_participant ON user_site_assignments(participant_id);
 CREATE INDEX IF NOT EXISTS idx_user_site_site ON user_site_assignments(site_id);
 CREATE INDEX IF NOT EXISTS idx_user_site_enrolled ON user_site_assignments(enrolled_at DESC);
 
 -- Partial index for active enrollments
-CREATE INDEX IF NOT EXISTS idx_user_site_active ON user_site_assignments(patient_id, site_id)
+CREATE INDEX IF NOT EXISTS idx_user_site_active ON user_site_assignments(participant_id, site_id)
     WHERE enrollment_status = 'ACTIVE';
 
--- Study patient ID lookup
-CREATE INDEX IF NOT EXISTS idx_user_site_study_id ON user_site_assignments(study_patient_id);
+-- Study participant ID lookup
+CREATE INDEX IF NOT EXISTS idx_user_site_study_id ON user_site_assignments(study_participant_id);
 
 -- =====================================================
 -- INVESTIGATOR_SITE_ASSIGNMENTS TABLE INDEXES
@@ -157,12 +157,12 @@ CREATE INDEX IF NOT EXISTS idx_analyst_site_active ON analyst_site_assignments(a
 -- =====================================================
 
 CREATE INDEX IF NOT EXISTS idx_conflicts_event_uuid ON sync_conflicts(event_uuid);
-CREATE INDEX IF NOT EXISTS idx_conflicts_patient ON sync_conflicts(patient_id);
+CREATE INDEX IF NOT EXISTS idx_conflicts_participant ON sync_conflicts(participant_id);
 CREATE INDEX IF NOT EXISTS idx_conflicts_site ON sync_conflicts(site_id);
 CREATE INDEX IF NOT EXISTS idx_conflicts_detected ON sync_conflicts(conflict_detected_at DESC);
 
 -- Partial index for unresolved conflicts
-CREATE INDEX IF NOT EXISTS idx_conflicts_unresolved ON sync_conflicts(event_uuid, patient_id)
+CREATE INDEX IF NOT EXISTS idx_conflicts_unresolved ON sync_conflicts(event_uuid, participant_id)
     WHERE resolved = false;
 
 -- JSONB indexes for conflict data analysis
@@ -289,7 +289,7 @@ CREATE MATERIALIZED VIEW daily_site_summary AS
 SELECT
     site_id,
     DATE(server_timestamp) as summary_date,
-    COUNT(DISTINCT patient_id) as active_patients,
+    COUNT(DISTINCT participant_id) as active_participants,
     COUNT(DISTINCT event_uuid) as total_events,
     COUNT(*) as total_changes,
     COUNT(*) FILTER (WHERE operation LIKE 'USER_%') as user_actions,
@@ -302,10 +302,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_site_summary ON daily_site_summary(s
 
 COMMENT ON MATERIALIZED VIEW daily_site_summary IS 'Daily activity summary by site - refresh periodically';
 
--- Patient activity summary
-CREATE MATERIALIZED VIEW patient_activity_summary AS
+-- Participant activity summary
+CREATE MATERIALIZED VIEW participant_activity_summary AS
 SELECT
-    patient_id,
+    participant_id,
     site_id,
     COUNT(DISTINCT event_uuid) as total_entries,
     MAX(server_timestamp) as last_entry_time,
@@ -313,11 +313,11 @@ SELECT
     COUNT(*) FILTER (WHERE server_timestamp > now() - interval '30 days') as entries_last_30_days
 FROM record_audit
 WHERE operation LIKE 'USER_%'
-GROUP BY patient_id, site_id;
+GROUP BY participant_id, site_id;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_patient_activity_summary ON patient_activity_summary(patient_id, site_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_participant_activity_summary ON participant_activity_summary(participant_id, site_id);
 
-COMMENT ON MATERIALIZED VIEW patient_activity_summary IS 'Patient activity metrics - refresh periodically';
+COMMENT ON MATERIALIZED VIEW participant_activity_summary IS 'Participant activity metrics - refresh periodically';
 
 -- =====================================================
 -- REFRESH FUNCTIONS FOR MATERIALIZED VIEWS
@@ -327,7 +327,7 @@ CREATE OR REPLACE FUNCTION refresh_reporting_views()
 RETURNS void AS $$
 BEGIN
     REFRESH MATERIALIZED VIEW CONCURRENTLY daily_site_summary;
-    REFRESH MATERIALIZED VIEW CONCURRENTLY patient_activity_summary;
+    REFRESH MATERIALIZED VIEW CONCURRENTLY participant_activity_summary;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -358,11 +358,11 @@ ALTER TABLE sync_conflicts SET (
 -- =====================================================
 
 -- Increase statistics for commonly filtered columns
-ALTER TABLE record_audit ALTER COLUMN patient_id SET STATISTICS 1000;
+ALTER TABLE record_audit ALTER COLUMN participant_id SET STATISTICS 1000;
 ALTER TABLE record_audit ALTER COLUMN site_id SET STATISTICS 1000;
 ALTER TABLE record_audit ALTER COLUMN server_timestamp SET STATISTICS 1000;
 
-ALTER TABLE record_state ALTER COLUMN patient_id SET STATISTICS 1000;
+ALTER TABLE record_state ALTER COLUMN participant_id SET STATISTICS 1000;
 ALTER TABLE record_state ALTER COLUMN site_id SET STATISTICS 1000;
 
 -- =====================================================
@@ -424,7 +424,7 @@ CREATE INDEX IF NOT EXISTS idx_config_modified_by ON system_config(last_modified
 -- =====================================================
 
 COMMENT ON INDEX idx_audit_data_gin IS 'GIN index for JSONB queries on event store (record_audit) data';
-COMMENT ON INDEX idx_state_active IS 'Partial index for active (non-deleted) records in read model (record_state)';
+COMMENT ON INDEX idx_state_active IS 'Partial index for active (non-deleted) records in read model (record_state) by participant';
 COMMENT ON INDEX idx_annotations_unresolved IS 'Partial index for unresolved annotations requiring action';
 COMMENT ON INDEX idx_breakglass_active IS 'Partial index for active break-glass authorizations (not revoked or expired)';
 COMMENT ON INDEX idx_export_log_auditor_timestamp IS 'Composite index for auditor activity reports and compliance monitoring';

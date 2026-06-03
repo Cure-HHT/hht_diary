@@ -23,7 +23,7 @@ class ResponseScaleSelector extends StatelessWidget {
   /// Currently selected value (null if none selected)
   final int? selectedValue;
 
-  /// Called when the patient selects an option
+  /// Called when the participant selects an option
   final ValueChanged<int> onSelected;
 
   @override

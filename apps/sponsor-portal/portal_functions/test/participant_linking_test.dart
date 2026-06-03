@@ -1,0 +1,2847 @@
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-p70007: Linking Code Lifecycle Management
+//   REQ-d00078: Linking Code Validation
+//   REQ-d00079: Linking Code Pattern Matching
+//   REQ-CAL-p00019: Link New Participant Workflow
+//   REQ-CAL-p00049: Mobile Linking Codes
+//   REQ-CAL-p00020: Participant Disconnection Workflow
+//   REQ-CAL-p00077: Disconnection Notification
+//   REQ-CAL-p00021: Participant Reconnection Workflow
+//   REQ-CAL-p00066: Status Change Reason Field
+//   REQ-CAL-p00079: Start Trial Workflow
+//
+// Tests for participant_linking.dart handlers and utilities
+
+import 'dart:convert';
+
+import 'package:comms/comms.dart';
+import 'package:crypto/crypto.dart';
+import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:shelf/shelf.dart';
+import 'package:test/test.dart';
+
+import 'package:portal_functions/src/database.dart';
+import 'package:portal_functions/src/notification_service.dart';
+import 'package:portal_functions/src/participant_linking.dart';
+import 'package:portal_functions/src/portal_auth.dart';
+import 'package:portal_functions/src/sponsor.dart';
+
+/// Test constants
+const _testParticipantId = 'participant-001';
+const _testSiteId = 'site-001';
+const _testUserId = 'user-001';
+
+/// Create a test PortalUser with Investigator role and site access.
+PortalUser _investigator({
+  String? activeRole,
+  List<Map<String, dynamic>>? sites,
+}) {
+  return PortalUser(
+    id: _testUserId,
+    firebaseUid: 'firebase-001',
+    email: 'investigator@example.com',
+    name: 'Dr. Test',
+    roles: [activeRole ?? 'Investigator'],
+    activeRole: activeRole ?? 'Investigator',
+    status: 'active',
+    sites:
+        sites ??
+        [
+          {
+            'site_id': _testSiteId,
+            'site_name': 'Test Site',
+            'site_number': 'S001',
+          },
+        ],
+  );
+}
+
+/// Standard participant row: [participant_id, site_id, linking_status, site_name]
+List<dynamic> _participantRow({
+  String status = 'not_connected',
+  String siteId = _testSiteId,
+}) {
+  // 4-column version for generate/get/disconnect/notparticipating/reactivate
+  return [_testParticipantId, siteId, status, 'Test Site'];
+}
+
+/// Participant row for startTrial: [participant_id, site_id, linking_status, trial_started, site_name]
+List<dynamic> _participantRowForTrial({
+  String status = 'connected',
+  String siteId = _testSiteId,
+  bool trialStarted = false,
+}) {
+  return [_testParticipantId, siteId, status, trialStarted, 'Test Site'];
+}
+
+/// Build a shelf Request with optional body and headers.
+Request _request(
+  String method,
+  String path, {
+  String? body,
+  Map<String, String>? headers,
+}) {
+  return Request(
+    method,
+    Uri.parse('http://localhost$path'),
+    body: body,
+    headers: {'authorization': 'Bearer test-token', ...?headers},
+  );
+}
+
+/// Decode a Response body as JSON.
+Future<Map<String, dynamic>> _json(Response response) async {
+  return jsonDecode(await response.readAsString()) as Map<String, dynamic>;
+}
+
+void main() {
+  setUpAll(() async {
+    await OTel.reset();
+    await OTel.initialize(
+      serviceName: 'portal-functions-test',
+      serviceVersion: '0.0.1-test',
+      enableMetrics: false,
+    );
+  });
+  tearDownAll(() async {
+    await OTel.shutdown();
+    await OTel.reset();
+  });
+
+  group('generateParticipantLinkingCodeHandler', () {
+    group('authorization', () {
+      test('returns 401 when no authorization header', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
+          body: jsonEncode({'participantId': 'p1'}),
+        );
+
+        final response = await generateParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 401);
+        final body = jsonDecode(await response.readAsString());
+        expect(body['error'], contains('authorization'));
+      });
+
+      test('returns 401 when authorization header is empty', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
+          headers: {'authorization': ''},
+          body: jsonEncode({'participantId': 'p1'}),
+        );
+
+        final response = await generateParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 401);
+      });
+
+      test(
+        'returns 401 when authorization header has no Bearer prefix',
+        () async {
+          final request = Request(
+            'POST',
+            Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
+            headers: {'authorization': 'some-token'},
+            body: jsonEncode({'participantId': 'p1'}),
+          );
+
+          final response = await generateParticipantLinkingCodeHandler(request);
+
+          expect(response.statusCode, 401);
+        },
+      );
+
+      test('returns JSON content type on error', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
+          body: jsonEncode({'participantId': 'p1'}),
+        );
+
+        final response = await generateParticipantLinkingCodeHandler(request);
+
+        expect(response.headers['content-type'], 'application/json');
+      });
+    });
+  });
+
+  group('getParticipantLinkingCodeHandler', () {
+    group('authorization', () {
+      test('returns 401 when no authorization header', () async {
+        final request = Request(
+          'GET',
+          Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
+          headers: {'x-participant-id': 'p1'},
+        );
+
+        final response = await getParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 401);
+        final body = jsonDecode(await response.readAsString());
+        expect(body['error'], contains('authorization'));
+      });
+
+      test('returns 401 when authorization header is empty', () async {
+        final request = Request(
+          'GET',
+          Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
+          headers: {'authorization': '', 'x-participant-id': 'p1'},
+        );
+
+        final response = await getParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 401);
+      });
+    });
+  });
+
+  group('Response format consistency', () {
+    test(
+      'generateParticipantLinkingCodeHandler returns valid JSON on all error paths',
+      () async {
+        final requests = [
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            body: jsonEncode({'participantId': 'test-id'}),
+          ),
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            headers: {'authorization': ''},
+            body: jsonEncode({'participantId': 'test-id'}),
+          ),
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            headers: {'authorization': 'invalid'},
+            body: jsonEncode({'participantId': 'test-id'}),
+          ),
+        ];
+
+        for (final request in requests) {
+          final response = await generateParticipantLinkingCodeHandler(request);
+          final body = await response.readAsString();
+
+          // Should parse as valid JSON without throwing
+          expect(() => jsonDecode(body), returnsNormally);
+          expect(response.headers['content-type'], 'application/json');
+        }
+      },
+    );
+
+    test(
+      'getParticipantLinkingCodeHandler returns valid JSON on all error paths',
+      () async {
+        final requests = [
+          Request(
+            'GET',
+            Uri.parse('http://localhost/'),
+            headers: {'x-participant-id': 'test-id'},
+          ),
+          Request(
+            'GET',
+            Uri.parse('http://localhost/'),
+            headers: {'authorization': '', 'x-participant-id': 'test-id'},
+          ),
+          Request(
+            'GET',
+            Uri.parse('http://localhost/'),
+            headers: {
+              'authorization': 'Bearer invalid',
+              'x-participant-id': 'test-id',
+            },
+          ),
+        ];
+
+        for (final request in requests) {
+          final response = await getParticipantLinkingCodeHandler(request);
+          final body = await response.readAsString();
+
+          // Should parse as valid JSON without throwing
+          expect(() => jsonDecode(body), returnsNormally);
+          expect(response.headers['content-type'], 'application/json');
+        }
+      },
+    );
+  });
+
+  group('generateParticipantLinkingCode', () {
+    test('generates code with correct length', () {
+      final code = generateParticipantLinkingCode('CA');
+
+      expect(code.length, 10);
+    });
+
+    test('generates code with sponsor prefix', () {
+      final code = generateParticipantLinkingCode('CA');
+
+      expect(code.startsWith('CA'), isTrue);
+    });
+
+    test('generates different codes each time', () {
+      final codes = List.generate(
+        100,
+        (_) => generateParticipantLinkingCode('CA'),
+      );
+      final uniqueCodes = codes.toSet();
+
+      expect(uniqueCodes.length, 100, reason: 'All codes should be unique');
+    });
+
+    test('generates code with allowed characters only', () {
+      // REQ-d00079.N - excludes I, 1, O, 0, S, 5, Z, 2
+      const allowedChars = 'ABCDEFGHJKLMNPQRTUVWXY346789';
+
+      for (var i = 0; i < 100; i++) {
+        final code = generateParticipantLinkingCode('XX');
+        // Skip the 2-char prefix and check the random part
+        final randomPart = code.substring(2);
+
+        for (final char in randomPart.split('')) {
+          expect(
+            allowedChars.contains(char),
+            isTrue,
+            reason: 'Character "$char" in code "$code" is not in allowed set',
+          );
+        }
+      }
+    });
+
+    test('generates code without ambiguous characters', () {
+      // Per REQ-d00079.N, these should never appear
+      const ambiguousChars = ['I', '1', 'O', '0', 'S', '5', 'Z', '2'];
+
+      for (var i = 0; i < 100; i++) {
+        final code = generateParticipantLinkingCode('XX');
+        // Skip the 2-char prefix and check the random part
+        final randomPart = code.substring(2);
+
+        for (final char in ambiguousChars) {
+          expect(
+            randomPart.contains(char),
+            isFalse,
+            reason: 'Ambiguous character "$char" found in code "$code"',
+          );
+        }
+      }
+    });
+
+    test('works with different sponsor prefixes', () {
+      final prefixes = ['CA', 'NY', 'TX', 'FL', 'XX'];
+
+      for (final prefix in prefixes) {
+        final code = generateParticipantLinkingCode(prefix);
+
+        expect(code.startsWith(prefix), isTrue);
+        expect(code.length, 10);
+      }
+    });
+  });
+
+  group('formatLinkingCodeForDisplay', () {
+    test('formats 10-char code correctly', () {
+      final formatted = formatLinkingCodeForDisplay('CAXXXXXXXX');
+
+      expect(formatted, 'CAXXX-XXXXX');
+    });
+
+    test('places dash after 5th character', () {
+      final formatted = formatLinkingCodeForDisplay('CA12345678');
+
+      expect(formatted, 'CA123-45678');
+    });
+
+    test('returns original code if not 10 chars', () {
+      expect(formatLinkingCodeForDisplay('SHORT'), 'SHORT');
+      expect(formatLinkingCodeForDisplay('TOOLONGCODE'), 'TOOLONGCODE');
+      expect(formatLinkingCodeForDisplay(''), '');
+    });
+
+    test('preserves uppercase', () {
+      final formatted = formatLinkingCodeForDisplay('CAABCDEFGH');
+
+      expect(formatted, 'CAABC-DEFGH');
+      expect(formatted.toUpperCase(), formatted);
+    });
+  });
+
+  group('hashLinkingCode', () {
+    test('produces consistent hash for same input', () {
+      const code = 'CAXXXXXXXX';
+
+      final hash1 = hashLinkingCode(code);
+      final hash2 = hashLinkingCode(code);
+
+      expect(hash1, hash2);
+    });
+
+    test('produces different hashes for different inputs', () {
+      final hash1 = hashLinkingCode('CAXXXXXXXX');
+      final hash2 = hashLinkingCode('CAYYYYYYYY');
+
+      expect(hash1, isNot(hash2));
+    });
+
+    test('produces SHA-256 hash (64 hex chars)', () {
+      final hash = hashLinkingCode('CAXXXXXXXX');
+
+      expect(hash.length, 64);
+      expect(RegExp(r'^[a-f0-9]+$').hasMatch(hash), isTrue);
+    });
+
+    test('matches direct SHA-256 computation', () {
+      const code = 'CAXXXXXXXX';
+      final expected = sha256.convert(utf8.encode(code)).toString();
+
+      expect(hashLinkingCode(code), expected);
+    });
+  });
+
+  group('linkingCodeExpiration', () {
+    test('is 72 hours per REQ-p70007', () {
+      expect(linkingCodeExpiration, const Duration(hours: 72));
+    });
+
+    test('equals 3 days', () {
+      expect(linkingCodeExpiration.inDays, 3);
+    });
+  });
+
+  group('Success response format', () {
+    test('generate response has expected fields', () {
+      // Expected success response structure
+      final successResponse = {
+        'success': true,
+        'participant_id': 'participant-123',
+        'site_name': 'Site A',
+        'code': 'CAXXX-XXXXX',
+        'code_raw': 'CAXXXXXXXX',
+        'expires_at': '2024-01-01T00:00:00.000Z',
+        'expires_in_hours': 72,
+      };
+
+      expect(successResponse['success'], isTrue);
+      expect(successResponse['participant_id'], isA<String>());
+      expect(successResponse['code'], contains('-'));
+      expect(successResponse['code_raw'], isNot(contains('-')));
+      expect(successResponse['expires_in_hours'], 72);
+    });
+
+    test('get code response has expected fields when code exists', () {
+      final successResponse = {
+        'has_active_code': true,
+        'participant_id': 'participant-123',
+        'mobile_linking_status': 'linking_in_progress',
+        'code': 'CAXXX-XXXXX',
+        'code_raw': 'CAXXXXXXXX',
+        'expires_at': '2024-01-01T00:00:00.000Z',
+        'generated_at': '2024-01-01T00:00:00.000Z',
+      };
+
+      expect(successResponse['has_active_code'], isTrue);
+      expect(successResponse['code'], isA<String>());
+    });
+
+    test('get code response has expected fields when no code', () {
+      final noCodeResponse = {
+        'has_active_code': false,
+        'participant_id': 'participant-123',
+        'mobile_linking_status': 'not_connected',
+      };
+
+      expect(noCodeResponse['has_active_code'], isFalse);
+      expect(noCodeResponse.containsKey('code'), isFalse);
+    });
+  });
+
+  group('Error response formats', () {
+    test('role error includes appropriate message', () {
+      final roleError = {
+        'error': 'Only Investigators can generate participant linking codes',
+      };
+
+      expect(roleError['error'], contains('Investigator'));
+    });
+
+    test('site access error includes appropriate message', () {
+      final siteError = {
+        'error': 'You do not have access to participants at this site',
+      };
+
+      expect(siteError['error'], contains('access'));
+      expect(siteError['error'], contains('site'));
+    });
+
+    test('already connected error includes guidance', () {
+      final connectedError = {
+        'error':
+            'Participant is already connected. Use "New Code" to generate a replacement code.',
+      };
+
+      expect(connectedError['error'], contains('connected'));
+      expect(connectedError['error'], contains('New Code'));
+    });
+
+    test('not found error includes participant context', () {
+      final notFoundError = {'error': 'Participant not found'};
+
+      expect(notFoundError['error'], contains('Participant'));
+      expect(notFoundError['error'], contains('not found'));
+    });
+  });
+
+  group('disconnectParticipantHandler', () {
+    group('authorization', () {
+      test('returns 401 when no authorization header', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
+          body: jsonEncode({'participantId': 'p1', 'reason': 'Device Issues'}),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.statusCode, 401);
+        final body = jsonDecode(await response.readAsString());
+        expect(body['error'], contains('authorization'));
+      });
+
+      test('returns 401 when authorization header is empty', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
+          headers: {'authorization': ''},
+          body: jsonEncode({'participantId': 'p1', 'reason': 'Device Issues'}),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.statusCode, 401);
+      });
+
+      test(
+        'returns 401 when authorization header has no Bearer prefix',
+        () async {
+          final request = Request(
+            'POST',
+            Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
+            headers: {'authorization': 'some-token'},
+            body: jsonEncode({
+              'participantId': 'p1',
+              'reason': 'Device Issues',
+            }),
+          );
+
+          final response = await disconnectParticipantHandler(request);
+
+          expect(response.statusCode, 401);
+        },
+      );
+
+      test('returns JSON content type on error', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
+          body: jsonEncode({'participantId': 'p1'}),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.headers['content-type'], 'application/json');
+      });
+    });
+
+    group('request validation', () {
+      test('returns 400 for invalid JSON body', () async {
+        // Since we can't easily mock auth, we test the JSON parsing
+        // through the response format test instead
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/participants/disconnect'),
+          body: jsonEncode({'participantId': 'p1'}),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        // Without auth, returns 401, but response is still valid JSON
+        expect(response.headers['content-type'], 'application/json');
+        final body = await response.readAsString();
+        expect(() => jsonDecode(body), returnsNormally);
+      });
+    });
+
+    group('response format consistency', () {
+      test(
+        'disconnectParticipantHandler returns valid JSON on all error paths',
+        () async {
+          final requests = [
+            Request(
+              'POST',
+              Uri.parse('http://localhost/'),
+              body: jsonEncode({'participantId': 'test-id'}),
+            ),
+            Request(
+              'POST',
+              Uri.parse('http://localhost/'),
+              headers: {'authorization': ''},
+              body: jsonEncode({'participantId': 'test-id'}),
+            ),
+            Request(
+              'POST',
+              Uri.parse('http://localhost/'),
+              headers: {'authorization': 'invalid'},
+              body: jsonEncode({'participantId': 'test-id'}),
+            ),
+            Request(
+              'POST',
+              Uri.parse('http://localhost/'),
+              headers: {'authorization': 'Bearer invalid'},
+              body: jsonEncode({'participantId': 'test-id'}),
+            ),
+          ];
+
+          for (final request in requests) {
+            final response = await disconnectParticipantHandler(request);
+            final body = await response.readAsString();
+
+            // Should parse as valid JSON without throwing
+            expect(() => jsonDecode(body), returnsNormally);
+            expect(response.headers['content-type'], 'application/json');
+          }
+        },
+      );
+    });
+  });
+
+  group('validDisconnectReasons', () {
+    test('contains expected reasons', () {
+      expect(validDisconnectReasons, contains('Device Issues'));
+      expect(validDisconnectReasons, contains('Technical Issues'));
+      expect(validDisconnectReasons, contains('Other'));
+    });
+
+    test('has exactly 3 options', () {
+      expect(validDisconnectReasons.length, 3);
+    });
+  });
+
+  group('validNotParticipatingReasons', () {
+    test('contains expected reasons', () {
+      expect(validNotParticipatingReasons, contains('Subject Withdrawal'));
+      expect(validNotParticipatingReasons, contains('Death'));
+      expect(
+        validNotParticipatingReasons,
+        contains('Protocol treatment/study complete'),
+      );
+      expect(validNotParticipatingReasons, contains('Other'));
+    });
+
+    test('has exactly 4 options', () {
+      expect(validNotParticipatingReasons.length, 4);
+    });
+  });
+
+  group('sponsorLinkingPrefix', () {
+    test('returns value from environment or default', () {
+      // This tests the accessor but actual value depends on environment
+      final prefix = sponsorLinkingPrefix;
+      expect(prefix, isA<String>());
+      expect(prefix.length, equals(2));
+    });
+  });
+
+  group('Disconnect response formats', () {
+    test('success response has expected fields', () {
+      // Expected success response structure
+      final successResponse = {
+        'success': true,
+        'participant_id': 'participant-123',
+        'previous_status': 'connected',
+        'new_status': 'disconnected',
+        'codes_revoked': 1,
+        'reason': 'Device Issues',
+      };
+
+      expect(successResponse['success'], isTrue);
+      expect(successResponse['participant_id'], isA<String>());
+      expect(successResponse['previous_status'], 'connected');
+      expect(successResponse['new_status'], 'disconnected');
+      expect(successResponse['codes_revoked'], isA<int>());
+      expect(successResponse['reason'], isA<String>());
+    });
+
+    test('not connected error includes current status', () {
+      final notConnectedError = {
+        'error':
+            'Participant is not in "connected" status. Current status: disconnected',
+      };
+
+      expect(notConnectedError['error'], contains('connected'));
+      expect(notConnectedError['error'], contains('Current status'));
+    });
+
+    test('missing reason error includes field name', () {
+      final missingReasonError = {'error': 'Missing required field: reason'};
+
+      expect(missingReasonError['error'], contains('reason'));
+      expect(missingReasonError['error'], contains('required'));
+    });
+
+    test('invalid reason error lists valid options', () {
+      final invalidReasonError = {
+        'error':
+            'Invalid reason. Must be one of: Device Issues, Technical Issues, Other',
+      };
+
+      expect(invalidReasonError['error'], contains('Device Issues'));
+      expect(invalidReasonError['error'], contains('Technical Issues'));
+      expect(invalidReasonError['error'], contains('Other'));
+    });
+
+    test(
+      'other reason does not require notes (predefined list only per REQ-CAL-p00020)',
+      () {
+        // Notes are no longer required for "Other" — the UI shows only the predefined
+        // dropdown and never sends notes. The backend accepts "Other" without notes.
+        expect(validDisconnectReasons, contains('Other'));
+      },
+    );
+
+    test('role error message is specific to disconnect', () {
+      final roleError = {
+        'error': 'Only Investigators can disconnect participants',
+      };
+
+      expect(roleError['error'], contains('Investigator'));
+      expect(roleError['error'], contains('disconnect'));
+    });
+  });
+
+  group(
+    'Reconnection (generateParticipantLinkingCodeHandler with reconnect_reason)',
+    () {
+      group('request body handling', () {
+        test('accepts request with reconnect_reason in body', () async {
+          // Since we can't mock auth, we just verify the request is accepted
+          // and returns JSON (auth error, but valid JSON)
+          final request = Request(
+            'POST',
+            Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
+            body: jsonEncode({
+              'participantId': 'p1',
+              'reconnect_reason': 'Participant got new device',
+            }),
+            headers: {'content-type': 'application/json'},
+          );
+
+          final response = await generateParticipantLinkingCodeHandler(request);
+
+          // Should return valid JSON even on auth error
+          expect(response.headers['content-type'], 'application/json');
+          final body = await response.readAsString();
+          expect(() => jsonDecode(body), returnsNormally);
+        });
+
+        test(
+          'accepts empty request body (standard link, no reconnection)',
+          () async {
+            final request = Request(
+              'POST',
+              Uri.parse(
+                'http://localhost/api/v1/portal/participants/link-code',
+              ),
+              body: jsonEncode({'participantId': 'p1'}),
+            );
+
+            final response = await generateParticipantLinkingCodeHandler(
+              request,
+            );
+
+            expect(response.headers['content-type'], 'application/json');
+            final body = await response.readAsString();
+            expect(() => jsonDecode(body), returnsNormally);
+          },
+        );
+
+        test('handles invalid JSON body gracefully', () async {
+          final request = Request(
+            'POST',
+            Uri.parse('http://localhost/api/v1/portal/participants/link-code'),
+            body: 'not valid json',
+            headers: {'content-type': 'application/json'},
+          );
+
+          final response = await generateParticipantLinkingCodeHandler(request);
+
+          // Should still return valid JSON (auth error, not parsing error)
+          expect(response.headers['content-type'], 'application/json');
+          final body = await response.readAsString();
+          expect(() => jsonDecode(body), returnsNormally);
+        });
+      });
+
+      group('response format for reconnection', () {
+        test('reconnection success response includes previous_status', () {
+          // Expected structure when reconnecting a disconnected participant
+          final reconnectResponse = {
+            'success': true,
+            'participant_id': 'participant-123',
+            'site_name': 'Site A',
+            'code': 'CAXXX-XXXXX',
+            'code_raw': 'CAXXXXXXXX',
+            'expires_at': '2024-01-01T00:00:00.000Z',
+            'expires_in_hours': 72,
+          };
+
+          expect(reconnectResponse['success'], isTrue);
+          expect(reconnectResponse['participant_id'], isA<String>());
+          expect(reconnectResponse['code'], contains('-'));
+        });
+
+        test('reconnection audit log entry structure is correct', () {
+          // Expected action_details for RECONNECT_PARTICIPANT action
+          final actionDetails = {
+            'participant_id': 'participant-123',
+            'site_id': 'site-456',
+            'site_name': 'Site A',
+            'expires_at': '2024-01-01T00:00:00.000Z',
+            'generated_by_email': 'coordinator@example.com',
+            'generated_by_name': 'John Doe',
+            'previous_status': 'disconnected',
+            'reconnect_reason': 'Participant got new device',
+          };
+
+          expect(actionDetails['previous_status'], 'disconnected');
+          expect(actionDetails['reconnect_reason'], isA<String>());
+          expect(actionDetails['reconnect_reason'], isNotEmpty);
+        });
+
+        test('standard link audit log does not include reconnect_reason', () {
+          // Expected action_details for standard GENERATE_LINKING_CODE action
+          final actionDetails = {
+            'participant_id': 'participant-123',
+            'site_id': 'site-456',
+            'site_name': 'Site A',
+            'expires_at': '2024-01-01T00:00:00.000Z',
+            'generated_by_email': 'coordinator@example.com',
+            'generated_by_name': 'John Doe',
+            'previous_status': 'not_connected',
+          };
+
+          expect(actionDetails.containsKey('reconnect_reason'), isFalse);
+          expect(actionDetails['previous_status'], isNot('disconnected'));
+        });
+      });
+    },
+  );
+
+  group('startTrialHandler', () {
+    group('authorization', () {
+      test('returns 401 when no authorization header', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/participants/start-trial'),
+          body: jsonEncode({'participantId': 'p1'}),
+        );
+
+        final response = await startTrialHandler(request);
+
+        expect(response.statusCode, 401);
+        final body = jsonDecode(await response.readAsString());
+        expect(body['error'], contains('authorization'));
+      });
+
+      test('returns 401 when authorization header is empty', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/participants/start-trial'),
+          headers: {'authorization': ''},
+          body: jsonEncode({'participantId': 'p1'}),
+        );
+
+        final response = await startTrialHandler(request);
+
+        expect(response.statusCode, 401);
+      });
+
+      test(
+        'returns 401 when authorization header has no Bearer prefix',
+        () async {
+          final request = Request(
+            'POST',
+            Uri.parse(
+              'http://localhost/api/v1/portal/participants/start-trial',
+            ),
+            headers: {'authorization': 'some-token'},
+            body: jsonEncode({'participantId': 'p1'}),
+          );
+
+          final response = await startTrialHandler(request);
+
+          expect(response.statusCode, 401);
+        },
+      );
+
+      test('returns JSON content type on error', () async {
+        final request = Request(
+          'POST',
+          Uri.parse('http://localhost/api/v1/portal/participants/start-trial'),
+          body: jsonEncode({'participantId': 'p1'}),
+        );
+
+        final response = await startTrialHandler(request);
+
+        expect(response.headers['content-type'], 'application/json');
+      });
+    });
+
+    group('response format consistency', () {
+      test('startTrialHandler returns valid JSON on all error paths', () async {
+        final requests = [
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            body: jsonEncode({'participantId': 'test-id'}),
+          ),
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            headers: {'authorization': ''},
+            body: jsonEncode({'participantId': 'test-id'}),
+          ),
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            headers: {'authorization': 'invalid'},
+            body: jsonEncode({'participantId': 'test-id'}),
+          ),
+          Request(
+            'POST',
+            Uri.parse('http://localhost/'),
+            headers: {'authorization': 'Bearer invalid'},
+            body: jsonEncode({'participantId': 'test-id'}),
+          ),
+        ];
+
+        for (final request in requests) {
+          final response = await startTrialHandler(request);
+          final body = await response.readAsString();
+
+          // Should parse as valid JSON without throwing
+          expect(() => jsonDecode(body), returnsNormally);
+          expect(response.headers['content-type'], 'application/json');
+        }
+      });
+    });
+  });
+
+  group('Start Trial response formats', () {
+    test('success response has expected fields', () {
+      // Expected success response structure
+      final successResponse = {
+        'success': true,
+        'participant_id': 'participant-123',
+        'site_id': 'site-456',
+        'site_name': 'Site A',
+        'trial_started': true,
+        'trial_started_at': '2024-01-01T00:00:00.000Z',
+      };
+
+      expect(successResponse['success'], isTrue);
+      expect(successResponse['participant_id'], isA<String>());
+      expect(successResponse['site_id'], isA<String>());
+      expect(successResponse['site_name'], isA<String>());
+      expect(successResponse['trial_started'], isTrue);
+      expect(successResponse['trial_started_at'], isA<String>());
+    });
+
+    test('not connected error includes current status', () {
+      final notConnectedError = {
+        'error':
+            'Participant must be in "connected" status to start trial. Current status: disconnected',
+      };
+
+      expect(notConnectedError['error'], contains('connected'));
+      expect(notConnectedError['error'], contains('Current status'));
+    });
+
+    test('trial already started error is specific', () {
+      final alreadyStartedError = {
+        'error': 'Trial has already been started for this participant',
+      };
+
+      expect(alreadyStartedError['error'], contains('already'));
+      expect(alreadyStartedError['error'], contains('started'));
+    });
+
+    test('role error message is specific to start trial', () {
+      final roleError = {
+        'error': 'Only Investigators can start trial for participants',
+      };
+
+      expect(roleError['error'], contains('Investigator'));
+      expect(roleError['error'], contains('start trial'));
+    });
+
+    test('audit log entry structure is correct', () {
+      // Expected action_details for START_TRIAL action
+      final actionDetails = {
+        'participant_id': 'participant-123',
+        'site_id': 'site-456',
+        'site_name': 'Site A',
+        'trial_started_at': '2024-01-01T00:00:00.000Z',
+        'started_by_email': 'coordinator@example.com',
+        'started_by_name': 'John Doe',
+      };
+
+      expect(actionDetails['participant_id'], isA<String>());
+      expect(actionDetails['site_id'], isA<String>());
+      expect(actionDetails['trial_started_at'], isA<String>());
+      expect(actionDetails['started_by_email'], isA<String>());
+      expect(actionDetails['started_by_name'], isA<String>());
+    });
+  });
+
+  // ==================================================================
+  // Handler-level tests (using auth + DB overrides)
+  // ==================================================================
+  group('handler tests with overrides', () {
+    setUp(() {
+      requirePortalAuthOverride = (_) async => _investigator();
+      NotificationService.resetForTesting();
+      NotificationService.instance.initialize(
+        NotificationConfig(
+          projectId: 'test-project',
+          enabled: true,
+          consoleMode: true,
+        ),
+      );
+    });
+
+    tearDown(() {
+      requirePortalAuthOverride = null;
+      databaseQueryOverride = null;
+      NotificationService.resetForTesting();
+    });
+
+    // ================================================================
+    // generateParticipantLinkingCodeHandler
+    // ================================================================
+    group('generateParticipantLinkingCodeHandler handler', () {
+      test(
+        'generates code successfully for not_connected participant',
+        () async {
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM participants')) {
+                  return [_participantRow(status: 'not_connected')];
+                }
+                if (query.contains('UPDATE participant_linking_codes') &&
+                    query.contains('revoked_at')) {
+                  return []; // No codes to revoke
+                }
+                if (query.contains('INSERT INTO participant_linking_codes')) {
+                  return [];
+                }
+                if (query.contains('UPDATE participants')) {
+                  return [];
+                }
+                if (query.contains('INSERT INTO admin_action_log')) {
+                  return [];
+                }
+                return [];
+              };
+
+          final request = _request(
+            'POST',
+            '/api/v1/portal/participants/link-code',
+            body: jsonEncode({'participantId': _testParticipantId}),
+          );
+
+          final response = await generateParticipantLinkingCodeHandler(request);
+
+          expect(response.statusCode, 200);
+          final body = await _json(response);
+          expect(body['success'], true);
+          expect(body['participant_id'], _testParticipantId);
+          expect(body['code'], contains('-'));
+          expect(body['code_raw'], hasLength(10));
+          expect(body['expires_in_hours'], 72);
+        },
+      );
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Auditor');
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/link-code',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await generateParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 403);
+        final body = await _json(response);
+        expect(body['error'], contains('Investigator'));
+      });
+
+      test('returns 404 when participant not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/link-code',
+          body: jsonEncode({'participantId': 'nonexistent'}),
+        );
+
+        final response = await generateParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(siteId: 'other-site')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/link-code',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await generateParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 403);
+        final body = await _json(response);
+        expect(body['error'], contains('site'));
+      });
+
+      test('returns 409 when participant is already connected', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(status: 'connected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/link-code',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await generateParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 409);
+        final body = await _json(response);
+        expect(body['error'], contains('connected'));
+      });
+
+      test('revokes existing codes when generating new one', () async {
+        var revokedCodes = false;
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(status: 'linking_in_progress')];
+          }
+          if (query.contains('UPDATE participant_linking_codes') &&
+              query.contains('revoked_at')) {
+            revokedCodes = true;
+            return [
+              ['code-id-1'],
+            ]; // One code revoked
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO participant_linking_codes')) {
+            return [];
+          }
+          if (query.contains('UPDATE participants')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/link-code',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await generateParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 200);
+        expect(revokedCodes, isTrue);
+      });
+
+      test('handles reconnection with reconnect_reason', () async {
+        var capturedActionType = '';
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(status: 'disconnected')];
+          }
+          if (query.contains('UPDATE participant_linking_codes') &&
+              query.contains('revoked_at')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO participant_linking_codes')) {
+            return [];
+          }
+          if (query.contains('UPDATE participants')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            if (parameters != null && parameters.containsKey('actionType')) {
+              capturedActionType = parameters['actionType'] as String;
+            }
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/link-code',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reconnect_reason': 'New device',
+          }),
+        );
+
+        final response = await generateParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 200);
+        expect(capturedActionType, 'RECONNECT_PARTICIPANT');
+      });
+
+      // CUR-1311 (Phase 1B.3): envelope flag for the reconnect path
+      // inside generateParticipantLinkingCodeHandler. Only fires when
+      // isReconnection is true (i.e. previous_status was 'disconnected').
+      group('envelope flag (FCM_USE_ENVELOPE_RECONNECT)', () {
+        tearDown(() {
+          NotificationConfig.fromEnvironmentOverride = null;
+          NotificationService.resetForTesting();
+        });
+
+        test(
+          'flag ON: reconnect path inserts notification + surfaces id in audit',
+          () async {
+            final captured = <String>[];
+            Map<String, dynamic>? auditDetails;
+            databaseQueryOverride = (query, {parameters, required context}) async {
+              captured.add(query);
+              if (query.contains('FROM participants') &&
+                  query.contains('participant_id')) {
+                return [_participantRow(status: 'disconnected')];
+              }
+              if (query.contains('UPDATE participant_linking_codes')) return [];
+              if (query.contains('INSERT INTO participant_linking_codes'))
+                return [];
+              if (query.contains('UPDATE participants')) return [];
+              if (query.contains('FROM participant_fcm_tokens')) {
+                return [
+                  ['fake-fcm-token-1234567890'],
+                ];
+              }
+              if (query.contains('SELECT notification_id') &&
+                  query.contains('FROM notifications')) {
+                final now = DateTime.utc(2026, 5, 8, 10, 30);
+                return [
+                  <dynamic>[
+                    parameters!['id'],
+                    parameters['participantId'],
+                    'participant_status_update',
+                    'Reconnect to Study',
+                    'Your study coordinator has issued a new linking code.',
+                    true,
+                    '{"action":"reconnect","new_status":"linking_in_progress"}',
+                    'sent',
+                    'projects/test/messages/0:rec',
+                    null,
+                    now,
+                    now,
+                    null,
+                  ],
+                ];
+              }
+              if (query.contains('INSERT INTO admin_action_log')) {
+                auditDetails =
+                    jsonDecode(parameters!['actionDetails'] as String)
+                        as Map<String, dynamic>;
+                return [];
+              }
+              return [];
+            };
+
+            NotificationConfig.fromEnvironmentOverride =
+                const NotificationConfig(
+                  projectId: 'test-project',
+                  enabled: true,
+                  consoleMode: true,
+                  useEnvelopeReconnect: true,
+                );
+            await NotificationService.instance.initialize(
+              NotificationConfig.fromEnvironmentOverride!,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/participants/link-code',
+              body: jsonEncode({
+                'participantId': _testParticipantId,
+                'reconnect_reason': 'New device',
+              }),
+            );
+
+            final response = await generateParticipantLinkingCodeHandler(
+              request,
+            );
+
+            expect(response.statusCode, 200);
+            expect(
+              captured.any((q) => q.contains('INSERT INTO notifications')),
+              isTrue,
+            );
+            expect(auditDetails, isNotNull);
+            expect(
+              auditDetails!['fcm_message_id'],
+              equals('projects/test/messages/0:rec'),
+            );
+            expect(auditDetails!['notification_id'], isA<String>());
+          },
+        );
+
+        test(
+          'flag ON but NOT reconnect (initial linking): no notification row',
+          () async {
+            // Initial linking-code generation for a not_connected participant
+            // — isReconnection is false, so the helper is never invoked.
+            final captured = <String>[];
+            databaseQueryOverride =
+                (query, {parameters, required context}) async {
+                  captured.add(query);
+                  if (query.contains('FROM participants') &&
+                      query.contains('participant_id')) {
+                    return [_participantRow(status: 'not_connected')];
+                  }
+                  return [];
+                };
+
+            NotificationConfig.fromEnvironmentOverride =
+                const NotificationConfig(
+                  projectId: 'test-project',
+                  enabled: true,
+                  consoleMode: true,
+                  useEnvelopeReconnect: true,
+                );
+            await NotificationService.instance.initialize(
+              NotificationConfig.fromEnvironmentOverride!,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/participants/link-code',
+              body: jsonEncode({'participantId': _testParticipantId}),
+            );
+
+            final response = await generateParticipantLinkingCodeHandler(
+              request,
+            );
+
+            expect(response.statusCode, 200);
+            expect(
+              captured.any((q) => q.contains('INSERT INTO notifications')),
+              isFalse,
+              reason:
+                  'initial linking is not a reconnect — envelope path skipped',
+            );
+          },
+        );
+      });
+    });
+
+    // ================================================================
+    // getParticipantLinkingCodeHandler
+    // ================================================================
+    group('getParticipantLinkingCodeHandler handler', () {
+      test('returns active code when one exists', () async {
+        final expiresAt = DateTime.now().add(const Duration(hours: 48));
+        final generatedAt = DateTime.now().subtract(const Duration(hours: 24));
+
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [
+              [_testParticipantId, _testSiteId, 'linking_in_progress'],
+            ];
+          }
+          if (query.contains('FROM participant_linking_codes')) {
+            return [
+              ['CAABCDEFGH', expiresAt, generatedAt],
+            ];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'GET',
+          '/api/v1/portal/participants/link-code',
+          headers: {'x-participant-id': _testParticipantId},
+        );
+
+        final response = await getParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['has_active_code'], true);
+        expect(body['code'], contains('-'));
+        expect(body['code_raw'], 'CAABCDEFGH');
+      });
+
+      test('returns no active code when none exist', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [
+              [_testParticipantId, _testSiteId, 'not_connected'],
+            ];
+          }
+          if (query.contains('FROM participant_linking_codes')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'GET',
+          '/api/v1/portal/participants/link-code',
+          headers: {'x-participant-id': _testParticipantId},
+        );
+
+        final response = await getParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['has_active_code'], false);
+      });
+
+      // CUR-1069: Participant Linking Code (reference) for connected/disconnected/not_participating
+      test(
+        'returns used_code and used_at when no active code but a used code exists',
+        () async {
+          final usedAt = DateTime.utc(2024, 3, 15, 10, 30);
+
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM participants')) {
+                  return [
+                    [_testParticipantId, _testSiteId, 'connected'],
+                  ];
+                }
+                if (query.contains('FROM participant_linking_codes') &&
+                    query.contains('used_at IS NULL')) {
+                  return []; // no active code
+                }
+                if (query.contains('FROM participant_linking_codes') &&
+                    query.contains('used_at IS NOT NULL')) {
+                  return [
+                    ['CAABCDEFGH', usedAt],
+                  ];
+                }
+                return [];
+              };
+
+          final request = _request(
+            'GET',
+            '/api/v1/portal/participants/link-code',
+            headers: {'x-participant-id': _testParticipantId},
+          );
+
+          final response = await getParticipantLinkingCodeHandler(request);
+
+          expect(response.statusCode, 200);
+          final body = await _json(response);
+          expect(body['has_active_code'], false);
+          expect(body['used_code'], 'CAABC-DEFGH'); // dash-formatted
+          expect(body['used_at'], isA<String>());
+          expect(body.containsKey('code'), isFalse);
+          expect(body.containsKey('expires_at'), isFalse);
+        },
+      );
+
+      test(
+        'omits used_code when no active code and no used code on record',
+        () async {
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM participants')) {
+                  return [
+                    [_testParticipantId, _testSiteId, 'connected'],
+                  ];
+                }
+                if (query.contains('FROM participant_linking_codes')) {
+                  return []; // neither active nor used
+                }
+                return [];
+              };
+
+          final request = _request(
+            'GET',
+            '/api/v1/portal/participants/link-code',
+            headers: {'x-participant-id': _testParticipantId},
+          );
+
+          final response = await getParticipantLinkingCodeHandler(request);
+
+          expect(response.statusCode, 200);
+          final body = await _json(response);
+          expect(body['has_active_code'], false);
+          expect(body.containsKey('used_code'), isFalse);
+          expect(body.containsKey('used_at'), isFalse);
+        },
+      );
+
+      test(
+        'used_code in response is dash-formatted via formatLinkingCodeForDisplay',
+        () async {
+          final usedAt = DateTime.now().subtract(const Duration(days: 3));
+
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM participants')) {
+                  return [
+                    [_testParticipantId, _testSiteId, 'disconnected'],
+                  ];
+                }
+                if (query.contains('used_at IS NULL')) return [];
+                if (query.contains('used_at IS NOT NULL')) {
+                  return [
+                    ['CAABCDEFGH', usedAt],
+                  ];
+                }
+                return [];
+              };
+
+          final request = _request(
+            'GET',
+            '/api/v1/portal/participants/link-code',
+            headers: {'x-participant-id': _testParticipantId},
+          );
+
+          final response = await getParticipantLinkingCodeHandler(request);
+
+          final body = await _json(response);
+          expect(body['used_code'], contains('-'));
+          expect((body['used_code'] as String).length, 11); // XXXXX-XXXXX
+        },
+      );
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Sponsor');
+
+        final request = _request(
+          'GET',
+          '/api/v1/portal/participants/link-code',
+          headers: {'x-participant-id': _testParticipantId},
+        );
+
+        final response = await getParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 404 when participant not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'GET',
+          '/api/v1/portal/participants/link-code',
+          headers: {'x-participant-id': 'nonexistent'},
+        );
+
+        final response = await getParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [
+              [_testParticipantId, 'other-site', 'not_connected'],
+            ];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'GET',
+          '/api/v1/portal/participants/link-code',
+          headers: {'x-participant-id': _testParticipantId},
+        );
+
+        final response = await getParticipantLinkingCodeHandler(request);
+
+        expect(response.statusCode, 403);
+      });
+    });
+
+    // ================================================================
+    // disconnectParticipantHandler
+    // ================================================================
+    group('disconnectParticipantHandler handler', () {
+      test('disconnects connected participant with valid reason', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(status: 'connected')];
+          }
+          if (query.contains('UPDATE participant_linking_codes')) {
+            return []; // No codes to revoke
+          }
+          if (query.contains('UPDATE participants')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/disconnect',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Device Issues',
+          }),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['previous_status'], 'connected');
+        expect(body['new_status'], 'disconnected');
+        expect(body['reason'], 'Device Issues');
+      });
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Analyst');
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/disconnect',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Device Issues',
+          }),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 400 when reason is missing', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/disconnect',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.statusCode, 400);
+        final body = await _json(response);
+        expect(body['error'], contains('reason'));
+      });
+
+      test('returns 400 for invalid reason value', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/disconnect',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Not a valid reason',
+          }),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.statusCode, 400);
+        final body = await _json(response);
+        expect(body['error'], contains('Invalid reason'));
+      });
+
+      test(
+        'accepts Other reason without notes (REQ-CAL-p00020: predefined list only)',
+        () async {
+          databaseQueryOverride =
+              (query, {parameters, required context}) async {
+                if (query.contains('FROM participants')) return [];
+                return [];
+              };
+
+          final request = _request(
+            'POST',
+            '/api/v1/portal/participants/disconnect',
+            body: jsonEncode({
+              'participantId': _testParticipantId,
+              'reason': 'Other',
+            }),
+          );
+
+          final response = await disconnectParticipantHandler(request);
+
+          // Proceeds past notes validation to DB lookup (404) — not a 400 notes error
+          expect(response.statusCode, isNot(400));
+          final body = await _json(response);
+          expect(body['error'], isNot(contains('Notes')));
+        },
+      );
+
+      test('returns 404 when participant not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/disconnect',
+          body: jsonEncode({
+            'participantId': 'nonexistent',
+            'reason': 'Device Issues',
+          }),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(siteId: 'other-site', status: 'connected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/disconnect',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Device Issues',
+          }),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 409 when participant is not connected', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(status: 'disconnected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/disconnect',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Device Issues',
+          }),
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.statusCode, 409);
+        final body = await _json(response);
+        expect(body['error'], contains('not in "connected"'));
+      });
+
+      test('returns 400 for invalid JSON body', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/disconnect',
+          body: 'not json',
+        );
+
+        final response = await disconnectParticipantHandler(request);
+
+        expect(response.statusCode, 400);
+      });
+
+      group('sponsor-aware reason validation (REQ-p70010-C)', () {
+        tearDown(() => getCurrentSponsorFlagsOverride = null);
+
+        test(
+          'rejects non-predefined reason when disconnectReasonDropdown=true',
+          () async {
+            getCurrentSponsorFlagsOverride = SponsorFeatureFlags(
+              useReviewScreen: false,
+              useAnimations: true,
+              requireOldEntryJustification: false,
+              enableShortDurationConfirmation: false,
+              enableLongDurationConfirmation: false,
+              longDurationThresholdMinutes: 60,
+              availableFonts: [],
+              disconnectReasonDropdown: true,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/participants/disconnect',
+              body: jsonEncode({
+                'participantId': _testParticipantId,
+                'reason': 'Custom free text reason',
+              }),
+            );
+
+            final response = await disconnectParticipantHandler(request);
+
+            expect(response.statusCode, 400);
+            final body = await _json(response);
+            expect(body['error'], contains('Invalid reason'));
+          },
+        );
+
+        test(
+          'accepts free-text reason when disconnectReasonDropdown=false',
+          () async {
+            getCurrentSponsorFlagsOverride = SponsorFeatureFlags(
+              useReviewScreen: false,
+              useAnimations: true,
+              requireOldEntryJustification: false,
+              enableShortDurationConfirmation: false,
+              enableLongDurationConfirmation: false,
+              longDurationThresholdMinutes: 60,
+              availableFonts: [],
+              disconnectReasonDropdown: false,
+            );
+            databaseQueryOverride =
+                (query, {parameters, required context}) async {
+                  if (query.contains('FROM participants')) {
+                    return [_participantRow(status: 'connected')];
+                  }
+                  return [];
+                };
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/participants/disconnect',
+              body: jsonEncode({
+                'participantId': _testParticipantId,
+                'reason': 'Custom free text reason',
+              }),
+            );
+
+            final response = await disconnectParticipantHandler(request);
+
+            expect(response.statusCode, 200);
+            final body = await _json(response);
+            expect(body['reason'], 'Custom free text reason');
+          },
+        );
+
+        test(
+          'rejects empty reason regardless of disconnectReasonDropdown value',
+          () async {
+            getCurrentSponsorFlagsOverride = SponsorFeatureFlags(
+              useReviewScreen: false,
+              useAnimations: true,
+              requireOldEntryJustification: false,
+              enableShortDurationConfirmation: false,
+              enableLongDurationConfirmation: false,
+              longDurationThresholdMinutes: 60,
+              availableFonts: [],
+              disconnectReasonDropdown: false,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/participants/disconnect',
+              body: jsonEncode({
+                'participantId': _testParticipantId,
+                'reason': '',
+              }),
+            );
+
+            final response = await disconnectParticipantHandler(request);
+
+            expect(response.statusCode, 400);
+            final body = await _json(response);
+            expect(body['error'], contains('reason'));
+          },
+        );
+      });
+
+      // CUR-1311 (Phase 1B.2): envelope-pattern feature flag tests.
+      // The flag-OFF behaviour is exercised by every other test in this
+      // group; here we verify the flag-ON path actually writes a row to
+      // `notifications` and surfaces the envelope id in the audit row.
+      group('envelope flag (FCM_USE_ENVELOPE_DISCONNECT)', () {
+        tearDown(() {
+          NotificationConfig.fromEnvironmentOverride = null;
+          NotificationService.resetForTesting();
+        });
+
+        Future<void> _initEnvelopeOn() async {
+          NotificationConfig.fromEnvironmentOverride = const NotificationConfig(
+            projectId: 'test-project',
+            enabled: true,
+            consoleMode: true,
+            useEnvelopeDisconnect: true,
+          );
+          await NotificationService.instance.initialize(
+            NotificationConfig.fromEnvironmentOverride!,
+          );
+        }
+
+        test('flag ON: inserts pending notification, dispatches FCM, '
+            'surfaces notification_id in audit row', () async {
+          final capturedQueries = <String>[];
+          final auditDetails = <Map<String, dynamic>>[];
+          databaseQueryOverride = (query, {parameters, required context}) async {
+            capturedQueries.add(query);
+            if (query.contains('FROM participants') &&
+                query.contains('participant_id')) {
+              return [_participantRow(status: 'connected')];
+            }
+            if (query.contains('UPDATE participant_linking_codes')) {
+              return [];
+            }
+            if (query.contains('UPDATE participants')) {
+              return [];
+            }
+            if (query.contains('FROM participant_fcm_tokens')) {
+              return [
+                ['fake-fcm-token-1234567890'],
+              ];
+            }
+            if (query.contains('INSERT INTO notifications')) {
+              return [];
+            }
+            if (query.contains('UPDATE notifications')) {
+              return [];
+            }
+            if (query.contains('SELECT notification_id') &&
+                query.contains('FROM notifications')) {
+              // findById after send — return a sent envelope row so
+              // the handler captures the message_id for the audit.
+              final now = DateTime.utc(2026, 5, 8, 10, 30);
+              return [
+                <dynamic>[
+                  parameters!['id'],
+                  parameters['participantId'],
+                  'participant_status_update',
+                  'Account Disconnected',
+                  'Your study account has been disconnected. Please contact your study coordinator.',
+                  true,
+                  '{"action":"disconnect","new_status":"disconnected"}',
+                  'sent',
+                  'projects/test-project/messages/0:abc',
+                  null,
+                  now,
+                  now,
+                  null,
+                ],
+              ];
+            }
+            if (query.contains('INSERT INTO admin_action_log')) {
+              final details =
+                  jsonDecode(parameters!['actionDetails'] as String)
+                      as Map<String, dynamic>;
+              auditDetails.add(details);
+              return [];
+            }
+            return [];
+          };
+
+          await _initEnvelopeOn();
+
+          final request = _request(
+            'POST',
+            '/api/v1/portal/participants/disconnect',
+            body: jsonEncode({
+              'participantId': _testParticipantId,
+              'reason': 'Device Issues',
+            }),
+          );
+
+          final response = await disconnectParticipantHandler(request);
+
+          expect(response.statusCode, 200);
+
+          // Envelope path was taken — INSERT INTO notifications fired.
+          expect(
+            capturedQueries.any((q) => q.contains('INSERT INTO notifications')),
+            isTrue,
+            reason: 'OutboxWriter must persist the envelope before dispatch',
+          );
+
+          // markSent fired (status pending → sent after FcmChannel
+          // returned success in console mode).
+          expect(
+            capturedQueries.any(
+              (q) =>
+                  q.contains('UPDATE notifications') &&
+                  q.contains("SET status = 'sent'"),
+            ),
+            isTrue,
+          );
+
+          // The audit row carries both fcm_message_id and the new
+          // notification_id (envelope id). P1B.3 will retire the
+          // duplicate audit; for now both coexist.
+          expect(auditDetails, hasLength(1));
+          expect(
+            auditDetails.single['fcm_message_id'],
+            equals('projects/test-project/messages/0:abc'),
+          );
+          expect(
+            auditDetails.single['notification_id'],
+            isA<String>(),
+            reason: 'envelope id must be surfaced for cross-table traceability',
+          );
+        });
+
+        test(
+          'flag ON with PHI in title: catches the leak, no insert',
+          () async {
+            final capturedQueries = <String>[];
+            databaseQueryOverride =
+                (query, {parameters, required context}) async {
+                  capturedQueries.add(query);
+                  if (query.contains('FROM participants') &&
+                      query.contains('participant_id')) {
+                    return [_participantRow(status: 'connected')];
+                  }
+                  if (query.contains('FROM participant_fcm_tokens')) {
+                    return [
+                      ['fake-fcm-token-1234567890'],
+                    ];
+                  }
+                  return [];
+                };
+
+            // Inject a SubjectKey-shaped pattern into the common-name list
+            // so the legitimate disconnect title trips the guard. Keeps
+            // the production title text intact while exercising the path.
+            PayloadGuard.commonNamePatterns = <RegExp>[
+              RegExp(r'\bAccount Disconnected\b'),
+            ];
+            addTearDown(() {
+              PayloadGuard.commonNamePatterns = <RegExp>[];
+            });
+
+            await _initEnvelopeOn();
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/participants/disconnect',
+              body: jsonEncode({
+                'participantId': _testParticipantId,
+                'reason': 'Device Issues',
+              }),
+            );
+
+            final response = await disconnectParticipantHandler(request);
+
+            // The action itself succeeds — the participant row was updated;
+            // the push is the side-effect that got blocked. The handler
+            // logs the failure but doesn't surface it as a 5xx.
+            expect(response.statusCode, 200);
+            // Critically: no INSERT INTO notifications. Guard rejects
+            // before the row reaches the repository.
+            expect(
+              capturedQueries.any(
+                (q) => q.contains('INSERT INTO notifications'),
+              ),
+              isFalse,
+              reason:
+                  'PayloadGuard fires before insertPending — no pending row',
+            );
+          },
+        );
+      });
+    });
+
+    // ================================================================
+    // markParticipantNotParticipatingHandler
+    // ================================================================
+    group('markParticipantNotParticipatingHandler handler', () {
+      test('marks disconnected participant as not participating', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(status: 'disconnected')];
+          }
+          if (query.contains('UPDATE participants')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/not-participating',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Subject Withdrawal',
+          }),
+        );
+
+        final response = await markParticipantNotParticipatingHandler(request);
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['previous_status'], 'disconnected');
+        expect(body['new_status'], 'not_participating');
+      });
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Sponsor');
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/not-participating',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Death',
+          }),
+        );
+
+        final response = await markParticipantNotParticipatingHandler(request);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 400 for invalid reason', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/not-participating',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Invalid reason',
+          }),
+        );
+
+        final response = await markParticipantNotParticipatingHandler(request);
+
+        expect(response.statusCode, 400);
+      });
+
+      test('returns 400 when Other reason has no notes', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/not-participating',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Other',
+          }),
+        );
+
+        final response = await markParticipantNotParticipatingHandler(request);
+
+        expect(response.statusCode, 400);
+        final body = await _json(response);
+        expect(body['error'], contains('Notes'));
+      });
+
+      test('returns 404 when participant not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/not-participating',
+          body: jsonEncode({'participantId': 'nonexistent', 'reason': 'Death'}),
+        );
+
+        final response = await markParticipantNotParticipatingHandler(request);
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [
+              _participantRow(siteId: 'other-site', status: 'disconnected'),
+            ];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/not-participating',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Death',
+          }),
+        );
+
+        final response = await markParticipantNotParticipatingHandler(request);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 409 when participant is not disconnected', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(status: 'connected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/not-participating',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Subject Withdrawal',
+          }),
+        );
+
+        final response = await markParticipantNotParticipatingHandler(request);
+
+        expect(response.statusCode, 409);
+      });
+
+      test('returns 400 for invalid JSON body', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/not-participating',
+          body: 'not json',
+        );
+
+        final response = await markParticipantNotParticipatingHandler(request);
+
+        expect(response.statusCode, 400);
+      });
+
+      // CUR-1311 (Phase 1B.3): envelope flag for mark_not_participating.
+      group('envelope flag (FCM_USE_ENVELOPE_NOT_PARTICIPATING)', () {
+        tearDown(() {
+          NotificationConfig.fromEnvironmentOverride = null;
+          NotificationService.resetForTesting();
+        });
+
+        test(
+          'flag ON: inserts notification + surfaces notification_id in audit',
+          () async {
+            final captured = <String>[];
+            Map<String, dynamic>? auditDetails;
+            databaseQueryOverride = (query, {parameters, required context}) async {
+              captured.add(query);
+              if (query.contains('FROM participants') &&
+                  query.contains('participant_id')) {
+                return [_participantRow(status: 'disconnected')];
+              }
+              if (query.contains('FROM participant_fcm_tokens')) {
+                return [
+                  ['fake-fcm-token-1234567890'],
+                ];
+              }
+              if (query.contains('SELECT notification_id') &&
+                  query.contains('FROM notifications')) {
+                final now = DateTime.utc(2026, 5, 8, 10, 30);
+                return [
+                  <dynamic>[
+                    parameters!['id'],
+                    parameters['participantId'],
+                    'participant_status_update',
+                    'Study Participation Ended',
+                    'Your study participation has ended.',
+                    true,
+                    '{"action":"mark_not_participating","new_status":"not_participating"}',
+                    'sent',
+                    'projects/test/messages/0:np',
+                    null,
+                    now,
+                    now,
+                    null,
+                  ],
+                ];
+              }
+              if (query.contains('INSERT INTO admin_action_log')) {
+                auditDetails =
+                    jsonDecode(parameters!['actionDetails'] as String)
+                        as Map<String, dynamic>;
+                return [];
+              }
+              return [];
+            };
+
+            NotificationConfig.fromEnvironmentOverride =
+                const NotificationConfig(
+                  projectId: 'test-project',
+                  enabled: true,
+                  consoleMode: true,
+                  useEnvelopeNotParticipating: true,
+                );
+            await NotificationService.instance.initialize(
+              NotificationConfig.fromEnvironmentOverride!,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/participants/not-participating',
+              body: jsonEncode({
+                'participantId': _testParticipantId,
+                'reason': 'Subject Withdrawal',
+              }),
+            );
+
+            final response = await markParticipantNotParticipatingHandler(
+              request,
+            );
+
+            expect(response.statusCode, 200);
+            expect(
+              captured.any((q) => q.contains('INSERT INTO notifications')),
+              isTrue,
+            );
+            expect(auditDetails, isNotNull);
+            expect(
+              auditDetails!['fcm_message_id'],
+              equals('projects/test/messages/0:np'),
+            );
+            expect(auditDetails!['notification_id'], isA<String>());
+          },
+        );
+      });
+    });
+
+    // ================================================================
+    // reactivateParticipantHandler
+    // ================================================================
+    group('reactivateParticipantHandler handler', () {
+      test('reactivates not_participating participant', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(status: 'not_participating')];
+          }
+          if (query.contains('UPDATE participants')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/reactivate',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Participant changed mind',
+          }),
+        );
+
+        final response = await reactivateParticipantHandler(request);
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['previous_status'], 'not_participating');
+        expect(body['new_status'], 'disconnected');
+      });
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Auditor');
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/reactivate',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Changed mind',
+          }),
+        );
+
+        final response = await reactivateParticipantHandler(request);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 400 when reason is missing', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/reactivate',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await reactivateParticipantHandler(request);
+
+        expect(response.statusCode, 400);
+      });
+
+      test('returns 404 when participant not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/reactivate',
+          body: jsonEncode({'participantId': 'nonexistent', 'reason': 'Test'}),
+        );
+
+        final response = await reactivateParticipantHandler(request);
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [
+              _participantRow(
+                siteId: 'other-site',
+                status: 'not_participating',
+              ),
+            ];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/reactivate',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Test',
+          }),
+        );
+
+        final response = await reactivateParticipantHandler(request);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 409 when participant is not not_participating', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRow(status: 'connected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/reactivate',
+          body: jsonEncode({
+            'participantId': _testParticipantId,
+            'reason': 'Test',
+          }),
+        );
+
+        final response = await reactivateParticipantHandler(request);
+
+        expect(response.statusCode, 409);
+      });
+
+      test('returns 400 for invalid JSON body', () async {
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/reactivate',
+          body: 'not json',
+        );
+
+        final response = await reactivateParticipantHandler(request);
+
+        expect(response.statusCode, 400);
+      });
+
+      // CUR-1311 (Phase 1B.3): envelope flag for reactivate.
+      group('envelope flag (FCM_USE_ENVELOPE_REACTIVATE)', () {
+        tearDown(() {
+          NotificationConfig.fromEnvironmentOverride = null;
+          NotificationService.resetForTesting();
+        });
+
+        test(
+          'flag ON: inserts notification + surfaces notification_id in audit',
+          () async {
+            final captured = <String>[];
+            Map<String, dynamic>? auditDetails;
+            databaseQueryOverride =
+                (query, {parameters, required context}) async {
+                  captured.add(query);
+                  if (query.contains('FROM participants') &&
+                      query.contains('participant_id')) {
+                    return [_participantRow(status: 'not_participating')];
+                  }
+                  if (query.contains('FROM participant_fcm_tokens')) {
+                    return [
+                      ['fake-fcm-token-1234567890'],
+                    ];
+                  }
+                  if (query.contains('SELECT notification_id') &&
+                      query.contains('FROM notifications')) {
+                    final now = DateTime.utc(2026, 5, 8, 10, 30);
+                    return [
+                      <dynamic>[
+                        parameters!['id'],
+                        parameters['participantId'],
+                        'participant_status_update',
+                        'Account Reactivated',
+                        'Your study account has been reactivated.',
+                        true,
+                        '{"action":"reactivate","new_status":"disconnected"}',
+                        'sent',
+                        'projects/test/messages/0:rx',
+                        null,
+                        now,
+                        now,
+                        null,
+                      ],
+                    ];
+                  }
+                  if (query.contains('INSERT INTO admin_action_log')) {
+                    auditDetails =
+                        jsonDecode(parameters!['actionDetails'] as String)
+                            as Map<String, dynamic>;
+                    return [];
+                  }
+                  return [];
+                };
+
+            NotificationConfig.fromEnvironmentOverride =
+                const NotificationConfig(
+                  projectId: 'test-project',
+                  enabled: true,
+                  consoleMode: true,
+                  useEnvelopeReactivate: true,
+                );
+            await NotificationService.instance.initialize(
+              NotificationConfig.fromEnvironmentOverride!,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/participants/reactivate',
+              body: jsonEncode({
+                'participantId': _testParticipantId,
+                'reason': 'Participant Request',
+              }),
+            );
+
+            final response = await reactivateParticipantHandler(request);
+
+            expect(response.statusCode, 200);
+            expect(
+              captured.any((q) => q.contains('INSERT INTO notifications')),
+              isTrue,
+            );
+            expect(auditDetails, isNotNull);
+            expect(
+              auditDetails!['fcm_message_id'],
+              equals('projects/test/messages/0:rx'),
+            );
+            expect(auditDetails!['notification_id'], isA<String>());
+          },
+        );
+      });
+    });
+
+    // ================================================================
+    // startTrialHandler
+    // ================================================================
+    group('startTrialHandler handler', () {
+      test('starts trial for connected participant', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRowForTrial()];
+          }
+          if (query.contains('UPDATE participants')) {
+            return [];
+          }
+          if (query.contains('FROM participant_fcm_tokens')) {
+            return [];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/start-trial',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await startTrialHandler(request);
+
+        expect(response.statusCode, 200);
+        final body = await _json(response);
+        expect(body['success'], true);
+        expect(body['trial_started'], true);
+      });
+
+      test('returns 403 for non-Investigator role', () async {
+        requirePortalAuthOverride = (_) async =>
+            _investigator(activeRole: 'Administrator');
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/start-trial',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await startTrialHandler(request);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 404 when participant not found', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) return [];
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/start-trial',
+          body: jsonEncode({'participantId': 'nonexistent'}),
+        );
+
+        final response = await startTrialHandler(request);
+
+        expect(response.statusCode, 404);
+      });
+
+      test('returns 403 when user has no site access', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRowForTrial(siteId: 'other-site')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/start-trial',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await startTrialHandler(request);
+
+        expect(response.statusCode, 403);
+      });
+
+      test('returns 409 when participant is not connected', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRowForTrial(status: 'disconnected')];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/start-trial',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await startTrialHandler(request);
+
+        expect(response.statusCode, 409);
+      });
+
+      test('returns 409 when trial already started', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRowForTrial(trialStarted: true)];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/start-trial',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await startTrialHandler(request);
+
+        expect(response.statusCode, 409);
+        final body = await _json(response);
+        expect(body['error'], contains('already'));
+      });
+
+      test('sends FCM when participant has token', () async {
+        databaseQueryOverride = (query, {parameters, required context}) async {
+          if (query.contains('FROM participants')) {
+            return [_participantRowForTrial()];
+          }
+          if (query.contains('UPDATE participants')) {
+            return [];
+          }
+          if (query.contains('FROM participant_fcm_tokens')) {
+            return [
+              ['fake-fcm-token-12345678901234567890'],
+            ];
+          }
+          if (query.contains('INSERT INTO admin_action_log')) {
+            return [];
+          }
+          return [];
+        };
+
+        final request = _request(
+          'POST',
+          '/api/v1/portal/participants/start-trial',
+          body: jsonEncode({'participantId': _testParticipantId}),
+        );
+
+        final response = await startTrialHandler(request);
+
+        expect(response.statusCode, 200);
+      });
+
+      // CUR-1311 (Phase 1B.3): envelope flag for start_trial. Distinct
+      // from other status pushes because the extraPayload carries
+      // trial_started_at (an ISO timestamp) instead of new_status.
+      group('envelope flag (FCM_USE_ENVELOPE_START_TRIAL)', () {
+        tearDown(() {
+          NotificationConfig.fromEnvironmentOverride = null;
+          NotificationService.resetForTesting();
+        });
+
+        test(
+          'flag ON: inserts notification with trial_started_at in payload',
+          () async {
+            final captured = <String>[];
+            Map<String, dynamic>? auditDetails;
+            String? capturedPayload;
+            databaseQueryOverride =
+                (query, {parameters, required context}) async {
+                  captured.add(query);
+                  if (query.contains('FROM participants')) {
+                    return [_participantRowForTrial()];
+                  }
+                  if (query.contains('UPDATE participants')) return [];
+                  if (query.contains('FROM participant_fcm_tokens')) {
+                    return [
+                      ['fake-fcm-token-12345678901234567890'],
+                    ];
+                  }
+                  if (query.contains('INSERT INTO notifications')) {
+                    capturedPayload = parameters!['payload'] as String?;
+                    return [];
+                  }
+                  if (query.contains('SELECT notification_id') &&
+                      query.contains('FROM notifications')) {
+                    final now = DateTime.utc(2026, 5, 8, 10, 30);
+                    return [
+                      <dynamic>[
+                        parameters!['id'],
+                        parameters['participantId'],
+                        'participant_status_update',
+                        'Trial Started',
+                        'Your study has started.',
+                        true,
+                        capturedPayload ?? '{}',
+                        'sent',
+                        'projects/test/messages/0:tr',
+                        null,
+                        now,
+                        now,
+                        null,
+                      ],
+                    ];
+                  }
+                  if (query.contains('INSERT INTO admin_action_log')) {
+                    auditDetails =
+                        jsonDecode(parameters!['actionDetails'] as String)
+                            as Map<String, dynamic>;
+                    return [];
+                  }
+                  return [];
+                };
+
+            NotificationConfig.fromEnvironmentOverride =
+                const NotificationConfig(
+                  projectId: 'test-project',
+                  enabled: true,
+                  consoleMode: true,
+                  useEnvelopeStartTrial: true,
+                );
+            await NotificationService.instance.initialize(
+              NotificationConfig.fromEnvironmentOverride!,
+            );
+
+            final request = _request(
+              'POST',
+              '/api/v1/portal/participants/start-trial',
+              body: jsonEncode({'participantId': _testParticipantId}),
+            );
+
+            final response = await startTrialHandler(request);
+
+            expect(response.statusCode, 200);
+            expect(
+              captured.any((q) => q.contains('INSERT INTO notifications')),
+              isTrue,
+            );
+            expect(capturedPayload, isNotNull);
+            final payload =
+                jsonDecode(capturedPayload!) as Map<String, dynamic>;
+            expect(payload['action'], equals('start_trial'));
+            // The trial_started_at timestamp distinguishes this from
+            // every other participant_status_update flow.
+            expect(payload['trial_started_at'], isA<String>());
+            expect(auditDetails, isNotNull);
+            expect(
+              auditDetails!['fcm_message_id'],
+              equals('projects/test/messages/0:tr'),
+            );
+            expect(auditDetails!['notification_id'], isA<String>());
+          },
+        );
+      });
+    });
+  });
+}

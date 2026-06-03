@@ -176,7 +176,7 @@ class _ClinicalTrialEnrollmentScreenState
 
                         // Description
                         Text(
-                          'Please enter the 10-digit linking code provided by your study coordinator.',
+                          'Please enter the 10-digit linking code provided by your research coordinator.',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(
@@ -201,6 +201,7 @@ class _ClinicalTrialEnrollmentScreenState
                                 textAlign: TextAlign.center,
                                 textCapitalization:
                                     TextCapitalization.characters,
+                                maxLength: 5,
                                 style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(
                                       letterSpacing: 4,
@@ -216,6 +217,7 @@ class _ClinicalTrialEnrollmentScreenState
                                         .onSurface
                                         .withValues(alpha: 0.3),
                                   ),
+                                  counterText: '',
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -229,25 +231,6 @@ class _ClinicalTrialEnrollmentScreenState
                                     RegExp('[a-zA-Z0-9]'),
                                   ),
                                   UpperCaseTextFormatter(),
-                                  // CUR-1292: a paste of the full
-                                  // 10-character linking code lands
-                                  // half here and half in the next
-                                  // box, mirroring how a single-field
-                                  // input would have accepted it.
-                                  _CodeSplitFormatter(
-                                    onOverflow: (rest) {
-                                      final clamped = rest.length > 5
-                                          ? rest.substring(0, 5)
-                                          : rest;
-                                      _code2Controller.value = TextEditingValue(
-                                        text: clamped,
-                                        selection: TextSelection.collapsed(
-                                          offset: clamped.length,
-                                        ),
-                                      );
-                                      _code2FocusNode.requestFocus();
-                                    },
-                                  ),
                                 ],
                                 onChanged: _onCode1Changed,
                               ),
@@ -508,37 +491,6 @@ class UpperCaseTextFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: newValue.text.toUpperCase(),
       selection: newValue.selection,
-    );
-  }
-}
-
-/// CUR-1292: paste-aware splitter for the first half of the linking-code
-/// input. Coordinators distribute the 10-character code as a single
-/// string ("CADEMO0001"); when the patient pastes it into the first
-/// box, this formatter clamps the visible value to 5 characters and
-/// hands the overflow to [onOverflow] (which writes it into the second
-/// box and moves focus). Without it, `maxLength: 5` on the first box
-/// silently truncates the paste to the first 5 characters and the
-/// patient sees only half their code.
-class _CodeSplitFormatter extends TextInputFormatter {
-  _CodeSplitFormatter({required this.onOverflow});
-
-  /// Invoked with characters past the 5-char cap. The caller is
-  /// responsible for clamping to 5 (the second box's own capacity).
-  final ValueChanged<String> onOverflow;
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final text = newValue.text;
-    if (text.length <= 5) return newValue;
-    final first = text.substring(0, 5);
-    onOverflow(text.substring(5));
-    return TextEditingValue(
-      text: first,
-      selection: TextSelection.collapsed(offset: first.length),
     );
   }
 }

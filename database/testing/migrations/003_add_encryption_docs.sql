@@ -8,7 +8,7 @@
 -- This migration adds documentation only (no schema changes)
 -- Documents that field-level encryption is NOT required because:
 -- 1. No PHI/PII stored in database (de-identified data only)
--- 2. Patient identity managed by separate Supabase Auth system
+-- 2. Participant identity managed by separate Supabase Auth system
 -- 3. Encryption at rest and in transit already provided by Supabase
 --
 -- =====================================================
@@ -27,10 +27,10 @@ COMMENT ON COLUMN user_profiles.email IS 'Professional email address. Not PII - 
 COMMENT ON COLUMN user_profiles.metadata IS 'Additional user metadata (JSONB). Should not contain PHI/PII.';
 
 -- Document de-identified fields
-COMMENT ON COLUMN record_audit.patient_id IS 'De-identified study participant ID. NOT real patient name or identifier.';
-COMMENT ON COLUMN record_state.patient_id IS 'De-identified study participant ID. NOT real patient name or identifier.';
-COMMENT ON COLUMN user_site_assignments.patient_id IS 'De-identified study participant ID. NOT real patient name or identifier.';
-COMMENT ON COLUMN user_site_assignments.study_patient_id IS 'Site-specific de-identified patient ID. NOT linked to real identity in this database.';
+COMMENT ON COLUMN record_audit.participant_id IS 'De-identified study participant ID. NOT real participant name or identifier.';
+COMMENT ON COLUMN record_state.participant_id IS 'De-identified study participant ID. NOT real participant name or identifier.';
+COMMENT ON COLUMN user_site_assignments.participant_id IS 'De-identified study participant ID. NOT real participant name or identifier.';
+COMMENT ON COLUMN user_site_assignments.study_participant_id IS 'Site-specific de-identified participant ID. NOT linked to real identity in this database.';
 
 -- Document clinical data (de-identified)
 COMMENT ON COLUMN record_audit.data IS 'De-identified clinical diary data (JSONB). No PHI - observations only. Encrypted at rest by Supabase.';
@@ -49,10 +49,10 @@ BEGIN
     RAISE NOTICE '  ✓ Field-Level: NOT REQUIRED (no PHI/PII stored)';
     RAISE NOTICE '';
     RAISE NOTICE 'Data Classification:';
-    RAISE NOTICE '  ✓ Patient IDs: De-identified (study participant IDs)';
+    RAISE NOTICE '  ✓ Participant IDs: De-identified (study participant IDs)';
     RAISE NOTICE '  ✓ Clinical Data: De-identified observations';
     RAISE NOTICE '  ✓ Site Info: Business information only';
-    RAISE NOTICE '  ✓ No PHI/PII: Patient identity managed by Supabase Auth';
+    RAISE NOTICE '  ✓ No PHI/PII: Participant identity managed by Supabase Auth';
     RAISE NOTICE '';
     RAISE NOTICE 'Documentation:';
     RAISE NOTICE '  - spec/DATA_CLASSIFICATION.md: Complete privacy architecture';

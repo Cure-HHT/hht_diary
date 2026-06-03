@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00064: Mark Patient as Not Participating
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00064: Mark Participant as Not Participating
+//   REQ-CAL-p00073: Participant Status Definitions
 //
 // Widget tests for MarkNotParticipatingDialog confirm/success/error/retry states.
 
@@ -42,7 +42,7 @@ MockClient _createMockHttpClient({bool shouldFail = false}) {
     if (path.contains('/not-participating') && request.method == 'POST') {
       if (shouldFail) {
         return http.Response(
-          jsonEncode({'error': 'Patient not in valid state'}),
+          jsonEncode({'error': 'Participant not in valid state'}),
           400,
           headers: {'content-type': 'application/json'},
         );
@@ -92,8 +92,8 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
                 context: context,
                 barrierDismissible: false,
                 builder: (_) => MarkNotParticipatingDialog(
-                  patientId: 'PAT-TEST-001',
-                  patientDisplayId: '999-002-320',
+                  participantId: 'PAT-TEST-001',
+                  participantDisplayId: '999-002-320',
                   apiClient: apiClient,
                 ),
               );
@@ -131,12 +131,15 @@ void main() {
     test('has correct descriptions', () {
       expect(
         NotParticipatingReason.subjectWithdrawal.description,
-        'Patient chose to leave the study',
+        'Participant chose to leave the study',
       );
-      expect(NotParticipatingReason.death.description, 'Patient is deceased');
+      expect(
+        NotParticipatingReason.death.description,
+        'Participant is deceased',
+      );
       expect(
         NotParticipatingReason.protocolComplete.description,
-        'Patient completed all trial requirements',
+        'Participant completed all trial requirements',
       );
       expect(
         NotParticipatingReason.other.description,
@@ -146,7 +149,7 @@ void main() {
   });
 
   group('MarkNotParticipatingDialog widget', () {
-    testWidgets('confirm state shows patient ID and action button', (
+    testWidgets('confirm state shows participant ID and action button', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
@@ -242,7 +245,7 @@ void main() {
       // Error state
       expect(find.text('Error'), findsOneWidget);
       expect(find.byIcon(Icons.error), findsOneWidget);
-      expect(find.text('Patient not in valid state'), findsOneWidget);
+      expect(find.text('Participant not in valid state'), findsOneWidget);
       expect(find.text('Try Again'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
     });

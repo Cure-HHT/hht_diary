@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//   REQ-CAL-p00082: Patient Alert Delivery
+//   REQ-CAL-p00082: Participant Alert Delivery
 //   REQ-p00049: Ancillary Platform Services (push notifications)
 //
 // FCM notification service for receiving push notifications on mobile.
@@ -110,7 +110,7 @@ class MobileNotificationService {
     try {
       _currentToken = await _messaging.getToken();
       if (_currentToken != null) {
-        debugPrint('[FCM] Token: ${_currentToken!.substring(0, 20)}...');
+        debugPrint('[FCM] Token acquired');
         onTokenRefresh?.call(_currentToken!);
       } else {
         debugPrint('[FCM] No token available');

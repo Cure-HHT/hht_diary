@@ -8,8 +8,8 @@
 //   - failure(error): retryable or unknown error
 //   - unregisteredToken(): FCM-only — token is permanently invalid
 //     (HTTP 404 / UNREGISTERED). Caller deactivates the row in
-//     `patient_fcm_tokens` so subsequent sends do not re-route to a
-//     different patient on the same device.
+//     `participant_fcm_tokens` so subsequent sends do not re-route to a
+//     different participant on the same device.
 
 class DispatchResult {
   /// Channel accepted the message.
@@ -25,7 +25,7 @@ class DispatchResult {
       unregistered = false;
 
   /// FCM-specific terminal: token is permanently invalid. The caller
-  /// MUST treat the row in `patient_fcm_tokens` as dead.
+  /// MUST treat the row in `participant_fcm_tokens` as dead.
   const DispatchResult.unregisteredToken()
     : success = false,
       messageId = null,

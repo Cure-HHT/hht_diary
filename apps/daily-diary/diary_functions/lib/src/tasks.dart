@@ -1,5 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Patient Task System
+//   REQ-CAL-p00081: Participant Task System
 //   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
 //
 // Tasks endpoint for the diary server.
@@ -14,12 +14,12 @@ import 'package:shelf/shelf.dart';
 import 'database.dart';
 import 'jwt.dart';
 
-/// Get pending tasks for a patient.
+/// Get pending tasks for a participant.
 /// GET /api/v1/user/tasks
 /// Authorization: Bearer <jwt>
 ///
 /// Returns questionnaire instances that are active (sent, in_progress,
-/// ready_to_review) for the linked patient. The mobile app uses this
+/// ready_to_review) for the linked participant. The mobile app uses this
 /// to discover tasks when FCM push notifications are unavailable.
 Future<Response> getTasksHandler(Request request) async {
   if (request.method != 'GET') {
@@ -35,18 +35,18 @@ Future<Response> getTasksHandler(Request request) async {
 
     final db = Database.instance;
 
-    // Look up user and their linked patient via patient_linking_codes
+    // Look up user and their linked participant via participant_linking_codes
     // Include mobile_linking_status for disconnection detection (REQ-CAL-p00077)
     // and trial_started_at so the mobile client can activate its outbound
     // sync destinations at the exact portal click timestamp (REQ-CAL-p00079).
     final userResult = await db.execute(
       '''
-      SELECT u.user_id, p.patient_id, p.mobile_linking_status::text,
+      SELECT u.user_id, p.participant_id, p.mobile_linking_status::text,
              p.trial_started, p.trial_started_at
       FROM app_users u
-      LEFT JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
+      LEFT JOIN participant_linking_codes plc ON u.user_id = plc.used_by_user_id
         AND plc.used_at IS NOT NULL
-      LEFT JOIN patients p ON plc.patient_id = p.patient_id
+      LEFT JOIN participants p ON plc.participant_id = p.participant_id
       WHERE u.auth_code = @authCode
       ''',
       parameters: {'authCode': auth.authCode},
@@ -57,12 +57,12 @@ Future<Response> getTasksHandler(Request request) async {
     }
 
     final row = userResult.first;
-    final patientId = row[1] as String?;
+    final participantId = row[1] as String?;
     final mobileLinkingStatus = row[2] as String?;
     final trialStarted = row[3] as bool?;
     final trialStartedAt = row[4] as DateTime?;
 
-    if (patientId == null) {
+    if (participantId == null) {
       return _jsonResponse({
         'tasks': <Map<String, dynamic>>[],
         if (mobileLinkingStatus != null)
@@ -73,7 +73,7 @@ Future<Response> getTasksHandler(Request request) async {
       });
     }
 
-    // CUR-1165: REQ-p01065-D — stop delivering tasks when patient is not participating.
+    // CUR-1165: REQ-p01065-D — stop delivering tasks when participant is not participating.
     // Sponsor-specific rules (including questionnaire tasks) must be deactivated.
     if (mobileLinkingStatus == 'not_participating') {
       return _jsonResponse({
@@ -84,18 +84,18 @@ Future<Response> getTasksHandler(Request request) async {
       });
     }
 
-    // Fetch active questionnaire instances for this patient
+    // Fetch active questionnaire instances for this participant
     final tasksResult = await db.execute(
       '''
       SELECT id, questionnaire_type::text, status::text,
              study_event, version, sent_at
       FROM questionnaire_instances
-      WHERE patient_id = @patientId
+      WHERE participant_id = @participantId
         AND status IN ('sent', 'in_progress', 'ready_to_review')
         AND deleted_at IS NULL
       ORDER BY sent_at DESC
       ''',
-      parameters: {'patientId': patientId},
+      parameters: {'participantId': participantId},
     );
 
     final tasks = tasksResult.map((r) {
@@ -121,12 +121,12 @@ Future<Response> getTasksHandler(Request request) async {
       '''
       SELECT id, questionnaire_type::text, deleted_at
       FROM questionnaire_instances
-      WHERE patient_id = @patientId
+      WHERE participant_id = @participantId
         AND deleted_at IS NOT NULL
         AND deleted_at >= NOW() - INTERVAL '30 days'
       ORDER BY deleted_at DESC
       ''',
-      parameters: {'patientId': patientId},
+      parameters: {'participantId': participantId},
     );
 
     final cancelled = cancelledResult.map((r) {
@@ -140,7 +140,7 @@ Future<Response> getTasksHandler(Request request) async {
     logWithTrace(
       'INFO',
       'Tasks fetched',
-      labels: {'patientId': patientId, 'taskCount': tasks.length},
+      labels: {'participantId': participantId, 'taskCount': tasks.length},
     );
 
     return _jsonResponse({

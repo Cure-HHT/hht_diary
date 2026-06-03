@@ -2,7 +2,7 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: "none"
 
-version: 0.9.43+78
+version: 0.9.50+127
 
 environment:
   sdk: ^3.10.7
@@ -13,17 +13,38 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  # Event-sourcing datastore for FDA 21 CFR Part 11 compliant event sourcing
+  # Event-sourcing datastore for FDA 21 CFR Part 11 compliant event sourcing.
+  # KEPT during the port to act as the differential-test oracle alongside the
+  # new event_sourcing stack; removed once parity is proven (CUR-1169 Integration).
   event_sourcing_datastore:
     path: ../../common-dart/event_sourcing_datastore
+  # New external event-sourcing stack (Phase 0+ of the EVS lib port). Git refs so
+  # the consumption branch builds without waiting on PR #649 to merge; gitignored
+  # pubspec_overrides.yaml points these at local sibling clones for fast dev.
+  event_sourcing:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: event_sourcing
+  reaction:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: reaction
+  reaction_widgets:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: reaction_widgets
+  # In-tree path dep (consolidated onto this branch; single linear branch).
+  diary_shared_model:
+    path: ../../common-dart/diary_shared_model
   trial_data_types:
     path: ../../common-dart/trial_data_types
   eq:
     path: ../../common-flutter/eq
   common_widgets:
     path: ../../common-flutter/common_widgets
-  comms:
-    path: ../../common-dart/comms
 
   # Sembast is required in main deps because clinical_diary_bootstrap.dart
   # accepts a sembast Database parameter (caller opens the database).
@@ -48,7 +69,6 @@ dependencies:
   table_calendar: ^3.2.0
   url_launcher: ^6.3.2
   uuid: ^4.5.2
-  file_picker: ^8.1.7
   timezone: ^0.10.1
   timezone_button_dropdown: ^1.0.2
   web: ^1.1.0 # For web-specific cache clearing in version updates
@@ -63,6 +83,11 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
+  reaction_widgets_testing:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: reaction_widgets_testing
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.0.0
   flutter_launcher_icons: ^0.14.4
@@ -73,8 +98,48 @@ dev_dependencies:
   widgetbook_annotation: ^3.2.0
   widgetbook_generator: ^3.9.0
   build_runner: ^2.4.13
-  mocktail: ^1.0.5
   mocktail_image_network: ^1.2.0
+
+# Committed git-based overrides so a clean checkout (CI, or a teammate without a
+# local event_sourcing clone) resolves. The diary cutover runs the legacy
+# event_sourcing_datastore (which pulls provenance/canonical_json_jcs from in-repo
+# paths) ALONGSIDE the new event_sourcing stack (which pulls them from git);
+# collapsing every shared package to the single git ref removes the "provenance
+# from path is incompatible with provenance from git" version-solve conflict.
+# Drop this block when the legacy event_sourcing_datastore dep is removed (parity
+# proven, CUR-1169 Integration). The gitignored pubspec_overrides.yaml (local
+# sibling clones) shadows this for fast local dev.
+dependency_overrides:
+  event_sourcing:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: event_sourcing
+  reaction:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: reaction
+  reaction_widgets:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: reaction_widgets
+  reaction_widgets_testing:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: reaction_widgets_testing
+  provenance:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: provenance
+  canonical_json_jcs:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: canonical_json_jcs
 
 flutter:
   uses-material-design: true

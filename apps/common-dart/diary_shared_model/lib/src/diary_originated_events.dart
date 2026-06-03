@@ -38,9 +38,9 @@ const List<SharedEventType> diaryOriginatedEventTypes = <SharedEventType>[
   SharedEventType(
     origin: EventOrigin.mobile,
     definition: EntryTypeDefinition(
-      id: 'patient_linked',
+      id: 'participant_linked',
       registeredVersion: 1,
-      name: 'Patient Linked',
+      name: 'Participant Linked',
     ),
   ),
   SharedEventType(
@@ -57,6 +57,14 @@ const List<SharedEventType> diaryOriginatedEventTypes = <SharedEventType>[
       id: 'fcm_message_received',
       registeredVersion: 1,
       name: 'FCM Message Received',
+    ),
+  ),
+  SharedEventType(
+    origin: EventOrigin.mobile,
+    definition: EntryTypeDefinition(
+      id: 'setting_applied',
+      registeredVersion: 1,
+      name: 'Setting Applied',
     ),
   ),
 ];

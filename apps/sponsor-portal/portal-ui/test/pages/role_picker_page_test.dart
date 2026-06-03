@@ -40,7 +40,7 @@ final _roleMappingsWithDescriptions = {
     {
       'sponsorName': 'Study Coordinator / PI',
       'systemRole': 'Investigator',
-      'description': 'Manage patients and questionnaires',
+      'description': 'Manage participants and questionnaires',
     },
     {
       'sponsorName': 'CRA',
@@ -196,7 +196,10 @@ void main() {
 
     testWidgets('displays descriptions from API when present', (tester) async {
       await _pumpRolePickerPage(tester);
-      expect(find.text('Manage patients and questionnaires'), findsOneWidget);
+      expect(
+        find.text('Manage participants and questionnaires'),
+        findsOneWidget,
+      );
       expect(find.text('Review audit trails and compliance'), findsOneWidget);
     });
 
@@ -208,7 +211,7 @@ void main() {
 
       // Descriptions come only from the database — no fallbacks
       expect(
-        find.text('Patient management and questionnaire workflows'),
+        find.text('Participant management and questionnaire workflows'),
         findsNothing,
       );
       expect(find.text('Audit trails and compliance review'), findsNothing);
@@ -220,7 +223,7 @@ void main() {
 
       // Descriptions come only from the database — no fallbacks
       expect(
-        find.text('Patient management and questionnaire workflows'),
+        find.text('Participant management and questionnaire workflows'),
         findsNothing,
       );
       expect(find.text('Audit trails and compliance review'), findsNothing);

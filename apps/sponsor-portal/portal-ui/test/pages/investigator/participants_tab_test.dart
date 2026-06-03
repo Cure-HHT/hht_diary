@@ -1,0 +1,430 @@
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-CAL-p00072: View Linking Code Button
+//   REQ-CAL-p00073: Participant Status Definitions
+//   REQ-CAL-p00074: Dashboard columns
+//   REQ-CAL-p00063: EDC Participant Ingestion
+//   REQ-CAL-p00079: Start Trial Workflow
+//
+// Widget tests for StudyCoordinatorParticipantsTab (Study Coordinator Dashboard)
+// Tests column structure, search/filter, participant display, and row interaction
+
+import 'dart:convert';
+
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:provider/provider.dart';
+import 'package:sponsor_portal_ui/pages/investigator/participants_tab.dart';
+import 'package:sponsor_portal_ui/services/api_client.dart';
+import 'package:sponsor_portal_ui/services/auth_service.dart';
+
+/// Test data: participants with various statuses
+final _testParticipants = [
+  {
+    'participant_id': 'PAT-001',
+    'site_id': 'site-1',
+    'edc_subject_key': 'SUBJ-001',
+    'mobile_linking_status': 'not_connected',
+    'edc_synced_at': '2024-01-01T00:00:00Z',
+    'site_name': 'Test Site One',
+    'site_number': '001',
+    'trial_started': false,
+  },
+  {
+    'participant_id': 'PAT-002',
+    'site_id': 'site-1',
+    'edc_subject_key': 'SUBJ-002',
+    'mobile_linking_status': 'connected',
+    'edc_synced_at': '2024-01-02T00:00:00Z',
+    'site_name': 'Test Site One',
+    'site_number': '001',
+    'trial_started': true, // Trial Active
+  },
+  {
+    'participant_id': 'PAT-003',
+    'site_id': 'site-1',
+    'edc_subject_key': 'SUBJ-003',
+    'mobile_linking_status': 'linking_in_progress',
+    'edc_synced_at': '2024-01-03T00:00:00Z',
+    'site_name': 'Test Site One',
+    'site_number': '001',
+    'trial_started': false,
+    'has_active_linking_code': true, // Active linking code
+  },
+  {
+    'participant_id': 'PAT-005',
+    'site_id': 'site-1',
+    'edc_subject_key': 'SUBJ-005',
+    'mobile_linking_status': 'linking_in_progress',
+    'edc_synced_at': '2024-01-05T00:00:00Z',
+    'site_name': 'Test Site One',
+    'site_number': '001',
+    'trial_started': false,
+    'has_active_linking_code': false, // Expired linking code
+  },
+  {
+    'participant_id': 'PAT-004',
+    'site_id': 'site-1',
+    'edc_subject_key': 'SUBJ-004',
+    'mobile_linking_status': 'connected',
+    'edc_synced_at': '2024-01-04T00:00:00Z',
+    'site_name': 'Test Site One',
+    'site_number': '001',
+    'trial_started': false, // Linked - Awaiting Start
+  },
+];
+
+final _testSites = [
+  {'site_id': 'site-1', 'site_name': 'Test Site One', 'site_number': '001'},
+];
+
+final _currentUser = {
+  'id': 'user-001',
+  'email': 'investigator@example.com',
+  'name': 'Test Investigator',
+  'status': 'active',
+  'roles': ['Investigator'],
+  'active_role': 'Investigator',
+  'mfa_type': 'email_otp',
+  'email_otp_required': true,
+  'sites': _testSites,
+};
+
+/// Creates a mock HTTP client for test API calls
+MockClient _createMockHttpClient() {
+  return MockClient((request) async {
+    final path = request.url.path;
+
+    // GET /api/v1/portal/me - required by AuthService
+    if (path == '/api/v1/portal/me' && request.method == 'GET') {
+      return http.Response(
+        jsonEncode(_currentUser),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
+    // GET /api/v1/portal/participants
+    if (path == '/api/v1/portal/participants' && request.method == 'GET') {
+      return http.Response(
+        jsonEncode({
+          'participants': _testParticipants,
+          'assigned_sites': _testSites,
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    }
+
+    return http.Response('Not found', 404);
+  });
+}
+
+/// Builds the test widget with properly injected mock dependencies
+Future<void> _pumpParticipantsTab(WidgetTester tester) async {
+  // Portal is a desktop/tablet layout — use a very wide viewport to avoid overflow
+  // The extra EQ, NOSE HHT, QoL columns cause overflow at smaller sizes
+  tester.view.physicalSize = const Size(2400, 900);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+
+  final mockUser = MockUser(
+    uid: 'test-uid',
+    email: 'investigator@example.com',
+    displayName: 'Test Investigator',
+  );
+  final mockFirebaseAuth = MockFirebaseAuth(mockUser: mockUser, signedIn: true);
+  final mockHttpClient = _createMockHttpClient();
+
+  // AuthService needed by ChangeNotifierProvider (widget tree may read it)
+  final authService = AuthService(
+    firebaseAuth: mockFirebaseAuth,
+    httpClient: mockHttpClient,
+    enableInactivityTimer: false,
+  );
+  await authService.signIn('investigator@example.com', 'password');
+
+  // Inject ApiClient directly — avoids the default http.Client()
+  final apiClient = ApiClient(authService, httpClient: mockHttpClient);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: ChangeNotifierProvider<AuthService>.value(
+        value: authService,
+        child: Scaffold(
+          body: StudyCoordinatorParticipantsTab(apiClient: apiClient),
+        ),
+      ),
+    ),
+  );
+
+  // Wait for async _loadParticipants to complete
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  group('StudyCoordinatorParticipantsTab', () {
+    group('Dashboard Columns (REQ-CAL-p00074)', () {
+      testWidgets('should NOT display EQ, NOSE HHT, or QoL columns', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        // These columns should NOT be present (per REQ-CAL-p00074)
+        expect(find.text('EQ'), findsNothing);
+        expect(find.text('NOSE HHT'), findsNothing);
+        expect(find.text('QoL'), findsNothing);
+      });
+
+      testWidgets(
+        'should display only Participant ID, Site, Mobile Linking, Actions columns',
+        (WidgetTester tester) async {
+          await _pumpParticipantsTab(tester);
+
+          // These columns SHOULD be present
+          expect(find.text('Participant ID'), findsOneWidget);
+          expect(find.text('Site'), findsOneWidget);
+          expect(find.text('Mobile Linking'), findsOneWidget);
+          expect(find.text('Actions'), findsOneWidget);
+        },
+      );
+    });
+
+    group('Participant Display', () {
+      testWidgets('should display participant data in table', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        // Should show participant IDs
+        expect(find.text('PAT-001'), findsOneWidget);
+        expect(find.text('PAT-002'), findsOneWidget);
+        expect(find.text('PAT-003'), findsOneWidget);
+      });
+
+      testWidgets('should display site information', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        // Should show site info (format: "number - name")
+        expect(find.textContaining('001'), findsWidgets);
+        expect(find.textContaining('Test Site One'), findsWidgets);
+      });
+
+      testWidgets('should display Participant Summary header', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        expect(find.text('Participant Summary'), findsOneWidget);
+      });
+    });
+
+    group('Participant Status (REQ-CAL-p00073)', () {
+      testWidgets('should display linking status chips for participants', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        // Check status chips are displayed
+        expect(find.text('Not Connected'), findsOneWidget);
+        expect(find.text('Pending'), findsOneWidget);
+      });
+
+      testWidgets(
+        'should show "Trial Active" for connected+trialStarted participants',
+        (WidgetTester tester) async {
+          await _pumpParticipantsTab(tester);
+
+          // PAT-002 is connected with trial_started=true
+          expect(find.text('Trial Active'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'should show "Linked - Awaiting Start" for connected+!trialStarted participants',
+        (WidgetTester tester) async {
+          await _pumpParticipantsTab(tester);
+
+          // PAT-004 is connected with trial_started=false
+          expect(find.text('Linked - Awaiting Start'), findsOneWidget);
+        },
+      );
+    });
+
+    group('Start Trial (REQ-CAL-p00079)', () {
+      testWidgets(
+        'should show "Start Trial" button for connected+!trialStarted participants',
+        (WidgetTester tester) async {
+          await _pumpParticipantsTab(tester);
+
+          // PAT-004 is connected with trial_started=false - should show Start Trial
+          expect(find.text('Start Trial'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'should show "Manage Questionnaires" button for connected+trialStarted participants',
+        (WidgetTester tester) async {
+          await _pumpParticipantsTab(tester);
+
+          // PAT-002 is connected with trial_started=true - show Manage Questionnaires
+          expect(find.text('Manage Questionnaires'), findsOneWidget);
+        },
+      );
+
+      testWidgets('Start Trial button should have play_arrow icon', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        // Find Start Trial button and verify icon
+        final startTrialButton = find.text('Start Trial');
+        expect(startTrialButton, findsOneWidget);
+
+        // The play_arrow icon should be present
+        expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+      });
+    });
+
+    group('Expired Linking Code (CUR-965)', () {
+      testWidgets(
+        'shows Expired chip for linking_in_progress participant with no active code',
+        (WidgetTester tester) async {
+          await _pumpParticipantsTab(tester);
+
+          // PAT-005 has linking_in_progress + has_active_linking_code=false
+          expect(find.text('Expired'), findsOneWidget);
+          expect(find.byIcon(Icons.schedule), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'shows Pending chip for linking_in_progress participant with active code',
+        (WidgetTester tester) async {
+          await _pumpParticipantsTab(tester);
+
+          // PAT-003 has linking_in_progress + has_active_linking_code=true
+          expect(find.text('Pending'), findsOneWidget);
+        },
+      );
+
+      testWidgets('shows Generate New Code button for expired linking code', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        // PAT-005 expired code → should show Generate New Code
+        expect(find.text('Generate New Code'), findsOneWidget);
+        expect(find.byIcon(Icons.refresh), findsWidgets); // refresh icon
+      });
+
+      testWidgets('shows Show Code button for active linking code', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        // PAT-003 active code → should show Show Code
+        expect(find.text('Show Code'), findsOneWidget);
+        expect(find.byIcon(Icons.qr_code), findsOneWidget);
+      });
+    });
+
+    group('Participant Row Interaction (REQ-CAL-p00072, REQ-CAL-p00073)', () {
+      // CUR-1112: Checkbox column removed via showCheckboxColumn: false.
+      // Row tap still opens ParticipantActionsDialog without checkboxes.
+      testWidgets('no checkbox column is rendered (CUR-1112)', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        expect(find.byType(Checkbox), findsNothing);
+      });
+
+      testWidgets('tapping a Participant row opens ParticipantActionsDialog', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        // Tap on a participant row (PAT-001)
+        await tester.tap(find.text('PAT-001'));
+        await tester.pumpAndSettle();
+
+        // Should open ParticipantActionsDialog
+        expect(find.text('Participant Actions'), findsOneWidget);
+      });
+
+      testWidgets(
+        'connected participant with hasActiveLinkingCode shows Show Code in actions column (REQ-CAL-p00072)',
+        (WidgetTester tester) async {
+          // This test verifies that "Show Linking Code" is available
+          // for connected participants (Trial Active / Linked - Awaiting Start)
+          // who have a valid linking code, per REQ-CAL-p00072 and REQ-CAL-p00073
+          await _pumpParticipantsTab(tester);
+
+          // Tap on PAT-002 (connected, trial_started=true = Trial Active)
+          await tester.tap(find.text('PAT-002'));
+          await tester.pumpAndSettle();
+
+          // ParticipantActionsDialog should show Show Linking Code for connected participants
+          expect(find.text('Participant Actions'), findsOneWidget);
+          expect(find.text('Show Participant Linking Code'), findsOneWidget);
+        },
+      );
+    });
+
+    group('Search and Filter', () {
+      testWidgets('should display search field', (WidgetTester tester) async {
+        await _pumpParticipantsTab(tester);
+
+        expect(find.byIcon(Icons.search), findsOneWidget);
+        expect(find.text('Search participants...'), findsOneWidget);
+      });
+
+      testWidgets('should display status filter tabs', (
+        WidgetTester tester,
+      ) async {
+        await _pumpParticipantsTab(tester);
+
+        // Filter tabs should be present
+        expect(find.textContaining('All'), findsOneWidget);
+        expect(find.textContaining('Not Connected'), findsWidgets);
+        expect(find.textContaining('Active'), findsWidgets);
+        expect(find.textContaining('Inactive'), findsOneWidget);
+      });
+
+      testWidgets(
+        'Not Connected tab should include Pending participants (REQ-CAL-p00073)',
+        (WidgetTester tester) async {
+          await _pumpParticipantsTab(tester);
+
+          // Test data has:
+          // - PAT-001: not_connected
+          // - PAT-003: linking_in_progress (Pending)
+          // Both should be in Not Connected tab, so count should be 2
+          expect(find.text('Not Connected (3)'), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'Active tab should only include connected participants (REQ-CAL-p00073)',
+        (WidgetTester tester) async {
+          await _pumpParticipantsTab(tester);
+
+          // Test data has:
+          // - PAT-002: connected, trial_started=true
+          // - PAT-004: connected, trial_started=false
+          // Both should be in Active tab, so count should be 2
+          // PAT-003 (linking_in_progress) should NOT be counted
+          expect(find.text('Active (2)'), findsOneWidget);
+        },
+      );
+    });
+  });
+}

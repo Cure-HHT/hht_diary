@@ -64,8 +64,6 @@ WidgetsBindingObserver _defaultLifecycleObserverFactory(
 Timer _defaultPeriodicTimerFactory(Duration interval, VoidCallback onTick) =>
     Timer.periodic(interval, (_) => onTick());
 
-Duration _defaultPeriodicInterval() => const Duration(minutes: 15);
-
 Stream<List<ConnectivityResult>> _defaultConnectivityStream() =>
     Connectivity().onConnectivityChanged;
 
@@ -115,11 +113,7 @@ class TriggerHandles {
 /// Firebase stacks.
 Future<TriggerHandles> installTriggers({
   required Future<void> Function() onTrigger,
-  // CUR-1311: callback (re-evaluated after every onTrigger) so the bootstrap
-  // can shorten the cadence when FCM notifications are denied — without that
-  // shortening, a user who refused push permission would only learn about
-  // server-side state once every 15 minutes.
-  Duration Function() periodicInterval = _defaultPeriodicInterval,
+  Duration periodicInterval = const Duration(minutes: 15),
   // --- test seams (use production defaults when omitted) ---
   // The named parameters accept values typed by the @visibleForTesting
   // typedefs above; the parameters themselves are not restricted so that
@@ -142,63 +136,31 @@ Future<TriggerHandles> installTriggers({
   final resolvedFcmOnOpened =
       fcmOnOpenedStreamFactory ?? _defaultFcmOnOpenedStream;
 
-  // Track foreground state (starts true; the observer will update it).
-  var inForeground = true;
-  var disposed = false;
-
-  // ---- B. Periodic timer (dynamic cadence) ----
-  //
-  // Closure cycle: periodicTick → fireTrigger → rotateTimerIfIntervalChanged →
-  // (rebuilds timer with) periodicTick. The `late` lets the timer factory
-  // capture a fireTrigger reference that's assigned below, after the timer
-  // and rotation helper are in scope.
-  late void Function() fireTrigger;
-
-  void periodicTick() {
-    if (inForeground) {
-      fireTrigger();
-    }
-  }
-
-  // Current periodic interval — re-evaluated after every onTrigger so a
-  // change in FCM permission (only observable on lifecycle resume / connectivity
-  // restore on iOS/Android) flips the cadence on the very next tick. The timer
-  // is recreated only when the value actually changes, so back-to-back ticks
-  // with an unchanged interval do not reset the periodic schedule.
-  var currentInterval = periodicInterval();
-  var timer = resolvedTimerFactory(currentInterval, periodicTick);
-
-  void rotateTimerIfIntervalChanged() {
-    if (disposed) return;
-    final desired = periodicInterval();
-    if (desired != currentInterval) {
-      timer.cancel();
-      currentInterval = desired;
-      timer = resolvedTimerFactory(currentInterval, periodicTick);
-    }
-  }
-
   // Serial trigger guard: each fireTrigger() call is enqueued and runs in
   // order.  This prevents concurrent sync cycles while ensuring every trigger
   // event results in exactly one onTrigger() invocation.
   var chain = Future<void>.value();
+  var disposed = false;
 
-  fireTrigger = () {
+  void fireTrigger() {
     if (disposed) return;
     // Errors inside onTrigger are absorbed via .catchError so a single
     // failure (e.g. a network exception bubbling out of syncCycle()) does
     // not poison the chain and silently disable every subsequent trigger
     // for the rest of the session.
+    // ignore: prefer_final_locals
     chain = chain
         .then((_) async {
           if (disposed) return;
           await onTrigger();
-          rotateTimerIfIntervalChanged();
         })
         .catchError((Object e, StackTrace st) {
           debugPrint('[Triggers] onTrigger failed: $e\n$st');
         });
-  };
+  }
+
+  // Track foreground state (starts true; the observer will update it).
+  var inForeground = true;
 
   // ---- A. Lifecycle observer ----
   final observer = resolvedLifecycleFactory(
@@ -210,6 +172,13 @@ Future<TriggerHandles> installTriggers({
     },
   );
   WidgetsBinding.instance.addObserver(observer);
+
+  // ---- B. Periodic timer ----
+  final timer = resolvedTimerFactory(periodicInterval, () {
+    if (inForeground) {
+      fireTrigger();
+    }
+  });
 
   // ---- C. Connectivity ----
   List<ConnectivityResult>? previousConnectivity;

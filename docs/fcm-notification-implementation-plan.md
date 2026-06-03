@@ -42,7 +42,7 @@ Phases ship in order. Phase 2 cannot start until Phase 1 schema is live, because
 1. Identify the Compute SA: `<PROJECT_NUMBER>-compute@developer.gserviceaccount.com`
 2. Switch GCP project picker to `cure-hht-admin`
 3. IAM → Grant access → role `Firebase Cloud Messaging API Admin`
-4. Verify via test send: trigger a notification from portal UI for a test patient, look for `FCM sent` in Cloud Logging.
+4. Verify via test send: trigger a notification from portal UI for a test participant, look for `FCM sent` in Cloud Logging.
 
 **See** `docs/cross-project-iam-runbook.md` Section 1 for the full procedure.
 
@@ -157,7 +157,7 @@ Closes Issues #1, #2, #4, #27 (server side), #11, #12.
 - Stay on the existing `NotificationService.sendQuestionnaireNotification` API for now. Add new methods: `sendDisconnectNotification`, `sendReconnectNotification`, etc. Phase 1 will collapse all this into the envelope pattern.
 - **Send-then-deactivate ordering**: in disconnect/not-participating, `await sendNotification(...)` BEFORE the `UPDATE patient_fcm_tokens SET is_active=false`. If FCM fails, log it but proceed with deactivation — the patient will discover their state on next sync.
 - **HTTP timeout**: add `.timeout(Duration(seconds: 10))` to `_httpClient!.post(...)` in `notification_service.dart:330`. On timeout, throw and let the caller handle as a `failed` send.
-- **Token uniqueness fix** (Issue #1): in `registerFcmTokenHandler` (`fcm_token.dart`), before insert, deactivate any other patient's row with the same fcm_token:
+- **Token uniqueness fix** (Issue #1): in `registerFcmTokenHandler` (`fcm_token.dart`), before insert, deactivate any other participant's row with the same fcm_token:
   ```sql
   UPDATE patient_fcm_tokens
      SET is_active = false, updated_at = now()
@@ -181,7 +181,7 @@ docker compose -f tools/dev-env/docker-compose.db.yml up -d
 docker compose -f tools/dev-env/docker-compose.firebase.yml up -d
 FCM_CONSOLE_MODE=true ./apps/sponsor-portal/portal_server/tool/run_local.sh --reset
 
-# 2. Seed test data: a patient + a fake FCM token
+# 2. Seed test data: a participant + a fake FCM token
 docker exec -i sponsor-portal-postgres psql -U postgres -d sponsor_portal <<'SQL'
 -- assumes seed data ran via --reset
 INSERT INTO patient_fcm_tokens (patient_id, fcm_token, platform, is_active)
@@ -211,11 +211,11 @@ docker exec -i sponsor-portal-postgres psql -U postgres -d sponsor_portal -c "
 You'll need to extend `tool/testNotification.sh` to support `--disconnect`, `--not-participating`, etc. — that extension is part of this ticket.
 
 ### Acceptance criteria
-- [ ] All 5 patient-status handlers send their respective FCM notification
+- [ ] All 5 participant-status handlers send their respective FCM notification
 - [ ] `finalizeQuestionnaireHandler` sends `questionnaire_finalized` with `end_event` in the FCM data when applicable
 - [ ] All FCM-sending handlers capture `fcm_message_id` in their `admin_action_log` row
 - [ ] Disconnect / not-participating: tokens deactivated AFTER FCM send (verified by sequence in DB)
-- [ ] Token registration deactivates any other patient's row with the same fcm_token
+- [ ] Token registration deactivates any other participant's row with the same fcm_token
 - [ ] `'trial-$patientId'` no longer appears in any FCM payload
 - [ ] HTTP timeout wraps every FCM call (10s)
 - [ ] Unit tests cover each new send method
@@ -445,7 +445,7 @@ SQL
 - `delivered_at` update inside the fetch and since handlers — see redesign doc's "Delivery semantics" section.
 
 ### Test plan
-- **Unit**: every handler has tests with a fake repo and fake patient resolver. Cover happy path, auth failure, cross-patient access attempt, idempotent `delivered_at`.
+- **Unit**: every handler has tests with a fake repo and fake patient resolver. Cover happy path, auth failure, cross-participant access attempt, idempotent `delivered_at`.
 - **Unit**: `FcmSender` tests with mocked HTTP — happy path, 4xx, 5xx, UNREGISTERED → deactivation called, payload guard rejects PHI.
 
 ### Local verification
@@ -515,7 +515,7 @@ docker exec -i sponsor-portal-postgres psql -U postgres -d sponsor_portal -c "
 - [ ] Postgres repos implement the package interfaces correctly
 - [ ] All four new endpoints respond correctly under the test JWT
 - [ ] `delivered_at` is set idempotently
-- [ ] Cross-patient fetch returns 403/404 (defense in depth)
+- [ ] Cross-participant fetch returns 403/404 (defense in depth)
 
 ---
 
@@ -623,7 +623,7 @@ Single PR.
 - `apps/daily-diary/clinical_diary/lib/services/task_service.dart` — handle envelopes from polling identical to push
 
 ### Implementation notes
-- Persist `lastSeen` (timestamptz) per-patient in `SharedPreferences`. Reset on logout.
+- Persist `lastSeen` (timestamptz) per-participant in `SharedPreferences`. Reset on logout.
 - On resume: `GET /api/v1/notifications?since=<lastSeen>`. Update `lastSeen` to `max(lastSeen, max(envelopes.created_at))`.
 - While foregrounded: `Timer.periodic(Duration(minutes: 1), poll)` — sponsor-configurable.
 - Dedup by `notification_id` (a Set in memory of recently-rendered ids).

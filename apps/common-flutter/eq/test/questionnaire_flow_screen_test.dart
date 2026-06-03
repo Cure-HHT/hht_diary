@@ -55,7 +55,7 @@ void main() {
     );
   }
 
-  /// Build a launcher that shows the entry-point screen the patient came
+  /// Build a launcher that shows the entry-point screen the participant came
   /// from, so we can assert that pressing Home pops back to it.
   Widget buildHomeLauncher({
     void Function(QuestionnaireSubmission)? onCheckpoint,

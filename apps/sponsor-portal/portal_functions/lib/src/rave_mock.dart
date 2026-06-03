@@ -15,7 +15,7 @@
 //
 // When RAVE_MOCK_MODE is set, the regular RAVE_UAT_* env vars are not
 // required — RaveConfig.isConfigured treats the mock as a configured Rave
-// for gating purposes, and sites_sync / patients_sync construct a
+// for gating purposes, and sites_sync / participants_sync construct a
 // MockRaveClient instead of the real one.
 //
 // Mock state can be flipped by restarting the portal_server with a
@@ -93,7 +93,7 @@ class MockRaveClient implements RaveClient {
   // Future cleanup options (pick one when seed pipeline is touched next):
   //   - Refactor the seed to read from a structured file (TOML/CSV/YAML)
   //     in callisto, then have this mock load the same file; or
-  //   - Have the mock SELECT from the live sites/patients tables in
+  //   - Have the mock SELECT from the live sites/participants tables in
   //     'ok' mode so it always echoes whatever's currently cached
   //     (no churn; reassignment path only fires on real drift).
   //

@@ -1,6 +1,6 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00079: Start Trial Workflow
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //
 // Widget tests for StartTrialDialog confirm/success/error/retry states.
 
@@ -42,7 +42,7 @@ MockClient _createMockHttpClient({bool shouldFail = false}) {
     if (path.contains('/start-trial') && request.method == 'POST') {
       if (shouldFail) {
         return http.Response(
-          jsonEncode({'error': 'Patient not linked'}),
+          jsonEncode({'error': 'Participant not linked'}),
           400,
           headers: {'content-type': 'application/json'},
         );
@@ -88,8 +88,8 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
                 context: context,
                 barrierDismissible: false,
                 builder: (_) => StartTrialDialog(
-                  patientId: 'PAT-TEST-001',
-                  patientDisplayId: '999-002-320',
+                  participantId: 'PAT-TEST-001',
+                  participantDisplayId: '999-002-320',
                   apiClient: apiClient,
                 ),
               );
@@ -107,7 +107,7 @@ Future<void> _pumpDialog(WidgetTester tester, ApiClient apiClient) async {
 
 void main() {
   group('StartTrialDialog', () {
-    testWidgets('confirm state shows patient ID and Send EQ button', (
+    testWidgets('confirm state shows participant ID and Send EQ button', (
       tester,
     ) async {
       final apiClient = await _createMockApiClient();
@@ -169,7 +169,7 @@ void main() {
 
       expect(find.text('Error'), findsOneWidget);
       expect(find.byIcon(Icons.error), findsOneWidget);
-      expect(find.text('Patient not linked'), findsOneWidget);
+      expect(find.text('Participant not linked'), findsOneWidget);
       expect(find.text('Try Again'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
     });

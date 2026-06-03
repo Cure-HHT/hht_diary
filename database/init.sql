@@ -110,7 +110,7 @@ DECLARE
         'user_sessions',
         'auth_audit_log',
         'questionnaire_instances',
-        'patient_fcm_tokens'
+        'participant_fcm_tokens'
     ];
     missing_tables TEXT[];
 BEGIN

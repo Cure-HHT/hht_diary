@@ -14,13 +14,13 @@ import 'portal_button.dart';
 /// Returns true if confirmed, null if cancelled.
 class StartNextCycleDialog extends StatelessWidget {
   final String cycleLabel;
-  final String patientDisplayId;
+  final String participantDisplayId;
   final String questionnaireDisplayName;
 
   const StartNextCycleDialog({
     super.key,
     required this.cycleLabel,
-    required this.patientDisplayId,
+    required this.participantDisplayId,
     required this.questionnaireDisplayName,
   });
 
@@ -28,7 +28,7 @@ class StartNextCycleDialog extends StatelessWidget {
   static Future<bool?> show({
     required BuildContext context,
     required String cycleLabel,
-    required String patientDisplayId,
+    required String participantDisplayId,
     required String questionnaireDisplayName,
   }) {
     return showDialog<bool>(
@@ -36,7 +36,7 @@ class StartNextCycleDialog extends StatelessWidget {
       barrierDismissible: false,
       builder: (context) => StartNextCycleDialog(
         cycleLabel: cycleLabel,
-        patientDisplayId: patientDisplayId,
+        participantDisplayId: participantDisplayId,
         questionnaireDisplayName: questionnaireDisplayName,
       ),
     );
@@ -123,7 +123,7 @@ class StartNextCycleDialog extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Participant: $patientDisplayId',
+                          'Participant: $participantDisplayId',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -144,7 +144,7 @@ class StartNextCycleDialog extends StatelessWidget {
             const SizedBox(height: 16),
 
             Text(
-              'The patient will receive this questionnaire on their mobile device.',
+              'The participant will receive this questionnaire on their mobile device.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

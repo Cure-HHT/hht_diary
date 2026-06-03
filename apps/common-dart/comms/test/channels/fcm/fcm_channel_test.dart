@@ -47,7 +47,7 @@ void main() {
       final result = await channel.dispatch(
         const FcmMessage(
           fcmToken: 'tok-1',
-          data: {'type': 'patient_status_update', 'action': 'disconnect'},
+          data: {'type': 'participant_status_update', 'action': 'disconnect'},
           userVisible: true,
           notificationTitle: 'Account Disconnected',
         ),
@@ -118,7 +118,7 @@ void main() {
       final result = await channel.dispatch(
         const FcmMessage(
           fcmToken: 'dead-token',
-          data: {'type': 'patient_status_update'},
+          data: {'type': 'participant_status_update'},
           userVisible: true,
           notificationTitle: 'Account Disconnected',
         ),
@@ -158,7 +158,7 @@ void main() {
         final result = await channel.dispatch(
           const FcmMessage(
             fcmToken: 'dead-token',
-            data: {'type': 'patient_status_update'},
+            data: {'type': 'participant_status_update'},
             userVisible: true,
             notificationTitle: 'Account Disconnected',
           ),
@@ -179,7 +179,7 @@ void main() {
       final result = await channel.dispatch(
         const FcmMessage(
           fcmToken: 'tok-1',
-          data: {'type': 'patient_status_update'},
+          data: {'type': 'participant_status_update'},
           userVisible: true,
           notificationTitle: 'Account Disconnected',
         ),
@@ -211,7 +211,7 @@ void main() {
               data: {'type': 'questionnaire_finalized'},
               userVisible: true,
               // SubjectKey embedded in title — must trip the guard.
-              notificationTitle: 'Patient 999-001-125 finalized',
+              notificationTitle: 'Participant 999-001-125 finalized',
             ),
           ),
           throwsA(isA<PhiLeakException>()),
@@ -235,7 +235,7 @@ void main() {
           const FcmMessage(
             fcmToken: 'tok-1',
             data: {
-              'type': 'patient_status_update',
+              'type': 'participant_status_update',
               // Email in payload — must trip.
               'extra': 'coordinator@site.example.com',
             },

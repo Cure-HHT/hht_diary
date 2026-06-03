@@ -1,0 +1,26 @@
+# DIARY-BASE-audit-trail: Audit Trail Foundation
+
+**Level**: BASE | **Status**: Draft | **Implements**: -
+
+<!-- satisfied-by: EVS-PRD-library-charter -->
+<!-- satisfied-by: EVS-PRD-regulatory-alignment -->
+
+## Assertions
+
+A. The System SHALL maintain a complete, attributable record of every state-changing operation, recording who performed it, what changed, and when.
+
+B. The System SHALL keep the audit record tamper-evident, such that any alteration of a recorded entry is detectable.
+
+C. The System SHALL check and record the authority under which each operation was performed.
+
+D. The System SHALL retain the audit record and keep it retrievable for the regulatory data-retention period.
+
+E. The System SHALL realize this audit record on the event_sourcing substrate as one append-only event chain spanning the *Participant*'s device, the *Diary* server, and the *Sponsor Portal* server — each an independent node coupled by substrate-native event flow rather than a shared *Database* — and SHALL derive every portal and *Diary* read view from that event log by deterministic materialization.
+
+## Rationale
+
+The *Diary*/portal platform's foundational data-integrity commitment: a complete, attributable, tamper-evident, authority-checked, durable *Audit Trail* aligned with the ALCOA+ data-integrity attributes and *FDA 21 CFR Part 11*. Assertions A-D state the regulatory obligation independent of any implementation; assertion E records the architectural decision that realizes it — the platform is built on the event_sourcing substrate as one event-sourced chain across device, *Diary* server, and *Sponsor Portal* server (the two-node "Beta" topology, coupled by native event flow, with all read state derived from the log).
+
+This requirement is authored at the BASE level because the realization detail (E) is the kind of platform-internal architecture a *Sponsor* may opt to exclude from their own requirements documentation, while the audit obligations (A-D) remain the foundation every access-controlled *Action* and recorded event refines. The substrate mechanics that make A-E achievable are provided by the event_sourcing library and are not restated here; they are referenced via the `satisfied-by` annotations above (the library charter and its regulatory-alignment requirement), which document the dependency without asserting a cross-repo graph edge.
+
+*End* *Audit Trail Foundation* | **Hash**: fbf48f17

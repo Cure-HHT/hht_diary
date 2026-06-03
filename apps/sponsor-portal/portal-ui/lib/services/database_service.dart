@@ -23,19 +23,19 @@ abstract class DatabaseService {
   });
   Future<void> revokeUserAccess(String userId);
 
-  // Patients methods
-  Future<List<Map<String, dynamic>>> getPatients({
+  // Participants methods
+  Future<List<Map<String, dynamic>>> getParticipants({
     List<String>? siteIds,
     bool includeInactive = false,
   });
-  Future<Map<String, dynamic>> enrollPatient({
-    required String patientId,
+  Future<Map<String, dynamic>> enrollParticipant({
+    required String participantId,
     required String siteId,
   });
 
   // Questionnaires methods
   Future<void> sendQuestionnaire({
-    required String patientId,
+    required String participantId,
     required String questionnaireType,
   });
   Future<void> resendQuestionnaire(String questionnaireId);

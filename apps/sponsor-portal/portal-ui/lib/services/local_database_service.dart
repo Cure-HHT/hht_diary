@@ -41,9 +41,9 @@ class LocalDatabaseService implements DatabaseService {
     },
   ];
 
-  final List<Map<String, dynamic>> _patients = [
+  final List<Map<String, dynamic>> _participants = [
     {
-      'patient_id': '001-0000001',
+      'participant_id': '001-0000001',
       'site_id': 'site-001',
       'linking_code': 'AB3D5-FG7H9',
       'is_active': true,
@@ -127,30 +127,32 @@ class LocalDatabaseService implements DatabaseService {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getPatients({
+  Future<List<Map<String, dynamic>>> getParticipants({
     List<String>? siteIds,
     bool includeInactive = false,
   }) async {
-    var patients = _patients;
+    var participants = _participants;
 
     if (!includeInactive) {
-      patients = patients.where((p) => p['is_active'] == true).toList();
+      participants = participants.where((p) => p['is_active'] == true).toList();
     }
 
     if (siteIds != null && siteIds.isNotEmpty) {
-      patients = patients.where((p) => siteIds.contains(p['site_id'])).toList();
+      participants = participants
+          .where((p) => siteIds.contains(p['site_id']))
+          .toList();
     }
 
-    return List.from(patients);
+    return List.from(participants);
   }
 
   @override
-  Future<Map<String, dynamic>> enrollPatient({
-    required String patientId,
+  Future<Map<String, dynamic>> enrollParticipant({
+    required String participantId,
     required String siteId,
   }) async {
-    final newPatient = {
-      'patient_id': patientId,
+    final newParticipant = {
+      'participant_id': participantId,
       'site_id': siteId,
       'linking_code': _generateLinkingCode(),
       'is_active': true,
@@ -164,18 +166,18 @@ class LocalDatabaseService implements DatabaseService {
       },
       'questionnaires': [],
     };
-    _patients.add(newPatient);
-    return newPatient;
+    _participants.add(newParticipant);
+    return newParticipant;
   }
 
   @override
   Future<void> sendQuestionnaire({
-    required String patientId,
+    required String participantId,
     required String questionnaireType,
   }) async {
     final questionnaire = {
       'id': 'q-${DateTime.now().millisecondsSinceEpoch}',
-      'patient_id': patientId,
+      'participant_id': participantId,
       'questionnaire_type': questionnaireType,
       'status': 'pending',
       'sent_at': DateTime.now().toIso8601String(),
@@ -183,9 +185,11 @@ class LocalDatabaseService implements DatabaseService {
     };
     _questionnaires.add(questionnaire);
 
-    // Add to patient's questionnaires
-    final patient = _patients.firstWhere((p) => p['patient_id'] == patientId);
-    (patient['questionnaires'] as List).add(questionnaire);
+    // Add to participant's questionnaires
+    final participant = _participants.firstWhere(
+      (p) => p['participant_id'] == participantId,
+    );
+    (participant['questionnaires'] as List).add(questionnaire);
   }
 
   @override

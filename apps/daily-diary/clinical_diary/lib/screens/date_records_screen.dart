@@ -1,31 +1,42 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/utils/date_time_formatter.dart';
+import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 /// Screen showing all events for a specific date with edit capability.
 ///
-/// Consumes [DiaryEntry] rows directly from the materialized view; the
-/// `currentAnswers['startTime']` and `currentAnswers['endTime']` answer fields
-/// drive overlap detection.
+/// Consumes typed [DiaryEntryView] view-models (sealed:
+/// [EpistaxisEntryView] / [DayMarkerView]) from the live diary view. Epistaxis
+/// entries are edited via [onEditEvent]; tapping a day-marker re-dispositions
+/// the day via [onRedispositionMarker] (open the 3-choice picker).
+// Implements: DIARY-DEV-reactive-read-path/A
+// Implements: DIARY-GUI-epistaxis-record/A
 class DateRecordsScreen extends StatelessWidget {
   const DateRecordsScreen({
     required this.date,
     required this.entries,
     required this.onAddEvent,
     required this.onEditEvent,
+    required this.onRedispositionMarker,
+    this.locked = false,
     super.key,
   });
 
   final DateTime date;
-  final List<DiaryEntry> entries;
+  final List<DiaryEntryView> entries;
   final VoidCallback onAddEvent;
-  final void Function(DiaryEntry) onEditEvent;
+  final void Function(EpistaxisEntryView) onEditEvent;
+
+  /// Tapping a [DayMarkerView] row re-dispositions the day (open the 3-choice
+  /// day-disposition picker seeded with that marker).
+  final void Function(DayMarkerView) onRedispositionMarker;
+
+  /// When true the day is past the lock threshold: read-only. No add, edit, or
+  /// re-disposition of any kind (nosebleed OR markers). The day-level lock is
+  /// enforced here (the calendar entry point); the recording screen + Actions
+  /// are defense-in-depth.
+  final bool locked;
 
   String get _formattedDate => DateFormat('EEEE, MMMM d, y').format(date);
 
@@ -33,42 +44,31 @@ class DateRecordsScreen extends StatelessWidget {
     return l10n.eventCount(entries.length);
   }
 
-  /// Returns the start and end DateTimes from `currentAnswers`, or null if
-  /// the entry's answer payload doesn't carry a parseable time range (e.g.
-  /// no_epistaxis_event / unknown_day_event).
-  ({DateTime? start, DateTime? end}) _timeRange(DiaryEntry entry) {
-    DateTime? parse(Object? raw) =>
-        raw is String ? DateTimeFormatter.parse(raw) : null;
-    return (
-      start: parse(entry.currentAnswers['startTime']),
-      end: parse(entry.currentAnswers['endTime']),
-    );
-  }
-
-  /// Check if an entry overlaps with any other entry in the list.
-  /// CUR-443: Used to show warning icon on overlapping events
-  bool _hasOverlap(DiaryEntry entry) {
-    if (entry.entryType != 'epistaxis_event') return false;
-    final r = _timeRange(entry);
-    if (r.start == null || r.end == null) return false;
+  /// Check if an epistaxis [entry] overlaps with any other epistaxis entry in
+  /// the list. CUR-443: used to show the warning icon on overlapping events.
+  bool _hasOverlap(DiaryEntryView entry) {
+    if (entry is! EpistaxisEntryView) return false;
+    final start = entry.startTime;
+    final end = entry.endTime;
+    if (end == null) return false;
 
     for (final other in entries) {
-      if (other.entryId == entry.entryId) continue;
-      if (other.entryType != 'epistaxis_event') continue;
-      final or = _timeRange(other);
-      if (or.start == null || or.end == null) continue;
-      if (r.start!.isBefore(or.end!) && r.end!.isAfter(or.start!)) {
+      if (other.aggregateId == entry.aggregateId) continue;
+      if (other is! EpistaxisEntryView) continue;
+      final oEnd = other.endTime;
+      if (oEnd == null) continue;
+      if (start.isBefore(oEnd) && end.isAfter(other.startTime)) {
         return true;
       }
     }
     return false;
   }
 
-  /// Sort key: epistaxis_event entries use their startTime; other entry types
-  /// fall back to effectiveDate (or updatedAt).
-  DateTime _sortKey(DiaryEntry entry) {
-    final start = _timeRange(entry).start;
-    return start ?? entry.effectiveDate ?? entry.updatedAt;
+  /// Sort key: epistaxis entries use their startTime; day-markers fall back to
+  /// the start of the local day so they sort consistently.
+  DateTime _sortKey(DiaryEntryView entry) {
+    if (entry is EpistaxisEntryView) return entry.startTime;
+    return date;
   }
 
   @override
@@ -102,18 +102,48 @@ class DateRecordsScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Add new event button
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
+          // Locked: read-only banner instead of the add button.
+          if (locked)
+            Container(
               width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: onAddEvent,
-                icon: const Icon(Icons.add),
-                label: Text(l10n.addNewEvent),
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      // TODO(i18n): localize.
+                      'This date is locked. Entries can be viewed but not added, '
+                      'edited, or deleted.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            // Add new event button
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onAddEvent,
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.addNewEvent),
+                ),
               ),
             ),
-          ),
 
           // Events list or empty state
           Expanded(
@@ -158,7 +188,7 @@ class DateRecordsScreen extends StatelessWidget {
 
   Widget _buildEventsList(BuildContext context) {
     // CUR-585: Sort entries by start time ASC (earliest first) to match home page
-    final sortedEntries = List<DiaryEntry>.from(entries)
+    final sortedEntries = List<DiaryEntryView>.from(entries)
       ..sort((a, b) => _sortKey(a).compareTo(_sortKey(b)));
 
     return ListView.separated(
@@ -168,8 +198,17 @@ class DateRecordsScreen extends StatelessWidget {
       itemBuilder: (context, index) {
         final entry = sortedEntries[index];
         return EventListItem(
-          entry: entry,
-          onTap: () => onEditEvent(entry),
+          view: entry,
+          // Locked day: rows are non-tappable (view-only — no edit/re-disposition).
+          // Otherwise epistaxis rows open the recording screen to edit; day-marker
+          // rows open the 3-choice picker to re-disposition the day.
+          // Implements: DIARY-PRD-day-disposition/B
+          onTap: locked
+              ? null
+              : switch (entry) {
+                  EpistaxisEntryView() => () => onEditEvent(entry),
+                  DayMarkerView() => () => onRedispositionMarker(entry),
+                },
           hasOverlap: _hasOverlap(entry),
         );
       },

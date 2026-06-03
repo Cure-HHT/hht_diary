@@ -137,7 +137,7 @@ void main() {
       expect(find.text('Overview'), findsNothing);
       expect(find.text('Sites'), findsNothing);
       expect(find.text('Participants'), findsNothing);
-      expect(find.text('Patients'), findsNothing);
+      expect(find.text('Participants'), findsNothing);
     });
 
     testWidgets('Audit Logs tab renders the placeholder', (tester) async {

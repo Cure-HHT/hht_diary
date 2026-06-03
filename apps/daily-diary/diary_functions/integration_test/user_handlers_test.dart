@@ -45,11 +45,11 @@ void main() {
 
     await Database.instance.initialize(config);
 
-    // Ensure patient_linking_codes table exists (required for user handlers)
+    // Ensure participant_linking_codes table exists (required for user handlers)
     await Database.instance.execute('''
-      CREATE TABLE IF NOT EXISTS patient_linking_codes (
+      CREATE TABLE IF NOT EXISTS participant_linking_codes (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        patient_id TEXT NOT NULL,
+        participant_id TEXT NOT NULL,
         code TEXT NOT NULL UNIQUE,
         code_hash TEXT NOT NULL,
         generated_by UUID NOT NULL,
@@ -171,15 +171,15 @@ void main() {
       final ts = DateTime.now().millisecondsSinceEpoch;
       final deviceAppUuid = 'device-dup-test-$ts';
       late String siteId;
-      late String patient1Id;
-      late String patient2Id;
+      late String participant1Id;
+      late String participant2Id;
       late String code1;
       late String code2;
 
       setUpAll(() async {
         siteId = 'SITE_CUR1055_$ts';
-        patient1Id = 'PAT1_CUR1055_$ts';
-        patient2Id = 'PAT2_CUR1055_$ts';
+        participant1Id = 'PAT1_CUR1055_$ts';
+        participant2Id = 'PAT2_CUR1055_$ts';
 
         // Generate two 10-char linking codes with CA prefix
         code1 = 'CA${ts.toRadixString(36).toUpperCase().padLeft(8, 'A')}'
@@ -196,18 +196,18 @@ void main() {
           parameters: {'siteId': siteId},
         );
 
-        // Create two test patients at the same site
+        // Create two test participants at the same site
         for (final entry in [
-          (patient1Id, 'EDC-1055-P1-$ts'),
-          (patient2Id, 'EDC-1055-P2-$ts'),
+          (participant1Id, 'EDC-1055-P1-$ts'),
+          (participant2Id, 'EDC-1055-P2-$ts'),
         ]) {
           await Database.instance.execute(
             '''
-            INSERT INTO patients (patient_id, site_id, edc_subject_key, mobile_linking_status, created_at, updated_at)
-            VALUES (@patientId, @siteId, @edcKey, 'not_connected', now(), now())
+            INSERT INTO participants (participant_id, site_id, edc_subject_key, mobile_linking_status, created_at, updated_at)
+            VALUES (@participantId, @siteId, @edcKey, 'not_connected', now(), now())
             ''',
             parameters: {
-              'patientId': entry.$1,
+              'participantId': entry.$1,
               'siteId': siteId,
               'edcKey': entry.$2,
             },
@@ -222,22 +222,25 @@ void main() {
         ''');
 
         // Create two linking codes
-        for (final entry in [(code1, patient1Id), (code2, patient2Id)]) {
+        for (final entry in [
+          (code1, participant1Id),
+          (code2, participant2Id),
+        ]) {
           final codeHash = sha256.convert(utf8.encode(entry.$1)).toString();
           await Database.instance.execute(
             '''
-            INSERT INTO patient_linking_codes (
-              patient_id, code, code_hash, generated_by,
+            INSERT INTO participant_linking_codes (
+              participant_id, code, code_hash, generated_by,
               generated_at, expires_at
             )
             VALUES (
-              @patientId, @code, @codeHash,
+              @participantId, @code, @codeHash,
               '00000000-0000-0000-0000-000000001055',
               now(), now() + interval '24 hours'
             )
             ''',
             parameters: {
-              'patientId': entry.$2,
+              'participantId': entry.$2,
               'code': entry.$1,
               'codeHash': codeHash,
             },
@@ -248,9 +251,9 @@ void main() {
       tearDownAll(() async {
         // Collect user IDs created during the test
         final linkedCodes = await Database.instance.execute(
-          '''SELECT used_by_user_id FROM patient_linking_codes
-             WHERE patient_id IN (@p1, @p2)''',
-          parameters: {'p1': patient1Id, 'p2': patient2Id},
+          '''SELECT used_by_user_id FROM participant_linking_codes
+             WHERE participant_id IN (@p1, @p2)''',
+          parameters: {'p1': participant1Id, 'p2': participant2Id},
         );
         final userIds = linkedCodes
             .map((row) => row[0])
@@ -258,15 +261,15 @@ void main() {
             .toList();
 
         // Clean up in reverse dependency order
-        for (final pid in [patient1Id, patient2Id]) {
+        for (final pid in [participant1Id, participant2Id]) {
           await Database.instance.execute(
-            'DELETE FROM patient_linking_codes WHERE patient_id = @pid',
+            'DELETE FROM participant_linking_codes WHERE participant_id = @pid',
             parameters: {'pid': pid},
           );
         }
         for (final uid in userIds) {
           await Database.instance.execute(
-            'DELETE FROM patient_linking_codes WHERE used_by_user_id = @uid',
+            'DELETE FROM participant_linking_codes WHERE used_by_user_id = @uid',
             parameters: {'uid': uid},
           );
           await Database.instance.execute(
@@ -274,9 +277,9 @@ void main() {
             parameters: {'uid': uid},
           );
         }
-        for (final pid in [patient1Id, patient2Id]) {
+        for (final pid in [participant1Id, participant2Id]) {
           await Database.instance.execute(
-            'DELETE FROM patients WHERE patient_id = @pid',
+            'DELETE FROM participants WHERE participant_id = @pid',
             parameters: {'pid': pid},
           );
         }
@@ -297,11 +300,11 @@ void main() {
 
         final json = await getResponseJson(response);
         expect(json['success'], isTrue);
-        expect(json['patientId'], equals(patient1Id));
+        expect(json['participantId'], equals(participant1Id));
       });
 
       test('second enrollment from same device is rejected with 409', () async {
-        // Same device (appUuid) tries to enroll a different patient
+        // Same device (appUuid) tries to enroll a different participant
         final request = createPostRequest('/api/v1/user/link', {
           'code': code2,
           'appUuid': deviceAppUuid,
@@ -372,13 +375,13 @@ void main() {
       final testCode =
           'CA${DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase().padLeft(8, 'X')}'
               .substring(0, 10);
-      late String testPatientId;
+      late String testParticipantId;
       late String testSiteId;
 
       setUpAll(() async {
         final ts = DateTime.now().millisecondsSinceEpoch;
         testSiteId = 'SITE_CUR1049_$ts';
-        testPatientId = 'PAT_CUR1049_$ts';
+        testParticipantId = 'PAT_CUR1049_$ts';
         final testSiteNumber = 'T1049-$ts';
 
         // Create test site
@@ -390,14 +393,14 @@ void main() {
           parameters: {'siteId': testSiteId, 'siteNumber': testSiteNumber},
         );
 
-        // Create test patient
+        // Create test participant
         await Database.instance.execute(
           '''
-          INSERT INTO patients (patient_id, site_id, edc_subject_key, mobile_linking_status, created_at, updated_at)
-          VALUES (@patientId, @siteId, @edcKey, 'not_connected', now(), now())
+          INSERT INTO participants (participant_id, site_id, edc_subject_key, mobile_linking_status, created_at, updated_at)
+          VALUES (@participantId, @siteId, @edcKey, 'not_connected', now(), now())
         ''',
           parameters: {
-            'patientId': testPatientId,
+            'participantId': testParticipantId,
             'siteId': testSiteId,
             'edcKey': 'EDC-SUBJ-1049-$ts',
           },
@@ -414,18 +417,18 @@ void main() {
         final codeHash = sha256.convert(utf8.encode(testCode)).toString();
         await Database.instance.execute(
           '''
-          INSERT INTO patient_linking_codes (
-            patient_id, code, code_hash, generated_by,
+          INSERT INTO participant_linking_codes (
+            participant_id, code, code_hash, generated_by,
             generated_at, expires_at
           )
           VALUES (
-            @patientId, @code, @codeHash,
+            @participantId, @code, @codeHash,
             '00000000-0000-0000-0000-000000001049',
             now(), now() + interval '24 hours'
           )
         ''',
           parameters: {
-            'patientId': testPatientId,
+            'participantId': testParticipantId,
             'code': testCode,
             'codeHash': codeHash,
           },
@@ -435,8 +438,8 @@ void main() {
       tearDownAll(() async {
         // Collect user IDs before deleting linking codes
         final linkedCodes = await Database.instance.execute(
-          'SELECT used_by_user_id FROM patient_linking_codes WHERE patient_id = @patientId',
-          parameters: {'patientId': testPatientId},
+          'SELECT used_by_user_id FROM participant_linking_codes WHERE participant_id = @participantId',
+          parameters: {'participantId': testParticipantId},
         );
         final userIds = linkedCodes
             .map((row) => row[0])
@@ -444,14 +447,14 @@ void main() {
             .toList();
 
         // Clean up in reverse dependency order: linking codes first, then app_users
-        // Delete ALL linking codes referencing these users (not just our test patient)
+        // Delete ALL linking codes referencing these users (not just our test participant)
         await Database.instance.execute(
-          'DELETE FROM patient_linking_codes WHERE patient_id = @patientId',
-          parameters: {'patientId': testPatientId},
+          'DELETE FROM participant_linking_codes WHERE participant_id = @participantId',
+          parameters: {'participantId': testParticipantId},
         );
         for (final uid in userIds) {
           await Database.instance.execute(
-            'DELETE FROM patient_linking_codes WHERE used_by_user_id = @userId',
+            'DELETE FROM participant_linking_codes WHERE used_by_user_id = @userId',
             parameters: {'userId': uid},
           );
           await Database.instance.execute(
@@ -460,8 +463,8 @@ void main() {
           );
         }
         await Database.instance.execute(
-          'DELETE FROM patients WHERE patient_id = @patientId',
-          parameters: {'patientId': testPatientId},
+          'DELETE FROM participants WHERE participant_id = @participantId',
+          parameters: {'participantId': testParticipantId},
         );
         await Database.instance.execute(
           'DELETE FROM sites WHERE site_id = @siteId',
@@ -470,7 +473,7 @@ void main() {
       });
 
       test(
-        'response includes linkingCode distinct from patientId (CUR-1049)',
+        'response includes linkingCode distinct from participantId (CUR-1049)',
         () async {
           final request = createPostRequest('/api/v1/user/link', {
             'code': testCode,
@@ -492,11 +495,11 @@ void main() {
           );
           expect(json['linkingCode'], equals(testCode));
 
-          // patientId and linkingCode must be different identifiers
+          // participantId and linkingCode must be different identifiers
           expect(
-            json['patientId'],
+            json['participantId'],
             isNot(equals(json['linkingCode'])),
-            reason: 'patientId and linkingCode are different identifiers',
+            reason: 'participantId and linkingCode are different identifiers',
           );
         },
       );
@@ -513,16 +516,16 @@ void main() {
       testAuthToken = token;
 
       // Ensure DEFAULT site exists for testing
-      // Unlinked users (patient_id = user_id) sync to DEFAULT site
+      // Unlinked users (participant_id = user_id) sync to DEFAULT site
       await Database.instance.execute('''
         INSERT INTO sites (site_id, site_name, site_number, is_active)
         VALUES ('DEFAULT', 'Default Test Site', 'TEST-000', true)
         ON CONFLICT (site_id) DO UPDATE SET is_active = true
         ''');
 
-      // Note: syncHandler uses patient_linking_codes via LEFT JOIN.
-      // Unlinked users (no patient_linking_codes entry) sync to DEFAULT site
-      // with userId as the patientId fallback.
+      // Note: syncHandler uses participant_linking_codes via LEFT JOIN.
+      // Unlinked users (no participant_linking_codes entry) sync to DEFAULT site
+      // with userId as the participantId fallback.
     });
 
     tearDownAll(() async {
@@ -532,7 +535,7 @@ void main() {
         parameters: {'userId': testUserId},
       );
       await Database.instance.execute(
-        'DELETE FROM patient_linking_codes WHERE used_by_user_id = @userId',
+        'DELETE FROM participant_linking_codes WHERE used_by_user_id = @userId',
         parameters: {'userId': testUserId},
       );
       await Database.instance.execute(

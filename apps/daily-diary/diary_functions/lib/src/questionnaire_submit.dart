@@ -7,7 +7,7 @@
 //   REQ-CAL-p00023: Questionnaire Lifecycle Audit Trail
 //
 // Submit questionnaire responses endpoint for the diary server.
-// The mobile app calls this when a patient completes a questionnaire.
+// The mobile app calls this when a participant completes a questionnaire.
 
 import 'dart:convert';
 
@@ -25,9 +25,9 @@ import 'jwt.dart';
 ///
 /// Validates:
 /// - JWT is valid
-/// - Instance exists and belongs to the authenticated patient
+/// - Instance exists and belongs to the authenticated participant
 /// - Instance is not deleted (REQ-d00113-A,B)
-/// - Instance status is 'sent' (patient has not already submitted)
+/// - Instance status is 'sent' (participant has not already submitted)
 ///
 /// On success: writes responses, updates status to 'ready_to_review', returns 200.
 /// On deleted: returns 409 with error code 'questionnaire_deleted'.
@@ -48,29 +48,29 @@ Future<Response> submitQuestionnaireHandler(
 
     final db = Database.instance;
 
-    // Look up patient via linking code
+    // Look up participant via linking code
     final userResult = await db.execute(
       '''
-      SELECT p.patient_id
+      SELECT p.participant_id
       FROM app_users u
-      JOIN patient_linking_codes plc ON u.user_id = plc.used_by_user_id
+      JOIN participant_linking_codes plc ON u.user_id = plc.used_by_user_id
         AND plc.used_at IS NOT NULL
-      JOIN patients p ON plc.patient_id = p.patient_id
+      JOIN participants p ON plc.participant_id = p.participant_id
       WHERE u.auth_code = @authCode
       ''',
       parameters: {'authCode': auth.authCode},
     );
 
     if (userResult.isEmpty) {
-      return _jsonResponse({'error': 'Patient not found'}, 401);
+      return _jsonResponse({'error': 'Participant not found'}, 401);
     }
 
-    final patientId = userResult.first[0] as String;
+    final participantId = userResult.first[0] as String;
 
-    // Verify questionnaire instance exists and belongs to this patient
+    // Verify questionnaire instance exists and belongs to this participant
     final instanceResult = await db.execute(
       '''
-      SELECT status::text, deleted_at, patient_id
+      SELECT status::text, deleted_at, participant_id
       FROM questionnaire_instances
       WHERE id = @instanceId::uuid
       ''',
@@ -84,10 +84,10 @@ Future<Response> submitQuestionnaireHandler(
     final instanceRow = instanceResult.first;
     final status = instanceRow[0] as String;
     final deletedAt = instanceRow[1];
-    final instancePatientId = instanceRow[2] as String;
+    final instanceParticipantId = instanceRow[2] as String;
 
-    // REQ-d00113-A: Check if instance belongs to this patient
-    if (instancePatientId != patientId) {
+    // REQ-d00113-A: Check if instance belongs to this participant
+    if (instanceParticipantId != participantId) {
       return _jsonResponse({'error': 'Questionnaire not found'}, 404);
     }
 
@@ -96,7 +96,7 @@ Future<Response> submitQuestionnaireHandler(
       logWithTrace(
         'WARN',
         'Submit attempt on deleted questionnaire',
-        labels: {'instanceId': instanceId, 'patientId': patientId},
+        labels: {'instanceId': instanceId, 'participantId': participantId},
       );
       return _jsonResponse({
         'error': 'questionnaire_deleted',
@@ -107,7 +107,7 @@ Future<Response> submitQuestionnaireHandler(
 
     // CUR-1292: accept submissions in 'sent', 'in_progress', or
     // 'ready_to_review'. The sponsor's contract is that a
-    // patient-completed questionnaire stays editable until the portal
+    // participant-completed questionnaire stays editable until the portal
     // coordinator clicks Finalize. A second submit on a row that's
     // already 'ready_to_review' replaces the responses (the INSERT
     // below uses ON CONFLICT ... DO UPDATE) and keeps status the same.
@@ -181,15 +181,15 @@ Future<Response> submitQuestionnaireHandler(
       )
       ''',
       parameters: {
-        'adminId': patientId,
+        'adminId': participantId,
         'targetResource': 'questionnaire:$instanceId',
         'actionDetails': jsonEncode({
           'instance_id': instanceId,
-          'patient_id': patientId,
+          'participant_id': participantId,
           'response_count': responses.length,
           'submitted_at': DateTime.now().toUtc().toIso8601String(),
         }),
-        'justification': 'Questionnaire submitted by patient',
+        'justification': 'Questionnaire submitted by participant',
       },
     );
 
@@ -198,7 +198,7 @@ Future<Response> submitQuestionnaireHandler(
       'Questionnaire submitted',
       labels: {
         'instanceId': instanceId,
-        'patientId': patientId,
+        'participantId': participantId,
         'responseCount': responses.length,
       },
     );

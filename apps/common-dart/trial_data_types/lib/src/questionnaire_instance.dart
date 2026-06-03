@@ -7,7 +7,7 @@ import 'package:trial_data_types/src/end_event.dart';
 import 'package:trial_data_types/src/questionnaire_status.dart';
 import 'package:trial_data_types/src/questionnaire_type.dart';
 
-/// A questionnaire instance sent to a specific patient.
+/// A questionnaire instance sent to a specific participant.
 ///
 /// Tracks the full lifecycle from "Sent" through "Finalized"
 /// per REQ-CAL-p00023.
@@ -16,7 +16,7 @@ class QuestionnaireInstance {
     required this.id,
     required this.questionnaireType,
     required this.status,
-    required this.patientId,
+    required this.participantId,
     required this.version,
     this.sentAt,
     this.submittedAt,
@@ -36,7 +36,7 @@ class QuestionnaireInstance {
         json['questionnaire_type'] as String,
       ),
       status: QuestionnaireStatus.fromValue(json['status'] as String),
-      patientId: json['patient_id'] as String,
+      participantId: json['participant_id'] as String,
       version: json['version'] as String,
       sentAt: json['sent_at'] != null
           ? DateTime.parse(json['sent_at'] as String)
@@ -68,13 +68,13 @@ class QuestionnaireInstance {
   /// Current status in the lifecycle
   final QuestionnaireStatus status;
 
-  /// Patient this questionnaire was sent to
-  final String patientId;
+  /// Participant this questionnaire was sent to
+  final String participantId;
 
   /// When sent by coordinator (null if not yet sent)
   final DateTime? sentAt;
 
-  /// When patient submitted responses
+  /// When participant submitted responses
   final DateTime? submittedAt;
 
   /// When investigator finalized
@@ -104,7 +104,7 @@ class QuestionnaireInstance {
   /// Whether this instance has been soft-deleted
   bool get isDeleted => deletedAt != null;
 
-  /// Whether the patient can still edit responses
+  /// Whether the participant can still edit responses
   bool get isEditable => status.canEdit && !isDeleted;
 
   /// Serialize to JSON map
@@ -113,7 +113,7 @@ class QuestionnaireInstance {
       'id': id,
       'questionnaire_type': questionnaireType.value,
       'status': status.value,
-      'patient_id': patientId,
+      'participant_id': participantId,
       'version': version,
       'sent_at': sentAt?.toIso8601String(),
       'submitted_at': submittedAt?.toIso8601String(),
@@ -142,7 +142,7 @@ class QuestionnaireInstance {
       id: id,
       questionnaireType: questionnaireType,
       status: status ?? this.status,
-      patientId: patientId,
+      participantId: participantId,
       version: version,
       sentAt: sentAt ?? this.sentAt,
       submittedAt: submittedAt ?? this.submittedAt,
@@ -168,5 +168,5 @@ class QuestionnaireInstance {
   @override
   String toString() =>
       'QuestionnaireInstance(id: $id, type: ${questionnaireType.value}, '
-      'status: ${status.value}, patient: $patientId)';
+      'status: ${status.value}, participant: $participantId)';
 }

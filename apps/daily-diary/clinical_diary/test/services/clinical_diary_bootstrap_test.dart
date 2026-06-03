@@ -76,8 +76,6 @@ Future<({ClinicalDiaryRuntime runtime, List<http.Request> requests})>
 _buildRuntime({
   http.Client? httpClient,
   Future<String?> Function()? authToken,
-  bool Function()? isDisconnected,
-  Future<void> Function()? tasksSync,
 }) async {
   final db = await _openDb();
   final captured = <http.Request>[];
@@ -102,8 +100,6 @@ _buildRuntime({
     softwareVersion: _softwareVersion,
     userId: _userId,
     httpClient: client,
-    isDisconnected: isDisconnected,
-    tasksSync: tasksSync,
     // Inject silent factories so installTriggers never touches the
     // production Firebase and connectivity stacks.
     lifecycleObserverFactory: _silentLifecycleFactory,
@@ -419,69 +415,6 @@ void main() {
   );
 
   // -----------------------------------------------------------------------
-  // ClinicalDiaryRuntime.deleteDatabaseFiles
-  // -----------------------------------------------------------------------
-  group('ClinicalDiaryRuntime.deleteDatabaseFiles', () {
-    test(
-      'closes the database and removes it from the in-memory factory',
-      () async {
-        final factory = newDatabaseFactoryMemory();
-        const dbPath = 'test_diary.db';
-        final db = await factory.openDatabase(dbPath);
-        final runtime = await bootstrapClinicalDiary(
-          sembastDatabase: db,
-          authToken: () async => null,
-          resolveBaseUrl: () async => null,
-          deviceId: _deviceId,
-          softwareVersion: _softwareVersion,
-          userId: _userId,
-          lifecycleObserverFactory: _silentLifecycleFactory,
-          periodicTimerFactory: _silentTimerFactory,
-          connectivityStreamFactory: _silentConnectivityFactory,
-          fcmOnMessageStreamFactory: _silentFcmMessageFactory,
-          fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
-        );
-
-        // Sanity: factory has the database open.
-        expect(await factory.databaseExists(dbPath), isTrue);
-
-        await runtime.deleteDatabaseFiles(
-          // Inject the in-memory factory so the test does not depend on
-          // platform-resolved sembast_io / sembast_web.
-          databaseFactoryForTest: factory,
-        );
-
-        expect(await factory.databaseExists(dbPath), isFalse);
-      },
-    );
-
-    test('is idempotent — second call after delete does not throw', () async {
-      final factory = newDatabaseFactoryMemory();
-      const dbPath = 'test_diary_idem.db';
-      final db = await factory.openDatabase(dbPath);
-      final runtime = await bootstrapClinicalDiary(
-        sembastDatabase: db,
-        authToken: () async => null,
-        resolveBaseUrl: () async => null,
-        deviceId: _deviceId,
-        softwareVersion: _softwareVersion,
-        userId: _userId,
-        lifecycleObserverFactory: _silentLifecycleFactory,
-        periodicTimerFactory: _silentTimerFactory,
-        connectivityStreamFactory: _silentConnectivityFactory,
-        fcmOnMessageStreamFactory: _silentFcmMessageFactory,
-        fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
-      );
-
-      await runtime.deleteDatabaseFiles(databaseFactoryForTest: factory);
-      // Second call should be a no-op, not a throw.
-      await runtime.deleteDatabaseFiles(databaseFactoryForTest: factory);
-
-      expect(await factory.databaseExists(dbPath), isFalse);
-    });
-  });
-
-  // -----------------------------------------------------------------------
   // Test 4: dispose() completes without error
   // Verifies: REQ-d00134-A — dispose() cancels triggers cleanly.
   // -----------------------------------------------------------------------
@@ -531,76 +464,5 @@ void main() {
 
     await runtime.dispose();
     await expectLater(runtime.dispose(), completes);
-  });
-
-  // -----------------------------------------------------------------------
-  // CUR-1398: fullSync invokes the tasksSync callback on every tick
-  //
-  // The mobile relied solely on FCM data messages to discover newly-sent
-  // questionnaires. FCM is best-effort, so messages that don't land in
-  // real time leave the home screen stale until the patient restarts. The
-  // fix wires _taskService.syncTasks into fullSync so each periodic /
-  // resume / connectivity / FCM trigger also re-pulls /tasks.
-  // -----------------------------------------------------------------------
-  group('CUR-1398: tasksSync wired into fullSync', () {
-    test('fullSync invokes tasksSync exactly once per call', () async {
-      var tasksSyncCalls = 0;
-      final (:runtime, :requests) = await _buildRuntime(
-        tasksSync: () async => tasksSyncCalls++,
-      );
-
-      await runtime.fullSync();
-
-      expect(
-        tasksSyncCalls,
-        1,
-        reason: 'tasksSync must be called once per fullSync tick',
-      );
-
-      // Three more ticks → three more invocations (no caching / dedup).
-      await runtime.fullSync();
-      await runtime.fullSync();
-      await runtime.fullSync();
-      expect(tasksSyncCalls, 4);
-
-      await runtime.dispose();
-    });
-
-    test('fullSync skips tasksSync when isDisconnected returns true', () async {
-      var tasksSyncCalls = 0;
-      final (:runtime, :requests) = await _buildRuntime(
-        isDisconnected: () => true,
-        tasksSync: () async => tasksSyncCalls++,
-      );
-
-      await runtime.fullSync();
-
-      // The CUR-1164 disconnected gate at the top of fullSync short-
-      // circuits the whole chain — syncCycle, portalInboundPoll, AND
-      // the new tasksSync must all be skipped together so that a
-      // disconnected patient does not surface server-side tasks.
-      expect(
-        tasksSyncCalls,
-        0,
-        reason:
-            'tasksSync must be gated by the same isDisconnected '
-            'check as the other periodic-tick operations.',
-      );
-
-      await runtime.dispose();
-    });
-
-    test(
-      'tasksSync is optional — fullSync still completes when omitted',
-      () async {
-        // No tasksSync param — backward compatibility with callers that
-        // don't construct a TaskService (most existing tests).
-        final (:runtime, :requests) = await _buildRuntime();
-
-        await expectLater(runtime.fullSync(), completes);
-
-        await runtime.dispose();
-      },
-    );
   });
 }

@@ -81,10 +81,6 @@ class FeatureFlags {
   /// Default threshold for long duration confirmation (in minutes).
   static const int defaultLongDurationThresholdMinutes = 60;
 
-  /// CUR-508: Default: false - use classic multi-page recording screen
-  /// When true, uses simplified one-page recording screen
-  static const bool defaultUseOnePageRecordingScreen = false;
-
   /// CUR-1116: Default: false - "Share with CureHHT" button hidden.
   /// When true, the sharing button and related card are visible on the
   /// Profile screen. Feature is not ready yet — keep off until finalized.
@@ -136,9 +132,6 @@ class FeatureFlagService {
       FeatureFlags.defaultEnableLongDurationConfirmation;
   int _longDurationThresholdMinutes =
       FeatureFlags.defaultLongDurationThresholdMinutes;
-  // CUR-508: One-page recording screen flag
-  bool _useOnePageRecordingScreen =
-      FeatureFlags.defaultUseOnePageRecordingScreen;
   // CUR-1116: Show "Share with CureHHT" button on Profile screen
   bool _showShareWithCureHHT = FeatureFlags.defaultShowShareWithCureHHT;
   // CUR-528: Available fonts for this sponsor
@@ -217,15 +210,6 @@ class FeatureFlagService {
     _longDurationThresholdMinutes = value;
   }
 
-  /// CUR-508: One-page recording screen
-  /// When true, uses simplified one-page recording screen instead of multi-page.
-  /// When false (default), uses classic multi-page recording flow.
-  bool get useOnePageRecordingScreen => _useOnePageRecordingScreen;
-
-  set useOnePageRecordingScreen(bool value) {
-    _useOnePageRecordingScreen = value;
-  }
-
   /// CUR-1116: "Share with CureHHT" button on Profile screen.
   /// When true, the sharing button and related card are visible.
   /// When false (default), they are hidden until the feature is ready.
@@ -273,6 +257,7 @@ class FeatureFlagService {
       debugPrint(
         '[FeatureFlagService] Response status: ${response.statusCode}',
       );
+      debugPrint('[FeatureFlagService] Response body: ${response.body}');
 
       if (response.statusCode != 200) {
         _lastError = 'Server error: ${response.statusCode}';
@@ -301,9 +286,6 @@ class FeatureFlagService {
       _longDurationThresholdMinutes =
           flags['longDurationThresholdMinutes'] as int? ??
           FeatureFlags.defaultLongDurationThresholdMinutes;
-      _useOnePageRecordingScreen =
-          flags['useOnePageRecordingScreen'] as bool? ??
-          FeatureFlags.defaultUseOnePageRecordingScreen;
       _showShareWithCureHHT =
           flags['showShareWithCureHHT'] as bool? ??
           FeatureFlags.defaultShowShareWithCureHHT;
@@ -347,10 +329,6 @@ class FeatureFlagService {
         '$_longDurationThresholdMinutes',
       );
       debugPrint(
-        '[FeatureFlagService] useOnePageRecordingScreen: '
-        '$_useOnePageRecordingScreen',
-      );
-      debugPrint(
         '[FeatureFlagService] availableFonts: '
         '${_availableFonts.map((f) => f.fontFamily).join(", ")}',
       );
@@ -382,7 +360,6 @@ class FeatureFlagService {
         FeatureFlags.defaultEnableLongDurationConfirmation;
     _longDurationThresholdMinutes =
         FeatureFlags.defaultLongDurationThresholdMinutes;
-    _useOnePageRecordingScreen = FeatureFlags.defaultUseOnePageRecordingScreen;
     _showShareWithCureHHT = FeatureFlags.defaultShowShareWithCureHHT;
     _availableFonts = List.from(FeatureFlags.defaultAvailableFonts);
     _currentSponsorId = null;

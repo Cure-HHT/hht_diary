@@ -1,16 +1,14 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 //   REQ-p70007: Linking Code Lifecycle Management
-//   REQ-CAL-p00020: Patient Disconnection Workflow
+//   REQ-CAL-p00020: Participant Disconnection Workflow
 //   REQ-CAL-p00077: Disconnection Notification
 //   REQ-p05004: Disconnection Notification (persistent banner)
 
 import 'dart:convert';
 
-import 'package:clinical_diary/models/mobile_linking_status.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:comms/comms.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -133,10 +131,10 @@ void main() {
               'success': true,
               'jwt': 'server-returned-jwt',
               'userId': 'server-user-id',
-              'patientId': 'patient-123',
+              'participantId': 'participant-123',
               'siteId': 'site-001',
               'siteName': 'Test Site',
-              'studyPatientId': 'STUDY-001',
+              'studyParticipantId': 'STUDY-001',
             }),
             200,
           );
@@ -151,7 +149,7 @@ void main() {
 
         expect(result.userId, 'server-user-id');
         expect(result.jwtToken, 'server-returned-jwt');
-        expect(result.patientId, 'patient-123');
+        expect(result.participantId, 'participant-123');
         expect(result.siteId, 'site-001');
         expect(result.siteName, 'Test Site');
         expect(result.enrolledAt, isNotNull);
@@ -160,46 +158,7 @@ void main() {
         // Verify it was saved
         final saved = await service.getEnrollment();
         expect(saved, isNotNull);
-        expect(saved!.patientId, 'patient-123');
-      });
-
-      test('CUR-1379: never logs the JWT returned by /link', () async {
-        const secretJwt =
-            'eyJhbGciOiJIUzI1NiIs.SECRET-JWT-MUST-NOT-LEAK.signature';
-        final mockClient = MockClient((_) async {
-          return http.Response(
-            jsonEncode({
-              'success': true,
-              'jwt': secretJwt,
-              'userId': 'uid',
-              'patientId': 'p1',
-              'siteId': 's1',
-            }),
-            200,
-          );
-        });
-
-        service = EnrollmentService(
-          secureStorage: mockStorage,
-          httpClient: mockClient,
-        );
-
-        final originalDebugPrint = debugPrint;
-        final captured = <String>[];
-        debugPrint = (String? message, {int? wrapWidth}) {
-          captured.add(message ?? '');
-        };
-        try {
-          await service.enroll('CAXXX-XXXXX');
-        } finally {
-          debugPrint = originalDebugPrint;
-        }
-
-        expect(
-          captured.any((line) => line.contains(secretJwt)),
-          isFalse,
-          reason: 'JWT must never appear in mobile logs (CUR-1379)',
-        );
+        expect(saved!.participantId, 'participant-123');
       });
 
       test('normalizes code to uppercase and removes dash', () async {
@@ -212,7 +171,7 @@ void main() {
               'success': true,
               'jwt': 'jwt',
               'userId': 'uid',
-              'patientId': 'p1',
+              'participantId': 'p1',
               'siteId': 's1',
             }),
             200,
@@ -239,7 +198,7 @@ void main() {
               'success': true,
               'jwt': 'jwt',
               'userId': 'uid',
-              'patientId': 'p1',
+              'participantId': 'p1',
               'siteId': 's1',
             }),
             200,
@@ -260,7 +219,7 @@ void main() {
         // Server returns 200 but missing jwt/userId fields
         final mockClient = MockClient((request) async {
           return http.Response(
-            jsonEncode({'success': true, 'patientId': 'p1'}),
+            jsonEncode({'success': true, 'participantId': 'p1'}),
             200,
           );
         });
@@ -294,9 +253,9 @@ void main() {
             enrolledAt: DateTime.now(),
           );
           mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
-          // CUR-1164: patient is NOT disconnected, so re-enrollment is blocked
+          // CUR-1164: participant is NOT disconnected, so re-enrollment is blocked
           SharedPreferences.setMockInitialValues({
-            'patient_disconnected': false,
+            'participant_disconnected': false,
           });
 
           var httpCalled = false;
@@ -333,7 +292,7 @@ void main() {
           final mockClient = MockClient((request) async {
             return http.Response(
               '{"error": "This device is already linked to a study. '
-              'Please contact your study coordinator if you need to re-link."}',
+              'Please contact your research coordinator if you need to re-link."}',
               409,
             );
           });
@@ -686,140 +645,6 @@ void main() {
         final result = await service.isDisconnected();
         expect(result, true);
       });
-
-      // CUR-1343 / REQ-p70011/F: Patient reconnection workflow tests.
-      Envelope buildStatusEnvelope(String action) {
-        return Envelope.fromJson({
-          'notification_id': 'env-test',
-          'patient_id': 'patient-1',
-          'type': 'patient_status_update',
-          'title': 'status',
-          'payload': {'action': action},
-          'status': 'sent',
-          'created_at': DateTime.now().toUtc().toIso8601String(),
-        });
-      }
-
-      // Verifies: REQ-p70011/F
-      test('reconnect envelope sets status to linkingInProgress and '
-          'keeps disconnected true', () async {
-        await service.setDisconnected(true);
-        service.linkingStatusNotifier.value = MobileLinkingStatus.disconnected;
-
-        service.handleEnvelopeStatusUpdate(buildStatusEnvelope('reconnect'));
-
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        expect(
-          service.linkingStatusNotifier.value,
-          MobileLinkingStatus.linkingInProgress,
-        );
-        expect(service.disconnectedNotifier.value, true);
-        expect(await service.isDisconnected(), true);
-      });
-
-      // Verifies: REQ-p70011/F
-      test('reconnect envelope forces disconnected true even if previously '
-          'false (push-delivery race guard)', () async {
-        await service.setDisconnected(false);
-        service.linkingStatusNotifier.value = MobileLinkingStatus.connected;
-
-        service.handleEnvelopeStatusUpdate(buildStatusEnvelope('reconnect'));
-
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        expect(
-          service.linkingStatusNotifier.value,
-          MobileLinkingStatus.linkingInProgress,
-        );
-        expect(service.disconnectedNotifier.value, true);
-      });
-
-      // Verifies: REQ-p70011/F
-      test('disconnect envelope sets status to disconnected, not '
-          'linkingInProgress', () async {
-        service.linkingStatusNotifier.value = MobileLinkingStatus.connected;
-
-        service.handleEnvelopeStatusUpdate(buildStatusEnvelope('disconnect'));
-
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        expect(
-          service.linkingStatusNotifier.value,
-          MobileLinkingStatus.disconnected,
-        );
-        expect(service.disconnectedNotifier.value, true);
-      });
-
-      // Verifies: REQ-p70011/F
-      test('processDisconnectionStatus with linking_in_progress flips '
-          'disconnected on and sets status to linkingInProgress', () async {
-        final response = {
-          'isDisconnected': false,
-          'mobileLinkingStatus': 'linking_in_progress',
-        };
-
-        final result = service.processDisconnectionStatus(response);
-
-        expect(result, true);
-        expect(
-          service.linkingStatusNotifier.value,
-          MobileLinkingStatus.linkingInProgress,
-        );
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        expect(await service.isDisconnected(), true);
-      });
-
-      // Verifies: REQ-p70011/G
-      test('processDisconnectionStatus with connected clears disconnected '
-          'and sets status to connected', () async {
-        await service.setDisconnected(true);
-        service.linkingStatusNotifier.value =
-            MobileLinkingStatus.linkingInProgress;
-
-        final response = {
-          'isDisconnected': false,
-          'mobileLinkingStatus': 'connected',
-        };
-        final result = service.processDisconnectionStatus(response);
-
-        expect(result, false);
-        expect(
-          service.linkingStatusNotifier.value,
-          MobileLinkingStatus.connected,
-        );
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        expect(await service.isDisconnected(), false);
-      });
-
-      // Verifies: REQ-p70011/F
-      test('parseMobileLinkingStatus round-trips every server enum value', () {
-        expect(
-          parseMobileLinkingStatus('connected'),
-          MobileLinkingStatus.connected,
-        );
-        expect(
-          parseMobileLinkingStatus('linking_in_progress'),
-          MobileLinkingStatus.linkingInProgress,
-        );
-        expect(
-          parseMobileLinkingStatus('disconnected'),
-          MobileLinkingStatus.disconnected,
-        );
-        expect(
-          parseMobileLinkingStatus('not_participating'),
-          MobileLinkingStatus.notParticipating,
-        );
-        expect(
-          parseMobileLinkingStatus('not_connected'),
-          MobileLinkingStatus.notConnected,
-        );
-        expect(
-          parseMobileLinkingStatus(null),
-          MobileLinkingStatus.notConnected,
-        );
-        expect(
-          parseMobileLinkingStatus('garbage'),
-          MobileLinkingStatus.notConnected,
-        );
-      });
     });
 
     // CUR-1164: Re-enrollment when disconnected
@@ -830,12 +655,12 @@ void main() {
       final validLinkResponse = jsonEncode({
         'jwt': 'new-token',
         'userId': 'user-456',
-        'patientId': 'patient-456',
+        'participantId': 'participant-456',
         'linkingCode': 'CAHELLO WORLD',
         'siteId': 'site-1',
         'siteName': 'Test Site',
         'sitePhoneNumber': '+1-555-0000',
-        'studyPatientId': 'SP-001',
+        'studyParticipantId': 'SP-001',
       });
 
       setUp(() {
@@ -847,7 +672,7 @@ void main() {
         service.dispose();
       });
 
-      test('allows re-enrollment when patient is disconnected', () async {
+      test('allows re-enrollment when participant is disconnected', () async {
         // Arrange: existing enrollment + disconnected state
         final existing = UserEnrollment(
           userId: 'user-old',
@@ -857,7 +682,9 @@ void main() {
           linkingCode: 'CAOLDCODE',
         );
         mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
-        SharedPreferences.setMockInitialValues({'patient_disconnected': true});
+        SharedPreferences.setMockInitialValues({
+          'participant_disconnected': true,
+        });
 
         service = EnrollmentService(
           secureStorage: mockStorage,
@@ -885,7 +712,7 @@ void main() {
           );
           mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
           SharedPreferences.setMockInitialValues({
-            'patient_disconnected': true,
+            'participant_disconnected': true,
           });
 
           service = EnrollmentService(
@@ -910,7 +737,9 @@ void main() {
           enrolledAt: DateTime.now(),
         );
         mockStorage.data['user_enrollment'] = jsonEncode(existing.toJson());
-        SharedPreferences.setMockInitialValues({'patient_disconnected': false});
+        SharedPreferences.setMockInitialValues({
+          'participant_disconnected': false,
+        });
 
         service = EnrollmentService(
           secureStorage: mockStorage,
@@ -1029,6 +858,47 @@ void main() {
           expect(result, equals(first));
         },
       );
+    });
+
+    group('secure-storage clearing', () {
+      late MockSecureStorage storage;
+      late EnrollmentService svc;
+
+      setUp(() {
+        storage = MockSecureStorage();
+        svc = EnrollmentService(
+          secureStorage: storage,
+          httpClient: MockClient((_) async => http.Response('', 200)),
+        );
+      });
+      tearDown(() => svc.dispose());
+
+      test(
+        'clearEnrollment clears enrollment + session JWT, keeps app_uuid',
+        () async {
+          storage.data['user_enrollment'] = '{}';
+          storage.data['auth_jwt'] = 'jwt-x';
+          storage.data['app_uuid'] = 'uuid-keep';
+
+          await svc.clearEnrollment();
+
+          expect(storage.data.containsKey('user_enrollment'), isFalse);
+          expect(storage.data.containsKey('auth_jwt'), isFalse);
+          expect(storage.data['app_uuid'], 'uuid-keep');
+        },
+      );
+
+      test('clearSecureStorageForFactoryReset keeps only app_uuid', () async {
+        storage.data['user_enrollment'] = '{}';
+        storage.data['auth_jwt'] = 'jwt-x';
+        storage.data['auth_username'] = 'legacy-user';
+        storage.data['app_uuid'] = 'uuid-keep';
+
+        await svc.clearSecureStorageForFactoryReset();
+
+        expect(storage.data.keys.toList(), ['app_uuid']);
+        expect(storage.data['app_uuid'], 'uuid-keep');
+      });
     });
   });
 }

@@ -10,42 +10,34 @@ import 'package:package_info_plus/package_info_plus.dart';
 /// Logo menu widget with data management and clinical trial options
 class LogoMenu extends StatefulWidget {
   const LogoMenu({
-    required this.onExportData,
-    required this.onImportData,
     required this.onResetAllData,
-    required this.onFeatureFlags,
     required this.onEndClinicalTrial,
     required this.onInstructionsAndFeedback,
     this.showDevTools = true,
-    this.showResetData = true,
+    this.resetEnabled = true,
+    this.resetDisabledReason = 'End your study participation to reset',
     this.isEnrolled,
-    this.isDisconnected = false,
-    this.isNotParticipating = false,
     this.sponsorLogo,
     super.key,
   });
 
-  final VoidCallback onExportData;
-  final VoidCallback onImportData;
   final VoidCallback onResetAllData;
-  final VoidCallback onFeatureFlags;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
+
+  /// Whether the "Reset all data" item is tappable. When false the item is
+  /// rendered greyed-out and non-tapping (the local factory reset is gated on
+  /// non-participation + the sponsor `allow_local_reset` setting).
+  final bool resetEnabled;
+
+  /// Subtitle shown under a disabled "Reset all data" item explaining why.
+  final String resetDisabledReason;
   final bool? isEnrolled;
-  // CUR-1342: When disconnected or not-participating, the header logo falls
-  // back to the default CureHHT logo instead of the sponsor logo.
-  final bool isDisconnected;
-  final bool isNotParticipating;
   final String? sponsorLogo;
 
-  /// Whether to show developer tools (Import/Export Data, Feature Flags).
+  /// Whether to show developer tools (Reset All Data).
   /// Should be false in production and UAT environments.
   final bool showDevTools;
-
-  /// Whether to show the "Reset All Data" item (independent of showDevTools).
-  /// True in local/dev/qa/uat; false in prod. Defaults to true so existing
-  /// tests that omit it (which model the dev experience) keep working.
-  final bool showResetData;
 
   @override
   State<LogoMenu> createState() => _LogoMenuState();
@@ -86,9 +78,7 @@ class _LogoMenuState extends State<LogoMenu> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            if ((widget.isEnrolled ?? false) &&
-                !widget.isDisconnected &&
-                !widget.isNotParticipating)
+            if (widget.isEnrolled ?? false)
               (widget.sponsorLogo != null)
                   ? Image.network(
                       widget.sponsorLogo!,
@@ -123,14 +113,10 @@ class _LogoMenuState extends State<LogoMenu> {
       ),
       onSelected: (value) {
         switch (value) {
-          case 'export_data':
-            widget.onExportData();
-          case 'import_data':
-            widget.onImportData();
           case 'reset_all_data':
-            widget.onResetAllData();
-          case 'feature_flags':
-            widget.onFeatureFlags();
+            // Guarded: a disabled item is non-selectable, but never invoke the
+            // destructive reset when the gate is closed.
+            if (widget.resetEnabled) widget.onResetAllData();
           case 'end_clinical_trial':
             widget.onEndClinicalTrial?.call();
           case 'instructions_feedback':
@@ -155,67 +141,44 @@ class _LogoMenuState extends State<LogoMenu> {
               ),
             ),
           ),
-          PopupMenuItem<String>(
-            value: 'export_data',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.upload_outlined,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 12),
-                Flexible(child: Text(l10n.exportData)),
-              ],
-            ),
-          ),
-          PopupMenuItem<String>(
-            value: 'import_data',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.download_outlined,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 12),
-                Flexible(child: Text(l10n.importData)),
-              ],
-            ),
-          ),
-          PopupMenuItem<String>(
-            value: 'feature_flags',
-            child: Row(
-              children: [
-                Icon(
-                  Icons.science_outlined,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                const SizedBox(width: 12),
-                Flexible(child: Text(l10n.featureFlagsTitle)),
-              ],
-            ),
-          ),
-        ],
-
-        if (widget.showResetData) ...[
+          // Implements: DIARY-BASE-local-data-reset/B+C — the reset item is
+          //   disabled (greyed, non-tapping, with a reason) while the gate is
+          //   closed (participating in a trial, or sponsor-disabled).
           PopupMenuItem<String>(
             value: 'reset_all_data',
+            enabled: widget.resetEnabled,
             child: Row(
               children: [
                 Icon(
                   Icons.delete_outline,
                   size: 20,
-                  color: Theme.of(context).colorScheme.error,
+                  color: widget.resetEnabled
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).disabledColor,
                 ),
                 const SizedBox(width: 12),
                 Flexible(
-                  child: Text(
-                    l10n.resetAllData,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.resetAllData,
+                        style: TextStyle(
+                          color: widget.resetEnabled
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).disabledColor,
+                        ),
+                      ),
+                      if (!widget.resetEnabled)
+                        Text(
+                          widget.resetDisabledReason,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).disabledColor,
+                              ),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -225,9 +188,8 @@ class _LogoMenuState extends State<LogoMenu> {
 
         // Clinical Trial section (only if linked)
         if (widget.onEndClinicalTrial != null) ...[
-          // Only add divider if dev tools or reset section was shown
-          if (widget.showDevTools || widget.showResetData)
-            const PopupMenuDivider(),
+          // Only add divider if dev tools section was shown
+          if (widget.showDevTools) const PopupMenuDivider(),
           PopupMenuItem<String>(
             enabled: false,
             child: Text(
@@ -256,9 +218,7 @@ class _LogoMenuState extends State<LogoMenu> {
 
         // External links section
         // Only add divider if there was content above
-        if (widget.showDevTools ||
-            widget.showResetData ||
-            widget.onEndClinicalTrial != null)
+        if (widget.showDevTools || widget.onEndClinicalTrial != null)
           const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'instructions_feedback',

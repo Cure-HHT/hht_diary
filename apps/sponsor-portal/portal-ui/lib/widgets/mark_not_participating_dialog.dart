@@ -1,20 +1,23 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00064: Mark Patient as Not Participating
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00064: Mark Participant as Not Participating
+//   REQ-CAL-p00073: Participant Status Definitions
 //
-// Confirmation dialog for marking a patient as not participating
+// Confirmation dialog for marking a participant as not participating
 
 import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
 
-/// Valid reasons for marking a patient as not participating
+/// Valid reasons for marking a participant as not participating
 enum NotParticipatingReason {
-  subjectWithdrawal('Subject Withdrawal', 'Patient chose to leave the study'),
-  death('Death', 'Patient is deceased'),
+  subjectWithdrawal(
+    'Subject Withdrawal',
+    'Participant chose to leave the study',
+  ),
+  death('Death', 'Participant is deceased'),
   protocolComplete(
     'Protocol treatment/study complete',
-    'Patient completed all trial requirements',
+    'Participant completed all trial requirements',
   ),
   other('Other', 'Specify reason in notes');
 
@@ -26,35 +29,35 @@ enum NotParticipatingReason {
 /// Dialog states for the mark not participating flow
 enum _DialogState { confirm, loading, success, error }
 
-/// Dialog for marking a patient as not participating.
+/// Dialog for marking a participant as not participating.
 ///
 /// Shows a confirmation with reason dropdown, then calls the API,
 /// and displays the result.
 class MarkNotParticipatingDialog extends StatefulWidget {
-  final String patientId;
-  final String patientDisplayId;
+  final String participantId;
+  final String participantDisplayId;
   final ApiClient apiClient;
 
   const MarkNotParticipatingDialog({
     super.key,
-    required this.patientId,
-    required this.patientDisplayId,
+    required this.participantId,
+    required this.participantDisplayId,
     required this.apiClient,
   });
 
-  /// Shows the dialog and returns true if the patient was marked successfully.
+  /// Shows the dialog and returns true if the participant was marked successfully.
   static Future<bool> show({
     required BuildContext context,
-    required String patientId,
-    required String patientDisplayId,
+    required String participantId,
+    required String participantDisplayId,
     required ApiClient apiClient,
   }) async {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => MarkNotParticipatingDialog(
-        patientId: patientId,
-        patientDisplayId: patientDisplayId,
+        participantId: participantId,
+        participantDisplayId: participantDisplayId,
         apiClient: apiClient,
       ),
     );
@@ -95,7 +98,7 @@ class _MarkNotParticipatingDialogState
 
     final response = await widget.apiClient
         .post('/api/v1/portal/participants/not-participating', {
-          'patientId': widget.patientId,
+          'participantId': widget.participantId,
           'reason': _selectedReason!.label,
           if (_notesController.text.trim().isNotEmpty)
             'notes': _notesController.text.trim(),
@@ -136,7 +139,7 @@ class _MarkNotParticipatingDialogState
           children: [
             const Text('Mark Participant as Not Participating'),
             Text(
-              'Participant ID: ${widget.patientDisplayId}',
+              'Participant ID: ${widget.participantDisplayId}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -259,7 +262,7 @@ class _MarkNotParticipatingDialogState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Participant ${widget.patientDisplayId} has been marked as not participating.',
+              'Participant ${widget.participantDisplayId} has been marked as not participating.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),

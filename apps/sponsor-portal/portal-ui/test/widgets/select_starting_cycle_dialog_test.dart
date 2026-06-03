@@ -22,7 +22,7 @@ void main() {
                     result = await SelectStartingCycleDialog.show(
                       context: context,
                       questionnaireDisplayName: 'Nose HHT',
-                      patientDisplayId: '002-1013456',
+                      participantDisplayId: '002-1013456',
                       suggestedCycle: suggestedCycle,
                     );
                   },
@@ -75,7 +75,7 @@ void main() {
                     result = await SelectStartingCycleDialog.show(
                       context: context,
                       questionnaireDisplayName: 'Nose HHT',
-                      patientDisplayId: '002-1013456',
+                      participantDisplayId: '002-1013456',
                     );
                   },
                   child: const Text('Open'),
@@ -110,7 +110,7 @@ void main() {
                     result = await SelectStartingCycleDialog.show(
                       context: context,
                       questionnaireDisplayName: 'Nose HHT',
-                      patientDisplayId: '002-1013456',
+                      participantDisplayId: '002-1013456',
                       suggestedCycle: 3,
                     );
                   },

@@ -15,10 +15,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -39,10 +36,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -62,10 +56,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -79,56 +70,11 @@ void main() {
       expect(find.text('Data Management'), findsOneWidget);
     });
 
-    testWidgets('shows Export Data option', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
-            onResetAllData: () {},
-            onFeatureFlags: () {},
-            onEndClinicalTrial: null,
-            onInstructionsAndFeedback: () {},
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(Image));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Export Data'), findsOneWidget);
-    });
-
-    testWidgets('shows Import Data option', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
-            onResetAllData: () {},
-            onFeatureFlags: () {},
-            onEndClinicalTrial: null,
-            onInstructionsAndFeedback: () {},
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(Image));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Import Data'), findsOneWidget);
-    });
-
     testWidgets('shows Reset All Data option', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -142,68 +88,13 @@ void main() {
       expect(find.text('Reset All Data?'), findsOneWidget);
     });
 
-    testWidgets('calls onExportData when tapped', (tester) async {
-      var called = false;
-
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          LogoMenu(
-            onExportData: () => called = true,
-            onImportData: () {},
-            onResetAllData: () {},
-            onFeatureFlags: () {},
-            onEndClinicalTrial: null,
-            onInstructionsAndFeedback: () {},
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(Image));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Export Data'));
-      await tester.pumpAndSettle();
-
-      expect(called, true);
-    });
-
-    testWidgets('calls onImportData when tapped', (tester) async {
-      var called = false;
-
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          LogoMenu(
-            onExportData: () {},
-            onImportData: () => called = true,
-            onResetAllData: () {},
-            onFeatureFlags: () {},
-            onEndClinicalTrial: null,
-            onInstructionsAndFeedback: () {},
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(Image));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Import Data'));
-      await tester.pumpAndSettle();
-
-      expect(called, true);
-    });
-
     testWidgets('calls onResetAllData when tapped', (tester) async {
       var called = false;
 
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () => called = true,
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -224,10 +115,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -247,10 +135,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () => called = true,
           ),
@@ -271,10 +156,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: () {},
             onInstructionsAndFeedback: () {},
           ),
@@ -292,10 +174,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -315,10 +194,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: () => called = true,
             onInstructionsAndFeedback: () {},
           ),
@@ -339,10 +215,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: () {},
             onInstructionsAndFeedback: () {},
           ),
@@ -362,10 +235,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -385,10 +255,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
             showDevTools: true,
@@ -410,10 +277,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
             showDevTools: false,
@@ -425,59 +289,33 @@ void main() {
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      // Data Management section should not be shown when showDevTools is false
-      // But we can still find menu items like Export Data
-      expect(find.text('Export Data'), findsNothing);
+      // Dev-tools items (the section header + Reset All Data) are hidden when
+      // showDevTools is false. Feature Flags has moved to Settings → Advanced.
+      expect(find.text('Data Management'), findsNothing);
     });
 
-    testWidgets('shows Feature Flags option in Dev Tools', (tester) async {
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
-            onResetAllData: () {},
-            onFeatureFlags: () {},
-            onEndClinicalTrial: null,
-            onInstructionsAndFeedback: () {},
-            showDevTools: true,
+    testWidgets(
+      'does not show Feature Flags in app menu (moved to Advanced settings)',
+      (tester) async {
+        await tester.pumpWidget(
+          wrapWithScaffold(
+            LogoMenu(
+              onResetAllData: () {},
+              onEndClinicalTrial: null,
+              onInstructionsAndFeedback: () {},
+              showDevTools: true,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(Image));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byType(Image));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Feature Flags'), findsOneWidget);
-    });
-
-    testWidgets('calls onFeatureFlags when tapped', (tester) async {
-      var called = false;
-
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
-            onResetAllData: () {},
-            onFeatureFlags: () => called = true,
-            onEndClinicalTrial: null,
-            onInstructionsAndFeedback: () {},
-            showDevTools: true,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(Image));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Feature Flags'));
-      await tester.pumpAndSettle();
-
-      expect(called, true);
-    });
+        // Feature Flags is no longer in the app menu — it moved to Settings → Advanced.
+        expect(find.text('Feature Flags'), findsNothing);
+      },
+    );
 
     testWidgets('does not show Check for updates option (CUR-990)', (
       tester,
@@ -485,10 +323,7 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () {},
-            onImportData: () {},
             onResetAllData: () {},
-            onFeatureFlags: () {},
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -503,16 +338,48 @@ void main() {
       expect(find.text('Check for updates'), findsNothing);
     });
 
-    testWidgets('menu closes after selecting an option', (tester) async {
-      var called = false;
+    // Verifies: DIARY-BASE-local-data-reset/B+C — the reset item is disabled
+    //   (greyed, non-tapping, with a reason) when the gate is closed.
+    testWidgets(
+      'reset item is disabled with a reason when resetEnabled=false',
+      (tester) async {
+        var called = false;
+        await tester.pumpWidget(
+          wrapWithScaffold(
+            LogoMenu(
+              onResetAllData: () => called = true,
+              onEndClinicalTrial: null,
+              onInstructionsAndFeedback: () {},
+              resetEnabled: false,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
 
+        await tester.tap(find.byType(Image));
+        await tester.pumpAndSettle();
+
+        // The disabled-reason subtitle is shown.
+        expect(
+          find.text('End your study participation to reset'),
+          findsOneWidget,
+        );
+
+        // The disabled PopupMenuItem does not invoke the callback when tapped.
+        await tester.tap(find.text('Reset All Data?'));
+        await tester.pumpAndSettle();
+        expect(called, isFalse);
+      },
+    );
+
+    // Verifies: DIARY-BASE-local-data-reset/B+C — when the gate is open the
+    //   reset item is enabled, has no disabled reason, and fires its callback.
+    testWidgets('reset item is enabled when resetEnabled=true', (tester) async {
+      var called = false;
       await tester.pumpWidget(
         wrapWithScaffold(
           LogoMenu(
-            onExportData: () => called = true,
-            onImportData: () {},
-            onResetAllData: () {},
-            onFeatureFlags: () {},
+            onResetAllData: () => called = true,
             onEndClinicalTrial: null,
             onInstructionsAndFeedback: () {},
           ),
@@ -523,96 +390,35 @@ void main() {
       await tester.tap(find.byType(Image));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Export Data'));
+      expect(find.text('End your study participation to reset'), findsNothing);
+
+      await tester.tap(find.text('Reset All Data?'));
+      await tester.pumpAndSettle();
+      expect(called, isTrue);
+    });
+
+    testWidgets('menu closes after selecting Reset All Data', (tester) async {
+      var called = false;
+
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onResetAllData: () => called = true,
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Reset All Data?'));
       await tester.pumpAndSettle();
 
       // Callback should have been called
       expect(called, true);
-    });
-
-    group('showResetData gating', () {
-      testWidgets(
-        'uat-style menu (showDevTools=false, showResetData=true) shows only Reset',
-        (tester) async {
-          await tester.pumpWidget(
-            wrapWithScaffold(
-              LogoMenu(
-                onExportData: () {},
-                onImportData: () {},
-                onResetAllData: () {},
-                onFeatureFlags: () {},
-                onEndClinicalTrial: null,
-                onInstructionsAndFeedback: () {},
-                showDevTools: false,
-                showResetData: true,
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-          await tester.tap(find.byType(Image));
-          await tester.pumpAndSettle();
-
-          expect(find.text('Reset All Data?'), findsOneWidget);
-          expect(find.text('Data Management'), findsNothing);
-          expect(find.text('Export Data'), findsNothing);
-          expect(find.text('Import Data'), findsNothing);
-          expect(find.text('Feature Flags'), findsNothing);
-        },
-      );
-
-      testWidgets('prod-style menu (both false) hides Reset entirely', (
-        tester,
-      ) async {
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            LogoMenu(
-              onExportData: () {},
-              onImportData: () {},
-              onResetAllData: () {},
-              onFeatureFlags: () {},
-              onEndClinicalTrial: null,
-              onInstructionsAndFeedback: () {},
-              showDevTools: false,
-              showResetData: false,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.byType(Image));
-        await tester.pumpAndSettle();
-
-        expect(find.text('Reset All Data?'), findsNothing);
-        expect(find.text('Data Management'), findsNothing);
-      });
-
-      testWidgets(
-        'dev-style menu (both true) shows full Data Management plus Reset',
-        (tester) async {
-          await tester.pumpWidget(
-            wrapWithScaffold(
-              LogoMenu(
-                onExportData: () {},
-                onImportData: () {},
-                onResetAllData: () {},
-                onFeatureFlags: () {},
-                onEndClinicalTrial: null,
-                onInstructionsAndFeedback: () {},
-                showDevTools: true,
-                showResetData: true,
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-          await tester.tap(find.byType(Image));
-          await tester.pumpAndSettle();
-
-          expect(find.text('Data Management'), findsOneWidget);
-          expect(find.text('Export Data'), findsOneWidget);
-          expect(find.text('Import Data'), findsOneWidget);
-          expect(find.text('Feature Flags'), findsOneWidget);
-          expect(find.text('Reset All Data?'), findsOneWidget);
-        },
-      );
     });
   });
 }

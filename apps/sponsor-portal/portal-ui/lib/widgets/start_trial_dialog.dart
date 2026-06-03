@@ -1,9 +1,9 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-CAL-p00079: Start Trial Workflow
-//   REQ-CAL-p00073: Patient Status Definitions
+//   REQ-CAL-p00073: Participant Status Definitions
 //   REQ-CAL-p00022: Analyst Read-Only Site-Scoped Access
 //
-// Dialog for starting trial for a patient (sends EQ questionnaire)
+// Dialog for starting trial for a participant (sends EQ questionnaire)
 
 import 'package:flutter/material.dart';
 
@@ -12,7 +12,7 @@ import '../services/api_client.dart';
 /// Dialog states for the start trial flow
 enum _DialogState { confirm, loading, success, error }
 
-/// Dialog for starting trial for a patient.
+/// Dialog for starting trial for a participant.
 ///
 /// Shows a confirmation prompt, then calls the API,
 /// and displays the result.
@@ -21,36 +21,36 @@ enum _DialogState { confirm, loading, success, error }
 /// ```dart
 /// final success = await StartTrialDialog.show(
 ///   context: context,
-///   patientId: patient.patientId,
-///   patientDisplayId: patient.edcSubjectKey,
+///   participantId: participant.participantId,
+///   participantDisplayId: participant.edcSubjectKey,
 ///   apiClient: apiClient,
 /// );
 /// ```
 class StartTrialDialog extends StatefulWidget {
-  final String patientId;
-  final String patientDisplayId;
+  final String participantId;
+  final String participantDisplayId;
   final ApiClient apiClient;
 
   const StartTrialDialog({
     super.key,
-    required this.patientId,
-    required this.patientDisplayId,
+    required this.participantId,
+    required this.participantDisplayId,
     required this.apiClient,
   });
 
   /// Shows the dialog and returns true if the trial was started successfully.
   static Future<bool> show({
     required BuildContext context,
-    required String patientId,
-    required String patientDisplayId,
+    required String participantId,
+    required String participantDisplayId,
     required ApiClient apiClient,
   }) async {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (context) => StartTrialDialog(
-        patientId: patientId,
-        patientDisplayId: patientDisplayId,
+        participantId: participantId,
+        participantDisplayId: participantDisplayId,
         apiClient: apiClient,
       ),
     );
@@ -71,7 +71,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
 
     final response = await widget.apiClient.post(
       '/api/v1/portal/participants/start-trial',
-      {'patientId': widget.patientId},
+      {'participantId': widget.participantId},
     );
 
     if (!mounted) return;
@@ -110,7 +110,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Start Trial for Participant ${widget.patientDisplayId}?',
+                'Start Trial for Participant ${widget.participantDisplayId}?',
               ),
             ),
           ],
@@ -158,7 +158,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Patient ID display
+              // Participant ID display
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -175,7 +175,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      widget.patientDisplayId,
+                      widget.participantDisplayId,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -253,7 +253,7 @@ class _StartTrialDialogState extends State<StartTrialDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Trial has been started for participant ${widget.patientDisplayId}.',
+              'Trial has been started for participant ${widget.participantDisplayId}.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),

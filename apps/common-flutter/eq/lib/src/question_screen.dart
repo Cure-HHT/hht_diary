@@ -47,13 +47,13 @@ class QuestionScreen extends StatelessWidget {
   /// Currently selected value (null if unanswered)
   final int? selectedValue;
 
-  /// Called when the patient selects a response
+  /// Called when the participant selects a response
   final ValueChanged<int> onAnswer;
 
-  /// Called when the patient taps "Next"
+  /// Called when the participant taps "Next"
   final VoidCallback onNext;
 
-  /// Called when the patient taps "Back" (null on first question)
+  /// Called when the participant taps "Back" (null on first question)
   final VoidCallback? onBack;
 
   @override
@@ -78,7 +78,7 @@ class QuestionScreen extends StatelessWidget {
                 // to your nosebleeds?") is the actual prompt; the
                 // per-question text is the activity label
                 // ("Travel (e.g. by plane)"). Without the stem in view,
-                // the patient sees no question — just an item with
+                // the participant sees no question — just an item with
                 // response options.
                 if (category.stem != null && category.stem!.isNotEmpty) ...[
                   Text(

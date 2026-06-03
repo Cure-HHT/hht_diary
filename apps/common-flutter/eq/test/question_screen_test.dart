@@ -77,7 +77,7 @@ void main() {
   // CUR-1292: NOSE HHT puts the actual question on the category as
   // `stem` and per-item activity labels in `question.text`. The stem
   // must render on every page within the category — without it the
-  // patient sees only the activity label and no prompt.
+  // participant sees only the activity label and no prompt.
   testWidgets('renders the category stem above the question text', (
     tester,
   ) async {

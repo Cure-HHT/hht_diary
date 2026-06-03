@@ -13,12 +13,12 @@ import '../_helpers/in_memory_repository.dart';
 void _seedEnvelope(
   InMemoryNotificationRepository repo, {
   required String id,
-  required String patientId,
+  required String participantId,
   required DateTime createdAt,
 }) {
   repo.envelopes[id] = Envelope(
     notificationId: id,
-    patientId: patientId,
+    participantId: participantId,
     type: NotificationType.reminder,
     title: 'Yesterday Reminder',
     payload: const <String, dynamic>{},
@@ -33,7 +33,7 @@ Handler _handler(
 }) {
   return envelopeSinceHandler(
     repo: repo,
-    patientResolver: (req) async => resolver?.call(req) ?? 'pat-1',
+    participantResolver: (req) async => resolver?.call(req) ?? 'pat-1',
   );
 }
 
@@ -44,19 +44,19 @@ void main() {
       _seedEnvelope(
         repo,
         id: 'older',
-        patientId: 'pat-1',
+        participantId: 'pat-1',
         createdAt: DateTime.utc(2026, 5, 8, 9, 0),
       );
       _seedEnvelope(
         repo,
         id: 'mid',
-        patientId: 'pat-1',
+        participantId: 'pat-1',
         createdAt: DateTime.utc(2026, 5, 8, 10, 0),
       );
       _seedEnvelope(
         repo,
         id: 'newer',
-        patientId: 'pat-1',
+        participantId: 'pat-1',
         createdAt: DateTime.utc(2026, 5, 8, 11, 0),
       );
 
@@ -82,10 +82,10 @@ void main() {
       _seedEnvelope(
         repo,
         id: 'a',
-        patientId: 'pat-1',
+        participantId: 'pat-1',
         createdAt: DateTime.utc(2026, 5, 8, 10, 0),
       );
-      _seedEnvelope(repo, id: 'b', patientId: 'pat-1', createdAt: newest);
+      _seedEnvelope(repo, id: 'b', participantId: 'pat-1', createdAt: newest);
 
       final since = DateTime.utc(2026, 5, 8, 9, 0).toIso8601String();
       final response = await _handler(repo).call(
@@ -122,7 +122,7 @@ void main() {
         _seedEnvelope(
           repo,
           id: 'e-$i',
-          patientId: 'pat-1',
+          participantId: 'pat-1',
           createdAt: DateTime.utc(2026, 5, 8, 10).add(Duration(minutes: i)),
         );
       }
@@ -130,7 +130,7 @@ void main() {
       final since = DateTime.utc(2026, 5, 8, 9).toIso8601String();
       final handler = envelopeSinceHandler(
         repo: repo,
-        patientResolver: (_) async => 'pat-1',
+        participantResolver: (_) async => 'pat-1',
         maxLimit: 3,
       );
       final response = await handler.call(
@@ -163,12 +163,12 @@ void main() {
       expect(response.statusCode, equals(400));
     });
 
-    test('401 when patientResolver returns null', () async {
+    test('401 when participantResolver returns null', () async {
       final repo = InMemoryNotificationRepository();
       final since = DateTime.utc(2026, 5, 8).toIso8601String();
       final handler = envelopeSinceHandler(
         repo: repo,
-        patientResolver: (_) async => null,
+        participantResolver: (_) async => null,
       );
       final response = await handler.call(
         Request('GET', Uri.parse('http://x/api/v1/notifications?since=$since')),

@@ -256,7 +256,7 @@ void main() {
         'startTime': now.toIso8601String(),
         'intensity': 'pouring',
       },
-      changeReason: 'patient correction',
+      changeReason: 'participant correction',
     );
 
     final events = await fx.runtime.backend.findEventsForAggregate('agg-s2');
@@ -305,7 +305,7 @@ void main() {
         aggregateId: 'agg-s3',
         eventType: 'tombstone',
         answers: const <String, Object?>{},
-        changeReason: 'patient retracted',
+        changeReason: 'participant retracted',
       );
 
       final events = await fx.runtime.backend.findEventsForAggregate('agg-s3');
@@ -722,149 +722,5 @@ void main() {
     expect(await fx.runtime.reader.dayStatus(dayX2), DayStatus.unknown);
     expect(await fx.runtime.reader.dayStatus(dayX3), DayStatus.incomplete);
     expect(await fx.runtime.reader.dayStatus(dayX4), DayStatus.notRecorded);
-  });
-
-  // -------------------------------------------------------------------------
-  // Scenario 12 (CUR-1292): Survey checkpoint events accumulate into the
-  // materialized view via the materializer's key-wise merge of answers.
-  // The materialized row stays is_complete=false, is_deleted=false, and
-  // currentAnswers reflects the merged final state across all checkpoints.
-  // -------------------------------------------------------------------------
-  test('scenario 12: three checkpoint events on a survey aggregate '
-      'merge into one materialized row with is_complete=false', () async {
-    final fx = await _build();
-    addTearDown(fx.tearDown);
-
-    const aggregateId = 'agg-s12';
-
-    // First checkpoint: only Q1 answered.
-    await fx.runtime.entryService.record(
-      entryType: 'nose_hht_survey',
-      aggregateId: aggregateId,
-      eventType: 'checkpoint',
-      answers: <String, Object?>{'q1': 2},
-      checkpointReason: 'in-progress',
-    );
-    // Second checkpoint: Q2 added (Q1 absent, must be preserved by the
-    // key-wise merge).
-    await fx.runtime.entryService.record(
-      entryType: 'nose_hht_survey',
-      aggregateId: aggregateId,
-      eventType: 'checkpoint',
-      answers: <String, Object?>{'q2': 4},
-      checkpointReason: 'in-progress',
-    );
-    // Third checkpoint: Q1 changed from 2 to 3 (Q2 absent, preserved).
-    await fx.runtime.entryService.record(
-      entryType: 'nose_hht_survey',
-      aggregateId: aggregateId,
-      eventType: 'checkpoint',
-      answers: <String, Object?>{'q1': 3},
-      checkpointReason: 'in-progress',
-    );
-
-    final events = await fx.runtime.backend.findEventsForAggregate(aggregateId);
-    expect(events, hasLength(3));
-    for (final e in events) {
-      expect(e.eventType, 'checkpoint');
-    }
-
-    final viewRows = (await fx.runtime.backend.findEntries(
-      entryType: 'nose_hht_survey',
-    )).where((e) => e.entryId == aggregateId).toList();
-    expect(viewRows, hasLength(1));
-    final row = viewRows.single;
-    expect(row.isComplete, isFalse);
-    expect(row.isDeleted, isFalse);
-    expect(row.currentAnswers['q1'], 3);
-    expect(row.currentAnswers['q2'], 4);
-  });
-
-  // -------------------------------------------------------------------------
-  // Scenario 13 (CUR-1292): A finalize after a sequence of checkpoints
-  // flips is_complete=true and the legacy_questionnaire_submit FIFO
-  // drains exactly one row — checkpoint events are filtered out of the
-  // FIFO by the destination's eventTypes: ['finalized'] subscription.
-  // -------------------------------------------------------------------------
-  test('scenario 13: finalize after checkpoints flips is_complete and '
-      'only the finalized event reaches legacy_questionnaire_submit', () async {
-    final fx = await _build();
-    addTearDown(fx.tearDown);
-
-    const aggregateId = 'agg-s13';
-
-    // Two checkpoints prior to finalize.
-    await fx.runtime.entryService.record(
-      entryType: 'nose_hht_survey',
-      aggregateId: aggregateId,
-      eventType: 'checkpoint',
-      answers: <String, Object?>{'q1': 2},
-      checkpointReason: 'in-progress',
-    );
-    await fx.runtime.entryService.record(
-      entryType: 'nose_hht_survey',
-      aggregateId: aggregateId,
-      eventType: 'checkpoint',
-      answers: <String, Object?>{'q2': 4},
-      checkpointReason: 'in-progress',
-    );
-
-    // Finalize with the proper QuestionnaireSubmission shape (the legacy
-    // submit destination's transform reads `responses` + display labels
-    // out of `data.answers`).
-    await fx.runtime.entryService.record(
-      entryType: 'nose_hht_survey',
-      aggregateId: aggregateId,
-      eventType: 'finalized',
-      answers: <String, Object?>{
-        'instance_id': aggregateId,
-        'questionnaire_type': 'nose_hht',
-        'version': '1.0.0',
-        'completed_at': '2026-04-27T10:00:00.000Z',
-        'responses': const <Map<String, Object?>>[
-          {
-            'question_id': 'q1',
-            'value': 3,
-            'display_label': 'Moderate problem',
-            'normalized_label': '3',
-          },
-          {
-            'question_id': 'q2',
-            'value': 4,
-            'display_label': 'Severe problem',
-            'normalized_label': '4',
-          },
-        ],
-      },
-    );
-
-    final events = await fx.runtime.backend.findEventsForAggregate(aggregateId);
-    expect(events, hasLength(3));
-    expect(events.last.eventType, 'finalized');
-
-    final viewRows = (await fx.runtime.backend.findEntries(
-      entryType: 'nose_hht_survey',
-    )).where((e) => e.entryId == aggregateId).toList();
-    expect(viewRows, hasLength(1));
-    expect(viewRows.single.isComplete, isTrue);
-    expect(viewRows.single.isDeleted, isFalse);
-
-    await _activate(fx);
-    await fx.runtime.syncCycle();
-
-    // Only the finalized event matches the destination's filter, so
-    // exactly one row appears in the legacy_questionnaire_submit FIFO.
-    final fifo = await fx.runtime.backend.listFifoEntries(_legacyQSubmitId);
-    expect(fifo, hasLength(1));
-    expect(fifo.single.finalStatus, FinalStatus.sent);
-
-    final posts = fx.requests.where((r) => r.method == 'POST').toList();
-    expect(
-      posts.any(
-        (r) =>
-            r.url.toString() == '${_baseUrl}questionnaires/$aggregateId/submit',
-      ),
-      isTrue,
-    );
   });
 }

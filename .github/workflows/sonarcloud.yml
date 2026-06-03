@@ -1,0 +1,69 @@
+# SonarCloud CI-based analysis. *** PARKED — manual-trigger only ***
+#
+# CI-based analysis requires DISABLING SonarCloud "Automatic Analysis", and on
+# our plan (Teams) that toggle is Enterprise-gated. So this workflow is parked:
+# its auto-triggers are commented out and it runs on workflow_dispatch only, so
+# it never auto-runs (no red PR checks) and isn't flagged as an invalid workflow.
+# A manual run will still fail until Automatic Analysis can be disabled.
+#
+# WHY KEEP IT: it's complete and correct (deps resolve anonymously — event_sourcing
+# is public/https; SONAR_TOKEN comes from Doppler admin/prod via OIDC), so when we
+# move to Enterprise it's a one-line enable. Until then, handle the dart:S2260
+# false-positive flood (~43%, the unresolved-import noise Automatic Analysis can't
+# avoid) by deactivating rule dart:S2260 in the project's Quality Profile.
+#
+# TO ENABLE (once on Enterprise):
+#   1. Disable "Automatic Analysis" (SonarCloud project -> Administration ->
+#      Analysis Method) — CI analysis is rejected while it is on.
+#   2. Set repo var ADMIN_DOPPLER_IDENTITY_ID = the Doppler OIDC identity that
+#      accepts hht_diary CI and reads admin/prod (where SONAR_TOKEN lives).
+#   3. Restore the push/pull_request triggers below (and drop workflow_dispatch
+#      if you don't want the manual entry).
+name: SonarCloud
+
+on:
+  # Parked: manual-only until Enterprise lets us disable Automatic Analysis.
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  # pull_request:
+
+permissions:
+  id-token: write   # Doppler OIDC exchange (fetches SONAR_TOKEN)
+  contents: read
+
+jobs:
+  sonar:
+    name: Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history: accurate new-code period & blame
+
+      # Fetch SONAR_TOKEN from Doppler via OIDC -> masked env var for later steps.
+      - uses: Cure-HHT/hht_workflows/.github/actions/doppler-oidc-auth@main
+        with:
+          doppler_identity_id: ${{ vars.ADMIN_DOPPLER_IDENTITY_ID }}
+          doppler_project: admin
+          doppler_config: prod
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      # Resolve deps so the Dart analyzer sees package:event_sourcing/... .
+      # event_sourcing is public (https: in the pubspecs) -> anonymous, no auth.
+      - name: pub get (clinical_diary)
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter pub get
+      - name: pub get (diary_shared_model)
+        working-directory: apps/common-dart/diary_shared_model
+        run: dart pub get
+
+      # Scan. SONAR_TOKEN is already in the environment (injected by the Doppler
+      # step above); sonar-project.properties carries projectKey/org/sources.
+      - uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_HOST_URL: https://sonarcloud.io

@@ -175,7 +175,7 @@ class RaveClient {
     }
   }
 
-  /// Retrieves all subjects (patients) for a study.
+  /// Retrieves all subjects (participants) for a study.
   ///
   /// [studyOid] - The study OID (required for subjects endpoint).
   ///
