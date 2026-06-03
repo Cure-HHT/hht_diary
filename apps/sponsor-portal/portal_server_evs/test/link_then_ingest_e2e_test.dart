@@ -191,6 +191,10 @@ void main() {
     expect(linkBody['jwt'], isNotNull, reason: '/link must mint a JWT');
     expect(linkBody['participantId'], 'P-SELF',
         reason: 'the JWT identity is the participant id');
+    expect(linkBody['success'], true,
+        reason: '/link must report success on a valid redemption');
+    expect(linkBody['linkingCode'], code,
+        reason: '/link response must echo back the normalized linking code');
     final jwt = linkBody['jwt'] as String;
 
     // 6b. The code is now consumed (single-use): its linking_codes row flips to
