@@ -30,7 +30,7 @@ void main() {
         backend: SembastBackend(database: db), raveClient: DevSeedRaveClient());
     addTearDown(boot.dispose);
 
-    final token = createPatientJwt(authCode: 'ac', userId: 'u');
+    final token = createPatientJwt(authCode: 'ac', userId: 'P-u');
     final res = await boot.router.call(Request(
       'POST',
       Uri.parse('http://localhost/ingest'),

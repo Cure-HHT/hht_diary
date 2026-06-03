@@ -86,6 +86,21 @@ void main() {
       auth: 'Bearer $token',
       body: _batchWith('some-uuid-no-colon'),
     ));
+    // isNot(403) proves the ownership gate allowed it through (downstream
+    // ingest may still 4xx the minimal, non-hash-valid event).
+    expect(res.statusCode, isNot(403));
+  });
+
+  test('leading-colon aggregate is treated as non-prefixed (not 403)',
+      () async {
+    final token = createPatientJwt(authCode: 'ac', userId: 'P-SELF');
+    final handler = patientIngestHandler(eventStore: await _openStore());
+    final res = await handler(_post(
+      auth: 'Bearer $token',
+      body: _batchWith(':uuid'),
+    ));
+    // A leading colon yields an empty prefix (no participant id), so it must be
+    // treated as non-prefixed and pass the gate — isNot(403) proves it did.
     expect(res.statusCode, isNot(403));
   });
 }

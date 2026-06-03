@@ -32,8 +32,10 @@ Handler patientIngestHandler({required EventStore eventStore}) {
     // (`{pid}:`) aggregates. Epistaxis events use a fresh uuid aggregate id and
     // questionnaire surveys use the portal-assigned instanceId — neither carries
     // a per-event participant identity, and neither can target another
-    // participant's aggregate. For those, the sync-channel JWT (verified above)
-    // is the trust boundary. This is a documented residual, not a gap.
+    // participant's aggregate. A leading-colon id (`:foo`) has no participant
+    // prefix and is likewise treated as non-prefixed. For those, the sync-channel
+    // JWT (verified above) is the trust boundary. This is a documented residual,
+    // not a gap.
     final BatchEnvelope env;
     try {
       env = BatchEnvelope.decode(bytes);
@@ -43,13 +45,18 @@ Handler patientIngestHandler({required EventStore eventStore}) {
     }
     for (final eventMap in env.events) {
       final aggId = eventMap['aggregate_id'] as String?;
-      if (aggId != null && aggId.contains(':')) {
-        final ownerId = aggId.substring(0, aggId.indexOf(':'));
-        if (ownerId != payload.userId) {
-          return Response(403,
-              body: 'batch contains aggregates not owned by the '
-                  'authenticated participant');
+      if (aggId != null) {
+        final colonIdx = aggId.indexOf(':');
+        if (colonIdx > 0) {
+          final ownerId = aggId.substring(0, colonIdx);
+          if (ownerId != payload.userId) {
+            return Response(403,
+                body: 'batch contains aggregates not owned by the '
+                    'authenticated participant');
+          }
         }
+        // colonIdx <= 0 (no colon, or leading colon) -> no participant prefix
+        // -> non-prefixed -> pass.
       }
     }
 
