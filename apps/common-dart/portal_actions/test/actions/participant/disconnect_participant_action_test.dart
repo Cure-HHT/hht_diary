@@ -95,6 +95,7 @@ void main() {
       expect(e.flowToken, 'PAT000003');
       expect(e.data['reason'], 'device lost');
       expect(e.data['by'], 'sc-1');
+      expect(e.data['mobile_linking_status'], 'disconnected');
     },
   );
 }

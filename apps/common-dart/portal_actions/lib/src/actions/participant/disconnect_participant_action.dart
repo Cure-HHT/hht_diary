@@ -97,6 +97,9 @@ class DisconnectParticipantAction
     return ExecutionResult<DisconnectParticipantResult>(
       result: DisconnectParticipantResult(participantId: input.participantId),
       events: <EventDraft>[
+        // Implements: DIARY-DEV-relink-device-gate/B  (forward-ref to D1: carrying
+        // mobile_linking_status='disconnected' lets the /link relink gate recognize
+        // a coordinator disconnect and allow a legitimate re-link to a new device)
         EventDraft(
           aggregateType: 'participant',
           aggregateId: input.participantId,
@@ -106,6 +109,7 @@ class DisconnectParticipantAction
           data: <String, Object?>{
             'reason': input.reason,
             'by': ctx.principal.id,
+            'mobile_linking_status': 'disconnected',
           },
         ),
       ],
