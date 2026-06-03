@@ -75,8 +75,7 @@ class UserTierReactor {
   Future<void> _ensureTierRow(String userId) async {
     // Read the current role assignments for this user from the projection.
     final allScopes = await backend.findViewRows('user_role_scopes');
-    final userScopes =
-        allScopes.where((r) => r['user_id'] == userId).toList();
+    final userScopes = allScopes.where((r) => r['user_id'] == userId).toList();
 
     // Compute tier: 'operator' if any active assignment has role == 'SystemOperator'.
     final newTier = userScopes.any((r) => r['role'] == 'SystemOperator')
@@ -85,9 +84,7 @@ class UserTierReactor {
 
     // Read the current stored tier from user_tier_index (if any).
     final tierIndex = await backend.findViewRows('user_tier_index');
-    final existing = tierIndex
-        .where((r) => r['user_id'] == userId)
-        .firstOrNull;
+    final existing = tierIndex.where((r) => r['user_id'] == userId).firstOrNull;
     final currentTier = existing?['tier'] as String?;
 
     // Idempotent: only emit when the tier actually changes (or row is absent).

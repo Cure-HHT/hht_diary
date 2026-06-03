@@ -58,14 +58,8 @@ final Map<String, Permission> portalPermissionsByActId = <String, Permission>{
   //   (user-contained-in-tier), so a non-operator cannot modify a System
   //   Operator account. scopeFor returns BoundScope('user', target userId).
   'ACT-USR-002': const Permission('portal.user.edit', scopeClass: 'user'),
-  'ACT-USR-003': const Permission(
-    'portal.user.deactivate',
-    scopeClass: 'user',
-  ),
-  'ACT-USR-004': const Permission(
-    'portal.user.reactivate',
-    scopeClass: 'user',
-  ),
+  'ACT-USR-003': const Permission('portal.user.deactivate', scopeClass: 'user'),
+  'ACT-USR-004': const Permission('portal.user.reactivate', scopeClass: 'user'),
   'ACT-USR-005': const Permission('portal.user.unlock', scopeClass: 'user'),
   'ACT-USR-006': const Permission(
     'portal.user.resend_activation',
@@ -91,8 +85,14 @@ final Map<String, Permission> portalPermissionsByActId = <String, Permission>{
     'portal.user.delete_pending',
     scopeClass: 'user',
   ),
-  'ACT-USR-010': const Permission('portal.user.revoke_role', scopeClass: 'user'),
-  'ACT-USR-011': const Permission('portal.user.revoke_site', scopeClass: 'user'),
+  'ACT-USR-010': const Permission(
+    'portal.user.revoke_role',
+    scopeClass: 'user',
+  ),
+  'ACT-USR-011': const Permission(
+    'portal.user.revoke_site',
+    scopeClass: 'user',
+  ),
   'ACT-SIT-001': const Permission('portal.site.view', scopeClass: 'site'),
   'ACT-AUD-001': const Permission('portal.audit.view'),
   'ACT-ADM-001': const Permission('portal.admin.view_settings'),

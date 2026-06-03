@@ -50,8 +50,7 @@ Future<void> _appendRoleUnassigned(
     );
 
 String? _tierFor(List<Map<String, Object?>> rows, String userId) {
-  final row =
-      rows.where((r) => r['user_id'] == userId).firstOrNull;
+  final row = rows.where((r) => r['user_id'] == userId).firstOrNull;
   return row?['tier'] as String?;
 }
 
@@ -61,8 +60,7 @@ void main() {
   late StorageBackend backend;
 
   setUp(() async {
-    final db =
-        await newDatabaseFactoryMemory().openDatabase('tier_reactor.db');
+    final db = await newDatabaseFactoryMemory().openDatabase('tier_reactor.db');
     backend = SembastBackend(database: db);
     store = await openPortalEventStore(backend: backend);
   });
@@ -130,8 +128,7 @@ void main() {
         reason: 'user_created must seed a staff tier row in user_tier_index');
   });
 
-  test(
-      'user_created then role_assigned(SystemOperator) ends at operator tier',
+  test('user_created then role_assigned(SystemOperator) ends at operator tier',
       () async {
     final reactor = UserTierReactor(eventStore: store, backend: backend)
       ..start();
@@ -172,7 +169,8 @@ void main() {
 
     // Count tier events before.
     final before = (await backend.readEventsReverse().toList())
-        .where((e) => e.eventType == 'user_tier_changed' && e.aggregateId == 'u3')
+        .where(
+            (e) => e.eventType == 'user_tier_changed' && e.aggregateId == 'u3')
         .length;
 
     // Assign another role that does NOT change the tier (still operator).
@@ -180,7 +178,8 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 100));
 
     final after = (await backend.readEventsReverse().toList())
-        .where((e) => e.eventType == 'user_tier_changed' && e.aggregateId == 'u3')
+        .where(
+            (e) => e.eventType == 'user_tier_changed' && e.aggregateId == 'u3')
         .length;
 
     expect(after, equals(before),

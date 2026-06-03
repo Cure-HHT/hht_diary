@@ -65,33 +65,36 @@ void main() {
   // Verifies: DIARY-DEV-operator-tier-authz/B — the target-bearing user-
   //   management permissions are user-scoped (gated on the target's tier),
   //   create is unscoped, and grant_role is the tier-scoped escalation axis.
-  test('DIARY-DEV-operator-tier-authz/B: user-management permission scoping', () {
-    // create stays unscoped (no target tier yet).
-    expect(portalPermissionsByActId['ACT-USR-001']!.scopeClass, isNull);
-    // every target-bearing user-management permission is `user`-scoped.
-    for (final actId in const <String>[
-      'ACT-USR-002',
-      'ACT-USR-003',
-      'ACT-USR-004',
-      'ACT-USR-005',
-      'ACT-USR-006',
-      'ACT-USR-007',
-      'ACT-USR-008',
-      'ACT-USR-009',
-      'ACT-USR-010',
-      'ACT-USR-011',
-    ]) {
-      expect(
-        portalPermissionsByActId[actId]!.scopeClass,
-        'user',
-        reason: '$actId must be user-scoped',
-      );
-    }
-    // grant_role is the tier-scoped escalation axis.
-    final grant = portalPermissionsByActId['ACT-USR-007-GRANT']!;
-    expect(grant.name, 'portal.user.grant_role');
-    expect(grant.scopeClass, 'tier');
-  });
+  test(
+    'DIARY-DEV-operator-tier-authz/B: user-management permission scoping',
+    () {
+      // create stays unscoped (no target tier yet).
+      expect(portalPermissionsByActId['ACT-USR-001']!.scopeClass, isNull);
+      // every target-bearing user-management permission is `user`-scoped.
+      for (final actId in const <String>[
+        'ACT-USR-002',
+        'ACT-USR-003',
+        'ACT-USR-004',
+        'ACT-USR-005',
+        'ACT-USR-006',
+        'ACT-USR-007',
+        'ACT-USR-008',
+        'ACT-USR-009',
+        'ACT-USR-010',
+        'ACT-USR-011',
+      ]) {
+        expect(
+          portalPermissionsByActId[actId]!.scopeClass,
+          'user',
+          reason: '$actId must be user-scoped',
+        );
+      }
+      // grant_role is the tier-scoped escalation axis.
+      final grant = portalPermissionsByActId['ACT-USR-007-GRANT']!;
+      expect(grant.name, 'portal.user.grant_role');
+      expect(grant.scopeClass, 'tier');
+    },
+  );
 
   // Verifies: DIARY-PRD-action-inventory/A
   test('ACT-SIT-001 portal.site.view is site-scoped', () {
