@@ -151,6 +151,10 @@ void main() {
 
     // 6. Drive the sync cycle and let fire-and-forget settle.
     await device.syncCycle.call();
+    // EventStore.append() fires an unawaited syncCycleTrigger that races ahead
+    // and sets the SyncCycle's reentrancy guard, making the explicit call()
+    // above a no-op.  The real drain completes in that background Future; this
+    // delay lets it settle before we query the portal store.
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
     // 7a. The diary_entries row materializes on the PORTAL store.
@@ -226,6 +230,9 @@ void main() {
       initiator: const AutomationInitiator(service: 'device'),
     );
     await device.syncCycle.call();
+    // Same race as above: the unawaited trigger from append() holds the
+    // reentrancy guard, so the explicit call() is a no-op; wait for the
+    // background drain to complete before asserting.
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
     final rowsOnce = await portalBackend.findViewRows(diaryEntriesViewName);
