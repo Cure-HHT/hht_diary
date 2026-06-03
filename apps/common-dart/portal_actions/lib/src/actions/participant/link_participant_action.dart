@@ -1,26 +1,31 @@
 // Implements: DIARY-PRD-action-inventory/A+C  (ACT-PAT-001 Link Participant; scoped)
 import 'package:event_sourcing/event_sourcing.dart';
 
+import '../../linking_code_generator.dart';
 import '../../portal_permissions.dart';
 
 class LinkParticipantInput {
   const LinkParticipantInput({
     required this.siteId,
     required this.participantId,
-    required this.linkingCode,
-    required this.expiresAt,
   });
   final String siteId;
   final String participantId;
-  final String linkingCode;
-  final String expiresAt;
 }
 
 class LinkParticipantResult {
-  const LinkParticipantResult({required this.participantId});
+  const LinkParticipantResult({
+    required this.participantId,
+    required this.linkingCode,
+    required this.expiresAt,
+  });
   final String participantId;
+  final String linkingCode;
+  final String expiresAt;
   Map<String, Object?> toJson() => <String, Object?>{
     'participantId': participantId,
+    'linkingCode': linkingCode,
+    'expiresAt': expiresAt,
   };
 }
 
@@ -28,7 +33,11 @@ class LinkParticipantResult {
 /// device with this trial site. Emits `participant_linking_code_issued`.
 class LinkParticipantAction
     extends Action<LinkParticipantInput, LinkParticipantResult> {
-  LinkParticipantAction();
+  LinkParticipantAction({this.linkingPrefix});
+
+  /// Sponsor prefix for generated codes; falls back to
+  /// [defaultSponsorLinkingPrefix] when null.
+  final String? linkingPrefix;
 
   @override
   String get name => 'ACT-PAT-001';
@@ -50,21 +59,14 @@ class LinkParticipantAction
   LinkParticipantInput parseInput(Map<String, Object?> raw) {
     final siteId = raw['siteId'];
     final participantId = raw['participantId'];
-    final linkingCode = raw['linkingCode'];
-    final expiresAt = raw['expiresAt'];
-    if (siteId is! String ||
-        participantId is! String ||
-        linkingCode is! String ||
-        expiresAt is! String) {
+    if (siteId is! String || participantId is! String) {
       throw const FormatException(
-        'LinkParticipantAction expects {siteId, participantId, linkingCode, expiresAt}: String',
+        'LinkParticipantAction expects {siteId, participantId}: String',
       );
     }
     return LinkParticipantInput(
       siteId: siteId.trim(),
       participantId: participantId.trim(),
-      linkingCode: linkingCode.trim(),
-      expiresAt: expiresAt.trim(),
     );
   }
 
@@ -80,20 +82,6 @@ class LinkParticipantAction
         'must be non-empty',
       );
     }
-    if (input.linkingCode.isEmpty) {
-      throw ArgumentError.value(
-        input.linkingCode,
-        'linkingCode',
-        'must be non-empty',
-      );
-    }
-    if (input.expiresAt.isEmpty) {
-      throw ArgumentError.value(
-        input.expiresAt,
-        'expiresAt',
-        'must be non-empty',
-      );
-    }
   }
 
   @override
@@ -102,13 +90,25 @@ class LinkParticipantAction
       ? BoundScope(class_: 'site', value: input.siteId)
       : null;
 
+  // Implements: DIARY-DEV-linking-code-lifecycle/A — generate the code +
+  //   72h expiry server-side (deterministic from ctx.requestStartedAt) and emit
+  //   the full participant_linking_code_issued contract.
   @override
   Future<ExecutionResult<LinkParticipantResult>> execute(
     LinkParticipantInput input,
     ActionContext ctx,
   ) async {
+    final code = generateLinkingCode(prefix: linkingPrefix);
+    final expiresAt = ctx.requestStartedAt
+        .toUtc()
+        .add(const Duration(hours: 72))
+        .toIso8601String();
     return ExecutionResult<LinkParticipantResult>(
-      result: LinkParticipantResult(participantId: input.participantId),
+      result: LinkParticipantResult(
+        participantId: input.participantId,
+        linkingCode: code,
+        expiresAt: expiresAt,
+      ),
       events: <EventDraft>[
         EventDraft(
           aggregateType: 'participant',
@@ -116,10 +116,14 @@ class LinkParticipantAction
           entryType: 'participant_linking_code_issued',
           eventType: 'participant_linking_code_issued',
           data: <String, Object?>{
-            'linking_code': input.linkingCode,
+            'linking_code': code,
+            'participant_id': input.participantId,
+            'site_id': input.siteId,
             'generated_by': ctx.principal.id,
-            'expires_at': input.expiresAt,
+            'expires_at': expiresAt,
             'purpose': 'link',
+            'status': 'active',
+            'mobile_linking_status': 'linking_in_progress',
           },
         ),
       ],
