@@ -84,6 +84,7 @@ Future<EventStore> openPortalEventStore({
   final projections = ProjectionRegistry()
     ..register(rolePermissionGrantsSpec)
     ..register(userRoleScopesSpec)
+    ..register(userTierIndexSpec)
     ..register(participantSiteIndexSpec)
     ..register(sitesIndexSpec)
     ..register(participantRecordSpec)

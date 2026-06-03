@@ -55,4 +55,6 @@ final List<EntryTypeDefinition> portalPrivateEventTypes = <EntryTypeDefinition>[
   _e('email_failed', 'Email Failed'),
   // 4.14 system_config
   _e('system_config_changed', 'System Config Changed'),
+  // 4.2 portal_user (operator-tier authz)
+  _e('user_tier_changed', 'User Tier Changed'),
 ];

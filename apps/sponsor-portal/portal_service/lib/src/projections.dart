@@ -20,6 +20,22 @@ final TableProjectionSpec participantSiteIndexSpec = TableProjectionSpec(
   rowData: const SelectedFields(['participant_id', 'site_id']),
 );
 
+// Implements: DIARY-DEV-operator-tier-authz/A — user_tier_index maps user_id ->
+//   tier (operator|staff) by folding user_tier_changed events (emitted by the
+//   user_tier_reactor in a later task). Upsert by user_id. Backs the
+//   user-contained-in-tier containment the policy reads.
+final TableProjectionSpec userTierIndexSpec = TableProjectionSpec(
+  viewName: 'user_tier_index',
+  interest: const SubscriptionFilter(
+    eventTypes: {'user_tier_changed'},
+    aggregateTypes: {'portal_user'},
+  ),
+  insertEventTypes: const {'user_tier_changed'},
+  removeEventTypes: const {},
+  rowKey: const CompositeKey(['data.user_id']),
+  rowData: const SelectedFields(['user_id', 'tier']),
+);
+
 // Implements: DIARY-DEV-rave-edc-ingest/A — sites_index materializes the portal's
 //   site list from RAVE-sourced site_synced_from_edc events. Re-sync upserts by
 //   site_id; deactivation is is_active=false via re-sync (no row removal).
