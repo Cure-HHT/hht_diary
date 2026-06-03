@@ -22,7 +22,7 @@ Dart library containing business logic for the HHT Diary API.
 **user_site_assignments** - Links app users to clinical sites
 - `participant_id`: References app_users.user_id
 - `site_id`: Clinical trial site
-- `study_patient_id`: De-identified ID from sponsor EDC
+- `study_participant_id`: De-identified ID from sponsor EDC
 - `enrollment_status`: ACTIVE, COMPLETED, WITHDRAWN
 
 **patient_linking_codes** - One-time codes for patient-app linking (generated via sponsor portal)
