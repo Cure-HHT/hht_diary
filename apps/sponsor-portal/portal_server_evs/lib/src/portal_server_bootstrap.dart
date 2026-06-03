@@ -507,7 +507,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
 
   // Patient clinical-record ingest (public; in-handler patient-JWT auth). Seam-
   // isolated for the deferred edge/core split.
-  // Implements: DIARY-DEV-patient-ingest/A
+  // Implements: DIARY-DEV-participant-ingest/A
   final ingestHandler = const Pipeline()
       .addMiddleware(_cors())
       .addHandler(patientIngestHandler(eventStore: eventStore));

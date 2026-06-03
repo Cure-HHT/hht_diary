@@ -1,4 +1,4 @@
-// Verifies: DIARY-DEV-patient-ingest/A+C+D — device batch ingests through the
+// Verifies: DIARY-DEV-participant-ingest/A+C+D — device batch ingests through the
 //   real portal /ingest; receiver hop appended; participantId rides the aggregate
 //   id; redelivery is idempotent.
 import 'dart:async';

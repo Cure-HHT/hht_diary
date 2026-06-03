@@ -1,4 +1,4 @@
-// Verifies: DIARY-DEV-patient-ingest/C — ingested diary events materialize into
+// Verifies: DIARY-DEV-participant-ingest/C — ingested diary events materialize into
 //   the diary_entries view on the portal store.
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';

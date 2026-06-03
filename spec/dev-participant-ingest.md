@@ -1,4 +1,4 @@
-# DIARY-DEV-patient-ingest: Patient Clinical-Record Ingest Edge
+# DIARY-DEV-participant-ingest: Participant Clinical-Record Ingest Edge
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-audit-trail
@@ -18,6 +18,6 @@ D. The cross-wire *Participant* identity key SHALL be `participantId`, carried i
 
 ## Rationale
 
-The clinical record flows device to server as native `esd/batch@1` sync. This requirement pins the server's obligations at the *Patient*-facing ingest edge: a public endpoint, a bearer-token gate ahead of ingest, idempotent hash-chain-verifying admission with a receiver provenance hop, and the `participantId` cross-wire key carried inside aggregate ids rather than as a separate field. It is worded node-neutrally: this phase realizes the edge on the *Sponsor Portal* server (device to portal direct); the deferred edge/core split relocates the same edge to a dedicated *Diary*-server without changing the contract.
+The clinical record flows device to server as native `esd/batch@1` sync. This requirement pins the server's obligations at the *Participant*-facing ingest edge: a public endpoint, a bearer-token gate ahead of ingest, idempotent hash-chain-verifying admission with a receiver provenance hop, and the `participantId` cross-wire key carried inside aggregate ids rather than as a separate field. It is worded node-neutrally: this phase realizes the edge on the *Sponsor Portal* server (device to portal direct); the deferred edge/core split relocates the same edge to a dedicated *Diary*-server without changing the contract.
 
-*End* *Patient Clinical-Record Ingest Edge* | **Hash**: fea6f77a
+*End* *Participant Clinical-Record Ingest Edge* | **Hash**: fea6f77a

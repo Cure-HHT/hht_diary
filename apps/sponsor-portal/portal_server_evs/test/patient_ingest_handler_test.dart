@@ -1,4 +1,4 @@
-// Verifies: DIARY-DEV-patient-ingest/A+B — public ingest edge; auth gate before ingest.
+// Verifies: DIARY-DEV-participant-ingest/A+B — public ingest edge; auth gate before ingest.
 import 'dart:typed_data';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_server_evs/src/patient_ingest_handler.dart';

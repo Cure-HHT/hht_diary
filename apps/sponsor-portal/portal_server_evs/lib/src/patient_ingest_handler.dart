@@ -1,6 +1,6 @@
-// Implements: DIARY-DEV-patient-ingest/A — public ingest edge admitting esd/batch@1.
-// Implements: DIARY-DEV-patient-ingest/B — bearer patient-token auth before ingest.
-// Implements: DIARY-DEV-patient-ingest/C — idempotent, hash-chain-verifying ingest;
+// Implements: DIARY-DEV-participant-ingest/A — public ingest edge admitting esd/batch@1.
+// Implements: DIARY-DEV-participant-ingest/B — bearer patient-token auth before ingest.
+// Implements: DIARY-DEV-participant-ingest/C — idempotent, hash-chain-verifying ingest;
 //   the receiving node appends its receiver provenance hop (done inside ingestBatch).
 import 'dart:convert';
 import 'dart:typed_data';

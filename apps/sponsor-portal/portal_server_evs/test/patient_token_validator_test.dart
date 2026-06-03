@@ -1,4 +1,4 @@
-// Verifies: DIARY-DEV-patient-ingest/B — patient bearer token verification.
+// Verifies: DIARY-DEV-participant-ingest/B — patient bearer token verification.
 import 'package:portal_server_evs/src/patient_token_validator.dart';
 import 'package:test/test.dart';
 

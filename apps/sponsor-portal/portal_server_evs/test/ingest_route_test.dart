@@ -1,4 +1,4 @@
-// Verifies: DIARY-DEV-patient-ingest/A+B — /ingest is mounted public and gated.
+// Verifies: DIARY-DEV-participant-ingest/A+B — /ingest is mounted public and gated.
 import 'dart:typed_data';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_server_evs/portal_server_evs.dart';

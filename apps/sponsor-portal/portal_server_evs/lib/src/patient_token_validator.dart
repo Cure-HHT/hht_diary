@@ -1,4 +1,4 @@
-// Implements: DIARY-DEV-patient-ingest/B — stateless HS256 patient-token
+// Implements: DIARY-DEV-participant-ingest/B — stateless HS256 patient-token
 //   verification (copied from diary_functions/jwt.dart; no dependency on the
 //   legacy raw-Postgres package). createPatientJwt mints tokens for tests and
 //   for the deferred issuance endpoint.

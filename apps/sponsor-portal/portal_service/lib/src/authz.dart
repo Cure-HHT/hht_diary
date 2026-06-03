@@ -92,7 +92,7 @@ Future<EventStore> openPortalEventStore({
     ..register(usersIndexSpec)
     ..register(sessionsIndexSpec)
     ..register(raveSyncStatusSpec)
-    // Implements: DIARY-DEV-patient-ingest/C — ingested diary events materialize
+    // Implements: DIARY-DEV-participant-ingest/C — ingested diary events materialize
     //   into the diary_entries view.
     ..register(diaryEntriesProjection);
 
