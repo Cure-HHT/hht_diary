@@ -31,16 +31,29 @@ import 'actions/views/view_sites_action.dart';
 import 'flow_token_minter.dart';
 
 /// Build the portal's ActionRegistry. Extend as concrete actions land.
-ActionRegistry buildPortalActionRegistry({FlowTokenMinter? flowTokenMinter}) {
+ActionRegistry buildPortalActionRegistry({
+  FlowTokenMinter? flowTokenMinter,
+  String linkingPrefix = 'XX',
+}) {
   final minter = flowTokenMinter ?? SerialFlowTokenMinter();
   final registry = ActionRegistry()
     ..register(DeactivateUserAccountAction())
-    ..register(LinkParticipantAction())
+    ..register(LinkParticipantAction(linkingPrefix: linkingPrefix))
     ..register(StartTrialAction(flowTokenMinter: minter))
     ..register(DisconnectParticipantAction(flowTokenMinter: minter))
-    ..register(ReconnectParticipantAction(flowTokenMinter: minter))
+    ..register(
+      ReconnectParticipantAction(
+        flowTokenMinter: minter,
+        linkingPrefix: linkingPrefix,
+      ),
+    )
     ..register(MarkNotParticipatingAction(flowTokenMinter: minter))
-    ..register(ReactivateParticipantAction(flowTokenMinter: minter))
+    ..register(
+      ReactivateParticipantAction(
+        flowTokenMinter: minter,
+        linkingPrefix: linkingPrefix,
+      ),
+    )
     ..register(ViewParticipantAction())
     ..register(SendQuestionnaireAction(flowTokenMinter: minter))
     ..register(CallBackQuestionnaireAction(flowTokenMinter: minter))

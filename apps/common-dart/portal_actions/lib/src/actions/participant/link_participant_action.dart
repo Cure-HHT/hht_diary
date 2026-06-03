@@ -33,11 +33,11 @@ class LinkParticipantResult {
 /// device with this trial site. Emits `participant_linking_code_issued`.
 class LinkParticipantAction
     extends Action<LinkParticipantInput, LinkParticipantResult> {
-  LinkParticipantAction({this.linkingPrefix});
+  LinkParticipantAction({this.linkingPrefix = 'XX'});
 
-  /// Sponsor prefix for generated codes; falls back to
-  /// [defaultSponsorLinkingPrefix] when null.
-  final String? linkingPrefix;
+  /// Sponsor prefix for generated codes; injected at server boot from
+  /// SPONSOR_LINKING_PREFIX (default 'XX').
+  final String linkingPrefix;
 
   @override
   String get name => 'ACT-PAT-001';

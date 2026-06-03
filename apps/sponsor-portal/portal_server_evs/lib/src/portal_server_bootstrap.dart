@@ -299,9 +299,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
     provision: IdentityAdmin.lookupOrProvisionByEmail,
   );
 
-  // 6. Dispatcher (registers all portal actions).
+  // 6. Dispatcher (registers all portal actions). The sponsor linking-code
+  //    prefix is read here at boot and injected, keeping portal_actions
+  //    dart:io-free (see generateLinkingCode).
   final dispatcher = await buildPortalDispatcher(
-      eventStore: eventStore, idempotency: idempotency);
+      eventStore: eventStore,
+      idempotency: idempotency,
+      linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX');
 
   // 7. Validator selection — default is dev so the existing admin-1/sc-1
   //    workflow is unchanged. Set PORTAL_AUTH_MODE=session + PORTAL_SESSION_SIGNING_KEY

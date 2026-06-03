@@ -13,6 +13,7 @@ import 'authz.dart';
 Future<ActionDispatcher> buildPortalDispatcher({
   required EventStore eventStore,
   IdempotencyStore? idempotency,
+  String linkingPrefix = 'XX',
 }) async {
   final bootstrap = await buildPortalAuthorizationPolicy(
     eventStore: eventStore,
@@ -28,7 +29,7 @@ Future<ActionDispatcher> buildPortalDispatcher({
   }
 
   return ActionDispatcher(
-    registry: buildPortalActionRegistry(),
+    registry: buildPortalActionRegistry(linkingPrefix: linkingPrefix),
     authorization: policy,
     events: eventStore,
     idempotency: idempotency ?? InMemoryIdempotencyStore(),

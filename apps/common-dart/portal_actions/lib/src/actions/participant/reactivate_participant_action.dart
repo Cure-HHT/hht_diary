@@ -42,13 +42,13 @@ class ReactivateParticipantAction
     extends Action<ReactivateParticipantInput, ReactivateParticipantResult> {
   ReactivateParticipantAction({
     required this.flowTokenMinter,
-    this.linkingPrefix,
+    this.linkingPrefix = 'XX',
   });
   final FlowTokenMinter flowTokenMinter;
 
-  /// Sponsor prefix for generated codes; falls back to
-  /// [defaultSponsorLinkingPrefix] when null.
-  final String? linkingPrefix;
+  /// Sponsor prefix for generated codes; injected at server boot from
+  /// SPONSOR_LINKING_PREFIX (default 'XX').
+  final String linkingPrefix;
 
   @override
   String get name => 'ACT-PAT-006';
