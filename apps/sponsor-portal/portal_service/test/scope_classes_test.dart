@@ -11,4 +11,15 @@ void main() {
     expect(participant.containedIn!.projection, 'participant_site_index');
     expect(reg.isAncestor('site', 'participant'), isTrue);
   });
+
+  // Verifies: DIARY-DEV-operator-tier-authz/B
+  test('registry builds with tier + user-contained-in-tier', () {
+    final reg = buildPortalScopeRegistry();
+    expect(reg.byName('tier'), isNotNull);
+    final user = reg.byName('user');
+    expect(user, isNotNull);
+    expect(user!.containedIn!.parentClass, 'tier');
+    expect(user.containedIn!.projection, 'user_tier_index');
+    expect(reg.isAncestor('tier', 'user'), isTrue);
+  });
 }

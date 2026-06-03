@@ -14,10 +14,24 @@ class _ParticipantSiteIndexDescriptor implements ScopeProjectionDescriptor {
   Set<String> get columns => const <String>{'participant_id', 'site_id'};
 }
 
+/// Descriptor for the `user_tier_index` projection the containment resolver
+/// reads to answer "what tier is user U assigned to?". The registry only needs
+/// the column set to validate the containment reference; the row contents are
+/// produced by the production materializer.
+// Implements: DIARY-DEV-operator-tier-authz/B
+class _UserTierIndexDescriptor implements ScopeProjectionDescriptor {
+  const _UserTierIndexDescriptor();
+
+  @override
+  Set<String> get columns => const <String>{'user_id', 'tier'};
+}
+
 /// The portal's scope-class registry: a top-level `site` class plus a
 /// `participant` class contained in `site` via the `participant_site_index`
 /// projection. A site-bound role assignment therefore covers participant-
 /// scoped permissions for every participant the index maps to that site.
+/// Also registers a top-level `tier` class and a `user` class contained in
+/// `tier` via the `user_tier_index` projection, enabling operator-tier authz.
 ScopeClassRegistry buildPortalScopeRegistry() {
   return ScopeClassRegistry(
     classes: const <ScopeClassSpec>[
@@ -31,9 +45,22 @@ ScopeClassRegistry buildPortalScopeRegistry() {
           parentColumn: 'site_id',
         ),
       ),
+      // Implements: DIARY-DEV-operator-tier-authz/B
+      ScopeClassSpec(name: 'tier'),
+      ScopeClassSpec(
+        name: 'user',
+        containedIn: ContainmentReference(
+          parentClass: 'tier',
+          projection: 'user_tier_index',
+          keyColumn: 'user_id',
+          parentColumn: 'tier',
+        ),
+      ),
     ],
-    projectionLookup: (name) => name == 'participant_site_index'
-        ? const _ParticipantSiteIndexDescriptor()
-        : null,
+    projectionLookup: (name) => switch (name) {
+      'participant_site_index' => const _ParticipantSiteIndexDescriptor(),
+      'user_tier_index' => const _UserTierIndexDescriptor(),
+      _ => null,
+    },
   );
 }
