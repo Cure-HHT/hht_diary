@@ -108,6 +108,58 @@ void main() {
         reason: 'non-operator role must yield staff tier');
   });
 
+  // Verifies: DIARY-DEV-operator-tier-authz/A
+  test('user_created seeds a staff tier row immediately', () async {
+    final reactor = UserTierReactor(eventStore: store, backend: backend)
+      ..start();
+    addTearDown(reactor.stop);
+
+    // Emit user_created for a brand-new user u9 (no prior role assignments).
+    await store.append(
+      entryType: 'user_created',
+      aggregateType: 'portal_user',
+      aggregateId: 'u9',
+      eventType: 'user_created',
+      data: const {'email': 'u9@example.com', 'status': 'pending'},
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    final rows = await backend.findViewRows('user_tier_index');
+    expect(_tierFor(rows, 'u9'), equals('staff'),
+        reason: 'user_created must seed a staff tier row in user_tier_index');
+  });
+
+  test(
+      'user_created then role_assigned(SystemOperator) ends at operator tier',
+      () async {
+    final reactor = UserTierReactor(eventStore: store, backend: backend)
+      ..start();
+    addTearDown(reactor.stop);
+
+    await store.append(
+      entryType: 'user_created',
+      aggregateType: 'portal_user',
+      aggregateId: 'u10',
+      eventType: 'user_created',
+      data: const {'email': 'u10@example.com', 'status': 'pending'},
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    var rows = await backend.findViewRows('user_tier_index');
+    expect(_tierFor(rows, 'u10'), equals('staff'),
+        reason: 'initial tier after user_created must be staff');
+
+    await _appendRoleAssigned(store, userId: 'u10', role: 'SystemOperator');
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    rows = await backend.findViewRows('user_tier_index');
+    expect(_tierFor(rows, 'u10'), equals('operator'),
+        reason:
+            'user_created followed by SystemOperator assignment must end at operator');
+  });
+
   test('no duplicate user_tier_changed events when tier does not change',
       () async {
     final reactor = UserTierReactor(eventStore: store, backend: backend)
