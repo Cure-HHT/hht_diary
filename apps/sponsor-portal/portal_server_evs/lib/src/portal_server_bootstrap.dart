@@ -23,6 +23,7 @@ import 'otp_store.dart';
 import 'password_reset_code_store.dart';
 import 'password_reset_routes.dart';
 import 'patient_ingest_handler.dart';
+import 'patient_link_handler.dart';
 import 'session_cascade_reactor.dart';
 import 'session_store.dart';
 import 'session_token_validator.dart';
@@ -527,6 +528,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
       .addMiddleware(_cors())
       .addHandler(patientIngestHandler(eventStore: eventStore));
 
+  // Patient linking-code redemption (public; validates code, mints JWT, consumes
+  // code). Seam-isolated for the deferred edge/core split, like /ingest.
+  // Implements: DIARY-DEV-participant-link-issuance/A
+  final linkHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(patientLinkHandler(eventStore: eventStore));
+
   final topRouter = Router()
     ..get('/subscriptions', handlers.subscriptions(validator))
     // Activation routes (public).
@@ -549,7 +557,10 @@ Future<PortalServerBoot> bootstrapPortalServer({
     ..post('/password-reset', passwordResetHandler)
     // Patient clinical-record ingest (public).
     ..options('/ingest', ingestHandler)
-    ..post('/ingest', ingestHandler);
+    ..post('/ingest', ingestHandler)
+    // Patient linking-code redemption (public).
+    ..options('/api/v1/user/link', linkHandler)
+    ..post('/api/v1/user/link', linkHandler);
 
   // Dev-only: /dev/users exposes the role-assignment list so the dev
   // ConnectScreen can populate a dropdown. Not mounted in session mode.
