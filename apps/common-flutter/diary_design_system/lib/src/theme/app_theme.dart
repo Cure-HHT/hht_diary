@@ -57,18 +57,20 @@ ThemeData buildAppTheme({
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: colorScheme.surfaceContainerLow,
+      fillColor: colorScheme.surface,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: SpacingTokens.md,
         vertical: SpacingTokens.sm,
       ),
+      // Input borders use the lighter outlineVariant (Figma "Light Gray"
+      // #ECEEF0) — outline (#A4B9C2) is too heavy for form fields.
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(RadiusTokens.md),
-        borderSide: BorderSide(color: colorScheme.outline),
+        borderSide: BorderSide(color: colorScheme.outlineVariant),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(RadiusTokens.md),
-        borderSide: BorderSide(color: colorScheme.outline),
+        borderSide: BorderSide(color: colorScheme.outlineVariant),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(RadiusTokens.md),

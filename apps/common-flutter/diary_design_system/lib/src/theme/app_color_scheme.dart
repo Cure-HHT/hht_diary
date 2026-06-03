@@ -44,6 +44,9 @@ ColorScheme buildAppLightColorScheme({BrandPalette? brandOverride}) {
 
     outline: ColorTokens.neutral300,
     outlineVariant: ColorTokens.neutral200,
+    // Dark Grey (#54636A) for secondary text — column labels, helper text,
+    // disabled labels, etc.
+    onSurfaceVariant: ColorTokens.darkGrey,
 
     shadow: ColorTokens.neutral1000,
     scrim: ColorTokens.neutral1000,
