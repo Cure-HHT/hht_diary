@@ -23,6 +23,7 @@ import 'password_reset_code_store.dart';
 import 'password_reset_routes.dart';
 import 'session_cascade_reactor.dart';
 import 'session_store.dart';
+import 'user_tier_reactor.dart';
 import 'session_token_validator.dart';
 
 /// Composed server: the top-level shelf [router] (ready for shelf_io.serve),
@@ -368,6 +369,12 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final sessionCascadeReactor =
       SessionCascadeReactor(eventStore: eventStore, backend: backend)..start();
 
+  // 7e. User tier reactor — keeps user_tier_index correct by emitting
+  //     user_tier_changed whenever a user's SystemOperator assignment changes.
+  // Implements: DIARY-DEV-operator-tier-authz/A
+  final userTierReactor =
+      UserTierReactor(eventStore: eventStore, backend: backend)..start();
+
   final handlers = ReactionHandlers(
     eventStore: eventStore,
     dispatcher: dispatcher,
@@ -523,6 +530,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   Future<void> dispose() async {
     await activationReactor.stop();
     await sessionCascadeReactor.stop();
+    await userTierReactor.stop();
     await handlers.dispose();
     await eventStore.close();
   }
