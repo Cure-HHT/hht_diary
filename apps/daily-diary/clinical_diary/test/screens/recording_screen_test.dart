@@ -198,7 +198,13 @@ void main() {
     testWidgets(
       'Complete a brand-new entry -> one record_epistaxis_event submission',
       (tester) async {
-        await pumpScreen(tester);
+        // shortDurationConfirm enabled so the same-minute start/end this flow
+        // produces is allowed through the confirmation dialog (rather than
+        // blocked by the recording_screen end-time guard).
+        await pumpScreen(
+          tester,
+          rules: const ClinicalRules(shortDurationConfirm: true),
+        );
 
         // Step 1: confirm start -> intensity.
         await tester.tap(find.text('Set Start Time'));
@@ -213,8 +219,10 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Step 3: confirm end -> saves immediately (useReviewScreen=false).
+        // Step 3: confirm end -> short-duration confirmation -> saves.
         await tester.tap(find.text('Set End Time'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Yes'));
         await tester.pump();
 
         final s = submissionFor('record_epistaxis_event');
@@ -237,7 +245,12 @@ void main() {
       TimezoneService.instance.testTimezoneOverride = 'America/Los_Angeles';
       addTearDown(() => TimezoneService.instance.testTimezoneOverride = null);
 
-      await pumpScreen(tester);
+      // shortDurationConfirm enabled so the same-minute start/end this flow
+      // produces is allowed through the confirmation dialog.
+      await pumpScreen(
+        tester,
+        rules: const ClinicalRules(shortDurationConfirm: true),
+      );
       await tester.tap(find.text('Set Start Time'));
       await tester.pumpAndSettle();
       await tester.tap(
@@ -248,6 +261,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Set End Time'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Yes'));
       await tester.pump();
 
       final s = submissionFor('record_epistaxis_event');
@@ -270,11 +285,20 @@ void main() {
           isComplete: false,
         );
 
-        await pumpScreen(tester, existing: existing);
+        // shortDurationConfirm enabled so the same-minute end this flow
+        // produces (end picker defaults to _startDateTime) is allowed through
+        // the confirmation dialog.
+        await pumpScreen(
+          tester,
+          existing: existing,
+          rules: const ClinicalRules(shortDurationConfirm: true),
+        );
         // Lands on the end-time step.
         expect(find.text('Nosebleed End Time'), findsOneWidget);
 
         await tester.tap(find.text('Set End Time'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Yes'));
         await tester.pump();
 
         final s = submissionFor('edit_epistaxis_event');
