@@ -20,6 +20,8 @@
 - DIARY-DEV-inbound-event-on-receipt-B
 - DIARY-DEV-inbound-event-on-receipt-C
 - DIARY-DEV-portal-reaction-server-B
+- DIARY-DEV-operator-tier-authz-C
+- DIARY-DEV-operator-tier-authz-F
 - DIARY-GUI-administrator-settings-B
 - DIARY-GUI-administrator-settings-G
 - DIARY-GUI-audit-log-common-A
@@ -99,6 +101,8 @@
 - DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-DEV-user-account-projection:section:1
+- DIARY-DEV-operator-tier-authz:section:0
+- DIARY-DEV-operator-tier-authz:section:1
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -178,6 +182,7 @@
 - DIARY-GUI-administrator-dashboard
 - DIARY-BASE-ops-action-inventory-B
 - DIARY-DEV-user-account-projection-C
+- DIARY-DEV-operator-tier-authz-E
 - DIARY-GUI-administrator-settings-A
 - DIARY-GUI-administrator-settings-B
 - DIARY-GUI-audit-log-administrator-A
@@ -214,6 +219,8 @@
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
+- DIARY-DEV-operator-tier-authz:section:0
+- DIARY-DEV-operator-tier-authz:section:1
 - rem:spec/prd-administrator-settings.md:1
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -314,6 +321,7 @@
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-audit-log-read:section:0
 - DIARY-DEV-audit-log-read:section:1
+- DIARY-DEV-operator-tier-authz:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-PRD-entry-time-restrictions:section:4
@@ -658,6 +666,7 @@
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
+- DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
@@ -1589,6 +1598,7 @@
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
+- DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/glossary-core.md:745
 - DIARY-GUI-audit-log-study-coordinator:section:0
@@ -2243,6 +2253,9 @@
 - DIARY-DEV-portal-reaction-server-B
 - DIARY-DEV-user-account-projection-C
 - DIARY-DEV-portal-durable-event-store-C
+- DIARY-DEV-operator-tier-authz-A
+- DIARY-DEV-operator-tier-authz-D
+- DIARY-DEV-operator-tier-authz-E
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-session-management-F
 - DIARY-OPS-rave-unwedge-authz-A
@@ -2285,6 +2298,8 @@
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
 - DIARY-DEV-portal-durable-event-store:section:1
+- DIARY-DEV-operator-tier-authz:section:0
+- DIARY-DEV-operator-tier-authz:section:1
 - rem:spec/glossary-core.md:745
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -3114,6 +3129,7 @@
 
 - DIARY-DEV-portal-user-activated-binding
 - DIARY-DEV-user-account-projection
+- DIARY-DEV-operator-tier-authz
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
 - DIARY-PRD-user-account-create
@@ -3141,6 +3157,10 @@
 - DIARY-DEV-portal-reset-session-termination-A
 - DIARY-DEV-user-account-projection-A
 - DIARY-DEV-user-account-projection-C
+- DIARY-DEV-operator-tier-authz-A
+- DIARY-DEV-operator-tier-authz-B
+- DIARY-DEV-operator-tier-authz-C
+- DIARY-DEV-operator-tier-authz-F
 - DIARY-GUI-audit-log-common-A
 - DIARY-GUI-audit-log-common-C
 - DIARY-GUI-audit-log-administrator-A
@@ -3273,6 +3293,7 @@
 - DIARY-DEV-portal-reset-session-termination:section:0
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
+- DIARY-DEV-operator-tier-authz:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
 - rem:spec/prd-audit-log.md:3
@@ -3420,6 +3441,7 @@
 - DIARY-DEV-portal-session-token:section:0
 - DIARY-DEV-portal-session-token:section:1
 - DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-operator-tier-authz:section:0
 - DIARY-PRD-password-forgot:section:0
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-PRD-action-inventory:section:1

@@ -276,3 +276,32 @@ the always-fresh in-memory store, a durable store would otherwise accumulate dup
 *Role*-assignment events on every restart.
 
 *End* *Durable, environment-selected event store* | **Hash**: cfb9c8c5
+
+## DIARY-DEV-operator-tier-authz: Operator-Tier Authorization for User Management
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-user-account-edit
+
+### Overview
+
+The **System Operator** is the recovery tier of last resort; letting a regular **Administrator** modify a **System Operator** *User Account* or grant the **System Operator** *Role* is a denial-of-service and privilege-escalation vector. The library's authorization model is actor-permission+scope only — it cannot inspect an *Action*'s target and apps cannot subclass the policy — so target protection is realized as a `tier` scope class with `user → tier` containment, keeping the decision in the substrate and recorded as an auditable event on every enforcement path. The **System Operator** legitimately holds *User*-management permissions because it provisions **Administrator** accounts and other **System Operator** accounts; it holds no *Participant*-facing or clinical permissions (see `DIARY-BASE-system-operator-role/B`).
+
+### Assertions
+
+A. The portal SHALL materialize a `user_tier_index` projection by folding `user_created`, `role_assigned`, and `role_unassigned` events to a `user_id → tier` mapping, where `tier` is `operator` if the *User* currently holds the **System Operator** *Role* and `staff` otherwise.
+
+B. The portal scope registry SHALL declare a `tier` scope class and a `user` scope class contained in `tier` via `user_tier_index`; the target-bearing `portal.user.*` permissions SHALL declare scope class `user`.
+
+C. Each *User*-account *Action* SHALL resolve its authorization scope to the target *User*; the authorization policy SHALL deny the *Action* when the requester's tier coverage does not contain the target *User*'s tier.
+
+D. Assigning a *Role* SHALL additionally require a grant-*Role* permission scoped to the tier of the *Role* being granted; granting the **System Operator** *Role* SHALL require operator-tier coverage.
+
+E. **Administrator** *Role* assignments SHALL carry staff-tier coverage; **System Operator** *Role* assignments SHALL carry coverage spanning all tiers; both SHALL be established at the bootstrap seed and the account-creation paths.
+
+F. Authorization denials on *User*-account *Action* paths SHALL be recorded as audited *Action*-denial events.
+
+### Rationale
+
+The operator-tier containment model keeps the enforcement decision inside the substrate (the authorization policy evaluates it transactionally alongside every *Action*) rather than adding a separate pre-check in each *Action* handler. A `tier` scope class with `user_tier_index` as its containment resolver means an **Administrator**'s staff-tier *Role* assignment naturally fails the containment test against an operator-tier target, and a **System Operator**'s all-tier assignment passes for both tiers. The same mechanism gates *Role*-granting: the grant-*Role* permission is scoped to the tier of the *Role* being granted, so only a principal with operator-tier coverage can issue **System Operator** *Role* assignments. All denials are recorded as audited *Action*-denial events so the *Audit Trail* captures attempted escalations as well as successful operations.
+
+*End* *Operator-Tier Authorization for User Management* | **Hash**: cda9a051

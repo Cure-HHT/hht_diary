@@ -85,8 +85,8 @@
 | DIARY-PRD-user-account-activation-resend         | Resend Activation Email                                  | prd-user-account.md                       | fb61a75a |
 | DIARY-PRD-user-account-activation-workflow       | Account Activation Workflow                              | prd-user-account.md                       | bc27bb86 |
 | DIARY-PRD-user-account-create                    | Create User Account                                      | prd-user-account.md                       | 862753f8 |
-| DIARY-PRD-user-account-deactivate                | Deactivate User Account                                  | prd-user-account.md                       | 7e1c1907 |
-| DIARY-PRD-user-account-edit                      | Edit User Account                                        | prd-user-account.md                       | 9565897b |
+| DIARY-PRD-user-account-deactivate                | Deactivate User Account                                  | prd-user-account.md                       | a3cf00fe |
+| DIARY-PRD-user-account-edit                      | Edit User Account                                        | prd-user-account.md                       | 3ecfa0d9 |
 | DIARY-PRD-user-account-reactivate                | Reactivate User Account                                  | prd-user-account.md                       | eb83c7e5 |
 | DIARY-PRD-user-account-site-assignment           | Site Assignment                                          | prd-user-account.md                       | 3aa95698 |
 | DIARY-PRD-user-authentication                    | Diary User Authentication                                | prd-mobile-app.md                         | c516100c |
@@ -162,6 +162,7 @@
 | DIARY-DEV-local-participant-authorization    | On-Device Authorization Permits the Local Participant | dev-mobile-event-sourcing.md       | 5b6674c2 |
 | DIARY-DEV-native-outbound-sync               | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md       | 5b88b915 |
 | DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | d2cc0577 |
+| DIARY-DEV-operator-tier-authz                | Operator-Tier Authorization for User Management       | dev-portal-service.md              | cda9a051 |
 | DIARY-DEV-outgoing-intent-correlation        | Outgoing Intent and Flow Correlation                  | dev-outgoing-intent-correlation.md | 108441a8 |
 | DIARY-DEV-participant-site-index             | Participant-Site Index Materializer                   | dev-portal-service.md              | 76e68990 |
 | DIARY-DEV-participant-status-projection      | Participant Linking-Status Projection                 | dev-portal-service.md              | aafda27d |
