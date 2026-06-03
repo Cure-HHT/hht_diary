@@ -87,6 +87,7 @@ Future<EventStore> openPortalEventStore({
     ..register(userRoleScopesSpec)
     ..register(userTierIndexSpec)
     ..register(participantSiteIndexSpec)
+    ..register(linkingCodesSpec)
     ..register(sitesIndexSpec)
     ..register(participantRecordSpec)
     ..register(usersIndexSpec)

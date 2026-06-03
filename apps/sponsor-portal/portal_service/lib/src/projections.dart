@@ -56,10 +56,37 @@ final TableProjectionSpec sitesIndexSpec = TableProjectionSpec(
   ]),
 );
 
+// Implements: DIARY-DEV-linking-code-lifecycle/C — linking_codes folds the
+//   linking-code lifecycle (issued->active, used, revoked) into one row per
+//   normalized code (the /link lookup + reactor read this). Status is carried
+//   on each event's data; TableFold overwrites so the latest event's status wins.
+final TableProjectionSpec linkingCodesSpec = TableProjectionSpec(
+  viewName: 'linking_codes',
+  interest: const SubscriptionFilter(
+    eventTypes: {
+      'participant_linking_code_issued',
+      'participant_linking_code_used',
+      'participant_linking_code_revoked',
+    },
+    aggregateTypes: {'participant'},
+  ),
+  insertEventTypes: const {
+    'participant_linking_code_issued',
+    'participant_linking_code_used',
+    'participant_linking_code_revoked',
+  },
+  removeEventTypes: const {},
+  rowKey: const CompositeKey(['data.linking_code']),
+  rowData: const WholePayload(),
+);
+
 // Implements: DIARY-DEV-participant-status-projection/A+B — participant_record folds the
 //   participant linking-lifecycle events (excluding enrollment) into one row per
 //   participant; the fold stamps the latest event's entryType, from which the client
 //   derives linking status. pending->connected requires a diary participant_linked.
+// Implements: DIARY-DEV-linking-code-lifecycle/C — also folds the linking-code
+//   used/revoked lifecycle events, key-wise merging mobile_linking_status and
+//   app_uuid forward so the per-participant row reflects the latest link state.
 final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
   viewName: 'participant_record',
   interest: const SubscriptionFilter(
@@ -67,6 +94,8 @@ final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
     eventTypes: {
       'participant_synced_from_edc',
       'participant_linking_code_issued',
+      'participant_linking_code_used',
+      'participant_linking_code_revoked',
       'participant_linked',
       'participant_trial_started',
       'participant_disconnected',

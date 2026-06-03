@@ -17,7 +17,13 @@ void main() {
         aggregateId: 'P-1',
         aggregateType: 'participant',
         eventType: 'participant_linking_code_used',
-        data: const {'code': 'CAABCDE123', 'appUuid': 'dev-1'},
+        data: const {
+          'linking_code': 'CAABCDE123',
+          'participant_id': 'P-1',
+          'app_uuid': 'dev-1',
+          'status': 'used',
+          'mobile_linking_status': 'connected',
+        },
         initiator: const AutomationInitiator(service: 'test'),
       );
       await store.append(
@@ -25,7 +31,12 @@ void main() {
         aggregateId: 'P-1',
         aggregateType: 'participant',
         eventType: 'participant_linking_code_revoked',
-        data: const {'code': 'CAABCDE123', 'reason': 'superseded'},
+        data: const {
+          'linking_code': 'CAABCDE123',
+          'participant_id': 'P-1',
+          'reason': 'superseded',
+          'status': 'revoked',
+        },
         initiator: const AutomationInitiator(service: 'test'),
       );
       final events = await store.backend.readEventsReverse().toList();
