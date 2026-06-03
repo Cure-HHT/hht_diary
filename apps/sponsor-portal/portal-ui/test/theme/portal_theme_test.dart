@@ -1,8 +1,4 @@
-// Tests for portal theme and status colors
-//
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00029: Portal UI Design System
-
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sponsor_portal_ui/theme/portal_theme.dart';
@@ -17,50 +13,49 @@ void main() {
       expect(portalTheme.colorScheme.brightness, Brightness.light);
     });
 
-    test('has correct text theme sizes', () {
-      expect(portalTheme.textTheme.displayLarge?.fontSize, 32);
-      expect(portalTheme.textTheme.displayMedium?.fontSize, 24);
-      expect(portalTheme.textTheme.displaySmall?.fontSize, 20);
-      expect(portalTheme.textTheme.bodyLarge?.fontSize, 16);
-      expect(portalTheme.textTheme.bodyMedium?.fontSize, 14);
-      expect(portalTheme.textTheme.bodySmall?.fontSize, 12);
-    });
-
-    test('card theme has elevation', () {
-      expect(portalTheme.cardTheme.elevation, 2);
-    });
+    test(
+      'text theme uses the Material 3 type scale from diary_design_system',
+      () {
+        // Display sizes follow the Material 3 reference scale (was 32/24/20
+        // in the legacy portalTheme — superseded by the shared design system).
+        expect(portalTheme.textTheme.displayLarge?.fontSize, 57);
+        expect(portalTheme.textTheme.displayMedium?.fontSize, 45);
+        expect(portalTheme.textTheme.displaySmall?.fontSize, 36);
+        // Body sizes are unchanged.
+        expect(portalTheme.textTheme.bodyLarge?.fontSize, 16);
+        expect(portalTheme.textTheme.bodyMedium?.fontSize, 14);
+        expect(portalTheme.textTheme.bodySmall?.fontSize, 12);
+      },
+    );
 
     test('input decoration theme is filled', () {
       expect(portalTheme.inputDecorationTheme.filled, isTrue);
     });
+
+    test('primary is the brand primary', () {
+      // The design system's brand primary is #165C7D (confirmed against
+      // Figma in Phase 3). Was incorrectly #0175C2 in the legacy portalTheme.
+      expect(portalTheme.colorScheme.primary, const Color(0xFF165C7D));
+    });
   });
 
-  group('StatusColors', () {
-    test('active is green', () {
-      expect(StatusColors.active, const Color(0xFF4CAF50));
+  group('AppSemanticColors extension', () {
+    // The legacy StatusColors class was deleted in this migration. Status
+    // hues now live on the design system's ThemeExtension; portal code
+    // reads them via Theme.of(context).extension<AppSemanticColors>().
+    test('is registered on portalTheme', () {
+      final semantic = portalTheme.extension<AppSemanticColors>();
+      expect(semantic, isNotNull);
     });
 
-    test('attention is amber', () {
-      expect(StatusColors.attention, const Color(0xFFFFC107));
-    });
-
-    test('atRisk is red', () {
-      expect(StatusColors.atRisk, const Color(0xFFF44336));
-    });
-
-    test('noData is grey', () {
-      expect(StatusColors.noData, const Color(0xFF9E9E9E));
-    });
-
-    test('colors are distinct', () {
+    test('status colors are distinct', () {
+      final semantic = portalTheme.extension<AppSemanticColors>()!;
       final colors = [
-        StatusColors.active,
-        StatusColors.attention,
-        StatusColors.atRisk,
-        StatusColors.noData,
+        semantic.statusActive,
+        semantic.statusAttention,
+        semantic.statusAtRisk,
+        semantic.statusNoData,
       ];
-
-      // All colors should be unique
       expect(colors.toSet().length, colors.length);
     });
   });

@@ -1,16 +1,11 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00024: Portal User Roles and Permissions
-//   REQ-d00031: Identity Platform Integration
-//   REQ-d00034: Login Page Implementation
-//   REQ-p00002: Multi-Factor Authentication for Staff
-
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../config/app_config.dart';
 import '../services/auth_service.dart';
-import '../services/sponsor_branding_service.dart';
+import '../utils/validators.dart';
+import '../widgets/auth_scaffold.dart';
 import '../widgets/error_message.dart';
 import '../widgets/totp_input_dialog.dart';
 
@@ -26,6 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -38,42 +34,46 @@ class _LoginPageState extends State<LoginPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final authService = context.read<AuthService>();
-    if (authService.isTimedOut) {
-      authService.setIsTimedOut(false);
-    }
+    setState(() => _isSubmitting = true);
+    try {
+      if (!mounted) return;
+      if (authService.isTimedOut) {
+        authService.setIsTimedOut(false);
+      }
 
-    final success = await authService.signIn(
-      _emailController.text.trim(),
-      _passwordController.text,
-    );
+      final success = await authService.signIn(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    // Check if TOTP MFA is required (Developer Admin)
-    if (success && authService.mfaRequired) {
-      await _handleMfaChallenge(authService);
-      return;
-    }
+      // Developer Admin: TOTP MFA required.
+      if (success && authService.mfaRequired) {
+        await _handleMfaChallenge(authService);
+        return;
+      }
 
-    // Check if email OTP is required (all other users)
-    if (success && authService.emailOtpRequired) {
-      context.go('/login/email-otp');
-      return;
-    }
+      // Standard users: email OTP required.
+      if (success && authService.emailOtpRequired) {
+        context.go('/login/email-otp');
+        return;
+      }
 
-    if (success && authService.currentUser != null) {
-      _navigateAfterLogin(authService);
+      if (success && authService.currentUser != null) {
+        _navigateAfterLogin(authService);
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  /// Handle MFA challenge by showing TOTP input dialog
   Future<void> _handleMfaChallenge(AuthService authService) async {
     final totpCode = await TotpInputDialog.show(context);
 
     if (!mounted) return;
 
     if (totpCode == null) {
-      // User cancelled MFA
       authService.cancelMfa();
       return;
     }
@@ -85,205 +85,89 @@ class _LoginPageState extends State<LoginPage> {
     if (success && authService.currentUser != null) {
       _navigateAfterLogin(authService);
     }
-    // If MFA failed, error is shown via authService.error
   }
 
-  /// Navigate to appropriate dashboard after successful login
   void _navigateAfterLogin(AuthService authService) {
     final user = authService.currentUser!;
-
-    // If user has multiple roles, go to role picker
     if (user.hasMultipleRoles) {
       context.go('/select-role');
       return;
     }
-
-    // Navigate based on active role
-    _navigateToCommonDashboard(user.activeRole);
-  }
-
-  void _navigateToCommonDashboard(UserRole role) {
-    context.go('/common-dashboard', extra: role);
+    context.go('/common-dashboard', extra: user.activeRole);
   }
 
   @override
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
-    final branding = context.read<SponsorBrandingConfig>();
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
-    return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 400),
-            padding: const EdgeInsets.all(24),
-            child: Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Logo - sponsor branded or fallback
-                      if (branding.hasLogo)
-                        Image.network(
-                          branding.appLogoUrl!,
-                          height: 64,
-                          width: 64,
-                          errorBuilder: (_, __, ___) => Icon(
-                            Icons.medication,
-                            size: 64,
-                            color: colorScheme.primary,
-                          ),
-                        )
-                      else
-                        Icon(
-                          Icons.medication,
-                          size: 64,
-                          color: colorScheme.primary,
-                        ),
-                      const SizedBox(height: 16),
-                      Text(
-                        branding.title,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Sign in to continue',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 32),
+    return AuthScaffold(
+      subtitle: 'Sign in to access your dashboard',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppTextField(
+              controller: _emailController,
+              label: 'Email',
+              hintText: 'Enter your email',
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              enabled: !_isSubmitting,
+              validator: Validators.email,
+            ),
+            const SizedBox(height: 16),
 
-                      // Email field
-                      TextFormField(
-                        controller: _emailController,
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        autocorrect: false,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!value.contains('@')) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
+            AppTextField(
+              controller: _passwordController,
+              label: 'Password',
+              hintText: 'Enter your password',
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.done,
+              enabled: !_isSubmitting,
+              suffixIcon: _obscurePassword
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              onSuffixTap: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
+              validator: Validators.password,
+            ),
 
-                      // Password field
-                      TextFormField(
-                        controller: _passwordController,
-                        decoration: InputDecoration(
-                          labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outlined),
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          ),
-                        ),
-                        obscureText: _obscurePassword,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _handleLogin(),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 8),
+            // Session timeout + error states.
+            if (authService.isTimedOut && authService.error == null) ...[
+              const SizedBox(height: 16),
+              const AppBanner(
+                severity: AppBannerSeverity.warning,
+                message: 'Your session has expired due to inactivity.',
+              ),
+            ],
+            if (authService.error != null) ...[
+              const SizedBox(height: 16),
+              ErrorMessage(
+                message: authService.error!,
+                supportEmail: const String.fromEnvironment('SUPPORT_EMAIL'),
+              ),
+            ],
 
-                      // Forgot password link
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => context.go('/forgot-password'),
-                          child: const Text('Forgot Password?'),
-                        ),
-                      ),
-
-                      // Session timeout banner
-                      if (authService.isTimedOut &&
-                          authService.error == null) ...[
-                        const SizedBox(height: 16),
-                        const ErrorMessage(
-                          message:
-                              "Your session has expired due to inactivity.",
-                        ),
-                      ],
-
-                      // Error message
-                      if (authService.error != null) ...[
-                        const SizedBox(height: 16),
-                        ErrorMessage(
-                          message: authService.error!,
-                          supportEmail: const String.fromEnvironment(
-                            'SUPPORT_EMAIL',
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-
-                      // Sign in button
-                      FilledButton(
-                        onPressed: authService.isLoading ? null : _handleLogin,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
-                        ),
-                        child: authService.isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Sign In'),
-                      ),
-                      const SizedBox(height: 16),
-                      // Version
-                      Text(
-                        'v${AppConfig.version}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.outline,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
+            const SizedBox(height: 24),
+            AppButton(
+              label: 'Sign in',
+              fullWidth: true,
+              loading: _isSubmitting,
+              onPressed: _handleLogin,
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: AppButton(
+                variant: AppButtonVariant.tertiary,
+                label: 'Forgot password?',
+                onPressed: _isSubmitting
+                    ? null
+                    : () => context.go('/forgot-password'),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

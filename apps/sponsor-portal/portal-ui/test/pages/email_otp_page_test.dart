@@ -13,6 +13,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sponsor_portal_ui/pages/email_otp_page.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
+import 'package:sponsor_portal_ui/services/sponsor_branding_service.dart';
+import 'package:sponsor_portal_ui/theme/portal_theme.dart';
 
 class FakeAuthService extends AuthService {
   FakeAuthService() : super(firebaseAuth: MockFirebaseAuth());
@@ -56,9 +58,14 @@ void main() {
         GoRoute(path: '/select-role', builder: (_, __) => const SizedBox()),
       ],
     );
-    return ChangeNotifierProvider<AuthService>.value(
-      value: authService,
-      child: MaterialApp.router(routerConfig: router),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthService>.value(value: authService),
+        Provider<SponsorBrandingConfig>.value(
+          value: SponsorBrandingConfig.fallback,
+        ),
+      ],
+      child: MaterialApp.router(theme: portalTheme, routerConfig: router),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
@@ -30,7 +31,9 @@ class AppTextField extends StatefulWidget {
   final String? initialValue;
 
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final FormFieldValidator<String>? validator;
+  final List<TextInputFormatter>? inputFormatters;
 
   final bool required;
   final bool enabled;
@@ -68,7 +71,9 @@ class AppTextField extends StatefulWidget {
     this.controller,
     this.initialValue,
     this.onChanged,
+    this.onSubmitted,
     this.validator,
+    this.inputFormatters,
     this.required = false,
     this.enabled = true,
     this.obscureText = false,
@@ -189,6 +194,7 @@ class _AppTextFieldState extends State<AppTextField> {
     final field = TextFormField(
       controller: _controller,
       onChanged: _handleChanged,
+      onFieldSubmitted: widget.onSubmitted,
       validator: widget.validator,
       enabled: widget.enabled,
       obscureText: widget.obscureText,
@@ -197,6 +203,7 @@ class _AppTextFieldState extends State<AppTextField> {
       minLines: widget.minLines,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
+      inputFormatters: widget.inputFormatters,
       focusNode: widget.focusNode,
       style: theme.textTheme.bodyMedium,
       decoration: InputDecoration(
@@ -240,6 +247,14 @@ class _AppTextFieldState extends State<AppTextField> {
   }
 }
 
+// Field label: Inter Medium 14 / line-height 20 / letter-spacing -0.15.
+const _labelStyle = TextStyle(
+  fontWeight: FontWeight.w500,
+  fontSize: 14,
+  height: 20 / 14,
+  letterSpacing: -0.15,
+);
+
 class _LabelRow extends StatelessWidget {
   final String label;
   final bool required;
@@ -251,14 +266,15 @@ class _LabelRow extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(label, style: theme.textTheme.labelMedium),
+        Text(
+          label,
+          style: _labelStyle.copyWith(color: theme.colorScheme.onSurface),
+        ),
         if (required) ...[
           const SizedBox(width: 2),
           Text(
             '*',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.error,
-            ),
+            style: _labelStyle.copyWith(color: theme.colorScheme.error),
           ),
         ],
       ],

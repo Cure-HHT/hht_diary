@@ -8,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:sponsor_portal_ui/pages/forgot_password_page.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
+import 'package:sponsor_portal_ui/services/sponsor_branding_service.dart';
+import 'package:sponsor_portal_ui/theme/portal_theme.dart';
 
 class FakeAuthService extends AuthService {
   FakeAuthService() : super(firebaseAuth: MockFirebaseAuth());
@@ -42,8 +44,14 @@ void main() {
 
   Widget createTestWidget(AuthService authService, Widget child) {
     return MaterialApp(
-      home: ChangeNotifierProvider<AuthService>.value(
-        value: authService,
+      theme: portalTheme,
+      home: MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthService>.value(value: authService),
+          Provider<SponsorBrandingConfig>.value(
+            value: SponsorBrandingConfig.fallback,
+          ),
+        ],
         child: child,
       ),
     );
@@ -55,8 +63,8 @@ void main() {
         createTestWidget(fakeAuthService, const ForgotPasswordPage()),
       );
 
-      expect(find.text('Reset Password'), findsOneWidget);
-      expect(find.text('Send Reset Link'), findsOneWidget);
+      expect(find.text('Forgot your password?'), findsOneWidget);
+      expect(find.text('Submit'), findsOneWidget);
       expect(find.byType(TextFormField), findsOneWidget);
       expect(find.text('Back to Login'), findsOneWidget);
     });
@@ -66,8 +74,7 @@ void main() {
         createTestWidget(fakeAuthService, const ForgotPasswordPage()),
       );
 
-      // Tap submit without entering email
-      await tester.tap(find.text('Send Reset Link'));
+      await tester.tap(find.text('Submit'));
       await tester.pumpAndSettle();
 
       expect(find.text('Please enter your email'), findsOneWidget);
@@ -78,9 +85,8 @@ void main() {
         createTestWidget(fakeAuthService, const ForgotPasswordPage()),
       );
 
-      // Enter invalid email
       await tester.enterText(find.byType(TextFormField), 'invalid-email');
-      await tester.tap(find.text('Send Reset Link'));
+      await tester.tap(find.text('Submit'));
       await tester.pumpAndSettle();
 
       expect(find.text('Please enter a valid email'), findsOneWidget);
@@ -95,13 +101,11 @@ void main() {
         createTestWidget(fakeAuthService, const ForgotPasswordPage()),
       );
 
-      // Enter valid email
       await tester.enterText(find.byType(TextFormField), 'test@example.com');
-      await tester.tap(find.text('Send Reset Link'));
+      await tester.tap(find.text('Submit'));
       await tester.pumpAndSettle();
 
-      // Verify success view
-      expect(find.text('Check Your Email'), findsOneWidget);
+      expect(find.text('Check your email'), findsOneWidget);
       expect(
         find.textContaining('If an account exists with that email'),
         findsOneWidget,
@@ -120,7 +124,7 @@ void main() {
       );
 
       await tester.enterText(find.byType(TextFormField), 'test@example.com');
-      await tester.tap(find.text('Send Reset Link'));
+      await tester.tap(find.text('Submit'));
       await tester.pumpAndSettle();
 
       expect(find.text('Failed to send password reset email'), findsOneWidget);
@@ -133,16 +137,14 @@ void main() {
         createTestWidget(fakeAuthService, const ForgotPasswordPage()),
       );
 
-      // Enter email with whitespace - should trim to 'test@example.com'
       await tester.enterText(
         find.byType(TextFormField),
         '  test@example.com  ',
       );
-      await tester.tap(find.text('Send Reset Link'));
+      await tester.tap(find.text('Submit'));
       await tester.pumpAndSettle();
 
-      // Success view should appear
-      expect(find.text('Check Your Email'), findsOneWidget);
+      expect(find.text('Check your email'), findsOneWidget);
     });
   });
 }

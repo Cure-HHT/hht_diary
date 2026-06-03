@@ -7,13 +7,14 @@
 
 import 'dart:async';
 
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
-import '../widgets/error_message.dart';
+import '../widgets/auth_scaffold.dart';
 
 class EmailOtpPage extends StatefulWidget {
   const EmailOtpPage({super.key});
@@ -36,11 +37,9 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
   @override
   void initState() {
     super.initState();
-    // Auto-focus the code input
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
-    // Send OTP code on page load
     _sendOtpCode();
   }
 
@@ -61,10 +60,9 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
     setState(() {
       _isSendingCode = true;
       _error = null;
-      // Start the cooldown optimistically so the resend button is locked
-      // the moment the request goes out — covers the page-load auto-send
-      // and any race where the server reply is slow. Adjusted below based
-      // on the response.
+      // Optimistic cooldown — locks the resend button the moment the request
+      // goes out so the page-load auto-send and any slow-reply race can't
+      // produce duplicate sends. Adjusted below based on the response.
       _startResendCooldown(_successCooldownSeconds);
     });
 
@@ -78,8 +76,6 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
       if (result.success) {
         // Optimistic cooldown already running — nothing more to do.
       } else if (result.retryAfter != null && result.retryAfter! > 0) {
-        // Rate limited: extend the cooldown to the server-reported wait
-        // and tell the user how long that is, so they don't try again early.
         final waitSeconds = result.retryAfter!;
         final baseError = result.error ?? 'Too many OTP requests.';
         _error =
@@ -87,9 +83,8 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
             'before trying again.';
         _startResendCooldown(waitSeconds);
       } else {
-        // Transient failure (network, 5xx, etc.): keep the optimistic
-        // cooldown so the user doesn't hammer the button while we're in
-        // an unknown state, and surface the error.
+        // Transient failure: keep the optimistic cooldown so the user can't
+        // hammer the button while server state is unknown.
         _error = result.error ?? 'Failed to send verification code';
       }
     });
@@ -123,9 +118,6 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
   }
 
   /// Formats the wait time for the human-readable error message.
-  ///   < 60s            → "45 seconds" (or "1 second")
-  ///   whole minutes    → "1 minute" / "5 minutes"
-  ///   minutes+seconds  → "5 minutes 20 seconds" / "1 minute 1 second"
   String _formatWaitDuration(int seconds) {
     if (seconds < 60) {
       return seconds == 1 ? '1 second' : '$seconds seconds';
@@ -158,12 +150,10 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
     });
 
     if (result.success) {
-      // Navigate to dashboard
       _navigateAfterVerification(authService);
     } else {
       setState(() {
         _error = result.error ?? 'Invalid verification code';
-        // Clear the code input on error
         _codeController.clear();
         _focusNode.requestFocus();
       });
@@ -172,201 +162,94 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
 
   void _navigateAfterVerification(AuthService authService) {
     final user = authService.currentUser!;
-
-    // If user has multiple roles, go to role picker
     if (user.hasMultipleRoles) {
       context.go('/select-role');
       return;
     }
-
-    _navigateToCommonDashboard(user.activeRole);
+    context.go('/common-dashboard', extra: user.activeRole);
   }
 
-  void _navigateToCommonDashboard(UserRole role) {
-    context.go('/common-dashboard', extra: role);
-  }
-
-  void _cancelAndGoBack() {
+  Future<void> _backToLogin() async {
     final authService = context.read<AuthService>();
     authService.cancelEmailOtp();
-    authService.signOut();
+    await authService.signOut();
+    if (!mounted) return;
     context.go('/login');
+  }
+
+  String? _validateCode(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter the verification code';
+    }
+    if (value.length != 6) {
+      return 'Code must be 6 digits';
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final authService = context.watch<AuthService>();
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final canResend = !_isSendingCode && _resendCooldown == 0;
+    final resendLabel = _resendCooldown > 0
+        ? 'Resend code in ${_formatCooldown(_resendCooldown)}'
+        : 'Resend code';
 
-    final maskedEmail = authService.maskedEmail ?? 'your email';
-
-    return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 400),
-            padding: const EdgeInsets.all(24),
-            child: Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Email icon
-                      Icon(
-                        Icons.mark_email_read_outlined,
-                        size: 64,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Check your email',
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'We sent a verification code to\n$maskedEmail',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Code input
-                      TextFormField(
-                        controller: _codeController,
-                        focusNode: _focusNode,
-                        decoration: const InputDecoration(
-                          labelText: 'Verification Code',
-                          hintText: '000000',
-                          prefixIcon: Icon(Icons.pin_outlined),
-                          border: OutlineInputBorder(),
-                          counterText: '',
-                        ),
-                        keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.done,
-                        maxLength: 6,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          letterSpacing: 8,
-                        ),
-                        textAlign: TextAlign.center,
-                        onFieldSubmitted: (_) => _verifyCode(),
-                        onChanged: (value) {
-                          // Auto-submit when 6 digits entered
-                          if (value.length == 6) {
-                            _verifyCode();
-                          }
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter the verification code';
-                          }
-                          if (value.length != 6) {
-                            return 'Code must be 6 digits';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      // Error message
-                      if (_error != null) ...[
-                        const SizedBox(height: 16),
-                        ErrorMessage(
-                          message: _error!,
-                          supportEmail: const String.fromEnvironment(
-                            'SUPPORT_EMAIL',
-                          ),
-                          onDismiss: () => setState(() => _error = null),
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-
-                      // Verify button
-                      FilledButton(
-                        onPressed: _isLoading ? null : _verifyCode,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Verify'),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Resend code button
-                      TextButton(
-                        onPressed: (_isSendingCode || _resendCooldown > 0)
-                            ? null
-                            : _sendOtpCode,
-                        child: _isSendingCode
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const SizedBox(
-                                    height: 16,
-                                    width: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Sending...',
-                                    style: TextStyle(
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Text(
-                                _resendCooldown > 0
-                                    ? 'Resend code in ${_formatCooldown(_resendCooldown)}'
-                                    : 'Resend code',
-                              ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Cancel / back to login
-                      TextButton(
-                        onPressed: _cancelAndGoBack,
-                        child: const Text('Cancel'),
-                      ),
-
-                      // Timer info
-                      const SizedBox(height: 16),
-                      Text(
-                        'Code expires in 10 minutes',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
+    return AuthScaffold(
+      title: 'Enter verification code',
+      subtitle: 'We sent a 6-digit code to your email.',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppTextField(
+              controller: _codeController,
+              focusNode: _focusNode,
+              label: 'Verification Code',
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              enabled: !_isLoading,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(6),
+              ],
+              onSubmitted: (_) => _verifyCode(),
+              onChanged: (value) {
+                if (value.length == 6) _verifyCode();
+              },
+              validator: _validateCode,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: AppButton(
+                variant: AppButtonVariant.tertiary,
+                label: resendLabel,
+                loading: _isSendingCode,
+                onPressed: canResend ? _sendOtpCode : null,
               ),
             ),
-          ),
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              AppBanner(severity: AppBannerSeverity.error, message: _error!),
+            ],
+            const SizedBox(height: 24),
+            AppButton(
+              label: 'Verify',
+              fullWidth: true,
+              loading: _isLoading,
+              onPressed: _verifyCode,
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: AppButton(
+                variant: AppButtonVariant.tertiary,
+                label: 'Back to Login',
+                onPressed: _isLoading ? null : _backToLogin,
+              ),
+            ),
+          ],
         ),
       ),
     );
