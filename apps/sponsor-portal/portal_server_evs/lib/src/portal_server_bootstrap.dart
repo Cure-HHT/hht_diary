@@ -14,6 +14,7 @@ import 'package:shelf_router/shelf_router.dart';
 
 import 'activation_code_store.dart';
 import 'activation_reactor.dart';
+import 'linking_code_lifecycle_reactor.dart';
 import 'activation_routes.dart';
 import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
@@ -400,6 +401,16 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final sessionCascadeReactor =
       SessionCascadeReactor(eventStore: eventStore, backend: backend)..start();
 
+  // 7d. Linking-code lifecycle reactor — on participant_linking_code_issued,
+  //     supersedes the participant's prior active code and self-heals the rare
+  //     case where two participants are issued the same code.
+  // Implements: DIARY-DEV-linking-code-lifecycle/B+D
+  final linkingCodeReactor = LinkingCodeLifecycleReactor(
+    eventStore: eventStore,
+    backend: backend,
+    linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
+  )..start();
+
   // 7e. User tier reactor — keeps user_tier_index correct by emitting
   //     user_tier_changed whenever a user's SystemOperator assignment changes.
   // Implements: DIARY-DEV-operator-tier-authz/A
@@ -571,6 +582,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   Future<void> dispose() async {
     await activationReactor.stop();
     await sessionCascadeReactor.stop();
+    await linkingCodeReactor.stop();
     await userTierReactor.stop();
     await handlers.dispose();
     await eventStore.close();
