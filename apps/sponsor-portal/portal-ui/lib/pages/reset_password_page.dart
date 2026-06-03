@@ -5,18 +5,20 @@
 
 import 'dart:async';
 
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
-import '../widgets/error_message.dart';
+import '../utils/validators.dart';
+import '../widgets/auth_scaffold.dart';
 
-/// Page for resetting password using a reset code
+/// Page for resetting password using a reset code from a magic link.
 ///
-/// This page is accessed via a link sent to the user's email.
-/// The URL contains an oobCode (out-of-band code) parameter that
-/// Firebase uses to verify the reset request.
+/// The URL carries an oobCode (Firebase out-of-band code) we verify on mount.
+/// On success the user enters a new password; we then bounce to /login after
+/// a short countdown.
 class ResetPasswordPage extends StatefulWidget {
   final String? oobCode;
 
@@ -34,9 +36,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   bool _isVerifying = true;
+  bool _codeVerified = false;
   bool _resetComplete = false;
   String? _errorMessage;
-  String? _userEmail;
   int _redirectCountdown = 3;
   Timer? _redirectTimer;
 
@@ -54,7 +56,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     super.dispose();
   }
 
-  /// Verify the reset code is valid
   Future<void> _verifyResetCode() async {
     if (widget.oobCode == null || widget.oobCode!.isEmpty) {
       setState(() {
@@ -68,25 +69,19 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
     try {
       final email = await authService.verifyPasswordResetCode(widget.oobCode!);
-
       if (!mounted) return;
-
-      if (email != null) {
-        setState(() {
-          _userEmail = email;
-          _isVerifying = false;
-        });
-      } else {
-        setState(() {
-          _isVerifying = false;
+      setState(() {
+        _isVerifying = false;
+        if (email != null) {
+          _codeVerified = true;
+        } else {
           _errorMessage =
               'This password reset link is invalid or has expired. '
               'Please request a new one.';
-        });
-      }
-    } catch (e) {
+        }
+      });
+    } catch (_) {
       if (!mounted) return;
-
       setState(() {
         _isVerifying = false;
         _errorMessage = 'Failed to verify reset code. Please try again.';
@@ -94,7 +89,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     }
   }
 
-  /// Handle password reset submission
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -104,12 +98,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     });
 
     final authService = context.read<AuthService>();
-    final newPassword = _passwordController.text;
 
     try {
       final success = await authService.confirmPasswordReset(
         widget.oobCode!,
-        newPassword,
+        _passwordController.text,
       );
 
       if (!mounted) return;
@@ -119,8 +112,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           _resetComplete = true;
           _isLoading = false;
         });
-
-        // Start countdown timer for redirect
         _startRedirectTimer();
       } else {
         setState(() {
@@ -130,9 +121,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-
       setState(() {
         _errorMessage = 'An unexpected error occurred. Please try again.';
         _isLoading = false;
@@ -140,18 +130,13 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     }
   }
 
-  /// Start countdown timer and redirect to login
   void _startRedirectTimer() {
     _redirectTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
-
-      setState(() {
-        _redirectCountdown--;
-      });
-
+      setState(() => _redirectCountdown--);
       if (_redirectCountdown <= 0) {
         timer.cancel();
         context.go('/login');
@@ -161,363 +146,169 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 500),
-            padding: const EdgeInsets.all(24),
-            child: Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: _buildContent(),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    if (_isVerifying) {
-      return _buildVerifyingView();
-    } else if (_resetComplete) {
-      return _buildSuccessView();
-    } else if (_errorMessage != null && _userEmail == null) {
-      return _buildErrorView();
-    } else {
-      return _buildFormView();
+    if (_isVerifying) return const _VerifyingScaffold();
+    if (_resetComplete) {
+      return _SuccessScaffold(
+        countdown: _redirectCountdown,
+        onGoToLogin: () {
+          _redirectTimer?.cancel();
+          context.go('/login');
+        },
+      );
     }
-  }
-
-  Widget _buildVerifyingView() {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const CircularProgressIndicator(),
-        const SizedBox(height: 24),
-        Text(
-          'Verifying reset link...',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFormView() {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Icon
-          Icon(Icons.lock_reset, size: 64, color: colorScheme.primary),
-          const SizedBox(height: 16),
-
-          // Title
-          Text(
-            'Create New Password',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface,
+    if (!_codeVerified) {
+      return _InvalidLinkScaffold(
+        message: _errorMessage ?? 'Invalid reset link',
+      );
+    }
+    return AuthScaffold(
+      title: 'Create new password',
+      subtitle: 'Your password must be at least 8 characters long',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppTextField(
+              controller: _passwordController,
+              label: 'New Password',
+              hintText: 'Enter your password',
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.next,
+              enabled: !_isLoading,
+              suffixIcon: _obscurePassword
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              onSuffixTap: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
+              validator: Validators.newPassword,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-
-          // Show email if available
-          if (_userEmail != null) ...[
-            Text(
-              'for $_userEmail',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-          ] else
-            const SizedBox(height: 24),
-
-          // Password field
-          TextFormField(
-            controller: _passwordController,
-            decoration: InputDecoration(
-              labelText: 'New Password',
-              prefixIcon: const Icon(Icons.lock_outlined),
-              border: const OutlineInputBorder(),
-              helperText: 'Minimum 8 characters',
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              ),
-            ),
-            obscureText: _obscurePassword,
-            textInputAction: TextInputAction.next,
-            enabled: !_isLoading,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter a password';
-              }
-              if (value.length < 8) {
-                return 'Password must be at least 8 characters';
-              }
-              if (value.length > 64) {
-                return 'Password must be less than 64 characters';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-
-          // Confirm password field
-          TextFormField(
-            controller: _confirmPasswordController,
-            decoration: InputDecoration(
-              labelText: 'Confirm Password',
-              prefixIcon: const Icon(Icons.lock_outlined),
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureConfirmPassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscureConfirmPassword = !_obscureConfirmPassword;
-                  });
-                },
-              ),
-            ),
-            obscureText: _obscureConfirmPassword,
-            textInputAction: TextInputAction.done,
-            enabled: !_isLoading,
-            onFieldSubmitted: (_) => _handleSubmit(),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please confirm your password';
-              }
-              if (value != _passwordController.text) {
-                return 'Passwords do not match';
-              }
-              return null;
-            },
-          ),
-
-          // Password requirements
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Password Requirements:',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _buildRequirement('Minimum 8 characters'),
-                _buildRequirement('Maximum 64 characters'),
-                _buildRequirement('Any printable characters allowed'),
-              ],
-            ),
-          ),
-
-          // Error message
-          if (_errorMessage != null) ...[
             const SizedBox(height: 16),
-            ErrorMessage(
-              message: _errorMessage!,
-              supportEmail: const String.fromEnvironment('SUPPORT_EMAIL'),
+            AppTextField(
+              controller: _confirmPasswordController,
+              label: 'Confirm Password',
+              hintText: 'Enter your password',
+              obscureText: _obscureConfirmPassword,
+              textInputAction: TextInputAction.done,
+              enabled: !_isLoading,
+              suffixIcon: _obscureConfirmPassword
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              onSuffixTap: () => setState(
+                () => _obscureConfirmPassword = !_obscureConfirmPassword,
+              ),
+              onSubmitted: (_) => _handleSubmit(),
+              validator: Validators.confirmPassword(
+                () => _passwordController.text,
+              ),
+            ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 16),
+              AppBanner(
+                severity: AppBannerSeverity.error,
+                message: _errorMessage!,
+              ),
+            ],
+            const SizedBox(height: 24),
+            AppButton(
+              label: 'Verify',
+              fullWidth: true,
+              loading: _isLoading,
+              onPressed: _handleSubmit,
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: AppButton(
+                variant: AppButtonVariant.tertiary,
+                label: 'Back to Login',
+                onPressed: _isLoading ? null : () => context.go('/login'),
+              ),
             ),
           ],
-          const SizedBox(height: 24),
-
-          // Reset button
-          FilledButton(
-            onPressed: _isLoading ? null : _handleSubmit,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(double.infinity, 48),
-            ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text('Reset Password'),
-          ),
-          const SizedBox(height: 16),
-
-          // Back to login link
-          TextButton(
-            onPressed: _isLoading ? null : () => context.go('/login'),
-            child: const Text('Back to Login'),
-          ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  Widget _buildRequirement(String text) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
+class _VerifyingScaffold extends StatelessWidget {
+  const _VerifyingScaffold();
+
+  @override
+  Widget build(BuildContext context) {
+    return const AuthScaffold(
+      title: 'Verifying reset link',
+      subtitle: 'Please wait while we verify your reset link.',
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+  }
+}
+
+class _SuccessScaffold extends StatelessWidget {
+  final int countdown;
+  final VoidCallback onGoToLogin;
+
+  const _SuccessScaffold({required this.countdown, required this.onGoToLogin});
+
+  @override
+  Widget build(BuildContext context) {
+    return AuthScaffold(
+      title: 'Password reset complete',
+      subtitle:
+          'Your password has been reset. Redirecting to login in '
+          '$countdown seconds.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.check_circle_outline,
-            size: 16,
-            color: theme.colorScheme.primary,
+          AppButton(
+            label: 'Go to Login Now',
+            fullWidth: true,
+            onPressed: onGoToLogin,
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: theme.textTheme.bodySmall)),
         ],
       ),
     );
   }
+}
 
-  Widget _buildSuccessView() {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+class _InvalidLinkScaffold extends StatelessWidget {
+  final String message;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Success icon
-        const Icon(Icons.check_circle, size: 64, color: Colors.green),
-        const SizedBox(height: 16),
+  const _InvalidLinkScaffold({required this.message});
 
-        // Title
-        Text(
-          'Password Reset Complete',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: colorScheme.onSurface,
+  @override
+  Widget build(BuildContext context) {
+    return AuthScaffold(
+      title: 'Invalid reset link',
+      subtitle:
+          'We could not verify this reset link. You can request a new one '
+          'from the forgot-password screen.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppBanner(severity: AppBannerSeverity.error, message: message),
+          const SizedBox(height: 24),
+          AppButton(
+            label: 'Request New Reset Link',
+            fullWidth: true,
+            onPressed: () => context.go('/forgot-password'),
           ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-
-        // Success message
-        Text(
-          'Your password has been successfully reset.\n\n'
-          'You can now sign in with your new password.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 24),
-
-        // Countdown message
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            'Redirecting to login in $_redirectCountdown seconds...',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+          const SizedBox(height: 12),
+          Center(
+            child: AppButton(
+              variant: AppButtonVariant.tertiary,
+              label: 'Back to Login',
+              onPressed: () => context.go('/login'),
             ),
-            textAlign: TextAlign.center,
           ),
-        ),
-        const SizedBox(height: 24),
-
-        // Go to login button
-        FilledButton(
-          onPressed: () {
-            _redirectTimer?.cancel();
-            context.go('/login');
-          },
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(double.infinity, 48),
-          ),
-          child: const Text('Go to Login Now'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildErrorView() {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Error icon
-        Icon(Icons.error_outline, size: 64, color: colorScheme.error),
-        const SizedBox(height: 16),
-
-        // Title
-        Text(
-          'Invalid Reset Link',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: colorScheme.onSurface,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-
-        // Error message
-        ErrorMessage(
-          message: _errorMessage!,
-          supportEmail: const String.fromEnvironment('SUPPORT_EMAIL'),
-        ),
-        const SizedBox(height: 24),
-
-        // Request new link button
-        FilledButton(
-          onPressed: () => context.go('/forgot-password'),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(double.infinity, 48),
-          ),
-          child: const Text('Request New Reset Link'),
-        ),
-        const SizedBox(height: 16),
-
-        // Back to login link
-        TextButton(
-          onPressed: () => context.go('/login'),
-          child: const Text('Back to Login'),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:sponsor_portal_ui/pages/reset_password_page.dart';
 import 'package:sponsor_portal_ui/services/auth_service.dart';
+import 'package:sponsor_portal_ui/services/sponsor_branding_service.dart';
+import 'package:sponsor_portal_ui/theme/portal_theme.dart';
 
 class FakeAuthService extends AuthService {
   FakeAuthService() : super(firebaseAuth: MockFirebaseAuth());
@@ -68,8 +70,14 @@ void main() {
 
   Widget createTestWidget(AuthService authService, Widget child) {
     return MaterialApp(
-      home: ChangeNotifierProvider<AuthService>.value(
-        value: authService,
+      theme: portalTheme,
+      home: MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthService>.value(value: authService),
+          Provider<SponsorBrandingConfig>.value(
+            value: SponsorBrandingConfig.fallback,
+          ),
+        ],
         child: child,
       ),
     );
@@ -85,7 +93,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Invalid Reset Link'), findsOneWidget);
+      expect(find.text('Invalid reset link'), findsOneWidget);
       expect(find.text('Invalid or missing reset code'), findsOneWidget);
     });
 
@@ -99,14 +107,11 @@ void main() {
         ),
       );
 
-      // Should show loading initially
-      expect(find.text('Verifying reset link...'), findsOneWidget);
+      expect(find.text('Verifying reset link'), findsOneWidget);
 
       await tester.pumpAndSettle();
 
-      // Should show form after verification
-      expect(find.text('Create New Password'), findsOneWidget);
-      expect(find.text('for $testEmail'), findsOneWidget);
+      expect(find.text('Create new password'), findsOneWidget);
     });
 
     testWidgets('shows error when code verification fails', (tester) async {
@@ -120,7 +125,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Invalid Reset Link'), findsOneWidget);
+      expect(find.text('Invalid reset link'), findsOneWidget);
       expect(
         find.textContaining('This password reset link is invalid'),
         findsOneWidget,
@@ -140,10 +145,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Create New Password'), findsOneWidget);
+      expect(find.text('Create new password'), findsOneWidget);
       expect(find.text('New Password'), findsOneWidget);
       expect(find.text('Confirm Password'), findsOneWidget);
-      expect(find.text('Reset Password'), findsOneWidget);
+      expect(find.text('Verify'), findsOneWidget);
       expect(find.text('Back to Login'), findsOneWidget);
     });
 
@@ -158,12 +163,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap submit without entering password
-      // Ensure button is visible before tapping
-      await tester.ensureVisible(find.text('Reset Password'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Reset Password'));
+      await tester.tap(find.text('Verify'));
       await tester.pumpAndSettle();
 
       expect(find.text('Please enter a password'), findsOneWidget);
@@ -183,15 +183,7 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       await tester.enterText(passwordFields.first, 'short');
 
-      // Ensure button is visible before tapping
-      await tester.ensureVisible(find.text('Reset Password'));
-      await tester.pumpAndSettle();
-
-      // Ensure button is visible before tapping
-      await tester.ensureVisible(find.text('Reset Password'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Reset Password'));
+      await tester.tap(find.text('Verify'));
       await tester.pumpAndSettle();
 
       expect(
@@ -214,11 +206,8 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       final longPassword = 'a' * 65;
       await tester.enterText(passwordFields.first, longPassword);
-      // Ensure button is visible before tapping
-      await tester.ensureVisible(find.text('Reset Password'));
-      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Reset Password'));
+      await tester.tap(find.text('Verify'));
       await tester.pumpAndSettle();
 
       expect(
@@ -241,11 +230,8 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       await tester.enterText(passwordFields.first, 'password123');
       await tester.enterText(passwordFields.last, 'different123');
-      // Ensure button is visible before tapping
-      await tester.ensureVisible(find.text('Reset Password'));
-      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Reset Password'));
+      await tester.tap(find.text('Verify'));
       await tester.pumpAndSettle();
 
       expect(find.text('Passwords do not match'), findsOneWidget);
@@ -266,19 +252,15 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       await tester.enterText(passwordFields.first, 'newpassword123');
       await tester.enterText(passwordFields.last, 'newpassword123');
-      // Ensure button is visible before tapping
-      await tester.ensureVisible(find.text('Reset Password'));
-      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Reset Password'));
-      await tester.pumpAndSettle();
+      await tester.tap(find.text('Verify'));
+      // Submit path: pump for tap, advance past the fake's 10ms delay, pump
+      // again so the success setState commits. We can't pumpAndSettle here —
+      // the success view starts a periodic redirect timer that never settles.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-      // Should show success view
-      expect(find.text('Password Reset Complete'), findsOneWidget);
-      expect(
-        find.textContaining('Your password has been successfully reset'),
-        findsOneWidget,
-      );
+      expect(find.text('Password reset complete'), findsOneWidget);
       expect(find.text('Go to Login Now'), findsOneWidget);
     });
 
@@ -300,32 +282,11 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       await tester.enterText(passwordFields.first, 'newpassword123');
       await tester.enterText(passwordFields.last, 'newpassword123');
-      // Ensure button is visible before tapping
-      await tester.ensureVisible(find.text('Reset Password'));
-      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Reset Password'));
+      await tester.tap(find.text('Verify'));
       await tester.pumpAndSettle();
 
       expect(find.text('The link may have expired'), findsOneWidget);
-    });
-
-    testWidgets('shows password requirements', (tester) async {
-      fakeAuthService.setVerifyCodeResult(testEmail);
-
-      await tester.pumpWidget(
-        createTestWidget(
-          fakeAuthService,
-          const ResetPasswordPage(oobCode: testOobCode),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Password Requirements:'), findsOneWidget);
-      // Note: Text appears both as helper text and in requirements list
-      expect(find.text('Minimum 8 characters'), findsWidgets);
-      expect(find.text('Maximum 64 characters'), findsWidgets);
-      expect(find.text('Any printable characters allowed'), findsWidgets);
     });
 
     testWidgets('handles verification exception gracefully', (tester) async {
@@ -360,11 +321,8 @@ void main() {
       final passwordFields = find.byType(TextFormField);
       await tester.enterText(passwordFields.first, 'newpassword123');
       await tester.enterText(passwordFields.last, 'newpassword123');
-      // Ensure button is visible before tapping
-      await tester.ensureVisible(find.text('Reset Password'));
-      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Reset Password'));
+      await tester.tap(find.text('Verify'));
       await tester.pumpAndSettle();
 
       expect(
