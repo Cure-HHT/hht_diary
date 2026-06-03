@@ -254,8 +254,7 @@ void main() {
 
     var rows = await backend.findViewRows('user_tier_index');
     expect(_tierFor(rows, 'u5'), equals('operator'),
-        reason:
-            'first SystemOperator assignment (scope-A) must set tier to operator');
+        reason: 'first SystemOperator assignment (scope-A) must set tier to operator');
 
     // (b) Assign SystemOperator at scope-B (second distinct assignment).
     await _appendRoleAssignedAt(
@@ -268,8 +267,7 @@ void main() {
 
     rows = await backend.findViewRows('user_tier_index');
     expect(_tierFor(rows, 'u5'), equals('operator'),
-        reason:
-            'second SystemOperator assignment (scope-B) must keep tier at operator');
+        reason: 'second SystemOperator assignment (scope-B) must keep tier at operator');
 
     // (c) Revoke scope-A assignment -> scope-B still active; tier stays 'operator'.
     await _appendRoleUnassignedAt(
