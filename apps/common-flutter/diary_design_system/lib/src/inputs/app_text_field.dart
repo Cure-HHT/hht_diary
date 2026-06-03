@@ -55,6 +55,10 @@ class AppTextField extends StatefulWidget {
 
   final FocusNode? focusNode;
 
+  /// When true, the field renders at the Figma "compact" 36-px height
+  /// (tighter vertical padding). Default `false` = standard input height.
+  final bool dense;
+
   const AppTextField({
     super.key,
     this.label,
@@ -79,10 +83,11 @@ class AppTextField extends StatefulWidget {
     this.showClearButton = false,
     this.onChangedDebounce,
     this.focusNode,
+    this.dense = false,
   });
 
   /// Pre-configured search input: magnifier prefix, clear button suffix,
-  /// 300 ms debounce by default.
+  /// 300 ms debounce, compact 36-px height.
   factory AppTextField.search({
     Key? key,
     TextEditingController? controller,
@@ -104,6 +109,7 @@ class AppTextField extends StatefulWidget {
       enabled: enabled,
       autofocus: autofocus,
       focusNode: focusNode,
+      dense: true,
     );
   }
 
@@ -200,11 +206,20 @@ class _AppTextFieldState extends State<AppTextField> {
         prefixIcon: widget.prefixIcon == null
             ? null
             : Icon(widget.prefixIcon, size: 18),
+        prefixIconConstraints: widget.dense
+            ? const BoxConstraints(minWidth: 36, minHeight: 36)
+            : null,
         suffixIcon: suffix,
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: SpacingTokens.md,
-          vertical: SpacingTokens.sm,
-        ),
+        suffixIconConstraints: widget.dense
+            ? const BoxConstraints(minWidth: 36, minHeight: 36)
+            : null,
+        isDense: widget.dense,
+        contentPadding: widget.dense
+            ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+            : EdgeInsets.symmetric(
+                horizontal: SpacingTokens.md,
+                vertical: SpacingTokens.sm,
+              ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(RadiusTokens.md),
         ),
