@@ -32,6 +32,21 @@ void main() {
       expect(() => action.validate(input), throwsArgumentError);
     });
 
+    // Equal start/end is structurally valid; the sponsor's shortDurationConfirm
+    // clinical rule (UI layer) is the gate for whether equal times can be
+    // submitted.
+    test('validate accepts endTime equal to startTime', () {
+      final input = action.parseInput(const {
+        'startTime': '2025-10-15T14:30:00.000-05:00',
+        'startTimeZone': 'America/New_York',
+        'startTimeUtcOffset': '-05:00',
+        'endTime': '2025-10-15T14:30:00.000-05:00',
+        'endTimeZone': 'America/New_York',
+        'endTimeUtcOffset': '-05:00',
+      });
+      expect(() => action.validate(input), returnsNormally);
+    });
+
     test(
       'execute emits one finalized epistaxis_event on a fresh DiaryEntry',
       () async {

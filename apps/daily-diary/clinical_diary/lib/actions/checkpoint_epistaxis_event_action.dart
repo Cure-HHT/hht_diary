@@ -101,8 +101,12 @@ class CheckpointEpistaxisEventAction
           'must be an ISO 8601 timestamp',
         );
       }
-      if (!end.isAfter(start)) {
-        throw ArgumentError.value(endRaw, 'endTime', 'must be after startTime');
+      if (end.isBefore(start)) {
+        throw ArgumentError.value(
+          endRaw,
+          'endTime',
+          'must not be before startTime',
+        );
       }
     }
   }
