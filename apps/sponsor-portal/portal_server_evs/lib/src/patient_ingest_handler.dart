@@ -15,11 +15,44 @@ import 'patient_token_validator.dart';
 /// when the edge/core split lands (see design spec section 2).
 Handler patientIngestHandler({required EventStore eventStore}) {
   return (Request request) async {
-    if (verifyPatientAuthHeader(request.headers['authorization']) == null) {
+    final payload = verifyPatientAuthHeader(request.headers['authorization']);
+    if (payload == null) {
       return Response(401, body: 'invalid or missing patient token');
     }
     final chunks = await request.read().toList();
     final bytes = Uint8List.fromList(chunks.expand((c) => c).toList());
+
+    // Implements: DIARY-DEV-participant-ingest/D — the authenticated participant
+    //   must own every participant-prefixed aggregate the batch writes. The JWT
+    //   userId IS the participantId. Day-marker aggregates carry the participant
+    //   identity as a `{participantId}:{localDate}` aggregate id, so we reject a
+    //   batch whose prefix names another participant.
+    //
+    // Residual: per-event ownership is enforceable ONLY on participant-prefixed
+    // (`{pid}:`) aggregates. Epistaxis events use a fresh uuid aggregate id and
+    // questionnaire surveys use the portal-assigned instanceId — neither carries
+    // a per-event participant identity, and neither can target another
+    // participant's aggregate. For those, the sync-channel JWT (verified above)
+    // is the trust boundary. This is a documented residual, not a gap.
+    final BatchEnvelope env;
+    try {
+      env = BatchEnvelope.decode(bytes);
+    } on IngestDecodeFailure catch (e) {
+      // Same malformed-bytes outcome as the ingest path below, for consistency.
+      return Response(400, body: 'malformed batch: $e');
+    }
+    for (final eventMap in env.events) {
+      final aggId = eventMap['aggregate_id'] as String?;
+      if (aggId != null && aggId.contains(':')) {
+        final ownerId = aggId.substring(0, aggId.indexOf(':'));
+        if (ownerId != payload.userId) {
+          return Response(403,
+              body: 'batch contains aggregates not owned by the '
+                  'authenticated participant');
+        }
+      }
+    }
+
     try {
       final result = await eventStore.ingestBatch(bytes,
           wireFormat: BatchEnvelope.wireFormat);

@@ -124,7 +124,9 @@ void main() {
         headers: {'content-type': 'application/json'},
       );
     });
-    final token = createPatientJwt(authCode: 'ac', userId: 'u');
+    // userId IS the participantId; it must own the P-test:* aggregate this
+    // device appends, or the /ingest ownership gate (assertion D) would 403 it.
+    final token = createPatientJwt(authCode: 'ac', userId: 'P-test');
 
     // 3. Boot device with the native destination.
     final dest = _NativeDest(client: bridge, token: token);
@@ -207,7 +209,8 @@ void main() {
         headers: {'content-type': 'application/json'},
       );
     });
-    final token = createPatientJwt(authCode: 'ac2', userId: 'u2');
+    // userId IS the participantId; must own the P-test:* aggregate (assertion D).
+    final token = createPatientJwt(authCode: 'ac2', userId: 'P-test');
 
     // 3. Device + destination.
     final dest = _NativeDest(client: bridge, token: token);
