@@ -34,7 +34,9 @@ void main() {
       reason: 'seed errors: ${policyBootstrap.errors}',
     );
 
-    // Seed the Administrator who will do the granting.
+    // Seed the Administrator who will do the granting. Now that the user-
+    // management permissions are tier-scoped (operator-tier authz), the
+    // Administrator also needs staff-tier coverage to act on staff accounts.
     await bootstrapRoleAssignments(
       eventStore: store,
       seed: const RoleAssignmentSeed(
@@ -44,8 +46,26 @@ void main() {
             role: 'Administrator',
             scope: ValueWildcardScope(class_: 'site'),
           ),
+          RoleAssignmentSeedEntry(
+            userId: 'admin-1',
+            role: 'Administrator',
+            scope: BoundScope(class_: 'tier', value: 'staff'),
+          ),
         ],
       ),
+    );
+
+    // The target sc-1 needs a user_tier_index row for the user-scoped
+    // assign_site/revoke_site permission to resolve (ContainmentResolver is
+    // fail-closed on a missing row). This test does not run the user_tier_reactor,
+    // so seed the staff-tier row directly via a user_tier_changed event.
+    await store.append(
+      entryType: 'user_tier_changed',
+      aggregateType: 'portal_user',
+      aggregateId: 'sc-1',
+      eventType: 'user_tier_changed',
+      data: <String, Object?>{'user_id': 'sc-1', 'tier': 'staff'},
+      initiator: const AutomationInitiator(service: 'test-seed'),
     );
 
     final dispatcher = await buildPortalDispatcher(eventStore: store);

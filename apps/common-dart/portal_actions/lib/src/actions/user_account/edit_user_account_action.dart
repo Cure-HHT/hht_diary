@@ -80,6 +80,16 @@ class EditUserAccountAction
     }
   }
 
+  // Implements: DIARY-DEV-operator-tier-authz/C
+  // Implements: DIARY-PRD-user-account-edit/H — the edit is gated on the target
+  //   account's tier (user-contained-in-tier), so a non-operator cannot edit a
+  //   System Operator account.
+  @override
+  ScopeValue? scopeFor(Permission perm, EditUserAccountInput input) =>
+      perm.scopeClass == 'user'
+      ? BoundScope(class_: 'user', value: input.userId)
+      : null;
+
   @override
   Future<ExecutionResult<EditUserAccountResult>> execute(
     EditUserAccountInput input,

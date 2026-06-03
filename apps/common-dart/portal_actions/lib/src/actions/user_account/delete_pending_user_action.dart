@@ -54,6 +54,13 @@ class DeletePendingUserAction
     }
   }
 
+  // Implements: DIARY-DEV-operator-tier-authz/C
+  @override
+  ScopeValue? scopeFor(Permission perm, DeletePendingUserInput input) =>
+      perm.scopeClass == 'user'
+      ? BoundScope(class_: 'user', value: input.userId)
+      : null;
+
   @override
   Future<ExecutionResult<DeletePendingUserResult>> execute(
     DeletePendingUserInput input,

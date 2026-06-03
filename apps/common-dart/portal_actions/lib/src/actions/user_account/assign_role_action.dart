@@ -36,9 +36,15 @@ class AssignRoleAction extends Action<AssignRoleInput, AssignRoleResult> {
       'Assign one role-scope to a staff user. Emits a single role_assigned '
       'event for the (user, role, scope) tuple.';
 
+  // Implements: DIARY-DEV-operator-tier-authz/C+D — assigning a role declares
+  //   TWO permissions: portal.user.assign_role (gated on the TARGET user's tier
+  //   via the `user` scope class) AND portal.user.grant_role (gated on the
+  //   ESCALATION axis via the `tier` scope class — granting SystemOperator
+  //   requires operator-tier coverage). The dispatcher denies if either fails.
   @override
   Set<Permission> get permissions => <Permission>{
     portalPermissionsByActId['ACT-USR-007']!,
+    portalPermissionsByActId['ACT-USR-007-GRANT']!,
   };
 
   @override
@@ -71,6 +77,27 @@ class AssignRoleAction extends Action<AssignRoleInput, AssignRoleResult> {
     }
     if (input.role.isEmpty) {
       throw ArgumentError.value(input.role, 'role', 'must be non-empty');
+    }
+  }
+
+  /// Maps a role to its tier for the grant_role escalation gate: only the
+  /// SystemOperator role lives in the operator tier; every other role is staff.
+  // Implements: DIARY-DEV-operator-tier-authz/D
+  static String _tierOfRole(String role) =>
+      role == 'SystemOperator' ? 'operator' : 'staff';
+
+  // Implements: DIARY-DEV-operator-tier-authz/C+D — branch on the permission:
+  //   the grant_role/tier axis resolves to the role's tier; the assign_role/user
+  //   axis resolves to the target user's tier.
+  @override
+  ScopeValue? scopeFor(Permission perm, AssignRoleInput input) {
+    switch (perm.name) {
+      case 'portal.user.grant_role':
+        return BoundScope(class_: 'tier', value: _tierOfRole(input.role));
+      case 'portal.user.assign_role':
+        return BoundScope(class_: 'user', value: input.userId);
+      default:
+        return null;
     }
   }
 

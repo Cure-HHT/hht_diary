@@ -78,6 +78,15 @@ class AssignSiteAction extends Action<AssignSiteInput, AssignSiteResult> {
     }
   }
 
+  // Implements: DIARY-DEV-operator-tier-authz/C — the assign_site permission is
+  //   gated on the TARGET user's tier (user-contained-in-tier), not the site
+  //   being assigned. The site is encoded in the emitted role_assigned scope.
+  @override
+  ScopeValue? scopeFor(Permission perm, AssignSiteInput input) =>
+      perm.scopeClass == 'user'
+      ? BoundScope(class_: 'user', value: input.userId)
+      : null;
+
   @override
   Future<ExecutionResult<AssignSiteResult>> execute(
     AssignSiteInput input,

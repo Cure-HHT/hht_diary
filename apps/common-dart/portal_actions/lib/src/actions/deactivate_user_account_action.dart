@@ -70,6 +70,16 @@ class DeactivateUserAccountAction
     }
   }
 
+  // Implements: DIARY-DEV-operator-tier-authz/C
+  // Implements: DIARY-PRD-user-account-edit/H — deactivation is gated on the
+  //   target account's tier, so a non-operator cannot deactivate a System
+  //   Operator account.
+  @override
+  ScopeValue? scopeFor(Permission perm, DeactivateUserAccountInput input) =>
+      perm.scopeClass == 'user'
+      ? BoundScope(class_: 'user', value: input.userId)
+      : null;
+
   @override
   Future<ExecutionResult<DeactivateUserAccountResult>> execute(
     DeactivateUserAccountInput input,

@@ -75,6 +75,13 @@ class RevokeRoleAction extends Action<RevokeRoleInput, RevokeRoleResult> {
     }
   }
 
+  // Implements: DIARY-DEV-operator-tier-authz/C
+  @override
+  ScopeValue? scopeFor(Permission perm, RevokeRoleInput input) =>
+      perm.scopeClass == 'user'
+      ? BoundScope(class_: 'user', value: input.userId)
+      : null;
+
   @override
   Future<ExecutionResult<RevokeRoleResult>> execute(
     RevokeRoleInput input,

@@ -184,6 +184,17 @@ Future<PortalServerBoot> bootstrapPortalServer({
           role: 'Administrator',
           scope: ValueWildcardScope(class_: 'site'),
         ),
+        // Implements: DIARY-DEV-operator-tier-authz/E — the Administrator's
+        //   tier coverage is staff-only (BoundScope(tier, staff)): it may manage
+        //   staff-tier accounts and grant staff roles, but NOT operator-tier
+        //   accounts or the SystemOperator role. A role assignment carries ONE
+        //   scope per entry, so this is a SECOND entry alongside the site
+        //   wildcard above.
+        RoleAssignmentSeedEntry(
+          userId: 'admin-1',
+          role: 'Administrator',
+          scope: BoundScope(class_: 'tier', value: 'staff'),
+        ),
         RoleAssignmentSeedEntry(
           userId: 'sc-1',
           role: 'StudyCoordinator',
@@ -196,6 +207,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
           userId: 'multi-1',
           role: 'Administrator',
           scope: ValueWildcardScope(class_: 'site'),
+        ),
+        // Implements: DIARY-DEV-operator-tier-authz/E — staff-tier coverage for
+        //   the dev multi-role Administrator (mirrors admin-1).
+        RoleAssignmentSeedEntry(
+          userId: 'multi-1',
+          role: 'Administrator',
+          scope: BoundScope(class_: 'tier', value: 'staff'),
         ),
         RoleAssignmentSeedEntry(
           userId: 'multi-1',
@@ -222,6 +240,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
             userId: adminEmail,
             role: 'Administrator',
             scope: const ValueWildcardScope(class_: 'site'),
+          ),
+          // Implements: DIARY-DEV-operator-tier-authz/E — staff-tier coverage so
+          //   the env-seeded Administrator can exercise user-management actions
+          //   against staff-tier accounts.
+          RoleAssignmentSeedEntry(
+            userId: adminEmail,
+            role: 'Administrator',
+            scope: const BoundScope(class_: 'tier', value: 'staff'),
           ),
         ]),
       );

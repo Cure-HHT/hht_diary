@@ -10,8 +10,15 @@ void main() {
       names.length,
       reason: 'no duplicate action names',
     );
-    expect(names.toSet(), containsAll(portalPermissionsByActId.keys));
-    expect(names.length, portalPermissionsByActId.length); // 26
+    // The catalog has one entry per ACT id PLUS the ACT-USR-007-GRANT pseudo-id
+    // (the second permission AssignRoleAction declares — the grant_role
+    // escalation axis), which is not a distinct registered action. Compare
+    // against the action-backed ids only.
+    final actionBackedActIds = portalPermissionsByActId.keys
+        .where((k) => k != 'ACT-USR-007-GRANT')
+        .toSet();
+    expect(names.toSet(), containsAll(actionBackedActIds));
+    expect(names.length, actionBackedActIds.length);
     expect(
       names.toSet(),
       containsAll(<String>['ACT-OPS-001', 'ACT-OPS-002', 'ACT-OPS-003']),

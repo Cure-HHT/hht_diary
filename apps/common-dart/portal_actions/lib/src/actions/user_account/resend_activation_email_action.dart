@@ -75,6 +75,13 @@ class ResendActivationEmailAction
     }
   }
 
+  // Implements: DIARY-DEV-operator-tier-authz/C
+  @override
+  ScopeValue? scopeFor(Permission perm, ResendActivationEmailInput input) =>
+      perm.scopeClass == 'user'
+      ? BoundScope(class_: 'user', value: input.userId)
+      : null;
+
   @override
   Future<ExecutionResult<ResendActivationEmailResult>> execute(
     ResendActivationEmailInput input,

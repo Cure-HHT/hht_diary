@@ -85,6 +85,13 @@ class ReactivateUserAccountAction
     }
   }
 
+  // Implements: DIARY-DEV-operator-tier-authz/C
+  @override
+  ScopeValue? scopeFor(Permission perm, ReactivateUserAccountInput input) =>
+      perm.scopeClass == 'user'
+      ? BoundScope(class_: 'user', value: input.userId)
+      : null;
+
   @override
   Future<ExecutionResult<ReactivateUserAccountResult>> execute(
     ReactivateUserAccountInput input,

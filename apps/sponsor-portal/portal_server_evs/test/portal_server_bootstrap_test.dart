@@ -40,6 +40,20 @@ void main() {
       activeRole: 'StudyCoordinator',
     );
 
+    // The assign_site action is now tier-scoped on the TARGET user: target-1
+    // needs a user_tier_index row (staff) for the user-scoped permission to
+    // resolve (ContainmentResolver is fail-closed on a missing row). The boot
+    // user_tier_reactor only seeds tier rows for created users; target-1 is
+    // never created here, so seed its staff-tier row explicitly.
+    await boot.eventStore.append(
+      entryType: 'user_tier_changed',
+      aggregateType: 'portal_user',
+      aggregateId: 'target-1',
+      eventType: 'user_tier_changed',
+      data: <String, Object?>{'user_id': 'target-1', 'tier': 'staff'},
+      initiator: const AutomationInitiator(service: 'test-seed'),
+    );
+
     // Admin assigns StudyCoordinator @ site-1 to a target user -> allowed.
     final assign = await boot.dispatcher.dispatch(
       const ActionSubmission(
@@ -136,6 +150,19 @@ void main() {
       activeRole: 'Administrator',
     );
     const wildcard = ValueWildcardScope(class_: 'site');
+
+    // assign_role/revoke_role are tier-scoped on the TARGET user; seed target-w's
+    // staff-tier row so the user-scoped permission resolves. The role being
+    // assigned is 'Administrator' (a staff-tier role), so the grant_role/tier
+    // escalation axis is satisfied by the admin's staff-tier coverage.
+    await boot.eventStore.append(
+      entryType: 'user_tier_changed',
+      aggregateType: 'portal_user',
+      aggregateId: 'target-w',
+      eventType: 'user_tier_changed',
+      data: <String, Object?>{'user_id': 'target-w', 'tier': 'staff'},
+      initiator: const AutomationInitiator(service: 'test-seed'),
+    );
 
     final assign = await boot.dispatcher.dispatch(
       ActionSubmission(

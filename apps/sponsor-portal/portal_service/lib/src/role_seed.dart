@@ -40,6 +40,10 @@ grants:
     - portal.user.unlock
     - portal.user.resend_activation
     - portal.user.assign_role
+    # Implements: DIARY-DEV-operator-tier-authz/B — the Administrator may grant
+    #   staff-tier roles (its tier scope assignment is BoundScope(tier, staff)),
+    #   so grant_role here is satisfied only when assigning a non-operator role.
+    - portal.user.grant_role
     - portal.user.assign_site
     - portal.user.revoke_role
     - portal.user.revoke_site
@@ -50,4 +54,19 @@ grants:
     - portal.rave.unwedge
     - portal.user.create_sysop
     - portal.user.create_admin
+    # Implements: DIARY-DEV-operator-tier-authz/F — the System Operator holds the
+    #   same user-management permissions as the Administrator PLUS grant_role, and
+    #   (via an operator-tier wildcard scope assignment) may exercise them against
+    #   operator-tier accounts an Administrator cannot reach.
+    - portal.user.grant_role
+    - portal.user.edit
+    - portal.user.deactivate
+    - portal.user.reactivate
+    - portal.user.unlock
+    - portal.user.resend_activation
+    - portal.user.assign_role
+    - portal.user.assign_site
+    - portal.user.revoke_role
+    - portal.user.revoke_site
+    - portal.user.delete_pending
 ''';
