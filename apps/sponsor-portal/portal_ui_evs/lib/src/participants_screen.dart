@@ -1,4 +1,8 @@
 import 'package:event_sourcing/event_sourcing.dart';
+// Explicit for @visibleForTesting (also re-exported transitively by
+// material.dart, hence the ignore).
+// ignore: unnecessary_import
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
@@ -239,20 +243,34 @@ class _ParticipantActionButton extends StatelessWidget {
       builder: (context, state, submit) {
         // On a successful issuing action, surface the SERVER-generated code
         // inline (instead of the bare button), with copy + expiry. The code
-        // comes from the action result, NOT a client-side guess.
+        // comes from the action result, NOT a client-side guess. The issuing
+        // actions are Idempotency.required, so a double-tap / retry / same-key
+        // resubmit returns a DispatchIdempotencyHit (carrying the cached
+        // result) rather than a fresh DispatchSuccess — ActionBuilder maps
+        // BOTH to Success, so we read the result map from either variant.
+        //
+        // NOTE: this inline display is TRANSIENT — it lives only in this
+        // ActionBuilder's state and is lost if the row's ExpansionTile
+        // collapses (the subtree is rebuilt). The PERSISTENT source of the
+        // code is the showCode dialog, backed by the reactive
+        // participant_record.linking_code projection. This is intentional; do
+        // NOT make the widget stateful to retain it.
         if (isIssuing && state is Success) {
-          final result = state.result;
-          if (result is DispatchSuccess<Object?>) {
-            final data = result.result;
-            if (data is Map) {
-              final code = data['linkingCode'] as String?;
-              if (code != null) {
-                return ActivationCodeDisplay(
-                  code: code,
-                  label: 'Linking code',
-                  expiresAt: data['expiresAt'] as String?,
-                );
-              }
+          final dr = state.result;
+          final Object? data = switch (dr) {
+            DispatchSuccess<Object?>(:final result) => result,
+            DispatchIdempotencyHit<Object?>(:final cachedResult) =>
+              cachedResult,
+            _ => null,
+          };
+          if (data is Map) {
+            final code = data['linkingCode'] as String?;
+            if (code != null) {
+              return ActivationCodeDisplay(
+                code: code,
+                label: 'Linking code',
+                expiresAt: data['expiresAt'] as String?,
+              );
             }
           }
         }

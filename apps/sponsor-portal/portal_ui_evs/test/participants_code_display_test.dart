@@ -151,4 +151,43 @@ void main() {
 
     await fake.dispose();
   });
+
+  testWidgets('issuing surfaces the code on an idempotency-hit replay', (
+    tester,
+  ) async {
+    final fake = FakeReaction();
+    // A double-tap / retry / same-key resubmit of an Idempotency.required
+    // action returns DispatchIdempotencyHit carrying the cached result.
+    // ActionBuilder maps it to the Success state (same as DispatchSuccess),
+    // so the cached code must surface inline too.
+    fake.queueDispatchResult(
+      const DispatchIdempotencyHit<Object?>(
+        <String, Object?>{
+          'participantId': 'P-1',
+          'linkingCode': 'CACACHED1',
+          'expiresAt': '2026-06-06T12:00:00.000Z',
+        },
+        <String>['evt-1'],
+      ),
+    );
+
+    await pumpReactionWidget(
+      tester,
+      fake: fake,
+      child: const Scaffold(
+        body: ActionBuilderHarness(siteId: 'S-1', participantId: 'P-1'),
+      ),
+    );
+
+    expect(find.text('CACACHED1'), findsNothing);
+
+    await tester.tap(find.text(ParticipantAction.issueLinkingCode.label));
+    await tester.pumpAndSettle();
+
+    // The cached code is surfaced inline on the idempotency-hit replay.
+    expect(find.text('CACACHED1'), findsOneWidget);
+    expect(find.byIcon(Icons.copy_outlined), findsOneWidget);
+
+    await fake.dispose();
+  });
 }
