@@ -102,7 +102,9 @@ setup_python_tools() {
     fi
 
     # elspais - requirement validation and traceability
-    install_pip_package "elspais" "${ELSPAIS_VERSION:-0.115.21}"
+    # Canonical pin: .github/versions.env (sourced above into ELSPAIS_VERSION);
+    # the literal is only a fallback when that file is missing — keep it current.
+    install_pip_package "elspais" "${ELSPAIS_VERSION:-0.117.32}"
 
     # anspar-wf - hook generation, plugins, MCP servers
     install_pip_package "anspar-wf" "${ANSPAR_WF_VERSION:-0.1.0}"
