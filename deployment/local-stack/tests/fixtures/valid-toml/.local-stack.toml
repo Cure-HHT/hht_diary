@@ -1,0 +1,6 @@
+# Base toolkit config for the resolver test. The override file
+# (.local-stack.local.toml in this same dir) deep-merges on top and wins,
+# pointing at fixtures/fake-sponsor-repo.
+[associated.sponsor]
+repo = "Cure-HHT/hht_diary_callisto"
+path = "../some-wrong-default"
