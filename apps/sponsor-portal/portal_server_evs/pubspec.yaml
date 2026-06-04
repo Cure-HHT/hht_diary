@@ -11,7 +11,7 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      ref: 0b20b6a3645f883c7410fb7ef891f05ae54623fb
       path: event_sourcing
   portal_identity:
     path: ../portal_identity
@@ -24,7 +24,7 @@ dependencies:
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      ref: 0b20b6a3645f883c7410fb7ef891f05ae54623fb
       path: reaction
   sembast: ^3.0.0
   shelf: ^1.4.0
@@ -32,5 +32,8 @@ dependencies:
   shelf_web_socket: ^3.0.0
 
 dev_dependencies:
+  diary_shared_model:
+    path: ../../common-dart/diary_shared_model
+  http: ^1.6.0
   lints: ^5.0.0
   test: ^1.25.0

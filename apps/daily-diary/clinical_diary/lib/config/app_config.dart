@@ -51,10 +51,10 @@ class AppConfig {
   static String get qaApiKey => _qaApiKeyRaw;
 
   /// Compile-time override for API base URL.
-  /// Pass via: --dart-define=DIARY_API_BASE=http://10.0.2.2:8081
-  /// Used by `local-stack diary` (sponsor repo) and run_local.sh to
-  /// point the app at a local diary-server. BACKEND_URL is the legacy
-  /// name; honored when DIARY_API_BASE is unset.
+  /// Pass via: --dart-define=DIARY_API_BASE=http://10.0.2.2:8084
+  /// Used by `local-stack diary` (sponsor repo) and run_local.sh to point
+  /// the app at the local portal_server_evs (link + ingest node, PORT 8084).
+  /// BACKEND_URL is the legacy name; honored when DIARY_API_BASE is unset.
   static const String _diaryApiBaseOverride = String.fromEnvironment(
     'DIARY_API_BASE',
   );

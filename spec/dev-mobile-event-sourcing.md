@@ -119,6 +119,27 @@ Because the *Diary* server runs the same substrate, a native canonical batch nee
 
 *End* *Outbound Sync via Native Ingest Destination* | **Hash**: 5b88b915
 
+## DIARY-DEV-participant-state-poll: Diary Lifecycle Propagation via State Poll
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-participant-disconnection
+
+### Overview
+
+The portal-side lifecycle *Actions* (disconnect, mark-not-participating, reconnect, reactivate) reach the *Diary* through the *Participant* state endpoint the *Diary* already polls for the *Trial*-start watermark. The endpoint exposes the two lifecycle facts the *Diary* acts on, and the *Diary* translates them into its synchronization and enrollment state. (Push delivery of these facts is the primary channel in the full design; this polled channel is the always-available backup, and the two share this contract.)
+
+### Assertions
+
+A. The *Diary* server SHALL expose, at the *Participant* state endpoint, whether the *Participant* is currently disconnected and whether the *Participant* is not-participating, each derived from the *Participant*'s most recent lifecycle event so that the two facts are mutually exclusive.
+
+B. The *Diary* SHALL poll the *Participant* state endpoint and, on detecting either a disconnected or a not-participating state, SHALL discard its *Session* credential and stop synchronizing, so that resuming participation requires re-establishing the link with a new *Mobile Linking Code*; the *Diary* SHALL NOT silently resume synchronization on reconnection or reactivation. A subsequent successful re-link SHALL clear both states and return the *Diary* to active synchronization.
+
+### Rationale
+
+Routing lifecycle propagation through the same state endpoint the *Diary* already polls avoids a second device-facing contract and keeps the *Diary* authoritative over its own synchronization behavior. Deriving both facts from the latest lifecycle event makes them mutually exclusive — mark-not-participating supersedes disconnected — and lets the device distinguish the two for its interface, even though it acts on both identically at the credential layer. Discarding the *Session* credential on either transition is what makes both the reconnection and the reactivation workflows go back through the *Mobile Linking Code* mechanism rather than silently resuming: disconnection releases the device binding, and reconnection (which reactivation is routed through) restores the link only when the *Participant* enters a fresh code — a deliberate defense against resuming on a device that may no longer be in the *Participant*'s possession. The locally-buffered disconnected-period entries ship on the next drain once that re-link succeeds. The two states differ only in *Sponsor*-rule retention and interface presentation (a reconnection prompt versus an off-*Trial* notice), not in credential handling.
+
+*End* *Diary Lifecycle Propagation via State Poll* | **Hash**: 0a04e639
+
 ## DIARY-DEV-local-participant-authorization: On-Device Authorization Permits the Local Participant
 
 **Level**: DEV | **Status**: Draft | **Implements**: -

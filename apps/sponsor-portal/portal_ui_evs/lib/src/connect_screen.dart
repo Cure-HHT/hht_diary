@@ -125,10 +125,17 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   for (final user in devUsers)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: OutlinedButton(
-                        onPressed: () => widget.onConnect(user.userId),
-                        child: Text(
-                          '${user.userId}  (${user.roles.join(', ')})',
+                      // CUR-1307: identified for Playwright web automation.
+                      child: Semantics(
+                        identifier: 'connect-as-${user.userId}',
+                        button: true,
+                        container: true,
+                        explicitChildNodes: true,
+                        child: OutlinedButton(
+                          onPressed: () => widget.onConnect(user.userId),
+                          child: Text(
+                            '${user.userId}  (${user.roles.join(', ')})',
+                          ),
                         ),
                       ),
                     ),
@@ -136,24 +143,35 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 ],
                 const Text('Connect as (userId or userId|role)'),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: _controller,
-                  decoration: const InputDecoration(
-                    hintText: 'e.g. admin-1 or admin-1|StudyCoordinator',
-                    border: OutlineInputBorder(),
+                // CUR-1307: identified for Playwright web automation.
+                Semantics(
+                  identifier: 'connect-userid',
+                  textField: true,
+                  child: TextField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      hintText: 'e.g. admin-1 or admin-1|StudyCoordinator',
+                      border: OutlineInputBorder(),
+                    ),
+                    onSubmitted: (v) {
+                      if (v.trim().isNotEmpty) widget.onConnect(v.trim());
+                    },
                   ),
-                  onSubmitted: (v) {
-                    if (v.trim().isNotEmpty) widget.onConnect(v.trim());
-                  },
                 ),
                 const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () {
-                    final v = _controller.text.trim();
-                    if (v.isNotEmpty) widget.onConnect(v);
-                  },
-                  icon: const Icon(Icons.login),
-                  label: const Text('Connect'),
+                Semantics(
+                  identifier: 'connect-button',
+                  button: true,
+                  container: true,
+                  explicitChildNodes: true,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      final v = _controller.text.trim();
+                      if (v.isNotEmpty) widget.onConnect(v);
+                    },
+                    icon: const Icon(Icons.login),
+                    label: const Text('Connect'),
+                  ),
                 ),
               ],
             ),

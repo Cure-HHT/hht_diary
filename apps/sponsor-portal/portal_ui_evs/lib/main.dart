@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import 'src/app.dart';
 
@@ -12,6 +14,11 @@ const String appVersion = String.fromEnvironment(
 );
 
 void main() {
+  // CUR-1307: force-enable the web semantics tree so Playwright can drive the
+  // CanvasKit-rendered app via flt-semantics-identifier (mirrors the diary +
+  // reaction/example harnesses). No-op off web.
+  WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) SemanticsBinding.instance.ensureSemantics();
   debugPrint('portal_ui_evs APP_VERSION=$appVersion');
   runApp(const PortalEvsApp());
 }

@@ -38,7 +38,11 @@ class EnvProfile {
   static const _registry = <AppEnv, EnvProfile>{
     AppEnv.local: EnvProfile(
       env: AppEnv.local,
-      apiBase: 'http://localhost:8081',
+      // Local dev points at portal_server_evs — the integrated portal+ingest
+      // node that serves both /api/v1/user/link and /ingest (default PORT 8084,
+      // see apps/sponsor-portal/portal_server_evs/bin/server.dart) — so the
+      // link + native sync loop runs end-to-end against one process.
+      apiBase: 'http://localhost:8084',
       title: 'CureHHT Tracker LOCAL',
       showBanner: true,
       showDevTools: true,

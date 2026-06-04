@@ -57,15 +57,26 @@ B. A `Principal` SHALL be established per connection and per request via a
 `PrincipalAuthValidator`, and every dispatched *Action* SHALL be enforced by the
 event-derived authorization policy regardless of the Principal's claimed *Role*.
 
+C. A subscription to a row-scoped projection SHALL deliver only the rows within the
+subscribing *Principal*'s permitted scope. A *Study Coordinator* bound to a *Site* SHALL
+receive only the *Participants* at that *Site* and SHALL NOT receive *Participant* records
+from other *Sites*.
+
 ### Rationale
 
 The reactive transport (subscriptions + *Action* dispatch over WS/HTTP) is the portal's
 durable client/server seam; standing it up over the SP1/SP2 enforcement core lets the
 real UI subscribe to live projections and dispatch audited, permission-gated actions.
 The credential validator is swappable (a dev credential validator now; Identity
-Platform later) without changing the enforcement path.
+Platform later) without changing the enforcement path. Row-level read scope (C) mirrors
+on the subscription path the same *Site*-to-*Participant* containment the write path enforces
+for *Actions*: a view is bound to a scope class and the requesting *Principal*'s scope
+assignments are resolved through that containment into the covered rows, so a *Site*-bound
+Coordinator's live *Participant* list cannot leak rows from *Sites* they are not assigned
+to. A projection with no scope binding stays unscoped at the row level (global/admin
+views), gated only by its view-level permission.
 
-*End* *Portal Reaction Server Shell* | **Hash**: 95ceb3ec
+*End* *Portal Reaction Server Shell* | **Hash**: d305e3c1
 
 ## DIARY-DEV-rave-edc-ingest: RAVE/EDC Ingest as Edge Events
 

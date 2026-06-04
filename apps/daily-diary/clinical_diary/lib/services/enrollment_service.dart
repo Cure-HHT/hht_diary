@@ -51,6 +51,12 @@ class EnrollmentService {
   /// appears immediately when a background sync detects disconnection,
   /// without requiring a page navigation or app restart.
   final ValueNotifier<bool> disconnectedNotifier = ValueNotifier(false);
+
+  /// Real-time notifier for the not-participating state, mirroring
+  /// [disconnectedNotifier]. Read synchronously by the diary sync gate so an
+  /// in-flight tick that detects not-participating pauses outbound sync without
+  /// waiting for an async prefs read.
+  final ValueNotifier<bool> notParticipatingNotifier = ValueNotifier(false);
   final FlutterSecureStorage _secureStorage;
   final http.Client _httpClient;
   SharedPreferences? _sharedPreferences;
@@ -244,6 +250,13 @@ class EnrollmentService {
       );
 
       await _saveEnrollment(enrollment);
+      // A successful (re-)link means the participant is active again: clear any
+      // prior disconnected / not-participating lifecycle state so a reactivate ->
+      // new-code -> re-link cleanly returns the diary to the active state. (The
+      // JWT was forgotten when the participant was marked not-participating, so
+      // reactivation reaches the device as a fresh link with a new code.)
+      await setDisconnected(false);
+      await setNotParticipating(false);
       return enrollment;
     } on http.ClientException catch (e) {
       debugPrint('HTTP error: $e');
@@ -354,6 +367,17 @@ class EnrollmentService {
     await prefs.setBool(_disconnectedKey, disconnected);
   }
 
+  /// Seed [disconnectedNotifier] and [notParticipatingNotifier] from persisted
+  /// prefs at startup, so the sync gate and UI reflect a disconnect /
+  /// not-participating state that was detected in a prior session before the
+  /// first /state poll of this session completes.
+  Future<void> seedLifecycleNotifiers() async {
+    final prefs = await _getPrefs();
+    disconnectedNotifier.value = prefs.getBool(_disconnectedKey) ?? false;
+    notParticipatingNotifier.value =
+        prefs.getBool(_notParticipatingKey) ?? false;
+  }
+
   // CUR-1165: Not participating state tracking (REQ-p01065-D)
 
   /// Check if the participant has been marked as not participating by the sponsor
@@ -368,6 +392,7 @@ class EnrollmentService {
     bool notParticipating, {
     DateTime? at,
   }) async {
+    notParticipatingNotifier.value = notParticipating; // notify listeners first
     final prefs = await _getPrefs();
     await prefs.setBool(_notParticipatingKey, notParticipating);
     if (notParticipating && at != null) {
@@ -419,6 +444,7 @@ class EnrollmentService {
   void dispose() {
     _httpClient.close();
     disconnectedNotifier.dispose();
+    notParticipatingNotifier.dispose();
   }
 }
 

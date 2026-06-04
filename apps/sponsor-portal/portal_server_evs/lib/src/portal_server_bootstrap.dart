@@ -14,6 +14,7 @@ import 'package:shelf_router/shelf_router.dart';
 
 import 'activation_code_store.dart';
 import 'activation_reactor.dart';
+import 'linking_code_lifecycle_reactor.dart';
 import 'activation_routes.dart';
 import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
@@ -21,6 +22,10 @@ import 'login_routes.dart';
 import 'otp_store.dart';
 import 'password_reset_code_store.dart';
 import 'password_reset_routes.dart';
+import 'patient_ingest_handler.dart';
+import 'patient_link_handler.dart';
+import 'patient_state_handler.dart';
+import 'portal_view_scopes.dart';
 import 'session_cascade_reactor.dart';
 import 'session_store.dart';
 import 'session_token_validator.dart';
@@ -298,9 +303,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
     provision: IdentityAdmin.lookupOrProvisionByEmail,
   );
 
-  // 6. Dispatcher (registers all portal actions).
+  // 6. Dispatcher (registers all portal actions). The sponsor linking-code
+  //    prefix is read here at boot and injected, keeping portal_actions
+  //    dart:io-free (see generateLinkingCode).
   final dispatcher = await buildPortalDispatcher(
-      eventStore: eventStore, idempotency: idempotency);
+      eventStore: eventStore,
+      idempotency: idempotency,
+      linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX');
 
   // 7. Validator selection — default is dev so the existing admin-1/sc-1
   //    workflow is unchanged. Set PORTAL_AUTH_MODE=session + PORTAL_SESSION_SIGNING_KEY
@@ -372,7 +381,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     signingKey: signingKey.isEmpty ? 'dev-unused' : signingKey,
   );
 
-  // 7d. Password-reset collaborators (code store + email sender + router).
+  // 7c. Password-reset collaborators (code store + email sender + router).
   //     Routes are PUBLIC — mounted outside authMiddleware on topRouter.
   // Implements: DIARY-DEV-portal-reset-code-lifecycle/D
   // Implements: DIARY-DEV-portal-reset-password-update/B
@@ -388,24 +397,41 @@ Future<PortalServerBoot> bootstrapPortalServer({
     portalUrl: portalUrl,
   );
 
-  // 7c. Session cascade reactor — mirrors exact treatment of ActivationReactor:
+  // 7d. Session cascade reactor — mirrors exact treatment of ActivationReactor:
   //     started here, retained as a local final (StreamSubscription inside keeps
   //     it alive), stopped in dispose.
   // Implements: DIARY-DEV-portal-session-lifecycle/B
   final sessionCascadeReactor =
       SessionCascadeReactor(eventStore: eventStore, backend: backend)..start();
 
-  // 7e. User tier reactor — keeps user_tier_index correct by emitting
+  // 7e. Linking-code lifecycle reactor — on participant_linking_code_issued,
+  //     supersedes the participant's prior active code and self-heals the rare
+  //     case where two participants are issued the same code.
+  // Implements: DIARY-DEV-linking-code-lifecycle/B+D
+  final linkingCodeReactor = LinkingCodeLifecycleReactor(
+    eventStore: eventStore,
+    backend: backend,
+    linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
+  )..start();
+
+  // 7f. User tier reactor — keeps user_tier_index correct by emitting
   //     user_tier_changed whenever a user's SystemOperator assignment changes.
   // Implements: DIARY-DEV-operator-tier-authz/A
   final userTierReactor =
       UserTierReactor(eventStore: eventStore, backend: backend)..start();
 
+  // viewScopeRegistry enables per-subscription row-level narrowing: a site-bound
+  // Study Coordinator's participant_record subscription is restricted to the
+  // participants at their own Site (expanded via the participant_site_index
+  // containment in buildPortalScopeRegistry). Without it, every authenticated
+  // Principal with the view permission would receive ALL rows across all sites.
+  // Implements: DIARY-DEV-portal-reaction-server/C
   final handlers = ReactionHandlers(
     eventStore: eventStore,
     dispatcher: dispatcher,
     policy: policy,
     scopeClassRegistry: buildPortalScopeRegistry(),
+    viewScopeRegistry: buildPortalViewScopeRegistry(),
   );
 
   // 8. Routes: WS /subscriptions outside HTTP-auth middleware (Flutter web
@@ -504,6 +530,27 @@ Future<PortalServerBoot> bootstrapPortalServer({
       .addMiddleware(_cors())
       .addHandler(passwordResetRouter.call);
 
+  // Patient clinical-record ingest (public; in-handler patient-JWT auth). Seam-
+  // isolated for the deferred edge/core split.
+  // Implements: DIARY-DEV-participant-ingest/A
+  final ingestHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(patientIngestHandler(eventStore: eventStore));
+
+  // Patient linking-code redemption (public; validates code, mints JWT, consumes
+  // code). Seam-isolated for the deferred edge/core split, like /ingest.
+  // Implements: DIARY-DEV-participant-link-issuance/A
+  final linkHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(patientLinkHandler(eventStore: eventStore));
+
+  // Patient state (public; in-handler patient-JWT auth): the trial-start
+  // watermark the diary gates outbound sync on, plus linking status.
+  // Implements: DIARY-PRD-questionnaire-system/C
+  final stateHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(patientStateHandler(eventStore: eventStore));
+
   final topRouter = Router()
     ..get('/subscriptions', handlers.subscriptions(validator))
     // Activation routes (public).
@@ -523,7 +570,20 @@ Future<PortalServerBoot> bootstrapPortalServer({
     ..post('/password-reset/request', passwordResetHandler)
     ..get('/password-reset/<code>', passwordResetHandler)
     ..options('/password-reset', passwordResetHandler)
-    ..post('/password-reset', passwordResetHandler);
+    ..post('/password-reset', passwordResetHandler)
+    // Patient clinical-record ingest (public). One canonical path, matching the
+    // diary's DiaryServerDestination and the `/api/v1/user/link` versioned
+    // namespace; portal_server_evs plays the diary-server ingest role until the
+    // edge/core split lands.
+    // Implements: DIARY-DEV-participant-ingest/A
+    ..options('/api/v1/ingest/batch', ingestHandler)
+    ..post('/api/v1/ingest/batch', ingestHandler)
+    // Patient linking-code redemption (public).
+    ..options('/api/v1/user/link', linkHandler)
+    ..post('/api/v1/user/link', linkHandler)
+    // Patient state: trial-start watermark + linking status (public; JWT-gated).
+    ..options('/api/v1/user/state', stateHandler)
+    ..get('/api/v1/user/state', stateHandler);
 
   // Dev-only: /dev/users exposes the role-assignment list so the dev
   // ConnectScreen can populate a dropdown. Not mounted in session mode.
@@ -556,6 +616,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   Future<void> dispose() async {
     await activationReactor.stop();
     await sessionCascadeReactor.stop();
+    await linkingCodeReactor.stop();
     await userTierReactor.stop();
     await handlers.dispose();
     await eventStore.close();

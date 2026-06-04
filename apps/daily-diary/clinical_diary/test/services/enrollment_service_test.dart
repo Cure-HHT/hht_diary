@@ -28,7 +28,11 @@ void main() {
 
     setUp(() {
       mockStorage = MockSecureStorage();
-      // Note: JWT is now returned by /link endpoint, not required beforehand
+      // Note: JWT is now returned by /link endpoint, not required beforehand.
+      // enroll() now clears the disconnected / not-participating lifecycle flags
+      // on a successful (re-)link, which reads SharedPreferences — seed an empty
+      // store so the prod prefs path is exercised in every test in this group.
+      SharedPreferences.setMockInitialValues(<String, Object>{});
     });
 
     tearDown(() {
@@ -291,8 +295,8 @@ void main() {
         () async {
           final mockClient = MockClient((request) async {
             return http.Response(
-              '{"error": "This device is already linked to a study. '
-              'Please contact your research coordinator if you need to re-link."}',
+              '{"error": "This device is already linked to a different '
+              'participant device."}',
               409,
             );
           });
@@ -777,6 +781,43 @@ void main() {
         final result = await service.isNotParticipating();
         expect(result, false);
       });
+
+      test(
+        'setNotParticipating updates notParticipatingNotifier synchronously',
+        () async {
+          expect(service.notParticipatingNotifier.value, false);
+          final future = service.setNotParticipating(true);
+          // The notifier is set before the async prefs write completes so the
+          // sync gate / UI react immediately.
+          expect(service.notParticipatingNotifier.value, true);
+          await future;
+          await service.setNotParticipating(false);
+          expect(service.notParticipatingNotifier.value, false);
+        },
+      );
+
+      test(
+        'seedLifecycleNotifiers seeds both notifiers from persisted prefs',
+        () async {
+          SharedPreferences.setMockInitialValues(<String, Object>{
+            'participant_disconnected': true,
+            'participant_not_participating': true,
+          });
+          final seeded = EnrollmentService(
+            secureStorage: MockSecureStorage(),
+            httpClient: MockClient((_) async => http.Response('', 200)),
+          );
+          addTearDown(seeded.dispose);
+          expect(
+            seeded.disconnectedNotifier.value,
+            false,
+            reason: 'notifier defaults to false before seeding',
+          );
+          await seeded.seedLifecycleNotifiers();
+          expect(seeded.disconnectedNotifier.value, true);
+          expect(seeded.notParticipatingNotifier.value, true);
+        },
+      );
 
       test('setNotParticipating persists true', () async {
         await service.setNotParticipating(true);

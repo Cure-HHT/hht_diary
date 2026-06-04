@@ -2,7 +2,8 @@
 //   registry's declared permissions with the role-permission seed and scope
 //   registry into an event-log-backed authorization policy.
 import 'package:event_sourcing/event_sourcing.dart';
-// portal_actions re-exports diary_shared_model's sharedEventCatalog.
+// portal_actions re-exports diary_shared_model's sharedEventCatalog
+// (including diaryEntriesProjection, diaryEntryAggregateType, diaryEntriesViewName).
 import 'package:portal_actions/portal_actions.dart';
 
 import 'projections.dart';
@@ -86,11 +87,15 @@ Future<EventStore> openPortalEventStore({
     ..register(userRoleScopesSpec)
     ..register(userTierIndexSpec)
     ..register(participantSiteIndexSpec)
+    ..register(linkingCodesSpec)
     ..register(sitesIndexSpec)
     ..register(participantRecordSpec)
     ..register(usersIndexSpec)
     ..register(sessionsIndexSpec)
-    ..register(raveSyncStatusSpec);
+    ..register(raveSyncStatusSpec)
+    // Implements: DIARY-DEV-participant-ingest/C — ingested diary events materialize
+    //   into the diary_entries view.
+    ..register(diaryEntriesProjection);
 
   final bundle = await bootstrapEventStore(
     backend: backend,

@@ -134,12 +134,17 @@ void main() {
       expect(await d.send(_payload()), isA<SendPermanent>());
     });
 
-    test('401 -> SendPermanent', () async {
-      final d = _dest(
-        client: MockClient((_) async => http.Response('no', 401)),
-      );
-      expect(await d.send(_payload()), isA<SendPermanent>());
-    });
+    test(
+      '401 -> SendTransient (auth not currently valid; retried, never wedged)',
+      () async {
+        final d = _dest(
+          client: MockClient((_) async => http.Response('no', 401)),
+        );
+        final r = await d.send(_payload());
+        expect(r, isA<SendTransient>());
+        expect((r as SendTransient).httpStatus, 401);
+      },
+    );
 
     test('ClientException -> SendTransient', () async {
       final d = _dest(

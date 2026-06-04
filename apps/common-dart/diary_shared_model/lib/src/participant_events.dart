@@ -32,6 +32,16 @@ const List<SharedEventType> participantEventTypes = <SharedEventType>[
       name: 'Participant Linking Code Revoked',
     ),
   ),
+  // Implements: DIARY-DEV-linking-code-lifecycle/C — the lifecycle event type the
+  //   per-code linking_codes projection folds into a single status.
+  SharedEventType(
+    origin: EventOrigin.portal,
+    definition: EntryTypeDefinition(
+      id: 'participant_linking_code_used',
+      registeredVersion: 1,
+      name: 'Participant Linking Code Used',
+    ),
+  ),
   SharedEventType(
     origin: EventOrigin.portal,
     definition: EntryTypeDefinition(

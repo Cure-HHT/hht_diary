@@ -41,10 +41,10 @@
 | DIARY-PRD-notification-ongoing-epistaxis         | Ongoing Epistaxis Event Reminder                         | prd-mobile-notifications.md               | 8b8197fb |
 | DIARY-PRD-notification-portal-sent-questionnaire | Portal-Sent Questionnaire Notification                   | prd-mobile-notifications.md               | 88bc4533 |
 | DIARY-PRD-notification-yesterday-entry           | Yesterday Entry Reminder Notification                    | prd-mobile-notifications.md               | 7c39d944 |
-| DIARY-PRD-participant-disconnection              | Participant Disconnection Workflow                       | prd-participant.md                        | abdd13ed |
+| DIARY-PRD-participant-disconnection              | Participant Disconnection Workflow                       | prd-participant.md                        | d449c26a |
 | DIARY-PRD-participant-link-new                   | Link New Participant Workflow                            | prd-participant.md                        | 6bd7ce5c |
 | DIARY-PRD-participant-mark-not-participating     | Mark as Not Participating                                | prd-participant.md                        | 84fb8bf2 |
-| DIARY-PRD-participant-reactivate                 | Reactivate Participant                                   | prd-participant.md                        | 7625911e |
+| DIARY-PRD-participant-reactivate                 | Reactivate Participant                                   | prd-participant.md                        | ef34372b |
 | DIARY-PRD-participant-reconnection               | Participant Reconnection Workflow                        | prd-participant.md                        | 72d588e7 |
 | DIARY-PRD-participant-registration               | Participant Registration                                 | prd-participant.md                        | 5f285232 |
 | DIARY-PRD-password-forgot                        | Forgot Password                                          | prd-portal-auth.md                        | 0aa45cc5 |
@@ -159,12 +159,16 @@
 | DIARY-DEV-audit-log-read                     | Audit log read                                        | dev-portal-service.md              | 34892437 |
 | DIARY-DEV-evs-stack-adoption                 | Diary Adopts the Event-Sourcing Stack                 | dev-mobile-event-sourcing.md       | 663897f8 |
 | DIARY-DEV-inbound-event-on-receipt           | Inbound Receipt Emits an Event                        | dev-mobile-event-sourcing.md       | 9143d6c4 |
+| DIARY-DEV-linking-code-lifecycle             | Linking-Code Lifecycle and Uniqueness                 | dev-linking-code-lifecycle.md      | e817982d |
 | DIARY-DEV-local-participant-authorization    | On-Device Authorization Permits the Local Participant | dev-mobile-event-sourcing.md       | 5b6674c2 |
 | DIARY-DEV-native-outbound-sync               | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md       | 5b88b915 |
 | DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | d2cc0577 |
 | DIARY-DEV-operator-tier-authz                | Operator-Tier Authorization for User Management       | dev-portal-service.md              | cda9a051 |
 | DIARY-DEV-outgoing-intent-correlation        | Outgoing Intent and Flow Correlation                  | dev-outgoing-intent-correlation.md | 108441a8 |
+| DIARY-DEV-participant-ingest                 | Participant Clinical-Record Ingest Edge               | dev-participant-ingest.md          | ba96a497 |
+| DIARY-DEV-participant-link-issuance          | Participant Link Endpoint                             | dev-participant-link-issuance.md   | 9e23e55d |
 | DIARY-DEV-participant-site-index             | Participant-Site Index Materializer                   | dev-portal-service.md              | 76e68990 |
+| DIARY-DEV-participant-state-poll             | Diary Lifecycle Propagation via State Poll            | dev-mobile-event-sourcing.md       | 0a04e639 |
 | DIARY-DEV-participant-status-projection      | Participant Linking-Status Projection                 | dev-portal-service.md              | aafda27d |
 | DIARY-DEV-portal-activation-code-lifecycle   | Activation code lifecycle                             | dev-portal-activation.md           | ec270b2e |
 | DIARY-DEV-portal-activation-email-delivery   | Activation email delivery                             | dev-portal-activation.md           | 8357a727 |
@@ -173,7 +177,7 @@
 | DIARY-DEV-portal-identity-provisioning       | Identity Platform provisioning                        | dev-portal-activation.md           | 0e3eb2b5 |
 | DIARY-DEV-portal-login-identity-verification | Login identity verification                           | dev-portal-login.md                | 4b3d6032 |
 | DIARY-DEV-portal-login-second-factor         | Login second factor                                   | dev-portal-login.md                | 9c1195e5 |
-| DIARY-DEV-portal-reaction-server             | Portal Reaction Server Shell                          | dev-portal-service.md              | 95ceb3ec |
+| DIARY-DEV-portal-reaction-server             | Portal Reaction Server Shell                          | dev-portal-service.md              | d305e3c1 |
 | DIARY-DEV-portal-reset-code-lifecycle        | Password reset code lifecycle                         | dev-portal-password-reset.md       | 8bc6a227 |
 | DIARY-DEV-portal-reset-password-update       | Password reset credential update                      | dev-portal-password-reset.md       | 4972e2a5 |
 | DIARY-DEV-portal-reset-session-termination   | Password reset session termination                    | dev-portal-password-reset.md       | 7805b6aa |
@@ -183,8 +187,9 @@
 | DIARY-DEV-rave-auth-failure-classification   | Rave Authentication Failure Classification            | prd-rave-sync.md                   | f2732c70 |
 | DIARY-DEV-rave-edc-ingest                    | RAVE/EDC Ingest as Edge Events                        | dev-portal-service.md              | e93b0ede |
 | DIARY-DEV-reactive-read-path                 | Screens Read via Reactive Subscriptions               | dev-mobile-event-sourcing.md       | f37501bb |
+| DIARY-DEV-relink-device-gate                 | Relink Device Gate                                    | dev-relink-device-gate.md          | d82aa19c |
 | DIARY-DEV-runtime-environment-resolution     | Runtime Environment Resolution                        | dev-environment-resolution.md      | b0c74776 |
 | DIARY-DEV-schema-version-check               | Runtime Schema Version Check                          | dev-schema-version-check.md        | 260cb67b |
-| DIARY-DEV-shared-events-catalog              | Shared Cross-Wire Event Catalog                       | dev-shared-events-catalog.md       | b157403e |
+| DIARY-DEV-shared-events-catalog              | Shared Cross-Wire Event Catalog                       | dev-shared-events-catalog.md       | 29c6b0c8 |
 | DIARY-DEV-state-in-event-log                 | Qualifying App State Lives in the Event Log           | dev-mobile-event-sourcing.md       | d6fb9049 |
 | DIARY-DEV-user-account-projection            | User account projection                               | dev-portal-service.md              | ae8627b4 |

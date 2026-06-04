@@ -73,8 +73,8 @@ void main() {
       expect(p.showResetData, isTrue);
     });
 
-    test('local targets the localhost diary-server', () {
-      expect(EnvProfile.forEnv(AppEnv.local).apiBase, 'http://localhost:8081');
+    test('local targets the localhost portal_server_evs (link + ingest)', () {
+      expect(EnvProfile.forEnv(AppEnv.local).apiBase, 'http://localhost:8084');
     });
 
     test('qa targets its own diary-service URL', () {

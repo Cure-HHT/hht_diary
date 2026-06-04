@@ -20,7 +20,7 @@
 #   ./tool/testNotification.sh                          # Send nose_hht to first active patient
 #   ./tool/testNotification.sh --type eq                # Send EQ questionnaire
 #   ./tool/testNotification.sh --type qol               # Send QoL questionnaire
-#   ./tool/testNotification.sh --patient <patient_id>   # Target specific patient
+#   ./tool/testNotification.sh --patient <participant_id>   # Target specific participant
 #   ./tool/testNotification.sh --status                 # Check questionnaire status
 #   ./tool/testNotification.sh --delete <instance_id>   # Delete a questionnaire
 #   ./tool/testNotification.sh --help                   # Show help
@@ -54,7 +54,7 @@ NC='\033[0m'
 
 # Defaults
 QUESTIONNAIRE_TYPE="nose_hht"
-PATIENT_ID=""
+PARTICIPANT_ID=""
 MODE="send"
 INSTANCE_ID=""
 
@@ -66,7 +66,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --patient)
-            PATIENT_ID="$2"
+            PARTICIPANT_ID="$2"
             shift 2
             ;;
         --status)
@@ -85,7 +85,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --type <type>        Questionnaire type: nose_hht, qol, eq (default: nose_hht)"
-            echo "  --patient <id>       Target patient UUID (default: first active patient)"
+            echo "  --patient <id>       Target participant UUID (default: first active participant)"
             echo "  --status             Check questionnaire status instead of sending"
             echo "  --delete <id>        Delete a questionnaire instance by ID"
             echo "  --help, -h           Show this help"
@@ -158,37 +158,37 @@ fi
 
 log_success "Authenticated (token: ${ID_TOKEN:0:20}...)"
 
-# Step 3: Find a patient with trial_started=true (if no patient specified)
-if [ -z "$PATIENT_ID" ]; then
-    log_info "Looking up active trial patients..."
+# Step 3: Find a participant with trial_started=true (if no participant specified)
+if [ -z "$PARTICIPANT_ID" ]; then
+    log_info "Looking up active trial participants..."
 
-    # Use the patients endpoint to find a trial-active patient
+    # Use the participants endpoint to find a trial-active participant
     PATIENTS_RESPONSE=$(curl -s -X GET \
         "$PORTAL_URL/api/v1/portal/participants" \
         -H "Authorization: Bearer $ID_TOKEN" \
         -H "Content-Type: application/json")
 
-    # Extract first patient_id from response
-    PATIENT_ID=$(echo "$PATIENTS_RESPONSE" | grep -o '"patient_id" *: *"[^"]*"' | head -1 | sed 's/"patient_id" *: *"//g' | sed 's/"//g')
+    # Extract first participant_id from response
+    PARTICIPANT_ID=$(echo "$PATIENTS_RESPONSE" | grep -o '"participant_id" *: *"[^"]*"' | head -1 | sed 's/"participant_id" *: *"//g' | sed 's/"//g')
 
-    if [ -z "$PATIENT_ID" ]; then
-        log_warn "No patients found via API. Trying direct DB query..."
+    if [ -z "$PARTICIPANT_ID" ]; then
+        log_warn "No participants found via API. Trying direct DB query..."
 
         # Fallback: query DB directly (requires psql and local postgres)
-        PATIENT_ID=$(PGPASSWORD="${DB_PASSWORD:-postgres}" psql -h localhost -p 5432 -U postgres -d sponsor_portal -t -A -c \
-            "SELECT patient_id FROM patients WHERE trial_started = true LIMIT 1" 2>/dev/null || true)
+        PARTICIPANT_ID=$(PGPASSWORD="${DB_PASSWORD:-postgres}" psql -h localhost -p 5432 -U postgres -d sponsor_portal -t -A -c \
+            "SELECT participant_id FROM participants WHERE trial_started = true LIMIT 1" 2>/dev/null || true)
 
-        PATIENT_ID=$(echo "$PATIENT_ID" | tr -d '[:space:]')
+        PARTICIPANT_ID=$(echo "$PARTICIPANT_ID" | tr -d '[:space:]')
 
-        if [ -z "$PATIENT_ID" ]; then
-            log_error "No trial-active patients found in database."
+        if [ -z "$PARTICIPANT_ID" ]; then
+            log_error "No trial-active participants found in database."
             log_error "Start a trial first via the portal UI, or seed the database:"
             log_error "  ./tool/run_local.sh --reset"
             exit 1
         fi
     fi
 
-    log_success "Using patient: $PATIENT_ID"
+    log_success "Using participant: $PARTICIPANT_ID"
 fi
 
 echo ""
@@ -196,10 +196,10 @@ echo ""
 # Step 4: Execute the requested mode
 case $MODE in
     status)
-        log_info "Fetching questionnaire status for patient $PATIENT_ID..."
+        log_info "Fetching questionnaire status for participant $PARTICIPANT_ID..."
 
         STATUS_RESPONSE=$(curl -s -X GET \
-            "$PORTAL_URL/api/v1/portal/participants/$PATIENT_ID/questionnaires" \
+            "$PORTAL_URL/api/v1/portal/participants/$PARTICIPANT_ID/questionnaires" \
             -H "Authorization: Bearer $ID_TOKEN" \
             -H "Content-Type: application/json")
 
@@ -209,13 +209,13 @@ case $MODE in
         ;;
 
     send)
-        log_info "Sending $QUESTIONNAIRE_TYPE questionnaire to patient $PATIENT_ID..."
+        log_info "Sending $QUESTIONNAIRE_TYPE questionnaire to participant $PARTICIPANT_ID..."
         log_info ""
         log_info "Watch the portal server console for the FCM CONSOLE MODE output!"
         log_info ""
 
         SEND_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "$PORTAL_URL/api/v1/portal/participants/$PATIENT_ID/questionnaires/$QUESTIONNAIRE_TYPE/send" \
+            "$PORTAL_URL/api/v1/portal/participants/$PARTICIPANT_ID/questionnaires/$QUESTIONNAIRE_TYPE/send" \
             -H "Authorization: Bearer $ID_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"study_event": "Test Event"}')
@@ -234,7 +234,7 @@ case $MODE in
             if [ -n "$SENT_INSTANCE_ID" ]; then
                 echo ""
                 log_info "To delete this questionnaire later:"
-                echo "  ./tool/testNotification.sh --delete $SENT_INSTANCE_ID --patient $PATIENT_ID"
+                echo "  ./tool/testNotification.sh --delete $SENT_INSTANCE_ID --patient $PARTICIPANT_ID"
             fi
         else
             log_error "Send failed (HTTP $HTTP_CODE)"
@@ -247,7 +247,7 @@ case $MODE in
         echo "  ============================================================"
         echo "  [FCM CONSOLE MODE] Would send questionnaire_sent:"
         echo "    Token: ..."
-        echo "    Patient: $PATIENT_ID"
+        echo "    Participant: $PARTICIPANT_ID"
         echo "    Data: {\"type\":\"questionnaire_sent\",...}"
         echo "  ============================================================"
         echo ""
@@ -260,14 +260,14 @@ case $MODE in
     delete)
         if [ -z "$INSTANCE_ID" ]; then
             log_error "Instance ID required for delete mode"
-            log_error "Usage: ./tool/testNotification.sh --delete <instance-id> --patient <patient-id>"
+            log_error "Usage: ./tool/testNotification.sh --delete <instance-id> --patient <participant-id>"
             exit 1
         fi
 
-        log_info "Deleting questionnaire $INSTANCE_ID for patient $PATIENT_ID..."
+        log_info "Deleting questionnaire $INSTANCE_ID for participant $PARTICIPANT_ID..."
 
         DELETE_RESPONSE=$(curl -s -w "\n%{http_code}" -X DELETE \
-            "$PORTAL_URL/api/v1/portal/participants/$PATIENT_ID/questionnaires/$INSTANCE_ID" \
+            "$PORTAL_URL/api/v1/portal/participants/$PARTICIPANT_ID/questionnaires/$INSTANCE_ID" \
             -H "Authorization: Bearer $ID_TOKEN" \
             -H "Content-Type: application/json" \
             -d '{"reason": "Test revocation"}')

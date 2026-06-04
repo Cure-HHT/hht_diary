@@ -913,100 +913,112 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                   ),
                   // Profile menu on the right
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.person_outline),
-                    tooltip: AppLocalizations.of(context).userMenu,
-                    onSelected: (value) async {
-                      if (value == 'profile') {
-                        await _handleShowProfile();
-                      } else if (value == 'accessibility') {
-                        await Navigator.push(
-                          context,
-                          AppPageRoute<void>(
-                            builder: (context) => const SettingsScreen(),
-                          ),
-                        );
-                      } else if (value == 'privacy') {
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              AppLocalizations.of(context).privacyComingSoon,
-                            ),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      } else if (value == 'enroll') {
-                        final wasEnrolled = _isEnrolled;
-                        await Navigator.push(
-                          context,
-                          AppPageRoute<void>(
-                            builder: (context) => ClinicalTrialEnrollmentScreen(
-                              enrollmentService: widget.enrollmentService,
-                            ),
-                          ),
-                        );
-                        await _checkEnrollmentStatus();
-                        if (_isEnrolled) {
-                          widget.onEnrolled?.call();
-                        }
-                        await _checkDisconnectionStatus();
-                        // CUR-1114: Open profile only if enrollment state changed
-                        if (!wasEnrolled && _isEnrolled && mounted) {
+                  // CUR-1307: identified for Playwright web automation.
+                  Semantics(
+                    identifier: 'user-menu-button',
+                    button: true,
+                    container: true,
+                    explicitChildNodes: true,
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(Icons.person_outline),
+                      tooltip: AppLocalizations.of(context).userMenu,
+                      onSelected: (value) async {
+                        if (value == 'profile') {
                           await _handleShowProfile();
+                        } else if (value == 'accessibility') {
+                          await Navigator.push(
+                            context,
+                            AppPageRoute<void>(
+                              builder: (context) => const SettingsScreen(),
+                            ),
+                          );
+                        } else if (value == 'privacy') {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                AppLocalizations.of(context).privacyComingSoon,
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        } else if (value == 'enroll') {
+                          final wasEnrolled = _isEnrolled;
+                          await Navigator.push(
+                            context,
+                            AppPageRoute<void>(
+                              builder: (context) =>
+                                  ClinicalTrialEnrollmentScreen(
+                                    enrollmentService: widget.enrollmentService,
+                                  ),
+                            ),
+                          );
+                          await _checkEnrollmentStatus();
+                          if (_isEnrolled) {
+                            widget.onEnrolled?.call();
+                          }
+                          await _checkDisconnectionStatus();
+                          // CUR-1114: Open profile only if enrollment state changed
+                          if (!wasEnrolled && _isEnrolled && mounted) {
+                            await _handleShowProfile();
+                          }
                         }
-                      }
-                    },
-                    itemBuilder: (context) {
-                      final l10n = AppLocalizations.of(context);
-                      return [
-                        // REQ-CAL-p00076: Profile menu item at top
-                        PopupMenuItem(
-                          value: 'profile',
-                          child: Row(
-                            children: [
-                              const Icon(Icons.person, size: 20),
-                              const SizedBox(width: 12),
-                              Text(l10n.profile),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 'accessibility',
-                          child: Row(
-                            children: [
-                              const Icon(Icons.settings, size: 20),
-                              const SizedBox(width: 12),
-                              Text(l10n.accessibilityAndPreferences),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 'privacy',
-                          child: Row(
-                            children: [
-                              const Icon(Icons.privacy_tip, size: 20),
-                              const SizedBox(width: 12),
-                              Text(l10n.privacy),
-                            ],
-                          ),
-                        ),
-                        // CUR-1055: Only show divider and enroll option when not yet enrolled
-                        if (!_isEnrolled) ...[
-                          const PopupMenuDivider(),
+                      },
+                      itemBuilder: (context) {
+                        final l10n = AppLocalizations.of(context);
+                        return [
+                          // REQ-CAL-p00076: Profile menu item at top
                           PopupMenuItem(
-                            value: 'enroll',
+                            value: 'profile',
                             child: Row(
                               children: [
-                                const Icon(Icons.group_add, size: 20),
+                                const Icon(Icons.person, size: 20),
                                 const SizedBox(width: 12),
-                                Text(l10n.enrollInClinicalTrial),
+                                Text(l10n.profile),
                               ],
                             ),
                           ),
-                        ],
-                      ];
-                    },
+                          PopupMenuItem(
+                            value: 'accessibility',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.settings, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.accessibilityAndPreferences),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'privacy',
+                            child: Row(
+                              children: [
+                                const Icon(Icons.privacy_tip, size: 20),
+                                const SizedBox(width: 12),
+                                Text(l10n.privacy),
+                              ],
+                            ),
+                          ),
+                          // CUR-1055: Only show divider and enroll option when not yet enrolled
+                          if (!_isEnrolled) ...[
+                            const PopupMenuDivider(),
+                            PopupMenuItem(
+                              value: 'enroll',
+                              // CUR-1307: identified for Playwright web automation.
+                              child: Semantics(
+                                identifier: 'menu-enroll',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.group_add, size: 20),
+                                    const SizedBox(width: 12),
+                                    Text(l10n.enrollInClinicalTrial),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ];
+                      },
+                    ),
                   ),
                 ],
               ),

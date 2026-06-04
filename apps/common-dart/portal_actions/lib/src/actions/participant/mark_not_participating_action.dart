@@ -98,6 +98,15 @@ class MarkNotParticipatingAction
     return ExecutionResult<MarkNotParticipatingResult>(
       result: MarkNotParticipatingResult(participantId: input.participantId),
       events: <EventDraft>[
+        // Implements: DIARY-PRD-participant-reactivate/D — releasing the device
+        //   binding here is what lets a later reactivation complete reconnection
+        //   on the same OR a different device.
+        // Implements: DIARY-DEV-relink-device-gate/B — marking a participant
+        //   not-participating RELEASES the device binding (app_uuid=null,
+        //   null-as-clear), symmetric with disconnect. Without this, a later
+        //   reactivate (ACT-PAT-006) re-issues a code that re-stamps status to
+        //   linking_in_progress while the old app_uuid is still bound, so the
+        //   relink gate would block a NEW device on reactivation.
         EventDraft(
           aggregateType: 'participant',
           aggregateId: input.participantId,
@@ -107,6 +116,7 @@ class MarkNotParticipatingAction
           data: <String, Object?>{
             'reason': input.reason,
             'by': ctx.principal.id,
+            'app_uuid': null,
           },
         ),
       ],
