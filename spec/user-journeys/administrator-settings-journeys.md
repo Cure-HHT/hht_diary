@@ -2,8 +2,7 @@
 
 > **Role**: Administrator
 > **Source**: spec/prd-administrator-settings.md
-> **Scope**: Sponsor Portal (web). The journey begins with the Administrator
-> already signed in and on the Administrator Dashboard.
+> **Scope**: Sponsor Portal (web). The journey begins with the Administrator already signed in and on the Administrator Dashboard.
 
 ---
 

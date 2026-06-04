@@ -2,10 +2,7 @@
 
 > **Role**: Administrator
 > **Source**: spec/prd-portal-auth.md, spec/prd-user-account.md, spec/prd-rbac.md
-> **Scope**: Sponsor Portal (web). Each journey is one happy-path interaction
-> lifecycle that begins with a fresh browser on the portal login page (no
-> active session). These authentication journeys are written for the
-> Administrator role but the underlying flows are shared across portal roles.
+> **Scope**: Sponsor Portal (web). Each journey is one happy-path interaction lifecycle that begins with a fresh browser on the portal login page (no active session). These authentication journeys are written for the Administrator role but the underlying flows are shared across portal roles.
 
 ---
 

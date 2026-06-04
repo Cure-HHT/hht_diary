@@ -2,9 +2,7 @@
 
 > **Role**: Administrator (Administrator-only capabilities)
 > **Source**: spec/prd-user-account.md, spec/prd-rbac.md
-> **Scope**: Sponsor Portal (web). Each journey is one happy-path interaction
-> lifecycle that begins with the Administrator already signed in and on the
-> Administrator Dashboard (Users tab is the default landing view).
+> **Scope**: Sponsor Portal (web). Each journey is one happy-path interaction lifecycle that begins with the Administrator already signed in and on the Administrator Dashboard (Users tab is the default landing view).
 
 ---
 

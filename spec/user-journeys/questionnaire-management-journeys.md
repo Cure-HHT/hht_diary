@@ -2,15 +2,9 @@
 
 > **Role**: Study Coordinator (Study-Coordinator-only capabilities)
 > **Source**: spec/prd-questionnaire-management.md, spec/prd-questionnaire-participant-workflow.md, spec/prd-score-calculation.md, spec/prd-rbac.md
-> **Scope**: Sponsor Portal (web). Each journey is one happy-path interaction
-> lifecycle beginning with the Study Coordinator signed in and working from the
-> Participant Dashboard.
+> **Scope**: Sponsor Portal (web). Each journey is one happy-path interaction lifecycle beginning with the Study Coordinator signed in and working from the Participant Dashboard.
 >
-> **Spec note**: The questionnaire actions (send, call back, finalize, unlock)
-> have platform PRD behavior, but the portal action UI is deployment/sponsor-
-> configured rather than fixed by a platform DIARY-GUI requirement. These
-> journeys validate the PRD behavior and flag the missing platform GUI
-> requirement inline.
+> **Spec note**: The questionnaire actions (send, call back, finalize, unlock) have platform PRD behavior, but the portal action UI is deployment/sponsor-configured rather than fixed by a platform DIARY-GUI requirement. These journeys validate the PRD behavior and flag the missing platform GUI requirement inline.
 
 ---
 

@@ -1,10 +1,8 @@
 # Audit Log — User Journeys
 
-> **Roles**: Administrator, Study Coordinator (each role sees its own
-> role-scoped audit log view)
+> **Roles**: Administrator, Study Coordinator (each role sees its own role-scoped audit log view)
 > **Source**: spec/prd-audit-log.md, spec/prd-user-account.md
-> **Scope**: Sponsor Portal (web). Each journey begins with the actor already
-> signed in and on their default landing view.
+> **Scope**: Sponsor Portal (web). Each journey begins with the actor already signed in and on their default landing view.
 
 ---
 

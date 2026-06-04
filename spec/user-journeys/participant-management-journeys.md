@@ -2,18 +2,9 @@
 
 > **Role**: Study Coordinator (Study-Coordinator-only capabilities)
 > **Source**: spec/prd-participant.md, spec/prd-rbac.md, spec/prd-questionnaire-management.md
-> **Scope**: Sponsor Portal (web). Each journey is one happy-path interaction
-> lifecycle that begins with the Study Coordinator already signed in and on the
-> Participant Dashboard (the Study Coordinator's default landing view). The
-> shared authentication journeys (log in, accept invite, reset password, switch
-> role, log out) are covered in authentication-journeys.md and are not repeated.
+> **Scope**: Sponsor Portal (web). Each journey is one happy-path interaction lifecycle that begins with the Study Coordinator already signed in and on the Participant Dashboard (the Study Coordinator's default landing view). The shared authentication journeys (log in, accept invite, reset password, switch role, log out) are covered in authentication-journeys.md and are not repeated.
 >
-> **Spec note**: For most participant lifecycle actions (start trial, disconnect,
-> reconnect, mark not-participating, reactivate) the platform defines the PRD
-> behavior, but the portal action UI itself is deployment/sponsor-configured (an
-> action-availability table referenced by DIARY-GUI-participant-dashboard rather
-> than a platform DIARY-GUI requirement). Those journeys validate the PRD
-> behavior and flag the missing platform GUI requirement inline.
+> **Spec note**: For most participant lifecycle actions (start trial, disconnect, reconnect, mark not-participating, reactivate) the platform defines the PRD behavior, but the portal action UI itself is deployment/sponsor-configured (an action-availability table referenced by DIARY-GUI-participant-dashboard rather than a platform DIARY-GUI requirement). Those journeys validate the PRD behavior and flag the missing platform GUI requirement inline.
 
 ---
 
