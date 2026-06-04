@@ -1,12 +1,12 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-o00081: Code Quality and Static Analysis (analyze job)
-#   REQ-o00082: Automated Test Execution (e2e, unit, coverage jobs)
+#   REQ-o00082: Automated Test Execution (portal_server_evs e2e)
 #
 # CI workflow for the sponsor-portal EVS stack: portal_server_evs link/ingest
-# e2e tests (hermetic, in-memory — no PostgreSQL, no Firebase emulator) plus
-# portal-ui. The legacy raw-Postgres packages (portal_functions, portal_server)
-# and the `database/` relational schema were retired with the EVS cutover, so
-# this job no longer provisions PostgreSQL.
+# e2e tests (hermetic, in-memory — no PostgreSQL, no Firebase emulator).
+# The legacy raw-Postgres packages (portal_functions, portal_server) and the
+# legacy Flutter UI (portal-ui) were retired with the EVS cutover and are now
+# reference-only / un-CI'd. The live EVS UI (portal_ui_evs) is not yet wired
+# into CI — tracked separately.
 
 name: Sponsor Portal CI
 
@@ -15,10 +15,6 @@ permissions:
   packages: read
   actions: read  # Required for gh run watch in start-ci-container
 
-# Trigger strategy:
-#   push to main  — runs unconditionally (safety net after merge)
-#   pull_request  — paths-filtered (skip when irrelevant, fast iteration)
-#   workflow_dispatch — runs unconditionally (manual override)
 on:
   push:
     branches: [main]
@@ -27,10 +23,7 @@ on:
     paths:
       - 'apps/sponsor-portal/**'
       - '.github/workflows/sponsor-portal-ci.yml'
-      # Toolchain triggers — mirror start-ci-container/action.yml's
-      # detection regex. A bump to any of these changes the runtime image
-      # or pinned tool versions this CI consumes, so the job must re-run
-      # on PRs that touch them — even if no apps/** files change.
+      # Toolchain triggers — mirror start-ci-container/action.yml's detection.
       - '.github/versions.env'
       - 'tools/dev-env/docker/**'
       - 'tools/dev-env/docker-compose.yml'
@@ -58,36 +51,17 @@ jobs:
         with:
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ---------------------------------------------------------------
-      # Install dependencies
-      # ---------------------------------------------------------------
       - name: Install dependencies
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
             cd /workspace/src/apps/sponsor-portal/portal_server_evs && dart pub get
-            cd /workspace/src/apps/sponsor-portal/portal-ui && flutter pub get
           "
 
-      # ---------------------------------------------------------------
-      # Static analysis
-      # ---------------------------------------------------------------
-      - name: Analyze portal-ui
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal-ui
-            flutter analyze
-          "
-
-      # ---------------------------------------------------------------
-      # Tests
-      # ---------------------------------------------------------------
       # portal_server_evs link/ingest e2e: the full link-loop + relink/reconnect/
       # reactivate, idempotent redelivery, and diverse diary event types, driven
       # over the REAL /actions + /link + /ingest routers against an in-memory
-      # store (hermetic — no Postgres, no Firebase emulator). Scoped to the e2e
-      # files so this job stays deterministic and headless.
+      # store (hermetic — no Postgres, no Firebase emulator).
       - name: Run portal_server_evs link/ingest e2e tests
         working-directory: tools/dev-env
         run: |
@@ -101,57 +75,6 @@ jobs:
               test/trial_start_state_e2e_test.dart
           "
 
-      - name: Run portal-ui unit tests
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal-ui
-            flutter test
-          "
-
-      # ---------------------------------------------------------------
-      # Coverage collection
-      # ---------------------------------------------------------------
-      - name: Run portal-ui tests with coverage
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal-ui
-            flutter test --coverage
-          "
-
-      # ---------------------------------------------------------------
-      # Extract coverage from container for codecov upload
-      # ---------------------------------------------------------------
-      - name: Restore workspace ownership
-        if: always()
-        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
-
-      - name: Copy coverage from container
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
-            "cat /workspace/src/apps/sponsor-portal/portal-ui/coverage/lcov.info" \
-            > $GITHUB_WORKSPACE/portal-ui-lcov.info || true
-
-      - name: Upload portal-ui coverage to Codecov
-        uses: codecov/codecov-action@v6
-        with:
-          files: portal-ui-lcov.info
-          flags: portal-ui
-          fail_ci_if_error: false
-
-      - name: Upload coverage reports as artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sponsor-portal-coverage
-          path: |
-            portal-ui-lcov.info
-          retention-days: 30
-
-      # ---------------------------------------------------------------
-      # Cleanup
-      # ---------------------------------------------------------------
       - name: Cleanup
         if: always()
         working-directory: tools/dev-env

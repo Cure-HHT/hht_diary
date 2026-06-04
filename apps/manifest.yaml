@@ -324,8 +324,8 @@ apps:
     depends_on: []
 
     # Not yet wired to a dedicated workflow; analyze intent only (no test/ dir).
-    # Exercised transitively when clinical_diary / portal-ui CI builds resolve
-    # it as a path dependency, but it has no checks of its own.
+    # Exercised transitively when clinical_diary CI builds resolve it as a path
+    # dependency, but it has no checks of its own.
     ci:
       trigger_paths:
         - apps/common-flutter/common_widgets/**
@@ -515,24 +515,10 @@ apps:
     platforms:
       - web
 
-    ci:
-      trigger_paths:
-        - apps/sponsor-portal/portal-ui/**
-      format: true
-      analyze:
-        tool: flutter
-        fatal_infos: false          # uses `flutter analyze` without --fatal-infos in current CI
-      test:
-        unit: true
-        integration: false          # portal-ui integration tests run with services in portal CI
-        runner: flutter
-        test_script: tool/test.sh
-      coverage:
-        enabled: true
-        threshold: null
-        codecov_flag: sponsor-portal
-      services: []
-      analysis_options: true
+    # Reference-only since the EVS cutover (CUR-1170). The legacy sponsor-portal
+    # Flutter UI is superseded by portal_ui_evs; retained for reference, no
+    # longer built or tested by CI. No ci: block.
+    reference_only: true
 
   - name: portal_identity
     path: apps/sponsor-portal/portal_identity
@@ -621,7 +607,7 @@ apps:
       format: false                 # sponsor-portal-ci does not run a format gate on this package
       analyze:
         tool: dart
-        fatal_infos: false          # sponsor-portal-ci analyzes portal-ui, not this package
+        fatal_infos: false          # sponsor-portal-ci runs only the e2e suite below; no separate analyze gate today
       test:
         unit: false
         integration: true           # e2e link/ingest suite (scoped to the e2e files)
@@ -707,7 +693,6 @@ apps:
 #   trial_data_types      -> trial_data_types-ci.yml (format, analyze, test)
 #   rave_integration      -> covered as a dependency in sponsor-portal builds
 #   clinical_diary        -> clinical_diary-ci.yml   (format, analyze, test+cov)
-#   portal-ui             -> sponsor-portal-ci.yml   (analyze, test, coverage)
 #   portal_server_evs     -> sponsor-portal-ci.yml   (link/ingest e2e suite;
 #                            hermetic / event-sourced — no Postgres, no Firebase)
 #
@@ -722,7 +707,8 @@ apps:
 #
 # Reference-only since the EVS cutover (CUR-1170) — NOT built or tested by CI
 # (the raw-Postgres stack that they depended on was retired):
-#   diary_functions, diary_server, portal_functions, portal_server
+#   diary_functions, diary_server, portal_functions, portal_server, portal-ui
+#   (portal-ui = legacy Flutter UI, superseded by portal_ui_evs)
 #
 # Local path-dependency edges (child -> deps), for topological build order:
 #   canonical_json_jcs   -> (none)        provenance -> (none)
