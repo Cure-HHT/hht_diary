@@ -45,6 +45,10 @@ void main() {
       'portal.rave.unwedge',
       'portal.user.create_sysop',
       'portal.user.create_admin',
+      // The base create permission the UI provisioning flow submits
+      // (ACT-USR-001); the SystemOperator must hold it to provision the first
+      // Administrators, matching the Administrator's user-management set.
+      'portal.user.create',
       'portal.user.grant_role',
       'portal.user.edit',
       'portal.user.deactivate',
@@ -57,6 +61,19 @@ void main() {
       'portal.user.revoke_site',
       'portal.user.delete_pending',
     });
+    // The SystemOperator's user-management set is a SUPERSET of the
+    // Administrator's (same user-management perms PLUS grant_role + the ops
+    // create_sysop/create_admin), so anything the Administrator can do to
+    // provision users, the operator can too.
+    final adminUserMgmt = (grants['Administrator'] as YamlList)
+        .cast<String>()
+        .where((p) => p.startsWith('portal.user.'))
+        .toSet();
+    expect(
+      sysop,
+      containsAll(adminUserMgmt),
+      reason: 'SystemOperator must hold every Administrator user-mgmt perm',
+    );
     // The Administrator holds grant_role (staff-tier-scoped at assignment time).
     final admin = (grants['Administrator'] as YamlList).cast<String>().toSet();
     expect(admin, contains('portal.user.grant_role'));
