@@ -635,23 +635,23 @@ apps:
     platforms:
       - web
 
-    # Not yet wired to a dedicated workflow; analyze/test intent only.
-    # sponsor-portal-ci.yml tests portal-ui (the legacy UI), NOT portal_ui_evs.
-    # build-sponsor-ci.yml only validates this directory's presence in the
-    # source image — it does not run flutter analyze/test against it.
+    # Wired into sponsor-portal-ci.yml (CUR-1170): flutter analyze + test +
+    # coverage. The live EVS portal UI — replaced the retired portal-ui.
     ci:
       trigger_paths:
         - apps/sponsor-portal/portal_ui_evs/**
       format: true
       analyze:
         tool: flutter
-        fatal_infos: true
+        fatal_infos: false          # sponsor-portal-ci runs plain `flutter analyze`
       test:
         unit: true
         integration: false
         runner: flutter
       coverage:
-        enabled: false
+        enabled: true
+        threshold: null
+        codecov_flag: portal-ui-evs
       services: []
       analysis_options: true
 
@@ -695,6 +695,7 @@ apps:
 #   clinical_diary        -> clinical_diary-ci.yml   (format, analyze, test+cov)
 #   portal_server_evs     -> sponsor-portal-ci.yml   (link/ingest e2e suite;
 #                            hermetic / event-sourced — no Postgres, no Firebase)
+#   portal_ui_evs         -> sponsor-portal-ci.yml   (flutter analyze, test, cov)
 #
 # Packages with NO dedicated CI today — present in the source tree (and most in
 # the sponsor-ci source image), checked only transitively or not at all. Their
@@ -703,7 +704,7 @@ apps:
 #                  event_sourcing_datastore, grpc_health, otel_common,
 #                  portal_actions, provenance, shared_functions
 #   common-flutter: common_widgets, eq
-#   sponsor-portal: portal_identity, portal_service, portal_ui_evs
+#   sponsor-portal: portal_identity, portal_service
 #
 # Reference-only since the EVS cutover (CUR-1170) — NOT built or tested by CI
 # (the raw-Postgres stack that they depended on was retired):

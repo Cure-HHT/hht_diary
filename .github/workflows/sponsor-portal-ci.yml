@@ -1,12 +1,13 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-o00082: Automated Test Execution (portal_server_evs e2e)
+#   REQ-o00081: Code Quality and Static Analysis (portal_ui_evs analyze)
+#   REQ-o00082: Automated Test Execution (portal_server_evs e2e, portal_ui_evs)
 #
-# CI workflow for the sponsor-portal EVS stack: portal_server_evs link/ingest
-# e2e tests (hermetic, in-memory — no PostgreSQL, no Firebase emulator).
+# CI workflow for the sponsor-portal EVS stack:
+#   - portal_server_evs link/ingest e2e tests (hermetic, in-memory — no
+#     PostgreSQL, no Firebase emulator)
+#   - portal_ui_evs (the live EVS portal UI): flutter analyze + test + coverage
 # The legacy raw-Postgres packages (portal_functions, portal_server) and the
-# legacy Flutter UI (portal-ui) were retired with the EVS cutover and are now
-# reference-only / un-CI'd. The live EVS UI (portal_ui_evs) is not yet wired
-# into CI — tracked separately.
+# legacy UI (portal-ui) were retired with the EVS cutover and are reference-only.
 
 name: Sponsor Portal CI
 
@@ -56,6 +57,15 @@ jobs:
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
             cd /workspace/src/apps/sponsor-portal/portal_server_evs && dart pub get
+            cd /workspace/src/apps/sponsor-portal/portal_ui_evs && flutter pub get
+          "
+
+      - name: Analyze portal_ui_evs
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal_ui_evs
+            flutter analyze
           "
 
       # portal_server_evs link/ingest e2e: the full link-loop + relink/reconnect/
@@ -74,6 +84,32 @@ jobs:
               test/diary_event_types_e2e_test.dart \
               test/trial_start_state_e2e_test.dart
           "
+
+      - name: Run portal_ui_evs tests with coverage
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal_ui_evs
+            flutter test --coverage
+          "
+
+      - name: Restore workspace ownership
+        if: always()
+        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
+
+      - name: Copy coverage from container
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
+            "cat /workspace/src/apps/sponsor-portal/portal_ui_evs/coverage/lcov.info" \
+            > $GITHUB_WORKSPACE/portal-ui-evs-lcov.info || true
+
+      - name: Upload portal_ui_evs coverage to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          files: portal-ui-evs-lcov.info
+          flags: portal-ui-evs
+          fail_ci_if_error: false
 
       - name: Cleanup
         if: always()
