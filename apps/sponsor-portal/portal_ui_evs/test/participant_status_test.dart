@@ -13,6 +13,11 @@ void main() {
       ParticipantStatus.pending,
     );
     expect(
+      statusFromEntryType('participant_linking_code_used'),
+      ParticipantStatus.connected,
+      reason: 'the /link code redemption is the connect signal',
+    );
+    expect(
       statusFromEntryType('participant_linked'),
       ParticipantStatus.connected,
     );

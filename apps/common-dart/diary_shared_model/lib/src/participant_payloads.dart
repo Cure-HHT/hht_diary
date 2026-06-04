@@ -4,9 +4,11 @@
 // Typed payload for the diary-originated `participant_linked` event (surface P4):
 // the participant-identity facts established when the device links to a study.
 // Read by the portal to correlate "device linked to participant" — so it lives in
-// the shared model. Per DIARY-DEV-shared-events-catalog/D it carries NO session
-// token (`jwtToken`), NO one-time linking code, and NO infra URL — those stay in
-// `flutter_secure_storage` / app config and are not event-log material.
+// the shared model. Per DIARY-DEV-shared-events-catalog/D it carries NO live
+// session token (`jwtToken`) and NO infra URL — those stay in
+// `flutter_secure_storage` / app config and are not event-log material. It MAY
+// carry the redeemed linking code: once used it is no longer a secret, and it is
+// a useful traceability datapoint.
 library;
 
 /// Payload for a `participant_linked` event.
@@ -18,6 +20,7 @@ class ParticipantLinkedPayload {
     this.studyParticipantId,
     this.siteId,
     this.sponsorId,
+    this.linkingCode,
   });
 
   /// The diary/portal user id established at link (always present).
@@ -38,6 +41,11 @@ class ParticipantLinkedPayload {
   /// The sponsor the device linked to.
   final String? sponsorId;
 
+  /// The redeemed linking code, kept for traceability. No longer a secret once
+  /// used (single-use, already consumed at /link); the live session token stays
+  /// in secure storage and is never carried here.
+  final String? linkingCode;
+
   factory ParticipantLinkedPayload.fromJson(Map<String, Object?> json) {
     return ParticipantLinkedPayload(
       userId: json['user_id']! as String,
@@ -46,6 +54,7 @@ class ParticipantLinkedPayload {
       studyParticipantId: json['study_participant_id'] as String?,
       siteId: json['site_id'] as String?,
       sponsorId: json['sponsor_id'] as String?,
+      linkingCode: json['linking_code'] as String?,
     );
   }
 
@@ -56,5 +65,6 @@ class ParticipantLinkedPayload {
     if (studyParticipantId != null) 'study_participant_id': studyParticipantId,
     if (siteId != null) 'site_id': siteId,
     if (sponsorId != null) 'sponsor_id': sponsorId,
+    if (linkingCode != null) 'linking_code': linkingCode,
   };
 }

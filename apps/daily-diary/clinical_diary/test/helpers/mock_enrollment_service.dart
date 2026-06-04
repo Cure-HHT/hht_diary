@@ -14,6 +14,9 @@ class MockEnrollmentService implements EnrollmentService {
   @override
   final ValueNotifier<bool> disconnectedNotifier = ValueNotifier(false);
 
+  @override
+  final ValueNotifier<bool> notParticipatingNotifier = ValueNotifier(false);
+
   // CUR-1165: Not participating state for testing
   bool _isNotParticipating = false;
   DateTime? _notParticipatingAt;
@@ -89,6 +92,7 @@ class MockEnrollmentService implements EnrollmentService {
     DateTime? at,
   }) async {
     _isNotParticipating = notParticipating;
+    notParticipatingNotifier.value = notParticipating;
     if (notParticipating) {
       _notParticipatingAt ??= at ?? DateTime.now();
     } else {
@@ -98,4 +102,10 @@ class MockEnrollmentService implements EnrollmentService {
 
   @override
   Future<DateTime?> getNotParticipatingAt() async => _notParticipatingAt;
+
+  @override
+  Future<void> seedLifecycleNotifiers() async {
+    disconnectedNotifier.value = _isDisconnected;
+    notParticipatingNotifier.value = _isNotParticipating;
+  }
 }

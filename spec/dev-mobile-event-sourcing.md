@@ -119,6 +119,27 @@ Because the *Diary* server runs the same substrate, a native canonical batch nee
 
 *End* *Outbound Sync via Native Ingest Destination* | **Hash**: 5b88b915
 
+## DIARY-DEV-participant-state-poll: Diary Lifecycle Propagation via State Poll
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-participant-disconnection
+
+### Overview
+
+The portal-side lifecycle *Actions* (disconnect, mark-not-participating, reconnect, reactivate) reach the *Diary* through the *Participant* state endpoint the *Diary* already polls for the *Trial*-start watermark. The endpoint exposes the two lifecycle facts the *Diary* acts on, and the *Diary* translates them into its synchronization and enrollment state. (Push delivery of these facts is the primary channel in the full design; this polled channel is the always-available backup, and the two share this contract.)
+
+### Assertions
+
+A. The *Diary* server SHALL expose, at the *Participant* state endpoint, whether the *Participant* is currently disconnected and whether the *Participant* is not-participating, each derived from the *Participant*'s most recent lifecycle event so that the two facts are mutually exclusive.
+
+B. The *Diary* SHALL poll the *Participant* state endpoint and act on those facts: while the *Participant* is disconnected it SHALL pause outbound synchronization while retaining its *Session* credential so it can resume; when the *Participant* is not-participating it SHALL discard its *Session* credential and stop synchronizing; and a subsequent successful re-link SHALL clear both states and return the *Diary* to active synchronization.
+
+### Rationale
+
+Routing lifecycle propagation through the same state endpoint the *Diary* already polls avoids a second device-facing contract and keeps the *Diary* authoritative over its own synchronization behavior. Deriving both facts from the latest lifecycle event makes them mutually exclusive — mark-not-participating supersedes disconnected — so the *Diary*'s disconnected state self-clears exactly when the *Participant* transitions off-*Trial*. Discarding the *Session* credential at that point realizes the off-*Trial* reversion (mark-not-participating removes *Trial* rules from the device), and because the credential is gone, reactivation reaches the device as a fresh link with a new code rather than a silent resume. Retaining the credential while merely disconnected, by contrast, lets the *Diary* keep polling and resume on reconnect without a re-link, and promotes the locally-buffered disconnected-period entries once the link is restored.
+
+*End* *Diary Lifecycle Propagation via State Poll* | **Hash**: 03ff7714
+
 ## DIARY-DEV-local-participant-authorization: On-Device Authorization Permits the Local Participant
 
 **Level**: DEV | **Status**: Draft | **Implements**: -

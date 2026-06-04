@@ -582,6 +582,7 @@
 **DIARY:**
 
 - DIARY-DEV-evs-stack-adoption
+- DIARY-DEV-participant-state-poll
 - DIARY-PRD-mobile-application
 - DIARY-PRD-diary-start-day
 - DIARY-PRD-user-authentication
@@ -596,6 +597,8 @@
 - DIARY-DEV-action-write-path-B
 - DIARY-DEV-reactive-read-path-A
 - DIARY-DEV-native-outbound-sync-A
+- DIARY-DEV-participant-state-poll-A
+- DIARY-DEV-participant-state-poll-B
 - DIARY-DEV-local-participant-authorization-B
 - DIARY-DEV-local-participant-authorization-D
 - DIARY-DEV-node-sync-topology-A
@@ -660,6 +663,8 @@
 - DIARY-DEV-reactive-read-path:section:0
 - DIARY-DEV-native-outbound-sync:section:0
 - DIARY-DEV-native-outbound-sync:section:1
+- DIARY-DEV-participant-state-poll:section:0
+- DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-local-participant-authorization:section:1
 - DIARY-DEV-inbound-event-on-receipt:section:0
@@ -1094,6 +1099,7 @@
 - DIARY-GUI-show-linking-code
 - DIARY-DEV-linking-code-lifecycle-A
 - DIARY-DEV-participant-link-issuance-A
+- DIARY-DEV-shared-events-catalog-D
 - DIARY-PRD-linking-code-entry-errors-A
 - DIARY-PRD-linking-code-entry-errors-C
 - DIARY-PRD-linking-code-entry-errors-D
@@ -1121,6 +1127,7 @@
 - DIARY-GUI-link-participant-flow-A
 - DIARY-GUI-link-participant-flow-B
 - DIARY-DEV-linking-code-lifecycle:section:0
+- DIARY-DEV-shared-events-catalog:section:0
 - DIARY-PRD-linking-code-entry-errors:section:0
 - DIARY-GUI-join-study-screen:section:0
 - DIARY-GUI-join-study-screen:section:1
@@ -1391,6 +1398,8 @@
 - DIARY-DEV-linking-code-lifecycle-B
 - DIARY-DEV-linking-code-lifecycle-D
 - DIARY-DEV-native-outbound-sync-D
+- DIARY-DEV-participant-state-poll-A
+- DIARY-DEV-participant-state-poll-B
 - DIARY-DEV-local-participant-authorization-A
 - DIARY-DEV-local-participant-authorization-D
 - DIARY-DEV-node-sync-topology-C
@@ -1404,6 +1413,7 @@
 - DIARY-DEV-participant-link-issuance-C
 - DIARY-DEV-participant-link-issuance-D
 - DIARY-DEV-participant-site-index-A
+- DIARY-DEV-portal-reaction-server-C
 - DIARY-DEV-rave-edc-ingest-A
 - DIARY-DEV-participant-status-projection-A
 - DIARY-DEV-participant-status-projection-B
@@ -1617,12 +1627,15 @@
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - DIARY-DEV-native-outbound-sync:section:1
+- DIARY-DEV-participant-state-poll:section:0
+- DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-local-participant-authorization:section:1
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
+- DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-operator-tier-authz:section:0
@@ -2404,6 +2417,7 @@
 - DIARY-PRD-session-management
 - DIARY-PRD-questionnaire-session-timeout
 - DIARY-GUI-questionnaire-session-expiry
+- DIARY-DEV-participant-state-poll-B
 - DIARY-DEV-portal-session-token-A
 - DIARY-DEV-portal-session-token-B
 - DIARY-DEV-portal-session-lifecycle-A
@@ -2434,6 +2448,7 @@
 - DIARY-PRD-rbac-customizable-B
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-DEV-linking-code-lifecycle:section:0
+- DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-portal-user-activated-binding:section:1
 - rem:spec/dev-portal-login.md:1
 - DIARY-DEV-portal-session-token:section:0
@@ -2534,6 +2549,7 @@
 - DIARY-DEV-portal-session-lifecycle-B
 - DIARY-DEV-participant-site-index-A
 - DIARY-DEV-participant-site-index-B
+- DIARY-DEV-portal-reaction-server-C
 - DIARY-DEV-rave-edc-ingest-A
 - DIARY-DEV-participant-status-projection-A
 - DIARY-GUI-audit-log-cra-A
@@ -2561,6 +2577,7 @@
 - DIARY-DEV-portal-session-lifecycle:section:1
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
+- DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-rave-edc-ingest:section:0
 - DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-GUI-audit-log-cra:section:0
@@ -2895,6 +2912,7 @@
 **DIARY:**
 
 - DIARY-GUI-audit-log-study-coordinator
+- DIARY-DEV-portal-reaction-server-C
 - DIARY-GUI-audit-log-cra-C
 - DIARY-GUI-audit-log-cra-D
 - DIARY-PRD-help-resources-A
@@ -3057,6 +3075,8 @@
 - DIARY-DEV-state-in-event-log:section:0
 - DIARY-DEV-native-outbound-sync:section:0
 - DIARY-DEV-native-outbound-sync:section:1
+- DIARY-DEV-participant-state-poll:section:0
+- DIARY-DEV-participant-state-poll:section:1
 - rem:spec/glossary-core.md:745
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-linking-code-entry-errors:section:4

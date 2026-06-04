@@ -168,6 +168,7 @@
 | DIARY-DEV-participant-ingest                 | Participant Clinical-Record Ingest Edge               | dev-participant-ingest.md          | ba96a497 |
 | DIARY-DEV-participant-link-issuance          | Participant Link Endpoint                             | dev-participant-link-issuance.md   | 9e23e55d |
 | DIARY-DEV-participant-site-index             | Participant-Site Index Materializer                   | dev-portal-service.md              | 76e68990 |
+| DIARY-DEV-participant-state-poll             | Diary Lifecycle Propagation via State Poll            | dev-mobile-event-sourcing.md       | 03ff7714 |
 | DIARY-DEV-participant-status-projection      | Participant Linking-Status Projection                 | dev-portal-service.md              | aafda27d |
 | DIARY-DEV-portal-activation-code-lifecycle   | Activation code lifecycle                             | dev-portal-activation.md           | ec270b2e |
 | DIARY-DEV-portal-activation-email-delivery   | Activation email delivery                             | dev-portal-activation.md           | 8357a727 |
@@ -176,7 +177,7 @@
 | DIARY-DEV-portal-identity-provisioning       | Identity Platform provisioning                        | dev-portal-activation.md           | 0e3eb2b5 |
 | DIARY-DEV-portal-login-identity-verification | Login identity verification                           | dev-portal-login.md                | 4b3d6032 |
 | DIARY-DEV-portal-login-second-factor         | Login second factor                                   | dev-portal-login.md                | 9c1195e5 |
-| DIARY-DEV-portal-reaction-server             | Portal Reaction Server Shell                          | dev-portal-service.md              | 95ceb3ec |
+| DIARY-DEV-portal-reaction-server             | Portal Reaction Server Shell                          | dev-portal-service.md              | d305e3c1 |
 | DIARY-DEV-portal-reset-code-lifecycle        | Password reset code lifecycle                         | dev-portal-password-reset.md       | 8bc6a227 |
 | DIARY-DEV-portal-reset-password-update       | Password reset credential update                      | dev-portal-password-reset.md       | 4972e2a5 |
 | DIARY-DEV-portal-reset-session-termination   | Password reset session termination                    | dev-portal-password-reset.md       | 7805b6aa |
@@ -189,6 +190,6 @@
 | DIARY-DEV-relink-device-gate                 | Relink Device Gate                                    | dev-relink-device-gate.md          | d82aa19c |
 | DIARY-DEV-runtime-environment-resolution     | Runtime Environment Resolution                        | dev-environment-resolution.md      | b0c74776 |
 | DIARY-DEV-schema-version-check               | Runtime Schema Version Check                          | dev-schema-version-check.md        | 260cb67b |
-| DIARY-DEV-shared-events-catalog              | Shared Cross-Wire Event Catalog                       | dev-shared-events-catalog.md       | b157403e |
+| DIARY-DEV-shared-events-catalog              | Shared Cross-Wire Event Catalog                       | dev-shared-events-catalog.md       | 29c6b0c8 |
 | DIARY-DEV-state-in-event-log                 | Qualifying App State Lives in the Event Log           | dev-mobile-event-sourcing.md       | d6fb9049 |
 | DIARY-DEV-user-account-projection            | User account projection                               | dev-portal-service.md              | ae8627b4 |

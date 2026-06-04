@@ -1,11 +1,10 @@
 // Pure participant linking-lifecycle status logic. The portal derives a
 // participant's status from the latest lifecycle entryType stamped on the
 // participant_record row, then gates the lifecycle action buttons by the
-// per-state legal-action set. The ONLY diary-gated transition is
-// pending -> connected (mobile-originated participant_linked); without a
-// connected diary a participant can be moved not_connected -> pending and is
-// then stuck, so connected/trial_active/disconnected/not_participating remain
-// unreachable and their actions stay greyed. That is intended.
+// per-state legal-action set. The pending -> connected transition fires when
+// the device redeems its code at /link (participant_linking_code_used), which
+// is the device confirming the link in the integrated device->portal flow;
+// a mobile-originated participant_linked maps to the same connected state.
 //
 // Implements: DIARY-DEV-participant-status-projection/B
 
@@ -49,6 +48,10 @@ enum ParticipantAction {
 ParticipantStatus statusFromEntryType(String? entryType) => switch (entryType) {
   'participant_synced_from_edc' => ParticipantStatus.notConnected,
   'participant_linking_code_issued' => ParticipantStatus.pending,
+  // The device redeeming its code at /link IS the connect signal in the
+  // integrated device->portal flow: the /link handler consumes the code
+  // (participant_linking_code_used) and sets mobile_linking_status=connected.
+  'participant_linking_code_used' => ParticipantStatus.connected,
   'participant_linked' => ParticipantStatus.connected,
   'participant_trial_started' => ParticipantStatus.trialActive,
   'participant_disconnected' => ParticipantStatus.disconnected,

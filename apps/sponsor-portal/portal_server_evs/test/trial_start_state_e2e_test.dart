@@ -45,6 +45,58 @@ void main() {
     expect(after.body['mobile_linking_status'], 'connected');
   });
 
+  // Verifies: DIARY-DEV-participant-state-poll/A+B — /state exposes the lifecycle
+  //   facts the diary acts on: is_disconnected (pause sync) and is_not_participating
+  //   (forget JWT + stop syncing). They are mutually exclusive because each reflects
+  //   the latest lifecycle entryType: mark-not-participating supersedes disconnected.
+  test(
+      '/state exposes is_disconnected after disconnect, then is_not_participating '
+      'after mark-not-participating (latest lifecycle wins)', () async {
+    final h = await bootPortal(dbName: 'lifecycle-state');
+    addTearDown(h.dispose);
+    await seedParticipant(h.eventStore, participantId: 'P-SELF');
+    await seedCoordinator(h.eventStore);
+    final jwt = await linkDevice(h,
+        participantId: 'P-SELF', idempotencyKey: 'lc-issue');
+    await dispatchOk<StartTrialResult>(
+      h,
+      'ACT-PAT-002',
+      const {'siteId': 'S-1', 'participantId': 'P-SELF'},
+      idempotencyKey: 'lc-start',
+    );
+    await settleReactor();
+
+    // Trial active: neither lifecycle flag set.
+    final active = await getState(h, jwt);
+    expect(active.body['is_disconnected'], false);
+    expect(active.body['is_not_participating'], false);
+
+    // Disconnect -> is_disconnected true.
+    await dispatchOk<DisconnectParticipantResult>(
+      h,
+      'ACT-PAT-003',
+      const {'siteId': 'S-1', 'participantId': 'P-SELF', 'reason': 'test'},
+      idempotencyKey: 'lc-disc',
+    );
+    await settleReactor();
+    final disc = await getState(h, jwt);
+    expect(disc.body['is_disconnected'], true);
+    expect(disc.body['is_not_participating'], false);
+
+    // Mark not participating (reachable from disconnected) -> the flag flips:
+    // is_not_participating true, is_disconnected false (latest entryType wins).
+    await dispatchOk<MarkNotParticipatingResult>(
+      h,
+      'ACT-PAT-005',
+      const {'siteId': 'S-1', 'participantId': 'P-SELF', 'reason': 'test'},
+      idempotencyKey: 'lc-mnp',
+    );
+    await settleReactor();
+    final mnp = await getState(h, jwt);
+    expect(mnp.body['is_disconnected'], false);
+    expect(mnp.body['is_not_participating'], true);
+  });
+
   test('/state without a valid participant token -> 401', () async {
     final h = await bootPortal(dbName: 'trial-state-auth');
     addTearDown(h.dispose);

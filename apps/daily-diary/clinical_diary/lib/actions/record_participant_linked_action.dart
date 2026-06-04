@@ -7,9 +7,10 @@
 // Diary per-app Action (diary_actions): record that the device has linked to a
 // study. Emits one finalized `participant_linked` on the `Participant` aggregate
 // (keyed on the stable user id). The cross-wire identity payload lives in the
-// shared model (ParticipantLinkedPayload) and carries NO session token / linking
-// code (those stay in secure storage). Like the other system-event actions this
-// does not require a UserPrincipal — linking is the moment identity is established.
+// shared model (ParticipantLinkedPayload). It MAY carry the redeemed linking code
+// (no longer a secret, kept for traceability) but NOT the live session token
+// (that stays in secure storage). Like the other system-event actions this does
+// not require a UserPrincipal — linking is the moment identity is established.
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 

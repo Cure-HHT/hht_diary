@@ -25,6 +25,7 @@ import 'password_reset_routes.dart';
 import 'patient_ingest_handler.dart';
 import 'patient_link_handler.dart';
 import 'patient_state_handler.dart';
+import 'portal_view_scopes.dart';
 import 'session_cascade_reactor.dart';
 import 'session_store.dart';
 import 'session_token_validator.dart';
@@ -419,11 +420,18 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final userTierReactor =
       UserTierReactor(eventStore: eventStore, backend: backend)..start();
 
+  // viewScopeRegistry enables per-subscription row-level narrowing: a site-bound
+  // Study Coordinator's participant_record subscription is restricted to the
+  // participants at their own Site (expanded via the participant_site_index
+  // containment in buildPortalScopeRegistry). Without it, every authenticated
+  // Principal with the view permission would receive ALL rows across all sites.
+  // Implements: DIARY-DEV-portal-reaction-server/C
   final handlers = ReactionHandlers(
     eventStore: eventStore,
     dispatcher: dispatcher,
     policy: policy,
     scopeClassRegistry: buildPortalScopeRegistry(),
+    viewScopeRegistry: buildPortalViewScopeRegistry(),
   );
 
   // 8. Routes: WS /subscriptions outside HTTP-auth middleware (Flutter web

@@ -41,7 +41,7 @@ import 'package:diary_shared_model/diary_shared_model.dart';
 // scope's DestinationRegistry.setStartDate takes the new-stack Initiator.
 import 'package:event_sourcing/event_sourcing.dart'
     as esd
-    show AutomationInitiator;
+    show AutomationInitiator, ActionSubmission;
 import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show AutomationInitiator;
@@ -384,12 +384,25 @@ class _AppRootState extends State<AppRoot> {
         // the participant identity for synced aggregates, and activate the
         // destination at the trial-start watermark once the trial has started.
         // Implements: DIARY-DEV-native-outbound-sync/C
+        // Seed the disconnected / not-participating notifiers from persisted
+        // prefs so the sync gate is correct from the first tick of this session
+        // (e.g. a participant marked not-participating in a prior session whose
+        // JWT was already forgotten, so the /state poll below cannot re-derive it).
+        await _enrollmentService.seedLifecycleNotifiers();
+
         final syncCycle = diaryScope.syncCycle;
         if (syncCycle != null) {
           try {
             _diarySyncTriggers = await installDiarySyncTriggers(
               onTrigger: () async {
                 await _reconcileDiaryScope(diaryScope);
+                // Pause outbound sync while the participant is disconnected or
+                // not-participating (DIARY-DEV-participant-state-poll/B). The
+                // reconcile above refreshed both notifiers from /state.
+                if (_enrollmentService.disconnectedNotifier.value ||
+                    _enrollmentService.notParticipatingNotifier.value) {
+                  return;
+                }
                 await syncCycle.call();
               },
             );
@@ -463,17 +476,16 @@ class _AppRootState extends State<AppRoot> {
           participantId != _adoptedSyncIdentity) {
         diaryScope.authSession.setCredential(participantId);
         _adoptedSyncIdentity = participantId;
+        // Record the link as a first-class, mobile-authored fact in the diary's
+        // own event log (DIARY-DEV-shared-events-catalog/A surface P4). Identity
+        // only — the JWT/install-id stay in secure storage (state-in-event-log/B).
+        await _recordParticipantLinkedOnce(diaryScope, participantId);
       }
     } catch (e, stack) {
       debugPrint('[Reconcile] identity adoption failed: $e\n$stack');
     }
 
     try {
-      final schedule = await diaryScope.bundle.destinations.scheduleOf(
-        DiaryServerDestination.destinationId,
-      );
-      if (schedule.startDate != null) return; // already activated (monotonic).
-
       final base = await _enrollmentService.getBackendUrl();
       final token = await _enrollmentService.getJwtToken();
       if (base == null || token == null) return; // not linked yet.
@@ -484,6 +496,37 @@ class _AppRootState extends State<AppRoot> {
       );
       if (res.statusCode != 200) return;
       final body = jsonDecode(res.body) as Map<String, Object?>;
+
+      // Lifecycle propagation (DIARY-DEV-participant-state-poll/B). The portal
+      // exposes the two facts the diary acts on; the diary's sync gate (in
+      // installDiarySyncTriggers below) reads the enrollment notifiers set here.
+      // not-participating supersedes disconnected (latest lifecycle event wins).
+      //  - not-participating: the participant has LEFT the trial. Forget the JWT
+      //    and stop syncing entirely. The not-participating prefs flag persists so
+      //    the UI keeps showing it; reactivation reaches the device as a fresh
+      //    link with a new code, which clears the flag in EnrollmentService.enroll.
+      //  - disconnected: a temporary break. Pause sync but KEEP the JWT so the
+      //    diary keeps polling /state and resumes on reconnect / reactivate.
+      if (body['is_not_participating'] == true) {
+        final firstDetectedAt = await _enrollmentService
+            .getNotParticipatingAt();
+        await _enrollmentService.setNotParticipating(
+          true,
+          at: firstDetectedAt ?? DateTime.now(),
+        );
+        await _enrollmentService.setDisconnected(false);
+        await _enrollmentService.clearEnrollment(); // forget the JWT
+        return;
+      }
+      await _enrollmentService.setNotParticipating(false);
+      await _enrollmentService.setDisconnected(body['is_disconnected'] == true);
+
+      // Trial-start watermark: activate the native destination once at Trial
+      // Start (monotonic; skip the write when already activated).
+      final schedule = await diaryScope.bundle.destinations.scheduleOf(
+        DiaryServerDestination.destinationId,
+      );
+      if (schedule.startDate != null) return; // already activated (monotonic).
       final startedAtRaw = body['trial_started_at'];
       if (startedAtRaw is! String) return; // trial not started -> stay local.
       final watermark = DateTime.tryParse(startedAtRaw)?.toUtc();
@@ -497,7 +540,44 @@ class _AppRootState extends State<AppRoot> {
         ),
       );
     } catch (e, stack) {
-      debugPrint('[Reconcile] watermark gating failed: $e\n$stack');
+      debugPrint(
+        '[Reconcile] state poll / watermark gating failed: $e\n$stack',
+      );
+    }
+  }
+
+  /// Record `participant_linked` into the diary's own event log exactly once,
+  /// at the link transition. Restart-safe: skips if the `Participant` aggregate
+  /// already carries the event. The portal does not receive this today (no
+  /// cross-post path; the portal learns "connected" from the /link redemption) —
+  /// it is a mobile-authored audit fact (identity only, no token), produced now
+  /// and ready for the future edge/core cross-post.
+  Future<void> _recordParticipantLinkedOnce(
+    DiaryScopeRuntime diaryScope,
+    String participantId,
+  ) async {
+    try {
+      final existing = await diaryScope.bundle.eventStore.backend
+          .findEventsForAggregate(participantId);
+      if (existing.any((e) => e.entryType == 'participant_linked')) return;
+      final enrollment = await _enrollmentService.getEnrollment();
+      await diaryScope.scope.actionSubmitter.submit(
+        esd.ActionSubmission(
+          actionName: 'record_participant_linked',
+          // snake_case keys per ParticipantLinkedPayload.fromJson. The redeemed
+          // linking code rides along for traceability (no longer a secret); the
+          // session JWT is NOT carried (it stays in secure storage).
+          rawInput: <String, Object?>{
+            'user_id': participantId,
+            'participant_id': participantId,
+            'linked_at': DateTime.now().toUtc().toIso8601String(),
+            if (enrollment?.linkingCode != null)
+              'linking_code': enrollment!.linkingCode,
+          },
+        ),
+      );
+    } catch (e, stack) {
+      debugPrint('[Reconcile] record participant_linked failed: $e\n$stack');
     }
   }
 
