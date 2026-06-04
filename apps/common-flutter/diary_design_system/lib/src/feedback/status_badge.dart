@@ -34,30 +34,39 @@ class StatusBadge extends StatelessWidget {
       StatusBadgeKind.inactive => (theme.colorScheme.outline, 'Inactive', true),
     };
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: hollow ? null : color,
-            border: hollow ? Border.all(color: color, width: 1.5) : null,
-            shape: BoxShape.circle,
+    final effectiveLabel = label ?? defaultLabel;
+
+    // Announce as "<label> status" so the semantic role survives even
+    // when the colored dot can't be perceived. The dot is decorative;
+    // ExcludeSemantics keeps it out of the traversal order.
+    return Semantics(
+      label: '$effectiveLabel status',
+      excludeSemantics: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: hollow ? null : color,
+              border: hollow ? Border.all(color: color, width: 1.5) : null,
+              shape: BoxShape.circle,
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label ?? defaultLabel,
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-            height: 20 / 14,
-            letterSpacing: -0.15,
-            color: color,
+          const SizedBox(width: 8),
+          Text(
+            effectiveLabel,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              height: 20 / 14,
+              letterSpacing: -0.15,
+              color: color,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -123,6 +123,7 @@ class _VariantSection extends StatelessWidget {
               AppButton(
                 variant: variant,
                 leadingIcon: Icons.add,
+                semanticLabel: 'Add',
                 onPressed: _noop,
               ),
             ],

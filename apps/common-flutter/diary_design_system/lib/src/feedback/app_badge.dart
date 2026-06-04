@@ -62,21 +62,29 @@ class AppBadge extends StatelessWidget {
       AppBadgeVariant.filled => (theme.colorScheme.surface, accent, accent),
     };
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: SpacingTokens.sm, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        border: Border.all(color: borderColor, width: 1),
-        borderRadius: BorderRadius.circular(RadiusTokens.sm),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-          height: 16 / 12,
-          letterSpacing: -0.15,
-          color: fg,
+    // MergeSemantics keeps the visual chrome (Container) from fragmenting
+    // the announcement — screen readers traverse this as a single node
+    // whose label is the text content.
+    return MergeSemantics(
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: SpacingTokens.sm,
+          vertical: 4,
+        ),
+        decoration: BoxDecoration(
+          color: bg,
+          border: Border.all(color: borderColor, width: 1),
+          borderRadius: BorderRadius.circular(RadiusTokens.sm),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
+            height: 16 / 12,
+            letterSpacing: -0.15,
+            color: fg,
+          ),
         ),
       ),
     );

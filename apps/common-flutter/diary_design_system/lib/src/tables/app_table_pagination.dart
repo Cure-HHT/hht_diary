@@ -228,9 +228,8 @@ class _PageNumberButton extends StatelessWidget {
         height: 32,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          // Primary Light Soft (#E8F3F7) tint for the active page — matches
-          // Figma. Reads from colorScheme.primaryContainer which maps to
-          // ColorTokens.primaryDisabled in the brand palette.
+          // Primary Light Soft tint for the active page — Figma uses
+          // colorScheme.primaryContainer so sponsor brand overrides apply.
           color: isActive
               ? theme.colorScheme.primaryContainer
               : Colors.transparent,

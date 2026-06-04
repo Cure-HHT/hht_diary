@@ -32,11 +32,45 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _harness(AppButton(leadingIcon: Icons.close, onPressed: () {})),
+        _harness(
+          AppButton(
+            leadingIcon: Icons.close,
+            semanticLabel: 'Close',
+            onPressed: () {},
+          ),
+        ),
       );
       expect(find.byIcon(Icons.close), findsOneWidget);
       // No label widget should be present in icon-only mode.
       expect(find.byType(Row), findsNothing);
+    });
+
+    testWidgets('icon-only mode exposes semanticLabel to screen readers', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          AppButton(
+            leadingIcon: Icons.close,
+            semanticLabel: 'Close dialog',
+            onPressed: () {},
+          ),
+        ),
+      );
+      expect(
+        find.bySemanticsLabel('Close dialog'),
+        findsOneWidget,
+        reason:
+            'Icon-only AppButton must announce semanticLabel so the action '
+            'is reachable by assistive tech.',
+      );
+    });
+
+    test('icon-only mode without semanticLabel fails the assert', () {
+      expect(
+        () => AppButton(leadingIcon: Icons.close, onPressed: () {}),
+        throwsAssertionError,
+      );
     });
 
     testWidgets('loading state swaps content for a progress indicator', (

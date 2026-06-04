@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../tokens/color_tokens.dart';
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 
@@ -55,20 +54,48 @@ class AppDropdown<T> extends StatefulWidget {
   State<AppDropdown<T>> createState() => _AppDropdownState<T>();
 }
 
-class _AppDropdownState<T> extends State<AppDropdown<T>> {
+class _AppDropdownState<T> extends State<AppDropdown<T>>
+    with WidgetsBindingObserver {
   final LayerLink _link = LayerLink();
   final GlobalKey _fieldKey = GlobalKey();
   OverlayEntry? _overlay;
 
+  // Subscriptions held while the overlay is open so we can dismiss on the
+  // edge cases plain tap-outside doesn't cover (route changes, ancestor
+  // scroll, viewport rotation).
+  ModalRoute<dynamic>? _route;
+  LocalHistoryEntry? _historyEntry;
+  ScrollPosition? _ancestorScroll;
+  bool _disposed = false;
+
   bool get _isOpen => _overlay != null;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
-    // Defer removal until after the build phase if dispose was triggered
-    // during one. Don't touch state — we're being torn down.
+    // Flip _disposed before detaching listeners so the LocalHistoryEntry's
+    // onRemove (which fires synchronously inside removeLocalHistoryEntry)
+    // sees we're tearing down and skips the setState() that would assert
+    // on a defunct Element.
+    _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
+    _detachOverlayListeners();
     _overlay?.remove();
     _overlay = null;
     super.dispose();
+  }
+
+  /// MediaQuery size change (rotation, browser resize, on-screen keyboard
+  /// raise). The followed field shifts; the cleanest UX is to close so
+  /// the user re-opens against the new layout.
+  @override
+  void didChangeMetrics() {
+    if (_isOpen) _closeOverlay();
   }
 
   void _toggle() {
@@ -80,10 +107,64 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
   }
 
   void _closeOverlay() {
-    if (_overlay == null) return;
-    _overlay!.remove();
+    // Snapshot _overlay then null it FIRST. _detachOverlayListeners ends
+    // up popping the local-history entry, which fires _onHistoryEntryRemoved
+    // and re-enters _closeOverlay; nulling up front makes the re-entry a
+    // no-op rather than a double-remove.
+    final entry = _overlay;
+    if (entry == null) return;
     _overlay = null;
+    _detachOverlayListeners();
+    entry.remove();
     if (mounted) setState(() {});
+  }
+
+  /// Attach the listeners that auto-dismiss the overlay when the user
+  /// navigates away, scrolls a parent, or otherwise moves the field out
+  /// from under the popup.
+  void _attachOverlayListeners() {
+    // Push a no-op history entry on the current route. A system back-press
+    // (or programmatic pop) consumes this entry first, firing onRemove —
+    // which closes the overlay without popping the actual route. This is
+    // the canonical pattern for transient surfaces (menus, sheets).
+    _route = ModalRoute.of(context);
+    if (_route != null) {
+      _historyEntry = LocalHistoryEntry(onRemove: _onHistoryEntryRemoved);
+      _route!.addLocalHistoryEntry(_historyEntry!);
+    }
+    // Closest scrollable ancestor — if the field is on a scrolling page
+    // and the user scrolls, the popup would float over stale content.
+    _ancestorScroll = Scrollable.maybeOf(context)?.position;
+    _ancestorScroll?.addListener(_onAncestorScroll);
+  }
+
+  void _detachOverlayListeners() {
+    final entry = _historyEntry;
+    _historyEntry = null;
+    if (entry != null && _route?.willHandlePopInternally == true) {
+      // Entry is still on the route's local history — pop it ourselves
+      // so we don't leak it (e.g. user tapped outside or selected a value
+      // rather than back-pressing).
+      _route!.removeLocalHistoryEntry(entry);
+    }
+    _route = null;
+    _ancestorScroll?.removeListener(_onAncestorScroll);
+    _ancestorScroll = null;
+  }
+
+  /// Fired when the system / Navigator removes our local-history entry
+  /// (back-press, parent route pop, programmatic Navigator.pop). Also
+  /// fires synchronously from inside dispose() when we pop the entry
+  /// ourselves during teardown — _disposed gates that path so we don't
+  /// touch the defunct Element.
+  void _onHistoryEntryRemoved() {
+    _historyEntry = null;
+    if (_disposed) return;
+    if (_isOpen) _closeOverlay();
+  }
+
+  void _onAncestorScroll() {
+    if (_isOpen) _closeOverlay();
   }
 
   void _showOverlay() {
@@ -127,6 +208,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
       },
     );
     Overlay.of(context).insert(_overlay!);
+    _attachOverlayListeners();
     setState(() {});
   }
 
@@ -304,7 +386,9 @@ class _PopupMenuItem<T> extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        color: isSelected ? ColorTokens.primaryDisabled : null,
+        color: isSelected
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
+            : null,
         padding: EdgeInsets.symmetric(
           horizontal: SpacingTokens.md,
           vertical: SpacingTokens.md,

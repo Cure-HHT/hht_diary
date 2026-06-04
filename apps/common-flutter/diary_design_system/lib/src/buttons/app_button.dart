@@ -55,6 +55,11 @@ class AppButton extends StatelessWidget {
   /// When true, the button expands to fill its parent's width.
   final bool fullWidth;
 
+  /// Accessibility label. **Required when the button renders in icon-only
+  /// mode** (no [label]), so screen readers announce the action. Ignored
+  /// when [label] is non-empty — the visible label is the announcement.
+  final String? semanticLabel;
+
   const AppButton({
     super.key,
     this.variant = AppButtonVariant.primary,
@@ -65,7 +70,12 @@ class AppButton extends StatelessWidget {
     this.onPressed,
     this.loading = false,
     this.fullWidth = false,
-  });
+    this.semanticLabel,
+  }) : assert(
+         (label != null && label.length > 0) || semanticLabel != null,
+         'AppButton in icon-only mode requires a semanticLabel for screen '
+         'readers. Pass semanticLabel: "..." describing the action.',
+       );
 
   bool get _isIconOnly =>
       (label == null || label!.isEmpty) && leadingIcon != null;
@@ -96,7 +106,22 @@ class AppButton extends StatelessWidget {
       ),
     };
 
-    return fullWidth ? SizedBox(width: double.infinity, child: button) : button;
+    final sized = fullWidth
+        ? SizedBox(width: double.infinity, child: button)
+        : button;
+
+    // In icon-only mode the underlying Button has no Text child, so
+    // screen readers would announce nothing. Wrap in Semantics with the
+    // caller-supplied label. The constructor's assert guarantees
+    // semanticLabel is non-null here.
+    if (_isIconOnly) {
+      return Semantics(
+        button: true,
+        label: semanticLabel,
+        child: ExcludeSemantics(child: sized),
+      );
+    }
+    return sized;
   }
 
   ButtonStyle _styleFor(BuildContext context) {
