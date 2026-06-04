@@ -1,8 +1,23 @@
 #!/usr/bin/env bash
 # database/tool/consolidate-schema.sh
 #
-# Consolidates database schema files into a single SQL file suitable
-# for Cloud SQL deployment (no psql-specific commands like \ir or \echo).
+# Produces the single-file baseline applied by the Cloud SQL reset job
+# (infrastructure/docker/db-schema-job, MODE=reset) — no psql-specific
+# commands like \ir or \echo.
+#
+# EVS TRANSITION (default behaviour): the deployed servers are now the
+# event-sourced portal (apps/sponsor-portal/portal_server_evs), which owns and
+# creates its OWN tables on boot via `CREATE TABLE IF NOT EXISTS` (see the
+# event_sourcing PostgresBackend). No deployed environment applies the legacy
+# raw-Postgres schema any more, so this baseline is intentionally a NO-OP: a
+# comment-only file that psql runs without error against a freshly created
+# database. The EVS portal then builds its schema and re-seeds on first boot.
+#
+# The legacy schema source (database/init.sql + its \ir includes) is retained
+# for local-dev / CI of the kept-for-comparison legacy servers, which apply
+# init.sql DIRECTLY (not this consolidated artifact). To regenerate the full
+# legacy consolidated baseline (e.g. to stand a legacy DB up for comparison),
+# run with INCLUDE_LEGACY_SCHEMA=true.
 #
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-d00057: Automated database schema deployment
@@ -10,10 +25,15 @@
 #
 # Usage:
 #   ./database/tool/consolidate-schema.sh [output-file]
+#   INCLUDE_LEGACY_SCHEMA=true ./database/tool/consolidate-schema.sh [output-file]
 #
 # If output-file is not specified, defaults to database/init-consolidated.sql
 
 set -euo pipefail
+
+# Default: emit a no-op baseline (EVS owns its own schema). Set true to inline
+# the full legacy schema for the retained, non-deployed legacy servers.
+INCLUDE_LEGACY_SCHEMA="${INCLUDE_LEGACY_SCHEMA:-false}"
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -85,6 +105,36 @@ generate_header() {
     local git_commit
     git_commit=$(cd "${REPO_ROOT}" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
+    if [[ "${INCLUDE_LEGACY_SCHEMA}" != "true" ]]; then
+        cat << EOF
+-- IMPLEMENTS REQUIREMENTS:
+--   REQ-o00004: Database Schema Deployment
+--   REQ-d00057: Automated database schema deployment
+--
+-- =====================================================
+-- Clinical Trial Diary Database - Reset Baseline (EVS transition)
+-- INTENTIONALLY EMPTY / NO-OP
+-- =====================================================
+--
+-- The deployed servers are the event-sourced portal, which creates its OWN
+-- tables on boot (CREATE TABLE IF NOT EXISTS) and re-seeds on first start. No
+-- deployed environment applies the legacy raw-Postgres schema, so this reset
+-- baseline applies nothing: psql runs this comment-only file without error
+-- against the freshly created database, then the EVS portal builds its schema.
+--
+-- The legacy schema still lives in database/init.sql (+ its \\ir includes) for
+-- local-dev / CI of the retained legacy servers. To regenerate the full legacy
+-- baseline here, run: INCLUDE_LEGACY_SCHEMA=true ./database/tool/consolidate-schema.sh
+--
+-- Generated: ${timestamp}
+-- Git commit: ${git_commit}
+--
+-- =====================================================
+
+EOF
+        return 0
+    fi
+
     cat << EOF
 -- IMPLEMENTS REQUIREMENTS:
 --   REQ-o00004: Database Schema Deployment
@@ -106,7 +156,7 @@ generate_header() {
 -- Git commit: ${git_commit}
 -- Source: database/init.sql
 --
--- To regenerate: ./database/tool/consolidate-schema.sh
+-- To regenerate: INCLUDE_LEGACY_SCHEMA=true ./database/tool/consolidate-schema.sh
 --
 -- =====================================================
 
@@ -118,13 +168,20 @@ EOF
 # -----------------------------------------------------------------------------
 
 main() {
-    log_info "Starting schema consolidation"
-    log_info "Input: ${INPUT_FILE}"
+    if [[ "${INCLUDE_LEGACY_SCHEMA}" == "true" ]]; then
+        log_info "Starting schema consolidation (legacy schema INCLUDED)"
+    else
+        log_info "Generating NO-OP reset baseline (EVS owns its own schema; set INCLUDE_LEGACY_SCHEMA=true for legacy)"
+    fi
     log_info "Output: ${OUTPUT_FILE}"
 
-    if [[ ! -f "$INPUT_FILE" ]]; then
-        log_error "Input file not found: $INPUT_FILE"
-        exit 1
+    # The legacy schema source is only needed when inlining it.
+    if [[ "${INCLUDE_LEGACY_SCHEMA}" == "true" ]]; then
+        log_info "Input: ${INPUT_FILE}"
+        if [[ ! -f "$INPUT_FILE" ]]; then
+            log_error "Input file not found: $INPUT_FILE"
+            exit 1
+        fi
     fi
 
     # Create temporary file for atomic write
@@ -132,10 +189,14 @@ main() {
     temp_file=$(mktemp)
     trap "rm -f '$temp_file'" EXIT
 
-    # Generate consolidated file
+    # Generate consolidated file. In the default (EVS) mode the header IS the
+    # whole file — a comment-only no-op; the legacy schema is inlined only when
+    # explicitly requested.
     {
         generate_header
-        expand_file "init.sql"
+        if [[ "${INCLUDE_LEGACY_SCHEMA}" == "true" ]]; then
+            expand_file "init.sql"
+        fi
     } > "$temp_file"
 
     # Move to final location
