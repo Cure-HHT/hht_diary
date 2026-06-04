@@ -102,6 +102,7 @@
 - DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-DEV-user-account-projection:section:1
+- DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
 - DIARY-GUI-administrator-settings:section:0
@@ -220,6 +221,7 @@
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
+- DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
 - rem:spec/prd-administrator-settings.md:1
@@ -886,6 +888,7 @@
 - DIARY-DEV-inbound-event-on-receipt:section:0
 - DIARY-DEV-portal-reaction-server:section:0
 - DIARY-DEV-portal-durable-event-store:section:0
+- DIARY-DEV-portal-seed-config:section:0
 
 ## Failed Attempt Threshold
 
@@ -2285,6 +2288,7 @@
 
 - DIARY-BASE-system-operator-role
 - DIARY-DEV-portal-active-role-switch
+- DIARY-DEV-portal-seed-config
 - DIARY-PRD-rbac-customizable
 - DIARY-PRD-role-definitions
 - DIARY-GUI-role-switching
@@ -2299,6 +2303,7 @@
 - DIARY-DEV-portal-reaction-server-B
 - DIARY-DEV-user-account-projection-C
 - DIARY-DEV-portal-durable-event-store-C
+- DIARY-DEV-portal-seed-config-A
 - DIARY-DEV-operator-tier-authz-A
 - DIARY-DEV-operator-tier-authz-D
 - DIARY-DEV-operator-tier-authz-E
@@ -2344,6 +2349,8 @@
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
 - DIARY-DEV-portal-durable-event-store:section:1
+- DIARY-DEV-portal-seed-config:section:0
+- DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
 - rem:spec/glossary-core.md:745
@@ -2624,6 +2631,7 @@
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-A
+- DIARY-DEV-portal-seed-config-B
 - DIARY-OPS-fcm-project-routing-A
 - DIARY-OPS-fcm-project-routing-D
 - DIARY-PRD-administrator-settings-A
@@ -2740,6 +2748,8 @@
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-participant-ingest:section:1
+- DIARY-DEV-portal-seed-config:section:0
+- DIARY-DEV-portal-seed-config:section:1
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:762
 - rem:spec/glossary-core.md:764
@@ -3189,6 +3199,7 @@
 
 - DIARY-DEV-portal-user-activated-binding
 - DIARY-DEV-user-account-projection
+- DIARY-DEV-portal-seed-config
 - DIARY-DEV-operator-tier-authz
 - DIARY-PRD-user-authentication
 - DIARY-PRD-user-authentication-pin
@@ -3217,6 +3228,7 @@
 - DIARY-DEV-portal-reset-session-termination-A
 - DIARY-DEV-user-account-projection-A
 - DIARY-DEV-user-account-projection-C
+- DIARY-DEV-portal-seed-config-A
 - DIARY-DEV-operator-tier-authz-A
 - DIARY-DEV-operator-tier-authz-B
 - DIARY-DEV-operator-tier-authz-C
@@ -3353,6 +3365,8 @@
 - DIARY-DEV-portal-reset-session-termination:section:0
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
+- DIARY-DEV-portal-seed-config:section:0
+- DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - rem:spec/glossary-core.md:745
 - rem:spec/glossary-core.md:771
