@@ -65,6 +65,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// view so [build] falls through to the normal auth switch instead of
   /// re-showing the reset screen (the ?reset= code is still in the URL).
   bool _resetDismissed = false;
+  bool _activationDismissed = false;
 
   /// The current identity credential.
   ///
@@ -163,11 +164,18 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   @override
   Widget build(BuildContext context) {
     // If the browser URL carries ?code=, show the public activation screen
-    // instead of the normal authed shell.
+    // instead of the normal authed shell. _activationDismissed is flipped when
+    // the user finishes activating (onBackToLogin), so build() falls through to
+    // the normal auth switch — i.e. the login screen — rather than getting
+    // stuck on the activation page (the ?code stays in the URL).
     final activationCode = activationCodeFromUri(Uri.base);
-    if (activationCode != null) {
+    if (activationCode != null && !_activationDismissed) {
       return MaterialApp(
-        home: ActivationScreen(serverUrl: _serverUrl, code: activationCode),
+        home: ActivationScreen(
+          serverUrl: _serverUrl,
+          code: activationCode,
+          onBackToLogin: () => setState(() => _activationDismissed = true),
+        ),
       );
     }
 
