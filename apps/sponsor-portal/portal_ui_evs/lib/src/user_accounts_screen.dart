@@ -53,7 +53,72 @@ const List<String> _roles = <String>[
   'Administrator',
   'SystemOperator',
 ];
-const List<String> _siteIds = <String>['site-1', 'site-2', 'site-3'];
+
+/// One option in the site picker, sourced from the RAVE-synced sites_index
+/// view (same source as SitesScreen) — NOT a hardcoded list. [id] is the
+/// site_id used as the assignment scope value; [label] is the human display.
+class _SiteOption {
+  const _SiteOption({
+    required this.id,
+    required this.label,
+    required this.number,
+  });
+  final String id;
+  final String label;
+  final String number;
+
+  static _SiteOption fromRow(Map<String, Object?> r) {
+    final id = (r['site_id'] as String?) ?? '?';
+    final name = (r['site_name'] as String?) ?? '';
+    final number = (r['site_number'] as String?) ?? '';
+    final label = name.isNotEmpty ? '$number · $name' : id;
+    return _SiteOption(id: id, label: label, number: number);
+  }
+}
+
+/// Reactive site picker backed by sites_index (gated upstream on
+/// view:sites_index), sorted by site number. Hands the current site options to
+/// [builder] so each call site can render them in its own style (checkboxes /
+/// chips). Replaces the former hardcoded ['site-1','site-2','site-3'].
+class _SitesView extends StatelessWidget {
+  const _SitesView({required this.builder});
+  final Widget Function(BuildContext context, List<_SiteOption> sites) builder;
+
+  @override
+  Widget build(BuildContext context) => ViewBuilder<_SiteOption>(
+    viewName: 'sites_index',
+    mapper: _SiteOption.fromRow,
+    aggregateIdOf: (s) => s.id,
+    builder: (context, state) {
+      final rows = switch (state) {
+        Loading<_SiteOption>() => const <_SiteOption>[],
+        Ready<_SiteOption>(:final rows) => rows,
+        Stale<_SiteOption>(:final lastRows) => lastRows,
+      };
+      if (state is Loading<_SiteOption>) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            'Loading sites…',
+            style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
+          ),
+        );
+      }
+      if (rows.isEmpty) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            '(no sites available)',
+            style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
+          ),
+        );
+      }
+      final sorted = <_SiteOption>[...rows]
+        ..sort((a, b) => a.number.compareTo(b.number));
+      return builder(context, sorted);
+    },
+  );
+}
 
 String _activationExpiresAt() =>
     DateTime.now().toUtc().add(const Duration(days: 14)).toIso8601String();
@@ -342,20 +407,27 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
                   alignment: Alignment.centerLeft,
                   child: Text('Sites (for site-scoped roles)'),
                 ),
-                for (final s in _siteIds)
-                  CheckboxListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(s),
-                    value: _selectedSites.contains(s),
-                    onChanged: (v) => setState(() {
-                      if (v ?? false) {
-                        _selectedSites.add(s);
-                      } else {
-                        _selectedSites.remove(s);
-                      }
-                    }),
+                _SitesView(
+                  builder: (context, sites) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      for (final s in sites)
+                        CheckboxListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(s.label),
+                          value: _selectedSites.contains(s.id),
+                          onChanged: (v) => setState(() {
+                            if (v ?? false) {
+                              _selectedSites.add(s.id);
+                            } else {
+                              _selectedSites.remove(s.id);
+                            }
+                          }),
+                        ),
+                    ],
                   ),
+                ),
               ],
               const SizedBox(height: 8),
               const Text(
@@ -618,24 +690,26 @@ class _RoleSiteEditorState extends State<_RoleSiteEditor> {
               alignment: Alignment.centerLeft,
               child: Text('Sites (for site-scoped roles)'),
             ),
-            Wrap(
-              spacing: 6,
-              children: <Widget>[
-                for (final s in _siteIds)
-                  FilterChip(
-                    label: Text(s),
-                    selected: _selSites.contains(s),
-                    onSelected: _submitting
-                        ? null
-                        : (sel) => setState(() {
-                            if (sel) {
-                              _selSites.add(s);
-                            } else {
-                              _selSites.remove(s);
-                            }
-                          }),
-                  ),
-              ],
+            _SitesView(
+              builder: (context, sites) => Wrap(
+                spacing: 6,
+                children: <Widget>[
+                  for (final s in sites)
+                    FilterChip(
+                      label: Text(s.label),
+                      selected: _selSites.contains(s.id),
+                      onSelected: _submitting
+                          ? null
+                          : (sel) => setState(() {
+                              if (sel) {
+                                _selSites.add(s.id);
+                              } else {
+                                _selSites.remove(s.id);
+                              }
+                            }),
+                    ),
+                ],
+              ),
             ),
           ],
           const SizedBox(height: 8),
