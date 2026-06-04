@@ -344,7 +344,12 @@ class _HomeShellState extends State<_HomeShell> {
               for (final d in destinations)
                 NavigationRailDestination(
                   icon: Icon(d.icon),
-                  label: Text(d.label),
+                  // CUR-1307: identified for Playwright web automation.
+                  label: Semantics(
+                    identifier:
+                        'nav-${d.label.toLowerCase().replaceAll(' ', '-')}',
+                    child: Text(d.label),
+                  ),
                 ),
             ],
           ),

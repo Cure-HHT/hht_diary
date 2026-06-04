@@ -174,7 +174,14 @@ class ParticipantsScreen extends StatelessWidget {
           children: <Widget>[
             for (final p in rows)
               ExpansionTile(
-                title: Text(p.id),
+                // Preserve expansion across reactive ViewBuilder rebuilds (the
+                // list re-renders on every participant_record change).
+                key: PageStorageKey<String>(p.id),
+                // CUR-1307: identified for Playwright web automation.
+                title: Semantics(
+                  identifier: 'participant-${p.id}',
+                  child: Text(p.id),
+                ),
                 subtitle: Text('site ${p.siteId} · ${p.status.label}'),
                 children: <Widget>[
                   Padding(
@@ -266,15 +273,25 @@ class _ParticipantActionButton extends StatelessWidget {
           if (data is Map) {
             final code = data['linkingCode'] as String?;
             if (code != null) {
-              return ActivationCodeDisplay(
-                code: code,
-                label: 'Linking code',
-                expiresAt: data['expiresAt'] as String?,
+              // CUR-1307: expose the server code on the semantics tree (value ->
+              // aria-label on web) so Playwright can read the issued code.
+              // container+explicitChildNodes keep this identifier from being
+              // merged away by the copy IconButton's own button semantics.
+              return Semantics(
+                identifier: 'linking-code-${participant.id}',
+                value: code,
+                container: true,
+                explicitChildNodes: true,
+                child: ActivationCodeDisplay(
+                  code: code,
+                  label: 'Linking code',
+                  expiresAt: data['expiresAt'] as String?,
+                ),
               );
             }
           }
         }
-        return FilledButton(
+        final button = FilledButton(
           onPressed: state is Submitting ? null : submit,
           child: Text(switch (state) {
             Submitting() => '...',
@@ -282,6 +299,16 @@ class _ParticipantActionButton extends StatelessWidget {
             Failed() => 'Failed',
             _ => action.label,
           }),
+        );
+        // CUR-1307: a stable identifier for the issue button so Playwright can
+        // tap it. container+explicitChildNodes keep the identifier from being
+        // merged away by the FilledButton's own button semantics (PR#28 gotcha).
+        if (!isIssuing) return button;
+        return Semantics(
+          identifier: 'issue-${participant.id}',
+          container: true,
+          explicitChildNodes: true,
+          child: button,
         );
       },
     );
