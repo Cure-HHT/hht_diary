@@ -143,42 +143,10 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //   `syncAll` is gated here. The marker is appended LAST under aggregate id
   //   'singleton' so the targeted read in _portalSeedMarkerPresent finds it.
   if (!alreadySeeded) {
-    // 3. Grant view-read permissions so clients can subscribe to the views that
-    //    drive their screens (ReactionHandlers' default ViewPermissionNamer is
-    //    `view:<viewName>`). These are view-read permissions, not action
-    //    permissions, so they are appended directly rather than via the validated
-    //    action-permission seed.
-    Future<void> grantView(String role, String view) => eventStore.append(
-          entryType: 'role_permission_grant',
-          aggregateType: 'role_permission_grant',
-          aggregateId: '$role:view:$view',
-          eventType: 'permission_granted',
-          data: PermissionGrantedPayload(
-            role: role,
-            permissionName: 'view:$view',
-          ).toJson(),
-          initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
-        );
-
-    // Administrator can subscribe to the role-assignments view + the user-accounts
-    // index (only Administrator holds the user-management permissions).
-    await grantView('Administrator', 'user_role_scopes');
-    await grantView('Administrator', 'users_index');
-    // The site list + participant records back the StudyCoordinator/CRA/Admin
-    // operational screens.
-    for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
-      await grantView(role, 'sites_index');
-      await grantView(role, 'participant_record');
-    }
-    // The RAVE-sync status screen is visible to operations roles too.
-    for (final role in const [
-      'StudyCoordinator',
-      'CRA',
-      'Administrator',
-      'SystemOperator',
-    ]) {
-      await grantView(role, 'rave_sync_status');
-    }
+    // 3. View-read permission grants are NOT seeded here — they are idempotent
+    //    and run on EVERY boot (after this seed-once gate) via `_grantViewPerms`,
+    //    so adding a grant propagates on redeploy without a DB reset (consistent
+    //    with the action-permission seed + role assignments). See step 3c below.
 
     // 4. Role assignments are NOT seeded here — they are config-driven and
     //    idempotent, so they run on EVERY boot (after this seed-once gate) via
@@ -234,6 +202,57 @@ Future<PortalServerBoot> bootstrapPortalServer({
       data: const <String, Object?>{},
       initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
     );
+  }
+
+  // 3c. View-read permission grants — idempotent, applied on EVERY boot (NOT in
+  //     the seed-once gate above). Clients subscribe to the views that drive
+  //     their screens; ReactionHandlers' default ViewPermissionNamer is
+  //     `view:<viewName>`. These are view-read permissions, not action
+  //     permissions, so they are appended directly rather than via the validated
+  //     action-permission seed. `grantView` skips a grant the role already holds
+  //     (each grant is the sole event under aggregate id `<role>:view:<view>`),
+  //     so re-running every boot adds NEW grants on redeploy without re-appending
+  //     duplicates — matching the action-permission + role-assignment seeds.
+  Future<void> grantView(String role, String view) async {
+    final aggregateId = '$role:view:$view';
+    final existing =
+        await eventStore.backend.findEventsForAggregate(aggregateId);
+    if (existing.any((e) => e.eventType == 'permission_granted')) return;
+    await eventStore.append(
+      entryType: 'role_permission_grant',
+      aggregateType: 'role_permission_grant',
+      aggregateId: aggregateId,
+      eventType: 'permission_granted',
+      data: PermissionGrantedPayload(
+        role: role,
+        permissionName: 'view:$view',
+      ).toJson(),
+      initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
+    );
+  }
+
+  // The Administrator AND the SystemOperator hold the user-management
+  // permissions, so both can subscribe to the role-assignments view + the
+  // user-accounts index. The operator-tier is the role that provisions the
+  // first Administrators, so it must be able to read the user list to do so.
+  for (final role in const ['Administrator', 'SystemOperator']) {
+    await grantView(role, 'user_role_scopes');
+    await grantView(role, 'users_index');
+  }
+  // The site list + participant records back the StudyCoordinator/CRA/Admin
+  // operational screens.
+  for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
+    await grantView(role, 'sites_index');
+    await grantView(role, 'participant_record');
+  }
+  // The RAVE-sync status screen is visible to operations roles too.
+  for (final role in const [
+    'StudyCoordinator',
+    'CRA',
+    'Administrator',
+    'SystemOperator',
+  ]) {
+    await grantView(role, 'rave_sync_status');
   }
 
   // 4c. Role assignments — config-driven + idempotent, applied on EVERY boot
@@ -660,6 +679,20 @@ const RoleAssignmentSeed _localConvenienceSeed = RoleAssignmentSeed(
       userId: 'multi-1',
       role: 'StudyCoordinator',
       scope: BoundScope(class_: 'site', value: 'site-1'),
+    ),
+    // A local SystemOperator so operator-tier flows (provisioning the first
+    // Administrators, RAVE unwedge) are testable locally. Mirrors the deployed
+    // sponsor seed (portal-users.json): operator-tier + site wildcard scopes.
+    // Deployed envs override this whole seed via PORTAL_SEED_USERS_PATH.
+    RoleAssignmentSeedEntry(
+      userId: 'sysop-1',
+      role: 'SystemOperator',
+      scope: ValueWildcardScope(class_: 'tier'),
+    ),
+    RoleAssignmentSeedEntry(
+      userId: 'sysop-1',
+      role: 'SystemOperator',
+      scope: ValueWildcardScope(class_: 'site'),
     ),
   ],
 );

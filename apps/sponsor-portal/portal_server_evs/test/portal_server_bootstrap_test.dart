@@ -134,6 +134,100 @@ void main() {
   });
 
   test(
+      'SystemOperator effective permissions include the user-provisioning set: '
+      'view:users_index + view:user_role_scopes + portal.user.create '
+      '(drives the User Accounts screen + Create User button)', () async {
+    // The operator-tier is the role that provisions the first Administrators.
+    // It must be able to (a) read the user list + role assignments, and
+    // (b) create a user via the UI flow (ACT-USR-001 = portal.user.create).
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('skeleton-sysop.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
+    );
+    addTearDown(boot.dispose);
+
+    // sysop-1 is seeded by the local convenience seed (operator-tier + site
+    // wildcard, mirroring the deployed portal-users.json) during boot, before
+    // the reactors start. The policy resolves a user's roles from
+    // user_role_scopes, so the boot-time assignment is what surfaces the grants.
+    final bootstrap =
+        await buildPortalAuthorizationPolicy(eventStore: boot.eventStore);
+    final policy = (bootstrap as PolicyReady).policy;
+
+    final sysop = Principal.user(
+      userId: 'sysop-1',
+      roles: const {'SystemOperator'},
+      activeRole: 'SystemOperator',
+    );
+    final eff = await policy.effectivePermissionsFor(sysop);
+    final names = eff.rolePermissions.map((p) => p.name).toSet();
+
+    expect(
+      names,
+      containsAll(<String>[
+        'view:users_index',
+        'view:user_role_scopes',
+        'portal.user.create',
+      ]),
+      reason: 'SystemOperator can view + provision user accounts',
+    );
+  });
+
+  test(
+      'view-permission grants are idempotent on reboot: a SECOND boot on an '
+      'already-seeded store re-affirms the grants without duplicating them '
+      '(deployed envs pick up new grants on redeploy, no DB reset)', () async {
+    // Simulates the deploy path: the store is already seeded (marker present),
+    // so the seed-once gate is skipped — but the view-permission grants run on
+    // EVERY boot, so they must (a) still be present and (b) not pile up.
+    // One factory, reopened by the same path: the in-memory store persists
+    // across close→reopen, so boot2 sees boot1's seeded state (alreadySeeded).
+    final factory = newDatabaseFactoryMemory();
+    final db1 = await factory.openDatabase('skeleton-idem.db');
+    final boot1 = await bootstrapPortalServer(
+      backend: SembastBackend(database: db1),
+      raveClient: DevSeedRaveClient(),
+    );
+    await boot1.dispose();
+
+    // Reboot on the SAME backing store (already-seeded).
+    final db2 = await factory.openDatabase('skeleton-idem.db');
+    final boot2 = await bootstrapPortalServer(
+      backend: SembastBackend(database: db2),
+      raveClient: DevSeedRaveClient(),
+    );
+    addTearDown(boot2.dispose);
+
+    // Exactly one grant event under the operator's users_index grant aggregate —
+    // the second boot did NOT re-append a duplicate.
+    final grantEvents = await boot2.eventStore.backend
+        .findEventsForAggregate('SystemOperator:view:users_index');
+    expect(
+      grantEvents.where((e) => e.eventType == 'permission_granted'),
+      hasLength(1),
+      reason: 'grant is idempotent across reboots (no duplicate append)',
+    );
+
+    // And the grant is still effective after the reboot.
+    final bootstrap =
+        await buildPortalAuthorizationPolicy(eventStore: boot2.eventStore);
+    final policy = (bootstrap as PolicyReady).policy;
+    final sysop = Principal.user(
+      userId: 'sysop-1',
+      roles: const {'SystemOperator'},
+      activeRole: 'SystemOperator',
+    );
+    final names = (await policy.effectivePermissionsFor(sysop))
+        .rolePermissions
+        .map((p) => p.name)
+        .toSet();
+    expect(
+        names, containsAll(<String>['view:users_index', 'portal.user.create']));
+  });
+
+  test(
       'admin assigns a wildcard-scoped role (ACT-USR-007) and revokes it '
       '(ACT-USR-010)', () async {
     final db =

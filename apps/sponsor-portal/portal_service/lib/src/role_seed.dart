@@ -57,7 +57,12 @@ grants:
     # Implements: DIARY-DEV-operator-tier-authz/F — the System Operator holds the
     #   same user-management permissions as the Administrator PLUS grant_role, and
     #   (via an operator-tier wildcard scope assignment) may exercise them against
-    #   operator-tier accounts an Administrator cannot reach.
+    #   operator-tier accounts an Administrator cannot reach. This includes the
+    #   base portal.user.create the UI provisioning flow submits (ACT-USR-001) —
+    #   the operator-tier is the role that provisions the first Administrators, so
+    #   it must be able to create accounts, not only the create_admin/_sysop ops
+    #   variants.
+    - portal.user.create
     - portal.user.grant_role
     - portal.user.edit
     - portal.user.deactivate
