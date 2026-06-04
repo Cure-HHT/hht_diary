@@ -194,45 +194,50 @@ class _ClinicalTrialEnrollmentScreenState
                           children: [
                             // First 5 characters
                             Expanded(
-                              child: TextField(
-                                controller: _code1Controller,
-                                focusNode: _code1FocusNode,
-                                enabled: !_isLoading,
-                                textAlign: TextAlign.center,
-                                textCapitalization:
-                                    TextCapitalization.characters,
-                                maxLength: 5,
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(
+                              // CUR-1307: identified for Playwright web automation.
+                              child: Semantics(
+                                identifier: 'enroll-code1',
+                                textField: true,
+                                child: TextField(
+                                  controller: _code1Controller,
+                                  focusNode: _code1FocusNode,
+                                  enabled: !_isLoading,
+                                  textAlign: TextAlign.center,
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                  maxLength: 5,
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        letterSpacing: 4,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'monospace',
+                                      ),
+                                  decoration: InputDecoration(
+                                    hintText: 'XXXXX',
+                                    hintStyle: TextStyle(
                                       letterSpacing: 4,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'monospace',
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.3),
                                     ),
-                                decoration: InputDecoration(
-                                  hintText: 'XXXXX',
-                                  hintStyle: TextStyle(
-                                    letterSpacing: 4,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.3),
+                                    counterText: '',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    filled: true,
+                                    fillColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
                                   ),
-                                  counterText: '',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp('[a-zA-Z0-9]'),
+                                    ),
+                                    UpperCaseTextFormatter(),
+                                  ],
+                                  onChanged: _onCode1Changed,
                                 ),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp('[a-zA-Z0-9]'),
-                                  ),
-                                  UpperCaseTextFormatter(),
-                                ],
-                                onChanged: _onCode1Changed,
                               ),
                             ),
 
@@ -257,46 +262,51 @@ class _ClinicalTrialEnrollmentScreenState
 
                             // Second 5 characters
                             Expanded(
-                              child: TextField(
-                                controller: _code2Controller,
-                                focusNode: _code2FocusNode,
-                                enabled: !_isLoading,
-                                textAlign: TextAlign.center,
-                                textCapitalization:
-                                    TextCapitalization.characters,
-                                maxLength: 5,
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(
+                              // CUR-1307: identified for Playwright web automation.
+                              child: Semantics(
+                                identifier: 'enroll-code2',
+                                textField: true,
+                                child: TextField(
+                                  controller: _code2Controller,
+                                  focusNode: _code2FocusNode,
+                                  enabled: !_isLoading,
+                                  textAlign: TextAlign.center,
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                  maxLength: 5,
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        letterSpacing: 4,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'monospace',
+                                      ),
+                                  decoration: InputDecoration(
+                                    hintText: 'XXXXX',
+                                    hintStyle: TextStyle(
                                       letterSpacing: 4,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'monospace',
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.3),
                                     ),
-                                decoration: InputDecoration(
-                                  hintText: 'XXXXX',
-                                  hintStyle: TextStyle(
-                                    letterSpacing: 4,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.3),
+                                    counterText: '',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    filled: true,
+                                    fillColor: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
                                   ),
-                                  counterText: '',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp('[a-zA-Z0-9]'),
+                                    ),
+                                    UpperCaseTextFormatter(),
+                                  ],
+                                  onChanged: _onCode2Changed,
+                                  onSubmitted: (_) => _enroll(),
                                 ),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp('[a-zA-Z0-9]'),
-                                  ),
-                                  UpperCaseTextFormatter(),
-                                ],
-                                onChanged: _onCode2Changed,
-                                onSubmitted: (_) => _enroll(),
                               ),
                             ),
                           ],
@@ -472,9 +482,13 @@ class _ClinicalTrialEnrollmentScreenState
         ),
         // Success dialog overlay
         if (_showSuccessDialog)
-          const ColoredBox(
-            color: Colors.black54,
-            child: Center(child: EnrollmentSuccessDialog()),
+          // CUR-1307: identified for Playwright web automation.
+          Semantics(
+            identifier: 'enroll-success',
+            child: const ColoredBox(
+              color: Colors.black54,
+              child: Center(child: EnrollmentSuccessDialog()),
+            ),
           ),
       ],
     );
