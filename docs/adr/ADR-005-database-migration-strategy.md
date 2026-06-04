@@ -1,5 +1,7 @@
 # ADR-005: Database Migration Strategy
 
+> **Status update (2026-06): Superseded by the event-sourcing (EVS) cutover — see CUR-1170.** The SQL migration / change-control process described below was retired along with the `database/` directory and the `database-migration.yml` workflow. Under EVS there are no in-repo SQL migrations: the `event_sourcing` library's `PostgresBackend` creates and owns the event-store schema at runtime, and the audit trail is the hash-chained event log. The Squawk migration-lint CI step was likewise removed.
+
 ## Status
 
 Accepted

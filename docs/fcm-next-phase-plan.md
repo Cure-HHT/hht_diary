@@ -1,5 +1,12 @@
 # FCM Next-Phase Implementation Plan
 
+> **⚠️ DB/migration steps stale (2026-06, EVS cutover, CUR-1170):** This plan references
+> `database/migrations/011_create_notifications_table.sql`, `database/schema.sql`, and the
+> relational schema — all deleted in the EVS cutover. The platform is now EVS-only: notifications
+> data is modeled as events in the `event_sourcing` event store (schema created at runtime by
+> `portal_server_evs`), not relational migrations, and there is no in-repo SQL or Squawk
+> migration lint. The phase/sequencing intent below is otherwise unchanged.
+
 **Status:** Stabilize PR set in progress on `feature/cur-826-fcm-stabilize` (S1 + S2 done). This document plans S3 (close-out Stabilize), Phase 1A (extract `comms` package), and Phase 1B (envelope pattern + polling).
 
 **Linear:** CUR-826 (Stabilize), CUR-???? (Phase 1A), CUR-???? (Phase 1B) — to be claimed

@@ -1,5 +1,12 @@
 # `comms` Package & Notifications Implementation Plan (v2)
 
+> **⚠️ Setup steps stale (2026-06, EVS cutover, CUR-1170):** Any local-DB setup commands in this
+> plan (e.g. `docker-compose.db.yml`) no longer work — the local raw-Postgres DB stack and the
+> `database/` SQL schema/migrations were deleted. The platform is now EVS-only: the event store
+> schema is created at runtime by the `event_sourcing` library (`portal_server_evs`), and
+> notifications data is modeled as events, not relational migrations. Plan substance below is
+> unchanged; ignore the removed local-DB steps.
+
 **Document status:** Draft for review — supersedes `docs/fcm-next-phase-plan.md` once approved. The current document is intentionally detailed so we can iterate on it before any code lands.
 
 **Linear:** CUR-826 (Stabilize), Phase 1A/1B tickets to be claimed when the plan is locked.

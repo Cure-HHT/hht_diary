@@ -1,5 +1,12 @@
 # FCM Notification Redesign — Compliance-Safe Envelope Pattern
 
+> **⚠️ DB/setup references stale (2026-06, EVS cutover, CUR-1170):** This plan references
+> `database/migrations/*.sql` (e.g. `010_add_fcm_notification_action_type.sql`, notifications
+> table) and the relational schema, all of which were deleted in the EVS cutover. The platform
+> is now EVS-only: notifications/data are modeled as events in the `event_sourcing` event store
+> (schema created at runtime by `portal_server_evs`), not relational migrations. The envelope /
+> compliance design intent below is unchanged; ignore the removed `database/` migration steps.
+
 > **📍 Update (2026-05-07):** The package portion of this plan has been revised. Instead of an FCM-only `apps/common-dart/fcm_notifications/` package, we are building a generic `apps/common-dart/comms/` package that hosts an `FcmChannel` today and will grow `EmailChannel` / `SlackChannel` later.
 >
 > The architecture in this document (envelope pattern, polling fallback, per-handler feature flags, schema) is **still current**. Only the package shape and naming have changed. Wherever this document refers to `fcm_notifications`, mentally substitute the FCM portion of `comms`.
