@@ -1098,6 +1098,7 @@
 - DIARY-PRD-linking-code-lifecycle
 - DIARY-GUI-show-linking-code
 - DIARY-DEV-linking-code-lifecycle-A
+- DIARY-DEV-participant-state-poll-B
 - DIARY-DEV-participant-link-issuance-A
 - DIARY-DEV-shared-events-catalog-D
 - DIARY-PRD-linking-code-entry-errors-A
@@ -1127,6 +1128,7 @@
 - DIARY-GUI-link-participant-flow-A
 - DIARY-GUI-link-participant-flow-B
 - DIARY-DEV-linking-code-lifecycle:section:0
+- DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - DIARY-PRD-linking-code-entry-errors:section:0
 - DIARY-GUI-join-study-screen:section:0
@@ -1302,6 +1304,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-participant-state-poll-B
 - DIARY-GUI-join-study-screen-A
 - DIARY-PRD-linking-code-lifecycle-A
 - DIARY-PRD-linking-code-lifecycle-B
@@ -1315,6 +1318,7 @@
 - DIARY-GUI-show-linking-code-B
 - DIARY-GUI-link-participant-flow-A
 - DIARY-GUI-link-participant-flow-B
+- DIARY-DEV-participant-state-poll:section:1
 - DIARY-GUI-join-study-screen:section:0
 - DIARY-PRD-linking-code-lifecycle:section:6
 - DIARY-PRD-participant-reconnection:section:0
@@ -2733,6 +2737,7 @@
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-participant-ingest:section:1
 - rem:spec/glossary-core.md:745

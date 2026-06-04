@@ -497,16 +497,18 @@ class _AppRootState extends State<AppRoot> {
       if (res.statusCode != 200) return;
       final body = jsonDecode(res.body) as Map<String, Object?>;
 
-      // Lifecycle propagation (DIARY-DEV-participant-state-poll/B). The portal
-      // exposes the two facts the diary acts on; the diary's sync gate (in
-      // installDiarySyncTriggers below) reads the enrollment notifiers set here.
-      // not-participating supersedes disconnected (latest lifecycle event wins).
-      //  - not-participating: the participant has LEFT the trial. Forget the JWT
-      //    and stop syncing entirely. The not-participating prefs flag persists so
-      //    the UI keeps showing it; reactivation reaches the device as a fresh
-      //    link with a new code, which clears the flag in EnrollmentService.enroll.
-      //  - disconnected: a temporary break. Pause sync but KEEP the JWT so the
-      //    diary keeps polling /state and resumes on reconnect / reactivate.
+      // Lifecycle propagation (DIARY-DEV-participant-state-poll/B). BOTH the
+      // disconnected and not-participating states END the device link: the diary
+      // forgets its session credential and stops syncing, so resuming requires
+      // re-establishing the link with a NEW linking code — there is no silent
+      // resume (DIARY-PRD-participant-reconnection/E,
+      // DIARY-PRD-participant-reactivate/D; disconnect also releases the device
+      // binding, DIARY-PRD-participant-disconnection/G). The two differ only in
+      // UI messaging + Sponsor-rule retention (surfaced from the persisted flag);
+      // credential handling is identical. A successful re-link clears both flags
+      // (EnrollmentService.enroll) and the buffered disconnected-period entries
+      // ship on the next drain (reconnection/F). not-participating supersedes
+      // disconnected (latest lifecycle event wins).
       if (body['is_not_participating'] == true) {
         final firstDetectedAt = await _enrollmentService
             .getNotParticipatingAt();
@@ -518,8 +520,14 @@ class _AppRootState extends State<AppRoot> {
         await _enrollmentService.clearEnrollment(); // forget the JWT
         return;
       }
+      if (body['is_disconnected'] == true) {
+        await _enrollmentService.setDisconnected(true);
+        await _enrollmentService.setNotParticipating(false);
+        await _enrollmentService.clearEnrollment(); // forget the JWT
+        return;
+      }
       await _enrollmentService.setNotParticipating(false);
-      await _enrollmentService.setDisconnected(body['is_disconnected'] == true);
+      await _enrollmentService.setDisconnected(false);
 
       // Trial-start watermark: activate the native destination once at Trial
       // Start (monotonic; skip the write when already activated).

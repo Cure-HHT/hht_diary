@@ -168,7 +168,7 @@
 | DIARY-DEV-participant-ingest                 | Participant Clinical-Record Ingest Edge               | dev-participant-ingest.md          | ba96a497 |
 | DIARY-DEV-participant-link-issuance          | Participant Link Endpoint                             | dev-participant-link-issuance.md   | 9e23e55d |
 | DIARY-DEV-participant-site-index             | Participant-Site Index Materializer                   | dev-portal-service.md              | 76e68990 |
-| DIARY-DEV-participant-state-poll             | Diary Lifecycle Propagation via State Poll            | dev-mobile-event-sourcing.md       | 03ff7714 |
+| DIARY-DEV-participant-state-poll             | Diary Lifecycle Propagation via State Poll            | dev-mobile-event-sourcing.md       | 0a04e639 |
 | DIARY-DEV-participant-status-projection      | Participant Linking-Status Projection                 | dev-portal-service.md              | aafda27d |
 | DIARY-DEV-portal-activation-code-lifecycle   | Activation code lifecycle                             | dev-portal-activation.md           | ec270b2e |
 | DIARY-DEV-portal-activation-email-delivery   | Activation email delivery                             | dev-portal-activation.md           | 8357a727 |
