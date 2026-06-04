@@ -288,6 +288,29 @@ the always-fresh in-memory store, a durable store would otherwise accumulate dup
 
 *End* *Durable, environment-selected event store* | **Hash**: cfb9c8c5
 
+## DIARY-DEV-portal-seed-config: Config-driven user-role seed
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-DEV-portal-durable-event-store
+
+### Overview
+
+The set of seeded *User* accounts and their *Role* assignments is data, not code: a deployed environment supplies it as a *Sponsor*-maintained config file, while local and test runs use an in-code development convenience seed. Because the underlying assignment seed is idempotent against the *Event Store*, the seed is applied on every boot rather than once, so an edited config propagates on redeploy.
+
+### Assertions
+
+A. The portal SHALL apply *User*-*Role*-scope assignments from a declarative seed on every boot, idempotently — emitting an assignment event only for an entry not already present — so an edited seed propagates additions on the next boot; an assignment removed from the seed SHALL be reported as drift and SHALL NOT be auto-unassigned.
+
+B. A deployed portal SHALL load its seed from a *Sponsor*-supplied config file identified by configuration, and when that configuration names a file that is absent the portal SHALL fail to start rather than fall back to the development seed. A run with no seed-file configuration SHALL use the in-code development convenience seed.
+
+C. The deployed seed SHALL contain only *System Operator* accounts; the first *Administrators* are provisioned at runtime by a *System Operator* through the portal, not seeded.
+
+### Rationale
+
+Seeding *User*-*Role* assignments from data keeps the deployed roster out of the shipped binary and lets each *Sponsor* own its operator list without a code change. The assignment seed is idempotent by construction (it diffs the declared set against the materialized assignments and emits only the difference), so — unlike the grant and reference seeding gated behind the one-time marker — it is safe to re-apply on every boot, which is what makes an edited config take effect on redeploy. Drift is reported but never auto-unassigned because removing access is a deliberate, audited *Action*, not a silent consequence of editing a file. Failing closed when a configured seed file is missing prevents a deployed environment from silently falling back to the development convenience seed (which seeds a wildcard *Administrator*). Restricting the deployed seed to *System Operators* — who then provision the first *Administrators* — keeps the deployment bootstrap minimal and routes real account creation through the audited provisioning path.
+
+*End* *Config-driven user-role seed* | **Hash**: 89ccad9f
+
 ## DIARY-DEV-operator-tier-authz: Operator-Tier Authorization for User Management
 
 **Level**: DEV | **Status**: Draft | **Implements**: -

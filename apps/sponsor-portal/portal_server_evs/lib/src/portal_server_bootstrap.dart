@@ -26,6 +26,7 @@ import 'patient_ingest_handler.dart';
 import 'patient_link_handler.dart';
 import 'patient_state_handler.dart';
 import 'portal_view_scopes.dart';
+import 'seed_config.dart';
 import 'session_cascade_reactor.dart';
 import 'session_store.dart';
 import 'session_token_validator.dart';
@@ -179,54 +180,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
       await grantView(role, 'rave_sync_status');
     }
 
-    // 4. Seed role assignments: an admin (so the admin Principal passes the
-    //    membership gate) and a coordinator (to demonstrate enforced denial).
-    await bootstrapRoleAssignments(
-      eventStore: eventStore,
-      seed: const RoleAssignmentSeed(entries: <RoleAssignmentSeedEntry>[
-        RoleAssignmentSeedEntry(
-          userId: 'admin-1',
-          role: 'Administrator',
-          scope: ValueWildcardScope(class_: 'site'),
-        ),
-        // Implements: DIARY-DEV-operator-tier-authz/E — the Administrator's
-        //   tier coverage is staff-only (BoundScope(tier, staff)): it may manage
-        //   staff-tier accounts and grant staff roles, but NOT operator-tier
-        //   accounts or the SystemOperator role. A role assignment carries ONE
-        //   scope per entry, so this is a SECOND entry alongside the site
-        //   wildcard above.
-        RoleAssignmentSeedEntry(
-          userId: 'admin-1',
-          role: 'Administrator',
-          scope: BoundScope(class_: 'tier', value: 'staff'),
-        ),
-        RoleAssignmentSeedEntry(
-          userId: 'sc-1',
-          role: 'StudyCoordinator',
-          scope: BoundScope(class_: 'site', value: 'site-1'),
-        ),
-        // A multi-role dev user so the dev quick-connect can exercise the header
-        // Role Selector + in-session switching (Administrator <-> StudyCoordinator)
-        // without the Firebase/OTP session flow. Dev-seed only.
-        RoleAssignmentSeedEntry(
-          userId: 'multi-1',
-          role: 'Administrator',
-          scope: ValueWildcardScope(class_: 'site'),
-        ),
-        // Implements: DIARY-DEV-operator-tier-authz/E — staff-tier coverage for
-        //   the dev multi-role Administrator (mirrors admin-1).
-        RoleAssignmentSeedEntry(
-          userId: 'multi-1',
-          role: 'Administrator',
-          scope: BoundScope(class_: 'tier', value: 'staff'),
-        ),
-        RoleAssignmentSeedEntry(
-          userId: 'multi-1',
-          role: 'StudyCoordinator',
-          scope: BoundScope(class_: 'site', value: 'site-1'),
-        ),
-      ]),
-    );
+    // 4. Role assignments are NOT seeded here — they are config-driven and
+    //    idempotent, so they run on EVERY boot (after this seed-once gate) via
+    //    `_resolveRoleAssignmentSeed` + `bootstrapRoleAssignments`. See below.
 
     // 4a. Optional env-driven Administrator seed. In session mode there is no
     //     dev login, so a real admin must exist to drive the E2E flows. Seeds
@@ -279,6 +235,21 @@ Future<PortalServerBoot> bootstrapPortalServer({
       initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
     );
   }
+
+  // 4c. Role assignments — config-driven + idempotent, applied on EVERY boot
+  //     (NOT inside the seed-once gate above). `bootstrapRoleAssignments` diffs
+  //     the seed against the user_role_scopes view and emits role_assigned only
+  //     for missing entries, so an edited seed config propagates additions on
+  //     redeploy; entries removed from the config surface as drift and are NOT
+  //     auto-unassigned (revoke is an explicit action). A deployed env points
+  //     PORTAL_SEED_USERS_PATH at the sponsor's seed file (e.g. SystemOperator-
+  //     only; operators then provision the first admins); local/test runs omit
+  //     it and get the in-code convenience seed.
+  // Implements: DIARY-DEV-portal-seed-config/A+B
+  await bootstrapRoleAssignments(
+    eventStore: eventStore,
+    seed: _resolveRoleAssignmentSeed(),
+  );
 
   // 5. Activation reactor + routes: ephemeral code store + email sender +
   //    reactor that watches for user_activation_code_issued events. Routes are
@@ -629,6 +600,69 @@ Future<PortalServerBoot> bootstrapPortalServer({
     dispose: dispose,
   );
 }
+
+/// Resolve the role-assignment seed. A deployed environment sets
+/// PORTAL_SEED_USERS_PATH to a sponsor-bundled JSON file (parsed by
+/// [parseSeedUsers]); if the var is set but the file is missing we fail fast
+/// rather than silently fall back to the convenience seed (which would seed an
+/// insecure wildcard admin into a deployed env). Local/test runs leave the var
+/// unset and get [_localConvenienceSeed].
+// Implements: DIARY-DEV-portal-seed-config/A+B
+RoleAssignmentSeed _resolveRoleAssignmentSeed() {
+  final path = Platform.environment['PORTAL_SEED_USERS_PATH']?.trim();
+  if (path != null && path.isNotEmpty) {
+    final file = File(path);
+    if (!file.existsSync()) {
+      throw StateError(
+        'PORTAL_SEED_USERS_PATH="$path" is set but the file does not exist',
+      );
+    }
+    return parseSeedUsers(file.readAsStringSync());
+  }
+  return _localConvenienceSeed;
+}
+
+/// In-code convenience seed for LOCAL / tests (no PORTAL_SEED_USERS_PATH): an
+/// Administrator (wildcard sites + staff tier), a StudyCoordinator @ site-1, and
+/// a multi-role dev user for exercising the dev quick-connect Role Selector.
+/// Deployed envs override this with a sponsor seed file (SystemOperator-only for
+/// dev). dev-credential login resolves these userIds from user_role_scopes.
+const RoleAssignmentSeed _localConvenienceSeed = RoleAssignmentSeed(
+  entries: <RoleAssignmentSeedEntry>[
+    RoleAssignmentSeedEntry(
+      userId: 'admin-1',
+      role: 'Administrator',
+      scope: ValueWildcardScope(class_: 'site'),
+    ),
+    // Implements: DIARY-DEV-operator-tier-authz/E — Administrator tier coverage
+    //   is staff-only (a second entry; one scope per assignment).
+    RoleAssignmentSeedEntry(
+      userId: 'admin-1',
+      role: 'Administrator',
+      scope: BoundScope(class_: 'tier', value: 'staff'),
+    ),
+    RoleAssignmentSeedEntry(
+      userId: 'sc-1',
+      role: 'StudyCoordinator',
+      scope: BoundScope(class_: 'site', value: 'site-1'),
+    ),
+    RoleAssignmentSeedEntry(
+      userId: 'multi-1',
+      role: 'Administrator',
+      scope: ValueWildcardScope(class_: 'site'),
+    ),
+    RoleAssignmentSeedEntry(
+      userId: 'multi-1',
+      role: 'Administrator',
+      scope: BoundScope(class_: 'tier', value: 'staff'),
+    ),
+    RoleAssignmentSeedEntry(
+      userId: 'multi-1',
+      role: 'StudyCoordinator',
+      scope: BoundScope(class_: 'site', value: 'site-1'),
+    ),
+  ],
+);
 
 // Implements: DIARY-DEV-portal-durable-event-store/C
 Future<bool> _portalSeedMarkerPresent(StorageBackend backend) async {
