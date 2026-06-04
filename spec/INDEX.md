@@ -41,10 +41,10 @@
 | DIARY-PRD-notification-ongoing-epistaxis         | Ongoing Epistaxis Event Reminder                         | prd-mobile-notifications.md               | 8b8197fb |
 | DIARY-PRD-notification-portal-sent-questionnaire | Portal-Sent Questionnaire Notification                   | prd-mobile-notifications.md               | 88bc4533 |
 | DIARY-PRD-notification-yesterday-entry           | Yesterday Entry Reminder Notification                    | prd-mobile-notifications.md               | 7c39d944 |
-| DIARY-PRD-participant-disconnection              | Participant Disconnection Workflow                       | prd-participant.md                        | abdd13ed |
+| DIARY-PRD-participant-disconnection              | Participant Disconnection Workflow                       | prd-participant.md                        | d449c26a |
 | DIARY-PRD-participant-link-new                   | Link New Participant Workflow                            | prd-participant.md                        | 6bd7ce5c |
 | DIARY-PRD-participant-mark-not-participating     | Mark as Not Participating                                | prd-participant.md                        | 84fb8bf2 |
-| DIARY-PRD-participant-reactivate                 | Reactivate Participant                                   | prd-participant.md                        | 7625911e |
+| DIARY-PRD-participant-reactivate                 | Reactivate Participant                                   | prd-participant.md                        | ef34372b |
 | DIARY-PRD-participant-reconnection               | Participant Reconnection Workflow                        | prd-participant.md                        | 72d588e7 |
 | DIARY-PRD-participant-registration               | Participant Registration                                 | prd-participant.md                        | 5f285232 |
 | DIARY-PRD-password-forgot                        | Forgot Password                                          | prd-portal-auth.md                        | 0aa45cc5 |

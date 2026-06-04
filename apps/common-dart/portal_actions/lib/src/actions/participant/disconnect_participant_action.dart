@@ -97,9 +97,19 @@ class DisconnectParticipantAction
     return ExecutionResult<DisconnectParticipantResult>(
       result: DisconnectParticipantResult(participantId: input.participantId),
       events: <EventDraft>[
-        // Implements: DIARY-DEV-relink-device-gate/B  (forward-ref to D1: carrying
-        // mobile_linking_status='disconnected' lets the /link relink gate recognize
-        // a coordinator disconnect and allow a legitimate re-link to a new device)
+        // Implements: DIARY-PRD-participant-disconnection/G — releasing the
+        //   device binding here is what lets the subsequent reconnection use the
+        //   same OR a different device (disconnect-then-reconnect = change device).
+        // Implements: DIARY-DEV-relink-device-gate/B  (forward-ref to D1: a
+        // disconnect RELEASES the device binding so a legitimate re-link to a new
+        // device is allowed). Two facts are merged into participant_record:
+        //   - mobile_linking_status='disconnected', and
+        //   - app_uuid=null (null-as-clear) — the DURABLE release signal.
+        // Clearing app_uuid (not just the status) is what makes the release
+        // survive a subsequent reconnect/reactivate code issue, which re-stamps
+        // mobile_linking_status to 'linking_in_progress'. Without the cleared
+        // app_uuid the relink gate would re-bind the OLD device and a new phone
+        // could never reconnect.
         EventDraft(
           aggregateType: 'participant',
           aggregateId: input.participantId,
@@ -110,6 +120,7 @@ class DisconnectParticipantAction
             'reason': input.reason,
             'by': ctx.principal.id,
             'mobile_linking_status': 'disconnected',
+            'app_uuid': null,
           },
         ),
       ],

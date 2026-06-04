@@ -119,11 +119,13 @@ E. When a **Participant** is disconnected, the System SHALL stop synchronizing d
 
 F. When a **Participant** is disconnected, *Sponsor*-specific rules SHALL remain applied to the **Participant**'s **Mobile Application**.
 
+G. When a **Participant** is disconnected, the System SHALL release the binding to their current device, so that the subsequent reconnection MAY be completed on either the same device or a different device; disconnect-then-reconnect is the supported way for a **Participant** to change devices.
+
 ### Rationale
 
 Disconnection sits between linking (the **Participant** is in *Trial*) and mark-as-not-participating (the **Participant** has left the *Trial*). It encodes the case where the link is operationally broken — a device fault, a connectivity issue, a temporary withdrawal — but the **Participant** is still expected to resume. Preserving all data and history is the audit-trail requirement; the disconnection event must not erase the historical record. Continuing to apply *Sponsor*-specific rules to the **Mobile Application** is the operational requirement; the **Participant** should still see locked records, validation rules, and *Questionnaire* restrictions that apply to their *Trial* *Role*, because they may reconnect at any time and the **Mobile Application** must not silently revert to personal-use behavior in the interim. The reason format is *Sponsor*-configurable because some sponsors require a controlled vocabulary for downstream analysis (CAL- overlay encodes one such list) while others want free-text capture.
 
-*End* *Participant Disconnection Workflow* | **Hash**: abdd13ed
+*End* *Participant Disconnection Workflow* | **Hash**: d449c26a
 
 ## DIARY-PRD-participant-reconnection: Participant Reconnection Workflow
 
@@ -193,11 +195,13 @@ B. The System SHALL require a free text reason before the *Action* is applied.
 
 C. When the *Action* is confirmed, the System SHALL re-apply *Sponsor*-specific rules to the **Participant**'s **Mobile Application**.
 
+D. When a **Participant** is reactivated, the System SHALL allow the reconnection to be completed on either the same device the **Participant** previously used or a different device.
+
 ### Rationale
 
 Reactivation is the inverse of mark-as-not-participating: the **Participant** is returning to active *Trial* status, and the platform must restore the *Trial*-specific rules that were lifted at off-*Trial* time. Routing reactivation back through the standard reconnection workflow (rather than skipping straight to **Trial Active**) means the device-side link must be re-established through the same link-code mechanism used initially; this is both an audit affordance and a defense against reactivating a **Participant** whose device is no longer in their possession. The free-text reason captures the rationale for what is operationally an unusual event (Mark-as-Not-Participating is intended to be terminal); requiring the reason here gives the *Audit Trail* the context reviewers need to interpret the reactivation.
 
-*End* *Reactivate Participant* | **Hash**: 7625911e
+*End* *Reactivate Participant* | **Hash**: ef34372b
 
 ## DIARY-GUI-participant-dashboard: Participant Dashboard
 

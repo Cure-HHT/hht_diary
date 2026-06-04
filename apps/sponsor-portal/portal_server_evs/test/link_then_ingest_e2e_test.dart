@@ -151,7 +151,10 @@ void main() {
     final ctx = ActionContext(
       principal: coordinator,
       security: const SecurityDetails(),
-      requestStartedAt: DateTime.utc(2026, 6, 1),
+      // Use *now*, not a fixed past date: the issued code expires 72h after
+      // requestStartedAt, so a hardcoded instant rots the test the moment wall
+      // clock passes it (this previously broke after 2026-06-04T00:00Z).
+      requestStartedAt: DateTime.now().toUtc(),
     );
 
     // 4. Dispatch the issue action (real action dispatch).

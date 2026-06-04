@@ -1540,6 +1540,7 @@
 - DIARY-PRD-participant-disconnection-D
 - DIARY-PRD-participant-disconnection-E
 - DIARY-PRD-participant-disconnection-F
+- DIARY-PRD-participant-disconnection-G
 - DIARY-PRD-participant-reconnection-A
 - DIARY-PRD-participant-reconnection-E
 - DIARY-PRD-participant-reconnection-F
@@ -1547,6 +1548,7 @@
 - DIARY-PRD-participant-mark-not-participating-D
 - DIARY-PRD-participant-reactivate-A
 - DIARY-PRD-participant-reactivate-C
+- DIARY-PRD-participant-reactivate-D
 - DIARY-GUI-participant-dashboard-A
 - DIARY-GUI-participant-dashboard-C
 - DIARY-GUI-participant-dashboard-I

@@ -85,6 +85,7 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
             cd /workspace/src/apps/sponsor-portal/portal_functions && dart pub get
             cd /workspace/src/apps/sponsor-portal/portal_server && dart pub get
+            cd /workspace/src/apps/sponsor-portal/portal_server_evs && dart pub get
             cd /workspace/src/apps/sponsor-portal/portal-ui && flutter pub get
           "
 
@@ -140,6 +141,23 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
             cd /workspace/src/apps/sponsor-portal/portal_server
             dart test test/
+          "
+
+      # portal_server_evs link/ingest e2e: the full link-loop + relink/reconnect/
+      # reactivate, idempotent redelivery, and diverse diary event types, driven
+      # over the REAL /actions + /link + /ingest routers against an in-memory
+      # store (hermetic — no Postgres, no Firebase emulator). Scoped to the e2e
+      # files so this job stays deterministic and headless.
+      - name: Run portal_server_evs link/ingest e2e tests
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/sponsor-portal/portal_server_evs
+            dart test \
+              test/link_then_ingest_e2e_test.dart \
+              test/relink_loops_e2e_test.dart \
+              test/ingest_idempotency_e2e_test.dart \
+              test/diary_event_types_e2e_test.dart
           "
 
       - name: Run portal-ui unit tests
