@@ -980,12 +980,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           PopupMenuItem(
                             value: 'accessibility',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.settings, size: 20),
-                                const SizedBox(width: 12),
-                                Text(l10n.accessibilityAndPreferences),
-                              ],
+                            // CUR-1307: identified for Playwright web automation
+                            // (PopupMenuItems render into an overlay when open).
+                            child: Semantics(
+                              identifier: 'menu-accessibility',
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.settings, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text(l10n.accessibilityAndPreferences),
+                                ],
+                              ),
                             ),
                           ),
                           PopupMenuItem(

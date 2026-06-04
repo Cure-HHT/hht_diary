@@ -275,29 +275,63 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: availableFonts.any((f) => f.fontFamily == prefs.selectedFont)
-                ? prefs.selectedFont
-                : availableFonts.first.fontFamily,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-            ),
-            items: availableFonts.map((font) {
-              return DropdownMenuItem<String>(
-                value: font.fontFamily,
-                child: Text(font.displayName),
+          // The font family the dropdown currently reflects (falls back to the
+          // first available font when the stored preference is unknown). Hoisted
+          // so the selector value and the active-font readout below stay in sync.
+          Builder(
+            builder: (context) {
+              final activeFont =
+                  availableFonts.any((f) => f.fontFamily == prefs.selectedFont)
+                  ? prefs.selectedFont
+                  : availableFonts.first.fontFamily;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // CUR-1307: identified for Playwright web automation.
+                  Semantics(
+                    identifier: 'font-selector',
+                    container: true,
+                    explicitChildNodes: true,
+                    child: DropdownButtonFormField<String>(
+                      value: activeFont,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: availableFonts.map((font) {
+                        return DropdownMenuItem<String>(
+                          value: font.fontFamily,
+                          // CUR-1307: each option targetable when the menu is open.
+                          child: Semantics(
+                            identifier: 'font-option-${font.fontFamily}',
+                            child: Text(font.displayName),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          _setSetting(context, prefSelectedFont, value);
+                        }
+                      },
+                    ),
+                  ),
+                  // CUR-1307: machine-readable readout of the active font selection
+                  // for Playwright assertions (surfaces via the node's aria-label).
+                  // A zero-size semantics node gets pruned from the web tree, so the
+                  // readout carries a 1x1 footprint to keep its node alive.
+                  Semantics(
+                    identifier: 'active-font',
+                    value: activeFont,
+                    container: true,
+                    child: const SizedBox(width: 1, height: 1),
+                  ),
+                ],
               );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                _setSetting(context, prefSelectedFont, value);
-              }
             },
           ),
         ],
