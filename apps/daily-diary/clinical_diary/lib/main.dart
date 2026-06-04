@@ -16,6 +16,7 @@ import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
+import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
@@ -50,6 +51,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:flutter/semantics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -206,6 +208,12 @@ class _AppRootState extends State<AppRoot> {
   /// `runtime.backend` cannot see. DIARY-DEV-native-outbound-sync/B.
   Future<bool> Function()? _nativeFifoWedged;
 
+  /// Builds the on-demand [HealthProbeContext] for Service Mode, capturing the
+  /// new-stack backend + destination registry + enrollment/clock/version. Set
+  /// only when the event-sourcing scope booted (same gate as
+  /// [_nativeFifoWedged]); null leaves the Service Mode easter egg inert.
+  Future<HealthProbeContext> Function()? _serviceModeContextBuilder;
+
   /// Persistent device install UUID, minted on first launch and reused
   /// thereafter. Forwarded to [HomeScreen] for the export payload.
   String? _deviceId;
@@ -321,6 +329,7 @@ class _AppRootState extends State<AppRoot> {
       // like the old runtime.
       final DiaryScopeRuntime diaryScope;
       Future<bool> Function()? nativeFifoWedged;
+      Future<HealthProbeContext> Function()? serviceModeContextBuilder;
       {
         final Database esDb;
         if (kIsWeb) {
@@ -375,6 +384,50 @@ class _AppRootState extends State<AppRoot> {
           rethrow;
         }
 
+        // Build the on-demand Service Mode probe context against the new
+        // event-sourcing stack. Captured here where the backend + destination
+        // registry are in scope; evaluated only when the User opens Service
+        // Mode (zero steady-state cost). Reachable regardless of link/token
+        // state — `everLinked`/`linked`/`tokenLive` are reported, not gated on.
+        // Implements: DIARY-PRD-device-health-diagnostics/A — on-demand,
+        //   no-network/no-sign-in/no-link diagnostic context.
+        final probeBackend = esBackend;
+        final probeScope = diaryScope;
+        serviceModeContextBuilder = () async {
+          final pkg = await PackageInfo.fromPlatform();
+          final linked = await _enrollmentService.isEnrolled();
+          final token = await _enrollmentService.getJwtToken();
+          var iana = 'unknown';
+          try {
+            iana = (await FlutterTimezone.getLocalTimezone()).identifier;
+          } on Exception {
+            iana = 'unknown';
+          }
+          final now = DateTime.now();
+          return HealthProbeContext(
+            backend: probeBackend,
+            destinationIds: probeScope.bundle.destinations
+                .all()
+                .map((d) => d.id)
+                .toList(),
+            everLinked: linked,
+            linked: linked,
+            tokenLive: (token ?? '').isNotEmpty,
+            clock: ClockInfo(
+              deviceNow: now,
+              ianaZone: iana,
+              utcOffsetMinutes: now.timeZoneOffset.inMinutes,
+            ),
+            version: VersionInfo(
+              appVersion: pkg.version,
+              buildNumber: pkg.buildNumber,
+              platform: defaultTargetPlatform.name,
+              os: kIsWeb ? 'web' : Platform.operatingSystem,
+            ),
+            deviceId: deviceId,
+          );
+        };
+
         // Install the foreground drain triggers (app-resume / connectivity /
         // periodic). The post-action-submit drain is already wired through the
         // bootstrap's syncCycleTrigger; these route into the same SyncCycle.
@@ -421,6 +474,7 @@ class _AppRootState extends State<AppRoot> {
           _deviceId = deviceId;
           _diaryScope = diaryScope;
           _nativeFifoWedged = nativeFifoWedged;
+          _serviceModeContextBuilder = serviceModeContextBuilder;
         });
       }
 
@@ -666,6 +720,7 @@ class _AppRootState extends State<AppRoot> {
         _runtime = null;
         _diaryScope = null;
         _nativeFifoWedged = null;
+        _serviceModeContextBuilder = null;
         _deviceId = null;
       });
     }
@@ -924,6 +979,9 @@ class _AppRootState extends State<AppRoot> {
               // Implements: DIARY-DEV-native-outbound-sync/B — surface a wedged
               //   native outbound FIFO (new diary_es.db store) in the banner.
               nativeFifoWedged: _nativeFifoWedged,
+              // Implements: DIARY-GUI-service-mode-entry/A — builder forwarded
+              //   to the tap-version-7x entry in the logo menu.
+              serviceModeContextBuilder: _serviceModeContextBuilder,
               onEnrolled: _onPostEnrollment,
               onResetAllData: _resetAllData,
               // Implements: DIARY-BASE-local-data-reset/C — the sponsor-
