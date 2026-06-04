@@ -170,35 +170,56 @@ class ParticipantsScreen extends StatelessWidget {
         if (rows.isEmpty) {
           return const Center(child: Text('(no participants synced yet)'));
         }
+        // One card per participant with the lifecycle-action buttons rendered
+        // inline (always visible). A button is enabled iff the pure state
+        // machine permits it for the current status; otherwise it renders
+        // disabled with a tooltip.
+        //
+        // WHY inline rather than an ExpansionTile (which would be the natural,
+        // more compact UX): the actions live in a reactive list that re-renders
+        // on every participant_record change, and a CanvasKit ExpansionTile's
+        // expand toggle is non-deterministic to drive through the Flutter-web
+        // semantics tree (its header semantics node churns on rebuild, so the
+        // expand click is flaky under Playwright). Rendering the actions inline
+        // removes the expand step so the row is deterministic for CUR-1307
+        // browser e2e. If/when the e2e moves off the live UI, an ExpansionTile
+        // would be the preferred presentation.
         return ListView(
           children: <Widget>[
             for (final p in rows)
-              ExpansionTile(
-                // Preserve expansion across reactive ViewBuilder rebuilds (the
-                // list re-renders on every participant_record change).
-                key: PageStorageKey<String>(p.id),
-                // CUR-1307: identified for Playwright web automation.
-                title: Semantics(
-                  identifier: 'participant-${p.id}',
-                  child: Text(p.id),
-                ),
-                subtitle: Text('site ${p.siteId} · ${p.status.label}'),
-                children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: <Widget>[
-                        for (final action in ParticipantAction.values)
-                          _ParticipantActionButton(
-                            participant: p,
-                            action: action,
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      // CUR-1307: identified for Playwright web automation.
+                      Semantics(
+                        identifier: 'participant-${p.id}',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(p.id),
+                          subtitle: Text(
+                            'site ${p.siteId} · ${p.status.label}',
                           ),
-                      ],
-                    ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: <Widget>[
+                          for (final action in ParticipantAction.values)
+                            _ParticipantActionButton(
+                              participant: p,
+                              action: action,
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
           ],
         );
@@ -234,9 +255,17 @@ class _ParticipantActionButton extends StatelessWidget {
 
     // showCode is a view-only no-op: it surfaces the current linking code.
     if (action == ParticipantAction.showCode) {
-      return OutlinedButton(
-        onPressed: () => _showCode(context),
-        child: Text(action.label),
+      // CUR-1307: identified for Playwright (container+explicitChildNodes so the
+      // identifier survives the OutlinedButton's own button semantics).
+      return Semantics(
+        identifier: 'showcode-${participant.id}',
+        button: true,
+        container: true,
+        explicitChildNodes: true,
+        child: OutlinedButton(
+          onPressed: () => _showCode(context),
+          child: Text(action.label),
+        ),
       );
     }
 
@@ -321,9 +350,20 @@ class _ParticipantActionButton extends StatelessWidget {
         title: Text('Linking code · ${participant.id}'),
         content: participant.linkingCode == null
             ? const Text('(none)')
-            : ActivationCodeDisplay(
-                code: participant.linkingCode!,
-                fontSize: 20,
+            // CUR-1307: expose the persistent (reactive participant_record)
+            // code on the semantics tree for Playwright. This is the stable
+            // read path — unlike the transient inline ActionBuilder success
+            // display, which the reactive list rebuild clears once issuance
+            // flips the participant to "pending".
+            : Semantics(
+                identifier: 'linking-code-${participant.id}',
+                value: participant.linkingCode!,
+                container: true,
+                explicitChildNodes: true,
+                child: ActivationCodeDisplay(
+                  code: participant.linkingCode!,
+                  fontSize: 20,
+                ),
               ),
         actions: <Widget>[
           TextButton(
