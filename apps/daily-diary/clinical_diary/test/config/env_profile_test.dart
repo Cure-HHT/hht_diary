@@ -80,6 +80,13 @@ void main() {
         'https://portal-service-wwacxic3ua-od.a.run.app',
       );
     });
+
+    test('uat targets its EVS portal-service URL', () {
+      expect(
+        EnvProfile.forEnv(AppEnv.uat).apiBase,
+        'https://portal-service-xlo7pf2uua-od.a.run.app',
+      );
+    });
   });
   _loadTests();
   _prodGateTests();
