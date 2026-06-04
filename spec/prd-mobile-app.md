@@ -256,3 +256,51 @@ K. The **System** SHALL support *Sponsor*-configurable **Failed Attempt Threshol
 The in-application **PIN** mechanism is the **Diary User Authentication** path engaged when the **PIN Policy** plus **Device Authentication** state on the **Participant**'s device resolve to the **In-application PIN** **Active Authentication Path** — either because the **PIN Policy** is **Required**, or because the **PIN Policy** is **Required When Device Authentication Is Not Enabled** and the device does not have **Device Authentication** enabled. The double-entry rule at **PIN** setup catches mistyped secrets before they become a lock-out risk. The **PIN** change path is gated by re-entry of the existing **PIN** to prevent an unattended *Mobile Application* from being trivially repurposed by another person. The **Failed Attempt Threshold** bounds the brute-force surface: on reaching it, the **Participant** is held in a locked state until the *Sponsor* issues a **PIN Reset**, restoring continuity of access through a controlled, attributable channel rather than an in-application self-recovery that would re-open the brute-force surface. Failed-attempt counter reset on success prevents accumulated rare typos from compounding into a lockout over normal use. The trigger timing for **Diary User Authentication** (open, return, **Idle Timeout** of inactivity) is governed by the parent REQ and applies uniformly across paths.
 
 *End* *Diary User Authentication — In-Application PIN Mechanism* | **Hash**: edd1b330
+
+## DIARY-PRD-device-health-diagnostics: Device Health Diagnostic Export
+
+**Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-mobile-application
+
+### Overview
+
+When synchronization to the **Sponsor Portal** is broken, the broken channel cannot report its own failure, yet a regulated incident still needs root-cause information. The *Mobile Application* therefore offers an on-demand, on-device diagnostic export that a **User** can produce and hand off out-of-band, limited to structural and operational metadata so that no *Diary* entry content leaves the device.
+
+### Assertions
+
+A. The *Mobile Application* SHALL provide an on-device diagnostic export that a **User** can produce on demand, reachable without network connectivity, sign-in, or an active *Sponsor* link.
+
+B. The diagnostic export SHALL describe device health conditions affecting data capture and synchronization, including a stuck (wedged) synchronization queue.
+
+C. The diagnostic export SHALL be limited to structural and operational metadata and SHALL NOT include *Diary* entry content.
+
+D. The **System** SHALL allow the **User** to copy the diagnostic export and to share it through the device's standard sharing facilities.
+
+### Rationale
+
+A wedged outbound queue blocks every event behind it, so the *Mobile Application*'s normal synchronization path — the very thing that is broken — cannot carry a report of the failure. An out-of-band export sidesteps that and rides the existing human escalation path from **User** to *Sponsor*. The export is deliberately confined to metadata (identifiers, types, sequence numbers, timestamps, hash links, queue attempt errors, cursors, counts, versions) because it leaves the regulated boundary; that metadata is sufficient to diagnose synchronization, ordering, and integrity faults without exposing *Diary* content. On-demand production with no sign-in or link requirement keeps the export reachable in exactly the degraded states — broken auth, broken link, broken sync — where it is most needed.
+
+*End* *Device Health Diagnostic Export* | **Hash**: 5071c90a
+
+## DIARY-GUI-service-mode-entry: Service Mode Entry and Presentation
+
+**Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-device-health-diagnostics
+
+### Overview
+
+The diagnostic export is presented on a "Service Mode" screen that is revealed by a deliberate, support-instructable gesture so that it stays out of a **User**'s everyday path while remaining reachable on request. Findings are presented so their severity is legible at a glance, and the export is offered as one selectable artifact with copy and share controls.
+
+### Assertions
+
+A. The *Mobile Application* SHALL reveal the diagnostic ("Service Mode") screen when the **User** taps the displayed application version seven times.
+
+B. The Service Mode screen SHALL present each health condition with a severity indication and a human-readable detail.
+
+C. The Service Mode screen SHALL present the export as a single selectable text artifact and SHALL provide copy and share controls.
+
+### Rationale
+
+A version-tap gesture is familiar from common mobile operating systems and is easy for support to read aloud to a **User** over the phone, while keeping the screen invisible to ordinary use. Because the export is metadata-only, the gesture is a clutter-avoidance measure rather than a security boundary. Presenting findings with explicit severity lets a non-technical **User** or *Sponsor* contact triage at a glance, and a single selectable artifact with copy and share controls supports both the paste-into-message and attach-as-file paths without dictating the channel.
+
+*End* *Service Mode Entry and Presentation* | **Hash**: 0b05472a
