@@ -12,7 +12,7 @@ import 'package:share_plus/share_plus.dart';
 /// and builds the raw appendix exactly once when opened — there is no
 /// steady-state cost. Renders severity-tagged findings and offers copy / share
 /// so the artifact can travel out-of-band (the wedge-able event FIFO cannot
-/// carry it) up the patient -> sponsor -> vendor escalation chain.
+/// carry it) up the participant -> sponsor -> vendor escalation chain.
 // Implements: DIARY-PRD-device-health-diagnostics/A+B — on-demand export
 //   reachable without network/sign-in/link; describes device health conditions
 //   (including a wedged sync queue).
