@@ -505,15 +505,12 @@
 
 **DIARY:**
 
-- DIARY-OPS-db-reset-non-prod
 - DIARY-BASE-audit-trail-E
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-portal-durable-event-store-A
 - DIARY-DEV-schema-version-check-A
 - DIARY-DEV-schema-version-check-B
 - DIARY-DEV-schema-version-check-C
-- DIARY-OPS-schema-migrate-on-deploy-A
-- DIARY-OPS-ci-migration-gate-A
 - DIARY-PRD-data-backup-and-archival-A
 - DIARY-PRD-data-backup-and-archival-C
 - DIARY-PRD-questionnaire-versioning-C
@@ -524,8 +521,6 @@
 - DIARY-PRD-sla-disaster-recovery-C
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-schema-version-check:section:0
-- DIARY-OPS-db-reset-non-prod:section:0
-- DIARY-OPS-ci-migration-gate:section:0
 - DIARY-PRD-questionnaire-versioning:section:0
 - DIARY-GUI-dev-admin-rave-sync-card:section:0
 

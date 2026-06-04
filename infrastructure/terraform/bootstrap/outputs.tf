@@ -295,14 +295,7 @@ output "next_steps" {
        GCP_WORKLOAD_IDENTITY_PROVIDER: module.cicd.github_actions_provider
        GCP_SERVICE_ACCOUNT: module.cicd.service_account_email
 
-    4. Initialize databases (run schema deployment jobs):
-       # For each environment, execute the schema job:
-       gcloud run jobs execute ${var.sponsor}-dev-db-schema --project=${var.sponsor}-dev --region=${var.default_region} --wait
-       gcloud run jobs execute ${var.sponsor}-qa-db-schema --project=${var.sponsor}-qa --region=${var.default_region} --wait
-       gcloud run jobs execute ${var.sponsor}-uat-db-schema --project=${var.sponsor}-uat --region=${var.default_region} --wait
-       gcloud run jobs execute ${var.sponsor}-prod-db-schema --project=${var.sponsor}-prod --region=${var.default_region} --wait
-
-    5. Verify audit log compliance:
+    4. Verify audit log compliance:
        ../scripts/verify-audit-compliance.sh ${var.sponsor}
 
   EOT

@@ -138,18 +138,14 @@
 
 ## OPERATIONS
 
-| ID                                   | Title                                            | File                       | Hash     |
-| ------------------------------------ | ------------------------------------------------ | -------------------------- | -------- |
-| DIARY-OPS-baseline-generated         | Consolidated Baseline Is Built, Not Hand-Shipped | ops-schema-migration.md    | 364bac4d |
-| DIARY-OPS-ci-migration-gate          | CI Migration Soundness Gate                      | ops-schema-migration.md    | aa6d3750 |
-| DIARY-OPS-db-reset-non-prod          | Database Reset Is Manual And Non-Production      | ops-schema-migration.md    | bc7f6fc8 |
-| DIARY-OPS-fcm-project-routing        | FCM Project Routing                              | ops-push-notifications.md  | b650c1cb |
-| DIARY-OPS-rave-alert-notification    | Rave Lockout Operator Alerting                   | prd-rave-sync.md           | 0925f7b5 |
-| DIARY-OPS-rave-sync-cooldown         | Rave Sync Cooldown After Auth Failure            | prd-rave-sync.md           | 2d1cf77c |
-| DIARY-OPS-rave-sync-hard-lockout     | Rave Sync Hard Lockout After Repeated Failures   | prd-rave-sync.md           | 5c2f7d7c |
-| DIARY-OPS-rave-unwedge-authz         | Rave Unwedge Endpoint Authorization              | prd-rave-sync.md           | 7c99b2b8 |
-| DIARY-OPS-schema-migrate-on-deploy   | Schema Advanced On Every Deploy                  | ops-schema-migration.md    | 0ad4647e |
-| DIARY-OPS-single-promotable-artifact | Single Promotable Artifact                       | ops-build-and-promotion.md | cbc3c5c0 |
+| ID                                   | Title                                          | File                       | Hash     |
+| ------------------------------------ | ---------------------------------------------- | -------------------------- | -------- |
+| DIARY-OPS-fcm-project-routing        | FCM Project Routing                            | ops-push-notifications.md  | b650c1cb |
+| DIARY-OPS-rave-alert-notification    | Rave Lockout Operator Alerting                 | prd-rave-sync.md           | 0925f7b5 |
+| DIARY-OPS-rave-sync-cooldown         | Rave Sync Cooldown After Auth Failure          | prd-rave-sync.md           | 2d1cf77c |
+| DIARY-OPS-rave-sync-hard-lockout     | Rave Sync Hard Lockout After Repeated Failures | prd-rave-sync.md           | 5c2f7d7c |
+| DIARY-OPS-rave-unwedge-authz         | Rave Unwedge Endpoint Authorization            | prd-rave-sync.md           | 7c99b2b8 |
+| DIARY-OPS-single-promotable-artifact | Single Promotable Artifact                     | ops-build-and-promotion.md | cbc3c5c0 |
 
 ## DEVELOPMENT
 
