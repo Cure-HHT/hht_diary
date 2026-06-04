@@ -9,6 +9,7 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 
 import 'activation_code_display.dart';
 import 'participant_status.dart';
+import 'start_trial_dialog.dart';
 
 // Reactive Participants list over the participant_record view (gated
 // view:participant_record). Each row shows the participant id, site and REAL
@@ -250,6 +251,29 @@ class _ParticipantActionButton extends StatelessWidget {
       return Tooltip(
         message: _kDisabledTooltip,
         child: OutlinedButton(onPressed: null, child: Text(action.label)),
+      );
+    }
+
+    // startTrial ("Send EQ") opens a confirmation dialog that owns the
+    // ACT-PAT-002 dispatch + result (port of the legacy StartTrialDialog),
+    // rather than dispatching inline. Starting the trial turns on the
+    // participant's Diary Data Synchronization; the row flips to "Trial active"
+    // reactively on success.
+    if (action == ParticipantAction.startTrial) {
+      return Semantics(
+        identifier: 'send-eq-${participant.id}',
+        button: true,
+        container: true,
+        explicitChildNodes: true,
+        child: FilledButton.icon(
+          onPressed: () => StartTrialDialog.show(
+            context: context,
+            participantId: participant.id,
+            siteId: participant.siteId,
+          ),
+          icon: const Icon(Icons.send, size: 18),
+          label: const Text('Send EQ'),
+        ),
       );
     }
 
