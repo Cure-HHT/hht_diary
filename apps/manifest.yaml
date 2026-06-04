@@ -167,7 +167,6 @@ apps:
       trigger_paths:
         - apps/daily-diary/diary_functions/**
         - apps/common-dart/trial_data_types/**
-        - database/**
       format: true
       analyze:
         tool: dart
@@ -186,7 +185,6 @@ apps:
           image: postgres:17-alpine
           port: 5432
           db_name: sponsor_portal
-          schema_file: database/init.sql
       env:
         DB_HOST: localhost
         DB_PORT: "5432"
@@ -210,7 +208,6 @@ apps:
       trigger_paths:
         - apps/daily-diary/diary_server/**
         - apps/daily-diary/diary_functions/**
-        - database/**
       format: true
       analyze:
         tool: dart
@@ -229,7 +226,6 @@ apps:
           image: postgres:17-alpine
           port: 5432
           db_name: sponsor_portal
-          schema_file: database/init.sql
       env:
         DB_HOST: localhost
         DB_PORT: "5432"
@@ -257,7 +253,6 @@ apps:
     ci:
       trigger_paths:
         - apps/sponsor-portal/portal-ui/**
-        - database/**
       format: true
       analyze:
         tool: flutter
@@ -287,7 +282,6 @@ apps:
       trigger_paths:
         - apps/sponsor-portal/portal_functions/**
         - apps/edc/rave-integration/**
-        - database/**
       format: true
       analyze:
         tool: dart
@@ -306,8 +300,6 @@ apps:
           image: postgres:17-alpine
           port: 5432
           db_name: sponsor_portal
-          schema_file: database/init.sql
-          test_fixtures: database/init_test.sql
         - type: firebase_auth_emulator
           port: 9099
           project: demo-sponsor-portal
@@ -335,7 +327,6 @@ apps:
       trigger_paths:
         - apps/sponsor-portal/portal_server/**
         - apps/sponsor-portal/portal_functions/**
-        - database/**
       format: true
       analyze:
         tool: dart
@@ -354,8 +345,6 @@ apps:
           image: postgres:17-alpine
           port: 5432
           db_name: sponsor_portal
-          schema_file: database/init.sql
-          test_fixtures: database/init_test.sql
         - type: firebase_auth_emulator
           port: 9099
           project: demo-sponsor-portal

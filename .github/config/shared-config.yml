@@ -29,8 +29,6 @@ paths:
   coverage: "coverage"
   test_results: "test-results"
   audit_logs: "audit-logs"
-  migrations: "database/migrations"
-  rollbacks: "database/rollbacks"
 
 # Timeout Configuration (in minutes)
 timeouts:
