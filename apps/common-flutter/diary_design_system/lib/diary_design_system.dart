@@ -34,6 +34,8 @@ export 'src/inputs/app_text_field.dart';
 export 'src/layout/app_card.dart';
 export 'src/layout/app_info_row.dart';
 export 'src/layout/app_section_header.dart';
+export 'src/layout/breakpoints.dart';
+export 'src/layout/responsive_builder.dart';
 export 'src/tables/app_data_table.dart';
 export 'src/tables/app_table_pagination.dart';
 export 'src/tables/app_table_tabs.dart';

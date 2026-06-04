@@ -195,14 +195,21 @@ class AppButton extends StatelessWidget {
           padding: padding,
           shape: shape,
           minimumSize: minimumSize,
+          // Inter Regular 14 / line-height 20 / letter-spacing -0.15.
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w400,
+            fontSize: 14,
+            height: 20 / 14,
+            letterSpacing: -0.15,
+          ),
         );
     }
   }
 
   (double hPad, double vPad, double minH) get _sizeMetrics => switch (size) {
     AppButtonSize.small => (SpacingTokens.md, SpacingTokens.xs, 32),
-    AppButtonSize.medium => (SpacingTokens.lg, SpacingTokens.sm, 40),
-    AppButtonSize.large => (SpacingTokens.xl, SpacingTokens.md, 48),
+    AppButtonSize.medium => (SpacingTokens.lg, SpacingTokens.sm, 47),
+    AppButtonSize.large => (SpacingTokens.xl, SpacingTokens.md, 56),
   };
 
   double get _iconSize => switch (size) {
