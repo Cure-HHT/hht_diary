@@ -24,6 +24,7 @@ import 'password_reset_code_store.dart';
 import 'password_reset_routes.dart';
 import 'patient_ingest_handler.dart';
 import 'patient_link_handler.dart';
+import 'patient_state_handler.dart';
 import 'session_cascade_reactor.dart';
 import 'session_store.dart';
 import 'session_token_validator.dart';
@@ -535,6 +536,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
       .addMiddleware(_cors())
       .addHandler(patientLinkHandler(eventStore: eventStore));
 
+  // Patient state (public; in-handler patient-JWT auth): the trial-start
+  // watermark the diary gates outbound sync on, plus linking status.
+  // Implements: DIARY-PRD-questionnaire-system/C
+  final stateHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(patientStateHandler(eventStore: eventStore));
+
   final topRouter = Router()
     ..get('/subscriptions', handlers.subscriptions(validator))
     // Activation routes (public).
@@ -555,12 +563,19 @@ Future<PortalServerBoot> bootstrapPortalServer({
     ..get('/password-reset/<code>', passwordResetHandler)
     ..options('/password-reset', passwordResetHandler)
     ..post('/password-reset', passwordResetHandler)
-    // Patient clinical-record ingest (public).
-    ..options('/ingest', ingestHandler)
-    ..post('/ingest', ingestHandler)
+    // Patient clinical-record ingest (public). One canonical path, matching the
+    // diary's DiaryServerDestination and the `/api/v1/user/link` versioned
+    // namespace; portal_server_evs plays the diary-server ingest role until the
+    // edge/core split lands.
+    // Implements: DIARY-DEV-participant-ingest/A
+    ..options('/api/v1/ingest/batch', ingestHandler)
+    ..post('/api/v1/ingest/batch', ingestHandler)
     // Patient linking-code redemption (public).
     ..options('/api/v1/user/link', linkHandler)
-    ..post('/api/v1/user/link', linkHandler);
+    ..post('/api/v1/user/link', linkHandler)
+    // Patient state: trial-start watermark + linking status (public; JWT-gated).
+    ..options('/api/v1/user/state', stateHandler)
+    ..get('/api/v1/user/state', stateHandler);
 
   // Dev-only: /dev/users exposes the role-assignment list so the dev
   // ConnectScreen can populate a dropdown. Not mounted in session mode.

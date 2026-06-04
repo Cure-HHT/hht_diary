@@ -16,7 +16,7 @@ Future<EventStore> _openStore() async {
 
 Request _post({String? auth, required List<int> body}) => Request(
       'POST',
-      Uri.parse('http://localhost/ingest'),
+      Uri.parse('http://localhost/api/v1/ingest/batch'),
       headers: {if (auth != null) 'authorization': auth},
       body: Uint8List.fromList(body),
     );

@@ -54,7 +54,7 @@ class _NativeDest extends Destination {
   @override
   Future<SendResult> send(WirePayload payload) async {
     final res = await client.post(
-      Uri.parse('http://localhost/ingest'),
+      Uri.parse('http://localhost/api/v1/ingest/batch'),
       headers: {'authorization': 'Bearer $token'},
       body: payload.bytes,
     );
@@ -272,7 +272,7 @@ void main() {
     ).encode();
     final foreignReq = Request(
       'POST',
-      Uri.parse('http://localhost/ingest'),
+      Uri.parse('http://localhost/api/v1/ingest/batch'),
       headers: {'authorization': 'Bearer $jwt'},
       body: foreignBatch,
     );

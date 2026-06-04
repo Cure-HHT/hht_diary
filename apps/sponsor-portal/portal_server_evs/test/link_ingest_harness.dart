@@ -221,9 +221,30 @@ Future<({int status, Map<String, dynamic> body})> postIngest(
 ) async {
   final req = Request(
     'POST',
-    Uri.parse('http://localhost/ingest'),
+    Uri.parse('http://localhost/api/v1/ingest/batch'),
     headers: {'authorization': 'Bearer $jwt'},
     body: bytes,
+  );
+  final res = await h.boot.router.call(req);
+  final text = await res.readAsString();
+  Map<String, dynamic> body;
+  try {
+    body = jsonDecode(text) as Map<String, dynamic>;
+  } catch (_) {
+    body = <String, dynamic>{'raw': text};
+  }
+  return (status: res.statusCode, body: body);
+}
+
+/// GET the participant state (trial-start watermark + linking status) with [jwt].
+Future<({int status, Map<String, dynamic> body})> getState(
+  PortalHarness h,
+  String jwt,
+) async {
+  final req = Request(
+    'GET',
+    Uri.parse('http://localhost/api/v1/user/state'),
+    headers: {'authorization': 'Bearer $jwt'},
   );
   final res = await h.boot.router.call(req);
   final text = await res.readAsString();
@@ -292,7 +313,7 @@ class CapturingDest extends Destination {
   Future<SendResult> send(WirePayload payload) async {
     sentPayloads.add(payload.bytes);
     final res = await client.post(
-      Uri.parse('http://localhost/ingest'),
+      Uri.parse('http://localhost/api/v1/ingest/batch'),
       headers: {'authorization': 'Bearer $token'},
       body: payload.bytes,
     );

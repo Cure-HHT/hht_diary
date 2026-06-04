@@ -157,7 +157,8 @@ jobs:
               test/link_then_ingest_e2e_test.dart \
               test/relink_loops_e2e_test.dart \
               test/ingest_idempotency_e2e_test.dart \
-              test/diary_event_types_e2e_test.dart
+              test/diary_event_types_e2e_test.dart \
+              test/trial_start_state_e2e_test.dart
           "
 
       - name: Run portal-ui unit tests

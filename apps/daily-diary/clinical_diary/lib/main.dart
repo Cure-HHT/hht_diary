@@ -195,6 +195,12 @@ class _AppRootState extends State<AppRoot> {
   /// on [dispose] so the destination's transport is torn down cleanly.
   http.Client? _diaryIngestClient;
 
+  /// The participant identity most recently adopted as the diaryScope recording
+  /// credential, so synced day-markers are keyed by `participantId`. Null until
+  /// the participant links. Tracked here (not read back off the principal) to
+  /// avoid redundant `setCredential` calls on every reconcile tick.
+  String? _adoptedSyncIdentity;
+
   /// Native outbound FIFO wedge check (the new `diary_es.db` store), forwarded
   /// to [HomeScreen] so its banner reflects a stuck native sync the legacy
   /// `runtime.backend` cannot see. DIARY-DEV-native-outbound-sync/B.
@@ -369,45 +375,30 @@ class _AppRootState extends State<AppRoot> {
           rethrow;
         }
 
-        // Implements: DIARY-DEV-native-outbound-sync/C
-        // Activate the native destination at the trial-start watermark so
-        // pre-trial events stay local (parity with the legacy destinations,
-        // which anchor at first-install "now"). Greenfield: no events exist
-        // before the app does, so "now" at first activation IS the trial start.
-        // setStartDate is monotonically non-increasing — skip the write when
-        // already activated so a process restart is a no-op.
-        const watermarkInitiator = esd.AutomationInitiator(
-          service: 'mobile-bootstrap',
-        );
-        try {
-          final schedule = await diaryScope.bundle.destinations.scheduleOf(
-            DiaryServerDestination.destinationId,
-          );
-          if (schedule.startDate == null) {
-            await diaryScope.bundle.destinations.setStartDate(
-              DiaryServerDestination.destinationId,
-              DateTime.now().toUtc(),
-              initiator: watermarkInitiator,
-            );
-          }
-        } catch (e, stack) {
-          debugPrint(
-            '[Bootstrap] native destination activation failed: $e\n$stack',
-          );
-        }
-
         // Install the foreground drain triggers (app-resume / connectivity /
         // periodic). The post-action-submit drain is already wired through the
         // bootstrap's syncCycleTrigger; these route into the same SyncCycle.
+        //
+        // The native destination is NOT activated at install. Each tick first
+        // reconciles the scope with portal state (_reconcileDiaryScope): adopt
+        // the participant identity for synced aggregates, and activate the
+        // destination at the trial-start watermark once the trial has started.
+        // Implements: DIARY-DEV-native-outbound-sync/C
         final syncCycle = diaryScope.syncCycle;
         if (syncCycle != null) {
           try {
             _diarySyncTriggers = await installDiarySyncTriggers(
-              onTrigger: syncCycle.call,
+              onTrigger: () async {
+                await _reconcileDiaryScope(diaryScope);
+                await syncCycle.call();
+              },
             );
           } catch (e, stack) {
             debugPrint('[Bootstrap] diary sync triggers failed: $e\n$stack');
           }
+          // Reconcile once at boot so a link / trial-start that happened while
+          // the app was closed is picked up without waiting for a trigger.
+          unawaited(_reconcileDiaryScope(diaryScope));
         }
       }
 
@@ -445,6 +436,68 @@ class _AppRootState extends State<AppRoot> {
       if (mounted) {
         setState(() => _bootstrapError = e);
       }
+    }
+  }
+
+  /// Reconcile the diary scope with portal state on each sync tick (and once at
+  /// boot). Two effects, both safe to repeat:
+  ///
+  ///  1. Adopt the participant identity for synced aggregates. Day-markers are
+  ///     keyed by the recording principal's userId (`dayAggregateId`), and the
+  ///     ingest edge requires `participantId` as the cross-wire key
+  ///     (DIARY-DEV-participant-ingest/D). Once linked, switch the diaryScope
+  ///     credential from the device-local id to the participantId so day-markers
+  ///     recorded from then on are participant-keyed. Pre-link entries keep the
+  ///     local id and stay local (the watermark below never ships them).
+  ///  2. Gate the native destination on the trial-start watermark
+  ///     (DIARY-DEV-native-outbound-sync/C). The destination stays inactive
+  ///     until the portal reports Trial Start; then it is activated at
+  ///     `trial_started_at` so only at-or-after-Trial-Start entries ship.
+  ///     `setStartDate` is monotonically non-increasing, so activating once is
+  ///     enough and repeat ticks are no-ops.
+  Future<void> _reconcileDiaryScope(DiaryScopeRuntime diaryScope) async {
+    try {
+      final participantId = await _enrollmentService.getUserId();
+      if (participantId != null &&
+          participantId.isNotEmpty &&
+          participantId != _adoptedSyncIdentity) {
+        diaryScope.authSession.setCredential(participantId);
+        _adoptedSyncIdentity = participantId;
+      }
+    } catch (e, stack) {
+      debugPrint('[Reconcile] identity adoption failed: $e\n$stack');
+    }
+
+    try {
+      final schedule = await diaryScope.bundle.destinations.scheduleOf(
+        DiaryServerDestination.destinationId,
+      );
+      if (schedule.startDate != null) return; // already activated (monotonic).
+
+      final base = await _enrollmentService.getBackendUrl();
+      final token = await _enrollmentService.getJwtToken();
+      if (base == null || token == null) return; // not linked yet.
+
+      final res = await (_diaryIngestClient ?? http.Client()).get(
+        Uri.parse('$base/api/v1/user/state'),
+        headers: <String, String>{'authorization': 'Bearer $token'},
+      );
+      if (res.statusCode != 200) return;
+      final body = jsonDecode(res.body) as Map<String, Object?>;
+      final startedAtRaw = body['trial_started_at'];
+      if (startedAtRaw is! String) return; // trial not started -> stay local.
+      final watermark = DateTime.tryParse(startedAtRaw)?.toUtc();
+      if (watermark == null) return;
+
+      await diaryScope.bundle.destinations.setStartDate(
+        DiaryServerDestination.destinationId,
+        watermark,
+        initiator: const esd.AutomationInitiator(
+          service: 'trial-start-watermark',
+        ),
+      );
+    } catch (e, stack) {
+      debugPrint('[Reconcile] watermark gating failed: $e\n$stack');
     }
   }
 

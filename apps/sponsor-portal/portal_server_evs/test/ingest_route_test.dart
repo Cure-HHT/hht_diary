@@ -1,4 +1,4 @@
-// Verifies: DIARY-DEV-participant-ingest/A+B — /ingest is mounted public and gated.
+// Verifies: DIARY-DEV-participant-ingest/A+B — /api/v1/ingest/batch is mounted public and gated.
 import 'dart:typed_data';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_server_evs/portal_server_evs.dart';
@@ -9,7 +9,7 @@ import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('POST /ingest with no auth -> 401', () async {
+  test('POST /api/v1/ingest/batch with no auth -> 401', () async {
     final db = await newDatabaseFactoryMemory().openDatabase('ir.db');
     final boot = await bootstrapPortalServer(
         backend: SembastBackend(database: db), raveClient: DevSeedRaveClient());
@@ -17,13 +17,14 @@ void main() {
 
     final res = await boot.router.call(Request(
       'POST',
-      Uri.parse('http://localhost/ingest'),
+      Uri.parse('http://localhost/api/v1/ingest/batch'),
       body: Uint8List.fromList(const [1, 2, 3]),
     ));
     expect(res.statusCode, 401);
   });
 
-  test('POST /ingest with a valid patient token reaches the ingest handler',
+  test(
+      'POST /api/v1/ingest/batch with a valid patient token reaches the ingest handler',
       () async {
     final db = await newDatabaseFactoryMemory().openDatabase('ir2.db');
     final boot = await bootstrapPortalServer(
@@ -33,7 +34,7 @@ void main() {
     final token = createPatientJwt(authCode: 'ac', userId: 'P-u');
     final res = await boot.router.call(Request(
       'POST',
-      Uri.parse('http://localhost/ingest'),
+      Uri.parse('http://localhost/api/v1/ingest/batch'),
       headers: {'authorization': 'Bearer $token'},
       body: Uint8List.fromList(const [0, 1, 2, 3]), // malformed batch
     ));

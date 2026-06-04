@@ -26,7 +26,8 @@ import 'package:http/http.dart' as http;
 /// wire translation — the body is the canonical envelope bytes):
 ///
 ///   - 2xx                              -> [SendOk]
-///   - 401 / 403 / other 4xx            -> [SendPermanent]
+///   - 401 (auth not currently valid)   -> [SendTransient] with httpStatus
+///   - other 4xx (client defect)        -> [SendPermanent] (wedge)
 ///   - 5xx                              -> [SendTransient] with httpStatus
 ///   - [http.ClientException]           -> [SendTransient]
 ///   - [TimeoutException]               -> [SendTransient]
@@ -158,6 +159,18 @@ class DiaryServerDestination extends Destination {
       final status = response.statusCode;
       if (status >= 200 && status < 300) {
         return _logged(const SendOk(), url: url, status: status);
+      }
+      // 401 is authorization-not-currently-valid (token not yet minted/refreshed,
+      // endpoint not ready) — a transient condition that resolves without a code
+      // change. Retry without data loss; never wedge. Other 4xx mean the current
+      // binary formed something this server will not accept (a client defect) and
+      // wedge until a corrected binary rebuilds the queue from the event log.
+      if (status == 401) {
+        return _logged(
+          SendTransient(error: '401: ${response.body}', httpStatus: status),
+          url: url,
+          status: status,
+        );
       }
       if (status >= 400 && status < 500) {
         return _logged(

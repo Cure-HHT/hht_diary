@@ -49,7 +49,7 @@ class _NativeDest extends Destination {
   @override
   Future<SendResult> send(WirePayload payload) async {
     final res = await client.post(
-      Uri.parse('http://localhost/ingest'),
+      Uri.parse('http://localhost/api/v1/ingest/batch'),
       headers: {'authorization': 'Bearer $token'},
       body: payload.bytes,
     );
@@ -246,7 +246,7 @@ void main() {
     final firstBytes = captured.first;
     final replayShelfReq = Request(
       'POST',
-      Uri.parse('http://localhost/ingest'),
+      Uri.parse('http://localhost/api/v1/ingest/batch'),
       headers: {'authorization': 'Bearer $token'},
       body: firstBytes,
     );
