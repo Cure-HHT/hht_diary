@@ -80,11 +80,11 @@ This provides a complete, immutable history. You can reconstruct the state at an
 
 **Read**: `docs/adr/ADR-001-event-sourcing-pattern.md`, `spec/prd-event-sourcing-system.md`
 
-### 2. Row-Level Security (RLS)
+### 2. Data Isolation (per-sponsor VPC + event-sourced permissions)
 
-PostgreSQL RLS ensures data isolation at the database level. A sponsor can only see their own data, regardless of what queries the application sends.
+Data isolation is enforced two ways under the event-sourcing model: each sponsor runs in its own GCP project / VPC (hard tenancy boundary), and within a deployment access is governed by event-sourced permissions evaluated in the application layer — not PostgreSQL row-level security, which was retired with the relational schema in the EVS cutover.
 
-**Read**: `spec/prd-security-RLS.md`, `docs/adr/ADR-003-row-level-security.md`
+**Read**: `docs/adr/ADR-003-row-level-security.md` (historical — superseded by the EVS cutover).
 
 ### 3. Multi-Sponsor Architecture
 
