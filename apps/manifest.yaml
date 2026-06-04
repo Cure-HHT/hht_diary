@@ -1,8 +1,13 @@
 # App Manifest — hht_diary
 #
-# Describes every Dart/Flutter project under apps/ so that CI, pre-push hooks,
-# and dev tooling can discover and run a uniform set of checks without
-# hard-coding paths in each workflow.
+# Describes Dart/Flutter projects under apps/ so that CI, pre-push hooks, and
+# dev tooling can discover and run a uniform set of checks without hard-coding
+# paths in each workflow.
+#
+# NOT exhaustive (known gap — see the note at the bottom of this file): the
+# live event-sourced packages and several common-dart libraries are not yet
+# inventoried here. The hand-written workflows (e.g. sponsor-portal-ci.yml) are
+# the authoritative CI source today.
 #
 # Usage:
 #   A generic CI workflow reads this file and, for each entry whose
@@ -163,36 +168,11 @@ apps:
     depends_on:
       - trial_data_types            # path: ../../common-dart/trial_data_types
 
-    ci:
-      trigger_paths:
-        - apps/daily-diary/diary_functions/**
-        - apps/common-dart/trial_data_types/**
-      format: true
-      analyze:
-        tool: dart
-        fatal_infos: true
-      test:
-        unit: true
-        integration: true
-        runner: dart
-        test_script: tool/test.sh
-      coverage:
-        enabled: true
-        threshold: null             # no enforced threshold yet
-        codecov_flag: diary-functions
-      services:
-        - type: postgres
-          image: postgres:17-alpine
-          port: 5432
-          db_name: sponsor_portal
-      env:
-        DB_HOST: localhost
-        DB_PORT: "5432"
-        DB_NAME: sponsor_portal
-        DB_USER: postgres
-        DB_SSL: "false"
-        JWT_SECRET: test-jwt-secret-for-ci
-      analysis_options: false
+    # Reference-only since the EVS cutover (CUR-1170). The raw-Postgres data
+    # path this served — incl. the database/ relational schema — was retired;
+    # the diary now ingests into portal_server_evs. Retained for reference,
+    # no longer built or tested by CI. No ci: block.
+    reference_only: true
 
   - name: diary_server
     path: apps/daily-diary/diary_server
@@ -204,36 +184,10 @@ apps:
       - diary_functions             # path: ../diary_functions
       # transitive: trial_data_types
 
-    ci:
-      trigger_paths:
-        - apps/daily-diary/diary_server/**
-        - apps/daily-diary/diary_functions/**
-      format: true
-      analyze:
-        tool: dart
-        fatal_infos: true
-      test:
-        unit: true
-        integration: true
-        runner: dart
-        test_script: tool/test.sh
-      coverage:
-        enabled: true
-        threshold: null
-        codecov_flag: diary-server
-      services:
-        - type: postgres
-          image: postgres:17-alpine
-          port: 5432
-          db_name: sponsor_portal
-      env:
-        DB_HOST: localhost
-        DB_PORT: "5432"
-        DB_NAME: sponsor_portal
-        DB_USER: postgres
-        DB_SSL: "false"
-        JWT_SECRET: test-jwt-secret-for-ci
-      analysis_options: false
+    # Reference-only since the EVS cutover (CUR-1170). The legacy raw-Postgres
+    # diary server is superseded by device->portal_server_evs /ingest. Retained
+    # for reference, no longer built or tested by CI. No ci: block.
+    reference_only: true
 
   # =========================================================================
   # Sponsor Portal
@@ -278,40 +232,11 @@ apps:
     depends_on:
       - rave_integration            # path: ../../edc/rave-integration
 
-    ci:
-      trigger_paths:
-        - apps/sponsor-portal/portal_functions/**
-        - apps/edc/rave-integration/**
-      format: true
-      analyze:
-        tool: dart
-        fatal_infos: true
-      test:
-        unit: true
-        integration: true
-        runner: dart
-        test_script: tool/test.sh
-      coverage:
-        enabled: true
-        threshold: 60               # from tool/test.sh MIN_COVERAGE
-        codecov_flag: sponsor-portal
-      services:
-        - type: postgres
-          image: postgres:17-alpine
-          port: 5432
-          db_name: sponsor_portal
-        - type: firebase_auth_emulator
-          port: 9099
-          project: demo-sponsor-portal
-      env:
-        DB_HOST: localhost
-        DB_PORT: "5432"
-        DB_NAME: sponsor_portal
-        DB_USER: postgres
-        DB_SSL: "false"
-        FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099"
-        GCP_PROJECT_ID: demo-sponsor-portal
-      analysis_options: false
+    # Reference-only since the EVS cutover (CUR-1170). Superseded by the
+    # event-sourced portal (portal_server_evs + portal_service); the raw-Postgres
+    # data path incl. database/ was retired. Retained for reference, no longer
+    # built or tested by CI. No ci: block.
+    reference_only: true
 
   - name: portal_server
     path: apps/sponsor-portal/portal_server
@@ -323,54 +248,30 @@ apps:
       - portal_functions            # path: ../portal_functions
       # transitive: rave_integration
 
-    ci:
-      trigger_paths:
-        - apps/sponsor-portal/portal_server/**
-        - apps/sponsor-portal/portal_functions/**
-      format: true
-      analyze:
-        tool: dart
-        fatal_infos: true
-      test:
-        unit: true
-        integration: true
-        runner: dart
-        test_script: tool/test.sh
-      coverage:
-        enabled: true
-        threshold: null
-        codecov_flag: sponsor-portal
-      services:
-        - type: postgres
-          image: postgres:17-alpine
-          port: 5432
-          db_name: sponsor_portal
-        - type: firebase_auth_emulator
-          port: 9099
-          project: demo-sponsor-portal
-      env:
-        DB_HOST: localhost
-        DB_PORT: "5432"
-        DB_NAME: sponsor_portal
-        DB_USER: postgres
-        DB_SSL: "false"
-        FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099"
-        GCP_PROJECT_ID: demo-sponsor-portal
-      analysis_options: false
+    # Reference-only since the EVS cutover (CUR-1170). Superseded by
+    # portal_server_evs. Retained for reference, no longer built or tested by
+    # CI. No ci: block.
+    reference_only: true
 
 # ---------------------------------------------------------------------------
 # Dependency graph (for topological build order)
 # ---------------------------------------------------------------------------
-# Leaf packages (no local deps) — can build in parallel:
-#   trial_data_types, rave_integration, portal-ui
+# CI-active leaf packages (no local deps) — can build in parallel:
+#   trial_data_types, rave_integration, portal-ui, clinical_diary
 #
-# Layer 1 (depends on leaves):
-#   diary_functions   -> trial_data_types
-#   portal_functions  -> rave_integration
+# Reference-only since the EVS cutover (CUR-1170) — NOT built or tested by CI
+# (the raw-Postgres stack incl. database/ that they depended on was retired):
+#   diary_functions, diary_server, portal_functions, portal_server
 #
-# Layer 2 (depends on layer 1):
-#   diary_server      -> diary_functions
-#   portal_server     -> portal_functions
+# KNOWN GAP — not yet inventoried in this manifest (their CI lives directly in
+# the hand-written workflows): the live event-sourced packages
+#   portal_server_evs, portal_service, portal_ui_evs, portal_identity
+#     (apps/sponsor-portal/)
+#   portal_actions, diary_shared_model, event_sourcing_datastore, comms,
+#   provenance, canonical_json_jcs, otel_common (apps/common-dart/)
+# Reconciling this manifest to the full post-EVS package set is a separate
+# follow-up (this PR only corrected the packages it changed).
 #
-# A CI matrix job can topologically sort `depends_on` to produce this order.
+# A CI matrix job can topologically sort `depends_on` over the CI-active
+# packages to produce build order.
 # ---------------------------------------------------------------------------
