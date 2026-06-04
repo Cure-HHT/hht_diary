@@ -50,7 +50,13 @@ class EnvProfile {
     ),
     AppEnv.dev: EnvProfile(
       env: AppEnv.dev,
-      apiBase: 'https://diary-service-1012274191696.europe-west9.run.app',
+      // EVS: the diary backend is folded into portal_server_evs, deployed as the
+      // `portal-service` Cloud Run service, which serves the diary's endpoints
+      // (/api/v1/user/link, /api/v1/user/state, /api/v1/ingest/batch). The legacy
+      // diary-service is retired (CUR-1437). dev/qa/uat target portal-service;
+      // prod is intentionally left pointing at the retired diary-service below
+      // (prod EVS cutover is a separate, deliberate step).
+      apiBase: 'https://portal-service-qxn6yntj5a-od.a.run.app',
       title: 'CureHHT Tracker DEV',
       showBanner: true,
       showDevTools: true,
@@ -58,7 +64,8 @@ class EnvProfile {
     ),
     AppEnv.qa: EnvProfile(
       env: AppEnv.qa,
-      apiBase: 'https://diary-service-421945483876.europe-west9.run.app',
+      // EVS portal-service (see AppEnv.dev note).
+      apiBase: 'https://portal-service-wwacxic3ua-od.a.run.app',
       title: 'CureHHT Tracker QA',
       showBanner: true,
       showDevTools: true,
@@ -66,7 +73,8 @@ class EnvProfile {
     ),
     AppEnv.uat: EnvProfile(
       env: AppEnv.uat,
-      apiBase: 'https://diary-service-768644809588.europe-west9.run.app',
+      // EVS portal-service (see AppEnv.dev note).
+      apiBase: 'https://portal-service-xlo7pf2uua-od.a.run.app',
       title: 'CureHHT Tracker',
       showBanner: false,
       showDevTools: false,

@@ -47,10 +47,7 @@ void main() {
     test('dev profile carries dev API base and enables dev affordances', () {
       final p = EnvProfile.forEnv(AppEnv.dev);
       expect(p.name, 'dev');
-      expect(
-        p.apiBase,
-        'https://diary-service-1012274191696.europe-west9.run.app',
-      );
+      expect(p.apiBase, 'https://portal-service-qxn6yntj5a-od.a.run.app');
       expect(p.showBanner, isTrue);
       expect(p.showDevTools, isTrue);
       expect(p.showResetData, isTrue);
@@ -77,10 +74,17 @@ void main() {
       expect(EnvProfile.forEnv(AppEnv.local).apiBase, 'http://localhost:8084');
     });
 
-    test('qa targets its own diary-service URL', () {
+    test('qa targets its EVS portal-service URL', () {
       expect(
         EnvProfile.forEnv(AppEnv.qa).apiBase,
-        'https://diary-service-421945483876.europe-west9.run.app',
+        'https://portal-service-wwacxic3ua-od.a.run.app',
+      );
+    });
+
+    test('uat targets its EVS portal-service URL', () {
+      expect(
+        EnvProfile.forEnv(AppEnv.uat).apiBase,
+        'https://portal-service-xlo7pf2uua-od.a.run.app',
       );
     });
   });

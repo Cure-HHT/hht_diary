@@ -67,7 +67,7 @@ void main() {
         EnvProfile.current = EnvProfile.forEnv(AppEnv.qa);
         expect(
           AppConfig.apiBase,
-          'https://diary-service-421945483876.europe-west9.run.app',
+          'https://portal-service-wwacxic3ua-od.a.run.app',
         );
       });
 
@@ -110,7 +110,7 @@ void main() {
         EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
         expect(
           AppConfig.apiBase,
-          'https://diary-service-1012274191696.europe-west9.run.app',
+          'https://portal-service-qxn6yntj5a-od.a.run.app',
         );
 
         EnvProfile.current = EnvProfile.forEnv(AppEnv.prod);
