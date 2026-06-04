@@ -123,17 +123,29 @@ class _SitesView extends StatelessWidget {
 String _activationExpiresAt() =>
     DateTime.now().toUtc().add(const Duration(days: 14)).toIso8601String();
 
-/// The wildcard scope JSON a non-site role's role-assignment carries: the
-/// Administrator pins to all-sites; the System Operator to everything.
-Object _wildcardScopeJsonFor(String role) => switch (roleScopeKind(role)) {
-  RoleScopeKind.allSites => const ValueWildcardScope(class_: 'site').toJson(),
-  RoleScopeKind.everything => const TotalWildcardScope().toJson(),
+/// The role-level scopes a non-site role's assignment carries. Returns a LIST
+/// because a role can need coverage in more than one scope class:
+///   - Administrator (all-sites): an all-sites scope (for its site-scoped
+///     permissions) AND a staff-`tier` scope so it can run user-management
+///     actions against staff-tier accounts (DIARY-DEV-operator-tier-authz/E).
+///     Without the tier scope a freshly-provisioned Administrator is denied
+///     assign_site / edit / etc. — it must mirror the bootstrap seed, which
+///     grants admins exactly these two scopes.
+///   - System Operator (everything): a single total-wildcard scope, which
+///     already spans every class (including `tier`).
+/// Each scope becomes its own assign_role/revoke_role in [assignmentSubmissions].
+List<Object> _roleScopesJsonFor(String role) => switch (roleScopeKind(role)) {
+  RoleScopeKind.allSites => <Object>[
+    const ValueWildcardScope(class_: 'site').toJson(),
+    const BoundScope(class_: 'tier', value: 'staff').toJson(),
+  ],
+  RoleScopeKind.everything => <Object>[const TotalWildcardScope().toJson()],
   // site-scoped roles never carry a role-level wildcard scope: assignRoles /
   // revokeRoles only ever contain wildcard roles (planAssignmentChanges
   // routes site-scoped roles to assignSites/revokeSites). Reaching here is a
   // bug, not a runtime input condition.
   RoleScopeKind.site => throw StateError(
-    '_wildcardScopeJsonFor called for site-scoped role $role',
+    '_roleScopesJsonFor called for site-scoped role $role',
   ),
 };
 
@@ -995,7 +1007,7 @@ Future<void> _applyPlan(
   String userId,
   AssignmentPlan plan,
 ) async {
-  for (final s in assignmentSubmissions(plan, userId, _wildcardScopeJsonFor)) {
+  for (final s in assignmentSubmissions(plan, userId, _roleScopesJsonFor)) {
     final r = await client.submit(s);
     if (r is! DispatchSuccess && r is! DispatchIdempotencyHit) {
       throw _DispatchDeniedException('${s.actionName}: ${_denialLabel(r)}');
