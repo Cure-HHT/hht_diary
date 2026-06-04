@@ -146,6 +146,7 @@
 - JNY-SET-01
 - JNY-AUDIT-01
 - JNY-AUDIT-02
+- JNY-AUDIT-03
 - JNY-AUTH-03
 - JNY-AUTH-05
 - JNY-PART-01
@@ -773,6 +774,7 @@
 - JNY-SET-01
 - JNY-AUDIT-01
 - JNY-AUDIT-02
+- JNY-AUDIT-03
 - JNY-AUTH-01
 - JNY-AUTH-02
 - JNY-AUTH-03
@@ -1831,6 +1833,7 @@
 - rem:spec/user-journeys/participant-management-journeys.md:180
 - rem:spec/user-journeys/questionnaire-management-journeys.md:3
 - JNY-AUDIT-02
+- JNY-AUDIT-03
 - JNY-PART-01
 - JNY-PART-02
 - JNY-PART-03
@@ -2493,6 +2496,7 @@
 - rem:spec/user-journeys/participant-management-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:3
 - rem:spec/user-journeys/user-management-journeys.md:3
+- JNY-AUDIT-03
 - JNY-AUTH-02
 - JNY-AUTH-04
 - JNY-USER-01
@@ -2722,6 +2726,8 @@
 - DIARY-PRD-user-account-deactivate:section:1
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-information-modal:section:3
+- rem:spec/user-journeys/audit-log-journeys.md:80
+- JNY-AUDIT-03
 - JNY-USER-01
 - JNY-USER-02
 - JNY-USER-06
@@ -3126,6 +3132,7 @@
 - rem:spec/user-journeys/questionnaire-management-journeys.md:1
 - rem:spec/user-journeys/questionnaire-management-journeys.md:3
 - JNY-AUDIT-02
+- JNY-AUDIT-03
 - JNY-AUTH-04
 - JNY-PART-01
 - JNY-PART-02
@@ -3612,6 +3619,7 @@
 - rem:spec/user-journeys/user-management-journeys.md:158
 - JNY-AUDIT-01
 - JNY-AUDIT-02
+- JNY-AUDIT-03
 - JNY-AUTH-01
 - JNY-USER-01
 - JNY-USER-02

@@ -1,6 +1,6 @@
 # Audit Log — User Journeys
 
-> **Roles**: Administrator, Study Coordinator (each role sees its own role-scoped audit log view)
+> **Roles**: Administrator, Study Coordinator, CRA (each role sees its own role-scoped audit log view)
 > **Source**: spec/prd-audit-log.md, spec/prd-user-account.md
 > **Scope**: Sponsor Portal (web). Each journey begins with the actor already signed in and on their default landing view.
 
@@ -51,3 +51,30 @@ Validates: DIARY-GUI-audit-log-common, DIARY-GUI-audit-log-study-coordinator
 Dr. Mitchell can review her own actions in reverse chronological order, filter them to a specific participant by Participant ID, and expand any entry to its full raw record. When no entries match, an empty-state message is shown.
 
 *End* *View the Study Coordinator Audit Log*
+
+---
+
+# JNY-AUDIT-03: Monitor a Site via the CRA Audit Log
+
+**Actor**: Tom Becker, a Clinical Research Associate (CRA)
+**Goal**: Review Study Coordinator activity at one of his assigned sites for monitoring
+**Context**: Tom is signed in. The CRA role is read-only; his primary capability is reviewing the audit log one assigned site at a time.
+
+Validates: DIARY-GUI-audit-log-common, DIARY-GUI-audit-log-cra
+
+**Spec gap**: No platform DIARY-GUI requirement defines the CRA landing view or the assigned-sites list/selection UI; the CRA Audit Log View specifies only that it is reached by selecting a site from the CRA's assigned sites. This journey validates the audit-log view and notes the missing entry-point GUI.
+
+## Steps
+
+1. Tom selects a site from his list of assigned sites.
+2. The CRA Audit Log View loads for that site, with the selected site name shown in the header.
+3. The table shows the common Timestamp, Action, User, and Details columns plus Participant ID and Site columns, scoped to Study Coordinator actions at the selected site and listed most-recent-first.
+4. Tom uses the Study Coordinator selector — which defaults to all coordinators at the site — to filter the entries to a single Study Coordinator.
+5. Tom types a Participant ID into the Participant ID search input; the entries filter in real time to that participant.
+6. Tom clicks the "More details" control on an entry to view the full raw record as text.
+
+## Expected Outcome
+
+Tom can review Study Coordinator actions for one assigned site at a time, narrow them by coordinator and by Participant ID, and expand any entry to its full raw record. The view is read-only and scoped to the selected site. When no entries match, an empty-state message is shown.
+
+*End* *Monitor a Site via the CRA Audit Log*

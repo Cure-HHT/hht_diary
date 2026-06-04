@@ -195,6 +195,7 @@
 | ------------ | ----------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------ |
 | JNY-AUDIT-01 | View the Administrator Audit Log                | Jordan Avery, a Sponsor Portal Administrator                             | audit-log-journeys.md                |
 | JNY-AUDIT-02 | View the Study Coordinator Audit Log            | Dr. Sarah Mitchell, a Study Coordinator                                  | audit-log-journeys.md                |
+| JNY-AUDIT-03 | Monitor a Site via the CRA Audit Log            | Tom Becker, a Clinical Research Associate (CRA)                          | audit-log-journeys.md                |
 | JNY-AUTH-01  | Accept Activation Invite & Set Initial Password | Jordan Avery, a newly created Sponsor Portal Administrator               | authentication-journeys.md           |
 | JNY-AUTH-02  | Log In With Two-Factor Authentication           | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md           |
 | JNY-AUTH-03  | Reset a Forgotten Password                      | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md           |
