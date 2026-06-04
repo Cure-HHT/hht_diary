@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:event_sourcing/event_sourcing.dart';
 
@@ -29,8 +30,17 @@ class SessionCascadeReactor {
     )
         .listen((update) {
       if (update is Delta<StoredEvent>) {
-        unawaited(handleSecurityEvent(update.value));
+        // Fire-and-forget with a catchError backstop: a reactor failure must
+        // NEVER surface as an unhandled async exception that crashes the server.
+        unawaited(handleSecurityEvent(update.value)
+            .catchError((Object e, StackTrace st) {
+          stderr.writeln('SessionCascadeReactor.handleSecurityEvent failed '
+              '(continuing): $e\n$st');
+        }));
       }
+    }, onError: (Object e, StackTrace st) {
+      stderr.writeln('SessionCascadeReactor subscription error (continuing): '
+          '$e\n$st');
     });
   }
 
