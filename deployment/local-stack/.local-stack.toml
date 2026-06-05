@@ -1,0 +1,45 @@
+# Configuration for the local-stack toolkit's sponsor-repo resolution.
+# Dev-machine only — nothing in CI, Cloud Run, or the application reads it.
+#
+# This toolkit lives in the CORE repo (hht_diary). The core path is the
+# toolkit's own checkout, resolved by `git rev-parse --show-toplevel` — it
+# needs no config. What this file configures is the *sponsor* repo
+# (e.g. hht_diary_callisto), which supplies the per-sponsor build inputs:
+# deployment/base-config.json, the sponsor portal-final.Dockerfile, content/,
+# and the portal seed-users file.
+#
+# RESOLUTION ORDER (see lib/resolve-sponsor-path.py)
+# --------------------------------------------------
+#   1. The SPONSOR_REPO env var, if set (absolute path). This is how the
+#      sponsor-side thin wrapper (deployment/local-stack-wrapper.sh in the
+#      sponsor repo) drives the toolkit — it exports SPONSOR_REPO to its own
+#      repo root and execs this CLI.
+#   2. Otherwise, [associated.sponsor].path below, overlaid with
+#      .local-stack.local.toml, resolved relative to this toolkit root.
+#
+# WHEN YOU NEED AN OVERRIDE
+# -------------------------
+# The default `path = "../../../hht_diary_callisto"` assumes the canonical
+# sibling layout, resolved from this file at
+# <core>/deployment/local-stack/.local-stack.toml:
+#
+#     <parent>/hht_diary             (core — this toolkit's home)
+#     <parent>/hht_diary_callisto    (sponsor)
+#
+# It does NOT resolve when working from a git worktree (the toolkit's
+# show-toplevel is a worktree dir, one level deeper than the canonical
+# parent) nor for any non-default layout.
+#
+# In those cases, either export SPONSOR_REPO with an absolute path, or
+# create `.local-stack.local.toml` (gitignored) alongside this file with:
+#
+#     [associated.sponsor]
+#     path = "/abs/path/to/hht_diary_<sponsor>"
+#
+# The override is deep-merged on top of this file by the resolver. The
+# resolver surfaces the same hint when its path check fails, so first-run
+# errors are self-explanatory.
+
+[associated.sponsor]
+repo = "Cure-HHT/hht_diary_callisto"
+path = "../../../hht_diary_callisto"

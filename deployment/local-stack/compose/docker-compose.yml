@@ -1,0 +1,246 @@
+# Sponsor-agnostic local-stack compose file (EVS edition).
+#
+# Invoke from `./deployment/local-stack/local-stack` — not directly —
+# because the CLI resolves $SPONSOR (from the sponsor repo's
+# deployment/base-config.json) and exports it, plus DOPPLER_TOKEN and the
+# ephemeral/durable toggle, before `docker compose up`. Without those
+# exports, compose errors on the `${SPONSOR:?…}` interpolations below.
+#
+# Topology: the EVS portal (portal-final) serves BOTH the portal UI/API and
+# the mobile diary's API on nginx port 8080. There is no separate
+# diary-server. The portal is event-sourced and CREATES ITS OWN tables on
+# boot — there is no schema job and no init.sql; postgres is a plain, empty
+# durable event store.
+#
+# DURABLE vs EPHEMERAL (set by ./local-stack; see --ephemeral):
+#   • durable (default): postgres runs (profile "durable") and portal-final
+#     points DB_HOST at it via ${PORTAL_DB_HOST:-postgres}. The event store
+#     survives `down --keep-db`.
+#   • ephemeral: the CLI exports PORTAL_DB_HOST= (empty) and does NOT activate
+#     the "durable" profile, so postgres + its volume are skipped and the
+#     portal runs an in-memory event store (no DB_HOST → in-memory).
+
+name: ${SPONSOR:?SPONSOR must be exported by ./local-stack}-local
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    # Durable event store only. Gated behind the "durable" profile so an
+    # ephemeral (in-memory) run skips the container AND its volume entirely.
+    profiles: ["durable"]
+    environment:
+      POSTGRES_DB: hht_diary
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local-dev-password
+    ports:
+      - "5432:5432"
+    # No init mount: the EVS portal creates its own event-store tables on
+    # boot. The legacy database/init.sql + seeds are gone.
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hht_diary"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    networks:
+      - stack
+
+  firebase-emulator:
+    # firebase-emulator:local is built by lib/build-images.sh — it bakes
+    # the JRE + pinned firebase-tools install that compose used to run
+    # inline on every container start (~60s cold tax). With the cached
+    # image the runtime command is just `firebase emulators:start ...`
+    # (~5-10s). See deployment/local-stack/firebase-emulator/Dockerfile
+    # for the FIREBASE_TOOLS_VERSION pin and the rebuild-on-bump recipe.
+    image: firebase-emulator:local
+    working_dir: /app
+    # --project is sourced from $LOCAL_FIREBASE_PROJECT (single source of
+    # truth, defaulted in ./local-stack). The emulator's listen address is
+    # configured by /app/firebase.json's "host" field, NOT by env vars.
+    command: >
+      firebase emulators:start --only auth
+        --project ${LOCAL_FIREBASE_PROJECT:?LOCAL_FIREBASE_PROJECT must be exported by ./local-stack}
+        --config /app/firebase.json
+    ports:
+      - "9099:9099"
+      - "4000:4000"
+    volumes:
+      - ./firebase:/app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9099 >/dev/null || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    networks:
+      - stack
+
+  otel-lgtm:
+    # Bundled Grafana + Tempo + Loki + Mimir + OTel Collector. Servers
+    # in this compose project export OTLP/gRPC to otel-lgtm:4317; view
+    # signals at http://localhost:3000.
+    image: grafana/otel-lgtm:0.8.1
+    ports:
+      - "3000:3000"   # Grafana UI
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+    environment:
+      # Anonymous Grafana admin is intentional for local dev; never promote to other envs.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+    healthcheck:
+      # Grafana is the last component to come ready in this image. A green
+      # /api/health implies the OTLP receivers are also up.
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1 || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 60
+    networks:
+      - stack
+
+  portal-final:
+    # EVS portal: serves the portal UI/API AND the mobile diary's API on
+    # nginx port 8080. Built by lib/build-images.sh from the sponsor's
+    # portal-final.Dockerfile (which pulls the core portal-server binary).
+    image: portal-final-${SPONSOR}:local
+    depends_on:
+      firebase-emulator:
+        condition: service_healthy
+      otel-lgtm:
+        condition: service_healthy
+      # postgres is only present (and only depended-on) in durable mode. In
+      # ephemeral mode the "durable" profile is inactive, this service isn't
+      # created, and compose skips the dependency for services that ARE up.
+      postgres:
+        condition: service_healthy
+        required: false
+    environment:
+      # 'local' selects the SPA bundle compiled with
+      # FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 baked in (see
+      # portal-final.Dockerfile build loop), so the browser-side SPA
+      # routes auth through the firebase-emulator service rather than
+      # production Firebase. The other flavors (dev/qa/uat/prod) target
+      # Cloud Run with real Firebase.
+      ENVIRONMENT: local
+      # CUR-1264: portal-start-local.sh branches on this. "mock" (default)
+      # strips RAVE_UAT_* before exec'ing the server so sync no-ops and the
+      # portal reads sites/participants from the seeded data. "rave" lets the
+      # creds through for live RAVE work. Source of truth is the sponsor
+      # repo's deployment/base-config.json::edc_module.
+      EDC_MODULE: "${EDC_MODULE:-mock}"
+      # CUR-1361: when EDC_MODULE=mock (default), the portal activates the
+      # in-process MockRaveClient. Default mode is "ok" (canned 3 sites + 3
+      # subjects). Flip to "auth_fail" or "network_fail" before launch to
+      # exercise the lockout state machine:
+      #   RAVE_MOCK_MODE=auth_fail ./local-stack portal
+      # No effect when EDC_MODULE=rave.
+      RAVE_MOCK_MODE: "${RAVE_MOCK_MODE:-ok}"
+      # CUR-1361: lockout tunables — pass through so a developer can shrink
+      # the 24h cooldown and 3-strike threshold for fast iteration:
+      #   RAVE_AUTH_FAILURE_THRESHOLD=2 \
+      #   RAVE_AUTH_COOLDOWN_MINUTES=1 \
+      #   RAVE_MOCK_MODE=auth_fail ./local-stack portal
+      #
+      # RAVE_AUTH_COOLDOWN_MINUTES overrides RAVE_AUTH_COOLDOWN_HOURS when
+      # set. Both accept decimals; 0 means "no cooldown".
+      #
+      # When the host shell doesn't export these, ${VAR:-} expands to an
+      # empty string in the container — the portal's parser explicitly
+      # treats null and empty-string identically and falls back to the
+      # production defaults (3 strikes, 24h), so the empty pass-through
+      # is benign for the lockout module specifically. If a future
+      # consumer of these env names is added that distinguishes empty
+      # from unset, convert this whole env block to the list-form
+      # (`- VAR`) so the var is only injected when the host has it set.
+      RAVE_AUTH_FAILURE_THRESHOLD: "${RAVE_AUTH_FAILURE_THRESHOLD:-}"
+      RAVE_AUTH_COOLDOWN_HOURS: "${RAVE_AUTH_COOLDOWN_HOURS:-}"
+      RAVE_AUTH_COOLDOWN_MINUTES: "${RAVE_AUTH_COOLDOWN_MINUTES:-}"
+      DOPPLER_TOKEN: "${DOPPLER_TOKEN:?DOPPLER_TOKEN required — run inside 'doppler run --config dev -- ...'}"
+      # CUR-1263: pin SPONSOR_ID locally so the /api/v1/sponsor/branding
+      # handler (sponsor_branding.dart) finds /app/sponsor-content/${SPONSOR_ID}/
+      # regardless of whether Doppler dev has SPONSOR_ID set. start.sh runs
+      # `doppler run --preserve-env`, so an explicit value here wins over
+      # Doppler. ${SPONSOR} is exported by ./local-stack from base-config.json.
+      SPONSOR_ID: "${SPONSOR}"
+      # PORTAL_AUTH_MODE is deliberately NOT set: the EVS portal defaults to
+      # "dev" auth, where the userId is the dev-credential login id typed
+      # verbatim (no password). To exercise real session auth instead, set
+      # PORTAL_AUTH_MODE=session and wire Firebase — out of scope for the
+      # default local-stack flow.
+      #
+      # EVS event store. The portal reads DB_* and creates its own tables on
+      # boot (no schema job). In durable mode PORTAL_DB_HOST defaults to the
+      # `postgres` service; in ephemeral mode the CLI exports PORTAL_DB_HOST=
+      # (empty) so the portal runs an in-memory store. The remaining DB_*
+      # values are inert when DB_HOST is empty.
+      DB_HOST: "${PORTAL_DB_HOST-postgres}"
+      DB_PORT: "5432"
+      DB_NAME: hht_diary
+      DB_USER: postgres
+      DB_PASSWORD: local-dev-password
+      DB_SSL: "false"
+      FIREBASE_AUTH_EMULATOR_HOST: firebase-emulator:9099
+      # CUR-1272: identity-config block. The /api/v1/portal/config/identity
+      # endpoint reads PORTAL_IDENTITY_* and returns them to the SPA, which
+      # passes them to Firebase JS SDK's initializeApp(). Without explicit
+      # values here, Doppler dev's production-firebase values would leak
+      # through --preserve-env, the SPA would initialize against real
+      # Firebase, and the first auth request (before the emulator redirect
+      # is fully established) would hit prod -- the "first request fails,
+      # retry works" pattern. Fixed values below: project pinned to the
+      # local emulator's --project arg; auth-domain derived from it;
+      # api-key / app-id are dummies. The emulator itself doesn't validate
+      # them, but the Firebase JS SDK on the SPA side does a *format* check
+      # on the api-key before sending the request: it must match
+      # /^AIza[a-zA-Z0-9_-]{35}$/. A non-conforming value triggers
+      # `api-key-not-valid` client-side, which the activation page maps to
+      # the misleading "emulator not running" error. Use a 39-char
+      # AIza-prefixed string that's obviously a placeholder.
+      PORTAL_IDENTITY_PROJECT_ID: "${LOCAL_FIREBASE_PROJECT}"
+      # CUR-1280: must be `localhost`, NOT a *.firebaseapp.com domain. The
+      # Firebase JS SDK loads a GAPI iframe at the configured authDomain to
+      # broker popup/redirect/MFA flows; at a synthetic *.firebaseapp.com
+      # host it 400s on getProjectConfig with API_KEY_INVALID and breaks
+      # registration / activation / MFA enroll. The SDK skips the iframe
+      # path entirely when authDomain is on a local origin. The SPA's
+      # FlavorConfig.initializeLocal hardcodes `localhost` for the same
+      # reason; this server-side env keeps the values aligned for any
+      # future code path that reads PORTAL_IDENTITY_AUTH_DOMAIN at runtime
+      # (e.g. /api/v1/portal/config/identity).
+      PORTAL_IDENTITY_AUTH_DOMAIN: "localhost"
+      PORTAL_IDENTITY_API_KEY: "AIzaSyD-LOCAL-EMULATOR-DUMMY-NOT-A-REAL"
+      PORTAL_IDENTITY_APP_ID: "1:000000000000:web:0000000000000000"
+      # Server-side identity_platform.dart's _projectId getter falls back to
+      # GCP_PROJECT_ID / GOOGLE_CLOUD_PROJECT (both populated by Doppler dev
+      # with the production project). FIREBASE_AUTH_EMULATOR_HOST being set
+      # masks the fallback today, but if that env var is ever cleared the
+      # server would 401-storm with prod project IDs in the audience claim.
+      # Pin them so the fallback resolves to the local project regardless.
+      GCP_PROJECT_ID: "${LOCAL_FIREBASE_PROJECT}"
+      GOOGLE_CLOUD_PROJECT: "${LOCAL_FIREBASE_PROJECT}"
+      # Email service has a built-in console mode that prints email bodies
+      # (OTP codes, activation links) to stdout instead of trying to call the
+      # Gmail API via Workload Identity Federation (which needs GCP creds).
+      # Read the bodies via `./local-stack logs portal-final`.
+      EMAIL_CONSOLE_MODE: "true"
+      # OTel: export OTLP/gRPC plaintext to the local collector. The dartastic
+      # SDK defaults to TLS when OTEL_EXPORTER_OTLP_INSECURE is absent — it
+      # does not infer insecure mode from the http:// scheme — so we must
+      # set it explicitly. See otel.dart:156-170 and otel_env.dart:84-179
+      # in dartastic_opentelemetry.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-lgtm:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+    volumes:
+      - ../scripts/portal-start-local.sh:/app/start.sh:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - stack
+
+volumes:
+  postgres-data:
+
+networks:
+  stack:
+    driver: bridge
