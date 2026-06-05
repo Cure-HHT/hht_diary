@@ -9,8 +9,14 @@ enum AppBadgeVariant {
   /// Transparent fill with a colored border + colored label.
   outlined,
 
-  /// Colored fill with a contrasting label.
+  /// Colored fill with a contrasting (surface) label.
   filled,
+
+  /// Soft-filled: low-saturation tinted background derived from the tone's
+  /// M3 *Container* color, with the dark accent reused for the border and
+  /// label. Used by the portal's role pill (e.g. light-pink "Admin" chip
+  /// with dark-red border + label).
+  tinted,
 }
 
 /// Semantic tone for [AppBadge].
@@ -76,9 +82,22 @@ class AppBadge extends StatelessWidget {
       AppBadgeTone.success => semantic.success,
     };
 
+    // Soft "container" tint per tone — only used by the [tinted] variant.
+    // M3 supplies *Container slots for primary / error; semantic colors
+    // carry their own *Container; neutral has no built-in tinted slot so
+    // we fall back to the standard low-emphasis surface container.
+    final tintedBg = switch (tone) {
+      AppBadgeTone.neutral => theme.colorScheme.surfaceContainerHighest,
+      AppBadgeTone.primary => theme.colorScheme.primaryContainer,
+      AppBadgeTone.danger => theme.colorScheme.errorContainer,
+      AppBadgeTone.warning => semantic.warningContainer,
+      AppBadgeTone.success => semantic.successContainer,
+    };
+
     final (fg, bg, borderColor) = switch (variant) {
       AppBadgeVariant.outlined => (accent, Colors.transparent, accent),
       AppBadgeVariant.filled => (theme.colorScheme.surface, accent, accent),
+      AppBadgeVariant.tinted => (accent, tintedBg, accent),
     };
 
     final labelText = Text(

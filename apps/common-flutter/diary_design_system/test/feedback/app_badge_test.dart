@@ -50,6 +50,49 @@ void main() {
       expect(decoration.color, isNot(equals(Colors.transparent)));
     });
 
+    testWidgets(
+      'tinted variant uses the tone\'s container color for the background',
+      (tester) async {
+        await tester.pumpWidget(
+          _harness(
+            const AppBadge(
+              label: 'Admin',
+              variant: AppBadgeVariant.tinted,
+              tone: AppBadgeTone.danger,
+            ),
+          ),
+        );
+        final BuildContext ctx = tester.element(find.text('Admin'));
+        final container = tester.widget<Container>(find.byType(Container));
+        final decoration = container.decoration as BoxDecoration;
+        expect(
+          decoration.color,
+          equals(Theme.of(ctx).colorScheme.errorContainer),
+          reason:
+              'Danger-toned tinted badge must use colorScheme.errorContainer '
+              'for the soft pink fill that surrounds the dark label.',
+        );
+      },
+    );
+
+    testWidgets('tinted variant keeps the dark accent for the border + label', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          const AppBadge(
+            label: 'Admin',
+            variant: AppBadgeVariant.tinted,
+            tone: AppBadgeTone.danger,
+          ),
+        ),
+      );
+      final BuildContext ctx = tester.element(find.text('Admin'));
+      final container = tester.widget<Container>(find.byType(Container));
+      final border = (container.decoration as BoxDecoration).border! as Border;
+      expect(border.top.color, equals(Theme.of(ctx).colorScheme.error));
+    });
+
     testWidgets('renders trailing widget inside the pill', (tester) async {
       await tester.pumpWidget(
         _harness(
