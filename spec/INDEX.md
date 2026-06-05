@@ -182,6 +182,7 @@
 | DIARY-DEV-portal-session-lifecycle           | Portal session lifecycle                              | dev-portal-login.md                | 32f18e2d |
 | DIARY-DEV-portal-session-token               | Portal session token                                  | dev-portal-login.md                | 37177d93 |
 | DIARY-DEV-portal-settings-store              | Event-sourced portal configuration                    | dev-portal-settings.md             | 3ae46122 |
+| DIARY-DEV-portal-test-account-provisioning   | Dev/test seed-account self-provisioning               | dev-portal-settings.md             | 05b08471 |
 | DIARY-DEV-portal-user-activated-binding      | User-activated binding                                | dev-portal-activation.md           | 25fda53b |
 | DIARY-DEV-rave-auth-failure-classification   | Rave Authentication Failure Classification            | prd-rave-sync.md                   | f2732c70 |
 | DIARY-DEV-rave-edc-ingest                    | RAVE/EDC Ingest as Edge Events                        | dev-portal-service.md              | e93b0ede |

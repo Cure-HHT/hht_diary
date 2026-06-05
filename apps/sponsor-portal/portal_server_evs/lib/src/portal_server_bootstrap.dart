@@ -270,9 +270,10 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //     only; operators then provision the first admins); local/test runs omit
   //     it and get the in-code convenience seed.
   // Implements: DIARY-DEV-portal-seed-config/A+B
+  final roleSeed = _resolveRoleAssignmentSeed();
   await bootstrapRoleAssignments(
     eventStore: eventStore,
-    seed: _resolveRoleAssignmentSeed(),
+    seed: roleSeed,
   );
 
   // Implements: DIARY-DEV-portal-settings-store/C
@@ -280,6 +281,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
     eventStore: eventStore,
     backend: backend,
     raw: Platform.environment['PORTAL_SEED_REQUIRE_2FA'],
+  );
+
+  // Implements: DIARY-DEV-portal-test-account-provisioning/A+B
+  await seedTestAccountActivations(
+    eventStore: eventStore,
+    backend: backend,
+    seed: roleSeed,
+    password: Platform.environment['PORTAL_DEV_SEED_PASSWORD'],
   );
 
   // 5. Activation reactor + routes: ephemeral code store + email sender +
@@ -708,6 +717,77 @@ const RoleAssignmentSeed _localConvenienceSeed = RoleAssignmentSeed(
     ),
   ],
 );
+
+/// Implements: DIARY-DEV-portal-test-account-provisioning/A+B — dev/test only.
+///   When PORTAL_DEV_SEED_PASSWORD is set, ensure each seed-user email has an
+///   Identity Platform account (idempotent provision) AND an active users_index
+///   row stamped with its firebase_uid, so the account logs in under real
+///   session auth without the activation magic-link. Guarded by the env (prod
+///   never sets it); a provisioning failure is logged and never crashes boot.
+typedef IdpProvisioner = Future<LookupOrProvisionResult> Function(
+    {required String email,
+    required String displayName,
+    required String password});
+
+Future<void> seedTestAccountActivations({
+  required EventStore eventStore,
+  required StorageBackend backend,
+  required RoleAssignmentSeed seed,
+  required String? password,
+  IdpProvisioner? provision,
+}) async {
+  final pw = password?.trim();
+  if (pw == null || pw.isEmpty) return;
+  final provisioner = provision ?? IdentityAdmin.lookupOrProvisionByEmail;
+  final emails = <String>{for (final e in seed.entries) e.userId}
+    ..removeWhere((e) => !e.contains('@'));
+  final userRows = await backend.findViewRows('users_index');
+  for (final email in emails) {
+    try {
+      final prov =
+          await provisioner(email: email, displayName: email, password: pw);
+      final alreadyActive = userRows.any((r) =>
+          r['email'] == email &&
+          r['firebase_uid'] == prov.uid &&
+          r['status'] == 'active');
+      if (alreadyActive) continue;
+      final hasRow = userRows.any((r) => r['email'] == email);
+      if (!hasRow) {
+        await eventStore.append(
+          entryType: 'user_created',
+          aggregateType: 'portal_user',
+          aggregateId: email,
+          eventType: 'user_created',
+          data: <String, Object?>{
+            'email': email,
+            'name': email,
+            'roles': const <String>[],
+            'sites': const <String>[],
+            'status': 'pending',
+            'created_by': 'portal-test-seed',
+          },
+          initiator: const AutomationInitiator(service: 'portal-test-seed'),
+        );
+      }
+      await eventStore.append(
+        entryType: 'user_activated',
+        aggregateType: 'portal_user',
+        aggregateId: email,
+        eventType: 'user_activated',
+        data: <String, Object?>{
+          'firebase_uid': prov.uid,
+          'email': email,
+          'status': 'active',
+          'activated_at': DateTime.now().toUtc().toIso8601String(),
+        },
+        initiator: const AutomationInitiator(service: 'portal-test-seed'),
+      );
+    } catch (e, st) {
+      stderr.writeln(
+          'seedTestAccountActivations: provisioning $email failed (continuing): $e\n$st');
+    }
+  }
+}
 
 /// Implements: DIARY-DEV-portal-settings-store/C — config-driven, idempotent
 ///   boot seed of the require_second_factor setting. Emits a single
