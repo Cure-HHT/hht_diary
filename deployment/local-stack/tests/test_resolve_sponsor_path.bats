@@ -52,10 +52,31 @@ EOF
   [ "$output" = "$sponsor" ]
 }
 
-@test "fails with clear message when [associated.sponsor] is missing" {
-  run python3 "$RESOLVER" --toolkit "$FIXTURES/missing-associated"
+@test "falls back to built-in reference sponsor when no env and no sponsor config" {
+  # Lay out a toolkit with no [associated.sponsor], plus a sibling
+  # reference-sponsor/ carrying the marker (mirrors core's
+  # <core>/deployment/{local-stack,reference-sponsor}). Bare core runs
+  # resolve to the built-in reference sponsor.
+  local deployment="$BATS_TEST_TMPDIR/deployment"
+  local toolkit="$deployment/local-stack"
+  local reference="$deployment/reference-sponsor"
+  mkdir -p "$toolkit" "$reference/deployment"
+  echo '{"sponsor":"reference"}' > "$reference/deployment/base-config.json"
+  printf '# no [associated.sponsor] — bare core run\nversion = 3\n' > "$toolkit/.local-stack.toml"
+  run python3 "$RESOLVER" --toolkit "$toolkit"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$reference" ]
+}
+
+@test "fails with clear message when no config and no built-in reference sponsor" {
+  # Toolkit with no [associated.sponsor] AND no sibling reference-sponsor/.
+  local deployment="$BATS_TEST_TMPDIR/deployment-noref"
+  local toolkit="$deployment/local-stack"
+  mkdir -p "$toolkit"
+  printf '# no [associated.sponsor]\nversion = 3\n' > "$toolkit/.local-stack.toml"
+  run python3 "$RESOLVER" --toolkit "$toolkit"
   [ "$status" -eq 2 ]
-  [[ "$output" == *"No sponsor repo configured"* ]]
+  [[ "$output" == *"reference sponsor"* ]]
 }
 
 @test "fails with clear message when sponsor path does not exist" {
