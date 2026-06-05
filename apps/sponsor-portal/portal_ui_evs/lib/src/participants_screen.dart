@@ -122,6 +122,25 @@ class _P {
   }
 }
 
+/// Maps a [ParticipantAction] to the portal permission its control requires, so
+/// the UI only renders controls the ACTIVE role may actually use (the server
+/// enforces the same permission as defense-in-depth). showCode reveals the
+/// linking code, so it is gated on the same code-management permission as
+/// issuing. Extends the active-role visibility principle (nav gating) to
+/// in-screen action controls.
+///
+/// Implements: DIARY-GUI-role-switching/E+F
+String _permissionFor(ParticipantAction action) => switch (action) {
+  ParticipantAction.issueLinkingCode => 'portal.participant.link',
+  ParticipantAction.showCode => 'portal.participant.link',
+  ParticipantAction.startTrial => 'portal.participant.start_trial',
+  ParticipantAction.disconnect => 'portal.participant.disconnect',
+  ParticipantAction.reconnect => 'portal.participant.reconnect',
+  ParticipantAction.markNotParticipating =>
+    'portal.participant.mark_not_participating',
+  ParticipantAction.reactivate => 'portal.participant.reactivate',
+};
+
 /// The lifecycle actions that cause the SERVER to generate (or re-generate) a
 /// linking code: issue (001), reconnect (004), and reactivate (006). On
 /// success the action result carries `{linkingCode, expiresAt}`, which the UI
@@ -145,6 +164,11 @@ const Set<ParticipantAction> _kIssuingActions = <ParticipantAction>{
   action,
   _P(id: participantId, siteId: siteId, status: ParticipantStatus.unknown),
 );
+
+/// Test-only accessor for [_permissionFor]: the permission each lifecycle
+/// control is gated on (so the UI hides controls the active role can't use).
+@visibleForTesting
+String permissionForTest(ParticipantAction action) => _permissionFor(action);
 
 class ParticipantsScreen extends StatelessWidget {
   const ParticipantsScreen({super.key});
@@ -211,10 +235,17 @@ class ParticipantsScreen extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 8,
                         children: <Widget>[
+                          // Gate each control on the active role's permission so
+                          // it only shows for roles that can use it (server
+                          // still enforces). Implements: DIARY-GUI-role-switching/E+F
                           for (final action in ParticipantAction.values)
-                            _ParticipantActionButton(
-                              participant: p,
-                              action: action,
+                            PermissionGate(
+                              permission: _permissionFor(action),
+                              fallback: const SizedBox.shrink(),
+                              child: _ParticipantActionButton(
+                                participant: p,
+                                action: action,
+                              ),
                             ),
                         ],
                       ),

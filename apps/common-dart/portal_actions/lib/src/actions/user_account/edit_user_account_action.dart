@@ -106,8 +106,11 @@ class EditUserAccountAction
           aggregateId: input.userId,
           entryType: 'user_profile_changed',
           eventType: 'user_profile_changed',
+          // Key is `name` (not `after`) so the users_index aggregate projection
+          // — which key-merges event data into the row — overwrites the display
+          // name set by user_created. Using `after` left the row's `name` stale.
           data: <String, Object?>{
-            'after': input.name,
+            'name': input.name,
             'changed_by': ctx.principal.id,
           },
         ),

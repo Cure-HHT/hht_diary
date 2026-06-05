@@ -54,6 +54,30 @@ const List<String> _roles = <String>[
   'SystemOperator',
 ];
 
+/// Operator-tier roles can only be granted by an operator-tier active role
+/// (the server gates this on `portal.user.grant_role` scoped to the operator
+/// tier). The client mirrors that so a non-operator (e.g. Administrator) is not
+/// shown a role chip whose grant would be denied.
+const Set<String> _operatorTierRoles = <String>{'SystemOperator'};
+
+/// The roles the ACTIVE role may grant: all staff-tier roles, plus operator-tier
+/// roles only when the active role is itself operator-tier. Keyed on the
+/// effective authorization's `activeRole` (the same surface the server evaluates).
+///
+/// Implements: DIARY-GUI-role-switching/E+F
+List<String> _grantableRoles(EffectiveAuthorization? auth) {
+  final isOperator = _operatorTierRoles.contains(auth?.activeRole ?? '');
+  return <String>[
+    for (final r in _roles)
+      if (isOperator || !_operatorTierRoles.contains(r)) r,
+  ];
+}
+
+/// Test-only accessor for [_grantableRoles].
+@visibleForTesting
+List<String> grantableRolesForTest(EffectiveAuthorization? auth) =>
+    _grantableRoles(auth);
+
 /// One option in the site picker, sourced from the RAVE-synced sites_index
 /// view (same source as SitesScreen) — NOT a hardcoded list. [id] is the
 /// site_id used as the assignment scope value; [label] is the human display.
@@ -399,7 +423,10 @@ class _CreateUserDialogState extends State<_CreateUserDialog> {
                 alignment: Alignment.centerLeft,
                 child: Text('Roles'),
               ),
-              for (final r in _roles)
+              // Only show roles the active role may grant (server enforces too).
+              for (final r in _grantableRoles(
+                ReActionScope.of(context).permissionSource.current,
+              ))
                 CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -552,11 +579,6 @@ class _UserDetail extends StatelessWidget {
                   _LifecycleButton(email: email, action: action),
             ],
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Active/locked states require the auth subsystem (not yet wired).',
-            style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
-          ),
         ],
       ),
     );
@@ -680,7 +702,10 @@ class _RoleSiteEditorState extends State<_RoleSiteEditor> {
           Wrap(
             spacing: 6,
             children: <Widget>[
-              for (final r in _roles)
+              // Only roles the active role may grant (server enforces too).
+              for (final r in _grantableRoles(
+                ReActionScope.of(context).permissionSource.current,
+              ))
                 FilterChip(
                   label: Text(r),
                   selected: _selRoles.contains(r),

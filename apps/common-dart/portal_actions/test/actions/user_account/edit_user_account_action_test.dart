@@ -24,19 +24,24 @@ void main() {
     );
   });
 
-  test('name change emits user_profile_changed {after} (no before)', () async {
-    final input = action.parseInput(<String, Object?>{
-      'userId': 'u-1',
-      'name': 'New Name',
-    });
-    final result = await action.execute(input, ctx);
-    final e = result.events.firstWhere(
-      (d) => d.eventType == 'user_profile_changed',
-    );
-    expect(e.data['after'], 'New Name');
-    expect(e.data.containsKey('before'), isFalse);
-    expect(e.data['changed_by'], 'admin-1');
-  });
+  test(
+    'name change emits user_profile_changed {name} (folds into row)',
+    () async {
+      final input = action.parseInput(<String, Object?>{
+        'userId': 'u-1',
+        'name': 'New Name',
+      });
+      final result = await action.execute(input, ctx);
+      final e = result.events.firstWhere(
+        (d) => d.eventType == 'user_profile_changed',
+      );
+      // Key is `name` so the users_index aggregate projection key-merges it over
+      // the create-time display name (was `after`, which left the row stale).
+      expect(e.data['name'], 'New Name');
+      expect(e.data.containsKey('after'), isFalse);
+      expect(e.data['changed_by'], 'admin-1');
+    },
+  );
 
   test('email change emits user_email_change_requested', () async {
     final input = action.parseInput(<String, Object?>{
