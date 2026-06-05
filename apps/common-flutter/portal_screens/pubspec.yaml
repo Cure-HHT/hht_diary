@@ -20,3 +20,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    # Bundled icon glyphs that don't ship as Material defaults — exported
+    # from the Figma to stay pixel-perfect. Consumers reference these via
+    # `Image.asset('assets/icons/...', package: 'portal_screens')`.
+    - assets/icons/

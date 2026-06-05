@@ -8,6 +8,11 @@ library;
 
 // Phase 2: value types.
 export 'src/models/audit_entry_view.dart';
+export 'src/models/portal_role.dart';
 export 'src/models/portal_user_view.dart';
 export 'src/models/role_assignment_view.dart';
 export 'src/models/user_status_view.dart';
+
+// Phase 3: portal-wide reusable widgets.
+export 'src/widgets/portal_app_bar.dart';
+export 'src/widgets/role_pill.dart';

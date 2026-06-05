@@ -1,0 +1,364 @@
+import 'package:diary_design_system/diary_design_system.dart';
+import 'package:flutter/material.dart';
+
+import 'role_pill.dart';
+
+/// Reusable portal-wide top header.
+///
+/// Single widget used across all dashboard tabs (User Accounts, Audit
+/// Logs, Sites, Participants, RAVE Sync). The Admin variant (Figma image
+/// 1, CUR-1450) is the canonical shape; non-Admin variants are the same
+/// widget with different [subtitle] / [activeRole] / [availableRoles] /
+/// [onHelp] inputs.
+///
+/// **Single- vs multi-role** is detected from `availableRoles.length`:
+///
+/// - **> 1**: renders the `Role:` prefix label + a tappable [RolePill]
+///   with a dropdown caret. Tapping opens a popup menu of
+///   [availableRoles]; selecting one fires [onRoleSelected].
+///   [onRoleSelected] is required in this mode (asserted in debug).
+/// - **<= 1**: renders the [RolePill] as a passive label — no `Role:`
+///   prefix, no caret, no tap.
+///
+/// **Help icon** is conditional on [onHelp] being non-null. Null → not
+/// rendered, single source of truth for visibility.
+///
+/// All inputs are plain strings + callbacks; this widget owns nothing
+/// reactive and never reads sponsor / principal types directly. The
+/// wiring layer (`portal_ui_evs`) reads the principal and feeds these
+/// props.
+class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const PortalAppBar({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.userName,
+    required this.activeRole,
+    required this.availableRoles,
+    required this.onLogout,
+    this.activeRoleDisplayName,
+    this.onRoleSelected,
+    this.onHelp,
+    this.horizontalPadding = 48,
+  }) : assert(
+         availableRoles.length <= 1 || onRoleSelected != null,
+         'PortalAppBar in multi-role mode requires onRoleSelected. Pass '
+         'a single-element availableRoles list to render the pill as a '
+         'passive label instead.',
+       );
+
+  /// Brand title (e.g. "Clinical Trial Portal"). Sponsor-driven —
+  /// callers pass whatever the branding service yields.
+  final String title;
+
+  /// Per-tab subtitle. Plan §3 Q10b: reflects the active role
+  /// (`"${role} Dashboard"`). Callers compute the string; this widget
+  /// just renders it.
+  final String subtitle;
+
+  /// User display name shown to the right of the role pill.
+  final String userName;
+
+  /// Backend-canonical system role string for the user's current active
+  /// role. Drives the [RolePill]'s tone and label.
+  final String activeRole;
+
+  /// Sponsor-mapped display name for [activeRole], when the wiring
+  /// layer has a mapping. Forwarded to [RolePill.displayName]; null
+  /// falls back to the canonical label.
+  final String? activeRoleDisplayName;
+
+  /// All system role strings the user can switch to. Length 1 → passive
+  /// pill; length > 1 → switcher pill with dropdown menu.
+  final List<String> availableRoles;
+
+  /// Logout button callback. Always rendered.
+  final VoidCallback onLogout;
+
+  /// Fired when the user picks a new role from the switcher menu.
+  /// Required in multi-role mode (the assert at the constructor catches
+  /// missing wiring in debug).
+  final ValueChanged<String>? onRoleSelected;
+
+  /// Help icon callback. When null, the icon doesn't render at all.
+  /// Plan §3 Q8: render the icon for v1 but `onHelp: () {}` is fine to
+  /// keep the click as a no-op until docs land.
+  final VoidCallback? onHelp;
+
+  /// Horizontal padding inside the bar. The default lines the title up
+  /// with the body card's left edge in the canonical layout; consumers
+  /// whose page chrome uses different gutters can override.
+  final double horizontalPadding;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(72);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      // White surface to match the Figma's brand-coloured background
+      // sitting flush against the page body underneath.
+      color: theme.colorScheme.surface,
+      elevation: 0,
+      child: SafeArea(
+        bottom: false,
+        child: SizedBox(
+          height: preferredSize.height,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: _Brand(title: title, subtitle: subtitle),
+                ),
+                _RoleCluster(
+                  systemRole: activeRole,
+                  displayName: activeRoleDisplayName,
+                  availableRoles: availableRoles,
+                  onRoleSelected: onRoleSelected,
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  userName,
+                  // Inter Regular 14 / line-height 20 / letter-spacing -0.15 /
+                  // Black.
+                  style: TextStyle(
+                    fontWeight: FontWeight.w400,
+                    fontSize: 14,
+                    height: 20 / 14,
+                    letterSpacing: -0.15,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                // Thin vertical separator between identity and action
+                // clusters — matches the hairline in the Figma between
+                // the user name and the help / logout group.
+                const SizedBox(width: 16),
+                Container(
+                  width: 1,
+                  height: 24,
+                  color: theme.colorScheme.outlineVariant,
+                ),
+                if (onHelp != null) ...[
+                  const SizedBox(width: 12),
+                  _HelpIconButton(onPressed: onHelp!),
+                ],
+                const SizedBox(width: 16),
+                AppButton(
+                  variant: AppButtonVariant.secondary,
+                  size: AppButtonSize.medium,
+                  label: 'Logout',
+                  leadingIcon: Icons.logout,
+                  onPressed: onLogout,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Help affordance — Figma-exported PNG (the brand-blue circle with a
+/// white `?` glyph) bundled with `portal_screens`.
+///
+/// Renders the asset inside a `Material + InkWell` directly rather than
+/// `IconButton` — `IconButton` propagates an `IconThemeData` to its
+/// child which Material 3 uses to dim the icon to its disabled
+/// foreground in the idle state, ghosting the PNG until the button gets
+/// pointer focus. Plain `Material + InkWell` gives us a tooltip + ripple
+/// without that color path running.
+class _HelpIconButton extends StatelessWidget {
+  const _HelpIconButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Tooltip(
+      message: 'Help',
+      // Material itself paints the brand-blue circle. The PNG asset is
+      // just the white `?` glyph, sitting on top with transparent
+      // background so the circle shows through.
+      child: Material(
+        color: theme.colorScheme.primary,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: Center(
+              child: Image.asset(
+                'assets/icons/help.png',
+                package: 'portal_screens',
+                width: 28,
+                height: 28,
+                // Widget tests don't initialise the package's asset
+                // bundle, so Image.asset would throw mid-test. The
+                // errorBuilder also makes a production asset-cache
+                // miss degrade to a Material default instead of a
+                // stack trace. Material already paints the circle, so
+                // the fallback is just the glyph.
+                errorBuilder: (context, _, _) => Icon(
+                  Icons.question_mark,
+                  size: 16,
+                  color: theme.colorScheme.onPrimary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Brand extends StatelessWidget {
+  const _Brand({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          title,
+          // Inter Bold 16 / line-height 24 / letter-spacing -0.31 / Black.
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            height: 24 / 16,
+            letterSpacing: -0.31,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          // Inter Regular 14 / line-height 20 / letter-spacing -0.15 / Dark Grey.
+          style: TextStyle(
+            fontWeight: FontWeight.w400,
+            fontSize: 14,
+            height: 20 / 14,
+            letterSpacing: -0.15,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RoleCluster extends StatelessWidget {
+  const _RoleCluster({
+    required this.systemRole,
+    required this.displayName,
+    required this.availableRoles,
+    required this.onRoleSelected,
+  });
+
+  final String systemRole;
+  final String? displayName;
+  final List<String> availableRoles;
+  final ValueChanged<String>? onRoleSelected;
+
+  bool get _isMultiRole => availableRoles.length > 1;
+
+  Future<void> _openMenu(BuildContext context) async {
+    // Anchor the menu under the pill, sized to the available roles.
+    // Material's showMenu uses RelativeRect from the global overlay, so
+    // we translate the pill's global rect into that space.
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final pillBox = context.findRenderObject() as RenderBox?;
+    if (pillBox == null) return;
+    final topLeft = pillBox.localToGlobal(
+      Offset(0, pillBox.size.height + 4),
+      ancestor: overlay,
+    );
+    final bottomRight = pillBox.localToGlobal(
+      pillBox.size.bottomRight(Offset.zero),
+      ancestor: overlay,
+    );
+    final picked = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        topLeft.dx,
+        topLeft.dy,
+        overlay.size.width - bottomRight.dx,
+        overlay.size.height - bottomRight.dy,
+      ),
+      items: [
+        for (final role in availableRoles)
+          PopupMenuItem<String>(
+            value: role,
+            child: Text(role == systemRole ? '$role  ✓' : role),
+          ),
+      ],
+    );
+    if (picked != null && picked != systemRole) {
+      onRoleSelected!.call(picked);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    // Single-role: passive pill, no tap, no caret, no "Role:" prefix.
+    if (!_isMultiRole) {
+      return RolePill(systemRole: systemRole, displayName: displayName);
+    }
+
+    // Multi-role: "Role:" + pill + chevron all sit inside ONE InkWell.
+    // The Figma puts the chevron outside the pill, separated by a small
+    // gap — keeps the chip looking like a chip and the caret looking
+    // like a generic dropdown affordance.
+    final labelStyle = TextStyle(
+      fontWeight: FontWeight.w400,
+      fontSize: 14,
+      height: 20 / 14,
+      letterSpacing: -0.15,
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    return Semantics(
+      button: true,
+      label: 'Switch role',
+      child: InkWell(
+        onTap: () => _openMenu(context),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Role:', style: labelStyle),
+              const SizedBox(width: 8),
+              // Passive pill — the surrounding InkWell drives the menu;
+              // making the pill itself tappable would produce a nested
+              // hit-target that double-fires on tap.
+              RolePill(systemRole: systemRole, displayName: displayName),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.keyboard_arrow_down,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
