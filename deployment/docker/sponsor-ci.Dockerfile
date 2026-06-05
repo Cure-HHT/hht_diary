@@ -37,8 +37,6 @@ COPY --chown=10001:10001 apps/sponsor-portal/portal_service/pubspec.yaml ./apps/
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server_evs/pubspec.yaml ./apps/sponsor-portal/portal_server_evs/pubspec.yaml
 COPY --chown=10001:10001 apps/sponsor-portal/portal_ui_evs/pubspec.yaml ./apps/sponsor-portal/portal_ui_evs/pubspec.yaml
 COPY --chown=10001:10001 apps/common-flutter/common_widgets/pubspec.yaml ./apps/common-flutter/common_widgets/pubspec.yaml
-COPY --chown=10001:10001 apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_functions/pubspec.yaml
-COPY --chown=10001:10001 apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
 
 # -----------------------------
 # Resolve dependencies
@@ -85,12 +83,6 @@ RUN dart pub get
 WORKDIR /workspace/src/apps/sponsor-portal/portal_ui_evs
 RUN flutter pub get
 
-WORKDIR /workspace/src/apps/daily-diary/diary_functions
-RUN dart pub get
-
-WORKDIR /workspace/src/apps/daily-diary/diary_server
-RUN dart pub get
-
 # -----------------------------
 # Copy full source after deps
 # -----------------------------
@@ -112,8 +104,6 @@ COPY --chown=10001:10001 apps/sponsor-portal/portal_service ./apps/sponsor-porta
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server_evs ./apps/sponsor-portal/portal_server_evs
 COPY --chown=10001:10001 apps/sponsor-portal/portal_ui_evs ./apps/sponsor-portal/portal_ui_evs
 COPY --chown=10001:10001 apps/common-flutter/common_widgets ./apps/common-flutter/common_widgets
-COPY --chown=10001:10001 apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
-COPY --chown=10001:10001 apps/daily-diary/diary_server ./apps/daily-diary/diary_server
 
 # -----------------------------
 # Sanity checks
@@ -135,8 +125,6 @@ RUN set -euo pipefail && \
     test -d apps/sponsor-portal/portal_server_evs && \
     test -d apps/sponsor-portal/portal_ui_evs && \
     test -d apps/common-flutter/common_widgets && \
-    test -d apps/daily-diary/diary_functions && \
-    test -d apps/daily-diary/diary_server && \
     test ! -d sponsor-content && \
     test ! -f apps/sponsor-portal/portal_server/bin/server && \
     test ! -d apps/sponsor-portal/portal-ui/build/web && \
