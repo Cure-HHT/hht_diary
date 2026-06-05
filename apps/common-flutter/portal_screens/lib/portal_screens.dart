@@ -4,6 +4,10 @@
 /// (`portal_ui_evs`) subscribes to event-sourced projections and dispatches
 /// actions; widgets here render snapshots + emit callbacks. See
 /// `docs/superpowers/specs/portal-ui-evs-redesign-plan.md` for the rollout.
-///
-/// Exports land here as each phase completes — see the plan for ordering.
 library;
+
+// Phase 2: value types.
+export 'src/models/audit_entry_view.dart';
+export 'src/models/portal_user_view.dart';
+export 'src/models/role_assignment_view.dart';
+export 'src/models/user_status_view.dart';

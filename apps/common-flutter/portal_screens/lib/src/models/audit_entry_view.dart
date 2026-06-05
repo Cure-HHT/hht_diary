@@ -1,0 +1,71 @@
+import 'package:flutter/foundation.dart';
+
+/// One row in the Audit Logs table.
+///
+/// Snapshot value type — built fresh by the wiring layer from the raw `/audit`
+/// HTTP response on each fetch/refresh and handed to `AuditLogsScreen`. Owns
+/// its own data; no dependency on `event_sourcing` audit envelope types.
+@immutable
+class AuditEntryView {
+  /// Stable identifier for the entry — typically `event_id` from the raw
+  /// payload. Used as the [Key] when rendering the row, so an in-place
+  /// refresh diffs cleanly.
+  final String id;
+
+  /// When the action occurred. Parsed once by the wiring layer from the
+  /// row's ISO-8601 string so the screen never re-parses on rebuild.
+  final DateTime timestamp;
+
+  /// Human-readable actor name (e.g. "Terry Wilson"). Empty string when the
+  /// initiator is automation rather than a person.
+  final String actorName;
+
+  /// Actor's active role at the time of the action (e.g. "Admin",
+  /// "Administrator"). Drives the small subtitle under [actorName] in the
+  /// row. Empty string for non-user initiators.
+  final String actorRole;
+
+  /// One-line activity description, pre-rendered for the row. Examples:
+  /// "Created user account for Dr. Emily Parker",
+  /// "Activation email sent to Jennifer Martinez".
+  final String activityLabel;
+
+  /// The full audit JSON record, retained for the row's expanded "details"
+  /// view. Kept as an opaque map because the expanded panel currently
+  /// renders it via `JsonEncoder.withIndent` — no need to model every
+  /// possible audit shape at the UI layer.
+  final Map<String, dynamic> raw;
+
+  const AuditEntryView({
+    required this.id,
+    required this.timestamp,
+    required this.actorName,
+    required this.actorRole,
+    required this.activityLabel,
+    required this.raw,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AuditEntryView &&
+          id == other.id &&
+          timestamp == other.timestamp &&
+          actorName == other.actorName &&
+          actorRole == other.actorRole &&
+          activityLabel == other.activityLabel &&
+          mapEquals(raw, other.raw);
+
+  /// Hashes scalar fields only; the raw payload is excluded because it's
+  /// effectively keyed by [id] anyway and recursive map hashing is wasted
+  /// work on every row.
+  @override
+  int get hashCode =>
+      Object.hash(id, timestamp, actorName, actorRole, activityLabel);
+
+  @override
+  String toString() =>
+      'AuditEntryView(id: $id, timestamp: $timestamp, '
+      'actorName: $actorName, actorRole: $actorRole, '
+      'activityLabel: $activityLabel)';
+}
