@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
@@ -291,6 +292,38 @@ class _NavDestination {
 class _HomeShellState extends State<_HomeShell> {
   int _selected = 0;
 
+  /// `vX.Y.Z+build` of the deployed web bundle, shown under the app-bar title
+  /// so a running deployment self-identifies its build. Empty until resolved
+  /// (or if the fetch fails). Sourced from the `version.json` that
+  /// `flutter build web` emits at the web origin — the authoritative version of
+  /// the actual built artifact, no extra dependency or build-time define.
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadVersion());
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      // version.json is served by the WEB origin (Uri.base), which in the
+      // deployed bundle and in `flutter run` both serve it — unlike the portal
+      // API base, which may be a different host in local dev.
+      final res = await http.get(Uri.base.resolve('version.json'));
+      if (!mounted || res.statusCode != 200) return;
+      final json = jsonDecode(res.body) as Map<String, Object?>;
+      final v = json['version'];
+      final b = json['build_number'];
+      if (v is! String || v.isEmpty) return;
+      setState(
+        () => _version = (b is String && b.isNotEmpty) ? 'v$v+$b' : 'v$v',
+      );
+    } catch (_) {
+      // Best-effort: a missing/unservable version.json just hides the label.
+    }
+  }
+
   String _credentialLabel() {
     final p = widget.principal;
     if (p is UserPrincipal) return '${p.userId}:${p.activeRole}';
@@ -314,13 +347,30 @@ class _HomeShellState extends State<_HomeShell> {
       _NavDestination(
         'Audit Log',
         Icons.receipt_long,
-        () =>
-            AuditLogScreen(identityCredential: widget.identityCredential ?? ''),
+        () => AuditLogScreen(
+          identityCredential: widget.identityCredential ?? '',
+          serverUrl: _serverUrl,
+        ),
       ),
     ];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Portal (EVS skeleton)'),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text('Portal (EVS skeleton)'),
+            if (_version.isNotEmpty)
+              Text(
+                _version,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
+              ),
+          ],
+        ),
         actions: <Widget>[
           if (widget.principal is UserPrincipal)
             RoleSelector(
