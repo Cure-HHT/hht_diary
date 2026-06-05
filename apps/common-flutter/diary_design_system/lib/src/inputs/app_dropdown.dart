@@ -37,6 +37,13 @@ class AppDropdown<T> extends StatefulWidget {
   final bool required;
   final bool enabled;
 
+  /// Compact inline mode for control rows where the form-field default
+  /// (12 px vertical padding + 20 px chevron) would dwarf its neighbours.
+  /// Picks a 4 px vertical padding + 18 px chevron so the trigger sits at
+  /// ~32 px tall — same rhythm as `AppTablePagination`'s prev/next nav
+  /// buttons. Opt-in: form fields keep the roomier sizing.
+  final bool dense;
+
   const AppDropdown({
     super.key,
     required this.items,
@@ -48,6 +55,7 @@ class AppDropdown<T> extends StatefulWidget {
     this.onChanged,
     this.required = false,
     this.enabled = true,
+    this.dense = false,
   });
 
   @override
@@ -241,7 +249,10 @@ class _AppDropdownState<T> extends State<AppDropdown<T>>
           child: Container(
             padding: EdgeInsets.symmetric(
               horizontal: SpacingTokens.md,
-              vertical: SpacingTokens.md,
+              // 4 px in dense mode keeps the trigger at ~32 px tall so it
+              // lines up with sibling 32 × 32 IconButtons; 12 px otherwise
+              // matches the form-field rhythm used by AppTextField.
+              vertical: widget.dense ? SpacingTokens.xs : SpacingTokens.md,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(RadiusTokens.md),
@@ -266,7 +277,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>>
                 ),
                 Icon(
                   Icons.keyboard_arrow_down,
-                  size: 20,
+                  size: widget.dense ? 18 : 20,
                   color: widget.enabled
                       ? theme.colorScheme.onSurfaceVariant
                       : theme.colorScheme.onSurfaceVariant.withValues(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../inputs/app_dropdown.dart';
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 
@@ -150,21 +151,18 @@ class _PageSizeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: SpacingTokens.sm, vertical: 2),
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(RadiusTokens.sm),
-      ),
-      child: DropdownButton<int>(
+    // SizedBox constrains the trigger (and its anchored popup) to a
+    // narrow inline footprint — the value is always a small integer, so
+    // a full-width AppDropdown would dwarf the rest of the pagination
+    // row. `dense: true` shrinks the trigger to ~32 px tall so it aligns
+    // with the prev/next chevron buttons on either side.
+    return SizedBox(
+      width: 72,
+      child: AppDropdown<int>(
+        dense: true,
         value: pageSize,
-        underline: const SizedBox.shrink(),
-        isDense: true,
-        style: theme.textTheme.bodySmall,
         items: [
-          for (final n in options)
-            DropdownMenuItem<int>(value: n, child: Text('$n')),
+          for (final n in options) AppDropdownItem<int>(value: n, label: '$n'),
         ],
         onChanged: (v) {
           if (v != null) onChanged(v);

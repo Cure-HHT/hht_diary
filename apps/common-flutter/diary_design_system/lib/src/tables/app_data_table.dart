@@ -157,6 +157,10 @@ class AppDataTable<T> extends StatelessWidget {
               paginationControls: paginationControls,
             ),
           ?alignedTabs,
+          // Breathing room between the filter strip and the column header
+          // row. Without this, the tab underline butts directly against
+          // the header text, which reads cramped.
+          if (alignedTabs != null) SizedBox(height: SpacingTokens.md),
           _HeaderRow<T>(
             columns: columns,
             sortColumnKey: sortColumnKey,
@@ -252,9 +256,15 @@ class _HeaderRow<T> extends StatelessWidget {
         children: [
           Text(
             col.label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            // Inter Medium 14 / line-height 20 / -0.15 / Dark Grey.
+            // Matches the row text rhythm so the header reads as a label
+            // for the column rather than a smaller meta-line.
+            style: TextStyle(
               fontWeight: FontWeight.w500,
+              fontSize: 14,
+              height: 20 / 14,
+              letterSpacing: -0.15,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           // Sort arrow only appears when this column is the active sort

@@ -94,10 +94,25 @@ class AppBadge extends StatelessWidget {
       AppBadgeTone.success => semantic.successContainer,
     };
 
+    // Neutral + tinted needs special handling: the `accent` for neutral is
+    // [outline] (light grey), which is the same family as the tinted bg
+    // [surfaceContainerHighest]. Reusing `accent` for fg + border there
+    // produces a chip where text and border vanish into the fill (the
+    // "just grey container" failure). For that one cell of the matrix we
+    // darken the fg to [onSurfaceVariant] and soften the border to
+    // [outlineVariant] so the chip reads as "light-grey filled / grey
+    // border / dark-grey text" — matches the portal's CRA pill.
     final (fg, bg, borderColor) = switch (variant) {
       AppBadgeVariant.outlined => (accent, Colors.transparent, accent),
       AppBadgeVariant.filled => (theme.colorScheme.surface, accent, accent),
-      AppBadgeVariant.tinted => (accent, tintedBg, accent),
+      AppBadgeVariant.tinted =>
+        tone == AppBadgeTone.neutral
+            ? (
+                theme.colorScheme.onSurfaceVariant,
+                tintedBg,
+                theme.colorScheme.outlineVariant,
+              )
+            : (accent, tintedBg, accent),
     };
 
     final labelText = Text(
