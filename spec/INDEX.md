@@ -177,9 +177,11 @@
 | DIARY-DEV-portal-reset-code-lifecycle        | Password reset code lifecycle                         | dev-portal-password-reset.md       | 8bc6a227 |
 | DIARY-DEV-portal-reset-password-update       | Password reset credential update                      | dev-portal-password-reset.md       | 4972e2a5 |
 | DIARY-DEV-portal-reset-session-termination   | Password reset session termination                    | dev-portal-password-reset.md       | 7805b6aa |
+| DIARY-DEV-portal-second-factor-toggle        | Conditional second factor                             | dev-portal-login.md                | d4b853aa |
 | DIARY-DEV-portal-seed-config                 | Config-driven user-role seed                          | dev-portal-service.md              | 89ccad9f |
 | DIARY-DEV-portal-session-lifecycle           | Portal session lifecycle                              | dev-portal-login.md                | 32f18e2d |
 | DIARY-DEV-portal-session-token               | Portal session token                                  | dev-portal-login.md                | 37177d93 |
+| DIARY-DEV-portal-settings-store              | Event-sourced portal configuration                    | dev-portal-settings.md             | 3ae46122 |
 | DIARY-DEV-portal-user-activated-binding      | User-activated binding                                | dev-portal-activation.md           | 25fda53b |
 | DIARY-DEV-rave-auth-failure-classification   | Rave Authentication Failure Classification            | prd-rave-sync.md                   | f2732c70 |
 | DIARY-DEV-rave-edc-ingest                    | RAVE/EDC Ingest as Edge Events                        | dev-portal-service.md              | e93b0ede |

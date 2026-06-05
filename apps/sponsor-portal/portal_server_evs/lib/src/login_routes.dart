@@ -6,6 +6,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
 import 'otp_store.dart';
+import 'portal_settings.dart';
 import 'session_token.dart';
 
 /// Minimal OTP-sender surface so routes are testable without a real transport
@@ -49,6 +50,31 @@ Router buildLoginRouter({
     return null;
   }
 
+  // Implements: DIARY-DEV-portal-second-factor-toggle/A+D
+  Future<Response> startSession(String email) async {
+    final scopeRows = await backend.findViewRows('user_role_scopes');
+    final roles = <String>{
+      for (final r in scopeRows)
+        if (r['user_id'] == email) r['role']! as String,
+    };
+    if (roles.isEmpty) return _json({'error': 'unauthorized'}, status: 401);
+    final sid = mintSid();
+    await eventStore.append(
+      entryType: 'session_started',
+      aggregateType: 'session',
+      aggregateId: sid,
+      eventType: 'session_started',
+      data: <String, Object?>{
+        'user_id': email,
+        'started_at': now().toUtc().toIso8601String(),
+      },
+      initiator: const AnonymousInitiator(ipAddress: null),
+    );
+    final token = mintSessionToken(
+        sid: sid, userId: email, signingKey: signingKey, now: now());
+    return _json({'sessionToken': token});
+  }
+
   router.get('/config/identity', (Request req) => _json(identityConfig));
 
   router.post('/login', (Request req) async {
@@ -76,6 +102,21 @@ Router buildLoginRouter({
     final user = await userForUid(v.uid!);
     if (user == null) return _json({'error': 'unauthorized'}, status: 401);
     final email = user['email']! as String;
+
+    // Implements: DIARY-DEV-portal-second-factor-toggle/A+D — when the
+    //   event-sourced setting disables the second factor, mint the session
+    //   directly and record an attributable otp-skip in place of the OTP pair.
+    if (!await requireSecondFactor(backend)) {
+      await eventStore.append(
+        entryType: 'user_login_otp_skipped',
+        aggregateType: 'portal_user',
+        aggregateId: email,
+        eventType: 'user_login_otp_skipped',
+        data: <String, Object?>{'skipped_at': now().toUtc().toIso8601String()},
+        initiator: const AnonymousInitiator(ipAddress: null),
+      );
+      return startSession(email);
+    }
 
     final String code;
     try {
@@ -146,27 +187,7 @@ Router buildLoginRouter({
       initiator: const AnonymousInitiator(ipAddress: null),
     );
 
-    final scopeRows = await backend.findViewRows('user_role_scopes');
-    final roles = <String>{
-      for (final r in scopeRows)
-        if (r['user_id'] == email) r['role']! as String,
-    };
-    if (roles.isEmpty) return _json({'error': 'unauthorized'}, status: 401);
-    final sid = mintSid();
-    await eventStore.append(
-      entryType: 'session_started',
-      aggregateType: 'session',
-      aggregateId: sid,
-      eventType: 'session_started',
-      data: <String, Object?>{
-        'user_id': email,
-        'started_at': now().toUtc().toIso8601String(),
-      },
-      initiator: const AnonymousInitiator(ipAddress: null),
-    );
-    final token = mintSessionToken(
-        sid: sid, userId: email, signingKey: signingKey, now: now());
-    return _json({'sessionToken': token});
+    return startSession(email);
   });
 
   return router;

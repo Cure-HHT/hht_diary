@@ -275,6 +275,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
     seed: _resolveRoleAssignmentSeed(),
   );
 
+  // Implements: DIARY-DEV-portal-settings-store/C
+  await seedRequireSecondFactor(
+    eventStore: eventStore,
+    backend: backend,
+    raw: Platform.environment['PORTAL_SEED_REQUIRE_2FA'],
+  );
+
   // 5. Activation reactor + routes: ephemeral code store + email sender +
   //    reactor that watches for user_activation_code_issued events. Routes are
   //    PUBLIC (mounted outside authMiddleware on topRouter).
@@ -701,6 +708,35 @@ const RoleAssignmentSeed _localConvenienceSeed = RoleAssignmentSeed(
     ),
   ],
 );
+
+/// Implements: DIARY-DEV-portal-settings-store/C — config-driven, idempotent
+///   boot seed of the require_second_factor setting. Emits a single
+///   portal_setting_changed only when [raw] == 'false' AND no value exists yet.
+Future<void> seedRequireSecondFactor({
+  required EventStore eventStore,
+  required StorageBackend backend,
+  required String? raw,
+}) async {
+  if (raw?.trim().toLowerCase() != 'false') {
+    return; // only an explicit false seeds
+  }
+  final rows = await backend.findViewRows('portal_settings');
+  final exists = rows.any((r) => r['key'] == 'require_second_factor');
+  if (exists) {
+    return;
+  }
+  await eventStore.append(
+    entryType: 'portal_setting_changed',
+    aggregateType: 'portal_setting',
+    aggregateId: 'require_second_factor',
+    eventType: 'portal_setting_changed',
+    data: const <String, Object?>{
+      'key': 'require_second_factor',
+      'value': false
+    },
+    initiator: const AutomationInitiator(service: 'portal-settings-seed'),
+  );
+}
 
 // Implements: DIARY-DEV-portal-durable-event-store/C
 Future<bool> _portalSeedMarkerPresent(StorageBackend backend) async {

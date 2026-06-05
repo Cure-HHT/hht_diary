@@ -447,6 +447,50 @@ void main() {
     expect(resp.headers['access-control-allow-methods'], contains('POST'));
   });
 
+  // Verifies: DIARY-DEV-portal-settings-store/C
+  test(
+      'seedRequireSecondFactor: idempotent, seeds require_second_factor=false once',
+      () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('seed-2fa-idem.db');
+    final backend = SembastBackend(database: db);
+    final store = await openPortalEventStore(backend: backend);
+    await seedRequireSecondFactor(
+        eventStore: store, backend: backend, raw: 'false');
+    await seedRequireSecondFactor(
+        eventStore: store, backend: backend, raw: 'false'); // 2nd call no-op
+    final changed = await backend
+        .readEventsReverse()
+        .where((e) => e.eventType == 'portal_setting_changed')
+        .toList();
+    expect(changed.length, 1,
+        reason: 'second call must not append a duplicate event');
+    final rows = await backend.findViewRows('portal_settings');
+    expect(rows.where((r) => r['key'] == 'require_second_factor').length, 1);
+    expect(rows.firstWhere((r) => r['key'] == 'require_second_factor')['value'],
+        isFalse);
+  });
+
+  // Verifies: DIARY-DEV-portal-settings-store/C
+  test('seedRequireSecondFactor: does nothing when raw is not "false"',
+      () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('seed-2fa-noop.db');
+    final backend = SembastBackend(database: db);
+    final store = await openPortalEventStore(backend: backend);
+    await seedRequireSecondFactor(
+        eventStore: store, backend: backend, raw: null);
+    await seedRequireSecondFactor(
+        eventStore: store, backend: backend, raw: 'true');
+    final changed = await backend
+        .readEventsReverse()
+        .where((e) => e.eventType == 'portal_setting_changed')
+        .toList();
+    expect(changed, isEmpty,
+        reason:
+            'null/true raw must not append any portal_setting_changed event');
+  });
+
   test(
       'password-reset request is mounted publicly (unknown email -> 200, not 401)',
       () async {

@@ -105,6 +105,8 @@
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
+- DIARY-DEV-portal-settings-store:section:0
+- DIARY-DEV-portal-settings-store:section:1
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -310,6 +312,7 @@
 **DIARY:**
 
 - DIARY-BASE-audit-trail
+- DIARY-DEV-portal-second-factor-toggle-D
 - DIARY-DEV-audit-log-read-A
 - DIARY-DEV-audit-log-read-B
 - DIARY-PRD-ancillary-platform-services-D
@@ -322,6 +325,7 @@
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-portal-second-factor-toggle:section:0
 - DIARY-DEV-audit-log-read:section:0
 - DIARY-DEV-audit-log-read:section:1
 - DIARY-DEV-operator-tier-authz:section:1
@@ -880,10 +884,12 @@
 - DIARY-DEV-participant-site-index-B
 - DIARY-DEV-portal-durable-event-store-A
 - DIARY-DEV-portal-durable-event-store-C
+- DIARY-DEV-portal-settings-store-B
 - DIARY-DEV-inbound-event-on-receipt:section:0
 - DIARY-DEV-portal-reaction-server:section:0
 - DIARY-DEV-portal-durable-event-store:section:0
 - DIARY-DEV-portal-seed-config:section:0
+- DIARY-DEV-portal-settings-store:section:1
 
 ## Failed Attempt Threshold
 
@@ -1838,6 +1844,7 @@
 - DIARY-DEV-portal-login-identity-verification:section:1
 - DIARY-DEV-portal-login-second-factor:section:0
 - DIARY-DEV-portal-login-second-factor:section:1
+- DIARY-DEV-portal-second-factor-toggle:section:1
 - rem:spec/dev-portal-password-reset.md:1
 - DIARY-DEV-portal-reset-code-lifecycle:section:0
 - DIARY-DEV-portal-reset-code-lifecycle:section:1
@@ -2400,12 +2407,17 @@
 **DIARY:**
 
 - DIARY-DEV-portal-login-second-factor
+- DIARY-DEV-portal-second-factor-toggle
+- DIARY-DEV-portal-second-factor-toggle-B
+- DIARY-DEV-portal-second-factor-toggle-D
 - DIARY-DEV-portal-reset-session-termination-B
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-G
 - rem:spec/dev-portal-login.md:1
 - DIARY-DEV-portal-login-second-factor:section:0
 - DIARY-DEV-portal-login-second-factor:section:1
+- DIARY-DEV-portal-second-factor-toggle:section:0
+- DIARY-DEV-portal-second-factor-toggle:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
 - DIARY-DEV-portal-reset-session-termination:section:1
 - DIARY-PRD-two-factor-authentication:section:4
@@ -2422,6 +2434,8 @@
 - DIARY-PRD-questionnaire-session-timeout
 - DIARY-GUI-questionnaire-session-expiry
 - DIARY-DEV-participant-state-poll-B
+- DIARY-DEV-portal-second-factor-toggle-A
+- DIARY-DEV-portal-second-factor-toggle-C
 - DIARY-DEV-portal-session-token-A
 - DIARY-DEV-portal-session-token-B
 - DIARY-DEV-portal-session-lifecycle-A
@@ -2455,6 +2469,8 @@
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-portal-user-activated-binding:section:1
 - rem:spec/dev-portal-login.md:1
+- DIARY-DEV-portal-second-factor-toggle:section:0
+- DIARY-DEV-portal-second-factor-toggle:section:1
 - DIARY-DEV-portal-session-token:section:0
 - DIARY-DEV-portal-session-token:section:1
 - DIARY-DEV-portal-session-lifecycle:section:0
@@ -3212,6 +3228,7 @@
 - DIARY-DEV-portal-user-activated-binding-C
 - DIARY-DEV-portal-login-identity-verification-B
 - DIARY-DEV-portal-login-second-factor-A
+- DIARY-DEV-portal-second-factor-toggle-D
 - DIARY-DEV-portal-session-token-A
 - DIARY-DEV-portal-session-lifecycle-B
 - DIARY-DEV-portal-active-role-switch-A
@@ -3440,6 +3457,7 @@
 - DIARY-DEV-portal-user-activated-binding-C
 - DIARY-DEV-portal-login-identity-verification-B
 - DIARY-DEV-portal-login-second-factor-A
+- DIARY-DEV-portal-second-factor-toggle-D
 - DIARY-DEV-portal-session-token-A
 - DIARY-DEV-portal-session-lifecycle-B
 - DIARY-GUI-audit-log-administrator-A
@@ -3553,6 +3571,8 @@
 
 - DIARY-DEV-portal-login-second-factor-A
 - DIARY-DEV-portal-login-second-factor-B
+- DIARY-DEV-portal-second-factor-toggle-A
+- DIARY-DEV-portal-second-factor-toggle-C
 - DIARY-PRD-two-factor-authentication-B
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-D
@@ -3560,6 +3580,8 @@
 - DIARY-PRD-two-factor-authentication-F
 - DIARY-DEV-portal-login-second-factor:section:0
 - DIARY-DEV-portal-login-second-factor:section:1
+- DIARY-DEV-portal-second-factor-toggle:section:0
+- DIARY-DEV-portal-second-factor-toggle:section:1
 - DIARY-PRD-two-factor-authentication:section:4
 
 ## Verification Link
