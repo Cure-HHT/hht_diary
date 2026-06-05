@@ -16,8 +16,9 @@ class _DevUser {
 /// is switched in-app via the header Role Selector after connecting — no
 /// per-role quick-connect rows are needed.
 ///
-/// In session mode (PORTAL_SESSION_AUTH=true) this screen is not shown; the
-/// Firebase login screen is used instead.
+/// In session mode (server reports `authMode == 'session'` from
+/// /config/identity) this screen is not shown; the Firebase login screen is
+/// used instead.
 class ConnectScreen extends StatefulWidget {
   const ConnectScreen({
     required this.onConnect,
