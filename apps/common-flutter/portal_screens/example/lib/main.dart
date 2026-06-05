@@ -157,7 +157,10 @@ class _PreviewHome extends StatelessWidget {
             // routes but is fine for a static preview block. Phase 9 will
             // mount this dashboard as a real route in portal_ui_evs.
             SizedBox(
-              height: 720,
+              // Tall enough for the default 8-row UsersScreen to render
+              // without internal scrolling — matches the canonical
+              // desktop layout where the dashboard is full-window.
+              height: 960,
               child: PortalDashboard(
                 appBar: PortalAppBar(
                   title: 'Clinical Trial Portal',
@@ -178,8 +181,12 @@ class _PreviewHome extends StatelessWidget {
                   DashboardDestination(
                     key: 'users',
                     label: 'Users',
-                    body: (_) =>
-                        const _Placeholder(label: 'UsersScreen — Phase 5'),
+                    body: (ctx) => UsersScreen(
+                      users: MockData.users,
+                      isLoading: false,
+                      canCreate: true,
+                      onCreate: () => _snack(ctx, 'Create User tapped'),
+                    ),
                   ),
                   DashboardDestination(
                     key: 'audit',

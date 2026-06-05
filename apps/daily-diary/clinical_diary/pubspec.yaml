@@ -2,7 +2,11 @@ name: clinical_diary
 description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Process"
 publish_to: "none"
 
+<<<<<<< Updated upstream
 version: 0.9.54+132
+=======
+version: 0.9.54+132
+>>>>>>> Stashed changes
 
 environment:
   sdk: ^3.10.7

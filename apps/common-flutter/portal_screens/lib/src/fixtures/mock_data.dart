@@ -1,6 +1,9 @@
-import 'package:portal_screens/portal_screens.dart';
+import '../models/audit_entry_view.dart';
+import '../models/portal_user_view.dart';
+import '../models/role_assignment_view.dart';
+import '../models/user_status_view.dart';
 
-/// Mock data fixtures used by tests + Widgetbook-style stories.
+/// Mock data fixtures used by tests + the example preview app.
 ///
 /// Mirrors the example users + audit entries shown in the redesign Figma
 /// (CUR-1450) so we can preview screens against the spec without spinning
@@ -98,9 +101,134 @@ class MockData {
     assignments: <RoleAssignmentView>[],
   );
 
-  /// Combined sample list — 7 users covering active / pending / revoked /
-  /// locked, with single-role / multi-role / wildcard / site-bound mixes.
-  /// Sorted by email to mirror what the legacy screen produces.
+  /// Additional sample users — pads the directory past the default
+  /// pageSize=8 so the example app exercises pagination across multiple
+  /// pages and the per-status counts spread realistically.
+  static const PortalUserView _michaelChen = PortalUserView(
+    email: 'mchen@clinicaltrial.com',
+    name: 'Dr. Michael Chen',
+    status: UserStatusView.active,
+    assignments: <RoleAssignmentView>[_craSixSites],
+  );
+
+  static const PortalUserView _priyaPatel = PortalUserView(
+    email: 'ppatel@clinicaltrial.com',
+    name: 'Priya Patel',
+    status: UserStatusView.active,
+    assignments: <RoleAssignmentView>[_studyCoordTwoSites],
+  );
+
+  static const PortalUserView _carlosRivera = PortalUserView(
+    email: 'crivera@clinicaltrial.com',
+    name: 'Carlos Rivera',
+    status: UserStatusView.active,
+    assignments: <RoleAssignmentView>[
+      RoleAssignmentView(
+        role: 'CRA',
+        boundSites: <String>['site-2', 'site-3'],
+        isWildcard: false,
+      ),
+    ],
+  );
+
+  static const PortalUserView _amaraOkafor = PortalUserView(
+    email: 'aokafor@clinicaltrial.com',
+    name: 'Amara Okafor',
+    status: UserStatusView.active,
+    assignments: <RoleAssignmentView>[_adminWildcard],
+  );
+
+  static const PortalUserView _lucasMoreau = PortalUserView(
+    email: 'lmoreau@clinicaltrial.com',
+    name: 'Lucas Moreau',
+    status: UserStatusView.pending,
+    assignments: <RoleAssignmentView>[_studyCoordTwoSites],
+  );
+
+  static const PortalUserView _ninaHansen = PortalUserView(
+    email: 'nhansen@clinicaltrial.com',
+    name: 'Nina Hansen',
+    status: UserStatusView.pending,
+    assignments: <RoleAssignmentView>[
+      RoleAssignmentView(
+        role: 'CRA',
+        boundSites: <String>['site-1'],
+        isWildcard: false,
+      ),
+    ],
+  );
+
+  static const PortalUserView _omarHaddad = PortalUserView(
+    email: 'ohaddad@clinicaltrial.com',
+    name: 'Omar Haddad',
+    status: UserStatusView.active,
+    assignments: <RoleAssignmentView>[_craSixSites, _studyCoordTwoSites],
+  );
+
+  static const PortalUserView _ireneLi = PortalUserView(
+    email: 'ili@clinicaltrial.com',
+    name: 'Irene Li',
+    status: UserStatusView.revoked,
+    assignments: <RoleAssignmentView>[_studyCoordTwoSites],
+  );
+
+  static const PortalUserView _benRoss = PortalUserView(
+    email: 'bross@clinicaltrial.com',
+    name: 'Ben Ross',
+    status: UserStatusView.revoked,
+    assignments: <RoleAssignmentView>[
+      RoleAssignmentView(
+        role: 'CRA',
+        boundSites: <String>['site-4'],
+        isWildcard: false,
+      ),
+    ],
+  );
+
+  static const PortalUserView _hannahWebb = PortalUserView(
+    email: 'hwebb@clinicaltrial.com',
+    name: 'Hannah Webb',
+    status: UserStatusView.locked,
+    assignments: <RoleAssignmentView>[_studyCoordTwoSites],
+  );
+
+  static const PortalUserView _devKapoor = PortalUserView(
+    email: 'dkapoor@clinicaltrial.com',
+    name: 'Dev Kapoor',
+    status: UserStatusView.active,
+    assignments: <RoleAssignmentView>[_studyCoordTwoSites, _craSixSites],
+  );
+
+  static const PortalUserView _elenaVargas = PortalUserView(
+    email: 'evargas@clinicaltrial.com',
+    name: 'Elena Vargas',
+    status: UserStatusView.active,
+    assignments: <RoleAssignmentView>[_studyCoordTwoSites],
+  );
+
+  static const PortalUserView _terryWilson = PortalUserView(
+    email: 'twilson@clinicaltrial.com',
+    name: 'Terry Wilson',
+    status: UserStatusView.active,
+    assignments: <RoleAssignmentView>[_adminWildcard],
+  );
+
+  static const PortalUserView _yukoTanaka = PortalUserView(
+    email: 'ytanaka@clinicaltrial.com',
+    name: 'Yuko Tanaka',
+    status: UserStatusView.pending,
+    assignments: <RoleAssignmentView>[
+      RoleAssignmentView(
+        role: 'CRA',
+        boundSites: <String>['site-5', 'site-6'],
+        isWildcard: false,
+      ),
+    ],
+  );
+
+  /// Combined sample list — covers all four lifecycle states with
+  /// single-role / multi-role / wildcard / site-bound mixes, and is long
+  /// enough that the default pageSize=8 spills onto 3 pages.
   static const List<PortalUserView> users = <PortalUserView>[
     adminUser,
     emilyParker,
@@ -109,6 +237,20 @@ class MockData {
     sarahJohnsonInactive,
     lockedUser,
     pendingNoRoles,
+    _michaelChen,
+    _priyaPatel,
+    _carlosRivera,
+    _amaraOkafor,
+    _lucasMoreau,
+    _ninaHansen,
+    _omarHaddad,
+    _ireneLi,
+    _benRoss,
+    _hannahWebb,
+    _devKapoor,
+    _elenaVargas,
+    _terryWilson,
+    _yukoTanaka,
   ];
 
   // ---------------------------------------------------------------------------

@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portal_screens/portal_screens.dart';
 
-import 'fixtures/mock_data.dart';
+// MockData now lives in lib/ so the example preview app can reach it
+// without duplicating the sample data.
 
 void main() {
   group('RoleAssignmentView', () {
