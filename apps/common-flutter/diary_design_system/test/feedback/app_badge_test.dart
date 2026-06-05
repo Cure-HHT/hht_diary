@@ -49,5 +49,66 @@ void main() {
       final decoration = container.decoration as BoxDecoration;
       expect(decoration.color, isNot(equals(Colors.transparent)));
     });
+
+    testWidgets('renders trailing widget inside the pill', (tester) async {
+      await tester.pumpWidget(
+        _harness(
+          const AppBadge(
+            label: 'Admin',
+            tone: AppBadgeTone.danger,
+            trailing: Icon(Icons.expand_more),
+          ),
+        ),
+      );
+      expect(find.text('Admin'), findsOneWidget);
+      expect(find.byIcon(Icons.expand_more), findsOneWidget);
+    });
+
+    testWidgets('tapping the pill with onTap set fires the callback', (
+      tester,
+    ) async {
+      var taps = 0;
+      await tester.pumpWidget(
+        _harness(
+          AppBadge(
+            label: 'Admin',
+            tone: AppBadgeTone.danger,
+            trailing: const Icon(Icons.expand_more),
+            onTap: () => taps++,
+          ),
+        ),
+      );
+      await tester.tap(find.text('Admin'));
+      expect(taps, 1);
+    });
+
+    testWidgets(
+      'onTap == null leaves the pill as a passive label — no InkWell',
+      (tester) async {
+        await tester.pumpWidget(
+          _harness(const AppBadge(label: 'CRA', tone: AppBadgeTone.neutral)),
+        );
+        // No ripple machinery in the passive case.
+        expect(find.byType(InkWell), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'interactive pill exposes button semantics announcing the label',
+      (tester) async {
+        await tester.pumpWidget(
+          _harness(
+            AppBadge(label: 'Admin', tone: AppBadgeTone.danger, onTap: () {}),
+          ),
+        );
+        expect(
+          find.bySemanticsLabel('Admin'),
+          findsOneWidget,
+          reason:
+              'When onTap is set the pill must be reachable as a button '
+              'by assistive tech.',
+        );
+      },
+    );
   });
 }

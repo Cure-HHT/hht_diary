@@ -32,16 +32,35 @@ enum AppBadgeTone { neutral, primary, danger, warning, success }
 /// AppBadge(label: 'Site Study Coordinator', tone: AppBadgeTone.primary)
 /// AppBadge(label: 'CRA', tone: AppBadgeTone.neutral)
 /// ```
+///
+/// Pass [trailing] to add a widget (typically a dropdown caret) inside
+/// the pill on the right of the label. Pass [onTap] to make the whole
+/// pill tappable — used by composed widgets like the portal's role
+/// switcher where the chip itself triggers a menu.
 class AppBadge extends StatelessWidget {
   final String label;
   final AppBadgeVariant variant;
   final AppBadgeTone tone;
+
+  /// Optional widget rendered inside the pill, to the right of the label.
+  /// Auto-coloured to match the foreground tone via an enclosing
+  /// `IconTheme`, so callers can pass `Icon(Icons.expand_more)` without
+  /// pre-tinting it.
+  final Widget? trailing;
+
+  /// When non-null, the pill becomes tappable. Material ink/ripple is
+  /// clipped to the rounded rect so it doesn't paint past the border.
+  /// When null, the pill is a passive label (table cells, decorative
+  /// chrome).
+  final VoidCallback? onTap;
 
   const AppBadge({
     super.key,
     required this.label,
     this.variant = AppBadgeVariant.outlined,
     this.tone = AppBadgeTone.neutral,
+    this.trailing,
+    this.onTap,
   });
 
   @override
@@ -62,30 +81,65 @@ class AppBadge extends StatelessWidget {
       AppBadgeVariant.filled => (theme.colorScheme.surface, accent, accent),
     };
 
-    // MergeSemantics keeps the visual chrome (Container) from fragmenting
-    // the announcement — screen readers traverse this as a single node
-    // whose label is the text content.
-    return MergeSemantics(
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: SpacingTokens.sm,
-          vertical: 4,
-        ),
-        decoration: BoxDecoration(
-          color: bg,
-          border: Border.all(color: borderColor, width: 1),
-          borderRadius: BorderRadius.circular(RadiusTokens.sm),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 12,
-            height: 16 / 12,
-            letterSpacing: -0.15,
-            color: fg,
-          ),
-        ),
+    final labelText = Text(
+      label,
+      style: TextStyle(
+        fontWeight: FontWeight.w500,
+        fontSize: 12,
+        height: 16 / 12,
+        letterSpacing: -0.15,
+        color: fg,
+      ),
+    );
+
+    // Row only when trailing is present — keeps the passive single-line
+    // case identical to the original render tree so existing widget
+    // finders / golden tests don't shift.
+    final Widget content = trailing == null
+        ? labelText
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              labelText,
+              SizedBox(width: SpacingTokens.xs),
+              IconTheme(
+                data: IconThemeData(color: fg, size: 16),
+                child: trailing!,
+              ),
+            ],
+          );
+
+    final borderRadius = BorderRadius.circular(RadiusTokens.sm);
+    final chrome = Container(
+      padding: EdgeInsets.symmetric(horizontal: SpacingTokens.sm, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border.all(color: borderColor, width: 1),
+        borderRadius: borderRadius,
+      ),
+      child: content,
+    );
+
+    // Passive case: MergeSemantics keeps the visual chrome (Container)
+    // from fragmenting the announcement — screen readers traverse this
+    // as a single node whose label is the text content.
+    if (onTap == null) {
+      return MergeSemantics(child: chrome);
+    }
+
+    // Interactive case: Material + InkWell drive the ripple, clipped to
+    // the same rounded rect so the ink doesn't paint past the border.
+    // Semantics marks the badge as a button and announces the label so
+    // assistive tech reaches it the same way as a real button.
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: borderRadius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(onTap: onTap, child: chrome),
       ),
     );
   }
