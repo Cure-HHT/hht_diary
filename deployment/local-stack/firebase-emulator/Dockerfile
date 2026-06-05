@@ -30,3 +30,9 @@ RUN apt-get update -qq \
 
 WORKDIR /app
 EXPOSE 9099 4000
+
+# Run as the non-root `node` user baked into the base image (Trivy DS-0002).
+# Safe here: the auth emulator ships inside firebase-tools (no runtime JAR
+# download / cache write), and 9099/4000 are unprivileged ports. The /app
+# bind mount (./firebase) is host-owned, conventionally uid 1000 == node.
+USER node
