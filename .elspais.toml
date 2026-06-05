@@ -166,6 +166,8 @@ file_patterns = []
 skip_files = []
 skip_dirs = []
 
+# UAT user-journey files (# JNY-... blocks) live under spec/user-journeys/.
+# Files are classified JOURNEY by content, so the spec parser ignores them.
 [scanning.journey]
 directories = ["spec"]
 file_patterns = ["*.md"]

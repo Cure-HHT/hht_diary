@@ -143,6 +143,30 @@
 - DIARY-GUI-user-account-deactivate:section:3
 - DIARY-GUI-user-account-reactivate:section:3
 - DIARY-GUI-user-information-modal:section:3
+- rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- JNY-SET-01
+- JNY-AUDIT-01
+- JNY-AUDIT-02
+- JNY-AUDIT-03
+- JNY-AUTH-03
+- JNY-AUTH-05
+- JNY-PART-01
+- JNY-PART-02
+- JNY-PART-03
+- JNY-PART-04
+- JNY-PART-05
+- JNY-PART-06
+- JNY-PART-07
+- JNY-QNR-01
+- JNY-QNR-02
+- JNY-QNR-03
+- JNY-QNR-04
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-03
+- JNY-USER-04
+- JNY-USER-05
 
 ## Action Inventory
 
@@ -251,6 +275,27 @@
 - DIARY-GUI-user-information-modal:section:3
 - DIARY-GUI-administrator-dashboard:section:0
 - DIARY-GUI-administrator-dashboard:section:4
+- rem:spec/user-journeys/administrator-settings-journeys.md:1
+- rem:spec/user-journeys/administrator-settings-journeys.md:3
+- rem:spec/user-journeys/administrator-settings-journeys.md:30
+- rem:spec/user-journeys/audit-log-journeys.md:3
+- rem:spec/user-journeys/audit-log-journeys.md:29
+- rem:spec/user-journeys/authentication-journeys.md:3
+- rem:spec/user-journeys/user-management-journeys.md:1
+- rem:spec/user-journeys/user-management-journeys.md:3
+- JNY-SET-01
+- JNY-AUDIT-01
+- JNY-AUTH-01
+- JNY-AUTH-02
+- JNY-AUTH-03
+- JNY-AUTH-04
+- JNY-AUTH-05
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-03
+- JNY-USER-04
+- JNY-USER-05
+- JNY-USER-06
 
 ## Administrator Dashboard
 
@@ -264,6 +309,18 @@
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-dashboard:section:0
 - DIARY-GUI-administrator-dashboard:section:4
+- rem:spec/user-journeys/administrator-settings-journeys.md:3
+- rem:spec/user-journeys/user-management-journeys.md:3
+- JNY-SET-01
+- JNY-AUDIT-01
+- JNY-AUTH-02
+- JNY-AUTH-04
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-03
+- JNY-USER-04
+- JNY-USER-05
+- JNY-USER-06
 
 ## Administrator Settings
 
@@ -284,6 +341,9 @@
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-PRD-action-inventory:section:1
+- rem:spec/user-journeys/administrator-settings-journeys.md:1
+- rem:spec/user-journeys/administrator-settings-journeys.md:30
+- JNY-SET-01
 
 ## Application Menu
 
@@ -341,6 +401,8 @@
 - DIARY-PRD-user-account-deactivate:section:1
 - DIARY-PRD-reason-field-constraints:section:1
 - DIARY-GUI-user-account-reactivate:section:3
+- JNY-USER-03
+- JNY-USER-04
 
 ## Calendar
 
@@ -564,6 +626,7 @@
 - DIARY-GUI-user-account-deactivate:section:3
 - DIARY-GUI-user-account-reactivate:section:3
 - DIARY-GUI-user-information-modal:section:3
+- JNY-USER-03
 
 ## Device Authentication
 
@@ -712,6 +775,35 @@
 - rem:spec/prd-requirements-management.md:3
 - rem:spec/prd-sla.md:3
 - rem:spec/prd-status-registry.md:19
+- rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- JNY-SET-01
+- JNY-AUDIT-01
+- JNY-AUDIT-02
+- JNY-AUDIT-03
+- JNY-AUTH-01
+- JNY-AUTH-02
+- JNY-AUTH-03
+- JNY-AUTH-04
+- JNY-AUTH-05
+- JNY-PART-01
+- JNY-PART-02
+- JNY-PART-03
+- JNY-PART-04
+- JNY-PART-05
+- JNY-PART-06
+- JNY-PART-07
+- JNY-PART-08
+- JNY-QNR-01
+- JNY-QNR-02
+- JNY-QNR-03
+- JNY-QNR-04
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-03
+- JNY-USER-04
+- JNY-USER-05
+- JNY-USER-06
 
 ## Diary Data Synchronization
 
@@ -721,6 +813,7 @@
 - DIARY-PRD-questionnaire-system-D
 - DIARY-PRD-questionnaire-system:section:4
 - rem:spec/prd-status-registry.md:19
+- JNY-PART-03
 
 ## Diary Entry
 
@@ -830,6 +923,11 @@
 - DIARY-PRD-user-account-edit:section:0
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-management-tabs:section:5
+- JNY-AUTH-02
+- JNY-AUTH-03
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-06
 
 ## Entry Justification
 
@@ -941,6 +1039,9 @@
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-PRD-user-account-create:section:1
 - DIARY-GUI-user-management-tabs:section:5
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-06
 
 ## Hard Lockout
 
@@ -1022,6 +1123,8 @@
 - DIARY-PRD-user-authentication:section:5
 - DIARY-PRD-user-authentication-pin:section:6
 - DIARY-PRD-session-management:section:5
+- JNY-SET-01
+- JNY-AUTH-02
 
 ## Incomplete Record
 
@@ -1143,6 +1246,10 @@
 - DIARY-GUI-show-linking-code:section:2
 - DIARY-GUI-link-participant-flow:section:0
 - rem:spec/prd-status-registry.md:33
+- rem:spec/user-journeys/participant-management-journeys.md:55
+- JNY-PART-01
+- JNY-PART-02
+- JNY-PART-05
 
 ## Linking Code Validation Failure
 
@@ -1320,6 +1427,9 @@
 - DIARY-GUI-join-study-screen:section:0
 - DIARY-PRD-linking-code-lifecycle:section:6
 - DIARY-PRD-participant-reconnection:section:0
+- JNY-PART-01
+- JNY-PART-02
+- JNY-PART-05
 
 ## Multi-Sponsor Isolation
 
@@ -1755,6 +1865,30 @@
 - rem:spec/prd-status-registry.md:29
 - rem:spec/prd-status-registry.md:33
 - rem:spec/prd-status-registry.md:50
+- rem:spec/user-journeys/participant-management-journeys.md:1
+- rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/participant-management-journeys.md:32
+- rem:spec/user-journeys/participant-management-journeys.md:55
+- rem:spec/user-journeys/participant-management-journeys.md:79
+- rem:spec/user-journeys/participant-management-journeys.md:104
+- rem:spec/user-journeys/participant-management-journeys.md:130
+- rem:spec/user-journeys/participant-management-journeys.md:155
+- rem:spec/user-journeys/participant-management-journeys.md:180
+- rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- JNY-AUDIT-02
+- JNY-AUDIT-03
+- JNY-PART-01
+- JNY-PART-02
+- JNY-PART-03
+- JNY-PART-04
+- JNY-PART-05
+- JNY-PART-06
+- JNY-PART-07
+- JNY-PART-08
+- JNY-QNR-01
+- JNY-QNR-02
+- JNY-QNR-03
+- JNY-QNR-04
 
 ## Participant Actions Modal
 
@@ -1765,6 +1899,7 @@
 - DIARY-GUI-participant-dashboard-N
 - DIARY-GUI-participant-dashboard-O
 - DIARY-GUI-participant-dashboard:section:0
+- JNY-PART-08
 
 ## Participant Linking Code
 
@@ -1772,6 +1907,7 @@
 
 - DIARY-PRD-linking-code-lifecycle-H
 - DIARY-GUI-show-linking-code-C
+- JNY-PART-02
 
 ## Participation Status Badge
 
@@ -1854,6 +1990,12 @@
 - DIARY-GUI-password-forgot-workflow:section:6
 - DIARY-DEV-rave-auth-failure-classification:section:0
 - DIARY-PRD-user-account-reactivate:section:0
+- rem:spec/user-journeys/authentication-journeys.md:32
+- rem:spec/user-journeys/authentication-journeys.md:85
+- rem:spec/user-journeys/participant-management-journeys.md:3
+- JNY-AUTH-01
+- JNY-AUTH-02
+- JNY-AUTH-03
 
 ## Password Reuse Limit
 
@@ -2131,6 +2273,18 @@
 - rem:spec/prd-status-registry.md:46
 - rem:spec/prd-status-registry.md:48
 - rem:spec/prd-status-registry.md:50
+- rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-management-journeys.md:1
+- rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-management-journeys.md:32
+- rem:spec/user-journeys/questionnaire-management-journeys.md:56
+- rem:spec/user-journeys/questionnaire-management-journeys.md:82
+- rem:spec/user-journeys/questionnaire-management-journeys.md:106
+- JNY-PART-03
+- JNY-QNR-01
+- JNY-QNR-02
+- JNY-QNR-03
+- JNY-QNR-04
 
 ## Questionnaire Display Name
 
@@ -2383,6 +2537,19 @@
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-information-modal:section:3
 - DIARY-GUI-administrator-dashboard:section:4
+- rem:spec/user-journeys/administrator-settings-journeys.md:3
+- rem:spec/user-journeys/audit-log-journeys.md:3
+- rem:spec/user-journeys/authentication-journeys.md:3
+- rem:spec/user-journeys/authentication-journeys.md:109
+- rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- rem:spec/user-journeys/user-management-journeys.md:3
+- JNY-AUDIT-03
+- JNY-AUTH-02
+- JNY-AUTH-04
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-06
 
 ## Role Selector
 
@@ -2394,6 +2561,7 @@
 - DIARY-GUI-role-switching-D
 - DIARY-GUI-role-switching-E
 - DIARY-GUI-role-switching-G
+- JNY-AUTH-04
 
 ## Second Factor
 
@@ -2479,6 +2647,11 @@
 - DIARY-GUI-role-switching:section:3
 - DIARY-PRD-user-account-edit:section:1
 - DIARY-PRD-user-account-deactivate:section:1
+- rem:spec/user-journeys/authentication-journeys.md:3
+- JNY-SET-01
+- JNY-AUTH-02
+- JNY-AUTH-04
+- JNY-AUTH-05
 
 ## Session Expiry
 
@@ -2519,6 +2692,7 @@
 **DIARY:**
 
 - DIARY-PRD-session-management-G
+- JNY-SET-01
 
 ## Session Timeout
 
@@ -2605,6 +2779,11 @@
 - DIARY-PRD-user-account-deactivate:section:1
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-information-modal:section:3
+- rem:spec/user-journeys/audit-log-journeys.md:80
+- JNY-AUDIT-03
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-06
 
 ## Sponsor
 
@@ -2846,6 +3025,29 @@
 - DIARY-PRD-user-account-create:section:1
 - DIARY-PRD-user-account-deactivate:section:1
 - DIARY-GUI-administrator-dashboard:section:4
+- rem:spec/user-journeys/administrator-settings-journeys.md:3
+- rem:spec/user-journeys/audit-log-journeys.md:3
+- rem:spec/user-journeys/authentication-journeys.md:3
+- rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- rem:spec/user-journeys/user-management-journeys.md:3
+- JNY-SET-01
+- JNY-AUDIT-01
+- JNY-AUTH-01
+- JNY-AUTH-02
+- JNY-AUTH-03
+- JNY-AUTH-05
+- JNY-PART-03
+- JNY-PART-04
+- JNY-PART-05
+- JNY-PART-06
+- JNY-PART-07
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-03
+- JNY-USER-04
+- JNY-USER-05
+- JNY-USER-06
 
 ## Sponsor Portal
 
@@ -2912,6 +3114,24 @@
 - rem:spec/prd-status-registry.md:7
 - rem:spec/prd-status-registry.md:19
 - DIARY-PRD-user-account-create:section:1
+- rem:spec/user-journeys/administrator-settings-journeys.md:3
+- rem:spec/user-journeys/audit-log-journeys.md:3
+- rem:spec/user-journeys/authentication-journeys.md:3
+- rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- rem:spec/user-journeys/user-management-journeys.md:3
+- JNY-SET-01
+- JNY-AUDIT-01
+- JNY-AUTH-01
+- JNY-AUTH-02
+- JNY-AUTH-03
+- JNY-AUTH-05
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-03
+- JNY-USER-04
+- JNY-USER-05
+- JNY-USER-06
 
 ## Sponsor-Level Action Extension
 
@@ -2966,6 +3186,28 @@
 - rem:spec/prd-status-registry.md:50
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-information-modal:section:3
+- rem:spec/user-journeys/audit-log-journeys.md:3
+- rem:spec/user-journeys/audit-log-journeys.md:53
+- rem:spec/user-journeys/participant-management-journeys.md:1
+- rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-management-journeys.md:1
+- rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- JNY-AUDIT-02
+- JNY-AUDIT-03
+- JNY-AUTH-04
+- JNY-PART-01
+- JNY-PART-02
+- JNY-PART-03
+- JNY-PART-04
+- JNY-PART-05
+- JNY-PART-06
+- JNY-PART-07
+- JNY-PART-08
+- JNY-QNR-01
+- JNY-QNR-02
+- JNY-QNR-03
+- JNY-QNR-04
+- JNY-USER-01
 
 ## Submission
 
@@ -3034,6 +3276,7 @@
 - rem:spec/prd-mobile-notifications.md:3
 - DIARY-GUI-participant-task-list:section:0
 - DIARY-PRD-notification-yesterday-entry:section:5
+- JNY-QNR-02
 
 ## Time Picker
 
@@ -3143,6 +3386,12 @@
 - rem:spec/prd-status-registry.md:19
 - rem:spec/prd-status-registry.md:33
 - DIARY-PRD-user-account-site-assignment:section:1
+- rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/participant-management-journeys.md:79
+- JNY-PART-03
+- JNY-PART-06
+- JNY-PART-07
+- JNY-QNR-01
 
 ## Trial Start
 
@@ -3152,6 +3401,7 @@
 - DIARY-PRD-questionnaire-system-C
 - DIARY-PRD-questionnaire-system-E
 - DIARY-PRD-questionnaire-system:section:4
+- JNY-PART-03
 
 ## True Copy
 
@@ -3420,6 +3670,30 @@
 - DIARY-GUI-user-information-modal:section:3
 - DIARY-GUI-administrator-dashboard:section:0
 - DIARY-GUI-administrator-dashboard:section:4
+- rem:spec/user-journeys/administrator-settings-journeys.md:1
+- rem:spec/user-journeys/audit-log-journeys.md:1
+- rem:spec/user-journeys/audit-log-journeys.md:3
+- rem:spec/user-journeys/authentication-journeys.md:1
+- rem:spec/user-journeys/authentication-journeys.md:3
+- rem:spec/user-journeys/participant-management-journeys.md:1
+- rem:spec/user-journeys/questionnaire-management-journeys.md:1
+- rem:spec/user-journeys/user-management-journeys.md:1
+- rem:spec/user-journeys/user-management-journeys.md:3
+- rem:spec/user-journeys/user-management-journeys.md:33
+- rem:spec/user-journeys/user-management-journeys.md:58
+- rem:spec/user-journeys/user-management-journeys.md:84
+- rem:spec/user-journeys/user-management-journeys.md:109
+- rem:spec/user-journeys/user-management-journeys.md:158
+- JNY-AUDIT-01
+- JNY-AUDIT-02
+- JNY-AUDIT-03
+- JNY-AUTH-01
+- JNY-USER-01
+- JNY-USER-02
+- JNY-USER-03
+- JNY-USER-04
+- JNY-USER-05
+- JNY-USER-06
 
 ## User Account
 
@@ -3523,6 +3797,12 @@
 - DIARY-GUI-user-information-modal:section:0
 - DIARY-GUI-administrator-dashboard:section:0
 - DIARY-GUI-administrator-dashboard:section:4
+- rem:spec/user-journeys/user-management-journeys.md:33
+- rem:spec/user-journeys/user-management-journeys.md:84
+- rem:spec/user-journeys/user-management-journeys.md:109
+- JNY-USER-01
+- JNY-USER-03
+- JNY-USER-04
 
 ## User Information Modal
 
@@ -3538,6 +3818,10 @@
 - DIARY-GUI-user-management-tabs:section:5
 - DIARY-GUI-user-information-modal:section:0
 - DIARY-GUI-user-information-modal:section:3
+- JNY-USER-02
+- JNY-USER-03
+- JNY-USER-04
+- JNY-USER-05
 
 ## User Menu
 
@@ -3561,6 +3845,7 @@
 - DIARY-DEV-portal-login-second-factor:section:0
 - DIARY-DEV-portal-login-second-factor:section:1
 - DIARY-PRD-two-factor-authentication:section:4
+- JNY-AUTH-02
 
 ## Verification Link
 
@@ -3587,6 +3872,8 @@
 - DIARY-PRD-password-forgot:section:0
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-PRD-user-account-activation-resend:section:1
+- JNY-AUTH-01
+- JNY-AUTH-03
 
 ## Yesterday Reminder Task
 
