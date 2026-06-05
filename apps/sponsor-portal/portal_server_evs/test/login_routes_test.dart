@@ -136,6 +136,49 @@ void main() {
     expect(r.statusCode, 400);
   });
 
+  // Verifies: DIARY-DEV-portal-second-factor-toggle/A+D
+  test(
+      'POST /login returns sessionToken directly + logs user_login_otp_skipped when 2FA disabled',
+      () async {
+    // Seed the portal_settings projection by appending the event the projection
+    // consumes (same pattern as portal_settings_test.dart).
+    await store.append(
+      entryType: 'portal_setting_changed',
+      aggregateType: 'portal_setting',
+      aggregateId: 'require_second_factor',
+      eventType: 'portal_setting_changed',
+      data: const {'key': 'require_second_factor', 'value': false},
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+    final r = await handler()(Request('POST', Uri.parse('http://x/login'),
+        body: jsonEncode({'idToken': 'any'})));
+    expect(r.statusCode, 200);
+    final body = jsonDecode(await r.readAsString()) as Map<String, Object?>;
+    expect(body.containsKey('sessionToken'), isTrue,
+        reason: 'should have sessionToken');
+    expect(body.containsKey('maskedEmail'), isFalse,
+        reason: 'should not have maskedEmail when 2FA skipped');
+    expect(sentCodes, isEmpty, reason: 'no OTP should have been sent');
+    final events = await backend.findAllEvents();
+    expect(events.where((e) => e.eventType == 'user_login_otp_skipped'),
+        hasLength(1));
+    expect(events.where((e) => e.eventType == 'session_started'), hasLength(1));
+  });
+
+  // Verifies: DIARY-DEV-portal-second-factor-toggle/A (fail-safe: absent = required)
+  test('POST /login still issues OTP when the setting is absent (fail-safe)',
+      () async {
+    // No portal_setting_changed event appended — setting is absent.
+    final r = await handler()(Request('POST', Uri.parse('http://x/login'),
+        body: jsonEncode({'idToken': 'any'})));
+    expect(r.statusCode, 200);
+    final body = jsonDecode(await r.readAsString()) as Map<String, Object?>;
+    expect(body.containsKey('maskedEmail'), isTrue,
+        reason: 'should have maskedEmail (OTP path)');
+    expect(body.containsKey('sessionToken'), isFalse,
+        reason: 'should not have sessionToken on OTP path');
+  });
+
   group('authed session routes', () {
     // Verifies: DIARY-DEV-portal-session-lifecycle/A
     Handler authed() => buildAuthedSessionRouter(
