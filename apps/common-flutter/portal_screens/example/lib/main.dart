@@ -140,6 +140,84 @@ class _PreviewHome extends StatelessWidget {
               onLogout: () => _snack(context, 'Logout fired (beta)'),
             ),
 
+            const SizedBox(height: 64),
+            const _Caption('PortalDashboard — top-tab shell', isHeading: true),
+            const SizedBox(height: 16),
+            const _Caption(
+              '5-tab dashboard with PortalAppBar on top and a pill tab '
+              'strip beneath. Each destination renders a placeholder '
+              'body for now — Users + Audit Logs become real screens in '
+              'Phases 5 + 6. The 3 unredesigned tabs (Sites, Participants, '
+              'RAVE Sync) stay as their current widgets once integrated '
+              'in Phase 9.',
+            ),
+            const SizedBox(height: 8),
+            // Inline preview: nest a sized Scaffold-bearing widget inside
+            // the outer scroll. Nesting is a Flutter anti-pattern in real
+            // routes but is fine for a static preview block. Phase 9 will
+            // mount this dashboard as a real route in portal_ui_evs.
+            SizedBox(
+              height: 720,
+              child: PortalDashboard(
+                appBar: PortalAppBar(
+                  title: 'Clinical Trial Portal',
+                  subtitle: 'Administrator Dashboard',
+                  userName: 'Dr. Emily Parker',
+                  activeRole: 'Administrator',
+                  availableRoles: const [
+                    'Administrator',
+                    'StudyCoordinator',
+                    'CRA',
+                  ],
+                  onRoleSelected: (role) =>
+                      _snack(context, 'Role switched to: $role'),
+                  onLogout: () => _snack(context, 'Logout fired'),
+                  onHelp: () => _snack(context, 'Help tapped'),
+                ),
+                destinations: [
+                  DashboardDestination(
+                    key: 'users',
+                    label: 'Users',
+                    body: (_) =>
+                        const _Placeholder(label: 'UsersScreen — Phase 5'),
+                  ),
+                  DashboardDestination(
+                    key: 'audit',
+                    label: 'Audit Logs',
+                    body: (_) =>
+                        const _Placeholder(label: 'AuditLogsScreen — Phase 6'),
+                  ),
+                  DashboardDestination(
+                    key: 'sites',
+                    label: 'Sites',
+                    body: (_) => const _Placeholder(
+                      label:
+                          'SitesScreen (untouched, '
+                          'wired in Phase 9)',
+                    ),
+                  ),
+                  DashboardDestination(
+                    key: 'participants',
+                    label: 'Participants',
+                    body: (_) => const _Placeholder(
+                      label:
+                          'ParticipantsScreen (untouched, '
+                          'wired in Phase 9)',
+                    ),
+                  ),
+                  DashboardDestination(
+                    key: 'rave',
+                    label: 'RAVE Sync',
+                    body: (_) => const _Placeholder(
+                      label:
+                          'RaveSyncScreen (untouched, '
+                          'wired in Phase 9)',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 40),
             const _Caption('Notes', isHeading: true),
             const SizedBox(height: 8),
@@ -149,11 +227,41 @@ class _PreviewHome extends StatelessWidget {
                 'Hot-reload edits to portal_screens (lib/src/widgets/*.dart) '
                 'reflect immediately. Use the role-switcher dropdowns + '
                 'Logout buttons to drive the callbacks — each shows a '
-                'SnackBar.',
+                'SnackBar. Tab pills swap the dashboard body inline.',
                 style: intro,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Placeholder body for the dashboard destinations — flat-coloured
+/// panel with a centred caption. Real screens land in Phases 5 + 6;
+/// the un-redesigned destinations (Sites / Participants / RAVE Sync)
+/// pass through their existing portal_ui_evs widgets in Phase 9.
+class _Placeholder extends StatelessWidget {
+  const _Placeholder({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(48, 16, 48, 24),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
     );

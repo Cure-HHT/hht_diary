@@ -16,3 +16,7 @@ export 'src/models/user_status_view.dart';
 // Phase 3: portal-wide reusable widgets.
 export 'src/widgets/portal_app_bar.dart';
 export 'src/widgets/role_pill.dart';
+
+// Phase 4: top-tab dashboard shell.
+export 'src/widgets/dashboard_tabs.dart';
+export 'src/widgets/portal_dashboard.dart';
