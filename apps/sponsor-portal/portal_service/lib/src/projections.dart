@@ -149,6 +149,21 @@ final AggregateProjectionSpec sessionsIndexSpec = AggregateProjectionSpec(
   tombstoneEventTypes: const {'session_terminated'},
 );
 
+// Implements: DIARY-DEV-portal-settings-store/B — one row per setting key; the
+//   latest portal_setting_changed event per key overwrites (TableFold), so the
+//   current value wins. aggregateId == key; data carries {key, value}.
+final TableProjectionSpec portalSettingsSpec = TableProjectionSpec(
+  viewName: 'portal_settings',
+  interest: const SubscriptionFilter(
+    eventTypes: {'portal_setting_changed'},
+    aggregateTypes: {'portal_setting'},
+  ),
+  insertEventTypes: const {'portal_setting_changed'},
+  removeEventTypes: const {},
+  rowKey: const CompositeKey(['data.key']),
+  rowData: const SelectedFields(['key', 'value']),
+);
+
 // Implements: DIARY-DEV-rave-edc-ingest/C — rave_sync_status folds the rave_sync
 //   lockout events into one row; counter-affecting events carry the authoritative
 //   consecutive_auth_failures so the merge yields a correct running counter.
