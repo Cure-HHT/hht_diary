@@ -3,9 +3,11 @@
 // Verifies: DIARY-DEV-audit-log-read/A+B
 // Verifies: DIARY-DEV-portal-activation-email-delivery/B
 // Verifies: DIARY-DEV-portal-reset-code-lifecycle/D
+// Verifies: DIARY-DEV-portal-test-account-provisioning/A+B
 import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
+import 'package:portal_identity/portal_identity.dart';
 import 'package:portal_server_evs/portal_server_evs.dart';
 import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -514,5 +516,101 @@ void main() {
     final body = jsonDecode(await resp.readAsString()) as Map<String, Object?>;
     expect(body['ok'], isTrue,
         reason: 'enumeration-resistant: always confirms regardless of match');
+  });
+
+  // Verifies: DIARY-DEV-portal-test-account-provisioning/A+B
+  test(
+      'seedTestAccountActivations: provisions+activates seed emails with '
+      'firebase_uid (idempotent)', () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('seed-activate-idem.db');
+    final backend = SembastBackend(database: db);
+    final store = await openPortalEventStore(backend: backend);
+    const seed = RoleAssignmentSeed(entries: [
+      RoleAssignmentSeedEntry(
+        userId: 'uat-admin@curehht.test',
+        role: 'Administrator',
+        scope: ValueWildcardScope(class_: 'site'),
+      ),
+      RoleAssignmentSeedEntry(
+        userId: 'not-an-email',
+        role: 'X',
+        scope: ValueWildcardScope(class_: 'site'),
+      ),
+    ]);
+    var provisionCalls = 0;
+    Future<LookupOrProvisionResult> fake(
+        {required String email,
+        required String displayName,
+        required String password}) async {
+      provisionCalls++;
+      return const LookupOrProvisionResult(uid: 'uid-uat-admin', created: true);
+    }
+
+    await seedTestAccountActivations(
+        eventStore: store,
+        backend: backend,
+        seed: seed,
+        password: 'curehht1',
+        provision: fake);
+    // Second run must be idempotent.
+    await seedTestAccountActivations(
+        eventStore: store,
+        backend: backend,
+        seed: seed,
+        password: 'curehht1',
+        provision: fake);
+    // Provisioner called once per run for the one email entry (non-email skipped).
+    expect(provisionCalls, 2, reason: 'provisioner called once per run');
+
+    final rows = await backend.findViewRows('users_index');
+    final row = rows.firstWhere((r) => r['email'] == 'uat-admin@curehht.test');
+    expect(row['firebase_uid'], 'uid-uat-admin');
+    expect(row['status'], 'active');
+
+    // Non-email entry is skipped.
+    expect(rows.any((r) => r['email'] == 'not-an-email'), isFalse,
+        reason: 'non-email userId must be ignored');
+
+    // Exactly one user_activated event despite two runs (idempotent).
+    final activated = await backend
+        .readEventsReverse()
+        .where((e) => e.eventType == 'user_activated')
+        .toList();
+    expect(activated.length, 1,
+        reason: 'second run must not append a duplicate user_activated');
+  });
+
+  // Verifies: DIARY-DEV-portal-test-account-provisioning/B
+  test('seedTestAccountActivations: no password is a no-op', () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('seed-activate-noop.db');
+    final backend = SembastBackend(database: db);
+    final store = await openPortalEventStore(backend: backend);
+    const seed = RoleAssignmentSeed(entries: [
+      RoleAssignmentSeedEntry(
+        userId: 'x@y.test',
+        role: 'Administrator',
+        scope: ValueWildcardScope(class_: 'site'),
+      ),
+    ]);
+    await seedTestAccountActivations(
+      eventStore: store,
+      backend: backend,
+      seed: seed,
+      password: null,
+      provision: (
+              {required email,
+              required displayName,
+              required password}) async =>
+          const LookupOrProvisionResult(uid: 'u', created: false),
+    );
+    final created = await backend
+        .readEventsReverse()
+        .where((e) =>
+            e.eventType == 'user_created' || e.eventType == 'user_activated')
+        .toList();
+    expect(created, isEmpty,
+        reason: 'null password must not append any events');
   });
 }

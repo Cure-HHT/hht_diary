@@ -800,6 +800,7 @@
 - DIARY-DEV-portal-identity-provisioning-A
 - DIARY-DEV-portal-activation-email-delivery-B
 - DIARY-DEV-portal-user-activated-binding-A
+- DIARY-DEV-portal-test-account-provisioning-A
 - DIARY-PRD-evidence-email-identity-A
 - DIARY-PRD-evidence-email-identity-G
 - DIARY-PRD-password-forgot-A
@@ -1851,6 +1852,7 @@
 - DIARY-DEV-portal-reset-password-update:section:0
 - DIARY-DEV-portal-reset-password-update:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
+- DIARY-DEV-portal-test-account-provisioning:section:1
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-requirements:section:0
 - DIARY-PRD-two-factor-authentication:section:0
@@ -2479,6 +2481,8 @@
 - DIARY-DEV-portal-active-role-switch:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
 - DIARY-DEV-portal-reset-session-termination:section:1
+- DIARY-DEV-portal-test-account-provisioning:section:0
+- DIARY-DEV-portal-test-account-provisioning:section:1
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
@@ -3243,6 +3247,7 @@
 - DIARY-DEV-operator-tier-authz-B
 - DIARY-DEV-operator-tier-authz-C
 - DIARY-DEV-operator-tier-authz-F
+- DIARY-DEV-portal-test-account-provisioning-A
 - DIARY-GUI-audit-log-common-A
 - DIARY-GUI-audit-log-common-C
 - DIARY-GUI-audit-log-administrator-A
@@ -3378,6 +3383,8 @@
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
+- DIARY-DEV-portal-test-account-provisioning:section:0
+- DIARY-DEV-portal-test-account-provisioning:section:1
 - rem:spec/glossary-core.md:730
 - rem:spec/glossary-core.md:756
 - rem:spec/prd-audit-log.md:3
