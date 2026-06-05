@@ -10,7 +10,7 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 61c67ba72a6dad5ba95b3fe996c012cd6a85622f
+      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
       path: event_sourcing
 
 dev_dependencies:
