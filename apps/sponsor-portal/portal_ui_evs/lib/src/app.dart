@@ -43,14 +43,6 @@ final String _serverUrl = _serverUrlOverride.isNotEmpty
     ? _serverUrlOverride
     : Uri.base.origin;
 
-/// When true, renders the firebase_auth Login + OTP screens instead of the
-/// dev ConnectScreen. DEFAULT off — the existing dev path is unchanged.
-/// Enable with `--dart-define=PORTAL_SESSION_AUTH=true`.
-const bool _sessionAuth = bool.fromEnvironment(
-  'PORTAL_SESSION_AUTH',
-  defaultValue: false,
-);
-
 class PortalEvsApp extends StatefulWidget {
   const PortalEvsApp({super.key});
 
@@ -62,6 +54,13 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   late final RemoteScope _scope;
   late final StreamSubscription<AuthStatus> _authSub;
   AuthStatus _status = const NotAuthenticated();
+
+  /// Login-UI mode, resolved at runtime from `GET /config/identity` (`authMode`).
+  /// Null while the config is still loading; `true` renders the Firebase
+  /// Login/OTP screens, `false` renders the dev ConnectScreen. Resolving at
+  /// runtime lets one web image serve both dev and session-auth deployments.
+  // Implements: DIARY-DEV-portal-second-factor-toggle/C
+  bool? _sessionAuth;
 
   /// Set to true after the user taps "Back to Login" on the password-reset done
   /// view so [build] falls through to the normal auth switch instead of
@@ -87,11 +86,26 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       if (!mounted) return;
       setState(() => _status = next);
     });
-    if (_sessionAuth) {
-      // Fire-and-forget: fetch /config/identity and initialise Firebase.
-      // Errors are surfaced through the LoginScreen UI on first sign-in attempt.
-      initFirebaseFromServer(_serverUrl).ignore();
+    _resolveAuthMode();
+  }
+
+  /// Resolves the login-UI mode from the server's identity config. When the
+  /// server reports `authMode == 'session'`, initialises Firebase from the same
+  /// config so [LoginScreen] can authenticate. Falls back to dev mode if the
+  /// config can't be fetched. Firebase init errors are swallowed here and
+  /// surface through the LoginScreen UI on the first sign-in attempt.
+  // Implements: DIARY-DEV-portal-second-factor-toggle/C
+  Future<void> _resolveAuthMode() async {
+    var session = false;
+    final cfg = await fetchIdentityConfig(_serverUrl);
+    if (cfg != null) {
+      session = cfg['authMode'] == 'session';
+      if (session) {
+        await initFirebaseWithConfig(cfg).catchError((Object _) {});
+      }
     }
+    if (!mounted) return;
+    setState(() => _sessionAuth = session);
   }
 
   @override
@@ -146,7 +160,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     // POST /logout only in session mode — the dev credential is a bare userId,
     // not a parseable session token, and there is no server-side session to
     // terminate.
-    if (_sessionAuth) {
+    if (_sessionAuth == true) {
       final credential = _identityCredential;
       if (credential != null) {
         try {
@@ -162,6 +176,17 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     setState(() => _identityCredential = null);
     _scope.authSession.setCredential(null);
   }
+
+  /// Shown while the login-UI mode is still being resolved from the server.
+  Widget _loadingScaffold() =>
+      const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+  /// The Firebase email/password login surface (session-auth mode).
+  Widget _loginScreen() => LoginScreen(
+    serverUrl: _serverUrl,
+    authClient: RealFirebaseAuthClient(),
+    onSession: _onSession,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -204,41 +229,37 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
         },
         onRoleSelected: _onRoleSelected,
       ),
-      Expired() => Scaffold(
-        body: _sessionAuth
-            ? Column(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'Session ended — please sign in again.',
-                      style: TextStyle(color: Colors.orange),
-                    ),
-                  ),
-                  Expanded(
-                    child: LoginScreen(
-                      serverUrl: _serverUrl,
-                      authClient: RealFirebaseAuthClient(),
-                      onSession: _onSession,
-                    ),
-                  ),
-                ],
-              )
-            : ConnectScreen(
-                onConnect: _onConnect,
-                message: 'Session ended — reconnect.',
-                serverUrl: _serverUrl,
+      Expired() => switch (_sessionAuth) {
+        null => _loadingScaffold(),
+        true => Scaffold(
+          body: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Session ended — please sign in again.',
+                  style: TextStyle(color: Colors.orange),
+                ),
               ),
-      ),
-      NotAuthenticated() => Scaffold(
-        body: _sessionAuth
-            ? LoginScreen(
-                serverUrl: _serverUrl,
-                authClient: RealFirebaseAuthClient(),
-                onSession: _onSession,
-              )
-            : ConnectScreen(onConnect: _onConnect, serverUrl: _serverUrl),
-      ),
+              Expanded(child: _loginScreen()),
+            ],
+          ),
+        ),
+        false => Scaffold(
+          body: ConnectScreen(
+            onConnect: _onConnect,
+            message: 'Session ended — reconnect.',
+            serverUrl: _serverUrl,
+          ),
+        ),
+      },
+      NotAuthenticated() => switch (_sessionAuth) {
+        null => _loadingScaffold(),
+        true => Scaffold(body: _loginScreen()),
+        false => Scaffold(
+          body: ConnectScreen(onConnect: _onConnect, serverUrl: _serverUrl),
+        ),
+      },
     };
     return ReActionScope(
       scope: _scope,

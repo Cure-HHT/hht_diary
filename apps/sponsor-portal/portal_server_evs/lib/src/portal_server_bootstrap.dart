@@ -375,6 +375,11 @@ Future<PortalServerBoot> bootstrapPortalServer({
     'messagingSenderId':
         Platform.environment['PORTAL_IDENTITY_SENDER_ID'] ?? '',
     'emulatorHost': Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ?? '',
+    // The client resolves its login-UI mode (Firebase Login/OTP vs dev
+    // ConnectScreen) at runtime from this field, so a single web image works
+    // against both dev and session-auth deployments.
+    // Implements: DIARY-DEV-portal-second-factor-toggle/C
+    'authMode': authMode,
   };
   // Implements: DIARY-DEV-portal-login-identity-verification/A+B
   final loginRouter = buildLoginRouter(

@@ -613,4 +613,25 @@ void main() {
     expect(created, isEmpty,
         reason: 'null password must not append any events');
   });
+
+  // Verifies: DIARY-DEV-portal-second-factor-toggle/C
+  test(
+      'GET /config/identity carries authMode so the client can pick its login UI',
+      () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('boot-authmode.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
+    );
+    addTearDown(boot.dispose);
+
+    final resp = await boot
+        .router(Request('GET', Uri.parse('http://localhost/config/identity')));
+    expect(resp.statusCode, 200);
+    final body = jsonDecode(await resp.readAsString()) as Map<String, Object?>;
+    // Default boot (no PORTAL_AUTH_MODE env) is dev mode; the field is present
+    // so the client never has to guess.
+    expect(body['authMode'], 'dev');
+  });
 }
