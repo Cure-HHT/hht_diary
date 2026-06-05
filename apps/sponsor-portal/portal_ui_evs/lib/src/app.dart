@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -244,9 +245,13 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       scope: _scope,
       child: MaterialApp(
         title: 'Portal EVS Skeleton',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF006A60)),
+        // CUR-1450: adopt the diary_design_system brand (Carina blue +
+        // Inter typography). Sites / Participants / RAVE Sync re-theme
+        // passively; their layouts stay until they get their own redesign
+        // round.
+        theme: buildAppTheme(
+          font: AppFontFamily.inter,
+          brightness: Brightness.light,
         ),
         home: home,
       ),
