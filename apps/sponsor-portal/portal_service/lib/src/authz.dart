@@ -68,6 +68,22 @@ List<EntryTypeDefinition> portalEntryTypes() {
       name: 'Portal Boot-Seed Marker',
     ),
   );
+  // Implements: DIARY-DEV-portal-settings-store/A — event-sourced portal config.
+  add(
+    const EntryTypeDefinition(
+      id: 'portal_setting_changed',
+      registeredVersion: 1,
+      name: 'Portal Setting Changed',
+    ),
+  );
+  // Implements: DIARY-DEV-portal-second-factor-toggle/D — attributable bypass.
+  add(
+    const EntryTypeDefinition(
+      id: 'user_login_otp_skipped',
+      registeredVersion: 1,
+      name: 'User Login OTP Skipped',
+    ),
+  );
 
   return byId.values.toList(growable: false);
 }
