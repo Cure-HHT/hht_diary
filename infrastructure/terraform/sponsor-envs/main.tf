@@ -91,11 +91,13 @@ resource "google_secret_manager_secret_iam_member" "doppler_token_compute_access
   member    = "serviceAccount:${var.compute_service_account}"
 }
 
-# Grant Compute Engine default service account Identity Platform admin access
-# Required for deploy-db job to batch-delete and seed Identity Platform users
-# via Identity Toolkit REST API and seed_identity_users.js
+# Grant Compute Engine default service account Identity Platform admin access.
+# Required at runtime by portal_server_evs to provision Identity Platform users
+# on-demand at activation (IdentityAdmin.lookupOrProvisionByEmail) and by its
+# config-driven role-seed bootstrap. (Previously also used by the retired
+# db-schema-job; that job is gone, the grant stays for the EVS server.)
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00031: Identity Platform Integration (user seeding)
+#   REQ-d00031: Identity Platform Integration (user provisioning)
 resource "google_project_iam_member" "compute_sa_identity_platform_admin" {
   count   = var.compute_service_account != "" ? 1 : 0
   project = var.project_id

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:event_sourcing/event_sourcing.dart';
 
@@ -34,8 +35,18 @@ class UserTierReactor {
     )
         .listen((update) {
       if (update is Delta<StoredEvent>) {
-        unawaited(_handleRoleEvent(update.value));
+        // Fire-and-forget with a catchError backstop: a reactor failure
+        // (e.g. a non-retryable append error) must NEVER surface as an
+        // unhandled async exception that takes the server down.
+        unawaited(_handleRoleEvent(update.value)
+            .catchError((Object e, StackTrace st) {
+          stderr.writeln(
+              'UserTierReactor._handleRoleEvent failed (continuing): $e\n$st');
+        }));
       }
+    }, onError: (Object e, StackTrace st) {
+      stderr.writeln('UserTierReactor role subscription error (continuing): '
+          '$e\n$st');
     });
 
     // Implements: DIARY-DEV-operator-tier-authz/A
@@ -49,8 +60,17 @@ class UserTierReactor {
     )
         .listen((update) {
       if (update is Delta<StoredEvent>) {
-        unawaited(_handleUserCreated(update.value));
+        unawaited(_handleUserCreated(update.value)
+            .catchError((Object e, StackTrace st) {
+          stderr.writeln(
+              'UserTierReactor._handleUserCreated failed (continuing): '
+              '$e\n$st');
+        }));
       }
+    }, onError: (Object e, StackTrace st) {
+      stderr.writeln(
+          'UserTierReactor user_created subscription error (continuing): '
+          '$e\n$st');
     });
   }
 

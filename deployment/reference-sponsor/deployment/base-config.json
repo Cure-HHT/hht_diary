@@ -1,0 +1,5 @@
+{
+  "_comment": "Built-in REFERENCE sponsor for the core local-stack. This is NOT a deployable sponsor — it carries only the fields the local-stack build reads (sponsor id + edc_module), so a core dev can bring up the Postgres-backed stack from hht_diary alone, with no sponsor checkout and an empty content overlay. The resolver (lib/resolve-sponsor-path.py) falls back here when neither $SPONSOR_REPO nor [associated.sponsor].path is set. Real sponsors carry the full base-config (doppler/gar/gcp/images) in their own repos.",
+  "sponsor": "reference",
+  "edc_module": "mock"
+}

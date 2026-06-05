@@ -1,8 +1,16 @@
 # App Manifest — hht_diary
 #
-# Describes every Dart/Flutter project under apps/ so that CI, pre-push hooks,
-# and dev tooling can discover and run a uniform set of checks without
-# hard-coding paths in each workflow.
+# Describes Dart/Flutter projects under apps/ so that CI, pre-push hooks, and
+# dev tooling can discover and run a uniform set of checks without hard-coding
+# paths in each workflow.
+#
+# This file is a COMPLETE, descriptive inventory of every pubspec under apps/.
+# It does not itself drive CI: no generic workflow consumes it today, and the
+# hand-written workflows in .github/workflows/ (e.g. sponsor-portal-ci.yml,
+# clinical_diary-ci.yml, trial_data_types-ci.yml) are the authoritative CI
+# source. Each entry's `ci:` block records how that package is ACTUALLY checked
+# today; packages with no dedicated workflow say so explicitly rather than
+# implying a pipeline that does not exist.
 #
 # Usage:
 #   A generic CI workflow reads this file and, for each entry whose
@@ -62,6 +70,307 @@ apps:
       services: []
       analysis_options: true
 
+  - name: canonical_json_jcs
+    path: apps/common-dart/canonical_json_jcs
+    sdk_type: dart
+    dart_sdk: "^3.10.1"
+    version: 0.1.0
+
+    depends_on: []
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only. The
+    # package ships a test/ suite but no CI job runs it in this repo today.
+    ci:
+      trigger_paths:
+        - apps/common-dart/canonical_json_jcs/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: dart
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: comms
+    path: apps/common-dart/comms
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.0.1
+
+    depends_on: []
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only.
+    ci:
+      trigger_paths:
+        - apps/common-dart/comms/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: dart
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: diary_shared_model
+    path: apps/common-dart/diary_shared_model
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.9.0
+
+    depends_on: []
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only. Present
+    # in the sponsor-ci source image (build-sponsor-ci.yml validates its
+    # directory) but no job runs format/analyze/test against it.
+    ci:
+      trigger_paths:
+        - apps/common-dart/diary_shared_model/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: dart
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: event_sourcing_datastore
+    path: apps/common-dart/event_sourcing_datastore
+    sdk_type: flutter
+    dart_sdk: "^3.10.7"
+    version: 0.3.0+4
+
+    depends_on:
+      - canonical_json_jcs          # path: ../canonical_json_jcs
+      - provenance                  # path: ../provenance
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only. Ships a
+    # tool/test.sh and test/ suite but no CI job invokes them in this repo.
+    ci:
+      trigger_paths:
+        - apps/common-dart/event_sourcing_datastore/**
+        - apps/common-dart/canonical_json_jcs/**
+        - apps/common-dart/provenance/**
+      format: true
+      analyze:
+        tool: flutter
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: flutter
+        test_script: tool/test.sh
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: grpc_health
+    path: apps/common-dart/grpc_health
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.1.0
+
+    depends_on: []
+
+    # Not yet wired to a dedicated workflow; analyze intent only (no test/ dir).
+    ci:
+      trigger_paths:
+        - apps/common-dart/grpc_health/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: false
+        integration: false
+        runner: dart
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: otel_common
+    path: apps/common-dart/otel_common
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.0.1
+
+    depends_on: []
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only. Ships a
+    # tool/test.sh and test/ suite but no CI job invokes them in this repo.
+    ci:
+      trigger_paths:
+        - apps/common-dart/otel_common/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: dart
+        test_script: tool/test.sh
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: portal_actions
+    path: apps/common-dart/portal_actions
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.3.4
+
+    depends_on:
+      - diary_shared_model          # path: ../diary_shared_model
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only. Present
+    # in the sponsor-ci source image but no job runs format/analyze/test on it.
+    ci:
+      trigger_paths:
+        - apps/common-dart/portal_actions/**
+        - apps/common-dart/diary_shared_model/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: dart
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: provenance
+    path: apps/common-dart/provenance
+    sdk_type: dart
+    dart_sdk: "^3.10.1"
+    version: 0.1.0
+
+    depends_on: []
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only.
+    ci:
+      trigger_paths:
+        - apps/common-dart/provenance/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: dart
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: shared_functions
+    path: apps/common-dart/shared_functions
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.1.0
+
+    depends_on: []
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only. Ships a
+    # tool/test.sh and test/ suite but no CI job invokes them in this repo.
+    ci:
+      trigger_paths:
+        - apps/common-dart/shared_functions/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: dart
+        test_script: tool/test.sh
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  # =========================================================================
+  # Common Flutter Libraries
+  # =========================================================================
+
+  - name: common_widgets
+    path: apps/common-flutter/common_widgets
+    sdk_type: flutter
+    dart_sdk: "^3.10.7"
+    version: 0.0.1
+
+    depends_on: []
+
+    # Not yet wired to a dedicated workflow; analyze intent only (no test/ dir).
+    # Exercised transitively when clinical_diary CI builds resolve it as a path
+    # dependency, but it has no checks of its own.
+    ci:
+      trigger_paths:
+        - apps/common-flutter/common_widgets/**
+      format: true
+      analyze:
+        tool: flutter
+        fatal_infos: true
+      test:
+        unit: false
+        integration: false
+        runner: flutter
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: eq
+    path: apps/common-flutter/eq
+    sdk_type: flutter
+    dart_sdk: "^3.10.7"
+    version: 0.0.8+16
+
+    depends_on:
+      - trial_data_types            # path: ../../common-dart/trial_data_types
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only. Exercised
+    # transitively as a clinical_diary path dependency, but has no CI job of its
+    # own.
+    ci:
+      trigger_paths:
+        - apps/common-flutter/eq/**
+        - apps/common-dart/trial_data_types/**
+      format: true
+      analyze:
+        tool: flutter
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: flutter
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
   # =========================================================================
   # EDC Integration
   # =========================================================================
@@ -101,7 +410,12 @@ apps:
     dart_sdk: "^3.10.7"
     version: 0.8.11
 
-    depends_on: []
+    depends_on:
+      - event_sourcing_datastore    # path: ../../common-dart/event_sourcing_datastore
+      - diary_shared_model          # path: ../../common-dart/diary_shared_model
+      - trial_data_types            # path: ../../common-dart/trial_data_types
+      - eq                          # path: ../../common-flutter/eq
+      - common_widgets              # path: ../../common-flutter/common_widgets
 
     platforms:
       - android
@@ -163,38 +477,11 @@ apps:
     depends_on:
       - trial_data_types            # path: ../../common-dart/trial_data_types
 
-    ci:
-      trigger_paths:
-        - apps/daily-diary/diary_functions/**
-        - apps/common-dart/trial_data_types/**
-        - database/**
-      format: true
-      analyze:
-        tool: dart
-        fatal_infos: true
-      test:
-        unit: true
-        integration: true
-        runner: dart
-        test_script: tool/test.sh
-      coverage:
-        enabled: true
-        threshold: null             # no enforced threshold yet
-        codecov_flag: diary-functions
-      services:
-        - type: postgres
-          image: postgres:17-alpine
-          port: 5432
-          db_name: sponsor_portal
-          schema_file: database/init.sql
-      env:
-        DB_HOST: localhost
-        DB_PORT: "5432"
-        DB_NAME: sponsor_portal
-        DB_USER: postgres
-        DB_SSL: "false"
-        JWT_SECRET: test-jwt-secret-for-ci
-      analysis_options: false
+    # Reference-only since the EVS cutover (CUR-1170). The raw-Postgres data
+    # path this served — incl. the database/ relational schema — was retired;
+    # the diary now ingests into portal_server_evs. Retained for reference,
+    # no longer built or tested by CI. No ci: block.
+    reference_only: true
 
   - name: diary_server
     path: apps/daily-diary/diary_server
@@ -206,38 +493,10 @@ apps:
       - diary_functions             # path: ../diary_functions
       # transitive: trial_data_types
 
-    ci:
-      trigger_paths:
-        - apps/daily-diary/diary_server/**
-        - apps/daily-diary/diary_functions/**
-        - database/**
-      format: true
-      analyze:
-        tool: dart
-        fatal_infos: true
-      test:
-        unit: true
-        integration: true
-        runner: dart
-        test_script: tool/test.sh
-      coverage:
-        enabled: true
-        threshold: null
-        codecov_flag: diary-server
-      services:
-        - type: postgres
-          image: postgres:17-alpine
-          port: 5432
-          db_name: sponsor_portal
-          schema_file: database/init.sql
-      env:
-        DB_HOST: localhost
-        DB_PORT: "5432"
-        DB_NAME: sponsor_portal
-        DB_USER: postgres
-        DB_SSL: "false"
-        JWT_SECRET: test-jwt-secret-for-ci
-      analysis_options: false
+    # Reference-only since the EVS cutover (CUR-1170). The legacy raw-Postgres
+    # diary server is superseded by device->portal_server_evs /ingest. Retained
+    # for reference, no longer built or tested by CI. No ci: block.
+    reference_only: true
 
   # =========================================================================
   # Sponsor Portal
@@ -249,28 +508,150 @@ apps:
     dart_sdk: "^3.10.7"
     version: 1.0.0+1
 
+    depends_on:
+      - common_widgets              # path: ../../common-flutter/common_widgets
+      - trial_data_types            # path: ../../common-dart/trial_data_types
+
+    platforms:
+      - web
+
+    # Reference-only since the EVS cutover (CUR-1170). The legacy sponsor-portal
+    # Flutter UI is superseded by portal_ui_evs; retained for reference, no
+    # longer built or tested by CI. No ci: block.
+    reference_only: true
+
+  - name: portal_identity
+    path: apps/sponsor-portal/portal_identity
+    sdk_type: dart
+    dart_sdk: "^3.5.0"
+    version: 0.2.0
+
+    depends_on: []
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only. Present
+    # in the sponsor-ci source image and resolved transitively when
+    # portal_server_evs CI runs, but it has no checks of its own.
+    ci:
+      trigger_paths:
+        - apps/sponsor-portal/portal_identity/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: dart
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: portal_service
+    path: apps/sponsor-portal/portal_service
+    sdk_type: dart
+    dart_sdk: "^3.10.7"
+    version: 0.5.1
+
+    depends_on:
+      - portal_actions              # path: ../../common-dart/portal_actions
+      - diary_shared_model          # path: ../../common-dart/diary_shared_model
+      - rave_integration            # path: ../../edc/rave-integration
+
+    # Not yet wired to a dedicated workflow; analyze/test intent only. Resolved
+    # transitively when portal_server_evs CI runs (portal_server_evs depends on
+    # it), but it has no dedicated job. Hermetic / event-sourced — no Postgres.
+    ci:
+      trigger_paths:
+        - apps/sponsor-portal/portal_service/**
+        - apps/common-dart/portal_actions/**
+        - apps/common-dart/diary_shared_model/**
+        - apps/edc/rave-integration/**
+      format: true
+      analyze:
+        tool: dart
+        fatal_infos: true
+      test:
+        unit: true
+        integration: false
+        runner: dart
+      coverage:
+        enabled: false
+      services: []
+      analysis_options: true
+
+  - name: portal_server_evs
+    path: apps/sponsor-portal/portal_server_evs
+    sdk_type: dart
+    dart_sdk: "^3.5.0"
+    version: 0.5.0
+
+    depends_on:
+      - portal_identity             # path: ../portal_identity
+      - portal_service              # path: ../portal_service
+      - portal_actions              # path: ../../common-dart/portal_actions
+      - rave_integration            # path: ../../edc/rave-integration
+      - diary_shared_model          # path: ../../common-dart/diary_shared_model
+
+    # Real CI: sponsor-portal-ci.yml runs the link/ingest e2e suite against the
+    # REAL /actions + /link + /ingest routers over an in-memory store. Hermetic
+    # and event-sourced — no PostgreSQL, no Firebase emulator.
+    ci:
+      trigger_paths:
+        - apps/sponsor-portal/portal_server_evs/**
+        - apps/sponsor-portal/portal_identity/**
+        - apps/sponsor-portal/portal_service/**
+        - apps/common-dart/portal_actions/**
+        - apps/common-dart/diary_shared_model/**
+        - apps/edc/rave-integration/**
+      format: false                 # sponsor-portal-ci does not run a format gate on this package
+      analyze:
+        tool: dart
+        fatal_infos: false          # sponsor-portal-ci runs only the e2e suite below; no separate analyze gate today
+      test:
+        unit: false
+        integration: true           # e2e link/ingest suite (scoped to the e2e files)
+        runner: dart
+        # Explicit e2e files run by sponsor-portal-ci.yml:
+        e2e_tests:
+          - test/link_then_ingest_e2e_test.dart
+          - test/relink_loops_e2e_test.dart
+          - test/ingest_idempotency_e2e_test.dart
+          - test/diary_event_types_e2e_test.dart
+          - test/trial_start_state_e2e_test.dart
+      coverage:
+        enabled: false
+      services: []                  # hermetic / event-sourced — no Postgres, no Firebase
+      analysis_options: true
+
+  - name: portal_ui_evs
+    path: apps/sponsor-portal/portal_ui_evs
+    sdk_type: flutter
+    dart_sdk: "^3.10.7"
+    version: 1.4.1+15
+
     depends_on: []
 
     platforms:
       - web
 
+    # Wired into sponsor-portal-ci.yml (CUR-1170): flutter analyze + test +
+    # coverage. The live EVS portal UI — replaced the retired portal-ui.
     ci:
       trigger_paths:
-        - apps/sponsor-portal/portal-ui/**
-        - database/**
+        - apps/sponsor-portal/portal_ui_evs/**
       format: true
       analyze:
         tool: flutter
-        fatal_infos: false          # uses `flutter analyze` without --fatal-infos in current CI
+        fatal_infos: false          # sponsor-portal-ci runs plain `flutter analyze`
       test:
         unit: true
-        integration: false          # portal-ui integration tests run with services in portal CI
+        integration: false
         runner: flutter
-        test_script: tool/test.sh
       coverage:
         enabled: true
         threshold: null
-        codecov_flag: sponsor-portal
+        codecov_flag: portal-ui-evs
       services: []
       analysis_options: true
 
@@ -283,43 +664,11 @@ apps:
     depends_on:
       - rave_integration            # path: ../../edc/rave-integration
 
-    ci:
-      trigger_paths:
-        - apps/sponsor-portal/portal_functions/**
-        - apps/edc/rave-integration/**
-        - database/**
-      format: true
-      analyze:
-        tool: dart
-        fatal_infos: true
-      test:
-        unit: true
-        integration: true
-        runner: dart
-        test_script: tool/test.sh
-      coverage:
-        enabled: true
-        threshold: 60               # from tool/test.sh MIN_COVERAGE
-        codecov_flag: sponsor-portal
-      services:
-        - type: postgres
-          image: postgres:17-alpine
-          port: 5432
-          db_name: sponsor_portal
-          schema_file: database/init.sql
-          test_fixtures: database/init_test.sql
-        - type: firebase_auth_emulator
-          port: 9099
-          project: demo-sponsor-portal
-      env:
-        DB_HOST: localhost
-        DB_PORT: "5432"
-        DB_NAME: sponsor_portal
-        DB_USER: postgres
-        DB_SSL: "false"
-        FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099"
-        GCP_PROJECT_ID: demo-sponsor-portal
-      analysis_options: false
+    # Reference-only since the EVS cutover (CUR-1170). Superseded by the
+    # event-sourced portal (portal_server_evs + portal_service); the raw-Postgres
+    # data path incl. database/ was retired. Retained for reference, no longer
+    # built or tested by CI. No ci: block.
+    reference_only: true
 
   - name: portal_server
     path: apps/sponsor-portal/portal_server
@@ -331,57 +680,52 @@ apps:
       - portal_functions            # path: ../portal_functions
       # transitive: rave_integration
 
-    ci:
-      trigger_paths:
-        - apps/sponsor-portal/portal_server/**
-        - apps/sponsor-portal/portal_functions/**
-        - database/**
-      format: true
-      analyze:
-        tool: dart
-        fatal_infos: true
-      test:
-        unit: true
-        integration: true
-        runner: dart
-        test_script: tool/test.sh
-      coverage:
-        enabled: true
-        threshold: null
-        codecov_flag: sponsor-portal
-      services:
-        - type: postgres
-          image: postgres:17-alpine
-          port: 5432
-          db_name: sponsor_portal
-          schema_file: database/init.sql
-          test_fixtures: database/init_test.sql
-        - type: firebase_auth_emulator
-          port: 9099
-          project: demo-sponsor-portal
-      env:
-        DB_HOST: localhost
-        DB_PORT: "5432"
-        DB_NAME: sponsor_portal
-        DB_USER: postgres
-        DB_SSL: "false"
-        FIREBASE_AUTH_EMULATOR_HOST: "127.0.0.1:9099"
-        GCP_PROJECT_ID: demo-sponsor-portal
-      analysis_options: false
+    # Reference-only since the EVS cutover (CUR-1170). Superseded by
+    # portal_server_evs. Retained for reference, no longer built or tested by
+    # CI. No ci: block.
+    reference_only: true
 
 # ---------------------------------------------------------------------------
 # Dependency graph (for topological build order)
 # ---------------------------------------------------------------------------
-# Leaf packages (no local deps) — can build in parallel:
-#   trial_data_types, rave_integration, portal-ui
+# Packages with REAL dedicated CI in this repo (hand-written workflows run
+# format/analyze/test against them):
+#   trial_data_types      -> trial_data_types-ci.yml (format, analyze, test)
+#   rave_integration      -> covered as a dependency in sponsor-portal builds
+#   clinical_diary        -> clinical_diary-ci.yml   (format, analyze, test+cov)
+#   portal_server_evs     -> sponsor-portal-ci.yml   (link/ingest e2e suite;
+#                            hermetic / event-sourced — no Postgres, no Firebase)
+#   portal_ui_evs         -> sponsor-portal-ci.yml   (flutter analyze, test, cov)
 #
-# Layer 1 (depends on leaves):
-#   diary_functions   -> trial_data_types
-#   portal_functions  -> rave_integration
+# Packages with NO dedicated CI today — present in the source tree (and most in
+# the sponsor-ci source image), checked only transitively or not at all. Their
+# `ci:` blocks record analyze/test INTENT, not an existing pipeline:
+#   common-dart:   canonical_json_jcs, comms, diary_shared_model,
+#                  event_sourcing_datastore, grpc_health, otel_common,
+#                  portal_actions, provenance, shared_functions
+#   common-flutter: common_widgets, eq
+#   sponsor-portal: portal_identity, portal_service
 #
-# Layer 2 (depends on layer 1):
-#   diary_server      -> diary_functions
-#   portal_server     -> portal_functions
+# Reference-only since the EVS cutover (CUR-1170) — NOT built or tested by CI
+# (the raw-Postgres stack that they depended on was retired):
+#   diary_functions, diary_server, portal_functions, portal_server, portal-ui
+#   (portal-ui = legacy Flutter UI, superseded by portal_ui_evs)
 #
-# A CI matrix job can topologically sort `depends_on` to produce this order.
+# Local path-dependency edges (child -> deps), for topological build order:
+#   canonical_json_jcs   -> (none)        provenance -> (none)
+#   event_sourcing_datastore -> canonical_json_jcs, provenance
+#   diary_shared_model   -> (none)
+#   portal_actions       -> diary_shared_model
+#   eq                   -> trial_data_types
+#   common_widgets       -> (none)        comms/grpc_health/otel_common/
+#                                         shared_functions/portal_identity -> (none)
+#   portal_service       -> portal_actions, diary_shared_model, rave_integration
+#   portal_server_evs    -> portal_identity, portal_service, portal_actions,
+#                           rave_integration, diary_shared_model
+#   portal_ui_evs        -> (none)
+#   clinical_diary       -> event_sourcing_datastore, diary_shared_model,
+#                           trial_data_types, eq, common_widgets
+#   portal-ui            -> common_widgets, trial_data_types
+#
+# A CI matrix job can topologically sort `depends_on` to produce build order.
 # ---------------------------------------------------------------------------

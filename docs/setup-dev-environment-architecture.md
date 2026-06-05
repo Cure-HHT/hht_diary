@@ -425,7 +425,7 @@ Host Machine:
 │       ├── setup.sh
 │       └── README.md
 │
-└── database/                 ← Available in all containers via volume
+└── (database/)               ← REMOVED in EVS cutover (CUR-1170); EVS event store schema is created at runtime by the event_sourcing library, no in-repo SQL
 
 
 Inside Containers:

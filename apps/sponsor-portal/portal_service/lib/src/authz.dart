@@ -68,6 +68,22 @@ List<EntryTypeDefinition> portalEntryTypes() {
       name: 'Portal Boot-Seed Marker',
     ),
   );
+  // Implements: DIARY-DEV-portal-settings-store/A — event-sourced portal config.
+  add(
+    const EntryTypeDefinition(
+      id: 'portal_setting_changed',
+      registeredVersion: 1,
+      name: 'Portal Setting Changed',
+    ),
+  );
+  // Implements: DIARY-DEV-portal-second-factor-toggle/D — attributable bypass.
+  add(
+    const EntryTypeDefinition(
+      id: 'user_login_otp_skipped',
+      registeredVersion: 1,
+      name: 'User Login OTP Skipped',
+    ),
+  );
 
   return byId.values.toList(growable: false);
 }
@@ -93,6 +109,9 @@ Future<EventStore> openPortalEventStore({
     ..register(usersIndexSpec)
     ..register(sessionsIndexSpec)
     ..register(raveSyncStatusSpec)
+    // Implements: DIARY-DEV-portal-settings-store/B — portal_settings projects
+    //   the latest value per setting key for runtime config reads.
+    ..register(portalSettingsSpec)
     // Implements: DIARY-DEV-participant-ingest/C — ingested diary events materialize
     //   into the diary_entries view.
     ..register(diaryEntriesProjection);

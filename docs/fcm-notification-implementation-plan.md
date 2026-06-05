@@ -1,5 +1,12 @@
 # FCM Notification — Implementation Plan
 
+> **⚠️ Setup steps stale (2026-06, EVS cutover, CUR-1170):** The local-DB setup commands in this
+> plan no longer work — `tools/dev-env/docker-compose.db.yml`, `apps/sponsor-portal/tool/reset_local_db.sh`,
+> and the `database/` SQL schema/migrations were all deleted. The platform is now EVS-only:
+> the event store schema is created at runtime by the `event_sourcing` library (`portal_server_evs`),
+> and notifications data is modeled as events, not relational `database/migrations/*.sql`. The
+> plan's intent is preserved below for reference; ignore the removed local-DB / migration steps.
+
 > **📍 Update (2026-05-07):** The package portion of this plan has been revised. The `apps/common-dart/fcm_notifications/` package described in P1.1+ has been **replaced** by a generic `apps/common-dart/comms/` package that hosts an `FcmChannel` today and will grow `EmailChannel` / `SlackChannel` later.
 >
 > The S1 + S2 stabilize work executed in this document is correct as-is and has shipped on `feature/cur-826-fcm-stabilize`. The Phase 1+ ticket sequencing (P1.1 onward) has been re-planned in [docs/fcm-next-phase-plan.md](./fcm-next-phase-plan.md) with updated package layout, an extra Phase 1A for the package extraction refactor, and Phase 1B for the envelope work.

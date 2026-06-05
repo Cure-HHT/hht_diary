@@ -130,6 +130,67 @@ Pre-commit hook enforcement: `.githooks/pre-commit` section 6 checks that `*-des
 ```
 
 
+# Local-Stack (developer rehearsal of the `dev` deployment)
+
+A Postgres-backed, on-machine rehearsal of the Cloud Run `dev` stack: Postgres +
+Firebase auth emulator + OTel + portal-final, all built from your local
+`hht_diary` working tree on one docker bridge network. Use it to reproduce
+Postgres-only issues the in-memory source-run can't surface (e.g. SERIALIZABLE
+`40001` concurrency bugs).
+
+**The toolkit lives in THIS repo (core `hht_diary`)** at `deployment/local-stack/`.
+It builds this repo's source (the toolkit's own checkout — no config needed) and
+overlays a *sponsor's* build inputs (`base-config.json`, `portal-final.Dockerfile`,
+`content/`, seed-users). With **no sponsor checkout** it falls back to the built-in
+**reference sponsor** at `deployment/reference-sponsor/` (sponsor id `reference`,
+empty content overlay) — so a core dev can rehearse the dev stack from `hht_diary`
+alone. To rehearse a real sponsor, run the local-stack from the sponsor repo (its
+thin `local-stack-wrapper.sh` exports `SPONSOR_REPO`), or set `SPONSOR_REPO` /
+`[associated.sponsor].path` (see below).
+
+Run from this repo root:
+
+```bash
+./deployment/local-stack/local-stack portal   # portal :8080, firebase UI :4000
+./deployment/local-stack/local-stack logs [svc]   # tail logs (all, or e.g. portal-final)
+./deployment/local-stack/local-stack email        # console-mode email (OTPs, activation links)
+./deployment/local-stack/local-stack status        # running services
+./deployment/local-stack/local-stack reset-emulator # clear firebase rate-limit + re-seed users
+./deployment/local-stack/local-stack diary-desktop  # run the Linux desktop diary client
+./deployment/local-stack/local-stack diary-reset    # wipe Linux desktop diary local state
+./deployment/local-stack/local-stack down [--keep-db]  # teardown (volumes + :local images)
+```
+
+Re-running `portal` is safe: schema/event-store self-provisions on a fresh
+postgres volume; source changes are picked up via Docker layer cache each run.
+Cold-cache builds take a while (flutter web + dart compile).
+
+**Prereqs**: Docker >= 24 with compose v2, Doppler CLI authed for the dev config
+(`doppler login` / `doppler setup`), Python >= 3.11. By default the CI toolchain
+base image (`clinical-diary-ci`) is **built locally** from
+`tools/dev-env/docker/ci.Dockerfile`, so no GHCR login is needed; pass
+`--ci-base ghcr` (or `LOCAL_STACK_CI_BASE=ghcr`) to pull the digest-pinned image
+instead, which requires `docker login ghcr.io`.
+
+**Config options** (at `deployment/local-stack/`):
+- `.local-stack.toml` (checked in) — ships WITHOUT an `[associated.sponsor]`
+  block, so the default is the built-in reference sponsor. The *core* path needs
+  no config (it's the toolkit's own `git rev-parse --show-toplevel`, which
+  resolves correctly even from a worktree).
+- To target a real sponsor from a core checkout: export
+  `SPONSOR_REPO=/abs/path/to/hht_diary_<sponsor>`, or create
+  `.local-stack.local.toml` (gitignored) with `[associated.sponsor].path` (use an
+  absolute path from a worktree — a relative `../../../hht_diary_<sponsor>` only
+  resolves from a normal sibling clone).
+- `deployment/local-stack/README.md` — full command reference + behavior notes.
+- `deployment/reference-sponsor/deployment/base-config.json` — reference sponsor id.
+- `deployment/local-stack/compose/docker-compose.yml` — service/topology definition.
+
+When testing a library change pinned by git ref (e.g. `event_sourcing`), push the
+library branch and bump the `ref:` in every consuming `pubspec.yaml` BEFORE
+building — the Docker build runs `flutter pub get` against the pinned ref.
+
+
 # Tooling
 
 Prefer a specialized agent/skill for multi-step work; run independent calls in parallel.

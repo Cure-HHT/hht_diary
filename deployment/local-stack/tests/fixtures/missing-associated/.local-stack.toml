@@ -1,0 +1,3 @@
+# No [associated.sponsor] block — exercises the resolver's "no sponsor repo
+# configured" error path.
+version = 3

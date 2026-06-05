@@ -1,4 +1,13 @@
-FROM ghcr.io/cure-hht/clinical-diary-ci@sha256:044a6171ff4f75b2e5f5d594ed24cac912ac9abfd4f5527ed6b18c2125c3ac28
+# Base CI toolchain image. Defaults to the digest-pinned clinical-diary-ci
+# published to GHCR — what CI (build-ghcr-containers.yml) and Cloud Run deploys
+# build on. The local-stack overrides this with
+#   --build-arg CI_BASE_IMAGE=clinical-diary-ci:local
+# when it builds the CI base locally from tools/dev-env/docker/ci.Dockerfile
+# (its default mode), so a bare core run needs no `docker login ghcr.io`.
+# Keep this default digest in sync with build-ghcr-containers.yml's published
+# clinical-diary-ci image.
+ARG CI_BASE_IMAGE=ghcr.io/cure-hht/clinical-diary-ci@sha256:044a6171ff4f75b2e5f5d594ed24cac912ac9abfd4f5527ed6b18c2125c3ac28
+FROM ${CI_BASE_IMAGE}
 
 USER root
 WORKDIR /workspace/src
@@ -37,8 +46,6 @@ COPY --chown=10001:10001 apps/sponsor-portal/portal_service/pubspec.yaml ./apps/
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server_evs/pubspec.yaml ./apps/sponsor-portal/portal_server_evs/pubspec.yaml
 COPY --chown=10001:10001 apps/sponsor-portal/portal_ui_evs/pubspec.yaml ./apps/sponsor-portal/portal_ui_evs/pubspec.yaml
 COPY --chown=10001:10001 apps/common-flutter/common_widgets/pubspec.yaml ./apps/common-flutter/common_widgets/pubspec.yaml
-COPY --chown=10001:10001 apps/daily-diary/diary_functions/pubspec.yaml ./apps/daily-diary/diary_functions/pubspec.yaml
-COPY --chown=10001:10001 apps/daily-diary/diary_server/pubspec.yaml ./apps/daily-diary/diary_server/pubspec.yaml
 
 # -----------------------------
 # Resolve dependencies
@@ -85,12 +92,6 @@ RUN dart pub get
 WORKDIR /workspace/src/apps/sponsor-portal/portal_ui_evs
 RUN flutter pub get
 
-WORKDIR /workspace/src/apps/daily-diary/diary_functions
-RUN dart pub get
-
-WORKDIR /workspace/src/apps/daily-diary/diary_server
-RUN dart pub get
-
 # -----------------------------
 # Copy full source after deps
 # -----------------------------
@@ -112,8 +113,6 @@ COPY --chown=10001:10001 apps/sponsor-portal/portal_service ./apps/sponsor-porta
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server_evs ./apps/sponsor-portal/portal_server_evs
 COPY --chown=10001:10001 apps/sponsor-portal/portal_ui_evs ./apps/sponsor-portal/portal_ui_evs
 COPY --chown=10001:10001 apps/common-flutter/common_widgets ./apps/common-flutter/common_widgets
-COPY --chown=10001:10001 apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
-COPY --chown=10001:10001 apps/daily-diary/diary_server ./apps/daily-diary/diary_server
 
 # -----------------------------
 # Sanity checks
@@ -135,8 +134,6 @@ RUN set -euo pipefail && \
     test -d apps/sponsor-portal/portal_server_evs && \
     test -d apps/sponsor-portal/portal_ui_evs && \
     test -d apps/common-flutter/common_widgets && \
-    test -d apps/daily-diary/diary_functions && \
-    test -d apps/daily-diary/diary_server && \
     test ! -d sponsor-content && \
     test ! -f apps/sponsor-portal/portal_server/bin/server && \
     test ! -d apps/sponsor-portal/portal-ui/build/web && \

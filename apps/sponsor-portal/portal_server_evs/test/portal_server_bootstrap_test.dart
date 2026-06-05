@@ -3,9 +3,11 @@
 // Verifies: DIARY-DEV-audit-log-read/A+B
 // Verifies: DIARY-DEV-portal-activation-email-delivery/B
 // Verifies: DIARY-DEV-portal-reset-code-lifecycle/D
+// Verifies: DIARY-DEV-portal-test-account-provisioning/A+B
 import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
+import 'package:portal_identity/portal_identity.dart';
 import 'package:portal_server_evs/portal_server_evs.dart';
 import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -131,6 +133,101 @@ void main() {
     final scNames = scEff.rolePermissions.map((p) => p.name).toSet();
     expect(scNames, isNot(contains('portal.user.assign_site')));
     expect(scNames, isNot(contains('view:user_role_scopes')));
+  });
+
+  test(
+      'SystemOperator effective permissions include the user-provisioning set: '
+      'view:users_index + view:user_role_scopes + portal.user.create '
+      '(drives the User Accounts screen + Create User button)', () async {
+    // The operator-tier is the role that provisions the first Administrators.
+    // It must be able to (a) read the user list + role assignments, and
+    // (b) create a user via the UI flow (ACT-USR-001 = portal.user.create).
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('skeleton-sysop.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
+    );
+    addTearDown(boot.dispose);
+
+    // sysop-1 is seeded by the local convenience seed (operator-tier + site
+    // wildcard, mirroring the deployed portal-users.json) during boot, before
+    // the reactors start. The policy resolves a user's roles from
+    // user_role_scopes, so the boot-time assignment is what surfaces the grants.
+    final bootstrap =
+        await buildPortalAuthorizationPolicy(eventStore: boot.eventStore);
+    final policy = (bootstrap as PolicyReady).policy;
+
+    final sysop = Principal.user(
+      userId: 'sysop-1',
+      roles: const {'SystemOperator'},
+      activeRole: 'SystemOperator',
+    );
+    final eff = await policy.effectivePermissionsFor(sysop);
+    final names = eff.rolePermissions.map((p) => p.name).toSet();
+
+    expect(
+      names,
+      containsAll(<String>[
+        'view:users_index',
+        'view:user_role_scopes',
+        'view:sites_index',
+        'portal.user.create',
+      ]),
+      reason: 'SystemOperator can view users + sites to provision accounts',
+    );
+  });
+
+  test(
+      'view-permission grants are idempotent on reboot: a SECOND boot on an '
+      'already-seeded store re-affirms the grants without duplicating them '
+      '(deployed envs pick up new grants on redeploy, no DB reset)', () async {
+    // Simulates the deploy path: the store is already seeded (marker present),
+    // so the seed-once gate is skipped — but the view-permission grants run on
+    // EVERY boot, so they must (a) still be present and (b) not pile up.
+    // One factory, reopened by the same path: the in-memory store persists
+    // across close→reopen, so boot2 sees boot1's seeded state (alreadySeeded).
+    final factory = newDatabaseFactoryMemory();
+    final db1 = await factory.openDatabase('skeleton-idem.db');
+    final boot1 = await bootstrapPortalServer(
+      backend: SembastBackend(database: db1),
+      raveClient: DevSeedRaveClient(),
+    );
+    await boot1.dispose();
+
+    // Reboot on the SAME backing store (already-seeded).
+    final db2 = await factory.openDatabase('skeleton-idem.db');
+    final boot2 = await bootstrapPortalServer(
+      backend: SembastBackend(database: db2),
+      raveClient: DevSeedRaveClient(),
+    );
+    addTearDown(boot2.dispose);
+
+    // Exactly one grant event under the operator's users_index grant aggregate —
+    // the second boot did NOT re-append a duplicate.
+    final grantEvents = await boot2.eventStore.backend
+        .findEventsForAggregate('SystemOperator:view:users_index');
+    expect(
+      grantEvents.where((e) => e.eventType == 'permission_granted'),
+      hasLength(1),
+      reason: 'grant is idempotent across reboots (no duplicate append)',
+    );
+
+    // And the grant is still effective after the reboot.
+    final bootstrap =
+        await buildPortalAuthorizationPolicy(eventStore: boot2.eventStore);
+    final policy = (bootstrap as PolicyReady).policy;
+    final sysop = Principal.user(
+      userId: 'sysop-1',
+      roles: const {'SystemOperator'},
+      activeRole: 'SystemOperator',
+    );
+    final names = (await policy.effectivePermissionsFor(sysop))
+        .rolePermissions
+        .map((p) => p.name)
+        .toSet();
+    expect(
+        names, containsAll(<String>['view:users_index', 'portal.user.create']));
   });
 
   test(
@@ -352,6 +449,50 @@ void main() {
     expect(resp.headers['access-control-allow-methods'], contains('POST'));
   });
 
+  // Verifies: DIARY-DEV-portal-settings-store/C
+  test(
+      'seedRequireSecondFactor: idempotent, seeds require_second_factor=false once',
+      () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('seed-2fa-idem.db');
+    final backend = SembastBackend(database: db);
+    final store = await openPortalEventStore(backend: backend);
+    await seedRequireSecondFactor(
+        eventStore: store, backend: backend, raw: 'false');
+    await seedRequireSecondFactor(
+        eventStore: store, backend: backend, raw: 'false'); // 2nd call no-op
+    final changed = await backend
+        .readEventsReverse()
+        .where((e) => e.eventType == 'portal_setting_changed')
+        .toList();
+    expect(changed.length, 1,
+        reason: 'second call must not append a duplicate event');
+    final rows = await backend.findViewRows('portal_settings');
+    expect(rows.where((r) => r['key'] == 'require_second_factor').length, 1);
+    expect(rows.firstWhere((r) => r['key'] == 'require_second_factor')['value'],
+        isFalse);
+  });
+
+  // Verifies: DIARY-DEV-portal-settings-store/C
+  test('seedRequireSecondFactor: does nothing when raw is not "false"',
+      () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('seed-2fa-noop.db');
+    final backend = SembastBackend(database: db);
+    final store = await openPortalEventStore(backend: backend);
+    await seedRequireSecondFactor(
+        eventStore: store, backend: backend, raw: null);
+    await seedRequireSecondFactor(
+        eventStore: store, backend: backend, raw: 'true');
+    final changed = await backend
+        .readEventsReverse()
+        .where((e) => e.eventType == 'portal_setting_changed')
+        .toList();
+    expect(changed, isEmpty,
+        reason:
+            'null/true raw must not append any portal_setting_changed event');
+  });
+
   test(
       'password-reset request is mounted publicly (unknown email -> 200, not 401)',
       () async {
@@ -375,5 +516,101 @@ void main() {
     final body = jsonDecode(await resp.readAsString()) as Map<String, Object?>;
     expect(body['ok'], isTrue,
         reason: 'enumeration-resistant: always confirms regardless of match');
+  });
+
+  // Verifies: DIARY-DEV-portal-test-account-provisioning/A+B
+  test(
+      'seedTestAccountActivations: provisions+activates seed emails with '
+      'firebase_uid (idempotent)', () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('seed-activate-idem.db');
+    final backend = SembastBackend(database: db);
+    final store = await openPortalEventStore(backend: backend);
+    const seed = RoleAssignmentSeed(entries: [
+      RoleAssignmentSeedEntry(
+        userId: 'uat-admin@curehht.test',
+        role: 'Administrator',
+        scope: ValueWildcardScope(class_: 'site'),
+      ),
+      RoleAssignmentSeedEntry(
+        userId: 'not-an-email',
+        role: 'X',
+        scope: ValueWildcardScope(class_: 'site'),
+      ),
+    ]);
+    var provisionCalls = 0;
+    Future<LookupOrProvisionResult> fake(
+        {required String email,
+        required String displayName,
+        required String password}) async {
+      provisionCalls++;
+      return const LookupOrProvisionResult(uid: 'uid-uat-admin', created: true);
+    }
+
+    await seedTestAccountActivations(
+        eventStore: store,
+        backend: backend,
+        seed: seed,
+        password: 'curehht1',
+        provision: fake);
+    // Second run must be idempotent.
+    await seedTestAccountActivations(
+        eventStore: store,
+        backend: backend,
+        seed: seed,
+        password: 'curehht1',
+        provision: fake);
+    // Provisioner called once per run for the one email entry (non-email skipped).
+    expect(provisionCalls, 2, reason: 'provisioner called once per run');
+
+    final rows = await backend.findViewRows('users_index');
+    final row = rows.firstWhere((r) => r['email'] == 'uat-admin@curehht.test');
+    expect(row['firebase_uid'], 'uid-uat-admin');
+    expect(row['status'], 'active');
+
+    // Non-email entry is skipped.
+    expect(rows.any((r) => r['email'] == 'not-an-email'), isFalse,
+        reason: 'non-email userId must be ignored');
+
+    // Exactly one user_activated event despite two runs (idempotent).
+    final activated = await backend
+        .readEventsReverse()
+        .where((e) => e.eventType == 'user_activated')
+        .toList();
+    expect(activated.length, 1,
+        reason: 'second run must not append a duplicate user_activated');
+  });
+
+  // Verifies: DIARY-DEV-portal-test-account-provisioning/B
+  test('seedTestAccountActivations: no password is a no-op', () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('seed-activate-noop.db');
+    final backend = SembastBackend(database: db);
+    final store = await openPortalEventStore(backend: backend);
+    const seed = RoleAssignmentSeed(entries: [
+      RoleAssignmentSeedEntry(
+        userId: 'x@y.test',
+        role: 'Administrator',
+        scope: ValueWildcardScope(class_: 'site'),
+      ),
+    ]);
+    await seedTestAccountActivations(
+      eventStore: store,
+      backend: backend,
+      seed: seed,
+      password: null,
+      provision: (
+              {required email,
+              required displayName,
+              required password}) async =>
+          const LookupOrProvisionResult(uid: 'u', created: false),
+    );
+    final created = await backend
+        .readEventsReverse()
+        .where((e) =>
+            e.eventType == 'user_created' || e.eventType == 'user_activated')
+        .toList();
+    expect(created, isEmpty,
+        reason: 'null password must not append any events');
   });
 }

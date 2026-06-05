@@ -18,7 +18,8 @@ A multi-repository architecture (also known as "polyrepo") is a software develop
 hht_diary (PUBLIC - core repo)
 ├── apps/                    # Flutter app templates
 ├── apps/common-dart/        # Shared Dart packages
-├── database/                # PostgreSQL schema, migrations
+│                            # (database/ removed in EVS cutover, CUR-1170; EVS event store
+│                            #  schema is created at runtime by the event_sourcing library)
 ├── terraform/               # Infrastructure-as-code
 ├── sponsor/                 # Sponsor-specific code stubs
 └── tools/                   # Build, validation, plugins

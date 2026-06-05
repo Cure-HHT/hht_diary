@@ -1,3 +1,15 @@
+> **⚠️ HISTORICAL (as of 2026-06): superseded by the EVS cutover (CUR-1170).** The ALCOA+
+> principles described here remain relevant, but every concrete *verification procedure* below
+> runs SQL against the retired relational schema (`record_audit`, `sync_conflicts`,
+> `investigator_annotations`, `verify_audit_trail_integrity()`, `database/tamper_detection.sql`,
+> `database/migrations/`) — all of which were deleted in the EVS cutover. These queries no
+> longer execute and the `database/*` references are dangling. Current reality: the audit trail
+> IS the hash-chained EVS event log owned by the `event_sourcing` library (deployed via
+> `portal_server_evs`); tamper-evidence is the event-log hash chain, and access control is
+> event-sourced permissions. (DB-level tamper-resistance for the event store is an open gap
+> tracked in CUR-1439.) EVS-equivalent verification procedures have not yet been authored;
+> this document is kept for reference only until they are.
+
 # Good Clinical Practice (GCP) Compliance Verification
 
 **Document Version**: 1.0

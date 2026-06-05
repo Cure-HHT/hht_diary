@@ -143,42 +143,10 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //   `syncAll` is gated here. The marker is appended LAST under aggregate id
   //   'singleton' so the targeted read in _portalSeedMarkerPresent finds it.
   if (!alreadySeeded) {
-    // 3. Grant view-read permissions so clients can subscribe to the views that
-    //    drive their screens (ReactionHandlers' default ViewPermissionNamer is
-    //    `view:<viewName>`). These are view-read permissions, not action
-    //    permissions, so they are appended directly rather than via the validated
-    //    action-permission seed.
-    Future<void> grantView(String role, String view) => eventStore.append(
-          entryType: 'role_permission_grant',
-          aggregateType: 'role_permission_grant',
-          aggregateId: '$role:view:$view',
-          eventType: 'permission_granted',
-          data: PermissionGrantedPayload(
-            role: role,
-            permissionName: 'view:$view',
-          ).toJson(),
-          initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
-        );
-
-    // Administrator can subscribe to the role-assignments view + the user-accounts
-    // index (only Administrator holds the user-management permissions).
-    await grantView('Administrator', 'user_role_scopes');
-    await grantView('Administrator', 'users_index');
-    // The site list + participant records back the StudyCoordinator/CRA/Admin
-    // operational screens.
-    for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
-      await grantView(role, 'sites_index');
-      await grantView(role, 'participant_record');
-    }
-    // The RAVE-sync status screen is visible to operations roles too.
-    for (final role in const [
-      'StudyCoordinator',
-      'CRA',
-      'Administrator',
-      'SystemOperator',
-    ]) {
-      await grantView(role, 'rave_sync_status');
-    }
+    // 3. View-read permission grants are NOT seeded here — they are idempotent
+    //    and run on EVERY boot (after this seed-once gate) via `_grantViewPerms`,
+    //    so adding a grant propagates on redeploy without a DB reset (consistent
+    //    with the action-permission seed + role assignments). See step 3c below.
 
     // 4. Role assignments are NOT seeded here — they are config-driven and
     //    idempotent, so they run on EVERY boot (after this seed-once gate) via
@@ -236,6 +204,62 @@ Future<PortalServerBoot> bootstrapPortalServer({
     );
   }
 
+  // 3c. View-read permission grants — idempotent, applied on EVERY boot (NOT in
+  //     the seed-once gate above). Clients subscribe to the views that drive
+  //     their screens; ReactionHandlers' default ViewPermissionNamer is
+  //     `view:<viewName>`. These are view-read permissions, not action
+  //     permissions, so they are appended directly rather than via the validated
+  //     action-permission seed. `grantView` skips a grant the role already holds
+  //     (each grant is the sole event under aggregate id `<role>:view:<view>`),
+  //     so re-running every boot adds NEW grants on redeploy without re-appending
+  //     duplicates — matching the action-permission + role-assignment seeds.
+  Future<void> grantView(String role, String view) async {
+    final aggregateId = '$role:view:$view';
+    final existing =
+        await eventStore.backend.findEventsForAggregate(aggregateId);
+    if (existing.any((e) => e.eventType == 'permission_granted')) return;
+    await eventStore.append(
+      entryType: 'role_permission_grant',
+      aggregateType: 'role_permission_grant',
+      aggregateId: aggregateId,
+      eventType: 'permission_granted',
+      data: PermissionGrantedPayload(
+        role: role,
+        permissionName: 'view:$view',
+      ).toJson(),
+      initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
+    );
+  }
+
+  // The Administrator AND the SystemOperator hold the user-management
+  // permissions, so both can subscribe to the role-assignments view + the
+  // user-accounts index. The operator-tier is the role that provisions the
+  // first Administrators, so it must be able to read the user list to do so.
+  for (final role in const ['Administrator', 'SystemOperator']) {
+    await grantView(role, 'user_role_scopes');
+    await grantView(role, 'users_index');
+  }
+  // The SystemOperator also reads the site list (sites_index) so the user
+  // provisioning UI can offer the real RAVE-synced sites when assigning a
+  // site-scoped role — site reference data, NOT participant/clinical data
+  // (it deliberately does not get participant_record).
+  await grantView('SystemOperator', 'sites_index');
+  // The site list + participant records back the StudyCoordinator/CRA/Admin
+  // operational screens.
+  for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
+    await grantView(role, 'sites_index');
+    await grantView(role, 'participant_record');
+  }
+  // The RAVE-sync status screen is visible to operations roles too.
+  for (final role in const [
+    'StudyCoordinator',
+    'CRA',
+    'Administrator',
+    'SystemOperator',
+  ]) {
+    await grantView(role, 'rave_sync_status');
+  }
+
   // 4c. Role assignments — config-driven + idempotent, applied on EVERY boot
   //     (NOT inside the seed-once gate above). `bootstrapRoleAssignments` diffs
   //     the seed against the user_role_scopes view and emits role_assigned only
@@ -246,9 +270,25 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //     only; operators then provision the first admins); local/test runs omit
   //     it and get the in-code convenience seed.
   // Implements: DIARY-DEV-portal-seed-config/A+B
+  final roleSeed = _resolveRoleAssignmentSeed();
   await bootstrapRoleAssignments(
     eventStore: eventStore,
-    seed: _resolveRoleAssignmentSeed(),
+    seed: roleSeed,
+  );
+
+  // Implements: DIARY-DEV-portal-settings-store/C
+  await seedRequireSecondFactor(
+    eventStore: eventStore,
+    backend: backend,
+    raw: Platform.environment['PORTAL_SEED_REQUIRE_2FA'],
+  );
+
+  // Implements: DIARY-DEV-portal-test-account-provisioning/A+B
+  await seedTestAccountActivations(
+    eventStore: eventStore,
+    backend: backend,
+    seed: roleSeed,
+    password: Platform.environment['PORTAL_DEV_SEED_PASSWORD'],
   );
 
   // 5. Activation reactor + routes: ephemeral code store + email sender +
@@ -661,8 +701,122 @@ const RoleAssignmentSeed _localConvenienceSeed = RoleAssignmentSeed(
       role: 'StudyCoordinator',
       scope: BoundScope(class_: 'site', value: 'site-1'),
     ),
+    // A local SystemOperator so operator-tier flows (provisioning the first
+    // Administrators, RAVE unwedge) are testable locally. Mirrors the deployed
+    // sponsor seed (portal-users.json): operator-tier + site wildcard scopes.
+    // Deployed envs override this whole seed via PORTAL_SEED_USERS_PATH.
+    RoleAssignmentSeedEntry(
+      userId: 'sysop-1',
+      role: 'SystemOperator',
+      scope: ValueWildcardScope(class_: 'tier'),
+    ),
+    RoleAssignmentSeedEntry(
+      userId: 'sysop-1',
+      role: 'SystemOperator',
+      scope: ValueWildcardScope(class_: 'site'),
+    ),
   ],
 );
+
+/// Implements: DIARY-DEV-portal-test-account-provisioning/A+B — dev/test only.
+///   When PORTAL_DEV_SEED_PASSWORD is set, ensure each seed-user email has an
+///   Identity Platform account (idempotent provision) AND an active users_index
+///   row stamped with its firebase_uid, so the account logs in under real
+///   session auth without the activation magic-link. Guarded by the env (prod
+///   never sets it); a provisioning failure is logged and never crashes boot.
+typedef IdpProvisioner = Future<LookupOrProvisionResult> Function(
+    {required String email,
+    required String displayName,
+    required String password});
+
+Future<void> seedTestAccountActivations({
+  required EventStore eventStore,
+  required StorageBackend backend,
+  required RoleAssignmentSeed seed,
+  required String? password,
+  IdpProvisioner? provision,
+}) async {
+  final pw = password?.trim();
+  if (pw == null || pw.isEmpty) return;
+  final provisioner = provision ?? IdentityAdmin.lookupOrProvisionByEmail;
+  final emails = <String>{for (final e in seed.entries) e.userId}
+    ..removeWhere((e) => !e.contains('@'));
+  final userRows = await backend.findViewRows('users_index');
+  for (final email in emails) {
+    try {
+      final prov =
+          await provisioner(email: email, displayName: email, password: pw);
+      final alreadyActive = userRows.any((r) =>
+          r['email'] == email &&
+          r['firebase_uid'] == prov.uid &&
+          r['status'] == 'active');
+      if (alreadyActive) continue;
+      final hasRow = userRows.any((r) => r['email'] == email);
+      if (!hasRow) {
+        await eventStore.append(
+          entryType: 'user_created',
+          aggregateType: 'portal_user',
+          aggregateId: email,
+          eventType: 'user_created',
+          data: <String, Object?>{
+            'email': email,
+            'name': email,
+            'roles': const <String>[],
+            'sites': const <String>[],
+            'status': 'pending',
+            'created_by': 'portal-test-seed',
+          },
+          initiator: const AutomationInitiator(service: 'portal-test-seed'),
+        );
+      }
+      await eventStore.append(
+        entryType: 'user_activated',
+        aggregateType: 'portal_user',
+        aggregateId: email,
+        eventType: 'user_activated',
+        data: <String, Object?>{
+          'firebase_uid': prov.uid,
+          'email': email,
+          'status': 'active',
+          'activated_at': DateTime.now().toUtc().toIso8601String(),
+        },
+        initiator: const AutomationInitiator(service: 'portal-test-seed'),
+      );
+    } catch (e, st) {
+      stderr.writeln(
+          'seedTestAccountActivations: provisioning $email failed (continuing): $e\n$st');
+    }
+  }
+}
+
+/// Implements: DIARY-DEV-portal-settings-store/C — config-driven, idempotent
+///   boot seed of the require_second_factor setting. Emits a single
+///   portal_setting_changed only when [raw] == 'false' AND no value exists yet.
+Future<void> seedRequireSecondFactor({
+  required EventStore eventStore,
+  required StorageBackend backend,
+  required String? raw,
+}) async {
+  if (raw?.trim().toLowerCase() != 'false') {
+    return; // only an explicit false seeds
+  }
+  final rows = await backend.findViewRows('portal_settings');
+  final exists = rows.any((r) => r['key'] == 'require_second_factor');
+  if (exists) {
+    return;
+  }
+  await eventStore.append(
+    entryType: 'portal_setting_changed',
+    aggregateType: 'portal_setting',
+    aggregateId: 'require_second_factor',
+    eventType: 'portal_setting_changed',
+    data: const <String, Object?>{
+      'key': 'require_second_factor',
+      'value': false
+    },
+    initiator: const AutomationInitiator(service: 'portal-settings-seed'),
+  );
+}
 
 // Implements: DIARY-DEV-portal-durable-event-store/C
 Future<bool> _portalSeedMarkerPresent(StorageBackend backend) async {

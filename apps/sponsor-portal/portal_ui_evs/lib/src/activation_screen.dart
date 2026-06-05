@@ -13,9 +13,15 @@ class ActivationScreen extends StatefulWidget {
     super.key,
     required this.serverUrl,
     required this.code,
+    this.onBackToLogin,
   });
   final String serverUrl;
   final String code;
+
+  /// Called when the user taps "Sign in" on the success (done) view, so the
+  /// app leaves the public activation page and shows the login screen. If null,
+  /// falls back to [Navigator.maybePop].
+  final VoidCallback? onBackToLogin;
 
   @override
   State<ActivationScreen> createState() => _ActivationScreenState();
@@ -106,7 +112,23 @@ class _ActivationScreenState extends State<ActivationScreen> {
             child: _loading
                 ? const CircularProgressIndicator()
                 : _done != null
-                ? Text(_done!, style: Theme.of(context).textTheme.titleMedium)
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _done!,
+                        style: Theme.of(context).textTheme.titleMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed:
+                            widget.onBackToLogin ??
+                            () => Navigator.of(context).maybePop(),
+                        child: const Text('Sign in'),
+                      ),
+                    ],
+                  )
                 : _maskedEmail == null
                 ? Text(_error ?? 'Invalid link.')
                 : Column(

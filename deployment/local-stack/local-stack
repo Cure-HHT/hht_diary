@@ -1,0 +1,807 @@
+#!/usr/bin/env bash
+# local-stack CLI (EVS edition).
+#
+# This toolkit lives in the CORE repo (hht_diary). It builds + runs a
+# developer-machine rehearsal of the dev deployment from local worktrees:
+# the event-sourced portal (portal-final, which serves BOTH the portal and
+# the mobile diary API), the Firebase auth emulator, otel-lgtm telemetry,
+# and — in durable mode — a plain Postgres event store.
+#
+# The sponsor repo (e.g. hht_diary_callisto) supplies the per-sponsor build
+# inputs and is resolved at runtime (SPONSOR_REPO env or [associated.sponsor]
+# in .local-stack.toml — see lib/resolve-sponsor-path.py).
+#
+# Dispatches subcommands to handlers; side effects live in handlers.
+
+set -euo pipefail
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
+
+# Local-stack firebase project — single source of truth. Every consumer
+# reads this: the emulator's --project startup arg and portal-final's
+# identity-config environment block. Override for parallel test runs /
+# alternate names:
+#   LOCAL_FIREBASE_PROJECT=demo-other ./local-stack portal
+# The literal "demo-local-stack" should not appear anywhere else in the
+# local-stack tooling; if you find yourself adding a duplicate, point
+# the new consumer at this variable instead.
+export LOCAL_FIREBASE_PROJECT="${LOCAL_FIREBASE_PROJECT:-demo-local-stack}"
+
+# Backend store selection. Durable (Postgres event store) is the default;
+# `--ephemeral` (or LOCAL_STACK_EPHEMERAL=1) flips the portal to an in-memory
+# event store and skips Postgres entirely. main() parses the global flag.
+export LOCAL_STACK_EPHEMERAL="${LOCAL_STACK_EPHEMERAL:-}"
+
+# clinical-diary-ci base-image source. Default "local": build the CI toolchain
+# base from core's tools/dev-env/docker/ci.Dockerfile, so a bare core run needs
+# no `docker login ghcr.io`. Set "ghcr" (or pass --ci-base ghcr) to instead pull
+# the digest-pinned clinical-diary-ci from GHCR (faster, byte-identical to CI,
+# but requires GHCR auth). main() parses the global --ci-base flag.
+export LOCAL_STACK_CI_BASE="${LOCAL_STACK_CI_BASE:-local}"
+
+# Compose profiles + portal DB host, derived from LOCAL_STACK_EPHEMERAL.
+# Centralized here so every handler that runs `docker compose` is consistent:
+#   durable   -> activate the "durable" profile (postgres up), DB_HOST=postgres
+#   ephemeral -> no profile (postgres skipped), PORTAL_DB_HOST="" (in-memory)
+# Callers pass "${COMPOSE_PROFILE_ARGS[@]}" into docker compose invocations.
+apply_store_mode() {
+  if [ -n "${LOCAL_STACK_EPHEMERAL:-}" ]; then
+    export PORTAL_DB_HOST=""
+    COMPOSE_PROFILE_ARGS=()
+  else
+    # Unset so the compose default (${PORTAL_DB_HOST-postgres}) applies.
+    unset PORTAL_DB_HOST || true
+    COMPOSE_PROFILE_ARGS=(--profile durable)
+  fi
+}
+
+usage() {
+  cat <<'USAGE'
+Usage: local-stack [--ephemeral] [--ci-base local|ghcr] <command> [args...]
+
+The event-sourced (EVS) developer stack. portal-final serves BOTH the portal
+UI/API and the mobile diary's API on http://localhost:8080. It is the only
+backend — there is no separate diary-server. The portal creates its own
+event-store tables on boot; there is no schema job and no init.sql.
+
+Backend store (global, default = durable Postgres):
+  --ephemeral      Run the portal against an in-memory event store and skip
+                   Postgres entirely. Nothing persists across `down`; fastest
+                   to start, ideal for throwaway smoke tests. Equivalent to
+                   LOCAL_STACK_EPHEMERAL=1. Without it, the portal points at a
+                   durable Postgres event store that survives `down --keep-db`.
+
+CI base image (global, default = local):
+  --ci-base local  Build the clinical-diary-ci toolchain base image locally
+                   from core's tools/dev-env/docker/ci.Dockerfile (pinned
+                   versions from .github/versions.env). The DEFAULT — needs NO
+                   `docker login ghcr.io`. First cold build downloads the
+                   Flutter + Android SDK (several minutes); cached + reused
+                   across runs and survives `down`. Equivalent to
+                   LOCAL_STACK_CI_BASE=local.
+  --ci-base ghcr   Pull the digest-pinned clinical-diary-ci from GHCR instead
+                   (faster, byte-identical to CI) — but REQUIRES
+                   `docker login ghcr.io` (the image is private). Equivalent to
+                   LOCAL_STACK_CI_BASE=ghcr.
+
+Auth (default = dev):
+  The portal defaults to PORTAL_AUTH_MODE=dev — log in by typing a userId
+  (an email) with no password. SystemOperator seed identities come from the
+  sponsor's deployment/seed/portal-users.json, baked into portal-final and
+  applied idempotently on boot. (Set PORTAL_AUTH_MODE=session + Firebase for
+  real session auth — out of scope for the default flow.)
+
+Commands:
+  portal           Bring up postgres (durable mode only) + firebase +
+                   otel-lgtm + portal-final. Safe to re-run: the portal
+                   self-creates its tables; source changes are picked up via
+                   Docker layer cache.
+  full-system      Same as portal, plus Android emulator diagnostic
+  down [--keep-db] Tear down containers and *:local images. By default also
+                   removes the postgres volume. Pass --keep-db to preserve
+                   the event store so it survives the next durable `portal`.
+                   (No effect in --ephemeral mode — there's no volume.)
+  logs [service]   Tail docker compose logs (optional service name)
+  email            Tail portal-final logs filtered to EMAIL CONSOLE MODE
+                   blocks. Local-stack runs in console-mode email, so OTPs,
+                   activation links, and any other outbound email print
+                   here instead of being sent.
+  status           List running services and their ports
+  reset-emulator   Restart the Firebase auth emulator container, which clears
+                   its in-memory rate-limit history and user state. Use when
+                   you've tripped your own auth rate limit during testing —
+                   much faster than a full down/up. (In EVS, firebase users
+                   are minted by the portal's own auth flows, not by a schema
+                   job, so this no longer re-seeds a portal_users table.)
+  rebind           Alias of reset-emulator, kept for muscle memory. The
+                   legacy job that stamped portal_users.firebase_uid is gone
+                   in EVS — the portal manages identity itself — so this now
+                   simply restarts the emulator.
+  diary            Launch the clinical_diary Flutter web app in Chrome,
+                   pointed at this stack's EVS portal (the portal serves the
+                   diary API on http://localhost:8080). Requires the stack to
+                   already be up (run 'portal' first).
+  diary-desktop [--clean] [-- <flutter-run-args>...]
+                   Same as 'diary' but runs the Linux desktop build
+                   (flutter run -d linux). The desktop runtime exposes
+                   the local-flavor HTTP debug bridge on
+                   http://127.0.0.1:9876 (see './local-stack debug').
+                   --clean runs 'flutter clean' first; use it when CMake
+                   complains about /usr/local install permissions
+                   (stale CMakeCache.txt with the wrong INSTALL_PREFIX).
+  diary-reset [--no-kill] [--keep-keyring]
+                   Wipe the Linux desktop diary client's local state:
+                   sembast event log, shared_preferences, AND the
+                   gnome-keyring entries holding the participant's
+                   enrollment. Used when the portal's event store is reset
+                   out from under the client (e.g. after `down` +
+                   `portal`) and the client is left holding pointers
+                   to records the server no longer has. Kills any
+                   running diary-desktop process first unless
+                   --no-kill is passed. The keyring clear filters on
+                   the diary's app-specific `account` attribute via
+                   lib/clear-keyring.py, so it cannot touch other
+                   apps' secrets; pass --keep-keyring to skip it
+                   entirely (e.g. when the python3-secretstorage dep
+                   isn't available).
+  debug <op>       Hit the running diary-desktop's debug bridge:
+                     state                       — destination + log roll-up
+                     destinations                — registered destination ids
+                     events [limit]              — recent StoredEvents
+                     aggregate <aggId>           — events for one aggregate
+                     schedule <destId>           — DestinationSchedule
+                     cursor <destId>             — fill_cursor int
+                     fifo <destId> [limit]       — FIFO entries
+                     sync                        — fire syncCycle
+                     task-sync                   — poll /api/v1/user/tasks
+                     tombstone <destId> <rowId>  — wedge recovery
+                   All output is JSON; pipe through `jq` for readability.
+                   Override the bridge bind address with DEBUG_BRIDGE_HOST
+                   (default 127.0.0.1) and DEBUG_BRIDGE_PORT (default 9876).
+  --help, -h       Show this help
+
+DOPPLER_TOKEN handling:
+  By default, this CLI auto-creates a scoped 24h Doppler service token
+  for the dev config and revokes it on 'down'. To use your own token
+  instead (e.g. in CI), set DOPPLER_TOKEN before invocation:
+    doppler run --config dev -- ./deployment/local-stack/local-stack portal
+USAGE
+}
+
+cmd_portal() {
+  # Dry-run short-circuit for bats dispatch tests (no docker/doppler calls).
+  if [ -n "${LOCAL_STACK_DRY_RUN:-}" ]; then
+    echo "cmd_portal: dry-run"
+    return 0
+  fi
+
+  require_cmd docker
+  docker compose version >/dev/null 2>&1 \
+    || die "docker compose plugin not installed"
+
+  # Preflight: validate the CI base-image source (and, for ghcr, that GHCR
+  # credentials are present) BEFORE minting a Doppler token or starting the
+  # long build, so a misconfiguration fails fast with a specific message.
+  local ci_base; ci_base="$(resolve_ci_base)"
+  log "ci base: $ci_base ($([ "$ci_base" = local ] && echo 'build clinical-diary-ci locally — no GHCR login' || echo 'pull digest-pinned clinical-diary-ci from GHCR'))"
+
+  local core sponsor edc_module
+  core="$CORE_PATH"
+  sponsor="$(resolve_sponsor)"
+  edc_module="$(resolve_edc_module)"
+  export SPONSOR="$sponsor"
+  export EDC_MODULE="$edc_module"
+
+  # Select durable (Postgres) vs ephemeral (in-memory) store. Sets
+  # COMPOSE_PROFILE_ARGS + PORTAL_DB_HOST.
+  local COMPOSE_PROFILE_ARGS=()
+  apply_store_mode
+
+  # Ensure DOPPLER_TOKEN is in env (auto-create scoped token if absent)
+  # shellcheck source=lib/doppler-token.sh
+  source "$SCRIPT_DIR/lib/doppler-token.sh"
+  ensure_doppler_token
+
+  local store_label="durable (postgres event store)"
+  [ -n "${LOCAL_STACK_EPHEMERAL:-}" ] && store_label="ephemeral (in-memory event store)"
+  log "sponsor: $sponsor  |  core: $core  |  store: $store_label"
+  log "building :local images (this takes a while on a cold cache)"
+  bash "$SCRIPT_DIR/lib/build-images.sh"
+
+  log "bringing up compose stack"
+  docker compose -f "$SCRIPT_DIR/compose/docker-compose.yml" \
+    "${COMPOSE_PROFILE_ARGS[@]}" up -d --build
+
+  log "waiting for portal (serves portal + diary API on :8080)"
+  local timeout=240 elapsed=0
+  while [ $elapsed -lt $timeout ]; do
+    if curl -fsS http://localhost:8080/health >/dev/null 2>&1; then
+      break
+    fi
+    sleep 3; elapsed=$((elapsed + 3))
+  done
+  if [ $elapsed -ge $timeout ]; then
+    die "portal did not become healthy within ${timeout}s; run './local-stack logs' to diagnose"
+  fi
+
+  # shellcheck source=lib/flutter-run-incantation.sh
+  source "$SCRIPT_DIR/lib/flutter-run-incantation.sh"
+
+  local pg_line="|   postgres:            localhost:5432 (user=postgres)            |"
+  [ -n "${LOCAL_STACK_EPHEMERAL:-}" ] && pg_line="|   postgres:            (skipped — in-memory event store)         |"
+
+  cat <<BANNER
+
++------------------------------------------------------------------+
+|                       local-stack is UP (EVS)                    |
++------------------------------------------------------------------+
+|   portal + diary API:  http://localhost:8080                     |
+|   firebase emulator:   http://localhost:4000                     |
+${pg_line}
+|   grafana (telemetry): http://localhost:3000                     |
++------------------------------------------------------------------+
+  sponsor: ${sponsor}  |  store: ${store_label}
+
+Stack running. Tear down with:
+  ./deployment/local-stack/local-stack down
+
+View traces / logs / metrics from the EVS portal in Grafana:
+  http://localhost:3000  (Explore -> Tempo / Loki / Prometheus)
+
+Watch logged emails (OTP codes, activation links — console-mode prints them
+instead of sending; the body sits between '====' delimiter lines):
+  ./deployment/local-stack/local-stack logs portal-final | grep -A 20 'EMAIL CONSOLE MODE'
+
+Tripped your own auth rate-limit while testing? Reset the firebase emulator:
+  ./deployment/local-stack/local-stack reset-emulator
+BANNER
+
+  print_flutter_run_incantation "$core"
+}
+
+cmd_full_system() {
+  # cmd_portal exports SPONSOR and CORE_PATH as a side effect; reuse them.
+  # Honor LOCAL_STACK_DRY_RUN for tests (matches cmd_portal's dry-run pattern).
+  if [ -n "${LOCAL_STACK_DRY_RUN:-}" ]; then
+    echo "cmd_full_system: dry-run"
+    return 0
+  fi
+
+  cmd_portal "$@"
+
+  # shellcheck source=lib/android-helper.sh
+  source "$SCRIPT_DIR/lib/android-helper.sh"
+  android_diagnostic "$CORE_PATH"
+
+  cat <<'BANNER'
+
+Stack running. Tear down with:
+  ./deployment/local-stack/local-stack down
+BANNER
+}
+cmd_down() {
+  local keep_db=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --keep-db) keep_db=1; shift ;;
+      *) die "unknown flag for 'down': $1" ;;
+    esac
+  done
+
+  if [ "${LOCAL_STACK_DRY_RUN:-0}" = "1" ]; then
+    echo "cmd_down: dry-run keep_db=$keep_db"
+    return 0
+  fi
+
+  require_cmd docker
+
+  local sponsor
+  sponsor="$(resolve_sponsor)"
+  export SPONSOR="$sponsor"
+  # DOPPLER_TOKEN must be set for compose file interpolation, even if it's not used
+  export DOPPLER_TOKEN="${DOPPLER_TOKEN:-dummy}"
+  # Tear down the durable profile too so postgres + its volume are removed.
+  # Harmless in ephemeral mode (those services were never created).
+  local profile_args=(--profile durable)
+
+  if [ "$keep_db" = "1" ]; then
+    log "compose down (postgres volume preserved) for sponsor=$sponsor"
+    docker compose -f "$SCRIPT_DIR/compose/docker-compose.yml" "${profile_args[@]}" down || true
+  else
+    log "compose down (volumes removed) for sponsor=$sponsor"
+    docker compose -f "$SCRIPT_DIR/compose/docker-compose.yml" "${profile_args[@]}" down -v || true
+  fi
+
+  # Only the per-sponsor :local images are removed. The sponsor-agnostic
+  # caches — firebase-emulator:local and clinical-diary-ci:local (the CI
+  # toolchain base, when built locally via --ci-base local) — are deliberately
+  # kept so they survive `down` and don't need an expensive cold rebuild.
+  log "removing *-${sponsor}:local images"
+  for suffix in portal-final portal-server-binary sponsor-ci; do
+    local img="${suffix}-${sponsor}:local"
+    if docker image inspect "$img" >/dev/null 2>&1; then
+      docker image rm -f "$img" || true
+    fi
+  done
+
+  # Revoke any auto-created Doppler token (idempotent — safe if none was created)
+  # shellcheck source=lib/doppler-token.sh
+  source "$SCRIPT_DIR/lib/doppler-token.sh"
+  cleanup_doppler_token
+
+  log "done"
+}
+cmd_logs() {
+  if [ "${LOCAL_STACK_DRY_RUN:-0}" = "1" ]; then
+    echo "cmd_logs: dry-run $*"
+    return 0
+  fi
+  require_cmd docker
+  export SPONSOR="$(resolve_sponsor)"
+  export DOPPLER_TOKEN="${DOPPLER_TOKEN:-dummy-not-used-for-this-subcommand}"
+  # --profile durable so postgres' logs are included when it's running.
+  if [ $# -eq 0 ]; then
+    exec docker compose -f "$SCRIPT_DIR/compose/docker-compose.yml" --profile durable logs -f
+  else
+    exec docker compose -f "$SCRIPT_DIR/compose/docker-compose.yml" --profile durable logs -f "$@"
+  fi
+}
+
+cmd_status() {
+  if [ "${LOCAL_STACK_DRY_RUN:-0}" = "1" ]; then
+    echo "cmd_status: dry-run"
+    return 0
+  fi
+  require_cmd docker
+  export SPONSOR="$(resolve_sponsor)"
+  export DOPPLER_TOKEN="${DOPPLER_TOKEN:-dummy-not-used-for-this-subcommand}"
+  # --profile durable so postgres is listed when running in durable mode.
+  docker compose -f "$SCRIPT_DIR/compose/docker-compose.yml" --profile durable ps
+}
+
+# Always-tail wrapper over the portal-final console-mode email grep. Named
+# `email` (not `tfa`) because the underlying log dump covers everything that
+# would have been emailed -- OTPs, activation links, anything else that
+# routes through EmailService -- not just two-factor codes.
+cmd_email() {
+  if [ "${LOCAL_STACK_DRY_RUN:-0}" = "1" ]; then
+    echo "cmd_email: dry-run"
+    return 0
+  fi
+  require_cmd docker
+  export SPONSOR="$(resolve_sponsor)"
+  export DOPPLER_TOKEN="${DOPPLER_TOKEN:-dummy-not-used-for-this-subcommand}"
+  docker compose -f "$SCRIPT_DIR/compose/docker-compose.yml" \
+    logs -f portal-final \
+    | grep --line-buffered -E -A 20 'EMAIL CONSOLE MODE'
+}
+
+# Restart the Firebase auth emulator container. The emulator holds all of its
+# state (rate-limit history, minted users) in memory, so a restart gives you a
+# clean slate without a full down/up cycle — useful when you've tripped your
+# own auth rate limit during testing.
+#
+# In EVS there is no schema job and no portal_users table to re-seed from:
+# the portal mints firebase identities through its own auth/registration flows
+# (and applies SystemOperator seeds from the baked-in portal-users.json on
+# boot). So this command only restarts the emulator; after it comes back,
+# log in again to re-mint your identity. The event store (durable mode's
+# postgres) is untouched.
+cmd_reset_emulator() {
+  if [ "${LOCAL_STACK_DRY_RUN:-0}" = "1" ]; then
+    echo "cmd_reset_emulator: dry-run"
+    return 0
+  fi
+
+  require_cmd docker
+
+  export SPONSOR="$(resolve_sponsor)"
+  # We don't start any service that uses DOPPLER_TOKEN here, but compose still
+  # needs the var defined to parse the file's interpolation.
+  export DOPPLER_TOKEN="${DOPPLER_TOKEN:-dummy-not-used-for-this-subcommand}"
+
+  local compose_file="$SCRIPT_DIR/compose/docker-compose.yml"
+
+  log "restarting firebase-emulator (clears rate-limit memory + user state)"
+  docker compose -f "$compose_file" restart firebase-emulator
+
+  log "waiting for firebase-emulator to be healthy again (up to 120s)"
+  local timeout=120 elapsed=0
+  while [ $elapsed -lt $timeout ]; do
+    if docker compose -f "$compose_file" ps --format json firebase-emulator 2>/dev/null \
+        | grep -q '"Health":"healthy"'; then
+      break
+    fi
+    sleep 2; elapsed=$((elapsed + 2))
+  done
+  if [ $elapsed -ge $timeout ]; then
+    die "firebase-emulator did not become healthy within ${timeout}s; run './local-stack logs firebase-emulator' to diagnose"
+  fi
+
+  log "emulator reset complete. Log in again to re-mint your identity."
+}
+
+# The EVS portal serves the mobile diary's API. compose publishes nginx on
+# :8080, which proxies the diary endpoints (/api/v1/user/*) to the portal
+# server. The diary client's `local` flavor defaults apiBase to :8084, so we
+# override it to the stack's published port via DIARY_API_BASE.
+DIARY_PORTAL_URL="http://localhost:8080"
+
+# Launch the clinical_diary Flutter web app pointed at this stack's EVS portal.
+# Requires the stack to be up (we curl the portal's /health). The Dart side
+# selects the LOCAL flavor via APP_FLAVOR=local; we override its apiBase with
+# --dart-define=DIARY_API_BASE so it hits the portal at $DIARY_PORTAL_URL.
+# Doppler is wrapped in for parity with run_local.sh / build scripts; the
+# local flavor doesn't actually consume secrets but pubspec config and
+# analytics scripts may.
+cmd_diary() {
+  if [ "${LOCAL_STACK_DRY_RUN:-0}" = "1" ]; then
+    echo "cmd_diary: dry-run"
+    return 0
+  fi
+
+  require_cmd flutter
+  require_cmd doppler
+  require_cmd curl
+
+  local core="$CORE_PATH"
+
+  local diary_dir="$core/apps/daily-diary/clinical_diary"
+  [ -d "$diary_dir" ] || die "diary app not found at $diary_dir"
+
+  if ! curl -fsS "${DIARY_PORTAL_URL}/health" >/dev/null 2>&1; then
+    die "portal not reachable at ${DIARY_PORTAL_URL} — bring the stack up first with './local-stack portal'"
+  fi
+
+  # Flutter only autodetects google-chrome / chromium in PATH. On dev boxes
+  # where the binary lives under ~/.local/bin or /opt, we have to point it
+  # there explicitly via CHROME_EXECUTABLE. Honor a pre-set value first.
+  if [ -z "${CHROME_EXECUTABLE:-}" ]; then
+    local found=""
+    for candidate in google-chrome google-chrome-stable chromium chromium-browser chrome \
+                     "$HOME/.local/bin/chrome" /opt/google/chrome/google-chrome /opt/google/chrome/chrome; do
+      if command -v "$candidate" >/dev/null 2>&1; then
+        found="$(command -v "$candidate")"; break
+      elif [ -x "$candidate" ]; then
+        found="$candidate"; break
+      fi
+    done
+    if [ -n "$found" ]; then
+      export CHROME_EXECUTABLE="$found"
+      log "CHROME_EXECUTABLE auto-set to $CHROME_EXECUTABLE"
+    else
+      die "no chrome/chromium binary found; set CHROME_EXECUTABLE to a Chrome path and re-run"
+    fi
+  fi
+
+  log "launching clinical_diary in Chrome (APP_FLAVOR=local -> DIARY_API_BASE=${DIARY_PORTAL_URL})"
+  log "stop with Ctrl-C in this terminal; the docker stack keeps running"
+  ( cd "$diary_dir" && \
+    exec doppler run --config dev -- \
+      flutter run -d chrome \
+        --dart-define=APP_FLAVOR=local \
+        --dart-define=DIARY_API_BASE="${DIARY_PORTAL_URL}" "$@" )
+}
+
+# Launch the clinical_diary Linux desktop build pointed at this stack.
+# The desktop binary embeds the local-flavor HTTP debug bridge (loopback
+# 127.0.0.1:DEBUG_BRIDGE_PORT, default 9876) which the chrome build does
+# not have — shelf needs dart:io and web bundles can't bind ports.
+# Otherwise identical to cmd_diary: APP_FLAVOR=local + DIARY_API_BASE route
+# the client at the EVS portal ($DIARY_PORTAL_URL) and the firebase emulator
+# at localhost:9099.
+cmd_diary_desktop() {
+  # Parse our flags first; pass-through flags for `flutter run` come
+  # after a literal `--` (or simply trail through if there's no
+  # collision). Currently we recognize only --clean.
+  local do_clean=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --clean) do_clean=1; shift ;;
+      --) shift; break ;;
+      *) break ;;
+    esac
+  done
+
+  if [ "${LOCAL_STACK_DRY_RUN:-0}" = "1" ]; then
+    echo "cmd_diary_desktop: dry-run clean=$do_clean"
+    return 0
+  fi
+
+  require_cmd flutter
+  require_cmd doppler
+  require_cmd curl
+
+  local core="$CORE_PATH"
+
+  local diary_dir="$core/apps/daily-diary/clinical_diary"
+  [ -d "$diary_dir" ] || die "diary app not found at $diary_dir"
+
+  if ! curl -fsS "${DIARY_PORTAL_URL}/health" >/dev/null 2>&1; then
+    die "portal not reachable at ${DIARY_PORTAL_URL} — bring the stack up first with './local-stack portal'"
+  fi
+
+  # Linux desktop support is opt-in per Flutter install; check once and
+  # tell the user how to enable it instead of letting `flutter run` fail
+  # with a less obvious error halfway through. `flutter config` with no
+  # args prints help; `--machine` is the JSON-shaped current-state dump.
+  if ! flutter config --machine 2>/dev/null | grep -q '"enable-linux-desktop": true'; then
+    die "linux desktop is not enabled for this flutter install. Run: flutter config --enable-linux-desktop"
+  fi
+
+  # Native build deps. The cmake/clang/ninja/pkg-config tooling is
+  # checked by `flutter doctor`, but flutter run only fails halfway
+  # through CMake when a -dev package is missing — at which point the
+  # error message ('A required package was not found') doesn't name
+  # the package. Surface every missing dev library up front with the
+  # apt install line baked in. Keeping the list minimal: only what's
+  # actually pulled in by clinical_diary's transitive plugins on Linux.
+  require_cmd pkg-config
+  local missing=()
+  for pkg in libsecret-1 gtk+-3.0; do
+    if ! pkg-config --exists "$pkg"; then
+      missing+=("$pkg")
+    fi
+  done
+  if [ ${#missing[@]} -gt 0 ]; then
+    # Map pkg-config names to apt package names. Most desktop dev libs
+    # are exposed via `lib<name>-dev`; gtk+-3.0 is the documented
+    # exception.
+    local apt_pkgs=()
+    for p in "${missing[@]}"; do
+      case "$p" in
+        gtk+-3.0)   apt_pkgs+=(libgtk-3-dev) ;;
+        libsecret-1) apt_pkgs+=(libsecret-1-dev) ;;
+        *)          apt_pkgs+=("lib${p}-dev") ;;
+      esac
+    done
+    die "missing native dev libs (${missing[*]}). Install with: sudo apt install -y ${apt_pkgs[*]}"
+  fi
+
+  if [ "$do_clean" = "1" ]; then
+    log "running 'flutter clean' (clears CMakeCache.txt with stale install prefix)"
+    ( cd "$diary_dir" && flutter clean )
+  fi
+
+  local bridge_port="${DEBUG_BRIDGE_PORT:-9876}"
+  log "launching clinical_diary on Linux desktop (APP_FLAVOR=local)"
+  log "  apiBase (DIARY_API_BASE) ${DIARY_PORTAL_URL}"
+  log "  firebase emulator        http://localhost:9099"
+  log "  debug bridge             http://127.0.0.1:${bridge_port}/debug/state"
+  log "stop with Ctrl-C in this terminal; the docker stack keeps running"
+  ( cd "$diary_dir" && \
+    exec doppler run --config dev -- \
+      flutter run -d linux \
+        --dart-define=APP_FLAVOR=local \
+        --dart-define=DIARY_API_BASE="${DIARY_PORTAL_URL}" "$@" )
+}
+
+# Wipe the Linux desktop diary client's locally-persisted state.
+#
+# What gets cleared:
+#   - The sembast event log at $HOME/Documents/diary.db (path is set
+#     by clinical_diary's main.dart via getApplicationDocumentsDirectory).
+#   - The SharedPreferences JSON at
+#     $HOME/.local/share/<APPLICATION_ID>/shared_preferences.json
+#     (cached tasks, device id, banner-suppression flags, etc.).
+#   - The flutter_secure_storage entries in gnome-keyring (enrollment:
+#     linking code, joined date, site contact info). flutter_secure_storage_linux
+#     v1.2.3 tags every keyring item with attribute
+#     `account=<APPLICATION_ID>.secureStorage` (see plugin source at
+#     flutter_secure_storage_linux_plugin.cc:95-97), which is specific
+#     enough to delete safely without risking other apps' secrets.
+#     Implemented in lib/clear-keyring.py via python3-secretstorage.
+#
+# When to use this: after `./local-stack down && ./local-stack portal` (or any
+# --ephemeral run) the portal's event store is fresh, but the diary client is
+# still holding pointers (linking code, task ids, sequence numbers) to the
+# prior stack's data. That mismatch shows up as 401s on task sync, wedged
+# legacy_sync FIFO rows, and ghost surveys popping up from the resume
+# modal. This command makes the client side match the server side.
+cmd_diary_reset() {
+  local kill_app=1 keep_keyring=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --no-kill) kill_app=0; shift ;;
+      --keep-keyring) keep_keyring=1; shift ;;
+      *) die "unknown flag for 'diary-reset': $1" ;;
+    esac
+  done
+
+  if [ "${LOCAL_STACK_DRY_RUN:-0}" = "1" ]; then
+    echo "cmd_diary_reset: dry-run kill_app=$kill_app keep_keyring=$keep_keyring"
+    return 0
+  fi
+
+  local core="$CORE_PATH"
+  local cmake_file="$core/apps/daily-diary/clinical_diary/linux/CMakeLists.txt"
+  [ -f "$cmake_file" ] || die "diary CMakeLists.txt not found at $cmake_file"
+
+  # Read APPLICATION_ID + BINARY_NAME from CMakeLists rather than
+  # hardcoding them — they can drift per sponsor or rename, and the
+  # flutter Linux runner is the canonical source for both.
+  local app_id binary_name
+  app_id="$(grep '^set(APPLICATION_ID' "$cmake_file" | sed -E 's/.*"([^"]+)".*/\1/')"
+  binary_name="$(grep '^set(BINARY_NAME' "$cmake_file" | sed -E 's/.*"([^"]+)".*/\1/')"
+  [ -n "$app_id" ] || die "unable to parse APPLICATION_ID from $cmake_file"
+  [ -n "$binary_name" ] || die "unable to parse BINARY_NAME from $cmake_file"
+
+  if [ "$kill_app" = "1" ]; then
+    # Match the bundle path so pgrep can't catch this script itself
+    # (which has the binary name in argv when grep sees the command line).
+    local bundle_match="apps/daily-diary/clinical_diary/build/linux/x64/.*/bundle/${binary_name}"
+    local pids
+    pids="$(pgrep -f "$bundle_match" 2>/dev/null || true)"
+    if [ -n "$pids" ]; then
+      log "killing running diary-desktop pid(s): $pids"
+      # shellcheck disable=SC2086
+      kill $pids 2>/dev/null || true
+      sleep 1
+      # SIGKILL holdouts that ignored SIGTERM.
+      pids="$(pgrep -f "$bundle_match" 2>/dev/null || true)"
+      if [ -n "$pids" ]; then
+        log "force-killing stubborn pid(s): $pids"
+        # shellcheck disable=SC2086
+        kill -9 $pids 2>/dev/null || true
+      fi
+    else
+      log "no running diary-desktop process to kill"
+    fi
+  fi
+
+  local sembast_db="$HOME/Documents/diary.db"
+  local prefs_file="$HOME/.local/share/${app_id}/shared_preferences.json"
+
+  for f in "$sembast_db" "$prefs_file"; do
+    if [ -e "$f" ]; then
+      log "rm $f"
+      rm -f "$f"
+    else
+      log "$f already absent"
+    fi
+  done
+
+  if [ "$keep_keyring" = "0" ]; then
+    log "clearing flutter_secure_storage entries from gnome-keyring (account=${app_id}.secureStorage)"
+    python3 "$SCRIPT_DIR/lib/clear-keyring.py" "$app_id"
+  else
+    log "skipping keyring clear (--keep-keyring)"
+  fi
+
+  cat <<EOF
+
+Diary client state cleared (sembast db + shared_preferences + keyring).
+
+Re-launch with:
+  ./deployment/local-stack/local-stack diary-desktop
+EOF
+}
+
+# Wrap curl against the local-flavor debug bridge so callers don't have
+# to memorize endpoint shapes. Output is raw JSON: pipe through `jq` for
+# readable formatting (`./local-stack debug state | jq`). Bridge bind
+# address comes from DEBUG_BRIDGE_HOST (default 127.0.0.1) and
+# DEBUG_BRIDGE_PORT (default 9876), matching DebugBridge's defaults.
+cmd_debug() {
+  local host="${DEBUG_BRIDGE_HOST:-127.0.0.1}"
+  local port="${DEBUG_BRIDGE_PORT:-9876}"
+  local base="http://${host}:${port}/debug"
+
+  if [ $# -eq 0 ]; then
+    die "debug: missing operation. Run './local-stack --help' for the list."
+  fi
+  local op="$1"; shift
+
+  # Resolve op -> (method, url). Validation runs before the dry-run gate
+  # so bats can exercise the routing/validation matrix without curl.
+  local method="GET" url=""
+  case "$op" in
+    state)         url="$base/state" ;;
+    destinations)  url="$base/destinations" ;;
+    events)
+      local limit="${1:-}"
+      if [ -n "$limit" ]; then url="$base/events?limit=$limit"; else url="$base/events"; fi
+      ;;
+    aggregate)
+      [ $# -ge 1 ] || die "debug aggregate: missing <aggId>"
+      url="$base/aggregate/$1"
+      ;;
+    schedule)
+      [ $# -ge 1 ] || die "debug schedule: missing <destId>"
+      url="$base/schedule/$1"
+      ;;
+    cursor)
+      [ $# -ge 1 ] || die "debug cursor: missing <destId>"
+      url="$base/cursor/$1"
+      ;;
+    fifo)
+      [ $# -ge 1 ] || die "debug fifo: missing <destId>"
+      local dest="$1"; local limit="${2:-}"
+      if [ -n "$limit" ]; then url="$base/fifo/$dest?limit=$limit"; else url="$base/fifo/$dest"; fi
+      ;;
+    sync)          method="POST"; url="$base/sync" ;;
+    task-sync)     method="POST"; url="$base/task-sync" ;;
+    tombstone)
+      [ $# -ge 2 ] || die "debug tombstone: missing <destId> <rowId>"
+      method="POST"; url="$base/tombstone-and-refill/$1/$2"
+      ;;
+    *)
+      die "debug: unknown operation '$op'. Run './local-stack --help' for the list."
+      ;;
+  esac
+
+  if [ "${LOCAL_STACK_DRY_RUN:-0}" = "1" ]; then
+    echo "cmd_debug: dry-run $method $url"
+    return 0
+  fi
+  require_cmd curl
+
+  if [ "$method" = "POST" ]; then
+    curl -fsS -X POST "$url"
+  else
+    curl -fsS "$url"
+  fi
+  echo
+}
+
+# Historically (CUR-1296) `rebind` re-seeded firebase emulator users and
+# re-stamped portal_users.firebase_uid via the db-schema-job after a soft
+# emulator restart. In EVS there is no schema job and no portal_users table:
+# the portal owns identity and mints/links firebase uids itself. So `rebind`
+# is now simply an alias of `reset-emulator` (kept for muscle memory).
+cmd_rebind() {
+  if [ "${LOCAL_STACK_DRY_RUN:-0}" = "1" ]; then
+    echo "cmd_rebind: dry-run"
+    return 0
+  fi
+  log "rebind: the EVS portal manages firebase identity itself; restarting the emulator"
+  cmd_reset_emulator "$@"
+}
+
+main() {
+  # Global --ephemeral flag (before the subcommand): selects the in-memory
+  # portal backend. Equivalent to LOCAL_STACK_EPHEMERAL=1. Tolerated anywhere
+  # ahead of the subcommand so `local-stack --ephemeral portal` reads naturally.
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --ephemeral) export LOCAL_STACK_EPHEMERAL=1; shift ;;
+      --ci-base)
+        shift
+        [ $# -gt 0 ] || die "--ci-base needs a value: local or ghcr"
+        export LOCAL_STACK_CI_BASE="$1"; shift ;;
+      --ci-base=*) export LOCAL_STACK_CI_BASE="${1#*=}"; shift ;;
+      *) break ;;
+    esac
+  done
+
+  if [ $# -eq 0 ]; then
+    usage >&2
+    exit 1
+  fi
+
+  local subcommand="$1"; shift
+  case "$subcommand" in
+    -h|--help)     usage; exit 0 ;;
+    portal)         cmd_portal "$@" ;;
+    full-system)    cmd_full_system "$@" ;;
+    down)           cmd_down "$@" ;;
+    logs)           cmd_logs "$@" ;;
+    email)          cmd_email "$@" ;;
+    status)         cmd_status "$@" ;;
+    reset-emulator) cmd_reset_emulator "$@" ;;
+    rebind)         cmd_rebind "$@" ;;
+    diary)          cmd_diary "$@" ;;
+    diary-desktop)  cmd_diary_desktop "$@" ;;
+    diary-reset)    cmd_diary_reset "$@" ;;
+    debug)          cmd_debug "$@" ;;
+    *)
+      printf 'unknown subcommand: %s\n\n' "$subcommand" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

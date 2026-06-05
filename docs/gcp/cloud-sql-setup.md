@@ -222,29 +222,15 @@ gcloud sql connect $INSTANCE_NAME --user=app_user --database=$DATABASE_NAME
 
 ### Step 8: Deploy Core Schema
 
-```bash
-# Set connection variables
-export PGHOST="127.0.0.1"
-export PGPORT="5432"
-export PGUSER="app_user"
-export PGPASSWORD="$APP_PASSWORD"
-export PGDATABASE="clinical_diary"
+> **Changed in the EVS cutover (2026-06, CUR-1170).** Cloud SQL is still used — it hosts the
+> EVS event store — but it is **no longer loaded from in-repo SQL**. The `database/` directory
+> (schema/triggers/roles/RLS/indexes) was deleted; there is nothing to `psql -f`. Under EVS the
+> `event_sourcing` library's `PostgresBackend` creates and owns the event-store schema at
+> runtime when `portal_server_evs` first connects. No manual schema-deploy step is required.
+> The relational table/RLS details in the following sections describe the retired schema and
+> are kept for historical reference only.
 
-# Navigate to schema directory
-cd packages/database
-
-# Deploy in order
-psql -f schema.sql
-psql -f triggers.sql
-psql -f roles.sql
-psql -f rls_policies.sql
-psql -f indexes.sql
-
-# Verify deployment
-psql -c "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
-```
-
-### Expected Core Tables
+### Expected Core Tables (historical — retired relational schema)
 
 ```
  table_name

@@ -1,0 +1,6 @@
+# Per-developer override (gitignored in a real repo; committed here as a
+# resolver-test fixture). Deep-merged on top of .local-stack.toml; the path
+# below points at fixtures/fake-sponsor-repo, which carries the
+# deployment/base-config.json marker.
+[associated.sponsor]
+path = "../fake-sponsor-repo"

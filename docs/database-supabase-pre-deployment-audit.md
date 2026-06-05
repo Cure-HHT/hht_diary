@@ -1,3 +1,5 @@
+> **⚠️ HISTORICAL (as of 2026-06): superseded by the EVS cutover (CUR-1170).** This document describes the retired Supabase / raw-Postgres relational design and is kept for reference only. The project is long off Supabase and off the relational schema; the deleted `database/` directory it audits no longer exists. Current reality: the EVS event store is created and owned at runtime by the `event_sourcing` library's `PostgresBackend` (deployed via `portal_server_evs`).
+
 # Supabase Pre-Deployment Audit Report
 
 **Document Version**: 1.0

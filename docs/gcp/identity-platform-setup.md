@@ -587,8 +587,14 @@ class UserInfo {
 
 ### Setting PostgreSQL Session Variables
 
+> **Retired in the EVS cutover (2026-06, CUR-1170).** The raw-Postgres RLS-session-variable
+> pattern shown below (setting `app.current_user_*` before each query) belonged to the legacy
+> `portal_functions`/`portal_server` data layer, which is now reference-only and no longer
+> deployed. Under EVS, authorization is event-sourced permissions evaluated in the application
+> layer over the event log — not PostgreSQL RLS. The example is kept for historical context.
+
 ```dart
-// lib/database/connection.dart
+// lib/database/connection.dart  (legacy raw-Postgres layer — reference only)
 import 'package:postgres/postgres.dart';
 
 class DatabaseConnection {

@@ -18,4 +18,27 @@ void main() {
     expect(isValidOtp('12345'), isFalse);
     expect(isValidOtp('12345a'), isFalse);
   });
+
+  // Verifies: DIARY-DEV-portal-second-factor-toggle/C
+  test('loginNextStep: a session token routes straight to the session', () {
+    expect(
+      loginNextStep({'sessionToken': 'abc'}),
+      const LoginNext.session('abc'),
+    );
+  });
+  test(
+    'loginNextStep: no token falls back to the OTP step with masked email',
+    () {
+      expect(
+        loginNextStep({'maskedEmail': 'a***@x'}),
+        const LoginNext.otp('a***@x'),
+      );
+    },
+  );
+  test('loginNextStep: empty token is treated as OTP fallback', () {
+    expect(
+      loginNextStep({'sessionToken': '', 'maskedEmail': 'b***@y'}),
+      const LoginNext.otp('b***@y'),
+    );
+  });
 }

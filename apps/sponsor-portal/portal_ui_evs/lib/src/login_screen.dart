@@ -65,17 +65,22 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       final body = jsonDecode(r.body) as Map<String, Object?>;
       if (!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => OtpScreen(
-            serverUrl: widget.serverUrl,
-            idToken: idToken,
-            maskedEmail: (body['maskedEmail'] as String?) ?? '',
-            onSession: widget.onSession,
-            httpClient: widget.httpClient,
-          ),
-        ),
-      );
+      switch (loginNextStep(body)) {
+        case LoginNextSession(:final token):
+          widget.onSession(token);
+        case LoginNextOtp(:final maskedEmail):
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => OtpScreen(
+                serverUrl: widget.serverUrl,
+                idToken: idToken,
+                maskedEmail: maskedEmail,
+                onSession: widget.onSession,
+                httpClient: widget.httpClient,
+              ),
+            ),
+          );
+      }
     } catch (_) {
       setState(() {
         _busy = false;

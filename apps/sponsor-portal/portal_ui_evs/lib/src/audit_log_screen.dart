@@ -8,11 +8,6 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 
 import 'audit_format.dart';
 
-const String _serverUrl = String.fromEnvironment(
-  'PORTAL_SERVER_URL',
-  defaultValue: 'http://localhost:8084',
-);
-
 /// Read-only audit table over the server's `GET /audit` endpoint.
 ///
 /// Unlike the reactive screens, the audit log is fetched over plain HTTP
@@ -23,11 +18,22 @@ const String _serverUrl = String.fromEnvironment(
 /// the request under the current active role. Self-gates on
 /// `portal.audit.view`.
 class AuditLogScreen extends StatefulWidget {
-  const AuditLogScreen({super.key, required this.identityCredential});
+  const AuditLogScreen({
+    super.key,
+    required this.identityCredential,
+    required this.serverUrl,
+  });
 
   /// The bare identity credential — session token in session mode, userId in
   /// dev mode. The active-role claim is appended at fetch time.
   final String identityCredential;
+
+  /// The portal server base URL, resolved at RUNTIME by the app shell (the
+  /// compile-time `PORTAL_SERVER_URL` override for local dev, else
+  /// [Uri.base.origin] in the deployed bundle). Passed in — rather than
+  /// re-resolved here — so the audit fetch targets the same origin as every
+  /// other screen instead of a baked-in `localhost` default.
+  final String serverUrl;
 
   @override
   State<AuditLogScreen> createState() => _AuditLogScreenState();
@@ -75,7 +81,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       // token|role or userId|role respectively — both accepted by the server.
       final cred = '${widget.identityCredential}|${p.activeRole}';
       final resp = await http.get(
-        Uri.parse('$_serverUrl/audit?limit=200'),
+        Uri.parse('${widget.serverUrl}/audit?limit=200'),
         headers: <String, String>{'Authorization': 'Bearer $cred'},
       );
       if (!mounted) return;

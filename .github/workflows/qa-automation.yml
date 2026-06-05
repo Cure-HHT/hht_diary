@@ -23,7 +23,6 @@ on:
     paths:
       - 'apps/daily-diary/**'
       - 'tools/dev-env/**'
-      - 'database/**'
       - '.github/workflows/qa-automation.yml'
       # Toolchain triggers — a bump in pinned tool versions, a change to
       # the image-build workflow, or a change to the start-ci-container
@@ -105,7 +104,6 @@ jobs:
             'dev-env'                # Dev environment scripts
             'apps\/daily-diary\/clinical_diary'    # Main app code
             'packages\/'             # Shared packages
-            'database\/'             # Database schema / migrations
             '^\.github\/workflows\/qa-automation\.yml$'  # This workflow itself
           )
 
@@ -144,7 +142,6 @@ jobs:
           echo "**QA tests run when changes affect:**" >> $GITHUB_STEP_SUMMARY
           echo "- Flutter/Dart code (packages/, apps/, lib/)" >> $GITHUB_STEP_SUMMARY
           echo "- Test files (test/, tests/, e2e/)" >> $GITHUB_STEP_SUMMARY
-          echo "- Database schema (database/)" >> $GITHUB_STEP_SUMMARY
           echo "- Dev environment (tools/dev-env/, Docker files)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "To force QA tests, add the 'run-qa' label to this PR" >> $GITHUB_STEP_SUMMARY
@@ -239,35 +236,6 @@ jobs:
             cd /workspace/src/apps/daily-diary/clinical_diary
             if [ -f pubspec.yaml ]; then
               flutter pub outdated || true
-            fi
-          "
-
-      # -----------------------------------------------------------------
-      # SQL migration linting (from former sql-linting job)
-      # Squawk is pre-installed in the CI container
-      # -----------------------------------------------------------------
-      - name: SQL migration linting
-        if: steps.check-qa-needed.outputs.qa_needed == 'true'
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src
-            CHANGED_SQL=\$(git diff --name-only --diff-filter=ACMR origin/main...HEAD | grep '^database/migrations/.*\.sql$' || true)
-            if [ -n \"\$CHANGED_SQL\" ]; then
-              echo 'Linting changed SQL files...'
-              LINT_FAILED=false
-              while IFS= read -r f; do
-                if [ -f \"\$f\" ]; then
-                  echo \"Checking: \$f\"
-                  squawk \"\$f\" || LINT_FAILED=true
-                fi
-              done <<< \"\$CHANGED_SQL\"
-              if [ \"\$LINT_FAILED\" = 'true' ]; then
-                echo 'SQL linting found dangerous patterns'
-                exit 1
-              fi
-            else
-              echo 'No SQL files changed'
             fi
           "
 

@@ -105,6 +105,8 @@
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
+- DIARY-DEV-portal-settings-store:section:0
+- DIARY-DEV-portal-settings-store:section:1
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -310,6 +312,7 @@
 **DIARY:**
 
 - DIARY-BASE-audit-trail
+- DIARY-DEV-portal-second-factor-toggle-D
 - DIARY-DEV-audit-log-read-A
 - DIARY-DEV-audit-log-read-B
 - DIARY-PRD-ancillary-platform-services-D
@@ -322,6 +325,7 @@
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-portal-second-factor-toggle:section:0
 - DIARY-DEV-audit-log-read:section:0
 - DIARY-DEV-audit-log-read:section:1
 - DIARY-DEV-operator-tier-authz:section:1
@@ -505,15 +509,12 @@
 
 **DIARY:**
 
-- DIARY-OPS-db-reset-non-prod
 - DIARY-BASE-audit-trail-E
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-portal-durable-event-store-A
 - DIARY-DEV-schema-version-check-A
 - DIARY-DEV-schema-version-check-B
 - DIARY-DEV-schema-version-check-C
-- DIARY-OPS-schema-migrate-on-deploy-A
-- DIARY-OPS-ci-migration-gate-A
 - DIARY-PRD-data-backup-and-archival-A
 - DIARY-PRD-data-backup-and-archival-C
 - DIARY-PRD-questionnaire-versioning-C
@@ -524,8 +525,6 @@
 - DIARY-PRD-sla-disaster-recovery-C
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-schema-version-check:section:0
-- DIARY-OPS-db-reset-non-prod:section:0
-- DIARY-OPS-ci-migration-gate:section:0
 - DIARY-PRD-questionnaire-versioning:section:0
 - DIARY-GUI-dev-admin-rave-sync-card:section:0
 
@@ -679,8 +678,8 @@
 - DIARY-DEV-audit-log-read:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-shared-events-catalog:section:0
-- rem:spec/glossary-core.md:745
-- rem:spec/glossary-core.md:771
+- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:756
 - DIARY-OPS-single-promotable-artifact:section:1
 - rem:spec/prd-diary-entry-rules.md:1
 - rem:spec/prd-diary-entry-rules.md:3
@@ -731,7 +730,7 @@
 
 **DIARY:**
 
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 
 ## Diary Platform
 
@@ -801,6 +800,7 @@
 - DIARY-DEV-portal-identity-provisioning-A
 - DIARY-DEV-portal-activation-email-delivery-B
 - DIARY-DEV-portal-user-activated-binding-A
+- DIARY-DEV-portal-test-account-provisioning-A
 - DIARY-PRD-evidence-email-identity-A
 - DIARY-PRD-evidence-email-identity-G
 - DIARY-PRD-password-forgot-A
@@ -885,10 +885,12 @@
 - DIARY-DEV-participant-site-index-B
 - DIARY-DEV-portal-durable-event-store-A
 - DIARY-DEV-portal-durable-event-store-C
+- DIARY-DEV-portal-settings-store-B
 - DIARY-DEV-inbound-event-on-receipt:section:0
 - DIARY-DEV-portal-reaction-server:section:0
 - DIARY-DEV-portal-durable-event-store:section:0
 - DIARY-DEV-portal-seed-config:section:0
+- DIARY-DEV-portal-settings-store:section:1
 
 ## Failed Attempt Threshold
 
@@ -1077,7 +1079,7 @@
 **DIARY:**
 
 - DIARY-PRD-role-definitions-B
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - DIARY-OPS-rave-sync-cooldown:section:0
 - DIARY-PRD-role-definitions:section:1
 
@@ -1273,7 +1275,7 @@
 - DIARY-PRD-participant-reconnection-F
 - DIARY-PRD-participant-mark-not-participating-D
 - DIARY-PRD-participant-reactivate-C
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-mobile-app.md:1
 - rem:spec/prd-mobile-app.md:3
@@ -1648,7 +1650,7 @@
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-relink-device-gate:section:0
 - DIARY-DEV-shared-events-catalog:section:0
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-GUI-audit-log-cra:section:0
@@ -1843,12 +1845,14 @@
 - DIARY-DEV-portal-login-identity-verification:section:1
 - DIARY-DEV-portal-login-second-factor:section:0
 - DIARY-DEV-portal-login-second-factor:section:1
+- DIARY-DEV-portal-second-factor-toggle:section:1
 - rem:spec/dev-portal-password-reset.md:1
 - DIARY-DEV-portal-reset-code-lifecycle:section:0
 - DIARY-DEV-portal-reset-code-lifecycle:section:1
 - DIARY-DEV-portal-reset-password-update:section:0
 - DIARY-DEV-portal-reset-password-update:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
+- DIARY-DEV-portal-test-account-provisioning:section:1
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-requirements:section:0
 - DIARY-PRD-two-factor-authentication:section:0
@@ -1889,7 +1893,7 @@
 - DIARY-PRD-questionnaire-localization-I
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-sla-incident-severity-B
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - rem:spec/prd-evidence-records.md:3
 - DIARY-PRD-evidence-device-fingerprint:section:0
 - DIARY-PRD-evidence-patient-authentication:section:0
@@ -2353,7 +2357,7 @@
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-audit-log.md:3
@@ -2400,19 +2404,22 @@
 - DIARY-GUI-role-switching-E
 - DIARY-GUI-role-switching-G
 
-## Row-Level Security
-
 ## Second Factor
 
 **DIARY:**
 
 - DIARY-DEV-portal-login-second-factor
+- DIARY-DEV-portal-second-factor-toggle
+- DIARY-DEV-portal-second-factor-toggle-B
+- DIARY-DEV-portal-second-factor-toggle-D
 - DIARY-DEV-portal-reset-session-termination-B
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-G
 - rem:spec/dev-portal-login.md:1
 - DIARY-DEV-portal-login-second-factor:section:0
 - DIARY-DEV-portal-login-second-factor:section:1
+- DIARY-DEV-portal-second-factor-toggle:section:0
+- DIARY-DEV-portal-second-factor-toggle:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
 - DIARY-DEV-portal-reset-session-termination:section:1
 - DIARY-PRD-two-factor-authentication:section:4
@@ -2429,6 +2436,8 @@
 - DIARY-PRD-questionnaire-session-timeout
 - DIARY-GUI-questionnaire-session-expiry
 - DIARY-DEV-participant-state-poll-B
+- DIARY-DEV-portal-second-factor-toggle-A
+- DIARY-DEV-portal-second-factor-toggle-C
 - DIARY-DEV-portal-session-token-A
 - DIARY-DEV-portal-session-token-B
 - DIARY-DEV-portal-session-lifecycle-A
@@ -2462,6 +2471,8 @@
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-portal-user-activated-binding:section:1
 - rem:spec/dev-portal-login.md:1
+- DIARY-DEV-portal-second-factor-toggle:section:0
+- DIARY-DEV-portal-second-factor-toggle:section:1
 - DIARY-DEV-portal-session-token:section:0
 - DIARY-DEV-portal-session-token:section:1
 - DIARY-DEV-portal-session-lifecycle:section:0
@@ -2470,6 +2481,8 @@
 - DIARY-DEV-portal-active-role-switch:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
 - DIARY-DEV-portal-reset-session-termination:section:1
+- DIARY-DEV-portal-test-account-provisioning:section:0
+- DIARY-DEV-portal-test-account-provisioning:section:1
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
@@ -2750,10 +2763,10 @@
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
-- rem:spec/glossary-core.md:745
-- rem:spec/glossary-core.md:762
-- rem:spec/glossary-core.md:764
-- rem:spec/glossary-core.md:771
+- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:747
+- rem:spec/glossary-core.md:749
+- rem:spec/glossary-core.md:756
 - rem:spec/prd-administrator-settings.md:3
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -3092,7 +3105,7 @@
 - DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-participant-state-poll:section:0
 - DIARY-DEV-participant-state-poll:section:1
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-linking-confirmation:section:1
@@ -3219,6 +3232,7 @@
 - DIARY-DEV-portal-user-activated-binding-C
 - DIARY-DEV-portal-login-identity-verification-B
 - DIARY-DEV-portal-login-second-factor-A
+- DIARY-DEV-portal-second-factor-toggle-D
 - DIARY-DEV-portal-session-token-A
 - DIARY-DEV-portal-session-lifecycle-B
 - DIARY-DEV-portal-active-role-switch-A
@@ -3233,6 +3247,7 @@
 - DIARY-DEV-operator-tier-authz-B
 - DIARY-DEV-operator-tier-authz-C
 - DIARY-DEV-operator-tier-authz-F
+- DIARY-DEV-portal-test-account-provisioning-A
 - DIARY-GUI-audit-log-common-A
 - DIARY-GUI-audit-log-common-C
 - DIARY-GUI-audit-log-administrator-A
@@ -3368,8 +3383,10 @@
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
-- rem:spec/glossary-core.md:745
-- rem:spec/glossary-core.md:771
+- DIARY-DEV-portal-test-account-provisioning:section:0
+- DIARY-DEV-portal-test-account-provisioning:section:1
+- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:756
 - rem:spec/prd-audit-log.md:3
 - DIARY-GUI-audit-log-administrator:section:0
 - DIARY-GUI-audit-log-administrator:section:1
@@ -3447,6 +3464,7 @@
 - DIARY-DEV-portal-user-activated-binding-C
 - DIARY-DEV-portal-login-identity-verification-B
 - DIARY-DEV-portal-login-second-factor-A
+- DIARY-DEV-portal-second-factor-toggle-D
 - DIARY-DEV-portal-session-token-A
 - DIARY-DEV-portal-session-lifecycle-B
 - DIARY-GUI-audit-log-administrator-A
@@ -3560,6 +3578,8 @@
 
 - DIARY-DEV-portal-login-second-factor-A
 - DIARY-DEV-portal-login-second-factor-B
+- DIARY-DEV-portal-second-factor-toggle-A
+- DIARY-DEV-portal-second-factor-toggle-C
 - DIARY-PRD-two-factor-authentication-B
 - DIARY-PRD-two-factor-authentication-C
 - DIARY-PRD-two-factor-authentication-D
@@ -3567,6 +3587,8 @@
 - DIARY-PRD-two-factor-authentication-F
 - DIARY-DEV-portal-login-second-factor:section:0
 - DIARY-DEV-portal-login-second-factor:section:1
+- DIARY-DEV-portal-second-factor-toggle:section:0
+- DIARY-DEV-portal-second-factor-toggle:section:1
 - DIARY-PRD-two-factor-authentication:section:4
 
 ## Verification Link

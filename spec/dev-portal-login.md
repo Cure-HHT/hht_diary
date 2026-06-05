@@ -44,6 +44,31 @@ The *Second Factor* breaks the single-credential failure mode: a leaked or phish
 
 *End* *Login second factor* | **Hash**: 9c1195e5
 
+## DIARY-DEV-portal-second-factor-toggle: Conditional second factor
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-DEV-portal-login-second-factor
+
+### Overview
+
+Whether the *Second Factor* runs is governed by the `require_second_factor` portal setting, read from the event-sourced setting store at sign-in. When the setting is explicitly disabled the portal completes a verified first-factor login by minting a *Session* token directly, issuing no email *Verification Code*; when the setting is absent or enabled the email *Second Factor* runs unchanged. Disabling is fail-safe by construction — only an explicit `false` skips the factor — and a skipped factor is recorded as an attributable *Audit Trail* event so the bypass is never silent.
+
+### Assertions
+
+A. When `require_second_factor` is disabled, a verified first-factor login SHALL mint a *Session* token directly and return it, issuing no email *Verification Code* and requiring no second-factor validation step.
+
+B. When `require_second_factor` is absent or enabled, the portal SHALL require the email *Second Factor*, so an environment that has not explicitly disabled the factor always enforces it (fail-safe default).
+
+C. The login interface SHALL complete sign-in without presenting the *Verification Code* entry screen when the server returns a *Session* token directly in response to the first-factor step.
+
+D. A login that skips the *Second Factor* under a disabled setting SHALL be recorded as an attributable *Audit Trail* event, so the bypass is auditable per affected *User Account*.
+
+### Rationale
+
+Making the *Second Factor* conditional on a recorded setting is what lets a non-production environment run automated tests against the real email/*Password* login without the email round-trip, while production keeps the factor. The default is fail-safe — absent or enabled both require the factor — so the factor can only be skipped by an explicit, recorded `false`, and no missing-configuration path can silently weaken authentication. Minting the *Session* token directly on the verified first factor (rather than short-circuiting the validation of an unissued code) keeps the disabled path a clean omission of the second step rather than a forged success of it. The login interface mirrors the server decision by routing past the *Verification Code* screen only when a token is already returned, so the two ends agree on whether a factor is pending. Recording the skip as an attributable audit event keeps the weakened path visible in the same tamper-evident log as every other login, so a disabled factor is an auditable operational choice rather than an invisible gap.
+
+*End* *Conditional second factor* | **Hash**: d4b853aa
+
 ## DIARY-DEV-portal-session-token: Portal session token
 
 **Level**: DEV | **Status**: Draft | **Implements**: -

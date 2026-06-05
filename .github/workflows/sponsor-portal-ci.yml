@@ -1,14 +1,13 @@
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-d00030: CI/CD Environment Parity
-#   REQ-d00031: Identity Platform Integration
-#   REQ-d00032: Role-Based Access Control Implementation
-#   REQ-p00024: Portal User Roles and Permissions
-#   REQ-o00081: Code Quality and Static Analysis (analyze job)
-#   REQ-o00082: Automated Test Execution (unit-tests, integration-tests, coverage jobs)
+#   REQ-o00081: Code Quality and Static Analysis (portal_ui_evs analyze)
+#   REQ-o00082: Automated Test Execution (portal_server_evs e2e, portal_ui_evs)
 #
-# CI workflow for sponsor-portal (portal_functions, portal_server, portal-ui)
-# Runs unit tests, integration tests (with PostgreSQL + Firebase emulator), and coverage
-# using CI container + Docker Compose PostgreSQL sidecar.
+# CI workflow for the sponsor-portal EVS stack:
+#   - portal_server_evs link/ingest e2e tests (hermetic, in-memory — no
+#     PostgreSQL, no Firebase emulator)
+#   - portal_ui_evs (the live EVS portal UI): flutter analyze + test + coverage
+# The legacy raw-Postgres packages (portal_functions, portal_server) and the
+# legacy UI (portal-ui) were retired with the EVS cutover and are reference-only.
 
 name: Sponsor Portal CI
 
@@ -17,10 +16,6 @@ permissions:
   packages: read
   actions: read  # Required for gh run watch in start-ci-container
 
-# Trigger strategy:
-#   push to main  — runs unconditionally (safety net after merge)
-#   pull_request  — paths-filtered (skip when irrelevant, fast iteration)
-#   workflow_dispatch — runs unconditionally (manual override)
 on:
   push:
     branches: [main]
@@ -28,12 +23,8 @@ on:
     branches: [main]
     paths:
       - 'apps/sponsor-portal/**'
-      - 'database/**'
       - '.github/workflows/sponsor-portal-ci.yml'
-      # Toolchain triggers — mirror start-ci-container/action.yml's
-      # detection regex. A bump to any of these changes the runtime image
-      # or pinned tool versions this CI consumes, so the job must re-run
-      # on PRs that touch them — even if no apps/** files change.
+      # Toolchain triggers — mirror start-ci-container/action.yml's detection.
       - '.github/versions.env'
       - 'tools/dev-env/docker/**'
       - 'tools/dev-env/docker-compose.yml'
@@ -44,10 +35,6 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  # Coverage threshold
-  MIN_COVERAGE: 70
 
 jobs:
   ci:
@@ -63,91 +50,28 @@ jobs:
       - name: Start CI container
         uses: ./.github/actions/start-ci-container
         with:
-          profile: db
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ---------------------------------------------------------------
-      # Create sponsor_portal database
-      # ---------------------------------------------------------------
-      - name: Create sponsor_portal database
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
-            -e PGPASSWORD=postgres \
-            ci bash -c "psql -h postgres -U postgres -c 'CREATE DATABASE sponsor_portal;'"
-
-      # ---------------------------------------------------------------
-      # Install dependencies for all packages
-      # ---------------------------------------------------------------
       - name: Install dependencies
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal_functions && dart pub get
-            cd /workspace/src/apps/sponsor-portal/portal_server && dart pub get
             cd /workspace/src/apps/sponsor-portal/portal_server_evs && dart pub get
-            cd /workspace/src/apps/sponsor-portal/portal-ui && flutter pub get
+            cd /workspace/src/apps/sponsor-portal/portal_ui_evs && flutter pub get
           "
 
-      # ---------------------------------------------------------------
-      # Static analysis + formatting
-      # ---------------------------------------------------------------
-      - name: Analyze portal_functions
+      - name: Analyze portal_ui_evs
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal_functions
-            dart analyze --fatal-infos
-          "
-
-      - name: Analyze portal_server
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal_server
-            dart analyze --fatal-infos
-          "
-
-      - name: Analyze portal-ui
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal-ui
+            cd /workspace/src/apps/sponsor-portal/portal_ui_evs
             flutter analyze
-          "
-
-      - name: Check formatting
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            dart format --set-exit-if-changed /workspace/src/apps/sponsor-portal/portal_functions
-            dart format --set-exit-if-changed /workspace/src/apps/sponsor-portal/portal_server
-          "
-
-      # ---------------------------------------------------------------
-      # Unit tests
-      # ---------------------------------------------------------------
-      - name: Run portal_functions unit tests
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal_functions
-            dart test test/
-          "
-
-      - name: Run portal_server unit tests
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal_server
-            dart test test/
           "
 
       # portal_server_evs link/ingest e2e: the full link-loop + relink/reconnect/
       # reactivate, idempotent redelivery, and diverse diary event types, driven
       # over the REAL /actions + /link + /ingest routers against an in-memory
-      # store (hermetic — no Postgres, no Firebase emulator). Scoped to the e2e
-      # files so this job stays deterministic and headless.
+      # store (hermetic — no Postgres, no Firebase emulator).
       - name: Run portal_server_evs link/ingest e2e tests
         working-directory: tools/dev-env
         run: |
@@ -161,107 +85,14 @@ jobs:
               test/trial_start_state_e2e_test.dart
           "
 
-      - name: Run portal-ui unit tests
+      - name: Run portal_ui_evs tests with coverage
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal-ui
-            flutter test
-          "
-
-      # ---------------------------------------------------------------
-      # Schema deploy for integration tests
-      # ---------------------------------------------------------------
-      - name: Deploy database schema
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
-            -e PGPASSWORD=postgres \
-            ci bash -c "
-              cd /workspace/src
-              psql -h postgres -U postgres -d sponsor_portal --set ON_ERROR_STOP=1 -f database/init.sql
-              psql -h postgres -U postgres -d sponsor_portal --set ON_ERROR_STOP=1 -f database/init_test.sql
-            "
-
-      # ---------------------------------------------------------------
-      # Integration tests (Firebase emulator + PostgreSQL)
-      # ---------------------------------------------------------------
-      - name: Run portal_functions integration tests
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            firebase emulators:start --only auth --project demo-sponsor-portal &
-            sleep 5  # wait for emulator to start
-            cd /workspace/src/apps/sponsor-portal/portal_functions
-            DB_HOST=postgres DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=sponsor_portal \
-            DB_SSL=false FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 GCP_PROJECT_ID=demo-sponsor-portal \
-            dart test -j1 integration_test/
-          "
-
-      - name: Run portal_server integration tests
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            firebase emulators:start --only auth --project demo-sponsor-portal &
-            sleep 5  # wait for emulator to start
-            cd /workspace/src/apps/sponsor-portal/portal_server
-            DB_HOST=postgres DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=sponsor_portal \
-            DB_SSL=false FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 GCP_PROJECT_ID=demo-sponsor-portal \
-            dart test -j1 integration_test/
-          "
-
-      # ---------------------------------------------------------------
-      # Coverage collection
-      # ---------------------------------------------------------------
-      - name: Run portal_functions tests with coverage
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            firebase emulators:start --only auth --project demo-sponsor-portal &
-            sleep 5  # wait for emulator to start
-            cd /workspace/src/apps/sponsor-portal/portal_functions
-            DB_HOST=postgres DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=sponsor_portal \
-            DB_SSL=false FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 GCP_PROJECT_ID=demo-sponsor-portal \
-            dart test --coverage=coverage test/ integration_test/
-            dart pub global activate coverage
-            dart pub global run coverage:format_coverage \
-              --lcov \
-              --in=coverage \
-              --out=coverage/lcov.info \
-              --report-on=lib \
-              --packages=.dart_tool/package_config.json || true
-          "
-
-      - name: Run portal_server tests with coverage
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            firebase emulators:start --only auth --project demo-sponsor-portal &
-            sleep 5  # wait for emulator to start
-            cd /workspace/src/apps/sponsor-portal/portal_server
-            DB_HOST=postgres DB_PORT=5432 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=sponsor_portal \
-            DB_SSL=false FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 GCP_PROJECT_ID=demo-sponsor-portal \
-            dart test --coverage=coverage test/ integration_test/
-            dart pub global activate coverage
-            dart pub global run coverage:format_coverage \
-              --lcov \
-              --in=coverage \
-              --out=coverage/lcov.info \
-              --report-on=lib \
-              --packages=.dart_tool/package_config.json || true
-          "
-
-      - name: Run portal-ui tests with coverage
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal-ui
+            cd /workspace/src/apps/sponsor-portal/portal_ui_evs
             flutter test --coverage
           "
 
-      # ---------------------------------------------------------------
-      # Extract coverage from container for codecov upload
-      # ---------------------------------------------------------------
       - name: Restore workspace ownership
         if: always()
         run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
@@ -270,50 +101,17 @@ jobs:
         working-directory: tools/dev-env
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
-            "cat /workspace/src/apps/sponsor-portal/portal_functions/coverage/lcov.info" \
-            > $GITHUB_WORKSPACE/portal-functions-lcov.info || true
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
-            "cat /workspace/src/apps/sponsor-portal/portal_server/coverage/lcov.info" \
-            > $GITHUB_WORKSPACE/portal-server-lcov.info || true
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
-            "cat /workspace/src/apps/sponsor-portal/portal-ui/coverage/lcov.info" \
-            > $GITHUB_WORKSPACE/portal-ui-lcov.info || true
+            "cat /workspace/src/apps/sponsor-portal/portal_ui_evs/coverage/lcov.info" \
+            > $GITHUB_WORKSPACE/portal-ui-evs-lcov.info || true
 
-      - name: Upload portal_functions coverage to Codecov
+      - name: Upload portal_ui_evs coverage to Codecov
         uses: codecov/codecov-action@v6
         with:
-          files: portal-functions-lcov.info
-          flags: portal-functions
+          files: portal-ui-evs-lcov.info
+          flags: portal-ui-evs
           fail_ci_if_error: false
 
-      - name: Upload portal_server coverage to Codecov
-        uses: codecov/codecov-action@v6
-        with:
-          files: portal-server-lcov.info
-          flags: portal-server
-          fail_ci_if_error: false
-
-      - name: Upload portal-ui coverage to Codecov
-        uses: codecov/codecov-action@v6
-        with:
-          files: portal-ui-lcov.info
-          flags: portal-ui
-          fail_ci_if_error: false
-
-      - name: Upload coverage reports as artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sponsor-portal-coverage
-          path: |
-            portal-functions-lcov.info
-            portal-server-lcov.info
-            portal-ui-lcov.info
-          retention-days: 30
-
-      # ---------------------------------------------------------------
-      # Cleanup
-      # ---------------------------------------------------------------
       - name: Cleanup
         if: always()
         working-directory: tools/dev-env
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml --profile db down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
