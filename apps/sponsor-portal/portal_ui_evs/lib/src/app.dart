@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ import 'connect_screen.dart';
 import 'firebase_auth_client.dart';
 import 'identity_config.dart';
 import 'login_screen.dart';
+import 'nav_sections.dart';
 import 'participants_screen.dart';
 import 'rave_sync_screen.dart';
 import 'role_selector.dart';
@@ -252,11 +254,12 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   }
 }
 
-/// Nav shell shown once connected. A [NavigationRail] swaps between four
-/// independent reactive screens. Each screen self-gates with its own
-/// `PermissionGate` (view permission), so the nav labels are always shown
-/// for all four destinations — an unauthorized screen renders its own
-/// clean "no access" fallback. No per-item permission hiding here.
+/// Nav shell shown once connected. A [NavigationRail] swaps between the
+/// reactive screens the ACTIVE ROLE may use. Each destination declares the same
+/// permission its screen self-gates on; the nav item is shown only when the
+/// active role's effective permissions hold it, so a role never sees — nor
+/// subscribes to — a section it cannot use. Visibility reacts to a role switch
+/// via the same `PermissionSource` stream `PermissionGate` consumes.
 class _HomeShell extends StatefulWidget {
   const _HomeShell({
     required this.principal,
@@ -281,15 +284,94 @@ class _HomeShell extends StatefulWidget {
   State<_HomeShell> createState() => _HomeShellState();
 }
 
-class _NavDestination {
-  const _NavDestination(this.label, this.icon, this.builder);
-  final String label;
-  final IconData icon;
-  final Widget Function() builder;
-}
-
 class _HomeShellState extends State<_HomeShell> {
-  int _selected = 0;
+  /// The label of the selected nav destination. Tracked by label (not index)
+  /// so the selection survives the visible set changing on a role switch — a
+  /// raw index would point at a different (or hidden) section. Null until the
+  /// first build resolves it to the first visible destination.
+  String? _selectedLabel;
+
+  /// Latest effective-authorization snapshot for the active role, used to hide
+  /// nav destinations the role cannot use. Mirrors `PermissionGate`'s source so
+  /// nav visibility and per-screen gating react identically to a role switch.
+  EffectiveAuthorization? _auth;
+  StreamSubscription<EffectiveAuthorization?>? _permSub;
+
+  /// `vX.Y.Z+build` of the deployed web bundle, shown under the app-bar title
+  /// so a running deployment self-identifies its build. Empty until resolved
+  /// (or if the fetch fails). Sourced from the `version.json` that
+  /// `flutter build web` emits at the web origin — the authoritative version of
+  /// the actual built artifact, no extra dependency or build-time define.
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadVersion());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe once to the permission snapshot (needs context for the scope,
+    // so it can't go in initState). Same source PermissionGate listens to.
+    if (_permSub != null) return;
+    final scope = ReActionScope.of(context);
+    _auth = scope.permissionSource.current;
+    _permSub = scope.permissionSource.stream.listen((auth) {
+      if (!mounted) return;
+      setState(() => _auth = auth);
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_permSub?.cancel());
+    super.dispose();
+  }
+
+  /// Presentation for a nav section, keyed by its [NavSectionSpec.label]; the
+  /// gating spec (label + permission + order) is the single source in
+  /// [kNavSections], so only icon/builder live here.
+  IconData _iconFor(String label) => switch (label) {
+    'User Accounts' => Icons.manage_accounts,
+    'Sites' => Icons.location_city,
+    'Participants' => Icons.groups,
+    'RAVE Sync' => Icons.sync,
+    'Audit Log' => Icons.receipt_long,
+    _ => Icons.help_outline,
+  };
+
+  Widget _screenFor(String label) => switch (label) {
+    'User Accounts' => const UserAccountsScreen(),
+    'Sites' => const SitesScreen(),
+    'Participants' => const ParticipantsScreen(),
+    'RAVE Sync' => const RaveSyncScreen(),
+    'Audit Log' => AuditLogScreen(
+      identityCredential: widget.identityCredential ?? '',
+      serverUrl: _serverUrl,
+    ),
+    _ => const SizedBox.shrink(),
+  };
+
+  Future<void> _loadVersion() async {
+    try {
+      // version.json is served by the WEB origin (Uri.base), which in the
+      // deployed bundle and in `flutter run` both serve it — unlike the portal
+      // API base, which may be a different host in local dev.
+      final res = await http.get(Uri.base.resolve('version.json'));
+      if (!mounted || res.statusCode != 200) return;
+      final json = jsonDecode(res.body) as Map<String, Object?>;
+      final v = json['version'];
+      final b = json['build_number'];
+      if (v is! String || v.isEmpty) return;
+      setState(
+        () => _version = (b is String && b.isNotEmpty) ? 'v$v+$b' : 'v$v',
+      );
+    } catch (_) {
+      // Best-effort: a missing/unservable version.json just hides the label.
+    }
+  }
 
   String _credentialLabel() {
     final p = widget.principal;
@@ -299,28 +381,34 @@ class _HomeShellState extends State<_HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    // Built here (not static) so AuditLogScreen can receive widget.identityCredential.
-    // Each destination builds an independent reactive widget gated by its
-    // own view permission (the screen, not the nav item, enforces access).
-    final destinations = <_NavDestination>[
-      _NavDestination(
-        'User Accounts',
-        Icons.manage_accounts,
-        UserAccountsScreen.new,
-      ),
-      _NavDestination('Sites', Icons.location_city, SitesScreen.new),
-      _NavDestination('Participants', Icons.groups, ParticipantsScreen.new),
-      _NavDestination('RAVE Sync', Icons.sync, RaveSyncScreen.new),
-      _NavDestination(
-        'Audit Log',
-        Icons.receipt_long,
-        () =>
-            AuditLogScreen(identityCredential: widget.identityCredential ?? ''),
-      ),
-    ];
+    // Hide sections the active role can't use; a hidden section's screen is
+    // never built, so it never opens a (denied) subscription. Until the first
+    // permission snapshot loads, `held` is empty and the body shows a loader
+    // rather than flashing a forbidden section. Gating spec + order live in
+    // kNavSections (single source); the screen self-gates on the same name.
+    final held = <String>{
+      for (final p in _auth?.rolePermissions ?? const <Permission>{}) p.name,
+    };
+    final visible = visibleSections(held);
+    final selectedIndex = resolveSelectedIndex(visible, _selectedLabel);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Portal (EVS skeleton)'),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text('Portal (EVS skeleton)'),
+            if (_version.isNotEmpty)
+              Text(
+                _version,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
+              ),
+          ],
+        ),
         actions: <Widget>[
           if (widget.principal is UserPrincipal)
             RoleSelector(
@@ -342,29 +430,52 @@ class _HomeShellState extends State<_HomeShell> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Row(
-        children: <Widget>[
-          NavigationRail(
-            selectedIndex: _selected,
-            labelType: NavigationRailLabelType.all,
-            onDestinationSelected: (i) => setState(() => _selected = i),
-            destinations: <NavigationRailDestination>[
-              for (final d in destinations)
-                NavigationRailDestination(
-                  icon: Icon(d.icon),
-                  // CUR-1307: identified for Playwright web automation.
-                  label: Semantics(
-                    identifier:
-                        'nav-${d.label.toLowerCase().replaceAll(' ', '-')}',
-                    child: Text(d.label),
-                  ),
+      body: _buildBody(visible, selectedIndex),
+    );
+  }
+
+  Widget _buildBody(List<NavSectionSpec> visible, int selectedIndex) {
+    // Permission snapshot not loaded yet: don't guess at visibility.
+    if (_auth == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (visible.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('No sections are available for your current role.'),
+        ),
+      );
+    }
+    final content = Expanded(child: _screenFor(visible[selectedIndex].label));
+    // NavigationRail requires >= 2 destinations; with a single visible section
+    // render it full-width without the rail.
+    if (visible.length < 2) {
+      return Row(children: <Widget>[content]);
+    }
+    return Row(
+      children: <Widget>[
+        NavigationRail(
+          selectedIndex: selectedIndex,
+          labelType: NavigationRailLabelType.all,
+          onDestinationSelected: (i) =>
+              setState(() => _selectedLabel = visible[i].label),
+          destinations: <NavigationRailDestination>[
+            for (final s in visible)
+              NavigationRailDestination(
+                icon: Icon(_iconFor(s.label)),
+                // CUR-1307: identified for Playwright web automation.
+                label: Semantics(
+                  identifier:
+                      'nav-${s.label.toLowerCase().replaceAll(' ', '-')}',
+                  child: Text(s.label),
                 ),
-            ],
-          ),
-          const VerticalDivider(thickness: 1, width: 1),
-          Expanded(child: destinations[_selected].builder()),
-        ],
-      ),
+              ),
+          ],
+        ),
+        const VerticalDivider(thickness: 1, width: 1),
+        content,
+      ],
     );
   }
 }
