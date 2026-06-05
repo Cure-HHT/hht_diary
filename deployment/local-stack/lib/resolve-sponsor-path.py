@@ -8,13 +8,19 @@ the per-sponsor build inputs: deployment/base-config.json, the sponsor
 portal-final.Dockerfile, content/, and the portal seed-users file.
 
 Resolution order (first match wins):
-  1. The `SPONSOR_REPO` env var, if set (absolute path).
+  1. The `SPONSOR_REPO` env var, if set (absolute path). The thin sponsor
+     wrapper exports this, so running from a sponsor repo uses that sponsor.
   2. `[associated.sponsor].path` from `<toolkit>/.local-stack.toml`, overlaid
      with `<toolkit>/.local-stack.local.toml` if present. Relative paths are
      resolved against the toolkit root.
+  3. The built-in reference sponsor at `<core>/deployment/reference-sponsor`
+     (sibling of this toolkit). This is the bare-core default: a core dev can
+     bring up the stack from hht_diary alone, with no sponsor checkout and an
+     empty content overlay.
 
-Either way the target is validated by a marker file that only a sponsor repo
-carries: deployment/base-config.json.
+The target (whichever step matched) is validated by a marker file that a
+sponsor repo — and the built-in reference sponsor — carries:
+deployment/base-config.json.
 
 Usage: resolve-sponsor-path.py --toolkit /path/to/<core>/deployment/local-stack
 Exit codes: 0 success (absolute path on stdout), 2 misconfiguration.
@@ -134,25 +140,39 @@ def main() -> int:
     merged = deep_merge(base, over)
 
     associated = (merged.get("associated") or {}).get("sponsor")
-    if not associated or "path" not in associated:
-        die(
-            "No sponsor repo configured. Either:\n"
-            "  • export SPONSOR_REPO=/abs/path/to/hht_diary_<sponsor>, or\n"
-            f"  • add [associated.sponsor] to {toolkit}/.local-stack.toml\n"
-            "    (optionally overridden by .local-stack.local.toml):\n"
-            "      [associated.sponsor]\n"
-            '      repo = "Cure-HHT/hht_diary_<sponsor>"\n'
-            '      path = "../hht_diary_<sponsor>"'
-        )
+    if associated and "path" in associated:
+        raw = associated["path"]
+        target = Path(raw)
+        if not target.is_absolute():
+            target = (toolkit / target).resolve()
+        else:
+            target = target.resolve()
 
-    raw = associated["path"]
-    target = Path(raw)
-    if not target.is_absolute():
-        target = (toolkit / target).resolve()
-    else:
-        target = target.resolve()
+        print(validate(target, source=f"[associated.sponsor].path = {raw!r}", raw=raw))
+        return 0
 
-    print(validate(target, source=f"[associated.sponsor].path = {raw!r}", raw=raw))
+    # 3. Nothing explicit → fall back to the built-in reference sponsor that
+    #    ships in core at <core>/deployment/reference-sponsor (the sibling of
+    #    this toolkit, which lives at <core>/deployment/local-stack). This is
+    #    what lets a core dev bring up the stack with no sponsor checkout: a
+    #    bare `./local-stack portal` from hht_diary uses the reference sponsor
+    #    (empty content overlay). A real sponsor is selected either by the thin
+    #    sponsor wrapper (which exports $SPONSOR_REPO) or by a core dev adding
+    #    [associated.sponsor].path to .local-stack.local.toml.
+    reference = (toolkit.parent / "reference-sponsor").resolve()
+    if (reference / MARKER).exists():
+        print(reference)
+        return 0
+
+    die(
+        "No sponsor configured (no $SPONSOR_REPO, no [associated.sponsor].path)\n"
+        f"and no built-in reference sponsor found at {reference}\n"
+        f"(missing marker {MARKER}). Either:\n"
+        "  • run from a sponsor repo — its thin wrapper exports SPONSOR_REPO, or\n"
+        "  • export SPONSOR_REPO=/abs/path/to/hht_diary_<sponsor>, or\n"
+        "  • add [associated.sponsor].path to .local-stack.local.toml, or\n"
+        "  • restore the core reference sponsor at deployment/reference-sponsor."
+    )
     return 0
 
 

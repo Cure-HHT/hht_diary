@@ -34,6 +34,13 @@ export LOCAL_FIREBASE_PROJECT="${LOCAL_FIREBASE_PROJECT:-demo-local-stack}"
 # event store and skips Postgres entirely. main() parses the global flag.
 export LOCAL_STACK_EPHEMERAL="${LOCAL_STACK_EPHEMERAL:-}"
 
+# clinical-diary-ci base-image source. Default "local": build the CI toolchain
+# base from core's tools/dev-env/docker/ci.Dockerfile, so a bare core run needs
+# no `docker login ghcr.io`. Set "ghcr" (or pass --ci-base ghcr) to instead pull
+# the digest-pinned clinical-diary-ci from GHCR (faster, byte-identical to CI,
+# but requires GHCR auth). main() parses the global --ci-base flag.
+export LOCAL_STACK_CI_BASE="${LOCAL_STACK_CI_BASE:-local}"
+
 # Compose profiles + portal DB host, derived from LOCAL_STACK_EPHEMERAL.
 # Centralized here so every handler that runs `docker compose` is consistent:
 #   durable   -> activate the "durable" profile (postgres up), DB_HOST=postgres
@@ -52,7 +59,7 @@ apply_store_mode() {
 
 usage() {
   cat <<'USAGE'
-Usage: local-stack [--ephemeral] <command> [args...]
+Usage: local-stack [--ephemeral] [--ci-base local|ghcr] <command> [args...]
 
 The event-sourced (EVS) developer stack. portal-final serves BOTH the portal
 UI/API and the mobile diary's API on http://localhost:8080. It is the only
@@ -65,6 +72,19 @@ Backend store (global, default = durable Postgres):
                    to start, ideal for throwaway smoke tests. Equivalent to
                    LOCAL_STACK_EPHEMERAL=1. Without it, the portal points at a
                    durable Postgres event store that survives `down --keep-db`.
+
+CI base image (global, default = local):
+  --ci-base local  Build the clinical-diary-ci toolchain base image locally
+                   from core's tools/dev-env/docker/ci.Dockerfile (pinned
+                   versions from .github/versions.env). The DEFAULT — needs NO
+                   `docker login ghcr.io`. First cold build downloads the
+                   Flutter + Android SDK (several minutes); cached + reused
+                   across runs and survives `down`. Equivalent to
+                   LOCAL_STACK_CI_BASE=local.
+  --ci-base ghcr   Pull the digest-pinned clinical-diary-ci from GHCR instead
+                   (faster, byte-identical to CI) — but REQUIRES
+                   `docker login ghcr.io` (the image is private). Equivalent to
+                   LOCAL_STACK_CI_BASE=ghcr.
 
 Auth (default = dev):
   The portal defaults to PORTAL_AUTH_MODE=dev — log in by typing a userId
@@ -160,6 +180,12 @@ cmd_portal() {
   require_cmd docker
   docker compose version >/dev/null 2>&1 \
     || die "docker compose plugin not installed"
+
+  # Preflight: validate the CI base-image source (and, for ghcr, that GHCR
+  # credentials are present) BEFORE minting a Doppler token or starting the
+  # long build, so a misconfiguration fails fast with a specific message.
+  local ci_base; ci_base="$(resolve_ci_base)"
+  log "ci base: $ci_base ($([ "$ci_base" = local ] && echo 'build clinical-diary-ci locally — no GHCR login' || echo 'pull digest-pinned clinical-diary-ci from GHCR'))"
 
   local core sponsor edc_module
   core="$CORE_PATH"
@@ -288,6 +314,10 @@ cmd_down() {
     docker compose -f "$SCRIPT_DIR/compose/docker-compose.yml" "${profile_args[@]}" down -v || true
   fi
 
+  # Only the per-sponsor :local images are removed. The sponsor-agnostic
+  # caches — firebase-emulator:local and clinical-diary-ci:local (the CI
+  # toolchain base, when built locally via --ci-base local) — are deliberately
+  # kept so they survive `down` and don't need an expensive cold rebuild.
   log "removing *-${sponsor}:local images"
   for suffix in portal-final portal-server-binary sponsor-ci; do
     local img="${suffix}-${sponsor}:local"
@@ -737,6 +767,11 @@ main() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --ephemeral) export LOCAL_STACK_EPHEMERAL=1; shift ;;
+      --ci-base)
+        shift
+        [ $# -gt 0 ] || die "--ci-base needs a value: local or ghcr"
+        export LOCAL_STACK_CI_BASE="$1"; shift ;;
+      --ci-base=*) export LOCAL_STACK_CI_BASE="${1#*=}"; shift ;;
       *) break ;;
     esac
   done

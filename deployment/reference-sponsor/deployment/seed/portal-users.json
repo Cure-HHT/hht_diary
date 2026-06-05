@@ -1,0 +1,12 @@
+{
+  "_comment": "Reference seed-users for the no-sponsor local-stack (read by portal_server_evs via PORTAL_SEED_USERS_PATH; parsed by seed_config.dart). Applied idempotently on boot. Under the local-stack's PORTAL_AUTH_MODE=dev, userId is the dev-credential login id typed verbatim (no password). One SystemOperator is enough to drive the operator UI run-through from core alone; provision further roles through the portal.",
+  "users": [
+    {
+      "userId": "dev@reference.local",
+      "assignments": [
+        { "role": "SystemOperator", "scope": { "class": "tier", "wildcard": true } },
+        { "role": "SystemOperator", "scope": { "class": "site", "wildcard": true } }
+      ]
+    }
+  ]
+}

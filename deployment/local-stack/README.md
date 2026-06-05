@@ -18,25 +18,36 @@ from the sponsor's `deployment/seed/portal-users.json`, baked into the
 
 This toolkit lives in the **core** repo (`hht_diary`). The **core path** is the
 toolkit's own checkout (`git rev-parse --show-toplevel`), so it needs no
-configuration. What it resolves at runtime is the **sponsor** repo (e.g.
-`hht_diary_callisto`), which supplies the per-sponsor build inputs:
-`deployment/base-config.json` (sponsor id + EDC module), the sponsor
+configuration. What it resolves at runtime is the **sponsor** build inputs:
+`deployment/base-config.json` (sponsor id + EDC module), the
 `portal-final.Dockerfile`, `content/`, and `deployment/seed/portal-users.json`.
 
-Sponsor-repo resolution order (see `lib/resolve-sponsor-path.py`):
+By default it needs **no sponsor checkout at all**: it falls back to the
+built-in **reference sponsor** that ships in core at
+`deployment/reference-sponsor/` (sponsor id `reference`, empty `content/`
+overlay). This is what lets a core dev rehearse the dev stack from `hht_diary`
+alone — e.g. to reproduce a Postgres-only event-store bug — without checking out
+any sponsor repo.
+
+Sponsor resolution order (see `lib/resolve-sponsor-path.py`):
 
 1. The `SPONSOR_REPO` env var, if set (absolute path). This is how the
    sponsor-side thin wrapper (`deployment/local-stack-wrapper.sh` in the
    sponsor repo) drives the toolkit — it exports `SPONSOR_REPO` to its own repo
-   root and execs this CLI.
+   root and execs this CLI. Running the local-stack from a sponsor repo
+   therefore uses that sponsor.
 2. Otherwise, `[associated.sponsor].path` in `.local-stack.toml` at this
    toolkit's root (`deployment/local-stack/.local-stack.toml`), overlaid with
    `.local-stack.local.toml` (gitignored, per-developer) if present, resolved
-   relative to the toolkit root.
+   relative to the toolkit root. (The checked-in `.local-stack.toml` ships
+   without this block, so it is unset unless a dev adds it.)
+3. Otherwise, the built-in reference sponsor at
+   `<core>/deployment/reference-sponsor` — the bare-core default.
 
-The sponsor path is validated by the marker file `deployment/base-config.json`.
-If the default sibling layout doesn't apply (e.g. you run from a git worktree,
-which sits one level deeper than the canonical parent), override it:
+The resolved sponsor is validated by the marker file
+`deployment/base-config.json` (which the reference sponsor also carries). To
+rehearse a **real** sponsor from a core checkout (instead of the reference one),
+override the default:
 
 ```bash
 # Option A: export an absolute path (also how the sponsor wrapper works)
@@ -49,22 +60,29 @@ SPONSOR_REPO=/abs/path/to/hht_diary_callisto ./deployment/local-stack/local-stac
 path = "/abs/path/to/hht_diary_callisto"
 ```
 
+A relative `[associated.sponsor].path` resolves against the toolkit root, so the
+canonical sibling layout (`../../../hht_diary_callisto`) works from a normal
+clone but not from a git worktree (one level deeper) — use an absolute path
+there, or run from the sponsor repo.
+
 ## Prerequisites
 
 - Docker Engine >= 24 with the `docker compose` v2 plugin
 - Doppler CLI, authenticated (`doppler login`) and set up for the dev config (`doppler setup`)
 - Python >= 3.11 (for the TOML path resolver -- `tomllib` is stdlib in 3.11+)
-- `ghcr.io` access via `docker login ghcr.io` (the build pulls the sponsor-ci base)
-- A local checkout of the sponsor repo (`hht_diary_callisto`). Default expected
-  sibling layout:
+- **No `docker login ghcr.io` required** for the default run: the CI toolchain
+  base image is built locally (see "CI base image" below). Only `--ci-base ghcr`
+  needs GHCR access.
+- **No sponsor checkout required** for the default (reference-sponsor) run. To
+  rehearse a real sponsor, either run the local-stack from the sponsor repo, or
+  point this toolkit at a sponsor checkout. Canonical sibling layout:
 
   ```text
-  ~/cure-hht/hht_diary            (core — this toolkit's home)
-  ~/cure-hht/hht_diary_callisto   (sponsor)
+  ~/cure-hht/hht_diary            (core — this toolkit's home + reference sponsor)
+  ~/cure-hht/hht_diary_callisto   (sponsor, optional)
   ```
 
-  Override via `SPONSOR_REPO` or `.local-stack.local.toml` if your layout
-  differs (see above).
+  Select a real sponsor via `SPONSOR_REPO` or `.local-stack.local.toml` (see above).
 
 - `bats` (>= 1.5) and `jq` for the test suite (optional, dev-only).
 
@@ -77,6 +95,32 @@ path = "/abs/path/to/hht_diary_callisto"
   an in-memory event store (no `DB_HOST`), and Postgres + its volume are
   skipped entirely. Nothing persists across `down`. Fastest to start; ideal for
   throwaway smoke tests.
+
+## CI base image: local build (default) vs GHCR pull
+
+The portal/server images build `FROM` `sponsor-ci`, which in turn builds `FROM`
+`clinical-diary-ci` — the heavy CI toolchain image (Flutter SDK, Android SDK,
+JDK, gcloud, scanners). Two ways to obtain it, selected by `--ci-base` (global
+flag) or `LOCAL_STACK_CI_BASE`:
+
+- **`local` (default)**: build `clinical-diary-ci:local` from core's
+  `tools/dev-env/docker/ci.Dockerfile`, using the pinned tool versions in
+  `.github/versions.env` (parity with CI). **Needs no `docker login ghcr.io`** —
+  a bare core run is fully self-contained for the base image. The first cold
+  build downloads the Flutter + Android SDK (several minutes); the image carries
+  no sponsor suffix, so it is reused across runs and **survives `down`** (like
+  `firebase-emulator:local`). It is rebuilt only when `ci.Dockerfile` or
+  `versions.env` changes (Docker layer cache keeps the warm path fast) — i.e.
+  about as rarely as CI publishes a new base.
+- **`ghcr`** (`--ci-base ghcr` or `LOCAL_STACK_CI_BASE=ghcr`): pull the
+  digest-pinned `clinical-diary-ci` from GHCR — faster and byte-identical to the
+  CI/deploy base, but **requires `docker login ghcr.io`** (the package is
+  private). `sponsor-ci.Dockerfile`'s `ARG CI_BASE_IMAGE` default is this digest,
+  so this mode simply leaves the default in place.
+
+The toolkit validates the selection up front: an unrecognized value, or `ghcr`
+with no detectable `ghcr.io` credentials, fails fast with a specific message
+before any build or Doppler token is created.
 
 ## Auth
 
@@ -245,8 +289,9 @@ verbatim (no password); under session auth it's the Identity-Platform email.
 
 ## Troubleshooting
 
-**`denied: unauthorized` during image build.** Run `docker login ghcr.io` with
-a PAT that has `read:packages` scope.
+**`denied: unauthorized` during image build.** Only happens with `--ci-base
+ghcr`. Either run `docker login ghcr.io` with a PAT that has `read:packages`
+scope, or drop the flag to build the CI base locally (the default, no auth).
 
 **`portal did not become healthy within 240s`.** Run `./local-stack logs` and
 check the failing service. Common causes:
@@ -292,19 +337,29 @@ local-stack                   CLI entry point; subcommand dispatch
                               ([--ephemeral] portal / full-system /
                                down [--keep-db] / logs / email / status /
                                reset-emulator / rebind / diary* / debug / --help)
-.local-stack.toml             [associated.sponsor] pointer at the sponsor repo
-                              (override per-dev via .local-stack.local.toml or
-                               the SPONSOR_REPO env var)
+.local-stack.toml             optional [associated.sponsor] pointer at a real
+                              sponsor repo; ships unset so the default is the
+                              built-in reference sponsor (override per-dev via
+                              .local-stack.local.toml or the SPONSOR_REPO env var)
+../reference-sponsor/         built-in reference sponsor (sponsor id `reference`,
+                              empty content overlay): base-config.json +
+                              portal-final.Dockerfile + nginx + scripts/start.sh +
+                              seed/portal-users.json + content/. The bare-core
+                              default when no sponsor repo is selected.
 lib/common.sh                 shared bash helpers
                               (log, die, require_cmd, require_env, CORE_PATH,
-                               resolve_sponsor_path, resolve_sponsor, resolve_edc_module)
-lib/resolve-sponsor-path.py   resolves the sponsor repo from SPONSOR_REPO or
-                              .local-stack.toml (+ .local override); validates
-                              via deployment/base-config.json marker
+                               resolve_sponsor_path, resolve_sponsor, resolve_edc_module,
+                               resolve_ci_base + ensure_ghcr_auth)
+lib/resolve-sponsor-path.py   resolves the sponsor from SPONSOR_REPO,
+                              .local-stack.toml (+ .local override), else the
+                              built-in ../reference-sponsor; validates via
+                              deployment/base-config.json marker
 lib/build-images.sh           builds the cached firebase-emulator:local image
-                              (one-time) plus 3 sponsor-suffixed :local images
+                              (one-time), the clinical-diary-ci:local CI base
+                              (default --ci-base local; cached, survives `down`),
+                              plus 3 sponsor-suffixed :local images
                               (sponsor-ci + portal-server-binary from core,
-                               portal-final from the sponsor repo)
+                               portal-final from the sponsor repo / reference)
 firebase-emulator/Dockerfile  cached firebase-emulator:local image
                               (JRE + pinned firebase-tools); sponsor-agnostic
 lib/doppler-token.sh          auto-creates a scoped service token if

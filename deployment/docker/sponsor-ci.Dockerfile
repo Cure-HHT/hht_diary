@@ -1,4 +1,13 @@
-FROM ghcr.io/cure-hht/clinical-diary-ci@sha256:044a6171ff4f75b2e5f5d594ed24cac912ac9abfd4f5527ed6b18c2125c3ac28
+# Base CI toolchain image. Defaults to the digest-pinned clinical-diary-ci
+# published to GHCR — what CI (build-ghcr-containers.yml) and Cloud Run deploys
+# build on. The local-stack overrides this with
+#   --build-arg CI_BASE_IMAGE=clinical-diary-ci:local
+# when it builds the CI base locally from tools/dev-env/docker/ci.Dockerfile
+# (its default mode), so a bare core run needs no `docker login ghcr.io`.
+# Keep this default digest in sync with build-ghcr-containers.yml's published
+# clinical-diary-ci image.
+ARG CI_BASE_IMAGE=ghcr.io/cure-hht/clinical-diary-ci@sha256:044a6171ff4f75b2e5f5d594ed24cac912ac9abfd4f5527ed6b18c2125c3ac28
+FROM ${CI_BASE_IMAGE}
 
 USER root
 WORKDIR /workspace/src

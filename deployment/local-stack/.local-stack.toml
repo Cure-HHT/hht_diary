@@ -3,8 +3,8 @@
 #
 # This toolkit lives in the CORE repo (hht_diary). The core path is the
 # toolkit's own checkout, resolved by `git rev-parse --show-toplevel` — it
-# needs no config. What this file configures is the *sponsor* repo
-# (e.g. hht_diary_callisto), which supplies the per-sponsor build inputs:
+# needs no config. What this file (optionally) configures is the *sponsor*
+# repo (e.g. hht_diary_callisto), which supplies the per-sponsor build inputs:
 # deployment/base-config.json, the sponsor portal-final.Dockerfile, content/,
 # and the portal seed-users file.
 #
@@ -13,33 +13,37 @@
 #   1. The SPONSOR_REPO env var, if set (absolute path). This is how the
 #      sponsor-side thin wrapper (deployment/local-stack-wrapper.sh in the
 #      sponsor repo) drives the toolkit — it exports SPONSOR_REPO to its own
-#      repo root and execs this CLI.
-#   2. Otherwise, [associated.sponsor].path below, overlaid with
-#      .local-stack.local.toml, resolved relative to this toolkit root.
+#      repo root and execs this CLI. Running from a sponsor repo therefore
+#      uses that sponsor.
+#   2. Otherwise, [associated.sponsor].path (if set below or in
+#      .local-stack.local.toml), resolved relative to this toolkit root.
+#   3. Otherwise, the built-in reference sponsor at
+#      <core>/deployment/reference-sponsor. This is the BARE-CORE DEFAULT:
+#      with no SPONSOR_REPO and no [associated.sponsor].path, a plain
+#      `./local-stack portal` from hht_diary builds the reference portal-final
+#      (sponsor id `reference`, empty content overlay) so a core dev can
+#      rehearse the dev stack with no sponsor checkout.
 #
-# WHEN YOU NEED AN OVERRIDE
-# -------------------------
-# The default `path = "../../../hht_diary_callisto"` assumes the canonical
-# sibling layout, resolved from this file at
-# <core>/deployment/local-stack/.local-stack.toml:
+# This file intentionally ships WITHOUT an [associated.sponsor] block, so the
+# checked-in default is the reference sponsor (step 3). To rehearse against a
+# real sponsor from a core checkout, either:
+#
+#   • run the local-stack from the sponsor repo (its wrapper exports
+#     SPONSOR_REPO), or
+#   • export SPONSOR_REPO=/abs/path/to/hht_diary_<sponsor>, or
+#   • create `.local-stack.local.toml` (gitignored) alongside this file:
+#
+#         [associated.sponsor]
+#         path = "/abs/path/to/hht_diary_<sponsor>"
+#
+# A relative path resolves against this toolkit root
+# (<core>/deployment/local-stack). The canonical sibling layout is:
 #
 #     <parent>/hht_diary             (core — this toolkit's home)
 #     <parent>/hht_diary_callisto    (sponsor)
 #
-# It does NOT resolve when working from a git worktree (the toolkit's
-# show-toplevel is a worktree dir, one level deeper than the canonical
-# parent) nor for any non-default layout.
-#
-# In those cases, either export SPONSOR_REPO with an absolute path, or
-# create `.local-stack.local.toml` (gitignored) alongside this file with:
-#
-#     [associated.sponsor]
-#     path = "/abs/path/to/hht_diary_<sponsor>"
-#
-# The override is deep-merged on top of this file by the resolver. The
-# resolver surfaces the same hint when its path check fails, so first-run
-# errors are self-explanatory.
-
-[associated.sponsor]
-repo = "Cure-HHT/hht_diary_callisto"
-path = "../../../hht_diary_callisto"
+# so `path = "../../../hht_diary_callisto"` works from a normal clone but NOT
+# from a git worktree (one level deeper) — use an absolute path there. The
+# override is deep-merged on top of this file by the resolver, which surfaces
+# the same hint if its path check fails, so first-run errors are
+# self-explanatory.
