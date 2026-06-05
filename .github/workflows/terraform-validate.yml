@@ -124,10 +124,13 @@ jobs:
           echo "exitcode=$EXIT_CODE" >> $GITHUB_OUTPUT
           exit 0
         env:
-          TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
-          TF_VAR_DB_PASSWORD: ${{ secrets.TF_VAR_DB_PASSWORD_DEV }}
-          TF_VAR_BILLING_ACCOUNT_DEV: ${{ vars.BILLING_ACCOUNT_DEV }}
-          TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
+          # CUR-1323: secret/var names corrected — these reference repo SECRETS
+          # named TF_VAR_* (not `vars.*`), and TF_VAR_DB_PASSWORD has no `_DEV`
+          # suffix. DOPPLER_TOKEN (required, no default in variables.tf) is now
+          # passed. BILLING_ACCOUNT_* dropped: no matching variable block exists.
+          TF_VAR_GCP_ORG_ID: ${{ secrets.TF_VAR_GCP_ORG_ID }}
+          TF_VAR_DB_PASSWORD: ${{ secrets.TF_VAR_DB_PASSWORD }}
+          TF_VAR_DOPPLER_TOKEN: ${{ secrets.TF_VAR_DOPPLER_TOKEN }}
           TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
 
       - name: Build Terraform plan comment body
@@ -232,10 +235,13 @@ jobs:
           terraform apply -input=false -auto-approve \
             -var-file=sponsor-configs/callisto4-dev.tfvars
         env:
-          TF_VAR_GCP_ORG_ID: ${{ vars.GCP_ORG_ID }}
-          TF_VAR_DB_PASSWORD: ${{ secrets.TF_VAR_DB_PASSWORD_DEV }}
-          TF_VAR_BILLING_ACCOUNT_DEV: ${{ vars.BILLING_ACCOUNT_DEV }}
-          TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
+          # CUR-1323: secret/var names corrected — these reference repo SECRETS
+          # named TF_VAR_* (not `vars.*`), and TF_VAR_DB_PASSWORD has no `_DEV`
+          # suffix. DOPPLER_TOKEN (required, no default in variables.tf) is now
+          # passed. BILLING_ACCOUNT_* dropped: no matching variable block exists.
+          TF_VAR_GCP_ORG_ID: ${{ secrets.TF_VAR_GCP_ORG_ID }}
+          TF_VAR_DB_PASSWORD: ${{ secrets.TF_VAR_DB_PASSWORD }}
+          TF_VAR_DOPPLER_TOKEN: ${{ secrets.TF_VAR_DOPPLER_TOKEN }}
           TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
 
       - name: 'Post apply result'
