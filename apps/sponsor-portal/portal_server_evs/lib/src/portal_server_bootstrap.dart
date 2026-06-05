@@ -239,6 +239,11 @@ Future<PortalServerBoot> bootstrapPortalServer({
     await grantView(role, 'user_role_scopes');
     await grantView(role, 'users_index');
   }
+  // The SystemOperator also reads the site list (sites_index) so the user
+  // provisioning UI can offer the real RAVE-synced sites when assigning a
+  // site-scoped role — site reference data, NOT participant/clinical data
+  // (it deliberately does not get participant_record).
+  await grantView('SystemOperator', 'sites_index');
   // The site list + participant records back the StudyCoordinator/CRA/Admin
   // operational screens.
   for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {

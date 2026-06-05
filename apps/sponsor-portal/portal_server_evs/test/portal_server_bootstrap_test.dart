@@ -169,9 +169,10 @@ void main() {
       containsAll(<String>[
         'view:users_index',
         'view:user_role_scopes',
+        'view:sites_index',
         'portal.user.create',
       ]),
-      reason: 'SystemOperator can view + provision user accounts',
+      reason: 'SystemOperator can view users + sites to provision accounts',
     );
   });
 

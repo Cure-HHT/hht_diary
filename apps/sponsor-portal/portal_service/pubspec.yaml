@@ -10,7 +10,7 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 0b20b6a3645f883c7410fb7ef891f05ae54623fb
+      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
       path: event_sourcing
   portal_actions:
     path: ../../common-dart/portal_actions

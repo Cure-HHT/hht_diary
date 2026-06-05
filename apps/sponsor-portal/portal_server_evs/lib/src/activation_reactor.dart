@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_identity/portal_identity.dart';
@@ -34,9 +35,19 @@ class ActivationReactor {
     )
         .listen((update) {
       if (update is Delta<StoredEvent>) {
-        // Fire-and-forget; failures are logged, the code stays valid for retry.
-        handleIssued(update.value);
+        // Fire-and-forget; handleIssued swallows its own failures (the code
+        // stays valid for retry), and the catchError is a final backstop so a
+        // reactor error can NEVER surface as an unhandled exception that takes
+        // the server down.
+        unawaited(
+            handleIssued(update.value).catchError((Object e, StackTrace st) {
+          stderr.writeln('ActivationReactor.handleIssued failed (continuing): '
+              '$e\n$st');
+        }));
       }
+    }, onError: (Object e, StackTrace st) {
+      stderr.writeln(
+          'ActivationReactor subscription error (continuing): $e\n$st');
     });
   }
 
@@ -51,7 +62,21 @@ class ActivationReactor {
     // calls the server itself. Root path so it resolves on any UI host (plain
     // static server or flutter run) without relying on SPA path fallback.
     final url = '$portalUrl/?code=$code';
-    await emailSender.sendActivation(recipientEmail: email, activationUrl: url);
+    // The code is already minted (valid for retry / shown in console-email
+    // mode), so a delivery failure — transient SMTP/credential errors, expired
+    // ADC, etc. — is logged and swallowed. Email delivery is a side effect; it
+    // must NEVER propagate as an unhandled exception that crashes the portal.
+    try {
+      await emailSender.sendActivation(
+        recipientEmail: email,
+        activationUrl: url,
+      );
+    } catch (e, st) {
+      stderr.writeln(
+        'ActivationReactor: activation email to "$email" failed; the code '
+        'remains valid for retry. $e\n$st',
+      );
+    }
   }
 
   Future<void> stop() => _sub?.cancel() ?? Future<void>.value();

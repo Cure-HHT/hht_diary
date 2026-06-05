@@ -135,7 +135,15 @@ AssignmentPlan planAssignmentChanges({
 /// Builds the ordered [ActionSubmission] list realizing an [AssignmentPlan] for
 /// [userId]: revoke sites/roles first, then assign sites/roles. Site-scoped
 /// pairs use ACT-USR-008/011 (role + site); wildcard roles use ACT-USR-007/010
-/// (role + the role-level wildcard scope from [wildcardScopeJsonFor]).
+/// (role + EACH role-level scope from [roleScopesJsonFor]).
+///
+/// [roleScopesJsonFor] returns the FULL list of role-level scopes a wildcard
+/// role must carry — not just one. The Administrator carries TWO (an all-sites
+/// scope for its site-scoped permissions AND a staff-`tier` scope so it can
+/// exercise user-management actions against staff-tier accounts, per
+/// DIARY-DEV-operator-tier-authz/E); a single assign_role with only the site
+/// scope leaves a provisioned Administrator unable to manage users. Each scope
+/// becomes its own assign_role / revoke_role so the diff stays symmetric.
 ///
 /// No idempotency keys are minted here: the screen submits each through an
 /// `ActionClient`, which mints the per-submission key at submit time (the
@@ -148,7 +156,7 @@ AssignmentPlan planAssignmentChanges({
 List<ActionSubmission> assignmentSubmissions(
   AssignmentPlan plan,
   String userId,
-  Object Function(String role) wildcardScopeJsonFor,
+  List<Object> Function(String role) roleScopesJsonFor,
 ) => <ActionSubmission>[
   for (final (role, site) in plan.revokeSites)
     ActionSubmission(
@@ -156,26 +164,28 @@ List<ActionSubmission> assignmentSubmissions(
       rawInput: <String, Object?>{'userId': userId, 'role': role, 'site': site},
     ),
   for (final role in plan.revokeRoles)
-    ActionSubmission(
-      actionName: revokeRoleAction,
-      rawInput: <String, Object?>{
-        'userId': userId,
-        'role': role,
-        'scope': wildcardScopeJsonFor(role),
-      },
-    ),
+    for (final scope in roleScopesJsonFor(role))
+      ActionSubmission(
+        actionName: revokeRoleAction,
+        rawInput: <String, Object?>{
+          'userId': userId,
+          'role': role,
+          'scope': scope,
+        },
+      ),
   for (final (role, site) in plan.assignSites)
     ActionSubmission(
       actionName: assignSiteAction,
       rawInput: <String, Object?>{'userId': userId, 'role': role, 'site': site},
     ),
   for (final role in plan.assignRoles)
-    ActionSubmission(
-      actionName: assignRoleAction,
-      rawInput: <String, Object?>{
-        'userId': userId,
-        'role': role,
-        'scope': wildcardScopeJsonFor(role),
-      },
-    ),
+    for (final scope in roleScopesJsonFor(role))
+      ActionSubmission(
+        actionName: assignRoleAction,
+        rawInput: <String, Object?>{
+          'userId': userId,
+          'role': role,
+          'scope': scope,
+        },
+      ),
 ];

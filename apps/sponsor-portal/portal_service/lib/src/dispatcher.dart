@@ -5,6 +5,7 @@ import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_actions/portal_actions.dart';
 
 import 'authz.dart';
+import 'self_management_guard_policy.dart';
 
 /// Build a portal ActionDispatcher over [eventStore]. Bootstraps the
 /// authorization policy from the role-permission seed; throws [StateError]
@@ -21,7 +22,9 @@ Future<ActionDispatcher> buildPortalDispatcher({
   final AuthorizationPolicy policy;
   switch (bootstrap) {
     case PolicyReady():
-      policy = bootstrap.policy;
+      // Wrap the seeded policy so a user can never run a user-account action on
+      // their own account (self-lockout / "cannot edit/deactivate own account").
+      policy = SelfManagementGuardPolicy(bootstrap.policy);
     case PolicyFailSafe():
       throw StateError(
         'portal authorization seed failed: ${bootstrap.errors.join('; ')}',
