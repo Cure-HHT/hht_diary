@@ -46,7 +46,6 @@ These files define WHAT the system does and should NOT contain code examples. Th
 | `prd-security.md` | [x] **DONE** | No Supabase references found |
 | `prd-security-data-classification.md` | [x] **DONE** | No Supabase references found |
 | `prd-security-RBAC.md` | [x] **DONE** | Updated to GCP project isolation |
-| `prd-security-RLS.md` | [x] **DONE** | PostgreSQL RLS unchanged (no Supabase refs) |
 | `prd-event-sourcing-system.md` | [x] **DONE** | PostgreSQL core (no Supabase refs) |
 | `prd-portal.md` | [x] **DONE** | Updated database reference |
 | `prd-clinical-trials.md` | [x] **DONE** | No Supabase references found |

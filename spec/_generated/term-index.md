@@ -505,15 +505,12 @@
 
 **DIARY:**
 
-- DIARY-OPS-db-reset-non-prod
 - DIARY-BASE-audit-trail-E
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-portal-durable-event-store-A
 - DIARY-DEV-schema-version-check-A
 - DIARY-DEV-schema-version-check-B
 - DIARY-DEV-schema-version-check-C
-- DIARY-OPS-schema-migrate-on-deploy-A
-- DIARY-OPS-ci-migration-gate-A
 - DIARY-PRD-data-backup-and-archival-A
 - DIARY-PRD-data-backup-and-archival-C
 - DIARY-PRD-questionnaire-versioning-C
@@ -524,8 +521,6 @@
 - DIARY-PRD-sla-disaster-recovery-C
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-schema-version-check:section:0
-- DIARY-OPS-db-reset-non-prod:section:0
-- DIARY-OPS-ci-migration-gate:section:0
 - DIARY-PRD-questionnaire-versioning:section:0
 - DIARY-GUI-dev-admin-rave-sync-card:section:0
 
@@ -679,8 +674,8 @@
 - DIARY-DEV-audit-log-read:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-shared-events-catalog:section:0
-- rem:spec/glossary-core.md:745
-- rem:spec/glossary-core.md:771
+- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:756
 - DIARY-OPS-single-promotable-artifact:section:1
 - rem:spec/prd-diary-entry-rules.md:1
 - rem:spec/prd-diary-entry-rules.md:3
@@ -731,7 +726,7 @@
 
 **DIARY:**
 
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 
 ## Diary Platform
 
@@ -1077,7 +1072,7 @@
 **DIARY:**
 
 - DIARY-PRD-role-definitions-B
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - DIARY-OPS-rave-sync-cooldown:section:0
 - DIARY-PRD-role-definitions:section:1
 
@@ -1273,7 +1268,7 @@
 - DIARY-PRD-participant-reconnection-F
 - DIARY-PRD-participant-mark-not-participating-D
 - DIARY-PRD-participant-reactivate-C
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-mobile-app.md:1
 - rem:spec/prd-mobile-app.md:3
@@ -1648,7 +1643,7 @@
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-relink-device-gate:section:0
 - DIARY-DEV-shared-events-catalog:section:0
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-GUI-audit-log-cra:section:0
@@ -1889,7 +1884,7 @@
 - DIARY-PRD-questionnaire-localization-I
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-sla-incident-severity-B
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - rem:spec/prd-evidence-records.md:3
 - DIARY-PRD-evidence-device-fingerprint:section:0
 - DIARY-PRD-evidence-patient-authentication:section:0
@@ -2353,7 +2348,7 @@
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-audit-log.md:3
@@ -2399,8 +2394,6 @@
 - DIARY-GUI-role-switching-D
 - DIARY-GUI-role-switching-E
 - DIARY-GUI-role-switching-G
-
-## Row-Level Security
 
 ## Second Factor
 
@@ -2750,10 +2743,10 @@
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
-- rem:spec/glossary-core.md:745
-- rem:spec/glossary-core.md:762
-- rem:spec/glossary-core.md:764
-- rem:spec/glossary-core.md:771
+- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:747
+- rem:spec/glossary-core.md:749
+- rem:spec/glossary-core.md:756
 - rem:spec/prd-administrator-settings.md:3
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -3092,7 +3085,7 @@
 - DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-participant-state-poll:section:0
 - DIARY-DEV-participant-state-poll:section:1
-- rem:spec/glossary-core.md:745
+- rem:spec/glossary-core.md:730
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-linking-confirmation:section:1
@@ -3368,8 +3361,8 @@
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
-- rem:spec/glossary-core.md:745
-- rem:spec/glossary-core.md:771
+- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:756
 - rem:spec/prd-audit-log.md:3
 - DIARY-GUI-audit-log-administrator:section:0
 - DIARY-GUI-audit-log-administrator:section:1

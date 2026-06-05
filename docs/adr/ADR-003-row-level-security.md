@@ -1,5 +1,7 @@
 # ADR-003: Row-Level Security for Multi-Tenancy
 
+> **Status update (2026-06): Superseded by the event-sourcing (EVS) cutover — see CUR-1170.** The PostgreSQL row-level-security policies described below were retired with the `database/` schema; under EVS, access control is event-sourced permissions evaluated in the application layer over the event log (permissions/role-assignments are themselves events). DB-level tamper-resistance for the event store is an open gap tracked in CUR-1439.
+
 **Date**: 2025-10-14
 **Deciders**: Development Team, Security Team
 **Security Impact**: Critical

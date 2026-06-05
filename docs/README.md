@@ -101,8 +101,8 @@ Most documentation lives in the root with topic-based prefixes for easy discover
   - Examples: `cicd-setup-guide.md`
 - **architecture-\*** : System architecture (non-ADR implementation details)
   - Examples: `architecture-build-integrated-workflow.md`
-- **database-\*** : Database guides beyond database/ directory
-  - Examples: `database-supabase-pre-deployment-audit.md`
+- **database-\*** : Database guides (note: the in-repo `database/` SQL schema was removed in the EVS cutover, CUR-1170; the EVS event store schema is created at runtime by the `event_sourcing` library)
+  - Examples: `database-supabase-pre-deployment-audit.md` (historical)
 - **compliance-\*** : Compliance audits and verification
   - Examples: `compliance-gcp-verification.md`
 

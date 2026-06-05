@@ -1,5 +1,7 @@
 # ADR-004: Separation of Investigator Annotations
 
+> **Status update (2026-06): Superseded by the event-sourcing (EVS) cutover — see CUR-1170.** The separate relational annotation tables described below were retired with the `database/` schema; under EVS, investigator annotations are recorded as distinct events in the same hash-chained event log, keeping them separated from participant-originated entries by event type/provenance rather than by table.
+
 **Date**: 2025-10-14
 **Deciders**: Development Team, Clinical Research Team, Compliance Officer
 **Compliance Impact**: High

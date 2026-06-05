@@ -2,8 +2,15 @@
 
 **IMPLEMENTS REQUIREMENTS**: REQ-p01018 (Security Audit and Compliance)
 
-**Last Updated**: 2025-11-17
+**Last Updated**: 2026-06 (EVS cutover: Squawk SQL-migration linting removed)
 **Status**: Active
+
+> **Note (2026-06):** The Squawk PostgreSQL migration-linting step was removed in the
+> event-sourcing (EVS) cutover (CUR-1170). There are no SQL migrations in the repo anymore:
+> the `database/` directory was deleted and the EVS event store creates and owns its own
+> schema at runtime via the `event_sourcing` library's `PostgresBackend`. The Squawk section
+> below is retained for historical context only. Active scanners are Gitleaks, Trivy, and
+> Flutter Analyze.
 
 ## Overview
 
@@ -20,7 +27,7 @@ This document describes the comprehensive security scanning strategy for the Dia
 - ✅ **Gitleaks**: Secret scanning (pre-commit + CI/CD)
 - ✅ **Trivy**: Multi-layer vulnerability scanning (dependencies, IaC, containers)
 - ✅ **Flutter Analyze**: Dart/Flutter static analysis
-- ✅ **Squawk**: PostgreSQL migration safety linting
+- ⛔ **Squawk**: PostgreSQL migration safety linting — REMOVED in the EVS cutover (no SQL migrations in-repo)
 - ✅ **Defense-in-Depth**: Multiple tools at multiple stages
 
 ## Scanner Matrix
@@ -32,7 +39,7 @@ This document describes the comprehensive security scanning strategy for the Dia
 | **Trivy (IaC)** | Infrastructure misconfig | Docker, Terraform, K8s | CI/CD | ❌ No (report only) |
 | **Trivy (container)** | Container vulnerabilities | Docker images | CI/CD | ❌ No (report only) |
 | **Flutter Analyze** | Dart/Flutter static analysis | .dart files | CI/CD | ✅ Yes |
-| **Squawk** | PostgreSQL migration safety | .sql files (database/) | CI/CD | ✅ Yes |
+| ~~**Squawk**~~ | ~~PostgreSQL migration safety~~ | ~~.sql files (database/)~~ | REMOVED (EVS cutover — no SQL migrations in-repo) | n/a |
 
 ## Scanner Details
 
@@ -159,7 +166,12 @@ This document describes the comprehensive security scanning strategy for the Dia
 - Flutter analyzer: https://dart.dev/tools/dartanalyzer
 - Analysis options: https://dart.dev/guides/language/analysis-options
 
-### 4. Squawk (PostgreSQL Migration Linting)
+### 4. Squawk (PostgreSQL Migration Linting) — REMOVED (EVS cutover)
+
+> **⚠️ HISTORICAL (as of 2026-06):** This scanner was removed in the event-sourcing (EVS)
+> cutover (CUR-1170). The `database/` directory and all in-repo SQL migrations were deleted;
+> the EVS event store creates its own schema at runtime via the `event_sourcing` library, so
+> there is nothing for Squawk to lint. The section below is kept for reference only.
 
 **Purpose**: Prevent dangerous PostgreSQL migration operations that could cause downtime or data loss
 
@@ -234,7 +246,7 @@ Our security scanning uses multiple layers:
 │  • Gitleaks: Full repository scan                       │
 │  • Trivy: Dependencies, IaC, Containers                 │
 │  • Flutter Analyze: Dart/Flutter code                   │
-│  • Squawk: PostgreSQL migrations (changed files)        │
+│  (Squawk PostgreSQL migration lint removed — EVS cutover)│
 └─────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -249,7 +261,7 @@ Our security scanning uses multiple layers:
 - **Gitleaks**: Specialized in secret patterns (high accuracy)
 - **Trivy**: Comprehensive vulnerability database (dependencies + containers + IaC)
 - **Flutter Analyze**: Language-specific static analysis (Dart/Flutter expert)
-- **Squawk**: PostgreSQL-specific migration safety (prevents production downtime)
+- ~~**Squawk**: PostgreSQL-specific migration safety~~ (removed — no SQL migrations in-repo after EVS cutover)
 - **No single tool catches everything**: Overlap provides redundancy
 
 ## FDA 21 CFR Part 11 Compliance
@@ -402,7 +414,7 @@ ALTER TABLE users ALTER COLUMN email SET NOT NULL;
 - Gitleaks: Update `.github/versions.env` → `GITLEAKS_VERSION`
 - Trivy: Update `.github/workflows/qa-automation.yml` → `aquasecurity/trivy-action@VERSION`
 - Flutter: Update `.github/versions.env` → `FLUTTER_VERSION`
-- Squawk: Update `.github/workflows/qa-automation.yml` → `SQUAWK_VERSION`
+- ~~Squawk: Update `.github/workflows/qa-automation.yml` → `SQUAWK_VERSION`~~ (removed in EVS cutover)
 
 **Configuration Updates**:
 - Gitleaks rules: Edit `.gitleaks.toml`
@@ -479,3 +491,4 @@ A:
 | 2025-11-17 | Added Flutter/Dart security job | Claude (CUR-336) |
 | 2025-11-17 | Enhanced Trivy with IaC and container scanning | Claude (CUR-336) |
 | 2025-11-17 | Added Squawk PostgreSQL migration linting | Claude (CUR-336) |
+| 2026-06 | Removed Squawk SQL-migration linting (EVS cutover deleted `database/`; no in-repo migrations) | Claude (CUR-1170) |

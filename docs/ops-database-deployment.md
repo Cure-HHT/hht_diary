@@ -1,3 +1,5 @@
+> **⚠️ HISTORICAL (as of 2026-06): superseded by the EVS cutover (CUR-1170).** This document describes the retired raw-Postgres relational schema deployment (JSONB validation functions + RLS policies) and is kept for reference only. The `database/` directory it deploys was deleted. Current reality: the EVS event store schema is created and owned at runtime by the `event_sourcing` library's `PostgresBackend` (deployed via `portal_server_evs`); there is no manual SQL deployment step.
+
 # Supabase Deployment Guide
 
 ## Overview

@@ -20,6 +20,9 @@ LABEL com.clinical-diary.role="audit"
 # ============================================================
 # Build arguments — sourced from .github/versions.env at build time
 # ============================================================
+# Quarterly maintenance review (FDA 21 CFR Part 11): 2026-06-05 (CUR-1170) —
+# pinned versions verified consistent with .github/versions.env; base
+# debian:12-slim is current stable; no version changes required this cycle.
 ARG CLOUD_SQL_PROXY_VERSION=2.14.3
 ARG POSTGRESQL_CLIENT_VERSION=16
 

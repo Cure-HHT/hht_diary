@@ -937,22 +937,6 @@ See: REQ-p00005 (Role-Based Access Control), prd-security-RBAC.md.
 : UI element displayed in the header that shows the user's currently active role and allows users with multiple assigned roles to switch their active role.
 *Defined in: DIARY-GUI-role-switching (DIARY)*
 
-**Row-Level Security**
-: Database-enforced access control that automatically filters data so
-users can only access records they are authorized to see, based on
-their role and sponsor/site assignment.
-Purpose: ensures data isolation and role-based access control at the
-database layer (defense-in-depth).
-Example: an investigator at Site A cannot see diary entries from
-patients enrolled at Site B, even if both sites belong to the same
-sponsor — enforced by PostgreSQL RLS policies.
-Relationship to RBAC: RBAC defines what actions users can perform; RLS
-defines what data users can access.
-Usage Context: security architecture, database design.
-See: REQ-p00015 (Database-Level Access Enforcement), REQ-p00035
-(Patient Data Isolation), prd-security-RLS.md.
-*Defined in: file:spec/glossary-core.md (DIARY)*
-
 ## S
 
 **SDV (Source Data Verification)** *(not indexed)*

@@ -1,5 +1,7 @@
 # ADR-002: JSONB for Flexible Diary Schema
 
+> **Status update (2026-06): Superseded by the event-sourcing (EVS) cutover — see CUR-1170.** The relational JSONB diary-entry tables described below were retired along with the `database/` schema; under EVS, diary data is stored as hash-chained events in the `event_sourcing` event store and projected into read models at runtime (no relational schema in-repo).
+
 **Date**: 2025-10-14
 **Deciders**: Development Team, Clinical Research Team
 **Technical Impact**: High

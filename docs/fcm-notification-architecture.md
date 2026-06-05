@@ -1,5 +1,12 @@
 # FCM Notification Architecture
 
+> **⚠️ DB references stale (2026-06, EVS cutover, CUR-1170):** References to
+> `database/migrations/*.sql` (e.g. the `patient_fcm_tokens` table migration) describe the
+> retired relational schema, which was deleted in the EVS cutover. The platform is now EVS-only:
+> FCM-token and notification data are modeled as events in the `event_sourcing` event store
+> (schema created at runtime by `portal_server_evs`), not relational migrations. The
+> architecture/design intent below is otherwise unchanged.
+
 ## GCP Project Layout
 
 ```

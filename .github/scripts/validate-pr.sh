@@ -351,39 +351,11 @@ end_group
 #   fi
 #   end_group
 
-# --- 5. Migration headers (if database changed) ---
-if [ "$DB_CHANGED" = "true" ]; then
-  begin_group "Migration Header Validation"
-
-  INVALID_MIGRATIONS=()
-  shopt -s nullglob
-  for file in database/migrations/*.sql; do
-    if [ -f "$file" ]; then
-      if ! grep -q "^-- Migration:" "$file" || \
-         ! grep -q "^-- Date:" "$file" || \
-         ! grep -q "^-- Description:" "$file"; then
-        INVALID_MIGRATIONS+=("$file")
-      fi
-    fi
-  done
-  shopt -u nullglob
-
-  if [ ${#INVALID_MIGRATIONS[@]} -gt 0 ]; then
-    report_error "Migration files have invalid headers:"
-    for file in "${INVALID_MIGRATIONS[@]}"; do
-      echo "::error file=$file::Missing required migration header fields"
-    done
-    echo ""
-    echo "MIGRATION HEADER VALIDATION FAILED"
-    echo "See database/migrations/README.md for the correct format."
-    end_group
-    exit 1
-  else
-    echo "All migration files have proper headers"
-  fi
-
-  end_group
-fi
+# --- 5. Migration headers — REMOVED ---
+# The relational database/ schema and its SQL migrations were retired with the
+# EVS cutover; the event store owns its own schema via the event_sourcing
+# library (created at runtime, not via repo migrations). There are no SQL
+# migration files in this repo to header-validate.
 
 # --- 6. Code implementation headers (if code/database changed, gated by ENFORCE_CODE_HEADERS) ---
 # Scans all Dart/SQL source files for IMPLEMENTS REQUIREMENTS headers.
