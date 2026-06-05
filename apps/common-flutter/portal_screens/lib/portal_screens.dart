@@ -23,6 +23,8 @@ export 'src/widgets/portal_dashboard.dart';
 
 // Phase 5: admin screens.
 export 'src/admin/users_screen.dart';
+// Phase 6: audit logs screen.
+export 'src/admin/audit_logs_screen.dart';
 // Fixture data — used by the example preview app and the test suite.
 // Public so consumers can import the canonical sample users / audit
 // entries without forking the fixture file.

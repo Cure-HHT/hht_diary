@@ -191,8 +191,11 @@ class _PreviewHome extends StatelessWidget {
                   DashboardDestination(
                     key: 'audit',
                     label: 'Audit Logs',
-                    body: (_) =>
-                        const _Placeholder(label: 'AuditLogsScreen — Phase 6'),
+                    body: (ctx) => AuditLogsScreen(
+                      entries: MockData.auditEntries,
+                      isLoading: false,
+                      onRefresh: () => _snack(ctx, 'Refresh fired'),
+                    ),
                   ),
                   DashboardDestination(
                     key: 'sites',
