@@ -53,8 +53,8 @@ packages:
     dependency: transitive
     description:
       path: canonical_json_jcs
-      ref: "0b20b6a3645f883c7410fb7ef891f05ae54623fb"
-      resolved-ref: "0b20b6a3645f883c7410fb7ef891f05ae54623fb"
+      ref: "61c67ba72a6dad5ba95b3fe996c012cd6a85622f"
+      resolved-ref: "61c67ba72a6dad5ba95b3fe996c012cd6a85622f"
       url: "https://github.com/Cure-HHT/event_sourcing.git"
     source: git
     version: "0.1.0"
@@ -141,8 +141,8 @@ packages:
     dependency: "direct main"
     description:
       path: event_sourcing
-      ref: "0b20b6a3645f883c7410fb7ef891f05ae54623fb"
-      resolved-ref: "0b20b6a3645f883c7410fb7ef891f05ae54623fb"
+      ref: "61c67ba72a6dad5ba95b3fe996c012cd6a85622f"
+      resolved-ref: "61c67ba72a6dad5ba95b3fe996c012cd6a85622f"
       url: "https://github.com/Cure-HHT/event_sourcing.git"
     source: git
     version: "0.3.0+4"
@@ -373,8 +373,8 @@ packages:
     dependency: transitive
     description:
       path: provenance
-      ref: "0b20b6a3645f883c7410fb7ef891f05ae54623fb"
-      resolved-ref: "0b20b6a3645f883c7410fb7ef891f05ae54623fb"
+      ref: "61c67ba72a6dad5ba95b3fe996c012cd6a85622f"
+      resolved-ref: "61c67ba72a6dad5ba95b3fe996c012cd6a85622f"
       url: "https://github.com/Cure-HHT/event_sourcing.git"
     source: git
     version: "0.1.0"
