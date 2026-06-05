@@ -130,6 +130,52 @@ Pre-commit hook enforcement: `.githooks/pre-commit` section 6 checks that `*-des
 ```
 
 
+# Local-Stack (developer rehearsal of the `dev` deployment)
+
+A Postgres-backed, on-machine rehearsal of the Cloud Run `dev` stack: Postgres +
+Firebase auth emulator + OTel + portal-final + diary-final, all built from your
+local `hht_diary` working tree on one docker bridge network. Use it to reproduce
+Postgres-only issues the in-memory source-run can't surface (e.g. SERIALIZABLE
+`40001` concurrency bugs).
+
+**The toolkit lives in the sponsor repo `hht_diary_callisto`** (`deployment/local-stack/`),
+NOT in this repo. It builds *this* repo's source, located via `[associated.core].path`.
+
+Run from the callisto repo root (`~/cure-hht/hht_diary_callisto`):
+
+```bash
+./deployment/local-stack/local-stack portal   # portal :8080, diary /health :8081, firebase UI :4000
+./deployment/local-stack/local-stack logs [svc]   # tail logs (all, or e.g. portal-final)
+./deployment/local-stack/local-stack email        # console-mode email (OTPs, activation links)
+./deployment/local-stack/local-stack status        # running services
+./deployment/local-stack/local-stack reset-emulator # clear firebase rate-limit + re-seed users
+./deployment/local-stack/local-stack diary-reset    # wipe Linux desktop diary local state
+./deployment/local-stack/local-stack down [--keep-db]  # teardown (volumes + :local images)
+```
+
+Re-running `portal` is safe: schema is applied only on a fresh postgres volume;
+source changes are picked up via Docker layer cache each run. Cold-cache builds
+take a while (flutter web + dart compile).
+
+**Prereqs**: Docker >= 24 with compose v2, Doppler CLI authed for the dev config
+(`doppler login` / `doppler setup`), Python >= 3.11, `docker login ghcr.io`
+(first build pulls `clinical-diary-ci`), and a local `hht_diary` clone.
+
+**Config options** (all at the **callisto** repo root / its `deployment/`):
+- `.local-stack.toml` (checked in) — `[associated.core].path` (default `../hht_diary`)
+  pointing at the `hht_diary` source to build. **Worktrees need an override**:
+  `../hht_diary` resolves one level too shallow from a `*-worktrees/<branch>/`
+  checkout, so create `.local-stack.local.toml` (gitignored) with an absolute
+  `[associated.core].path = "/abs/path/to/<worktree>"`.
+- `deployment/local-stack/README.md` — full command reference + behavior notes.
+- `deployment/base-config.json` — sponsor id (drives image names).
+- `deployment/local-stack/compose/docker-compose.yml` — service/topology definition.
+
+When testing a library change pinned by git ref (e.g. `event_sourcing`), push the
+library branch and bump the `ref:` in every consuming `pubspec.yaml` BEFORE
+building — the Docker build runs `flutter pub get` against the pinned ref.
+
+
 # Tooling
 
 Prefer a specialized agent/skill for multi-step work; run independent calls in parallel.
