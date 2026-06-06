@@ -6,7 +6,7 @@
 //   shows the locked note (visible, read-only) and tapping it writes nothing.
 import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/screens/advanced_settings_screen.dart';
-import 'package:clinical_diary/screens/feature_flags_screen.dart';
+import 'package:clinical_diary/screens/all_configs_screen.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
@@ -144,30 +144,32 @@ void main() {
         setUpTestFlavor(AppEnv.dev);
       });
 
-      testWidgets('shows Feature Flags tile when showDevTools is true', (
-        tester,
-      ) async {
-        setUpTestFlavor(AppEnv.dev); // F.showDevTools == true
-        await pump(tester);
-        expect(find.text('Feature Flags'), findsOneWidget);
-      });
+      testWidgets(
+        'shows Feature Flags tile when showAllConfigsScreen is true',
+        (tester) async {
+          setUpTestFlavor(AppEnv.dev); // F.showAllConfigsScreen == true
+          await pump(tester);
+          expect(find.text('Feature Flags'), findsOneWidget);
+        },
+      );
 
-      testWidgets('hides Feature Flags tile when showDevTools is false', (
-        tester,
-      ) async {
-        setUpTestFlavor(AppEnv.prod); // F.showDevTools == false
-        await pump(tester);
-        expect(find.text('Feature Flags'), findsNothing);
-      });
+      testWidgets(
+        'hides Feature Flags tile when showAllConfigsScreen is false',
+        (tester) async {
+          setUpTestFlavor(AppEnv.prod); // F.showAllConfigsScreen == false
+          await pump(tester);
+          expect(find.text('Feature Flags'), findsNothing);
+        },
+      );
 
-      testWidgets('tapping Feature Flags navigates to FeatureFlagsScreen', (
+      testWidgets('tapping Feature Flags navigates to AllConfigsScreen', (
         tester,
       ) async {
         setUpTestFlavor(AppEnv.dev);
         await pump(tester);
         await tester.tap(find.text('Feature Flags'));
         await tester.pumpAndSettle();
-        expect(find.byType(FeatureFlagsScreen), findsOneWidget);
+        expect(find.byType(AllConfigsScreen), findsOneWidget);
       });
     });
   });

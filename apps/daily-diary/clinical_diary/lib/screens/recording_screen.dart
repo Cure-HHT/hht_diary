@@ -121,7 +121,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   // The event-sourced clinical rules (justification/lock thresholds + duration
   // confirmations + review screen), read reactively from ClinicalRulesScope in
-  // didChangeDependencies — NOT the legacy FeatureFlagService.
+  // didChangeDependencies.
   ClinicalRules _rules = const ClinicalRules();
   bool _initialStepSet = false;
 

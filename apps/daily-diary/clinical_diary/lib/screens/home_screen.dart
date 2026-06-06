@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:clinical_diary/config/app_config.dart';
-import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
@@ -149,7 +148,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _checkEnrollmentStatus();
     _checkDisconnectionStatus();
-    _checkNotParticipatingStatus();
     _refreshResetGate();
     _refreshWedgeStatus();
     // CUR-1164: React immediately when a background sync detects disconnection
@@ -262,17 +260,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _siteName = enrollment?.siteName;
         _sitePhoneNumber = enrollment?.sitePhoneNumber;
       });
-    }
-  }
-
-  /// CUR-1165: Check if participant is marked as not participating (REQ-p01065-D).
-  /// When true, sponsor-specific feature flags are reset to defaults so the
-  /// app falls back to neutral behavior.
-  Future<void> _checkNotParticipatingStatus() async {
-    final isNotParticipating = await widget.enrollmentService
-        .isNotParticipating();
-    if (isNotParticipating) {
-      FeatureFlagService.instance.resetToDefaults();
     }
   }
 
@@ -538,18 +525,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               AppPageRoute<void>(builder: (context) => const SettingsScreen()),
             );
           },
-          onShareWithCureHHT: () {
-            // TODO: Implement CureHHT data sharing
-          },
-
-          onStopSharingWithCureHHT: () {
-            // TODO: Implement stop sharing
-          },
           isEnrolledInTrial: _isEnrolled,
           isDisconnected: isDisconnected,
           isNotParticipating: isNotParticipating,
           enrollmentStatus: _isEnrolled ? 'active' : 'none',
-          isSharingWithCureHHT: false,
           sponsorLogoBuilder: _brandingLogoBuilder,
           userName: 'User',
           onUpdateUserName: (name) {
@@ -566,7 +545,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Refresh linking status after returning from profile
     await _checkEnrollmentStatus();
     await _checkDisconnectionStatus();
-    await _checkNotParticipatingStatus();
   }
 
   // REQ-p01067, REQ-p01068, REQ-p01070, REQ-p01071: Navigate to questionnaire.

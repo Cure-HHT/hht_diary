@@ -17,7 +17,7 @@ import 'dart:async';
 
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/screens/feature_flags_screen.dart';
+import 'package:clinical_diary/screens/all_configs_screen.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
@@ -119,7 +119,7 @@ class AdvancedSettingsScreen extends StatelessWidget {
                     locked: rules.isLocked(useReviewScreenKey),
                     onChanged: (v) => _set(context, useReviewScreenKey, v),
                   ),
-                  if (AppConfig.showDevTools) ...[
+                  if (AppConfig.showAllConfigsScreen) ...[
                     const Divider(),
                     _sectionHeader(
                       context,
@@ -137,7 +137,7 @@ class AdvancedSettingsScreen extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         AppPageRoute<void>(
-                          builder: (context) => const FeatureFlagsScreen(),
+                          builder: (context) => const AllConfigsScreen(),
                         ),
                       ),
                     ),

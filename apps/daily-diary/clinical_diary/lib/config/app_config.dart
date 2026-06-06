@@ -100,10 +100,6 @@ class AppConfig {
   static String get syncUrl => '$apiBase/api/v1/user/sync';
   static String get getRecordsUrl => '$apiBase/api/v1/user/records';
 
-  // Sponsor routes
-  static String sponsorConfigUrl(String sponsorId) =>
-      '$apiBase/api/v1/sponsor/config?sponsorId=$sponsorId';
-
   // Health check
   static String get healthUrl => '$apiBase/health';
 
@@ -141,6 +137,12 @@ class AppConfig {
   /// local/dev/qa, hidden in uat/prod. Reset All Data is gated separately
   /// via `showResetData`.
   static bool get showDevTools => EnvProfile.current.showDevTools;
+
+  /// Whether the dev "All configs" screen is reachable (Developer entry in
+  /// Advanced settings). Enabled in local/dev/qa, hidden in uat/prod.
+  // Implements: DIARY-DEV-deployment-config-defaults/E
+  static bool get showAllConfigsScreen =>
+      EnvProfile.current.showAllConfigsScreen;
 
   /// Whether to show the Reset All Data feature.
   /// Determined by EnvProfile - only enabled in dev, qa, uat, and local.
