@@ -54,6 +54,7 @@ class HomeScreen extends StatefulWidget {
     this.onResetAllData,
     this.resetSettingAllowsReset = true,
     this.nativeFifoWedged,
+    this.sponsorBranding = SponsorBrandingConfig.fallback,
     super.key,
   });
 
@@ -87,6 +88,12 @@ class HomeScreen extends StatefulWidget {
   /// event-sourced settings projection (`allow_local_reset`, default true).
   /// The HARD participation safeguard is layered on top of this in-screen.
   final bool resetSettingAllowsReset;
+
+  /// Sponsor branding derived from the diary's event-sourced settings
+  /// projection (the `branding.*` keys delivered set-once-at-link). Supplied by
+  /// the app root's reactive ViewBuilder, so it updates when the settings change.
+  // Implements: DIARY-GUI-participation-status-badge/B
+  final SponsorBrandingConfig sponsorBranding;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -165,8 +172,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  SponsorBrandingConfig sponsorBranding = SponsorBrandingConfig.fallback;
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -179,16 +184,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _checkEnrollmentStatus() async {
     final isEnrolled = await widget.enrollmentService.isEnrolled();
-    final enrollment = await widget.enrollmentService.getEnrollment();
-    try {
-      if (enrollment?.sponsorId != null) {
-        sponsorBranding = await SponsorBrandingService().fetchBranding(
-          enrollment!.sponsorId!,
-        );
-      }
-    } catch (e) {
-      debugPrint('Sponsor branding unavailable, using fallback: $e');
-    }
+    // Branding is no longer pulled here: it is derived from the diary's own
+    // event-sourced settings projection (set-once-at-link) by the app root and
+    // passed in via widget.sponsorBranding.
     if (mounted) {
       setState(() {
         _isEnrolled = isEnrolled;
@@ -520,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           isNotParticipating: isNotParticipating,
           enrollmentStatus: _isEnrolled ? 'active' : 'none',
           isSharingWithCureHHT: false,
-          sponsorLogo: sponsorBranding.appLogoUrl,
+          sponsorLogo: widget.sponsorBranding.appLogoUrl,
           userName: 'User',
           onUpdateUserName: (name) {
             // TODO: Implement username update
@@ -889,7 +887,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   // Logo menu on the left
                   LogoMenu(
-                    sponsorLogo: sponsorBranding.appLogoUrl,
+                    sponsorLogo: widget.sponsorBranding.appLogoUrl,
                     onResetAllData: _handleResetAllData,
                     resetEnabled: _canResetData,
                     isEnrolled: _isEnrolled,

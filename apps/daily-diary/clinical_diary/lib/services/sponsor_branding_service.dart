@@ -1,106 +1,51 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00102: Display full sponsor branding
-
-// Client-side service for fetching sponsor branding configuration.
-
-import 'dart:convert';
+// Sponsor branding, derived from the diary's own event-sourced settings
+// projection (set-once-at-link). The portal composes a sponsor-settings batch
+// into the /link response; the diary applies it through the sponsor-settings
+// path and reads it back here. There is no public branding pull: logo bytes are
+// fetched JWT-gated by role from the diary-server asset endpoint.
 
 import 'package:clinical_diary/config/app_config.dart';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:diary_shared_model/diary_shared_model.dart';
 
-/// Sponsor branding configuration returned by GET /api/v1/sponsor/branding.
+/// Sponsor branding resolved from the locked `branding.*` settings keys.
 class SponsorBrandingConfig {
-  const SponsorBrandingConfig({this.sponsorId, this.title, this.assetBaseUrl});
+  const SponsorBrandingConfig({this.title, this.logoSha256, this.logoRole});
 
-  factory SponsorBrandingConfig.fromJson(Map<String, dynamic> json) {
+  /// Derive branding from the diary's `{key: SettingPayload}` settings map.
+  /// Reads the `branding.*` keys delivered at link time; absent keys leave the
+  /// corresponding field null (app-default).
+  // Implements: DIARY-GUI-participation-status-badge/B
+  factory SponsorBrandingConfig.fromSettings(
+    Map<String, SettingPayload> settings,
+  ) {
+    String? s(String k) => settings[k]?.value as String?;
     return SponsorBrandingConfig(
-      sponsorId: json['sponsorId'] as String?,
-      title: json['title'] as String?,
-      assetBaseUrl: json['assetBaseUrl'] as String?,
+      title: s('branding.title'),
+      logoSha256: s('branding.logoSha256'),
+      logoRole: s('branding.logoRole'),
     );
   }
-  final String? sponsorId;
-  final String? title;
-  final String? assetBaseUrl;
 
-  /// Fallback branding when config is unavailable.
+  /// Human-readable sponsor title (null -> app default).
+  final String? title;
+
+  /// SHA-256 of the logo asset bytes (cache key for the future local byte
+  /// cache; not yet used to fetch).
+  final String? logoSha256;
+
+  /// Logo asset role, the path segment the JWT-gated asset endpoint serves by.
+  final String? logoRole;
+
+  /// Fallback branding when no sponsor settings are present (app default).
   static const fallback = SponsorBrandingConfig();
 
-  /// Convention-based URL for the app logo.
+  /// JWT-gated asset-endpoint URL for the app logo, resolved by [logoRole].
+  /// Null when no logo role is configured.
   String? get appLogoUrl {
-    if (assetBaseUrl == null) return null;
-    return '${AppConfig.apiBase}$assetBaseUrl/portal/assets/images/app_logo.png';
+    final role = logoRole;
+    if (role == null) return null;
+    return '${AppConfig.apiBase}/api/v1/sponsor/branding/asset/$role';
   }
 
   bool get hasLogo => appLogoUrl != null;
-}
-
-/// Exception for branding config fetch failures.
-class SponsorBrandingException implements Exception {
-  SponsorBrandingException(this.message, {this.statusCode, this.cause});
-  final String message;
-  final int? statusCode;
-  final Object? cause;
-
-  @override
-  String toString() {
-    if (statusCode != null) {
-      return 'SponsorBrandingException: $message (status: $statusCode)';
-    }
-    return 'SponsorBrandingException: $message';
-  }
-}
-
-/// Service for fetching sponsor branding from the server.
-class SponsorBrandingService {
-  SponsorBrandingService({http.Client? httpClient})
-    : _httpClient = httpClient ?? http.Client();
-  final http.Client _httpClient;
-
-  String get _apiBaseUrl {
-    return AppConfig.apiBase;
-  }
-
-  /// Fetch sponsor branding from server.
-  Future<SponsorBrandingConfig> fetchBranding(String sponsorId) async {
-    final url = '$_apiBaseUrl/api/v1/sponsor/branding/$sponsorId';
-    debugPrint('[SponsorBrandingService] Fetching branding from: $url');
-
-    try {
-      final response = await _httpClient.get(
-        Uri.parse(url),
-        headers: {'Accept': 'application/json'},
-      );
-
-      if (response.statusCode == 503) {
-        debugPrint('[SponsorBrandingService] Server returned 503');
-        throw SponsorBrandingException(
-          'Sponsor branding may not be configured on server',
-          statusCode: 503,
-        );
-      }
-
-      if (response.statusCode != 200) {
-        throw SponsorBrandingException(
-          'Failed to fetch sponsor branding',
-          statusCode: response.statusCode,
-        );
-      }
-
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      final config = SponsorBrandingConfig.fromJson(json);
-
-      debugPrint('[SponsorBrandingService] Branding loaded: ${config.title}');
-      return config;
-    } on SponsorBrandingException {
-      rethrow;
-    } catch (e) {
-      debugPrint('[SponsorBrandingService] Error: $e');
-      throw SponsorBrandingException(
-        'Network error while fetching branding',
-        cause: e,
-      );
-    }
-  }
 }

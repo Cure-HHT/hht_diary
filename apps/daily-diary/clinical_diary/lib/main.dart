@@ -27,6 +27,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/link_sponsor_settings.dart';
 import 'package:clinical_diary/services/local_data_reset.dart';
 import 'package:clinical_diary/services/notification_service.dart';
+import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
@@ -909,6 +910,13 @@ class _AppRootState extends State<AppRoot> {
         builder: (context, state) {
           final settingsMap = _settingsByKey(state);
           final prefs = userPreferencesFromSettings(settingsMap);
+          // Derive sponsor branding from the diary's own event-sourced settings
+          // projection (the `branding.*` keys delivered set-once-at-link). No
+          // public branding pull — reactive to the same settings stream.
+          // Implements: DIARY-GUI-participation-status-badge/B
+          final sponsorBranding = SponsorBrandingConfig.fromSettings(
+            settingsMap,
+          );
           // trialStart comes from the participant-lifecycle projection (I2c,
           // portal-gated); null until then — the lock then applies to all dates
           // past its threshold rather than only post-trial-start dates.
@@ -939,6 +947,7 @@ class _AppRootState extends State<AppRoot> {
               //   controllable layer of the reset gate, read from the
               //   event-sourced settings projection (default true).
               resetSettingAllowsReset: allowLocalResetSetting(settingsMap),
+              sponsorBranding: sponsorBranding,
             ),
           );
         },
