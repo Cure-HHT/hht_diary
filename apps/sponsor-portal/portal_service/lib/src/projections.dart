@@ -164,6 +164,21 @@ final TableProjectionSpec portalSettingsSpec = TableProjectionSpec(
   rowData: const SelectedFields(['key', 'value']),
 );
 
+// Implements: DIARY-DEV-sponsor-branding-source/A — sponsor_branding materializes
+//   the latest sponsor_branding_configured event per sponsor (metadata + asset
+//   manifest). Upsert by sponsorId; the latest configuration overwrites.
+final TableProjectionSpec sponsorBrandingSpec = TableProjectionSpec(
+  viewName: 'sponsor_branding',
+  interest: const SubscriptionFilter(
+    eventTypes: {'sponsor_branding_configured'},
+    aggregateTypes: {'sponsor_branding'},
+  ),
+  insertEventTypes: const {'sponsor_branding_configured'},
+  removeEventTypes: const {},
+  rowKey: const CompositeKey(['data.sponsorId']),
+  rowData: const SelectedFields(['sponsorId', 'title', 'assets']),
+);
+
 // Implements: DIARY-DEV-rave-edc-ingest/C — rave_sync_status folds the rave_sync
 //   lockout events into one row; counter-affecting events carry the authoritative
 //   consecutive_auth_failures so the merge yields a correct running counter.
