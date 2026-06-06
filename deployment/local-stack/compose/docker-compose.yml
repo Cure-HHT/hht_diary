@@ -162,6 +162,22 @@ services:
       # `doppler run --preserve-env`, so an explicit value here wins over
       # Doppler. ${SPONSOR} is exported by ./local-stack from base-config.json.
       SPONSOR_ID: "${SPONSOR}"
+      # CUR-1453: per-deployment sponsor configuration parameters. The portal's
+      # seedSponsorConfig reads these at boot and seeds the portal_settings store
+      # (idempotent); they ride the /link sponsor_settings batch to the diary.
+      # Empty pass-through (${VAR:-}) is benign — an unset key is simply not
+      # seeded. Export them on the host to rehearse a sponsor's config locally.
+      PORTAL_SEED_CLINICAL_JUSTIFICATION_THRESHOLD_HOURS: "${PORTAL_SEED_CLINICAL_JUSTIFICATION_THRESHOLD_HOURS:-}"
+      PORTAL_SEED_CLINICAL_LOCK_THRESHOLD_HOURS: "${PORTAL_SEED_CLINICAL_LOCK_THRESHOLD_HOURS:-}"
+      PORTAL_SEED_CLINICAL_SHORT_DURATION_CONFIRM: "${PORTAL_SEED_CLINICAL_SHORT_DURATION_CONFIRM:-}"
+      PORTAL_SEED_CLINICAL_LONG_DURATION_CONFIRM: "${PORTAL_SEED_CLINICAL_LONG_DURATION_CONFIRM:-}"
+      PORTAL_SEED_CLINICAL_LONG_DURATION_THRESHOLD_MINUTES: "${PORTAL_SEED_CLINICAL_LONG_DURATION_THRESHOLD_MINUTES:-}"
+      PORTAL_SEED_CLINICAL_USE_REVIEW_SCREEN: "${PORTAL_SEED_CLINICAL_USE_REVIEW_SCREEN:-}"
+      PORTAL_SEED_UI_USE_ANIMATIONS: "${PORTAL_SEED_UI_USE_ANIMATIONS:-}"
+      PORTAL_SEED_UI_AVAILABLE_FONTS: "${PORTAL_SEED_UI_AVAILABLE_FONTS:-}"
+      PORTAL_SEED_UI_DEFAULT_FONT: "${PORTAL_SEED_UI_DEFAULT_FONT:-}"
+      PORTAL_SEED_UI_AVAILABLE_LANGUAGES: "${PORTAL_SEED_UI_AVAILABLE_LANGUAGES:-}"
+      PORTAL_SEED_UI_DEFAULT_LANGUAGE: "${PORTAL_SEED_UI_DEFAULT_LANGUAGE:-}"
       # PORTAL_AUTH_MODE is deliberately NOT set: the EVS portal defaults to
       # "dev" auth, where the userId is the dev-credential login id typed
       # verbatim (no password). To exercise real session auth instead, set
