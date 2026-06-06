@@ -18,12 +18,19 @@ class LogoMenu extends StatefulWidget {
     this.resetDisabledReason = 'End your study participation to reset',
     this.isEnrolled,
     this.sponsorLogo,
+    this.onOpenServiceMode,
     super.key,
   });
 
   final VoidCallback onResetAllData;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
+
+  /// Invoked when the User taps the displayed version label seven times — the
+  /// support-instructable entry into the diagnostic ("Service Mode") screen.
+  /// Null leaves the easter egg inert (e.g. in isolated widget tests). The
+  /// callback owns navigation; this widget only counts taps and closes the menu.
+  final VoidCallback? onOpenServiceMode;
 
   /// Whether the "Reset all data" item is tappable. When false the item is
   /// rendered greyed-out and non-tapping (the local factory reset is gated on
@@ -45,6 +52,29 @@ class LogoMenu extends StatefulWidget {
 
 class _LogoMenuState extends State<LogoMenu> {
   String _version = '';
+
+  /// Number of consecutive taps on the version label this menu-open. Not
+  /// displayed, so no setState is needed — the open popup overlay would not
+  /// rebuild its items anyway.
+  int _versionTaps = 0;
+
+  /// Tap count that reveals Service Mode. Chosen to match the familiar
+  /// Android "tap build number 7x" idiom so support can read it aloud.
+  static const int _kServiceModeTapCount = 7;
+
+  // Implements: DIARY-GUI-service-mode-entry/A — seven taps on the displayed
+  //   version reveals the diagnostic screen; the count resets and the callback
+  //   (which owns navigation) fires only on the seventh tap.
+  void _onVersionTap() {
+    _versionTaps++;
+    if (_versionTaps < _kServiceModeTapCount) return;
+    _versionTaps = 0;
+    final open = widget.onOpenServiceMode;
+    if (open == null) return;
+    // Close the popup menu first, then hand off to the navigation callback.
+    Navigator.of(context).pop();
+    open();
+  }
 
   @override
   void initState() {
@@ -255,10 +285,14 @@ class _LogoMenuState extends State<LogoMenu> {
           enabled: false,
           height: 32,
           child: Center(
-            child: Text(
-              _version.isNotEmpty ? 'v$_version' : '',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _onVersionTap,
+              child: Text(
+                _version.isNotEmpty ? 'v$_version' : '',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),

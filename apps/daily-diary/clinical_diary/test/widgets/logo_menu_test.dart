@@ -4,6 +4,7 @@
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../helpers/test_helpers.dart';
 
@@ -419,6 +420,85 @@ void main() {
 
       // Callback should have been called
       expect(called, true);
+    });
+  });
+
+  group('LogoMenu service-mode entry', () {
+    setUp(() {
+      // Make the version label render non-empty so the tap target exists.
+      PackageInfo.setMockInitialValues(
+        appName: 'diary',
+        packageName: 'org.curehht.diary',
+        version: '1.2.3',
+        buildNumber: '7',
+        buildSignature: '',
+      );
+    });
+
+    Future<void> pumpMenu(
+      WidgetTester tester, {
+      required VoidCallback? onOpenServiceMode,
+    }) async {
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+            onOpenServiceMode: onOpenServiceMode,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+      expect(find.text('v1.2.3+7'), findsOneWidget);
+    }
+
+    // Verifies: DIARY-GUI-service-mode-entry/A — seven taps on the version
+    //   label reveals Service Mode (invokes the navigation callback).
+    testWidgets('tapping the version label 7x invokes onOpenServiceMode', (
+      tester,
+    ) async {
+      var opened = 0;
+      await pumpMenu(tester, onOpenServiceMode: () => opened++);
+
+      for (var i = 0; i < 7; i++) {
+        await tester.tap(find.text('v1.2.3+7'));
+        await tester.pumpAndSettle();
+      }
+
+      expect(opened, 1);
+    });
+
+    // Verifies: DIARY-GUI-service-mode-entry/A — fewer than seven taps does not
+    //   reveal Service Mode.
+    testWidgets('six taps does not invoke onOpenServiceMode', (tester) async {
+      var opened = 0;
+      await pumpMenu(tester, onOpenServiceMode: () => opened++);
+
+      for (var i = 0; i < 6; i++) {
+        await tester.tap(find.text('v1.2.3+7'));
+        await tester.pumpAndSettle();
+      }
+
+      expect(opened, 0);
+    });
+
+    // Verifies: DIARY-GUI-service-mode-entry/A — with no handler wired the
+    //   easter egg is inert and does not throw.
+    testWidgets('seven taps is inert when onOpenServiceMode is null', (
+      tester,
+    ) async {
+      await pumpMenu(tester, onOpenServiceMode: null);
+
+      for (var i = 0; i < 7; i++) {
+        await tester.tap(find.text('v1.2.3+7'));
+        await tester.pumpAndSettle();
+      }
+
+      // No exception; the menu stays open (never popped).
+      expect(find.text('v1.2.3+7'), findsOneWidget);
     });
   });
 }
