@@ -42,6 +42,20 @@ void main() {
     expect(rows2.length, rows1.length); // no duplicate rows on re-run
   });
 
+  test('fail-fast: allow-set contains an unsupported value', () async {
+    // Verifies: DIARY-DEV-sponsor-config-source/E
+    final env = {
+      'PORTAL_SEED_UI_AVAILABLE_LANGUAGES':
+          'en,xx', // xx is not a platform lang
+      'PORTAL_SEED_UI_DEFAULT_LANGUAGE': 'en',
+    };
+    expect(
+      () =>
+          seedSponsorConfig(eventStore: eventStore, backend: backend, env: env),
+      throwsA(isA<StateError>()),
+    );
+  });
+
   test('fail-fast: restricted languages without valid default', () async {
     final env = {
       'PORTAL_SEED_UI_AVAILABLE_LANGUAGES': 'en,es', // de/fr excluded

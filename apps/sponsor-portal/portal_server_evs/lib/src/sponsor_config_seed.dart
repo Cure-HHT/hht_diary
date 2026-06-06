@@ -21,8 +21,16 @@ class _Param {
 
 bool _parseBool(String raw) => raw.trim().toLowerCase() == 'true';
 int _parseInt(String raw) => int.parse(raw.trim());
-List<String> _parseList(String raw) =>
-    raw.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+List<String> _parseList(String raw) {
+  // Dedupe (preserving first-seen order) so idempotence is insensitive to
+  // ordering/duplicates in the env value.
+  final seen = <String>{};
+  return [
+    for (final s in raw.split(',').map((e) => e.trim()))
+      if (s.isNotEmpty && seen.add(s)) s,
+  ];
+}
+
 String _parseString(String raw) => raw.trim();
 
 const _params = <_Param>[
@@ -88,8 +96,10 @@ Future<void> seedSponsorConfig({
   }
 }
 
-/// When [allowKey] restricts the platform set, [defaultKey] must be present and a
-/// member of the restricted set. Fail-fast otherwise.
+/// Validates a seeded allow-set: every member must be a platform-supported value
+/// (a sponsor can only RESTRICT the platform set, never extend it), and when the
+/// set is restricted its [defaultKey] must be present and a member. Fail-fast on
+/// either violation so a misconfigured deployment does not boot.
 void _validateAllowSet(
   Map<String, Object?> desired,
   String allowKey,
@@ -97,10 +107,18 @@ void _validateAllowSet(
   List<String> platform,
 ) {
   final allow = desired[allowKey];
-  if (allow is! List) return; // not restricted
+  if (allow is! List) return; // not configured
   final set = allow.whereType<String>().toList();
-  final restricted =
-      set.length < platform.length || !platform.every(set.contains);
+
+  final unsupported = set.where((v) => !platform.contains(v)).toList();
+  if (unsupported.isNotEmpty) {
+    throw StateError(
+      'sponsor config: $allowKey contains unsupported value(s) $unsupported — '
+      'supported values are $platform; refusing to start',
+    );
+  }
+
+  final restricted = set.length < platform.length;
   if (!restricted) return;
   final def = desired[defaultKey];
   if (def is! String || !set.contains(def)) {

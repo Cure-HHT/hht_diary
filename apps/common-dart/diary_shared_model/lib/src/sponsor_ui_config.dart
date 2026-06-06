@@ -74,23 +74,34 @@ class SponsorUiConfig {
       return fallback;
     }
 
+    // Defense-in-depth: an allow-set value can reach here from an unvalidated
+    // source (a hand-authored deployment-default asset, or a settings row). Clamp
+    // each allow-set to the platform-supported set (drop unknown values, dedupe),
+    // fall back to the full platform set if that leaves it empty, and force the
+    // default to be a member — so the resolved config is always internally
+    // consistent and the UI can never render or pick an unsupported value.
+    final fonts = _clampToPlatform(
+      listOf(uiAvailableFontsKey, deploymentDefaults.availableFonts),
+      kPlatformFontFamilies,
+    );
+    final languages = _clampToPlatform(
+      listOf(uiAvailableLanguagesKey, deploymentDefaults.availableLanguages),
+      kPlatformLanguageCodes,
+    );
     return SponsorUiConfig(
       useAnimations: boolOf(
         uiUseAnimationsKey,
         deploymentDefaults.useAnimations,
       ),
-      availableFonts: listOf(
-        uiAvailableFontsKey,
-        deploymentDefaults.availableFonts,
+      availableFonts: fonts,
+      defaultFont: _defaultWithin(
+        stringOf(uiDefaultFontKey, deploymentDefaults.defaultFont),
+        fonts,
       ),
-      defaultFont: stringOf(uiDefaultFontKey, deploymentDefaults.defaultFont),
-      availableLanguages: listOf(
-        uiAvailableLanguagesKey,
-        deploymentDefaults.availableLanguages,
-      ),
-      defaultLanguage: stringOf(
-        uiDefaultLanguageKey,
-        deploymentDefaults.defaultLanguage,
+      availableLanguages: languages,
+      defaultLanguage: _defaultWithin(
+        stringOf(uiDefaultLanguageKey, deploymentDefaults.defaultLanguage),
+        languages,
       ),
     );
   }
@@ -113,6 +124,23 @@ class SponsorUiConfig {
     defaultLanguage,
   );
 }
+
+/// Returns [values] limited to members of [platform] (preserving [values] order),
+/// de-duplicated. Falls back to the full [platform] set when nothing remains, so
+/// an allow-set is never empty.
+List<String> _clampToPlatform(List<String> values, List<String> platform) {
+  final seen = <String>{};
+  final out = <String>[
+    for (final v in values)
+      if (platform.contains(v) && seen.add(v)) v,
+  ];
+  return out.isEmpty ? List<String>.from(platform) : out;
+}
+
+/// Returns [candidate] if it is a member of [allowed], otherwise the first
+/// allowed value — guaranteeing the default is always within the allow-set.
+String _defaultWithin(String candidate, List<String> allowed) =>
+    allowed.contains(candidate) ? candidate : allowed.first;
 
 bool _listEq(List<String> a, List<String> b) {
   if (a.length != b.length) return false;

@@ -39,6 +39,38 @@ void main() {
     });
   });
 
+  group('SponsorUiConfig.fromSettings clamps to platform', () {
+    test('drops unsupported allow-set values and dedupes', () {
+      final c = SponsorUiConfig.fromSettings({
+        uiAvailableLanguagesKey: _s(uiAvailableLanguagesKey, [
+          'en',
+          'xx', // unsupported
+          'en', // duplicate
+          'fr',
+        ]),
+        uiAvailableFontsKey: _s(uiAvailableFontsKey, ['Roboto', 'Comic Sans']),
+      });
+      expect(c.availableLanguages, ['en', 'fr']);
+      expect(c.availableFonts, ['Roboto']);
+    });
+
+    test('empty-after-clamp allow-set falls back to the full platform set', () {
+      final c = SponsorUiConfig.fromSettings({
+        uiAvailableLanguagesKey: _s(uiAvailableLanguagesKey, ['xx', 'zz']),
+      });
+      expect(c.availableLanguages, kPlatformLanguageCodes);
+    });
+
+    test('default forced into the resolved allow-set', () {
+      final c = SponsorUiConfig.fromSettings({
+        uiAvailableLanguagesKey: _s(uiAvailableLanguagesKey, ['es', 'fr']),
+        uiDefaultLanguageKey: _s(uiDefaultLanguageKey, 'de'), // not in set
+      });
+      expect(c.availableLanguages, ['es', 'fr']);
+      expect(c.defaultLanguage, 'es'); // forced to first member
+    });
+  });
+
   group('reconcilePick', () {
     test('returns default when current pick out of set', () {
       expect(

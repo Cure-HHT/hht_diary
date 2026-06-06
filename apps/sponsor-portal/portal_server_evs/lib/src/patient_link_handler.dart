@@ -259,7 +259,7 @@ Handler patientLinkHandler({
     //     Empty list when nothing is materialized — the link still succeeds.
     // Implements: DIARY-DEV-sponsor-branding-source/B
     // Implements: DIARY-DEV-sponsor-config-source/B+C
-    final brandingSettings = await _sponsorSettingsBatch(eventStore, sid);
+    final sponsorSettings = await _sponsorSettingsBatch(eventStore, sid);
 
     return Response.ok(
       jsonEncode(<String, Object?>{
@@ -273,7 +273,7 @@ Handler patientLinkHandler({
         'siteNumber': outcome.siteNumber,
         'studyParticipantId': participantId,
         'sitePhoneNumber': null,
-        'sponsor_settings': brandingSettings,
+        'sponsor_settings': sponsorSettings,
       }),
       headers: const {'Content-Type': 'application/json'},
     );

@@ -615,6 +615,7 @@
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-participant-status-projection-B
+- DIARY-DEV-sponsor-config-source-D
 - DIARY-DEV-shared-events-catalog-B
 - DIARY-DEV-sponsor-branding-assets-A
 - DIARY-DEV-sponsor-branding-assets-B

@@ -248,10 +248,15 @@ class SettingsScreen extends StatelessWidget {
   /// CUR-528: Build font selection dropdown
   Widget _buildFontSelector(BuildContext context, UserPreferences prefs) {
     final l10n = AppLocalizations.of(context);
-    final availableFonts = SponsorUiConfigScope.of(context).availableFonts
+    final parsedFonts = SponsorUiConfigScope.of(context).availableFonts
         .map(FontOption.fromString)
         .whereType<FontOption>()
         .toList();
+    // Guard against an allow-set that parses to nothing (e.g. all unknown
+    // family names) so the `.first` reads below can never throw.
+    final availableFonts = parsedFonts.isEmpty
+        ? <FontOption>[FontOption.roboto]
+        : parsedFonts;
 
     return Container(
       padding: const EdgeInsets.all(16),

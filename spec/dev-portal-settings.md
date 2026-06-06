@@ -55,7 +55,7 @@ Dev deployments that use real Identity Platform *Session* auth (PORTAL_AUTH_MODE
 
 ### Overview
 
-The portal owns per-deployment *Sponsor* configuration parameters — clinical and UI knobs such as available languages, available fonts, and their defaults — as event-sourced data on the same append-only, tamper-evident log as the rest of the portal's configuration. Each parameter is seeded idempotently at boot into the `portal_settings` store from its `PORTAL_SEED_*` environment variable, materialized into the `portal_settings` projection, and composed into the `/link` response's `sponsor_settings` batch so the *Diary* applies it set-once-at-link alongside *Sponsor* branding. UI parameters carry platform default values when no environment variable overrides them, and a deployment that restricts an allow-set must supply a viable default within that set or the portal refuses to start.
+The portal owns per-deployment *Sponsor* configuration parameters — clinical and UI knobs such as available languages, available fonts, and their defaults — as event-sourced data on the same append-only, tamper-evident log as the rest of the portal's configuration. Each parameter is seeded idempotently at boot into the `portal_settings` store from its `PORTAL_SEED_*` environment variable, materialized into the `portal_settings` projection, and composed into the `/link` response's `sponsor_settings` batch so the *Diary* applies it set-once-at-link alongside *Sponsor* branding. An unconfigured UI parameter is not seeded — the *Diary* supplies its platform default from its own default layers — and a deployment that restricts an allow-set (or names an unsupported value) must supply a viable in-set default or the portal refuses to start.
 
 ### Assertions
 
@@ -65,12 +65,12 @@ B. The `/link` response `sponsor_settings` batch SHALL include every `clinical.*
 
 C. A parameter absent from the `portal_settings` projection SHALL be omitted from the `sponsor_settings` batch.
 
-D. The portal SHALL define the `ui.useAnimations`, `ui.availableFonts`, `ui.availableLanguages`, `ui.defaultFont`, and `ui.defaultLanguage` parameters with the platform default values when no overriding environment variable is supplied.
+D. When no `PORTAL_SEED_*` environment variable is supplied for a `ui.*` parameter, the portal SHALL NOT materialize that parameter into `portal_settings`; the platform default value is supplied by the *Diary*'s deployment-default and code-default layers, so an unconfigured parameter remains resolvable by those layers rather than being locked to a portal-supplied default.
 
-E. When a seeded `ui.availableLanguages` (respectively `ui.availableFonts`) excludes any platform value, the portal SHALL require the matching `ui.defaultLanguage` (respectively `ui.defaultFont`) to be set and to be a member of the restricted set, and SHALL fail to start otherwise; the configured default language and default font SHALL be jointly viable.
+E. When a seeded `ui.availableLanguages` (respectively `ui.availableFonts`) contains a value outside the platform-supported set, or restricts the platform set without the matching `ui.defaultLanguage` (respectively `ui.defaultFont`) being set to a member of the restricted set, the portal SHALL fail to start; the configured default language and default font SHALL be jointly viable.
 
 ### Rationale
 
 This mirrors the link-time `sponsor_settings` composition pattern of *DIARY-DEV-sponsor-branding-source* and builds on the `portal_setting_changed`/`portal_settings` store of its parent *DIARY-DEV-portal-settings-store*, so *Sponsor* configuration is attributable and reconstructible from the same tamper-evident chain rather than read from an unaudited flag at request time. The set-once-at-link, applied-via-*User*-path, explicitly-locked delivery model is that of *DIARY-BASE-sponsor-requested-settings*: the portal requests, and the *Diary* applies and locks. Carrying platform defaults for the UI parameters (D) gives a *Sponsor*-agnostic deployment a complete configuration without any environment overrides. Fail-fast (E) keeps a misconfigured study from booting with a default language or font that its own restricted allow-set would render unselectable.
 
-*End* *Sponsor Configuration Parameter Source* | **Hash**: 327957ae
+*End* *Sponsor Configuration Parameter Source* | **Hash**: 336be2a6
