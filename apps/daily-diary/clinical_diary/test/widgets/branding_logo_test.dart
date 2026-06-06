@@ -41,20 +41,21 @@ SponsorBrandingConfig _branding(String sha256) =>
       ),
     });
 
-/// Mount [app] and pump until the async logo resolution (real file IO under
-/// `runAsync` + mocked HTTP) has rendered an `Image`. Polls up to ~2s, far more
-/// robust on slow CI than a single fixed delay (which raced and rendered 0
-/// Images under load).
+/// Mount [app], let the async logo resolution (real file IO + mocked HTTP +
+/// sha256) complete under `runAsync` (NO pump inside runAsync — pumping there
+/// hangs), then flush the FutureBuilder rebuild with a bounded pump loop
+/// OUTSIDE runAsync. Far more robust on slow CI than the prior single fixed
+/// delay + single pump, which raced and rendered 0 Images under load.
 Future<void> _mountUntilImage(WidgetTester tester, Widget app) async {
   await tester.runAsync(() async {
     await tester.pumpWidget(app);
-    for (var i = 0; i < 200; i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-      await tester.pump();
-      if (find.byType(Image).evaluate().isNotEmpty) return;
-    }
+    // Real-time wait for the resolution future to settle. No pump here.
+    await Future<void>.delayed(const Duration(milliseconds: 400));
   });
-  await tester.pump();
+  // Flush the resolved future's rebuild; stop as soon as the Image mounts.
+  for (var i = 0; i < 40 && find.byType(Image).evaluate().isEmpty; i++) {
+    await tester.pump(const Duration(milliseconds: 25));
+  }
 }
 
 void main() {
