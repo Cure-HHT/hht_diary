@@ -639,6 +639,7 @@
 - DIARY-PRD-user-authentication-D
 - DIARY-PRD-user-authentication-G
 - DIARY-PRD-user-authentication-pin-A
+- DIARY-PRD-device-health-diagnostics-C
 - DIARY-GUI-main-screen-layout-F
 - DIARY-GUI-calendar-day-view-C
 - DIARY-GUI-calendar-day-view-G
@@ -704,6 +705,8 @@
 - DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-user-authentication-pin:section:0
 - DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-device-health-diagnostics:section:0
+- DIARY-PRD-device-health-diagnostics:section:1
 - DIARY-GUI-main-screen-layout:section:0
 - DIARY-GUI-calendar-day-view:section:0
 - DIARY-GUI-calendar-day-view:section:7
@@ -1270,6 +1273,8 @@
 - DIARY-PRD-user-authentication-C
 - DIARY-PRD-user-authentication-pin-D
 - DIARY-PRD-user-authentication-pin-F
+- DIARY-PRD-device-health-diagnostics-A
+- DIARY-GUI-service-mode-entry-A
 - DIARY-PRD-notification-portal-sent-questionnaire-A
 - DIARY-PRD-notification-portal-sent-questionnaire-B
 - DIARY-PRD-notification-ongoing-epistaxis-G
@@ -1295,6 +1300,8 @@
 - DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-user-authentication-pin:section:0
 - DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-device-health-diagnostics:section:0
+- DIARY-PRD-device-health-diagnostics:section:1
 - rem:spec/prd-mobile-navigation.md:1
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-mobile-navigation:section:0
@@ -2698,6 +2705,7 @@
 - DIARY-PRD-user-authentication-pin-G
 - DIARY-PRD-user-authentication-pin-J
 - DIARY-PRD-user-authentication-pin-K
+- DIARY-PRD-device-health-diagnostics-A
 - DIARY-GUI-mobile-navigation-A
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-I
@@ -2817,6 +2825,9 @@
 - DIARY-PRD-user-authentication:section:5
 - DIARY-PRD-user-authentication-pin:section:0
 - DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-device-health-diagnostics:section:0
+- DIARY-PRD-device-health-diagnostics:section:1
+- DIARY-GUI-service-mode-entry:section:1
 - DIARY-PRD-notification-disconnection:section:0
 - DIARY-PRD-notification-disconnection:section:1
 - DIARY-GUI-participation-status-badge:section:6
@@ -2932,6 +2943,7 @@
 - DIARY-PRD-mobile-application:section:1
 - DIARY-PRD-mobile-offline-first:section:1
 - DIARY-PRD-diary-start-day:section:1
+- DIARY-PRD-device-health-diagnostics:section:0
 - rem:spec/prd-participant.md:3
 - DIARY-PRD-linking-code-lifecycle:section:0
 - DIARY-PRD-participant-registration:section:1
@@ -3290,6 +3302,9 @@
 - DIARY-PRD-user-authentication-I
 - DIARY-PRD-user-authentication-J
 - DIARY-PRD-user-authentication-pin-A
+- DIARY-PRD-device-health-diagnostics-A
+- DIARY-PRD-device-health-diagnostics-D
+- DIARY-GUI-service-mode-entry-A
 - DIARY-GUI-mobile-navigation-A
 - DIARY-GUI-mobile-navigation-E
 - DIARY-GUI-mobile-navigation-F
@@ -3429,6 +3444,10 @@
 - DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-user-authentication-pin:section:0
 - DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-device-health-diagnostics:section:0
+- DIARY-PRD-device-health-diagnostics:section:1
+- DIARY-GUI-service-mode-entry:section:0
+- DIARY-GUI-service-mode-entry:section:1
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-mobile-navigation:section:0
 - DIARY-GUI-mobile-navigation:section:5

@@ -193,3 +193,28 @@ Inbound messages are part of what happened on the device and therefore belong in
 > an accidental coverage gap.
 
 *End* *Inbound Receipt Emits an Event* | **Hash**: 9143d6c4
+
+## DIARY-DEV-device-health-checks: On-Demand Device Health Checks
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-device-health-diagnostics
+
+### Overview
+
+The device health diagnostic is implemented as a registry of independent checks plus a metadata-only raw appendix builder. The checks are pure functions over a probe context and run only when the export is requested, so the steady-state cost is unchanged. The registry is extensible: a new condition ships as one more check in the same application update that carries its fix.
+
+### Assertions
+
+A. The **System** SHALL evaluate the registered health checks only when the diagnostic export is requested, performing no additional periodic evaluation in steady state.
+
+B. The **System** SHALL include health checks for a wedged outbound synchronization queue, synchronization backlog growth, event hash-chain link contiguity, local event-store writability, and authorization and link state.
+
+C. A health check that fails to execute SHALL yield a warning finding and SHALL NOT abort the remaining checks or the export.
+
+D. The diagnostic export's raw appendix SHALL serialize event headers, synchronization-queue entry metadata and attempt outcomes, cursors, counts, device identity, and clock and time-zone facts, and SHALL omit event payload bodies.
+
+### Rationale
+
+Pure, registry-based checks are independently testable and keep the failure of one check from taking down the rest — important on an already-sick device where the diagnostic must not itself crash. Running the battery only on request honors the common-fast/rare-possible principle: a wedge is a near-never event and the export a near-never operation, so a one-shot evaluation costs nothing in normal operation. The named-check list captures the conditions understood today; unknown conditions are read out of the raw appendix first and promoted to a named check only when they recur. The raw appendix is restricted to headers and operational metadata so the artifact is PHI-free by construction, satisfying the parent's content limit while still carrying everything needed to diagnose a transport, ordering, or integrity fault.
+
+*End* *On-Demand Device Health Checks* | **Hash**: 8d3827d5

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_overlap.dart';
@@ -16,6 +17,7 @@ import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
+import 'package:clinical_diary/screens/service_mode_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/services/branding_asset_cache.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
@@ -58,6 +60,7 @@ class HomeScreen extends StatefulWidget {
     this.nativeFifoWedged,
     this.sponsorBranding = SponsorBrandingConfig.fallback,
     this.brandingAssetCache,
+    this.serviceModeContextBuilder,
     super.key,
   });
 
@@ -72,6 +75,11 @@ class HomeScreen extends StatefulWidget {
   /// in by the wedge banner. Null in contexts without the new scope (the native
   /// check is then skipped). See DIARY-DEV-native-outbound-sync/B.
   final Future<bool> Function()? nativeFifoWedged;
+
+  /// Builds the on-demand Service Mode [HealthProbeContext]. When non-null the
+  /// logo menu's tap-version-7x easter egg opens the diagnostic screen; null
+  /// leaves it inert (e.g. before the event-sourcing scope has booted).
+  final Future<HealthProbeContext> Function()? serviceModeContextBuilder;
 
   /// Persistent device install UUID. Stamped into the export payload so the
   /// downstream tooling can identify which device produced the JSON dump.
@@ -472,6 +480,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
+  }
+
+  /// Opens the diagnostic ("Service Mode") screen. Wired to the logo menu's
+  /// tap-version-7x easter egg; only reachable when
+  /// [HomeScreen.serviceModeContextBuilder] is non-null.
+  // Implements: DIARY-GUI-service-mode-entry/A — navigation target for the
+  //   seven-tap reveal.
+  void _openServiceMode() {
+    final builder = widget.serviceModeContextBuilder;
+    if (builder == null) return;
+    Navigator.push<void>(
+      context,
+      AppPageRoute(builder: (_) => ServiceModeScreen(contextBuilder: builder)),
+    );
   }
 
   /// REQ-CAL-p00076: Navigate to profile screen with participation status badge
@@ -925,6 +947,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                     showDevTools: AppConfig.showDevTools,
+                    onOpenServiceMode: widget.serviceModeContextBuilder == null
+                        ? null
+                        : _openServiceMode,
                   ),
                   // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens
                   Expanded(

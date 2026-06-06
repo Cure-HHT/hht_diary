@@ -15,6 +15,7 @@
 | DIARY-PRD-configuration-precedence               | Configuration Precedence                                 | prd-configuration.md                      | f5372beb |
 | DIARY-PRD-data-backup-and-archival               | Data Backup and Archival                                 | prd-data-backup.md                        | 52e8354f |
 | DIARY-PRD-day-disposition                        | Calendar Day Disposition                                 | prd-epistaxis.md                          | bd38485a |
+| DIARY-PRD-device-health-diagnostics              | Device Health Diagnostic Export                          | prd-mobile-app.md                         | 5071c90a |
 | DIARY-PRD-diary-start-day                        | Diary Start Day Definition                               | prd-mobile-app.md                         | b0c35e38 |
 | DIARY-PRD-entry-duration-check                   | Duration Reasonableness Check                            | prd-diary-entry-rules.md                  | bacdd0ae |
 | DIARY-PRD-entry-overlap-resolution               | Overlapping Event Detection and Resolution               | prd-diary-entry-rules.md                  | 1069b1e5 |
@@ -130,6 +131,7 @@
 | DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry               | prd-questionnaire-participant-workflow.md | 02879dd5 |
 | DIARY-GUI-rave-sync-paused-banner            | Sites and Participants Pages Paused Banner | prd-rave-sync.md                          | 75bc47b3 |
 | DIARY-GUI-role-switching                     | Role Switching — Interface Behavior        | prd-rbac.md                               | f820206c |
+| DIARY-GUI-service-mode-entry                 | Service Mode Entry and Presentation        | prd-mobile-app.md                         | 0b05472a |
 | DIARY-GUI-show-linking-code                  | Show Linking Code                          | prd-participant.md                        | 30285056 |
 | DIARY-GUI-user-account-deactivate            | Deactivate User Account                    | prd-user-account.md                       | bb9d75f2 |
 | DIARY-GUI-user-account-reactivate            | Reactivate User Account                    | prd-user-account.md                       | 15f0d2fd |
@@ -153,6 +155,7 @@
 | -------------------------------------------- | ----------------------------------------------------- | ---------------------------------- | -------- |
 | DIARY-DEV-action-write-path                  | Writes Flow Through the Action Dispatcher             | dev-mobile-event-sourcing.md       | ea6148a0 |
 | DIARY-DEV-audit-log-read                     | Audit log read                                        | dev-portal-service.md              | 34892437 |
+| DIARY-DEV-device-health-checks               | On-Demand Device Health Checks                        | dev-mobile-event-sourcing.md       | 8d3827d5 |
 | DIARY-DEV-evs-stack-adoption                 | Diary Adopts the Event-Sourcing Stack                 | dev-mobile-event-sourcing.md       | 663897f8 |
 | DIARY-DEV-inbound-event-on-receipt           | Inbound Receipt Emits an Event                        | dev-mobile-event-sourcing.md       | 9143d6c4 |
 | DIARY-DEV-linking-code-lifecycle             | Linking-Code Lifecycle and Uniqueness                 | dev-linking-code-lifecycle.md      | e817982d |
