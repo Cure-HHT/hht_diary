@@ -435,6 +435,9 @@
 
 **DIARY:**
 
+- DIARY-DEV-sponsor-config-source
+- DIARY-DEV-deployment-config-defaults-A
+- DIARY-DEV-sponsor-config-source-A
 - DIARY-PRD-administrator-settings-B
 - DIARY-PRD-administrator-settings-C
 - DIARY-PRD-administrator-settings-D
@@ -591,6 +594,10 @@
 - DIARY-BASE-audit-trail-E
 - DIARY-BASE-local-data-reset-A
 - DIARY-DEV-runtime-environment-resolution-D
+- DIARY-DEV-deployment-config-defaults-A
+- DIARY-DEV-deployment-config-defaults-C
+- DIARY-DEV-deployment-config-defaults-D
+- DIARY-DEV-deployment-config-defaults-E
 - DIARY-DEV-evs-stack-adoption-A
 - DIARY-DEV-evs-stack-adoption-B
 - DIARY-DEV-evs-stack-adoption-C
@@ -657,6 +664,7 @@
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - rem:spec/dev-mobile-event-sourcing.md:1
 - rem:spec/dev-mobile-event-sourcing.md:3
@@ -682,6 +690,8 @@
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
 - DIARY-DEV-operator-tier-authz:section:0
+- DIARY-DEV-sponsor-config-source:section:0
+- DIARY-DEV-sponsor-config-source:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/dev-sponsor-branding.md:3
 - DIARY-DEV-sponsor-branding-source:section:0
@@ -1420,6 +1430,7 @@
 - DIARY-BASE-sponsor-requested-settings-D
 - DIARY-BASE-sponsor-requested-settings-E
 - DIARY-BASE-system-operator-role-B
+- DIARY-DEV-deployment-config-defaults-E
 - DIARY-DEV-linking-code-lifecycle-B
 - DIARY-DEV-linking-code-lifecycle-D
 - DIARY-DEV-native-outbound-sync-D
@@ -1650,6 +1661,7 @@
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-participant-state-poll:section:0
@@ -2245,6 +2257,8 @@
 - DIARY-DEV-runtime-environment-resolution
 - DIARY-PRD-entry-overlap-resolution
 - DIARY-GUI-entry-overlap-resolution
+- DIARY-DEV-deployment-config-defaults-A
+- DIARY-DEV-deployment-config-defaults-B
 - DIARY-PRD-entry-overlap-resolution-E
 - DIARY-PRD-entry-overlap-resolution-G
 - DIARY-PRD-entry-overlap-resolution-H
@@ -2266,6 +2280,7 @@
 - DIARY-PRD-sla-incident-response-times-T
 - DIARY-PRD-sla-customer-notification-L
 - DIARY-PRD-sla-root-cause-analysis-E
+- DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-OPS-single-promotable-artifact:section:1
 - rem:spec/prd-diary-entry-rules.md:3
 - DIARY-PRD-entry-overlap-resolution:section:0
@@ -2650,6 +2665,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-sponsor-config-source
 - DIARY-DEV-sponsor-branding-source
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
@@ -2660,12 +2676,16 @@
 - DIARY-BASE-sponsor-requested-settings-B
 - DIARY-BASE-sponsor-requested-settings-E
 - DIARY-BASE-system-operator-role-A
+- DIARY-DEV-deployment-config-defaults-A
+- DIARY-DEV-deployment-config-defaults-D
 - DIARY-DEV-linking-code-lifecycle-A
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-DEV-portal-seed-config-B
+- DIARY-DEV-sponsor-config-source-A
+- DIARY-DEV-sponsor-config-source-B
 - DIARY-DEV-sponsor-branding-source-A
 - DIARY-DEV-sponsor-branding-source-C
 - DIARY-DEV-sponsor-branding-source-E
@@ -2783,11 +2803,14 @@
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
+- DIARY-DEV-sponsor-config-source:section:0
+- DIARY-DEV-sponsor-config-source:section:1
 - rem:spec/dev-sponsor-branding.md:1
 - rem:spec/dev-sponsor-branding.md:3
 - DIARY-DEV-sponsor-branding-source:section:0
@@ -3259,6 +3282,7 @@
 - DIARY-GUI-user-account-deactivate
 - DIARY-GUI-user-account-reactivate
 - DIARY-GUI-user-information-modal
+- DIARY-DEV-deployment-config-defaults-E
 - DIARY-DEV-portal-activation-code-lifecycle-D
 - DIARY-DEV-portal-identity-provisioning-A
 - DIARY-DEV-portal-activation-email-delivery-A
@@ -3401,6 +3425,7 @@
 - DIARY-GUI-user-information-modal-M
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-E
+- DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-portal-activation-code-lifecycle:section:0
 - DIARY-DEV-portal-user-activated-binding:section:0
@@ -3423,6 +3448,7 @@
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-portal-test-account-provisioning:section:0
 - DIARY-DEV-portal-test-account-provisioning:section:1
+- DIARY-DEV-sponsor-config-source:section:1
 - rem:spec/glossary-core.md:730
 - rem:spec/glossary-core.md:756
 - rem:spec/prd-audit-log.md:3

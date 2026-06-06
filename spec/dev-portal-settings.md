@@ -45,3 +45,32 @@ B. The provisioning step SHALL be guarded by the `PORTAL_DEV_SEED_PASSWORD` envi
 Dev deployments that use real Identity Platform *Session* auth (PORTAL_AUTH_MODE=*Session*) require seed accounts to have both an IdP record and an active portal *User* row before anyone can log in. The normal flow — admin creates *User*, system emails an activation link, *User* clicks it and sets a *Password* — requires a live inbox the dev environment does not have. Provisioning declaratively at boot, guarded by a dev-only env variable, collapses the three-step flow to a single deployment config, leaves the activation path intact for all other environments, and keeps the code path always compiled in (so it is exercised by CI) while remaining inert in production.
 
 *End* *Dev/test seed-account self-provisioning* | **Hash**: 05b08471
+
+---
+
+## DIARY-DEV-sponsor-config-source: Sponsor Configuration Parameter Source
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-DEV-portal-settings-store
+
+### Overview
+
+The portal owns per-deployment *Sponsor* configuration parameters — clinical and UI knobs such as available languages, available fonts, and their defaults — as event-sourced data on the same append-only, tamper-evident log as the rest of the portal's configuration. Each parameter is seeded idempotently at boot into the `portal_settings` store from its `PORTAL_SEED_*` environment variable, materialized into the `portal_settings` projection, and composed into the `/link` response's `sponsor_settings` batch so the *Diary* applies it set-once-at-link alongside *Sponsor* branding. UI parameters carry platform default values when no environment variable overrides them, and a deployment that restricts an allow-set must supply a viable default within that set or the portal refuses to start.
+
+### Assertions
+
+A. At boot, outside the one-time seed gate, the portal SHALL seed each configured *Sponsor* *Configuration Parameter* into the `portal_settings` store from its `PORTAL_SEED_*` environment variable, appending a `portal_setting_changed` event only when the key is absent from the materialized state or its value differs from the materialized value, so the seed is idempotent across reboots.
+
+B. The `/link` response `sponsor_settings` batch SHALL include every `clinical.*` and `ui.*` parameter present in the `portal_settings` projection, each as a `{key, value, locked: true}` entry, in addition to *Sponsor* branding entries.
+
+C. A parameter absent from the `portal_settings` projection SHALL be omitted from the `sponsor_settings` batch.
+
+D. The portal SHALL define the `ui.useAnimations`, `ui.availableFonts`, `ui.availableLanguages`, `ui.defaultFont`, and `ui.defaultLanguage` parameters with the platform default values when no overriding environment variable is supplied.
+
+E. When a seeded `ui.availableLanguages` (respectively `ui.availableFonts`) excludes any platform value, the portal SHALL require the matching `ui.defaultLanguage` (respectively `ui.defaultFont`) to be set and to be a member of the restricted set, and SHALL fail to start otherwise; the configured default language and default font SHALL be jointly viable.
+
+### Rationale
+
+This mirrors the link-time `sponsor_settings` composition pattern of *DIARY-DEV-sponsor-branding-source* and builds on the `portal_setting_changed`/`portal_settings` store of its parent *DIARY-DEV-portal-settings-store*, so *Sponsor* configuration is attributable and reconstructible from the same tamper-evident chain rather than read from an unaudited flag at request time. The set-once-at-link, applied-via-*User*-path, explicitly-locked delivery model is that of *DIARY-BASE-sponsor-requested-settings*: the portal requests, and the *Diary* applies and locks. Carrying platform defaults for the UI parameters (D) gives a *Sponsor*-agnostic deployment a complete configuration without any environment overrides. Fail-fast (E) keeps a misconfigured study from booting with a default language or font that its own restricted allow-set would render unselectable.
+
+*End* *Sponsor Configuration Parameter Source* | **Hash**: 327957ae
