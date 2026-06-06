@@ -2,7 +2,9 @@
 //   batch carried in a /link response is applied through the diary's normal
 //   action dispatcher (apply_sponsor_settings), recording one
 //   setting_applied(source: sponsor, locked: true) per key in the `settings`
-//   projection. Empty/absent batch is a no-op.
+//   projection. Empty/absent batch is a no-op. Re-applying an unchanged batch
+//   appends NO new events (genuine event-log idempotence); only the keys whose
+//   materialized (value, locked) differ are re-applied.
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/services/link_sponsor_settings.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
@@ -40,6 +42,14 @@ Future<List<Map<String, Object?>>> _rows(
   await Future<void>.delayed(const Duration(milliseconds: 80));
   await sub.cancel();
   return out.values.toList();
+}
+
+/// Count `Setting`-aggregate events in the log — one is appended per applied
+/// setting key. Lets the idempotence tests assert at the EVENT-LOG level, not
+/// just the latest-wins materialized view.
+Future<int> _settingEventCount(DiaryScopeRuntime rt) async {
+  final events = await rt.bundle.eventStore.backend.findAllEvents();
+  return events.where((e) => e.aggregateType == settingAggregateType).length;
 }
 
 void main() {
@@ -92,7 +102,8 @@ void main() {
     await rt.dispose();
   });
 
-  test('re-applying the same batch is idempotent (latest-wins)', () async {
+  test('re-applying the SAME batch appends NO new events (event-log '
+      'idempotence, not just latest-wins)', () async {
     final rt = await _boot();
     const batch = <Object?>[
       <String, Object?>{
@@ -100,14 +111,111 @@ void main() {
         'value': 'Reference',
         'locked': true,
       },
+      <String, Object?>{
+        'key': 'branding.logoRole',
+        'value': 'logo',
+        'locked': true,
+      },
     ];
-    await applyLinkSponsorSettings(rt.scope, batch);
-    await applyLinkSponsorSettings(rt.scope, batch);
 
+    // First apply: all keys land — one Setting event per key.
+    final firstKeys = await applyLinkSponsorSettings(rt.scope, batch);
+    expect(firstKeys, hasLength(2));
+    final afterFirst = await _settingEventCount(rt);
+    expect(afterFirst, 2);
+
+    // Second apply of the IDENTICAL batch: nothing differs, so no dispatch and
+    // ZERO new Setting events appended (the log does not grow on cold restart).
+    final secondKeys = await applyLinkSponsorSettings(rt.scope, batch);
+    expect(secondKeys, isEmpty);
+    final afterSecond = await _settingEventCount(rt);
+    expect(afterSecond, afterFirst);
+
+    // Materialized view is still exactly one row per key.
     final rows = await _rows(rt, settingsViewName);
-    final title = rows.where((r) => r['key'] == 'branding.title').toList();
-    expect(title, hasLength(1));
-    expect(title.single['value'], 'Reference');
+    expect(
+      rows.where((r) => r['key'] == 'branding.title').toList(),
+      hasLength(1),
+    );
+    expect(
+      rows.where((r) => r['key'] == 'branding.logoRole').toList(),
+      hasLength(1),
+    );
     await rt.dispose();
   });
+
+  test('a genuinely changed value re-applies ONLY the changed key', () async {
+    final rt = await _boot();
+    await applyLinkSponsorSettings(rt.scope, <Object?>[
+      <String, Object?>{
+        'key': 'branding.title',
+        'value': 'Reference',
+        'locked': true,
+      },
+      <String, Object?>{
+        'key': 'branding.logoSha256',
+        'value': 'sha-old',
+        'locked': true,
+      },
+    ]);
+    final afterFirst = await _settingEventCount(rt);
+    expect(afterFirst, 2);
+
+    // Re-link with a NEW logo sha256 but an unchanged title: only the changed
+    // key is dispatched -> exactly one new Setting event.
+    final changedKeys = await applyLinkSponsorSettings(rt.scope, <Object?>[
+      <String, Object?>{
+        'key': 'branding.title',
+        'value': 'Reference',
+        'locked': true,
+      },
+      <String, Object?>{
+        'key': 'branding.logoSha256',
+        'value': 'sha-new',
+        'locked': true,
+      },
+    ]);
+    expect(changedKeys, <String>['branding.logoSha256']);
+    final afterChange = await _settingEventCount(rt);
+    expect(afterChange, afterFirst + 1);
+
+    final rows = await _rows(rt, settingsViewName);
+    final sha = rows.firstWhere((r) => r['key'] == 'branding.logoSha256');
+    expect(sha['value'], 'sha-new');
+    final title = rows.firstWhere((r) => r['key'] == 'branding.title');
+    expect(title['value'], 'Reference');
+    await rt.dispose();
+  });
+
+  test(
+    'a key newly added on re-link is applied; unchanged keys are not',
+    () async {
+      final rt = await _boot();
+      await applyLinkSponsorSettings(rt.scope, <Object?>[
+        <String, Object?>{
+          'key': 'branding.title',
+          'value': 'Reference',
+          'locked': true,
+        },
+      ]);
+      final afterFirst = await _settingEventCount(rt);
+      expect(afterFirst, 1);
+
+      final keys = await applyLinkSponsorSettings(rt.scope, <Object?>[
+        <String, Object?>{
+          'key': 'branding.title',
+          'value': 'Reference',
+          'locked': true,
+        },
+        <String, Object?>{
+          'key': 'branding.logoRole',
+          'value': 'logo',
+          'locked': true,
+        },
+      ]);
+      expect(keys, <String>['branding.logoRole']);
+      expect(await _settingEventCount(rt), afterFirst + 1);
+      await rt.dispose();
+    },
+  );
 }

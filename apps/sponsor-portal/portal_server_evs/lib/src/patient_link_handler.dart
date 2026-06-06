@@ -257,7 +257,7 @@ Handler patientLinkHandler({
     //     branding title + logo asset identity (sha256 + role) rather than the
     //     bytes; the diary fetches bytes JWT-gated by role on demand. Empty list
     //     when no branding is materialized — the link still succeeds.
-    // Implements: DIARY-DEV-sponsor-branding-source
+    // Implements: DIARY-DEV-sponsor-branding-source/B
     final brandingSettings = await _brandingSponsorSettings(eventStore, sid);
 
     return Response.ok(
@@ -283,7 +283,7 @@ Handler patientLinkHandler({
 /// asset handler serves from) and projects it into a sponsor-settings batch:
 /// a list of `{key, value, locked: true}` entries the diary applies via its
 /// `apply_sponsor_settings` action. Returns `[]` when no branding row exists.
-// Implements: DIARY-DEV-sponsor-branding-source
+// Implements: DIARY-DEV-sponsor-branding-source/B
 Future<List<Map<String, Object?>>> _brandingSponsorSettings(
   EventStore eventStore,
   String? sid,

@@ -18,7 +18,13 @@ class SponsorBrandingConfig {
   factory SponsorBrandingConfig.fromSettings(
     Map<String, SettingPayload> settings,
   ) {
-    String? s(String k) => settings[k]?.value as String?;
+    // Degrade a non-String (or absent) branding value to null rather than
+    // throwing a TypeError on an unexpected payload shape.
+    String? s(String k) {
+      final v = settings[k]?.value;
+      return v is String ? v : null;
+    }
+
     return SponsorBrandingConfig(
       title: s('branding.title'),
       logoSha256: s('branding.logoSha256'),

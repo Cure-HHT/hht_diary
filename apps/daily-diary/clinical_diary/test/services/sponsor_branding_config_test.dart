@@ -51,4 +51,16 @@ void main() {
     expect(config.appLogoUrl, isNull);
     expect(config.hasLogo, isFalse);
   });
+
+  test('a non-String branding value degrades to null (no TypeError)', () {
+    final config = SponsorBrandingConfig.fromSettings(<String, SettingPayload>{
+      // Unexpected payload shapes: an int title, a list role.
+      'branding.title': _sponsor('branding.title', 42),
+      'branding.logoRole': _sponsor('branding.logoRole', <Object?>['logo']),
+    });
+    expect(config.title, isNull);
+    expect(config.logoRole, isNull);
+    expect(config.appLogoUrl, isNull);
+    expect(config.hasLogo, isFalse);
+  });
 }
