@@ -1,4 +1,5 @@
 import 'package:clinical_diary/config/env_profile.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 /// Exception thrown when required configuration is missing.
@@ -144,4 +145,14 @@ class AppConfig {
   /// Whether to show the Reset All Data feature.
   /// Determined by EnvProfile - only enabled in dev, qa, uat, and local.
   static bool get showResetData => EnvProfile.current.showResetData;
+
+  // ============================================================
+  // Deployment UI configuration defaults
+  // ============================================================
+
+  /// Per-distribution UI-config defaults, resolved once during bootstrap from the
+  /// bundled `assets/config/config_defaults.json` (see `loadDeploymentUiDefaults`).
+  /// Used as the deployment-default fallback layer beneath sponsor-locked values.
+  // Implements: DIARY-DEV-deployment-config-defaults/A
+  static SponsorUiConfig deploymentUiDefaults = SponsorUiConfig.codeDefault;
 }

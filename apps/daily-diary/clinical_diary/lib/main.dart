@@ -11,8 +11,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Directory, Platform, pid;
 
+import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/config_defaults.dart';
 import 'package:clinical_diary/config/env_profile.dart';
-import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
@@ -21,6 +22,7 @@ import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/scope/diary_sync_triggers.dart';
+import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/branding_asset_cache.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
@@ -129,13 +131,10 @@ void main() async {
         debugPrint('Stack trace:\n$stack');
       }
 
-      // CUR-546: Load Callisto feature flags by default for demo
-      try {
-        await FeatureFlagService.instance.loadFromServer('callisto');
-      } catch (e, stack) {
-        debugPrint('Feature flag loading error: $e');
-        debugPrint('Stack trace:\n$stack');
-      }
+      // Implements: DIARY-DEV-deployment-config-defaults/B — resolve the bundled
+      //   per-distribution UI-config defaults once (sibling to env.json). Sponsor
+      //   values delivered at link override these; absent asset -> code defaults.
+      AppConfig.deploymentUiDefaults = await loadDeploymentUiDefaults();
 
       // CUR-1307: Force-enable the semantics tree on web so the Flutter
       // accessibility nodes (and their `flt-semantics-identifier`
@@ -873,6 +872,62 @@ class _AppRootState extends State<AppRoot> {
   }
 
   /// Folds the settings view rows into a `{key: SettingPayload}` map.
+  // Tracks the corrective value most recently submitted for each picked setting,
+  // so reconciliation submits at most once per out-of-set transition.
+  String? _reconciledLangTarget;
+  String? _reconciledFontTarget;
+
+  /// Conditionally corrects the participant's language/font pick when it falls
+  /// outside the resolved allow-set: dispatches a single `set_user_setting` to the
+  /// allow-set default. A no-op when the pick is already allowed.
+  // Implements: DIARY-DEV-deployment-config-defaults/E
+  void _reconcileUiPicks(
+    DiaryScopeRuntime diaryScope,
+    UserPreferences prefs,
+    SponsorUiConfig cfg,
+  ) {
+    final langFix = reconcilePick(
+      current: prefs.languageCode,
+      allowed: cfg.availableLanguages,
+      fallback: cfg.defaultLanguage,
+    );
+    final fontFix = reconcilePick(
+      current: prefs.selectedFont,
+      allowed: cfg.availableFonts,
+      fallback: cfg.defaultFont,
+    );
+
+    if (langFix == null) _reconciledLangTarget = null;
+    if (fontFix == null) _reconciledFontTarget = null;
+
+    if (langFix != null && langFix != _reconciledLangTarget) {
+      _reconciledLangTarget = langFix;
+      _submitUserSetting(diaryScope, prefLanguageCode, langFix);
+    }
+    if (fontFix != null && fontFix != _reconciledFontTarget) {
+      _reconciledFontTarget = fontFix;
+      _submitUserSetting(diaryScope, prefSelectedFont, fontFix);
+    }
+  }
+
+  void _submitUserSetting(
+    DiaryScopeRuntime diaryScope,
+    String key,
+    Object? value,
+  ) {
+    // Dispatch after the current frame so we never submit during layout.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(
+        diaryScope.scope.actionSubmitter.submit(
+          esd.ActionSubmission(
+            actionName: 'set_user_setting',
+            rawInput: <String, Object?>{'key': key, 'value': value},
+          ),
+        ),
+      );
+    });
+  }
+
   static Map<String, SettingPayload> _settingsByKey(
     ViewState<Map<String, Object?>> state,
   ) {
@@ -899,9 +954,11 @@ class _AppRootState extends State<AppRoot> {
     required Widget home,
     UserPreferences? prefs,
     ClinicalRules? clinicalRules,
+    SponsorUiConfig? sponsorUiConfig,
   }) {
     final effectivePrefs = prefs ?? const UserPreferences();
     final effectiveRules = clinicalRules ?? const ClinicalRules();
+    final effectiveUiConfig = sponsorUiConfig ?? SponsorUiConfig.codeDefault;
     final font = effectivePrefs.selectedFont;
     final largerText = effectivePrefs.largerTextAndControls;
     final languageCode = effectivePrefs.languageCode;
@@ -935,16 +992,19 @@ class _AppRootState extends State<AppRoot> {
         // so EVERY route — not just `home` — reads the current preferences via
         // AppPreferencesScope.of(context). Placing it around `home` only would
         // leave pushed routes (settings, calendar, recording) reading defaults.
-        return AppPreferencesScope(
-          preferences: effectivePrefs,
-          child: ClinicalRulesScope(
-            rules: effectiveRules,
-            child: MediaQuery(
-              data: mediaQuery.copyWith(
-                textScaler: TextScaler.linear(textScaleFactor),
-              ),
-              child: ResponsiveWebFrame(
-                child: child ?? const SizedBox.shrink(),
+        return SponsorUiConfigScope(
+          config: effectiveUiConfig,
+          child: AppPreferencesScope(
+            preferences: effectivePrefs,
+            child: ClinicalRulesScope(
+              rules: effectiveRules,
+              child: MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: TextScaler.linear(textScaleFactor),
+                ),
+                child: ResponsiveWebFrame(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),
@@ -1002,9 +1062,18 @@ class _AppRootState extends State<AppRoot> {
             settingsMap,
             trialStart: null,
           );
+          // Resolve sponsor/deployment UI config (animation gate + font/language
+          // allow-sets) and reconcile the participant's picks against it.
+          // Implements: DIARY-DEV-deployment-config-defaults/A
+          final sponsorUiConfig = SponsorUiConfig.fromSettings(
+            settingsMap,
+            deploymentDefaults: AppConfig.deploymentUiDefaults,
+          );
+          _reconcileUiPicks(diaryScope, prefs, sponsorUiConfig);
           return _buildMaterialApp(
             prefs: prefs,
             clinicalRules: clinicalRules,
+            sponsorUiConfig: sponsorUiConfig,
             // AppPreferencesScope is now provided above the Navigator inside
             // _buildMaterialApp's builder, so it covers HomeScreen AND every
             // pushed route. `home` is just the HomeScreen.
