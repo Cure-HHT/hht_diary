@@ -61,36 +61,6 @@ locals {
   }
 }
 
-# -----------------------------------------------------------------------------
-# Secret Manager
-# -----------------------------------------------------------------------------
-
-resource "google_secret_manager_secret" "doppler_token" {
-  secret_id = "DOPPLER_TOKEN"
-  project   = var.project_id
-
-  labels = local.common_labels
-
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "doppler_token" {
-  secret      = google_secret_manager_secret.doppler_token.id
-  secret_data = var.DOPPLER_TOKEN
-}
-
-# Grant Compute Engine default service account read access to Doppler token
-# Required for Cloud Run services to fetch secrets at runtime
-resource "google_secret_manager_secret_iam_member" "doppler_token_compute_accessor" {
-  count     = var.compute_service_account != "" ? 1 : 0
-  secret_id = google_secret_manager_secret.doppler_token.secret_id
-  project   = var.project_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.compute_service_account}"
-}
-
 # Grant Compute Engine default service account Identity Platform admin access.
 # Required at runtime by portal_server_evs to provision Identity Platform users
 # on-demand at activation (IdentityAdmin.lookupOrProvisionByEmail) and by its

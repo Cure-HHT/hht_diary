@@ -56,12 +56,6 @@ variable "DB_PASSWORD" {
   sensitive   = true
 }
 
-variable "DOPPLER_TOKEN" {
-  description = "Doppler service token for runtime secret access"
-  type        = string
-  sensitive   = true
-}
-
 # -----------------------------------------------------------------------------
 # Required: Database Configuration
 # -----------------------------------------------------------------------------
