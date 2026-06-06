@@ -15,3 +15,4 @@ export 'src/participant_payloads.dart';
 export 'src/diary_projection.dart';
 export 'src/change_reasons.dart';
 export 'src/entry_restrictions.dart';
+export 'src/sponsor_ui_config.dart';
