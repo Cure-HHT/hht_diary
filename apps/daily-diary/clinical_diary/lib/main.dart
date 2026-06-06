@@ -24,6 +24,7 @@ import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/debug_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/link_sponsor_settings.dart';
 import 'package:clinical_diary/services/local_data_reset.dart';
 import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
@@ -480,6 +481,14 @@ class _AppRootState extends State<AppRoot> {
         // own event log (DIARY-DEV-shared-events-catalog/A surface P4). Identity
         // only — the JWT/install-id stay in secure storage (state-in-event-log/B).
         await _recordParticipantLinkedOnce(diaryScope, participantId);
+        // Apply the portal-requested sponsor settings carried in the /link
+        // response (set-once-at-link), through the diary's normal apply path.
+        // Implements: DIARY-BASE-sponsor-requested-settings/A+B
+        final enrollment = await _enrollmentService.getEnrollment();
+        await applyLinkSponsorSettings(
+          diaryScope.scope,
+          enrollment?.sponsorSettings,
+        );
       }
     } catch (e, stack) {
       debugPrint('[Reconcile] identity adoption failed: $e\n$stack');

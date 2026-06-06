@@ -22,6 +22,7 @@ class UserEnrollment {
     this.sitePhoneNumber,
     this.studyParticipantId,
     this.linkingCode,
+    this.sponsorSettings = const <Object?>[],
   });
 
   /// Create from JSON
@@ -38,6 +39,9 @@ class UserEnrollment {
       sitePhoneNumber: json['sitePhoneNumber'] as String?,
       studyParticipantId: json['studyParticipantId'] as String?,
       linkingCode: json['linkingCode'] as String?,
+      sponsorSettings:
+          (json['sponsorSettings'] as List?)?.cast<Object?>() ??
+          const <Object?>[],
     );
   }
 
@@ -72,6 +76,12 @@ class UserEnrollment {
   /// Distinct from participantId — this is what the user sees on the profile screen
   final String? linkingCode;
 
+  /// The `sponsor_settings` batch carried in the `/link` response: a list of
+  /// `{key, value, locked}` entries the diary applies once at the link
+  /// transition via `apply_sponsor_settings` (set-once-at-link). Empty when the
+  /// portal delivered no sponsor settings.
+  final List<Object?> sponsorSettings;
+
   /// Whether this linking includes clinical trial connection
   bool get isLinkedToClinicalTrial => participantId != null && siteId != null;
   SponsorInfo? get sponsorDetail => SponsorRegistry.getById(sponsorId ?? '');
@@ -90,6 +100,7 @@ class UserEnrollment {
       if (sitePhoneNumber != null) 'sitePhoneNumber': sitePhoneNumber,
       if (studyParticipantId != null) 'studyParticipantId': studyParticipantId,
       if (linkingCode != null) 'linkingCode': linkingCode,
+      if (sponsorSettings.isNotEmpty) 'sponsorSettings': sponsorSettings,
     };
   }
 }
