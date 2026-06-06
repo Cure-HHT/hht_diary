@@ -41,6 +41,22 @@ SponsorBrandingConfig _branding(String sha256) =>
       ),
     });
 
+/// Mount [app] and pump until the async logo resolution (real file IO under
+/// `runAsync` + mocked HTTP) has rendered an `Image`. Polls up to ~2s, far more
+/// robust on slow CI than a single fixed delay (which raced and rendered 0
+/// Images under load).
+Future<void> _mountUntilImage(WidgetTester tester, Widget app) async {
+  await tester.runAsync(() async {
+    await tester.pumpWidget(app);
+    for (var i = 0; i < 200; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await tester.pump();
+      if (find.byType(Image).evaluate().isNotEmpty) return;
+    }
+  });
+  await tester.pump();
+}
+
 void main() {
   late Directory tempDir;
 
@@ -75,14 +91,9 @@ void main() {
     );
 
     // The resolution does real async file IO (cache write/read) which needs a
-    // real event loop, so the widget is mounted (its initState kicks off the
-    // resolution) inside runAsync; the trailing pump flushes the FutureBuilder
-    // rebuild once its future has completed.
-    await tester.runAsync(() async {
-      await tester.pumpWidget(app());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-    });
-    await tester.pump();
+    // real event loop, so mounting + settling happens under runAsync and pumps
+    // until the FutureBuilder has rendered the Image.
+    await _mountUntilImage(tester, app());
     // Resolved -> Image.memory rendered, fallback gone, one HTTP fetch.
     expect(find.byType(Image), findsOneWidget);
     expect(find.byKey(_fallbackKey), findsNothing);
@@ -92,11 +103,7 @@ void main() {
 
     // Rebuild with the SAME branding (same hash) — served from cache, no new
     // fetch (fetch-once per content hash, even across a fresh widget build).
-    await tester.runAsync(() async {
-      await tester.pumpWidget(app());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-    });
-    await tester.pump();
+    await _mountUntilImage(tester, app());
     expect(httpCalls, 1);
     expect(find.byType(Image), findsOneWidget);
   });
@@ -113,20 +120,17 @@ void main() {
     });
     final cache = BrandingAssetCache(cacheDir: tempDir, httpClient: client);
 
-    await tester.runAsync(() async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BrandingLogo(
-            branding: _branding(digest),
-            cache: cache,
-            jwtProvider: () async => 'jwt-token',
-            fallback: _fallback,
-          ),
+    await _mountUntilImage(
+      tester,
+      MaterialApp(
+        home: BrandingLogo(
+          branding: _branding(digest),
+          cache: cache,
+          jwtProvider: () async => 'jwt-token',
+          fallback: _fallback,
         ),
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-    });
-    await tester.pump();
+      ),
+    );
 
     expect(find.byType(Image), findsOneWidget);
     expect(httpCalls, 0);
