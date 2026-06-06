@@ -202,9 +202,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _checkEnrollmentStatus() async {
     final isEnrolled = await widget.enrollmentService.isEnrolled();
-    // Branding is no longer pulled here: it is derived from the diary's own
-    // event-sourced settings projection (set-once-at-link) by the app root and
-    // passed in via widget.sponsorBranding.
+    // Branding is derived from the diary's own event-sourced settings
+    // projection (set-once-at-link) by the app root and passed in via
+    // widget.sponsorBranding.
     if (mounted) {
       setState(() {
         _isEnrolled = isEnrolled;

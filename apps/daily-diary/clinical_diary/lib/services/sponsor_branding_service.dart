@@ -35,8 +35,8 @@ class SponsorBrandingConfig {
   /// Human-readable sponsor title (null -> app default).
   final String? title;
 
-  /// SHA-256 of the logo asset bytes (cache key for the future local byte
-  /// cache; not yet used to fetch).
+  /// SHA-256 of the logo asset bytes — the content-addressed cache key used to
+  /// fetch and verify the logo via the JWT-gated asset endpoint.
   final String? logoSha256;
 
   /// Logo asset role, the path segment the JWT-gated asset endpoint serves by.
