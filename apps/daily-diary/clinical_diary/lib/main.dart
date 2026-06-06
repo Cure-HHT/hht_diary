@@ -9,7 +9,7 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform, pid;
+import 'dart:io' show Directory, Platform, pid;
 
 import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/config/feature_flags.dart';
@@ -21,6 +21,7 @@ import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/scope/diary_sync_triggers.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
+import 'package:clinical_diary/services/branding_asset_cache.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/debug_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
@@ -197,6 +198,16 @@ class _AppRootState extends State<AppRoot> {
   /// on [dispose] so the destination's transport is torn down cleanly.
   http.Client? _diaryIngestClient;
 
+  /// Content-addressed cache for *Sponsor* branding asset bytes, rooted at a
+  /// stable on-device support dir (`<appSupport>/branding_cache/`). It lives
+  /// OUTSIDE the documents dir the local-data-reset wipes and is never on that
+  /// wipe's delete list, so cached branding assets are retained after
+  /// participation ends (and across a factory reset), per the asset REQ.
+  /// Null on web (path_provider has no web impl) — the logo then falls back to
+  /// the app default brand.
+  // Implements: DIARY-DEV-sponsor-branding-assets/D
+  BrandingAssetCache? _brandingAssetCache;
+
   /// The participant identity most recently adopted as the diaryScope recording
   /// credential, so synced day-markers are keyed by `participantId`. Null until
   /// the participant links. Tracked here (not read back off the principal) to
@@ -238,6 +249,14 @@ class _AppRootState extends State<AppRoot> {
         factory = databaseFactoryIo;
         final docsDir = await getApplicationDocumentsDirectory();
         dbPath = '${docsDir.path}/diary.db';
+        // Root the branding cache under the support dir (a stable on-device
+        // location SEPARATE from the documents dir the local-data-reset wipes),
+        // so cached branding assets are retained for posterity after
+        // participation ends. Implements: DIARY-DEV-sponsor-branding-assets/D
+        final supportDir = await getApplicationSupportDirectory();
+        _brandingAssetCache = BrandingAssetCache(
+          cacheDir: Directory('${supportDir.path}/branding_cache'),
+        );
       }
       final db = await factory.openDatabase(dbPath);
 
@@ -948,6 +967,10 @@ class _AppRootState extends State<AppRoot> {
               //   event-sourced settings projection (default true).
               resetSettingAllowsReset: allowLocalResetSetting(settingsMap),
               sponsorBranding: sponsorBranding,
+              // Implements: DIARY-DEV-sponsor-branding-assets/D — the logo is
+              //   rendered from this content-addressed cache (JWT-gated
+              //   fetch-once, verified, retained after participation ends).
+              brandingAssetCache: _brandingAssetCache,
             ),
           );
         },

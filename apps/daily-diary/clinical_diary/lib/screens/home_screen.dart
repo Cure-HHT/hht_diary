@@ -17,6 +17,7 @@ import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
+import 'package:clinical_diary/services/branding_asset_cache.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
@@ -25,6 +26,7 @@ import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/settings/local_reset_policy.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
+import 'package:clinical_diary/widgets/branding_logo.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
@@ -55,6 +57,7 @@ class HomeScreen extends StatefulWidget {
     this.resetSettingAllowsReset = true,
     this.nativeFifoWedged,
     this.sponsorBranding = SponsorBrandingConfig.fallback,
+    this.brandingAssetCache,
     super.key,
   });
 
@@ -94,6 +97,13 @@ class HomeScreen extends StatefulWidget {
   /// the app root's reactive ViewBuilder, so it updates when the settings change.
   // Implements: DIARY-GUI-participation-status-badge/B
   final SponsorBrandingConfig sponsorBranding;
+
+  /// Content-addressed cache the *Sponsor* logo bytes are served from / fetched
+  /// into (JWT-gated fetch-once, verified by hash, retained after participation
+  /// ends). Supplied by the app root from a stable on-device cache directory;
+  /// when null the logo render sites fall back to the app default brand.
+  // Implements: DIARY-DEV-sponsor-branding-assets/D
+  final BrandingAssetCache? brandingAssetCache;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -518,7 +528,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           isNotParticipating: isNotParticipating,
           enrollmentStatus: _isEnrolled ? 'active' : 'none',
           isSharingWithCureHHT: false,
-          sponsorLogo: widget.sponsorBranding.appLogoUrl,
+          sponsorLogoBuilder: _brandingLogoBuilder,
           userName: 'User',
           onUpdateUserName: (name) {
             // TODO: Implement username update
@@ -861,6 +871,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return groups;
   }
 
+  /// Builds the cache-backed sponsor logo for a render site, or null when no
+  /// logo is configured / no cache is wired. The returned [BrandingLogo] reads
+  /// the current patient session JWT from the enrollment service, serves the
+  /// bytes from the content-addressed cache, and fetches once per content hash.
+  // Implements: DIARY-DEV-sponsor-branding-assets/D
+  BrandingLogoBuilder? get _brandingLogoBuilder {
+    final cache = widget.brandingAssetCache;
+    if (cache == null || !widget.sponsorBranding.hasLogo) return null;
+    return ({required width, required height, required fallback}) =>
+        BrandingLogo(
+          branding: widget.sponsorBranding,
+          cache: cache,
+          jwtProvider: widget.enrollmentService.getJwtToken,
+          fallback: fallback,
+          width: width,
+          height: height,
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DiaryViewBuilder(builder: _buildScaffold);
@@ -887,7 +916,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   // Logo menu on the left
                   LogoMenu(
-                    sponsorLogo: widget.sponsorBranding.appLogoUrl,
+                    sponsorLogoBuilder: _brandingLogoBuilder,
                     onResetAllData: _handleResetAllData,
                     resetEnabled: _canResetData,
                     isEnrolled: _isEnrolled,

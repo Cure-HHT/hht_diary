@@ -6,6 +6,7 @@
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
+import 'package:clinical_diary/widgets/branding_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -29,7 +30,7 @@ class ProfileScreen extends StatefulWidget {
     this.enrollmentEndDateTime,
     this.siteName,
     this.sitePhoneNumber,
-    this.sponsorLogo,
+    this.sponsorLogoBuilder,
     super.key,
   });
 
@@ -51,7 +52,14 @@ class ProfileScreen extends StatefulWidget {
   final ValueChanged<String> onUpdateUserName;
   final String? siteName;
   final String? sitePhoneNumber;
-  final String? sponsorLogo;
+
+  /// Builds the cache-backed *Sponsor* logo for the **Participation Status
+  /// Badge** (content-addressed, JWT-gated fetch-once). Null when no sponsor
+  /// logo is configured. The badge retains the logo across the Not-Participating
+  /// transition because the cache is kept after participation ends.
+  // Implements: DIARY-GUI-participation-status-badge/H
+  // Implements: DIARY-DEV-sponsor-branding-assets/D
+  final BrandingLogoBuilder? sponsorLogoBuilder;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -403,14 +411,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (isNotParticipating) ...[
-                  // CUR-1165: Not-participating clean layout matching design
-                  if (widget.sponsorLogo != null)
+                  // CUR-1165: Not-participating clean layout matching design.
+                  // Implements: DIARY-GUI-participation-status-badge/H — the
+                  //   sponsor logo is shown on the badge in the Not-Participating
+                  //   state, rendered from the retained content-addressed cache.
+                  if (widget.sponsorLogoBuilder != null)
                     Center(
-                      child: Image.network(
-                        widget.sponsorLogo!,
+                      child: widget.sponsorLogoBuilder!(
+                        width: 120,
                         height: 60,
-                        errorBuilder: (context, _, _) =>
-                            const SizedBox(height: 60),
+                        fallback: const SizedBox(height: 60),
                       ),
                     )
                   else
@@ -479,21 +489,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ] else ...[
-                  // Active / disconnected states: existing layout
-                  if (widget.sponsorLogo != null)
-                    Image.network(
-                      widget.sponsorLogo!,
-                      height: 40,
+                  // Active / disconnected states: existing layout.
+                  // Implements: DIARY-DEV-sponsor-branding-assets/D — the badge
+                  //   logo renders from the content-addressed cache, not a URL.
+                  if (widget.sponsorLogoBuilder != null)
+                    widget.sponsorLogoBuilder!(
                       width: 120,
-                      errorBuilder: (context, _, _) {
-                        return const SizedBox(
-                          height: 40,
-                          width: 120,
-                          child: Center(
-                            child: Icon(Icons.broken_image_outlined, size: 32),
-                          ),
-                        );
-                      },
+                      height: 40,
+                      fallback: const SizedBox(
+                        height: 40,
+                        width: 120,
+                        child: Center(
+                          child: Icon(Icons.broken_image_outlined, size: 32),
+                        ),
+                      ),
                     )
                   else
                     const SizedBox(),

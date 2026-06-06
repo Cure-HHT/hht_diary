@@ -3,13 +3,31 @@
 //   GUI-p00076: Not Participating state
 //   REQ-p01065: Deactivate sync and rules on Not Participating
 
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
+import 'package:clinical_diary/widgets/branding_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
+
+/// A valid 1x1 PNG so `Image.memory` decodes cleanly under flutter_test.
+final Uint8List _png = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAF'
+  'AAH/iZk9HQAAAABJRU5ErkJggg==',
+);
+
+/// A stand-in sponsor-logo builder that renders the verified bytes via
+/// `Image.memory`, mirroring how the real cache-backed [BrandingLogo] renders,
+/// so tests can assert the badge shows an Image at each size without the real
+/// cache/JWT/HTTP plumbing.
+BrandingLogoBuilder _memoryLogoBuilder() =>
+    ({required width, required height, required fallback}) =>
+        Image.memory(_png, width: width, height: height, fit: BoxFit.contain);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +49,7 @@ void main() {
       DateTime? enrollmentEndDateTime,
       String? siteName,
       String? sitePhoneNumber,
-      String? sponsorLogo,
+      BrandingLogoBuilder? sponsorLogoBuilder,
       bool isSharingWithCureHHT = false,
     }) {
       return wrapWithMaterialApp(
@@ -39,7 +57,7 @@ void main() {
           onBack: () {},
           onStartClinicalTrialEnrollment: () {},
           onShowSettings: () {},
-          sponsorLogo: sponsorLogo,
+          sponsorLogoBuilder: sponsorLogoBuilder,
           onShareWithCureHHT: () {},
           onStopSharingWithCureHHT: () {},
           isEnrolledInTrial: isEnrolledInTrial,
@@ -655,7 +673,7 @@ void main() {
           buildProfileScreen(
             isEnrolledInTrial: true,
             isNotParticipating: true,
-            sponsorLogo: 'assets/sponsor-content/status_badge.png',
+            sponsorLogoBuilder: _memoryLogoBuilder(),
           ),
         );
         await tester.pumpAndSettle();
@@ -666,42 +684,47 @@ void main() {
 
     group('Sponsor Icon', () {
       testWidgets(
-        'shows network sponsor logo when sponsorLogo is provided in active state',
+        'shows cache-backed sponsor logo when a builder is provided in active '
+        'state',
         (tester) async {
           await tester.pumpWidget(
             buildProfileScreen(
               isEnrolledInTrial: true,
               isDisconnected: false,
-              sponsorLogo: 'assets/sponsor-content/status_badge.png',
+              sponsorLogoBuilder: _memoryLogoBuilder(),
             ),
           );
 
           await tester.pumpAndSettle();
 
-          expect(find.byType(Image), findsWidgets);
-
-          final image = tester.widget<Image>(find.byType(Image).first);
-          expect(image.image, isA<AssetImage>());
+          // The branding logo renders verified bytes via Image.memory (not a
+          // URL/asset image). Other Images (e.g. the avatar) may also be
+          // present, so match the memory-backed one specifically.
+          final memoryImages = tester
+              .widgetList<Image>(find.byType(Image))
+              .where((i) => i.image is MemoryImage);
+          expect(memoryImages, isNotEmpty);
         },
       );
 
       testWidgets(
-        'shows network sponsor logo when sponsorLogo is provided in disconnected state',
+        'shows cache-backed sponsor logo when a builder is provided in '
+        'disconnected state',
         (tester) async {
           await tester.pumpWidget(
             buildProfileScreen(
               isEnrolledInTrial: true,
               isDisconnected: true,
-              sponsorLogo: 'assets/sponsor-content/status_badge.png',
+              sponsorLogoBuilder: _memoryLogoBuilder(),
             ),
           );
 
           await tester.pumpAndSettle();
 
-          expect(find.byType(Image), findsWidgets);
-
-          final image = tester.widget<Image>(find.byType(Image).first);
-          expect(image.image, isA<AssetImage>());
+          final memoryImages = tester
+              .widgetList<Image>(find.byType(Image))
+              .where((i) => i.image is MemoryImage);
+          expect(memoryImages, isNotEmpty);
         },
       );
     });

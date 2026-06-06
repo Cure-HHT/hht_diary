@@ -4,6 +4,7 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/license_screen.dart';
+import 'package:clinical_diary/widgets/branding_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -17,7 +18,7 @@ class LogoMenu extends StatefulWidget {
     this.resetEnabled = true,
     this.resetDisabledReason = 'End your study participation to reset',
     this.isEnrolled,
-    this.sponsorLogo,
+    this.sponsorLogoBuilder,
     super.key,
   });
 
@@ -33,7 +34,12 @@ class LogoMenu extends StatefulWidget {
   /// Subtitle shown under a disabled "Reset all data" item explaining why.
   final String resetDisabledReason;
   final bool? isEnrolled;
-  final String? sponsorLogo;
+
+  /// Builds the cache-backed *Sponsor* logo (content-addressed, JWT-gated
+  /// fetch-once). Null when no sponsor logo is configured — the app default
+  /// brand is then shown.
+  // Implements: DIARY-DEV-sponsor-branding-assets/D
+  final BrandingLogoBuilder? sponsorLogoBuilder;
 
   /// Whether to show developer tools (Reset All Data).
   /// Should be false in production and UAT environments.
@@ -79,20 +85,14 @@ class _LogoMenuState extends State<LogoMenu> {
           clipBehavior: Clip.none,
           children: [
             if (widget.isEnrolled ?? false)
-              (widget.sponsorLogo != null)
-                  ? Image.network(
-                      widget.sponsorLogo!,
-                      height: 40,
+              // Implements: DIARY-DEV-sponsor-branding-assets/D — the logo is
+              //   rendered from the content-addressed cache (verified bytes,
+              //   JWT-gated fetch-once), not a plain Image.network URL.
+              (widget.sponsorLogoBuilder != null)
+                  ? widget.sponsorLogoBuilder!(
                       width: 120,
-                      errorBuilder: (context, _, _) {
-                        return const SizedBox(
-                          height: 40,
-                          width: 120,
-                          child: Center(
-                            child: Icon(Icons.broken_image_outlined, size: 32),
-                          ),
-                        );
-                      },
+                      height: 40,
+                      fallback: const SizedBox(height: 40, width: 120),
                     )
                   : const SizedBox()
             else
