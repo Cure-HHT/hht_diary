@@ -30,6 +30,7 @@ import 'seed_config.dart';
 import 'session_cascade_reactor.dart';
 import 'session_store.dart';
 import 'session_token_validator.dart';
+import 'sponsor_branding_seed.dart';
 import 'user_tier_reactor.dart';
 
 /// Composed server: the top-level shelf [router] (ready for shelf_io.serve),
@@ -281,6 +282,15 @@ Future<PortalServerBoot> bootstrapPortalServer({
     eventStore: eventStore,
     backend: backend,
     raw: Platform.environment['PORTAL_SEED_REQUIRE_2FA'],
+  );
+
+  // Implements: DIARY-DEV-sponsor-branding-source/C+D — idempotent sponsor
+  //   branding seed (reads the content overlay; appends only on absence/change).
+  //   Runs every boot outside the seed-once gate, like seedRequireSecondFactor.
+  await seedSponsorBranding(
+    eventStore: eventStore,
+    backend: backend,
+    sponsorId: Platform.environment['SPONSOR_ID'],
   );
 
   // Implements: DIARY-DEV-portal-test-account-provisioning/A+B
