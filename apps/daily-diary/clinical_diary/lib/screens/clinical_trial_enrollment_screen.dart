@@ -113,6 +113,34 @@ class _ClinicalTrialEnrollmentScreenState
       setState(() => _errorMessage = null);
     }
 
+    // Paste/parity: the whole 10-char code can be pasted into the first box
+    // (the two boxes act as one). Keep the first 5 here and flow any remainder
+    // into the second box, rather than silently truncating to 5. Input
+    // formatters have already stripped non-alphanumerics (e.g. the dash) and
+    // upper-cased the value, so `value` is the clean code text.
+    if (value.length > 5) {
+      final first = value.substring(0, 5);
+      final overflow = value.substring(5);
+      final second = overflow.length > 5 ? overflow.substring(0, 5) : overflow;
+      _code1Controller.value = TextEditingValue(
+        text: first,
+        selection: const TextSelection.collapsed(offset: 5),
+      );
+      _code2Controller.value = TextEditingValue(
+        text: second,
+        selection: TextSelection.collapsed(offset: second.length),
+      );
+      // Land the cursor where the user would continue: end of box 2 if it still
+      // needs input, otherwise drop focus (the code is complete).
+      if (second.length == 5) {
+        _code2FocusNode.unfocus();
+      } else {
+        _code2FocusNode.requestFocus();
+      }
+      setState(() {});
+      return;
+    }
+
     // Auto-focus next field when this one is complete
     if (value.length == 5) {
       _code2FocusNode.requestFocus();
@@ -205,7 +233,10 @@ class _ClinicalTrialEnrollmentScreenState
                                   textAlign: TextAlign.center,
                                   textCapitalization:
                                       TextCapitalization.characters,
-                                  maxLength: 5,
+                                  // No hard maxLength: pasting the full code into
+                                  // this box spans both boxes (overflow flows into
+                                  // box 2 in _onCode1Changed). A hard cap here
+                                  // would silently truncate a full-code paste.
                                   style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(
                                         letterSpacing: 4,

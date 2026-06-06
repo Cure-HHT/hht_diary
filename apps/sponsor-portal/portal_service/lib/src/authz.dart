@@ -84,6 +84,15 @@ List<EntryTypeDefinition> portalEntryTypes() {
       name: 'User Login OTP Skipped',
     ),
   );
+  // Implements: DIARY-DEV-sponsor-branding-source/A — event-sourced sponsor
+  //   branding (metadata + asset manifest).
+  add(
+    const EntryTypeDefinition(
+      id: 'sponsor_branding_configured',
+      registeredVersion: 1,
+      name: 'Sponsor Branding Configured',
+    ),
+  );
 
   return byId.values.toList(growable: false);
 }
@@ -112,6 +121,10 @@ Future<EventStore> openPortalEventStore({
     // Implements: DIARY-DEV-portal-settings-store/B — portal_settings projects
     //   the latest value per setting key for runtime config reads.
     ..register(portalSettingsSpec)
+    // Implements: DIARY-DEV-sponsor-branding-source/A — sponsor_branding projects
+    //   the latest branding configuration per sponsor for the JWT-gated asset
+    //   endpoint + diary branding fetch.
+    ..register(sponsorBrandingSpec)
     // Implements: DIARY-DEV-participant-ingest/C — ingested diary events materialize
     //   into the diary_entries view.
     ..register(diaryEntriesProjection);

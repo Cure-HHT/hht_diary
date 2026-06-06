@@ -607,6 +607,10 @@
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-participant-status-projection-B
 - DIARY-DEV-shared-events-catalog-B
+- DIARY-DEV-sponsor-branding-assets-A
+- DIARY-DEV-sponsor-branding-assets-B
+- DIARY-DEV-sponsor-branding-assets-C
+- DIARY-DEV-sponsor-branding-assets-D
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
 - DIARY-PRD-entry-overlap-resolution-E
@@ -679,6 +683,10 @@
 - DIARY-DEV-audit-log-read:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-shared-events-catalog:section:0
+- rem:spec/dev-sponsor-branding.md:3
+- DIARY-DEV-sponsor-branding-source:section:0
+- DIARY-DEV-sponsor-branding-assets:section:0
+- DIARY-DEV-sponsor-branding-assets:section:1
 - rem:spec/glossary-core.md:730
 - rem:spec/glossary-core.md:756
 - DIARY-OPS-single-promotable-artifact:section:1
@@ -1364,6 +1372,7 @@
 **DIARY:**
 
 - DIARY-PRD-mobile-offline-first
+- DIARY-DEV-sponsor-branding-assets:section:1
 - rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-mobile-offline-first:section:0
 - DIARY-PRD-mobile-offline-first:section:1
@@ -1882,6 +1891,7 @@
 **DIARY:**
 
 - DIARY-PRD-evidence-patient-authentication
+- DIARY-DEV-sponsor-branding-source-E
 - DIARY-PRD-evidence-device-fingerprint-I
 - DIARY-PRD-evidence-patient-authentication-E
 - DIARY-PRD-evidence-patient-authentication-I
@@ -1900,6 +1910,7 @@
 - DIARY-PRD-questionnaire-localization-I
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-sla-incident-severity-B
+- DIARY-DEV-sponsor-branding-source:section:1
 - rem:spec/glossary-core.md:730
 - rem:spec/prd-evidence-records.md:3
 - DIARY-PRD-evidence-device-fingerprint:section:0
@@ -2452,6 +2463,7 @@
 - DIARY-DEV-portal-active-role-switch-A
 - DIARY-DEV-portal-active-role-switch-C
 - DIARY-DEV-shared-events-catalog-D
+- DIARY-DEV-sponsor-branding-source-E
 - DIARY-PRD-session-management-A
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-D
@@ -2490,6 +2502,7 @@
 - DIARY-DEV-portal-reset-session-termination:section:1
 - DIARY-DEV-portal-test-account-provisioning:section:0
 - DIARY-DEV-portal-test-account-provisioning:section:1
+- DIARY-DEV-sponsor-branding-source:section:1
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
@@ -2637,6 +2650,7 @@
 
 **DIARY:**
 
+- DIARY-DEV-sponsor-branding-source
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
 - DIARY-BASE-audit-trail-E
@@ -2652,6 +2666,9 @@
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-DEV-portal-seed-config-B
+- DIARY-DEV-sponsor-branding-source-A
+- DIARY-DEV-sponsor-branding-source-C
+- DIARY-DEV-sponsor-branding-source-E
 - DIARY-OPS-fcm-project-routing-A
 - DIARY-OPS-fcm-project-routing-D
 - DIARY-PRD-administrator-settings-A
@@ -2771,6 +2788,11 @@
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
+- rem:spec/dev-sponsor-branding.md:1
+- rem:spec/dev-sponsor-branding.md:3
+- DIARY-DEV-sponsor-branding-source:section:0
+- DIARY-DEV-sponsor-branding-assets:section:0
+- DIARY-DEV-sponsor-branding-assets:section:1
 - rem:spec/glossary-core.md:730
 - rem:spec/glossary-core.md:747
 - rem:spec/glossary-core.md:749
@@ -3117,6 +3139,7 @@
 - DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-participant-state-poll:section:0
 - DIARY-DEV-participant-state-poll:section:1
+- DIARY-DEV-sponsor-branding-assets:section:1
 - rem:spec/glossary-core.md:730
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-linking-code-entry-errors:section:4
