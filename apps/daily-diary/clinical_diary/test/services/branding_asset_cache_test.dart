@@ -118,4 +118,55 @@ void main() {
     );
     expect(captured!.headers['Authorization'], 'Bearer the-jwt');
   });
+
+  test(
+    'inMemory (web): fetch-once + verify + serve-from-memory, no files',
+    () async {
+      final logo = Uint8List.fromList(utf8.encode('WEBLOGOBYTES'));
+      final digest = hashOf(logo);
+      var httpCalls = 0;
+      final client = MockClient((req) async {
+        httpCalls++;
+        return http.Response.bytes(logo, 200);
+      });
+      final cache = BrandingAssetCache.inMemory(httpClient: client);
+
+      // Miss with no network, no filesystem involved.
+      expect(await cache.get(digest), isNull);
+      expect(httpCalls, 0);
+
+      expect(
+        await cache.fetchAndCache(
+          role: 'logo',
+          sha256: digest,
+          jwt: 'jwt',
+          apiBase: 'https://example.test',
+        ),
+        equals(logo),
+      );
+      expect(httpCalls, 1);
+
+      // Served from the in-memory cache — no further HTTP call.
+      expect(await cache.get(digest), equals(logo));
+      expect(httpCalls, 1);
+    },
+  );
+
+  test('inMemory (web): hash mismatch -> null, nothing cached', () async {
+    final logo = Uint8List.fromList(utf8.encode('REAL'));
+    final wrongHash = hashOf(utf8.encode('OTHER'));
+    final client = MockClient((req) async => http.Response.bytes(logo, 200));
+    final cache = BrandingAssetCache.inMemory(httpClient: client);
+
+    expect(
+      await cache.fetchAndCache(
+        role: 'logo',
+        sha256: wrongHash,
+        jwt: 'jwt',
+        apiBase: 'https://example.test',
+      ),
+      isNull,
+    );
+    expect(await cache.get(wrongHash), isNull);
+  });
 }

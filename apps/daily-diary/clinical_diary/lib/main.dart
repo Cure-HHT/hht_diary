@@ -245,6 +245,10 @@ class _AppRootState extends State<AppRoot> {
       if (kIsWeb) {
         factory = databaseFactoryWeb;
         dbPath = 'diary.db'; // IndexedDB store name
+        // Web has no filesystem: back the branding cache with an in-process
+        // (per-session) map so the sponsor logo still fetches-once + verifies +
+        // renders in the browser. Implements: DIARY-DEV-sponsor-branding-assets/A+B+C
+        _brandingAssetCache = BrandingAssetCache.inMemory();
       } else {
         factory = databaseFactoryIo;
         final docsDir = await getApplicationDocumentsDirectory();

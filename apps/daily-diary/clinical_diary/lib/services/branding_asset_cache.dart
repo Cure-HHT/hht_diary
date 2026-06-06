@@ -18,19 +18,28 @@ import 'package:http/http.dart' as http;
 ///
 // Implements: DIARY-DEV-sponsor-branding-assets/A+B+C
 class BrandingAssetCache {
+  /// File-backed content-addressed cache (native). The hash is the filename.
   BrandingAssetCache({required Directory cacheDir, http.Client? httpClient})
     : _cacheDir = cacheDir,
       _httpClient = httpClient ?? http.Client();
 
-  final Directory _cacheDir;
-  final http.Client _httpClient;
+  /// In-memory content-addressed cache (web — no filesystem). Per-session:
+  /// same fetch-once + hash-verify semantics, backed by an in-process map.
+  BrandingAssetCache.inMemory({http.Client? httpClient})
+    : _cacheDir = null,
+      _httpClient = httpClient ?? http.Client();
 
-  File _fileFor(String sha256Hex) => File('${_cacheDir.path}/$sha256Hex');
+  final Directory? _cacheDir;
+  final http.Client _httpClient;
+  final Map<String, Uint8List> _mem = <String, Uint8List>{};
+
+  File _fileFor(String sha256Hex) => File('${_cacheDir!.path}/$sha256Hex');
 
   /// Cache hit -> bytes; miss -> null. NEVER hits the network.
   // Implements: DIARY-DEV-sponsor-branding-assets/C
   Future<Uint8List?> get(String sha256Hex) async {
     try {
+      if (_cacheDir == null) return _mem[sha256Hex];
       final file = _fileFor(sha256Hex);
       if (file.existsSync()) {
         return await file.readAsBytes();
@@ -77,8 +86,12 @@ class BrandingAssetCache {
         );
         return null;
       }
-      await _cacheDir.create(recursive: true);
-      await _fileFor(sha256).writeAsBytes(bytes, flush: true);
+      if (_cacheDir == null) {
+        _mem[sha256] = bytes;
+      } else {
+        await _cacheDir.create(recursive: true);
+        await _fileFor(sha256).writeAsBytes(bytes, flush: true);
+      }
       return bytes;
     } catch (e, stack) {
       debugPrint('[BrandingAssetCache] fetch($role) failed: $e\n$stack');
