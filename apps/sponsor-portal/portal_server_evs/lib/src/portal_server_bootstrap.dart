@@ -30,6 +30,7 @@ import 'seed_config.dart';
 import 'session_cascade_reactor.dart';
 import 'session_store.dart';
 import 'session_token_validator.dart';
+import 'sponsor_branding_asset_handler.dart';
 import 'sponsor_branding_seed.dart';
 import 'user_tier_reactor.dart';
 
@@ -577,6 +578,15 @@ Future<PortalServerBoot> bootstrapPortalServer({
       .addMiddleware(_cors())
       .addHandler(patientStateHandler(eventStore: eventStore));
 
+  // Sponsor branding asset bytes (public-at-the-router; in-handler patient-JWT
+  // auth, same gate as /user/state). Serves the logo bytes the diary fetches by
+  // the manifest pointer; the role is resolved from the manifest + a fixed
+  // role->path constant (no path is built from the request string).
+  // Implements: DIARY-DEV-sponsor-branding-source/E+F+G
+  final brandingAssetHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(sponsorBrandingAssetHandler(eventStore: eventStore));
+
   final topRouter = Router()
     ..get('/subscriptions', handlers.subscriptions(validator))
     // Activation routes (public).
@@ -609,7 +619,11 @@ Future<PortalServerBoot> bootstrapPortalServer({
     ..post('/api/v1/user/link', linkHandler)
     // Patient state: trial-start watermark + linking status (public; JWT-gated).
     ..options('/api/v1/user/state', stateHandler)
-    ..get('/api/v1/user/state', stateHandler);
+    ..get('/api/v1/user/state', stateHandler)
+    // Sponsor branding asset bytes (public-at-the-router; JWT-gated in-handler).
+    // Implements: DIARY-DEV-sponsor-branding-source/E+F+G
+    ..options('/api/v1/sponsor/branding/asset/<role>', brandingAssetHandler)
+    ..get('/api/v1/sponsor/branding/asset/<role>', brandingAssetHandler);
 
   // Dev-only: /dev/users exposes the role-assignment list so the dev
   // ConnectScreen can populate a dropdown. Not mounted in session mode.
