@@ -161,16 +161,49 @@ void main() {
         expect(find.text('ABCDE'), findsOneWidget);
       });
 
-      testWidgets('limits first field to 5 characters', (tester) async {
+      testWidgets('pasting the full code into the first box spans both boxes', (
+        tester,
+      ) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
         final textFields = find.byType(TextField);
-        await tester.enterText(textFields.first, 'ABCDEFGH');
-        await tester.pump();
+        // Paste the whole 10-char code into the (auto-focused) first box.
+        await tester.enterText(textFields.first, 'CATY3XM4X8');
+        await tester.pumpAndSettle();
 
-        // Should only have first 5 characters
-        expect(find.text('ABCDE'), findsOneWidget);
+        // First 5 stay in box 1; the remainder flows into box 2.
+        expect(find.text('CATY3'), findsOneWidget);
+        expect(find.text('XM4X8'), findsOneWidget);
+      });
+
+      testWidgets('pasting a dash-formatted code spans both boxes', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildScreen());
+        await tester.pumpAndSettle();
+
+        final textFields = find.byType(TextField);
+        // The dash is stripped by the input formatter, then the code spans.
+        await tester.enterText(textFields.first, 'CATY3-XM4X8');
+        await tester.pumpAndSettle();
+
+        expect(find.text('CATY3'), findsOneWidget);
+        expect(find.text('XM4X8'), findsOneWidget);
+      });
+
+      testWidgets('overflow beyond 10 chars is dropped (box 2 stays 5)', (
+        tester,
+      ) async {
+        await tester.pumpWidget(buildScreen());
+        await tester.pumpAndSettle();
+
+        final textFields = find.byType(TextField);
+        await tester.enterText(textFields.first, 'ABCDEFGHIJKLMNO');
+        await tester.pumpAndSettle();
+
+        expect(find.text('ABCDE'), findsOneWidget); // box 1
+        expect(find.text('FGHIJ'), findsOneWidget); // box 2 (capped at 5)
       });
 
       testWidgets('limits second field to 5 characters', (tester) async {
