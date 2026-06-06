@@ -9,4 +9,10 @@ void main() {
       containsAll(<String>{'portal_setting_changed', 'user_login_otp_skipped'}),
     );
   });
+
+  // Verifies: DIARY-DEV-sponsor-branding-source/A
+  test('portalEntryTypes registers sponsor_branding_configured', () {
+    final ids = portalEntryTypes().map((e) => e.id).toSet();
+    expect(ids, contains('sponsor_branding_configured'));
+  });
 }

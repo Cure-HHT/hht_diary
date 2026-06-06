@@ -84,6 +84,15 @@ List<EntryTypeDefinition> portalEntryTypes() {
       name: 'User Login OTP Skipped',
     ),
   );
+  // Implements: DIARY-DEV-sponsor-branding-source/A — event-sourced sponsor
+  //   branding (metadata + asset manifest).
+  add(
+    const EntryTypeDefinition(
+      id: 'sponsor_branding_configured',
+      registeredVersion: 1,
+      name: 'Sponsor Branding Configured',
+    ),
+  );
 
   return byId.values.toList(growable: false);
 }
