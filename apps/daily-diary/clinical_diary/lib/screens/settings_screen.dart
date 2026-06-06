@@ -11,8 +11,9 @@
 
 import 'dart:async';
 
-import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/config/font_option.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/advanced_settings_screen.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/user_preferences.dart';
@@ -45,6 +46,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final prefs = AppPreferencesScope.of(context);
+    final uiConfig = SponsorUiConfigScope.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -115,10 +117,11 @@ class SettingsScreen extends StatelessWidget {
                       AppLocalizations.of(context).accessibilityDescription,
                     ),
                     const SizedBox(height: 16),
-                    // CUR-528: Font selection dropdown
-                    if (FeatureFlagService.instance.shouldShowFontSelector)
+                    // CUR-528: Font selection dropdown (shown only when the
+                    // sponsor/deployment allow-set offers a real choice).
+                    if (_shouldShowFontSelector(uiConfig.availableFonts))
                       _buildFontSelector(context, prefs),
-                    if (FeatureFlagService.instance.shouldShowFontSelector)
+                    if (_shouldShowFontSelector(uiConfig.availableFonts))
                       const SizedBox(height: 12),
                     _buildAccessibilityOption(
                       context,
@@ -130,8 +133,9 @@ class SettingsScreen extends StatelessWidget {
                       onChanged: (value) =>
                           _setSetting(context, prefLargerText, value),
                     ),
-                    // Use Animation option - only show if feature flag is enabled
-                    if (FeatureFlagService.instance.useAnimations) ...[
+                    // Use Animation option — shown only when the sponsor enables
+                    // the animation capability.
+                    if (uiConfig.useAnimations) ...[
                       const SizedBox(height: 12),
                       _buildAccessibilityOption(
                         context,
@@ -154,37 +158,19 @@ class SettingsScreen extends StatelessWidget {
                       AppLocalizations.of(context).languageDescription,
                     ),
                     const SizedBox(height: 16),
-                    _buildLanguageOption(
-                      context,
-                      code: 'en',
-                      name: 'English',
-                      isSelected: prefs.languageCode == 'en',
-                      onTap: () => _setSetting(context, prefLanguageCode, 'en'),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildLanguageOption(
-                      context,
-                      code: 'es',
-                      name: 'Español',
-                      isSelected: prefs.languageCode == 'es',
-                      onTap: () => _setSetting(context, prefLanguageCode, 'es'),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildLanguageOption(
-                      context,
-                      code: 'fr',
-                      name: 'Français',
-                      isSelected: prefs.languageCode == 'fr',
-                      onTap: () => _setSetting(context, prefLanguageCode, 'fr'),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildLanguageOption(
-                      context,
-                      code: 'de',
-                      name: 'Deutsch',
-                      isSelected: prefs.languageCode == 'de',
-                      onTap: () => _setSetting(context, prefLanguageCode, 'de'),
-                    ),
+                    // Only the languages the sponsor/deployment allow-set permits
+                    // are offered; the participant picks among them.
+                    for (final code in uiConfig.availableLanguages) ...[
+                      _buildLanguageOption(
+                        context,
+                        code: code,
+                        name: _languageNames[code] ?? code,
+                        isSelected: prefs.languageCode == code,
+                        onTap: () =>
+                            _setSetting(context, prefLanguageCode, code),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
 
                     // Advanced — detailed clinical entry rules. Available to
                     // ALL users (not dev-gated); most leave them at "Off".
@@ -243,10 +229,34 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  /// Language display names for the supported platform language codes.
+  static const Map<String, String> _languageNames = {
+    'en': 'English',
+    'es': 'Español',
+    'fr': 'Français',
+    'de': 'Deutsch',
+  };
+
+  /// The font selector is offered only when the allow-set provides a real choice
+  /// (more than just the default Roboto).
+  bool _shouldShowFontSelector(List<String> fonts) {
+    if (fonts.isEmpty) return false;
+    if (fonts.length == 1 && fonts.first == 'Roboto') return false;
+    return true;
+  }
+
   /// CUR-528: Build font selection dropdown
   Widget _buildFontSelector(BuildContext context, UserPreferences prefs) {
     final l10n = AppLocalizations.of(context);
-    final availableFonts = FeatureFlagService.instance.availableFonts;
+    final parsedFonts = SponsorUiConfigScope.of(context).availableFonts
+        .map(FontOption.fromString)
+        .whereType<FontOption>()
+        .toList();
+    // Guard against an allow-set that parses to nothing (e.g. all unknown
+    // family names) so the `.first` reads below can never throw.
+    final availableFonts = parsedFonts.isEmpty
+        ? <FontOption>[FontOption.roboto]
+        : parsedFonts;
 
     return Container(
       padding: const EdgeInsets.all(16),

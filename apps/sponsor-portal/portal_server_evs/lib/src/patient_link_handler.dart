@@ -251,14 +251,15 @@ Handler patientLinkHandler({
     }
     final participantId = outcome.participantId;
 
-    // 4a. Compose the branding sponsor-settings batch (set-once-at-link). The
-    //     diary applies these through its EXISTING sponsor-settings path; they
-    //     are recorded source=sponsor, locked=true on device. We deliver the
-    //     branding title + logo asset identity (sha256 + role) rather than the
-    //     bytes; the diary fetches bytes JWT-gated by role on demand. Empty list
-    //     when no branding is materialized — the link still succeeds.
+    // 4a. Compose the sponsor-settings batch (set-once-at-link). The diary applies
+    //     these through its EXISTING sponsor-settings path; they are recorded
+    //     source=sponsor, locked=true on device. The batch carries branding
+    //     identity (title + logo sha256/role) plus the clinical.* / ui.*
+    //     configuration parameters from the event-sourced portal_settings store.
+    //     Empty list when nothing is materialized — the link still succeeds.
     // Implements: DIARY-DEV-sponsor-branding-source/B
-    final brandingSettings = await _brandingSponsorSettings(eventStore, sid);
+    // Implements: DIARY-DEV-sponsor-config-source/B+C
+    final sponsorSettings = await _sponsorSettingsBatch(eventStore, sid);
 
     return Response.ok(
       jsonEncode(<String, Object?>{
@@ -272,59 +273,75 @@ Handler patientLinkHandler({
         'siteNumber': outcome.siteNumber,
         'studyParticipantId': participantId,
         'sitePhoneNumber': null,
-        'sponsor_settings': brandingSettings,
+        'sponsor_settings': sponsorSettings,
       }),
       headers: const {'Content-Type': 'application/json'},
     );
   };
 }
 
-/// Reads the materialized `sponsor_branding` row for [sid] (the same row the
-/// asset handler serves from) and projects it into a sponsor-settings batch:
-/// a list of `{key, value, locked: true}` entries the diary applies via its
-/// `apply_sponsor_settings` action. Returns `[]` when no branding row exists.
+/// Composes the `/link` sponsor-settings batch: the materialized sponsor branding
+/// identity (title + logo sha256/role) for [sid] plus the `clinical.*` / `ui.*`
+/// configuration parameters from the `portal_settings` store. Each entry is a
+/// `{key, value, locked: true}` map the diary applies via its
+/// `apply_sponsor_settings` action. Returns `[]` when nothing is materialized.
 // Implements: DIARY-DEV-sponsor-branding-source/B
-Future<List<Map<String, Object?>>> _brandingSponsorSettings(
+// Implements: DIARY-DEV-sponsor-config-source/B+C
+Future<List<Map<String, Object?>>> _sponsorSettingsBatch(
   EventStore eventStore,
   String? sid,
 ) async {
-  final rows = await eventStore.backend.findViewRows('sponsor_branding');
+  final settings = <Map<String, Object?>>[];
+
+  // --- branding.* : title + logo asset identity (sha256 + role), never bytes ---
+  final brandingRows =
+      await eventStore.backend.findViewRows('sponsor_branding');
   Map<String, Object?>? branding;
-  for (final r in rows) {
+  for (final r in brandingRows) {
     if (sid == null || r['sponsorId'] == sid) {
       branding = r;
       break;
     }
   }
-  if (branding == null) return const <Map<String, Object?>>[];
-
-  final settings = <Map<String, Object?>>[];
-  final title = branding['title'];
-  if (title != null) {
-    settings.add(<String, Object?>{
-      'key': 'branding.title',
-      'value': title,
-      'locked': true,
-    });
+  if (branding != null) {
+    final title = branding['title'];
+    if (title != null) {
+      settings.add(<String, Object?>{
+        'key': 'branding.title',
+        'value': title,
+        'locked': true,
+      });
+    }
+    final assets = (branding['assets'] as List? ?? const [])
+        .map((a) => (a as Map).cast<String, Object?>());
+    for (final a in assets) {
+      if (a['role'] == 'logo') {
+        settings.add(<String, Object?>{
+          'key': 'branding.logoSha256',
+          'value': a['sha256'],
+          'locked': true,
+        });
+        settings.add(<String, Object?>{
+          'key': 'branding.logoRole',
+          'value': 'logo',
+          'locked': true,
+        });
+        break;
+      }
+    }
   }
 
-  // The logo asset is identified by its sha256 (cache key) + role (the path the
-  // diary fetches bytes from), never the bytes themselves.
-  final assets = (branding['assets'] as List? ?? const [])
-      .map((a) => (a as Map).cast<String, Object?>());
-  for (final a in assets) {
-    if (a['role'] == 'logo') {
+  // --- clinical.* + ui.* : the per-deployment configuration parameters ---
+  const configPrefixes = <String>['clinical.', 'ui.'];
+  final settingRows = await eventStore.backend.findViewRows('portal_settings');
+  for (final r in settingRows) {
+    final key = r['key'];
+    if (key is String && configPrefixes.any(key.startsWith)) {
       settings.add(<String, Object?>{
-        'key': 'branding.logoSha256',
-        'value': a['sha256'],
+        'key': key,
+        'value': r['value'],
         'locked': true,
       });
-      settings.add(<String, Object?>{
-        'key': 'branding.logoRole',
-        'value': 'logo',
-        'locked': true,
-      });
-      break;
     }
   }
 

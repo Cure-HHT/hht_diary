@@ -412,6 +412,37 @@ void main() {
   });
 
   test(
+      'link includes seeded clinical.* / ui.* config in the sponsor-settings '
+      'batch (locked)', () async {
+    // Verifies: DIARY-DEV-sponsor-config-source/B
+    final store = await _openStore('link-config');
+    await _seed(store);
+    await store.append(
+      entryType: 'portal_setting_changed',
+      aggregateType: 'portal_setting',
+      aggregateId: 'clinical.shortDurationConfirm',
+      eventType: 'portal_setting_changed',
+      data: <String, Object?>{
+        'key': 'clinical.shortDurationConfirm',
+        'value': true,
+      },
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+    final handler =
+        patientLinkHandler(eventStore: store, sponsorId: 'reference');
+
+    final res = await handler(_post(body: {'code': 'CAABCDE123'}));
+    expect(res.statusCode, 200);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    final batch =
+        (body['sponsor_settings'] as List).cast<Map<String, Object?>>();
+    final entry =
+        batch.firstWhere((e) => e['key'] == 'clinical.shortDurationConfirm');
+    expect(entry['value'], isTrue);
+    expect(entry['locked'], isTrue);
+  });
+
+  test(
       'link with no branding materialized -> sponsor_settings == [] and link '
       'still succeeds', () async {
     final store = await _openStore('link-no-branding');

@@ -1,4 +1,5 @@
 import 'package:clinical_diary/config/env_profile.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 /// Exception thrown when required configuration is missing.
@@ -99,10 +100,6 @@ class AppConfig {
   static String get syncUrl => '$apiBase/api/v1/user/sync';
   static String get getRecordsUrl => '$apiBase/api/v1/user/records';
 
-  // Sponsor routes
-  static String sponsorConfigUrl(String sponsorId) =>
-      '$apiBase/api/v1/sponsor/config?sponsorId=$sponsorId';
-
   // Health check
   static String get healthUrl => '$apiBase/health';
 
@@ -141,7 +138,23 @@ class AppConfig {
   /// via `showResetData`.
   static bool get showDevTools => EnvProfile.current.showDevTools;
 
+  /// Whether the dev "All configs" screen is reachable (Developer entry in
+  /// Advanced settings). Enabled in local/dev/qa, hidden in uat/prod.
+  // Implements: DIARY-DEV-deployment-config-defaults/E
+  static bool get showAllConfigsScreen =>
+      EnvProfile.current.showAllConfigsScreen;
+
   /// Whether to show the Reset All Data feature.
   /// Determined by EnvProfile - only enabled in dev, qa, uat, and local.
   static bool get showResetData => EnvProfile.current.showResetData;
+
+  // ============================================================
+  // Deployment UI configuration defaults
+  // ============================================================
+
+  /// Per-distribution UI-config defaults, resolved once during bootstrap from the
+  /// bundled `assets/config/config_defaults.json` (see `loadDeploymentUiDefaults`).
+  /// Used as the deployment-default fallback layer beneath sponsor-locked values.
+  // Implements: DIARY-DEV-deployment-config-defaults/A
+  static SponsorUiConfig deploymentUiDefaults = SponsorUiConfig.codeDefault;
 }

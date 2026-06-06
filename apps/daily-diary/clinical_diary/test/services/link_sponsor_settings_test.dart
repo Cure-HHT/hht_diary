@@ -218,4 +218,40 @@ void main() {
       await rt.dispose();
     },
   );
+
+  test('unlockSponsorSettings reverts ui.* allow-sets to default and keeps '
+      'clinical values, all unlocked', () async {
+    // Verifies: DIARY-BASE-sponsor-requested-settings/E
+    // Verifies: DIARY-DEV-deployment-config-defaults/F
+    final rt = await _boot();
+    await applyLinkSponsorSettings(rt.scope, <Object?>[
+      <String, Object?>{
+        'key': 'ui.availableLanguages',
+        'value': <String>['en', 'es'],
+        'locked': true,
+      },
+      <String, Object?>{
+        'key': 'clinical.shortDurationConfirm',
+        'value': true,
+        'locked': true,
+      },
+    ]);
+
+    final unlocked = await unlockSponsorSettings(rt.scope);
+    expect(unlocked.toSet(), {
+      'ui.availableLanguages',
+      'clinical.shortDurationConfirm',
+    });
+
+    final rows = await _rows(rt, settingsViewName);
+    final byKey = {for (final r in rows) r['key'] as String: r};
+    expect(byKey['ui.availableLanguages']!['value'], isNull); // reverted
+    expect(byKey['ui.availableLanguages']!['locked'], false);
+    expect(byKey['clinical.shortDurationConfirm']!['value'], true); // kept
+    expect(byKey['clinical.shortDurationConfirm']!['locked'], false);
+
+    // Idempotent: nothing is locked now, so a re-run is a no-op.
+    expect(await unlockSponsorSettings(rt.scope), isEmpty);
+    await rt.dispose();
+  });
 }
