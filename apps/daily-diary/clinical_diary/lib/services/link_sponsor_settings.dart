@@ -73,6 +73,29 @@ Future<List<String>> applyLinkSponsorSettings(
   return changed.keys.toList();
 }
 
+/// Unlocks the sponsor-applied settings when the participant is marked not
+/// participating: reads the currently-locked keys from the `settings` projection
+/// and dispatches the `unlock_sponsor_settings` action (which keeps clinical
+/// values but reverts `ui.*` allow-set/capability keys to the default). A no-op
+/// when nothing is locked. Returns the keys unlocked.
+// Implements: DIARY-BASE-sponsor-requested-settings/E
+Future<List<String>> unlockSponsorSettings(LocalScope scope) async {
+  final existing = await _currentSettings(scope);
+  final locked = <String, Object?>{
+    for (final e in existing.entries)
+      if (e.value.locked) e.key: e.value.value,
+  };
+  if (locked.isEmpty) return const <String>[];
+
+  await scope.actionSubmitter.submit(
+    ActionSubmission(
+      actionName: 'unlock_sponsor_settings',
+      rawInput: <String, Object?>{'lockedSettings': locked},
+    ),
+  );
+  return locked.keys.toList();
+}
+
 /// One-shot read of the diary's `settings` projection into a
 /// `{key: SettingPayload}` map. Drains the snapshot phase (every current row)
 /// and returns once `EndOfReplay` arrives; live deltas are not consulted.

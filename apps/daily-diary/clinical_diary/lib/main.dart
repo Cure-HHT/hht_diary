@@ -603,6 +603,11 @@ class _AppRootState extends State<AppRoot> {
           at: firstDetectedAt ?? DateTime.now(),
         );
         await _enrollmentService.setDisconnected(false);
+        // Return control to the participant: unlock the sponsor-applied settings
+        // (clinical values kept; ui.* allow-sets revert to default). Idempotent —
+        // a re-run finds nothing locked once this has applied.
+        // Implements: DIARY-BASE-sponsor-requested-settings/E
+        await unlockSponsorSettings(diaryScope.scope);
         await _enrollmentService.clearEnrollment(); // forget the JWT
         return;
       }

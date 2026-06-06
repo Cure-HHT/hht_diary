@@ -149,10 +149,11 @@ class ApplySponsorSettingsAction
 }
 
 /// Unlocks the sponsor-applied settings when the participant is marked not
-/// participating: one `setting_applied(source: sponsor, locked: false)` per key,
-/// keeping the current value (keep-as-is policy — revert-to-pre-study is a future
-/// one-line switch here). The caller supplies the currently-locked `{key: value}`
-/// read from `settingsProjection`. Returns the unlocked keys.
+/// participating: one `setting_applied(source: sponsor, locked: false)` per key.
+/// Allow-set / capability `ui.*` keys revert to the deployment/code default — the
+/// value is cleared (null), which the diary resolves as "unset"; every other key
+/// keeps its current value (keep-as-is). The caller supplies the currently-locked
+/// `{key: value}` read from `settingsProjection`. Returns the unlocked keys.
 class UnlockSponsorSettingsAction
     extends Action<SponsorSettingsInput, List<String>> {
   const UnlockSponsorSettingsAction();
@@ -179,6 +180,9 @@ class UnlockSponsorSettingsAction
     // Empty is a no-op (no locked settings to unlock) — allowed.
   }
 
+  // Implements: DIARY-DEV-deployment-config-defaults/F — allow-set / capability
+  //   `ui.*` keys revert to the deployment/code default on unlock (value cleared
+  //   to null, resolved as unset); all other keys keep their value.
   @override
   Future<ExecutionResult<List<String>>> execute(
     SponsorSettingsInput input,
@@ -189,7 +193,7 @@ class UnlockSponsorSettingsAction
         _settingDraft(
           SettingPayload(
             key: entry.key,
-            value: entry.value, // keep-as-is
+            value: entry.key.startsWith('ui.') ? null : entry.value,
             source: SettingSource.sponsor,
             locked: false,
           ),

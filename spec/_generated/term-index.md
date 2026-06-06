@@ -437,6 +437,7 @@
 
 - DIARY-DEV-sponsor-config-source
 - DIARY-DEV-deployment-config-defaults-A
+- DIARY-DEV-deployment-config-defaults-F
 - DIARY-DEV-sponsor-config-source-A
 - DIARY-PRD-administrator-settings-B
 - DIARY-PRD-administrator-settings-C
@@ -598,6 +599,7 @@
 - DIARY-DEV-deployment-config-defaults-C
 - DIARY-DEV-deployment-config-defaults-D
 - DIARY-DEV-deployment-config-defaults-E
+- DIARY-DEV-deployment-config-defaults-F
 - DIARY-DEV-evs-stack-adoption-A
 - DIARY-DEV-evs-stack-adoption-B
 - DIARY-DEV-evs-stack-adoption-C
@@ -1431,6 +1433,7 @@
 - DIARY-BASE-sponsor-requested-settings-E
 - DIARY-BASE-system-operator-role-B
 - DIARY-DEV-deployment-config-defaults-E
+- DIARY-DEV-deployment-config-defaults-F
 - DIARY-DEV-linking-code-lifecycle-B
 - DIARY-DEV-linking-code-lifecycle-D
 - DIARY-DEV-native-outbound-sync-D
@@ -2678,6 +2681,7 @@
 - DIARY-BASE-system-operator-role-A
 - DIARY-DEV-deployment-config-defaults-A
 - DIARY-DEV-deployment-config-defaults-D
+- DIARY-DEV-deployment-config-defaults-F
 - DIARY-DEV-linking-code-lifecycle-A
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-node-sync-topology-B

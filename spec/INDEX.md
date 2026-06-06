@@ -155,7 +155,7 @@
 | -------------------------------------------- | ----------------------------------------------------- | ---------------------------------- | -------- |
 | DIARY-DEV-action-write-path                  | Writes Flow Through the Action Dispatcher             | dev-mobile-event-sourcing.md       | ea6148a0 |
 | DIARY-DEV-audit-log-read                     | Audit log read                                        | dev-portal-service.md              | 34892437 |
-| DIARY-DEV-deployment-config-defaults         | Deployment Configuration Defaults                     | dev-environment-resolution.md      | 94880121 |
+| DIARY-DEV-deployment-config-defaults         | Deployment Configuration Defaults                     | dev-environment-resolution.md      | a83387be |
 | DIARY-DEV-device-health-checks               | On-Demand Device Health Checks                        | dev-mobile-event-sourcing.md       | 8d3827d5 |
 | DIARY-DEV-evs-stack-adoption                 | Diary Adopts the Event-Sourcing Stack                 | dev-mobile-event-sourcing.md       | 663897f8 |
 | DIARY-DEV-inbound-event-on-receipt           | Inbound Receipt Emits an Event                        | dev-mobile-event-sourcing.md       | 9143d6c4 |
