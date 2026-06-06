@@ -20,6 +20,13 @@ class SponsorUiConfigScope extends InheritedWidget {
     return scope?.config ?? SponsorUiConfig.codeDefault;
   }
 
+  /// Non-subscribing read for use OUTSIDE a build method (e.g. a route's
+  /// transition-duration getter). Returns the code default when no scope present.
+  static SponsorUiConfig read(BuildContext context) {
+    final scope = context.getInheritedWidgetOfExactType<SponsorUiConfigScope>();
+    return scope?.config ?? SponsorUiConfig.codeDefault;
+  }
+
   @override
   bool updateShouldNotify(SponsorUiConfigScope oldWidget) =>
       oldWidget.config != config;

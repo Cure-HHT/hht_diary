@@ -1,8 +1,8 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
-import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
 import 'package:flutter/material.dart';
@@ -61,7 +61,7 @@ class _CalendarOverlayState extends State<CalendarOverlay> {
   /// Check if animations are enabled (both feature flag and user preference).
   /// The user side is read reactively from the settings projection.
   bool _animationsEnabled(BuildContext context) =>
-      FeatureFlagService.instance.useAnimations &&
+      SponsorUiConfigScope.of(context).useAnimations &&
       AppPreferencesScope.of(context).useAnimation;
 
   DateTime? _entryLocalDate(DiaryEntry e) {

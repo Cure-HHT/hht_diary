@@ -1,7 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
-import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:flutter/material.dart';
 
 /// A widget that animates a flash highlight and passes the color to a builder.
@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 ///
 /// Animation is controlled by:
 /// - `enabled` parameter (user preference, defaults to true)
-/// - `FeatureFlagService.useAnimations` (overrides user preference if false)
+/// - the sponsor `ui.useAnimations` capability gate (disables when false)
 ///
 /// If animations are disabled, the widget still calls onFlashComplete
 /// immediately so the caller knows the "flash" is done.
@@ -82,7 +82,7 @@ class _FlashHighlightState extends State<FlashHighlight>
 
   /// Check if animations are enabled (both feature flag and user preference)
   bool get _animationsEnabled =>
-      FeatureFlagService.instance.useAnimations && widget.enabled;
+      SponsorUiConfigScope.read(context).useAnimations && widget.enabled;
 
   void _startFlash() {
     // CUR-554: reset cycle counter so each new flash plays the full two
