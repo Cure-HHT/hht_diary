@@ -7,6 +7,7 @@
 //   ownership check (B3) remains pending, and that lives in a different file
 //   (patient_ingest_handler.dart).
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:shelf/shelf.dart';
@@ -57,7 +58,11 @@ class _LinkOutcome {
 /// Build the patient-facing `/link` handler over [eventStore]. Dependencies are
 /// injected so this module lifts cleanly into a dedicated diary-server node when
 /// the edge/core split lands (mirrors [patientIngestHandler]).
-Handler patientLinkHandler({required EventStore eventStore}) {
+Handler patientLinkHandler({
+  required EventStore eventStore,
+  String? sponsorId,
+}) {
+  final sid = sponsorId ?? Platform.environment['SPONSOR_ID'];
   return (Request request) async {
     // 1. Parse the body; reject unparseable JSON or a missing/blank code.
     final String rawCode;
@@ -245,6 +250,16 @@ Handler patientLinkHandler({required EventStore eventStore}) {
       return _err(outcome.statusCode, outcome.message ?? 'request failed');
     }
     final participantId = outcome.participantId;
+
+    // 4a. Compose the branding sponsor-settings batch (set-once-at-link). The
+    //     diary applies these through its EXISTING sponsor-settings path; they
+    //     are recorded source=sponsor, locked=true on device. We deliver the
+    //     branding title + logo asset identity (sha256 + role) rather than the
+    //     bytes; the diary fetches bytes JWT-gated by role on demand. Empty list
+    //     when no branding is materialized — the link still succeeds.
+    // Implements: DIARY-DEV-sponsor-branding-source
+    final brandingSettings = await _brandingSponsorSettings(eventStore, sid);
+
     return Response.ok(
       jsonEncode(<String, Object?>{
         'success': true,
@@ -257,8 +272,61 @@ Handler patientLinkHandler({required EventStore eventStore}) {
         'siteNumber': outcome.siteNumber,
         'studyParticipantId': participantId,
         'sitePhoneNumber': null,
+        'sponsor_settings': brandingSettings,
       }),
       headers: const {'Content-Type': 'application/json'},
     );
   };
+}
+
+/// Reads the materialized `sponsor_branding` row for [sid] (the same row the
+/// asset handler serves from) and projects it into a sponsor-settings batch:
+/// a list of `{key, value, locked: true}` entries the diary applies via its
+/// `apply_sponsor_settings` action. Returns `[]` when no branding row exists.
+// Implements: DIARY-DEV-sponsor-branding-source
+Future<List<Map<String, Object?>>> _brandingSponsorSettings(
+  EventStore eventStore,
+  String? sid,
+) async {
+  final rows = await eventStore.backend.findViewRows('sponsor_branding');
+  Map<String, Object?>? branding;
+  for (final r in rows) {
+    if (sid == null || r['sponsorId'] == sid) {
+      branding = r;
+      break;
+    }
+  }
+  if (branding == null) return const <Map<String, Object?>>[];
+
+  final settings = <Map<String, Object?>>[];
+  final title = branding['title'];
+  if (title != null) {
+    settings.add(<String, Object?>{
+      'key': 'branding.title',
+      'value': title,
+      'locked': true,
+    });
+  }
+
+  // The logo asset is identified by its sha256 (cache key) + role (the path the
+  // diary fetches bytes from), never the bytes themselves.
+  final assets = (branding['assets'] as List? ?? const [])
+      .map((a) => (a as Map).cast<String, Object?>());
+  for (final a in assets) {
+    if (a['role'] == 'logo') {
+      settings.add(<String, Object?>{
+        'key': 'branding.logoSha256',
+        'value': a['sha256'],
+        'locked': true,
+      });
+      settings.add(<String, Object?>{
+        'key': 'branding.logoRole',
+        'value': 'logo',
+        'locked': true,
+      });
+      break;
+    }
+  }
+
+  return settings;
 }
