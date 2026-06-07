@@ -34,6 +34,7 @@ import 'sponsor_branding_asset_handler.dart';
 import 'sponsor_branding_seed.dart';
 import 'sponsor_config_seed.dart';
 import 'user_tier_reactor.dart';
+import 'ws_ping_interval.dart';
 
 /// Composed server: the top-level shelf [router] (ready for shelf_io.serve),
 /// the live [eventStore] + [dispatcher] (for tests), and a [dispose] callback.
@@ -468,6 +469,11 @@ Future<PortalServerBoot> bootstrapPortalServer({
     policy: policy,
     scopeClassRegistry: buildPortalScopeRegistry(),
     viewScopeRegistry: buildPortalViewScopeRegistry(),
+    // Keepalive on the /subscriptions WS so an idle/half-open connection is not
+    // silently reaped (which would leave the reactive client believing it is
+    // still connected and never triggering its lifecycle-driven reconnect).
+    // Implements: DIARY-DEV-portal-reaction-server/D
+    pingInterval: resolveWsPingInterval(env['PORTAL_WS_PING_INTERVAL_SECONDS']),
   );
 
   // 8. Routes: WS /subscriptions outside HTTP-auth middleware (Flutter web
