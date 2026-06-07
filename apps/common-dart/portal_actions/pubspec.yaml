@@ -10,7 +10,7 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: event_sourcing
   diary_shared_model:
     path: ../diary_shared_model

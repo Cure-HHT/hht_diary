@@ -24,17 +24,17 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: event_sourcing
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction
   reaction_widgets:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets
   # In-tree path dep (consolidated onto this branch; single linear branch).
   diary_shared_model:
@@ -87,7 +87,7 @@ dev_dependencies:
   reaction_widgets_testing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets_testing
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.0.0
@@ -114,32 +114,32 @@ dependency_overrides:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: event_sourcing
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction
   reaction_widgets:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets
   reaction_widgets_testing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets_testing
   provenance:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: provenance
   canonical_json_jcs:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: canonical_json_jcs
 
 flutter:
