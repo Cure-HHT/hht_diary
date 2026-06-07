@@ -30,6 +30,7 @@ import 'password_reset_routes.dart';
 import 'patient_ingest_handler.dart';
 import 'patient_link_handler.dart';
 import 'patient_state_handler.dart';
+import 'patient_tasks_handler.dart';
 import 'portal_view_scopes.dart';
 import 'seed_config.dart';
 import 'session_cascade_reactor.dart';
@@ -664,6 +665,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
       .addMiddleware(_cors())
       .addHandler(patientStateHandler(eventStore: eventStore));
 
+  // Patient tasks (public; in-handler patient-JWT auth): the participant's active
+  // assigned questionnaires, polled by the diary to discover them.
+  // Implements: DIARY-PRD-questionnaire-system/B+C+D
+  final tasksHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(patientTasksHandler(eventStore: eventStore));
+
   // Sponsor branding asset bytes (public-at-the-router; in-handler patient-JWT
   // auth, same gate as /user/state). Serves the logo bytes the diary fetches by
   // the manifest pointer; the role is resolved from the manifest + a fixed
@@ -708,6 +716,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // Patient state: trial-start watermark + linking status (public; JWT-gated).
     ..options('/api/v1/user/state', stateHandler)
     ..get('/api/v1/user/state', stateHandler)
+    // Patient tasks: active assigned questionnaires (public; JWT-gated in-handler).
+    ..options('/api/v1/user/tasks', tasksHandler)
+    ..get('/api/v1/user/tasks', tasksHandler)
     // Sponsor branding asset bytes (public-at-the-router; JWT-gated in-handler).
     // Implements: DIARY-DEV-sponsor-branding-source/E+F+G
     ..options('/api/v1/sponsor/branding/asset/<role>', brandingAssetHandler)
