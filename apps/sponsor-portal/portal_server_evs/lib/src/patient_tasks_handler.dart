@@ -13,6 +13,9 @@ import 'patient_token_validator.dart';
 /// Map a [questionnaire_instance] row's [entryType] to the task status string
 /// the diary displays. Phase 1 only sees `questionnaire_assigned`; the switch
 /// is intentionally open for future lifecycle entry types.
+// TODO(CUR-1447 Phase 2+): harden the wildcard arm — once the lifecycle events
+//   (delivery_failed / finalized / …) fold into questionnaire_instance, map each
+//   to its real status instead of defaulting every unknown entryType to 'sent'.
 String _statusFor(String entryType) {
   return switch (entryType) {
     'questionnaire_assigned' => 'sent',
@@ -50,6 +53,11 @@ Handler patientTasksHandler({required EventStore eventStore}) {
     final isNotParticipating =
         entryType == 'participant_marked_not_participating';
 
+    // Only not-participating gates the task list. A *disconnected* participant
+    // still receives their tasks (is_disconnected is surfaced for the diary,
+    // which pauses sync itself but keeps its JWT) — the asymmetry with the
+    // not-participating early-return below is deliberate, not an omission.
+    //
     // When the participant is no longer in the trial the diary must forget its
     // JWT; return an empty task list so the diary does exactly that.
     if (isNotParticipating) {

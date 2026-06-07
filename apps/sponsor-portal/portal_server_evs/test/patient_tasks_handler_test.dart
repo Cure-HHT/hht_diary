@@ -147,4 +147,46 @@ void main() {
     expect(body['is_not_participating'], isTrue);
     expect(body['tasks'], isEmpty);
   });
+
+  test('disconnected participant still receives tasks; is_disconnected == true',
+      () async {
+    final store = await _openStore('tasks-disconnected');
+    addTearDown(store.close);
+    await _seedTrialStarted(store);
+
+    await store.append(
+      entryType: 'questionnaire_assigned',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-3',
+      eventType: 'questionnaire_assigned',
+      data: const <String, Object?>{
+        'participant_id': 'P-1',
+        'type': 'nose_hht',
+        'study_event': 'Cycle 1 Day 1',
+      },
+      initiator: const UserInitiator('coordinator-1'),
+    );
+
+    // Disconnect the participant: the diary pauses sync but keeps its JWT, so
+    // the task list is still served (asymmetry with not-participating).
+    await store.append(
+      entryType: 'participant_disconnected',
+      aggregateType: 'participant',
+      aggregateId: 'P-1',
+      eventType: 'participant_disconnected',
+      data: const <String, Object?>{'participant_id': 'P-1'},
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+
+    final token = createPatientJwt(authCode: 'ac', userId: 'P-1');
+    final handler = patientTasksHandler(eventStore: store);
+
+    final res = await handler(_get(auth: 'Bearer $token'));
+    expect(res.statusCode, 200);
+
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    expect(body['is_disconnected'], isTrue);
+    expect(body['is_not_participating'], isFalse);
+    expect((body['tasks'] as List), hasLength(1));
+  });
 }
