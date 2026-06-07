@@ -15,7 +15,7 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
       path: event_sourcing
   firebase_core: ^4.3.0
   firebase_auth: ^6.1.3
@@ -23,12 +23,12 @@ dependencies:
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
       path: reaction
   reaction_widgets:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
       path: reaction_widgets
 
 dev_dependencies:
@@ -37,7 +37,7 @@ dev_dependencies:
   reaction_widgets_testing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: 4e8c67247ece7e7a54eb0dad3f1433bd1c697fff
       path: reaction_widgets_testing
   flutter_lints: ^5.0.0
 
