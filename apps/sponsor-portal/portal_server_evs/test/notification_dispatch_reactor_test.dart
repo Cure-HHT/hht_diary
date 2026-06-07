@@ -1,4 +1,5 @@
-import 'package:event_sourcing/event_sourcing.dart';
+import 'package:comms/comms.dart' show DispatchResult;
+import 'package:event_sourcing/event_sourcing.dart' hide DispatchResult;
 import 'package:portal_service/portal_service.dart';
 import 'package:portal_server_evs/src/notification_dispatch_reactor.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -94,5 +95,48 @@ void main() {
     expect(sent.single.data['channel'], 'fcm');
     expect(sent.single.data['intent_entry_type'], 'questionnaire_assigned');
     expect(sent.single.flowToken, 'QST000001');
+  });
+
+  test('no active token records notification_dispatch_failed(no_active_token)',
+      () async {
+    // No token registered for NOPE.
+    await reactor
+        .handleIntent(questionnaireAssigned('NOPE', flowToken: 'QST000002'));
+
+    expect(channel.sent, isEmpty);
+    final failed = await eventsOfType('notification_dispatch_failed');
+    expect(failed, hasLength(1));
+    expect(failed.single.data['participant_id'], 'NOPE');
+    expect(failed.single.data['reason'], 'no_active_token');
+  });
+
+  test('UNREGISTERED terminal emits fcm_token_deactivated for the dead token',
+      () async {
+    await registerToken('P3', 'android', 'DEAD');
+    channel.resultForToken['DEAD'] = const DispatchResult.unregisteredToken();
+
+    await reactor.handleIntent(StoredEvent.synthetic(
+      eventId: 'syn-PAT000001',
+      aggregateId: 'P3',
+      aggregateType: 'participant',
+      entryType: 'participant_disconnected',
+      eventType: 'participant_disconnected',
+      flowToken: 'PAT000001',
+      data: const <String, dynamic>{},
+      initiator: const AutomationInitiator(service: 'test'),
+      clientTimestamp: t0,
+      eventHash: 'fakehash',
+    ));
+
+    expect(channel.sent, hasLength(1));
+    expect(channel.sent.single.fcmToken, 'DEAD');
+
+    final deactivated = await eventsOfType('fcm_token_deactivated');
+    expect(deactivated, hasLength(1));
+    expect(deactivated.single.aggregateId, 'P3:fcm:android');
+
+    final failed = await eventsOfType('notification_dispatch_failed');
+    expect(failed, hasLength(1));
+    expect(failed.single.data['reason'], 'UNREGISTERED');
   });
 }
