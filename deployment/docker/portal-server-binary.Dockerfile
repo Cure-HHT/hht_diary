@@ -25,13 +25,22 @@ RUN dart pub get --offline
 ARG SERVER_COMMIT=unknown
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# diary_app: the diary mobile-app (clinical_diary) version in the SAME hht_diary
+# source tree this binary is compiled from (sponsor-ci carries the full source).
+# It travels with server_commit, so both describe one source snapshot: "this
+# portal build was cut from a tree whose diary app was <version>". It is NOT a
+# mobile deployment — the diary app ships to the stores on its own cadence. iOS
+# and Android derive from this single pubspec version (android-build.yml /
+# ios-build.yml both read it), so one value covers both.
 RUN mkdir -p /workspace/out && \
     set -eu && \
     PORTAL_EVS_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //') && \
-    echo "Compiling portal_server_evs ${PORTAL_EVS_VERSION} (commit ${SERVER_COMMIT})" && \
+    DIARY_APP_VERSION=$(grep '^version:' /workspace/src/apps/daily-diary/clinical_diary/pubspec.yaml | sed 's/version: //') && \
+    echo "Compiling portal_server_evs ${PORTAL_EVS_VERSION} (commit ${SERVER_COMMIT}, diary ${DIARY_APP_VERSION:-unknown})" && \
     dart compile exe bin/server.dart -o /workspace/out/server && \
     { printf 'portal_server_evs=%s\n' "$PORTAL_EVS_VERSION"; \
-      printf 'server_commit=%s\n' "$SERVER_COMMIT"; } > /workspace/out/VERSIONS && \
+      printf 'server_commit=%s\n' "$SERVER_COMMIT"; \
+      printf 'diary_app=%s\n' "${DIARY_APP_VERSION:-unknown}"; } > /workspace/out/VERSIONS && \
     test -f /workspace/out/server
 
 # Minimal image with just the binary

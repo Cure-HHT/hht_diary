@@ -56,9 +56,12 @@ PROJECT_DEFS=(
     # EVS deployables. portal_server_evs is the compiled binary built in core
     # (its +N gates the binary rebuild, see build-sponsor-ci.yml); its own
     # pubspec.yaml is a trigger so event_sourcing/reaction ref bumps force +N.
-    # portal_ui_evs is semver-only (build id = sponsor short_sha, stamped by
-    # callisto portal-final.Dockerfile) — keep it bare, no +N.
-    "portal_server_evs|apps/sponsor-portal/portal_server_evs/pubspec.yaml|apps/sponsor-portal/portal_server_evs/lib/ apps/sponsor-portal/portal_server_evs/bin/|apps/sponsor-portal/portal_server_evs/pubspec.yaml apps/sponsor-portal/portal_service/lib/ apps/sponsor-portal/portal_identity/lib/ apps/common-dart/portal_actions/lib/ apps/edc/rave-integration/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ tools/build/ .github/versions.env|standard"
+    # The binary Dockerfile is a trigger too: it controls what the image bakes
+    # (server_commit, diary_app), so a change there must force a +N or the gate
+    # would skip the rebuild and the change would never ship. portal_ui_evs is
+    # semver-only (build id = sponsor short_sha, stamped by callisto
+    # portal-final.Dockerfile) — keep it bare, no +N.
+    "portal_server_evs|apps/sponsor-portal/portal_server_evs/pubspec.yaml|apps/sponsor-portal/portal_server_evs/lib/ apps/sponsor-portal/portal_server_evs/bin/|apps/sponsor-portal/portal_server_evs/pubspec.yaml apps/sponsor-portal/portal_service/lib/ apps/sponsor-portal/portal_identity/lib/ apps/common-dart/portal_actions/lib/ apps/edc/rave-integration/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ deployment/docker/portal-server-binary.Dockerfile tools/build/ .github/versions.env|standard"
     "portal_ui_evs|apps/sponsor-portal/portal_ui_evs/pubspec.yaml|apps/sponsor-portal/portal_ui_evs/lib/ apps/sponsor-portal/portal_ui_evs/web/ apps/sponsor-portal/portal_ui_evs/assets/|apps/sponsor-portal/portal_ui_evs/pubspec.yaml tools/build/|semver-only"
     # Libraries
     "trial_data_types|apps/common-dart/trial_data_types/pubspec.yaml|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/||standard"

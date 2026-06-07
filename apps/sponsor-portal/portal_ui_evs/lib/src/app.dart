@@ -43,6 +43,16 @@ final String _serverUrl = _serverUrlOverride.isNotEmpty
     ? _serverUrlOverride
     : Uri.base.origin;
 
+/// `<semver>+<build_id>` of THIS web bundle, stamped at image-build time via
+/// `--dart-define=APP_VERSION` (same value as main.dart's `appVersion`). This is
+/// the bundle's own full self-report — unlike `version.json`, which Flutter
+/// generates from the now-bare pubspec and so omits the build id. Empty in a
+/// local `flutter run` without the define.
+const String _appVersion = String.fromEnvironment(
+  'APP_VERSION',
+  defaultValue: '',
+);
+
 class PortalEvsApp extends StatefulWidget {
   const PortalEvsApp({super.key});
 
@@ -318,15 +328,8 @@ class _HomeShellState extends State<_HomeShell> {
   EffectiveAuthorization? _auth;
   StreamSubscription<EffectiveAuthorization?>? _permSub;
 
-  /// `vX.Y.Z+build` of the deployed web bundle, shown under the app-bar title
-  /// so a running deployment self-identifies its build. Empty until resolved
-  /// (or if the fetch fails). Sourced from the `version.json` that
-  /// `flutter build web` emits at the web origin — the authoritative version of
-  /// the actual built artifact, no extra dependency or build-time define.
-  String _version = '';
-
   /// Server-reported version manifest from `GET /health` `.versions`:
-  /// `portal_server_evs` (semver+N), `server_commit`, `portal_ui_version`,
+  /// `portal_server_evs` (semver+N), `server_commit`, `diary_app`,
   /// `portal_deployment`, `deploy` (the deploy counter), `deploy_commit`.
   /// The app-bar shows only the deploy counter; the rest live in the popup.
   Map<String, Object?> _serverVersions = const <String, Object?>{};
@@ -334,7 +337,6 @@ class _HomeShellState extends State<_HomeShell> {
   @override
   void initState() {
     super.initState();
-    unawaited(_loadVersion());
     unawaited(_loadServerVersions());
   }
 
@@ -382,25 +384,6 @@ class _HomeShellState extends State<_HomeShell> {
     _ => const SizedBox.shrink(),
   };
 
-  Future<void> _loadVersion() async {
-    try {
-      // version.json is served by the WEB origin (Uri.base), which in the
-      // deployed bundle and in `flutter run` both serve it — unlike the portal
-      // API base, which may be a different host in local dev.
-      final res = await http.get(Uri.base.resolve('version.json'));
-      if (!mounted || res.statusCode != 200) return;
-      final json = jsonDecode(res.body) as Map<String, Object?>;
-      final v = json['version'];
-      final b = json['build_number'];
-      if (v is! String || v.isEmpty) return;
-      setState(
-        () => _version = (b is String && b.isNotEmpty) ? 'v$v+$b' : 'v$v',
-      );
-    } catch (_) {
-      // Best-effort: a missing/unservable version.json just hides the label.
-    }
-  }
-
   Future<void> _loadServerVersions() async {
     try {
       // /health is public + same-origin-reachable; .versions carries the
@@ -419,22 +402,25 @@ class _HomeShellState extends State<_HomeShell> {
   }
 
   /// The compact label under the app-bar title: the deploy counter when the
-  /// server reports one ("Deploy #47"), else the bundle version, else nothing.
+  /// server reports one ("Deploy #47"), else this bundle's version, else nothing.
   String _versionLabel() {
     final deploy = _serverVersions['deploy'];
     if (deploy is String && deploy.isNotEmpty) return 'Deploy #$deploy';
-    return _version;
+    return _appVersion;
   }
 
-  /// Popup listing the full version/provenance manifest. Bundle version is the
-  /// UI's own self-report (version.json); the rest come from the server /health.
+  /// Popup listing the full version/provenance manifest. "Portal UI" is this
+  /// bundle's own full version (APP_VERSION); the rest come from `/health` —
+  /// including `diary_app`, the diary mobile-app version in the source this
+  /// portal build was cut from (NOT a mobile deployment; iOS + Android share
+  /// this one source version).
   void _showVersionsDialog() {
     final rows = <MapEntry<String, String>>[
-      if (_version.isNotEmpty) MapEntry('App (this bundle)', _version),
+      if (_appVersion.isNotEmpty) MapEntry('Portal UI', _appVersion),
       for (final e in const <String, String>{
         'portal_server_evs': 'Portal server',
         'server_commit': 'Server commit',
-        'portal_ui_version': 'Portal UI (served)',
+        'diary_app': 'Diary app',
         'portal_deployment': 'Deployment',
         'deploy': 'Deploy #',
         'deploy_commit': 'Deploy commit',
