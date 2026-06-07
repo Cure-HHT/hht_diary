@@ -178,12 +178,6 @@ services:
       PORTAL_SEED_UI_DEFAULT_FONT: "${PORTAL_SEED_UI_DEFAULT_FONT:-}"
       PORTAL_SEED_UI_AVAILABLE_LANGUAGES: "${PORTAL_SEED_UI_AVAILABLE_LANGUAGES:-}"
       PORTAL_SEED_UI_DEFAULT_LANGUAGE: "${PORTAL_SEED_UI_DEFAULT_LANGUAGE:-}"
-      # /subscriptions WebSocket keepalive interval. The portal fail-fasts at
-      # boot if this is unset (no implicit default — see resolveWsPingInterval /
-      # DIARY-DEV-portal-reaction-server/D), so the local-stack sets it
-      # explicitly. Must stay below the nginx proxy_read_timeout for /subscriptions.
-      PORTAL_WS_PING_INTERVAL_SECONDS: "${PORTAL_WS_PING_INTERVAL_SECONDS:-20}"
-      #
       # PORTAL_AUTH_MODE is deliberately NOT set: the EVS portal defaults to
       # "dev" auth, where the userId is the dev-credential login id typed
       # verbatim (no password). To exercise real session auth instead, set
