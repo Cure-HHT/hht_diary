@@ -628,7 +628,18 @@ class _AppRootState extends State<AppRoot> {
       if (schedule.startDate != null) return; // already activated (monotonic).
       final startedAtRaw = body['trial_started_at'];
       if (startedAtRaw is! String) return; // trial not started -> stay local.
-      final watermark = DateTime.tryParse(startedAtRaw)?.toUtc();
+      // The portal emits trial_started_at in UTC. Tolerate a missing timezone
+      // designator: DateTime.parse() treats a tz-less string as LOCAL, so
+      // `.toUtc()` would shift the watermark by the device's offset (in the
+      // Americas, hours into the future), silently gating ALL outbound sync.
+      // Treat a naive timestamp as UTC. Forward-compatible with a server that
+      // already appends 'Z'.
+      final hasTz =
+          startedAtRaw.endsWith('Z') ||
+          RegExp(r'[+-]\d\d:?\d\d$').hasMatch(startedAtRaw);
+      final watermark = DateTime.tryParse(
+        hasTz ? startedAtRaw : '${startedAtRaw}Z',
+      )?.toUtc();
       if (watermark == null) return;
 
       await diaryScope.bundle.destinations.setStartDate(
