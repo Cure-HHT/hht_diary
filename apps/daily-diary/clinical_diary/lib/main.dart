@@ -52,6 +52,7 @@ import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:flutter/semantics.dart';
@@ -473,11 +474,11 @@ class _AppRootState extends State<AppRoot> {
             _diarySyncTriggers = await installDiarySyncTriggers(
               // Foreground-only poll. Portal-originated lifecycle changes
               // (trial-start, disconnect, not-participating) reach the diary
-              // only via this /user/state reconcile, so a 15-min default left
-              // them invisible until an app relaunch. 60s keeps the foreground
-              // experience near-live without a push channel (FCM push is the
-              // eventual primary path, deferred to CUR-1436).
+              // via this /user/state reconcile, kept as the BACKUP path. 60s
+              // keeps the foreground experience near-live; FCM push is the
+              // PRIMARY trigger (onFcmReceipt below, CUR-1436).
               periodicInterval: const Duration(seconds: 60),
+              onFcmReceipt: _recordFcmReceipt,
               onTrigger: () async {
                 await _reconcileDiaryScope(diaryScope);
                 // Pause outbound sync while the participant is disconnected or
@@ -861,6 +862,42 @@ class _AppRootState extends State<AppRoot> {
       debugPrint('[FCM] token recorded as fcm_token_registered ($platform)');
     } catch (e, st) {
       debugPrint('[FCM] register_fcm_token dispatch failed: $e\n$st');
+    }
+  }
+
+  /// Record an inbound FCM message as a `fcm_message_received` event in the
+  /// diary's OWN event log, echoing the portal-minted `flowToken` (if any) so
+  /// the portal can stitch assigned -> delivered -> received. Dispatched
+  /// through the EVS action submitter. Best-effort: failures are logged
+  /// and swallowed and never block the sync drain.
+  ///
+  /// The receipt aggregate id is participant-scoped
+  /// (`{participantId}:rcv:{uuid}`) so the portal `/ingest` accepts it
+  /// (ownership is enforced on the `{participantId}:` prefix). Until linked
+  /// there is no participant id, so the receipt is skipped.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/B
+  // Implements: DIARY-DEV-outgoing-intent-correlation/D — echo the portal-minted flowToken.
+  Future<void> _recordFcmReceipt(RemoteMessage message) async {
+    final participantId = await _enrollmentService.getUserId();
+    if (participantId == null || participantId.isEmpty) return;
+    final scope = _diaryScope;
+    if (scope == null) return;
+    final data = message.data;
+    try {
+      await scope.scope.actionSubmitter.submit(
+        esd.ActionSubmission(
+          actionName: 'record_fcm_message_received',
+          rawInput: <String, Object?>{
+            'aggregateId': '$participantId:rcv:${const Uuid().v4()}',
+            'received_at': DateTime.now().toUtc().toIso8601String(),
+            'channel': 'fcm',
+            'message_type': (data['type'] as String?) ?? 'unknown',
+            if (data['flowToken'] is String) 'flowToken': data['flowToken'],
+          },
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('[FCM] record_fcm_message_received dispatch failed: $e\n$st');
     }
   }
 
