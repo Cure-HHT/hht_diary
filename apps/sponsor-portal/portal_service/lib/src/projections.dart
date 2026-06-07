@@ -111,6 +111,21 @@ final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
   tombstoneEventTypes: const {},
 );
 
+// Implements: DIARY-PRD-questionnaire-system/B — questionnaire_instance projects
+//   Completion Status per instance. Phase 1 folds the portal-originated
+//   questionnaire_assigned event (ACT-QST-001); the latest event's entryType is
+//   the status driver. Later phases extend eventTypes with the lifecycle events
+//   and join the diary <id>_survey submission. One row per instance aggregate.
+final AggregateProjectionSpec questionnaireInstanceSpec =
+    AggregateProjectionSpec(
+      viewName: 'questionnaire_instance',
+      interest: const SubscriptionFilter(
+        aggregateTypes: {'questionnaire_instance'},
+        eventTypes: {'questionnaire_assigned'},
+      ),
+      tombstoneEventTypes: const {},
+    );
+
 // Implements: DIARY-DEV-user-account-projection/A+B — users_index materializes per-user
 //   identity + an explicit account status from the portal_user lifecycle events. Status is
 //   carried on status-transition events and preserved across non-status events (key-wise
