@@ -37,7 +37,7 @@ void main() {
         await rt.scope.actionSubmitter.submit(
           const ActionSubmission(
             actionName: 'record_no_epistaxis_day',
-            rawInput: {'date': '2025-10-15'},
+            rawInput: {'date': '2025-10-15', 'participantId': 'P'},
           ),
         ),
         isA<DispatchSuccess<Object?>>(),
@@ -46,7 +46,7 @@ void main() {
         await rt.scope.actionSubmitter.submit(
           const ActionSubmission(
             actionName: 'record_unknown_day',
-            rawInput: {'date': '2025-10-16'},
+            rawInput: {'date': '2025-10-16', 'participantId': 'P'},
           ),
         ),
         isA<DispatchSuccess<Object?>>(),

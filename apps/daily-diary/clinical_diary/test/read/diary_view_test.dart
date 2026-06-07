@@ -15,10 +15,14 @@ DiaryEntryRow _ep(String id, String start) => DiaryEntryRow(
     startTime: start,
     startTimeZone: 'UTC',
     startTimeUtcOffset: '+00:00',
+    participantId: 'P-test',
   ).toJson(),
 );
-DiaryEntryRow _marker(String id, String date, String type) =>
-    DiaryEntryRow(aggregateId: id, entryType: type, data: {'date': date});
+DiaryEntryRow _marker(String id, String date, String type) => DiaryEntryRow(
+  aggregateId: id,
+  entryType: type,
+  data: {'date': date, 'participantId': 'P-test'},
+);
 
 void main() {
   test(

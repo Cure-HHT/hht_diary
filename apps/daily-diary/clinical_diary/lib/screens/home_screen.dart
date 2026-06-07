@@ -8,6 +8,7 @@ import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
+import 'package:clinical_diary/scope/diary_participant_id.dart';
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
@@ -378,7 +379,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await ReActionScope.of(context).actionSubmitter.submit(
       ActionSubmission(
         actionName: actionName,
-        rawInput: <String, Object?>{'date': localDate},
+        rawInput: <String, Object?>{
+          'date': localDate,
+          'participantId': diaryParticipantId(context),
+        },
       ),
     );
   }

@@ -48,7 +48,7 @@ void main() {
     final result = await rt.scope.actionSubmitter.submit(
       const ActionSubmission(
         actionName: 'record_no_epistaxis_day',
-        rawInput: {'date': '2025-10-15'},
+        rawInput: {'date': '2025-10-15', 'participantId': 'P-test'},
       ),
     );
     expect(result, isA<DispatchSuccess<Object?>>());

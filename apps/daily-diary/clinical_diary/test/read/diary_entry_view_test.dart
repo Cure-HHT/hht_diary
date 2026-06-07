@@ -16,6 +16,7 @@ void main() {
             startTime: '2025-10-15T22:00:00.000-05:00',
             startTimeZone: 'America/New_York',
             startTimeUtcOffset: '-05:00',
+            participantId: 'P-test',
             endTime: '2025-10-16T00:30:00.000-05:00',
             endTimeZone: 'America/New_York',
             endTimeUtcOffset: '-05:00',
@@ -51,6 +52,7 @@ void main() {
             startTime: '2025-10-15T22:00:00.000-05:00',
             startTimeZone: 'UTC',
             startTimeUtcOffset: '+00:00',
+            participantId: 'P-test',
           ).toJson(),
           'epistaxis_event',
         ),
@@ -81,6 +83,7 @@ void main() {
             'startTime': '2025-10-15T10:00:00.000Z',
             'startTimeZone': 'UTC',
             'startTimeUtcOffset': '+00:00',
+            'participantId': 'P-test',
           }, 'epistaxis_event'),
           isComplete: true,
         );

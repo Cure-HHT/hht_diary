@@ -10,6 +10,7 @@ DiaryEntryRow _ep(String id, String start, String? end) => DiaryEntryRow(
     startTime: start,
     startTimeZone: 'UTC',
     startTimeUtcOffset: '+00:00',
+    participantId: 'P-test',
     endTime: end,
     endTimeZone: end == null ? null : 'UTC',
     endTimeUtcOffset: end == null ? null : '+00:00',

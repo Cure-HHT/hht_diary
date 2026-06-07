@@ -231,6 +231,7 @@ void main() {
         startTime: start.toIso8601String(),
         startTimeZone: 'UTC',
         startTimeUtcOffset: '+00:00',
+        participantId: 'P-test',
         endTime: end?.toIso8601String(),
         endTimeZone: end == null ? null : 'UTC',
         endTimeUtcOffset: end == null ? null : '+00:00',
