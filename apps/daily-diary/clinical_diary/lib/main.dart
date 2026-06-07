@@ -565,6 +565,13 @@ class _AppRootState extends State<AppRoot> {
         // own event log (DIARY-DEV-shared-events-catalog/A surface P4). Identity
         // only — the JWT/install-id stay in secure storage (state-in-event-log/B).
         await _recordParticipantLinkedOnce(diaryScope, participantId);
+        // Re-register the current FCM token now that the participant id is known:
+        // a token minted pre-link could not be recorded (no participant-scoped
+        // aggregate id yet), so record it once here at the link transition.
+        final currentToken = _notificationService?.currentToken;
+        if (currentToken != null) {
+          await _registerFcmToken(currentToken);
+        }
         // Apply the portal-requested sponsor settings carried in the /link
         // response (set-once-at-link), through the diary's normal apply path.
         // Implements: DIARY-BASE-sponsor-requested-settings/A+B
@@ -818,43 +825,42 @@ class _AppRootState extends State<AppRoot> {
     }
   }
 
-  /// Register the FCM token with the diary server.
+  /// Record an FCM token mint/refresh as a `fcm_token_registered` event in the
+  /// diary's OWN event log, dispatched through the EVS ActionDispatcher.
   ///
-  /// Called on initial token retrieval and on token refresh.
+  /// Called on initial token retrieval and on token refresh. The token aggregate
+  /// id is participant-scoped (`{participantId}:fcm:{platform}`) so the portal
+  /// `/ingest` accepts it (ownership is enforced on the `{participantId}:` prefix,
+  /// and the JWT userId IS the participantId) and the portal projects one active
+  /// token per participant+platform. Until linked there is no participant id, so
+  /// the registration is deferred and re-run at the link transition.
+  ///
   /// REQ-CAL-p00082: Participant Alert Delivery
+  // Implements: DIARY-DEV-inbound-event-on-receipt/A
   Future<void> _registerFcmToken(String token) async {
-    final jwt = await _enrollmentService.getJwtToken();
-    if (jwt == null) {
-      debugPrint('[FCM] No JWT — user not linked yet, skipping');
+    final participantId = await _enrollmentService.getUserId();
+    if (participantId == null || participantId.isEmpty) {
+      debugPrint('[FCM] not linked yet — deferring token registration');
       return;
     }
-
-    final backendUrl = await _enrollmentService.getBackendUrl();
-    if (backendUrl == null) {
-      debugPrint('[FCM] No backend URL — user not linked yet, skipping');
-      return;
-    }
-
+    final scope = _diaryScope;
+    if (scope == null) return;
     final platform = Platform.isIOS ? 'ios' : 'android';
-    final url = '$backendUrl/api/v1/user/fcm-token';
-
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $jwt',
-        },
-        body: jsonEncode({'fcm_token': token, 'platform': platform}),
+      await scope.scope.actionSubmitter.submit(
+        esd.ActionSubmission(
+          actionName: 'register_fcm_token',
+          rawInput: <String, Object?>{
+            'aggregateId': '$participantId:fcm:$platform',
+            'token': token,
+            'platform': platform,
+            'registered_at': DateTime.now().toUtc().toIso8601String(),
+          },
+        ),
       );
-
-      if (response.statusCode == 200) {
-        debugPrint('[FCM] Token registered with diary server ($platform)');
-      } else {
-        debugPrint('[FCM] Token registration failed: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('[FCM] Token registration error: $e');
+      debugPrint('[FCM] token recorded as fcm_token_registered ($platform)');
+    } catch (e, st) {
+      debugPrint('[FCM] register_fcm_token dispatch failed: $e\n$st');
     }
   }
 
