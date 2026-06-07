@@ -3,12 +3,19 @@ import 'dart:io';
 
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_server_evs/portal_server_evs.dart';
+import 'package:portal_server_evs/src/ws_ping_interval.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 Future<void> main(List<String> args) async {
   final env = Platform.environment;
   final port = int.parse(env['PORT'] ?? '8084');
+
+  // Fail fast before any expensive setup: the /subscriptions WebSocket
+  // keepalive interval must be intentionally configured — no implicit default.
+  // Implements: DIARY-DEV-portal-reaction-server/D
+  final wsPingInterval =
+      resolveWsPingInterval(env['PORTAL_WS_PING_INTERVAL_SECONDS']);
 
   // Implements: DIARY-DEV-portal-durable-event-store/A — durable Postgres store
   //   (+ matching idempotency store) when DB config is present; in-memory
@@ -40,6 +47,7 @@ Future<void> main(List<String> args) async {
   final boot = await bootstrapPortalServer(
     backend: backend,
     idempotency: idempotency,
+    wsPingInterval: wsPingInterval,
   );
 
   final server = await shelf_io.serve(

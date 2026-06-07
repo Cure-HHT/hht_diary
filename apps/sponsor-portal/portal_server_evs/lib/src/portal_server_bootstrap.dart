@@ -34,7 +34,6 @@ import 'sponsor_branding_asset_handler.dart';
 import 'sponsor_branding_seed.dart';
 import 'sponsor_config_seed.dart';
 import 'user_tier_reactor.dart';
-import 'ws_ping_interval.dart';
 
 /// Composed server: the top-level shelf [router] (ready for shelf_io.serve),
 /// the live [eventStore] + [dispatcher] (for tests), and a [dispose] callback.
@@ -81,6 +80,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // email because the portal's user identity is the email address; the IdP
   // account + portal user are provisioned out-of-band via activation later.
   String? bootstrapAdminEmail,
+  // /subscriptions WebSocket keepalive interval. Supplied by the entrypoint
+  // (bin/server.dart) from the required PORTAL_WS_PING_INTERVAL_SECONDS env var
+  // — see resolveWsPingInterval, which fail-fasts at boot. null (the default
+  // here) means no keepalive and is used only by hermetic tests, which open no
+  // long-lived WS connections.
+  // Implements: DIARY-DEV-portal-reaction-server/D
+  Duration? wsPingInterval,
 }) async {
   // 1. Event store (registers role_permission_grants, user_role_scopes,
   //    participant_site_index, portal entry types + framework types).
@@ -472,8 +478,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // Keepalive on the /subscriptions WS so an idle/half-open connection is not
     // silently reaped (which would leave the reactive client believing it is
     // still connected and never triggering its lifecycle-driven reconnect).
+    // Resolved + fail-fast-validated at the entrypoint; null only in tests.
     // Implements: DIARY-DEV-portal-reaction-server/D
-    pingInterval: resolveWsPingInterval(env['PORTAL_WS_PING_INTERVAL_SECONDS']),
+    pingInterval: wsPingInterval,
   );
 
   // 8. Routes: WS /subscriptions outside HTTP-auth middleware (Flutter web

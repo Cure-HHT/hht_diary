@@ -62,10 +62,11 @@ subscribing *Principal*'s permitted scope. A *Study Coordinator* bound to a *Sit
 receive only the *Participants* at that *Site* and SHALL NOT receive *Participant* records
 from other *Sites*.
 
-D. The portal SHALL configure the `/subscriptions` WebSocket keepalive interval from
-deployment configuration (`PORTAL_WS_PING_INTERVAL_SECONDS`, default 20 seconds) when
-composing `ReactionHandlers`, so an idle or half-open subscription connection is not
-silently reaped without the reactive client observing a close.
+D. The portal SHALL require the `/subscriptions` WebSocket keepalive interval to be
+supplied by deployment configuration (`PORTAL_WS_PING_INTERVAL_SECONDS`, a positive
+integer number of seconds) and SHALL fail to start when it is unset or invalid,
+configuring `ReactionHandlers` with that interval so an idle or half-open subscription
+connection is not silently reaped without the reactive client observing a close.
 
 ### Rationale
 
@@ -86,10 +87,13 @@ the interval is a deployment concern (it must clear the environment's proxy/load
 *Idle Timeout* — e.g. the nginx `proxy_read_timeout`). Without it, an idle or half-open
 WebSocket can be dropped with no close-frame, leaving the reactive client believing it is
 still connected so its lifecycle-driven reconnect never fires and the *User* sees silently
-stale lists. The value fails safe to the 20-second default on a missing or invalid setting
-so a misconfiguration cannot re-introduce that gap.
+stale lists. The interval is required rather than defaulted: the portal fails to start when
+`PORTAL_WS_PING_INTERVAL_SECONDS` is unset or invalid, so no environment runs this
+transport knob on an unintended implicit value. Every deployment therefore declares it
+explicitly (and the per-environment config key-set asserts its presence), making the value
+auditable at the configuration layer as well as enforced at boot.
 
-*End* *Portal Reaction Server Shell* | **Hash**: 1ee11ba6
+*End* *Portal Reaction Server Shell* | **Hash**: 6e9a7047
 
 ## DIARY-DEV-rave-edc-ingest: RAVE/EDC Ingest as Edge Events
 

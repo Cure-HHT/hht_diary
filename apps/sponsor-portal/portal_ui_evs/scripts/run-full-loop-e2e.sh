@@ -40,6 +40,7 @@ fuser -k "${PORTAL_PORT}/tcp" 2>/dev/null || true; sleep 2
 ( cd "$SERVER_DIR" && env -u RAVE_UAT_USERNAME -u RAVE_UAT_PASSWORD -u RAVE_UAT_BASE_URL \
     DB_HOST="$DB_HOST" DB_PORT="$DB_PORT" DB_USER="$DB_USER" DB_PASSWORD="$DB_PASSWORD" \
     DB_NAME="$DB_NAME" DB_SSL=false PORT="$PORTAL_PORT" PORTAL_AUTH_MODE=dev \
+    PORTAL_WS_PING_INTERVAL_SECONDS=20 \
     dart run bin/server.dart > /tmp/portal_evs_e2e.log 2>&1 & )
 for _ in $(seq 1 40); do
   curl -s "http://localhost:${PORTAL_PORT}/health" 2>/dev/null | grep -q ok && break; sleep 1
