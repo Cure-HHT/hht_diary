@@ -97,7 +97,7 @@
 
 | ID                                    | Title                                                         | File                         | Hash     |
 | ------------------------------------- | ------------------------------------------------------------- | ---------------------------- | -------- |
-| DIARY-BASE-audit-trail                | Audit Trail Foundation                                        | base-audit-trail.md          | fbf48f17 |
+| DIARY-BASE-audit-trail                | Audit Trail Foundation                                        | base-audit-trail.md          | 1f28ed43 |
 | DIARY-BASE-local-data-reset           | Local Data Reset to First-Launch State                        | base-local-data-reset.md     | 824fef24 |
 | DIARY-BASE-ops-action-inventory       | Operations Action Inventory                                   | base-ops-action-inventory.md | a1baca2c |
 | DIARY-BASE-sponsor-requested-settings | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md     | a8de6e0a |
@@ -161,8 +161,8 @@
 | DIARY-DEV-inbound-event-on-receipt           | Inbound Receipt Emits an Event                        | dev-mobile-event-sourcing.md       | 9143d6c4 |
 | DIARY-DEV-linking-code-lifecycle             | Linking-Code Lifecycle and Uniqueness                 | dev-linking-code-lifecycle.md      | e817982d |
 | DIARY-DEV-local-participant-authorization    | On-Device Authorization Permits the Local Participant | dev-mobile-event-sourcing.md       | 5b6674c2 |
-| DIARY-DEV-native-outbound-sync               | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md       | 5b88b915 |
-| DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | d2cc0577 |
+| DIARY-DEV-native-outbound-sync               | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md       | ebaa5551 |
+| DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | 8b310ffe |
 | DIARY-DEV-operator-tier-authz                | Operator-Tier Authorization for User Management       | dev-portal-service.md              | cda9a051 |
 | DIARY-DEV-outgoing-intent-correlation        | Outgoing Intent and Flow Correlation                  | dev-outgoing-intent-correlation.md | 108441a8 |
 | DIARY-DEV-participant-ingest                 | Participant Clinical-Record Ingest Edge               | dev-participant-ingest.md          | ba96a497 |

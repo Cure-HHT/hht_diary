@@ -1,11 +1,15 @@
 # FCM Notification Architecture
 
-> **⚠️ DB references stale (2026-06, EVS cutover, CUR-1170):** References to
-> `database/migrations/*.sql` (e.g. the `patient_fcm_tokens` table migration) describe the
-> retired relational schema, which was deleted in the EVS cutover. The platform is now EVS-only:
-> FCM-token and notification data are modeled as events in the `event_sourcing` event store
-> (schema created at runtime by `portal_server_evs`), not relational migrations. The
-> architecture/design intent below is otherwise unchanged.
+> **⚠️ HISTORICAL — describes the retired relational / two-service architecture (pre-EVS).**
+> This document predates the EVS cutover (CUR-1170 / CUR-1437) and the portal-only topology
+> (CUR-1446). It describes a now-retired design: a separate `diary-server` Cloud Run service, a
+> shared relational Cloud SQL database, and `patient_fcm_tokens` / `database/migrations` tables —
+> all of which have been removed. **Current architecture:** the device syncs directly to
+> `portal_server_evs` (no separate diary-server node); FCM-token and notification data are events in
+> the `event_sourcing` store (schema created at runtime), not relational tables. Treat the GCP
+> layout, diagrams, and code paths below as historical reference only. Authoritative current
+> sources: `spec/ops-push-notifications.md`, `spec/dev-participant-ingest.md`. A full EVS-FCM
+> rewrite tracks with CUR-1416 / CUR-1418 / CUR-1399.
 
 ## GCP Project Layout
 

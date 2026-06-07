@@ -1,6 +1,15 @@
 # FCM Notification Backend — How It Works & What's Next
 
-## How the backend works today
+> **⚠️ HISTORICAL — describes the retired relational / two-service architecture (pre-EVS).**
+> The three code paths below (`diary_server` token registration, `patient_fcm_tokens` table,
+> `diary_functions`, shared relational DB) describe a design retired in the EVS cutover
+> (CUR-1170 / CUR-1437). **Current architecture:** the device syncs directly to `portal_server_evs`
+> (no separate diary-server node); FCM-token and notification data are events in the
+> `event_sourcing` store, not relational tables. Treat the paths below as historical reference only.
+> Authoritative current sources: `spec/ops-push-notifications.md`, `spec/dev-participant-ingest.md`.
+> A full EVS-FCM rewrite tracks with CUR-1416 / CUR-1418 / CUR-1399.
+
+## How the backend works today (pre-EVS — historical)
 
 There are three independent code paths. The "magic" of FCM is mostly outside our backend — Google delivers the message; we just hand it to them.
 

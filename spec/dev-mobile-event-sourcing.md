@@ -101,11 +101,11 @@ Reactive reads keep the UI in lockstep with the event-sourced truth: when the lo
 
 ### Overview
 
-The *Diary* server runs the same `event_sourcing` library, so the *Diary* synchronizes natively rather than mapping to a legacy wire format. A single native `Destination` ships finalized and tombstone entry events as canonical batches, classifies delivery outcomes for safe retry, gates on the *Trial*-start watermark, and carries the device source identity as provenance.
+The server ingest edge runs the same `event_sourcing` library, so the *Diary* synchronizes natively rather than mapping to a legacy wire format. A single native `Destination` ships finalized and tombstone entry events as canonical batches, classifies delivery outcomes for safe retry, gates on the *Trial*-start watermark, and carries the device source identity as provenance.
 
 ### Assertions
 
-A. The System SHALL ship finalized and tombstone *Diary* entry events to the *Diary* server as canonical batches through a single native `Destination`; checkpoint drafts SHALL remain local.
+A. The System SHALL ship finalized and tombstone *Diary* entry events to the server ingest edge as canonical batches through a single native `Destination`; checkpoint drafts SHALL remain local.
 
 B. The System SHALL classify each delivery outcome as accepted, retry-with-backoff, or wedged, and SHALL retry transient conditions — offline, not-yet-enrolled, server error — without data loss.
 
@@ -115,9 +115,9 @@ D. The System SHALL carry the device source identity as provenance on each batch
 
 ### Rationale
 
-Because the *Diary* server runs the same substrate, a native canonical batch needs no lossy mapping to a legacy wire format and preserves the event identity end-to-end. Classifying delivery outcomes lets transient failures retry with backoff instead of dropping data, while a genuinely wedged batch is surfaced rather than silently lost. The *Trial*-start watermark keeps the server dataset bounded to the *Trial* period even when the personal *Diary* extends earlier, and shipping the device source identity (rather than a resolved *Participant*) keeps correlation an ingest-side, server-authoritative decision.
+Because the server ingest edge runs the same substrate (realized on the *Sponsor Portal* server today — device-to-portal direct — and on a dedicated *Diary* server under the deferred split, `DIARY-DEV-participant-ingest`), a native canonical batch needs no lossy mapping to a legacy wire format and preserves the event identity end-to-end. Classifying delivery outcomes lets transient failures retry with backoff instead of dropping data, while a genuinely wedged batch is surfaced rather than silently lost. The *Trial*-start watermark keeps the server dataset bounded to the *Trial* period even when the personal *Diary* extends earlier, and shipping the device source identity (rather than a resolved *Participant*) keeps correlation an ingest-side, server-authoritative decision.
 
-*End* *Outbound Sync via Native Ingest Destination* | **Hash**: 5b88b915
+*End* *Outbound Sync via Native Ingest Destination* | **Hash**: ebaa5551
 
 ## DIARY-DEV-participant-state-poll: Diary Lifecycle Propagation via State Poll
 
