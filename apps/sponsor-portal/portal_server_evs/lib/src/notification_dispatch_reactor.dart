@@ -74,7 +74,8 @@ class NotificationDispatchReactor {
     if (participantId == null) return;
     final tokens = await _activeTokensFor(participantId);
     if (tokens.isEmpty) {
-      await _recordFailure(event, participantId, reason: 'no_active_token');
+      await _recordFailure(event, participantId,
+          fcmTokenAggregateId: '', reason: 'no_active_token');
       return;
     }
     for (final t in tokens) {
@@ -89,13 +90,16 @@ class NotificationDispatchReactor {
       );
       final result = await channel.dispatch(message);
       if (result.unregistered) {
+        await _recordFailure(event, participantId,
+            fcmTokenAggregateId: t.aggregateId, reason: 'UNREGISTERED');
         await _deactivateToken(t.aggregateId);
-        await _recordFailure(event, participantId, reason: 'UNREGISTERED');
       } else if (result.success) {
         await _recordSent(event, participantId,
+            fcmTokenAggregateId: t.aggregateId,
             messageId: result.messageId ?? '');
       } else {
         await _recordFailure(event, participantId,
+            fcmTokenAggregateId: t.aggregateId,
             reason: result.error ?? 'unknown');
       }
     }
@@ -126,7 +130,7 @@ class NotificationDispatchReactor {
   }
 
   Future<void> _recordSent(StoredEvent intent, String participantId,
-      {required String messageId}) async {
+      {required String fcmTokenAggregateId, required String messageId}) async {
     await eventStore.append(
       entryType: 'notification_sent',
       aggregateType: 'Notification',
@@ -136,6 +140,7 @@ class NotificationDispatchReactor {
       data: <String, Object?>{
         'participant_id': participantId,
         'channel': 'fcm',
+        'fcm_token_aggregate_id': fcmTokenAggregateId,
         'intent_entry_type': intent.entryType,
         'message_id': messageId,
       },
@@ -144,7 +149,7 @@ class NotificationDispatchReactor {
   }
 
   Future<void> _recordFailure(StoredEvent intent, String participantId,
-      {required String reason}) async {
+      {required String fcmTokenAggregateId, required String reason}) async {
     await eventStore.append(
       entryType: 'notification_dispatch_failed',
       aggregateType: 'Notification',
@@ -154,6 +159,7 @@ class NotificationDispatchReactor {
       data: <String, Object?>{
         'participant_id': participantId,
         'channel': 'fcm',
+        'fcm_token_aggregate_id': fcmTokenAggregateId,
         'intent_entry_type': intent.entryType,
         'reason': reason,
       },

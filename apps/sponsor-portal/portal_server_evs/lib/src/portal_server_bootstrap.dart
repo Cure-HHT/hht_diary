@@ -482,15 +482,17 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // Implements: DIARY-DEV-outgoing-intent-correlation/B+C
   // Implements: DIARY-DEV-push-token-routing/B+C
   final fcmEnabled = (env['FCM_ENABLED'] ?? 'true') != 'false';
-  final fcmChannel = FcmChannel(
-    projectId: env['FCM_PROJECT_ID'] ?? 'cure-hht-admin',
-    consoleMode: (env['FCM_CONSOLE_MODE'] ?? 'false') == 'true',
-  );
+  final fcmChannel = fcmEnabled
+      ? FcmChannel(
+          projectId: env['FCM_PROJECT_ID'] ?? 'cure-hht-admin',
+          consoleMode: (env['FCM_CONSOLE_MODE'] ?? 'false') == 'true',
+        )
+      : null;
   final notificationDispatchReactor = fcmEnabled
       ? (NotificationDispatchReactor(
           eventStore: eventStore,
           backend: backend,
-          channel: fcmChannel,
+          channel: fcmChannel!,
         )..start())
       : null;
 
@@ -721,7 +723,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     await linkingCodeReactor.stop();
     await userTierReactor.stop();
     await notificationDispatchReactor?.stop();
-    fcmChannel.dispose();
+    fcmChannel?.dispose();
     await handlers.dispose();
     await eventStore.close();
   }

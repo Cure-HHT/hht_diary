@@ -94,6 +94,7 @@ void main() {
     expect(sent.single.data['participant_id'], 'P1');
     expect(sent.single.data['channel'], 'fcm');
     expect(sent.single.data['intent_entry_type'], 'questionnaire_assigned');
+    expect(sent.single.data['fcm_token_aggregate_id'], 'P1:fcm:android');
     expect(sent.single.flowToken, 'QST000001');
   });
 
