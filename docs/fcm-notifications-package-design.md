@@ -207,5 +207,3 @@ await receiver.start();
 
 - `docs/fcm-notification-redesign-plan.md` — architecture and design rationale
 - `docs/fcm-notification-implementation-plan.md` — phase-by-phase ticket breakdown
-- `docs/fcm-notification-architecture.md` — current architecture before redesign
-- `docs/fcm-notification-backend-explained.md` — walkthrough of the current backend code

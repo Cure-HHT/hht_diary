@@ -826,6 +826,4 @@ Each ticket links to the relevant **REQ-d** in `spec/dev-fcm-notifications.md` (
 # Related docs
 
 - `docs/fcm-notification-redesign-plan.md` — architecture and design rationale
-- `docs/fcm-notification-architecture.md` — current architecture as documented before redesign
-- `docs/fcm-notification-backend-explained.md` — walkthrough of the current backend code
 - `docs/cross-project-iam-runbook.md` — IAM grants for cure-hht-admin
