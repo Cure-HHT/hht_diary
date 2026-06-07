@@ -25,8 +25,12 @@
 # -----------------------------------------------------------------------------
 
 locals {
-  # prod decommissioned 2026-06 (CUR-1462): callisto4-prod was test-only, no customer.
-  # Re-add "prod" here when there's a real prod customer AND apply-gating exists.
+  # prod removed from managed envs 2026-06 (CUR-1462): callisto4-prod was test-only,
+  # no customer. Its resources are torn down but the empty project SHELL is KEPT —
+  # a GCP project id can never be reused once the project is deleted, so we preserve
+  # callisto4-prod for the eventual real prod. Re-adding prod later = restore "prod"
+  # here AND `terraform import` the preserved callisto4-prod project + its resources
+  # (it won't create cleanly while the shell exists). Gate prod applies before then.
   environments = ["dev", "qa", "uat"]
 
   # Billing account selection: prod uses prod account, others use dev account
