@@ -73,6 +73,7 @@ void main() {
           startTimeZone: 'America/New_York',
           startTimeUtcOffset: '-05:00',
           intensity: NosebleedIntensity.dripping,
+          participantId: 'P-test',
         ).toJson(),
         initiator: const UserInitiator('u1'),
       );
@@ -82,7 +83,10 @@ void main() {
         aggregateType: diaryEntryAggregateType,
         aggregateId: 'e2',
         eventType: 'checkpoint',
-        data: const {'startTime': '2025-10-15T09:00:00.000-05:00'},
+        data: const {
+          'startTime': '2025-10-15T09:00:00.000-05:00',
+          'participantId': 'P-test',
+        },
         initiator: const UserInitiator('u1'),
       );
 
@@ -106,7 +110,7 @@ void main() {
         aggregateType: diaryEntryAggregateType,
         aggregateId: 'd1',
         eventType: 'finalized',
-        data: const {'date': '2025-10-15'},
+        data: const {'date': '2025-10-15', 'participantId': 'P-test'},
         initiator: const UserInitiator('u1'),
       );
       await store.append(
