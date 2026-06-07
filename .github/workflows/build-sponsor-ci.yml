@@ -258,7 +258,7 @@ jobs:
           PUB=""
           if docker pull -q "${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest" >/dev/null 2>&1; then
             cid=$(docker create "${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest")
-            PUB=$(docker cp "$cid:/app/VERSIONS" - 2>/dev/null | tar -xO 2>/dev/null | sed -n 's/^portal_server_evs=//p' || true)
+            PUB=$(docker cp "$cid:/app/VERSIONS" - 2>/dev/null | tar -xOf - 2>/dev/null | sed -n 's/^portal_server_evs=//p' || true)
             docker rm "$cid" >/dev/null 2>&1 || true
           fi
           echo "published portal_server_evs=${PUB:-<none>}"
