@@ -92,7 +92,12 @@ class StartTrialAction extends Action<StartTrialInput, StartTrialResult> {
           eventType: 'participant_trial_started',
           flowToken: flowToken,
           data: <String, Object?>{
-            'started_at': ctx.requestStartedAt.toIso8601String(),
+            // Canonical UTC with a 'Z' designator (matches every other portal
+            // timestamp, e.g. used_at/activated_at). Without toUtc() a non-UTC
+            // requestStartedAt serializes WITHOUT 'Z', so the diary parses it as
+            // LOCAL time and the trial-start sync watermark lands hours off,
+            // silently gating outbound sync in any non-UTC client timezone.
+            'started_at': ctx.requestStartedAt.toUtc().toIso8601String(),
             'by': ctx.principal.id,
           },
         ),
