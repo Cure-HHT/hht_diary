@@ -4,6 +4,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:comms/comms.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_identity/portal_identity.dart';
 import 'package:portal_service/portal_service.dart';
@@ -19,6 +20,7 @@ import 'activation_routes.dart';
 import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
 import 'login_routes.dart';
+import 'notification_dispatch_reactor.dart';
 import 'otp_store.dart';
 import 'password_reset_code_store.dart';
 import 'password_reset_routes.dart';
@@ -471,6 +473,27 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final userTierReactor =
       UserTierReactor(eventStore: eventStore, backend: backend)..start();
 
+  // 7g. Notification dispatch reactor — on a durable portal intent event
+  //     (questionnaire assignment + participant lifecycle), looks up the
+  //     recipient's active FCM token in participant_fcm_tokens and sends a push
+  //     via FcmChannel directly, recording the outcome as notification_sent /
+  //     notification_dispatch_failed (and fcm_token_deactivated on a dead token).
+  //     Gated by FCM_ENABLED so a deploy without FCM credentials skips it.
+  // Implements: DIARY-DEV-outgoing-intent-correlation/B+C
+  // Implements: DIARY-DEV-push-token-routing/B+C
+  final fcmEnabled = (env['FCM_ENABLED'] ?? 'true') != 'false';
+  final fcmChannel = FcmChannel(
+    projectId: env['FCM_PROJECT_ID'] ?? 'cure-hht-admin',
+    consoleMode: (env['FCM_CONSOLE_MODE'] ?? 'false') == 'true',
+  );
+  final notificationDispatchReactor = fcmEnabled
+      ? (NotificationDispatchReactor(
+          eventStore: eventStore,
+          backend: backend,
+          channel: fcmChannel,
+        )..start())
+      : null;
+
   // viewScopeRegistry enables per-subscription row-level narrowing: a site-bound
   // Study Coordinator's participant_record subscription is restricted to the
   // participants at their own Site (expanded via the participant_site_index
@@ -697,6 +720,8 @@ Future<PortalServerBoot> bootstrapPortalServer({
     await sessionCascadeReactor.stop();
     await linkingCodeReactor.stop();
     await userTierReactor.stop();
+    await notificationDispatchReactor?.stop();
+    fcmChannel.dispose();
     await handlers.dispose();
     await eventStore.close();
   }
