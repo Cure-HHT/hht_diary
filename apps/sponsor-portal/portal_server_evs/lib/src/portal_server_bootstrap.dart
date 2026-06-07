@@ -278,7 +278,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     await grantView(role, 'rave_sync_status');
   }
   // Debug-only: the Study Coordinator may read a participant's raw diary entries
-  // via /debug/diary-entries. Granted directly (not via the action-validated role
+  // via /admin/diary-entries. Granted directly (not via the action-validated role
   // seed) because it gates a tooling endpoint, not a registered Action — there is
   // no ACT-id/REQ behind it. Pairs the custom permission with the diary_entries
   // view read so the endpoint can serve the canonical rows.
@@ -637,7 +637,10 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // it every gate fails closed (no widgets render, for any role).
     ..get('/permissions/snapshot', handlers.permissions)
     ..get('/audit', auditHandler)
-    ..get('/debug/diary-entries', diaryEntriesDebugHandler)
+    // Under /admin/ so the reverse proxy's `^~ /admin/` block forwards it to the
+    // dart backend (a bare /debug/ prefix is not in the nginx proxy allow-list,
+    // so it would be served the SPA instead of reaching this handler).
+    ..get('/admin/diary-entries', diaryEntriesDebugHandler)
     ..post('/admin/rave-sync', raveSyncHandler)
     // Authed session routes (logout) — mounted inside the authed pipeline so
     // Bearer validation + principal context are present.

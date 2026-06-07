@@ -63,7 +63,7 @@ void main() {
     final handler = diaryEntriesDebugHandlerForTest(store);
     final response = await handler(
       Request('GET',
-          Uri.parse('http://localhost/debug/diary-entries?participant=P-1')),
+          Uri.parse('http://localhost/admin/diary-entries?participant=P-1')),
     );
     expect(response.statusCode, 200);
     final body =
@@ -84,7 +84,7 @@ void main() {
 
     final handler = diaryEntriesDebugHandlerForTest(store);
     final response = await handler(
-      Request('GET', Uri.parse('http://localhost/debug/diary-entries')),
+      Request('GET', Uri.parse('http://localhost/admin/diary-entries')),
     );
     expect(response.statusCode, 400);
   });
