@@ -270,6 +270,17 @@ jobs:
             echo "::notice title=portal-server gate::Version changed (${PUB:-none} -> $SRC) - rebuilding binary."
           fi
 
+      # Read the diary mobile-app version from the full repo checkout (the
+      # sponsor-ci image carries a TRIMMED source set without clinical_diary, so
+      # it must be passed in as a build-arg, not grepped inside the image).
+      - name: Read diary app version
+        id: diary
+        if: steps.gate.outputs.needs_build == 'true'
+        run: |
+          set -euo pipefail
+          VER=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | sed 's/version: //')
+          echo "diary_app_version=${VER:-unknown}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push portal-server
         if: steps.gate.outputs.needs_build == 'true'
         uses: docker/build-push-action@v5
@@ -284,5 +295,6 @@ jobs:
           build-args: |
             SPONSOR_CI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}
             SERVER_COMMIT=${{ needs.build-sponsor-ci.outputs.short_sha }}
+            DIARY_APP_VERSION=${{ steps.diary.outputs.diary_app_version }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:buildcache,mode=max

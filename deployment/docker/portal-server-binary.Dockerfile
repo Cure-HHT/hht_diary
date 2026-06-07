@@ -24,23 +24,26 @@ RUN dart pub get --offline
 # binary" — truthful by construction.
 ARG SERVER_COMMIT=unknown
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # diary_app: the diary mobile-app (clinical_diary) version in the SAME hht_diary
-# source tree this binary is compiled from (sponsor-ci carries the full source).
-# It travels with server_commit, so both describe one source snapshot: "this
-# portal build was cut from a tree whose diary app was <version>". It is NOT a
-# mobile deployment — the diary app ships to the stores on its own cadence. iOS
-# and Android derive from this single pubspec version (android-build.yml /
-# ios-build.yml both read it), so one value covers both.
+# source tree this binary is compiled from. It travels with server_commit, so
+# both describe one source snapshot: "this portal build was cut from a tree
+# whose diary app was <version>". NOT a mobile deployment — the diary app ships
+# to the stores on its own cadence; iOS and Android derive from this single
+# pubspec version (android-build.yml / ios-build.yml both read it), so one value
+# covers both. Passed as a build-arg (not grepped here) because the sponsor-ci
+# build image carries a TRIMMED source set that omits clinical_diary; CI reads
+# it from the full repo checkout. Defaults to "unknown" for standalone/local.
+ARG DIARY_APP_VERSION=unknown
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN mkdir -p /workspace/out && \
     set -eu && \
     PORTAL_EVS_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //') && \
-    DIARY_APP_VERSION=$(grep '^version:' /workspace/src/apps/daily-diary/clinical_diary/pubspec.yaml | sed 's/version: //') && \
-    echo "Compiling portal_server_evs ${PORTAL_EVS_VERSION} (commit ${SERVER_COMMIT}, diary ${DIARY_APP_VERSION:-unknown})" && \
+    echo "Compiling portal_server_evs ${PORTAL_EVS_VERSION} (commit ${SERVER_COMMIT}, diary ${DIARY_APP_VERSION})" && \
     dart compile exe bin/server.dart -o /workspace/out/server && \
     { printf 'portal_server_evs=%s\n' "$PORTAL_EVS_VERSION"; \
       printf 'server_commit=%s\n' "$SERVER_COMMIT"; \
-      printf 'diary_app=%s\n' "${DIARY_APP_VERSION:-unknown}"; } > /workspace/out/VERSIONS && \
+      printf 'diary_app=%s\n' "$DIARY_APP_VERSION"; } > /workspace/out/VERSIONS && \
     test -f /workspace/out/server
 
 # Minimal image with just the binary
