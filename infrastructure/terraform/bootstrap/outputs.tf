@@ -56,11 +56,6 @@ output "uat_project_id" {
   value       = module.projects["uat"].project_id
 }
 
-output "prod_project_id" {
-  description = "Prod project ID"
-  value       = module.projects["prod"].project_id
-}
-
 # -----------------------------------------------------------------------------
 # CI/CD Configuration
 # -----------------------------------------------------------------------------
@@ -243,10 +238,9 @@ output "vpc_cidr_base" {
 output "vpc_cidrs" {
   description = "VPC CIDRs per environment"
   value = {
-    dev  = "10.${var.sponsor_id}.0.0/18"
-    qa   = "10.${var.sponsor_id}.64.0/18"
-    uat  = "10.${var.sponsor_id}.128.0/18"
-    prod = "10.${var.sponsor_id}.192.0/18"
+    dev = "10.${var.sponsor_id}.0.0/18"
+    qa  = "10.${var.sponsor_id}.64.0/18"
+    uat = "10.${var.sponsor_id}.128.0/18"
   }
 }
 
@@ -266,7 +260,6 @@ output "next_steps" {
       - Dev:  ${module.projects["dev"].project_id}
       - QA:   ${module.projects["qa"].project_id}
       - UAT:  ${module.projects["uat"].project_id}
-      - Prod: ${module.projects["prod"].project_id}
 
     CI/CD Service Account: ${module.cicd.service_account_email}
 
@@ -275,7 +268,6 @@ output "next_steps" {
     Cloud SQL Databases: Managed per-environment in sponsor-envs/
 
     Audit Log Retention: ${var.audit_retention_years} years
-    Prod Audit Locked: ${local.audit_lock["prod"]}
 
     Cost Controls: ${var.enable_cost_controls ? "Enabled (non-prod will auto-stop on budget exceed)" : "Disabled (alerts only)"}
 
@@ -283,13 +275,12 @@ output "next_steps" {
     1. Create sponsor-envs tfvars for each environment:
        cd ../sponsor-envs
        cp sponsor-configs/example-dev.tfvars sponsor-configs/${var.sponsor}-dev.tfvars
-       # Edit and repeat for qa, uat, prod
+       # Edit and repeat for qa, uat
 
     2. Deploy each environment:
        ../scripts/deploy-environment.sh ${var.sponsor} dev --apply
        ../scripts/deploy-environment.sh ${var.sponsor} qa --apply
        ../scripts/deploy-environment.sh ${var.sponsor} uat --apply
-       ../scripts/deploy-environment.sh ${var.sponsor} prod --apply
 
     3. Configure GitHub Actions secrets:
        GCP_WORKLOAD_IDENTITY_PROVIDER: module.cicd.github_actions_provider

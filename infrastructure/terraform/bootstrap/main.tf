@@ -1,7 +1,7 @@
 # bootstrap/main.tf
 #
 # Bootstrap infrastructure for creating sponsor GCP projects
-# Creates 4 projects per sponsor: dev, qa, uat, prod
+# Creates 3 projects per sponsor: dev, qa, uat (prod decommissioned — CUR-1462)
 #
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00056: IaC for portal deployment
@@ -25,7 +25,9 @@
 # -----------------------------------------------------------------------------
 
 locals {
-  environments = ["dev", "qa", "uat", "prod"]
+  # prod decommissioned 2026-06 (CUR-1462): callisto4-prod was test-only, no customer.
+  # Re-add "prod" here when there's a real prod customer AND apply-gating exists.
+  environments = ["dev", "qa", "uat"]
 
   # Billing account selection: prod uses prod account, others use dev account
   billing_accounts = {
@@ -154,7 +156,7 @@ module "cicd" {
   host_project_number      = module.projects["dev"].project_number
   target_project_ids       = [for env in local.environments : module.projects[env].project_id]
   dev_qa_project_ids       = [module.projects["dev"].project_id, module.projects["qa"].project_id]
-  uat_prod_project_ids     = [module.projects["uat"].project_id, module.projects["prod"].project_id]
+  uat_prod_project_ids     = [module.projects["uat"].project_id] # prod decommissioned (CUR-1462)
   enable_workload_identity = var.enable_workload_identity
   github_org               = var.github_org
   github_repo              = var.github_repo
