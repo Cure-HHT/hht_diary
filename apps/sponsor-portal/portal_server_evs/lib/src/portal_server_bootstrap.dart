@@ -19,6 +19,7 @@ import 'linking_code_lifecycle_reactor.dart';
 import 'activation_routes.dart';
 import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
+import 'diary_entries_debug_handler.dart';
 import 'local_push_registry.dart';
 import 'local_push_ws_handler.dart';
 import 'local_socket_push_channel.dart';
@@ -227,8 +228,8 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //     (each grant is the sole event under aggregate id `<role>:view:<view>`),
   //     so re-running every boot adds NEW grants on redeploy without re-appending
   //     duplicates — matching the action-permission + role-assignment seeds.
-  Future<void> grantView(String role, String view) async {
-    final aggregateId = '$role:view:$view';
+  Future<void> grantPermission(String role, String permissionName) async {
+    final aggregateId = '$role:$permissionName';
     final existing =
         await eventStore.backend.findEventsForAggregate(aggregateId);
     if (existing.any((e) => e.eventType == 'permission_granted')) return;
@@ -239,11 +240,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
       eventType: 'permission_granted',
       data: PermissionGrantedPayload(
         role: role,
-        permissionName: 'view:$view',
+        permissionName: permissionName,
       ).toJson(),
       initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
     );
   }
+
+  Future<void> grantView(String role, String view) =>
+      grantPermission(role, 'view:$view');
 
   // The Administrator AND the SystemOperator hold the user-management
   // permissions, so both can subscribe to the role-assignments view + the
@@ -273,6 +277,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
   ]) {
     await grantView(role, 'rave_sync_status');
   }
+  // Debug-only: the Study Coordinator may read a participant's raw diary entries
+  // via /debug/diary-entries. Granted directly (not via the action-validated role
+  // seed) because it gates a tooling endpoint, not a registered Action — there is
+  // no ACT-id/REQ behind it. Pairs the custom permission with the diary_entries
+  // view read so the endpoint can serve the canonical rows.
+  await grantPermission('StudyCoordinator', diaryDebugViewPermission);
+  await grantView('StudyCoordinator', 'diary_entries');
 
   // 4c. Role assignments — config-driven + idempotent, applied on EVERY boot
   //     (NOT inside the seed-once gate above). `bootstrapRoleAssignments` diffs
@@ -602,6 +613,23 @@ Future<PortalServerBoot> bootstrapPortalServer({
     );
   }
 
+  // Debug-only diary-entries read, gated to portal.diary.view_debug (SC).
+  Future<Response> diaryEntriesDebugHandler(Request request) async {
+    final principal = principalFromContext(request);
+    final Iterable<String> perms;
+    if (principal is UserPrincipal) {
+      final eff = await policy.effectivePermissionsFor(principal);
+      perms = eff.rolePermissions.map((p) => p.name);
+    } else {
+      perms = const <String>[];
+    }
+    if (!perms.contains(diaryDebugViewPermission)) {
+      return Response.forbidden('requires $diaryDebugViewPermission');
+    }
+    return respondWithDiaryEntries(
+        eventStore, request.url.queryParameters['participant']);
+  }
+
   final httpRouter = Router()
     ..get('/me', handlers.me)
     ..post('/actions', handlers.actions)
@@ -609,6 +637,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // it every gate fails closed (no widgets render, for any role).
     ..get('/permissions/snapshot', handlers.permissions)
     ..get('/audit', auditHandler)
+    ..get('/debug/diary-entries', diaryEntriesDebugHandler)
     ..post('/admin/rave-sync', raveSyncHandler)
     // Authed session routes (logout) — mounted inside the authed pipeline so
     // Bearer validation + principal context are present.

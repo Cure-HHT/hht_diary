@@ -10,6 +10,8 @@ dependencies:
   comms:
     path: ../../common-dart/comms
   crypto: ^3.0.7
+  diary_shared_model:
+    path: ../../common-dart/diary_shared_model
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
