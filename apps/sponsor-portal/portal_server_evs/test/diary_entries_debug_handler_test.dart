@@ -7,7 +7,7 @@ import 'dart:convert';
 
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:portal_server_evs/portal_server_evs.dart';
+import 'package:portal_server_evs/src/diary_entries_debug_handler.dart';
 import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:shelf/shelf.dart';

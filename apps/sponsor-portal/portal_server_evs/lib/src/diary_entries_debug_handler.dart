@@ -34,7 +34,9 @@ Future<Response> respondWithDiaryEntries(
 
 /// Test seam: the sort/filter core wired to a [Handler] WITHOUT auth (always
 /// allowed), so the ordering + filtering logic is unit-testable without the
-/// auth middleware. Production gating lives in the bootstrap route.
+/// auth middleware. Production gating lives in the bootstrap route — never wire
+/// this seam into a served pipeline. Intentionally NOT exported from the package
+/// barrel; the test imports it via the `src/` path.
 Handler diaryEntriesDebugHandlerForTest(EventStore eventStore) =>
     (Request request) => respondWithDiaryEntries(
         eventStore, request.url.queryParameters['participant']);
