@@ -127,6 +127,7 @@
 | DIARY-GUI-participant-task-list              | Participant Task List                      | prd-mobile-notifications.md               | 916aca8a |
 | DIARY-GUI-participation-status-badge         | Participation Status Badge                 | prd-mobile-notifications.md               | 6f306233 |
 | DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface         | prd-portal-auth.md                        | d41e7764 |
+| DIARY-GUI-portal-transport-status            | Portal Transport Status Banner             | prd-common-ui.md                          | 20c55120 |
 | DIARY-GUI-questionnaire-portal-sent-workflow | Portal-Sent Questionnaire Workflow         | prd-questionnaire-participant-workflow.md | ca0d5613 |
 | DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry               | prd-questionnaire-participant-workflow.md | 02879dd5 |
 | DIARY-GUI-rave-sync-paused-banner            | Sites and Participants Pages Paused Banner | prd-rave-sync.md                          | 75bc47b3 |
@@ -177,7 +178,7 @@
 | DIARY-DEV-portal-identity-provisioning       | Identity Platform provisioning                        | dev-portal-activation.md           | 0e3eb2b5 |
 | DIARY-DEV-portal-login-identity-verification | Login identity verification                           | dev-portal-login.md                | 4b3d6032 |
 | DIARY-DEV-portal-login-second-factor         | Login second factor                                   | dev-portal-login.md                | 9c1195e5 |
-| DIARY-DEV-portal-reaction-server             | Portal Reaction Server Shell                          | dev-portal-service.md              | d305e3c1 |
+| DIARY-DEV-portal-reaction-server             | Portal Reaction Server Shell                          | dev-portal-service.md              | 1ee11ba6 |
 | DIARY-DEV-portal-reset-code-lifecycle        | Password reset code lifecycle                         | dev-portal-password-reset.md       | 8bc6a227 |
 | DIARY-DEV-portal-reset-password-update       | Password reset credential update                      | dev-portal-password-reset.md       | 4972e2a5 |
 | DIARY-DEV-portal-reset-session-termination   | Password reset session termination                    | dev-portal-password-reset.md       | 7805b6aa |

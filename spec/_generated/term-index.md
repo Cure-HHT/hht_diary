@@ -1049,6 +1049,7 @@
 - DIARY-PRD-session-management-G
 - DIARY-DEV-portal-session-token:section:1
 - DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-reaction-server:section:1
 - DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-user-authentication:section:5
 - DIARY-PRD-user-authentication-pin:section:6
@@ -2699,6 +2700,7 @@
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G
+- DIARY-GUI-portal-transport-status-A
 - DIARY-PRD-configuration-precedence-A
 - DIARY-PRD-configuration-precedence-B
 - DIARY-PRD-configuration-precedence-C
@@ -2830,6 +2832,7 @@
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-common-ui.md:42
+- DIARY-GUI-portal-transport-status:section:0
 - DIARY-PRD-configuration-precedence:section:0
 - DIARY-PRD-configuration-precedence:section:1
 - DIARY-PRD-configuration-precedence:section:2
@@ -2938,6 +2941,7 @@
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-PRD-administrator-settings-A
+- DIARY-GUI-portal-transport-status-A
 - DIARY-PRD-help-resources-A
 - DIARY-PRD-help-resources-D
 - DIARY-PRD-mobile-application-F
@@ -2964,7 +2968,7 @@
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-PRD-administrator-settings:section:0
-- rem:spec/prd-common-ui.md:3
+- DIARY-GUI-portal-transport-status:section:0
 - DIARY-PRD-help-resources:section:0
 - DIARY-PRD-help-resources:section:1
 - DIARY-PRD-help-resources:section:5
@@ -3446,6 +3450,7 @@
 - DIARY-DEV-portal-reset-password-update:section:0
 - DIARY-DEV-portal-reset-password-update:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
+- DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
 - DIARY-DEV-portal-seed-config:section:0
@@ -3462,6 +3467,8 @@
 - rem:spec/prd-common-ui.md:7
 - rem:spec/prd-common-ui.md:35
 - rem:spec/prd-common-ui.md:42
+- DIARY-GUI-portal-transport-status:section:0
+- DIARY-GUI-portal-transport-status:section:1
 - rem:spec/prd-device-linking.md:3
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-join-study-screen:section:0
