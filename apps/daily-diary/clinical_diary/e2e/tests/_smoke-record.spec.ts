@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { byId, waitForFlutter, dumpIds } from '../helpers';
+import { byId, waitForFlutter } from '../helpers';
 import { recordEpistaxis } from '../diary-actions';
 
 // Smoke: can we drive ONE finalized epistaxis entry through the real diary UI

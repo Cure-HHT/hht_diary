@@ -5,8 +5,8 @@
  * (l10n en): "Record Nosebleed", the time-dial nudge buttons (-15/-5/-1/+1/+5/+15),
  * "Set Start Time" / "Set End Time", and intensity labels (Spotting, ...).
  */
-import { Page, expect } from '@playwright/test';
-import { byId, waitForFlutter, clickMenuItem } from './helpers';
+import { Page } from '@playwright/test';
+import { byId, clickMenuItem } from './helpers';
 
 /** Click a Flutter-web control by its visible text (semantics name). */
 async function clickText(page: Page, text: string, opts: { exact?: boolean; nth?: number } = {}) {

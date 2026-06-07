@@ -8,8 +8,8 @@ import { recordEpistaxis, redeemLinkingCode } from '../diary-actions';
 // fixture (as the Study Coordinator) at the correct moments relative to the
 // trial-start watermark. Server-side assertions (event-store contents) are done
 // from bash psql after this run; this spec drives + captures.
-const PORTAL = 'http://localhost:8080';
-const SITE = 'site-1';
+const PORTAL = process.env.PORTAL || 'http://localhost:8080';
+const SITE = process.env.SITE || 'site-1';
 const P1 = process.env.PARTICIPANT || 'REF-001-001';
 const CODE = process.env.P1_CODE || '';
 const K = process.env.KEY_PREFIX || P1; // unique idempotency-key namespace
@@ -40,6 +40,9 @@ test('P1 full participant lifecycle (record -> link -> trial -> sync -> not-part
     });
     const txt = await r.text();
     console.log(`[ACTION ${actionName}] ${r.status()} ${txt}`);
+    // Fail loudly: a non-2xx portal action must fail the spec, otherwise the
+    // lifecycle can "pass" while a step (auth/validation) actually failed.
+    expect(r.ok(), `${actionName} -> ${r.status()} ${txt}`).toBeTruthy();
     return { status: r.status(), txt };
   };
 
