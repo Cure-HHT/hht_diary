@@ -2,7 +2,9 @@ name: portal_ui_evs
 description: "Event-sourced portal UI (reaction_widgets reactive web client over portal_server_evs). Beta rebuild of portal-ui."
 publish_to: 'none'
 
-version: 1.4.1+15
+# semver-only: bare version, no +N. The build id (+<sponsor_short_sha>) is
+# stamped at image-build time by callisto's portal-final.Dockerfile.
+version: 1.4.2
 
 environment:
   sdk: ^3.10.7

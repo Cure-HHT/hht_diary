@@ -325,10 +325,17 @@ class _HomeShellState extends State<_HomeShell> {
   /// the actual built artifact, no extra dependency or build-time define.
   String _version = '';
 
+  /// Server-reported version manifest from `GET /health` `.versions`:
+  /// `portal_server_evs` (semver+N), `server_commit`, `portal_ui_version`,
+  /// `portal_deployment`, `deploy` (the deploy counter), `deploy_commit`.
+  /// The app-bar shows only the deploy counter; the rest live in the popup.
+  Map<String, Object?> _serverVersions = const <String, Object?>{};
+
   @override
   void initState() {
     super.initState();
     unawaited(_loadVersion());
+    unawaited(_loadServerVersions());
   }
 
   @override
@@ -394,6 +401,89 @@ class _HomeShellState extends State<_HomeShell> {
     }
   }
 
+  Future<void> _loadServerVersions() async {
+    try {
+      // /health is public + same-origin-reachable; .versions carries the
+      // server binary id, deploy counter, and the rest of the manifest.
+      final res = await http.get(Uri.parse('$_serverUrl/health'));
+      if (!mounted || res.statusCode != 200) return;
+      final json = jsonDecode(res.body) as Map<String, Object?>;
+      final v = json['versions'];
+      if (v is Map) {
+        setState(() => _serverVersions = Map<String, Object?>.from(v));
+      }
+    } catch (_) {
+      // Best-effort: if /health is unreachable, the label falls back to the
+      // bundle version and the popup just shows fewer rows.
+    }
+  }
+
+  /// The compact label under the app-bar title: the deploy counter when the
+  /// server reports one ("Deploy #47"), else the bundle version, else nothing.
+  String _versionLabel() {
+    final deploy = _serverVersions['deploy'];
+    if (deploy is String && deploy.isNotEmpty) return 'Deploy #$deploy';
+    return _version;
+  }
+
+  /// Popup listing the full version/provenance manifest. Bundle version is the
+  /// UI's own self-report (version.json); the rest come from the server /health.
+  void _showVersionsDialog() {
+    final rows = <MapEntry<String, String>>[
+      if (_version.isNotEmpty) MapEntry('App (this bundle)', _version),
+      for (final e in const <String, String>{
+        'portal_server_evs': 'Portal server',
+        'server_commit': 'Server commit',
+        'portal_ui_version': 'Portal UI (served)',
+        'portal_deployment': 'Deployment',
+        'deploy': 'Deploy #',
+        'deploy_commit': 'Deploy commit',
+      }.entries)
+        if (_serverVersions[e.key] case final String val when val.isNotEmpty)
+          MapEntry(e.value, val),
+    ];
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Version details'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              if (rows.isEmpty)
+                const Text('No version information available.')
+              else
+                for (final r in rows)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        SizedBox(
+                          width: 150,
+                          child: Text(
+                            '${r.key}:',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Expanded(child: SelectableText(r.value)),
+                      ],
+                    ),
+                  ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _credentialLabel() {
     final p = widget.principal;
     if (p is UserPrincipal) return '${p.userId}:${p.activeRole}';
@@ -419,13 +509,31 @@ class _HomeShellState extends State<_HomeShell> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             const Text('Portal (EVS skeleton)'),
-            if (_version.isNotEmpty)
-              Text(
-                _version,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+            if (_versionLabel().isNotEmpty)
+              InkWell(
+                onTap: _showVersionsDialog,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      _versionLabel(),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2),
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 12,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],

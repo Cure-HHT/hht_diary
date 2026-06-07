@@ -32,14 +32,20 @@
 #                   `semver-only`. Standard projects carry `<semver>+N`
 #                   in pubspec.yaml; the hook bumps both. Semver-only
 #                   projects carry only `<semver>` (no `+N`); the build
-#                   identifier is composed downstream — currently only
-#                   portal-ui, whose build id is assigned by callisto's
-#                   portal-final.Dockerfile (`<semver>+cb-<short_sha>`).
+#                   identifier is composed downstream — the legacy
+#                   `portal-ui` and the EVS `portal_ui_evs`, whose build
+#                   ids are assigned by callisto's portal-final.Dockerfile
+#                   (`<semver>+<short_sha>`). NOTE: semver-only verify
+#                   rejects any `+N` in the pubspec — these stay bare.
 #
-# The project's own root is intentionally NOT a trigger path. Own-dir
-# source is caught by code_dirs; own-dir platform-native build inputs
-# (android/, ios/) are listed explicitly in trigger_paths for the apps
-# that ship them.
+# The project's own dir (lib/, bin/, assets/, web/) is caught by code_dirs.
+# Own-dir platform-native build inputs (android/, ios/) are listed
+# explicitly in trigger_paths for the apps that ship them. The package's
+# own `pubspec.yaml` is ALSO listed as a trigger for packages with
+# git-pinned deps (event_sourcing/reaction/reaction_widgets): a `ref:`
+# bump is an out-of-tree dependency change that only shows up as a
+# pubspec.yaml edit, so it must force a build (+N) bump — otherwise a
+# library upgrade would ship under an unchanged version (gate blind spot).
 
 PROJECT_DEFS=(
     # Deployable apps
@@ -47,6 +53,13 @@ PROJECT_DEFS=(
     "portal-ui|apps/sponsor-portal/portal-ui/pubspec.yaml|apps/sponsor-portal/portal-ui/lib/ apps/sponsor-portal/portal-ui/assets/ apps/sponsor-portal/portal-ui/web/|apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/common-flutter/common_widgets/lib/ tools/build/|semver-only"
     "diary_server|apps/daily-diary/diary_server/pubspec.yaml|apps/daily-diary/diary_server/lib/ apps/daily-diary/diary_server/bin/|apps/daily-diary/diary_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ database/ tools/build/|standard"
     "portal_server|apps/sponsor-portal/portal_server/pubspec.yaml|apps/sponsor-portal/portal_server/lib/ apps/sponsor-portal/portal_server/bin/|apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ database/ apps/edc/rave-integration/lib/ tools/build/|standard"
+    # EVS deployables. portal_server_evs is the compiled binary built in core
+    # (its +N gates the binary rebuild, see build-sponsor-ci.yml); its own
+    # pubspec.yaml is a trigger so event_sourcing/reaction ref bumps force +N.
+    # portal_ui_evs is semver-only (build id = sponsor short_sha, stamped by
+    # callisto portal-final.Dockerfile) — keep it bare, no +N.
+    "portal_server_evs|apps/sponsor-portal/portal_server_evs/pubspec.yaml|apps/sponsor-portal/portal_server_evs/lib/ apps/sponsor-portal/portal_server_evs/bin/|apps/sponsor-portal/portal_server_evs/pubspec.yaml apps/sponsor-portal/portal_service/lib/ apps/sponsor-portal/portal_identity/lib/ apps/common-dart/portal_actions/lib/ apps/edc/rave-integration/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ tools/build/ .github/versions.env|standard"
+    "portal_ui_evs|apps/sponsor-portal/portal_ui_evs/pubspec.yaml|apps/sponsor-portal/portal_ui_evs/lib/ apps/sponsor-portal/portal_ui_evs/web/ apps/sponsor-portal/portal_ui_evs/assets/|apps/sponsor-portal/portal_ui_evs/pubspec.yaml tools/build/|semver-only"
     # Libraries
     "trial_data_types|apps/common-dart/trial_data_types/pubspec.yaml|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/||standard"
     "diary_functions|apps/daily-diary/diary_functions/pubspec.yaml|apps/daily-diary/diary_functions/lib/|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/|standard"
