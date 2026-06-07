@@ -109,9 +109,21 @@ void main() async {
       TimezoneConverter.ensureInitialized();
 
       try {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
+        if (kIsWeb) {
+          // Web has no native google-services config, so it needs explicit options.
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
+        } else {
+          // CUR-1436 / CUR-1399: native platforms initialize from the per-flavor
+          // google-services.json / GoogleService-Info.plist, which target the
+          // cure-hht-admin project the portal sends FCM from. Passing explicit
+          // options here would override that native config and initialize against
+          // firebase_options.dart's hht-diary-mvp project, so device tokens would
+          // be minted in a different project than the sender and pushes would
+          // silently never arrive.
+          await Firebase.initializeApp();
+        }
         debugPrint('Firebase initialized successfully');
       } on FirebaseException catch (e) {
         // CUR-1278: on Android the google-services Gradle plugin's
