@@ -646,12 +646,19 @@ Future<PortalServerBoot> bootstrapPortalServer({
       ..get('/dev/users', devUsersHandler);
   }
 
+  // Resolve the version manifest once at boot (not per-request): the baked
+  // `/app/VERSIONS` (portal_server_evs=<semver>+N, server_commit=<sha>,
+  // portal_ui_version, portal_deployment — written by the image build) plus the
+  // deploy-event identity injected at deploy time as Cloud Run env vars. `/health`
+  // reports ALL of it; the UI shows the deploy counter and pops the rest.
+  final versions = resolveVersions();
+
   // Public liveness/readiness for the container start gate + deploy smoke check.
   Response healthResponse(Request _) => Response.ok(
-        jsonEncode(const <String, Object?>{
+        jsonEncode(<String, Object?>{
           'status': 'ok',
           'service': 'portal_server_evs',
-          'versions': <String, Object?>{},
+          'versions': versions,
         }),
         headers: const {'Content-Type': 'application/json'},
       );
@@ -677,6 +684,39 @@ Future<PortalServerBoot> bootstrapPortalServer({
     dispatcher: dispatcher,
     dispose: dispose,
   );
+}
+
+/// Build the `/health` version manifest: the build-baked `/app/VERSIONS`
+/// (key=value lines: `portal_server_evs=<semver>+N`, `server_commit=<sha>`,
+/// `portal_ui_version=<semver>+<sha>`, `portal_deployment=<sponsor>+<sha>`)
+/// merged with the deploy-event identity injected by the sponsor deploy
+/// workflow as Cloud Run env vars (`PORTAL_DEPLOY_SEQ`, `PORTAL_DEPLOY_SHA`).
+/// Best-effort: a missing file or unset vars just yield a smaller map (local
+/// and test runs have neither). Resolved once at boot, not per-request.
+/// Public (and parameterized) so tests can exercise the parse/merge directly.
+Map<String, Object?> resolveVersions({
+  String manifestPath = '/app/VERSIONS',
+  Map<String, String>? environment,
+}) {
+  final env = environment ?? Platform.environment;
+  final out = <String, Object?>{};
+  final file = File(manifestPath);
+  if (file.existsSync()) {
+    for (final line in file.readAsLinesSync()) {
+      final sep = line.indexOf('=');
+      if (sep <= 0) continue;
+      out[line.substring(0, sep).trim()] = line.substring(sep + 1).trim();
+    }
+  }
+  final seq = env['PORTAL_DEPLOY_SEQ']?.trim();
+  if (seq != null && seq.isNotEmpty) {
+    out['deploy'] = seq;
+  }
+  final deploySha = env['PORTAL_DEPLOY_SHA']?.trim();
+  if (deploySha != null && deploySha.isNotEmpty) {
+    out['deploy_commit'] = deploySha;
+  }
+  return out;
 }
 
 /// Resolve the role-assignment seed. A deployed environment sets

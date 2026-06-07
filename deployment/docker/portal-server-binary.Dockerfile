@@ -16,13 +16,22 @@ WORKDIR /workspace/src/apps/sponsor-portal/portal_server_evs
 # Ensure deps are resolved for this package (sponsor-ci may have stale .dart_tool)
 RUN dart pub get --offline
 
+# Core git short_sha of the commit this binary was compiled from. CI passes
+# build-sponsor-ci's short_sha; a standalone build leaves it "unknown". This is
+# the AXIS-A provenance pointer (exact source of THESE bytes) that pairs with
+# the human-facing portal_server_evs=<semver>+N. Because the binary build is
+# gated on +N (build-sponsor-ci.yml), this is "the commit that last changed the
+# binary" — truthful by construction.
+ARG SERVER_COMMIT=unknown
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN mkdir -p /workspace/out && \
     set -eu && \
     PORTAL_EVS_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //') && \
-    echo "Compiling portal_server_evs ${PORTAL_EVS_VERSION}" && \
+    echo "Compiling portal_server_evs ${PORTAL_EVS_VERSION} (commit ${SERVER_COMMIT})" && \
     dart compile exe bin/server.dart -o /workspace/out/server && \
-    printf 'portal_server_evs=%s\n' "$PORTAL_EVS_VERSION" > /workspace/out/VERSIONS && \
+    { printf 'portal_server_evs=%s\n' "$PORTAL_EVS_VERSION"; \
+      printf 'server_commit=%s\n' "$SERVER_COMMIT"; } > /workspace/out/VERSIONS && \
     test -f /workspace/out/server
 
 # Minimal image with just the binary

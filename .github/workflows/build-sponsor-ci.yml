@@ -240,7 +240,38 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Build-gate: rebuild the binary ONLY when portal_server_evs's version
+      # string changed vs the published main-latest. The pre-commit hook bumps
+      # that version (+N, and patch on code change) iff the binary's tracked
+      # inputs changed (project-defs.sh) — so "version unchanged" means "same
+      # bytes", and rebuilding would just mint a confusingly-new artifact id for
+      # an identical binary. Realizes the invariant: new build <=> new +N.
+      # On skip, main-latest already points at the current binary (untouched),
+      # and we intentionally do NOT mint a <short_sha> tag for this commit —
+      # the sha tag only exists for commits that actually produced a binary.
+      - name: Gate - rebuild only if portal_server_evs version changed
+        id: gate
+        run: |
+          set -euo pipefail
+          SRC=$(grep '^version:' apps/sponsor-portal/portal_server_evs/pubspec.yaml | sed 's/version: //')
+          echo "source    portal_server_evs=$SRC"
+          PUB=""
+          if docker pull -q "${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest" >/dev/null 2>&1; then
+            cid=$(docker create "${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest")
+            PUB=$(docker cp "$cid:/app/VERSIONS" - 2>/dev/null | tar -xO 2>/dev/null | sed -n 's/^portal_server_evs=//p' || true)
+            docker rm "$cid" >/dev/null 2>&1 || true
+          fi
+          echo "published portal_server_evs=${PUB:-<none>}"
+          if [ -n "$PUB" ] && [ "$PUB" = "$SRC" ]; then
+            echo "needs_build=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=portal-server gate::Version unchanged ($SRC) - skipping binary rebuild; main-latest already current."
+          else
+            echo "needs_build=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=portal-server gate::Version changed (${PUB:-none} -> $SRC) - rebuilding binary."
+          fi
+
       - name: Build and push portal-server
+        if: steps.gate.outputs.needs_build == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -252,5 +283,6 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest
           build-args: |
             SPONSOR_CI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}
+            SERVER_COMMIT=${{ needs.build-sponsor-ci.outputs.short_sha }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:buildcache,mode=max
