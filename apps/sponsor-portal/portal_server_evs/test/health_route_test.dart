@@ -33,6 +33,7 @@ void main() {
         ..writeAsStringSync([
           'portal_server_evs=0.5.1+7',
           'server_commit=abc1234',
+          'diary_app=0.9.56+134',
           'portal_ui_version=1.4.1+def5678',
           'portal_deployment=callisto+9abcdef',
           '', // tolerate blank lines
@@ -48,6 +49,7 @@ void main() {
 
       expect(v['portal_server_evs'], '0.5.1+7');
       expect(v['server_commit'], 'abc1234');
+      expect(v['diary_app'], '0.9.56+134');
       expect(v['portal_ui_version'], '1.4.1+def5678');
       expect(v['portal_deployment'], 'callisto+9abcdef');
       expect(v['deploy'], '47');
