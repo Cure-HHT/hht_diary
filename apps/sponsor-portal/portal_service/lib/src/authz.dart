@@ -126,8 +126,8 @@ Future<EventStore> openPortalEventStore({
     //   the latest branding configuration per sponsor for the JWT-gated asset
     //   endpoint + diary branding fetch.
     ..register(sponsorBrandingSpec)
-    // Implements: DIARY-DEV-push-token-routing/A — participant_fcm_tokens materializes
-    //   the current active FCM token per (participant, platform) for push dispatch.
+    // participant_fcm_tokens materializes the current active FCM token per
+    //   (participant, platform) for push dispatch.
     ..register(fcmActiveTokensSpec)
     // Implements: DIARY-DEV-participant-ingest/C — ingested diary events materialize
     //   into the diary_entries view.

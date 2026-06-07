@@ -2,10 +2,6 @@
 //   push path (FcmChannel); the intent event is not the delivery mechanism.
 // Implements: DIARY-DEV-outgoing-intent-correlation/C — the flowToken minted on the
 //   intent event is carried in the FCM data payload across the non-event-sourced hop.
-// Implements: DIARY-DEV-push-token-routing/B — recipient token selected from the
-//   participant_fcm_tokens projection; no active token -> notification_dispatch_failed.
-// Implements: DIARY-DEV-push-token-routing/C — terminal UNREGISTERED emits
-//   fcm_token_deactivated so the projection drops the dead token.
 import 'dart:async';
 import 'dart:io';
 
@@ -112,8 +108,8 @@ class NotificationDispatchReactor {
     return event.data['participant_id'] as String?;
   }
 
-  // Implements: DIARY-DEV-push-token-routing/B — select the participant's active
-  //   routing token(s) from the participant_fcm_tokens projection. Rows are keyed
+  // Select the participant's active routing token(s) from the
+  //   participant_fcm_tokens projection. Rows are keyed
   //   "{participantId}:fcm:{platform}"; filter by the participant prefix.
   Future<List<_ActiveToken>> _activeTokensFor(String participantId) async {
     final rows = await backend.findViewRows('participant_fcm_tokens');
@@ -167,8 +163,8 @@ class NotificationDispatchReactor {
     );
   }
 
-  // Implements: DIARY-DEV-push-token-routing/C — emit fcm_token_deactivated so the
-  //   participant_fcm_tokens projection drops the dead token (removeEventTypes).
+  // Emit fcm_token_deactivated so the participant_fcm_tokens projection drops
+  //   the dead token (removeEventTypes).
   Future<void> _deactivateToken(String tokenAggregateId) async {
     await eventStore.append(
       entryType: 'fcm_token_deactivated',

@@ -480,7 +480,6 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //     notification_dispatch_failed (and fcm_token_deactivated on a dead token).
   //     Gated by FCM_ENABLED so a deploy without FCM credentials skips it.
   // Implements: DIARY-DEV-outgoing-intent-correlation/B+C
-  // Implements: DIARY-DEV-push-token-routing/B+C
   final fcmEnabled = (env['FCM_ENABLED'] ?? 'true') != 'false';
   final fcmChannel = fcmEnabled
       ? FcmChannel(

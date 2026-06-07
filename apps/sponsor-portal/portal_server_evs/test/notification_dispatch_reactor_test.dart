@@ -9,7 +9,6 @@ import 'support/fake_fcm_channel.dart';
 
 void main() {
   // Verifies: DIARY-DEV-outgoing-intent-correlation/B+C
-  // Verifies: DIARY-DEV-push-token-routing/B+C
   late EventStore store;
   late StorageBackend backend;
   late FakeFcmChannel channel;

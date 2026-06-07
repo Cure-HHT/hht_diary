@@ -1,4 +1,4 @@
-// Implements: DIARY-DEV-push-token-routing/A — participant_fcm_tokens materializes
+// participant_fcm_tokens materializes
 //   the current active FCM token per (participant, platform) by folding the
 //   device-authored fcm_token_registered events that cross-post via /ingest.
 //   The aggregate id is "{participantId}:fcm:{platform}", so AggregateIdKey
