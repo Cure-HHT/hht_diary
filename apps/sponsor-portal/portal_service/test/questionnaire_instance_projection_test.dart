@@ -8,11 +8,10 @@ import 'package:test/test.dart';
 
 void main() {
   test('questionnaire_assigned folds into a per-instance row', () async {
-    final db = await newDatabaseFactoryMemory().openDatabase(
-      'qi-${DateTime.now().microsecondsSinceEpoch}.db',
-    );
+    final db = await newDatabaseFactoryMemory().openDatabase('qi-1');
     final backend = SembastBackend(database: db);
     final store = await openPortalEventStore(backend: backend);
+    addTearDown(store.close);
 
     await store.append(
       entryType: 'questionnaire_assigned',
@@ -35,6 +34,5 @@ void main() {
     expect(row['participant_id'], 'P-1');
     expect(row['type'], 'nose_hht');
     expect(row['study_event'], 'Cycle 1 Day 1');
-    await store.close();
   });
 }
