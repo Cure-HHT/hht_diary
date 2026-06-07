@@ -77,6 +77,7 @@ class EpistaxisEventPayload {
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
+      'participantId': participantId,
       'startTime': startTime,
       'startTimeZone': startTimeZone,
       'startTimeUtcOffset': startTimeUtcOffset,
@@ -84,7 +85,6 @@ class EpistaxisEventPayload {
       if (endTimeZone != null) 'endTimeZone': endTimeZone,
       if (endTimeUtcOffset != null) 'endTimeUtcOffset': endTimeUtcOffset,
       if (intensity != null) 'intensity': intensity!.name,
-      'participantId': participantId,
     };
   }
 }
