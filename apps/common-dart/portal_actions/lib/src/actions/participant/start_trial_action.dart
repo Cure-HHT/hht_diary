@@ -92,6 +92,15 @@ class StartTrialAction extends Action<StartTrialInput, StartTrialResult> {
           eventType: 'participant_trial_started',
           flowToken: flowToken,
           data: <String, Object?>{
+            // NOTE: started_at is folded into participant_record by a key-wise
+            // merge (latest-wins), so re-running Start Trial OVERWRITES the
+            // original trial-start date — moving the diary's sync watermark
+            // forward and dropping pre-reactivation entries. This action is
+            // read-free (ActionContext has no state access) so it cannot itself
+            // be first-write-wins; re-issue after a reactivate+re-link is
+            // prevented at the portal UI, which reports an already-started,
+            // re-linked participant as Trial Active (effectiveParticipantStatus)
+            // and does not offer Start Trial.
             // Canonical UTC with a 'Z' designator (matches every other portal
             // timestamp, e.g. used_at/activated_at). Without toUtc() a non-UTC
             // requestStartedAt serializes WITHOUT 'Z', so the diary parses it as

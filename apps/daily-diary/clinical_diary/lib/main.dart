@@ -471,6 +471,13 @@ class _AppRootState extends State<AppRoot> {
         if (syncCycle != null) {
           try {
             _diarySyncTriggers = await installDiarySyncTriggers(
+              // Foreground-only poll. Portal-originated lifecycle changes
+              // (trial-start, disconnect, not-participating) reach the diary
+              // only via this /user/state reconcile, so a 15-min default left
+              // them invisible until an app relaunch. 60s keeps the foreground
+              // experience near-live without a push channel (FCM push is the
+              // eventual primary path, deferred to CUR-1436).
+              periodicInterval: const Duration(seconds: 60),
               onTrigger: () async {
                 await _reconcileDiaryScope(diaryScope);
                 // Pause outbound sync while the participant is disconnected or
@@ -860,6 +867,15 @@ class _AppRootState extends State<AppRoot> {
     final token = _notificationService?.currentToken;
     if (token != null) {
       _registerFcmToken(token);
+    }
+    // Reconcile the new-stack scope immediately on link so portal-delivered
+    // sponsor settings (incl. branding.* via the /link sponsor_settings batch)
+    // are applied to the diary's settings log right now — the reactive app root
+    // then renders sponsor branding live, instead of waiting for the next
+    // periodic/resume reconcile (or an app relaunch).
+    final diaryScope = _diaryScope;
+    if (diaryScope != null) {
+      unawaited(_reconcileDiaryScope(diaryScope));
     }
     // REQ-CAL-p00081: Discover tasks immediately after linking
     unawaited(_taskService.syncTasks(_enrollmentService));

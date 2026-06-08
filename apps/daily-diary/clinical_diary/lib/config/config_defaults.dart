@@ -29,6 +29,11 @@ Future<SponsorUiConfig> loadDeploymentUiDefaults({AssetBundle? bundle}) async {
     return v is String ? v : fallback;
   }
 
+  String? nullableStr(String key) {
+    final v = json[key];
+    return v is String ? v : null;
+  }
+
   bool boolean(String key, bool fallback) {
     final v = json[key];
     return v is bool ? v : fallback;
@@ -41,5 +46,6 @@ Future<SponsorUiConfig> loadDeploymentUiDefaults({AssetBundle? bundle}) async {
     defaultFont: str(uiDefaultFontKey, d.defaultFont),
     availableLanguages: list(uiAvailableLanguagesKey, d.availableLanguages),
     defaultLanguage: str(uiDefaultLanguageKey, d.defaultLanguage),
+    notParticipatingMessage: nullableStr(uiNotParticipatingMessageKey),
   );
 }

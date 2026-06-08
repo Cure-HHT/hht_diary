@@ -52,6 +52,8 @@ const _params = <_Param>[
   _Param('ui.availableLanguages', 'PORTAL_SEED_UI_AVAILABLE_LANGUAGES',
       _parseList),
   _Param('ui.defaultLanguage', 'PORTAL_SEED_UI_DEFAULT_LANGUAGE', _parseString),
+  _Param('ui.notParticipatingMessage',
+      'PORTAL_SEED_UI_NOT_PARTICIPATING_MESSAGE', _parseString),
 ];
 
 /// Seeds every configured sponsor configuration parameter into the

@@ -8,6 +8,7 @@ import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
+import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/day_disposition.dart';
@@ -154,6 +155,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
     );
+    // React live when a reconcile detects the portal marked the participant
+    // not-participating: it clears enrollment, so re-read enrollment to revert
+    // the sponsor branding (gated on active enrollment) without a relaunch.
+    widget.enrollmentService.notParticipatingNotifier.addListener(
+      _onNotParticipatingChanged,
+    );
     // Forward-looking: surface incomplete surveys via a modal route. The
     // FCM-prompt handler that creates the checkpoint is out of scope for this
     // ticket, but the routing exists so it can land later without screen edits.
@@ -193,6 +200,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     widget.enrollmentService.disconnectedNotifier.removeListener(
       _onDisconnectionChanged,
+    );
+    widget.enrollmentService.notParticipatingNotifier.removeListener(
+      _onNotParticipatingChanged,
     );
     _scrollController.dispose();
     super.dispose();
@@ -235,10 +245,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Only reads from the notifier — does NOT call isDisconnected() or
   /// _checkDisconnectionStatus() to avoid a race with the in-flight
   /// SharedPreferences write inside setDisconnected().
+  /// A portal-driven not-participating transition (detected by a scope
+  /// reconcile) clears enrollment. Re-read enrollment so the sponsor branding,
+  /// which is gated on active enrollment, reverts to the app default live.
+  void _onNotParticipatingChanged() {
+    if (!mounted) return;
+    // Rebuild now so the branding gate re-reads the notifier this frame (the
+    // gate reads the notifier directly, so it reverts without a page change);
+    // also refresh _isEnrolled for the rest of the screen.
+    setState(() {});
+    unawaited(_checkEnrollmentStatus());
+  }
+
   void _onDisconnectionChanged() {
     if (!mounted) return;
     final isDisconnected = widget.enrollmentService.disconnectedNotifier.value;
     setState(() => _isDisconnected = isDisconnected);
+    // Disconnect also clears enrollment; re-read so branding reverts live.
+    unawaited(_checkEnrollmentStatus());
     if (isDisconnected) {
       // Clear cached tasks — disconnected participants have no valid questionnaires
       unawaited(widget.taskService.clearAll());
@@ -901,6 +925,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // record. Each is a clearly-delimited region below.
     final incompleteCount = view.incompleteEntries.length;
     final overlapCount = overlapPairs(view).length;
+    // Sponsor branding is displayed only while ACTIVELY participating: on
+    // not-participating the app stops applying this sponsor-specific rule.
+    // Implements: DIARY-PRD-participant-mark-not-participating/D
+    // Gate on the live lifecycle notifiers rather than a re-read of enrollment: the
+    // not-participating notifier fires from the reconcile BEFORE its
+    // clearEnrollment() completes, so re-reading `isEnrolled()` would race and
+    // leave stale branding until a page change. Reading the notifiers here makes
+    // the revert land on the reconcile poll with no navigation required.
+    final activelyParticipating =
+        _isEnrolled &&
+        !widget.enrollmentService.notParticipatingNotifier.value &&
+        !widget.enrollmentService.disconnectedNotifier.value;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -916,7 +952,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   // Logo menu on the left
                   LogoMenu(
-                    sponsorLogoBuilder: _brandingLogoBuilder,
+                    sponsorLogoBuilder: activelyParticipating
+                        ? _brandingLogoBuilder
+                        : null,
                     onResetAllData: _handleResetAllData,
                     resetEnabled: _canResetData,
                     isEnrolled: _isEnrolled,
@@ -934,7 +972,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        AppLocalizations.of(context).appTitle,
+                        // Show the sponsor title while actively enrolled; revert
+                        // to the app default otherwise (the branding settings are
+                        // retained per DIARY-DEV-sponsor-branding-assets/D, but
+                        // only displayed during active participation).
+                        (activelyParticipating &&
+                                (widget.sponsorBranding.title?.isNotEmpty ??
+                                    false))
+                            ? widget.sponsorBranding.title!
+                            : AppLocalizations.of(context).appTitle,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
@@ -1216,6 +1262,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             sitePhoneNumber: _sitePhoneNumber,
           ),
         ),
+      // Not-participating: a GENTLE, informational end-of-participation notice
+      // (distinct from the alarming disconnection banner above), so the
+      // participant is not surprised when sponsor branding + sync stop. Text is
+      // sponsor-configurable (ui.notParticipatingMessage) with a localized
+      // default. Mutually exclusive with disconnection (latest lifecycle event).
+      // Implements: DIARY-BASE-not-participating-notice/A+C
+      if (widget.enrollmentService.notParticipatingNotifier.value)
+        _HomeAlert(
+          icon: Icons.info_outline,
+          color: Colors.blueGrey.shade600,
+          title: _notParticipatingMessage(context),
+          banner: _notParticipatingBanner(context),
+        ),
       // Sync wedged: a destination FIFO is wedged on an unknown event-type
       // bridge mismatch — participant should update the app to drain it.
       if (_hasWedgedFifo)
@@ -1251,6 +1310,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           banner: _overlapBanner(context, view, overlapCount),
         ),
     ];
+  }
+
+  /// Resolved not-participating notice text: sponsor-configured value if set,
+  /// else the diary's localized default.
+  // Implements: DIARY-BASE-not-participating-notice/B
+  String _notParticipatingMessage(BuildContext context) =>
+      SponsorUiConfigScope.of(context).notParticipatingMessage ??
+      AppLocalizations.of(context).leftClinicalTrial;
+
+  /// Gentle, informational not-participating notice (the bespoke inline form).
+  // Implements: DIARY-BASE-not-participating-notice/A
+  Widget _notParticipatingBanner(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.blueGrey.shade700, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _notParticipatingMessage(context),
+              style: TextStyle(
+                color: Colors.blueGrey.shade800,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Orange incomplete-records banner (the bespoke inline form).

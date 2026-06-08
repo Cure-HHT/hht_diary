@@ -739,6 +739,10 @@ impact in HHT patients. May be collected as a questionnaire within the
 Diary app during clinical trials. Specific to HHT clinical trials.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
+**Not-Participating Notice**
+: An informational notice displayed on the **Main Screen** when the *Participant*'s status is **Not Participating**.
+*Defined in: DIARY-BASE-not-participating-notice (DIARY)*
+
 ## O
 
 **Offline-First**

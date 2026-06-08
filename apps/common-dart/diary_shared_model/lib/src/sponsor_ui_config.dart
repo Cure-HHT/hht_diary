@@ -28,6 +28,10 @@ const String uiDefaultFontKey = 'ui.defaultFont';
 const String uiAvailableLanguagesKey = 'ui.availableLanguages';
 const String uiDefaultLanguageKey = 'ui.defaultLanguage';
 
+/// Sponsor-configurable message shown in the on-screen not-participating notice
+/// (null -> the diary's localized default). A free-form value-override string.
+const String uiNotParticipatingMessageKey = 'ui.notParticipatingMessage';
+
 /// Sponsor/deployment-controlled UI configuration: the animation capability gate
 /// and the font/language allow-sets with their required defaults. These are never
 /// participant-editable; the participant only picks within an allow-set.
@@ -38,6 +42,7 @@ class SponsorUiConfig {
     this.defaultFont = 'Roboto',
     this.availableLanguages = kPlatformLanguageCodes,
     this.defaultLanguage = 'en',
+    this.notParticipatingMessage,
   });
 
   final bool useAnimations;
@@ -45,6 +50,9 @@ class SponsorUiConfig {
   final String defaultFont;
   final List<String> availableLanguages;
   final String defaultLanguage;
+
+  /// Sponsor-configured not-participating notice text; null -> localized default.
+  final String? notParticipatingMessage;
 
   /// The hardcoded code-default layer.
   static const SponsorUiConfig codeDefault = SponsorUiConfig();
@@ -62,6 +70,11 @@ class SponsorUiConfig {
     }
 
     String stringOf(String key, String fallback) {
+      final v = settings[key]?.value;
+      return v is String ? v : fallback;
+    }
+
+    String? nullableStringOf(String key, String? fallback) {
       final v = settings[key]?.value;
       return v is String ? v : fallback;
     }
@@ -103,6 +116,10 @@ class SponsorUiConfig {
         stringOf(uiDefaultLanguageKey, deploymentDefaults.defaultLanguage),
         languages,
       ),
+      notParticipatingMessage: nullableStringOf(
+        uiNotParticipatingMessageKey,
+        deploymentDefaults.notParticipatingMessage,
+      ),
     );
   }
 
@@ -113,7 +130,8 @@ class SponsorUiConfig {
       _listEq(other.availableFonts, availableFonts) &&
       other.defaultFont == defaultFont &&
       _listEq(other.availableLanguages, availableLanguages) &&
-      other.defaultLanguage == defaultLanguage;
+      other.defaultLanguage == defaultLanguage &&
+      other.notParticipatingMessage == notParticipatingMessage;
 
   @override
   int get hashCode => Object.hash(
@@ -122,6 +140,7 @@ class SponsorUiConfig {
     defaultFont,
     Object.hashAll(availableLanguages),
     defaultLanguage,
+    notParticipatingMessage,
   );
 }
 
