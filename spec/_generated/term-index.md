@@ -527,7 +527,7 @@
 - DIARY-PRD-sla-service-availability-E
 - DIARY-PRD-sla-incident-severity-F
 - DIARY-PRD-sla-disaster-recovery-C
-- DIARY-DEV-node-sync-topology:section:1
+- DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-schema-version-check:section:0
 - DIARY-PRD-questionnaire-versioning:section:0
 - DIARY-GUI-dev-admin-rave-sync-card:section:0
@@ -686,6 +686,7 @@
 - DIARY-DEV-local-participant-authorization:section:1
 - DIARY-DEV-inbound-event-on-receipt:section:0
 - DIARY-DEV-node-sync-topology:section:1
+- DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-outgoing-intent-correlation:section:1
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-participant-link-issuance:section:0
@@ -1660,6 +1661,7 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-OPS-rave-sync-cooldown-D
 - DIARY-OPS-rave-sync-hard-lockout-B
+- DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-local-data-reset:section:0
 - DIARY-BASE-local-data-reset:section:1
 - DIARY-BASE-sponsor-requested-settings:section:0
@@ -1672,6 +1674,8 @@
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-local-participant-authorization:section:1
+- DIARY-DEV-node-sync-topology:section:1
+- DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-participant-site-index:section:0
@@ -2809,8 +2813,10 @@
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-deployment-config-defaults:section:0
+- DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-node-sync-topology:section:1
+- DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
@@ -2961,7 +2967,9 @@
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-BASE-audit-trail:section:1
+- DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-node-sync-topology:section:1
+- DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-PRD-administrator-settings:section:0
 - rem:spec/prd-common-ui.md:3
