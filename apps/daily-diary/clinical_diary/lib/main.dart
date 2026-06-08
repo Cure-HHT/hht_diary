@@ -72,6 +72,16 @@ import 'package:uuid/uuid.dart';
 /// SharedPreferences key for the persisted device install UUID.
 const _kDeviceIdPrefsKey = 'clinical_diary.device_id';
 
+/// Foreground sync-poll interval in seconds. Default 60s; overridable via
+/// `--dart-define=DIARY_SYNC_PERIODIC_SECONDS=<n>`. The push-transport e2e sets
+/// a large value so the periodic /state poll cannot fire during the test —
+/// a prompt UI update after a portal action then proves it was push-delivered,
+/// not poll-delivered. Implements: DIARY-DEV-pluggable-push-transport/D
+const int _kSyncPeriodicSeconds = int.fromEnvironment(
+  'DIARY_SYNC_PERIODIC_SECONDS',
+  defaultValue: 60,
+);
+
 void main() async {
   // Security (CUR-1169): silence debugPrint in release builds. Flutter's
   // debugPrint is NOT stripped from release; it forwards to the platform log
@@ -521,8 +531,11 @@ class _AppRootState extends State<AppRoot> {
               // via this /user/state reconcile, kept as the BACKUP path. 60s
               // keeps the foreground experience near-live; push is the PRIMARY
               // trigger (onFcmReceipt below, CUR-1436) — FCM in the cloud, the
-              // local-push WS on the local-stack.
-              periodicInterval: const Duration(seconds: 60),
+              // local-push WS on the local-stack. The interval is overridable
+              // via --dart-define=DIARY_SYNC_PERIODIC_SECONDS so the push-
+              // transport e2e can stretch the poll and isolate the push path
+              // (a prompt UI update under a long poll can only be push-driven).
+              periodicInterval: const Duration(seconds: _kSyncPeriodicSeconds),
               onFcmReceipt: _recordFcmReceipt,
               // Local-stack: read pushes from the local-push WS controller
               // instead of FirebaseMessaging. No onOpenedApp (no tray).
