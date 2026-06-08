@@ -34,8 +34,10 @@
 #   PG_CONTAINER  local-stack postgres container       (default reference-local-postgres-1)
 #   SITE          site id                              (default site-1)
 #   PARTICIPANT   participant id (must exist in EDC seed)  (default REF-001-001)
-#   SC_BEARER     skip provisioning; use this SC creds (default e2e-sc@reference.local)
-#   P1_CODE       skip code issuance; use this code    (default: freshly issued)
+#   SC_BEARER     SC credential (email in dev mode, or session token). Set this
+#                 AND P1_CODE together to skip provisioning entirely.
+#   P1_CODE       pre-issued linking code. Set this AND SC_BEARER together to
+#                 skip provisioning. (Set NEITHER to auto-provision on local-stack.)
 #
 # NOTE: the lifecycle leaves PARTICIPANT in a terminal not-participating state
 # and consumes its code. Re-running against the same participant on the same DB
@@ -83,17 +85,30 @@ act() {
 # --- 1. provision + issue code (skipped if caller supplied SC_BEARER + P1_CODE) ---
 SC_BEARER="${SC_BEARER:-}"
 P1_CODE="${P1_CODE:-}"
-if [[ -z "$SC_BEARER" || -z "$P1_CODE" ]]; then
+# SC_BEARER and P1_CODE are a pair: set BOTH to skip provisioning and run against
+# a pre-provisioned / deployed (session-auth) portal, or set NEITHER to
+# auto-provision on local-stack. Supplying only one is ambiguous (provisioning
+# would overwrite the one you set), so reject it.
+if { [[ -n "$SC_BEARER" ]] && [[ -z "$P1_CODE" ]]; } || { [[ -z "$SC_BEARER" ]] && [[ -n "$P1_CODE" ]]; }; then
+  echo "ERROR: SC_BEARER and P1_CODE must be set together, or neither." >&2
+  echo "       Both set  => use a pre-issued code + SC creds (deployed portal)." >&2
+  echo "       Neither   => auto-provision + issue a fresh code on local-stack." >&2
+  exit 1
+fi
+if [[ -z "$SC_BEARER" ]]; then   # neither set -> auto-provision on local-stack
   ADMIN="e2e-admin@reference.local"
-  SC="e2e-sc@reference.local"
+  # SC email is namespaced by SITE so per-site runs don't collide on one account.
+  SC="e2e-sc-${SITE}@reference.local"
   FUT="2030-01-01T00:00:00Z"
   echo "==> Provisioning (idempotent): SystemOperator -> Administrator -> Study Coordinator"
   # Create + role-assign are stable-keyed: re-runs return the cached result.
+  # Admin is site-independent; the SC and its scopes are namespaced by SITE so a
+  # different SITE never returns a cached result bound to the wrong site.
   act "$SYSOP"  ACT-OPS-003 "{\"email\":\"$ADMIN\",\"name\":\"E2E Admin\"}"                                                              "e2e-mkadmin"  >/dev/null
   act "$SYSOP"  ACT-USR-007 "{\"userId\":\"$ADMIN\",\"role\":\"Administrator\",\"scope\":{\"class\":\"tier\",\"value\":\"staff\"}}"       "e2e-admrole"  >/dev/null
-  act "$ADMIN"  ACT-USR-001 "{\"email\":\"$SC\",\"name\":\"E2E SC\",\"activationExpiresAt\":\"$FUT\",\"roles\":[\"StudyCoordinator\"],\"sites\":[\"$SITE\"]}" "e2e-mksc" >/dev/null
-  act "$ADMIN"  ACT-USR-007 "{\"userId\":\"$SC\",\"role\":\"StudyCoordinator\",\"scope\":{\"class\":\"tier\",\"value\":\"staff\"}}"       "e2e-scrole"   >/dev/null
-  act "$ADMIN"  ACT-USR-008 "{\"userId\":\"$SC\",\"role\":\"StudyCoordinator\",\"site\":\"$SITE\"}"                                       "e2e-scsite"   >/dev/null
+  act "$ADMIN"  ACT-USR-001 "{\"email\":\"$SC\",\"name\":\"E2E SC\",\"activationExpiresAt\":\"$FUT\",\"roles\":[\"StudyCoordinator\"],\"sites\":[\"$SITE\"]}" "e2e-mksc-$SITE" >/dev/null
+  act "$ADMIN"  ACT-USR-007 "{\"userId\":\"$SC\",\"role\":\"StudyCoordinator\",\"scope\":{\"class\":\"tier\",\"value\":\"staff\"}}"       "e2e-scrole-$SITE"   >/dev/null
+  act "$ADMIN"  ACT-USR-008 "{\"userId\":\"$SC\",\"role\":\"StudyCoordinator\",\"site\":\"$SITE\"}"                                       "e2e-scsite-$SITE"   >/dev/null
   SC_BEARER="$SC"
 
   echo "==> Issuing a fresh linking code for $PARTICIPANT @ $SITE (ACT-PAT-001)"
@@ -125,23 +140,31 @@ PORTAL="$PORTAL" SITE="$SITE" PARTICIPANT="$PARTICIPANT" \
   P1_CODE="$P1_CODE" SC_BEARER="$SC_BEARER" KEY_PREFIX="$PARTICIPANT-$RUN_ID" \
   npx playwright test tests/p1-lifecycle.spec.ts "$@"
 SPEC_RC=$?
+set -e   # restore fail-fast (disabled above only to capture SPEC_RC)
 cd "$APP_DIR"
 
-# --- 4. verify the sync watermark gated correctly (event store) ---
+# --- 4. verify the sync watermark OPENED after Start Trial (event store) ---
 # Synced epistaxis entries tie to the participant via initiator->>'user_id'.
-# Happy path: the 3 post-trial entries reach the store; the 2 pre-link entries
-# do NOT (they predate the trial-start watermark). On a FRESH DB the count is
-# exactly 3; on a reused DB it accumulates, so we gate on ">= 3 synced".
+# This assertion proves only the POSITIVE half: the 3 post-trial entries reached
+# the store, i.e. the trial-start watermark opened outbound sync (a count of 0 is
+# the classic trial-start watermark / timezone bug). It does NOT, on its own,
+# prove the pre-link entries were gated OUT — that needs a known-empty baseline.
+# On a FRESH DB the count is exactly 3 (post-trial only; the 2 pre-link entries
+# are absent), which proves both halves; on a reused DB the count accumulates, so
+# the portable gate here is ">= 3". For the pre-link-gating assertion, run on a
+# fresh DB and check the count equals the number of post-trial entries (3).
+# psql/docker errors are intentionally NOT silenced: under set -e a failure here
+# (wrong PG_CONTAINER, psql missing, ...) aborts with the root cause visible.
 echo "==> Verifying sync gating in the event store"
 SYNCED="$(docker exec "$PG_CONTAINER" psql -U postgres -d hht_diary -t -A -c \
-  "select count(*) from events where aggregate_type='DiaryEntry' and entry_type='epistaxis_event' and initiator->>'user_id'='$PARTICIPANT';" 2>/dev/null | tr -d '[:space:]')"
+  "select count(*) from events where aggregate_type='DiaryEntry' and entry_type='epistaxis_event' and initiator->>'user_id'='$PARTICIPANT';" | tr -d '[:space:]')"
 echo "    synced epistaxis events for $PARTICIPANT = ${SYNCED:-?}"
 if [[ "${SYNCED:-0}" -ge 3 ]]; then
   echo "    PASS: post-trial entries synced (watermark opened sync after Start Trial)"
 else
   echo "    FAIL: expected >= 3 synced post-trial entries, got ${SYNCED:-0}" >&2
   echo "          (a count of 0 is the classic trial-start watermark / timezone bug)" >&2
-  [[ $SPEC_RC -eq 0 ]] && SPEC_RC=1
+  if [[ $SPEC_RC -eq 0 ]]; then SPEC_RC=1; fi
 fi
 
 echo "==> Artifacts under e2e/test-results/ (screenshots, p1-link.json, p1-ingest-posts.json)"

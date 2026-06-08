@@ -14,19 +14,24 @@ to the trial-start sync watermark.
 
 ## What it exercises
 
-The 12-step lifecycle validated in the CUR-1437 e2e (Pass 1, local-stack,
-12/12 green):
+What the automated runner + `p1-lifecycle.spec.ts` exercise, in order:
 
 1. Bootstrap (portal self-creates its event store on boot).
 2. Record 2 epistaxis entries **before linking** — these must NOT sync.
-3-4. SystemOperator provisions an Administrator; the Administrator provisions a
-   Study Coordinator + CRA (provisioning is **create + assign** — see below).
-5. SC issues a linking code (`ACT-PAT-001`); the diary redeems it (`/api/v1/user/link`).
-6. SC starts the trial / "Send EQ" (`ACT-PAT-002`) — opens the sync watermark.
-8. Record 3 entries **after trial start** — these must sync (`/ingest/batch`).
-9-10. Branding/config applied while participating; sync verified in the store.
-11. SC disconnects (`ACT-PAT-003`) then marks not-participating (`ACT-PAT-005`).
-12. Diary reverts branding/config.
+3. SystemOperator provisions an Administrator; the Administrator provisions a
+   Study Coordinator @ `site-1` (provisioning is **create + assign** — see below).
+4. SC issues a linking code (`ACT-PAT-001`); the diary redeems it (`/api/v1/user/link`).
+5. SC starts the trial / "Send EQ" (`ACT-PAT-002`) — opens the sync watermark.
+6. Record 3 entries **after trial start** — these must sync (`/ingest/batch`).
+7. Branding/config applied while participating; sync verified in the event store.
+8. SC disconnects (`ACT-PAT-003`) then marks not-participating (`ACT-PAT-005`).
+9. Diary reverts branding/config.
+
+> This is a subset of the broader 12-step CUR-1437 validation (Pass 1,
+> local-stack, 12/12 green). That validation also provisioned a **CRA** and
+> exercised a second participant for isolation; the runner and this spec
+> provision only the **Study Coordinator** needed to drive the happy path —
+> no CRA is created or used here.
 
 ## Topology / ports
 
@@ -131,6 +136,13 @@ The spec reads these envs (`tests/p1-lifecycle.spec.ts`):
 | `P1_CODE` | linking code to redeem (**required**) | — |
 | `SC_BEARER` | SC credential (dev email, or session token) | `sc@reference.local` |
 | `KEY_PREFIX` | idempotency-key namespace (use unique per run) | `=PARTICIPANT` |
+
+> The spec's built-in `SC_BEARER` default (`sc@reference.local`) is a
+> placeholder — the local-stack seed only creates `dev@reference.local`, so that
+> SC won't exist until you provision one. Drive the spec via
+> `scripts/run-lifecycle-e2e.sh` (which provisions `e2e-sc-<site>@reference.local`
+> and passes it through), or provision an SC yourself (above) and pass its email
+> as `SC_BEARER` for a manual run.
 
 ## Sync-gating verification (the regression that matters)
 
