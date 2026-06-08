@@ -613,10 +613,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           instanceId: aggregateId,
           onSubmit: (submission) async {
             try {
-              await _recordSurveySubmission(
-                submission: submission,
-                studyEvent: task.studyEvent,
-              );
+              await _recordSurveySubmission(submission: submission);
               return const SubmitResult(success: true);
             } catch (e) {
               return SubmitResult(success: false, error: e.toString());
@@ -663,8 +660,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// the list is keyed by `question_id`, and the single definition version is
   /// stamped onto all three version refs (schema/content/gui), which today come
   /// from the one `QuestionnaireDefinition.version` field
-  /// (DIARY-PRD-questionnaire-versioning/J+K+L). The optional `study_event`
-  /// cycle label (REQ-CAL-p00080) rides along in the event data.
+  /// (DIARY-PRD-questionnaire-versioning/J+K+L).
+  ///
+  /// The cycle label (`study_event`) is deliberately NOT carried on the
+  /// finalized survey event: the `QuestionnaireSubmissionPayload` cross-wire
+  /// contract (decision 1d / surface D6) is frozen and excludes it. The portal
+  /// owns the cycle mapping via its own `questionnaire_assigned` event, keyed by
+  /// the same `instance_id` that this event carries — so the cycle is recoverable
+  /// without duplicating it here.
   ///
   /// The ALCOA+ audit fact is self-contained: each response carries
   /// `display_label` and `normalized_label` so downstream consumers do not need
@@ -673,7 +676,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Implements: DIARY-DEV-action-write-path/A
   Future<void> _recordSurveySubmission({
     required QuestionnaireSubmission submission,
-    String? studyEvent,
   }) async {
     final responses = <String, Object?>{
       for (final r in submission.responses)
@@ -695,7 +697,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           'gui_version': submission.version,
           'completed_at': submission.completedAt.toIso8601String(),
           'responses': responses,
-          'study_event': ?studyEvent,
         },
       ),
     );
