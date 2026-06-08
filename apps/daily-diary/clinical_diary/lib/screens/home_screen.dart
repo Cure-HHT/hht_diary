@@ -249,6 +249,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// which is gated on active enrollment, reverts to the app default live.
   void _onNotParticipatingChanged() {
     if (!mounted) return;
+    // Rebuild now so the branding gate re-reads the notifier this frame (the
+    // gate reads the notifier directly, so it reverts without a page change);
+    // also refresh _isEnrolled for the rest of the screen.
+    setState(() {});
     unawaited(_checkEnrollmentStatus());
   }
 
@@ -920,6 +924,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // record. Each is a clearly-delimited region below.
     final incompleteCount = view.incompleteEntries.length;
     final overlapCount = overlapPairs(view).length;
+    // Sponsor branding is displayed only while ACTIVELY participating. Gate on
+    // the live lifecycle notifiers rather than a re-read of enrollment: the
+    // not-participating notifier fires from the reconcile BEFORE its
+    // clearEnrollment() completes, so re-reading `isEnrolled()` would race and
+    // leave stale branding until a page change. Reading the notifiers here makes
+    // the revert land on the reconcile poll with no navigation required.
+    final activelyParticipating =
+        _isEnrolled &&
+        !widget.enrollmentService.notParticipatingNotifier.value &&
+        !widget.enrollmentService.disconnectedNotifier.value;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -935,7 +949,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   // Logo menu on the left
                   LogoMenu(
-                    sponsorLogoBuilder: _brandingLogoBuilder,
+                    sponsorLogoBuilder: activelyParticipating
+                        ? _brandingLogoBuilder
+                        : null,
                     onResetAllData: _handleResetAllData,
                     resetEnabled: _canResetData,
                     isEnrolled: _isEnrolled,
@@ -957,7 +973,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         // to the app default otherwise (the branding settings are
                         // retained per DIARY-DEV-sponsor-branding-assets/D, but
                         // only displayed during active participation).
-                        (_isEnrolled &&
+                        (activelyParticipating &&
                                 (widget.sponsorBranding.title?.isNotEmpty ??
                                     false))
                             ? widget.sponsorBranding.title!
