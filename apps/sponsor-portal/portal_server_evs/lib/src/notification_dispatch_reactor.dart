@@ -163,14 +163,16 @@ class NotificationDispatchReactor {
     );
   }
 
-  // Emit fcm_token_deactivated so the participant_fcm_tokens projection drops
-  //   the dead token (removeEventTypes).
+  // Emit a deactivation tombstone so the participant_fcm_tokens projection
+  //   drops the dead token. The projection gates removal on eventType
+  //   ('tombstone'); the semantic name stays in entryType
+  //   ('fcm_token_deactivated').
   Future<void> _deactivateToken(String tokenAggregateId) async {
     await eventStore.append(
       entryType: 'fcm_token_deactivated',
       aggregateType: 'FcmToken',
       aggregateId: tokenAggregateId,
-      eventType: 'fcm_token_deactivated',
+      eventType: 'tombstone',
       data: const <String, Object?>{'reason': 'UNREGISTERED'},
       initiator: const AutomationInitiator(service: 'notification-dispatch'),
     );
