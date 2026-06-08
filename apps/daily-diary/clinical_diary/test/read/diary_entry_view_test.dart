@@ -74,6 +74,39 @@ void main() {
     });
   });
 
+  group('SurveyEntryView', () {
+    test('parses typed fields from a survey submission row', () {
+      final v = SurveyEntryView(
+        _row(
+          const QuestionnaireSubmissionPayload(
+            instanceId: 'inst-1',
+            questionnaireType: 'nose_hht',
+            schemaVersion: 's1',
+            contentVersion: 'c1',
+            guiVersion: 'g1',
+            completedAt: '2026-06-08T11:34:00-04:00',
+            responses: {
+              'q1': QuestionResponse(value: 2, displayLabel: 'Mild'),
+              'q2': QuestionResponse(value: 0, displayLabel: 'None'),
+            },
+          ).toJson(),
+          'nose_hht_survey',
+        ),
+        isComplete: true,
+      );
+      expect(v.questionnaireType, 'nose_hht');
+      // completedAt is the device-local form of the stored instant.
+      expect(
+        v.completedAt,
+        DateTime.parse('2026-06-08T11:34:00-04:00').toLocal(),
+      );
+      expect(v.completedAt.isUtc, isFalse);
+      expect(v.responseCount, 2);
+      expect(v.entryType, 'nose_hht_survey');
+      expect(v.isComplete, isTrue);
+    });
+  });
+
   group('diaryEntryViewOf', () {
     test(
       'returns EpistaxisEntryView for epistaxis rows, DayMarkerView else',
@@ -95,5 +128,26 @@ void main() {
         expect(dm, isA<DayMarkerView>());
       },
     );
+
+    test('returns SurveyEntryView for a <id>_survey row', () {
+      final sv = diaryEntryViewOf(
+        _row(
+          const QuestionnaireSubmissionPayload(
+            instanceId: 'inst-2',
+            questionnaireType: 'qol',
+            schemaVersion: 's1',
+            contentVersion: 'c1',
+            guiVersion: 'g1',
+            completedAt: '2026-06-08T09:00:00-04:00',
+            responses: {'q1': QuestionResponse(value: 1)},
+          ).toJson(),
+          'qol_survey',
+        ),
+        isComplete: true,
+      );
+      expect(sv, isA<SurveyEntryView>());
+      expect((sv as SurveyEntryView).questionnaireType, 'qol');
+      expect(sv.responseCount, 1);
+    });
   });
 }

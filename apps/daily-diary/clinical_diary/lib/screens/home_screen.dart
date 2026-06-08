@@ -858,9 +858,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
     final yesterdayStr = DateFormat('yyyy-MM-dd').format(yesterday);
 
+    // Chronological key for a today/yesterday entry: an epistaxis row sorts by
+    // its start, a completed survey by its completion time. Other views (day
+    // markers) have no time and yield null, which sorts as 0 (stable).
+    DateTime? timeOf(DiaryEntryView e) => switch (e) {
+      EpistaxisEntryView(:final startTime) => startTime,
+      SurveyEntryView(:final completedAt) => completedAt,
+      _ => null,
+    };
+
     int byStart(DiaryEntryView a, DiaryEntryView b) {
-      final aStart = a is EpistaxisEntryView ? a.startTime : null;
-      final bStart = b is EpistaxisEntryView ? b.startTime : null;
+      final aStart = timeOf(a);
+      final bStart = timeOf(b);
       if (aStart == null || bStart == null) return 0;
       return aStart.compareTo(bStart);
     }
@@ -873,14 +882,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // is reached through the Calendar.
     final groups = <_GroupedRecords>[];
 
-    // Yesterday's finalized nosebleed entries.
-    final yesterdayEntries =
-        view
-            .entriesOn(yesterdayStr)
-            .whereType<EpistaxisEntryView>()
-            .cast<DiaryEntryView>()
-            .toList()
-          ..sort(byStart);
+    // Yesterday's finalized nosebleed entries plus any completed surveys
+    // (DIARY-PRD-questionnaire-system/B: a finalized survey surfaces alongside
+    // the day's clinical entries).
+    final yesterdayEntries = <DiaryEntryView>[
+      ...view.entriesOn(yesterdayStr).whereType<EpistaxisEntryView>(),
+      ...view.entriesOn(yesterdayStr).whereType<SurveyEntryView>(),
+    ]..sort(byStart);
 
     // Any entry at all on yesterday (incl. day markers + incomplete checkpoints).
     final hasAnyYesterdayEntries =
@@ -897,10 +905,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
     );
 
-    // Today's finalized nosebleed entries plus today's incomplete checkpoints
+    // Today's finalized nosebleed entries plus today's completed surveys
+    // (DIARY-PRD-questionnaire-system/B) plus today's incomplete checkpoints
     // (CUR-488: in-progress entries surface in the today section).
     final todayEntries = <DiaryEntryView>[
       ...view.entriesOn(todayStr).whereType<EpistaxisEntryView>(),
+      ...view.entriesOn(todayStr).whereType<SurveyEntryView>(),
       ...view.incompleteEntries.where((e) => isEpistaxisOn(e, todayStr)),
     ]..sort(byStart);
 
@@ -1701,6 +1711,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onTap: switch (entry) {
                     EpistaxisEntryView() => () => _navigateToEditRecord(entry),
                     DayMarkerView() => () => _redispositionMarker(entry),
+                    // A completed survey is read-only in the diary list (no
+                    // edit / re-disposition affordance).
+                    SurveyEntryView() => null,
                   },
                   hasOverlap:
                       entry is EpistaxisEntryView && _hasOverlap(view, entry),

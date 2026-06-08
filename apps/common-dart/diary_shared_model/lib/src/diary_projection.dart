@@ -42,7 +42,9 @@ String dayAggregateId(String participantId, String localDate) =>
 /// The canonical local calendar date (`yyyy-MM-dd`) an entry falls on, derived
 /// deterministically from the entry's OWN captured local timestamp — never the
 /// reader's device timezone. For `epistaxis_event` it is the date component of
-/// `startTime`; for `no_epistaxis_event` / `unknown_day_event` it is `date`.
+/// `startTime`; for `no_epistaxis_event` / `unknown_day_event` it is `date`; for
+/// a `<id>_survey` it is the date component of `completed_at` (the submission
+/// timestamp from the [QuestionnaireSubmissionPayload]).
 ///
 /// The stored timestamps are already in the capture-timezone wall clock (their
 /// ISO offset matches the captured `startTimeZone`), so the leading `yyyy-MM-dd`
@@ -53,6 +55,7 @@ String? canonicalEntryDate(String entryTypeId, Map<String, Object?> payload) {
   final Object? raw = switch (entryTypeId) {
     'epistaxis_event' => payload['startTime'],
     'no_epistaxis_event' || 'unknown_day_event' => payload['date'],
+    _ when entryTypeId.endsWith('_survey') => payload['completed_at'],
     _ => null,
   };
   if (raw is! String || raw.isEmpty) return null;

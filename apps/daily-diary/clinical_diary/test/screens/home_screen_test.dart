@@ -222,6 +222,27 @@ void main() {
       );
     }
 
+    DiaryEntryRow surveyRow(
+      DateTime completedAt, {
+      required String aggregateId,
+      String questionnaireType = 'nose_hht',
+    }) {
+      final payload = QuestionnaireSubmissionPayload(
+        instanceId: aggregateId,
+        questionnaireType: questionnaireType,
+        schemaVersion: 's1',
+        contentVersion: 'c1',
+        guiVersion: 'g1',
+        completedAt: completedAt.toIso8601String(),
+        responses: const {'q1': QuestionResponse(value: 1)},
+      );
+      return DiaryEntryRow(
+        aggregateId: aggregateId,
+        entryType: '${questionnaireType}_survey',
+        data: payload.toJson(),
+      );
+    }
+
     Future<void> pumpScreen(
       WidgetTester tester, {
       List<DiaryEntryRow> finalized = const [],
@@ -321,6 +342,24 @@ void main() {
       expect(find.byType(RecordingScreen), findsNothing);
       expect(find.byType(EventListItem), findsWidgets);
       expect(find.text('30m'), findsOneWidget);
+    });
+
+    // Verifies: DIARY-PRD-questionnaire-system/B — a finalized `<id>_survey`
+    //   dated today renders as a completed-survey card in the today section.
+    testWidgets('renders a driven finalized survey in the today list', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day, 11);
+      await pumpScreen(
+        tester,
+        finalized: [surveyRow(today, aggregateId: 'agg-survey-1')],
+      );
+
+      expect(find.byType(EventListItem), findsWidgets);
+      // The survey card surfaces with its friendly name + completion affordance.
+      expect(find.byKey(const Key('survey-card')), findsOneWidget);
+      expect(find.text('NOSE HHT Survey'), findsOneWidget);
     });
 
     testWidgets(
