@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # semver-only: bare version, no +N. The build id (+<sponsor_short_sha>) is
 # stamped at image-build time by callisto's portal-final.Dockerfile.
-version: 1.4.6
+version: 1.4.7
 
 environment:
   sdk: ^3.10.7
@@ -12,6 +12,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  diary_design_system:
+    path: ../../common-flutter/diary_design_system
+  portal_screens:
+    path: ../../common-flutter/portal_screens
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
@@ -45,21 +49,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  fonts:
-    # Bundle Roboto (the Material default fontFamily) so the release web build
-    # renders text. Without it, CanvasKit 404s on the default Roboto and text is
-    # invisible. Mirrors the legacy portal-ui font bundle.
-    - family: Roboto
-      fonts:
-        - asset: assets/fonts/Roboto-Thin.ttf
-          weight: 100
-        - asset: assets/fonts/Roboto-Light.ttf
-          weight: 300
-        - asset: assets/fonts/Roboto-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/Roboto-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Roboto-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/Roboto-Black.ttf
-          weight: 900
+  # Font bundling moves to diary_design_system: it ships Inter as package
+  # assets and buildAppTheme(AppFontFamily.inter) wires the M3 type scale
+  # to it. CanvasKit no longer 404s the default Roboto because the type
+  # scale never asks for Roboto in the first place.

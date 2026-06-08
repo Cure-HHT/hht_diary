@@ -1,31 +1,33 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:portal_ui_evs/src/reset_link.dart';
 import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
+import 'package:portal_screens/portal_screens.dart';
+
 import 'activation_link.dart';
 import 'activation_screen.dart';
-import 'password_reset_screen.dart';
-import 'reset_link.dart';
-import 'audit_log_screen.dart';
+import 'audit_log_screen_binding.dart';
 import 'connect_screen.dart';
 import 'connection_status_banner.dart';
 import 'firebase_auth_client.dart';
 import 'identity_config.dart';
 import 'login_screen.dart';
 import 'nav_sections.dart';
-import 'participants_screen.dart';
-import 'rave_sync_screen.dart';
-import 'role_selector.dart';
+import 'password_reset_screen.dart';
 import 'session_activity_listener.dart';
 import 'session_config.dart';
 import 'session_timeout_controller.dart';
-import 'sites_screen.dart';
-import 'user_accounts_screen.dart';
+import 'users_screen_binding.dart';
+// Legacy screens still referenced for the destinations the redesign hasn't
+// touched yet (Sites / Participants / RAVE Sync) — they pass through unchanged
+// in this partial-integration phase (Phase 6.5).
 
 /// Optional compile-time override for the portal server URL. Set via
 /// `--dart-define=PORTAL_SERVER_URL=...` for `flutter run` local dev (points at
@@ -364,9 +366,13 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       scope: _scope,
       child: MaterialApp(
         title: 'Portal EVS Skeleton',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF006A60)),
+        // CUR-1450: adopt the diary_design_system brand (Carina blue +
+        // Inter typography). Sites / Participants / RAVE Sync re-theme
+        // passively; their layouts stay until they get their own redesign
+        // round.
+        theme: buildAppTheme(
+          font: AppFontFamily.inter,
+          brightness: Brightness.light,
         ),
         home: home,
       ),
@@ -449,27 +455,13 @@ class _HomeShellState extends State<_HomeShell> {
     super.dispose();
   }
 
-  /// Presentation for a nav section, keyed by its [NavSectionSpec.label]; the
-  /// gating spec (label + permission + order) is the single source in
-  /// [kNavSections], so only icon/builder live here.
-  IconData _iconFor(String label) => switch (label) {
-    'User Accounts' => Icons.manage_accounts,
-    'Sites' => Icons.location_city,
-    'Participants' => Icons.groups,
-    'RAVE Sync' => Icons.sync,
-    'Audit Log' => Icons.receipt_long,
-    _ => Icons.help_outline,
-  };
-
+  /// Builder for each nav section's screen. Two of the destinations now
+  /// route through the redesigned `portal_screens` widgets via thin
+  /// reactive bindings (Phase 6.5); the rest still mount their legacy
+  /// widgets pending their own redesign.
   Widget _screenFor(String label) => switch (label) {
-    'User Accounts' => const UserAccountsScreen(),
-    'Sites' => const SitesScreen(),
-    'Participants' => ParticipantsScreen(
-      serverUrl: _serverUrl,
-      identityCredential: widget.identityCredential ?? '',
-    ),
-    'RAVE Sync' => const RaveSyncScreen(),
-    'Audit Log' => AuditLogScreen(
+    'User Accounts' => const UsersScreenBinding(),
+    'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',
       serverUrl: _serverUrl,
     ),
@@ -491,14 +483,6 @@ class _HomeShellState extends State<_HomeShell> {
       // Best-effort: if /health is unreachable, the label falls back to the
       // bundle version and the popup just shows fewer rows.
     }
-  }
-
-  /// The compact label under the app-bar title: the deploy counter when the
-  /// server reports one ("Deploy #47"), else this bundle's version, else nothing.
-  String _versionLabel() {
-    final deploy = _serverVersions['deploy'];
-    if (deploy is String && deploy.isNotEmpty) return 'Deploy #$deploy';
-    return _appVersion;
   }
 
   /// Popup listing the full version/provenance manifest. "Portal UI" is this
@@ -562,81 +546,19 @@ class _HomeShellState extends State<_HomeShell> {
     );
   }
 
-  String _credentialLabel() {
-    final p = widget.principal;
-    if (p is UserPrincipal) return '${p.userId}:${p.activeRole}';
-    return p.id;
-  }
-
   @override
   Widget build(BuildContext context) {
     // Hide sections the active role can't use; a hidden section's screen is
     // never built, so it never opens a (denied) subscription. Until the first
-    // permission snapshot loads, `held` is empty and the body shows a loader
-    // rather than flashing a forbidden section. Gating spec + order live in
-    // kNavSections (single source); the screen self-gates on the same name.
+    // permission snapshot loads, `held` is empty and the dashboard shows a
+    // loader rather than flashing a forbidden section. Gating spec + order
+    // live in kNavSections (single source); the screen self-gates on the same
+    // name.
     final held = <String>{
       for (final p in _auth?.rolePermissions ?? const <Permission>{}) p.name,
     };
     final visible = visibleSections(held);
-    final selectedIndex = resolveSelectedIndex(visible, _selectedLabel);
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const Text('Portal (EVS skeleton)'),
-            if (_versionLabel().isNotEmpty)
-              InkWell(
-                onTap: _showVersionsDialog,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      _versionLabel(),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 2),
-                      child: Icon(
-                        Icons.info_outline,
-                        size: 12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-        actions: <Widget>[
-          if (widget.principal is UserPrincipal)
-            RoleSelector(
-              roles: (widget.principal as UserPrincipal).roles,
-              activeRole: (widget.principal as UserPrincipal).activeRole,
-              onRoleSelected: widget.onRoleSelected,
-            ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text('Connected as ${_credentialLabel()}'),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Disconnect',
-            icon: const Icon(Icons.logout),
-            onPressed: widget.onDisconnect,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
       // Surface transport-connection state: when the reactive WS is
       // reconnecting/disconnected, a banner tells the user the data shown is the
       // last received (lists keep their last rows via the ViewBuilder Stale
@@ -645,53 +567,75 @@ class _HomeShellState extends State<_HomeShell> {
       body: ConnectionStatusBanner(
         statusStream: ReActionScope.of(context).connectionStatusStream,
         initial: ReActionScope.of(context).connectionStatus,
-        child: _buildBody(visible, selectedIndex),
+        child: _buildBody(visible),
       ),
     );
   }
 
-  Widget _buildBody(List<NavSectionSpec> visible, int selectedIndex) {
+  Widget _buildBody(List<NavSectionSpec> visible) {
     // Permission snapshot not loaded yet: don't guess at visibility.
     if (_auth == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (visible.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text('No sections are available for your current role.'),
+      return const Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text('No sections are available for your current role.'),
+          ),
         ),
       );
     }
-    final content = Expanded(child: _screenFor(visible[selectedIndex].label));
-    // NavigationRail requires >= 2 destinations; with a single visible section
-    // render it full-width without the rail.
-    if (visible.length < 2) {
-      return Row(children: <Widget>[content]);
-    }
-    return Row(
-      children: <Widget>[
-        NavigationRail(
-          selectedIndex: selectedIndex,
-          labelType: NavigationRailLabelType.all,
-          onDestinationSelected: (i) =>
-              setState(() => _selectedLabel = visible[i].label),
-          destinations: <NavigationRailDestination>[
-            for (final s in visible)
-              NavigationRailDestination(
-                icon: Icon(_iconFor(s.label)),
-                // CUR-1307: identified for Playwright web automation.
-                label: Semantics(
-                  identifier:
-                      'nav-${s.label.toLowerCase().replaceAll(' ', '-')}',
-                  child: Text(s.label),
-                ),
-              ),
-          ],
-        ),
-        const VerticalDivider(thickness: 1, width: 1),
-        content,
+    // Phase 6.5: PortalDashboard replaces the NavigationRail. The shell
+    // header doubles as the role switcher + user identity + logout
+    // affordances; the dashboard's top-tab strip replaces the rail.
+    final principal = widget.principal;
+    final isUser = principal is UserPrincipal;
+    final userName = isUser ? principal.userId : principal.id;
+    final activeRole = isUser ? principal.activeRole : '';
+    final availableRoles = isUser
+        ? principal.roles.toList(growable: false)
+        : const <String>[];
+
+    return PortalDashboard(
+      appBar: PortalAppBar(
+        title: 'Clinical Trial Portal',
+        // Subtitle follows the active role's dashboard label so the
+        // header reads "Administrator Dashboard" / "CRA Dashboard" / etc.
+        subtitle: '$activeRole Dashboard',
+        userName: userName,
+        activeRole: activeRole,
+        availableRoles: availableRoles,
+        onRoleSelected: isUser ? widget.onRoleSelected : null,
+        onLogout: widget.onDisconnect,
+        // Help icon opens the version/provenance dialog. Same manifest
+        // (`portal_server_evs` / `server_commit` / `diary_app` /
+        // `deploy` / `deploy_commit`) we used to surface via the
+        // app-bar deploy-counter tap, now hung off the help affordance
+        // so the chrome above doesn't need its own version label.
+        onHelp: _showVersionsDialog,
+      ),
+      destinations: <DashboardDestination>[
+        for (final s in visible)
+          DashboardDestination(
+            key: s.label.toLowerCase().replaceAll(' ', '-'),
+            label: s.label,
+            body: (_) => _screenFor(s.label),
+          ),
       ],
+      initialKey: _selectedLabel?.toLowerCase().replaceAll(' ', '-'),
+      onDestinationChanged: (key) {
+        // Reverse key → label so kNavSections stays the single source of
+        // truth for the label text (and _selectedLabel survives role
+        // switches that change which sections are visible).
+        for (final s in visible) {
+          if (s.label.toLowerCase().replaceAll(' ', '-') == key) {
+            setState(() => _selectedLabel = s.label);
+            return;
+          }
+        }
+      },
     );
   }
 }

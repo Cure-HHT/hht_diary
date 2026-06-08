@@ -1,0 +1,10 @@
+{
+  "name": "portal_screens preview",
+  "short_name": "portal_screens",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F7FAFB",
+  "theme_color": "#165C7D",
+  "description": "Live preview app for portal_screens widgets.",
+  "orientation": "any"
+}

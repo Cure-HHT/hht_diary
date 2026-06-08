@@ -15,16 +15,13 @@ class NavSectionSpec {
 
 /// The portal's nav sections in display order. The permission of each MUST match
 /// the constant its screen passes to `PermissionGate`:
-///   User Accounts -> user_accounts_screen.dart `view:users_index`
+///   User Accounts -> users_screen_binding.dart `view:users_index`
 ///   Sites         -> sites_screen.dart         `view:sites_index`
 ///   Participants  -> participants_screen.dart  `view:participant_record`
 ///   RAVE Sync     -> rave_sync_screen.dart     `view:rave_sync_status`
 ///   Audit Log     -> audit_log_screen.dart     `portal.audit.view`
 const List<NavSectionSpec> kNavSections = <NavSectionSpec>[
   NavSectionSpec(label: 'User Accounts', permission: 'view:users_index'),
-  NavSectionSpec(label: 'Sites', permission: 'view:sites_index'),
-  NavSectionSpec(label: 'Participants', permission: 'view:participant_record'),
-  NavSectionSpec(label: 'RAVE Sync', permission: 'view:rave_sync_status'),
   NavSectionSpec(label: 'Audit Log', permission: 'portal.audit.view'),
 ];
 

@@ -1,0 +1,24 @@
+name: portal_screens_example
+description: "Live preview app for portal_screens widgets. Boots all variants on one route so designers and reviewers can drive them without spinning up portal_ui_evs."
+publish_to: "none"
+
+version: 0.0.1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  diary_design_system:
+    path: ../../diary_design_system
+  portal_screens:
+    path: ..
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

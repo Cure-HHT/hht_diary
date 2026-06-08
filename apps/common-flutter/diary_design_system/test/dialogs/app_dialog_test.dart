@@ -143,6 +143,7 @@ void main() {
           }),
         );
         await tester.tap(find.text('Open'));
+        await tester.tap(find.text('Open'));
         await tester.pumpAndSettle();
         expect(find.byType(AppBanner), findsOneWidget);
         expect(

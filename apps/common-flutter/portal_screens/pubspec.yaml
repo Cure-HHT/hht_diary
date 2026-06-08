@@ -1,0 +1,27 @@
+name: portal_screens
+description: "Composed portal admin/operator screens. Pure presentation layer over diary_design_system — no event_sourcing, no transports, no streams. Wiring layer (portal_ui_evs) feeds it snapshots + callbacks."
+publish_to: "none"
+
+version: 0.0.1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  diary_design_system:
+    path: ../diary_design_system
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    # Bundled icon glyphs that don't ship as Material defaults — exported
+    # from the Figma to stay pixel-perfect. Consumers reference these via
+    # `Image.asset('assets/icons/...', package: 'portal_screens')`.
+    - assets/icons/
