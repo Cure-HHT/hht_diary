@@ -268,6 +268,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
   for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
     await grantView(role, 'sites_index');
     await grantView(role, 'participant_record');
+    // The operational roles read questionnaire instance status (one row per
+    // instance) to drive the Manage Questionnaires modal's live per-status view.
+    await grantView(role, 'questionnaire_instance');
   }
   // The RAVE-sync status screen is visible to operations roles too.
   for (final role in const [
