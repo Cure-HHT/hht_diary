@@ -1,8 +1,12 @@
-// Verifies: DIARY-BASE-questionnaire-manage-modal/A+B+C+D+E — the Manage
+// Verifies: DIARY-BASE-questionnaire-manage-modal/A+B+C+D+E+F+G+H — the Manage
 //   Questionnaires modal: header shows the participant id (A); one card per
 //   enabled type (B); a close action dismisses (C); type name + status + paired
 //   cycle info (D); the per-status action matrix renders exactly the right
-//   buttons, with Finalize disabled until Phase 4 (E).
+//   buttons, with Finalize disabled until Phase 4 (E). The Call Back reason
+//   dialog requires a non-empty reason (F), dispatches ACT-QST-002 on Confirm so
+//   the row tombstones (G), and Cancel makes no change (H).
+// Verifies: DIARY-BASE-questionnaire-coordinator-workflow/D+E — Call Back
+//   dispatches the retraction action through the reaction scope.
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -191,9 +195,8 @@ void main() {
                     context: context,
                     participantId: 'P-1',
                     siteId: 'S-1',
-                    onSendNow: (_) {},
-                    onStartNextCycle: (_) {},
-                    onCallBack: (_) {},
+                    serverUrl: 'http://test.local',
+                    identityCredential: 'cred',
                   ),
                   child: const Text('open'),
                 ),
@@ -247,5 +250,74 @@ void main() {
         await fake.dispose();
       },
     );
+  });
+
+  group('Call Back reason dialog (F/G/H)', () {
+    testWidgets('Confirm is disabled until a non-empty reason is entered (F)', (
+      tester,
+    ) async {
+      final fake = FakeReaction();
+      await pumpReactionWidget(
+        tester,
+        fake: fake,
+        child: const Scaffold(
+          body: CallBackDialogHarness(
+            participantId: 'P-1',
+            siteId: 'S-1',
+            instanceId: 'inst-1',
+          ),
+        ),
+      );
+
+      final confirm = find.widgetWithText(FilledButton, 'Confirm');
+      expect(confirm, findsOneWidget);
+      // Empty reason -> disabled.
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+
+      await tester.enterText(find.byType(TextField), 'duplicate send');
+      await tester.pump();
+      // Non-empty reason -> enabled.
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNotNull);
+
+      await fake.dispose();
+    });
+
+    testWidgets('Confirm dispatches ACT-QST-002 with the reason (G)', (
+      tester,
+    ) async {
+      final fake = FakeReaction();
+      fake.queueDispatchResult(
+        const DispatchSuccess<Object?>(
+          <String, Object?>{'instanceId': 'inst-1'},
+          <String>['evt-1'],
+        ),
+      );
+      await pumpReactionWidget(
+        tester,
+        fake: fake,
+        child: const Scaffold(
+          body: CallBackDialogHarness(
+            participantId: 'P-1',
+            siteId: 'S-1',
+            instanceId: 'inst-1',
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField), 'wrong cycle');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
+      await tester.pumpAndSettle();
+
+      // The dispatch landed (success surface rendered before auto-close).
+      expect(fake.submittedActions.length, 1);
+      final sub = fake.submittedActions.single;
+      expect(sub.actionName, 'ACT-QST-002');
+      expect(sub.rawInput['siteId'], 'S-1');
+      expect(sub.rawInput['instanceId'], 'inst-1');
+      expect(sub.rawInput['reason'], 'wrong cycle');
+
+      await fake.dispose();
+    });
   });
 }

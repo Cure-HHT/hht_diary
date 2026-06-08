@@ -5,70 +5,87 @@
 // `questionnaire_instance` view (gated view:questionnaire_instance), filtered
 // client-side to the selected participant.
 //
-// This task (Task 7) builds presentation + pure card-state wiring only: the
-// action buttons invoke INJECTED callbacks. The dialogs they launch and the
-// HTTP/action dispatch are Task 8 — it supplies real handlers; here the modal
-// just invokes them.
+// The modal OWNS the three action flows (Send Now / Start Next Cycle / Call
+// Back): the action buttons open the relevant sub-dialog and drive the
+// HTTP/action dispatch internally using the modal's own context, rather than
+// invoking injected callbacks. Send Now / Start Next Cycle POST the server's
+// `/admin/questionnaire/send` orchestration endpoint with the
+// `<identityCredential>|<activeRole>` Bearer (mirrors AuditLogScreen); Call Back
+// dispatches the ACT-QST-002 EVS action through the reaction scope (mirrors
+// StartTrialDialog).
 //
 // Implements: DIARY-BASE-questionnaire-manage-modal/A+B+C+D+E
+import 'package:event_sourcing/event_sourcing.dart';
 // Explicit for @visibleForTesting (also re-exported transitively by
 // material.dart, hence the ignore).
 // ignore: unnecessary_import
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
+import 'package:http/http.dart' as http;
+import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
 import 'questionnaire_card_state.dart';
 import 'questionnaire_instance.dart';
 import 'questionnaire_types.dart';
+import 'send_questionnaire_flow.dart';
 
 const String _viewPerm = 'view:questionnaire_instance';
+const String _kCallBackAction = 'ACT-QST-002'; // {siteId, instanceId, reason}
+
+/// The selectable starting-cycle range for the Select Starting Cycle dialog —
+/// `Cycle 1`..`Cycle 12` (a const range; assertion I).
+const int _kMaxStartingCycle = 12;
 
 /// Reactive Manage Questionnaires modal for a single participant.
 ///
 /// Subscribes to the `questionnaire_instance` view, filters to [participantId],
 /// groups by type, and renders one [_QuestionnaireCard] per enabled type with
-/// the resolved [QuestionnaireCardState]. The three action callbacks are
-/// injected; Task 8 supplies the real send / call-back handlers.
+/// the resolved [QuestionnaireCardState]. The three action flows are owned by
+/// the modal (Send / Start Next Cycle POST the server; Call Back dispatches
+/// ACT-QST-002); the active role is read from the connected principal.
 class ManageQuestionnairesDialog extends StatelessWidget {
   const ManageQuestionnairesDialog({
     super.key,
     required this.participantId,
     required this.siteId,
-    required this.onSendNow,
-    required this.onStartNextCycle,
-    required this.onCallBack,
+    required this.serverUrl,
+    required this.identityCredential,
+    this.httpClient,
   });
 
   final String participantId;
   final String siteId;
 
-  /// Invoked with the questionnaire type id when Send Now is tapped.
-  final void Function(String questionnaireType) onSendNow;
+  /// The portal server base URL (same origin as every other screen).
+  final String serverUrl;
 
-  /// Invoked with the questionnaire type id when Start Next Cycle is tapped.
-  final void Function(String questionnaireType) onStartNextCycle;
+  /// The bare identity credential — session token in session mode, userId in
+  /// dev mode. The active-role claim is appended at send time to form the
+  /// `<identityCredential>|<activeRole>` Bearer.
+  final String identityCredential;
 
-  /// Invoked with the current (open) instance when Call Back is tapped.
-  final void Function(QuestionnaireInstance current) onCallBack;
+  /// Injectable HTTP client seam for unit-testing the send flow with a mock;
+  /// defaults to a fresh [http.Client] (mirrors login_screen.dart).
+  final http.Client? httpClient;
 
   /// Shows the dialog. Resolves when it is dismissed.
   static Future<void> show({
     required BuildContext context,
     required String participantId,
     required String siteId,
-    required void Function(String questionnaireType) onSendNow,
-    required void Function(String questionnaireType) onStartNextCycle,
-    required void Function(QuestionnaireInstance current) onCallBack,
+    required String serverUrl,
+    required String identityCredential,
+    http.Client? httpClient,
   }) => showDialog<void>(
     context: context,
     barrierDismissible: true,
     builder: (_) => ManageQuestionnairesDialog(
       participantId: participantId,
       siteId: siteId,
-      onSendNow: onSendNow,
-      onStartNextCycle: onStartNextCycle,
-      onCallBack: onCallBack,
+      serverUrl: serverUrl,
+      identityCredential: identityCredential,
+      httpClient: httpClient,
     ),
   );
 
@@ -165,18 +182,173 @@ class ManageQuestionnairesDialog extends StatelessWidget {
                   for (final type in kEnabledQuestionnaireTypes)
                     _QuestionnaireCard(
                       participantId: participantId,
+                      siteId: siteId,
                       type: type,
                       rowsForType:
                           byType[type.id] ?? const <QuestionnaireInstance>[],
-                      onSendNow: onSendNow,
-                      onStartNextCycle: onStartNextCycle,
-                      onCallBack: onCallBack,
+                      onSendNow: (typeId) => _runSend(
+                        context,
+                        questionnaireType: typeId,
+                        startNextCycle: false,
+                      ),
+                      onStartNextCycle: (typeId) => _runSend(
+                        context,
+                        questionnaireType: typeId,
+                        startNextCycle: true,
+                      ),
+                      onCallBack: (current) =>
+                          _runCallBack(context, current: current),
                     ),
                 ],
               );
             },
           ),
         ),
+      ),
+    );
+  }
+
+  /// The active role from the connected principal (mirrors AuditLogScreen).
+  String _activeRole(BuildContext context) {
+    final status = ReActionScope.of(context).authSession.current;
+    if (status is Authenticated && status.principal is UserPrincipal) {
+      return (status.principal as UserPrincipal).activeRole;
+    }
+    return '';
+  }
+
+  /// The `<identityCredential>|<activeRole>` Bearer for the send POST.
+  String _bearer(BuildContext context) =>
+      '$identityCredential|${_activeRole(context)}';
+
+  /// Send Now / Start Next Cycle flow. Both POST `/admin/questionnaire/send`
+  /// with `{siteId, participantId, questionnaireType}` and NO studyEvent;
+  /// [startNextCycle] only changes the confirm copy (the server auto-increments
+  /// the cycle). Send Now additionally handles the 422 first-send case by
+  /// opening the Select Starting Cycle dialog (assertion M: Start Next Cycle has
+  /// NO cycle picker — its cycle is auto).
+  ///
+  /// Implements: DIARY-BASE-questionnaire-coordinator-workflow/C
+  /// Implements: DIARY-BASE-questionnaire-manage-modal/I+J+K+L+M
+  Future<void> _runSend(
+    BuildContext context, {
+    required String questionnaireType,
+    required bool startNextCycle,
+  }) async {
+    final client = httpClient ?? http.Client();
+    final bearer = _bearer(context);
+
+    // Start Next Cycle shows a brief confirm first (no cycle picker, assertion
+    // M); Send Now goes straight to the POST.
+    if (startNextCycle) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => _ConfirmNextCycleDialog(participantId: participantId),
+      );
+      if (ok != true) return; // cancelled — no change
+    }
+
+    final outcome = await postSend(client, serverUrl, bearer, <String, Object?>{
+      'siteId': siteId,
+      'participantId': participantId,
+      'questionnaireType': questionnaireType,
+    });
+    if (!context.mounted) return;
+
+    switch (outcome) {
+      case SendSent():
+        // The card flips to Sent reactively via the view; a brief confirmation.
+        _snack(context, 'Questionnaire sent.');
+      case SendNeedsCycleSelection():
+        // First send of this type: pick the starting cycle, then re-POST with
+        // an explicit `studyEvent: 'Cycle <N> Day 1'` (assertions I/J/K/L).
+        await _selectStartingCycleAndSend(
+          context,
+          client: client,
+          bearer: bearer,
+          questionnaireType: questionnaireType,
+        );
+      case SendBlocked(:final reason):
+        _showError(context, reason);
+      case SendError(:final message):
+        _showError(context, message);
+    }
+  }
+
+  /// Opens the Select Starting Cycle dialog and, on Confirm, re-POSTs with the
+  /// chosen `studyEvent`. Cancel => no change (assertion L).
+  ///
+  /// Implements: DIARY-BASE-questionnaire-manage-modal/I+J+K+L
+  Future<void> _selectStartingCycleAndSend(
+    BuildContext context, {
+    required http.Client client,
+    required String bearer,
+    required String questionnaireType,
+  }) async {
+    final cycle = await showDialog<int>(
+      context: context,
+      builder: (ctx) =>
+          _SelectStartingCycleDialog(participantId: participantId),
+    );
+    if (cycle == null) return; // Cancel — no change (assertion L)
+    if (!context.mounted) return;
+
+    final outcome = await postSend(client, serverUrl, bearer, <String, Object?>{
+      'siteId': siteId,
+      'participantId': participantId,
+      'questionnaireType': questionnaireType,
+      'studyEvent': 'Cycle $cycle Day 1',
+    });
+    if (!context.mounted) return;
+    switch (outcome) {
+      case SendSent():
+        _snack(context, 'Questionnaire sent.');
+      case SendNeedsCycleSelection():
+        // Should not recur once a studyEvent is supplied; surface defensively.
+        _showError(context, 'A starting cycle is required.');
+      case SendBlocked(:final reason):
+        _showError(context, reason);
+      case SendError(:final message):
+        _showError(context, message);
+    }
+  }
+
+  /// Call Back flow: open the reason dialog; on Confirm with a non-empty reason
+  /// dispatch ACT-QST-002 for the open [current] instance. On success the row
+  /// tombstones and the card returns to Not Sent reactively (assertion G).
+  ///
+  /// Implements: DIARY-BASE-questionnaire-coordinator-workflow/D+E
+  /// Implements: DIARY-BASE-questionnaire-manage-modal/F+G+H
+  Future<void> _runCallBack(
+    BuildContext context, {
+    required QuestionnaireInstance current,
+  }) => showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _CallBackDialog(
+      participantId: participantId,
+      siteId: siteId,
+      instanceId: current.instanceId,
+    ),
+  );
+
+  void _snack(BuildContext context, String message) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showError(BuildContext context, String message) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Could not send'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
@@ -190,6 +362,7 @@ class ManageQuestionnairesDialog extends StatelessWidget {
 class _QuestionnaireCard extends StatelessWidget {
   const _QuestionnaireCard({
     required this.participantId,
+    required this.siteId,
     required this.type,
     required this.rowsForType,
     required this.onSendNow,
@@ -198,6 +371,7 @@ class _QuestionnaireCard extends StatelessWidget {
   });
 
   final String participantId;
+  final String siteId;
   final QuestionnaireType type;
   final List<QuestionnaireInstance> rowsForType;
   final void Function(String questionnaireType) onSendNow;
@@ -241,6 +415,7 @@ class _QuestionnaireCard extends StatelessWidget {
                 for (final action in state.actions)
                   _ActionButton(
                     participantId: participantId,
+                    siteId: siteId,
                     typeId: type.id,
                     action: action,
                     state: state,
@@ -342,12 +517,13 @@ class _CycleInfo extends StatelessWidget {
 }
 
 /// One action button. Send Now / Start Next Cycle / Call Back invoke the
-/// injected callbacks; Finalize renders DISABLED with a Phase-4 tooltip (the
+/// modal's flow handlers; Finalize renders DISABLED with a Phase-4 tooltip (the
 /// finalize flow + the `<id>_survey` Ready-to-Review join arrive in Phase 4).
 /// Each interactive button carries a stable Semantics identifier for Playwright.
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.participantId,
+    required this.siteId,
     required this.typeId,
     required this.action,
     required this.state,
@@ -357,6 +533,7 @@ class _ActionButton extends StatelessWidget {
   });
 
   final String participantId;
+  final String siteId;
   final String typeId;
   final QuestionnaireCardAction action;
   final QuestionnaireCardState state;
@@ -420,6 +597,286 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
+/// The Select Starting Cycle dialog (assertions I/J/K/L). A `Cycle 1`..`Cycle
+/// 12` dropdown (assertion I) plus "Confirm and Send" (pops the chosen cycle —
+/// assertions J/K) and "Cancel" (pops null — assertion L).
+///
+/// Implements: DIARY-BASE-questionnaire-manage-modal/I+J+K+L
+class _SelectStartingCycleDialog extends StatefulWidget {
+  const _SelectStartingCycleDialog({required this.participantId});
+
+  final String participantId;
+
+  @override
+  State<_SelectStartingCycleDialog> createState() =>
+      _SelectStartingCycleDialogState();
+}
+
+class _SelectStartingCycleDialogState
+    extends State<_SelectStartingCycleDialog> {
+  int _cycle = 1;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Select Starting Cycle'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'This is the first send of this questionnaire. Choose the cycle it '
+            'starts on.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          // Assertion I: a cycle dropdown over the const Cycle 1..12 range.
+          DropdownButtonFormField<int>(
+            initialValue: _cycle,
+            decoration: const InputDecoration(labelText: 'Starting cycle'),
+            items: <DropdownMenuItem<int>>[
+              for (var n = 1; n <= _kMaxStartingCycle; n++)
+                DropdownMenuItem<int>(value: n, child: Text('Cycle $n')),
+            ],
+            onChanged: (v) => setState(() => _cycle = v ?? _cycle),
+          ),
+        ],
+      ),
+      actions: <Widget>[
+        // Assertion L: Cancel pops null -> no change.
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        // Assertions J/K: Confirm pops the chosen cycle -> re-POST with
+        // studyEvent.
+        Semantics(
+          identifier: 'qst-cycle-confirm-${widget.participantId}',
+          button: true,
+          container: true,
+          explicitChildNodes: true,
+          child: FilledButton(
+            onPressed: () => Navigator.of(context).pop(_cycle),
+            child: const Text('Confirm and Send'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The Start-Next-Cycle confirm dialog (assertion M): a brief confirm with NO
+/// cycle picker — the cycle is auto-incremented server-side. Pops `true` on
+/// Start, `false`/null on Cancel.
+///
+/// Implements: DIARY-BASE-questionnaire-manage-modal/M
+class _ConfirmNextCycleDialog extends StatelessWidget {
+  const _ConfirmNextCycleDialog({required this.participantId});
+
+  final String participantId;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Start Next Cycle'),
+      content: Text(
+        'Send the next cycle of this questionnaire to participant '
+        '$participantId? The cycle is determined automatically.',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        Semantics(
+          identifier: 'qst-nextcycle-confirm-$participantId',
+          button: true,
+          container: true,
+          explicitChildNodes: true,
+          child: FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Start Next Cycle'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The Call Back reason dialog. A required free-text reason (assertion F);
+/// Cancel => no change (assertion H); Confirm with a non-empty reason dispatches
+/// ACT-QST-002 through the reaction scope, which tombstones the instance row so
+/// the card returns to Not Sent reactively (assertion G). The dispatch is driven
+/// by an [ActionBuilder] whose `submissionFactory` closes over the entered
+/// reason (collect-then-dispatch, since the reason is dynamic).
+///
+/// Implements: DIARY-BASE-questionnaire-coordinator-workflow/D+E
+/// Implements: DIARY-BASE-questionnaire-manage-modal/F+G+H
+class _CallBackDialog extends StatefulWidget {
+  const _CallBackDialog({
+    required this.participantId,
+    required this.siteId,
+    required this.instanceId,
+  });
+
+  final String participantId;
+  final String siteId;
+  final String instanceId;
+
+  @override
+  State<_CallBackDialog> createState() => _CallBackDialogState();
+}
+
+class _CallBackDialogState extends State<_CallBackDialog> {
+  final TextEditingController _reason = TextEditingController();
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionBuilder(
+      semanticIdentifier: 'qst-callback-outcome-${widget.participantId}',
+      // The reason is captured at submit time: the factory reads the live
+      // controller text, so the latest reason rides the dispatch.
+      submissionFactory: () => ActionSubmission(
+        actionName: _kCallBackAction,
+        rawInput: <String, Object?>{
+          'siteId': widget.siteId,
+          'instanceId': widget.instanceId,
+          'reason': _reason.text.trim(),
+        },
+      ),
+      builder: (context, state, submit) {
+        final theme = Theme.of(context);
+        return switch (state) {
+          Submitting() => _busy(theme),
+          // On success the row tombstones -> the card returns to Not Sent
+          // reactively (assertion G). Close the dialog.
+          Success() => _AutoCloseOnSuccess(participantId: widget.participantId),
+          Denied() || Failed() => _form(context, theme, submit, state),
+          _ => _form(context, theme, submit, null), // Idle
+        };
+      },
+    );
+  }
+
+  AlertDialog _form(
+    BuildContext context,
+    ThemeData theme,
+    void Function() submit,
+    ActionState? errorState,
+  ) {
+    final reasonEmpty = _reason.text.trim().isEmpty;
+    final message = switch (errorState) {
+      Denied(:final result) => 'The call back was not permitted ($result).',
+      Failed(:final error) => 'Call back failed: $error',
+      _ => null,
+    };
+    return AlertDialog(
+      title: const Text('Call Back Questionnaire'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Retract this questionnaire from participant '
+            '${widget.participantId}. A reason is required.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          // Assertion F: a required free-text reason.
+          TextField(
+            controller: _reason,
+            autofocus: true,
+            minLines: 2,
+            maxLines: 4,
+            onChanged: (_) => setState(() {}),
+            decoration: const InputDecoration(
+              labelText: 'Reason',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          if (message != null) ...<Widget>[
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: <Widget>[
+        // Assertion H: Cancel dismisses with no change.
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        Semantics(
+          identifier: 'qst-callback-confirm-${widget.participantId}',
+          button: true,
+          container: true,
+          explicitChildNodes: true,
+          child: FilledButton(
+            // Disabled until a non-empty reason is entered (assertion F).
+            onPressed: reasonEmpty ? null : submit,
+            child: const Text('Confirm'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  AlertDialog _busy(ThemeData theme) => AlertDialog(
+    title: const Text('Calling back…'),
+    content: const SizedBox(
+      width: 280,
+      height: 60,
+      child: Center(child: CircularProgressIndicator()),
+    ),
+  );
+}
+
+/// Pops the call-back dialog once the dispatch succeeds. Rendered transiently in
+/// the [ActionBuilder] Success branch so the modal returns to the card list
+/// (which has already flipped to Not Sent reactively).
+class _AutoCloseOnSuccess extends StatefulWidget {
+  const _AutoCloseOnSuccess({required this.participantId});
+
+  final String participantId;
+
+  @override
+  State<_AutoCloseOnSuccess> createState() => _AutoCloseOnSuccessState();
+}
+
+class _AutoCloseOnSuccessState extends State<_AutoCloseOnSuccess> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.of(context).maybePop();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    identifier: 'qst-callback-success-${widget.participantId}',
+    child: const AlertDialog(
+      content: SizedBox(
+        width: 280,
+        height: 60,
+        child: Center(child: Text('Questionnaire called back.')),
+      ),
+    ),
+  );
+}
+
 /// Test-only harness: renders a single [_QuestionnaireCard] over an injected
 /// row set so the card's status/cycle/action rendering can be verified without
 /// standing up a live ViewBuilder. Recording callback invocations is the
@@ -434,9 +891,11 @@ class ManageQuestionnairesCardHarness extends StatelessWidget {
     required this.onSendNow,
     required this.onStartNextCycle,
     required this.onCallBack,
+    this.siteId = 'S-1',
   });
 
   final String participantId;
+  final String siteId;
   final QuestionnaireType type;
   final List<QuestionnaireInstance> rowsForType;
   final void Function(String questionnaireType) onSendNow;
@@ -446,10 +905,35 @@ class ManageQuestionnairesCardHarness extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _QuestionnaireCard(
     participantId: participantId,
+    siteId: siteId,
     type: type,
     rowsForType: rowsForType,
     onSendNow: onSendNow,
     onStartNextCycle: onStartNextCycle,
     onCallBack: onCallBack,
+  );
+}
+
+/// Test-only harness: the Call Back reason dialog, mountable directly over a
+/// FakeReaction scope so the reason-required + dispatch behavior can be verified
+/// without the live ViewBuilder.
+@visibleForTesting
+class CallBackDialogHarness extends StatelessWidget {
+  const CallBackDialogHarness({
+    super.key,
+    required this.participantId,
+    required this.siteId,
+    required this.instanceId,
+  });
+
+  final String participantId;
+  final String siteId;
+  final String instanceId;
+
+  @override
+  Widget build(BuildContext context) => _CallBackDialog(
+    participantId: participantId,
+    siteId: siteId,
+    instanceId: instanceId,
   );
 }

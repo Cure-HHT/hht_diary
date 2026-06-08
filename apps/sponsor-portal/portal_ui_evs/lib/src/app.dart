@@ -464,7 +464,10 @@ class _HomeShellState extends State<_HomeShell> {
   Widget _screenFor(String label) => switch (label) {
     'User Accounts' => const UserAccountsScreen(),
     'Sites' => const SitesScreen(),
-    'Participants' => const ParticipantsScreen(),
+    'Participants' => ParticipantsScreen(
+      serverUrl: _serverUrl,
+      identityCredential: widget.identityCredential ?? '',
+    ),
     'RAVE Sync' => const RaveSyncScreen(),
     'Audit Log' => AuditLogScreen(
       identityCredential: widget.identityCredential ?? '',
