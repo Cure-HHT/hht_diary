@@ -34,6 +34,7 @@ import 'patient_state_handler.dart';
 import 'patient_tasks_handler.dart';
 import 'portal_view_scopes.dart';
 import 'seed_config.dart';
+import 'send_questionnaire_handler.dart';
 import 'session_cascade_reactor.dart';
 import 'session_config.dart';
 import 'session_store.dart';
@@ -585,6 +586,33 @@ Future<PortalServerBoot> bootstrapPortalServer({
     }
   }
 
+  // Send-orchestration: POST /admin/questionnaire/send. Reads the
+  // questionnaire_instance view + cycle settings, computes the next cycle, and
+  // dispatches ACT-QST-001 in-process (EVS actions cannot read projections
+  // mid-execute, so the cycle decision is made here). Authorization is enforced
+  // by the dispatch (site-scoped portal.questionnaire.send); the authenticated
+  // Principal is attached by authMiddleware and read via principalFromContext.
+  // Implements: DIARY-BASE-questionnaire-coordinator-workflow/C
+  // Implements: DIARY-BASE-questionnaire-cycle-tracking/D+K
+  Future<Response> sendQuestionnaireHandler(Request request) async {
+    final principal = principalFromContext(request);
+    if (principal == null) {
+      return Response.forbidden('unauthenticated');
+    }
+    final Map<String, Object?> body;
+    try {
+      final raw = await request.readAsString();
+      final decoded = raw.isEmpty ? <String, Object?>{} : jsonDecode(raw);
+      if (decoded is! Map<String, Object?>) {
+        return Response(400, body: 'expected a JSON object body');
+      }
+      body = decoded;
+    } catch (_) {
+      return Response(400, body: 'invalid JSON body');
+    }
+    return respondToSend(eventStore, dispatcher, principal, body);
+  }
+
   // Audit-trail read, gated to principals holding portal.audit.view. Reads the
   // event log reverse-chronological and maps each event to an audit row via the
   // shared auditRowJson mapper. The authenticated Principal is attached by
@@ -642,6 +670,10 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // so it would be served the SPA instead of reaching this handler).
     ..get('/admin/diary-entries', diaryEntriesDebugHandler)
     ..post('/admin/rave-sync', raveSyncHandler)
+    // Send-orchestration for the coordinator's "Send Now" / "Start Next Cycle".
+    // Implements: DIARY-BASE-questionnaire-coordinator-workflow/C
+    // Implements: DIARY-BASE-questionnaire-cycle-tracking/D+K
+    ..post('/admin/questionnaire/send', sendQuestionnaireHandler)
     // Authed session routes (logout) — mounted inside the authed pipeline so
     // Bearer validation + principal context are present.
     // Implements: DIARY-DEV-portal-session-lifecycle/A
