@@ -107,6 +107,17 @@ class _LogoMenuState extends State<LogoMenu> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // The app default brand. Shown when not enrolled, AND used as the fallback
+    // when enrolled to a sponsor whose logo is unconfigured or unavailable — so
+    // the menu affordance is NEVER invisible. A vanished logo-menu hides the
+    // only access to reset / end-trial / instructions / licenses / service-mode,
+    // which is a worse failure than showing the generic brand.
+    final defaultBrand = Image.asset(
+      'assets/images/cure-hht-grey.png',
+      width: 100,
+      height: 40,
+      fit: BoxFit.contain,
+    );
     return PopupMenuButton<String>(
       tooltip: l10n.appMenu,
       child: Padding(
@@ -115,28 +126,26 @@ class _LogoMenuState extends State<LogoMenu> {
           clipBehavior: Clip.none,
           children: [
             if (widget.isEnrolled ?? false)
-              // Implements: DIARY-DEV-sponsor-branding-assets/D — the logo is
-              //   rendered from the content-addressed cache (verified bytes,
-              //   JWT-gated fetch-once), not a plain Image.network URL.
+              // Implements: DIARY-DEV-sponsor-branding-assets/D — the sponsor
+              //   logo renders from the content-addressed cache (verified bytes,
+              //   JWT-gated fetch-once), not a plain Image.network URL. When it
+              //   is unconfigured (null builder) or its bytes are unavailable
+              //   (builder fallback), we show the app default brand so the menu
+              //   stays visible and tappable.
               (widget.sponsorLogoBuilder != null)
                   ? widget.sponsorLogoBuilder!(
                       width: 120,
                       height: 40,
-                      fallback: const SizedBox(height: 40, width: 120),
+                      fallback: defaultBrand,
                     )
-                  : const SizedBox()
+                  : defaultBrand
             else
               ColorFiltered(
                 colorFilter: ColorFilter.mode(
                   Colors.grey.withValues(alpha: 0.5),
                   BlendMode.srcATop,
                 ),
-                child: Image.asset(
-                  'assets/images/cure-hht-grey.png',
-                  width: 100,
-                  height: 40,
-                  fit: BoxFit.contain,
-                ),
+                child: defaultBrand,
               ),
           ],
         ),

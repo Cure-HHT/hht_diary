@@ -501,4 +501,68 @@ void main() {
       expect(find.text('v1.2.3+7'), findsOneWidget);
     });
   });
+
+  // Verifies: DIARY-DEV-sponsor-branding-assets/D — the logo-menu affordance is
+  //   NEVER invisible. When enrolled to a sponsor whose logo is unconfigured
+  //   (null builder) or unavailable (builder renders its fallback), the menu
+  //   falls back to the app default brand instead of an empty/zero SizedBox
+  //   (the pre-fix bug, which hid reset / end-trial / licenses / service-mode).
+  group('LogoMenu branding fallback (enrolled, no sponsor logo)', () {
+    testWidgets('enrolled with a null sponsor logo builder shows the default '
+        'brand (menu stays visible)', (tester) async {
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onResetAllData: () {},
+            onEndClinicalTrial: () {},
+            onInstructionsAndFeedback: () {},
+            isEnrolled: true,
+            // No sponsor logo configured.
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Pre-fix this branch rendered `const SizedBox()` → no Image → menu gone.
+      expect(find.byType(Image), findsOneWidget);
+      final image = tester.widget<Image>(find.byType(Image));
+      expect(image.width, 100);
+      expect(image.height, 40);
+
+      // And it is still tappable / opens the menu.
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+      expect(find.text('Clinical Trial'), findsOneWidget);
+    });
+
+    testWidgets('enrolled but sponsor logo unavailable falls back to the '
+        'default brand via the builder fallback', (tester) async {
+      // A builder that cannot resolve the logo bytes renders the fallback it
+      // was handed — which must be the default brand, not an empty box.
+      Widget fallbackOnlyBuilder({
+        required double width,
+        required double height,
+        required Widget fallback,
+      }) => fallback;
+
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onResetAllData: () {},
+            onEndClinicalTrial: () {},
+            onInstructionsAndFeedback: () {},
+            isEnrolled: true,
+            sponsorLogoBuilder: fallbackOnlyBuilder,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Pre-fix the fallback was `SizedBox(40x120)` → no Image → menu gone.
+      expect(find.byType(Image), findsOneWidget);
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+      expect(find.text('Clinical Trial'), findsOneWidget);
+    });
+  });
 }
