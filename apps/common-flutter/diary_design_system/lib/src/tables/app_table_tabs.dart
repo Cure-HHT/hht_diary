@@ -25,7 +25,6 @@ class AppTableTab {
 /// **Controlled component, no internal state.** The caller passes [tabs],
 /// the currently-active [activeKey], and reacts to [onTap]. Selecting a tab
 /// is the app's responsibility (refetch rows, update filter, etc.).
-// Implements: DIARY-DEV-test-instrumentation/A
 class AppTableTabs extends StatelessWidget {
   final List<AppTableTab> tabs;
   final String activeKey;

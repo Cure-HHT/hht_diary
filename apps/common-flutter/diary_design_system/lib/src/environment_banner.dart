@@ -1,7 +1,5 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
-//
-// Implements: DIARY-DEV-test-instrumentation/B
 
 import 'package:flutter/material.dart';
 

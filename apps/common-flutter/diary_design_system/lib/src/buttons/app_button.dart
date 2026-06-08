@@ -34,7 +34,6 @@ enum AppButtonSize { small, medium, large }
 ///
 /// **Touch target** is at least 48dp on every size; the visual height of
 /// [AppButtonSize.small] is 32dp but the hit area is padded out to 48dp.
-// Implements: DIARY-DEV-test-instrumentation/A
 class AppButton extends StatelessWidget {
   final AppButtonVariant variant;
   final AppButtonSize size;

@@ -43,7 +43,6 @@ enum AppBadgeTone { neutral, primary, danger, warning, success }
 /// the pill on the right of the label. Pass [onTap] to make the whole
 /// pill tappable — used by composed widgets like the portal's role
 /// switcher where the chip itself triggers a menu.
-// Implements: DIARY-DEV-test-instrumentation/B
 class AppBadge extends StatelessWidget {
   final String label;
   final AppBadgeVariant variant;

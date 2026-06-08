@@ -56,7 +56,7 @@ import 'app_dialog_size.dart';
 ///
 /// `AppButton(loading: state is Submitting, onPressed: submit)` maps onto
 /// `ActionBuilder`'s `(state, submit)` 1:1.
-// Implements: DIARY-DEV-test-instrumentation/A
+
 class AppDialog extends StatelessWidget {
   final AppDialogSize size;
   final Widget? icon;

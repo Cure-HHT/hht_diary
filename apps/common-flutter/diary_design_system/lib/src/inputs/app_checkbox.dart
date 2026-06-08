@@ -8,7 +8,6 @@ import '../tokens/spacing_tokens.dart';
 /// and adds an optional inline label. For checkbox lists (e.g., the Edit User
 /// "Assigned Sites" pattern from the Figma), compose this with a `Column` of
 /// AppCheckboxes — there isn't a dedicated list widget yet.
-// Implements: DIARY-DEV-test-instrumentation/A
 class AppCheckbox extends StatelessWidget {
   /// `true`, `false`, or `null` (when [tristate] is enabled).
   final bool? value;

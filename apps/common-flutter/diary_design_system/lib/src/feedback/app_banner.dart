@@ -16,7 +16,6 @@ enum AppBannerSeverity { success, warning, error, info }
 /// The [trailing] slot is for caller-supplied actions — a dismiss `AppButton`,
 /// a "Retry" button, an external link, etc. Keep it small; the banner is
 /// inline, not a full alert.
-// Implements: DIARY-DEV-test-instrumentation/B
 class AppBanner extends StatelessWidget {
   final AppBannerSeverity severity;
   final String? title;

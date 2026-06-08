@@ -7,7 +7,6 @@ import '../tokens/spacing_tokens.dart';
 /// "card" primitive. Used for grouping related content inside a dialog body
 /// (e.g., the user-info card in the User Details dialog) or anywhere a soft
 /// visual container is needed.
-// Implements: DIARY-DEV-test-instrumentation/B
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;

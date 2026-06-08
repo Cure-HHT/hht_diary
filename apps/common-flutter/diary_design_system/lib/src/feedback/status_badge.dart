@@ -13,7 +13,6 @@ enum StatusBadgeKind { active, pending, atRisk, inactive }
 
 /// A small dot + label combo for showing a status — used in tables, user
 /// detail panels, and anywhere a single-glance state indicator is needed.
-// Implements: DIARY-DEV-test-instrumentation/B
 class StatusBadge extends StatelessWidget {
   final StatusBadgeKind kind;
 

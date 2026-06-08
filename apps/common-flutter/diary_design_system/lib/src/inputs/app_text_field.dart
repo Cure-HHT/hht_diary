@@ -23,7 +23,6 @@ import '../tokens/spacing_tokens.dart';
 /// **Test-harness caveat**: when [semanticId] is set, leave [onChangedDebounce]
 /// null (or set it to [Duration.zero]). A Playwright `.fill(...)`-then-assert
 /// can race a non-zero debounce.
-// Implements: DIARY-DEV-test-instrumentation/A
 class AppTextField extends StatefulWidget {
   final String? label;
   final String? hintText;

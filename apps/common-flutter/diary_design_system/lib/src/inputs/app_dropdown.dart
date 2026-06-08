@@ -26,7 +26,6 @@ class AppDropdownItem<T> {
 /// below the trigger, same width, with full-width item rows. The currently
 /// selected item gets a light primary tint + trailing checkmark — matches
 /// Figma.
-// Implements: DIARY-DEV-test-instrumentation/A
 class AppDropdown<T> extends StatefulWidget {
   final String? label;
   final String? hintText;

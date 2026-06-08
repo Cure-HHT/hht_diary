@@ -74,7 +74,6 @@ class AppTableColumn<T> {
 /// - No filter / search logic — search is a widget slot the caller wires up.
 /// - No client-side sorting — sort is a callback to the consumer.
 /// - No selection by default.
-// Implements: DIARY-DEV-test-instrumentation/A
 class AppDataTable<T> extends StatelessWidget {
   final List<AppTableColumn<T>> columns;
   final List<T> rows;
@@ -107,7 +106,6 @@ class AppDataTable<T> extends StatelessWidget {
   ///
   /// When null, rows are keyless (position-keyed), matching pre-existing
   /// behavior.
-  // Implements: DIARY-DEV-test-instrumentation/C
   final Key Function(T row)? rowKey;
 
   /// Test-harness locator. When set, wraps the table card in a

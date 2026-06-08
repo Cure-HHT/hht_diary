@@ -9,7 +9,6 @@ import '../tokens/spacing_tokens.dart';
 /// ```dart
 /// AppInfoRow(label: 'Linking codes revoked', value: '3')
 /// ```
-// Implements: DIARY-DEV-test-instrumentation/B
 class AppInfoRow extends StatelessWidget {
   final String label;
 

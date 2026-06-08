@@ -8,7 +8,6 @@ import '../tokens/spacing_tokens.dart';
 ///
 /// Optional [count] renders as a muted pill next to the title; [trailing]
 /// sits at the far end (useful for "Edit", "See all" affordances).
-// Implements: DIARY-DEV-test-instrumentation/B
 class AppSectionHeader extends StatelessWidget {
   final String title;
   final int? count;

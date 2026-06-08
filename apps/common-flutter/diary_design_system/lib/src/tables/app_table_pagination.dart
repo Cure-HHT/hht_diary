@@ -11,7 +11,6 @@ import '../tokens/spacing_tokens.dart';
 ///
 /// **Controlled component.** The caller owns the current page and reacts to
 /// callbacks — this widget just renders.
-// Implements: DIARY-DEV-test-instrumentation/A
 class AppTablePagination extends StatelessWidget {
   /// 1-indexed current page.
   final int currentPage;
