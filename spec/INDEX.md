@@ -203,7 +203,7 @@
 | DIARY-DEV-reactive-read-path                 | Screens Read via Reactive Subscriptions               | dev-mobile-event-sourcing.md       | f37501bb |
 | DIARY-DEV-relink-device-gate                 | Relink Device Gate                                    | dev-relink-device-gate.md          | d82aa19c |
 | DIARY-DEV-runtime-environment-resolution     | Runtime Environment Resolution                        | dev-environment-resolution.md      | b0c74776 |
-| DIARY-DEV-schema-version-check               | Runtime Schema Version Check                          | dev-schema-version-check.md        | 260cb67b |
+| DIARY-DEV-schema-version-check               | Runtime Schema Version Check                          | dev-schema-version-check.md        | cf57d093 |
 | DIARY-DEV-shared-events-catalog              | Shared Cross-Wire Event Catalog                       | dev-shared-events-catalog.md       | 29c6b0c8 |
 | DIARY-DEV-sponsor-branding-assets            | Durable on-device branding assets                     | dev-sponsor-branding.md            | 5689e3e7 |
 | DIARY-DEV-sponsor-branding-source            | Event-sourced sponsor branding source                 | dev-sponsor-branding.md            | f3651a26 |

@@ -171,4 +171,52 @@ void main() {
       expect(isSchemaStale, isTrue);
     });
   });
+
+  group('schemaAlertPrefix', () {
+    // Verifies: DIARY-DEV-schema-version-check/D
+    test('includes sponsor/env and deploy identity when all vars present', () {
+      final prefix = schemaAlertPrefix({
+        'SPONSOR_ID': 'callisto',
+        'ENVIRONMENT': 'dev',
+        'PORTAL_DEPLOY_SEQ': '418',
+        'PORTAL_DEPLOY_SHA': 'a1b2c3d',
+      });
+      expect(
+        prefix,
+        equals('[portal-server | callisto/DEV | deploy #418 (a1b2c3d)]'),
+      );
+    });
+
+    test('falls back to bare tag when no identity vars are set', () {
+      expect(schemaAlertPrefix(const {}), equals('[portal-server]'));
+    });
+
+    test('omits sponsor segment when SPONSOR_ID is unset', () {
+      final prefix = schemaAlertPrefix({
+        'ENVIRONMENT': 'qa',
+        'PORTAL_DEPLOY_SEQ': '12',
+        'PORTAL_DEPLOY_SHA': 'deadbee',
+      });
+      expect(prefix, equals('[portal-server | QA | deploy #12 (deadbee)]'));
+    });
+
+    test('omits sha parens when PORTAL_DEPLOY_SHA is unset', () {
+      final prefix = schemaAlertPrefix({
+        'SPONSOR_ID': 'callisto',
+        'ENVIRONMENT': 'uat',
+        'PORTAL_DEPLOY_SEQ': '7',
+      });
+      expect(prefix, equals('[portal-server | callisto/UAT | deploy #7]'));
+    });
+
+    test('blank vars are treated as unset', () {
+      final prefix = schemaAlertPrefix({
+        'SPONSOR_ID': '  ',
+        'ENVIRONMENT': '',
+        'PORTAL_DEPLOY_SEQ': '',
+        'PORTAL_DEPLOY_SHA': '',
+      });
+      expect(prefix, equals('[portal-server]'));
+    });
+  });
 }

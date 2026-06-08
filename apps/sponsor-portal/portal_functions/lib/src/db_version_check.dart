@@ -2,6 +2,8 @@
 // Per CLAUDE.md §1: per-function Implements: annotations only — no file-header
 // IMPLEMENTS block.
 
+import 'dart:io' show Platform;
+
 import 'package:meta/meta.dart';
 import 'package:otel_common/otel_common.dart';
 
@@ -39,6 +41,44 @@ void resetDbVersionCheckState() {
 @visibleForTesting
 void setSchemaStaleForTesting({required bool stale}) {
   _schemaStale = stale;
+}
+
+// ---------------------------------------------------------------------------
+// Alert identity prefix
+// ---------------------------------------------------------------------------
+
+/// Builds the bracketed identity prefix for the schema-version Slack alerts so
+/// on-call can tell at a glance which environment and deploy emitted them.
+///
+/// The Cloud Run container is given `SPONSOR_ID`, `ENVIRONMENT`,
+/// `PORTAL_DEPLOY_SEQ` and `PORTAL_DEPLOY_SHA` by the sponsor deploy workflow.
+/// All segments are best-effort: a local or test run with none of them set
+/// yields the bare `[portal-server]` tag (matching the legacy format).
+///
+/// Example (all vars set): `[portal-server | callisto/DEV | deploy #418 (a1b2c3d)]`
+// Implements: DIARY-DEV-schema-version-check/D
+String schemaAlertPrefix([Map<String, String>? environment]) {
+  final env = environment ?? Platform.environment;
+  final parts = <String>['portal-server'];
+
+  final sponsor = env['SPONSOR_ID']?.trim();
+  final envName = env['ENVIRONMENT']?.trim();
+  final idParts = <String>[
+    if (sponsor != null && sponsor.isNotEmpty) sponsor,
+    if (envName != null && envName.isNotEmpty) envName.toUpperCase(),
+  ];
+  if (idParts.isNotEmpty) parts.add(idParts.join('/'));
+
+  final seq = env['PORTAL_DEPLOY_SEQ']?.trim();
+  final sha = env['PORTAL_DEPLOY_SHA']?.trim();
+  if (seq != null && seq.isNotEmpty) {
+    final shaSuffix = (sha != null && sha.isNotEmpty) ? ' ($sha)' : '';
+    parts.add('deploy #$seq$shaSuffix');
+  } else if (sha != null && sha.isNotEmpty) {
+    parts.add('deploy ($sha)');
+  }
+
+  return '[${parts.join(' | ')}]';
 }
 
 // ---------------------------------------------------------------------------
@@ -91,7 +131,7 @@ Future<void> checkSchemaVersion({
       _alertSent = true;
       final alert = sendAlert ?? notifySlack;
       await alert(
-        ':warning: [portal-server] DB schema version check FAILED — '
+        ':warning: ${schemaAlertPrefix()} DB schema version check FAILED — '
         'could not read schema_migrations ($e). '
         'Server is serving 503 until the DB is reachable.',
       );
@@ -118,7 +158,7 @@ Future<void> checkSchemaVersion({
       _alertSent = true;
       final alert = sendAlert ?? notifySlack;
       await alert(
-        ':warning: [portal-server] DB schema version behind — '
+        ':warning: ${schemaAlertPrefix()} DB schema version behind — '
         'expected >= $expectedMinVersion, found $found. '
         'Deploy pending migrations before serving traffic.',
       );

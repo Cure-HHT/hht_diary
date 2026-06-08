@@ -2977,6 +2977,7 @@
 - DIARY-DEV-portal-seed-config-B
 - DIARY-DEV-sponsor-config-source-A
 - DIARY-DEV-sponsor-config-source-B
+- DIARY-DEV-schema-version-check-D
 - DIARY-DEV-sponsor-branding-source-A
 - DIARY-DEV-sponsor-branding-source-C
 - DIARY-DEV-sponsor-branding-source-E
@@ -3111,6 +3112,7 @@
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-sponsor-config-source:section:0
 - DIARY-DEV-sponsor-config-source:section:1
+- DIARY-DEV-schema-version-check:section:0
 - rem:spec/dev-sponsor-branding.md:1
 - rem:spec/dev-sponsor-branding.md:3
 - DIARY-DEV-sponsor-branding-source:section:0
