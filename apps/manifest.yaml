@@ -315,8 +315,8 @@ apps:
   # Common Flutter Libraries
   # =========================================================================
 
-  - name: common_widgets
-    path: apps/common-flutter/common_widgets
+  - name: diary_design_system
+    path: apps/common-flutter/diary_design_system
     sdk_type: flutter
     dart_sdk: "^3.10.7"
     version: 0.0.1
@@ -328,7 +328,7 @@ apps:
     # dependency, but it has no checks of its own.
     ci:
       trigger_paths:
-        - apps/common-flutter/common_widgets/**
+        - apps/common-flutter/diary_design_system/**
       format: true
       analyze:
         tool: flutter
@@ -415,7 +415,7 @@ apps:
       - diary_shared_model          # path: ../../common-dart/diary_shared_model
       - trial_data_types            # path: ../../common-dart/trial_data_types
       - eq                          # path: ../../common-flutter/eq
-      - common_widgets              # path: ../../common-flutter/common_widgets
+      - diary_design_system         # path: ../../common-flutter/diary_design_system
 
     platforms:
       - android
@@ -509,7 +509,7 @@ apps:
     version: 1.0.0+1
 
     depends_on:
-      - common_widgets              # path: ../../common-flutter/common_widgets
+      - diary_design_system         # path: ../../common-flutter/diary_design_system
       - trial_data_types            # path: ../../common-dart/trial_data_types
 
     platforms:
@@ -703,7 +703,7 @@ apps:
 #   common-dart:   canonical_json_jcs, comms, diary_shared_model,
 #                  event_sourcing_datastore, grpc_health, otel_common,
 #                  portal_actions, provenance, shared_functions
-#   common-flutter: common_widgets, eq
+#   common-flutter: diary_design_system, eq
 #   sponsor-portal: portal_identity, portal_service
 #
 # Reference-only since the EVS cutover (CUR-1170) — NOT built or tested by CI
@@ -717,15 +717,15 @@ apps:
 #   diary_shared_model   -> (none)
 #   portal_actions       -> diary_shared_model
 #   eq                   -> trial_data_types
-#   common_widgets       -> (none)        comms/grpc_health/otel_common/
+#   diary_design_system  -> (none)        comms/grpc_health/otel_common/
 #                                         shared_functions/portal_identity -> (none)
 #   portal_service       -> portal_actions, diary_shared_model, rave_integration
 #   portal_server_evs    -> portal_identity, portal_service, portal_actions,
 #                           rave_integration, diary_shared_model
 #   portal_ui_evs        -> (none)
 #   clinical_diary       -> event_sourcing_datastore, diary_shared_model,
-#                           trial_data_types, eq, common_widgets
-#   portal-ui            -> common_widgets, trial_data_types
+#                           trial_data_types, eq, diary_design_system
+#   portal-ui            -> diary_design_system, trial_data_types
 #
 # A CI matrix job can topologically sort `depends_on` to produce build order.
 # ---------------------------------------------------------------------------
