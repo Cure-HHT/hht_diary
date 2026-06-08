@@ -32,6 +32,22 @@ import 'send_questionnaire_flow.dart';
 
 const String _viewPerm = 'view:questionnaire_instance';
 const String _kCallBackAction = 'ACT-QST-002'; // {siteId, instanceId, reason}
+const String _kFinalizeAction =
+    'ACT-QST-003'; // {siteId, instanceId, cycle?, endEvent?}
+
+/// The two terminal-cycle close markers (assertions B/E). A normal cycle
+/// finalize carries a `cycle` study-event string; a terminal close carries one
+/// of these `endEvent` sentinels (and no `cycle`).
+const String _kEndOfTreatment = 'end_of_treatment';
+const String _kEndOfStudy = 'end_of_study';
+
+/// Friendly label for a terminal `endEvent` sentinel, used both in the
+/// Finalization dropdown options and the Closed combined badge (assertion E).
+String _endEventLabel(String endEvent) => switch (endEvent) {
+  _kEndOfTreatment => 'End of Treatment',
+  _kEndOfStudy => 'End of Study',
+  _ => endEvent,
+};
 
 /// The selectable starting-cycle range for the Select Starting Cycle dialog —
 /// `Cycle 1`..`Cycle 12` (a const range; assertion I).
@@ -198,6 +214,8 @@ class ManageQuestionnairesDialog extends StatelessWidget {
                       ),
                       onCallBack: (current) =>
                           _runCallBack(context, current: current),
+                      onFinalize: (current) =>
+                          _runFinalize(context, current: current),
                     ),
                 ],
               );
@@ -333,6 +351,26 @@ class ManageQuestionnairesDialog extends StatelessWidget {
     ),
   );
 
+  /// Finalize flow: open the Finalization Dialog for the open [current]
+  /// instance. The dialog owns the Cycle dropdown, the nested Terminal Cycle
+  /// Warning, and the ACT-QST-003 dispatch; on success the card flips reactively
+  /// (Closed for a terminal close, Not-Sent/Start-Next for a cycle finalize).
+  ///
+  /// Implements: DIARY-BASE-questionnaire-finalization/A+B+C+D+E+F+G
+  Future<void> _runFinalize(
+    BuildContext context, {
+    required QuestionnaireInstance current,
+  }) => showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _FinalizationDialog(
+      participantId: participantId,
+      siteId: siteId,
+      instanceId: current.instanceId,
+      currentStudyEvent: current.studyEvent,
+    ),
+  );
+
   void _snack(BuildContext context, String message) {
     final messenger = ScaffoldMessenger.maybeOf(context);
     messenger?.showSnackBar(SnackBar(content: Text(message)));
@@ -369,6 +407,7 @@ class _QuestionnaireCard extends StatelessWidget {
     required this.onSendNow,
     required this.onStartNextCycle,
     required this.onCallBack,
+    required this.onFinalize,
   });
 
   final String participantId;
@@ -378,6 +417,7 @@ class _QuestionnaireCard extends StatelessWidget {
   final void Function(String questionnaireType) onSendNow;
   final void Function(String questionnaireType) onStartNextCycle;
   final void Function(QuestionnaireInstance current) onCallBack;
+  final void Function(QuestionnaireInstance current) onFinalize;
 
   @override
   Widget build(BuildContext context) {
@@ -423,6 +463,7 @@ class _QuestionnaireCard extends StatelessWidget {
                     onSendNow: onSendNow,
                     onStartNextCycle: onStartNextCycle,
                     onCallBack: onCallBack,
+                    onFinalize: onFinalize,
                   ),
               ],
             ),
@@ -433,10 +474,13 @@ class _QuestionnaireCard extends StatelessWidget {
   }
 }
 
-/// The status chip for a card. For a genuine terminal Closed (Phase 4) the
-/// matrix calls for a combined "Closed · End of Treatment/Study" badge; that
-/// terminal state is not produced by the view yet, so the badge shows the
-/// plain status label.
+/// The status chip for a card. For a genuine terminal Closed the matrix calls
+/// for a combined "Closed · End of Treatment/Study" badge: when the resolved
+/// state is Closed and carries a terminal `endEvent`, the badge text becomes
+/// "Closed · [friendly endEvent]" (assertion E); otherwise it shows the plain
+/// status label.
+///
+/// Implements: DIARY-BASE-questionnaire-finalization/E
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.state});
 
@@ -445,6 +489,11 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final endEvent = state.endEvent;
+    final label =
+        state.status == QuestionnaireInstanceStatus.closed && endEvent != null
+        ? 'Closed · ${_endEventLabel(endEvent)}'
+        : state.status.label;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -452,7 +501,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        state.status.label,
+        label,
         style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
       ),
     );
@@ -517,10 +566,9 @@ class _CycleInfo extends StatelessWidget {
   }
 }
 
-/// One action button. Send Now / Start Next Cycle / Call Back invoke the
-/// modal's flow handlers; Finalize renders DISABLED with a Phase-4 tooltip (the
-/// finalize flow + the `<id>_survey` Ready-to-Review join arrive in Phase 4).
-/// Each interactive button carries a stable Semantics identifier for Playwright.
+/// One action button. Send Now / Start Next Cycle / Call Back / Finalize invoke
+/// the modal's flow handlers. Each interactive button carries a stable Semantics
+/// identifier for Playwright.
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.participantId,
@@ -531,6 +579,7 @@ class _ActionButton extends StatelessWidget {
     required this.onSendNow,
     required this.onStartNextCycle,
     required this.onCallBack,
+    required this.onFinalize,
   });
 
   final String participantId;
@@ -541,21 +590,12 @@ class _ActionButton extends StatelessWidget {
   final void Function(String questionnaireType) onSendNow;
   final void Function(String questionnaireType) onStartNextCycle;
   final void Function(QuestionnaireInstance current) onCallBack;
+  final void Function(QuestionnaireInstance current) onFinalize;
 
   @override
   Widget build(BuildContext context) {
-    // Finalize is rendered but DISABLED until Phase 4 (no finalize behavior is
-    // wired here). The Delivery-Failed troubleshooting popover (assertions N/O)
-    // is likewise deferred.
-    // TODO(Phase 4/later): wire Finalize + the Delivery-Failed troubleshooting
-    //   popover (info icon).
-    if (action == QuestionnaireCardAction.finalize) {
-      return Tooltip(
-        message: 'Finalize arrives in Phase 4',
-        child: FilledButton(onPressed: null, child: Text(action.label)),
-      );
-    }
-
+    // The Delivery-Failed troubleshooting popover (assertions N/O) is deferred.
+    // TODO(later): wire the Delivery-Failed troubleshooting popover (info icon).
     final VoidCallback? onPressed;
     switch (action) {
       case QuestionnaireCardAction.sendNow:
@@ -570,7 +610,11 @@ class _ActionButton extends StatelessWidget {
         final current = _currentInstance();
         onPressed = current == null ? null : () => onCallBack(current);
       case QuestionnaireCardAction.finalize:
-        onPressed = null; // Unreachable — handled above.
+        // Finalize targets the current open instance (Ready to Review / Delivery
+        // Failed). Disabled if the open instance can't be resolved.
+        // Implements: DIARY-BASE-questionnaire-finalization/A
+        final current = _currentInstance();
+        onPressed = current == null ? null : () => onFinalize(current);
     }
 
     // Stable identifier for Playwright e2e (mirrors the send-eq-confirm-...
@@ -846,13 +890,20 @@ class _CallBackDialogState extends State<_CallBackDialog> {
   );
 }
 
-/// Pops the call-back dialog once the dispatch succeeds. Rendered transiently in
-/// the [ActionBuilder] Success branch so the modal returns to the card list
-/// (which has already flipped to Not Sent reactively).
+/// Pops a dispatch dialog once the action succeeds. Rendered transiently in the
+/// [ActionBuilder] Success branch so the modal returns to the card list (which
+/// has already flipped reactively). Shared by Call Back and Finalize; the
+/// [semanticSuffix] and [message] distinguish the two surfaces.
 class _AutoCloseOnSuccess extends StatefulWidget {
-  const _AutoCloseOnSuccess({required this.participantId});
+  const _AutoCloseOnSuccess({
+    required this.participantId,
+    this.semanticSuffix = 'callback',
+    this.message = 'Questionnaire called back.',
+  });
 
   final String participantId;
+  final String semanticSuffix;
+  final String message;
 
   @override
   State<_AutoCloseOnSuccess> createState() => _AutoCloseOnSuccessState();
@@ -869,15 +920,308 @@ class _AutoCloseOnSuccessState extends State<_AutoCloseOnSuccess> {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    identifier: 'qst-callback-success-${widget.participantId}',
-    child: const AlertDialog(
+    identifier: 'qst-${widget.semanticSuffix}-success-${widget.participantId}',
+    child: AlertDialog(
       content: SizedBox(
         width: 280,
         height: 60,
-        child: Center(child: Text('Questionnaire called back.')),
+        child: Center(child: Text(widget.message)),
       ),
     ),
   );
+}
+
+/// The selected option in the Finalization Dialog's Cycle dropdown: either the
+/// current cycle's study-event string, or a terminal close marker.
+sealed class _FinalizeChoice {
+  const _FinalizeChoice();
+}
+
+/// A normal cycle finalize — carries the chosen study-event string (e.g.
+/// `'Cycle 2 Day 1'`).
+class _CycleChoice extends _FinalizeChoice {
+  const _CycleChoice(this.studyEvent);
+  final String studyEvent;
+}
+
+/// A terminal close — carries an `endEvent` sentinel (`end_of_treatment` /
+/// `end_of_study`).
+class _TerminalChoice extends _FinalizeChoice {
+  const _TerminalChoice(this.endEvent);
+  final String endEvent;
+}
+
+/// The Finalization Dialog (assertions A/B/C/F). A Cycle dropdown over the
+/// current cycle + the two terminal options, a Finalize Questionnaire button,
+/// and a Cancel.
+///
+///  * Cycle option + Finalize -> dispatch ACT-QST-003 `{cycle}` directly (D).
+///  * Terminal option + Finalize -> open the nested Terminal Cycle Warning; on
+///    its confirm -> dispatch ACT-QST-003 `{endEvent}` (E); on its cancel ->
+///    return to this dialog unchanged (G).
+///  * Cancel -> pop with no dispatch (F).
+///
+/// The dispatch is driven by an [ActionBuilder] whose `submissionFactory` closes
+/// over the chosen cycle/endEvent (resolved when Finalize is pressed); on
+/// Success the dialog auto-closes and the card flips reactively.
+///
+/// Implements: DIARY-BASE-questionnaire-finalization/A+B+C+D+E+F+G
+class _FinalizationDialog extends StatefulWidget {
+  const _FinalizationDialog({
+    required this.participantId,
+    required this.siteId,
+    required this.instanceId,
+    required this.currentStudyEvent,
+  });
+
+  final String participantId;
+  final String siteId;
+  final String instanceId;
+
+  /// The open instance's study event (Current Cycle), used as the first
+  /// dropdown option's label/value. Null when cycle tracking is off / no cycle
+  /// is recorded — the dropdown then offers only the two terminal options.
+  final String? currentStudyEvent;
+
+  @override
+  State<_FinalizationDialog> createState() => _FinalizationDialogState();
+}
+
+class _FinalizationDialogState extends State<_FinalizationDialog> {
+  /// The chosen dropdown option, resolved once Finalize is pressed (Idle path)
+  /// or carried into the dispatch (Submitting/Success). Initialised in
+  /// [initState] to the current cycle when present, else End of Treatment.
+  late _FinalizeChoice _choice;
+
+  @override
+  void initState() {
+    super.initState();
+    final cycle = widget.currentStudyEvent;
+    _choice = cycle != null
+        ? _CycleChoice(cycle)
+        : const _TerminalChoice(_kEndOfTreatment);
+  }
+
+  /// The dropdown value key for the current selection (the study-event string
+  /// for a cycle choice, or the endEvent sentinel for a terminal choice).
+  String get _selectedKey => switch (_choice) {
+    _CycleChoice(:final studyEvent) => studyEvent,
+    _TerminalChoice(:final endEvent) => endEvent,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return ActionBuilder(
+      // Surfaces the action outcome state on the semantics tree for Playwright.
+      semanticIdentifier: 'qst-finalize-outcome-${widget.participantId}',
+      // The chosen cycle/endEvent rides the dispatch: the factory reads the
+      // resolved [_choice] at submit time.
+      submissionFactory: () => ActionSubmission(
+        actionName: _kFinalizeAction,
+        rawInput: switch (_choice) {
+          _CycleChoice(:final studyEvent) => <String, Object?>{
+            'siteId': widget.siteId,
+            'instanceId': widget.instanceId,
+            'cycle': studyEvent,
+          },
+          _TerminalChoice(:final endEvent) => <String, Object?>{
+            'siteId': widget.siteId,
+            'instanceId': widget.instanceId,
+            'endEvent': endEvent,
+          },
+        },
+      ),
+      builder: (context, state, submit) {
+        final theme = Theme.of(context);
+        return switch (state) {
+          Submitting() => _busy(theme),
+          // On success the row folds to finalized -> the card flips reactively
+          // (Closed for terminal, Not-Sent/Start-Next for a cycle). Close.
+          Success() => _AutoCloseOnSuccess(
+            participantId: widget.participantId,
+            semanticSuffix: 'finalize',
+            message: 'Questionnaire finalized.',
+          ),
+          Denied() || Failed() => _form(context, theme, submit, state),
+          _ => _form(context, theme, submit, null), // Idle
+        };
+      },
+    );
+  }
+
+  /// Builds the dropdown items: the current cycle (when present) plus the two
+  /// terminal options (assertion B).
+  List<DropdownMenuItem<String>> _items() => <DropdownMenuItem<String>>[
+    if (widget.currentStudyEvent != null)
+      DropdownMenuItem<String>(
+        value: widget.currentStudyEvent,
+        child: Text(widget.currentStudyEvent!),
+      ),
+    const DropdownMenuItem<String>(
+      value: _kEndOfTreatment,
+      child: Text('End of Treatment'),
+    ),
+    const DropdownMenuItem<String>(
+      value: _kEndOfStudy,
+      child: Text('End of Study'),
+    ),
+  ];
+
+  /// Maps a dropdown value key back to a [_FinalizeChoice].
+  _FinalizeChoice _choiceFor(String key) =>
+      (key == _kEndOfTreatment || key == _kEndOfStudy)
+      ? _TerminalChoice(key)
+      : _CycleChoice(key);
+
+  /// Finalize pressed. A cycle choice dispatches directly; a terminal choice
+  /// opens the nested Terminal Cycle Warning first (assertion E/G).
+  Future<void> _onFinalize(void Function() submit) async {
+    final choice = _choice;
+    if (choice is _TerminalChoice) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _TerminalCycleWarningDialog(
+          participantId: widget.participantId,
+          endEvent: choice.endEvent,
+        ),
+      );
+      // Cancel -> return to this dialog unchanged, no dispatch (assertion G).
+      if (confirmed != true) return;
+      if (!mounted) return;
+    }
+    submit();
+  }
+
+  AlertDialog _form(
+    BuildContext context,
+    ThemeData theme,
+    void Function() submit,
+    ActionState? errorState,
+  ) {
+    final message = switch (errorState) {
+      Denied(:final result) => 'The finalization was not permitted ($result).',
+      Failed(:final error) => 'Finalize failed: $error',
+      _ => null,
+    };
+    return AlertDialog(
+      title: const Text('Finalize Questionnaire'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Lock this questionnaire for participant ${widget.participantId} and '
+            'select the cycle to finalize.',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 16),
+          // Assertions A/B: a Cycle dropdown over the current cycle + the two
+          // terminal options.
+          DropdownButtonFormField<String>(
+            initialValue: _selectedKey,
+            decoration: const InputDecoration(labelText: 'Cycle'),
+            items: _items(),
+            onChanged: (v) {
+              if (v == null) return;
+              setState(() => _choice = _choiceFor(v));
+            },
+          ),
+          if (message != null) ...<Widget>[
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: <Widget>[
+        // Assertion F: Cancel dismisses with no change.
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        // Assertion C: the Finalize Questionnaire button.
+        Semantics(
+          identifier: 'qst-finalize-confirm-${widget.participantId}',
+          button: true,
+          container: true,
+          explicitChildNodes: true,
+          child: FilledButton(
+            onPressed: () => _onFinalize(submit),
+            child: const Text('Finalize Questionnaire'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  AlertDialog _busy(ThemeData theme) => const AlertDialog(
+    title: Text('Finalizing…'),
+    content: SizedBox(
+      width: 280,
+      height: 60,
+      child: Center(child: CircularProgressIndicator()),
+    ),
+  );
+}
+
+/// The Terminal Cycle Warning Dialog (assertions E/G). Warns that the
+/// questionnaire type will be PERMANENTLY closed for the participant. Pops
+/// `true` on confirm (proceed to dispatch), `false`/null on Cancel (return to
+/// the Finalization Dialog unchanged).
+///
+/// Implements: DIARY-BASE-questionnaire-finalization/E+G
+class _TerminalCycleWarningDialog extends StatelessWidget {
+  const _TerminalCycleWarningDialog({
+    required this.participantId,
+    required this.endEvent,
+  });
+
+  final String participantId;
+  final String endEvent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final label = _endEventLabel(endEvent);
+    return AlertDialog(
+      title: Row(
+        children: <Widget>[
+          Icon(Icons.warning_amber, color: theme.colorScheme.error),
+          const SizedBox(width: 8),
+          const Expanded(child: Text('Permanently Close Questionnaire?')),
+        ],
+      ),
+      content: Text(
+        'Finalizing as "$label" will permanently close this questionnaire for '
+        'participant $participantId. No further cycles of this questionnaire '
+        'can be sent. This cannot be undone.',
+        style: theme.textTheme.bodyMedium,
+      ),
+      actions: <Widget>[
+        // Assertion G: Cancel pops false -> return to the Finalization Dialog
+        // unchanged.
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        Semantics(
+          identifier: 'qst-terminal-warning-confirm-$participantId',
+          button: true,
+          container: true,
+          explicitChildNodes: true,
+          child: FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Close as $label'),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// Test-only harness: renders a single [_QuestionnaireCard] over an injected
@@ -894,6 +1238,7 @@ class ManageQuestionnairesCardHarness extends StatelessWidget {
     required this.onSendNow,
     required this.onStartNextCycle,
     required this.onCallBack,
+    required this.onFinalize,
     this.siteId = 'S-1',
   });
 
@@ -904,6 +1249,7 @@ class ManageQuestionnairesCardHarness extends StatelessWidget {
   final void Function(String questionnaireType) onSendNow;
   final void Function(String questionnaireType) onStartNextCycle;
   final void Function(QuestionnaireInstance current) onCallBack;
+  final void Function(QuestionnaireInstance current) onFinalize;
 
   @override
   Widget build(BuildContext context) => _QuestionnaireCard(
@@ -914,6 +1260,34 @@ class ManageQuestionnairesCardHarness extends StatelessWidget {
     onSendNow: onSendNow,
     onStartNextCycle: onStartNextCycle,
     onCallBack: onCallBack,
+    onFinalize: onFinalize,
+  );
+}
+
+/// Test-only harness: the Finalization Dialog, mountable directly over a
+/// FakeReaction scope so the dropdown + terminal-warning + ACT-QST-003 dispatch
+/// behavior can be verified without the live ViewBuilder.
+@visibleForTesting
+class FinalizationDialogHarness extends StatelessWidget {
+  const FinalizationDialogHarness({
+    super.key,
+    required this.participantId,
+    required this.siteId,
+    required this.instanceId,
+    this.currentStudyEvent,
+  });
+
+  final String participantId;
+  final String siteId;
+  final String instanceId;
+  final String? currentStudyEvent;
+
+  @override
+  Widget build(BuildContext context) => _FinalizationDialog(
+    participantId: participantId,
+    siteId: siteId,
+    instanceId: instanceId,
+    currentStudyEvent: currentStudyEvent,
   );
 }
 

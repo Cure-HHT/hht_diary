@@ -32,12 +32,14 @@ QuestionnaireInstance _inst({
   String type = 'nose_hht',
   String? studyEvent,
   String participantId = 'P-1',
+  String? endEvent,
 }) => QuestionnaireInstance(
   instanceId: instanceId,
   participantId: participantId,
   type: type,
   studyEvent: studyEvent,
   status: status,
+  endEvent: endEvent,
 );
 
 /// Pumps a single [_QuestionnaireCard] (via the test harness) for one type over
@@ -47,6 +49,7 @@ Future<
     List<String> sends,
     List<String> nextCycles,
     List<QuestionnaireInstance> callBacks,
+    List<QuestionnaireInstance> finalizes,
   })
 >
 _pumpCard(
@@ -57,6 +60,7 @@ _pumpCard(
   final sends = <String>[];
   final nextCycles = <String>[];
   final callBacks = <QuestionnaireInstance>[];
+  final finalizes = <QuestionnaireInstance>[];
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
@@ -67,11 +71,17 @@ _pumpCard(
           onSendNow: sends.add,
           onStartNextCycle: nextCycles.add,
           onCallBack: callBacks.add,
+          onFinalize: finalizes.add,
         ),
       ),
     ),
   );
-  return (sends: sends, nextCycles: nextCycles, callBacks: callBacks);
+  return (
+    sends: sends,
+    nextCycles: nextCycles,
+    callBacks: callBacks,
+    finalizes: finalizes,
+  );
 }
 
 void main() {
@@ -150,10 +160,10 @@ void main() {
       },
     );
 
-    testWidgets('ready-to-review card shows Finalize (disabled) + Call Back', (
+    testWidgets('ready-to-review card shows Finalize (enabled) + Call Back', (
       tester,
     ) async {
-      await _pumpCard(
+      final cb = await _pumpCard(
         tester,
         type: noseHht,
         rows: <QuestionnaireInstance>[
@@ -169,14 +179,46 @@ void main() {
       expect(find.text('Finalize'), findsOneWidget);
       expect(find.text('Call Back'), findsOneWidget);
 
-      // Finalize is disabled until Phase 4.
+      // Finalize is now wired: it targets the open instance.
       final finalize = tester.widget<FilledButton>(
         find.ancestor(
           of: find.text('Finalize'),
           matching: find.byType(FilledButton),
         ),
       );
-      expect(finalize.onPressed, isNull);
+      expect(finalize.onPressed, isNotNull);
+
+      await tester.tap(find.text('Finalize'));
+      expect(cb.finalizes.length, 1);
+      expect(cb.finalizes.single.instanceId, 'inst-1');
+      expect(cb.finalizes.single.studyEvent, 'Cycle 1 Day 1');
+    });
+
+    // Verifies: DIARY-BASE-questionnaire-finalization/E — a terminal Closed card
+    //   shows the combined "Closed · <terminal>" badge and offers NO actions.
+    testWidgets('terminal Closed card shows combined badge + no actions', (
+      tester,
+    ) async {
+      await _pumpCard(
+        tester,
+        type: noseHht,
+        rows: <QuestionnaireInstance>[
+          _inst(
+            instanceId: 'inst-1',
+            status: QuestionnaireInstanceStatus.closed,
+            studyEvent: 'Cycle 3 Day 1',
+            endEvent: 'end_of_study',
+          ),
+        ],
+      );
+
+      // Combined badge (assertion E).
+      expect(find.text('Closed · End of Study'), findsOneWidget);
+      // No actions are offered on a terminally-closed card.
+      expect(find.text('Finalize'), findsNothing);
+      expect(find.text('Call Back'), findsNothing);
+      expect(find.text('Send Now'), findsNothing);
+      expect(find.text('Start Next Cycle'), findsNothing);
     });
   });
 
@@ -422,5 +464,179 @@ void main() {
 
       await fake.dispose();
     });
+  });
+
+  // Verifies: DIARY-BASE-questionnaire-finalization/A+B+C+D+E+F+G — the
+  //   Finalization Dialog: a Cycle dropdown over the current cycle + the two
+  //   terminal options (A/B); a Finalize Questionnaire button + Cancel (C);
+  //   a cycle choice dispatches ACT-QST-003 {cycle} directly (D); a terminal
+  //   choice opens the Terminal Cycle Warning, whose confirm dispatches
+  //   {endEvent} (E); cancelling the warning returns to the Finalization Dialog
+  //   without dispatching (G); cancelling the Finalization Dialog dispatches
+  //   nothing (F).
+  group('Finalization Dialog (A/B/C/D/E/F/G)', () {
+    Future<FakeReaction> pumpFinalize(
+      WidgetTester tester, {
+      String? currentStudyEvent = 'Cycle 2 Day 1',
+    }) async {
+      final fake = FakeReaction();
+      fake.queueDispatchResult(
+        const DispatchSuccess<Object?>(
+          <String, Object?>{'instanceId': 'inst-1'},
+          <String>['evt-1'],
+        ),
+      );
+      await pumpReactionWidget(
+        tester,
+        fake: fake,
+        child: Scaffold(
+          body: FinalizationDialogHarness(
+            participantId: 'P-1',
+            siteId: 'S-1',
+            instanceId: 'inst-1',
+            currentStudyEvent: currentStudyEvent,
+          ),
+        ),
+      );
+      return fake;
+    }
+
+    testWidgets('shows the cycle dropdown + Finalize/Cancel (A/B/C)', (
+      tester,
+    ) async {
+      final fake = await pumpFinalize(tester);
+
+      expect(find.text('Finalize Questionnaire'), findsWidgets);
+      expect(find.text('Cancel'), findsOneWidget);
+
+      // Default selection = the current cycle (shown in the dropdown).
+      expect(find.text('Cycle 2 Day 1'), findsOneWidget);
+
+      // The dropdown offers the current cycle + both terminal options (B).
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      expect(find.text('End of Treatment'), findsWidgets);
+      expect(find.text('End of Study'), findsWidgets);
+      expect(find.text('Cycle 2 Day 1'), findsWidgets);
+
+      await fake.dispose();
+    });
+
+    testWidgets('cycle option + Finalize dispatches {cycle}, no endEvent (D)', (
+      tester,
+    ) async {
+      final fake = await pumpFinalize(tester);
+
+      // Default selection is the current cycle. Finalize directly (no warning).
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Finalize Questionnaire'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(fake.submittedActions.length, 1);
+      final sub = fake.submittedActions.single;
+      expect(sub.actionName, 'ACT-QST-003');
+      expect(sub.rawInput['siteId'], 'S-1');
+      expect(sub.rawInput['instanceId'], 'inst-1');
+      expect(sub.rawInput['cycle'], 'Cycle 2 Day 1');
+      expect(sub.rawInput.containsKey('endEvent'), isFalse);
+
+      await fake.dispose();
+    });
+
+    testWidgets('terminal option + Finalize -> warning -> confirm dispatches '
+        '{endEvent} (E)', (tester) async {
+      final fake = await pumpFinalize(tester);
+
+      // Select End of Treatment.
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('End of Treatment').last);
+      await tester.pumpAndSettle();
+
+      // Finalize -> the Terminal Cycle Warning opens (no dispatch yet).
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Finalize Questionnaire'),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Permanently Close Questionnaire?'), findsOneWidget);
+      expect(fake.submittedActions, isEmpty);
+
+      // Confirm the warning -> dispatch {endEvent}.
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Close as End of Treatment'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(fake.submittedActions.length, 1);
+      final sub = fake.submittedActions.single;
+      expect(sub.actionName, 'ACT-QST-003');
+      expect(sub.rawInput['instanceId'], 'inst-1');
+      expect(sub.rawInput['endEvent'], 'end_of_treatment');
+      expect(sub.rawInput.containsKey('cycle'), isFalse);
+
+      await fake.dispose();
+    });
+
+    testWidgets(
+      'cancelling the Terminal Warning returns to Finalization, no dispatch (G)',
+      (tester) async {
+        final fake = await pumpFinalize(tester);
+
+        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('End of Study').last);
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.widgetWithText(FilledButton, 'Finalize Questionnaire'),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Permanently Close Questionnaire?'), findsOneWidget);
+
+        // Cancel the warning (the topmost Cancel; the Finalization Dialog
+        // behind it also has a Cancel).
+        await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
+        await tester.pumpAndSettle();
+
+        // Back on the Finalization Dialog, nothing dispatched (G).
+        expect(find.text('Permanently Close Questionnaire?'), findsNothing);
+        expect(find.text('Finalize Questionnaire'), findsWidgets);
+        expect(fake.submittedActions, isEmpty);
+
+        await fake.dispose();
+      },
+    );
+
+    testWidgets('cancelling the Finalization Dialog dispatches nothing (F)', (
+      tester,
+    ) async {
+      final fake = await pumpFinalize(tester);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(fake.submittedActions, isEmpty);
+
+      await fake.dispose();
+    });
+
+    testWidgets(
+      'null currentStudyEvent -> dropdown offers only the terminal options',
+      (tester) async {
+        final fake = await pumpFinalize(tester, currentStudyEvent: null);
+
+        // No cycle option; default selection is a terminal (End of Treatment).
+        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.pumpAndSettle();
+        expect(find.text('End of Treatment'), findsWidgets);
+        expect(find.text('End of Study'), findsWidgets);
+        // No "Cycle N Day 1" cycle option is offered (only the dropdown's
+        // "Cycle" label text exists).
+        expect(find.textContaining(RegExp(r'Cycle \d')), findsNothing);
+
+        await fake.dispose();
+      },
+    );
   });
 }
