@@ -4,6 +4,7 @@
 // Verifies: DIARY-DEV-portal-activation-email-delivery/B
 // Verifies: DIARY-DEV-portal-reset-code-lifecycle/D
 // Verifies: DIARY-DEV-portal-test-account-provisioning/A+B
+// Verifies: DIARY-DEV-portal-session-config/A
 import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
@@ -612,6 +613,37 @@ void main() {
         .toList();
     expect(created, isEmpty,
         reason: 'null password must not append any events');
+  });
+
+  // Verifies: DIARY-DEV-portal-session-config/A
+  // NOTE: the bootstrap reads Platform.environment directly with no injection
+  // seam, so env-driven seed values cannot be injected in this harness.  The
+  // test instead verifies the weaker (but still meaningful) invariant: the
+  // route is reachable without auth AND returns the default clamped values.
+  test(
+      'GET /config/session is mounted publicly and reflects default idle/warning '
+      'values (no PORTAL_SEED_SESSION_* env set in test runner)', () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('boot-session-cfg.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
+    );
+    addTearDown(boot.dispose);
+
+    // No Authorization header — must return 200, not 401.
+    final resp = await boot
+        .router(Request('GET', Uri.parse('http://localhost/config/session')));
+    expect(resp.statusCode, 200,
+        reason: '/config/session must be reachable without auth');
+
+    final body = jsonDecode(await resp.readAsString()) as Map<String, Object?>;
+    // Default idle = 10 min -> 600 s; default warning = 60 s (clamped).
+    expect(body['idleSeconds'], 600,
+        reason: 'default idleSeconds is 10 min * 60');
+    expect(body['warningSeconds'], 60, reason: 'default warningSeconds is 60');
+    expect(resp.headers['access-control-allow-origin'], '*',
+        reason: 'CORS header present for cross-origin browser clients');
   });
 
   // Verifies: DIARY-DEV-portal-second-factor-toggle/C

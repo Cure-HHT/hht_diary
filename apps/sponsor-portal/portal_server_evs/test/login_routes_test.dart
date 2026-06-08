@@ -4,6 +4,7 @@ import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_identity/portal_identity.dart';
 import 'package:portal_server_evs/src/login_routes.dart';
 import 'package:portal_server_evs/src/otp_store.dart';
+import 'package:portal_server_evs/src/session_config.dart';
 import 'package:portal_server_evs/src/session_token.dart';
 import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -63,7 +64,11 @@ void main() {
     );
   });
 
-  Handler handler() => buildLoginRouter(
+  Handler handler({
+    SessionConfig sessionConfig =
+        const SessionConfig(idleMinutes: 10, warningSeconds: 60),
+  }) =>
+      buildLoginRouter(
         eventStore: store,
         backend: backend,
         otpStore: otp,
@@ -77,6 +82,7 @@ void main() {
           'projectId': 'demo-local-stack',
           'apiKey': 'demo'
         },
+        sessionConfig: sessionConfig,
       ).call;
 
   test('POST /login verifies token, issues OTP, emits user_login_otp_issued',
@@ -179,6 +185,18 @@ void main() {
         reason: 'should not have sessionToken on OTP path');
   });
 
+  // Verifies: DIARY-DEV-portal-session-lifecycle/D
+  test('GET /config/session returns effective idle + warning seconds',
+      () async {
+    final res = await handler(
+      sessionConfig: const SessionConfig(idleMinutes: 12, warningSeconds: 45),
+    )(Request('GET', Uri.parse('http://localhost/config/session')));
+    expect(res.statusCode, 200);
+    final body = jsonDecode(await res.readAsString()) as Map<String, Object?>;
+    expect(body['idleSeconds'], 720);
+    expect(body['warningSeconds'], 45);
+  });
+
   group('authed session routes', () {
     // Verifies: DIARY-DEV-portal-session-lifecycle/A
     Handler authed() => buildAuthedSessionRouter(
@@ -205,6 +223,18 @@ void main() {
       final events = await backend.findAllEvents();
       expect(events.where((e) => e.eventType == 'session_terminated'),
           hasLength(1));
+    });
+
+    // Verifies: DIARY-DEV-portal-session-lifecycle/E (route shape only; the
+    //   keep-alive touch/extension semantics are covered by
+    //   session_token_validator_test.dart)
+    test('POST /keepalive on the authed router returns ok', () async {
+      final router = buildAuthedSessionRouter(
+          eventStore: store, signingKey: key, now: () => t0);
+      final res = await router
+          .call(Request('POST', Uri.parse('http://localhost/keepalive')));
+      expect(res.statusCode, 200);
+      expect((jsonDecode(await res.readAsString()) as Map)['ok'], isTrue);
     });
 
     test('GET /dev/users lists assigned users with their roles', () async {

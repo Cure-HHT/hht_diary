@@ -21,6 +21,9 @@ import 'nav_sections.dart';
 import 'participants_screen.dart';
 import 'rave_sync_screen.dart';
 import 'role_selector.dart';
+import 'session_activity_listener.dart';
+import 'session_config.dart';
+import 'session_timeout_controller.dart';
 import 'sites_screen.dart';
 import 'user_accounts_screen.dart';
 
@@ -88,6 +91,16 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// Null when not authenticated.
   String? _identityCredential;
 
+  /// The client soft-timer mirroring the server idle window. Non-null only in
+  /// session-auth mode while Authenticated.
+  SessionTimeoutController? _timeoutController;
+
+  /// Guards [_syncTimeoutController]'s async create branch: it awaits
+  /// `fetchSessionConfig` while `_timeoutController` is still null, so without
+  /// this flag two rapid `Authenticated` emissions could each pass the
+  /// null-check and create (and leak) a second controller + its timers.
+  bool _timerInitInFlight = false;
+
   @override
   void initState() {
     super.initState();
@@ -96,6 +109,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     _authSub = _scope.authSession.stream.listen((next) {
       if (!mounted) return;
       setState(() => _status = next);
+      unawaited(_syncTimeoutController(next));
     });
     _resolveAuthMode();
   }
@@ -121,6 +135,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
 
   @override
   void dispose() {
+    _timeoutController?.dispose();
     unawaited(_authSub.cancel());
     unawaited(_scope.dispose());
     super.dispose();
@@ -188,6 +203,77 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     _scope.authSession.setCredential(null);
   }
 
+  /// Creates the soft-timer on first Authenticated (session mode), tears it down
+  /// otherwise. Idempotent per status edge.
+  // Implements: DIARY-GUI-portal-session-expiry/A
+  Future<void> _syncTimeoutController(AuthStatus status) async {
+    final wantTimer = status is Authenticated && _sessionAuth == true;
+    if (wantTimer && _timeoutController == null && !_timerInitInFlight) {
+      _timerInitInFlight = true;
+      try {
+        final cfg = await fetchSessionConfig(_serverUrl);
+        if (!mounted || _scope.authSession.current is! Authenticated) return;
+        final c = SessionTimeoutController(
+          idleTimeout: cfg.idle,
+          warningLead: cfg.warning,
+          onKeepAlive: _keepAlive,
+          onExpired: _onSessionExpired,
+        )..start();
+        setState(() => _timeoutController = c);
+      } finally {
+        _timerInitInFlight = false;
+      }
+    } else if (!wantTimer && _timeoutController != null) {
+      _timeoutController!.dispose();
+      setState(() => _timeoutController = null);
+    }
+  }
+
+  /// Throttled keep-alive: any authed request resets the server idle window; a
+  /// dedicated lightweight endpoint keeps the intent explicit.
+  // Implements: DIARY-DEV-portal-session-lifecycle/E
+  Future<void> _keepAlive() async {
+    final credential = _identityCredential;
+    if (credential == null) return;
+    try {
+      await http.post(
+        Uri.parse('$_serverUrl/keepalive'),
+        headers: {'Authorization': 'Bearer $credential'},
+      );
+    } catch (_) {
+      // Best-effort; the server stays authoritative on the next real request.
+    }
+  }
+
+  /// Countdown hit zero: force a reconnect so the server's idle check trips and
+  /// the existing Expired() surface shows (the controller's expiry grace
+  /// guarantees we are past the server's strict idle boundary).
+  // Implements: DIARY-GUI-portal-session-expiry/C
+  Future<void> _onSessionExpired() async {
+    try {
+      await _scope.reconnect();
+    } catch (_) {
+      // If reconnect can't run, the next real request still trips the server.
+    }
+  }
+
+  /// Wraps [child] in the activity listener when the soft-timer is active;
+  /// otherwise returns it unchanged (dev mode / timer still loading). The
+  /// in-dialog "Sign out" cancels the timer (reactively dismissing the dialog)
+  /// then disconnects.
+  Widget _wrapWithTimeout(Widget child) {
+    final c = _timeoutController;
+    if (c == null) return child;
+    return SessionActivityListener(
+      controller: c,
+      onSignOut: () {
+        c.cancel();
+        _disconnect();
+      },
+      child: child,
+    );
+  }
+
   /// Shown while the login-UI mode is still being resolved from the server.
   Widget _loadingScaffold() =>
       const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -232,13 +318,15 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     }
 
     final Widget home = switch (_status) {
-      Authenticated(:final principal) => _HomeShell(
-        principal: principal,
-        identityCredential: _identityCredential,
-        onDisconnect: () {
-          _disconnect();
-        },
-        onRoleSelected: _onRoleSelected,
+      Authenticated(:final principal) => _wrapWithTimeout(
+        _HomeShell(
+          principal: principal,
+          identityCredential: _identityCredential,
+          onDisconnect: () {
+            _disconnect();
+          },
+          onRoleSelected: _onRoleSelected,
+        ),
       ),
       Expired() => switch (_sessionAuth) {
         null => _loadingScaffold(),

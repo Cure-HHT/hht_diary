@@ -65,6 +65,7 @@
 - DIARY-GUI-password-forgot-workflow-Q
 - DIARY-GUI-password-forgot-workflow-R
 - DIARY-GUI-password-forgot-workflow-U
+- DIARY-GUI-portal-session-expiry-B
 - DIARY-PRD-questionnaire-portal-sent-rules-M
 - DIARY-GUI-questionnaire-portal-sent-workflow-G
 - DIARY-GUI-questionnaire-portal-sent-workflow-H
@@ -125,6 +126,8 @@
 - DIARY-GUI-show-linking-code:section:0
 - DIARY-GUI-show-linking-code:section:2
 - DIARY-GUI-link-participant-flow:section:0
+- DIARY-GUI-portal-session-expiry:section:0
+- DIARY-GUI-portal-session-expiry:section:1
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:0
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:8
 - DIARY-OPS-rave-unwedge-authz:section:0
@@ -561,7 +564,7 @@
 - DIARY-GUI-user-account-deactivate-E
 - DIARY-DEV-portal-session-lifecycle:section:0
 - DIARY-DEV-portal-session-lifecycle:section:1
-- DIARY-PRD-session-management:section:5
+- DIARY-PRD-session-management:section:6
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-edit:section:1
 - DIARY-PRD-user-account-deactivate:section:0
@@ -1041,6 +1044,8 @@
 
 **DIARY:**
 
+- DIARY-DEV-portal-session-lifecycle-D
+- DIARY-DEV-portal-session-config-A
 - DIARY-DEV-portal-reaction-server-D
 - DIARY-PRD-user-authentication-C
 - DIARY-PRD-user-authentication-D
@@ -1049,13 +1054,16 @@
 - DIARY-PRD-user-authentication-K
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-G
+- DIARY-PRD-session-management-I
+- DIARY-GUI-portal-session-expiry-A
 - DIARY-DEV-portal-session-token:section:1
 - DIARY-DEV-portal-session-lifecycle:section:0
+- DIARY-DEV-portal-session-config:section:0
 - DIARY-DEV-portal-reaction-server:section:1
 - DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-user-authentication:section:5
 - DIARY-PRD-user-authentication-pin:section:6
-- DIARY-PRD-session-management:section:5
+- DIARY-PRD-session-management:section:6
 
 ## Incomplete Record
 
@@ -1774,6 +1782,8 @@
 - DIARY-GUI-link-participant-flow:section:0
 - DIARY-GUI-link-participant-flow:section:2
 - DIARY-PRD-platform-operations-monitoring:section:0
+- DIARY-GUI-portal-session-expiry:section:0
+- DIARY-GUI-portal-session-expiry:section:1
 - DIARY-PRD-questionnaire-system:section:0
 - DIARY-PRD-questionnaire-system:section:4
 - DIARY-PRD-questionnaire-change-control:section:1
@@ -2149,6 +2159,8 @@
 - DIARY-PRD-notification-portal-sent-questionnaire:section:5
 - DIARY-PRD-participant-link-new:section:0
 - DIARY-PRD-participant-disconnection:section:1
+- DIARY-GUI-portal-session-expiry:section:0
+- DIARY-GUI-portal-session-expiry:section:1
 - rem:spec/prd-questionnaire-management.md:1
 - rem:spec/prd-questionnaire-management.md:3
 - DIARY-PRD-questionnaire-system:section:0
@@ -2412,7 +2424,7 @@
 - DIARY-PRD-participant-disconnection:section:1
 - DIARY-PRD-participant-mark-not-participating:section:1
 - DIARY-PRD-session-management:section:0
-- DIARY-PRD-session-management:section:5
+- DIARY-PRD-session-management:section:6
 - DIARY-PRD-questionnaire-system:section:4
 - DIARY-OPS-rave-unwedge-authz:section:0
 - rem:spec/prd-rbac.md:1
@@ -2473,9 +2485,11 @@
 
 - DIARY-DEV-portal-session-token
 - DIARY-DEV-portal-session-lifecycle
+- DIARY-DEV-portal-session-config
 - DIARY-DEV-portal-active-role-switch
 - DIARY-DEV-portal-reset-session-termination
 - DIARY-PRD-session-management
+- DIARY-GUI-portal-session-expiry
 - DIARY-PRD-questionnaire-session-timeout
 - DIARY-GUI-questionnaire-session-expiry
 - DIARY-DEV-participant-state-poll-B
@@ -2485,6 +2499,9 @@
 - DIARY-DEV-portal-session-token-B
 - DIARY-DEV-portal-session-lifecycle-A
 - DIARY-DEV-portal-session-lifecycle-C
+- DIARY-DEV-portal-session-lifecycle-D
+- DIARY-DEV-portal-session-lifecycle-E
+- DIARY-DEV-portal-session-config-A
 - DIARY-DEV-portal-active-role-switch-A
 - DIARY-DEV-portal-active-role-switch-C
 - DIARY-DEV-shared-events-catalog-D
@@ -2494,6 +2511,11 @@
 - DIARY-PRD-session-management-D
 - DIARY-PRD-session-management-H
 - DIARY-PRD-session-management-G
+- DIARY-PRD-session-management-I
+- DIARY-PRD-session-management-K
+- DIARY-GUI-portal-session-expiry-A
+- DIARY-GUI-portal-session-expiry-B
+- DIARY-GUI-portal-session-expiry-C
 - DIARY-PRD-questionnaire-portal-sent-rules-K
 - DIARY-PRD-questionnaire-session-timeout-A
 - DIARY-PRD-questionnaire-session-timeout-C
@@ -2521,6 +2543,7 @@
 - DIARY-DEV-portal-session-token:section:1
 - DIARY-DEV-portal-session-lifecycle:section:0
 - DIARY-DEV-portal-session-lifecycle:section:1
+- DIARY-DEV-portal-session-config:section:0
 - DIARY-DEV-portal-active-role-switch:section:0
 - DIARY-DEV-portal-active-role-switch:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
@@ -2532,7 +2555,9 @@
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
 - DIARY-PRD-session-management:section:0
-- DIARY-PRD-session-management:section:5
+- DIARY-PRD-session-management:section:6
+- DIARY-GUI-portal-session-expiry:section:0
+- DIARY-GUI-portal-session-expiry:section:1
 - rem:spec/prd-questionnaire-participant-workflow.md:3
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
 - DIARY-PRD-questionnaire-session-timeout:section:0
@@ -2549,6 +2574,7 @@
 
 **DIARY:**
 
+- DIARY-GUI-portal-session-expiry
 - DIARY-GUI-questionnaire-session-expiry
 - DIARY-PRD-questionnaire-session-timeout-D
 - DIARY-PRD-questionnaire-session-timeout-F
@@ -2584,6 +2610,8 @@
 **DIARY:**
 
 - DIARY-PRD-session-management-G
+- DIARY-PRD-session-management-I
+- DIARY-GUI-portal-session-expiry-A
 
 ## Session Timeout
 
@@ -2600,6 +2628,16 @@
 - DIARY-PRD-questionnaire-session-timeout-I
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
 - DIARY-PRD-questionnaire-session-timeout:section:6
+
+## Session Timeout Warning
+
+**DIARY:**
+
+- DIARY-PRD-session-management-I
+- DIARY-PRD-session-management-K
+- DIARY-GUI-portal-session-expiry-A
+- DIARY-GUI-portal-session-expiry-B
+- DIARY-PRD-session-management:section:6
 
 ## Short Duration Threshold
 
@@ -2656,7 +2694,7 @@
 - DIARY-PRD-evidence-patient-authentication:section:0
 - DIARY-PRD-notification-disconnection:section:1
 - DIARY-GUI-show-linking-code:section:2
-- DIARY-PRD-session-management:section:5
+- DIARY-PRD-session-management:section:6
 - DIARY-PRD-questionnaire-localization:section:0
 - rem:spec/prd-rave-sync.md:3
 - DIARY-OPS-rave-sync-cooldown:section:0
@@ -2776,6 +2814,7 @@
 - DIARY-GUI-password-forgot-workflow-R
 - DIARY-PRD-session-management-B
 - DIARY-PRD-session-management-G
+- DIARY-PRD-session-management-J
 - DIARY-PRD-questionnaire-system-E
 - DIARY-PRD-questionnaire-sponsor-configuration-A
 - DIARY-PRD-questionnaire-sponsor-configuration-B
@@ -2821,6 +2860,7 @@
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-participant-ingest:section:1
+- DIARY-DEV-portal-session-config:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-sponsor-config-source:section:0
@@ -2897,7 +2937,8 @@
 - DIARY-PRD-two-factor-authentication:section:0
 - DIARY-PRD-two-factor-authentication:section:4
 - DIARY-PRD-session-management:section:0
-- DIARY-PRD-session-management:section:5
+- DIARY-PRD-session-management:section:6
+- DIARY-GUI-portal-session-expiry:section:0
 - rem:spec/prd-questionnaire-management.md:3
 - DIARY-PRD-questionnaire-system:section:4
 - DIARY-PRD-questionnaire-sponsor-configuration:section:0
@@ -2993,7 +3034,8 @@
 - DIARY-PRD-participant-reconnection:section:0
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-session-management:section:0
-- DIARY-PRD-session-management:section:5
+- DIARY-PRD-session-management:section:6
+- DIARY-GUI-portal-session-expiry:section:0
 - DIARY-PRD-questionnaire-portal-sent-rules:section:0
 - rem:spec/prd-rave-sync.md:3
 - rem:spec/prd-rave-sync.md:5
@@ -3147,6 +3189,17 @@
 - DIARY-GUI-questionnaire-session-expiry-A
 - DIARY-PRD-questionnaire-session-timeout:section:7
 - DIARY-GUI-questionnaire-session-expiry:section:0
+
+## Timeout Warning Threshold
+
+**DIARY:**
+
+- DIARY-DEV-portal-session-lifecycle-D
+- DIARY-DEV-portal-session-config-A
+- DIARY-PRD-session-management-I
+- DIARY-PRD-session-management-J
+- DIARY-GUI-portal-session-expiry-A
+- DIARY-DEV-portal-session-config:section:0
 
 ## Trial
 
@@ -3372,6 +3425,8 @@
 - DIARY-PRD-session-management-D
 - DIARY-PRD-session-management-E
 - DIARY-PRD-session-management-F
+- DIARY-PRD-session-management-I
+- DIARY-PRD-session-management-K
 - DIARY-PRD-questionnaire-versioning-I
 - DIARY-OPS-rave-unwedge-authz-B
 - DIARY-GUI-rave-sync-paused-banner-B
@@ -3505,7 +3560,7 @@
 - DIARY-PRD-password-forgot:section:5
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-GUI-password-forgot-workflow:section:6
-- DIARY-PRD-session-management:section:5
+- DIARY-PRD-session-management:section:6
 - DIARY-PRD-questionnaire-versioning:section:0
 - DIARY-GUI-rave-sync-paused-banner:section:0
 - DIARY-PRD-action-inventory:section:1
@@ -3573,6 +3628,8 @@
 - DIARY-PRD-session-management-D
 - DIARY-PRD-session-management-E
 - DIARY-PRD-session-management-F
+- DIARY-PRD-session-management-I
+- DIARY-PRD-session-management-K
 - DIARY-PRD-rbac-customizable-A
 - DIARY-PRD-rbac-customizable-C
 - DIARY-PRD-user-account-create-A
