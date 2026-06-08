@@ -896,9 +896,17 @@ class _AppRootState extends State<AppRoot> {
   /// that path. Any FCM data messages that need to surface tasks still flow
   /// through TaskService.handleFcmMessage as before.
   Future<void> _initializeNotifications() async {
+    // Tasks are poll-based and independent of the push transport, so load +
+    // sync them regardless of environment (a local web/desktop diary that is
+    // already linked must still restore + refresh its task list).
+    // Load persisted tasks from storage
+    await _taskService.loadTasks();
+    // REQ-CAL-p00081: Poll for tasks on app start (FCM fallback)
+    unawaited(_taskService.syncTasks(_enrollmentService));
+
     // On the local-stack (AppEnv.local) the diary is web/Linux and has no FCM;
     // push arrives over the LocalSocketPushReceiver WS instead (wired in
-    // _initializeRuntime). Skip the firebase_messaging init entirely.
+    // _initializeRuntime). Skip ONLY the firebase_messaging init.
     // Implements: DIARY-DEV-pluggable-push-transport/D
     final profile = await EnvProfile.load();
     if (profile.env == AppEnv.local) {
@@ -908,12 +916,6 @@ class _AppRootState extends State<AppRoot> {
       );
       return;
     }
-
-    // Load persisted tasks from storage
-    await _taskService.loadTasks();
-
-    // REQ-CAL-p00081: Poll for tasks on app start (FCM fallback)
-    unawaited(_taskService.syncTasks(_enrollmentService));
 
     _notificationService = MobileNotificationService(
       onDataMessage: _taskService.handleFcmMessage,
@@ -1068,8 +1070,15 @@ class _AppRootState extends State<AppRoot> {
   @override
   void dispose() {
     _notificationService?.dispose();
-    unawaited(_localPushReceiver?.dispose());
-    unawaited(_localPushController?.close());
+    // Null the fields BEFORE disposing/closing so the receiver's forwarding
+    // listener (`_localPushController?.add`) becomes a no-op rather than adding
+    // to a closing controller (StateError: Cannot add event after closing).
+    final localPushReceiver = _localPushReceiver;
+    final localPushController = _localPushController;
+    _localPushReceiver = null;
+    _localPushController = null;
+    unawaited(localPushReceiver?.dispose());
+    unawaited(localPushController?.close());
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
     _runtime?.dispose();

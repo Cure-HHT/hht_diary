@@ -43,10 +43,14 @@ class LocalPushRegistry {
   int deliver(String participantId, Map<String, dynamic> frame) {
     final sinks = _byParticipant[participantId];
     if (sinks == null || sinks.isEmpty) return 0;
-    // Snapshot: a sink may unregister itself synchronously on a write error.
-    for (final sink in sinks.toList()) {
+    // Snapshot: a sink may unregister itself synchronously on a write error,
+    // mutating the live set mid-iteration. Return the snapshot length so the
+    // count reflects how many sinks were actually invoked, not the post-
+    // delivery size of the live set.
+    final snapshot = sinks.toList();
+    for (final sink in snapshot) {
       sink(frame);
     }
-    return sinks.length;
+    return snapshot.length;
   }
 }

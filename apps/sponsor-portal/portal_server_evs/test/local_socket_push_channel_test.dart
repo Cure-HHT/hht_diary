@@ -39,6 +39,26 @@ void main() {
       expect(registry.deliver('P1', {'type': 'push'}), equals(0));
       expect(got, isEmpty);
     });
+
+    test('deliver returns the count INVOKED even if a sink self-unregisters',
+        () {
+      final registry = LocalPushRegistry();
+      var calls = 0;
+      late void Function() disposeA;
+      // Sink A unregisters itself synchronously when it receives the frame,
+      // shrinking the live set mid-delivery.
+      disposeA = registry.register('P1', (_) {
+        calls++;
+        disposeA();
+      });
+      registry.register('P1', (_) => calls++);
+
+      final n = registry.deliver('P1', {'type': 'push'});
+
+      expect(calls, equals(2), reason: 'both sinks invoked from the snapshot');
+      expect(n, equals(2),
+          reason: 'count reflects sinks invoked, not live-set size');
+    });
   });
 
   group('LocalSocketPushChannel', () {
