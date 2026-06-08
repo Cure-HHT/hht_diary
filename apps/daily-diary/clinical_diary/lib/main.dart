@@ -15,10 +15,10 @@ import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/config_defaults.dart';
 import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
-import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/destinations/system_events_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
+import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
@@ -50,7 +50,8 @@ import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart'
     as esd
     show AutomationInitiator, ActionSubmission;
-import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
+import 'package:event_sourcing/event_sourcing.dart'
+    show EntryTypeDefinition, SembastBackend;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
@@ -347,34 +348,33 @@ class _AppRootState extends State<AppRoot> {
         tasksSync: () => _taskService.syncTasks(_enrollmentService),
       );
 
-      // Activate both legacy-shim destinations once at first install.
-      // The startDate is "today" on first install: there are no events
-      // recorded before the app exists, so anchoring the destination
-      // there is the correct watermark. setStartDate is monotonically
-      // non-increasing (REQ-d00129-C) — read the current schedule and
-      // skip the write when the destination is already activated so a
-      // process restart is a no-op. Each activation runs in its own
-      // try/catch so a failure on one destination does not prevent the
-      // other from coming online.
+      // Activate the legacy-sync (nosebleed) shim destination once at first
+      // install. The startDate is "today" on first install: there are no events
+      // recorded before the app exists, so anchoring the destination there is
+      // the correct watermark. setStartDate is monotonically non-increasing
+      // (REQ-d00129-C) — read the current schedule and skip the write when the
+      // destination is already activated so a process restart is a no-op.
+      // Questionnaire submissions now ship through the NATIVE
+      // `DiaryServerDestination` (gated on the trial-start watermark), so they
+      // are not activated here.
       const initiator = AutomationInitiator(service: 'mobile-bootstrap');
       final activationStartAt = DateTime.now().toUtc();
-      for (final destinationId in <String>[
-        LegacySyncDestination.destinationId,
-        LegacyQuestionnaireSubmitDestination.destinationId,
-      ]) {
-        try {
-          final schedule = await runtime.destinations.scheduleOf(destinationId);
-          if (schedule.startDate != null) continue;
+      try {
+        final schedule = await runtime.destinations.scheduleOf(
+          LegacySyncDestination.destinationId,
+        );
+        if (schedule.startDate == null) {
           await runtime.destinations.setStartDate(
-            destinationId,
+            LegacySyncDestination.destinationId,
             activationStartAt,
             initiator: initiator,
           );
-        } catch (e, stack) {
-          debugPrint(
-            '[Bootstrap] activation($destinationId) failed: $e\n$stack',
-          );
         }
+      } catch (e, stack) {
+        debugPrint(
+          '[Bootstrap] activation(${LegacySyncDestination.destinationId}) '
+          'failed: $e\n$stack',
+        );
       }
 
       // CUR-1169 I1: build the new reactive composition root alongside the
@@ -435,6 +435,25 @@ class _AppRootState extends State<AppRoot> {
         final esBackend = SembastBackend(database: esDb);
         nativeFifoWedged = esBackend.hasFifoWedged;
 
+        // Register the dynamic `<id>_survey` entry types into the NATIVE scope so
+        // a `submit_questionnaire` dispatch finalizes a `<id>_survey` DiaryEntry
+        // event that ships through `DiaryServerDestination`. The nosebleed types
+        // are registered internally by `bootstrapDiaryScope`; only the dynamic
+        // (data-driven) survey types are passed in here. `loadSurveyEntryTypes`
+        // returns the legacy `event_sourcing_datastore` definition shape, so map
+        // each to the native `event_sourcing` EntryTypeDefinition the new scope
+        // registers (id / name / version carry over; the native store materializes
+        // the survey into its diary_entries view).
+        // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/N
+        final surveyEntryTypes = [
+          for (final t in await loadSurveyEntryTypes())
+            EntryTypeDefinition(
+              id: t.id,
+              registeredVersion: t.registeredVersion,
+              name: t.name,
+            ),
+        ];
+
         try {
           diaryScope = await bootstrapDiaryScope(
             backend: esBackend,
@@ -442,6 +461,7 @@ class _AppRootState extends State<AppRoot> {
             softwareVersion: softwareVersion,
             localUserId: deviceId, // stable per-install id; recording is never
             // enrollment-gated
+            extraEntryTypes: surveyEntryTypes,
             outboundDestinations: [destination, systemDestination],
           );
         } catch (_) {

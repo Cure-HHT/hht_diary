@@ -605,7 +605,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (definition == null || !mounted) return;
 
     final aggregateId = task.targetId ?? task.id;
-    final entryType = '${qType.value}_survey';
 
     await Navigator.of(context).push(
       AppPageRoute<void>(
@@ -615,8 +614,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           onSubmit: (submission) async {
             try {
               await _recordSurveySubmission(
-                entryType: entryType,
-                aggregateId: aggregateId,
                 submission: submission,
                 studyEvent: task.studyEvent,
               );
@@ -654,28 +651,53 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return QuestionnaireDefinition.findById(defs, type.value);
   }
 
-  /// Append the canonical "questionnaire finalized" event to the local
-  /// log. The payload is `submission.toJson()` (snake_case keys: full
-  /// `responses` list, `instance_id`, `questionnaire_type`, `version`,
-  /// `completed_at`) plus an optional `study_event` cycle label
-  /// (REQ-CAL-p00080). The ALCOA+ audit fact must be self-contained:
-  /// the responses array carries `display_label` and `normalized_label`
-  /// per entry so downstream consumers do not need to re-derive them
-  /// from the questionnaire definition at read time.
+  /// Finalize a questionnaire through the NATIVE `submit_questionnaire` action,
+  /// so the resulting `<id>_survey` / `finalized` event lands in the native
+  /// event-sourcing store and ships through the same `DiaryServerDestination`
+  /// (→ `POST /api/v1/ingest/batch`) as nosebleed records.
+  ///
+  /// The action parses a `QuestionnaireSubmissionPayload` (snake_case keys,
+  /// `responses` as a `question_id -> {value, display_label, normalized_label}`
+  /// MAP). The flow's [QuestionnaireSubmission] carries `responses` as a LIST
+  /// and a single `version` string, so this maps both into the payload shape:
+  /// the list is keyed by `question_id`, and the single definition version is
+  /// stamped onto all three version refs (schema/content/gui), which today come
+  /// from the one `QuestionnaireDefinition.version` field
+  /// (DIARY-PRD-questionnaire-versioning/J+K+L). The optional `study_event`
+  /// cycle label (REQ-CAL-p00080) rides along in the event data.
+  ///
+  /// The ALCOA+ audit fact is self-contained: each response carries
+  /// `display_label` and `normalized_label` so downstream consumers do not need
+  /// to re-derive them from the questionnaire definition at read time.
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/N
+  // Implements: DIARY-DEV-action-write-path/A
   Future<void> _recordSurveySubmission({
-    required String entryType,
-    required String aggregateId,
     required QuestionnaireSubmission submission,
     String? studyEvent,
   }) async {
-    await widget.runtime.entryService.record(
-      entryType: entryType,
-      aggregateId: aggregateId,
-      eventType: 'finalized',
-      answers: <String, Object?>{
-        ...submission.toJson(),
-        'study_event': ?studyEvent,
-      },
+    final responses = <String, Object?>{
+      for (final r in submission.responses)
+        r.questionId: <String, Object?>{
+          'value': r.value,
+          'display_label': r.displayLabel,
+          'normalized_label': r.normalizedLabel,
+        },
+    };
+    await ReActionScope.of(context).actionSubmitter.submit(
+      ActionSubmission(
+        actionName: 'submit_questionnaire',
+        rawInput: <String, Object?>{
+          'instance_id': submission.instanceId,
+          'questionnaire_type': submission.questionnaireType,
+          // One definition version stamped onto all three version refs.
+          'schema_version': submission.version,
+          'content_version': submission.version,
+          'gui_version': submission.version,
+          'completed_at': submission.completedAt.toIso8601String(),
+          'responses': responses,
+          'study_event': ?studyEvent,
+        },
+      ),
     );
   }
 
@@ -705,7 +727,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (definition == null || !mounted) return;
 
     final aggregateId = survey.entryId;
-    final entryType = survey.entryType;
 
     await Navigator.of(context).push(
       PageRouteBuilder<void>(
@@ -718,11 +739,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             instanceId: aggregateId,
             onSubmit: (submission) async {
               try {
-                await _recordSurveySubmission(
-                  entryType: entryType,
-                  aggregateId: aggregateId,
-                  submission: submission,
-                );
+                await _recordSurveySubmission(submission: submission);
                 return const SubmitResult(success: true);
               } catch (e) {
                 return SubmitResult(success: false, error: e.toString());
