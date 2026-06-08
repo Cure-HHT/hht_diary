@@ -57,7 +57,13 @@ class _P {
         (row['participant_id'] as String?) ??
         '?',
     siteId: (row['site_id'] as String?) ?? '?',
-    status: statusFromEntryType(row['entryType'] as String?),
+    // Use the trial-start-aware status so a reactivated + re-linked participant
+    // (whose original started_at is preserved) reads as Trial Active and is not
+    // re-offered Start Trial. See effectiveParticipantStatus.
+    status: effectiveParticipantStatus(
+      row['entryType'] as String?,
+      trialStarted: row['started_at'] != null,
+    ),
     linkingCode: row['linking_code'] as String?,
   );
 }

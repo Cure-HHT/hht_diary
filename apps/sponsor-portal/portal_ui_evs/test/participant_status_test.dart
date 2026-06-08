@@ -43,6 +43,45 @@ void main() {
     );
     expect(statusFromEntryType('something_else'), ParticipantStatus.unknown);
   });
+  test('effectiveParticipantStatus upgrades a re-linked started trial', () {
+    // First link, trial not yet started -> Connected (Start Trial offered).
+    expect(
+      effectiveParticipantStatus(
+        'participant_linking_code_used',
+        trialStarted: false,
+      ),
+      ParticipantStatus.connected,
+    );
+    // Reactivated + re-linked with the original started_at preserved -> Trial
+    // Active, so Start Trial is NOT re-offered (re-running it would overwrite
+    // the original trial-start date / sync watermark).
+    expect(
+      effectiveParticipantStatus(
+        'participant_linking_code_used',
+        trialStarted: true,
+      ),
+      ParticipantStatus.trialActive,
+    );
+    // Non-connected states are unaffected by a preserved started_at.
+    expect(
+      effectiveParticipantStatus(
+        'participant_marked_not_participating',
+        trialStarted: true,
+      ),
+      ParticipantStatus.notParticipating,
+    );
+    expect(
+      effectiveParticipantStatus('participant_reactivated', trialStarted: true),
+      ParticipantStatus.pending,
+    );
+    expect(
+      effectiveParticipantStatus(
+        'participant_disconnected',
+        trialStarted: true,
+      ),
+      ParticipantStatus.disconnected,
+    );
+  });
   test('enabledActions per state', () {
     expect(enabledActions(ParticipantStatus.notConnected), {
       ParticipantAction.issueLinkingCode,
