@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:portal_screens/portal_screens.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
+import 'create_user_dialog.dart';
 import 'user_account_logic.dart';
 
 /// Thin reactive wrapper that feeds [UsersScreen] a snapshot of users
@@ -23,16 +26,13 @@ class UsersScreenBinding extends StatelessWidget {
   const UsersScreenBinding({super.key});
 
   /// Permission a role must hold to see the users tab + table at all.
-  /// Matches the constant the legacy `user_accounts_screen.dart` used
-  /// (`view:users_index`).
   static const String viewUsersPermission = 'view:users_index';
 
   /// Permission for the assignment join. When the active role lacks it,
   /// the outer table still renders (no information leak — the row text
   /// already comes from the gated `users_index`), but role / site cells
-  /// are blank. Keeping the inner gate separate matches the legacy
-  /// screen's behaviour and avoids forcing every viewer of the users
-  /// table to also read `user_role_scopes`.
+  /// are blank. Keeping the inner gate separate avoids forcing every
+  /// viewer of the users table to also read `user_role_scopes`.
   static const String viewAssignmentsPermission = 'view:user_role_scopes';
 
   @override
@@ -88,6 +88,12 @@ class UsersScreenBinding extends StatelessWidget {
     ),
   );
 
+  /// Permission a role must hold to see the "Create User" CTA on the
+  /// directory header. The button stays hidden when the active role is
+  /// missing this permission — gated reactively by [_CreateCtaGate] so
+  /// it re-evaluates on a role switch without rebuilding the table.
+  static const String createUserPermission = 'portal.user.create';
+
   Widget _renderUsersScreen({
     required List<_UserRow> users,
     required Map<String, List<_Assignment>> assignmentsByUser,
@@ -104,25 +110,76 @@ class UsersScreenBinding extends StatelessWidget {
           ),
         ),
     ];
-    return UsersScreen(
-      users: views,
-      isLoading: isLoading,
-      // Phase 6.5: the CTA is hidden in the real portal until the
-      // redesigned Create User dialog lands in Phase 7.5. The legacy
-      // dialog still lives in user_accounts_screen.dart — we just stop
-      // routing to it.
-      canCreate: false,
-      onCreate: () {},
+    return _CreateCtaGate(
+      builder: (context, canCreate) => UsersScreen(
+        users: views,
+        isLoading: isLoading,
+        canCreate: canCreate,
+        onCreate: canCreate ? () => _openCreateUserDialog(context) : () {},
+      ),
+    );
+  }
+
+  void _openCreateUserDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const CreateUserDialog(),
     );
   }
 }
 
+/// Subscribes to the active permission snapshot and rebuilds when the
+/// active role holds [UsersScreenBinding.createUserPermission] flips.
+/// Mirrors [PermissionGate]'s subscription but exposes the held-status
+/// as a bool to a [builder] so the parent renders a single [UsersScreen]
+/// with the right `canCreate` prop instead of two divergent branches.
+class _CreateCtaGate extends StatefulWidget {
+  const _CreateCtaGate({required this.builder});
+
+  final Widget Function(BuildContext context, bool canCreate) builder;
+
+  @override
+  State<_CreateCtaGate> createState() => _CreateCtaGateState();
+}
+
+class _CreateCtaGateState extends State<_CreateCtaGate> {
+  StreamSubscription<EffectiveAuthorization?>? _sub;
+  EffectiveAuthorization? _auth;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_sub != null) return;
+    final scope = ReActionScope.of(context);
+    _auth = scope.permissionSource.current;
+    _sub = scope.permissionSource.stream.listen((auth) {
+      if (!mounted) return;
+      setState(() => _auth = auth);
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_sub?.cancel());
+    super.dispose();
+  }
+
+  bool get _canCreate {
+    final auth = _auth;
+    if (auth == null) return false;
+    for (final p in auth.rolePermissions) {
+      if (p.name == UsersScreenBinding.createUserPermission) return true;
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context, _canCreate);
+}
+
 // -----------------------------------------------------------------------------
 // Row types — file-private projections of the raw `users_index` /
-// `user_role_scopes` rows. Mirrors the legacy `_UserRow` / `_Assignment`
-// types in user_accounts_screen.dart; duplicated (rather than imported)
-// because those types are private to that file and that file is still
-// hosting the legacy create / edit dialogs we haven't lifted yet.
+// `user_role_scopes` rows.
 // -----------------------------------------------------------------------------
 
 class _UserRow {

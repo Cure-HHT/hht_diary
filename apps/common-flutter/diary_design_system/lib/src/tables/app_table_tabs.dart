@@ -36,34 +36,24 @@ class AppTableTabs extends StatelessWidget {
   /// extends edge-to-edge regardless of this offset.
   final double leadingPadding;
 
-<<<<<<< HEAD
-=======
   /// Test-harness locator. When set, wraps the tab strip in a
   /// `Semantics(identifier: ..., container: true, explicitChildNodes: true)`
   /// node.
   final String? semanticId;
 
->>>>>>> origin/main
   const AppTableTabs({
     super.key,
     required this.tabs,
     required this.activeKey,
     required this.onTap,
     this.leadingPadding = 0,
-<<<<<<< HEAD
-=======
     this.semanticId,
->>>>>>> origin/main
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-<<<<<<< HEAD
-    return Column(
-=======
     final strip = Column(
->>>>>>> origin/main
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -92,8 +82,6 @@ class AppTableTabs extends StatelessWidget {
         ),
       ],
     );
-<<<<<<< HEAD
-=======
 
     if (semanticId == null) return strip;
 
@@ -103,7 +91,6 @@ class AppTableTabs extends StatelessWidget {
       explicitChildNodes: true,
       child: strip,
     );
->>>>>>> origin/main
   }
 }
 

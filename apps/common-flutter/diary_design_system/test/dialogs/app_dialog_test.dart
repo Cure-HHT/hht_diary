@@ -70,8 +70,6 @@ void main() {
       expect(find.byIcon(Icons.close), findsNothing);
     });
 
-<<<<<<< HEAD
-=======
     testWidgets('semanticId emits a Semantics identifier on the dialog root', (
       tester,
     ) async {
@@ -91,7 +89,6 @@ void main() {
       expect(node.identifier, equals('disconnect.dialog'));
     });
 
->>>>>>> origin/main
     group('.confirmation', () {
       testWidgets('returns true when confirmed', (tester) async {
         bool? result;
@@ -146,6 +143,7 @@ void main() {
           }),
         );
         await tester.tap(find.text('Open'));
+        await tester.tap(find.text('Open'));
         await tester.pumpAndSettle();
         expect(find.byType(AppBanner), findsOneWidget);
         expect(
@@ -155,49 +153,6 @@ void main() {
       });
     });
 
-<<<<<<< HEAD
-    group('.async', () {
-      testWidgets('returns the result the success builder pops with', (
-        tester,
-      ) async {
-        String? result;
-        await tester.pumpWidget(
-          _hostHarness((ctx) async {
-            result = await AppDialog.async<String>(
-              context: ctx,
-              onSubmit: () async => 'done',
-              confirmBuilder: (c, submit) => AppDialog(
-                title: 'Confirm',
-                body: const Text('Ready?'),
-                actions: [AppButton(label: 'Submit', onPressed: submit)],
-              ),
-              successBuilder: (c, value) => AppDialog(
-                title: 'Success',
-                body: Text(value),
-                actions: [
-                  AppButton(
-                    label: 'Done',
-                    onPressed: () => Navigator.of(c).pop(value),
-                  ),
-                ],
-              ),
-              errorBuilder: (c, error, retry) =>
-                  AppDialog(title: 'Error', body: Text(error.toString())),
-            );
-          }),
-        );
-        await tester.tap(find.text('Open'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(AppButton, 'Submit'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(AppButton, 'Done'));
-        await tester.pumpAndSettle();
-        expect(result, equals('done'));
-      });
-    });
-
-=======
->>>>>>> origin/main
     group('.reason', () {
       testWidgets('free-text variant: returns the trimmed input', (
         tester,

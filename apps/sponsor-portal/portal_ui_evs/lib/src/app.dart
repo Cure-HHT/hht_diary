@@ -5,6 +5,7 @@ import 'package:diary_design_system/diary_design_system.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:portal_ui_evs/src/reset_link.dart';
 import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
@@ -19,14 +20,10 @@ import 'firebase_auth_client.dart';
 import 'identity_config.dart';
 import 'login_screen.dart';
 import 'nav_sections.dart';
-import 'participants_screen.dart';
 import 'password_reset_screen.dart';
-import 'rave_sync_screen.dart';
-import 'role_selector.dart';
 import 'session_activity_listener.dart';
 import 'session_config.dart';
 import 'session_timeout_controller.dart';
-import 'sites_screen.dart';
 import 'users_screen_binding.dart';
 // Legacy screens still referenced for the destinations the redesign hasn't
 // touched yet (Sites / Participants / RAVE Sync) — they pass through unchanged
@@ -464,12 +461,6 @@ class _HomeShellState extends State<_HomeShell> {
   /// widgets pending their own redesign.
   Widget _screenFor(String label) => switch (label) {
     'User Accounts' => const UsersScreenBinding(),
-    'Sites' => const SitesScreen(),
-    'Participants' => ParticipantsScreen(
-      serverUrl: _serverUrl,
-      identityCredential: widget.identityCredential ?? '',
-    ),
-    'RAVE Sync' => const RaveSyncScreen(),
     'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',
       serverUrl: _serverUrl,
@@ -492,14 +483,6 @@ class _HomeShellState extends State<_HomeShell> {
       // Best-effort: if /health is unreachable, the label falls back to the
       // bundle version and the popup just shows fewer rows.
     }
-  }
-
-  /// The compact label under the app-bar title: the deploy counter when the
-  /// server reports one ("Deploy #47"), else this bundle's version, else nothing.
-  String _versionLabel() {
-    final deploy = _serverVersions['deploy'];
-    if (deploy is String && deploy.isNotEmpty) return 'Deploy #$deploy';
-    return _appVersion;
   }
 
   /// Popup listing the full version/provenance manifest. "Portal UI" is this
@@ -563,12 +546,6 @@ class _HomeShellState extends State<_HomeShell> {
     );
   }
 
-  String _credentialLabel() {
-    final p = widget.principal;
-    if (p is UserPrincipal) return '${p.userId}:${p.activeRole}';
-    return p.id;
-  }
-
   @override
   Widget build(BuildContext context) {
     // Hide sections the active role can't use; a hidden section's screen is
@@ -581,64 +558,7 @@ class _HomeShellState extends State<_HomeShell> {
       for (final p in _auth?.rolePermissions ?? const <Permission>{}) p.name,
     };
     final visible = visibleSections(held);
-    final selectedIndex = resolveSelectedIndex(visible, _selectedLabel);
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const Text('Portal (EVS skeleton)'),
-            if (_versionLabel().isNotEmpty)
-              InkWell(
-                onTap: _showVersionsDialog,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      _versionLabel(),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 2),
-                      child: Icon(
-                        Icons.info_outline,
-                        size: 12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-        actions: <Widget>[
-          if (widget.principal is UserPrincipal)
-            RoleSelector(
-              roles: (widget.principal as UserPrincipal).roles,
-              activeRole: (widget.principal as UserPrincipal).activeRole,
-              onRoleSelected: widget.onRoleSelected,
-            ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text('Connected as ${_credentialLabel()}'),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Disconnect',
-            icon: const Icon(Icons.logout),
-            onPressed: widget.onDisconnect,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
       // Surface transport-connection state: when the reactive WS is
       // reconnecting/disconnected, a banner tells the user the data shown is the
       // last received (lists keep their last rows via the ViewBuilder Stale
@@ -647,7 +567,7 @@ class _HomeShellState extends State<_HomeShell> {
       body: ConnectionStatusBanner(
         statusStream: ReActionScope.of(context).connectionStatusStream,
         initial: ReActionScope.of(context).connectionStatus,
-        child: _buildBody(visible, selectedIndex),
+        child: _buildBody(visible),
       ),
     );
   }
@@ -683,15 +603,18 @@ class _HomeShellState extends State<_HomeShell> {
         title: 'Clinical Trial Portal',
         // Subtitle follows the active role's dashboard label so the
         // header reads "Administrator Dashboard" / "CRA Dashboard" / etc.
-        subtitle: activeRole.isEmpty
-            ? (_version.isEmpty ? 'Portal (EVS)' : 'Portal (EVS) — $_version')
-            : '$activeRole Dashboard',
+        subtitle: '$activeRole Dashboard',
         userName: userName,
         activeRole: activeRole,
         availableRoles: availableRoles,
         onRoleSelected: isUser ? widget.onRoleSelected : null,
         onLogout: widget.onDisconnect,
-        // Help icon isn't wired anywhere yet — Phase 8 polish.
+        // Help icon opens the version/provenance dialog. Same manifest
+        // (`portal_server_evs` / `server_commit` / `diary_app` /
+        // `deploy` / `deploy_commit`) we used to surface via the
+        // app-bar deploy-counter tap, now hung off the help affordance
+        // so the chrome above doesn't need its own version label.
+        onHelp: _showVersionsDialog,
       ),
       destinations: <DashboardDestination>[
         for (final s in visible)
