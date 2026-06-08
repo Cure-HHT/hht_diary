@@ -66,6 +66,32 @@ class EpistaxisEntryView extends DiaryEntryView {
   }
 }
 
+/// Typed view of a `<id>_survey` row (a finalized questionnaire submission).
+///
+/// Constructed eagerly from `row.data` via
+/// [QuestionnaireSubmissionPayload.fromJson]; **throws**
+/// (`FormatException`/`TypeError`) if the row does not conform to the
+/// `QuestionnaireSubmissionPayload` schema. The event log is authoritative, so a
+/// non-conforming row is a bug, not a recoverable condition — callers should not
+/// expect to construct this from untrusted data.
+class SurveyEntryView extends DiaryEntryView {
+  SurveyEntryView(super.row, {required super.isComplete})
+    : _payload = QuestionnaireSubmissionPayload.fromJson(row.data);
+  final QuestionnaireSubmissionPayload _payload;
+
+  /// The questionnaire id (the `<id>` of the `<id>_survey` entry type).
+  String get questionnaireType => _payload.questionnaireType;
+
+  /// The submission moment as a **device-local** `DateTime`. The stored ISO
+  /// string carries an offset, so `DateTime.parse` returns a UTC instant;
+  /// `.toLocal()` converts it to the device-local representation the renderer
+  /// expects (mirrors [EpistaxisEntryView.startTime]).
+  DateTime get completedAt => DateTime.parse(_payload.completedAt).toLocal();
+
+  /// Number of answered questions in the submission.
+  int get responseCount => _payload.responses.length;
+}
+
 class DayMarkerView extends DiaryEntryView {
   DayMarkerView(super.row, {super.isComplete = true});
 }
@@ -73,6 +99,9 @@ class DayMarkerView extends DiaryEntryView {
 DiaryEntryView diaryEntryViewOf(DiaryEntryRow row, {required bool isComplete}) {
   if (row.entryType == 'epistaxis_event') {
     return EpistaxisEntryView(row, isComplete: isComplete);
+  }
+  if (row.entryType.endsWith('_survey')) {
+    return SurveyEntryView(row, isComplete: isComplete);
   }
   return DayMarkerView(row, isComplete: isComplete);
 }

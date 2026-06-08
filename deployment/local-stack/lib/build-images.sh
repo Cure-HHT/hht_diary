@@ -10,7 +10,7 @@
 # Inputs come from two repos:
 #   • CORE (this toolkit's home, hht_diary): sponsor-ci.Dockerfile +
 #     portal-server-binary.Dockerfile + the Dart sources.
-#   • SPONSOR (e.g. hht_diary_callisto): portal-final.Dockerfile + content/ +
+#   • SPONSOR (e.g. hht_diary_<sponsor>): portal-final.Dockerfile + content/ +
 #     deployment/seed/portal-users.json. With no sponsor checkout this resolves
 #     to the built-in reference sponsor in core (deployment/reference-sponsor),
 #     so "$sponsor_repo" below may point back into the core tree.

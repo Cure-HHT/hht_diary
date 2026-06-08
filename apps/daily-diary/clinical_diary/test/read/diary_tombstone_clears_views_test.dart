@@ -40,7 +40,7 @@ void main() {
     final recorded = await rt.scope.actionSubmitter.submit(
       const ActionSubmission(
         actionName: 'record_no_epistaxis_day',
-        rawInput: {'date': '2025-10-15'},
+        rawInput: {'date': '2025-10-15', 'participantId': 'P'},
       ),
     );
     final aggregateId =

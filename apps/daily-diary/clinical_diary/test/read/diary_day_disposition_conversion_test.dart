@@ -64,6 +64,7 @@ void main() {
       endTime: '${day}T10:05:00.000Z',
       startTimeZone: 'UTC',
       startTimeUtcOffset: '+00:00',
+      participantId: 'P-test',
       endTimeZone: 'UTC',
       endTimeUtcOffset: '+00:00',
       intensity: NosebleedIntensity.dripping,
@@ -76,7 +77,10 @@ void main() {
     () async {
       const day = '2025-10-15';
       // Record the "No nosebleeds" marker.
-      final markerId = await submit('record_no_epistaxis_day', {'date': day});
+      final markerId = await submit('record_no_epistaxis_day', {
+        'date': day,
+        'participantId': 'P',
+      });
 
       var view = await readView();
       final marker = view.soleMarkerOn(day);
@@ -131,12 +135,15 @@ void main() {
 
   test('marker↔marker re-disposition: no_epistaxis → unknown', () async {
     const day = '2025-10-17';
-    await submit('record_no_epistaxis_day', {'date': day});
+    await submit('record_no_epistaxis_day', {
+      'date': day,
+      'participantId': 'P',
+    });
     var view = await readView();
     expect(view.dayStatus(day), DayStatus.noNosebleed);
 
     // Re-record as "unknown" on the same shared day aggregate (latest-wins).
-    await submit('record_unknown_day', {'date': day});
+    await submit('record_unknown_day', {'date': day, 'participantId': 'P'});
     view = await readView();
     expect(view.dayStatus(day), DayStatus.unknown);
     // Still a single summary entry on the day (not two markers).

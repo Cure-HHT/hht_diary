@@ -9,23 +9,31 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform, pid;
+import 'dart:io' show Directory, Platform, pid;
 
+import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/config/config_defaults.dart';
 import 'package:clinical_diary/config/env_profile.dart';
-import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
-import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
+import 'package:clinical_diary/destinations/system_events_destination.dart';
+import 'package:clinical_diary/diagnostics/health_context.dart';
+import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/scope/diary_sync_triggers.dart';
+import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
+import 'package:clinical_diary/services/branding_asset_cache.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/debug_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/link_sponsor_settings.dart';
 import 'package:clinical_diary/services/local_data_reset.dart';
 import 'package:clinical_diary/services/notification_service.dart';
+import 'package:clinical_diary/services/push_receiver.dart';
+import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
@@ -42,14 +50,17 @@ import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart'
     as esd
     show AutomationInitiator, ActionSubmission;
-import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
+import 'package:event_sourcing/event_sourcing.dart'
+    show EntryTypeDefinition, SembastBackend;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:flutter/semantics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -61,6 +72,16 @@ import 'package:uuid/uuid.dart';
 
 /// SharedPreferences key for the persisted device install UUID.
 const _kDeviceIdPrefsKey = 'clinical_diary.device_id';
+
+/// Foreground sync-poll interval in seconds. Default 60s; overridable via
+/// `--dart-define=DIARY_SYNC_PERIODIC_SECONDS=<n>`. The push-transport e2e sets
+/// a large value so the periodic /state poll cannot fire during the test —
+/// a prompt UI update after a portal action then proves it was push-delivered,
+/// not poll-delivered. Implements: DIARY-DEV-pluggable-push-transport/D
+const int _kSyncPeriodicSeconds = int.fromEnvironment(
+  'DIARY_SYNC_PERIODIC_SECONDS',
+  defaultValue: 60,
+);
 
 void main() async {
   // Security (CUR-1169): silence debugPrint in release builds. Flutter's
@@ -101,9 +122,21 @@ void main() async {
       TimezoneConverter.ensureInitialized();
 
       try {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
+        if (kIsWeb) {
+          // Web has no native google-services config, so it needs explicit options.
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
+        } else {
+          // CUR-1436 / CUR-1399: native platforms initialize from the per-flavor
+          // google-services.json / GoogleService-Info.plist, which target the
+          // cure-hht-admin project the portal sends FCM from. Passing explicit
+          // options here would override that native config and initialize against
+          // firebase_options.dart's hht-diary-mvp project, so device tokens would
+          // be minted in a different project than the sender and pushes would
+          // silently never arrive.
+          await Firebase.initializeApp();
+        }
         debugPrint('Firebase initialized successfully');
       } on FirebaseException catch (e) {
         // CUR-1278: on Android the google-services Gradle plugin's
@@ -124,13 +157,10 @@ void main() async {
         debugPrint('Stack trace:\n$stack');
       }
 
-      // CUR-546: Load Callisto feature flags by default for demo
-      try {
-        await FeatureFlagService.instance.loadFromServer('callisto');
-      } catch (e, stack) {
-        debugPrint('Feature flag loading error: $e');
-        debugPrint('Stack trace:\n$stack');
-      }
+      // Implements: DIARY-DEV-deployment-config-defaults/B — resolve the bundled
+      //   per-distribution UI-config defaults once (sibling to env.json). Sponsor
+      //   values delivered at link override these; absent asset -> code defaults.
+      AppConfig.deploymentUiDefaults = await loadDeploymentUiDefaults();
 
       // CUR-1307: Force-enable the semantics tree on web so the Flutter
       // accessibility nodes (and their `flt-semantics-identifier`
@@ -190,10 +220,27 @@ class _AppRootState extends State<AppRoot> {
   /// drain is wired through the bootstrap's `syncCycleTrigger`; these cover the
   /// remaining trigger sources. Disposed with the runtime.
   DiarySyncTriggerHandles? _diarySyncTriggers;
+  // Local-stack push transport (AppEnv.local only). The receiver rides the
+  // portal /api/v1/user/push WS and forwards frames into [_localPushController],
+  // which the diary_sync_triggers FCM stream-factory seam reads — so the receipt
+  // path is identical to FCM. See lib/services/push_receiver.dart.
+  // Implements: DIARY-DEV-pluggable-push-transport/D
+  StreamController<RemoteMessage>? _localPushController;
+  LocalSocketPushReceiver? _localPushReceiver;
 
   /// HTTP client owned by the native outbound [DiaryServerDestination]. Closed
   /// on [dispose] so the destination's transport is torn down cleanly.
   http.Client? _diaryIngestClient;
+
+  /// Content-addressed cache for *Sponsor* branding asset bytes, rooted at a
+  /// stable on-device support dir (`<appSupport>/branding_cache/`). It lives
+  /// OUTSIDE the documents dir the local-data-reset wipes and is never on that
+  /// wipe's delete list, so cached branding assets are retained after
+  /// participation ends (and across a factory reset), per the asset REQ.
+  /// Null on web (path_provider has no web impl) — the logo then falls back to
+  /// the app default brand.
+  // Implements: DIARY-DEV-sponsor-branding-assets/D
+  BrandingAssetCache? _brandingAssetCache;
 
   /// The participant identity most recently adopted as the diaryScope recording
   /// credential, so synced day-markers are keyed by `participantId`. Null until
@@ -205,6 +252,12 @@ class _AppRootState extends State<AppRoot> {
   /// to [HomeScreen] so its banner reflects a stuck native sync the legacy
   /// `runtime.backend` cannot see. DIARY-DEV-native-outbound-sync/B.
   Future<bool> Function()? _nativeFifoWedged;
+
+  /// Builds the on-demand [HealthProbeContext] for Service Mode, capturing the
+  /// new-stack backend + destination registry + enrollment/clock/version. Set
+  /// only when the event-sourcing scope booted (same gate as
+  /// [_nativeFifoWedged]); null leaves the Service Mode easter egg inert.
+  Future<HealthProbeContext> Function()? _serviceModeContextBuilder;
 
   /// Persistent device install UUID, minted on first launch and reused
   /// thereafter. Forwarded to [HomeScreen] for the export payload.
@@ -232,10 +285,22 @@ class _AppRootState extends State<AppRoot> {
       if (kIsWeb) {
         factory = databaseFactoryWeb;
         dbPath = 'diary.db'; // IndexedDB store name
+        // Web has no filesystem: back the branding cache with an in-process
+        // (per-session) map so the sponsor logo still fetches-once + verifies +
+        // renders in the browser. Implements: DIARY-DEV-sponsor-branding-assets/A+B+C
+        _brandingAssetCache = BrandingAssetCache.inMemory();
       } else {
         factory = databaseFactoryIo;
         final docsDir = await getApplicationDocumentsDirectory();
         dbPath = '${docsDir.path}/diary.db';
+        // Root the branding cache under the support dir (a stable on-device
+        // location SEPARATE from the documents dir the local-data-reset wipes),
+        // so cached branding assets are retained for posterity after
+        // participation ends. Implements: DIARY-DEV-sponsor-branding-assets/D
+        final supportDir = await getApplicationSupportDirectory();
+        _brandingAssetCache = BrandingAssetCache(
+          cacheDir: Directory('${supportDir.path}/branding_cache'),
+        );
       }
       final db = await factory.openDatabase(dbPath);
 
@@ -283,34 +348,33 @@ class _AppRootState extends State<AppRoot> {
         tasksSync: () => _taskService.syncTasks(_enrollmentService),
       );
 
-      // Activate both legacy-shim destinations once at first install.
-      // The startDate is "today" on first install: there are no events
-      // recorded before the app exists, so anchoring the destination
-      // there is the correct watermark. setStartDate is monotonically
-      // non-increasing (REQ-d00129-C) — read the current schedule and
-      // skip the write when the destination is already activated so a
-      // process restart is a no-op. Each activation runs in its own
-      // try/catch so a failure on one destination does not prevent the
-      // other from coming online.
+      // Activate the legacy-sync (nosebleed) shim destination once at first
+      // install. The startDate is "today" on first install: there are no events
+      // recorded before the app exists, so anchoring the destination there is
+      // the correct watermark. setStartDate is monotonically non-increasing
+      // (REQ-d00129-C) — read the current schedule and skip the write when the
+      // destination is already activated so a process restart is a no-op.
+      // Questionnaire submissions now ship through the NATIVE
+      // `DiaryServerDestination` (gated on the trial-start watermark), so they
+      // are not activated here.
       const initiator = AutomationInitiator(service: 'mobile-bootstrap');
       final activationStartAt = DateTime.now().toUtc();
-      for (final destinationId in <String>[
-        LegacySyncDestination.destinationId,
-        LegacyQuestionnaireSubmitDestination.destinationId,
-      ]) {
-        try {
-          final schedule = await runtime.destinations.scheduleOf(destinationId);
-          if (schedule.startDate != null) continue;
+      try {
+        final schedule = await runtime.destinations.scheduleOf(
+          LegacySyncDestination.destinationId,
+        );
+        if (schedule.startDate == null) {
           await runtime.destinations.setStartDate(
-            destinationId,
+            LegacySyncDestination.destinationId,
             activationStartAt,
             initiator: initiator,
           );
-        } catch (e, stack) {
-          debugPrint(
-            '[Bootstrap] activation($destinationId) failed: $e\n$stack',
-          );
         }
+      } catch (e, stack) {
+        debugPrint(
+          '[Bootstrap] activation(${LegacySyncDestination.destinationId}) '
+          'failed: $e\n$stack',
+        );
       }
 
       // CUR-1169 I1: build the new reactive composition root alongside the
@@ -321,6 +385,7 @@ class _AppRootState extends State<AppRoot> {
       // like the old runtime.
       final DiaryScopeRuntime diaryScope;
       Future<bool> Function()? nativeFifoWedged;
+      Future<HealthProbeContext> Function()? serviceModeContextBuilder;
       {
         final Database esDb;
         if (kIsWeb) {
@@ -341,15 +406,26 @@ class _AppRootState extends State<AppRoot> {
         // with no bootstrap-time restart.
         final ingestClient = http.Client();
         _diaryIngestClient = ingestClient;
+        // Native ingest endpoint: <backend>/api/v1/ingest/batch. Returns null
+        // pre-enrollment, which both destinations treat as "skip this cycle".
+        Future<Uri?> resolveIngestUrl() async {
+          final base = await _enrollmentService.getBackendUrl();
+          if (base == null) return null;
+          return Uri.parse('$base/api/v1/ingest/batch');
+        }
+
         final destination = DiaryServerDestination(
           client: ingestClient,
-          // Native ingest endpoint: <backend>/api/v1/ingest/batch. Returns null
-          // pre-enrollment, which the destination treats as "skip this cycle".
-          resolveIngestUrl: () async {
-            final base = await _enrollmentService.getBackendUrl();
-            if (base == null) return null;
-            return Uri.parse('$base/api/v1/ingest/batch');
-          },
+          resolveIngestUrl: resolveIngestUrl,
+          authToken: _enrollmentService.getJwtToken,
+        );
+        // Second outbound queue: ships system/FCM aggregates (FcmToken token
+        // registration + InboundMessage receipts) to the SAME ingest endpoint.
+        // It is activated at LINK time (not the trial-start watermark) so push
+        // routing tokens reach the portal as soon as the device links.
+        final systemDestination = SystemEventsDestination(
+          client: ingestClient,
+          resolveIngestUrl: resolveIngestUrl,
           authToken: _enrollmentService.getJwtToken,
         );
 
@@ -359,6 +435,25 @@ class _AppRootState extends State<AppRoot> {
         final esBackend = SembastBackend(database: esDb);
         nativeFifoWedged = esBackend.hasFifoWedged;
 
+        // Register the dynamic `<id>_survey` entry types into the NATIVE scope so
+        // a `submit_questionnaire` dispatch finalizes a `<id>_survey` DiaryEntry
+        // event that ships through `DiaryServerDestination`. The nosebleed types
+        // are registered internally by `bootstrapDiaryScope`; only the dynamic
+        // (data-driven) survey types are passed in here. `loadSurveyEntryTypes`
+        // returns the legacy `event_sourcing_datastore` definition shape, so map
+        // each to the native `event_sourcing` EntryTypeDefinition the new scope
+        // registers (id / name / version carry over; the native store materializes
+        // the survey into its diary_entries view).
+        // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/N
+        final surveyEntryTypes = [
+          for (final t in await loadSurveyEntryTypes())
+            EntryTypeDefinition(
+              id: t.id,
+              registeredVersion: t.registeredVersion,
+              name: t.name,
+            ),
+        ];
+
         try {
           diaryScope = await bootstrapDiaryScope(
             backend: esBackend,
@@ -366,7 +461,8 @@ class _AppRootState extends State<AppRoot> {
             softwareVersion: softwareVersion,
             localUserId: deviceId, // stable per-install id; recording is never
             // enrollment-gated
-            outboundDestination: destination,
+            extraEntryTypes: surveyEntryTypes,
+            outboundDestinations: [destination, systemDestination],
           );
         } catch (_) {
           ingestClient.close();
@@ -374,6 +470,50 @@ class _AppRootState extends State<AppRoot> {
           await esDb.close();
           rethrow;
         }
+
+        // Build the on-demand Service Mode probe context against the new
+        // event-sourcing stack. Captured here where the backend + destination
+        // registry are in scope; evaluated only when the User opens Service
+        // Mode (zero steady-state cost). Reachable regardless of link/token
+        // state — `everLinked`/`linked`/`tokenLive` are reported, not gated on.
+        // Implements: DIARY-PRD-device-health-diagnostics/A — on-demand,
+        //   no-network/no-sign-in/no-link diagnostic context.
+        final probeBackend = esBackend;
+        final probeScope = diaryScope;
+        serviceModeContextBuilder = () async {
+          final pkg = await PackageInfo.fromPlatform();
+          final linked = await _enrollmentService.isEnrolled();
+          final token = await _enrollmentService.getJwtToken();
+          var iana = 'unknown';
+          try {
+            iana = (await FlutterTimezone.getLocalTimezone()).identifier;
+          } on Exception {
+            iana = 'unknown';
+          }
+          final now = DateTime.now();
+          return HealthProbeContext(
+            backend: probeBackend,
+            destinationIds: probeScope.bundle.destinations
+                .all()
+                .map((d) => d.id)
+                .toList(),
+            everLinked: linked,
+            linked: linked,
+            tokenLive: (token ?? '').isNotEmpty,
+            clock: ClockInfo(
+              deviceNow: now,
+              ianaZone: iana,
+              utcOffsetMinutes: now.timeZoneOffset.inMinutes,
+            ),
+            version: VersionInfo(
+              appVersion: pkg.version,
+              buildNumber: pkg.buildNumber,
+              platform: defaultTargetPlatform.name,
+              os: kIsWeb ? 'web' : Platform.operatingSystem,
+            ),
+            deviceId: deviceId,
+          );
+        };
 
         // Install the foreground drain triggers (app-resume / connectivity /
         // periodic). The post-action-submit drain is already wired through the
@@ -390,10 +530,41 @@ class _AppRootState extends State<AppRoot> {
         // JWT was already forgotten, so the /state poll below cannot re-derive it).
         await _enrollmentService.seedLifecycleNotifiers();
 
+        // On the local-stack, push rides a WS instead of FCM. A stable
+        // broadcast controller feeds the diary_sync_triggers FCM stream-factory
+        // seam; the LocalSocketPushReceiver (started at the link transition in
+        // _reconcileDiaryScope, once a backend URL + JWT exist) forwards frames
+        // into it. Created here so the trigger install wiring is fixed even
+        // though the receiver connects later.
+        // Implements: DIARY-DEV-pluggable-push-transport/D
+        final isLocalPush = EnvProfile.current.env == AppEnv.local;
+        if (isLocalPush) {
+          _localPushController = StreamController<RemoteMessage>.broadcast();
+        }
+
         final syncCycle = diaryScope.syncCycle;
         if (syncCycle != null) {
           try {
             _diarySyncTriggers = await installDiarySyncTriggers(
+              // Foreground-only poll. Portal-originated lifecycle changes
+              // (trial-start, disconnect, not-participating) reach the diary
+              // via this /user/state reconcile, kept as the BACKUP path. 60s
+              // keeps the foreground experience near-live; push is the PRIMARY
+              // trigger (onFcmReceipt below, CUR-1436) — FCM in the cloud, the
+              // local-push WS on the local-stack. The interval is overridable
+              // via --dart-define=DIARY_SYNC_PERIODIC_SECONDS so the push-
+              // transport e2e can stretch the poll and isolate the push path
+              // (a prompt UI update under a long poll can only be push-driven).
+              periodicInterval: const Duration(seconds: _kSyncPeriodicSeconds),
+              onFcmReceipt: _recordFcmReceipt,
+              // Local-stack: read pushes from the local-push WS controller
+              // instead of FirebaseMessaging. No onOpenedApp (no tray).
+              fcmOnMessageStreamFactory: isLocalPush
+                  ? () => _localPushController!.stream
+                  : null,
+              fcmOnOpenedStreamFactory: isLocalPush
+                  ? () => const Stream<RemoteMessage>.empty()
+                  : null,
               onTrigger: () async {
                 await _reconcileDiaryScope(diaryScope);
                 // Pause outbound sync while the participant is disconnected or
@@ -421,6 +592,7 @@ class _AppRootState extends State<AppRoot> {
           _deviceId = deviceId;
           _diaryScope = diaryScope;
           _nativeFifoWedged = nativeFifoWedged;
+          _serviceModeContextBuilder = serviceModeContextBuilder;
         });
       }
 
@@ -480,6 +652,45 @@ class _AppRootState extends State<AppRoot> {
         // own event log (DIARY-DEV-shared-events-catalog/A surface P4). Identity
         // only — the JWT/install-id stay in secure storage (state-in-event-log/B).
         await _recordParticipantLinkedOnce(diaryScope, participantId);
+        // Activate the system-events destination at link (monotonic): FCM
+        // tokens and receipts must reach the portal as soon as the device is
+        // linked, independent of the trial-start watermark that gates clinical
+        // diary entries. Epoch start = drain all system events once linked.
+        // Implements: DIARY-DEV-native-outbound-sync/C
+        final sysSchedule = await diaryScope.bundle.destinations.scheduleOf(
+          SystemEventsDestination.destinationId,
+        );
+        if (sysSchedule.startDate == null) {
+          await diaryScope.bundle.destinations.setStartDate(
+            SystemEventsDestination.destinationId,
+            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+            initiator: const esd.AutomationInitiator(
+              service: 'system-events-link-activation',
+            ),
+          );
+        }
+        // Re-register the routing token now that the participant id is known: a
+        // token minted pre-link could not be recorded (no participant-scoped
+        // aggregate id yet), so record it once here at the link transition.
+        if (EnvProfile.current.env == AppEnv.local) {
+          // Local-stack: connect the local-push WS and register the deviceId as
+          // the routing token (the receiver also registers it on connect).
+          // Implements: DIARY-DEV-pluggable-push-transport/D
+          await _startLocalPushReceiver();
+        } else {
+          final currentToken = _notificationService?.currentToken;
+          if (currentToken != null) {
+            await _registerFcmToken(currentToken);
+          }
+        }
+        // Apply the portal-requested sponsor settings carried in the /link
+        // response (set-once-at-link), through the diary's normal apply path.
+        // Implements: DIARY-BASE-sponsor-requested-settings/A+B
+        final enrollment = await _enrollmentService.getEnrollment();
+        await applyLinkSponsorSettings(
+          diaryScope.scope,
+          enrollment?.sponsorSettings,
+        );
       }
     } catch (e, stack) {
       debugPrint('[Reconcile] identity adoption failed: $e\n$stack');
@@ -517,6 +728,11 @@ class _AppRootState extends State<AppRoot> {
           at: firstDetectedAt ?? DateTime.now(),
         );
         await _enrollmentService.setDisconnected(false);
+        // Return control to the participant: unlock the sponsor-applied settings
+        // (clinical values kept; ui.* allow-sets revert to default). Idempotent —
+        // a re-run finds nothing locked once this has applied.
+        // Implements: DIARY-BASE-sponsor-requested-settings/E
+        await unlockSponsorSettings(diaryScope.scope);
         await _enrollmentService.clearEnrollment(); // forget the JWT
         return;
       }
@@ -537,7 +753,18 @@ class _AppRootState extends State<AppRoot> {
       if (schedule.startDate != null) return; // already activated (monotonic).
       final startedAtRaw = body['trial_started_at'];
       if (startedAtRaw is! String) return; // trial not started -> stay local.
-      final watermark = DateTime.tryParse(startedAtRaw)?.toUtc();
+      // The portal emits trial_started_at in UTC. Tolerate a missing timezone
+      // designator: DateTime.parse() treats a tz-less string as LOCAL, so
+      // `.toUtc()` would shift the watermark by the device's offset (in the
+      // Americas, hours into the future), silently gating ALL outbound sync.
+      // Treat a naive timestamp as UTC. Forward-compatible with a server that
+      // already appends 'Z'.
+      final hasTz =
+          startedAtRaw.endsWith('Z') ||
+          RegExp(r'[+-]\d\d:?\d\d$').hasMatch(startedAtRaw);
+      final watermark = DateTime.tryParse(
+        hasTz ? startedAtRaw : '${startedAtRaw}Z',
+      )?.toUtc();
       if (watermark == null) return;
 
       await diaryScope.bundle.destinations.setStartDate(
@@ -666,6 +893,7 @@ class _AppRootState extends State<AppRoot> {
         _runtime = null;
         _diaryScope = null;
         _nativeFifoWedged = null;
+        _serviceModeContextBuilder = null;
         _deviceId = null;
       });
     }
@@ -688,11 +916,35 @@ class _AppRootState extends State<AppRoot> {
   /// that path. Any FCM data messages that need to surface tasks still flow
   /// through TaskService.handleFcmMessage as before.
   Future<void> _initializeNotifications() async {
+    // Tasks are poll-based and independent of the push transport, so load +
+    // sync them regardless of environment (a local web/desktop diary that is
+    // already linked must still restore + refresh its task list).
     // Load persisted tasks from storage
     await _taskService.loadTasks();
-
     // REQ-CAL-p00081: Poll for tasks on app start (FCM fallback)
     unawaited(_taskService.syncTasks(_enrollmentService));
+
+    // CUR-1436/CUR-1447: a `questionnaire_assigned` FCM nudge carries only
+    // {type, flowToken} — the authoritative task list comes from
+    // `/user/tasks`. Inject the sync trigger so handleFcmMessage (sync) can
+    // fire a sync without TaskService holding the EnrollmentService. Mirrors
+    // the `tasksSync` / `onTaskSync` closures used elsewhere. Set before the
+    // local-stack early-return so WS-delivered nudges trigger a sync too.
+    _taskService.onSyncRequested = () =>
+        _taskService.syncTasks(_enrollmentService);
+
+    // On the local-stack (AppEnv.local) the diary is web/Linux and has no FCM;
+    // push arrives over the LocalSocketPushReceiver WS instead (wired in
+    // _initializeRuntime). Skip ONLY the firebase_messaging init.
+    // Implements: DIARY-DEV-pluggable-push-transport/D
+    final profile = await EnvProfile.load();
+    if (profile.env == AppEnv.local) {
+      debugPrint(
+        '[local] AppEnv.local — skipping FCM init; push rides the '
+        'local-push WS',
+      );
+      return;
+    }
 
     _notificationService = MobileNotificationService(
       onDataMessage: _taskService.handleFcmMessage,
@@ -708,43 +960,116 @@ class _AppRootState extends State<AppRoot> {
     }
   }
 
-  /// Register the FCM token with the diary server.
+  /// Platform tag for the `participant_fcm_tokens` row. On the local-stack the
+  /// diary is web or a desktop OS (no FCM concept of ios/android); the portal's
+  /// LocalSocketPushChannel routes by participantId so the tag is informational.
+  String _pushPlatform() {
+    if (kIsWeb) return 'web';
+    if (Platform.isIOS) return 'ios';
+    if (Platform.isAndroid) return 'android';
+    return Platform.operatingSystem; // linux / macos / windows
+  }
+
+  /// Connects the local-stack push receiver (AppEnv.local) and registers this
+  /// device's routing id. Idempotent: returns early if already started, or when
+  /// the backend URL / participant JWT are not yet available (pre-link).
+  /// Implements: DIARY-DEV-pluggable-push-transport/D
+  Future<void> _startLocalPushReceiver() async {
+    if (_localPushReceiver != null) return;
+    final base = await _enrollmentService.getBackendUrl();
+    final token = await _enrollmentService.getJwtToken();
+    final deviceId = _deviceId;
+    if (base == null || token == null || token.isEmpty || deviceId == null) {
+      return;
+    }
+    final wsBase = base.replaceFirst(RegExp('^http'), 'ws');
+    final receiver = LocalSocketPushReceiver(
+      socket: WebSocketPushSocket.connect(
+        Uri.parse('$wsBase/api/v1/user/push'),
+      ),
+      authToken: _enrollmentService.getJwtToken,
+    );
+    _localPushReceiver = receiver;
+    receiver.messages.listen((m) => _localPushController?.add(m));
+    await receiver.start();
+    // The deviceId is the local routing token (the WS connection is keyed by
+    // participantId; the token value is informational for the projection).
+    await _registerFcmToken(deviceId);
+    debugPrint('[local] local-push receiver connected to $wsBase');
+  }
+
+  /// Record an FCM token mint/refresh as a `fcm_token_registered` event in the
+  /// diary's OWN event log, dispatched through the EVS ActionDispatcher.
   ///
-  /// Called on initial token retrieval and on token refresh.
+  /// Called on initial token retrieval and on token refresh. The token aggregate
+  /// id is participant-scoped (`{participantId}:fcm:{platform}`) so the portal
+  /// `/ingest` accepts it (ownership is enforced on the `{participantId}:` prefix,
+  /// and the JWT userId IS the participantId) and the portal projects one active
+  /// token per participant+platform. Until linked there is no participant id, so
+  /// the registration is deferred and re-run at the link transition.
+  ///
   /// REQ-CAL-p00082: Participant Alert Delivery
+  // Implements: DIARY-DEV-inbound-event-on-receipt/A
   Future<void> _registerFcmToken(String token) async {
-    final jwt = await _enrollmentService.getJwtToken();
-    if (jwt == null) {
-      debugPrint('[FCM] No JWT — user not linked yet, skipping');
+    final participantId = await _enrollmentService.getUserId();
+    if (participantId == null || participantId.isEmpty) {
+      debugPrint('[FCM] not linked yet — deferring token registration');
       return;
     }
-
-    final backendUrl = await _enrollmentService.getBackendUrl();
-    if (backendUrl == null) {
-      debugPrint('[FCM] No backend URL — user not linked yet, skipping');
-      return;
-    }
-
-    final platform = Platform.isIOS ? 'ios' : 'android';
-    final url = '$backendUrl/api/v1/user/fcm-token';
-
+    final scope = _diaryScope;
+    if (scope == null) return;
+    final platform = _pushPlatform();
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $jwt',
-        },
-        body: jsonEncode({'fcm_token': token, 'platform': platform}),
+      await scope.scope.actionSubmitter.submit(
+        esd.ActionSubmission(
+          actionName: 'register_fcm_token',
+          rawInput: <String, Object?>{
+            'aggregateId': '$participantId:fcm:$platform',
+            'token': token,
+            'platform': platform,
+            'registered_at': DateTime.now().toUtc().toIso8601String(),
+          },
+        ),
       );
+      debugPrint('[FCM] token recorded as fcm_token_registered ($platform)');
+    } catch (e, st) {
+      debugPrint('[FCM] register_fcm_token dispatch failed: $e\n$st');
+    }
+  }
 
-      if (response.statusCode == 200) {
-        debugPrint('[FCM] Token registered with diary server ($platform)');
-      } else {
-        debugPrint('[FCM] Token registration failed: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('[FCM] Token registration error: $e');
+  /// Record an inbound FCM message as a `fcm_message_received` event in the
+  /// diary's OWN event log, echoing the portal-minted `flowToken` (if any) so
+  /// the portal can stitch assigned -> delivered -> received. Dispatched
+  /// through the EVS action submitter. Best-effort: failures are logged
+  /// and swallowed and never block the sync drain.
+  ///
+  /// The receipt aggregate id is participant-scoped
+  /// (`{participantId}:rcv:{uuid}`) so the portal `/ingest` accepts it
+  /// (ownership is enforced on the `{participantId}:` prefix). Until linked
+  /// there is no participant id, so the receipt is skipped.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/B
+  // Implements: DIARY-DEV-outgoing-intent-correlation/D — echo the portal-minted flowToken.
+  Future<void> _recordFcmReceipt(RemoteMessage message) async {
+    final participantId = await _enrollmentService.getUserId();
+    if (participantId == null || participantId.isEmpty) return;
+    final scope = _diaryScope;
+    if (scope == null) return;
+    final data = message.data;
+    try {
+      await scope.scope.actionSubmitter.submit(
+        esd.ActionSubmission(
+          actionName: 'record_fcm_message_received',
+          rawInput: <String, Object?>{
+            'aggregateId': '$participantId:rcv:${const Uuid().v4()}',
+            'received_at': DateTime.now().toUtc().toIso8601String(),
+            'channel': 'fcm',
+            'message_type': (data['type'] as String?) ?? 'unknown',
+            if (data['flowToken'] is String) 'flowToken': data['flowToken'],
+          },
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('[FCM] record_fcm_message_received dispatch failed: $e\n$st');
     }
   }
 
@@ -758,6 +1083,15 @@ class _AppRootState extends State<AppRoot> {
     if (token != null) {
       _registerFcmToken(token);
     }
+    // Reconcile the new-stack scope immediately on link so portal-delivered
+    // sponsor settings (incl. branding.* via the /link sponsor_settings batch)
+    // are applied to the diary's settings log right now — the reactive app root
+    // then renders sponsor branding live, instead of waiting for the next
+    // periodic/resume reconcile (or an app relaunch).
+    final diaryScope = _diaryScope;
+    if (diaryScope != null) {
+      unawaited(_reconcileDiaryScope(diaryScope));
+    }
     // REQ-CAL-p00081: Discover tasks immediately after linking
     unawaited(_taskService.syncTasks(_enrollmentService));
   }
@@ -765,6 +1099,15 @@ class _AppRootState extends State<AppRoot> {
   @override
   void dispose() {
     _notificationService?.dispose();
+    // Null the fields BEFORE disposing/closing so the receiver's forwarding
+    // listener (`_localPushController?.add`) becomes a no-op rather than adding
+    // to a closing controller (StateError: Cannot add event after closing).
+    final localPushReceiver = _localPushReceiver;
+    final localPushController = _localPushController;
+    _localPushReceiver = null;
+    _localPushController = null;
+    unawaited(localPushReceiver?.dispose());
+    unawaited(localPushController?.close());
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
     _runtime?.dispose();
@@ -785,6 +1128,62 @@ class _AppRootState extends State<AppRoot> {
   }
 
   /// Folds the settings view rows into a `{key: SettingPayload}` map.
+  // Tracks the corrective value most recently submitted for each picked setting,
+  // so reconciliation submits at most once per out-of-set transition.
+  String? _reconciledLangTarget;
+  String? _reconciledFontTarget;
+
+  /// Conditionally corrects the participant's language/font pick when it falls
+  /// outside the resolved allow-set: dispatches a single `set_user_setting` to the
+  /// allow-set default. A no-op when the pick is already allowed.
+  // Implements: DIARY-DEV-deployment-config-defaults/E
+  void _reconcileUiPicks(
+    DiaryScopeRuntime diaryScope,
+    UserPreferences prefs,
+    SponsorUiConfig cfg,
+  ) {
+    final langFix = reconcilePick(
+      current: prefs.languageCode,
+      allowed: cfg.availableLanguages,
+      fallback: cfg.defaultLanguage,
+    );
+    final fontFix = reconcilePick(
+      current: prefs.selectedFont,
+      allowed: cfg.availableFonts,
+      fallback: cfg.defaultFont,
+    );
+
+    if (langFix == null) _reconciledLangTarget = null;
+    if (fontFix == null) _reconciledFontTarget = null;
+
+    if (langFix != null && langFix != _reconciledLangTarget) {
+      _reconciledLangTarget = langFix;
+      _submitUserSetting(diaryScope, prefLanguageCode, langFix);
+    }
+    if (fontFix != null && fontFix != _reconciledFontTarget) {
+      _reconciledFontTarget = fontFix;
+      _submitUserSetting(diaryScope, prefSelectedFont, fontFix);
+    }
+  }
+
+  void _submitUserSetting(
+    DiaryScopeRuntime diaryScope,
+    String key,
+    Object? value,
+  ) {
+    // Dispatch after the current frame so we never submit during layout.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(
+        diaryScope.scope.actionSubmitter.submit(
+          esd.ActionSubmission(
+            actionName: 'set_user_setting',
+            rawInput: <String, Object?>{'key': key, 'value': value},
+          ),
+        ),
+      );
+    });
+  }
+
   static Map<String, SettingPayload> _settingsByKey(
     ViewState<Map<String, Object?>> state,
   ) {
@@ -811,9 +1210,11 @@ class _AppRootState extends State<AppRoot> {
     required Widget home,
     UserPreferences? prefs,
     ClinicalRules? clinicalRules,
+    SponsorUiConfig? sponsorUiConfig,
   }) {
     final effectivePrefs = prefs ?? const UserPreferences();
     final effectiveRules = clinicalRules ?? const ClinicalRules();
+    final effectiveUiConfig = sponsorUiConfig ?? SponsorUiConfig.codeDefault;
     final font = effectivePrefs.selectedFont;
     final largerText = effectivePrefs.largerTextAndControls;
     final languageCode = effectivePrefs.languageCode;
@@ -847,16 +1248,19 @@ class _AppRootState extends State<AppRoot> {
         // so EVERY route — not just `home` — reads the current preferences via
         // AppPreferencesScope.of(context). Placing it around `home` only would
         // leave pushed routes (settings, calendar, recording) reading defaults.
-        return AppPreferencesScope(
-          preferences: effectivePrefs,
-          child: ClinicalRulesScope(
-            rules: effectiveRules,
-            child: MediaQuery(
-              data: mediaQuery.copyWith(
-                textScaler: TextScaler.linear(textScaleFactor),
-              ),
-              child: ResponsiveWebFrame(
-                child: child ?? const SizedBox.shrink(),
+        return SponsorUiConfigScope(
+          config: effectiveUiConfig,
+          child: AppPreferencesScope(
+            preferences: effectivePrefs,
+            child: ClinicalRulesScope(
+              rules: effectiveRules,
+              child: MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: TextScaler.linear(textScaleFactor),
+                ),
+                child: ResponsiveWebFrame(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           ),
@@ -900,6 +1304,13 @@ class _AppRootState extends State<AppRoot> {
         builder: (context, state) {
           final settingsMap = _settingsByKey(state);
           final prefs = userPreferencesFromSettings(settingsMap);
+          // Derive sponsor branding from the diary's own event-sourced settings
+          // projection (the `branding.*` keys delivered set-once-at-link). No
+          // public branding pull — reactive to the same settings stream.
+          // Implements: DIARY-GUI-participation-status-badge/B
+          final sponsorBranding = SponsorBrandingConfig.fromSettings(
+            settingsMap,
+          );
           // trialStart comes from the participant-lifecycle projection (I2c,
           // portal-gated); null until then — the lock then applies to all dates
           // past its threshold rather than only post-trial-start dates.
@@ -907,9 +1318,18 @@ class _AppRootState extends State<AppRoot> {
             settingsMap,
             trialStart: null,
           );
+          // Resolve sponsor/deployment UI config (animation gate + font/language
+          // allow-sets) and reconcile the participant's picks against it.
+          // Implements: DIARY-DEV-deployment-config-defaults/A
+          final sponsorUiConfig = SponsorUiConfig.fromSettings(
+            settingsMap,
+            deploymentDefaults: AppConfig.deploymentUiDefaults,
+          );
+          _reconcileUiPicks(diaryScope, prefs, sponsorUiConfig);
           return _buildMaterialApp(
             prefs: prefs,
             clinicalRules: clinicalRules,
+            sponsorUiConfig: sponsorUiConfig,
             // AppPreferencesScope is now provided above the Navigator inside
             // _buildMaterialApp's builder, so it covers HomeScreen AND every
             // pushed route. `home` is just the HomeScreen.
@@ -924,12 +1344,20 @@ class _AppRootState extends State<AppRoot> {
               // Implements: DIARY-DEV-native-outbound-sync/B — surface a wedged
               //   native outbound FIFO (new diary_es.db store) in the banner.
               nativeFifoWedged: _nativeFifoWedged,
+              // Implements: DIARY-GUI-service-mode-entry/A — builder forwarded
+              //   to the tap-version-7x entry in the logo menu.
+              serviceModeContextBuilder: _serviceModeContextBuilder,
               onEnrolled: _onPostEnrollment,
               onResetAllData: _resetAllData,
               // Implements: DIARY-BASE-local-data-reset/C — the sponsor-
               //   controllable layer of the reset gate, read from the
               //   event-sourced settings projection (default true).
               resetSettingAllowsReset: allowLocalResetSetting(settingsMap),
+              sponsorBranding: sponsorBranding,
+              // Implements: DIARY-DEV-sponsor-branding-assets/D — the logo is
+              //   rendered from this content-addressed cache (JWT-gated
+              //   fetch-once, verified, retained after participation ends).
+              brandingAssetCache: _brandingAssetCache,
             ),
           );
         },

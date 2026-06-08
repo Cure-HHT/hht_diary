@@ -39,6 +39,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:reaction/reaction.dart' show Authenticated;
 import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -131,7 +132,15 @@ void main() {
       // A FakeReaction provides the ReActionScope the migrated diary surface
       // reads/writes through (DiaryViewBuilder + actionSubmitter) and that the
       // (new-stack) RecordingScreen requires when HomeScreen navigates to it.
-      fake = FakeReaction();
+      fake = FakeReaction(
+        initialAuthStatus: Authenticated(
+          principal: Principal.user(
+            userId: 'P-test',
+            activeRole: 'participant',
+            roles: const {'participant'},
+          ),
+        ),
+      );
       // Day-marker submissions return the canonical per-day aggregate id.
       for (var i = 0; i < 10; i++) {
         fake.queueDispatchResult(
@@ -200,6 +209,7 @@ void main() {
         startTime: start.toIso8601String(),
         startTimeZone: 'UTC',
         startTimeUtcOffset: '+00:00',
+        participantId: 'P-test',
         endTime: end?.toIso8601String(),
         endTimeZone: end == null ? null : 'UTC',
         endTimeUtcOffset: end == null ? null : '+00:00',
@@ -208,6 +218,27 @@ void main() {
       return DiaryEntryRow(
         aggregateId: aggregateId,
         entryType: 'epistaxis_event',
+        data: payload.toJson(),
+      );
+    }
+
+    DiaryEntryRow surveyRow(
+      DateTime completedAt, {
+      required String aggregateId,
+      String questionnaireType = 'nose_hht',
+    }) {
+      final payload = QuestionnaireSubmissionPayload(
+        instanceId: aggregateId,
+        questionnaireType: questionnaireType,
+        schemaVersion: 's1',
+        contentVersion: 'c1',
+        guiVersion: 'g1',
+        completedAt: completedAt.toIso8601String(),
+        responses: const {'q1': QuestionResponse(value: 1)},
+      );
+      return DiaryEntryRow(
+        aggregateId: aggregateId,
+        entryType: '${questionnaireType}_survey',
         data: payload.toJson(),
       );
     }
@@ -311,6 +342,24 @@ void main() {
       expect(find.byType(RecordingScreen), findsNothing);
       expect(find.byType(EventListItem), findsWidgets);
       expect(find.text('30m'), findsOneWidget);
+    });
+
+    // Verifies: DIARY-PRD-questionnaire-system/B — a finalized `<id>_survey`
+    //   dated today renders as a completed-survey card in the today section.
+    testWidgets('renders a driven finalized survey in the today list', (
+      tester,
+    ) async {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day, 11);
+      await pumpScreen(
+        tester,
+        finalized: [surveyRow(today, aggregateId: 'agg-survey-1')],
+      );
+
+      expect(find.byType(EventListItem), findsWidgets);
+      // The survey card surfaces with its friendly name + completion affordance.
+      expect(find.byKey(const Key('survey-card')), findsOneWidget);
+      expect(find.text('NOSE HHT Survey'), findsOneWidget);
     });
 
     testWidgets(

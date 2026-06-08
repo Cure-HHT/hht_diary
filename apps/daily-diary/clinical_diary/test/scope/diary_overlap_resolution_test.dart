@@ -55,6 +55,7 @@ void main() {
               'startTime': start,
               'startTimeZone': 'UTC',
               'startTimeUtcOffset': '+00:00',
+              'participantId': 'P',
               'endTime': end,
               'endTimeZone': 'UTC',
               'endTimeUtcOffset': '+00:00',

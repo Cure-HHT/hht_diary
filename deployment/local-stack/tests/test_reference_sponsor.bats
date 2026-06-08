@@ -31,11 +31,6 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
-@test "reference portal-final.Dockerfile does not leak the callisto sponsor id" {
-  run grep -n 'sponsor-content/callisto' "$REF/deployment/docker/portal-final.Dockerfile"
-  [ "$status" -ne 0 ]
-}
-
 @test "build-time COPY inputs all exist (nginx, start, seed, content)" {
   [ -f "$REF/deployment/nginx/nginx.conf" ]
   [ -f "$REF/deployment/nginx/evs_proxy.conf" ]

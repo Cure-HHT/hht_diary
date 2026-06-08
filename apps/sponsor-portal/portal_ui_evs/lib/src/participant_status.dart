@@ -61,6 +61,29 @@ ParticipantStatus statusFromEntryType(String? entryType) => switch (entryType) {
   _ => ParticipantStatus.unknown,
 };
 
+/// Effective status that also accounts for a preserved trial-start.
+///
+/// `participant_record.started_at` is set once by the first Start Trial and
+/// preserved across the not-participating -> reactivate -> re-link cycle (the
+/// key-wise-merge fold never re-receives `started_at`). The latest entryType
+/// after a re-link is `participant_linking_code_used` -> [ParticipantStatus.connected],
+/// which would otherwise re-offer Start Trial — and re-running it would overwrite
+/// the original `started_at`, moving the trial-start date and the diary's sync
+/// watermark forward. So once the trial has started, a re-linked (Connected)
+/// participant is reported as [ParticipantStatus.trialActive]; other states keep
+/// their entryType-derived status.
+// Implements: DIARY-DEV-participant-status-projection/B
+ParticipantStatus effectiveParticipantStatus(
+  String? entryType, {
+  required bool trialStarted,
+}) {
+  final base = statusFromEntryType(entryType);
+  if (trialStarted && base == ParticipantStatus.connected) {
+    return ParticipantStatus.trialActive;
+  }
+  return base;
+}
+
 /// The legal lifecycle actions for a participant in [status]. This is the
 /// state machine: a button is enabled iff it is in the returned set.
 ///

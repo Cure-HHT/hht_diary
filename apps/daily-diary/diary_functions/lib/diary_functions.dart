@@ -23,7 +23,6 @@ export 'src/jwt.dart';
 export 'src/notifications/diary_notification_repository.dart';
 export 'src/notifications/participant_resolver.dart';
 export 'src/questionnaire_submit.dart';
-export 'src/sponsor.dart';
 export 'src/tasks.dart';
 export 'src/user.dart';
 export 'src/sponsor_branding.dart';

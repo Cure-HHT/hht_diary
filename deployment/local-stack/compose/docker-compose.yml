@@ -162,6 +162,28 @@ services:
       # `doppler run --preserve-env`, so an explicit value here wins over
       # Doppler. ${SPONSOR} is exported by ./local-stack from base-config.json.
       SPONSOR_ID: "${SPONSOR}"
+      # CUR-1453: per-deployment sponsor configuration parameters. The portal's
+      # seedSponsorConfig reads these at boot and seeds the portal_settings store
+      # (idempotent); they ride the /link sponsor_settings batch to the diary.
+      # Empty pass-through (${VAR:-}) is benign — an unset key is simply not
+      # seeded. Export them on the host to rehearse a sponsor's config locally.
+      PORTAL_SEED_CLINICAL_JUSTIFICATION_THRESHOLD_HOURS: "${PORTAL_SEED_CLINICAL_JUSTIFICATION_THRESHOLD_HOURS:-}"
+      PORTAL_SEED_CLINICAL_LOCK_THRESHOLD_HOURS: "${PORTAL_SEED_CLINICAL_LOCK_THRESHOLD_HOURS:-}"
+      PORTAL_SEED_CLINICAL_SHORT_DURATION_CONFIRM: "${PORTAL_SEED_CLINICAL_SHORT_DURATION_CONFIRM:-}"
+      PORTAL_SEED_CLINICAL_LONG_DURATION_CONFIRM: "${PORTAL_SEED_CLINICAL_LONG_DURATION_CONFIRM:-}"
+      PORTAL_SEED_CLINICAL_LONG_DURATION_THRESHOLD_MINUTES: "${PORTAL_SEED_CLINICAL_LONG_DURATION_THRESHOLD_MINUTES:-}"
+      PORTAL_SEED_CLINICAL_USE_REVIEW_SCREEN: "${PORTAL_SEED_CLINICAL_USE_REVIEW_SCREEN:-}"
+      PORTAL_SEED_UI_USE_ANIMATIONS: "${PORTAL_SEED_UI_USE_ANIMATIONS:-}"
+      PORTAL_SEED_UI_AVAILABLE_FONTS: "${PORTAL_SEED_UI_AVAILABLE_FONTS:-}"
+      PORTAL_SEED_UI_DEFAULT_FONT: "${PORTAL_SEED_UI_DEFAULT_FONT:-}"
+      PORTAL_SEED_UI_AVAILABLE_LANGUAGES: "${PORTAL_SEED_UI_AVAILABLE_LANGUAGES:-}"
+      PORTAL_SEED_UI_DEFAULT_LANGUAGE: "${PORTAL_SEED_UI_DEFAULT_LANGUAGE:-}"
+      # Session-timeout seed knobs (CUR-1465): per-deployment idle window + warning
+      # lead, same empty pass-through pattern. Export e.g.
+      # PORTAL_SEED_SESSION_IDLE_MINUTES=1 / PORTAL_SEED_SESSION_WARNING_SECONDS=30
+      # to rehearse a fast countdown cycle locally.
+      PORTAL_SEED_SESSION_IDLE_MINUTES: "${PORTAL_SEED_SESSION_IDLE_MINUTES:-}"
+      PORTAL_SEED_SESSION_WARNING_SECONDS: "${PORTAL_SEED_SESSION_WARNING_SECONDS:-}"
       # PORTAL_AUTH_MODE is deliberately NOT set: the EVS portal defaults to
       # "dev" auth, where the userId is the dev-credential login id typed
       # verbatim (no password). To exercise real session auth instead, set
@@ -223,6 +245,12 @@ services:
       # Gmail API via Workload Identity Federation (which needs GCP creds).
       # Read the bodies via `./local-stack logs portal-final`.
       EMAIL_CONSOLE_MODE: "true"
+      # Push transport (CUR-1466). The local-stack has no cure-hht-admin FCM
+      # sender credentials, so default to the local-socket transport: the portal
+      # pushes over the diary's /api/v1/user/push WS (web/Linux diary) instead of
+      # FCM. Override with PUSH_MODE=fcm to exercise the real FCM path.
+      # Implements: DIARY-DEV-pluggable-push-transport/B
+      PUSH_MODE: "${PUSH_MODE:-local}"
       # OTel: export OTLP/gRPC plaintext to the local collector. The dartastic
       # SDK defaults to TLS when OTEL_EXPORTER_OTLP_INSECURE is absent — it
       # does not infer insecure mode from the http:// scheme — so we must

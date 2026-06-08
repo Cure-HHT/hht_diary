@@ -101,11 +101,11 @@ Reactive reads keep the UI in lockstep with the event-sourced truth: when the lo
 
 ### Overview
 
-The *Diary* server runs the same `event_sourcing` library, so the *Diary* synchronizes natively rather than mapping to a legacy wire format. A single native `Destination` ships finalized and tombstone entry events as canonical batches, classifies delivery outcomes for safe retry, gates on the *Trial*-start watermark, and carries the device source identity as provenance.
+The server ingest edge runs the same `event_sourcing` library, so the *Diary* synchronizes natively rather than mapping to a legacy wire format. A single native `Destination` ships finalized and tombstone entry events as canonical batches, classifies delivery outcomes for safe retry, gates on the *Trial*-start watermark, and carries the device source identity as provenance.
 
 ### Assertions
 
-A. The System SHALL ship finalized and tombstone *Diary* entry events to the *Diary* server as canonical batches through a single native `Destination`; checkpoint drafts SHALL remain local.
+A. The System SHALL ship finalized and tombstone *Diary* entry events to the server ingest edge as canonical batches through a single native `Destination`; checkpoint drafts SHALL remain local.
 
 B. The System SHALL classify each delivery outcome as accepted, retry-with-backoff, or wedged, and SHALL retry transient conditions — offline, not-yet-enrolled, server error — without data loss.
 
@@ -115,9 +115,9 @@ D. The System SHALL carry the device source identity as provenance on each batch
 
 ### Rationale
 
-Because the *Diary* server runs the same substrate, a native canonical batch needs no lossy mapping to a legacy wire format and preserves the event identity end-to-end. Classifying delivery outcomes lets transient failures retry with backoff instead of dropping data, while a genuinely wedged batch is surfaced rather than silently lost. The *Trial*-start watermark keeps the server dataset bounded to the *Trial* period even when the personal *Diary* extends earlier, and shipping the device source identity (rather than a resolved *Participant*) keeps correlation an ingest-side, server-authoritative decision.
+Because the server ingest edge runs the same substrate, a native canonical batch needs no lossy mapping to a legacy wire format and preserves the event identity end-to-end. The ingest-edge contract is defined by `DIARY-DEV-participant-ingest`; that edge is hosted on the *Sponsor Portal* server today (device-to-portal direct) and relocates to a dedicated *Diary* server under the deferred edge/core split. Classifying delivery outcomes lets transient failures retry with backoff instead of dropping data, while a genuinely wedged batch is surfaced rather than silently lost. The *Trial*-start watermark keeps the server dataset bounded to the *Trial* period even when the personal *Diary* extends earlier, and shipping the device source identity (rather than a resolved *Participant*) keeps correlation an ingest-side, server-authoritative decision.
 
-*End* *Outbound Sync via Native Ingest Destination* | **Hash**: 5b88b915
+*End* *Outbound Sync via Native Ingest Destination* | **Hash**: ebaa5551
 
 ## DIARY-DEV-participant-state-poll: Diary Lifecycle Propagation via State Poll
 
@@ -193,3 +193,28 @@ Inbound messages are part of what happened on the device and therefore belong in
 > an accidental coverage gap.
 
 *End* *Inbound Receipt Emits an Event* | **Hash**: 9143d6c4
+
+## DIARY-DEV-device-health-checks: On-Demand Device Health Checks
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-device-health-diagnostics
+
+### Overview
+
+The device health diagnostic is implemented as a registry of independent checks plus a metadata-only raw appendix builder. The checks are pure functions over a probe context and run only when the export is requested, so the steady-state cost is unchanged. The registry is extensible: a new condition ships as one more check in the same application update that carries its fix.
+
+### Assertions
+
+A. The **System** SHALL evaluate the registered health checks only when the diagnostic export is requested, performing no additional periodic evaluation in steady state.
+
+B. The **System** SHALL include health checks for a wedged outbound synchronization queue, synchronization backlog growth, event hash-chain link contiguity, local event-store writability, and authorization and link state.
+
+C. A health check that fails to execute SHALL yield a warning finding and SHALL NOT abort the remaining checks or the export.
+
+D. The diagnostic export's raw appendix SHALL serialize event headers, synchronization-queue entry metadata and attempt outcomes, cursors, counts, device identity, and clock and time-zone facts, and SHALL omit event payload bodies.
+
+### Rationale
+
+Pure, registry-based checks are independently testable and keep the failure of one check from taking down the rest — important on an already-sick device where the diagnostic must not itself crash. Running the battery only on request honors the common-fast/rare-possible principle: a wedge is a near-never event and the export a near-never operation, so a one-shot evaluation costs nothing in normal operation. The named-check list captures the conditions understood today; unknown conditions are read out of the raw appendix first and promoted to a named check only when they recur. The raw appendix is restricted to headers and operational metadata so the artifact is PHI-free by construction, satisfying the parent's content limit while still carrying everything needed to diagnose a transport, ordering, or integrity fault.
+
+*End* *On-Demand Device Health Checks* | **Hash**: 8d3827d5

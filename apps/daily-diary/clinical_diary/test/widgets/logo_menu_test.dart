@@ -4,6 +4,7 @@
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../helpers/test_helpers.dart';
 
@@ -419,6 +420,149 @@ void main() {
 
       // Callback should have been called
       expect(called, true);
+    });
+  });
+
+  group('LogoMenu service-mode entry', () {
+    setUp(() {
+      // Make the version label render non-empty so the tap target exists.
+      PackageInfo.setMockInitialValues(
+        appName: 'diary',
+        packageName: 'org.curehht.diary',
+        version: '1.2.3',
+        buildNumber: '7',
+        buildSignature: '',
+      );
+    });
+
+    Future<void> pumpMenu(
+      WidgetTester tester, {
+      required VoidCallback? onOpenServiceMode,
+    }) async {
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onResetAllData: () {},
+            onEndClinicalTrial: null,
+            onInstructionsAndFeedback: () {},
+            onOpenServiceMode: onOpenServiceMode,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+      expect(find.text('v1.2.3+7'), findsOneWidget);
+    }
+
+    // Verifies: DIARY-GUI-service-mode-entry/A — seven taps on the version
+    //   label reveals Service Mode (invokes the navigation callback).
+    testWidgets('tapping the version label 7x invokes onOpenServiceMode', (
+      tester,
+    ) async {
+      var opened = 0;
+      await pumpMenu(tester, onOpenServiceMode: () => opened++);
+
+      for (var i = 0; i < 7; i++) {
+        await tester.tap(find.text('v1.2.3+7'));
+        await tester.pumpAndSettle();
+      }
+
+      expect(opened, 1);
+    });
+
+    // Verifies: DIARY-GUI-service-mode-entry/A — fewer than seven taps does not
+    //   reveal Service Mode.
+    testWidgets('six taps does not invoke onOpenServiceMode', (tester) async {
+      var opened = 0;
+      await pumpMenu(tester, onOpenServiceMode: () => opened++);
+
+      for (var i = 0; i < 6; i++) {
+        await tester.tap(find.text('v1.2.3+7'));
+        await tester.pumpAndSettle();
+      }
+
+      expect(opened, 0);
+    });
+
+    // Verifies: DIARY-GUI-service-mode-entry/A — with no handler wired the
+    //   easter egg is inert and does not throw.
+    testWidgets('seven taps is inert when onOpenServiceMode is null', (
+      tester,
+    ) async {
+      await pumpMenu(tester, onOpenServiceMode: null);
+
+      for (var i = 0; i < 7; i++) {
+        await tester.tap(find.text('v1.2.3+7'));
+        await tester.pumpAndSettle();
+      }
+
+      // No exception; the menu stays open (never popped).
+      expect(find.text('v1.2.3+7'), findsOneWidget);
+    });
+  });
+
+  // Verifies: DIARY-DEV-sponsor-branding-assets/D — the logo-menu affordance is
+  //   NEVER invisible. When enrolled to a sponsor whose logo is unconfigured
+  //   (null builder) or unavailable (builder renders its fallback), the menu
+  //   falls back to the app default brand instead of an empty/zero SizedBox
+  //   (the pre-fix bug, which hid reset / end-trial / licenses / service-mode).
+  group('LogoMenu branding fallback (enrolled, no sponsor logo)', () {
+    testWidgets('enrolled with a null sponsor logo builder shows the default '
+        'brand (menu stays visible)', (tester) async {
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onResetAllData: () {},
+            onEndClinicalTrial: () {},
+            onInstructionsAndFeedback: () {},
+            isEnrolled: true,
+            // No sponsor logo configured.
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Pre-fix this branch rendered `const SizedBox()` → no Image → menu gone.
+      expect(find.byType(Image), findsOneWidget);
+      final image = tester.widget<Image>(find.byType(Image));
+      expect(image.width, 100);
+      expect(image.height, 40);
+
+      // And it is still tappable / opens the menu.
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+      expect(find.text('Clinical Trial'), findsOneWidget);
+    });
+
+    testWidgets('enrolled but sponsor logo unavailable falls back to the '
+        'default brand via the builder fallback', (tester) async {
+      // A builder that cannot resolve the logo bytes renders the fallback it
+      // was handed — which must be the default brand, not an empty box.
+      Widget fallbackOnlyBuilder({
+        required double width,
+        required double height,
+        required Widget fallback,
+      }) => fallback;
+
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          LogoMenu(
+            onResetAllData: () {},
+            onEndClinicalTrial: () {},
+            onInstructionsAndFeedback: () {},
+            isEnrolled: true,
+            sponsorLogoBuilder: fallbackOnlyBuilder,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Pre-fix the fallback was `SizedBox(40x120)` → no Image → menu gone.
+      expect(find.byType(Image), findsOneWidget);
+      await tester.tap(find.byType(Image));
+      await tester.pumpAndSettle();
+      expect(find.text('Clinical Trial'), findsOneWidget);
     });
   });
 }

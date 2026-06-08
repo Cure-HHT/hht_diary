@@ -172,14 +172,6 @@ void main() {
             'https://test-api.example.com/api/v1/auth/change-password',
           );
         });
-
-        test('sponsorConfigUrl uses /api/v1/sponsor/config path', () {
-          final url = AppConfig.sponsorConfigUrl('curehht');
-          expect(
-            url,
-            'https://test-api.example.com/api/v1/sponsor/config?sponsorId=curehht',
-          );
-        });
       });
 
       test('qaApiKey returns empty string when not configured', () {

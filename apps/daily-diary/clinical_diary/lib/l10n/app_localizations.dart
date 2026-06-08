@@ -308,8 +308,6 @@ class AppLocalizations {
       'userProfile': 'User Profile',
       'enterYourName': 'Enter your name',
       'editName': 'Edit name',
-      'shareWithCureHHT': 'Share with CureHHT',
-      'stopSharingWithCureHHT': 'Stop Sharing with CureHHT',
       'privacyDataProtection': 'Privacy & Data Protection',
       'healthDataStoredLocally':
           'Your health data is stored locally on your device.',
@@ -403,10 +401,6 @@ class AppLocalizations {
       'featureFlagsUseOnePageRecordingScreen': 'Use One-Page Recording Screen',
       'featureFlagsUseOnePageRecordingScreenDescription':
           'Use simplified one-page recording screen instead of multi-page flow',
-      // CUR-1116
-      'featureFlagsShowShareWithCureHHT': 'Show "Share with CureHHT" Button',
-      'featureFlagsShowShareWithCureHHTDescription':
-          'Show sharing button and data-sharing card on the Profile screen',
       'featureFlagsOldEntryJustification': 'Old Entry Justification',
       'featureFlagsOldEntryJustificationDescription':
           'Require justification when editing entries older than one day',
@@ -732,8 +726,6 @@ class AppLocalizations {
       'userProfile': 'Perfil de Usuario',
       'enterYourName': 'Ingresa tu nombre',
       'editName': 'Editar nombre',
-      'shareWithCureHHT': 'Compartir con CureHHT',
-      'stopSharingWithCureHHT': 'Dejar de Compartir con CureHHT',
       'privacyDataProtection': 'Privacidad y Proteccion de Datos',
       'healthDataStoredLocally':
           'Tus datos de salud se almacenan localmente en tu dispositivo.',
@@ -830,11 +822,6 @@ class AppLocalizations {
           'Usar Pantalla de Registro de Una Pagina',
       'featureFlagsUseOnePageRecordingScreenDescription':
           'Usar pantalla de registro simplificada en lugar de flujo de varias paginas',
-      // CUR-1116
-      'featureFlagsShowShareWithCureHHT':
-          'Mostrar Boton "Compartir con CureHHT"',
-      'featureFlagsShowShareWithCureHHTDescription':
-          'Mostrar boton de compartir y tarjeta en la pantalla de Perfil',
       'featureFlagsOldEntryJustification': 'Justificacion de Entrada Antigua',
       'featureFlagsOldEntryJustificationDescription':
           'Requerir justificacion al editar entradas de mas de un dia',
@@ -1171,8 +1158,6 @@ class AppLocalizations {
       'userProfile': 'Profil Utilisateur',
       'enterYourName': 'Entrez votre nom',
       'editName': 'Modifier le nom',
-      'shareWithCureHHT': 'Partager avec CureHHT',
-      'stopSharingWithCureHHT': 'Arreter le Partage avec CureHHT',
       'privacyDataProtection': 'Confidentialite et Protection des Donnees',
       'healthDataStoredLocally':
           'Vos donnees de sante sont stockees localement sur votre appareil.',
@@ -1271,11 +1256,6 @@ class AppLocalizations {
           "Utiliser Ecran d'Enregistrement Une Page",
       'featureFlagsUseOnePageRecordingScreenDescription':
           "Utiliser l'ecran d'enregistrement simplifie au lieu du flux multi-pages",
-      // CUR-1116
-      'featureFlagsShowShareWithCureHHT':
-          'Afficher le Bouton "Partager avec CureHHT"',
-      'featureFlagsShowShareWithCureHHTDescription':
-          "Afficher le bouton de partage et la carte sur l'ecran Profil",
       'featureFlagsOldEntryJustification': 'Justification Ancienne Entree',
       'featureFlagsOldEntryJustificationDescription':
           "Exiger une justification lors de la modification d'entrees de plus d'un jour",
@@ -1606,8 +1586,6 @@ class AppLocalizations {
       'userProfile': 'Benutzerprofil',
       'enterYourName': 'Geben Sie Ihren Namen ein',
       'editName': 'Name bearbeiten',
-      'shareWithCureHHT': 'Mit CureHHT teilen',
-      'stopSharingWithCureHHT': 'Teilen mit CureHHT beenden',
       'privacyDataProtection': 'Datenschutz & Datensicherheit',
       'healthDataStoredLocally':
           'Ihre Gesundheitsdaten werden lokal auf Ihrem Gerat gespeichert.',
@@ -1706,11 +1684,6 @@ class AppLocalizations {
           'Einseitigen Aufnahmebildschirm Verwenden',
       'featureFlagsUseOnePageRecordingScreenDescription':
           'Vereinfachten einseitigen Aufnahmebildschirm statt mehrseitigem Ablauf verwenden',
-      // CUR-1116
-      'featureFlagsShowShareWithCureHHT':
-          'Schaltflache "Mit CureHHT teilen" Anzeigen',
-      'featureFlagsShowShareWithCureHHTDescription':
-          'Schaltflache und Datenteilungskarte auf dem Profilbildschirm anzeigen',
       'featureFlagsOldEntryJustification': 'Alte Eintrag Begrundung',
       'featureFlagsOldEntryJustificationDescription':
           'Begrundung bei Bearbeitung von Eintragen alter als ein Tag erforderlich',
@@ -2074,8 +2047,6 @@ class AppLocalizations {
   String get userProfile => translate('userProfile');
   String get enterYourName => translate('enterYourName');
   String get editName => translate('editName');
-  String get shareWithCureHHT => translate('shareWithCureHHT');
-  String get stopSharingWithCureHHT => translate('stopSharingWithCureHHT');
   String get privacyDataProtection => translate('privacyDataProtection');
   String get healthDataStoredLocally => translate('healthDataStoredLocally');
   String get dataSharedAnonymized => translate('dataSharedAnonymized');
@@ -2123,10 +2094,6 @@ class AppLocalizations {
       translate('featureFlagsUseOnePageRecordingScreen');
   String get featureFlagsUseOnePageRecordingScreenDescription =>
       translate('featureFlagsUseOnePageRecordingScreenDescription');
-  String get featureFlagsShowShareWithCureHHT =>
-      translate('featureFlagsShowShareWithCureHHT');
-  String get featureFlagsShowShareWithCureHHTDescription =>
-      translate('featureFlagsShowShareWithCureHHTDescription');
   String get featureFlagsOldEntryJustification =>
       translate('featureFlagsOldEntryJustification');
   String get featureFlagsOldEntryJustificationDescription =>

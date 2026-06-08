@@ -230,7 +230,12 @@ COPY --from=web-build /workspace/out/APP_VERSION /tmp/portal_ui_app_version
 RUN set -eu && \
     APP_VERSION="$(cat /tmp/portal_ui_app_version)" && \
     printf 'portal_ui_version=%s\n' "${APP_VERSION}" >> /app/VERSIONS && \
+    printf 'portal_deployment=reference+%s\n' "${APP_VERSION##*+}" >> /app/VERSIONS && \
     rm /tmp/portal_ui_app_version
+# portal_deployment is the AXIS-C wrap id: <sponsor>+<sponsor_build_sha>. The
+# build sha is reused from APP_VERSION so it can't drift from portal_ui_version.
+# (Real sponsors substitute their own id, e.g. <sponsor>+<sha>; the deploy-event
+# counter is injected separately at deploy time as Cloud Run env vars.)
 
 # gRPC health server binary (compiled from sponsor-ci source)
 COPY --from=grpc-health-build /workspace/out/grpc_health_server /app/grpc_health_server

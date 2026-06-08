@@ -31,6 +31,7 @@ export 'src/actions/views/view_audit_log_action.dart';
 export 'src/actions/views/view_sites_action.dart';
 export 'src/payloads/rave_sync_payloads.dart';
 export 'src/payloads/site_synced_from_edc_payload.dart';
+export 'src/payloads/sponsor_branding_payload.dart';
 export 'src/portal_action_registry.dart';
 export 'src/portal_events.dart';
 export 'src/portal_permissions.dart';

@@ -4,6 +4,7 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/license_screen.dart';
+import 'package:clinical_diary/widgets/branding_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -17,13 +18,20 @@ class LogoMenu extends StatefulWidget {
     this.resetEnabled = true,
     this.resetDisabledReason = 'End your study participation to reset',
     this.isEnrolled,
-    this.sponsorLogo,
+    this.sponsorLogoBuilder,
+    this.onOpenServiceMode,
     super.key,
   });
 
   final VoidCallback onResetAllData;
   final VoidCallback? onEndClinicalTrial;
   final VoidCallback onInstructionsAndFeedback;
+
+  /// Invoked when the User taps the displayed version label seven times — the
+  /// support-instructable entry into the diagnostic ("Service Mode") screen.
+  /// Null leaves the easter egg inert (e.g. in isolated widget tests). The
+  /// callback owns navigation; this widget only counts taps and closes the menu.
+  final VoidCallback? onOpenServiceMode;
 
   /// Whether the "Reset all data" item is tappable. When false the item is
   /// rendered greyed-out and non-tapping (the local factory reset is gated on
@@ -33,7 +41,12 @@ class LogoMenu extends StatefulWidget {
   /// Subtitle shown under a disabled "Reset all data" item explaining why.
   final String resetDisabledReason;
   final bool? isEnrolled;
-  final String? sponsorLogo;
+
+  /// Builds the cache-backed *Sponsor* logo (content-addressed, JWT-gated
+  /// fetch-once). Null when no sponsor logo is configured — the app default
+  /// brand is then shown.
+  // Implements: DIARY-DEV-sponsor-branding-assets/D
+  final BrandingLogoBuilder? sponsorLogoBuilder;
 
   /// Whether to show developer tools (Reset All Data).
   /// Should be false in production and UAT environments.
@@ -45,6 +58,29 @@ class LogoMenu extends StatefulWidget {
 
 class _LogoMenuState extends State<LogoMenu> {
   String _version = '';
+
+  /// Number of consecutive taps on the version label this menu-open. Not
+  /// displayed, so no setState is needed — the open popup overlay would not
+  /// rebuild its items anyway.
+  int _versionTaps = 0;
+
+  /// Tap count that reveals Service Mode. Chosen to match the familiar
+  /// Android "tap build number 7x" idiom so support can read it aloud.
+  static const int _kServiceModeTapCount = 7;
+
+  // Implements: DIARY-GUI-service-mode-entry/A — seven taps on the displayed
+  //   version reveals the diagnostic screen; the count resets and the callback
+  //   (which owns navigation) fires only on the seventh tap.
+  void _onVersionTap() {
+    _versionTaps++;
+    if (_versionTaps < _kServiceModeTapCount) return;
+    _versionTaps = 0;
+    final open = widget.onOpenServiceMode;
+    if (open == null) return;
+    // Close the popup menu first, then hand off to the navigation callback.
+    Navigator.of(context).pop();
+    open();
+  }
 
   @override
   void initState() {
@@ -71,6 +107,17 @@ class _LogoMenuState extends State<LogoMenu> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // The app default brand. Shown when not enrolled, AND used as the fallback
+    // when enrolled to a sponsor whose logo is unconfigured or unavailable — so
+    // the menu affordance is NEVER invisible. A vanished logo-menu hides the
+    // only access to reset / end-trial / instructions / licenses / service-mode,
+    // which is a worse failure than showing the generic brand.
+    final defaultBrand = Image.asset(
+      'assets/images/cure-hht-grey.png',
+      width: 100,
+      height: 40,
+      fit: BoxFit.contain,
+    );
     return PopupMenuButton<String>(
       tooltip: l10n.appMenu,
       child: Padding(
@@ -79,34 +126,26 @@ class _LogoMenuState extends State<LogoMenu> {
           clipBehavior: Clip.none,
           children: [
             if (widget.isEnrolled ?? false)
-              (widget.sponsorLogo != null)
-                  ? Image.network(
-                      widget.sponsorLogo!,
-                      height: 40,
+              // Implements: DIARY-DEV-sponsor-branding-assets/D — the sponsor
+              //   logo renders from the content-addressed cache (verified bytes,
+              //   JWT-gated fetch-once), not a plain Image.network URL. When it
+              //   is unconfigured (null builder) or its bytes are unavailable
+              //   (builder fallback), we show the app default brand so the menu
+              //   stays visible and tappable.
+              (widget.sponsorLogoBuilder != null)
+                  ? widget.sponsorLogoBuilder!(
                       width: 120,
-                      errorBuilder: (context, _, _) {
-                        return const SizedBox(
-                          height: 40,
-                          width: 120,
-                          child: Center(
-                            child: Icon(Icons.broken_image_outlined, size: 32),
-                          ),
-                        );
-                      },
+                      height: 40,
+                      fallback: defaultBrand,
                     )
-                  : const SizedBox()
+                  : defaultBrand
             else
               ColorFiltered(
                 colorFilter: ColorFilter.mode(
                   Colors.grey.withValues(alpha: 0.5),
                   BlendMode.srcATop,
                 ),
-                child: Image.asset(
-                  'assets/images/cure-hht-grey.png',
-                  width: 100,
-                  height: 40,
-                  fit: BoxFit.contain,
-                ),
+                child: defaultBrand,
               ),
           ],
         ),
@@ -255,10 +294,14 @@ class _LogoMenuState extends State<LogoMenu> {
           enabled: false,
           height: 32,
           child: Center(
-            child: Text(
-              _version.isNotEmpty ? 'v$_version' : '',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _onVersionTap,
+              child: Text(
+                _version.isNotEmpty ? 'v$_version' : '',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),

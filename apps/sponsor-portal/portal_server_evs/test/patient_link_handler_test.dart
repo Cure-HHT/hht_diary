@@ -342,4 +342,135 @@ void main() {
     final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
     expect(body['jwt'], isNotNull);
   });
+
+  // --- P2.1 branding sponsor-settings batch in the /link response ------------
+  // Verifies: DIARY-DEV-sponsor-branding-source — the /link response carries a
+  //   sponsor-settings batch (branding keys, locked) so the diary can apply
+  //   branding as set-once-at-link settings instead of pulling a public endpoint.
+
+  /// Seed a materialized `sponsor_branding` row by appending the
+  /// `sponsor_branding_configured` event (what the boot seed produces).
+  Future<void> seedBranding(
+    EventStore store, {
+    required String sponsorId,
+    required String title,
+    String? logoSha256,
+  }) async {
+    await store.append(
+      entryType: 'sponsor_branding_configured',
+      aggregateType: 'sponsor_branding',
+      aggregateId: sponsorId,
+      eventType: 'sponsor_branding_configured',
+      data: <String, Object?>{
+        'sponsorId': sponsorId,
+        'title': title,
+        'assets': <Map<String, Object?>>[
+          if (logoSha256 != null)
+            <String, Object?>{
+              'role': 'logo',
+              'uri': '/api/v1/sponsor/branding/asset/logo',
+              'sha256': logoSha256,
+              'contentType': 'image/png',
+              'byteLength': 1234,
+            },
+        ],
+      },
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+  }
+
+  test(
+      'link with a seeded branding row -> response carries a branding '
+      'sponsor-settings batch (title + logo sha256/role, all locked)',
+      () async {
+    final store = await _openStore('link-branding');
+    await _seed(store);
+    await seedBranding(
+      store,
+      sponsorId: 'reference',
+      title: 'Reference',
+      logoSha256: 'abc123sha',
+    );
+    final handler =
+        patientLinkHandler(eventStore: store, sponsorId: 'reference');
+
+    final res = await handler(_post(body: {'code': 'CAABCDE123'}));
+    expect(res.statusCode, 200);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+
+    final batch =
+        (body['sponsor_settings'] as List).cast<Map<String, Object?>>();
+    Map<String, Object?> byKey(String k) =>
+        batch.firstWhere((e) => e['key'] == k);
+
+    expect(byKey('branding.title')['value'], 'Reference');
+    expect(byKey('branding.title')['locked'], isTrue);
+    expect(byKey('branding.logoSha256')['value'], 'abc123sha');
+    expect(byKey('branding.logoSha256')['locked'], isTrue);
+    expect(byKey('branding.logoRole')['value'], 'logo');
+    expect(byKey('branding.logoRole')['locked'], isTrue);
+  });
+
+  test(
+      'link includes seeded clinical.* / ui.* config in the sponsor-settings '
+      'batch (locked)', () async {
+    // Verifies: DIARY-DEV-sponsor-config-source/B
+    final store = await _openStore('link-config');
+    await _seed(store);
+    await store.append(
+      entryType: 'portal_setting_changed',
+      aggregateType: 'portal_setting',
+      aggregateId: 'clinical.shortDurationConfirm',
+      eventType: 'portal_setting_changed',
+      data: <String, Object?>{
+        'key': 'clinical.shortDurationConfirm',
+        'value': true,
+      },
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+    final handler =
+        patientLinkHandler(eventStore: store, sponsorId: 'reference');
+
+    final res = await handler(_post(body: {'code': 'CAABCDE123'}));
+    expect(res.statusCode, 200);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    final batch =
+        (body['sponsor_settings'] as List).cast<Map<String, Object?>>();
+    final entry =
+        batch.firstWhere((e) => e['key'] == 'clinical.shortDurationConfirm');
+    expect(entry['value'], isTrue);
+    expect(entry['locked'], isTrue);
+  });
+
+  test(
+      'link with no branding materialized -> sponsor_settings == [] and link '
+      'still succeeds', () async {
+    final store = await _openStore('link-no-branding');
+    await _seed(store);
+    final handler =
+        patientLinkHandler(eventStore: store, sponsorId: 'reference');
+
+    final res = await handler(_post(body: {'code': 'CAABCDE123'}));
+    expect(res.statusCode, 200);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    expect(body['jwt'], isNotNull);
+    expect(body['sponsor_settings'], isEmpty);
+  });
+
+  test(
+      'link with a branding row that has no logo asset -> batch carries only '
+      'branding.title', () async {
+    final store = await _openStore('link-branding-no-logo');
+    await _seed(store);
+    await seedBranding(store, sponsorId: 'reference', title: 'Reference');
+    final handler =
+        patientLinkHandler(eventStore: store, sponsorId: 'reference');
+
+    final res = await handler(_post(body: {'code': 'CAABCDE123'}));
+    expect(res.statusCode, 200);
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    final batch =
+        (body['sponsor_settings'] as List).cast<Map<String, Object?>>();
+    expect(batch.map((e) => e['key']), ['branding.title']);
+  });
 }

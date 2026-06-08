@@ -120,7 +120,11 @@ jobs:
           terraform plan -input=false -no-color \
             -var-file=sponsor-configs/callisto4-dev.tfvars \
             -out=tfplan 2>&1 | tee plan-output.txt
-          EXIT_CODE=$?
+          # CUR-1323: capture terraform's real exit via PIPESTATUS, not $?
+          # ($? is `tee`'s exit 0 — that masked plan failures, so the
+          # "Fail on plan error" gate never fired and broken plans stayed
+          # mergeable, then broke the auto-apply on main).
+          EXIT_CODE=${PIPESTATUS[0]}
           echo "exitcode=$EXIT_CODE" >> $GITHUB_OUTPUT
           exit 0
         env:
@@ -309,6 +313,10 @@ jobs:
         id: plan
         working-directory: infrastructure/terraform/sponsor-envs
         run: |
+          # CUR-1323: pipefail so a plan error propagates through `| tee` and
+          # fails this step (errexit), so the Apply step below never runs on a
+          # broken plan.
+          set -eo pipefail
           terraform plan -input=false -no-color \
             -var-file=sponsor-configs/${{ inputs.sponsor }}-${{ inputs.environment }}.tfvars \
             -out=tfplan 2>&1 | tee plan-output.txt

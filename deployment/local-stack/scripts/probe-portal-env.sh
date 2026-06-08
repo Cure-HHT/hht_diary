@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-CONTAINER="${1:-callisto-local-portal-final-1}"
+CONTAINER="${1:-reference-local-portal-final-1}"
 
 if ! docker inspect "$CONTAINER" >/dev/null 2>&1; then
   echo "ERROR: container '$CONTAINER' not found." >&2

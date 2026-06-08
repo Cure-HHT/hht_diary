@@ -1,124 +1,129 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
+// Verifies: DIARY-DEV-deployment-config-defaults/A — page transitions are gated
+//   by the sponsor/deployment `ui.useAnimations` capability (from
+//   SponsorUiConfigScope) AND the user's `useAnimation` preference.
 
 import 'package:clinical_diary/config/env_profile.dart';
-import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
+import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Wraps [home] in a MaterialApp whose builder inserts the sponsor UI config and
+/// user-preference scopes ABOVE the Navigator (mirroring main.dart), so
+/// AppPageRoute reads them from the navigator's context.
+Widget _app({
+  required Widget home,
+  bool sponsorUseAnimations = true,
+  bool userUseAnimation = true,
+}) {
+  return MaterialApp(
+    builder: (context, child) => SponsorUiConfigScope(
+      config: SponsorUiConfig(useAnimations: sponsorUseAnimations),
+      child: AppPreferencesScope(
+        preferences: UserPreferences(useAnimation: userUseAnimation),
+        child: child!,
+      ),
+    ),
+    home: home,
+  );
+}
+
 void main() {
-  // Set up flavor for tests
   EnvProfile.current = EnvProfile.forEnv(AppEnv.dev);
 
-  late FeatureFlagService featureFlagService;
-
-  setUp(() {
-    featureFlagService = FeatureFlagService.instance..resetToDefaults();
-  });
-
-  tearDown(() {
-    featureFlagService.resetToDefaults();
-  });
-
   group('AppPageRoute', () {
-    group('navigation behavior with animations disabled', () {
-      testWidgets('navigates immediately when animations disabled', (
-        tester,
-      ) async {
-        featureFlagService.useAnimations = false;
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Builder(
-              builder: (context) => Scaffold(
-                body: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      AppPageRoute<void>(
-                        builder: (context) =>
-                            const Scaffold(body: Text('Destination')),
-                      ),
-                    );
-                  },
-                  child: const Text('Navigate'),
+    group(
+      'navigation behavior with animations disabled (sponsor capability)',
+      () {
+        testWidgets('navigates immediately when sponsor disables animations', (
+          tester,
+        ) async {
+          await tester.pumpWidget(
+            _app(
+              sponsorUseAnimations: false,
+              home: Builder(
+                builder: (context) => Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        AppPageRoute<void>(
+                          builder: (context) =>
+                              const Scaffold(body: Text('Destination')),
+                        ),
+                      );
+                    },
+                    child: const Text('Navigate'),
+                  ),
                 ),
               ),
             ),
-          ),
-        );
+          );
 
-        await tester.tap(find.text('Navigate'));
-        // Just pump once - should be immediate with no animation
-        await tester.pump();
+          await tester.tap(find.text('Navigate'));
+          // Just pump once - should be immediate with no animation
+          await tester.pump();
 
-        expect(find.text('Destination'), findsOneWidget);
-      });
+          expect(find.text('Destination'), findsOneWidget);
+        });
 
-      testWidgets('pops immediately when animations disabled', (tester) async {
-        featureFlagService.useAnimations = false;
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Builder(
-              builder: (context) => Scaffold(
-                body: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      AppPageRoute<void>(
-                        builder: (context) => Scaffold(
-                          body: ElevatedButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Go Back'),
+        testWidgets('pops immediately when sponsor disables animations', (
+          tester,
+        ) async {
+          await tester.pumpWidget(
+            _app(
+              sponsorUseAnimations: false,
+              home: Builder(
+                builder: (context) => Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        AppPageRoute<void>(
+                          builder: (context) => Scaffold(
+                            body: ElevatedButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Go Back'),
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                  child: const Text('Navigate'),
+                      );
+                    },
+                    child: const Text('Navigate'),
+                  ),
                 ),
               ),
             ),
-          ),
-        );
+          );
 
-        // Navigate to destination
-        await tester.tap(find.text('Navigate'));
-        await tester.pump();
+          // Navigate to destination
+          await tester.tap(find.text('Navigate'));
+          await tester.pump();
 
-        expect(find.text('Go Back'), findsOneWidget);
+          expect(find.text('Go Back'), findsOneWidget);
 
-        // Go back
-        await tester.tap(find.text('Go Back'));
-        await tester.pump();
+          // Go back
+          await tester.tap(find.text('Go Back'));
+          await tester.pump();
 
-        // Should be back immediately
-        expect(find.text('Navigate'), findsOneWidget);
-      });
-    });
+          // Should be back immediately
+          expect(find.text('Navigate'), findsOneWidget);
+        });
+      },
+    );
 
-    // Verifies: the user's `useAnimation` preference also gates transitions —
-    // when the feature flag is ON but the user turned animations OFF (read from
-    // an AppPreferencesScope above the Navigator, as in the real app), the
+    // When the sponsor capability is ON but the user turned animations OFF, the
     // transition is instant.
     group('navigation behavior with user preference disabled', () {
       testWidgets(
-        'navigates immediately when user disables animations (flag on)',
+        'navigates immediately when user disables animations (capability on)',
         (tester) async {
-          featureFlagService.useAnimations = true;
-
           await tester.pumpWidget(
-            MaterialApp(
-              // AppPreferencesScope above the Navigator, mirroring main.dart's
-              // MaterialApp.builder placement.
-              builder: (context, child) => AppPreferencesScope(
-                preferences: const UserPreferences(useAnimation: false),
-                child: child!,
-              ),
+            _app(
+              userUseAnimation: false,
               home: Builder(
                 builder: (context) => Scaffold(
                   body: ElevatedButton(
@@ -149,10 +154,8 @@ void main() {
       testWidgets('navigates with animation when animations enabled', (
         tester,
       ) async {
-        featureFlagService.useAnimations = true;
-
         await tester.pumpWidget(
-          MaterialApp(
+          _app(
             home: Builder(
               builder: (context) => Scaffold(
                 body: ElevatedButton(
@@ -188,8 +191,6 @@ void main() {
 
     group('route creation', () {
       testWidgets('creates route with builder', (tester) async {
-        featureFlagService.useAnimations = false;
-
         final route = AppPageRoute<String>(
           builder: (context) => const Scaffold(body: Text('Test Page')),
         );
@@ -198,8 +199,6 @@ void main() {
       });
 
       testWidgets('creates route with settings', (tester) async {
-        featureFlagService.useAnimations = false;
-
         const settings = RouteSettings(name: '/test', arguments: 'arg');
 
         final route = AppPageRoute<void>(
@@ -212,8 +211,6 @@ void main() {
       });
 
       testWidgets('creates fullscreen dialog route', (tester) async {
-        featureFlagService.useAnimations = false;
-
         final route = AppPageRoute<void>(
           builder: (context) => const Scaffold(body: Text('Dialog')),
           fullscreenDialog: true,
@@ -226,10 +223,9 @@ void main() {
 
   group('AppNavigator extension', () {
     testWidgets('pushPage navigates using AppPageRoute', (tester) async {
-      featureFlagService.useAnimations = false;
-
       await tester.pumpWidget(
-        MaterialApp(
+        _app(
+          sponsorUseAnimations: false,
           home: Builder(
             builder: (context) => Scaffold(
               body: ElevatedButton(
@@ -252,10 +248,9 @@ void main() {
     });
 
     testWidgets('pushPage with settings', (tester) async {
-      featureFlagService.useAnimations = false;
-
       await tester.pumpWidget(
-        MaterialApp(
+        _app(
+          sponsorUseAnimations: false,
           home: Builder(
             builder: (context) => Scaffold(
               body: ElevatedButton(
@@ -281,10 +276,9 @@ void main() {
     testWidgets('pushAndRemoveAllPages clears stack and navigates', (
       tester,
     ) async {
-      featureFlagService.useAnimations = false;
-
       await tester.pumpWidget(
-        MaterialApp(
+        _app(
+          sponsorUseAnimations: false,
           home: Builder(
             builder: (context) => Scaffold(
               body: ElevatedButton(
@@ -310,10 +304,8 @@ void main() {
     testWidgets('pushPage respects animations flag when enabled', (
       tester,
     ) async {
-      featureFlagService.useAnimations = true;
-
       await tester.pumpWidget(
-        MaterialApp(
+        _app(
           home: Builder(
             builder: (context) => Scaffold(
               body: ElevatedButton(

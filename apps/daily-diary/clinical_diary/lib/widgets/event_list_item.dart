@@ -8,6 +8,7 @@ import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:trial_data_types/trial_data_types.dart';
 
 /// List item widget for displaying a nosebleed-related diary entry.
 ///
@@ -158,7 +159,81 @@ class EventListItem extends StatelessWidget {
       return _buildUnknownCard(context, l10n);
     }
 
+    // Implements: DIARY-PRD-questionnaire-system/B — a completed questionnaire
+    // surfaces in the diary's day list as a "Completed" survey affordance.
+    if (view is SurveyEntryView) {
+      return _buildSurveyCard(context, locale, view as SurveyEntryView);
+    }
+
     return _buildNosebleedCard(context, l10n, locale);
+  }
+
+  /// Friendly display name for a questionnaire type id, falling back to the raw
+  /// id when it is not one of the hard-coded [QuestionnaireType]s.
+  String _questionnaireDisplayName(String type) {
+    for (final t in QuestionnaireType.values) {
+      if (t.value == type) return t.displayName;
+    }
+    return type;
+  }
+
+  /// Build card for a completed questionnaire submission (`<id>_survey`).
+  /// Mirrors the marker cards' icon + title + subtitle layout, showing the
+  /// questionnaire's friendly name, a "Completed" label, and the completion time.
+  Widget _buildSurveyCard(
+    BuildContext context,
+    String locale,
+    SurveyEntryView survey,
+  ) {
+    final name = _questionnaireDisplayName(survey.questionnaireType);
+    final timeText = DateFormat.jm(locale).format(survey.completedAt);
+    return Card(
+      key: const Key('survey-card'),
+      margin: EdgeInsets.zero,
+      color: Colors.blue.shade50,
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.15),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              Icon(
+                Icons.assignment_turned_in,
+                color: Colors.blue.shade700,
+                size: 32,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Completed · $timeText',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (onTap != null)
+                Icon(Icons.chevron_right, color: Colors.blue.shade400),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// Build card for "No nosebleed events" type

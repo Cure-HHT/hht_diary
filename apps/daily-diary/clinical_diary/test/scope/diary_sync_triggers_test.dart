@@ -7,6 +7,7 @@ import 'dart:async';
 
 import 'package:clinical_diary/scope/diary_sync_triggers.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -86,6 +87,36 @@ void main() {
     await handles.dispose();
     cancelled = !installed!.isActive;
     expect(cancelled, isTrue, reason: 'dispose must cancel the periodic timer');
+  });
+
+  test('FCM onMessage fires a drain and records the receipt', () async {
+    var drains = 0;
+    final receipts = <RemoteMessage>[];
+    final fcmMessageController = StreamController<RemoteMessage>();
+    final handles = await installDiarySyncTriggers(
+      onTrigger: () async => drains++,
+      onFcmReceipt: (message) async => receipts.add(message),
+      lifecycleObserverFactory: _FakeLifecycle.new,
+      periodicTimerFactory: (_, _) => Timer(const Duration(days: 1), () {}),
+      connectivityStreamFactory: () => const Stream.empty(),
+      fcmOnMessageStreamFactory: () => fcmMessageController.stream,
+      fcmOnOpenedStreamFactory: () => const Stream.empty(),
+    );
+
+    fcmMessageController.add(
+      const RemoteMessage(
+        data: {'type': 'questionnaire_assigned', 'flowToken': 'QST000001'},
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(drains, 1, reason: 'FCM message must fire the EVS sync drain');
+    expect(receipts, hasLength(1), reason: 'onFcmReceipt must be invoked');
+    expect(receipts.single.data['type'], 'questionnaire_assigned');
+    expect(receipts.single.data['flowToken'], 'QST000001');
+
+    await fcmMessageController.close();
+    await handles.dispose();
   });
 
   test('triggers do not fire after dispose', () async {

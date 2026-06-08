@@ -24,17 +24,17 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: event_sourcing
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction
   reaction_widgets:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets
   # In-tree path dep (consolidated onto this branch; single linear branch).
   diary_shared_model:
@@ -66,6 +66,7 @@ dependencies:
   package_info_plus: ^9.0.0
   path_provider: ^2.1.4
   pdfx: ^2.9.2
+  share_plus: ^11.0.0
   shared_preferences: ^2.5.3
   sugar: ^4.0.0
   table_calendar: ^3.2.0
@@ -75,6 +76,10 @@ dependencies:
   timezone_button_dropdown: ^1.0.2
   web: ^1.1.0 # For web-specific cache clearing in version updates
   connectivity_plus: ^7.1.1
+  async: ^2.11.0
+  # Local-stack push transport (AppEnv.local): the LocalSocketPushReceiver rides
+  # the portal /api/v1/user/push WS. See lib/services/push_receiver.dart.
+  web_socket_channel: ^3.0.0
   # Debug HTTP bridge — only wired in when F.appFlavor == Flavor.local
   # AND !kIsWeb (shelf needs dart:io). See lib/services/debug_bridge.dart.
   shelf: ^1.4.0
@@ -88,7 +93,7 @@ dev_dependencies:
   reaction_widgets_testing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets_testing
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.0.0
@@ -115,32 +120,32 @@ dependency_overrides:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: event_sourcing
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction
   reaction_widgets:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets
   reaction_widgets_testing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets_testing
   provenance:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: provenance
   canonical_json_jcs:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: canonical_json_jcs
 
 flutter:

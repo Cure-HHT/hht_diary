@@ -4,12 +4,18 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
-/// Fetches identity config from the server and initializes Firebase + the auth
-/// emulator if an emulator host is reported. Returns true on success.
-Future<bool> initFirebaseFromServer(String serverUrl) async {
+/// Fetches the portal's identity configuration (`GET /config/identity`).
+/// Returns the decoded map, or null if the request fails. The map carries the
+/// Firebase options plus `authMode`, which the client uses to pick its login UI.
+Future<Map<String, Object?>?> fetchIdentityConfig(String serverUrl) async {
   final r = await http.get(Uri.parse('$serverUrl/config/identity'));
-  if (r.statusCode != 200) return false;
-  final cfg = jsonDecode(r.body) as Map<String, Object?>;
+  if (r.statusCode != 200) return null;
+  return jsonDecode(r.body) as Map<String, Object?>;
+}
+
+/// Initializes Firebase + the auth emulator (if an emulator host is reported)
+/// from an already-fetched identity-config [cfg].
+Future<void> initFirebaseWithConfig(Map<String, Object?> cfg) async {
   await Firebase.initializeApp(
     options: FirebaseOptions(
       apiKey: (cfg['apiKey'] as String?) ?? 'demo-api-key',
@@ -27,5 +33,4 @@ Future<bool> initFirebaseFromServer(String serverUrl) async {
       int.tryParse(parts.length > 1 ? parts[1] : '9099') ?? 9099,
     );
   }
-  return true;
 }

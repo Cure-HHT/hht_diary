@@ -17,6 +17,7 @@ DiaryEntryRow _ep(
     startTime: start,
     startTimeZone: 'UTC',
     startTimeUtcOffset: '+00:00',
+    participantId: 'P-test',
     endTime: end,
     endTimeZone: end == null ? null : 'UTC',
     endTimeUtcOffset: end == null ? null : '+00:00',
@@ -79,8 +80,10 @@ void main() {
     final marker = DiaryEntryRow(
       aggregateId: 'm',
       entryType: 'no_epistaxis_event',
-      data: const DayMarkerPayload(date: '2025-10-15').toJson()
-        ..['updatedAt'] = '2025-10-15T13:30:00.000Z',
+      data: const DayMarkerPayload(
+        date: '2025-10-15',
+        participantId: 'P-test',
+      ).toJson()..['updatedAt'] = '2025-10-15T13:30:00.000Z',
     );
     final view = _view([
       _ep(

@@ -103,6 +103,28 @@ void main() {
       },
     );
 
+    test(
+      'reverts ui.* allow-set/capability keys to default (value cleared to null)',
+      () async {
+        // Verifies: DIARY-DEV-deployment-config-defaults/F
+        final input = unlock.parseInput(const {
+          'lockedSettings': {
+            'ui.availableLanguages': ['en', 'es'],
+            'clinical.shortDurationConfirm': true,
+          },
+        });
+        unlock.validate(input);
+        final events = (await unlock.execute(input, _ctx())).events;
+        final byKey = {for (final e in events) e.aggregateId: e};
+        // ui.* reverts: value cleared so resolution falls back to the default.
+        expect(byKey['ui.availableLanguages']!.data['value'], isNull);
+        expect(byKey['ui.availableLanguages']!.data['locked'], false);
+        // clinical.* keeps its value.
+        expect(byKey['clinical.shortDurationConfirm']!.data['value'], true);
+        expect(byKey['clinical.shortDurationConfirm']!.data['locked'], false);
+      },
+    );
+
     test('parseInput rejects a missing lockedSettings map', () {
       expect(
         () => unlock.parseInput(const {}),

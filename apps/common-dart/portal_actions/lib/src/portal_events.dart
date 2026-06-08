@@ -57,4 +57,7 @@ final List<EntryTypeDefinition> portalPrivateEventTypes = <EntryTypeDefinition>[
   _e('system_config_changed', 'System Config Changed'),
   // 4.2 portal_user (operator-tier authz)
   _e('user_tier_changed', 'User Tier Changed'),
+  // Implements: DIARY-DEV-sponsor-branding-source/A — event-sourced sponsor
+  //   branding (metadata + asset manifest; image bytes never in the log).
+  _e('sponsor_branding_configured', 'Sponsor Branding Configured'),
 ];

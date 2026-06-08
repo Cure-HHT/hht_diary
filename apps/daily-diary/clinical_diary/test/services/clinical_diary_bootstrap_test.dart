@@ -2,7 +2,6 @@
 
 import 'dart:async';
 
-import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/triggers.dart';
@@ -252,77 +251,25 @@ void main() {
   });
 
   // -----------------------------------------------------------------------
-  // Test 3b: syncCycle drains the legacy_questionnaire_submit FIFO to
-  // the questionnaire submit endpoint. Confirms the bootstrap registers
-  // both shim destinations and that survey-finalized events land on the
-  // questionnaire submit URL — not the /sync URL.
+  // Test 3b: the legacy bootstrap registers ONLY the nosebleed legacy_sync
+  // shim. Questionnaire submissions now flow through the NATIVE
+  // `DiaryServerDestination` (the new `diary_es.db` store via
+  // `bootstrapDiaryScope`), so the legacy bootstrap no longer registers a
+  // questionnaire-submit destination. (The native survey path is covered by
+  // `test/scope/diary_scope_bootstrap_test.dart`.)
   // -----------------------------------------------------------------------
-  test('runtime.syncCycle() drains a finalized survey to '
-      '{baseUrl}/questionnaires/<id>/submit', () async {
-    final db = await _openDb();
-    final captured = <http.Request>[];
-    final client = MockClient((req) async {
-      captured.add(req);
-      if (req.url.path.endsWith('inbound')) {
-        return http.Response('{"messages":[]}', 200);
-      }
-      return http.Response('', 200);
-    });
+  test('bootstrapClinicalDiary registers only the legacy_sync destination '
+      '(no legacy questionnaire-submit shim)', () async {
+    final (:runtime, :requests) = await _buildRuntime();
 
-    final runtime = await bootstrapClinicalDiary(
-      sembastDatabase: db,
-      authToken: () async => 'test-token',
-      resolveBaseUrl: () async => Uri.parse(_baseUrl),
-      deviceId: _deviceId,
-      softwareVersion: _softwareVersion,
-      userId: _userId,
-      httpClient: client,
-      lifecycleObserverFactory: _silentLifecycleFactory,
-      periodicTimerFactory: _silentTimerFactory,
-      connectivityStreamFactory: _silentConnectivityFactory,
-      fcmOnMessageStreamFactory: _silentFcmMessageFactory,
-      fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
-    );
-
-    const instanceId = 'agg-survey-drain-1';
-    await runtime.entryService.record(
-      entryType: 'nose_hht_survey',
-      aggregateId: instanceId,
-      eventType: 'finalized',
-      answers: <String, Object?>{
-        'instance_id': instanceId,
-        'questionnaire_type': 'nose_hht',
-        'version': '1.0.0',
-        'completed_at': '2026-04-27T10:00:00.000Z',
-        'responses': const <Map<String, Object?>>[
-          {
-            'question_id': 'q1',
-            'value': 2,
-            'display_label': 'Sometimes',
-            'normalized_label': '2',
-          },
-        ],
-      },
-    );
-
-    await runtime.destinations.setStartDate(
-      LegacyQuestionnaireSubmitDestination.destinationId,
-      DateTime.now().toUtc().subtract(const Duration(seconds: 1)),
-      initiator: const AutomationInitiator(service: 'test'),
-    );
-
-    await runtime.syncCycle();
-
-    final postRequests = captured.where((r) => r.method == 'POST').toList();
-    expect(postRequests, isNotEmpty);
+    final ids = runtime.destinations.all().map((d) => d.id).toList();
+    expect(ids, contains(LegacySyncDestination.destinationId));
     expect(
-      postRequests.any(
-        (r) => r.url.toString().endsWith('/questionnaires/$instanceId/submit'),
-      ),
-      isTrue,
+      ids,
+      isNot(contains('legacy_questionnaire_submit')),
       reason:
-          'a POST to <baseUrl>/questionnaires/<id>/submit should fire '
-          'after the survey-finalized FIFO drain',
+          'questionnaire submissions ship through the native '
+          'DiaryServerDestination, not a legacy shim',
     );
 
     await runtime.dispose();

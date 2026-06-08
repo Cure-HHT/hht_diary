@@ -5,7 +5,8 @@ import 'package:event_sourcing/event_sourcing.dart';
 import 'event_origin.dart';
 
 /// Notification intent + FCM-token facts (`[home: shared]`). The mobile-authored
-/// `fcm_message_received` ack and `fcm_token_registered` are held for the cross-post.
+/// `fcm_message_received` ack and `fcm_token_registered` are registered for the
+/// cross-post in `diary_originated_events.dart` (origin: mobile).
 const List<SharedEventType> notificationEventTypes = <SharedEventType>[
   SharedEventType(
     origin: EventOrigin.portal,

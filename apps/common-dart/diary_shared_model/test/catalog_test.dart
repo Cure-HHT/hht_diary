@@ -38,6 +38,7 @@ void main() {
     expect(ids, {
       'questionnaire_assigned',
       'questionnaire_delivery_failed',
+      'questionnaire_submission_received',
       'questionnaire_finalized',
       'questionnaire_scored',
       'questionnaire_unlocked',
@@ -65,8 +66,8 @@ void main() {
       final ids = sharedEventCatalog.map((t) => t.id).toList();
       expect(
         ids.length,
-        27,
-      ); // 10 participant + 7 questionnaire + 3 notification/fcm + 7 diary-originated
+        28,
+      ); // 10 participant + 8 questionnaire + 3 notification/fcm + 7 diary-originated
       expect(ids.toSet().length, ids.length, reason: 'duplicate entry-type id');
     },
   );

@@ -23,7 +23,10 @@ void main() {
     test(
       'emits finalized no_epistaxis_event on the per-day aggregate',
       () async {
-        final input = action.parseInput(const {'date': '2025-10-15'});
+        final input = action.parseInput(const {
+          'date': '2025-10-15',
+          'participantId': 'P-42',
+        });
         action.validate(input);
         final result = await action.execute(input, _ctx());
         final draft = result.events.single;
@@ -39,13 +42,18 @@ void main() {
 
     test('validate rejects a malformed date', () {
       expect(
-        () => action.validate(action.parseInput(const {'date': 'nope'})),
+        () => action.validate(
+          action.parseInput(const {'date': 'nope', 'participantId': 'P-42'}),
+        ),
         throwsArgumentError,
       );
     });
 
     test('requires an identified participant', () async {
-      final input = action.parseInput(const {'date': '2025-10-15'});
+      final input = action.parseInput(const {
+        'date': '2025-10-15',
+        'participantId': 'P-42',
+      });
       expect(
         () =>
             action.execute(input, _ctx(principal: const AnonymousPrincipal())),
@@ -59,7 +67,10 @@ void main() {
     test(
       'emits finalized unknown_day_event on the per-day aggregate',
       () async {
-        final input = action.parseInput(const {'date': '2025-10-15'});
+        final input = action.parseInput(const {
+          'date': '2025-10-15',
+          'participantId': 'P-42',
+        });
         final result = await action.execute(input, _ctx());
         expect(result.events.single.entryType, 'unknown_day_event');
         expect(result.events.single.aggregateId, 'P-42:2025-10-15');

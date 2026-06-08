@@ -13,6 +13,7 @@ import 'password_reset_screen.dart';
 import 'reset_link.dart';
 import 'audit_log_screen.dart';
 import 'connect_screen.dart';
+import 'connection_status_banner.dart';
 import 'firebase_auth_client.dart';
 import 'identity_config.dart';
 import 'login_screen.dart';
@@ -20,6 +21,9 @@ import 'nav_sections.dart';
 import 'participants_screen.dart';
 import 'rave_sync_screen.dart';
 import 'role_selector.dart';
+import 'session_activity_listener.dart';
+import 'session_config.dart';
+import 'session_timeout_controller.dart';
 import 'sites_screen.dart';
 import 'user_accounts_screen.dart';
 
@@ -43,12 +47,14 @@ final String _serverUrl = _serverUrlOverride.isNotEmpty
     ? _serverUrlOverride
     : Uri.base.origin;
 
-/// When true, renders the firebase_auth Login + OTP screens instead of the
-/// dev ConnectScreen. DEFAULT off — the existing dev path is unchanged.
-/// Enable with `--dart-define=PORTAL_SESSION_AUTH=true`.
-const bool _sessionAuth = bool.fromEnvironment(
-  'PORTAL_SESSION_AUTH',
-  defaultValue: false,
+/// `<semver>+<build_id>` of THIS web bundle, stamped at image-build time via
+/// `--dart-define=APP_VERSION` (same value as main.dart's `appVersion`). This is
+/// the bundle's own full self-report — unlike `version.json`, which Flutter
+/// generates from the now-bare pubspec and so omits the build id. Empty in a
+/// local `flutter run` without the define.
+const String _appVersion = String.fromEnvironment(
+  'APP_VERSION',
+  defaultValue: '',
 );
 
 class PortalEvsApp extends StatefulWidget {
@@ -62,6 +68,13 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   late final RemoteScope _scope;
   late final StreamSubscription<AuthStatus> _authSub;
   AuthStatus _status = const NotAuthenticated();
+
+  /// Login-UI mode, resolved at runtime from `GET /config/identity` (`authMode`).
+  /// Null while the config is still loading; `true` renders the Firebase
+  /// Login/OTP screens, `false` renders the dev ConnectScreen. Resolving at
+  /// runtime lets one web image serve both dev and session-auth deployments.
+  // Implements: DIARY-DEV-portal-second-factor-toggle/C
+  bool? _sessionAuth;
 
   /// Set to true after the user taps "Back to Login" on the password-reset done
   /// view so [build] falls through to the normal auth switch instead of
@@ -78,6 +91,16 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// Null when not authenticated.
   String? _identityCredential;
 
+  /// The client soft-timer mirroring the server idle window. Non-null only in
+  /// session-auth mode while Authenticated.
+  SessionTimeoutController? _timeoutController;
+
+  /// Guards [_syncTimeoutController]'s async create branch: it awaits
+  /// `fetchSessionConfig` while `_timeoutController` is still null, so without
+  /// this flag two rapid `Authenticated` emissions could each pass the
+  /// null-check and create (and leak) a second controller + its timers.
+  bool _timerInitInFlight = false;
+
   @override
   void initState() {
     super.initState();
@@ -86,16 +109,33 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     _authSub = _scope.authSession.stream.listen((next) {
       if (!mounted) return;
       setState(() => _status = next);
+      unawaited(_syncTimeoutController(next));
     });
-    if (_sessionAuth) {
-      // Fire-and-forget: fetch /config/identity and initialise Firebase.
-      // Errors are surfaced through the LoginScreen UI on first sign-in attempt.
-      initFirebaseFromServer(_serverUrl).ignore();
+    _resolveAuthMode();
+  }
+
+  /// Resolves the login-UI mode from the server's identity config. When the
+  /// server reports `authMode == 'session'`, initialises Firebase from the same
+  /// config so [LoginScreen] can authenticate. Falls back to dev mode if the
+  /// config can't be fetched. Firebase init errors are swallowed here and
+  /// surface through the LoginScreen UI on the first sign-in attempt.
+  // Implements: DIARY-DEV-portal-second-factor-toggle/C
+  Future<void> _resolveAuthMode() async {
+    var session = false;
+    final cfg = await fetchIdentityConfig(_serverUrl);
+    if (cfg != null) {
+      session = cfg['authMode'] == 'session';
+      if (session) {
+        await initFirebaseWithConfig(cfg).catchError((Object _) {});
+      }
     }
+    if (!mounted) return;
+    setState(() => _sessionAuth = session);
   }
 
   @override
   void dispose() {
+    _timeoutController?.dispose();
     unawaited(_authSub.cancel());
     unawaited(_scope.dispose());
     super.dispose();
@@ -146,7 +186,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     // POST /logout only in session mode — the dev credential is a bare userId,
     // not a parseable session token, and there is no server-side session to
     // terminate.
-    if (_sessionAuth) {
+    if (_sessionAuth == true) {
       final credential = _identityCredential;
       if (credential != null) {
         try {
@@ -162,6 +202,88 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     setState(() => _identityCredential = null);
     _scope.authSession.setCredential(null);
   }
+
+  /// Creates the soft-timer on first Authenticated (session mode), tears it down
+  /// otherwise. Idempotent per status edge.
+  // Implements: DIARY-GUI-portal-session-expiry/A
+  Future<void> _syncTimeoutController(AuthStatus status) async {
+    final wantTimer = status is Authenticated && _sessionAuth == true;
+    if (wantTimer && _timeoutController == null && !_timerInitInFlight) {
+      _timerInitInFlight = true;
+      try {
+        final cfg = await fetchSessionConfig(_serverUrl);
+        if (!mounted || _scope.authSession.current is! Authenticated) return;
+        final c = SessionTimeoutController(
+          idleTimeout: cfg.idle,
+          warningLead: cfg.warning,
+          onKeepAlive: _keepAlive,
+          onExpired: _onSessionExpired,
+        )..start();
+        setState(() => _timeoutController = c);
+      } finally {
+        _timerInitInFlight = false;
+      }
+    } else if (!wantTimer && _timeoutController != null) {
+      _timeoutController!.dispose();
+      setState(() => _timeoutController = null);
+    }
+  }
+
+  /// Throttled keep-alive: any authed request resets the server idle window; a
+  /// dedicated lightweight endpoint keeps the intent explicit.
+  // Implements: DIARY-DEV-portal-session-lifecycle/E
+  Future<void> _keepAlive() async {
+    final credential = _identityCredential;
+    if (credential == null) return;
+    try {
+      await http.post(
+        Uri.parse('$_serverUrl/keepalive'),
+        headers: {'Authorization': 'Bearer $credential'},
+      );
+    } catch (_) {
+      // Best-effort; the server stays authoritative on the next real request.
+    }
+  }
+
+  /// Countdown hit zero: force a reconnect so the server's idle check trips and
+  /// the existing Expired() surface shows (the controller's expiry grace
+  /// guarantees we are past the server's strict idle boundary).
+  // Implements: DIARY-GUI-portal-session-expiry/C
+  Future<void> _onSessionExpired() async {
+    try {
+      await _scope.reconnect();
+    } catch (_) {
+      // If reconnect can't run, the next real request still trips the server.
+    }
+  }
+
+  /// Wraps [child] in the activity listener when the soft-timer is active;
+  /// otherwise returns it unchanged (dev mode / timer still loading). The
+  /// in-dialog "Sign out" cancels the timer (reactively dismissing the dialog)
+  /// then disconnects.
+  Widget _wrapWithTimeout(Widget child) {
+    final c = _timeoutController;
+    if (c == null) return child;
+    return SessionActivityListener(
+      controller: c,
+      onSignOut: () {
+        c.cancel();
+        _disconnect();
+      },
+      child: child,
+    );
+  }
+
+  /// Shown while the login-UI mode is still being resolved from the server.
+  Widget _loadingScaffold() =>
+      const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+  /// The Firebase email/password login surface (session-auth mode).
+  Widget _loginScreen() => LoginScreen(
+    serverUrl: _serverUrl,
+    authClient: RealFirebaseAuthClient(),
+    onSession: _onSession,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -196,49 +318,47 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     }
 
     final Widget home = switch (_status) {
-      Authenticated(:final principal) => _HomeShell(
-        principal: principal,
-        identityCredential: _identityCredential,
-        onDisconnect: () {
-          _disconnect();
-        },
-        onRoleSelected: _onRoleSelected,
+      Authenticated(:final principal) => _wrapWithTimeout(
+        _HomeShell(
+          principal: principal,
+          identityCredential: _identityCredential,
+          onDisconnect: () {
+            _disconnect();
+          },
+          onRoleSelected: _onRoleSelected,
+        ),
       ),
-      Expired() => Scaffold(
-        body: _sessionAuth
-            ? Column(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'Session ended — please sign in again.',
-                      style: TextStyle(color: Colors.orange),
-                    ),
-                  ),
-                  Expanded(
-                    child: LoginScreen(
-                      serverUrl: _serverUrl,
-                      authClient: RealFirebaseAuthClient(),
-                      onSession: _onSession,
-                    ),
-                  ),
-                ],
-              )
-            : ConnectScreen(
-                onConnect: _onConnect,
-                message: 'Session ended — reconnect.',
-                serverUrl: _serverUrl,
+      Expired() => switch (_sessionAuth) {
+        null => _loadingScaffold(),
+        true => Scaffold(
+          body: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Session ended — please sign in again.',
+                  style: TextStyle(color: Colors.orange),
+                ),
               ),
-      ),
-      NotAuthenticated() => Scaffold(
-        body: _sessionAuth
-            ? LoginScreen(
-                serverUrl: _serverUrl,
-                authClient: RealFirebaseAuthClient(),
-                onSession: _onSession,
-              )
-            : ConnectScreen(onConnect: _onConnect, serverUrl: _serverUrl),
-      ),
+              Expanded(child: _loginScreen()),
+            ],
+          ),
+        ),
+        false => Scaffold(
+          body: ConnectScreen(
+            onConnect: _onConnect,
+            message: 'Session ended — reconnect.',
+            serverUrl: _serverUrl,
+          ),
+        ),
+      },
+      NotAuthenticated() => switch (_sessionAuth) {
+        null => _loadingScaffold(),
+        true => Scaffold(body: _loginScreen()),
+        false => Scaffold(
+          body: ConnectScreen(onConnect: _onConnect, serverUrl: _serverUrl),
+        ),
+      },
     };
     return ReActionScope(
       scope: _scope,
@@ -297,17 +417,16 @@ class _HomeShellState extends State<_HomeShell> {
   EffectiveAuthorization? _auth;
   StreamSubscription<EffectiveAuthorization?>? _permSub;
 
-  /// `vX.Y.Z+build` of the deployed web bundle, shown under the app-bar title
-  /// so a running deployment self-identifies its build. Empty until resolved
-  /// (or if the fetch fails). Sourced from the `version.json` that
-  /// `flutter build web` emits at the web origin — the authoritative version of
-  /// the actual built artifact, no extra dependency or build-time define.
-  String _version = '';
+  /// Server-reported version manifest from `GET /health` `.versions`:
+  /// `portal_server_evs` (semver+N), `server_commit`, `diary_app`,
+  /// `portal_deployment`, `deploy` (the deploy counter), `deploy_commit`.
+  /// The app-bar shows only the deploy counter; the rest live in the popup.
+  Map<String, Object?> _serverVersions = const <String, Object?>{};
 
   @override
   void initState() {
     super.initState();
-    unawaited(_loadVersion());
+    unawaited(_loadServerVersions());
   }
 
   @override
@@ -345,7 +464,10 @@ class _HomeShellState extends State<_HomeShell> {
   Widget _screenFor(String label) => switch (label) {
     'User Accounts' => const UserAccountsScreen(),
     'Sites' => const SitesScreen(),
-    'Participants' => const ParticipantsScreen(),
+    'Participants' => ParticipantsScreen(
+      serverUrl: _serverUrl,
+      identityCredential: widget.identityCredential ?? '',
+    ),
     'RAVE Sync' => const RaveSyncScreen(),
     'Audit Log' => AuditLogScreen(
       identityCredential: widget.identityCredential ?? '',
@@ -354,23 +476,90 @@ class _HomeShellState extends State<_HomeShell> {
     _ => const SizedBox.shrink(),
   };
 
-  Future<void> _loadVersion() async {
+  Future<void> _loadServerVersions() async {
     try {
-      // version.json is served by the WEB origin (Uri.base), which in the
-      // deployed bundle and in `flutter run` both serve it — unlike the portal
-      // API base, which may be a different host in local dev.
-      final res = await http.get(Uri.base.resolve('version.json'));
+      // /health is public + same-origin-reachable; .versions carries the
+      // server binary id, deploy counter, and the rest of the manifest.
+      final res = await http.get(Uri.parse('$_serverUrl/health'));
       if (!mounted || res.statusCode != 200) return;
       final json = jsonDecode(res.body) as Map<String, Object?>;
-      final v = json['version'];
-      final b = json['build_number'];
-      if (v is! String || v.isEmpty) return;
-      setState(
-        () => _version = (b is String && b.isNotEmpty) ? 'v$v+$b' : 'v$v',
-      );
+      final v = json['versions'];
+      if (v is Map) {
+        setState(() => _serverVersions = Map<String, Object?>.from(v));
+      }
     } catch (_) {
-      // Best-effort: a missing/unservable version.json just hides the label.
+      // Best-effort: if /health is unreachable, the label falls back to the
+      // bundle version and the popup just shows fewer rows.
     }
+  }
+
+  /// The compact label under the app-bar title: the deploy counter when the
+  /// server reports one ("Deploy #47"), else this bundle's version, else nothing.
+  String _versionLabel() {
+    final deploy = _serverVersions['deploy'];
+    if (deploy is String && deploy.isNotEmpty) return 'Deploy #$deploy';
+    return _appVersion;
+  }
+
+  /// Popup listing the full version/provenance manifest. "Portal UI" is this
+  /// bundle's own full version (APP_VERSION); the rest come from `/health` —
+  /// including `diary_app`, the diary mobile-app version in the source this
+  /// portal build was cut from (NOT a mobile deployment; iOS + Android share
+  /// this one source version).
+  void _showVersionsDialog() {
+    final rows = <MapEntry<String, String>>[
+      if (_appVersion.isNotEmpty) MapEntry('Portal UI', _appVersion),
+      for (final e in const <String, String>{
+        'portal_server_evs': 'Portal server',
+        'server_commit': 'Server commit',
+        'diary_app': 'Diary app',
+        'portal_deployment': 'Deployment',
+        'deploy': 'Deploy #',
+        'deploy_commit': 'Deploy commit',
+      }.entries)
+        if (_serverVersions[e.key] case final String val when val.isNotEmpty)
+          MapEntry(e.value, val),
+    ];
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Version details'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              if (rows.isEmpty)
+                const Text('No version information available.')
+              else
+                for (final r in rows)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        SizedBox(
+                          width: 150,
+                          child: Text(
+                            '${r.key}:',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Expanded(child: SelectableText(r.value)),
+                      ],
+                    ),
+                  ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _credentialLabel() {
@@ -398,13 +587,31 @@ class _HomeShellState extends State<_HomeShell> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             const Text('Portal (EVS skeleton)'),
-            if (_version.isNotEmpty)
-              Text(
-                _version,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+            if (_versionLabel().isNotEmpty)
+              InkWell(
+                onTap: _showVersionsDialog,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      _versionLabel(),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2),
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 12,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],
@@ -430,7 +637,16 @@ class _HomeShellState extends State<_HomeShell> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _buildBody(visible, selectedIndex),
+      // Surface transport-connection state: when the reactive WS is
+      // reconnecting/disconnected, a banner tells the user the data shown is the
+      // last received (lists keep their last rows via the ViewBuilder Stale
+      // state). Self-clears on reconnect.
+      // Implements: DIARY-GUI-portal-transport-status/A+B
+      body: ConnectionStatusBanner(
+        statusStream: ReActionScope.of(context).connectionStatusStream,
+        initial: ReActionScope.of(context).connectionStatus,
+        child: _buildBody(visible, selectedIndex),
+      ),
     );
   }
 

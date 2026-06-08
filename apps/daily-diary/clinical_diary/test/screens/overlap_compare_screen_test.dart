@@ -23,6 +23,7 @@ DiaryEntryRow _row(
     startTime: start,
     startTimeZone: 'UTC',
     startTimeUtcOffset: '+00:00',
+    participantId: 'P-test',
     endTime: end,
     endTimeZone: 'UTC',
     endTimeUtcOffset: '+00:00',

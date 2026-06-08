@@ -15,6 +15,7 @@
 | DIARY-PRD-configuration-precedence               | Configuration Precedence                                 | prd-configuration.md                      | f5372beb |
 | DIARY-PRD-data-backup-and-archival               | Data Backup and Archival                                 | prd-data-backup.md                        | 52e8354f |
 | DIARY-PRD-day-disposition                        | Calendar Day Disposition                                 | prd-epistaxis.md                          | bd38485a |
+| DIARY-PRD-device-health-diagnostics              | Device Health Diagnostic Export                          | prd-mobile-app.md                         | 5071c90a |
 | DIARY-PRD-diary-start-day                        | Diary Start Day Definition                               | prd-mobile-app.md                         | b0c35e38 |
 | DIARY-PRD-entry-duration-check                   | Duration Reasonableness Check                            | prd-diary-entry-rules.md                  | bacdd0ae |
 | DIARY-PRD-entry-overlap-resolution               | Overlapping Event Detection and Resolution               | prd-diary-entry-rules.md                  | 1069b1e5 |
@@ -69,7 +70,7 @@
 | DIARY-PRD-role-definitions                       | Role Definitions                                         | prd-rbac.md                               | b03a41dc |
 | DIARY-PRD-score-hht-qol                          | HHT-QoL Score Calculation                                | prd-score-calculation.md                  | 67ca87e3 |
 | DIARY-PRD-score-nose-hht                         | NOSE HHT Score Calculation                               | prd-score-calculation.md                  | 634f9daf |
-| DIARY-PRD-session-management                     | Session Management                                       | prd-portal-auth.md                        | 21fe5107 |
+| DIARY-PRD-session-management                     | Session Management                                       | prd-portal-auth.md                        | e0f4a981 |
 | DIARY-PRD-sla-chronic-failure-escalation         | Chronic Failure Escalation                               | prd-sla.md                                | 18eb2eed |
 | DIARY-PRD-sla-corrective-preventive              | Corrective and Preventive Action                         | prd-sla.md                                | 168ba70d |
 | DIARY-PRD-sla-customer-notification              | Customer Incident Notification                           | prd-sla.md                                | 93c0d962 |
@@ -94,13 +95,19 @@
 
 ## BASE (SPONSOR-EXCLUDABLE)
 
-| ID                                    | Title                                                         | File                         | Hash     |
-| ------------------------------------- | ------------------------------------------------------------- | ---------------------------- | -------- |
-| DIARY-BASE-audit-trail                | Audit Trail Foundation                                        | base-audit-trail.md          | fbf48f17 |
-| DIARY-BASE-local-data-reset           | Local Data Reset to First-Launch State                        | base-local-data-reset.md     | 824fef24 |
-| DIARY-BASE-ops-action-inventory       | Operations Action Inventory                                   | base-ops-action-inventory.md | a1baca2c |
-| DIARY-BASE-sponsor-requested-settings | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md     | a8de6e0a |
-| DIARY-BASE-system-operator-role       | System Operator Role                                          | base-system-operator-role.md | e9d3432f |
+| ID                                             | Title                                                         | File                              | Hash     |
+| ---------------------------------------------- | ------------------------------------------------------------- | --------------------------------- | -------- |
+| DIARY-BASE-audit-trail                         | Audit Trail Foundation                                        | base-audit-trail.md               | 1f28ed43 |
+| DIARY-BASE-local-data-reset                    | Local Data Reset to First-Launch State                        | base-local-data-reset.md          | 824fef24 |
+| DIARY-BASE-not-participating-notice            | Not-Participating Notice                                      | prd-mobile-notifications.md       | fb82706f |
+| DIARY-BASE-ops-action-inventory                | Operations Action Inventory                                   | base-ops-action-inventory.md      | a1baca2c |
+| DIARY-BASE-questionnaire-coordinator-workflow  | Coordinator Questionnaire Workflow                            | base-questionnaire-coordinator.md | 40cba10f |
+| DIARY-BASE-questionnaire-cycle-tracking        | Questionnaire Cycle Tracking                                  | base-questionnaire-coordinator.md | 6dcb965e |
+| DIARY-BASE-questionnaire-finalization          | Questionnaire Finalization Workflow                           | base-questionnaire-coordinator.md | 1c17145b |
+| DIARY-BASE-questionnaire-lock-after-submission | Lock-After-Submission and Unlock                              | base-questionnaire-coordinator.md | a4f69437 |
+| DIARY-BASE-questionnaire-manage-modal          | Manage Questionnaires Modal                                   | base-questionnaire-coordinator.md | 27cf8328 |
+| DIARY-BASE-sponsor-requested-settings          | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md          | a8de6e0a |
+| DIARY-BASE-system-operator-role                | System Operator Role                                          | base-system-operator-role.md      | e9d3432f |
 
 ## INTERFACE
 
@@ -126,10 +133,13 @@
 | DIARY-GUI-participant-task-list              | Participant Task List                      | prd-mobile-notifications.md               | 916aca8a |
 | DIARY-GUI-participation-status-badge         | Participation Status Badge                 | prd-mobile-notifications.md               | 6f306233 |
 | DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface         | prd-portal-auth.md                        | d41e7764 |
+| DIARY-GUI-portal-session-expiry              | Portal session expiry interface            | prd-portal-auth.md                        | 0a1581a9 |
+| DIARY-GUI-portal-transport-status            | Portal Transport Status Banner             | prd-common-ui.md                          | 20c55120 |
 | DIARY-GUI-questionnaire-portal-sent-workflow | Portal-Sent Questionnaire Workflow         | prd-questionnaire-participant-workflow.md | ca0d5613 |
 | DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry               | prd-questionnaire-participant-workflow.md | 02879dd5 |
 | DIARY-GUI-rave-sync-paused-banner            | Sites and Participants Pages Paused Banner | prd-rave-sync.md                          | 75bc47b3 |
 | DIARY-GUI-role-switching                     | Role Switching — Interface Behavior        | prd-rbac.md                               | f820206c |
+| DIARY-GUI-service-mode-entry                 | Service Mode Entry and Presentation        | prd-mobile-app.md                         | 0b05472a |
 | DIARY-GUI-show-linking-code                  | Show Linking Code                          | prd-participant.md                        | 30285056 |
 | DIARY-GUI-user-account-deactivate            | Deactivate User Account                    | prd-user-account.md                       | bb9d75f2 |
 | DIARY-GUI-user-account-reactivate            | Reactivate User Account                    | prd-user-account.md                       | 15f0d2fd |
@@ -153,12 +163,14 @@
 | -------------------------------------------- | ----------------------------------------------------- | ---------------------------------- | -------- |
 | DIARY-DEV-action-write-path                  | Writes Flow Through the Action Dispatcher             | dev-mobile-event-sourcing.md       | ea6148a0 |
 | DIARY-DEV-audit-log-read                     | Audit log read                                        | dev-portal-service.md              | 34892437 |
+| DIARY-DEV-deployment-config-defaults         | Deployment Configuration Defaults                     | dev-environment-resolution.md      | a83387be |
+| DIARY-DEV-device-health-checks               | On-Demand Device Health Checks                        | dev-mobile-event-sourcing.md       | 8d3827d5 |
 | DIARY-DEV-evs-stack-adoption                 | Diary Adopts the Event-Sourcing Stack                 | dev-mobile-event-sourcing.md       | 663897f8 |
 | DIARY-DEV-inbound-event-on-receipt           | Inbound Receipt Emits an Event                        | dev-mobile-event-sourcing.md       | 9143d6c4 |
 | DIARY-DEV-linking-code-lifecycle             | Linking-Code Lifecycle and Uniqueness                 | dev-linking-code-lifecycle.md      | e817982d |
 | DIARY-DEV-local-participant-authorization    | On-Device Authorization Permits the Local Participant | dev-mobile-event-sourcing.md       | 5b6674c2 |
-| DIARY-DEV-native-outbound-sync               | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md       | 5b88b915 |
-| DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | d2cc0577 |
+| DIARY-DEV-native-outbound-sync               | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md       | ebaa5551 |
+| DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | 8b310ffe |
 | DIARY-DEV-operator-tier-authz                | Operator-Tier Authorization for User Management       | dev-portal-service.md              | cda9a051 |
 | DIARY-DEV-outgoing-intent-correlation        | Outgoing Intent and Flow Correlation                  | dev-outgoing-intent-correlation.md | 108441a8 |
 | DIARY-DEV-participant-ingest                 | Participant Clinical-Record Ingest Edge               | dev-participant-ingest.md          | ba96a497 |
@@ -166,6 +178,7 @@
 | DIARY-DEV-participant-site-index             | Participant-Site Index Materializer                   | dev-portal-service.md              | 76e68990 |
 | DIARY-DEV-participant-state-poll             | Diary Lifecycle Propagation via State Poll            | dev-mobile-event-sourcing.md       | 0a04e639 |
 | DIARY-DEV-participant-status-projection      | Participant Linking-Status Projection                 | dev-portal-service.md              | aafda27d |
+| DIARY-DEV-pluggable-push-transport           | Pluggable Push-Notification Transport                 | dev-pluggable-push-transport.md    | 0493012c |
 | DIARY-DEV-portal-activation-code-lifecycle   | Activation code lifecycle                             | dev-portal-activation.md           | ec270b2e |
 | DIARY-DEV-portal-activation-email-delivery   | Activation email delivery                             | dev-portal-activation.md           | 8357a727 |
 | DIARY-DEV-portal-active-role-switch          | In-session active role switch                         | dev-portal-login.md                | 3d941dbc |
@@ -173,13 +186,14 @@
 | DIARY-DEV-portal-identity-provisioning       | Identity Platform provisioning                        | dev-portal-activation.md           | 0e3eb2b5 |
 | DIARY-DEV-portal-login-identity-verification | Login identity verification                           | dev-portal-login.md                | 4b3d6032 |
 | DIARY-DEV-portal-login-second-factor         | Login second factor                                   | dev-portal-login.md                | 9c1195e5 |
-| DIARY-DEV-portal-reaction-server             | Portal Reaction Server Shell                          | dev-portal-service.md              | d305e3c1 |
+| DIARY-DEV-portal-reaction-server             | Portal Reaction Server Shell                          | dev-portal-service.md              | 8e038146 |
 | DIARY-DEV-portal-reset-code-lifecycle        | Password reset code lifecycle                         | dev-portal-password-reset.md       | 8bc6a227 |
 | DIARY-DEV-portal-reset-password-update       | Password reset credential update                      | dev-portal-password-reset.md       | 4972e2a5 |
 | DIARY-DEV-portal-reset-session-termination   | Password reset session termination                    | dev-portal-password-reset.md       | 7805b6aa |
 | DIARY-DEV-portal-second-factor-toggle        | Conditional second factor                             | dev-portal-login.md                | d4b853aa |
 | DIARY-DEV-portal-seed-config                 | Config-driven user-role seed                          | dev-portal-service.md              | 89ccad9f |
-| DIARY-DEV-portal-session-lifecycle           | Portal session lifecycle                              | dev-portal-login.md                | 32f18e2d |
+| DIARY-DEV-portal-session-config              | Portal session configuration sourcing                 | dev-portal-login.md                | e0054d77 |
+| DIARY-DEV-portal-session-lifecycle           | Portal session lifecycle                              | dev-portal-login.md                | a7e8ed40 |
 | DIARY-DEV-portal-session-token               | Portal session token                                  | dev-portal-login.md                | 37177d93 |
 | DIARY-DEV-portal-settings-store              | Event-sourced portal configuration                    | dev-portal-settings.md             | 3ae46122 |
 | DIARY-DEV-portal-test-account-provisioning   | Dev/test seed-account self-provisioning               | dev-portal-settings.md             | 05b08471 |
@@ -191,5 +205,8 @@
 | DIARY-DEV-runtime-environment-resolution     | Runtime Environment Resolution                        | dev-environment-resolution.md      | b0c74776 |
 | DIARY-DEV-schema-version-check               | Runtime Schema Version Check                          | dev-schema-version-check.md        | 260cb67b |
 | DIARY-DEV-shared-events-catalog              | Shared Cross-Wire Event Catalog                       | dev-shared-events-catalog.md       | 29c6b0c8 |
+| DIARY-DEV-sponsor-branding-assets            | Durable on-device branding assets                     | dev-sponsor-branding.md            | 5689e3e7 |
+| DIARY-DEV-sponsor-branding-source            | Event-sourced sponsor branding source                 | dev-sponsor-branding.md            | f3651a26 |
+| DIARY-DEV-sponsor-config-source              | Sponsor Configuration Parameter Source                | dev-portal-settings.md             | 336be2a6 |
 | DIARY-DEV-state-in-event-log                 | Qualifying App State Lives in the Event Log           | dev-mobile-event-sourcing.md       | d6fb9049 |
 | DIARY-DEV-user-account-projection            | User account projection                               | dev-portal-service.md              | ae8627b4 |

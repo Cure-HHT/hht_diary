@@ -4,7 +4,7 @@
 # This toolkit lives in the CORE repo (hht_diary). The core path is the
 # toolkit's own checkout, resolved by `git rev-parse --show-toplevel` — it
 # needs no config. What this file (optionally) configures is the *sponsor*
-# repo (e.g. hht_diary_callisto), which supplies the per-sponsor build inputs:
+# repo (e.g. hht_diary_<sponsor>), which supplies the per-sponsor build inputs:
 # deployment/base-config.json, the sponsor portal-final.Dockerfile, content/,
 # and the portal seed-users file.
 #
@@ -40,9 +40,9 @@
 # (<core>/deployment/local-stack). The canonical sibling layout is:
 #
 #     <parent>/hht_diary             (core — this toolkit's home)
-#     <parent>/hht_diary_callisto    (sponsor)
+#     <parent>/hht_diary_<sponsor>    (sponsor)
 #
-# so `path = "../../../hht_diary_callisto"` works from a normal clone but NOT
+# so `path = "../../../hht_diary_<sponsor>"` works from a normal clone but NOT
 # from a git worktree (one level deeper) — use an absolute path there. The
 # override is deep-merged on top of this file by the resolver, which surfaces
 # the same hint if its path check fails, so first-run errors are

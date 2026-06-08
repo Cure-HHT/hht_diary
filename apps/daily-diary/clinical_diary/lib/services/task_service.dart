@@ -33,6 +33,18 @@ class TaskService extends ChangeNotifier {
   final http.Client _httpClient;
   final List<Task> _tasks = [];
 
+  /// Trigger for an authoritative `/user/tasks` sync.
+  ///
+  /// A `questionnaire_assigned` FCM message (CUR-1436) is a minimal NUDGE
+  /// carrying only `{type, flowToken}` — it does not contain task data. The
+  /// authoritative task list comes from `GET /api/v1/user/tasks`. Because
+  /// [handleFcmMessage] is synchronous and [syncTasks] needs an
+  /// [EnrollmentService], the composition root (`main.dart`) injects this
+  /// callback so the nudge can fire a sync without TaskService holding the
+  /// enrollment dependency. `null` (e.g. in tests with no wiring) means the
+  /// nudge is a no-op.
+  Future<void> Function()? onSyncRequested;
+
   /// Current list of active tasks, sorted by priority (REQ-CAL-p00081-C)
   List<Task> get tasks => List.unmodifiable(
     _tasks..sort((a, b) => a.priority.compareTo(b.priority)),
@@ -71,11 +83,19 @@ class TaskService extends ChangeNotifier {
   /// Handle an FCM data message.
   ///
   /// Routes the message to the appropriate handler based on the 'type' field.
+  ///
+  /// Implements: DIARY-PRD-notification-portal-sent-questionnaire/A
   void handleFcmMessage(Map<String, dynamic> data) {
     final type = data['type'] as String?;
     debugPrint('[TaskService] Handling FCM message type: $type');
 
     switch (type) {
+      case 'questionnaire_assigned':
+        // CUR-1436 NUDGE: the portal FCM data message carries only
+        // {type, flowToken}, not task data. Trigger an authoritative
+        // `/user/tasks` sync to discover the newly-assigned questionnaire
+        // task. The nudge itself never constructs a task.
+        unawaited(onSyncRequested?.call());
       case 'questionnaire_sent':
         _handleQuestionnaireSent(data);
       case 'questionnaire_deleted':

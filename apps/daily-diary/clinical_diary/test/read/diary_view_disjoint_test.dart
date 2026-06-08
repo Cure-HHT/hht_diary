@@ -15,6 +15,7 @@ DiaryEntryRow _epi(String id, String startIso) => DiaryEntryRow(
     'startTime': startIso,
     'startTimeZone': 'UTC',
     'startTimeUtcOffset': '+00:00',
+    'participantId': 'P-test',
   },
 );
 

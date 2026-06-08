@@ -124,6 +124,33 @@ See: ![*Disconnection Notification*](./images/image-28.png)
 
 *End* *Disconnection Notification* | **Hash**: ac967ad3
 
+## DIARY-BASE-not-participating-notice: Not-Participating Notice
+
+**Level**: BASE | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-participant-mark-not-participating
+
+### Overview
+
+When a *Participant* is marked **Not Participating**, the *Mobile Application* surfaces a gentle, informational on-screen notice so the *Participant* understands their participation has ended — distinct from the alarming, *Action*-demanding **Disconnection Notification**. This gives the parent's "stop applying *Sponsor*-specific rules" transition a visible, *Sponsor*-configurable explanation rather than a silent change.
+
+
+Not-Participating Notice
+: An informational notice displayed on the **Main Screen** when the *Participant*'s status is **Not Participating**.
+
+### Assertions
+
+A. When the *Participant*'s status is **Not Participating**, the *Mobile Application* SHALL display a **Not-Participating Notice** on the **Main Screen**, visually distinct from the **Disconnection Notification**.
+
+B. The System SHALL support *Sponsor*-configurable message content for the **Not-Participating Notice**, and SHALL display a localized default message when no *Sponsor* content is configured.
+
+C. The **Not-Participating Notice** SHALL update automatically when the *Participant*'s status changes.
+
+### Rationale
+
+The parent PRD stops applying *Sponsor*-specific rules on not-participating but does not tell the *Participant* it happened; absent any notice, *Sponsor* branding and synchronization simply stop, which surprises the *Participant*. A gentle, non-alarming notice — contrast the persistent, *Action*-demanding **Disconnection Notification** — communicates the expected end-of-participation state and explains why branding reverted. The message reuses the existing *Sponsor*-settings channel (`DIARY-BASE-sponsor-requested-settings` / `DIARY-DEV-sponsor-config-source`) so each deployment can word the end-of-*Trial* communication appropriately, with a localized default otherwise. Automatic update is the standard freshness guarantee so the notice appears as soon as the device observes the state change.
+
+*End* *Not-Participating Notice* | **Hash**: fb82706f
+
 ## DIARY-GUI-participation-status-badge: Participation Status Badge
 
 **Level**: GUI | **Status**: Draft | **Implements**: -

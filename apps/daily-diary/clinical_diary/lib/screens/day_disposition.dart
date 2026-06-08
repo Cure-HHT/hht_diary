@@ -8,6 +8,7 @@
 import 'dart:async';
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/scope/diary_participant_id.dart';
 import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
@@ -39,7 +40,10 @@ Future<bool> _submitDayMarker(
   final result = await ReActionScope.of(context).actionSubmitter.submit(
     ActionSubmission(
       actionName: actionName,
-      rawInput: <String, Object?>{'date': localDate},
+      rawInput: <String, Object?>{
+        'date': localDate,
+        'participantId': diaryParticipantId(context),
+      },
     ),
   );
   return result is DispatchSuccess<Object?> ||

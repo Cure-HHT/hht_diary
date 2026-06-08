@@ -16,6 +16,7 @@ void main() {
       'startTime': '2025-10-15T14:30:00.000-05:00',
       'startTimeZone': 'America/New_York',
       'startTimeUtcOffset': '-05:00',
+      'participantId': 'P-test',
     });
     expect(input.aggregateId, isNull);
   });
@@ -28,6 +29,7 @@ void main() {
         'startTime': '2025-10-15T14:30:00.000-05:00',
         'startTimeZone': 'America/New_York',
         'startTimeUtcOffset': '-05:00',
+        'participantId': 'P-test',
       });
       expect(input.aggregateId, 'draft-1');
     },
@@ -40,6 +42,7 @@ void main() {
         'startTime': '2025-10-15T14:30:00.000-05:00',
         'startTimeZone': 'UTC',
         'startTimeUtcOffset': '+00:00',
+        'participantId': 'P-test',
       }),
       throwsA(isA<FormatException>()),
     );
@@ -50,6 +53,7 @@ void main() {
       'startTime': '2025-10-15T14:30:00.000-05:00',
       'startTimeZone': 'America/New_York',
       'startTimeUtcOffset': '-05:00',
+      'participantId': 'P-test',
     });
     expect(() => action.validate(input), returnsNormally);
   });
@@ -59,6 +63,7 @@ void main() {
       'startTime': 'not-a-timestamp',
       'startTimeZone': 'UTC',
       'startTimeUtcOffset': '+00:00',
+      'participantId': 'P-test',
     });
     expect(() => action.validate(input), throwsA(isA<ArgumentError>()));
   });
@@ -68,6 +73,7 @@ void main() {
       'startTime': '2025-10-15T14:30:00.000Z',
       'startTimeZone': 'UTC',
       'startTimeUtcOffset': '+00:00',
+      'participantId': 'P-test',
       'endTime': '2025-10-15T14:00:00.000Z',
       'endTimeZone': 'UTC',
       'endTimeUtcOffset': '+00:00',
@@ -83,6 +89,7 @@ void main() {
       'startTime': '2025-10-15T14:30:00.000Z',
       'startTimeZone': 'UTC',
       'startTimeUtcOffset': '+00:00',
+      'participantId': 'P-test',
       'endTime': '2025-10-15T14:30:00.000Z',
       'endTimeZone': 'UTC',
       'endTimeUtcOffset': '+00:00',
@@ -98,6 +105,7 @@ void main() {
         'startTimeZone': 'America/New_York',
         'startTimeUtcOffset': '-05:00',
         'intensity': 'dripping',
+        'participantId': 'P-test',
       });
       action.validate(input);
       final result = await action.execute(input, ctx());
@@ -119,6 +127,7 @@ void main() {
         'startTime': '2025-10-15T14:30:00.000-05:00',
         'startTimeZone': 'America/New_York',
         'startTimeUtcOffset': '-05:00',
+        'participantId': 'P-test',
       });
       action.validate(input);
       final result = await action.execute(input, ctx());
@@ -135,6 +144,7 @@ void main() {
       'startTimeZone': 'UTC',
       'startTimeUtcOffset': '+00:00',
       'checkpointReason': 'auto-saved on exit',
+      'participantId': 'P-test',
     });
     action.validate(input);
     final result = await action.execute(input, ctx());

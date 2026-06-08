@@ -3,9 +3,9 @@
 //   REQ-CAL-p00076: Participation Status Badge
 //   REQ-p00045: Clinical Trial Privacy Policy
 
-import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
+import 'package:clinical_diary/widgets/branding_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -15,11 +15,8 @@ class ProfileScreen extends StatefulWidget {
     required this.onBack,
     required this.onStartClinicalTrialEnrollment,
     required this.onShowSettings,
-    required this.onShareWithCureHHT,
-    required this.onStopSharingWithCureHHT,
     required this.isEnrolledInTrial,
     required this.enrollmentStatus,
-    required this.isSharingWithCureHHT,
     required this.userName,
     required this.onUpdateUserName,
     this.isDisconnected = false,
@@ -29,15 +26,13 @@ class ProfileScreen extends StatefulWidget {
     this.enrollmentEndDateTime,
     this.siteName,
     this.sitePhoneNumber,
-    this.sponsorLogo,
+    this.sponsorLogoBuilder,
     super.key,
   });
 
   final VoidCallback onBack;
   final VoidCallback onStartClinicalTrialEnrollment;
   final VoidCallback onShowSettings;
-  final VoidCallback onShareWithCureHHT;
-  final VoidCallback onStopSharingWithCureHHT;
   final bool isEnrolledInTrial;
   final bool isDisconnected;
   // CUR-1165: True when sponsor portal has marked participant as not participating
@@ -46,12 +41,18 @@ class ProfileScreen extends StatefulWidget {
   final DateTime? enrollmentDateTime;
   final DateTime? enrollmentEndDateTime;
   final String enrollmentStatus; // linking status: 'active', 'ended', or 'none'
-  final bool isSharingWithCureHHT;
   final String userName;
   final ValueChanged<String> onUpdateUserName;
   final String? siteName;
   final String? sitePhoneNumber;
-  final String? sponsorLogo;
+
+  /// Builds the cache-backed *Sponsor* logo for the **Participation Status
+  /// Badge** (content-addressed, JWT-gated fetch-once). Null when no sponsor
+  /// logo is configured. The badge retains the logo across the Not-Participating
+  /// transition because the cache is kept after participation ends.
+  // Implements: DIARY-GUI-participation-status-badge/H
+  // Implements: DIARY-DEV-sponsor-branding-assets/D
+  final BrandingLogoBuilder? sponsorLogoBuilder;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -114,22 +115,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String _getPrivacyText() {
-    final isSharingWithCureHHT = widget.isSharingWithCureHHT;
     final isEnrolledInTrial = widget.isEnrolledInTrial;
     final enrollmentStatus = widget.enrollmentStatus;
     final enrollmentEndDateTime = widget.enrollmentEndDateTime;
 
-    // CUR-1116: sharing is only "active" when both the feature is enabled and
-    // the user has opted in — mirrors the UI gate in build().
-    final isEffectivelySharing =
-        FeatureFlagService.instance.showShareWithCureHHT &&
-        isSharingWithCureHHT;
-
     var text = 'Your health data is stored locally on your device.';
-
-    if (isEffectivelySharing) {
-      text += ' Anonymized data is shared with CureHHT for research purposes.';
-    }
 
     if (isEnrolledInTrial && enrollmentStatus == 'active') {
       text +=
@@ -144,7 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ' Clinical trial participation ended on $endDateStr. Previously shared data remains with researchers indefinitely for scientific analysis.';
     }
 
-    if (!isEffectivelySharing && !isEnrolledInTrial) {
+    if (!isEnrolledInTrial) {
       text +=
           ' No data is shared with external parties unless you choose to participate in research or clinical trials.';
     }
@@ -281,24 +271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 24),
                       ],
 
-                      // 4. Data Sharing Section
-                      // CUR-1116: Hidden behind FeatureFlagService.showShareWithCureHHT flag.
-                      if (FeatureFlagService.instance.showShareWithCureHHT) ...[
-                        if (widget.isSharingWithCureHHT)
-                          _buildSharingCard(theme)
-                        else
-                          OutlinedButton.icon(
-                            onPressed: widget.onShareWithCureHHT,
-                            icon: const Icon(Icons.share, size: 20),
-                            label: Text(l10n.shareWithCureHHT),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 48),
-                            ),
-                          ),
-                      ],
-                      const SizedBox(height: 24),
-
-                      // 5. Privacy & Data Protection Card
+                      // 4. Privacy & Data Protection Card
                       _buildPrivacyCard(theme),
                       const SizedBox(height: 24),
                       if (widget.isEnrolledInTrial ||
@@ -403,14 +376,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (isNotParticipating) ...[
-                  // CUR-1165: Not-participating clean layout matching design
-                  if (widget.sponsorLogo != null)
+                  // CUR-1165: Not-participating clean layout matching design.
+                  // Implements: DIARY-GUI-participation-status-badge/H — the
+                  //   sponsor logo is shown on the badge in the Not-Participating
+                  //   state, rendered from the retained content-addressed cache.
+                  if (widget.sponsorLogoBuilder != null)
                     Center(
-                      child: Image.network(
-                        widget.sponsorLogo!,
+                      child: widget.sponsorLogoBuilder!(
+                        width: 120,
                         height: 60,
-                        errorBuilder: (context, _, _) =>
-                            const SizedBox(height: 60),
+                        fallback: const SizedBox(height: 60),
                       ),
                     )
                   else
@@ -479,21 +454,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ] else ...[
-                  // Active / disconnected states: existing layout
-                  if (widget.sponsorLogo != null)
-                    Image.network(
-                      widget.sponsorLogo!,
-                      height: 40,
+                  // Active / disconnected states: existing layout.
+                  // Implements: DIARY-DEV-sponsor-branding-assets/D — the badge
+                  //   logo renders from the content-addressed cache, not a URL.
+                  if (widget.sponsorLogoBuilder != null)
+                    widget.sponsorLogoBuilder!(
                       width: 120,
-                      errorBuilder: (context, _, _) {
-                        return const SizedBox(
-                          height: 40,
-                          width: 120,
-                          child: Center(
-                            child: Icon(Icons.broken_image_outlined, size: 32),
-                          ),
-                        );
-                      },
+                      height: 40,
+                      fallback: const SizedBox(
+                        height: 40,
+                        width: 120,
+                        child: Center(
+                          child: Icon(Icons.broken_image_outlined, size: 32),
+                        ),
+                      ),
                     )
                   else
                     const SizedBox(),
@@ -715,57 +689,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildSharingCard(ThemeData theme) {
-    return Card(
-      color: Colors.blue.shade50,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.blue.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.blue.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.check, size: 16, color: Colors.blue.shade700),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Sharing with CureHHT',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: Colors.blue.shade900,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: widget.onStopSharingWithCureHHT,
-                    icon: const Icon(Icons.share, size: 20),
-                    label: const Text('Stop Sharing with CureHHT'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 40),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

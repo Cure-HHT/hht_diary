@@ -79,12 +79,17 @@ Future<DiaryScopeRuntime> _bootDevice(
     deviceId: 'DEV-1',
     softwareVersion: 'clinical_diary@0.0.0-test',
     localUserId: 'P-test',
-    outboundDestination: DiaryServerDestination(
-      client: client,
-      resolveIngestUrl: () async =>
-          Uri.parse('https://diary.example.com/ingest'),
-      authToken: () async => 'jwt-token',
-    ),
+    outboundDestinations: [
+      DiaryServerDestination(
+        client: client,
+        resolveIngestUrl: () async =>
+            Uri.parse('https://diary.example.com/ingest'),
+        authToken: () async => 'jwt-token',
+        // This suite verifies materialization round-trip, not batching latency:
+        // drain a lone entry in one cycle instead of holding it kDiaryBatchWindow.
+        maxAccumulateTime: Duration.zero,
+      ),
+    ],
   );
 
   // Watermark: activate the destination. Past date -> historical replay picks
@@ -115,7 +120,7 @@ void main() {
         await rt.scope.actionSubmitter.submit(
           const ActionSubmission(
             actionName: 'record_no_epistaxis_day',
-            rawInput: {'date': '2025-10-15'},
+            rawInput: {'date': '2025-10-15', 'participantId': 'P-test'},
           ),
         ),
         isA<DispatchSuccess<Object?>>(),
@@ -130,6 +135,7 @@ void main() {
             'startTimeZone': 'America/New_York',
             'startTimeUtcOffset': '-05:00',
             'intensity': 'mild',
+            'participantId': 'P-test',
           },
         ),
       );
@@ -192,11 +198,15 @@ void main() {
         deviceId: 'DEV-1',
         softwareVersion: 'clinical_diary@0.0.0-test',
         localUserId: 'P-test',
-        outboundDestination: DiaryServerDestination(
-          client: client,
-          resolveIngestUrl: () async => Uri.parse('https://x/ingest'),
-          authToken: () async => 'jwt',
-        ),
+        outboundDestinations: [
+          DiaryServerDestination(
+            client: client,
+            resolveIngestUrl: () async => Uri.parse('https://x/ingest'),
+            authToken: () async => 'jwt',
+            // Round-trip suite: drain lone entries immediately (not batching).
+            maxAccumulateTime: Duration.zero,
+          ),
+        ],
       );
       await rt.bundle.destinations.setStartDate(
         DiaryServerDestination.destinationId,
@@ -208,7 +218,7 @@ void main() {
         await rt.scope.actionSubmitter.submit(
           const ActionSubmission(
             actionName: 'record_no_epistaxis_day',
-            rawInput: {'date': '2025-10-20'},
+            rawInput: {'date': '2025-10-20', 'participantId': 'P-test'},
           ),
         ),
         isA<DispatchSuccess<Object?>>(),
