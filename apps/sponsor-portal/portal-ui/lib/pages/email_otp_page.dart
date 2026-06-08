@@ -219,6 +219,7 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
                 if (value.length == 6) _verifyCode();
               },
               validator: _validateCode,
+              semanticId: 'email-otp.code',
             ),
             const SizedBox(height: 8),
             Align(
@@ -228,11 +229,16 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
                 label: resendLabel,
                 loading: _isSendingCode,
                 onPressed: canResend ? _sendOtpCode : null,
+                semanticId: 'email-otp.resend',
               ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 16),
-              AppBanner(severity: AppBannerSeverity.error, message: _error!),
+              AppBanner(
+                severity: AppBannerSeverity.error,
+                message: _error!,
+                semanticId: 'email-otp.error-banner',
+              ),
             ],
             const SizedBox(height: 24),
             AppButton(
@@ -240,6 +246,7 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
               fullWidth: true,
               loading: _isLoading,
               onPressed: _verifyCode,
+              semanticId: 'email-otp.submit',
             ),
             const SizedBox(height: 12),
             Center(
@@ -247,6 +254,7 @@ class _EmailOtpPageState extends State<EmailOtpPage> {
                 variant: AppButtonVariant.tertiary,
                 label: 'Back to Login',
                 onPressed: _isLoading ? null : _backToLogin,
+                semanticId: 'email-otp.back',
               ),
             ),
           ],

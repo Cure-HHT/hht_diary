@@ -88,12 +88,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               textInputAction: TextInputAction.done,
               enabled: !_isLoading,
               validator: Validators.email,
+              semanticId: 'forgot-password.email',
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
               AppBanner(
                 severity: AppBannerSeverity.error,
                 message: _errorMessage!,
+                semanticId: 'forgot-password.error-banner',
               ),
             ],
             const SizedBox(height: 24),
@@ -102,6 +104,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               fullWidth: true,
               loading: _isLoading,
               onPressed: _handleSubmit,
+              semanticId: 'forgot-password.submit',
             ),
             const SizedBox(height: 12),
             Center(
@@ -109,6 +112,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 variant: AppButtonVariant.tertiary,
                 label: 'Back to Login',
                 onPressed: _isLoading ? null : () => context.go('/login'),
+                semanticId: 'forgot-password.back',
               ),
             ),
           ],
@@ -136,6 +140,7 @@ class _CheckEmailScaffold extends StatelessWidget {
             label: 'Back to Login',
             fullWidth: true,
             onPressed: () => context.go('/login'),
+            semanticId: 'forgot-password.back-after-send',
           ),
         ],
       ),

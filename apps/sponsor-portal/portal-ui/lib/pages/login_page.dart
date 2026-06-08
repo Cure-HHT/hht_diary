@@ -116,6 +116,7 @@ class _LoginPageState extends State<LoginPage> {
               textInputAction: TextInputAction.next,
               enabled: !_isSubmitting,
               validator: Validators.email,
+              semanticId: 'login.email',
             ),
             const SizedBox(height: 16),
 
@@ -132,6 +133,7 @@ class _LoginPageState extends State<LoginPage> {
               onSuffixTap: () =>
                   setState(() => _obscurePassword = !_obscurePassword),
               validator: Validators.password,
+              semanticId: 'login.password',
             ),
 
             // Session timeout + error states.
@@ -140,13 +142,24 @@ class _LoginPageState extends State<LoginPage> {
               const AppBanner(
                 severity: AppBannerSeverity.warning,
                 message: 'Your session has expired due to inactivity.',
+                semanticId: 'login.session-timeout-banner',
               ),
             ],
             if (authService.error != null) ...[
               const SizedBox(height: 16),
-              ErrorMessage(
-                message: authService.error!,
-                supportEmail: const String.fromEnvironment('SUPPORT_EMAIL'),
+              // ErrorMessage isn't a design-system widget yet, so wrap it
+              // inline to expose the same flt-semantics-identifier contract
+              // the test harness queries.
+              Semantics(
+                identifier: 'login.error-banner',
+                value: authService.error!,
+                liveRegion: true,
+                container: true,
+                explicitChildNodes: true,
+                child: ErrorMessage(
+                  message: authService.error!,
+                  supportEmail: const String.fromEnvironment('SUPPORT_EMAIL'),
+                ),
               ),
             ],
 
@@ -156,6 +169,7 @@ class _LoginPageState extends State<LoginPage> {
               fullWidth: true,
               loading: _isSubmitting,
               onPressed: _handleLogin,
+              semanticId: 'login.submit',
             ),
             const SizedBox(height: 12),
             Center(
@@ -165,6 +179,7 @@ class _LoginPageState extends State<LoginPage> {
                 onPressed: _isSubmitting
                     ? null
                     : () => context.go('/forgot-password'),
+                semanticId: 'login.forgot-link',
               ),
             ),
           ],

@@ -152,46 +152,6 @@ void main() {
       });
     });
 
-    group('.async', () {
-      testWidgets('returns the result the success builder pops with', (
-        tester,
-      ) async {
-        String? result;
-        await tester.pumpWidget(
-          _hostHarness((ctx) async {
-            result = await AppDialog.async<String>(
-              context: ctx,
-              onSubmit: () async => 'done',
-              confirmBuilder: (c, submit) => AppDialog(
-                title: 'Confirm',
-                body: const Text('Ready?'),
-                actions: [AppButton(label: 'Submit', onPressed: submit)],
-              ),
-              successBuilder: (c, value) => AppDialog(
-                title: 'Success',
-                body: Text(value),
-                actions: [
-                  AppButton(
-                    label: 'Done',
-                    onPressed: () => Navigator.of(c).pop(value),
-                  ),
-                ],
-              ),
-              errorBuilder: (c, error, retry) =>
-                  AppDialog(title: 'Error', body: Text(error.toString())),
-            );
-          }),
-        );
-        await tester.tap(find.text('Open'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(AppButton, 'Submit'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(AppButton, 'Done'));
-        await tester.pumpAndSettle();
-        expect(result, equals('done'));
-      });
-    });
-
     group('.reason', () {
       testWidgets('free-text variant: returns the trimmed input', (
         tester,

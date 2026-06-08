@@ -183,6 +183,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               onSuffixTap: () =>
                   setState(() => _obscurePassword = !_obscurePassword),
               validator: Validators.newPassword,
+              semanticId: 'reset-password.new',
             ),
             const SizedBox(height: 16),
             AppTextField(
@@ -202,12 +203,14 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               validator: Validators.confirmPassword(
                 () => _passwordController.text,
               ),
+              semanticId: 'reset-password.confirm',
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
               AppBanner(
                 severity: AppBannerSeverity.error,
                 message: _errorMessage!,
+                semanticId: 'reset-password.error-banner',
               ),
             ],
             const SizedBox(height: 24),
@@ -216,6 +219,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               fullWidth: true,
               loading: _isLoading,
               onPressed: _handleSubmit,
+              semanticId: 'reset-password.submit',
             ),
             const SizedBox(height: 12),
             Center(
@@ -223,6 +227,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 variant: AppButtonVariant.tertiary,
                 label: 'Back to Login',
                 onPressed: _isLoading ? null : () => context.go('/login'),
+                semanticId: 'reset-password.back',
               ),
             ),
           ],
@@ -269,6 +274,7 @@ class _SuccessScaffold extends StatelessWidget {
             label: 'Go to Login Now',
             fullWidth: true,
             onPressed: onGoToLogin,
+            semanticId: 'reset-password.go-to-login',
           ),
         ],
       ),
@@ -292,12 +298,17 @@ class _InvalidLinkScaffold extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          AppBanner(severity: AppBannerSeverity.error, message: message),
+          AppBanner(
+            severity: AppBannerSeverity.error,
+            message: message,
+            semanticId: 'reset-password.invalid-link-banner',
+          ),
           const SizedBox(height: 24),
           AppButton(
             label: 'Request New Reset Link',
             fullWidth: true,
             onPressed: () => context.go('/forgot-password'),
+            semanticId: 'reset-password.request-new-link',
           ),
           const SizedBox(height: 12),
           Center(
@@ -305,6 +316,7 @@ class _InvalidLinkScaffold extends StatelessWidget {
               variant: AppButtonVariant.tertiary,
               label: 'Back to Login',
               onPressed: () => context.go('/login'),
+              semanticId: 'reset-password.back',
             ),
           ),
         ],

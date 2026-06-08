@@ -146,5 +146,40 @@ void main() {
 
       expect(find.text('Check your email'), findsOneWidget);
     });
+
+    testWidgets('CUR-1307 Playwright contract: exposes forgot-password.* '
+        'semantic identifiers on its primitives', (tester) async {
+      fakeAuthService.setSuccess(
+        false,
+        error: 'Failed to send password reset email',
+      );
+
+      await tester.pumpWidget(
+        createTestWidget(fakeAuthService, const ForgotPasswordPage()),
+      );
+
+      // Idle state: email field + submit + back link are present.
+      expect(
+        find.bySemanticsIdentifier('forgot-password.email'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsIdentifier('forgot-password.submit'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsIdentifier('forgot-password.back'),
+        findsOneWidget,
+      );
+
+      // Trigger the error path so the banner is mounted.
+      await tester.enterText(find.byType(TextFormField), 'test@example.com');
+      await tester.tap(find.text('Submit'));
+      await tester.pumpAndSettle();
+      expect(
+        find.bySemanticsIdentifier('forgot-password.error-banner'),
+        findsOneWidget,
+      );
+    });
   });
 }
