@@ -45,8 +45,8 @@ class DiaryView {
   List<DiaryEntryRow> get finalizedRows => List.unmodifiable(_finalized);
 
   /// Finalized entries as view-models, newest-first (by localDate desc, stable).
-  /// Null-localDate entries (e.g. surveys with no date) sort to the front
-  /// (empty string precedes any `yyyy-MM-dd`).
+  /// Any null-localDate entry sorts to the front (empty string precedes any
+  /// `yyyy-MM-dd`).
   List<DiaryEntryView> get entries {
     final rows = [..._finalized]
       ..sort((a, b) => (b.localDate ?? '').compareTo(a.localDate ?? ''));
@@ -87,16 +87,21 @@ class DiaryView {
     incompleteDates: incompleteDates,
   );
 
-  /// The day-marker view-model for [localDate] iff that day's finalized entries
-  /// are exactly ONE [DayMarkerView] and no [EpistaxisEntryView] — i.e. the day
-  /// holds a lone summary marker that a newly-recorded nosebleed should replace
-  /// (convert). Returns null when the day is empty, holds a nosebleed, or has
-  /// more than one entry. Pure; drives the convert-on-add tombstone target.
+  /// The day-marker view-model for [localDate] iff that day's finalized CLINICAL
+  /// entries are exactly ONE [DayMarkerView] and no [EpistaxisEntryView] — i.e.
+  /// the day holds a lone summary marker that a newly-recorded nosebleed should
+  /// replace (convert). Non-clinical entries (e.g. [SurveyEntryView]) are
+  /// irrelevant to marker-replacement and are ignored, so a day carrying a lone
+  /// marker plus a completed survey still yields the marker. Returns null when
+  /// the day has no clinical entry, holds a nosebleed, or holds more than one
+  /// clinical entry. Pure; drives the convert-on-add tombstone target.
   // Implements: DIARY-PRD-day-disposition/A+C
   DiaryEntryView? soleMarkerOn(String localDate) {
-    final onDay = entriesOn(localDate);
-    if (onDay.length != 1) return null;
-    final only = onDay.single;
+    final clinical = entriesOn(
+      localDate,
+    ).where((v) => v is DayMarkerView || v is EpistaxisEntryView).toList();
+    if (clinical.length != 1) return null;
+    final only = clinical.single;
     return only is DayMarkerView ? only : null;
   }
 

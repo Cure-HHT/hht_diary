@@ -23,6 +23,19 @@ DiaryEntryRow _marker(String id, String date, String type) => DiaryEntryRow(
   entryType: type,
   data: {'date': date, 'participantId': 'P-test'},
 );
+DiaryEntryRow _survey(String id, String completedAt) => DiaryEntryRow(
+  aggregateId: id,
+  entryType: 'nose_hht_survey',
+  data: QuestionnaireSubmissionPayload(
+    instanceId: 'inst-$id',
+    questionnaireType: 'nose_hht',
+    schemaVersion: 's1',
+    contentVersion: 'c1',
+    guiVersion: 'g1',
+    completedAt: completedAt,
+    responses: const {'q1': QuestionResponse(value: 0, displayLabel: 'None')},
+  ).toJson(),
+);
 
 void main() {
   test(
@@ -78,6 +91,23 @@ void main() {
       final view = DiaryView(
         finalized: [
           _marker('P:2025-10-14', '2025-10-14', 'no_epistaxis_event'),
+        ],
+        incomplete: const [],
+      );
+      final m = view.soleMarkerOn('2025-10-14');
+      expect(m, isA<DayMarkerView>());
+      expect(m!.aggregateId, 'P:2025-10-14');
+      expect(m.entryType, 'no_epistaxis_event');
+    });
+
+    test('marker + completed survey → returns the marker (survey ignored)', () {
+      // A dated `<id>_survey` shares the day with a lone day-marker. Surveys are
+      // non-clinical and irrelevant to marker-replacement, so soleMarkerOn must
+      // still yield the marker (the convert-on-add tombstone target).
+      final view = DiaryView(
+        finalized: [
+          _marker('P:2025-10-14', '2025-10-14', 'no_epistaxis_event'),
+          _survey('s1', '2025-10-14T11:00:00.000Z'),
         ],
         incomplete: const [],
       );

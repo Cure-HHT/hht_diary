@@ -35,7 +35,8 @@ class DiaryEntryRow {
   final Map<String, Object?> data;
 
   /// The canonical local calendar date (`yyyy-MM-dd`) this entry falls on, or
-  /// null if it carries no date (e.g. a `<id>_survey`).
+  /// null if it carries no date. A `<id>_survey` derives its date from
+  /// `completed_at`, so finalized surveys are dated.
   String? get localDate => canonicalEntryDate(entryType, data);
 
   // The view row merges the payload; entryType is carried on the event but the
