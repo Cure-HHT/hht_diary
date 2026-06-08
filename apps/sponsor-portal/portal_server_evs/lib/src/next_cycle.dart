@@ -1,5 +1,6 @@
 // Implements: DIARY-BASE-questionnaire-cycle-tracking/A+B+C+D
 // Implements: DIARY-BASE-questionnaire-coordinator-workflow/A
+// Implements: DIARY-BASE-questionnaire-finalization/E
 
 // Pure next-cycle computation for the questionnaire send-orchestration
 // endpoint.
@@ -103,6 +104,19 @@ NextCycleResult computeNextCycle({
     );
   }
 
+  // DIARY-BASE-questionnaire-finalization/E: a terminal close (End of Treatment
+  // / End of Study) permanently blocks further sends of this type for this
+  // participant. This applies regardless of cycle tracking, and takes
+  // precedence over the single-use quota and the cycle auto-increment below.
+  // Implements: DIARY-BASE-questionnaire-finalization/E
+  final terminallyClosed = finalized.any((r) => r['end_event'] != null);
+  if (terminallyClosed) {
+    return const NextCycleBlocked(
+      'This questionnaire type has been permanently closed '
+      '(End of Treatment / End of Study) for this participant.',
+    );
+  }
+
   // DIARY-BASE-questionnaire-cycle-tracking/I+single-use:
   // When cycle tracking is disabled, the type is single-use.
   if (!cycleTrackingEnabled) {
@@ -113,8 +127,10 @@ NextCycleResult computeNextCycle({
   }
 
   // Determine the highest finalized Cycle N from the existing rows.
-  // Terminal cycles (End of Treatment / End of Study) have no parseable N and
-  // are therefore ignored here — terminal blocking is a Phase 4 concern.
+  // Terminal cycles (End of Treatment / End of Study) carry a non-null
+  // `end_event` and are handled by the terminal-close guard above (which has
+  // already returned NextCycleBlocked), so any remaining finalized rows here
+  // are non-terminal cycle finalizes whose study_event parses to a Cycle N.
   int maxCycle = 0;
   for (final r in finalized) {
     final n = parseCycleNumber(r['study_event'] as String?);

@@ -56,6 +56,21 @@ void main() {
       expect(qi.type, 'phq9');
       expect(qi.studyEvent, 'Cycle 1 Day 1');
       expect(qi.status, QuestionnaireInstanceStatus.sent);
+      expect(qi.endEvent, isNull);
+    });
+
+    test('finalized row with a terminal end_event surfaces endEvent', () {
+      final qi = QuestionnaireInstance.fromRow(<String, Object?>{
+        'aggregateId': 'inst-term',
+        'participant_id': 'P-9',
+        'type': 'nose_hht',
+        'study_event': 'Cycle 3 Day 1',
+        'entryType': 'questionnaire_finalized',
+        'end_event': 'end_of_treatment',
+      });
+
+      expect(qi.status, QuestionnaireInstanceStatus.closed);
+      expect(qi.endEvent, 'end_of_treatment');
     });
 
     test('finalized row -> closed status', () {
@@ -78,6 +93,7 @@ void main() {
       expect(qi.type, '?');
       expect(qi.studyEvent, isNull);
       expect(qi.status, QuestionnaireInstanceStatus.unknown);
+      expect(qi.endEvent, isNull);
     });
 
     test('label is exposed on each status', () {

@@ -11,6 +11,7 @@ QuestionnaireInstance _inst({
   required String instanceId,
   required QuestionnaireInstanceStatus status,
   String? studyEvent,
+  String? endEvent,
   String type = 'nose_hht',
   String participantId = 'P-1',
 }) => QuestionnaireInstance(
@@ -19,6 +20,7 @@ QuestionnaireInstance _inst({
   type: type,
   studyEvent: studyEvent,
   status: status,
+  endEvent: endEvent,
 );
 
 void main() {
@@ -70,6 +72,48 @@ void main() {
         ]);
         expect(s.finalizedStudyEvent, 'Cycle 1 Day 1');
         expect(s.currentInstanceId, isNull);
+      },
+    );
+
+    test(
+      'finalized terminal close (endEvent) -> Closed + no actions + endEvent',
+      () {
+        final s = resolveCardState(<QuestionnaireInstance>[
+          _inst(
+            instanceId: 'inst-1',
+            status: QuestionnaireInstanceStatus.closed,
+            studyEvent: 'Cycle 3 Day 1',
+            endEvent: 'end_of_treatment',
+          ),
+        ]);
+
+        expect(s.status, QuestionnaireInstanceStatus.closed);
+        expect(s.actions, isEmpty);
+        expect(s.endEvent, 'end_of_treatment');
+        expect(s.finalizedStudyEvent, 'Cycle 3 Day 1');
+      },
+    );
+
+    test(
+      'a terminal finalize among non-terminal finalizes -> Closed (no Start Next Cycle)',
+      () {
+        final s = resolveCardState(<QuestionnaireInstance>[
+          _inst(
+            instanceId: 'inst-1',
+            status: QuestionnaireInstanceStatus.closed,
+            studyEvent: 'Cycle 1 Day 1',
+          ),
+          _inst(
+            instanceId: 'inst-2',
+            status: QuestionnaireInstanceStatus.closed,
+            studyEvent: 'Cycle 2 Day 1',
+            endEvent: 'end_of_study',
+          ),
+        ]);
+
+        expect(s.status, QuestionnaireInstanceStatus.closed);
+        expect(s.actions, isEmpty);
+        expect(s.endEvent, 'end_of_study');
       },
     );
 

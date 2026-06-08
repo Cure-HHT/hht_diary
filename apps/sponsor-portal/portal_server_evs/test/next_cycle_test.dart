@@ -1,8 +1,12 @@
 import 'package:portal_server_evs/src/next_cycle.dart';
 import 'package:test/test.dart';
 
-Map<String, Object?> row({required String entryType, String? studyEvent}) =>
-    {'entryType': entryType, 'study_event': studyEvent};
+Map<String, Object?> row({
+  required String entryType,
+  String? studyEvent,
+  String? endEvent,
+}) =>
+    {'entryType': entryType, 'study_event': studyEvent, 'end_event': endEvent};
 
 void main() {
   test('no prior, tracking on, initial-selection off -> Cycle 1 Day 1', () {
@@ -56,6 +60,33 @@ void main() {
         requireInitialCycleSelection: false,
         requestedStudyEvent: null);
     expect(r, isA<NextCycleBlocked>());
+  });
+  test('a terminal-close finalized row (end_of_study) -> blocked', () {
+    final r = computeNextCycle(
+        existing: [
+          row(
+              entryType: 'questionnaire_finalized',
+              studyEvent: 'Cycle 2 Day 1',
+              endEvent: 'end_of_study'),
+        ],
+        cycleTrackingEnabled: true,
+        requireInitialCycleSelection: false,
+        requestedStudyEvent: null);
+    expect(r, isA<NextCycleBlocked>());
+  });
+  test('a non-terminal finalized row (end_event null) still auto-increments',
+      () {
+    final r = computeNextCycle(
+        existing: [
+          row(
+              entryType: 'questionnaire_finalized',
+              studyEvent: 'Cycle 1 Day 1',
+              endEvent: null),
+        ],
+        cycleTrackingEnabled: true,
+        requireInitialCycleSelection: false,
+        requestedStudyEvent: null);
+    expect((r as NextCycleAuto).studyEvent, 'Cycle 2 Day 1');
   });
   test('requested study_event duplicating a finalized cycle -> blocked', () {
     final r = computeNextCycle(

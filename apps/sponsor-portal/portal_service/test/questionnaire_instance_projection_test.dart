@@ -110,7 +110,11 @@ void main() {
         aggregateType: 'questionnaire_instance',
         aggregateId: 'QI-FIN',
         eventType: 'questionnaire_finalized',
-        data: const <String, Object?>{'participant_id': 'P-3'},
+        data: const <String, Object?>{
+          'participant_id': 'P-3',
+          'cycle': 'Cycle 1 Day 1',
+          'end_event': null,
+        },
         initiator: const UserInitiator('coordinator-1'),
       );
 
@@ -118,6 +122,55 @@ void main() {
       final row = rows.singleWhere((r) => r['aggregateId'] == 'QI-FIN');
       expect(row['entryType'], 'questionnaire_finalized');
       expect(row['participant_id'], 'P-3');
+      // A non-terminal cycle finalize: end_event folds in absent/null.
+      expect(row['end_event'], isNull);
+    },
+  );
+
+  test(
+    'questionnaire_finalized with a terminal end_event folds end_event onto the row',
+    () async {
+      // Verifies: DIARY-BASE-questionnaire-finalization/E — a terminal close
+      //   (End of Treatment / End of Study) records `end_event` on the instance
+      //   row so the card renders Closed; the key-wise merge carries it forward.
+      final db = await newDatabaseFactoryMemory().openDatabase('qi-term');
+      final backend = SembastBackend(database: db);
+      final store = await openPortalEventStore(backend: backend);
+      addTearDown(store.close);
+
+      await store.append(
+        entryType: 'questionnaire_assigned',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-TERM',
+        eventType: 'questionnaire_assigned',
+        data: const <String, Object?>{
+          'participant_id': 'P-5',
+          'type': 'nose_hht',
+          'study_event': 'Cycle 3 Day 1',
+        },
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      await store.append(
+        entryType: 'questionnaire_finalized',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-TERM',
+        eventType: 'questionnaire_finalized',
+        data: const <String, Object?>{
+          'participant_id': 'P-5',
+          'cycle': 'Cycle 3 Day 1',
+          'end_event': 'end_of_treatment',
+        },
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      final rows = await store.backend.findViewRows('questionnaire_instance');
+      final row = rows.singleWhere((r) => r['aggregateId'] == 'QI-TERM');
+      expect(row['entryType'], 'questionnaire_finalized');
+      expect(row['end_event'], 'end_of_treatment');
+      expect(row['cycle'], 'Cycle 3 Day 1');
+      // The assigned-row fields are preserved through the key-wise merge.
+      expect(row['type'], 'nose_hht');
     },
   );
 

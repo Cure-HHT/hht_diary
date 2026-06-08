@@ -36,6 +36,7 @@ class QuestionnaireCardState {
     this.currentInstanceId,
     this.currentStudyEvent,
     this.finalizedStudyEvent,
+    this.endEvent,
   });
 
   /// Display status driving the matrix row.
@@ -51,6 +52,11 @@ class QuestionnaireCardState {
   /// The most-recent finalized study event (Finalized Cycle), shown in the
   /// after-finalize (Not Sent) and Closed rows.
   final String? finalizedStudyEvent;
+
+  /// The terminal close marker on a Closed card (`'end_of_treatment'` /
+  /// `'end_of_study'`), surfaced so the card can render the combined
+  /// "Closed · End of Treatment/Study" badge. Null for non-terminal rows.
+  final String? endEvent;
 
   /// The exact action buttons to render, in display order.
   final List<QuestionnaireCardAction> actions;
@@ -78,12 +84,14 @@ int? _parseCycleNumber(String? studyEvent) {
 ///    at most one active questionnaire of a type exists
 ///    (DIARY-BASE-questionnaire-coordinator-workflow/A). Sent -> [callBack];
 ///    Ready to Review -> [finalize, callBack].
+///  * Else if a finalized (closed) row with a non-null endEvent (terminal
+///    close: End of Treatment / End of Study) exists -> Closed, no actions,
+///    with the endEvent surfaced for the combined badge
+///    (DIARY-BASE-questionnaire-finalization/E).
 ///  * Else if a finalized (closed) row exists -> Not Sent (after-finalize):
 ///    the type can be re-sent as the next cycle -> [startNextCycle], with the
-///    latest finalized cycle surfaced as [finalizedStudyEvent]. A genuinely
-///    terminal Closed (End of Treatment / End of Study) -> no actions; that
-///    arrives in Phase 4 (the view cannot produce a terminal end_event yet),
-///    so a finalized non-terminal row yields Start Next Cycle for now.
+///    latest finalized cycle surfaced as [finalizedStudyEvent]
+///    (DIARY-BASE-questionnaire-finalization/D).
 ///  * Else (no rows) -> Not Sent (never sent) -> [sendNow].
 QuestionnaireCardState resolveCardState(
   List<QuestionnaireInstance> rowsForType,
@@ -137,6 +145,23 @@ QuestionnaireCardState resolveCardState(
         maxCycle = n;
         latest = r;
       }
+    }
+    // Implements: DIARY-BASE-questionnaire-finalization/D+E — a terminal close
+    //   (any finalized row with a non-null endEvent) -> Closed with no further
+    //   actions and the endEvent surfaced for the combined badge (E); a
+    //   non-terminal finalize -> Not Sent (after-finalize) + Start Next Cycle (D).
+    final terminal = <QuestionnaireInstance>[
+      for (final r in finalized)
+        if (r.endEvent != null) r,
+    ];
+    if (terminal.isNotEmpty) {
+      final t = terminal.first;
+      return QuestionnaireCardState(
+        status: QuestionnaireInstanceStatus.closed,
+        finalizedStudyEvent: t.studyEvent,
+        endEvent: t.endEvent,
+        actions: const <QuestionnaireCardAction>[],
+      );
     }
     return QuestionnaireCardState(
       status: QuestionnaireInstanceStatus.notSent,

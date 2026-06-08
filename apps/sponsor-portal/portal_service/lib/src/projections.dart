@@ -123,6 +123,11 @@ final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
 //   spec-authoritative retract: questionnaire_called_back TOMBSTONES the row so
 //   the coordinator card resets to Not Sent by absence of an active instance.
 //   Call Back is not a separate delete action — it acts directly as a tombstone.
+// Implements: DIARY-BASE-questionnaire-finalization/D+E — the finalize event's
+//   `cycle` and `end_event` data keys fold onto the row via the AggregateProjectionSpec
+//   key-wise merge (no spec change needed). `end_event` distinguishes a terminal
+//   Closed (End of Treatment / End of Study) from an after-finalize (Not Sent /
+//   Start-Next-Cycle) row; the card reads it to render the combined Closed badge.
 final AggregateProjectionSpec questionnaireInstanceSpec =
     AggregateProjectionSpec(
       viewName: 'questionnaire_instance',

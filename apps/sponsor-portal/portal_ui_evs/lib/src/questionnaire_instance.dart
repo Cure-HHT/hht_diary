@@ -62,6 +62,7 @@ class QuestionnaireInstance {
     required this.type,
     required this.studyEvent,
     required this.status,
+    this.endEvent,
   });
 
   /// Instance id == the view row's aggregateId.
@@ -79,6 +80,11 @@ class QuestionnaireInstance {
   /// Display status derived from the latest folded lifecycle entryType.
   final QuestionnaireInstanceStatus status;
 
+  /// The terminal close marker on a finalized instance (`'end_of_treatment'` /
+  /// `'end_of_study'`), or null for a normal cycle finalize / non-finalized
+  /// row. A non-null value means the type is permanently Closed.
+  final String? endEvent;
+
   /// Builds a [QuestionnaireInstance] from a raw view row, defending against
   /// missing/null columns (mirrors the `_P.fromRow` mapper pattern).
   ///
@@ -90,5 +96,6 @@ class QuestionnaireInstance {
         type: (row['type'] as String?) ?? '?',
         studyEvent: row['study_event'] as String?,
         status: statusFromQuestionnaireEntryType(row['entryType'] as String?),
+        endEvent: row['end_event'] as String?,
       );
 }
