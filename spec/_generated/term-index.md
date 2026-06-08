@@ -117,6 +117,8 @@
 - DIARY-GUI-mobile-navigation:section:5
 - DIARY-GUI-calendar-day-view:section:7
 - DIARY-GUI-participant-task-list:section:6
+- DIARY-BASE-not-participating-notice:section:0
+- DIARY-BASE-not-participating-notice:section:1
 - DIARY-GUI-participation-status-badge:section:6
 - DIARY-PRD-notification-portal-sent-questionnaire:section:4
 - DIARY-PRD-notification-historical-gap:section:5
@@ -725,6 +727,7 @@
 - DIARY-GUI-calendar-day-view:section:0
 - DIARY-GUI-calendar-day-view:section:7
 - rem:spec/prd-mobile-notifications.md:3
+- DIARY-BASE-not-participating-notice:section:1
 - DIARY-PRD-notification-incomplete-record-lock:section:0
 - DIARY-PRD-notification-yesterday-entry:section:0
 - DIARY-PRD-notification-yesterday-entry:section:5
@@ -804,8 +807,11 @@
 - DIARY-PRD-notification-disconnection-C
 - DIARY-PRD-notification-disconnection-D
 - DIARY-PRD-notification-disconnection-E
+- DIARY-BASE-not-participating-notice-A
 - DIARY-GUI-main-screen-layout:section:5
 - DIARY-PRD-notification-disconnection:section:2
+- DIARY-BASE-not-participating-notice:section:0
+- DIARY-BASE-not-participating-notice:section:1
 
 ## Duration Reasonableness Check
 
@@ -1259,6 +1265,7 @@
 - DIARY-GUI-mobile-navigation-B
 - DIARY-GUI-calendar-day-view-H
 - DIARY-PRD-notification-disconnection-A
+- DIARY-BASE-not-participating-notice-A
 - DIARY-PRD-notification-behavior-A
 - DIARY-GUI-linking-confirmation:section:1
 - rem:spec/prd-mobile-navigation.md:3
@@ -1291,6 +1298,7 @@
 - DIARY-PRD-user-authentication-pin-F
 - DIARY-PRD-device-health-diagnostics-A
 - DIARY-GUI-service-mode-entry-A
+- DIARY-BASE-not-participating-notice-A
 - DIARY-PRD-notification-portal-sent-questionnaire-A
 - DIARY-PRD-notification-portal-sent-questionnaire-B
 - DIARY-PRD-notification-ongoing-epistaxis-G
@@ -1323,6 +1331,7 @@
 - DIARY-GUI-mobile-navigation:section:0
 - rem:spec/prd-mobile-notifications.md:3
 - DIARY-PRD-notification-disconnection:section:0
+- DIARY-BASE-not-participating-notice:section:0
 - DIARY-PRD-notification-behavior:section:0
 - DIARY-PRD-notification-behavior:section:1
 - DIARY-PRD-linking-code-lifecycle:section:6
@@ -1382,6 +1391,15 @@
 - rem:spec/prd-score-calculation.md:3
 - DIARY-PRD-questionnaire-score-calculation:section:1
 - DIARY-PRD-score-nose-hht:section:0
+
+## Not-Participating Notice
+
+**DIARY:**
+
+- DIARY-BASE-not-participating-notice
+- DIARY-BASE-not-participating-notice-A
+- DIARY-BASE-not-participating-notice-B
+- DIARY-BASE-not-participating-notice-C
 
 ## Offline-First
 
@@ -1560,6 +1578,8 @@
 - DIARY-PRD-notification-disconnection-A
 - DIARY-PRD-notification-disconnection-B
 - DIARY-PRD-notification-disconnection-C
+- DIARY-BASE-not-participating-notice-A
+- DIARY-BASE-not-participating-notice-C
 - DIARY-GUI-participation-status-badge-B
 - DIARY-GUI-participation-status-badge-C
 - DIARY-GUI-participation-status-badge-D
@@ -1737,6 +1757,8 @@
 - DIARY-GUI-participant-task-list:section:6
 - DIARY-PRD-notification-disconnection:section:0
 - DIARY-PRD-notification-disconnection:section:1
+- DIARY-BASE-not-participating-notice:section:0
+- DIARY-BASE-not-participating-notice:section:1
 - DIARY-GUI-participation-status-badge:section:0
 - DIARY-GUI-participation-status-badge:section:6
 - DIARY-PRD-notification-incomplete-record-lock:section:0
@@ -2745,6 +2767,7 @@
 - DIARY-PRD-notification-disconnection-B
 - DIARY-PRD-notification-disconnection-D
 - DIARY-PRD-notification-disconnection-E
+- DIARY-BASE-not-participating-notice-B
 - DIARY-GUI-participation-status-badge-B
 - DIARY-GUI-participation-status-badge-H
 - DIARY-PRD-notification-incomplete-record-lock-D
@@ -2868,6 +2891,8 @@
 - DIARY-GUI-service-mode-entry:section:1
 - DIARY-PRD-notification-disconnection:section:0
 - DIARY-PRD-notification-disconnection:section:1
+- DIARY-BASE-not-participating-notice:section:0
+- DIARY-BASE-not-participating-notice:section:1
 - DIARY-GUI-participation-status-badge:section:6
 - DIARY-PRD-notification-incomplete-record-lock:section:0
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
@@ -3201,6 +3226,7 @@
 - DIARY-PRD-privacy-policy:section:1
 - DIARY-GUI-main-screen-layout:section:5
 - DIARY-GUI-mobile-navigation:section:5
+- DIARY-BASE-not-participating-notice:section:1
 - DIARY-GUI-participation-status-badge:section:0
 - DIARY-GUI-participation-status-badge:section:6
 - DIARY-PRD-notification-yesterday-entry:section:0
