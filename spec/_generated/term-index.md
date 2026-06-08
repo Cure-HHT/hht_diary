@@ -764,6 +764,7 @@
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-sponsor-config-source:section:0
 - DIARY-DEV-sponsor-config-source:section:1
+- DIARY-DEV-portal-legacy-sw-eviction:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/dev-sponsor-branding.md:3
 - DIARY-DEV-sponsor-branding-source:section:0
@@ -2746,6 +2747,7 @@
 - DIARY-DEV-portal-session-config-A
 - DIARY-DEV-portal-active-role-switch-A
 - DIARY-DEV-portal-active-role-switch-C
+- DIARY-DEV-portal-legacy-sw-eviction-B
 - DIARY-DEV-shared-events-catalog-D
 - DIARY-DEV-sponsor-branding-source-E
 - DIARY-PRD-session-management-A
@@ -2792,6 +2794,7 @@
 - DIARY-DEV-portal-reset-session-termination:section:1
 - DIARY-DEV-portal-test-account-provisioning:section:0
 - DIARY-DEV-portal-test-account-provisioning:section:1
+- DIARY-DEV-portal-legacy-sw-eviction:section:1
 - DIARY-DEV-sponsor-branding-source:section:1
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-portal-auth.md:3
@@ -2986,6 +2989,9 @@
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G
 - DIARY-GUI-portal-transport-status-A
+- DIARY-GUI-portal-stale-client-reload-A
+- DIARY-GUI-portal-stale-client-reload-B
+- DIARY-GUI-portal-stale-client-reload-C
 - DIARY-PRD-configuration-precedence-A
 - DIARY-PRD-configuration-precedence-B
 - DIARY-PRD-configuration-precedence-C
@@ -3126,6 +3132,7 @@
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-common-ui.md:42
 - DIARY-GUI-portal-transport-status:section:0
+- DIARY-GUI-portal-stale-client-reload:section:0
 - DIARY-PRD-configuration-precedence:section:0
 - DIARY-PRD-configuration-precedence:section:1
 - DIARY-PRD-configuration-precedence:section:2
@@ -3238,6 +3245,9 @@
 - DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-PRD-administrator-settings-A
 - DIARY-GUI-portal-transport-status-A
+- DIARY-GUI-portal-stale-client-reload-A
+- DIARY-GUI-portal-stale-client-reload-B
+- DIARY-GUI-portal-stale-client-reload-C
 - DIARY-PRD-help-resources-A
 - DIARY-PRD-help-resources-D
 - DIARY-PRD-mobile-application-F
@@ -3269,6 +3279,7 @@
 - DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-GUI-portal-transport-status:section:0
+- DIARY-GUI-portal-stale-client-reload:section:0
 - DIARY-PRD-help-resources:section:0
 - DIARY-PRD-help-resources:section:1
 - DIARY-PRD-help-resources:section:5
@@ -3694,6 +3705,9 @@
 - DIARY-GUI-audit-log-common-A
 - DIARY-GUI-audit-log-common-C
 - DIARY-GUI-audit-log-administrator-A
+- DIARY-GUI-portal-stale-client-reload-A
+- DIARY-GUI-portal-stale-client-reload-B
+- DIARY-GUI-portal-stale-client-reload-C
 - DIARY-GUI-linking-confirmation-B
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-help-resources-C
@@ -3846,6 +3860,8 @@
 - rem:spec/prd-common-ui.md:42
 - DIARY-GUI-portal-transport-status:section:0
 - DIARY-GUI-portal-transport-status:section:1
+- DIARY-GUI-portal-stale-client-reload:section:0
+- DIARY-GUI-portal-stale-client-reload:section:1
 - rem:spec/prd-device-linking.md:3
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-join-study-screen:section:0

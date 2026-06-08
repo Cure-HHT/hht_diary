@@ -65,3 +65,23 @@ B. List pages SHALL continue to display the last-received rows while the transpo
 The portal's lists are fed by a live subscription; a dropped transport otherwise leaves the *User* viewing data frozen at the moment of the drop with no indication it is no longer live. The banner mirrors the staleness signal of the Rave-pause banner but for the transport itself, so the two share a consistent "this is not a fresh feed" affordance. Retaining the last rows (rather than blanking) keeps the *User*'s context intact across a transient drop, since the underlying client reconnects automatically and re-replays a fresh snapshot on success; persisted data is unaffected because *Actions* are validated server-side against authoritative state regardless of what the stale view shows.
 
 *End* *Portal Transport Status Banner* | **Hash**: 20c55120
+
+## DIARY-GUI-portal-stale-client-reload: Portal Stale-Client Reload Prompt
+
+**Level**: GUI | **Status**: Draft | **Implements**: -
+
+The *Sponsor Portal* is a long-lived single-page client: once loaded, a tab keeps running its compiled bundle and never re-fetches the document on its own, so after a deploy it can run an older build than the deployed server indefinitely. The *User* needs to be brought onto the current build without losing in-progress work.
+
+### Assertions
+
+A. When the deployed server reports a portal UI version different from the running bundle's compiled version, the *Sponsor Portal* SHALL surface a non-blocking banner offering the *User* a control to reload onto the new version.
+
+B. When the *User* is unauthenticated (on the login screen), the *Sponsor Portal* SHALL reload onto the new version automatically rather than prompting.
+
+C. The *Sponsor Portal* SHALL NOT automatically reload an authenticated *User*; the reload SHALL be initiated by the *User* via the banner control.
+
+### Rationale
+
+Server and client ship from the same build, which stamps the identical version into both the bundle and the server's health report, so an inequality is a definitive "this tab is on an old build" signal — no separate update channel is needed. Prompting rather than silently reloading protects an authenticated *User* mid-form from losing work; on the login screen there is nothing to lose, so an automatic reload is the least-friction way to guarantee sign-in happens on the current build. The check is event-driven (on load, on transport reconnect after a deploy drains the old server, and on a login attempt) rather than polled, because those are exactly the moments the running build can first diverge from the deployed one.
+
+*End* *Portal Stale-Client Reload Prompt* | **Hash**: 375e8009
