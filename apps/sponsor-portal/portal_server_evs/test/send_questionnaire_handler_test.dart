@@ -147,4 +147,41 @@ void main() {
         jsonDecode(await next.readAsString()) as Map<String, Object?>;
     expect(nextBody['studyEvent'], 'Cycle 2 Day 1');
   });
+
+  test(
+      'a whitespace-only studyEvent is normalized to null -> auto cycle, not an '
+      'empty study_event written to the instance', () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('send-whitespace.db');
+    final boot = await bootstrapPortalServer(
+      backend: SembastBackend(database: db),
+      raveClient: DevSeedRaveClient(),
+    );
+    addTearDown(boot.dispose);
+
+    final resp = await respondToSend(
+      boot.eventStore,
+      boot.dispatcher,
+      coordinator,
+      <String, Object?>{
+        'siteId': 'site-1',
+        'participantId': 'P-001',
+        'questionnaireType': 'symptom-diary',
+        'studyEvent': '   ',
+      },
+    );
+    expect(resp.statusCode, 200);
+    final body = jsonDecode(await resp.readAsString()) as Map<String, Object?>;
+    // Treated as if no studyEvent were supplied -> auto-computed first cycle.
+    expect(body['studyEvent'], 'Cycle 1 Day 1');
+
+    final rows =
+        await boot.eventStore.backend.findViewRows('questionnaire_instance');
+    final mine = rows
+        .where((r) =>
+            r['participant_id'] == 'P-001' && r['type'] == 'symptom-diary')
+        .toList();
+    expect(mine, hasLength(1));
+    expect(mine.single['study_event'], 'Cycle 1 Day 1');
+  });
 }

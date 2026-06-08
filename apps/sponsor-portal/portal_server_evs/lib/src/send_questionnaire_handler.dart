@@ -82,6 +82,14 @@ Future<Response> respondToSend(
       headers: const {'Content-Type': 'application/json'},
     );
   }
+  // Normalize a whitespace-only studyEvent to null so it is not treated as an
+  // explicit cycle selection — otherwise `{studyEvent: " "}` would be written to
+  // the instance as an empty/whitespace study_event.
+  final trimmedStudyEvent = (requestedStudyEvent as String?)?.trim();
+  final effectiveStudyEvent =
+      (trimmedStudyEvent == null || trimmedStudyEvent.isEmpty)
+          ? null
+          : trimmedStudyEvent;
 
   final backend = eventStore.backend;
 
@@ -102,7 +110,7 @@ Future<Response> respondToSend(
     existing: existing,
     cycleTrackingEnabled: cycleTracking,
     requireInitialCycleSelection: requireInitial,
-    requestedStudyEvent: requestedStudyEvent as String?,
+    requestedStudyEvent: effectiveStudyEvent,
   );
 
   switch (decision) {

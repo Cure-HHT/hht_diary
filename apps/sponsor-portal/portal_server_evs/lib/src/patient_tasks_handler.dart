@@ -2,7 +2,8 @@
 //   assigned questionnaires from the questionnaire_instance view (replaces the
 //   legacy 401).
 // Implements: DIARY-PRD-questionnaire-system/C+D — gated on Trial Start; empties
-//   when disconnected / not participating.
+//   when not participating. A *disconnected* participant still receives their
+//   tasks (is_disconnected is surfaced for the diary, but does not gate).
 import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
