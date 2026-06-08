@@ -18,22 +18,23 @@ import 'user_account_logic.dart';
 /// (no-ops for now — Phase 7 wires the kebab actions, Phase 7.5 wires
 /// the Create User dialog).
 ///
-/// Self-gates on `view:users_index` so a role that can't read the
-/// directory never opens a subscription. The inner `ViewBuilder` for
-/// `user_role_scopes` is gated independently — when missing, rows
-/// render with empty assignments rather than blank cells.
+/// Self-gates on `portal.user.view_accounts` (ACT-SEE-003) so a role that
+/// can't read the directory never opens a subscription. The inner
+/// `ViewBuilder` for `user_role_scopes` is gated on the same Action (one
+/// Action governs both the `users_index` and `user_role_scopes`
+/// projections under CUR-1474), so in practice it opens whenever the outer
+/// gate does; the empty-assignments fallback remains as a defensive default.
 class UsersScreenBinding extends StatelessWidget {
   const UsersScreenBinding({super.key});
 
   /// Permission a role must hold to see the users tab + table at all.
-  static const String viewUsersPermission = 'view:users_index';
+  static const String viewUsersPermission = 'portal.user.view_accounts';
 
-  /// Permission for the assignment join. When the active role lacks it,
-  /// the outer table still renders (no information leak — the row text
-  /// already comes from the gated `users_index`), but role / site cells
-  /// are blank. Keeping the inner gate separate avoids forcing every
-  /// viewer of the users table to also read `user_role_scopes`.
-  static const String viewAssignmentsPermission = 'view:user_role_scopes';
+  /// Permission for the assignment join. Modeled as the SAME Action as the
+  /// directory read (`portal.user.view_accounts`, ACT-SEE-003): one Action
+  /// gates both the `users_index` and `user_role_scopes` projections. The
+  /// inner gate is kept separate so the structure survives a future split.
+  static const String viewAssignmentsPermission = 'portal.user.view_accounts';
 
   @override
   Widget build(BuildContext context) => PermissionGate(

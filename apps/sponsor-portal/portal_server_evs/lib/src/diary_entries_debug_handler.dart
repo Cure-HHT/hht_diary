@@ -1,6 +1,6 @@
 // Debug-only Study-Coordinator read of a participant's diary entries, sorted by
 // CLINICAL event date (canonicalEntryDate), not the action timestamp. Not a
-// product surface — no REQ; gated by portal.diary.view_debug.
+// product surface; gated by the ACT-SEE-004 portal.diary.view_entries permission.
 import 'dart:convert';
 
 import 'package:diary_shared_model/diary_shared_model.dart';
@@ -8,7 +8,7 @@ import 'package:event_sourcing/event_sourcing.dart';
 import 'package:shelf/shelf.dart';
 
 /// Permission that gates the debug diary-entries read (held by StudyCoordinator).
-const String diaryDebugViewPermission = 'portal.diary.view_debug';
+const String diaryDebugViewPermission = 'portal.diary.view_entries';
 
 /// Shared core: read the canonical `diary_entries` view, keep only [participant]'s
 /// rows, and sort them ascending by clinical event date (the entry's own captured

@@ -1,5 +1,5 @@
 // Pure questionnaire-instance read model. The Manage Questionnaires modal
-// subscribes to the `questionnaire_instance` view (gated view:questionnaire_instance,
+// subscribes to the `questionnaire_instance` view (gated portal.questionnaire.view_status,
 // filtered client-side to the selected participant) to show live status. Each
 // view row is ONE instance (aggregateId == instanceId); the latest folded
 // lifecycle event lands on `entryType`, from which we derive a display status.

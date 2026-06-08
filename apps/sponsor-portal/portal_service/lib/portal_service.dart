@@ -3,7 +3,6 @@
 library;
 
 export 'src/scope_classes.dart';
-export 'src/role_seed.dart';
 export 'src/authz.dart';
 export 'src/dispatcher.dart';
 export 'src/projections.dart';

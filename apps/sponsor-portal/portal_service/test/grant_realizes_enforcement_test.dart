@@ -5,6 +5,8 @@ import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
+import '_reference_role_grants.dart';
+
 ActionContext _ctx(Principal p) => ActionContext(
   principal: p,
   security: const SecurityDetails(),
@@ -25,8 +27,10 @@ void main() {
       backend: SembastBackend(database: db),
     );
 
+    final yaml = referenceRoleGrantsYaml();
     final policyBootstrap = await buildPortalAuthorizationPolicy(
       eventStore: store,
+      roleGrantsYaml: yaml,
     );
     expect(
       policyBootstrap.isReady,
@@ -68,7 +72,10 @@ void main() {
       initiator: const AutomationInitiator(service: 'test-seed'),
     );
 
-    final dispatcher = await buildPortalDispatcher(eventStore: store);
+    final dispatcher = await buildPortalDispatcher(
+      eventStore: store,
+      roleGrantsYaml: yaml,
+    );
     final policy = policyBootstrap.policy;
 
     final sc = Principal.user(

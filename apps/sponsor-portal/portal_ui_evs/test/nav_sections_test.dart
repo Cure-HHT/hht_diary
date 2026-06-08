@@ -14,10 +14,10 @@ void main() {
       'an Administrator-like permission set sees every section, in order',
       () {
         final held = <String>{
-          'view:users_index',
-          'view:sites_index',
-          'view:participant_record',
-          'view:rave_sync_status',
+          'portal.user.view_accounts',
+          'portal.site.view',
+          'portal.participant.view',
+          'portal.rave.view_sync',
           'portal.audit.view',
         };
         expect(_labels(visibleSections(held)), <String>[
@@ -30,22 +30,21 @@ void main() {
     // Verifies: DIARY-GUI-role-switching/E+F
     test('a StudyCoordinator-like set has no Phase-6.5 sections', () {
       final held = <String>{
-        'view:sites_index',
-        'view:participant_record',
-        'view:rave_sync_status',
+        'portal.site.view',
         'portal.participant.view',
+        'portal.rave.view_sync',
       };
       expect(visibleSections(held), isEmpty);
     });
 
     // Verifies: DIARY-GUI-role-switching/E+F — SystemOperator holds
-    //   view:users_index but not portal.audit.view, so it sees only User
-    //   Accounts in the Phase-6.5 nav strip.
+    //   portal.user.view_accounts but not portal.audit.view, so it sees only
+    //   User Accounts in the Phase-6.5 nav strip.
     test('a SystemOperator-like set sees only User Accounts', () {
       final held = <String>{
-        'view:users_index',
-        'view:sites_index',
-        'view:rave_sync_status',
+        'portal.user.view_accounts',
+        'portal.site.view',
+        'portal.rave.view_sync',
       };
       expect(_labels(visibleSections(held)), <String>['User Accounts']);
     });
@@ -58,7 +57,7 @@ void main() {
     // Verifies: DIARY-GUI-role-switching/E+F — visibility follows declaration
     //   order, not the order permissions happen to be held in.
     test('order follows kNavSections regardless of held-set ordering', () {
-      final held = <String>{'portal.audit.view', 'view:users_index'};
+      final held = <String>{'portal.audit.view', 'portal.user.view_accounts'};
       expect(_labels(visibleSections(held)), <String>[
         'User Accounts',
         'Audit Log',
@@ -68,7 +67,7 @@ void main() {
 
   group('resolveSelectedIndex', () {
     final visible = visibleSections(<String>{
-      'view:users_index',
+      'portal.user.view_accounts',
       'portal.audit.view',
     });
 

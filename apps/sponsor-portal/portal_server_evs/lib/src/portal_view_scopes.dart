@@ -28,8 +28,9 @@ ViewScopeRegistry buildPortalViewScopeRegistry() => ViewScopeRegistry()
   );
 
 // `questionnaire_instance` is deliberately NOT registered here, so it stays
-// row-unscoped (gated only by `view:questionnaire_instance`), like the clinical
-// `diary_entries` view granted to the StudyCoordinator.
+// row-unscoped (gated only by its Action permission portal.questionnaire.view_status
+// via portalViewPermissionNamer), like the clinical `diary_entries` view granted
+// to the StudyCoordinator.
 //
 // Why it cannot be participant/site-scoped through this registry: the reaction
 // server's row-level narrowing (subscription_handler `_expandAssignments`)

@@ -1,6 +1,6 @@
 name: portal_server_evs
 description: "Event-sourced portal server (reaction HTTP/WS shell over portal_service). Beta rebuild of portal_server."
-version: 0.5.6+10
+version: 0.5.7+11
 publish_to: none
 
 environment:
@@ -31,6 +31,7 @@ dependencies:
       ref: af9670325717f33ae6bddae355241346902acb00
       path: reaction
   sembast: ^3.0.0
+  yaml: ^3.1.2
   shelf: ^1.4.0
   shelf_router: ^1.1.0
   shelf_web_socket: ^3.0.0

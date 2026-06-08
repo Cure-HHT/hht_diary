@@ -82,6 +82,10 @@ D. The System SHALL support **Sponsor-Level *Action* Extensions** to the **Actio
 | **Site** | ACT-SIT-001 | View Sites |
 | **Audit Log** | ACT-AUD-001 | View audit log |
 | **Administrator Settings** | ACT-ADM-001 | View ***Administrator** Settings* |
+| **View (read gates)** | ACT-SEE-001 | View *Questionnaire* Status |
+|  | ACT-SEE-002 | View RAVE Sync Status |
+|  | ACT-SEE-003 | View *User* Accounts |
+|  | ACT-SEE-004 | View *Diary* Entries |
 
 ### Rationale
 

@@ -27,7 +27,11 @@ import 'actions/user_account/revoke_site_action.dart';
 import 'actions/user_account/unlock_user_account_action.dart';
 import 'actions/views/view_admin_settings_action.dart';
 import 'actions/views/view_audit_log_action.dart';
+import 'actions/views/view_diary_entries_action.dart';
+import 'actions/views/view_questionnaire_status_action.dart';
+import 'actions/views/view_rave_sync_status_action.dart';
 import 'actions/views/view_sites_action.dart';
+import 'actions/views/view_user_accounts_action.dart';
 import 'flow_token_minter.dart';
 
 /// Build the portal's ActionRegistry. Extend as concrete actions land.
@@ -72,6 +76,10 @@ ActionRegistry buildPortalActionRegistry({
     ..register(ViewSitesAction())
     ..register(ViewAuditLogAction())
     ..register(ViewAdminSettingsAction())
+    ..register(ViewQuestionnaireStatusAction())
+    ..register(ViewRaveSyncStatusAction())
+    ..register(ViewUserAccountsAction())
+    ..register(ViewDiaryEntriesAction())
     ..register(UnwedgeRaveSyncAction())
     ..register(CreateAdministratorAction())
     ..register(CreateSystemOperatorAction());
