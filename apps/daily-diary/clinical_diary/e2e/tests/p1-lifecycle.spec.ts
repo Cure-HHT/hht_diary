@@ -13,6 +13,9 @@ const SITE = process.env.SITE || 'site-1';
 const P1 = process.env.PARTICIPANT || 'REF-001-001';
 const CODE = process.env.P1_CODE || '';
 const K = process.env.KEY_PREFIX || P1; // unique idempotency-key namespace
+// SC credential: local-stack dev-auth uses the bare email; deployed session-auth
+// uses a minted session token. Override via SC_BEARER for Pass 2 (GCP dev).
+const SC_BEARER = process.env.SC_BEARER || 'sc@reference.local';
 
 test('P1 full participant lifecycle (record -> link -> trial -> sync -> not-participating)', async ({ page, request }) => {
   expect(CODE, 'P1_CODE env must be set').not.toEqual('');
@@ -35,7 +38,7 @@ test('P1 full participant lifecycle (record -> link -> trial -> sync -> not-part
 
   const sc = async (actionName: string, rawInput: object, key: string) => {
     const r = await request.post(`${PORTAL}/actions`, {
-      headers: { authorization: 'Bearer sc@reference.local', 'content-type': 'application/json' },
+      headers: { authorization: `Bearer ${SC_BEARER}`, 'content-type': 'application/json' },
       data: { actionName, rawInput, idempotencyKey: key },
     });
     const txt = await r.text();

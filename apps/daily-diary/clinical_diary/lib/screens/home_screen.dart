@@ -154,6 +154,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
     );
+    // React live when a reconcile detects the portal marked the participant
+    // not-participating: it clears enrollment, so re-read enrollment to revert
+    // the sponsor branding (gated on active enrollment) without a relaunch.
+    widget.enrollmentService.notParticipatingNotifier.addListener(
+      _onNotParticipatingChanged,
+    );
     // Forward-looking: surface incomplete surveys via a modal route. The
     // FCM-prompt handler that creates the checkpoint is out of scope for this
     // ticket, but the routing exists so it can land later without screen edits.
@@ -193,6 +199,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     widget.enrollmentService.disconnectedNotifier.removeListener(
       _onDisconnectionChanged,
+    );
+    widget.enrollmentService.notParticipatingNotifier.removeListener(
+      _onNotParticipatingChanged,
     );
     _scrollController.dispose();
     super.dispose();
@@ -235,10 +244,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Only reads from the notifier — does NOT call isDisconnected() or
   /// _checkDisconnectionStatus() to avoid a race with the in-flight
   /// SharedPreferences write inside setDisconnected().
+  /// A portal-driven not-participating transition (detected by a scope
+  /// reconcile) clears enrollment. Re-read enrollment so the sponsor branding,
+  /// which is gated on active enrollment, reverts to the app default live.
+  void _onNotParticipatingChanged() {
+    if (!mounted) return;
+    unawaited(_checkEnrollmentStatus());
+  }
+
   void _onDisconnectionChanged() {
     if (!mounted) return;
     final isDisconnected = widget.enrollmentService.disconnectedNotifier.value;
     setState(() => _isDisconnected = isDisconnected);
+    // Disconnect also clears enrollment; re-read so branding reverts live.
+    unawaited(_checkEnrollmentStatus());
     if (isDisconnected) {
       // Clear cached tasks — disconnected participants have no valid questionnaires
       unawaited(widget.taskService.clearAll());
@@ -934,7 +953,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        AppLocalizations.of(context).appTitle,
+                        // Show the sponsor title while actively enrolled; revert
+                        // to the app default otherwise (the branding settings are
+                        // retained per DIARY-DEV-sponsor-branding-assets/D, but
+                        // only displayed during active participation).
+                        (_isEnrolled &&
+                                (widget.sponsorBranding.title?.isNotEmpty ??
+                                    false))
+                            ? widget.sponsorBranding.title!
+                            : AppLocalizations.of(context).appTitle,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
