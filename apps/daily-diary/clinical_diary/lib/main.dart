@@ -32,6 +32,7 @@ import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/link_sponsor_settings.dart';
 import 'package:clinical_diary/services/local_data_reset.dart';
 import 'package:clinical_diary/services/notification_service.dart';
+import 'package:clinical_diary/services/push_receiver.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
@@ -70,6 +71,16 @@ import 'package:uuid/uuid.dart';
 
 /// SharedPreferences key for the persisted device install UUID.
 const _kDeviceIdPrefsKey = 'clinical_diary.device_id';
+
+/// Foreground sync-poll interval in seconds. Default 60s; overridable via
+/// `--dart-define=DIARY_SYNC_PERIODIC_SECONDS=<n>`. The push-transport e2e sets
+/// a large value so the periodic /state poll cannot fire during the test —
+/// a prompt UI update after a portal action then proves it was push-delivered,
+/// not poll-delivered. Implements: DIARY-DEV-pluggable-push-transport/D
+const int _kSyncPeriodicSeconds = int.fromEnvironment(
+  'DIARY_SYNC_PERIODIC_SECONDS',
+  defaultValue: 60,
+);
 
 void main() async {
   // Security (CUR-1169): silence debugPrint in release builds. Flutter's
@@ -208,6 +219,13 @@ class _AppRootState extends State<AppRoot> {
   /// drain is wired through the bootstrap's `syncCycleTrigger`; these cover the
   /// remaining trigger sources. Disposed with the runtime.
   DiarySyncTriggerHandles? _diarySyncTriggers;
+  // Local-stack push transport (AppEnv.local only). The receiver rides the
+  // portal /api/v1/user/push WS and forwards frames into [_localPushController],
+  // which the diary_sync_triggers FCM stream-factory seam reads — so the receipt
+  // path is identical to FCM. See lib/services/push_receiver.dart.
+  // Implements: DIARY-DEV-pluggable-push-transport/D
+  StreamController<RemoteMessage>? _localPushController;
+  LocalSocketPushReceiver? _localPushReceiver;
 
   /// HTTP client owned by the native outbound [DiaryServerDestination]. Closed
   /// on [dispose] so the destination's transport is torn down cleanly.
@@ -492,6 +510,18 @@ class _AppRootState extends State<AppRoot> {
         // JWT was already forgotten, so the /state poll below cannot re-derive it).
         await _enrollmentService.seedLifecycleNotifiers();
 
+        // On the local-stack, push rides a WS instead of FCM. A stable
+        // broadcast controller feeds the diary_sync_triggers FCM stream-factory
+        // seam; the LocalSocketPushReceiver (started at the link transition in
+        // _reconcileDiaryScope, once a backend URL + JWT exist) forwards frames
+        // into it. Created here so the trigger install wiring is fixed even
+        // though the receiver connects later.
+        // Implements: DIARY-DEV-pluggable-push-transport/D
+        final isLocalPush = EnvProfile.current.env == AppEnv.local;
+        if (isLocalPush) {
+          _localPushController = StreamController<RemoteMessage>.broadcast();
+        }
+
         final syncCycle = diaryScope.syncCycle;
         if (syncCycle != null) {
           try {
@@ -499,10 +529,22 @@ class _AppRootState extends State<AppRoot> {
               // Foreground-only poll. Portal-originated lifecycle changes
               // (trial-start, disconnect, not-participating) reach the diary
               // via this /user/state reconcile, kept as the BACKUP path. 60s
-              // keeps the foreground experience near-live; FCM push is the
-              // PRIMARY trigger (onFcmReceipt below, CUR-1436).
-              periodicInterval: const Duration(seconds: 60),
+              // keeps the foreground experience near-live; push is the PRIMARY
+              // trigger (onFcmReceipt below, CUR-1436) — FCM in the cloud, the
+              // local-push WS on the local-stack. The interval is overridable
+              // via --dart-define=DIARY_SYNC_PERIODIC_SECONDS so the push-
+              // transport e2e can stretch the poll and isolate the push path
+              // (a prompt UI update under a long poll can only be push-driven).
+              periodicInterval: const Duration(seconds: _kSyncPeriodicSeconds),
               onFcmReceipt: _recordFcmReceipt,
+              // Local-stack: read pushes from the local-push WS controller
+              // instead of FirebaseMessaging. No onOpenedApp (no tray).
+              fcmOnMessageStreamFactory: isLocalPush
+                  ? () => _localPushController!.stream
+                  : null,
+              fcmOnOpenedStreamFactory: isLocalPush
+                  ? () => const Stream<RemoteMessage>.empty()
+                  : null,
               onTrigger: () async {
                 await _reconcileDiaryScope(diaryScope);
                 // Pause outbound sync while the participant is disconnected or
@@ -607,12 +649,19 @@ class _AppRootState extends State<AppRoot> {
             ),
           );
         }
-        // Re-register the current FCM token now that the participant id is known:
-        // a token minted pre-link could not be recorded (no participant-scoped
+        // Re-register the routing token now that the participant id is known: a
+        // token minted pre-link could not be recorded (no participant-scoped
         // aggregate id yet), so record it once here at the link transition.
-        final currentToken = _notificationService?.currentToken;
-        if (currentToken != null) {
-          await _registerFcmToken(currentToken);
+        if (EnvProfile.current.env == AppEnv.local) {
+          // Local-stack: connect the local-push WS and register the deviceId as
+          // the routing token (the receiver also registers it on connect).
+          // Implements: DIARY-DEV-pluggable-push-transport/D
+          await _startLocalPushReceiver();
+        } else {
+          final currentToken = _notificationService?.currentToken;
+          if (currentToken != null) {
+            await _registerFcmToken(currentToken);
+          }
         }
         // Apply the portal-requested sponsor settings carried in the /link
         // response (set-once-at-link), through the diary's normal apply path.
@@ -847,11 +896,26 @@ class _AppRootState extends State<AppRoot> {
   /// that path. Any FCM data messages that need to surface tasks still flow
   /// through TaskService.handleFcmMessage as before.
   Future<void> _initializeNotifications() async {
+    // Tasks are poll-based and independent of the push transport, so load +
+    // sync them regardless of environment (a local web/desktop diary that is
+    // already linked must still restore + refresh its task list).
     // Load persisted tasks from storage
     await _taskService.loadTasks();
-
     // REQ-CAL-p00081: Poll for tasks on app start (FCM fallback)
     unawaited(_taskService.syncTasks(_enrollmentService));
+
+    // On the local-stack (AppEnv.local) the diary is web/Linux and has no FCM;
+    // push arrives over the LocalSocketPushReceiver WS instead (wired in
+    // _initializeRuntime). Skip ONLY the firebase_messaging init.
+    // Implements: DIARY-DEV-pluggable-push-transport/D
+    final profile = await EnvProfile.load();
+    if (profile.env == AppEnv.local) {
+      debugPrint(
+        '[local] AppEnv.local — skipping FCM init; push rides the '
+        'local-push WS',
+      );
+      return;
+    }
 
     _notificationService = MobileNotificationService(
       onDataMessage: _taskService.handleFcmMessage,
@@ -865,6 +929,44 @@ class _AppRootState extends State<AppRoot> {
       debugPrint('[Main] Notification service init failed: $e');
       debugPrint('[Main] Stack:\n$stack');
     }
+  }
+
+  /// Platform tag for the `participant_fcm_tokens` row. On the local-stack the
+  /// diary is web or a desktop OS (no FCM concept of ios/android); the portal's
+  /// LocalSocketPushChannel routes by participantId so the tag is informational.
+  String _pushPlatform() {
+    if (kIsWeb) return 'web';
+    if (Platform.isIOS) return 'ios';
+    if (Platform.isAndroid) return 'android';
+    return Platform.operatingSystem; // linux / macos / windows
+  }
+
+  /// Connects the local-stack push receiver (AppEnv.local) and registers this
+  /// device's routing id. Idempotent: returns early if already started, or when
+  /// the backend URL / participant JWT are not yet available (pre-link).
+  /// Implements: DIARY-DEV-pluggable-push-transport/D
+  Future<void> _startLocalPushReceiver() async {
+    if (_localPushReceiver != null) return;
+    final base = await _enrollmentService.getBackendUrl();
+    final token = await _enrollmentService.getJwtToken();
+    final deviceId = _deviceId;
+    if (base == null || token == null || token.isEmpty || deviceId == null) {
+      return;
+    }
+    final wsBase = base.replaceFirst(RegExp('^http'), 'ws');
+    final receiver = LocalSocketPushReceiver(
+      socket: WebSocketPushSocket.connect(
+        Uri.parse('$wsBase/api/v1/user/push'),
+      ),
+      authToken: _enrollmentService.getJwtToken,
+    );
+    _localPushReceiver = receiver;
+    receiver.messages.listen((m) => _localPushController?.add(m));
+    await receiver.start();
+    // The deviceId is the local routing token (the WS connection is keyed by
+    // participantId; the token value is informational for the projection).
+    await _registerFcmToken(deviceId);
+    debugPrint('[local] local-push receiver connected to $wsBase');
   }
 
   /// Record an FCM token mint/refresh as a `fcm_token_registered` event in the
@@ -887,7 +989,7 @@ class _AppRootState extends State<AppRoot> {
     }
     final scope = _diaryScope;
     if (scope == null) return;
-    final platform = Platform.isIOS ? 'ios' : 'android';
+    final platform = _pushPlatform();
     try {
       await scope.scope.actionSubmitter.submit(
         esd.ActionSubmission(
@@ -968,6 +1070,15 @@ class _AppRootState extends State<AppRoot> {
   @override
   void dispose() {
     _notificationService?.dispose();
+    // Null the fields BEFORE disposing/closing so the receiver's forwarding
+    // listener (`_localPushController?.add`) becomes a no-op rather than adding
+    // to a closing controller (StateError: Cannot add event after closing).
+    final localPushReceiver = _localPushReceiver;
+    final localPushController = _localPushController;
+    _localPushReceiver = null;
+    _localPushController = null;
+    unawaited(localPushReceiver?.dispose());
+    unawaited(localPushController?.close());
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
     _runtime?.dispose();

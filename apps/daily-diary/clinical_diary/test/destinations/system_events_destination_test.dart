@@ -48,6 +48,11 @@ void main() {
     test('shares the canonical native wire shape', () {
       expect(d.wireFormat, BatchEnvelope.wireFormat);
       expect(d.serializesNatively, isTrue);
+    });
+    // System events drain ASAP: a lone token/receipt is never held, so it ships
+    // on the next (post-append) drain. Contrast DiaryServerDestination, which
+    // batches via a non-zero maxAccumulateTime (kDiaryBatchWindow).
+    test('maxAccumulateTime is zero (drain ASAP)', () {
       expect(d.maxAccumulateTime, Duration.zero);
     });
   });

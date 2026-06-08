@@ -7,7 +7,7 @@
 # the mobile diary API), the Firebase auth emulator, otel-lgtm telemetry,
 # and — in durable mode — a plain Postgres event store.
 #
-# The sponsor repo (e.g. hht_diary_callisto) supplies the per-sponsor build
+# The sponsor repo (e.g. hht_diary_<sponsor>) supplies the per-sponsor build
 # inputs and is resolved at runtime (SPONSOR_REPO env or [associated.sponsor]
 # in .local-stack.toml — see lib/resolve-sponsor-path.py).
 #
@@ -93,6 +93,18 @@ Auth (default = dev):
   applied idempotently on boot. (Set PORTAL_AUTH_MODE=session + Firebase for
   real session auth — out of scope for the default flow.)
 
+Push (default = local):
+  Portal-driven push notifications use a pluggable transport (PUSH_MODE),
+  mirroring the auth split. The local-stack defaults to PUSH_MODE=local: the
+  portal pushes to the web/Linux diary in REAL TIME over a WebSocket
+  (GET /api/v1/user/push) instead of FCM — no cure-hht-admin send credentials,
+  no emulator, no web service worker needed. A portal action (e.g. disconnect a
+  participant, assign a questionnaire) reaches the running diary within a second
+  or two and the reactive UI updates with no user interaction. The diary selects
+  this transport automatically because the launchers run it as env=local. Set
+  PUSH_MODE=fcm to exercise the real FCM path instead (needs FCM send
+  credentials in the portal container — usually only on a real cloud deploy).
+
 Commands:
   portal           Bring up postgres (durable mode only) + firebase +
                    otel-lgtm + portal-final. Safe to re-run: the portal
@@ -122,7 +134,10 @@ Commands:
   diary            Launch the clinical_diary Flutter web app in Chrome,
                    pointed at this stack's EVS portal (the portal serves the
                    diary API on http://localhost:8080). Requires the stack to
-                   already be up (run 'portal' first).
+                   already be up (run 'portal' first). Runs as env=local, so it
+                   receives portal pushes in REAL TIME over the local-push WS
+                   (see "Push" above) — no FCM. (Relaunch after restarting the
+                   portal: the receiver connects at launch and has no auto-reconnect.)
   diary-desktop [--clean] [-- <flutter-run-args>...]
                    Same as 'diary' but runs the Linux desktop build
                    (flutter run -d linux). The desktop runtime exposes
@@ -430,8 +445,9 @@ cmd_reset_emulator() {
 DIARY_PORTAL_URL="http://localhost:8080"
 
 # Launch the clinical_diary Flutter web app pointed at this stack's EVS portal.
-# Requires the stack to be up (we curl the portal's /health). The Dart side
-# selects the LOCAL flavor via APP_FLAVOR=local; we override its apiBase with
+# Requires the stack to be up (we curl the portal's /health). The runtime env is
+# selected by the single source of truth — the assets/config/env.json pointer,
+# which we stamp to `local` below; we override its apiBase with
 # --dart-define=DIARY_API_BASE so it hits the portal at $DIARY_PORTAL_URL.
 # Doppler is wrapped in for parity with run_local.sh / build scripts; the
 # local flavor doesn't actually consume secrets but pubspec config and
@@ -476,12 +492,16 @@ cmd_diary() {
     fi
   fi
 
-  log "launching clinical_diary in Chrome (APP_FLAVOR=local -> DIARY_API_BASE=${DIARY_PORTAL_URL})"
+  log "launching clinical_diary in Chrome (env=local via assets/config/env.json -> DIARY_API_BASE=${DIARY_PORTAL_URL})"
   log "stop with Ctrl-C in this terminal; the docker stack keeps running"
+  # The runtime environment has a single source of truth: the bundled pointer
+  # assets/config/env.json (resolved by EnvProfile.load). Stamp it to `local`
+  # for this run; the helper restores it on exit. NOT `exec` — the restore trap
+  # installed by the helper must fire when flutter run exits.
   ( cd "$diary_dir" && \
-    exec doppler run --config dev -- \
+    source tool/_write_env_pointer.sh local && \
+    doppler run --config dev -- \
       flutter run -d chrome \
-        --dart-define=APP_FLAVOR=local \
         --dart-define=DIARY_API_BASE="${DIARY_PORTAL_URL}" "$@" )
 }
 
@@ -489,9 +509,9 @@ cmd_diary() {
 # The desktop binary embeds the local-flavor HTTP debug bridge (loopback
 # 127.0.0.1:DEBUG_BRIDGE_PORT, default 9876) which the chrome build does
 # not have — shelf needs dart:io and web bundles can't bind ports.
-# Otherwise identical to cmd_diary: APP_FLAVOR=local + DIARY_API_BASE route
-# the client at the EVS portal ($DIARY_PORTAL_URL) and the firebase emulator
-# at localhost:9099.
+# Otherwise identical to cmd_diary: env=local (assets/config/env.json) +
+# DIARY_API_BASE route the client at the EVS portal ($DIARY_PORTAL_URL) and the
+# firebase emulator at localhost:9099.
 cmd_diary_desktop() {
   # Parse our flags first; pass-through flags for `flutter run` come
   # after a literal `--` (or simply trail through if there's no
@@ -566,15 +586,18 @@ cmd_diary_desktop() {
   fi
 
   local bridge_port="${DEBUG_BRIDGE_PORT:-9876}"
-  log "launching clinical_diary on Linux desktop (APP_FLAVOR=local)"
+  log "launching clinical_diary on Linux desktop (env=local via assets/config/env.json)"
   log "  apiBase (DIARY_API_BASE) ${DIARY_PORTAL_URL}"
   log "  firebase emulator        http://localhost:9099"
   log "  debug bridge             http://127.0.0.1:${bridge_port}/debug/state"
   log "stop with Ctrl-C in this terminal; the docker stack keeps running"
+  # Single source of truth for the runtime env: assets/config/env.json. Stamp it
+  # to `local` for this run (restored on exit). NOT `exec` — the restore trap
+  # must fire when flutter run exits.
   ( cd "$diary_dir" && \
-    exec doppler run --config dev -- \
+    source tool/_write_env_pointer.sh local && \
+    doppler run --config dev -- \
       flutter run -d linux \
-        --dart-define=APP_FLAVOR=local \
         --dart-define=DIARY_API_BASE="${DIARY_PORTAL_URL}" "$@" )
 }
 

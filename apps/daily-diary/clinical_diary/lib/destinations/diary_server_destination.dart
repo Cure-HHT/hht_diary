@@ -21,6 +21,20 @@ import 'package:clinical_diary/destinations/canonical_ingest_destination.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 
+/// How long the diary-entries FIFO holds a lone finalized entry before shipping
+/// it, so entries recorded close together (an entry plus its survey, or a
+/// back-to-back recording session) coalesce into one batch instead of one POST
+/// each. Clinical diary data tolerates this delay; it is NOT urgent the way a
+/// push routing token or a push receipt is — those ship ASAP via
+/// `SystemEventsDestination`, whose `maxAccumulateTime` stays `Duration.zero`.
+///
+/// A single held entry flushes on the next sync trigger once its age exceeds
+/// this window (foreground periodic is 60s; app-resume / connectivity also
+/// flush); a second matching entry arriving inside the window flushes the pair
+/// at once (multi-event batches are never held — see [Destination.maxAccumulateTime]).
+/// Tune here — a non-secret static policy constant, not env-delivered.
+const Duration kDiaryBatchWindow = Duration(minutes: 2);
+
 /// Outbound [Destination] that ships finalized + tombstone `DiaryEntry`
 /// events to the diary server as canonical `esd/batch@1` batches.
 ///
@@ -34,7 +48,10 @@ class DiaryServerDestination extends CanonicalIngestDestination {
     required super.client,
     required super.resolveIngestUrl,
     required super.authToken,
-  });
+    Duration maxAccumulateTime = kDiaryBatchWindow,
+  }) : _maxAccumulateTime = maxAccumulateTime;
+
+  final Duration _maxAccumulateTime;
 
   /// Stable FIFO key for the primary diary server. SHALL NOT change for the
   /// lifetime of the store.
@@ -52,4 +69,14 @@ class DiaryServerDestination extends CanonicalIngestDestination {
     aggregateTypes: {diaryEntryAggregateType},
     eventTypes: {'finalized', 'tombstone'},
   );
+
+  /// Batch clinical entries: hold a lone entry up to [kDiaryBatchWindow] so
+  /// same-session events coalesce. Defaults above the base ASAP
+  /// (`Duration.zero`); contrast `SystemEventsDestination`, which keeps zero so
+  /// push tokens/receipts ship immediately. Tests that exercise materialization
+  /// round-trip rather than batching pass `Duration.zero` so a lone entry drains
+  /// in one cycle.
+  // Implements: DIARY-DEV-native-outbound-sync/A
+  @override
+  Duration get maxAccumulateTime => _maxAccumulateTime;
 }

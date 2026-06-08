@@ -78,10 +78,19 @@ class FcmMessageReceivedPayload {
   };
 }
 
-/// The device platform an FCM token was minted for.
+/// The device platform a push routing token was minted for. `android`/`ios`
+/// carry a real FCM registration token; `web`/`linux`/`macos`/`windows` are the
+/// local-stack diary clients that have no FCM and instead route over the
+/// portal's local-push WebSocket (the token is then a device-routing id, not an
+/// FCM token).
+// Implements: DIARY-DEV-pluggable-push-transport/D
 enum DevicePlatform {
   android,
-  ios;
+  ios,
+  web,
+  linux,
+  macos,
+  windows;
 
   static DevicePlatform? fromWire(String? value) {
     if (value == null) return null;

@@ -100,6 +100,7 @@
 - DIARY-DEV-action-write-path:section:0
 - DIARY-DEV-action-write-path:section:1
 - DIARY-DEV-inbound-event-on-receipt:section:0
+- DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-DEV-user-account-projection:section:1
@@ -695,6 +696,8 @@
 - DIARY-DEV-outgoing-intent-correlation:section:1
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-participant-link-issuance:section:0
+- DIARY-DEV-pluggable-push-transport:section:0
+- DIARY-DEV-pluggable-push-transport:section:1
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
@@ -1481,6 +1484,7 @@
 - DIARY-DEV-participant-link-issuance-B
 - DIARY-DEV-participant-link-issuance-C
 - DIARY-DEV-participant-link-issuance-D
+- DIARY-DEV-pluggable-push-transport-C
 - DIARY-DEV-participant-site-index-A
 - DIARY-DEV-portal-reaction-server-C
 - DIARY-DEV-rave-edc-ingest-A
@@ -1708,6 +1712,7 @@
 - DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-participant-link-issuance:section:0
+- DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-portal-reaction-server:section:1
@@ -2883,6 +2888,7 @@
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-participant-ingest:section:1
+- DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-DEV-portal-session-config:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
@@ -3042,6 +3048,7 @@
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-participant-ingest:section:1
+- DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-GUI-portal-transport-status:section:0
 - DIARY-PRD-help-resources:section:0

@@ -1,6 +1,6 @@
 name: portal_server_evs
 description: "Event-sourced portal server (reaction HTTP/WS shell over portal_service). Beta rebuild of portal_server."
-version: 0.5.4+7
+version: 0.5.5+8
 publish_to: none
 
 environment:
@@ -32,8 +32,10 @@ dependencies:
   shelf: ^1.4.0
   shelf_router: ^1.1.0
   shelf_web_socket: ^3.0.0
+  web_socket_channel: ^3.0.0
 
 dev_dependencies:
+  async: ^2.11.0
   diary_shared_model:
     path: ../../common-dart/diary_shared_model
   http: ^1.6.0

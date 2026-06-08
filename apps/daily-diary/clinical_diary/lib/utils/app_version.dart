@@ -10,8 +10,9 @@ const String appVersion = String.fromEnvironment(
   defaultValue: '0.0.0',
 );
 
-/// The app flavor (dev, staging, prod)
-const String appFlavor = String.fromEnvironment(
-  'APP_FLAVOR',
-  defaultValue: 'dev',
-);
+// NOTE: The runtime environment (local/dev/qa/uat/prod) has a SINGLE source of
+// truth — the bundled pointer `assets/config/env.json`, resolved via
+// `EnvProfile.load()` (DIARY-DEV-runtime-environment-resolution). There is no
+// `APP_FLAVOR` dart-define: it was removed in CUR-1389 to keep the binary
+// environment-independent. Read `AppConfig.environment` / `EnvProfile.current`
+// for the active environment.

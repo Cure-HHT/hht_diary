@@ -261,7 +261,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     final isDisconnected = widget.enrollmentService.disconnectedNotifier.value;
     setState(() => _isDisconnected = isDisconnected);
-    // Disconnect also clears enrollment; re-read so branding reverts live.
+    // Disconnect does NOT clear enrollment — it only means "can't sync". Branding
+    // therefore stays put (it reverts only on not-participating). Re-read keeps
+    // _isEnrolled and the reset gate fresh; it intentionally does NOT drive any
+    // branding revert.
     unawaited(_checkEnrollmentStatus());
     if (isDisconnected) {
       // Clear cached tasks — disconnected participants have no valid questionnaires
@@ -928,15 +931,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Sponsor branding is displayed only while ACTIVELY participating: on
     // not-participating the app stops applying this sponsor-specific rule.
     // Implements: DIARY-PRD-participant-mark-not-participating/D
-    // Gate on the live lifecycle notifiers rather than a re-read of enrollment: the
-    // not-participating notifier fires from the reconcile BEFORE its
+    // Branding shows while the participant is ENROLLED and participating.
+    // "Disconnected" is a state *within* enrollment — it means "we can't sync
+    // right now", not "un-enrolled" — so it MUST NOT revert branding. Only
+    // un-enrollment (not-participating / withdrawal) reverts to the app default.
+    // Gate on the live not-participating notifier rather than a re-read of
+    // enrollment: that notifier fires from the reconcile BEFORE its
     // clearEnrollment() completes, so re-reading `isEnrolled()` would race and
-    // leave stale branding until a page change. Reading the notifiers here makes
+    // leave stale branding until a page change. Reading the notifier here makes
     // the revert land on the reconcile poll with no navigation required.
-    final activelyParticipating =
-        _isEnrolled &&
-        !widget.enrollmentService.notParticipatingNotifier.value &&
-        !widget.enrollmentService.disconnectedNotifier.value;
+    final brandingActive =
+        _isEnrolled && !widget.enrollmentService.notParticipatingNotifier.value;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -952,7 +957,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   // Logo menu on the left
                   LogoMenu(
-                    sponsorLogoBuilder: activelyParticipating
+                    sponsorLogoBuilder: brandingActive
                         ? _brandingLogoBuilder
                         : null,
                     onResetAllData: _handleResetAllData,
@@ -972,11 +977,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        // Show the sponsor title while actively enrolled; revert
-                        // to the app default otherwise (the branding settings are
-                        // retained per DIARY-DEV-sponsor-branding-assets/D, but
-                        // only displayed during active participation).
-                        (activelyParticipating &&
+                        // Show the sponsor title while enrolled and
+                        // participating; revert to the app default only on
+                        // un-enrollment (not-participating). A disconnect does
+                        // NOT revert it — the participant is still enrolled, just
+                        // unable to sync. (Branding settings are retained per
+                        // DIARY-DEV-sponsor-branding-assets/D regardless.)
+                        (brandingActive &&
                                 (widget.sponsorBranding.title?.isNotEmpty ??
                                     false))
                             ? widget.sponsorBranding.title!

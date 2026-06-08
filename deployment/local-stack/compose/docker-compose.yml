@@ -245,6 +245,12 @@ services:
       # Gmail API via Workload Identity Federation (which needs GCP creds).
       # Read the bodies via `./local-stack logs portal-final`.
       EMAIL_CONSOLE_MODE: "true"
+      # Push transport (CUR-1466). The local-stack has no cure-hht-admin FCM
+      # sender credentials, so default to the local-socket transport: the portal
+      # pushes over the diary's /api/v1/user/push WS (web/Linux diary) instead of
+      # FCM. Override with PUSH_MODE=fcm to exercise the real FCM path.
+      # Implements: DIARY-DEV-pluggable-push-transport/B
+      PUSH_MODE: "${PUSH_MODE:-local}"
       # OTel: export OTLP/gRPC plaintext to the local collector. The dartastic
       # SDK defaults to TLS when OTEL_EXPORTER_OTLP_INSECURE is absent — it
       # does not infer insecure mode from the http:// scheme — so we must

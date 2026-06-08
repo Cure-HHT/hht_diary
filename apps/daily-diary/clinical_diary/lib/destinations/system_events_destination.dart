@@ -55,4 +55,15 @@ class SystemEventsDestination extends CanonicalIngestDestination {
     aggregateTypes: {'FcmToken', 'InboundMessage'},
     eventTypes: {'finalized', 'tombstone'},
   );
+
+  /// Drain ASAP: a lone system event (FCM token registration/refresh, a push
+  /// receipt) is NEVER held — it ships on the next sync trigger immediately (the
+  /// post-append drain fires after every append). Push routing tokens must reach
+  /// the portal projection the moment the device links, and receipts must
+  /// round-trip promptly for flowToken correlation. Explicit (not merely
+  /// inherited) so the contrast with `DiaryServerDestination`'s batching window
+  /// (`kDiaryBatchWindow`) is intentional.
+  // Implements: DIARY-DEV-native-outbound-sync/A
+  @override
+  Duration get maxAccumulateTime => Duration.zero;
 }

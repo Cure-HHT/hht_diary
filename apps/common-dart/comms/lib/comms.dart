@@ -22,3 +22,4 @@ export 'src/notifications/outbox_writer.dart';
 export 'src/notifications/repository.dart';
 export 'src/notifications/server/envelope_fetch_handler.dart';
 export 'src/notifications/server/envelope_since_handler.dart';
+export 'src/push_channel.dart';

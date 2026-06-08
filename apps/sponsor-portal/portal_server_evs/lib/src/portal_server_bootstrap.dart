@@ -19,6 +19,9 @@ import 'linking_code_lifecycle_reactor.dart';
 import 'activation_routes.dart';
 import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
+import 'local_push_registry.dart';
+import 'local_push_ws_handler.dart';
+import 'local_socket_push_channel.dart';
 import 'login_routes.dart';
 import 'notification_dispatch_reactor.dart';
 import 'otp_store.dart';
@@ -84,6 +87,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // email because the portal's user identity is the email address; the IdP
   // account + portal user are provisioned out-of-band via activation later.
   String? bootstrapAdminEmail,
+  // Test seam: override the process environment (e.g. force PUSH_MODE). null =
+  // the normal Platform.environment.
+  Map<String, String>? environment,
 }) async {
   // 1. Event store (registers role_permission_grants, user_role_scopes,
   //    participant_site_index, portal entry types + framework types).
@@ -116,7 +122,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //     participant_site_index views at startup is GATED inside the
   //     `if (!alreadySeeded)` seed block below (see step 4b there).
   // Implements: DIARY-DEV-rave-edc-ingest/A
-  final env = Platform.environment;
+  final env = environment ?? Platform.environment;
   final lockoutConfig = LockoutConfig.fromEnv(env);
   final RaveClient resolvedRaveClient;
   final List<String> studyOids;
@@ -475,23 +481,49 @@ Future<PortalServerBoot> bootstrapPortalServer({
 
   // 7g. Notification dispatch reactor — on a durable portal intent event
   //     (questionnaire assignment + participant lifecycle), looks up the
-  //     recipient's active FCM token in participant_fcm_tokens and sends a push
-  //     via FcmChannel directly, recording the outcome as notification_sent /
-  //     notification_dispatch_failed (and fcm_token_deactivated on a dead token).
-  //     Gated by FCM_ENABLED so a deploy without FCM credentials skips it.
+  //     recipient's active routing token in participant_fcm_tokens and sends a
+  //     push via the selected PushChannel directly, recording the outcome as
+  //     notification_sent / notification_dispatch_failed (and
+  //     fcm_token_deactivated on a dead token).
+  //
+  //     The transport is bootstrap-selected by PUSH_MODE, mirroring
+  //     PORTAL_AUTH_MODE: `fcm` (default) drives FCM HTTP v1; `local` drives the
+  //     in-process LocalSocketPushChannel over the diary's /api/v1/user/push WS
+  //     (local-stack: no emulator, no live FCM). FCM_ENABLED=false skips the
+  //     reactor entirely (a deploy without any push transport). An unknown
+  //     PUSH_MODE fails fast at boot.
   // Implements: DIARY-DEV-outgoing-intent-correlation/B+C
+  // Implements: DIARY-DEV-pluggable-push-transport/B — PUSH_MODE selects the
+  //   transport; unknown value throws.
   final fcmEnabled = (env['FCM_ENABLED'] ?? 'true') != 'false';
-  final fcmChannel = fcmEnabled
-      ? FcmChannel(
+  final pushMode = env['PUSH_MODE'] ?? 'fcm';
+  FcmChannel? fcmChannel;
+  // Built only for PUSH_MODE=local; shared with the /api/v1/user/push WS handler.
+  LocalPushRegistry? localPushRegistry;
+  PushChannel? pushChannel;
+  if (fcmEnabled) {
+    switch (pushMode) {
+      case 'fcm':
+        fcmChannel = FcmChannel(
           projectId: env['FCM_PROJECT_ID'] ?? 'cure-hht-admin',
           consoleMode: (env['FCM_CONSOLE_MODE'] ?? 'false') == 'true',
-        )
-      : null;
-  final notificationDispatchReactor = fcmEnabled
+        );
+        pushChannel = fcmChannel;
+      case 'local':
+        localPushRegistry = LocalPushRegistry();
+        pushChannel = LocalSocketPushChannel(localPushRegistry);
+        stdout.writeln('portal_server_evs: PUSH_MODE=local — push rides the '
+            'diary /api/v1/user/push WS (no FCM)');
+      default:
+        throw StateError(
+            'unknown PUSH_MODE=$pushMode (expected "fcm" or "local")');
+    }
+  }
+  final notificationDispatchReactor = pushChannel != null
       ? (NotificationDispatchReactor(
           eventStore: eventStore,
           backend: backend,
-          channel: fcmChannel!,
+          channel: pushChannel,
         )..start())
       : null;
 
@@ -680,6 +712,17 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // Implements: DIARY-DEV-sponsor-branding-source/E+F+G
     ..options('/api/v1/sponsor/branding/asset/<role>', brandingAssetHandler)
     ..get('/api/v1/sponsor/branding/asset/<role>', brandingAssetHandler);
+
+  // Local-stack push transport (PUSH_MODE=local only): the participant-scoped
+  // WS the diary holds open to receive real-time pushes. In-band participant-JWT
+  // auth; outside the HTTP-auth pipeline like /subscriptions.
+  // Implements: DIARY-DEV-pluggable-push-transport/C
+  if (localPushRegistry != null) {
+    topRouter.get(
+      '/api/v1/user/push',
+      localPushWsHandler(registry: localPushRegistry),
+    );
+  }
 
   // Dev-only: /dev/users exposes the role-assignment list so the dev
   // ConnectScreen can populate a dropdown. Not mounted in session mode.
