@@ -13,17 +13,24 @@ class AppSectionHeader extends StatelessWidget {
   final int? count;
   final Widget? trailing;
 
+  /// Test-harness locator. When set, wraps the header in a
+  /// `Semantics(identifier: ..., header: true, label: title, container: true, explicitChildNodes: true)`
+  /// node so Playwright can locate it and assertive tech announces it as
+  /// a heading.
+  final String? semanticId;
+
   const AppSectionHeader({
     super.key,
     required this.title,
     this.count,
     this.trailing,
+    this.semanticId,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
+    final row = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
@@ -39,6 +46,17 @@ class AppSectionHeader extends StatelessWidget {
         const Spacer(),
         ?trailing,
       ],
+    );
+
+    if (semanticId == null) return row;
+
+    return Semantics(
+      identifier: semanticId,
+      header: true,
+      label: title,
+      container: true,
+      explicitChildNodes: true,
+      child: row,
     );
   }
 }

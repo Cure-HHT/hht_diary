@@ -93,6 +93,25 @@ Future<List<EntryTypeDefinition>> loadClinicalDiaryEntryTypes({
   ];
 }
 
+/// Load JUST the survey (`<id>_survey`) entry type definitions — one per
+/// questionnaire in questionnaires.json — WITHOUT the static nosebleed types or
+/// the audit type.
+///
+/// The native event-sourcing scope (`bootstrapDiaryScope`) already registers
+/// the nosebleed (diary-originated) types internally; the survey types are
+/// dynamic (data-driven from the JSON) so they must be passed in via
+/// `extraEntryTypes`. Passing this list — not the full
+/// [loadClinicalDiaryEntryTypes] union — keeps the native scope from
+/// double-registering the nosebleed types.
+Future<List<EntryTypeDefinition>> loadSurveyEntryTypes({
+  Future<String> Function()? jsonLoader,
+}) async {
+  final loader =
+      jsonLoader ?? () => rootBundle.loadString(_questionnairesAssetPath);
+  final jsonString = await loader();
+  return _parseSurveyEntryTypes(jsonString);
+}
+
 /// Parse the raw questionnaires JSON string and return one [EntryTypeDefinition]
 /// per questionnaire entry, using the full raw JSON map as `widgetConfig`.
 List<EntryTypeDefinition> _parseSurveyEntryTypes(String jsonString) {

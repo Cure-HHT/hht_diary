@@ -1,7 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
 
-import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:flutter/material.dart';
 
@@ -21,10 +21,10 @@ class AppPageRoute<T> extends MaterialPageRoute<T> {
   /// the navigator's context (AppPreferencesScope sits above the Navigator);
   /// defaults to enabled when no scope/navigator is available yet.
   bool get _animationsEnabled {
-    if (!FeatureFlagService.instance.useAnimations) return false;
     final context = navigator?.context;
     if (context == null) return true;
-    return AppPreferencesScope.read(context).useAnimation;
+    return SponsorUiConfigScope.read(context).useAnimations &&
+        AppPreferencesScope.read(context).useAnimation;
   }
 
   @override

@@ -34,6 +34,19 @@ void main() {
     },
   );
 
+  // Verifies: DIARY-DEV-sponsor-branding-source/A
+  test(
+    'sponsor_branding_configured is a registered portal-private event type',
+    () {
+      expect(
+        portalPrivateEventTypes.any(
+          (e) => e.id == 'sponsor_branding_configured',
+        ),
+        isTrue,
+      );
+    },
+  );
+
   // Verifies: DIARY-DEV-shared-events-catalog/E
   test(
     'DIARY-DEV-shared-events-catalog/E: portal-private ids do not collide with shared',

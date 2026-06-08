@@ -47,19 +47,14 @@ sleep 2
 # Session-auth mode is opt-in. The server reads PORTAL_AUTH_MODE / PORTAL_SESSION_*
 # / FIREBASE_AUTH_EMULATOR_HOST / PORTAL_IDENTITY_PROJECT_ID straight from the
 # environment (inherited by the server subshell above), so just export them when
-# invoking this script. The client login flow is behind a compile-time flag, so
-# it must be passed as a --dart-define here; we derive it from PORTAL_AUTH_MODE so
-# `PORTAL_AUTH_MODE=session run.sh` lights up the LoginScreen automatically. When
-# PORTAL_AUTH_MODE is unset/dev, PORTAL_SESSION_AUTH stays false and the dev
-# ConnectScreen + activation flow are unchanged.
-SESSION_AUTH=false
-if [ "${PORTAL_AUTH_MODE:-dev}" = "session" ]; then
-  SESSION_AUTH=true
-fi
+# invoking this script. The client resolves its login UI (LoginScreen vs dev
+# ConnectScreen) at runtime from the server's /config/identity `authMode`, so no
+# client flag is needed — `PORTAL_AUTH_MODE=session run.sh` lights up the
+# LoginScreen automatically, and the unset/dev default keeps the ConnectScreen +
+# activation flow.
 (
   cd "$ROOT/portal_ui_evs" &&
     flutter run -d chrome \
       --web-port "${UI_PORT}" \
-      --dart-define=PORTAL_SERVER_URL="http://localhost:${SERVER_PORT}" \
-      --dart-define=PORTAL_SESSION_AUTH="${SESSION_AUTH}"
+      --dart-define=PORTAL_SERVER_URL="http://localhost:${SERVER_PORT}"
 )

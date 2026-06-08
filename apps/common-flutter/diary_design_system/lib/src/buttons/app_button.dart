@@ -58,6 +58,14 @@ class AppButton extends StatelessWidget {
   /// Accessibility label. **Required when the button renders in icon-only
   /// mode** (no [label]), so screen readers announce the action. Ignored
   /// when [label] is non-empty — the visible label is the announcement.
+  /// Test-harness locator. When set, wraps the button in a
+  /// `Semantics(identifier: ..., button: true, container: true, explicitChildNodes: true)`
+  /// node so Playwright (or any harness) can target this button by
+  /// `flt-semantics-identifier`.
+  final String? semanticId;
+
+  /// Optional screen-reader label override. Useful for icon-only buttons
+  /// where [label] is null and the inner widgets have no readable text.
   final String? semanticLabel;
 
   const AppButton({
@@ -71,8 +79,15 @@ class AppButton extends StatelessWidget {
     this.loading = false,
     this.fullWidth = false,
     this.semanticLabel,
+    this.semanticId,
   }) : assert(
-         (label != null && label.length > 0) || semanticLabel != null,
+         // Const-safe: catches the icon-only-with-no-label case
+         // (label == null && leadingIcon != null) without using
+         // `.isNotEmpty` / `.length`, neither of which evaluate in a
+         // const constructor's assert. An empty-string label still
+         // slips through here — the visual + screen-reader label is the
+         // caller's responsibility to make non-empty.
+         label != null || leadingIcon == null || semanticLabel != null,
          'AppButton in icon-only mode requires a semanticLabel for screen '
          'readers. Pass semanticLabel: "..." describing the action.',
        );
@@ -110,18 +125,16 @@ class AppButton extends StatelessWidget {
         ? SizedBox(width: double.infinity, child: button)
         : button;
 
-    // In icon-only mode the underlying Button has no Text child, so
-    // screen readers would announce nothing. Wrap in Semantics with the
-    // caller-supplied label. The constructor's assert guarantees
-    // semanticLabel is non-null here.
-    if (_isIconOnly) {
-      return Semantics(
-        button: true,
-        label: semanticLabel,
-        child: ExcludeSemantics(child: sized),
-      );
-    }
-    return sized;
+    if (semanticId == null && semanticLabel == null) return sized;
+
+    return Semantics(
+      identifier: semanticId,
+      label: semanticLabel,
+      button: true,
+      container: true,
+      explicitChildNodes: true,
+      child: sized,
+    );
   }
 
   ButtonStyle _styleFor(BuildContext context) {

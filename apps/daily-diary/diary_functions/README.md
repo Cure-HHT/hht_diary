@@ -46,7 +46,6 @@ Dart library containing business logic for the HHT Diary API.
 | POST /api/v1/user/enroll          | `enrollHandler`         | DEPRECATED - returns 410 Gone      |
 | POST /api/v1/user/sync            | `syncHandler`           | Sync events to record_audit        |
 | POST /api/v1/user/records         | `getRecordsHandler`     | Get current record state           |
-| GET /api/v1/sponsor/config        | `sponsorConfigHandler`  | Get sponsor feature flags          |
 
 ## Security
 

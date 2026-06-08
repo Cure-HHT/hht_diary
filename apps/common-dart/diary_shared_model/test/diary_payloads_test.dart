@@ -13,10 +13,12 @@ void main() {
         'endTimeZone': 'America/New_York',
         'endTimeUtcOffset': '-05:00',
         'intensity': 'dripping',
+        'participantId': 'P-001',
       };
       final payload = EpistaxisEventPayload.fromJson(json);
       expect(payload.intensity, NosebleedIntensity.dripping);
       expect(payload.startTimeZone, 'America/New_York');
+      expect(payload.participantId, 'P-001');
       expect(payload.toJson(), json);
     });
 
@@ -25,11 +27,24 @@ void main() {
         'startTime': '2025-10-15T14:30:00.000-05:00',
         'startTimeZone': 'America/New_York',
         'startTimeUtcOffset': '-05:00',
+        'participantId': 'P-001',
       };
       final payload = EpistaxisEventPayload.fromJson(json);
       expect(payload.endTime, isNull);
       expect(payload.intensity, isNull);
+      expect(payload.participantId, 'P-001');
       expect(payload.toJson(), json);
+    });
+
+    test('carries participantId through toJson/fromJson', () {
+      const payload = EpistaxisEventPayload(
+        startTime: '2025-10-15T14:30:00.000-05:00',
+        startTimeZone: 'UTC',
+        startTimeUtcOffset: '+00:00',
+        participantId: 'P-42',
+      );
+      final roundTripped = EpistaxisEventPayload.fromJson(payload.toJson());
+      expect(roundTripped.participantId, 'P-42');
     });
 
     test('an unrecognized intensity wire value parses to null', () {
@@ -38,6 +53,7 @@ void main() {
         'startTimeZone': 'UTC',
         'startTimeUtcOffset': '+00:00',
         'intensity': 'torrential',
+        'participantId': 'P-001',
       });
       expect(payload.intensity, isNull);
     });
@@ -49,6 +65,7 @@ void main() {
           'startTime': '2025-10-15T14:30:00.000-05:00',
           'startTimeZone': 'UTC',
           'startTimeUtcOffset': '+00:00',
+          'participantId': 'P-001',
         }).toJson().keys;
         expect(keys.any((k) => k.toLowerCase().contains('token')), isFalse);
         expect(keys.any((k) => k.toLowerCase().contains('password')), isFalse);
@@ -58,8 +75,21 @@ void main() {
 
   group('DayMarkerPayload', () {
     test('round-trips a date marker', () {
-      const json = <String, Object?>{'date': '2025-10-15'};
+      const json = <String, Object?>{
+        'date': '2025-10-15',
+        'participantId': 'P-001',
+      };
       expect(DayMarkerPayload.fromJson(json).toJson(), json);
+    });
+
+    test('carries participantId through toJson/fromJson', () {
+      const payload = DayMarkerPayload(
+        date: '2025-10-15',
+        participantId: 'P-7',
+      );
+      final roundTripped = DayMarkerPayload.fromJson(payload.toJson());
+      expect(roundTripped.participantId, 'P-7');
+      expect(roundTripped.date, '2025-10-15');
     });
   });
 }

@@ -51,17 +51,17 @@ override the default:
 
 ```bash
 # Option A: export an absolute path (also how the sponsor wrapper works)
-SPONSOR_REPO=/abs/path/to/hht_diary_callisto ./deployment/local-stack/local-stack portal
+SPONSOR_REPO=/abs/path/to/hht_diary_<sponsor> ./deployment/local-stack/local-stack portal
 ```
 
 ```toml
 # Option B: deployment/local-stack/.local-stack.local.toml
 [associated.sponsor]
-path = "/abs/path/to/hht_diary_callisto"
+path = "/abs/path/to/hht_diary_<sponsor>"
 ```
 
 A relative `[associated.sponsor].path` resolves against the toolkit root, so the
-canonical sibling layout (`../../../hht_diary_callisto`) works from a normal
+canonical sibling layout (`../../../hht_diary_<sponsor>`) works from a normal
 clone but not from a git worktree (one level deeper) — use an absolute path
 there, or run from the sponsor repo.
 
@@ -79,7 +79,7 @@ there, or run from the sponsor repo.
 
   ```text
   ~/cure-hht/hht_diary            (core — this toolkit's home + reference sponsor)
-  ~/cure-hht/hht_diary_callisto   (sponsor, optional)
+  ~/cure-hht/hht_diary_<sponsor>   (sponsor, optional)
   ```
 
   Select a real sponsor via `SPONSOR_REPO` or `.local-stack.local.toml` (see above).
@@ -262,8 +262,8 @@ Grafana (telemetry)  http://localhost:3000
 
 The deployed/local portal seed is **SystemOperator-only**, read from the
 sponsor's `deployment/seed/portal-users.json` (baked into `portal-final`,
-applied idempotently on boot via `PORTAL_SEED_USERS_PATH`). For callisto these
-are the `@anspar.org` operators. Operators provision the first Administrators
+applied idempotently on boot via `PORTAL_SEED_USERS_PATH`). For a real sponsor
+these are its operator identities. Operators provision the first Administrators
 through the portal. Under dev auth the `userId` is the login id you type
 verbatim (no password); under session auth it's the Identity-Platform email.
 
@@ -283,9 +283,18 @@ verbatim (no password); under session auth it's the Identity-Platform email.
    stdout instead of calling the Gmail API. Read OTPs / activation links /
    linking codes via `./local-stack email` (or `logs portal-final`).
 
-4. **FCM (push notifications) doesn't initialize.** `NotificationService` tries
-   to fetch GCP creds from `metadata.google.internal` at startup and fails --
-   harmless noise in the logs. The portal doesn't depend on FCM.
+4. **Push is local-socket, not FCM.** `PUSH_MODE` defaults to `local` (see
+   `./local-stack --help` → Push), so the portal pushes to the diary in REAL
+   TIME over a WebSocket (`/api/v1/user/push`, proxied with WS-upgrade headers
+   by the sponsor nginx) instead of FCM — no `cure-hht-admin` send credentials
+   needed. The diary runs as env=local and skips `firebase_messaging` init
+   entirely, so there is no metadata-server credential noise on the device side.
+   To see the loop: `./local-stack diary`, link a participant, then drive a
+   portal action (e.g. disconnect the participant, or assign a questionnaire) —
+   the diary's banner / reactive UI updates within a second or two with no user
+   interaction. The transport is pluggable (mirrors `PORTAL_AUTH_MODE`); set
+   `PUSH_MODE=fcm` to exercise the real FCM path, which needs FCM send
+   credentials in the portal container (usually only a real cloud deploy).
 
 ## Troubleshooting
 

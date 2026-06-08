@@ -19,6 +19,10 @@ import '../tokens/spacing_tokens.dart';
 /// **Debounce**: when [onChangedDebounce] is non-null, [onChanged] is delayed
 /// until the user stops typing for that duration. Useful for search-as-you-type
 /// without firing a network request on every keystroke.
+///
+/// **Test-harness caveat**: when [semanticId] is set, leave [onChangedDebounce]
+/// null (or set it to [Duration.zero]). A Playwright `.fill(...)`-then-assert
+/// can race a non-zero debounce.
 class AppTextField extends StatefulWidget {
   final String? label;
   final String? hintText;
@@ -62,6 +66,11 @@ class AppTextField extends StatefulWidget {
   /// (tighter vertical padding). Default `false` = standard input height.
   final bool dense;
 
+  /// Test-harness locator. When set, wraps the field in a
+  /// `Semantics(identifier: ..., textField: true, container: true, explicitChildNodes: true)`
+  /// node so Playwright can target it by `flt-semantics-identifier`.
+  final String? semanticId;
+
   const AppTextField({
     super.key,
     this.label,
@@ -89,6 +98,7 @@ class AppTextField extends StatefulWidget {
     this.onChangedDebounce,
     this.focusNode,
     this.dense = false,
+    this.semanticId,
   });
 
   /// Pre-configured search input: magnifier prefix, clear button suffix,
@@ -102,6 +112,7 @@ class AppTextField extends StatefulWidget {
     bool enabled = true,
     bool autofocus = false,
     FocusNode? focusNode,
+    String? semanticId,
   }) {
     return AppTextField(
       key: key,
@@ -115,6 +126,7 @@ class AppTextField extends StatefulWidget {
       autofocus: autofocus,
       focusNode: focusNode,
       dense: true,
+      semanticId: semanticId,
     );
   }
 
@@ -233,16 +245,26 @@ class _AppTextFieldState extends State<AppTextField> {
       ),
     );
 
-    if (widget.label == null) return field;
+    final laidOut = widget.label == null
+        ? field
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _LabelRow(label: widget.label!, required: widget.required),
+              SizedBox(height: SpacingTokens.xs),
+              field,
+            ],
+          );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _LabelRow(label: widget.label!, required: widget.required),
-        SizedBox(height: SpacingTokens.xs),
-        field,
-      ],
+    if (widget.semanticId == null) return laidOut;
+
+    return Semantics(
+      identifier: widget.semanticId,
+      textField: true,
+      container: true,
+      explicitChildNodes: true,
+      child: laidOut,
     );
   }
 }

@@ -1,17 +1,21 @@
 name: portal_server_evs
 description: "Event-sourced portal server (reaction HTTP/WS shell over portal_service). Beta rebuild of portal_server."
-version: 0.5.0
+version: 0.5.6+10
 publish_to: none
 
 environment:
   sdk: ^3.5.0
 
 dependencies:
+  comms:
+    path: ../../common-dart/comms
   crypto: ^3.0.7
+  diary_shared_model:
+    path: ../../common-dart/diary_shared_model
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: af9670325717f33ae6bddae355241346902acb00
       path: event_sourcing
   portal_identity:
     path: ../portal_identity
@@ -24,16 +28,16 @@ dependencies:
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: af9670325717f33ae6bddae355241346902acb00
       path: reaction
   sembast: ^3.0.0
   shelf: ^1.4.0
   shelf_router: ^1.1.0
   shelf_web_socket: ^3.0.0
+  web_socket_channel: ^3.0.0
 
 dev_dependencies:
-  diary_shared_model:
-    path: ../../common-dart/diary_shared_model
+  async: ^2.11.0
   http: ^1.6.0
   lints: ^5.0.0
   test: ^1.25.0

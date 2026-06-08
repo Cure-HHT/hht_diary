@@ -5,6 +5,7 @@ import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
+import 'package:clinical_diary/scope/diary_participant_id.dart';
 import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
@@ -121,7 +122,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
   // The event-sourced clinical rules (justification/lock thresholds + duration
   // confirmations + review screen), read reactively from ClinicalRulesScope in
-  // didChangeDependencies — NOT the legacy FeatureFlagService.
+  // didChangeDependencies.
   ClinicalRules _rules = const ClinicalRules();
   bool _initialStepSet = false;
 
@@ -393,6 +394,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
       'startTime': startIso,
       'startTimeZone': _startTimeTimezone ?? deviceZone,
       'startTimeUtcOffset': _utcOffsetOf(startIso, _startTimeTimezone),
+      // Stamp the enrolled participant so the canonical `diary_entries` row can
+      // be filtered by participant (epistaxis events use a fresh-UUID aggregate
+      // id that does not embed it). Same id the action attributes the event to.
+      'participantId': diaryParticipantId(context),
     };
     if (_endDateTime != null) {
       final endIso = DateTimeFormatter.format(_endDateTime!);

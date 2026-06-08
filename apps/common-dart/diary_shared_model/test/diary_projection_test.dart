@@ -82,6 +82,24 @@ void main() {
       );
     });
 
+    test('survey: uses the local date component of completed_at', () {
+      // A `<id>_survey` derives its canonical day from the submission timestamp.
+      expect(
+        canonicalEntryDate('nose_hht_survey', const {
+          'completed_at': '2026-06-08T11:34:00-04:00',
+        }),
+        '2026-06-08',
+      );
+    });
+
+    test('survey: null when completed_at absent or malformed', () {
+      expect(canonicalEntryDate('nose_hht_survey', const {}), isNull);
+      expect(
+        canonicalEntryDate('qol_survey', const {'completed_at': 'nope'}),
+        isNull,
+      );
+    });
+
     test('returns null for missing / malformed / unknown type', () {
       expect(canonicalEntryDate('epistaxis_event', const {}), isNull);
       expect(

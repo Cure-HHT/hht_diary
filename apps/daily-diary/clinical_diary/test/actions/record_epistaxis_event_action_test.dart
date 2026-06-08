@@ -25,6 +25,7 @@ void main() {
         'startTime': '2025-10-15T14:30:00.000-05:00',
         'startTimeZone': 'America/New_York',
         'startTimeUtcOffset': '-05:00',
+        'participantId': 'P-test',
         'endTime': '2025-10-15T14:00:00.000-05:00',
         'endTimeZone': 'America/New_York',
         'endTimeUtcOffset': '-05:00',
@@ -40,6 +41,7 @@ void main() {
         'startTime': '2025-10-15T14:30:00.000-05:00',
         'startTimeZone': 'America/New_York',
         'startTimeUtcOffset': '-05:00',
+        'participantId': 'P-test',
         'endTime': '2025-10-15T14:30:00.000-05:00',
         'endTimeZone': 'America/New_York',
         'endTimeUtcOffset': '-05:00',
@@ -55,6 +57,7 @@ void main() {
           'startTimeZone': 'America/New_York',
           'startTimeUtcOffset': '-05:00',
           'intensity': 'dripping',
+          'participantId': 'P-test',
         });
         action.validate(input);
         final result = await action.execute(input, ctx());
@@ -76,6 +79,7 @@ void main() {
           'startTimeZone': 'America/New_York',
           'startTimeUtcOffset': '-05:00',
           'entryJustification': 'forgot_to_log',
+          'participantId': 'P-test',
         });
         final result = await action.execute(input, ctx());
         expect(

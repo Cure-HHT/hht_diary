@@ -44,7 +44,7 @@ setup() {
   echo '{"sponsor":"fixture"}' > "$sponsor/deployment/base-config.json"
   cat > "$toolkit/.local-stack.toml" <<EOF
 [associated.sponsor]
-repo = "Cure-HHT/hht_diary_callisto"
+repo = "Cure-HHT/hht_diary_acme"
 path = "../sponsor"
 EOF
   run python3 "$RESOLVER" --toolkit "$toolkit"
@@ -84,7 +84,7 @@ EOF
   mkdir -p "$toolkit"
   cat > "$toolkit/.local-stack.toml" <<EOF
 [associated.sponsor]
-repo = "Cure-HHT/hht_diary_callisto"
+repo = "Cure-HHT/hht_diary_acme"
 path = "/definitely/does/not/exist/anywhere"
 EOF
   run python3 "$RESOLVER" --toolkit "$toolkit"
@@ -99,7 +99,7 @@ EOF
   mkdir -p "$toolkit" "$fake_sponsor"
   cat > "$toolkit/.local-stack.toml" <<EOF
 [associated.sponsor]
-repo = "Cure-HHT/hht_diary_callisto"
+repo = "Cure-HHT/hht_diary_acme"
 path = "$fake_sponsor"
 EOF
   run python3 "$RESOLVER" --toolkit "$toolkit"

@@ -20,7 +20,17 @@ class StatusBadge extends StatelessWidget {
   /// kind ("Active" / "Pending" / "At risk" / "Inactive").
   final String? label;
 
-  const StatusBadge({super.key, required this.kind, this.label});
+  /// Test-harness locator. When set, wraps the badge in a
+  /// `Semantics(identifier: ..., value: <label-or-default>, container: true, explicitChildNodes: true)`
+  /// node so Playwright can `readSemanticValue` the current status.
+  final String? semanticId;
+
+  const StatusBadge({
+    super.key,
+    required this.kind,
+    this.label,
+    this.semanticId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +49,7 @@ class StatusBadge extends StatelessWidget {
     // Announce as "<label> status" so the semantic role survives even
     // when the colored dot can't be perceived. The dot is decorative;
     // ExcludeSemantics keeps it out of the traversal order.
-    return Semantics(
+    final Widget bare = Semantics(
       label: '$effectiveLabel status',
       excludeSemantics: true,
       child: Row(
@@ -67,6 +77,16 @@ class StatusBadge extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    if (semanticId == null) return bare;
+
+    return Semantics(
+      identifier: semanticId,
+      value: effectiveLabel,
+      container: true,
+      explicitChildNodes: true,
+      child: bare,
     );
   }
 }

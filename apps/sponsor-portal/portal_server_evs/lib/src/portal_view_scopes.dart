@@ -26,3 +26,22 @@ ViewScopeRegistry buildPortalViewScopeRegistry() => ViewScopeRegistry()
     scopeClass: 'participant',
     aggregateIdResolver: (scope) => scope is BoundScope ? scope.value : null,
   );
+
+// `questionnaire_instance` is deliberately NOT registered here, so it stays
+// row-unscoped (gated only by `view:questionnaire_instance`), like the clinical
+// `diary_entries` view granted to the StudyCoordinator.
+//
+// Why it cannot be participant/site-scoped through this registry: the reaction
+// server's row-level narrowing (subscription_handler `_expandAssignments`)
+// resolves a Principal's scope assignments into a set of *aggregate IDs* and
+// filters view rows by `aggregateId`. `questionnaire_instance` rows are keyed by
+// *instanceId* (aggregateId == instanceId), NOT by participant. A `participant`-
+// class binding would resolve a site-bound SC's scope into participant aggregate
+// IDs, which never match any instanceId-keyed row — so the allowed-set would be
+// empty and a site-bound StudyCoordinator would receive ZERO questionnaire rows.
+//
+// FOLLOW-UP: true per-site row scoping for instanceId-keyed views would require
+// a library enhancement to narrow by a non-aggregateId key column (e.g. a row's
+// `participant_id`) rather than by aggregateId. Out of scope here.
+//
+// Implements: DIARY-DEV-portal-reaction-server/C

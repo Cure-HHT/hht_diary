@@ -1,5 +1,9 @@
 import 'package:diary_design_system/diary_design_system.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
+import 'package:reaction/reaction.dart';
+import 'package:reaction_widgets/reaction_widgets.dart';
+import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 import 'package:widgetbook/widgetbook.dart';
 
 void _noop() {}
@@ -181,68 +185,6 @@ class _AppDialogGallery extends StatelessWidget {
           ],
         ),
 
-        // ---- Async via AppDialog.async factory
-        _Section(
-          title: '.async — overlay launcher',
-          children: [
-            _OverlayLauncher(
-              label: 'Open async flow',
-              onPressed: (ctx) => AppDialog.async<String>(
-                context: ctx,
-                onSubmit: () async {
-                  await Future.delayed(const Duration(milliseconds: 800));
-                  return 'codes-revoked-3';
-                },
-                confirmBuilder: (c, submit) => AppDialog(
-                  size: AppDialogSize.small,
-                  dismissible: false,
-                  title: 'Disconnect participant',
-                  body: const Text(
-                    'This will revoke active linking codes and the participant '
-                    'will see a disconnection notice in their app.',
-                  ),
-                  actions: [
-                    AppButton(
-                      variant: AppButtonVariant.secondary,
-                      label: 'Cancel',
-                      onPressed: () => Navigator.of(c).pop(),
-                    ),
-                    AppButton(
-                      variant: AppButtonVariant.destructive,
-                      label: 'Disconnect',
-                      onPressed: submit,
-                    ),
-                  ],
-                ),
-                successBuilder: (c, value) => AppDialog(
-                  size: AppDialogSize.small,
-                  title: 'Participant disconnected',
-                  body: Text('Result: $value'),
-                  actions: [
-                    AppButton(
-                      label: 'Done',
-                      onPressed: () => Navigator.of(c).pop(value),
-                    ),
-                  ],
-                ),
-                errorBuilder: (c, error, retry) => AppDialog(
-                  size: AppDialogSize.small,
-                  title: 'Disconnect failed',
-                  body: Text(error.toString()),
-                  actions: [
-                    AppButton(
-                      variant: AppButtonVariant.secondary,
-                      label: 'Cancel',
-                      onPressed: () => Navigator.of(c).pop(),
-                    ),
-                    AppButton(label: 'Try again', onPressed: retry),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-
         // ---- .reason — overlay launchers
         _Section(
           title: '.reason — overlay launchers',
@@ -273,9 +215,28 @@ class _AppDialogGallery extends StatelessWidget {
           ],
         ),
 
-        // ---- AsyncActionDialog phases
+        // ---- ActionBuilder + AppDialog — live composition.
+        //
+        // The canonical reactive-portal pattern: ActionBuilder owns the
+        // submission lifecycle + idempotency key; AppDialog renders the
+        // chrome; AppButton(loading: state is Submitting, onPressed: submit)
+        // wires them together. Backed by `FakeReaction` from
+        // `reaction_widgets_testing` (a shipped public deliverable) so the
+        // demo runs without a real action backend.
         _Section(
-          title: 'AsyncActionDialog — phases',
+          title:
+              'ActionBuilder + AppDialog — live composition (reactive portal pattern)',
+          children: [_ActionBuilderDemo()],
+        ),
+
+        // ---- Async dialog phases (visual reference).
+        //
+        // Static AppDialog previews showing what each phase looks like when
+        // a caller composes AppDialog inside their app's async primitive
+        // (e.g. ActionBuilder from reaction_widgets). The design system
+        // intentionally ships no async-dialog state machine of its own.
+        _Section(
+          title: 'Async dialog phases — visual reference',
           children: [
             _DialogPreview(
               label: 'Confirm',
@@ -413,6 +374,177 @@ class _OverlayLauncher extends StatelessWidget {
         label: label,
         onPressed: () => onPressed(context),
       ),
+    );
+  }
+}
+
+/// Live demo of the canonical `ActionBuilder` + `AppDialog` composition.
+///
+/// Each launcher mints a fresh [FakeReaction], pre-queues one delayed
+/// [DispatchResult], and opens a dialog whose actions are driven by the
+/// `ActionBuilder`'s `(state, submit)` tuple. The user can step through
+/// the full lifecycle (confirm → Submitting → Success/Denied/Failed) and
+/// see how `AppButton(loading: state is Submitting, onPressed: submit)`
+/// maps onto the state machine.
+class _ActionBuilderDemo extends StatelessWidget {
+  const _ActionBuilderDemo();
+
+  Future<DispatchResult<Object?>> _delayedSuccess() {
+    return Future.delayed(
+      const Duration(milliseconds: 800),
+      () => const DispatchSuccess<Object?>(null, <String>['evt-1']),
+    );
+  }
+
+  Future<DispatchResult<Object?>> _delayedDenied() {
+    return Future.delayed(
+      const Duration(milliseconds: 800),
+      () => const DispatchValidationDenied<Object?>('patient id is required'),
+    );
+  }
+
+  Future<DispatchResult<Object?>> _delayedThrow() {
+    return Future<DispatchResult<Object?>>.delayed(
+      const Duration(milliseconds: 800),
+    ).then((_) => throw StateError('network unreachable'));
+  }
+
+  Future<void> _open(
+    BuildContext context, {
+    required Future<DispatchResult<Object?>> result,
+  }) async {
+    // Fresh FakeReaction per dialog so queues don't bleed between launches.
+    final fake = FakeReaction();
+    fake.queueDispatchResultFuture(result);
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => ReActionScope(
+          scope: fake,
+          child: ActionBuilder(
+            submissionFactory: () => const ActionSubmission(
+              actionName: 'disconnect_participant',
+              rawInput: <String, Object?>{'patientId': 'P-42'},
+            ),
+            builder: (ctx, state, submit) => _DisconnectDialog(
+              state: state,
+              onSubmit: submit,
+              onClose: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+        ),
+      );
+    } finally {
+      await fake.dispose();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            'Live demo backed by FakeReaction from reaction_widgets_testing. '
+            'Pick an outcome — the dialog cycles confirm → Submitting → '
+            'Success/Denied/Failed using the same ActionBuilder pattern '
+            'documented on AppDialog.',
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            AppButton(
+              variant: AppButtonVariant.secondary,
+              size: AppButtonSize.small,
+              label: 'Open: succeeds',
+              onPressed: () => _open(context, result: _delayedSuccess()),
+            ),
+            AppButton(
+              variant: AppButtonVariant.secondary,
+              size: AppButtonSize.small,
+              label: 'Open: denied',
+              onPressed: () => _open(context, result: _delayedDenied()),
+            ),
+            AppButton(
+              variant: AppButtonVariant.secondary,
+              size: AppButtonSize.small,
+              label: 'Open: errors',
+              onPressed: () => _open(context, result: _delayedThrow()),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// AppDialog rendered from an [ActionState]. Kept separate from
+/// [_ActionBuilderDemo] so the composition pattern (state → chrome) is
+/// readable on its own.
+class _DisconnectDialog extends StatelessWidget {
+  const _DisconnectDialog({
+    required this.state,
+    required this.onSubmit,
+    required this.onClose,
+  });
+
+  final ActionState state;
+  final VoidCallback onSubmit;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final isTerminal = state is Success || state is Denied || state is Failed;
+    final isSubmitting = state is Submitting;
+
+    return AppDialog(
+      size: AppDialogSize.small,
+      dismissible: false,
+      title: switch (state) {
+        Submitting() => 'Disconnecting…',
+        Success() => 'Participant disconnected',
+        Denied() => 'Disconnect denied',
+        Failed() => 'Disconnect failed',
+        _ => 'Disconnect participant',
+      },
+      body: switch (state) {
+        Submitting() => const SizedBox(
+          height: 60,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        Success() => const Text(
+          'Linking codes revoked. The participant will see a '
+          'disconnection notice the next time they open the app.',
+        ),
+        Denied(:final reason) => Text(reason),
+        Failed(:final error) => Text('$error'),
+        _ => const Text(
+          'This will revoke active linking codes and the participant '
+          'will see a disconnection notice in their app.',
+        ),
+      },
+      actions: isTerminal
+          ? [AppButton(label: 'Close', onPressed: onClose)]
+          : [
+              AppButton(
+                variant: AppButtonVariant.secondary,
+                label: 'Cancel',
+                onPressed: isSubmitting ? null : onClose,
+              ),
+              AppButton(
+                variant: AppButtonVariant.destructive,
+                label: 'Disconnect',
+                loading: isSubmitting,
+                onPressed: isSubmitting ? null : onSubmit,
+              ),
+            ],
     );
   }
 }

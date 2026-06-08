@@ -13,10 +13,16 @@ import 'package:comms/src/channels/fcm/adc_client.dart';
 import 'package:comms/src/channels/fcm/fcm_message.dart';
 import 'package:comms/src/compliance/payload_guard.dart';
 import 'package:comms/src/dispatch_result.dart';
+import 'package:comms/src/push_channel.dart';
 import 'package:http/http.dart' as http;
 
-/// `Channel<FcmMessage>` impl backed by FCM HTTP v1 + ADC.
-class FcmChannel implements Channel<FcmMessage> {
+/// FCM HTTP v1 transport. It is both the legacy `Channel<FcmMessage>` and the
+/// transport-neutral [PushChannel] adapter: [send] maps a [PushTarget] /
+/// [PushMessage] onto an [FcmMessage] and delegates to [dispatch], so the FCM
+/// payload-building + PayloadGuard + response-mapping logic lives in one place.
+// Implements: DIARY-DEV-pluggable-push-transport/A — FcmChannel is the FCM
+//   adapter of the neutral PushChannel seam.
+class FcmChannel implements Channel<FcmMessage>, PushChannel {
   FcmChannel({
     required this.projectId,
     AdcClient? adcClient,
@@ -41,6 +47,22 @@ class FcmChannel implements Channel<FcmMessage> {
 
   @override
   String get name => 'fcm';
+
+  /// [PushChannel] entrypoint. Maps the neutral target/message onto an
+  /// [FcmMessage] (the [PushTarget.routingToken] is the FCM registration
+  /// token) and delegates to [dispatch].
+  @override
+  Future<DispatchResult> send(PushTarget target, PushMessage message) {
+    return dispatch(
+      FcmMessage(
+        fcmToken: target.routingToken,
+        data: message.data,
+        userVisible: message.userVisible,
+        notificationTitle: message.title,
+        notificationBody: message.body,
+      ),
+    );
+  }
 
   /// FCM v1 endpoint. Computed lazily from [projectId].
   Uri get _endpoint => Uri.parse(

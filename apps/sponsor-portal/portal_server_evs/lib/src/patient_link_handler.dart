@@ -7,6 +7,7 @@
 //   ownership check (B3) remains pending, and that lives in a different file
 //   (patient_ingest_handler.dart).
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:shelf/shelf.dart';
@@ -57,7 +58,11 @@ class _LinkOutcome {
 /// Build the patient-facing `/link` handler over [eventStore]. Dependencies are
 /// injected so this module lifts cleanly into a dedicated diary-server node when
 /// the edge/core split lands (mirrors [patientIngestHandler]).
-Handler patientLinkHandler({required EventStore eventStore}) {
+Handler patientLinkHandler({
+  required EventStore eventStore,
+  String? sponsorId,
+}) {
+  final sid = sponsorId ?? Platform.environment['SPONSOR_ID'];
   return (Request request) async {
     // 1. Parse the body; reject unparseable JSON or a missing/blank code.
     final String rawCode;
@@ -245,6 +250,17 @@ Handler patientLinkHandler({required EventStore eventStore}) {
       return _err(outcome.statusCode, outcome.message ?? 'request failed');
     }
     final participantId = outcome.participantId;
+
+    // 4a. Compose the sponsor-settings batch (set-once-at-link). The diary applies
+    //     these through its EXISTING sponsor-settings path; they are recorded
+    //     source=sponsor, locked=true on device. The batch carries branding
+    //     identity (title + logo sha256/role) plus the clinical.* / ui.*
+    //     configuration parameters from the event-sourced portal_settings store.
+    //     Empty list when nothing is materialized — the link still succeeds.
+    // Implements: DIARY-DEV-sponsor-branding-source/B
+    // Implements: DIARY-DEV-sponsor-config-source/B+C
+    final sponsorSettings = await _sponsorSettingsBatch(eventStore, sid);
+
     return Response.ok(
       jsonEncode(<String, Object?>{
         'success': true,
@@ -257,8 +273,77 @@ Handler patientLinkHandler({required EventStore eventStore}) {
         'siteNumber': outcome.siteNumber,
         'studyParticipantId': participantId,
         'sitePhoneNumber': null,
+        'sponsor_settings': sponsorSettings,
       }),
       headers: const {'Content-Type': 'application/json'},
     );
   };
+}
+
+/// Composes the `/link` sponsor-settings batch: the materialized sponsor branding
+/// identity (title + logo sha256/role) for [sid] plus the `clinical.*` / `ui.*`
+/// configuration parameters from the `portal_settings` store. Each entry is a
+/// `{key, value, locked: true}` map the diary applies via its
+/// `apply_sponsor_settings` action. Returns `[]` when nothing is materialized.
+// Implements: DIARY-DEV-sponsor-branding-source/B
+// Implements: DIARY-DEV-sponsor-config-source/B+C
+Future<List<Map<String, Object?>>> _sponsorSettingsBatch(
+  EventStore eventStore,
+  String? sid,
+) async {
+  final settings = <Map<String, Object?>>[];
+
+  // --- branding.* : title + logo asset identity (sha256 + role), never bytes ---
+  final brandingRows =
+      await eventStore.backend.findViewRows('sponsor_branding');
+  Map<String, Object?>? branding;
+  for (final r in brandingRows) {
+    if (sid == null || r['sponsorId'] == sid) {
+      branding = r;
+      break;
+    }
+  }
+  if (branding != null) {
+    final title = branding['title'];
+    if (title != null) {
+      settings.add(<String, Object?>{
+        'key': 'branding.title',
+        'value': title,
+        'locked': true,
+      });
+    }
+    final assets = (branding['assets'] as List? ?? const [])
+        .map((a) => (a as Map).cast<String, Object?>());
+    for (final a in assets) {
+      if (a['role'] == 'logo') {
+        settings.add(<String, Object?>{
+          'key': 'branding.logoSha256',
+          'value': a['sha256'],
+          'locked': true,
+        });
+        settings.add(<String, Object?>{
+          'key': 'branding.logoRole',
+          'value': 'logo',
+          'locked': true,
+        });
+        break;
+      }
+    }
+  }
+
+  // --- clinical.* + ui.* : the per-deployment configuration parameters ---
+  const configPrefixes = <String>['clinical.', 'ui.'];
+  final settingRows = await eventStore.backend.findViewRows('portal_settings');
+  for (final r in settingRows) {
+    final key = r['key'];
+    if (key is String && configPrefixes.any(key.startsWith)) {
+      settings.add(<String, Object?>{
+        'key': key,
+        'value': r['value'],
+        'locked': true,
+      });
+    }
+  }
+
+  return settings;
 }

@@ -107,11 +107,34 @@ B. When a *User Account* is deactivated, or its *Role* or *Site* assignment is c
 
 C. The portal SHALL enforce *Session* validity server-side on every request, denying a terminated or idle-expired *Session* regardless of token possession.
 
+D. The portal SHALL expose the effective *Session* *Idle Timeout* and *Timeout Warning Threshold* to the client at *Session* establishment.
+
+E. The portal SHALL treat a keep-alive request as *Session* activity, resetting elapsed inactivity server-side.
+
 ### Rationale
 
-Capping idle time bounds the window in which an unattended authenticated workstation can be abused, and explicit logout lets an *Account Owner* end that window deliberately. The cascade on *Deactivation* and on *Role* or *Site* change makes authorization changes take effect synchronously rather than waiting for a *Session* to time out, so a *User* who has lost access for cause cannot keep acting under the stale grant. Enforcing all of this at the validator — rather than trusting the client to stop using a token — is what makes possession of a token insufficient once the *Session* behind it is gone.
+Capping idle time bounds the window in which an unattended authenticated workstation can be abused, and explicit logout lets an *Account Owner* end that window deliberately. The cascade on *Deactivation* and on *Role* or *Site* change makes authorization changes take effect synchronously rather than waiting for a *Session* to time out, so a *User* who has lost access for cause cannot keep acting under the stale grant. Enforcing all of this at the validator — rather than trusting the client to stop using a token — is what makes possession of a token insufficient once the *Session* behind it is gone. Exposing the effective idle and warning values lets the client run a faithful soft-timer that mirrors — never overrides — the server's authoritative window, and treating a keep-alive as activity lets an operator who is actively reading (producing interface activity but no data requests) extend the *Session* through the same validator path every other request takes.
 
-*End* *Portal session lifecycle* | **Hash**: 32f18e2d
+*End* *Portal session lifecycle* | **Hash**: a7e8ed40
+
+## DIARY-DEV-portal-session-config: Portal session configuration sourcing
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-session-management
+
+### Overview
+
+The portal sources the *Session* *Idle Timeout* and *Timeout Warning Threshold* from event-sourced settings, seeded idempotently at boot from deployment configuration, so the durations are per-deployment without a code change.
+
+### Assertions
+
+A. The portal SHALL source the *Session* *Idle Timeout* and *Timeout Warning Threshold* from the `portal_settings` store keys `session_idle_minutes` and `session_warning_seconds`, seeded idempotently at boot from deployment configuration and clamped to the supported ranges (idle 1–30 minutes; warning 10 seconds to the idle window), falling back to the legacy idle environment value and then the platform defaults.
+
+### Rationale
+
+Reusing the event-sourced `portal_settings` mechanism (the same one the second-factor toggle and *Sponsor* configuration use) makes the timeout durations auditable, replayable, and idempotent across boots, while clamping at both seed and read time means a misconfigured deployment cannot persist or serve an out-of-range value. A single authoritative reader feeds both the request validator and the value surfaced to the client, so the two ends cannot disagree.
+
+*End* *Portal session configuration sourcing* | **Hash**: e0054d77
 
 ## DIARY-DEV-portal-active-role-switch: In-session active role switch
 

@@ -223,6 +223,12 @@ class EnrollmentService {
 
       final participantId = responseBody['participantId'] as String?;
       final linkingCode = responseBody['linkingCode'] as String?;
+      // The portal composes a sponsor-settings batch (e.g. branding keys) into
+      // the /link response. Carry it on the enrollment so the diary applies it
+      // once at the link transition via apply_sponsor_settings (set-once-at-link).
+      final sponsorSettings =
+          (responseBody['sponsor_settings'] as List?)?.cast<Object?>() ??
+          const <Object?>[];
       final siteId = responseBody['siteId'] as String?;
       final siteName = responseBody['siteName'] as String?;
       final sitePhoneNumber = responseBody['sitePhoneNumber'] as String?;
@@ -247,6 +253,7 @@ class EnrollmentService {
         siteName: siteName,
         sitePhoneNumber: sitePhoneNumber,
         studyParticipantId: studyParticipantId,
+        sponsorSettings: sponsorSettings,
       );
 
       await _saveEnrollment(enrollment);

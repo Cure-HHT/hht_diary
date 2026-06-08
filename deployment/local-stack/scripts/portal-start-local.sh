@@ -65,7 +65,7 @@ fi
 
 cat <<BANNER
 ==========================================
-Callisto Portal — LOCAL-STACK
+Reference Portal — LOCAL-STACK
 ==========================================
   nginx port:           ${PUBLIC_PORT}
   backend port:         ${BACKEND_PORT}

@@ -62,6 +62,11 @@ subscribing *Principal*'s permitted scope. A *Study Coordinator* bound to a *Sit
 receive only the *Participants* at that *Site* and SHALL NOT receive *Participant* records
 from other *Sites*.
 
+D. The portal SHALL configure `ReactionHandlers` with a fixed `/subscriptions` WebSocket
+keepalive interval (a checked-in operational constant, currently 20 seconds), kept below
+the proxy *Idle Timeout* in front of `/subscriptions`, so an idle or half-open subscription
+connection is not silently reaped without the reactive client observing a close.
+
 ### Rationale
 
 The reactive transport (subscriptions + *Action* dispatch over WS/HTTP) is the portal's
@@ -76,7 +81,18 @@ Coordinator's live *Participant* list cannot leak rows from *Sites* they are not
 to. A projection with no scope binding stays unscoped at the row level (global/admin
 views), gated only by its view-level permission.
 
-*End* *Portal Reaction Server Shell* | **Hash**: d305e3c1
+Keepalive (D) is set on the portal side rather than baked into the library default because
+the library stays transport-policy-neutral; the consumer chooses the interval. Without it,
+an idle or half-open WebSocket can be dropped with no close-frame, leaving the reactive
+client believing it is still connected so its lifecycle-driven reconnect never fires and
+the *User* sees silently stale lists. The interval is a fixed operational constant rather
+than per-environment configuration: 20 seconds clears any sane proxy/load-balancer
+*Idle Timeout* for the WS route, and its only real constraint — staying below the
+`/subscriptions` `proxy_read_timeout` — couples it to another checked-in repo value (the
+nginx config), so both live in version control and are reviewed together rather than being
+a deployment knob that each environment must set.
+
+*End* *Portal Reaction Server Shell* | **Hash**: 8e038146
 
 ## DIARY-DEV-rave-edc-ingest: RAVE/EDC Ingest as Edge Events
 

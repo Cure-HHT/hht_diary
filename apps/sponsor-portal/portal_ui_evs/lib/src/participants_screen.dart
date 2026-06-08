@@ -8,6 +8,7 @@ import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
 import 'activation_code_display.dart';
+import 'manage_questionnaires_dialog.dart';
 import 'participant_status.dart';
 import 'start_trial_dialog.dart';
 
@@ -57,7 +58,13 @@ class _P {
         (row['participant_id'] as String?) ??
         '?',
     siteId: (row['site_id'] as String?) ?? '?',
-    status: statusFromEntryType(row['entryType'] as String?),
+    // Use the trial-start-aware status so a reactivated + re-linked participant
+    // (whose original started_at is preserved) reads as Trial Active and is not
+    // re-offered Start Trial. See effectiveParticipantStatus.
+    status: effectiveParticipantStatus(
+      row['entryType'] as String?,
+      trialStarted: row['started_at'] != null,
+    ),
     linkingCode: row['linking_code'] as String?,
   );
 }
@@ -147,7 +154,19 @@ const Set<ParticipantAction> _kIssuingActions = <ParticipantAction>{
 );
 
 class ParticipantsScreen extends StatelessWidget {
-  const ParticipantsScreen({super.key});
+  const ParticipantsScreen({
+    super.key,
+    required this.serverUrl,
+    required this.identityCredential,
+  });
+
+  /// The portal server base URL — threaded through to the Manage Questionnaires
+  /// modal's send POST (same origin as every other screen).
+  final String serverUrl;
+
+  /// The bare identity credential (session token / userId), threaded through to
+  /// the modal so it can build the `<identityCredential>|<activeRole>` Bearer.
+  final String identityCredential;
 
   @override
   Widget build(BuildContext context) => PermissionGate(
@@ -216,6 +235,14 @@ class ParticipantsScreen extends StatelessWidget {
                               participant: p,
                               action: action,
                             ),
+                          // Manage Questionnaires launch — gated on the
+                          // ACT-QST-001 send permission, opens the reactive
+                          // Manage Questionnaires modal for the participant.
+                          _ManageQuestionnairesButton(
+                            participant: p,
+                            serverUrl: serverUrl,
+                            identityCredential: identityCredential,
+                          ),
                         ],
                       ),
                     ],
@@ -398,6 +425,49 @@ class _ParticipantActionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The "Manage Questionnaires" launch button on a participant row. Gated on the
+/// ACT-QST-001 send permission (`portal.questionnaire.send`): a coordinator
+/// without it sees no button. Opens the reactive Manage Questionnaires modal,
+/// threading the server URL + identity credential so the modal can POST the send
+/// orchestration endpoint under the active role.
+///
+/// Implements: DIARY-BASE-questionnaire-manage-modal/A
+class _ManageQuestionnairesButton extends StatelessWidget {
+  const _ManageQuestionnairesButton({
+    required this.participant,
+    required this.serverUrl,
+    required this.identityCredential,
+  });
+
+  final _P participant;
+  final String serverUrl;
+  final String identityCredential;
+
+  @override
+  Widget build(BuildContext context) => PermissionGate(
+    // ACT-QST-001 permission (see portal_permissions.dart).
+    permission: 'portal.questionnaire.send',
+    fallback: const SizedBox.shrink(),
+    child: Semantics(
+      identifier: 'manage-questionnaires-${participant.id}',
+      button: true,
+      container: true,
+      explicitChildNodes: true,
+      child: OutlinedButton.icon(
+        onPressed: () => ManageQuestionnairesDialog.show(
+          context: context,
+          participantId: participant.id,
+          siteId: participant.siteId,
+          serverUrl: serverUrl,
+          identityCredential: identityCredential,
+        ),
+        icon: const Icon(Icons.assignment, size: 18),
+        label: const Text('Manage Questionnaires'),
+      ),
+    ),
+  );
 }
 
 /// Test-only harness that renders the issuing-action button for a

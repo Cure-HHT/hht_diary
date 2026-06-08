@@ -21,12 +21,19 @@ class AppInfoRow extends StatelessWidget {
   /// Label column width. Defaults to 140 px to match the portal pattern.
   final double labelWidth;
 
+  /// Test-harness locator. When set, wraps the row in a
+  /// `Semantics(identifier: ..., label: label, value: value, container: true, explicitChildNodes: true)`
+  /// node so Playwright can read either side via `readSemanticValue` or
+  /// the label channel.
+  final String? semanticId;
+
   const AppInfoRow({
     super.key,
     required this.label,
     this.value,
     this.valueWidget,
     this.labelWidth = 140,
+    this.semanticId,
   }) : assert(
          value != null || valueWidget != null,
          'AppInfoRow requires either value or valueWidget',
@@ -35,7 +42,7 @@ class AppInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
+    final row = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
@@ -59,6 +66,17 @@ class AppInfoRow extends StatelessWidget {
               ),
         ),
       ],
+    );
+
+    if (semanticId == null) return row;
+
+    return Semantics(
+      identifier: semanticId,
+      label: label,
+      value: value ?? '',
+      container: true,
+      explicitChildNodes: true,
+      child: row,
     );
   }
 }

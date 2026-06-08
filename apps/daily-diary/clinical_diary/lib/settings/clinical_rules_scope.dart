@@ -1,8 +1,7 @@
 // Implements: DIARY-DEV-reactive-read-path/C — exposes the current
 //   [ClinicalRules] (derived from the settings projection by the app-level
 //   ViewBuilder) to the widget tree, so the recording flow enforces the
-//   sponsor/user clinical entry rules from the event stream, reactively —
-//   never from the non-reactive FeatureFlagService.
+//   sponsor/user clinical entry rules from the event stream, reactively.
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:flutter/widgets.dart';
 

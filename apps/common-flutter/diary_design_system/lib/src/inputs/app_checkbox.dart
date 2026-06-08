@@ -16,6 +16,11 @@ class AppCheckbox extends StatelessWidget {
   final bool enabled;
   final bool tristate;
 
+  /// Test-harness locator. When set, wraps the checkbox in a
+  /// `Semantics(identifier: ..., checked: value ?? false, container: true, explicitChildNodes: true)`
+  /// node so Playwright can target it and assert its checked state.
+  final String? semanticId;
+
   const AppCheckbox({
     super.key,
     required this.value,
@@ -23,6 +28,7 @@ class AppCheckbox extends StatelessWidget {
     this.label,
     this.enabled = true,
     this.tristate = false,
+    this.semanticId,
   });
 
   @override
@@ -37,31 +43,42 @@ class AppCheckbox extends StatelessWidget {
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
 
-    if (label == null) return box;
-
-    return InkWell(
-      onTap: enabled && onChanged != null
-          ? () =>
-                onChanged!(tristate ? _nextTristate(value) : !(value ?? false))
-          : null,
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: SpacingTokens.xs),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            box,
-            SizedBox(width: SpacingTokens.sm),
-            Text(
-              label!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: enabled
-                    ? theme.colorScheme.onSurface
-                    : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+    final laidOut = label == null
+        ? box
+        : InkWell(
+            onTap: enabled && onChanged != null
+                ? () => onChanged!(
+                    tristate ? _nextTristate(value) : !(value ?? false),
+                  )
+                : null,
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: SpacingTokens.xs),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  box,
+                  SizedBox(width: SpacingTokens.sm),
+                  Text(
+                    label!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: enabled
+                          ? theme.colorScheme.onSurface
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
+          );
+
+    if (semanticId == null) return laidOut;
+
+    return Semantics(
+      identifier: semanticId,
+      checked: value ?? false,
+      container: true,
+      explicitChildNodes: true,
+      child: laidOut,
     );
   }
 

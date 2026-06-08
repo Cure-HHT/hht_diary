@@ -37,12 +37,16 @@ class AppDropdown<T> extends StatefulWidget {
   final bool required;
   final bool enabled;
 
-  /// Compact inline mode for control rows where the form-field default
-  /// (12 px vertical padding + 20 px chevron) would dwarf its neighbours.
-  /// Picks a 4 px vertical padding + 18 px chevron so the trigger sits at
-  /// ~32 px tall — same rhythm as `AppTablePagination`'s prev/next nav
-  /// buttons. Opt-in: form fields keep the roomier sizing.
+  /// When true, the trigger renders at the compact ~32-px height (tighter
+  /// vertical padding + smaller chevron). Used by inline composers like
+  /// the table page-size selector.
   final bool dense;
+
+  /// Test-harness locator. When set, wraps the trigger in a
+  /// `Semantics(identifier: ..., button: true, value: <selectedLabel>, container: true, explicitChildNodes: true)`
+  /// so Playwright can locate it via `flt-semantics-identifier` and read
+  /// the selected option through `readSemanticValue`.
+  final String? semanticId;
 
   const AppDropdown({
     super.key,
@@ -56,6 +60,7 @@ class AppDropdown<T> extends StatefulWidget {
     this.required = false,
     this.enabled = true,
     this.dense = false,
+    this.semanticId,
   });
 
   @override
@@ -316,16 +321,27 @@ class _AppDropdownState<T> extends State<AppDropdown<T>>
       ],
     );
 
-    if (widget.label == null) return fieldWithHelpers;
+    final laidOut = widget.label == null
+        ? fieldWithHelpers
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _LabelRow(label: widget.label!, required: widget.required),
+              SizedBox(height: SpacingTokens.xs),
+              fieldWithHelpers,
+            ],
+          );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _LabelRow(label: widget.label!, required: widget.required),
-        SizedBox(height: SpacingTokens.xs),
-        fieldWithHelpers,
-      ],
+    if (widget.semanticId == null) return laidOut;
+
+    return Semantics(
+      identifier: widget.semanticId,
+      button: true,
+      value: selectedLabel ?? '',
+      container: true,
+      explicitChildNodes: true,
+      child: laidOut,
     );
   }
 }

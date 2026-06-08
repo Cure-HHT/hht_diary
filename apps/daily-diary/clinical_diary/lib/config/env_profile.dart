@@ -19,6 +19,7 @@ class EnvProfile {
     required this.showBanner,
     required this.showDevTools,
     required this.showResetData,
+    required this.showAllConfigsScreen,
   });
 
   final AppEnv env;
@@ -27,6 +28,12 @@ class EnvProfile {
   final bool showBanner;
   final bool showDevTools;
   final bool showResetData;
+
+  /// Whether the dev "All configs" screen is reachable (the Developer entry in
+  /// Advanced settings). Enabled in local/dev/qa; hidden in uat/prod. Gate set
+  /// by store packaging via the bundled env pointer, not a one-off build flag.
+  // Implements: DIARY-DEV-deployment-config-defaults/E
+  final bool showAllConfigsScreen;
 
   String get name => env.name;
 
@@ -47,6 +54,7 @@ class EnvProfile {
       showBanner: true,
       showDevTools: true,
       showResetData: true,
+      showAllConfigsScreen: true,
     ),
     AppEnv.dev: EnvProfile(
       env: AppEnv.dev,
@@ -61,6 +69,7 @@ class EnvProfile {
       showBanner: true,
       showDevTools: true,
       showResetData: true,
+      showAllConfigsScreen: true,
     ),
     AppEnv.qa: EnvProfile(
       env: AppEnv.qa,
@@ -70,6 +79,7 @@ class EnvProfile {
       showBanner: true,
       showDevTools: true,
       showResetData: true,
+      showAllConfigsScreen: true,
     ),
     AppEnv.uat: EnvProfile(
       env: AppEnv.uat,
@@ -79,6 +89,7 @@ class EnvProfile {
       showBanner: false,
       showDevTools: false,
       showResetData: true,
+      showAllConfigsScreen: false,
     ),
     AppEnv.prod: EnvProfile(
       env: AppEnv.prod,
@@ -87,6 +98,7 @@ class EnvProfile {
       showBanner: false,
       showDevTools: false,
       showResetData: false,
+      showAllConfigsScreen: false,
     ),
   };
 

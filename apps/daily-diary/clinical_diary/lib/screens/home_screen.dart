@@ -1,13 +1,15 @@
 import 'dart:async';
 
 import 'package:clinical_diary/config/app_config.dart';
-import 'package:clinical_diary/config/feature_flags.dart';
+import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
+import 'package:clinical_diary/scope/diary_participant_id.dart';
+import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/screens/day_disposition.dart';
@@ -16,7 +18,9 @@ import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
+import 'package:clinical_diary/screens/service_mode_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
+import 'package:clinical_diary/services/branding_asset_cache.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
@@ -25,6 +29,7 @@ import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/settings/local_reset_policy.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
+import 'package:clinical_diary/widgets/branding_logo.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
@@ -54,6 +59,9 @@ class HomeScreen extends StatefulWidget {
     this.onResetAllData,
     this.resetSettingAllowsReset = true,
     this.nativeFifoWedged,
+    this.sponsorBranding = SponsorBrandingConfig.fallback,
+    this.brandingAssetCache,
+    this.serviceModeContextBuilder,
     super.key,
   });
 
@@ -68,6 +76,11 @@ class HomeScreen extends StatefulWidget {
   /// in by the wedge banner. Null in contexts without the new scope (the native
   /// check is then skipped). See DIARY-DEV-native-outbound-sync/B.
   final Future<bool> Function()? nativeFifoWedged;
+
+  /// Builds the on-demand Service Mode [HealthProbeContext]. When non-null the
+  /// logo menu's tap-version-7x easter egg opens the diagnostic screen; null
+  /// leaves it inert (e.g. before the event-sourcing scope has booted).
+  final Future<HealthProbeContext> Function()? serviceModeContextBuilder;
 
   /// Persistent device install UUID. Stamped into the export payload so the
   /// downstream tooling can identify which device produced the JSON dump.
@@ -87,6 +100,19 @@ class HomeScreen extends StatefulWidget {
   /// event-sourced settings projection (`allow_local_reset`, default true).
   /// The HARD participation safeguard is layered on top of this in-screen.
   final bool resetSettingAllowsReset;
+
+  /// Sponsor branding derived from the diary's event-sourced settings
+  /// projection (the `branding.*` keys delivered set-once-at-link). Supplied by
+  /// the app root's reactive ViewBuilder, so it updates when the settings change.
+  // Implements: DIARY-GUI-participation-status-badge/B
+  final SponsorBrandingConfig sponsorBranding;
+
+  /// Content-addressed cache the *Sponsor* logo bytes are served from / fetched
+  /// into (JWT-gated fetch-once, verified by hash, retained after participation
+  /// ends). Supplied by the app root from a stable on-device cache directory;
+  /// when null the logo render sites fall back to the app default brand.
+  // Implements: DIARY-DEV-sponsor-branding-assets/D
+  final BrandingAssetCache? brandingAssetCache;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -124,12 +150,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _checkEnrollmentStatus();
     _checkDisconnectionStatus();
-    _checkNotParticipatingStatus();
     _refreshResetGate();
     _refreshWedgeStatus();
     // CUR-1164: React immediately when a background sync detects disconnection
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
+    );
+    // React live when a reconcile detects the portal marked the participant
+    // not-participating: it clears enrollment, so re-read enrollment to revert
+    // the sponsor branding (gated on active enrollment) without a relaunch.
+    widget.enrollmentService.notParticipatingNotifier.addListener(
+      _onNotParticipatingChanged,
     );
     // Forward-looking: surface incomplete surveys via a modal route. The
     // FCM-prompt handler that creates the checkpoint is out of scope for this
@@ -165,13 +196,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  SponsorBrandingConfig sponsorBranding = SponsorBrandingConfig.fallback;
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.enrollmentService.disconnectedNotifier.removeListener(
       _onDisconnectionChanged,
+    );
+    widget.enrollmentService.notParticipatingNotifier.removeListener(
+      _onNotParticipatingChanged,
     );
     _scrollController.dispose();
     super.dispose();
@@ -179,16 +211,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _checkEnrollmentStatus() async {
     final isEnrolled = await widget.enrollmentService.isEnrolled();
-    final enrollment = await widget.enrollmentService.getEnrollment();
-    try {
-      if (enrollment?.sponsorId != null) {
-        sponsorBranding = await SponsorBrandingService().fetchBranding(
-          enrollment!.sponsorId!,
-        );
-      }
-    } catch (e) {
-      debugPrint('Sponsor branding unavailable, using fallback: $e');
-    }
+    // Branding is derived from the diary's own event-sourced settings
+    // projection (set-once-at-link) by the app root and passed in via
+    // widget.sponsorBranding.
     if (mounted) {
       setState(() {
         _isEnrolled = isEnrolled;
@@ -221,10 +246,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Only reads from the notifier — does NOT call isDisconnected() or
   /// _checkDisconnectionStatus() to avoid a race with the in-flight
   /// SharedPreferences write inside setDisconnected().
+  /// A portal-driven not-participating transition (detected by a scope
+  /// reconcile) clears enrollment. Re-read enrollment so the sponsor branding,
+  /// which is gated on active enrollment, reverts to the app default live.
+  void _onNotParticipatingChanged() {
+    if (!mounted) return;
+    // Rebuild now so the branding gate re-reads the notifier this frame (the
+    // gate reads the notifier directly, so it reverts without a page change);
+    // also refresh _isEnrolled for the rest of the screen.
+    setState(() {});
+    unawaited(_checkEnrollmentStatus());
+  }
+
   void _onDisconnectionChanged() {
     if (!mounted) return;
     final isDisconnected = widget.enrollmentService.disconnectedNotifier.value;
     setState(() => _isDisconnected = isDisconnected);
+    // Disconnect does NOT clear enrollment — it only means "can't sync". Branding
+    // therefore stays put (it reverts only on not-participating). Re-read keeps
+    // _isEnrolled and the reset gate fresh; it intentionally does NOT drive any
+    // branding revert.
+    unawaited(_checkEnrollmentStatus());
     if (isDisconnected) {
       // Clear cached tasks — disconnected participants have no valid questionnaires
       unawaited(widget.taskService.clearAll());
@@ -246,17 +288,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _siteName = enrollment?.siteName;
         _sitePhoneNumber = enrollment?.sitePhoneNumber;
       });
-    }
-  }
-
-  /// CUR-1165: Check if participant is marked as not participating (REQ-p01065-D).
-  /// When true, sponsor-specific feature flags are reset to defaults so the
-  /// app falls back to neutral behavior.
-  Future<void> _checkNotParticipatingStatus() async {
-    final isNotParticipating = await widget.enrollmentService
-        .isNotParticipating();
-    if (isNotParticipating) {
-      FeatureFlagService.instance.resetToDefaults();
     }
   }
 
@@ -348,7 +379,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await ReActionScope.of(context).actionSubmitter.submit(
       ActionSubmission(
         actionName: actionName,
-        rawInput: <String, Object?>{'date': localDate},
+        rawInput: <String, Object?>{
+          'date': localDate,
+          'participantId': diaryParticipantId(context),
+        },
       ),
     );
   }
@@ -466,6 +500,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  /// Opens the diagnostic ("Service Mode") screen. Wired to the logo menu's
+  /// tap-version-7x easter egg; only reachable when
+  /// [HomeScreen.serviceModeContextBuilder] is non-null.
+  // Implements: DIARY-GUI-service-mode-entry/A — navigation target for the
+  //   seven-tap reveal.
+  void _openServiceMode() {
+    final builder = widget.serviceModeContextBuilder;
+    if (builder == null) return;
+    Navigator.push<void>(
+      context,
+      AppPageRoute(builder: (_) => ServiceModeScreen(contextBuilder: builder)),
+    );
+  }
+
   /// REQ-CAL-p00076: Navigate to profile screen with participation status badge
   Future<void> _handleShowProfile() async {
     // Read all values fresh from the service to avoid stale cached state
@@ -508,19 +556,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               AppPageRoute<void>(builder: (context) => const SettingsScreen()),
             );
           },
-          onShareWithCureHHT: () {
-            // TODO: Implement CureHHT data sharing
-          },
-
-          onStopSharingWithCureHHT: () {
-            // TODO: Implement stop sharing
-          },
           isEnrolledInTrial: _isEnrolled,
           isDisconnected: isDisconnected,
           isNotParticipating: isNotParticipating,
           enrollmentStatus: _isEnrolled ? 'active' : 'none',
-          isSharingWithCureHHT: false,
-          sponsorLogo: sponsorBranding.appLogoUrl,
+          sponsorLogoBuilder: _brandingLogoBuilder,
           userName: 'User',
           onUpdateUserName: (name) {
             // TODO: Implement username update
@@ -536,7 +576,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Refresh linking status after returning from profile
     await _checkEnrollmentStatus();
     await _checkDisconnectionStatus();
-    await _checkNotParticipatingStatus();
   }
 
   // REQ-p01067, REQ-p01068, REQ-p01070, REQ-p01071: Navigate to questionnaire.
@@ -566,7 +605,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (definition == null || !mounted) return;
 
     final aggregateId = task.targetId ?? task.id;
-    final entryType = '${qType.value}_survey';
 
     await Navigator.of(context).push(
       AppPageRoute<void>(
@@ -575,12 +613,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           instanceId: aggregateId,
           onSubmit: (submission) async {
             try {
-              await _recordSurveySubmission(
-                entryType: entryType,
-                aggregateId: aggregateId,
-                submission: submission,
-                studyEvent: task.studyEvent,
-              );
+              await _recordSurveySubmission(submission: submission);
               return const SubmitResult(success: true);
             } catch (e) {
               return SubmitResult(success: false, error: e.toString());
@@ -615,28 +648,57 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return QuestionnaireDefinition.findById(defs, type.value);
   }
 
-  /// Append the canonical "questionnaire finalized" event to the local
-  /// log. The payload is `submission.toJson()` (snake_case keys: full
-  /// `responses` list, `instance_id`, `questionnaire_type`, `version`,
-  /// `completed_at`) plus an optional `study_event` cycle label
-  /// (REQ-CAL-p00080). The ALCOA+ audit fact must be self-contained:
-  /// the responses array carries `display_label` and `normalized_label`
-  /// per entry so downstream consumers do not need to re-derive them
-  /// from the questionnaire definition at read time.
+  /// Finalize a questionnaire through the NATIVE `submit_questionnaire` action,
+  /// so the resulting `<id>_survey` / `finalized` event lands in the native
+  /// event-sourcing store and ships through the same `DiaryServerDestination`
+  /// (→ `POST /api/v1/ingest/batch`) as nosebleed records.
+  ///
+  /// The action parses a `QuestionnaireSubmissionPayload` (snake_case keys,
+  /// `responses` as a `question_id -> {value, display_label, normalized_label}`
+  /// MAP). The flow's [QuestionnaireSubmission] carries `responses` as a LIST
+  /// and a single `version` string, so this maps both into the payload shape:
+  /// the list is keyed by `question_id`, and the single definition version is
+  /// stamped onto all three version refs (schema/content/gui), which today come
+  /// from the one `QuestionnaireDefinition.version` field
+  /// (DIARY-PRD-questionnaire-versioning/J+K+L).
+  ///
+  /// The cycle label (`study_event`) is deliberately NOT carried on the
+  /// finalized survey event: the `QuestionnaireSubmissionPayload` cross-wire
+  /// contract (decision 1d / surface D6) is frozen and excludes it. The portal
+  /// owns the cycle mapping via its own `questionnaire_assigned` event, keyed by
+  /// the same `instance_id` that this event carries — so the cycle is recoverable
+  /// without duplicating it here.
+  ///
+  /// The ALCOA+ audit fact is self-contained: each response carries
+  /// `display_label` and `normalized_label` so downstream consumers do not need
+  /// to re-derive them from the questionnaire definition at read time.
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/N
+  // Implements: DIARY-DEV-action-write-path/A
   Future<void> _recordSurveySubmission({
-    required String entryType,
-    required String aggregateId,
     required QuestionnaireSubmission submission,
-    String? studyEvent,
   }) async {
-    await widget.runtime.entryService.record(
-      entryType: entryType,
-      aggregateId: aggregateId,
-      eventType: 'finalized',
-      answers: <String, Object?>{
-        ...submission.toJson(),
-        'study_event': ?studyEvent,
-      },
+    final responses = <String, Object?>{
+      for (final r in submission.responses)
+        r.questionId: <String, Object?>{
+          'value': r.value,
+          'display_label': r.displayLabel,
+          'normalized_label': r.normalizedLabel,
+        },
+    };
+    await ReActionScope.of(context).actionSubmitter.submit(
+      ActionSubmission(
+        actionName: 'submit_questionnaire',
+        rawInput: <String, Object?>{
+          'instance_id': submission.instanceId,
+          'questionnaire_type': submission.questionnaireType,
+          // One definition version stamped onto all three version refs.
+          'schema_version': submission.version,
+          'content_version': submission.version,
+          'gui_version': submission.version,
+          'completed_at': submission.completedAt.toIso8601String(),
+          'responses': responses,
+        },
+      ),
     );
   }
 
@@ -666,7 +728,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (definition == null || !mounted) return;
 
     final aggregateId = survey.entryId;
-    final entryType = survey.entryType;
 
     await Navigator.of(context).push(
       PageRouteBuilder<void>(
@@ -679,11 +740,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             instanceId: aggregateId,
             onSubmit: (submission) async {
               try {
-                await _recordSurveySubmission(
-                  entryType: entryType,
-                  aggregateId: aggregateId,
-                  submission: submission,
-                );
+                await _recordSurveySubmission(submission: submission);
                 return const SubmitResult(success: true);
               } catch (e) {
                 return SubmitResult(success: false, error: e.toString());
@@ -801,9 +858,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
     final yesterdayStr = DateFormat('yyyy-MM-dd').format(yesterday);
 
+    // Chronological key for a today/yesterday entry: an epistaxis row sorts by
+    // its start, a completed survey by its completion time. Other views (day
+    // markers) have no time and yield null, which sorts as 0 (stable).
+    DateTime? timeOf(DiaryEntryView e) => switch (e) {
+      EpistaxisEntryView(:final startTime) => startTime,
+      SurveyEntryView(:final completedAt) => completedAt,
+      _ => null,
+    };
+
     int byStart(DiaryEntryView a, DiaryEntryView b) {
-      final aStart = a is EpistaxisEntryView ? a.startTime : null;
-      final bStart = b is EpistaxisEntryView ? b.startTime : null;
+      final aStart = timeOf(a);
+      final bStart = timeOf(b);
       if (aStart == null || bStart == null) return 0;
       return aStart.compareTo(bStart);
     }
@@ -816,14 +882,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // is reached through the Calendar.
     final groups = <_GroupedRecords>[];
 
-    // Yesterday's finalized nosebleed entries.
-    final yesterdayEntries =
-        view
-            .entriesOn(yesterdayStr)
-            .whereType<EpistaxisEntryView>()
-            .cast<DiaryEntryView>()
-            .toList()
-          ..sort(byStart);
+    // Yesterday's finalized nosebleed entries plus any completed surveys
+    // (DIARY-PRD-questionnaire-system/B: a finalized survey surfaces alongside
+    // the day's clinical entries).
+    final yesterdayEntries = <DiaryEntryView>[
+      ...view.entriesOn(yesterdayStr).whereType<EpistaxisEntryView>(),
+      ...view.entriesOn(yesterdayStr).whereType<SurveyEntryView>(),
+    ]..sort(byStart);
 
     // Any entry at all on yesterday (incl. day markers + incomplete checkpoints).
     final hasAnyYesterdayEntries =
@@ -840,10 +905,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
     );
 
-    // Today's finalized nosebleed entries plus today's incomplete checkpoints
+    // Today's finalized nosebleed entries plus today's completed surveys
+    // (DIARY-PRD-questionnaire-system/B) plus today's incomplete checkpoints
     // (CUR-488: in-progress entries surface in the today section).
     final todayEntries = <DiaryEntryView>[
       ...view.entriesOn(todayStr).whereType<EpistaxisEntryView>(),
+      ...view.entriesOn(todayStr).whereType<SurveyEntryView>(),
       ...view.incompleteEntries.where((e) => isEpistaxisOn(e, todayStr)),
     ]..sort(byStart);
 
@@ -863,6 +930,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return groups;
   }
 
+  /// Builds the cache-backed sponsor logo for a render site, or null when no
+  /// logo is configured / no cache is wired. The returned [BrandingLogo] reads
+  /// the current patient session JWT from the enrollment service, serves the
+  /// bytes from the content-addressed cache, and fetches once per content hash.
+  // Implements: DIARY-DEV-sponsor-branding-assets/D
+  BrandingLogoBuilder? get _brandingLogoBuilder {
+    final cache = widget.brandingAssetCache;
+    if (cache == null || !widget.sponsorBranding.hasLogo) return null;
+    return ({required width, required height, required fallback}) =>
+        BrandingLogo(
+          branding: widget.sponsorBranding,
+          cache: cache,
+          jwtProvider: widget.enrollmentService.getJwtToken,
+          fallback: fallback,
+          width: width,
+          height: height,
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DiaryViewBuilder(builder: _buildScaffold);
@@ -874,6 +960,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // record. Each is a clearly-delimited region below.
     final incompleteCount = view.incompleteEntries.length;
     final overlapCount = overlapPairs(view).length;
+    // Sponsor branding is displayed only while ACTIVELY participating: on
+    // not-participating the app stops applying this sponsor-specific rule.
+    // Implements: DIARY-PRD-participant-mark-not-participating/D
+    // Branding shows while the participant is ENROLLED and participating.
+    // "Disconnected" is a state *within* enrollment — it means "we can't sync
+    // right now", not "un-enrolled" — so it MUST NOT revert branding. Only
+    // un-enrollment (not-participating / withdrawal) reverts to the app default.
+    // Gate on the live not-participating notifier rather than a re-read of
+    // enrollment: that notifier fires from the reconcile BEFORE its
+    // clearEnrollment() completes, so re-reading `isEnrolled()` would race and
+    // leave stale branding until a page change. Reading the notifier here makes
+    // the revert land on the reconcile poll with no navigation required.
+    final brandingActive =
+        _isEnrolled && !widget.enrollmentService.notParticipatingNotifier.value;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -889,7 +989,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 children: [
                   // Logo menu on the left
                   LogoMenu(
-                    sponsorLogo: sponsorBranding.appLogoUrl,
+                    sponsorLogoBuilder: brandingActive
+                        ? _brandingLogoBuilder
+                        : null,
                     onResetAllData: _handleResetAllData,
                     resetEnabled: _canResetData,
                     isEnrolled: _isEnrolled,
@@ -898,13 +1000,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         : null,
                     onInstructionsAndFeedback: _handleInstructionsAndFeedback,
                     showDevTools: AppConfig.showDevTools,
+                    onOpenServiceMode: widget.serviceModeContextBuilder == null
+                        ? null
+                        : _openServiceMode,
                   ),
                   // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens
                   Expanded(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        AppLocalizations.of(context).appTitle,
+                        // Show the sponsor title while enrolled and
+                        // participating; revert to the app default only on
+                        // un-enrollment (not-participating). A disconnect does
+                        // NOT revert it — the participant is still enrolled, just
+                        // unable to sync. (Branding settings are retained per
+                        // DIARY-DEV-sponsor-branding-assets/D regardless.)
+                        (brandingActive &&
+                                (widget.sponsorBranding.title?.isNotEmpty ??
+                                    false))
+                            ? widget.sponsorBranding.title!
+                            : AppLocalizations.of(context).appTitle,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
@@ -1186,6 +1301,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             sitePhoneNumber: _sitePhoneNumber,
           ),
         ),
+      // Not-participating: a GENTLE, informational end-of-participation notice
+      // (distinct from the alarming disconnection banner above), so the
+      // participant is not surprised when sponsor branding + sync stop. Text is
+      // sponsor-configurable (ui.notParticipatingMessage) with a localized
+      // default. Mutually exclusive with disconnection (latest lifecycle event).
+      // Implements: DIARY-BASE-not-participating-notice/A+C
+      if (widget.enrollmentService.notParticipatingNotifier.value)
+        _HomeAlert(
+          icon: Icons.info_outline,
+          color: Colors.blueGrey.shade600,
+          title: _notParticipatingMessage(context),
+          banner: _notParticipatingBanner(context),
+        ),
       // Sync wedged: a destination FIFO is wedged on an unknown event-type
       // bridge mismatch — participant should update the app to drain it.
       if (_hasWedgedFifo)
@@ -1221,6 +1349,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           banner: _overlapBanner(context, view, overlapCount),
         ),
     ];
+  }
+
+  /// Resolved not-participating notice text: sponsor-configured value if set,
+  /// else the diary's localized default.
+  // Implements: DIARY-BASE-not-participating-notice/B
+  String _notParticipatingMessage(BuildContext context) =>
+      SponsorUiConfigScope.of(context).notParticipatingMessage ??
+      AppLocalizations.of(context).leftClinicalTrial;
+
+  /// Gentle, informational not-participating notice (the bespoke inline form).
+  // Implements: DIARY-BASE-not-participating-notice/A
+  Widget _notParticipatingBanner(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.blueGrey.shade700, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _notParticipatingMessage(context),
+              style: TextStyle(
+                color: Colors.blueGrey.shade800,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Orange incomplete-records banner (the bespoke inline form).
@@ -1548,6 +1711,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onTap: switch (entry) {
                     EpistaxisEntryView() => () => _navigateToEditRecord(entry),
                     DayMarkerView() => () => _redispositionMarker(entry),
+                    // A completed survey is read-only in the diary list (no
+                    // edit / re-disposition affordance).
+                    SurveyEntryView() => null,
                   },
                   hasOverlap:
                       entry is EpistaxisEntryView && _hasOverlap(view, entry),

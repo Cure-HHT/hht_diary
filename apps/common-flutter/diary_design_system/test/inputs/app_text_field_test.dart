@@ -60,6 +60,23 @@ void main() {
       expect(changes, equals(['abc']));
     });
 
+    testWidgets('semanticId emits a Semantics identifier with textField role', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(const AppTextField(label: 'Email', semanticId: 'login.email')),
+      );
+      final node = tester.getSemantics(find.byType(AppTextField));
+      expect(node.identifier, equals('login.email'));
+      expect(node.flagsCollection.isTextField, isTrue);
+    });
+
+    testWidgets('no Semantics wrapper when semanticId is null', (tester) async {
+      await tester.pumpWidget(_harness(const AppTextField(label: 'Email')));
+      final node = tester.getSemantics(find.byType(AppTextField));
+      expect(node.identifier, isEmpty);
+    });
+
     group('.search', () {
       testWidgets('shows the magnifier prefix', (tester) async {
         await tester.pumpWidget(_harness(AppTextField.search()));

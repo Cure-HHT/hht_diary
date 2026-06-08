@@ -335,6 +335,9 @@ class _MergeSheetState extends State<_MergeSheet> {
       'startTime': sp.startTime,
       'startTimeZone': sp.startTimeZone,
       'startTimeUtcOffset': sp.startTimeUtcOffset,
+      // Preserve the merged entry's participant attribution (the boundary rows
+      // are the same participant's entries).
+      'participantId': sp.participantId,
     };
     if (_hasEnd) {
       final ep = EpistaxisEventPayload.fromJson(_endBoundary.row.data);

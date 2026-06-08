@@ -7,6 +7,7 @@ import 'package:shelf_router/shelf_router.dart';
 
 import 'otp_store.dart';
 import 'portal_settings.dart';
+import 'session_config.dart';
 import 'session_token.dart';
 
 /// Minimal OTP-sender surface so routes are testable without a real transport
@@ -36,6 +37,7 @@ Router buildLoginRouter({
   required String signingKey,
   required IdTokenVerifyFn verifyIdToken,
   required Map<String, Object?> identityConfig,
+  required SessionConfig sessionConfig,
   DateTime Function() now = DateTime.now,
   String Function()? sidGen,
 }) {
@@ -76,6 +78,15 @@ Router buildLoginRouter({
   }
 
   router.get('/config/identity', (Request req) => _json(identityConfig));
+
+  // Implements: DIARY-DEV-portal-session-lifecycle/D — surface the effective
+  //   idle timeout + warning lead so the client soft-timer mirrors the server.
+  router.get(
+      '/config/session',
+      (Request req) => _json({
+            'idleSeconds': sessionConfig.idleSeconds,
+            'warningSeconds': sessionConfig.warningSeconds,
+          }));
 
   router.post('/login', (Request req) async {
     final Map<String, Object?> raw;
@@ -227,6 +238,13 @@ Router buildAuthedSessionRouter({
     );
     return _json({'ok': true});
   });
+
+  // Implements: DIARY-DEV-portal-session-lifecycle/E — a lightweight authed
+  //   endpoint whose sole purpose is to be a cheap "I'm still here" request.
+  //   The session touch happens in the auth middleware (validator.authenticate
+  //   -> sessionStore.touch) that this router is mounted behind; the handler
+  //   body just acknowledges so the client can extend without a heavier call.
+  router.post('/keepalive', (Request req) async => _json({'ok': true}));
 
   return router;
 }

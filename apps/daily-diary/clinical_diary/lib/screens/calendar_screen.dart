@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:clinical_diary/config/feature_flags.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
+import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/day_disposition.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
@@ -36,7 +36,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   /// Check if animations are enabled (both feature flag and user preference).
   /// The user side is read reactively from the settings projection.
   bool _animationsEnabled(BuildContext context) =>
-      FeatureFlagService.instance.useAnimations &&
+      SponsorUiConfigScope.of(context).useAnimations &&
       AppPreferencesScope.of(context).useAnimation;
 
   /// Month change just moves the focused day; day data is reactive.

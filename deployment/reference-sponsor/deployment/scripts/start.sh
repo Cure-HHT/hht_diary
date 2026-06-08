@@ -4,7 +4,7 @@
 #   REQ-d00058: Secrets Management via Doppler
 #   REQ-o00002: Environment-Specific Configuration Management
 #
-# Startup script for Callisto Portal container.
+# Startup script for the Reference Portal container.
 # Runs Dart API server, gRPC health server, and nginx together.
 
 set -euo pipefail
@@ -63,7 +63,7 @@ else
 fi
 
 echo "=========================================="
-echo "Callisto Portal Startup"
+echo "Reference Portal Startup"
 echo "=========================================="
 echo "  Cloud Run PORT (nginx): ${PUBLIC_PORT}"
 echo "  Backend forced port:    ${BACKEND_PORT}"

@@ -4,9 +4,9 @@
 #               or stale auth code on every redeploy)
 #   REQ-o00056: Container infrastructure for Cloud Run (image immutability
 #               requires the client to actually fetch the new bundle)
-# Parent-repo REQs cited because there is no Callisto-level requirement
+# Parent-repo REQs cited because there is no sponsor-level requirement
 # for asset-cache hygiene; per CHECKLIST §3 this is the correct fallback
-# when no REQ-CAL-* equivalent exists.
+# when no sponsor-specific equivalent exists.
 #
 # Verifies the nginx asset cache strategy doesn't pin the SPA entry points
 # to a long-lived/immutable cache. main.dart.js and flutter_bootstrap.js

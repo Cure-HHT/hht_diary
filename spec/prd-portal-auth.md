@@ -206,6 +206,12 @@ Session
 Session Idle Timeout
 : The configurable maximum duration of inactivity allowed during a **Session** before the **System** terminates it.
 
+Session Timeout Warning
+: A notice presented to a **User Account** owner a configurable interval before the **Session Idle Timeout** is reached, offering to extend the **Session** without re-authenticating.
+
+Timeout Warning Threshold
+: The configurable interval before the **Session Idle Timeout** at which the **Session Timeout Warning** is presented.
+
 ### Assertions
 
 **Session Establishment**
@@ -232,8 +238,39 @@ H. When the **System** terminates a **Session** under assertion E or F, the **Sy
 
 G. The **System** SHALL support *Sponsor*-configurable **Session Idle Timeout** per deployment, with a default of 10 minutes.
 
+**Timeout Warning**
+
+I. The **System** SHALL present a **Session Timeout Warning** to the **User Account** owner one **Timeout Warning Threshold** before the **Session Idle Timeout** is reached, allowing the owner to extend the **Session** without re-authenticating.
+
+J. The **System** SHALL support *Sponsor*-configurable **Timeout Warning Threshold** per deployment, with a default of 60 seconds.
+
+K. When the **User Account** owner extends the **Session** from the **Session Timeout Warning**, the **System** SHALL reset elapsed inactivity.
+
 ### Rationale
 
-A **Session** in the **Sponsor Portal** is a high-value authentication artifact — it represents a successful two-factor login and confers access to clinical data and *User* Account management capabilities for its duration. The *Idle Timeout* caps the window in which an unattended workstation could be exploited; tracking inactivity from the *User*'s most recent interaction (rather than from *Session* creation) is the standard pattern that balances security against operational disruption. The cascade rules (*Deactivation*, *Role* change, *Site* change immediately terminate sessions) ensure that authorization changes take effect synchronously rather than waiting for the next login: a Coordinator who has lost their *Role* for cause cannot continue acting under the old *Role* until their **Session** happens to time out. Assertion H states the enforcement obligation explicitly: terminating a **Session** must reject every request bearing that **Session** on every subsequent authenticated endpoint, not merely mark the **Session** as terminated in storage — a bookkeeping flip without an enforcement check would leave the pre-termination credential operational until natural expiry and defeat the whole cascade. *Sponsor*-configurability of the timeout duration acknowledges that the right tradeoff between security and operator disruption varies by deployment; the 10-minute default reflects clinical-portal industry baseline.
+A **Session** in the **Sponsor Portal** is a high-value authentication artifact — it represents a successful two-factor login and confers access to clinical data and *User* Account management capabilities for its duration. The *Idle Timeout* caps the window in which an unattended workstation could be exploited; tracking inactivity from the *User*'s most recent interaction (rather than from *Session* creation) is the standard pattern that balances security against operational disruption. The cascade rules (*Deactivation*, *Role* change, *Site* change immediately terminate sessions) ensure that authorization changes take effect synchronously rather than waiting for the next login: a Coordinator who has lost their *Role* for cause cannot continue acting under the old *Role* until their **Session** happens to time out. Assertion H states the enforcement obligation explicitly: terminating a **Session** must reject every request bearing that **Session** on every subsequent authenticated endpoint, not merely mark the **Session** as terminated in storage — a bookkeeping flip without an enforcement check would leave the pre-termination credential operational until natural expiry and defeat the whole cascade. *Sponsor*-configurability of the timeout duration acknowledges that the right tradeoff between security and operator disruption varies by deployment; the 10-minute default reflects clinical-portal industry baseline. The **Session Timeout Warning** gives an active operator a chance to preserve in-progress work before an idle **Session** is terminated, and resetting elapsed inactivity on extension makes the warning a genuine reprieve rather than a notice; the warning lead is *Sponsor*-configurable for the same reason the timeout itself is — the right tradeoff between security and operator disruption varies by deployment.
 
-*End* *Session Management* | **Hash**: 21fe5107
+*End* *Session Management* | **Hash**: e0f4a981
+
+## DIARY-GUI-portal-session-expiry: Portal session expiry interface
+
+**Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-session-management
+
+### Overview
+
+The **Sponsor Portal** warns an idle operator before their **Session** ends and lets them extend it in one *Action*, mirroring the warning + countdown pattern the *Participant* *Questionnaire* uses. On expiry the operator is returned to the re-authentication surface with an informational, non-error message.
+
+### Assertions
+
+A. The interface SHALL present a **Session Timeout Warning** with a live countdown when one **Timeout Warning Threshold** before the **Session Idle Timeout** is reached.
+
+B. The **Session Timeout Warning** SHALL offer a "Stay signed in" *Action* that extends the **Session** and a "Sign out" *Action* that ends it; passive interaction SHALL NOT extend the **Session** once the warning is shown.
+
+C. On **Session** expiry the interface SHALL present the re-authentication surface with an informational, non-error message.
+
+### Rationale
+
+Surfacing a countdown rather than a silent logout lets an operator who is reading (not clicking) keep their **Session** before losing in-progress context, while requiring an explicit *Action* to extend ensures a genuinely-absent operator's **Session** still lapses. Offering a "Sign out" *Action* inside the warning is necessary because the warning blocks interaction with the rest of the interface, so an operator who wants to end the **Session** immediately needs a way to do so without waiting for the countdown. Reusing the *Participant* *Questionnaire*'s warning pattern keeps the two timeout experiences consistent. The informational expiry message avoids alarming a returning operator who simply stepped away.
+
+*End* *Portal session expiry interface* | **Hash**: 0a1581a9

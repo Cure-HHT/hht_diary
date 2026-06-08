@@ -44,7 +44,7 @@ void main() {
         await rt.scope.actionSubmitter.submit(
           const ActionSubmission(
             actionName: 'record_no_epistaxis_day',
-            rawInput: {'date': '2025-10-15'},
+            rawInput: {'date': '2025-10-15', 'participantId': 'P'},
           ),
         );
         await Future<void>.delayed(const Duration(milliseconds: 80));

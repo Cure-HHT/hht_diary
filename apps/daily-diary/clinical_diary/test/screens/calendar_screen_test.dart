@@ -23,6 +23,7 @@ import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reaction/reaction.dart' show Authenticated;
 import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,7 +37,15 @@ void main() {
 
     setUp(() {
       SharedPreferences.setMockInitialValues({});
-      fake = FakeReaction();
+      fake = FakeReaction(
+        initialAuthStatus: Authenticated(
+          principal: Principal.user(
+            userId: 'P-test',
+            activeRole: 'participant',
+            roles: const {'participant'},
+          ),
+        ),
+      );
       // Day-marker submissions return the canonical per-day aggregate id.
       for (var i = 0; i < 10; i++) {
         fake.queueDispatchResult(
@@ -87,6 +96,7 @@ void main() {
         startTime: start.toIso8601String(),
         startTimeZone: 'UTC',
         startTimeUtcOffset: '+00:00',
+        participantId: 'P-test',
       );
       return DiaryEntryRow(
         aggregateId: aggregateId,

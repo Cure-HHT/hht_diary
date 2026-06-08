@@ -21,7 +21,6 @@ on:
       - 'apps/daily-diary/**'
       - 'deployment/docker/sponsor-ci.Dockerfile'
       - 'deployment/docker/portal-server-binary.Dockerfile'
-      - 'deployment/docker/diary-server-binary.Dockerfile'
       - '.github/workflows/build-sponsor-ci.yml'
       - '.github/versions.env'
       - 'pubspec.yaml'
@@ -42,7 +41,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: cure-hht/sponsor-ci
   PORTAL_IMAGE: cure-hht/portal-server
-  DIARY_IMAGE: cure-hht/diary-server
 
 permissions:
   contents: read
@@ -188,8 +186,6 @@ jobs:
             test -d /workspace/src/apps/sponsor-portal/portal_service
             test -d /workspace/src/apps/sponsor-portal/portal_server_evs
             test -d /workspace/src/apps/sponsor-portal/portal_ui_evs
-            test -d /workspace/src/apps/daily-diary/diary_functions
-            test -d /workspace/src/apps/daily-diary/diary_server
 
             test ! -d /workspace/src/sponsor-content
             test ! -f /workspace/src/apps/sponsor-portal/portal_server/bin/server
@@ -244,7 +240,49 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Build-gate: rebuild the binary ONLY when portal_server_evs's version
+      # string changed vs the published main-latest. The pre-commit hook bumps
+      # that version (+N, and patch on code change) iff the binary's tracked
+      # inputs changed (project-defs.sh) — so "version unchanged" means "same
+      # bytes", and rebuilding would just mint a confusingly-new artifact id for
+      # an identical binary. Realizes the invariant: new build <=> new +N.
+      # On skip, main-latest already points at the current binary (untouched),
+      # and we intentionally do NOT mint a <short_sha> tag for this commit —
+      # the sha tag only exists for commits that actually produced a binary.
+      - name: Gate - rebuild only if portal_server_evs version changed
+        id: gate
+        run: |
+          set -euo pipefail
+          SRC=$(grep '^version:' apps/sponsor-portal/portal_server_evs/pubspec.yaml | sed 's/version: //')
+          echo "source    portal_server_evs=$SRC"
+          PUB=""
+          if docker pull -q "${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest" >/dev/null 2>&1; then
+            cid=$(docker create "${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest")
+            PUB=$(docker cp "$cid:/app/VERSIONS" - 2>/dev/null | tar -xOf - 2>/dev/null | sed -n 's/^portal_server_evs=//p' || true)
+            docker rm "$cid" >/dev/null 2>&1 || true
+          fi
+          echo "published portal_server_evs=${PUB:-<none>}"
+          if [ -n "$PUB" ] && [ "$PUB" = "$SRC" ]; then
+            echo "needs_build=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=portal-server gate::Version unchanged ($SRC) - skipping binary rebuild; main-latest already current."
+          else
+            echo "needs_build=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=portal-server gate::Version changed (${PUB:-none} -> $SRC) - rebuilding binary."
+          fi
+
+      # Read the diary mobile-app version from the full repo checkout (the
+      # sponsor-ci image carries a TRIMMED source set without clinical_diary, so
+      # it must be passed in as a build-arg, not grepped inside the image).
+      - name: Read diary app version
+        id: diary
+        if: steps.gate.outputs.needs_build == 'true'
+        run: |
+          set -euo pipefail
+          VER=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | sed 's/version: //')
+          echo "diary_app_version=${VER:-unknown}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push portal-server
+        if: steps.gate.outputs.needs_build == 'true'
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -256,42 +294,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest
           build-args: |
             SPONSOR_CI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}
+            SERVER_COMMIT=${{ needs.build-sponsor-ci.outputs.short_sha }}
+            DIARY_APP_VERSION=${{ steps.diary.outputs.diary_app_version }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:buildcache,mode=max
-
-  # ─── Build diary-server binary image ──────────────────────────
-  build-diary-server:
-    name: Build diary-server binary
-    runs-on: ubuntu-22.04
-    needs: [build-sponsor-ci]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker-container
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push diary-server
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: deployment/docker/diary-server-binary.Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.DIARY_IMAGE }}:${{ needs.build-sponsor-ci.outputs.short_sha }}
-            ${{ env.REGISTRY }}/${{ env.DIARY_IMAGE }}:main-latest
-          build-args: |
-            SPONSOR_CI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.DIARY_IMAGE }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.DIARY_IMAGE }}:buildcache,mode=max

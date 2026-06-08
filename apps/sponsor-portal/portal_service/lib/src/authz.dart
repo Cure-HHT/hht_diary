@@ -6,6 +6,7 @@ import 'package:event_sourcing/event_sourcing.dart';
 // (including diaryEntriesProjection, diaryEntryAggregateType, diaryEntriesViewName).
 import 'package:portal_actions/portal_actions.dart';
 
+import 'fcm_projections.dart';
 import 'projections.dart';
 import 'role_seed.dart';
 import 'scope_classes.dart';
@@ -84,6 +85,15 @@ List<EntryTypeDefinition> portalEntryTypes() {
       name: 'User Login OTP Skipped',
     ),
   );
+  // Implements: DIARY-DEV-sponsor-branding-source/A — event-sourced sponsor
+  //   branding (metadata + asset manifest).
+  add(
+    const EntryTypeDefinition(
+      id: 'sponsor_branding_configured',
+      registeredVersion: 1,
+      name: 'Sponsor Branding Configured',
+    ),
+  );
 
   return byId.values.toList(growable: false);
 }
@@ -112,9 +122,19 @@ Future<EventStore> openPortalEventStore({
     // Implements: DIARY-DEV-portal-settings-store/B — portal_settings projects
     //   the latest value per setting key for runtime config reads.
     ..register(portalSettingsSpec)
+    // Implements: DIARY-DEV-sponsor-branding-source/A — sponsor_branding projects
+    //   the latest branding configuration per sponsor for the JWT-gated asset
+    //   endpoint + diary branding fetch.
+    ..register(sponsorBrandingSpec)
+    // participant_fcm_tokens materializes the current active FCM token per
+    //   (participant, platform) for push dispatch.
+    ..register(fcmActiveTokensSpec)
     // Implements: DIARY-DEV-participant-ingest/C — ingested diary events materialize
     //   into the diary_entries view.
-    ..register(diaryEntriesProjection);
+    ..register(diaryEntriesProjection)
+    // Implements: DIARY-PRD-questionnaire-system/B — questionnaire_instance projects
+    //   Completion Status per instance (Phase 1: folds questionnaire_assigned).
+    ..register(questionnaireInstanceSpec);
 
   final bundle = await bootstrapEventStore(
     backend: backend,

@@ -23,6 +23,17 @@ const List<SharedEventType> questionnaireEventTypes = <SharedEventType>[
       name: 'Questionnaire Delivery Failed',
     ),
   ),
+  // The portal mints `questionnaire_submission_received` (via the
+  // QuestionnaireSubmissionReactor) when a diary `<id>_survey` finalized event
+  // arrives for a live instance, folding the instance to Ready to Review.
+  SharedEventType(
+    origin: EventOrigin.portal,
+    definition: EntryTypeDefinition(
+      id: 'questionnaire_submission_received',
+      registeredVersion: 1,
+      name: 'Questionnaire Submission Received',
+    ),
+  ),
   SharedEventType(
     origin: EventOrigin.portal,
     definition: EntryTypeDefinition(

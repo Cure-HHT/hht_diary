@@ -60,6 +60,11 @@ class AppBadge extends StatelessWidget {
   /// chrome).
   final VoidCallback? onTap;
 
+  /// Test-harness locator. When set, wraps the badge in a
+  /// `Semantics(identifier: ..., value: label, container: true, explicitChildNodes: true)`
+  /// node so Playwright can `readSemanticValue` the badge text.
+  final String? semanticId;
+
   const AppBadge({
     super.key,
     required this.label,
@@ -67,6 +72,7 @@ class AppBadge extends StatelessWidget {
     this.tone = AppBadgeTone.neutral,
     this.trailing,
     this.onTap,
+    this.semanticId,
   });
 
   @override
@@ -157,24 +163,33 @@ class AppBadge extends StatelessWidget {
     // Passive case: MergeSemantics keeps the visual chrome (Container)
     // from fragmenting the announcement — screen readers traverse this
     // as a single node whose label is the text content.
-    if (onTap == null) {
-      return MergeSemantics(child: chrome);
-    }
-
+    //
     // Interactive case: Material + InkWell drive the ripple, clipped to
     // the same rounded rect so the ink doesn't paint past the border.
     // Semantics marks the badge as a button and announces the label so
     // assistive tech reaches it the same way as a real button.
+    final Widget bare = onTap == null
+        ? MergeSemantics(child: chrome)
+        : Semantics(
+            button: true,
+            label: label,
+            excludeSemantics: true,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: borderRadius,
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(onTap: onTap, child: chrome),
+            ),
+          );
+
+    if (semanticId == null) return bare;
+
     return Semantics(
-      button: true,
-      label: label,
-      excludeSemantics: true,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: borderRadius,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(onTap: onTap, child: chrome),
-      ),
+      identifier: semanticId,
+      value: label,
+      container: true,
+      explicitChildNodes: true,
+      child: bare,
     );
   }
 }

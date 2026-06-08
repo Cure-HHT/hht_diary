@@ -10,6 +10,7 @@ import 'use_cases/app_dialog.dart';
 import 'use_cases/app_dropdown.dart';
 import 'use_cases/app_text_field.dart';
 import 'use_cases/feedback_layout.dart';
+import 'use_cases/known_bugs.dart';
 
 void main() {
   runApp(const DesignSystemBook());
@@ -42,6 +43,7 @@ class DesignSystemBook extends StatelessWidget {
           ],
         ),
         feedbackLayoutFolder(),
+        knownBugsFolder(),
       ],
       addons: [
         MaterialThemeAddon(
@@ -51,6 +53,15 @@ class DesignSystemBook extends StatelessWidget {
               data: buildAppTheme(
                 font: AppFontFamily.inter,
                 brightness: Brightness.light,
+              ),
+            ),
+            // Dark is a known-broken placeholder (see "Known Bugs"); wired here
+            // so the standard galleries can be flipped to dark to see it too.
+            WidgetbookTheme(
+              name: 'Dark (broken placeholder)',
+              data: buildAppTheme(
+                font: AppFontFamily.inter,
+                brightness: Brightness.dark,
               ),
             ),
           ],

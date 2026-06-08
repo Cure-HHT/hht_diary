@@ -4,6 +4,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:comms/comms.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_identity/portal_identity.dart';
 import 'package:portal_service/portal_service.dart';
@@ -15,22 +16,35 @@ import 'package:shelf_router/shelf_router.dart';
 import 'activation_code_store.dart';
 import 'activation_reactor.dart';
 import 'linking_code_lifecycle_reactor.dart';
+import 'questionnaire_submission_reactor.dart';
 import 'activation_routes.dart';
 import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
+import 'diary_entries_debug_handler.dart';
+import 'local_push_registry.dart';
+import 'local_push_ws_handler.dart';
+import 'local_socket_push_channel.dart';
 import 'login_routes.dart';
+import 'notification_dispatch_reactor.dart';
 import 'otp_store.dart';
 import 'password_reset_code_store.dart';
 import 'password_reset_routes.dart';
 import 'patient_ingest_handler.dart';
 import 'patient_link_handler.dart';
 import 'patient_state_handler.dart';
+import 'patient_tasks_handler.dart';
 import 'portal_view_scopes.dart';
 import 'seed_config.dart';
+import 'send_questionnaire_handler.dart';
 import 'session_cascade_reactor.dart';
+import 'session_config.dart';
 import 'session_store.dart';
 import 'session_token_validator.dart';
+import 'sponsor_branding_asset_handler.dart';
+import 'sponsor_branding_seed.dart';
+import 'sponsor_config_seed.dart';
 import 'user_tier_reactor.dart';
+import 'ws_keepalive_interval.dart';
 
 /// Composed server: the top-level shelf [router] (ready for shelf_io.serve),
 /// the live [eventStore] + [dispatcher] (for tests), and a [dispose] callback.
@@ -77,6 +91,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // email because the portal's user identity is the email address; the IdP
   // account + portal user are provisioned out-of-band via activation later.
   String? bootstrapAdminEmail,
+  // Test seam: override the process environment (e.g. force PUSH_MODE). null =
+  // the normal Platform.environment.
+  Map<String, String>? environment,
 }) async {
   // 1. Event store (registers role_permission_grants, user_role_scopes,
   //    participant_site_index, portal entry types + framework types).
@@ -109,7 +126,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //     participant_site_index views at startup is GATED inside the
   //     `if (!alreadySeeded)` seed block below (see step 4b there).
   // Implements: DIARY-DEV-rave-edc-ingest/A
-  final env = Platform.environment;
+  final env = environment ?? Platform.environment;
   final lockoutConfig = LockoutConfig.fromEnv(env);
   final RaveClient resolvedRaveClient;
   final List<String> studyOids;
@@ -213,8 +230,8 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //     (each grant is the sole event under aggregate id `<role>:view:<view>`),
   //     so re-running every boot adds NEW grants on redeploy without re-appending
   //     duplicates — matching the action-permission + role-assignment seeds.
-  Future<void> grantView(String role, String view) async {
-    final aggregateId = '$role:view:$view';
+  Future<void> grantPermission(String role, String permissionName) async {
+    final aggregateId = '$role:$permissionName';
     final existing =
         await eventStore.backend.findEventsForAggregate(aggregateId);
     if (existing.any((e) => e.eventType == 'permission_granted')) return;
@@ -225,11 +242,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
       eventType: 'permission_granted',
       data: PermissionGrantedPayload(
         role: role,
-        permissionName: 'view:$view',
+        permissionName: permissionName,
       ).toJson(),
       initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
     );
   }
+
+  Future<void> grantView(String role, String view) =>
+      grantPermission(role, 'view:$view');
 
   // The Administrator AND the SystemOperator hold the user-management
   // permissions, so both can subscribe to the role-assignments view + the
@@ -249,6 +269,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
   for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
     await grantView(role, 'sites_index');
     await grantView(role, 'participant_record');
+    // The operational roles read questionnaire instance status (one row per
+    // instance) to drive the Manage Questionnaires modal's live per-status view.
+    await grantView(role, 'questionnaire_instance');
   }
   // The RAVE-sync status screen is visible to operations roles too.
   for (final role in const [
@@ -259,6 +282,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
   ]) {
     await grantView(role, 'rave_sync_status');
   }
+  // Debug-only: the Study Coordinator may read a participant's raw diary entries
+  // via /admin/diary-entries. Granted directly (not via the action-validated role
+  // seed) because it gates a tooling endpoint, not a registered Action — there is
+  // no ACT-id/REQ behind it. Pairs the custom permission with the diary_entries
+  // view read so the endpoint can serve the canonical rows.
+  await grantPermission('StudyCoordinator', diaryDebugViewPermission);
+  await grantView('StudyCoordinator', 'diary_entries');
 
   // 4c. Role assignments — config-driven + idempotent, applied on EVERY boot
   //     (NOT inside the seed-once gate above). `bootstrapRoleAssignments` diffs
@@ -281,6 +311,23 @@ Future<PortalServerBoot> bootstrapPortalServer({
     eventStore: eventStore,
     backend: backend,
     raw: Platform.environment['PORTAL_SEED_REQUIRE_2FA'],
+  );
+
+  // Implements: DIARY-DEV-sponsor-config-source/A — idempotent per-deployment
+  //   sponsor configuration seed (clinical.* + ui.*), like seedRequireSecondFactor.
+  await seedSponsorConfig(
+    eventStore: eventStore,
+    backend: backend,
+    env: Platform.environment,
+  );
+
+  // Implements: DIARY-DEV-sponsor-branding-source/C+D — idempotent sponsor
+  //   branding seed (reads the content overlay; appends only on absence/change).
+  //   Runs every boot outside the seed-once gate, like seedRequireSecondFactor.
+  await seedSponsorBranding(
+    eventStore: eventStore,
+    backend: backend,
+    sponsorId: Platform.environment['SPONSOR_ID'],
   );
 
   // Implements: DIARY-DEV-portal-test-account-provisioning/A+B
@@ -330,9 +377,20 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final authMode = Platform.environment['PORTAL_AUTH_MODE'] ?? 'dev';
   final signingKey = Platform.environment['PORTAL_SESSION_SIGNING_KEY'] ?? '';
   final sessionStore = SessionStore();
-  final idleMinutes =
-      int.tryParse(Platform.environment['PORTAL_SESSION_IDLE_MINUTES'] ?? '') ??
-          10;
+  // Implements: DIARY-DEV-portal-session-config/A — seed the two session-config
+  //   keys idempotently from deployment env before resolving the effective
+  //   (clamped) config used by the validator AND the /config/session surface.
+  await seedSessionConfig(
+    eventStore: eventStore,
+    backend: backend,
+    env: Platform.environment,
+  );
+
+  // Implements: DIARY-DEV-portal-session-config/A — resolve the effective
+  //   session-config once at boot so the validator and the /config/session
+  //   surface agree on the same values.
+  final sessionConfig =
+      await resolveSessionConfig(backend, Platform.environment);
 
   final PrincipalAuthValidator validator;
   if (authMode == 'session') {
@@ -346,7 +404,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
       backend: backend,
       eventStore: eventStore,
       sessionStore: sessionStore,
-      idleTimeout: Duration(minutes: idleMinutes),
+      idleTimeout: sessionConfig.idleTimeout,
     );
   } else {
     validator = DevCredentialAuthValidator(backend: backend);
@@ -375,8 +433,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
     'messagingSenderId':
         Platform.environment['PORTAL_IDENTITY_SENDER_ID'] ?? '',
     'emulatorHost': Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ?? '',
+    // The client resolves its login-UI mode (Firebase Login/OTP vs dev
+    // ConnectScreen) at runtime from this field, so a single web image works
+    // against both dev and session-auth deployments.
+    // Implements: DIARY-DEV-portal-second-factor-toggle/C
+    'authMode': authMode,
   };
   // Implements: DIARY-DEV-portal-login-identity-verification/A+B
+  // Implements: DIARY-DEV-portal-session-lifecycle/D
   final loginRouter = buildLoginRouter(
     eventStore: eventStore,
     backend: backend,
@@ -385,6 +449,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     signingKey: signingKey.isEmpty ? 'dev-unused' : signingKey,
     verifyIdToken: verifyIdToken,
     identityConfig: identityConfig,
+    sessionConfig: sessionConfig,
   );
   // Implements: DIARY-DEV-portal-session-lifecycle/A
   final authedSessionRouter = buildAuthedSessionRouter(
@@ -431,6 +496,66 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final userTierReactor =
       UserTierReactor(eventStore: eventStore, backend: backend)..start();
 
+  // 7f-bis. Questionnaire submission reactor — on a diary `<id>_survey`
+  //     `finalized` event (whose aggregateId == the questionnaire instance id),
+  //     emits a dedicated `questionnaire_submission_received` event on the
+  //     instance aggregate so the questionnaire_instance row folds to Ready to
+  //     Review. Filters out non-survey diary entries and guards against phantom
+  //     rows / Closed-instance regressions.
+  // Implements: DIARY-BASE-questionnaire-coordinator-workflow/G
+  final questionnaireSubmissionReactor = QuestionnaireSubmissionReactor(
+    eventStore: eventStore,
+    backend: backend,
+  )..start();
+
+  // 7g. Notification dispatch reactor — on a durable portal intent event
+  //     (questionnaire assignment + participant lifecycle), looks up the
+  //     recipient's active routing token in participant_fcm_tokens and sends a
+  //     push via the selected PushChannel directly, recording the outcome as
+  //     notification_sent / notification_dispatch_failed (and
+  //     fcm_token_deactivated on a dead token).
+  //
+  //     The transport is bootstrap-selected by PUSH_MODE, mirroring
+  //     PORTAL_AUTH_MODE: `fcm` (default) drives FCM HTTP v1; `local` drives the
+  //     in-process LocalSocketPushChannel over the diary's /api/v1/user/push WS
+  //     (local-stack: no emulator, no live FCM). FCM_ENABLED=false skips the
+  //     reactor entirely (a deploy without any push transport). An unknown
+  //     PUSH_MODE fails fast at boot.
+  // Implements: DIARY-DEV-outgoing-intent-correlation/B+C
+  // Implements: DIARY-DEV-pluggable-push-transport/B — PUSH_MODE selects the
+  //   transport; unknown value throws.
+  final fcmEnabled = (env['FCM_ENABLED'] ?? 'true') != 'false';
+  final pushMode = env['PUSH_MODE'] ?? 'fcm';
+  FcmChannel? fcmChannel;
+  // Built only for PUSH_MODE=local; shared with the /api/v1/user/push WS handler.
+  LocalPushRegistry? localPushRegistry;
+  PushChannel? pushChannel;
+  if (fcmEnabled) {
+    switch (pushMode) {
+      case 'fcm':
+        fcmChannel = FcmChannel(
+          projectId: env['FCM_PROJECT_ID'] ?? 'cure-hht-admin',
+          consoleMode: (env['FCM_CONSOLE_MODE'] ?? 'false') == 'true',
+        );
+        pushChannel = fcmChannel;
+      case 'local':
+        localPushRegistry = LocalPushRegistry();
+        pushChannel = LocalSocketPushChannel(localPushRegistry);
+        stdout.writeln('portal_server_evs: PUSH_MODE=local — push rides the '
+            'diary /api/v1/user/push WS (no FCM)');
+      default:
+        throw StateError(
+            'unknown PUSH_MODE=$pushMode (expected "fcm" or "local")');
+    }
+  }
+  final notificationDispatchReactor = pushChannel != null
+      ? (NotificationDispatchReactor(
+          eventStore: eventStore,
+          backend: backend,
+          channel: pushChannel,
+        )..start())
+      : null;
+
   // viewScopeRegistry enables per-subscription row-level narrowing: a site-bound
   // Study Coordinator's participant_record subscription is restricted to the
   // participants at their own Site (expanded via the participant_site_index
@@ -443,6 +568,12 @@ Future<PortalServerBoot> bootstrapPortalServer({
     policy: policy,
     scopeClassRegistry: buildPortalScopeRegistry(),
     viewScopeRegistry: buildPortalViewScopeRegistry(),
+    // Keepalive on the /subscriptions WS so an idle/half-open connection is not
+    // silently reaped (which would leave the reactive client believing it is
+    // still connected and never triggering its lifecycle-driven reconnect).
+    // Fixed operational constant — see kWsKeepaliveInterval.
+    // Implements: DIARY-DEV-portal-reaction-server/D
+    pingInterval: kWsKeepaliveInterval,
   );
 
   // 8. Routes: WS /subscriptions outside HTTP-auth middleware (Flutter web
@@ -469,6 +600,33 @@ Future<PortalServerBoot> bootstrapPortalServer({
     } catch (e) {
       return Response.internalServerError(body: 'RAVE sync failed: $e');
     }
+  }
+
+  // Send-orchestration: POST /admin/questionnaire/send. Reads the
+  // questionnaire_instance view + cycle settings, computes the next cycle, and
+  // dispatches ACT-QST-001 in-process (EVS actions cannot read projections
+  // mid-execute, so the cycle decision is made here). Authorization is enforced
+  // by the dispatch (site-scoped portal.questionnaire.send); the authenticated
+  // Principal is attached by authMiddleware and read via principalFromContext.
+  // Implements: DIARY-BASE-questionnaire-coordinator-workflow/C
+  // Implements: DIARY-BASE-questionnaire-cycle-tracking/D+K
+  Future<Response> sendQuestionnaireHandler(Request request) async {
+    final principal = principalFromContext(request);
+    if (principal == null) {
+      return Response.forbidden('unauthenticated');
+    }
+    final Map<String, Object?> body;
+    try {
+      final raw = await request.readAsString();
+      final decoded = raw.isEmpty ? <String, Object?>{} : jsonDecode(raw);
+      if (decoded is! Map<String, Object?>) {
+        return Response(400, body: 'expected a JSON object body');
+      }
+      body = decoded;
+    } catch (_) {
+      return Response(400, body: 'invalid JSON body');
+    }
+    return respondToSend(eventStore, dispatcher, principal, body);
   }
 
   // Audit-trail read, gated to principals holding portal.audit.view. Reads the
@@ -499,6 +657,23 @@ Future<PortalServerBoot> bootstrapPortalServer({
     );
   }
 
+  // Debug-only diary-entries read, gated to portal.diary.view_debug (SC).
+  Future<Response> diaryEntriesDebugHandler(Request request) async {
+    final principal = principalFromContext(request);
+    final Iterable<String> perms;
+    if (principal is UserPrincipal) {
+      final eff = await policy.effectivePermissionsFor(principal);
+      perms = eff.rolePermissions.map((p) => p.name);
+    } else {
+      perms = const <String>[];
+    }
+    if (!perms.contains(diaryDebugViewPermission)) {
+      return Response.forbidden('requires $diaryDebugViewPermission');
+    }
+    return respondWithDiaryEntries(
+        eventStore, request.url.queryParameters['participant']);
+  }
+
   final httpRouter = Router()
     ..get('/me', handlers.me)
     ..post('/actions', handlers.actions)
@@ -506,7 +681,15 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // it every gate fails closed (no widgets render, for any role).
     ..get('/permissions/snapshot', handlers.permissions)
     ..get('/audit', auditHandler)
+    // Under /admin/ so the reverse proxy's `^~ /admin/` block forwards it to the
+    // dart backend (a bare /debug/ prefix is not in the nginx proxy allow-list,
+    // so it would be served the SPA instead of reaching this handler).
+    ..get('/admin/diary-entries', diaryEntriesDebugHandler)
     ..post('/admin/rave-sync', raveSyncHandler)
+    // Send-orchestration for the coordinator's "Send Now" / "Start Next Cycle".
+    // Implements: DIARY-BASE-questionnaire-coordinator-workflow/C
+    // Implements: DIARY-BASE-questionnaire-cycle-tracking/D+K
+    ..post('/admin/questionnaire/send', sendQuestionnaireHandler)
     // Authed session routes (logout) — mounted inside the authed pipeline so
     // Bearer validation + principal context are present.
     // Implements: DIARY-DEV-portal-session-lifecycle/A
@@ -562,6 +745,22 @@ Future<PortalServerBoot> bootstrapPortalServer({
       .addMiddleware(_cors())
       .addHandler(patientStateHandler(eventStore: eventStore));
 
+  // Patient tasks (public; in-handler patient-JWT auth): the participant's active
+  // assigned questionnaires, polled by the diary to discover them.
+  // Implements: DIARY-PRD-questionnaire-system/B+C+D
+  final tasksHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(patientTasksHandler(eventStore: eventStore));
+
+  // Sponsor branding asset bytes (public-at-the-router; in-handler patient-JWT
+  // auth, same gate as /user/state). Serves the logo bytes the diary fetches by
+  // the manifest pointer; the role is resolved from the manifest + a fixed
+  // role->path constant (no path is built from the request string).
+  // Implements: DIARY-DEV-sponsor-branding-source/E+F+G
+  final brandingAssetHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(sponsorBrandingAssetHandler(eventStore: eventStore));
+
   final topRouter = Router()
     ..get('/subscriptions', handlers.subscriptions(validator))
     // Activation routes (public).
@@ -572,6 +771,8 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // Login routes (public).
     ..options('/config/identity', loginHandler)
     ..get('/config/identity', loginHandler)
+    ..options('/config/session', loginHandler)
+    ..get('/config/session', loginHandler)
     ..options('/login', loginHandler)
     ..post('/login', loginHandler)
     ..options('/login/verify-otp', loginHandler)
@@ -594,7 +795,25 @@ Future<PortalServerBoot> bootstrapPortalServer({
     ..post('/api/v1/user/link', linkHandler)
     // Patient state: trial-start watermark + linking status (public; JWT-gated).
     ..options('/api/v1/user/state', stateHandler)
-    ..get('/api/v1/user/state', stateHandler);
+    ..get('/api/v1/user/state', stateHandler)
+    // Patient tasks: active assigned questionnaires (public; JWT-gated in-handler).
+    ..options('/api/v1/user/tasks', tasksHandler)
+    ..get('/api/v1/user/tasks', tasksHandler)
+    // Sponsor branding asset bytes (public-at-the-router; JWT-gated in-handler).
+    // Implements: DIARY-DEV-sponsor-branding-source/E+F+G
+    ..options('/api/v1/sponsor/branding/asset/<role>', brandingAssetHandler)
+    ..get('/api/v1/sponsor/branding/asset/<role>', brandingAssetHandler);
+
+  // Local-stack push transport (PUSH_MODE=local only): the participant-scoped
+  // WS the diary holds open to receive real-time pushes. In-band participant-JWT
+  // auth; outside the HTTP-auth pipeline like /subscriptions.
+  // Implements: DIARY-DEV-pluggable-push-transport/C
+  if (localPushRegistry != null) {
+    topRouter.get(
+      '/api/v1/user/push',
+      localPushWsHandler(registry: localPushRegistry),
+    );
+  }
 
   // Dev-only: /dev/users exposes the role-assignment list so the dev
   // ConnectScreen can populate a dropdown. Not mounted in session mode.
@@ -608,12 +827,19 @@ Future<PortalServerBoot> bootstrapPortalServer({
       ..get('/dev/users', devUsersHandler);
   }
 
+  // Resolve the version manifest once at boot (not per-request): the baked
+  // `/app/VERSIONS` (portal_server_evs=<semver>+N, server_commit=<sha>,
+  // portal_ui_version, portal_deployment — written by the image build) plus the
+  // deploy-event identity injected at deploy time as Cloud Run env vars. `/health`
+  // reports ALL of it; the UI shows the deploy counter and pops the rest.
+  final versions = resolveVersions();
+
   // Public liveness/readiness for the container start gate + deploy smoke check.
   Response healthResponse(Request _) => Response.ok(
-        jsonEncode(const <String, Object?>{
+        jsonEncode(<String, Object?>{
           'status': 'ok',
           'service': 'portal_server_evs',
-          'versions': <String, Object?>{},
+          'versions': versions,
         }),
         headers: const {'Content-Type': 'application/json'},
       );
@@ -629,6 +855,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
     await sessionCascadeReactor.stop();
     await linkingCodeReactor.stop();
     await userTierReactor.stop();
+    await questionnaireSubmissionReactor.stop();
+    await notificationDispatchReactor?.stop();
+    fcmChannel?.dispose();
     await handlers.dispose();
     await eventStore.close();
   }
@@ -639,6 +868,39 @@ Future<PortalServerBoot> bootstrapPortalServer({
     dispatcher: dispatcher,
     dispose: dispose,
   );
+}
+
+/// Build the `/health` version manifest: the build-baked `/app/VERSIONS`
+/// (key=value lines: `portal_server_evs=<semver>+N`, `server_commit=<sha>`,
+/// `portal_ui_version=<semver>+<sha>`, `portal_deployment=<sponsor>+<sha>`)
+/// merged with the deploy-event identity injected by the sponsor deploy
+/// workflow as Cloud Run env vars (`PORTAL_DEPLOY_SEQ`, `PORTAL_DEPLOY_SHA`).
+/// Best-effort: a missing file or unset vars just yield a smaller map (local
+/// and test runs have neither). Resolved once at boot, not per-request.
+/// Public (and parameterized) so tests can exercise the parse/merge directly.
+Map<String, Object?> resolveVersions({
+  String manifestPath = '/app/VERSIONS',
+  Map<String, String>? environment,
+}) {
+  final env = environment ?? Platform.environment;
+  final out = <String, Object?>{};
+  final file = File(manifestPath);
+  if (file.existsSync()) {
+    for (final line in file.readAsLinesSync()) {
+      final sep = line.indexOf('=');
+      if (sep <= 0) continue;
+      out[line.substring(0, sep).trim()] = line.substring(sep + 1).trim();
+    }
+  }
+  final seq = env['PORTAL_DEPLOY_SEQ']?.trim();
+  if (seq != null && seq.isNotEmpty) {
+    out['deploy'] = seq;
+  }
+  final deploySha = env['PORTAL_DEPLOY_SHA']?.trim();
+  if (deploySha != null && deploySha.isNotEmpty) {
+    out['deploy_commit'] = deploySha;
+  }
+  return out;
 }
 
 /// Resolve the role-assignment seed. A deployed environment sets
