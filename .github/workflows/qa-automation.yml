@@ -310,7 +310,7 @@ jobs:
 
       - name: Upsert QA Automation Results comment
         if: always() && github.event_name == 'pull_request'
-        uses: Cure-HHT/hht_workflows/.github/actions/pr-comment-upsert@5f6797b6cbd6434e251539c959e418e2b4bb1b18  # hht_workflows main 2026-05-22
+        uses: Cure-HHT/hht_workflows/.github/actions/pr-comment-upsert@d637de0d77efca91fc5a96dc37dddb4c97a56d73  # hht_workflows main 2026-05-22
         with:
           marker: '<!-- pr-comment-upsert:qa-automation -->'
           body: ${{ steps.qa-comment-body.outputs.body }}
