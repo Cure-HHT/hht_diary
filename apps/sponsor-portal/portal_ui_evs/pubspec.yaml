@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # semver-only: bare version, no +N. The build id (+<sponsor_short_sha>) is
 # stamped at image-build time by callisto's portal-final.Dockerfile.
-version: 1.4.4
+version: 1.4.5
 
 environment:
   sdk: ^3.10.7
@@ -40,6 +40,7 @@ dev_dependencies:
       ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets_testing
   flutter_lints: ^5.0.0
+  fake_async: ^1.3.1
 
 flutter:
   uses-material-design: true

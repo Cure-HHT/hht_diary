@@ -974,6 +974,10 @@ audit trails, timestamps, and data integrity.
 : The configurable maximum duration of inactivity allowed during questionnaire completion. When exceeded, the session expires and the answers selected so far are not retained.
 *Defined in: DIARY-PRD-questionnaire-session-timeout (DIARY)*
 
+**Session Timeout Warning**
+: A notice presented to a **User Account** owner a configurable interval before the **Session Idle Timeout** is reached, offering to extend the **Session** without re-authenticating.
+*Defined in: DIARY-PRD-session-management (DIARY)*
+
 **Short Duration Threshold**
 : The configurable minimum duration below which a confirmation prompt is triggered.
 *Defined in: DIARY-PRD-entry-duration-check (DIARY)*
@@ -1057,6 +1061,10 @@ See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
 **Timeout Warning Notification**
 : Push notification delivered to the participant when the Session Timeout is approaching.
 *Defined in: DIARY-PRD-questionnaire-session-timeout (DIARY)*
+
+**Timeout Warning Threshold**
+: The configurable interval before the **Session Idle Timeout** at which the **Session Timeout Warning** is presented.
+*Defined in: DIARY-PRD-session-management (DIARY)*
 
 **Trial**
 : A clinical study conducted under a Sponsor's protocol in which **Participants** are enrolled to capture self-reported clinical outcomes through the **Mobile Application**. The **Trial** begins at **Trial Start**.

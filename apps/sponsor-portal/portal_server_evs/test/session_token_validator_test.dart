@@ -132,4 +132,24 @@ void main() {
     expect(rows.where((r) => r['aggregateId'] == 'sid-1'), isEmpty,
         reason: 'idle terminate appends session_terminated -> row tombstoned');
   });
+
+  // Verifies: DIARY-DEV-portal-session-lifecycle/E — a request inside the idle
+  //   window resets last-seen, so a keep-alive extends the session.
+  test('authenticate within the window resets idle (keep-alive semantics)',
+      () async {
+    await assignRole('jane@site.org', 'Administrator');
+    await startSession('sid-1', 'jane@site.org');
+    final token = mintSessionToken(
+        sid: 'sid-1', userId: 'jane@site.org', signingKey: key, now: t0);
+
+    var clock = t0;
+    final v = validator(() => clock);
+    await v.authenticate(token); // touch @ t0
+    clock = t0.add(const Duration(minutes: 9)); // still inside 10m window
+    await v.authenticate(token); // keep-alive touch @ t0+9m
+    clock = t0.add(const Duration(minutes: 18)); // 9m after the last touch
+    // Last touch was at t0+9m, so t0+18m is only 9m later -> still valid.
+    final p = await v.authenticate(token) as UserPrincipal;
+    expect(p.userId, 'jane@site.org');
+  });
 }

@@ -70,7 +70,7 @@
 | DIARY-PRD-role-definitions                       | Role Definitions                                         | prd-rbac.md                               | b03a41dc |
 | DIARY-PRD-score-hht-qol                          | HHT-QoL Score Calculation                                | prd-score-calculation.md                  | 67ca87e3 |
 | DIARY-PRD-score-nose-hht                         | NOSE HHT Score Calculation                               | prd-score-calculation.md                  | 634f9daf |
-| DIARY-PRD-session-management                     | Session Management                                       | prd-portal-auth.md                        | 21fe5107 |
+| DIARY-PRD-session-management                     | Session Management                                       | prd-portal-auth.md                        | e0f4a981 |
 | DIARY-PRD-sla-chronic-failure-escalation         | Chronic Failure Escalation                               | prd-sla.md                                | 18eb2eed |
 | DIARY-PRD-sla-corrective-preventive              | Corrective and Preventive Action                         | prd-sla.md                                | 168ba70d |
 | DIARY-PRD-sla-customer-notification              | Customer Incident Notification                           | prd-sla.md                                | 93c0d962 |
@@ -127,6 +127,7 @@
 | DIARY-GUI-participant-task-list              | Participant Task List                      | prd-mobile-notifications.md               | 916aca8a |
 | DIARY-GUI-participation-status-badge         | Participation Status Badge                 | prd-mobile-notifications.md               | 6f306233 |
 | DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface         | prd-portal-auth.md                        | d41e7764 |
+| DIARY-GUI-portal-session-expiry              | Portal session expiry interface            | prd-portal-auth.md                        | 0a1581a9 |
 | DIARY-GUI-portal-transport-status            | Portal Transport Status Banner             | prd-common-ui.md                          | 20c55120 |
 | DIARY-GUI-questionnaire-portal-sent-workflow | Portal-Sent Questionnaire Workflow         | prd-questionnaire-participant-workflow.md | ca0d5613 |
 | DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry               | prd-questionnaire-participant-workflow.md | 02879dd5 |
@@ -184,7 +185,8 @@
 | DIARY-DEV-portal-reset-session-termination   | Password reset session termination                    | dev-portal-password-reset.md       | 7805b6aa |
 | DIARY-DEV-portal-second-factor-toggle        | Conditional second factor                             | dev-portal-login.md                | d4b853aa |
 | DIARY-DEV-portal-seed-config                 | Config-driven user-role seed                          | dev-portal-service.md              | 89ccad9f |
-| DIARY-DEV-portal-session-lifecycle           | Portal session lifecycle                              | dev-portal-login.md                | 32f18e2d |
+| DIARY-DEV-portal-session-config              | Portal session configuration sourcing                 | dev-portal-login.md                | e0054d77 |
+| DIARY-DEV-portal-session-lifecycle           | Portal session lifecycle                              | dev-portal-login.md                | a7e8ed40 |
 | DIARY-DEV-portal-session-token               | Portal session token                                  | dev-portal-login.md                | 37177d93 |
 | DIARY-DEV-portal-settings-store              | Event-sourced portal configuration                    | dev-portal-settings.md             | 3ae46122 |
 | DIARY-DEV-portal-test-account-provisioning   | Dev/test seed-account self-provisioning               | dev-portal-settings.md             | 05b08471 |

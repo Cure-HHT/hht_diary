@@ -178,6 +178,12 @@ services:
       PORTAL_SEED_UI_DEFAULT_FONT: "${PORTAL_SEED_UI_DEFAULT_FONT:-}"
       PORTAL_SEED_UI_AVAILABLE_LANGUAGES: "${PORTAL_SEED_UI_AVAILABLE_LANGUAGES:-}"
       PORTAL_SEED_UI_DEFAULT_LANGUAGE: "${PORTAL_SEED_UI_DEFAULT_LANGUAGE:-}"
+      # Session-timeout seed knobs (CUR-1465): per-deployment idle window + warning
+      # lead, same empty pass-through pattern. Export e.g.
+      # PORTAL_SEED_SESSION_IDLE_MINUTES=1 / PORTAL_SEED_SESSION_WARNING_SECONDS=30
+      # to rehearse a fast countdown cycle locally.
+      PORTAL_SEED_SESSION_IDLE_MINUTES: "${PORTAL_SEED_SESSION_IDLE_MINUTES:-}"
+      PORTAL_SEED_SESSION_WARNING_SECONDS: "${PORTAL_SEED_SESSION_WARNING_SECONDS:-}"
       # PORTAL_AUTH_MODE is deliberately NOT set: the EVS portal defaults to
       # "dev" auth, where the userId is the dev-credential login id typed
       # verbatim (no password). To exercise real session auth instead, set

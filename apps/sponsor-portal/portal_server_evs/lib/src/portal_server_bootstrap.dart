@@ -28,6 +28,7 @@ import 'patient_state_handler.dart';
 import 'portal_view_scopes.dart';
 import 'seed_config.dart';
 import 'session_cascade_reactor.dart';
+import 'session_config.dart';
 import 'session_store.dart';
 import 'session_token_validator.dart';
 import 'sponsor_branding_asset_handler.dart';
@@ -351,9 +352,20 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final authMode = Platform.environment['PORTAL_AUTH_MODE'] ?? 'dev';
   final signingKey = Platform.environment['PORTAL_SESSION_SIGNING_KEY'] ?? '';
   final sessionStore = SessionStore();
-  final idleMinutes =
-      int.tryParse(Platform.environment['PORTAL_SESSION_IDLE_MINUTES'] ?? '') ??
-          10;
+  // Implements: DIARY-DEV-portal-session-config/A — seed the two session-config
+  //   keys idempotently from deployment env before resolving the effective
+  //   (clamped) config used by the validator AND the /config/session surface.
+  await seedSessionConfig(
+    eventStore: eventStore,
+    backend: backend,
+    env: Platform.environment,
+  );
+
+  // Implements: DIARY-DEV-portal-session-config/A — resolve the effective
+  //   session-config once at boot so the validator and the /config/session
+  //   surface agree on the same values.
+  final sessionConfig =
+      await resolveSessionConfig(backend, Platform.environment);
 
   final PrincipalAuthValidator validator;
   if (authMode == 'session') {
@@ -367,7 +379,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
       backend: backend,
       eventStore: eventStore,
       sessionStore: sessionStore,
-      idleTimeout: Duration(minutes: idleMinutes),
+      idleTimeout: sessionConfig.idleTimeout,
     );
   } else {
     validator = DevCredentialAuthValidator(backend: backend);
@@ -403,6 +415,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     'authMode': authMode,
   };
   // Implements: DIARY-DEV-portal-login-identity-verification/A+B
+  // Implements: DIARY-DEV-portal-session-lifecycle/D
   final loginRouter = buildLoginRouter(
     eventStore: eventStore,
     backend: backend,
@@ -411,6 +424,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     signingKey: signingKey.isEmpty ? 'dev-unused' : signingKey,
     verifyIdToken: verifyIdToken,
     identityConfig: identityConfig,
+    sessionConfig: sessionConfig,
   );
   // Implements: DIARY-DEV-portal-session-lifecycle/A
   final authedSessionRouter = buildAuthedSessionRouter(
@@ -613,6 +627,8 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // Login routes (public).
     ..options('/config/identity', loginHandler)
     ..get('/config/identity', loginHandler)
+    ..options('/config/session', loginHandler)
+    ..get('/config/session', loginHandler)
     ..options('/login', loginHandler)
     ..post('/login', loginHandler)
     ..options('/login/verify-otp', loginHandler)
