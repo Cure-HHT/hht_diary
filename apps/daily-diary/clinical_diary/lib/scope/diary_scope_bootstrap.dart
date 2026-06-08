@@ -60,21 +60,26 @@ const EntryTypeDefinition _actionDenialEntryType = EntryTypeDefinition(
 /// study enrollment). [extraEntryTypes] carries dynamic `<id>_survey` defs when
 /// the caller has them (empty is fine for I1).
 ///
-/// [outboundDestination] supplies the native outbound [Destination] (the
-/// diary-server ingest). When non-null it is registered with `bootstrapEventStore`
-/// and a [SyncCycle] is constructed and wired as the post-append
-/// `syncCycleTrigger` (fire-and-forget drain after every write). The caller is
-/// responsible for (a) calling `bundle.destinations.setStartDate(deviceId, ...)`
-/// to activate the destination at the trial-start watermark, and (b) installing
-/// the lifecycle / connectivity / periodic triggers via `installDiarySyncTriggers`.
-/// When `null`, the no-destination path is kept for tests / headless boots.
+/// [outboundDestinations] supplies the native outbound [Destination]s (the
+/// diary-server / portal ingest queues — clinical diary entries via
+/// `DiaryServerDestination`, system/FCM events via `SystemEventsDestination`).
+/// When non-empty they are all registered with `bootstrapEventStore` and a
+/// single [SyncCycle] is constructed and wired as the post-append
+/// `syncCycleTrigger` (fire-and-forget drain after every write); the SyncCycle
+/// drives the WHOLE `bundle.destinations` registry, so every registered
+/// destination drains on each cycle. The caller is responsible for (a) calling
+/// `bundle.destinations.setStartDate(<destinationId>, ...)` to activate each
+/// destination at the appropriate watermark (diary entries gate on trial-start;
+/// system events activate at link), and (b) installing the lifecycle /
+/// connectivity / periodic triggers via `installDiarySyncTriggers`. When empty,
+/// the no-destination path is kept for tests / headless boots.
 Future<DiaryScopeRuntime> bootstrapDiaryScope({
   required StorageBackend backend,
   required String deviceId,
   required String softwareVersion,
   required String localUserId,
   List<EntryTypeDefinition> extraEntryTypes = const [],
-  Destination? outboundDestination,
+  List<Destination> outboundDestinations = const [],
 }) async {
   final entryTypes = <EntryTypeDefinition>[
     for (final t in diaryOriginatedEventTypes) t.definition,
@@ -106,14 +111,12 @@ Future<DiaryScopeRuntime> bootstrapDiaryScope({
     backend: backend,
     source: source,
     entryTypes: entryTypes,
-    destinations: outboundDestination == null
-        ? const []
-        : [outboundDestination],
+    destinations: outboundDestinations,
     projections: projections,
-    syncCycleTrigger: outboundDestination == null ? null : triggerDrain,
+    syncCycleTrigger: outboundDestinations.isEmpty ? null : triggerDrain,
   );
 
-  syncCycle = outboundDestination == null
+  syncCycle = outboundDestinations.isEmpty
       ? null
       : SyncCycle(
           backend: backend,
