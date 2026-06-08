@@ -54,6 +54,12 @@ const _params = <_Param>[
   _Param('ui.defaultLanguage', 'PORTAL_SEED_UI_DEFAULT_LANGUAGE', _parseString),
   _Param('ui.notParticipatingMessage',
       'PORTAL_SEED_UI_NOT_PARTICIPATING_MESSAGE', _parseString),
+  // Implements: DIARY-BASE-questionnaire-cycle-tracking/I
+  _Param('questionnaire.cycle_tracking_enabled',
+      'PORTAL_SEED_QUESTIONNAIRE_CYCLE_TRACKING_ENABLED', _parseBool),
+  // Implements: DIARY-BASE-questionnaire-cycle-tracking/J
+  _Param('questionnaire.require_initial_cycle_selection',
+      'PORTAL_SEED_QUESTIONNAIRE_REQUIRE_INITIAL_CYCLE_SELECTION', _parseBool),
 ];
 
 /// Seeds every configured sponsor configuration parameter into the
