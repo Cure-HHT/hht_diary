@@ -197,6 +197,54 @@ void main() {
     expect(body['tasks'], isEmpty);
   });
 
+  test(
+      'questionnaire_submission_received instance is NOT returned in active '
+      'tasks (submitted -> Ready to Review, drops from /user/tasks)', () async {
+    // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/G — once the
+    //   participant has submitted (entryType 'questionnaire_submission_received',
+    //   status Ready to Review for the coordinator) it is no longer an active
+    //   task for the participant; the handler skips it.
+    final store = await _openStore('tasks-submitted-drops');
+    addTearDown(store.close);
+    await _seedTrialStarted(store);
+
+    await store.append(
+      entryType: 'questionnaire_assigned',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-SUB',
+      eventType: 'questionnaire_assigned',
+      data: const <String, Object?>{
+        'participant_id': 'P-1',
+        'type': 'nose_hht',
+        'study_event': 'Cycle 1 Day 1',
+      },
+      initiator: const UserInitiator('coordinator-1'),
+    );
+
+    // Participant submitted: the reactor's dedicated event folds into the row.
+    await store.append(
+      entryType: 'questionnaire_submission_received',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-SUB',
+      eventType: 'questionnaire_submission_received',
+      data: const <String, Object?>{
+        'completed_at': '2026-02-02T00:00:00.000Z',
+        'questionnaire_type': 'nose_hht',
+      },
+      initiator: const AutomationInitiator(service: 'questionnaire-submission'),
+    );
+
+    final token = createPatientJwt(authCode: 'ac', userId: 'P-1');
+    final handler = patientTasksHandler(eventStore: store);
+
+    final res = await handler(_get(auth: 'Bearer $token'));
+    expect(res.statusCode, 200);
+
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    // The submitted instance must NOT appear in the active task list.
+    expect(body['tasks'], isEmpty);
+  });
+
   test('disconnected participant still receives tasks; is_disconnected == true',
       () async {
     final store = await _openStore('tasks-disconnected');

@@ -34,16 +34,20 @@ enum QuestionnaireInstanceStatus {
 
 /// Maps the latest folded lifecycle `entryType` to a
 /// [QuestionnaireInstanceStatus]. `questionnaire_assigned` means the instance
-/// is out (Sent); `questionnaire_finalized` means it is Closed. Anything
-/// unrecognised (including null, and the tombstoning `questionnaire_called_back`
-/// — a called-back row is removed from the view, so it should not be observed
-/// here) maps to [QuestionnaireInstanceStatus.unknown].
+/// is out (Sent); `questionnaire_submission_received` means the participant has
+/// submitted (Ready to Review); `questionnaire_finalized` means it is Closed.
+/// Anything unrecognised (including null, and the tombstoning
+/// `questionnaire_called_back` — a called-back row is removed from the view, so
+/// it should not be observed here) maps to
+/// [QuestionnaireInstanceStatus.unknown].
 ///
 /// Implements: DIARY-PRD-questionnaire-system/B
 QuestionnaireInstanceStatus statusFromQuestionnaireEntryType(
   String? entryType,
 ) => switch (entryType) {
   'questionnaire_assigned' => QuestionnaireInstanceStatus.sent,
+  'questionnaire_submission_received' =>
+    QuestionnaireInstanceStatus.readyToReview,
   'questionnaire_finalized' => QuestionnaireInstanceStatus.closed,
   _ => QuestionnaireInstanceStatus.unknown,
 };

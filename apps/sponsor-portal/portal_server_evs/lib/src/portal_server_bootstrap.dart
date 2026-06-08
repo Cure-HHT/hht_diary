@@ -16,6 +16,7 @@ import 'package:shelf_router/shelf_router.dart';
 import 'activation_code_store.dart';
 import 'activation_reactor.dart';
 import 'linking_code_lifecycle_reactor.dart';
+import 'questionnaire_submission_reactor.dart';
 import 'activation_routes.dart';
 import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
@@ -495,6 +496,18 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final userTierReactor =
       UserTierReactor(eventStore: eventStore, backend: backend)..start();
 
+  // 7f-bis. Questionnaire submission reactor — on a diary `<id>_survey`
+  //     `finalized` event (whose aggregateId == the questionnaire instance id),
+  //     emits a dedicated `questionnaire_submission_received` event on the
+  //     instance aggregate so the questionnaire_instance row folds to Ready to
+  //     Review. Filters out non-survey diary entries and guards against phantom
+  //     rows / Closed-instance regressions.
+  // Implements: DIARY-BASE-questionnaire-coordinator-workflow/G
+  final questionnaireSubmissionReactor = QuestionnaireSubmissionReactor(
+    eventStore: eventStore,
+    backend: backend,
+  )..start();
+
   // 7g. Notification dispatch reactor — on a durable portal intent event
   //     (questionnaire assignment + participant lifecycle), looks up the
   //     recipient's active routing token in participant_fcm_tokens and sends a
@@ -842,6 +855,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     await sessionCascadeReactor.stop();
     await linkingCodeReactor.stop();
     await userTierReactor.stop();
+    await questionnaireSubmissionReactor.stop();
     await notificationDispatchReactor?.stop();
     fcmChannel?.dispose();
     await handlers.dispose();

@@ -10,6 +10,13 @@ void main() {
       );
     });
 
+    test('questionnaire_submission_received -> readyToReview', () {
+      expect(
+        statusFromQuestionnaireEntryType('questionnaire_submission_received'),
+        QuestionnaireInstanceStatus.readyToReview,
+      );
+    });
+
     test('questionnaire_finalized -> closed', () {
       expect(
         statusFromQuestionnaireEntryType('questionnaire_finalized'),

@@ -114,7 +114,11 @@ final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
 // Implements: DIARY-PRD-questionnaire-system/B — questionnaire_instance projects
 //   Completion Status per instance. The latest event's entryType is the status
 //   driver; lifecycle events fold into the row. One row per instance aggregate.
-//   The diary <id>_survey join for Ready-to-Review is a later (Phase 3) concern.
+// Implements: DIARY-BASE-questionnaire-coordinator-workflow/G — a participant
+//   submission folds in via questionnaire_submission_received (emitted by the
+//   QuestionnaireSubmissionReactor when a diary <id>_survey finalized event
+//   arrives for this instance), moving the latest entryType to that value so the
+//   derived status becomes Ready to Review.
 // Implements: DIARY-BASE-questionnaire-coordinator-workflow/D — Call Back is the
 //   spec-authoritative retract: questionnaire_called_back TOMBSTONES the row so
 //   the coordinator card resets to Not Sent by absence of an active instance.
@@ -126,6 +130,7 @@ final AggregateProjectionSpec questionnaireInstanceSpec =
         aggregateTypes: {'questionnaire_instance'},
         eventTypes: {
           'questionnaire_assigned',
+          'questionnaire_submission_received',
           'questionnaire_finalized',
           'questionnaire_called_back',
         },
