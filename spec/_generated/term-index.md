@@ -14,6 +14,15 @@
 - DIARY-PRD-sla-corrective-preventive
 - DIARY-BASE-ops-action-inventory-A
 - DIARY-BASE-ops-action-inventory-C
+- DIARY-BASE-questionnaire-coordinator-workflow-C
+- DIARY-BASE-questionnaire-coordinator-workflow-L
+- DIARY-BASE-questionnaire-manage-modal-C
+- DIARY-BASE-questionnaire-manage-modal-F
+- DIARY-BASE-questionnaire-manage-modal-G
+- DIARY-BASE-questionnaire-manage-modal-I
+- DIARY-BASE-questionnaire-manage-modal-J
+- DIARY-BASE-questionnaire-manage-modal-O
+- DIARY-BASE-questionnaire-finalization-C
 - DIARY-BASE-system-operator-role-B
 - DIARY-BASE-system-operator-role-C
 - DIARY-DEV-action-write-path-B
@@ -94,6 +103,8 @@
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-questionnaire-manage-modal:section:6
+- DIARY-BASE-questionnaire-finalization:section:2
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - rem:spec/dev-mobile-event-sourcing.md:3
@@ -477,6 +488,52 @@
 - DIARY-OPS-rave-alert-notification:section:0
 - DIARY-GUI-dev-admin-rave-sync-card:section:0
 
+## Current Cycle
+
+**DIARY:**
+
+- DIARY-BASE-questionnaire-manage-modal-E
+- DIARY-BASE-questionnaire-finalization-B
+- DIARY-BASE-questionnaire-finalization:section:2
+- rem:spec/prd-status-registry.md:50
+
+## Cycle
+
+**DIARY:**
+
+- DIARY-BASE-questionnaire-cycle-tracking
+- DIARY-BASE-questionnaire-coordinator-workflow-A
+- DIARY-BASE-questionnaire-coordinator-workflow-C
+- DIARY-BASE-questionnaire-coordinator-workflow-M
+- DIARY-BASE-questionnaire-manage-modal-D
+- DIARY-BASE-questionnaire-manage-modal-E
+- DIARY-BASE-questionnaire-manage-modal-I
+- DIARY-BASE-questionnaire-manage-modal-M
+- DIARY-BASE-questionnaire-finalization-A
+- DIARY-BASE-questionnaire-finalization-B
+- DIARY-BASE-questionnaire-finalization-D
+- DIARY-BASE-questionnaire-finalization-E
+- DIARY-BASE-questionnaire-cycle-tracking-A
+- DIARY-BASE-questionnaire-cycle-tracking-B
+- DIARY-BASE-questionnaire-cycle-tracking-C
+- DIARY-BASE-questionnaire-cycle-tracking-D
+- DIARY-BASE-questionnaire-cycle-tracking-E
+- DIARY-BASE-questionnaire-cycle-tracking-F
+- DIARY-BASE-questionnaire-cycle-tracking-G
+- DIARY-BASE-questionnaire-cycle-tracking-I
+- DIARY-BASE-questionnaire-cycle-tracking-J
+- DIARY-BASE-questionnaire-cycle-tracking-K
+- rem:spec/base-questionnaire-coordinator.md:3
+- DIARY-BASE-questionnaire-coordinator-workflow:section:0
+- DIARY-BASE-questionnaire-coordinator-workflow:section:6
+- DIARY-BASE-questionnaire-manage-modal:section:6
+- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-cycle-tracking:section:0
+- DIARY-BASE-questionnaire-cycle-tracking:section:4
+- DIARY-BASE-questionnaire-lock-after-submission:section:1
+- DIARY-GUI-dev-admin-rave-sync-card:section:0
+- rem:spec/prd-status-registry.md:50
+
 ## Daily Epistaxis Record
 
 **DIARY:**
@@ -600,6 +657,7 @@
 - DIARY-PRD-user-authentication-pin
 - DIARY-BASE-audit-trail-E
 - DIARY-BASE-local-data-reset-A
+- DIARY-BASE-questionnaire-coordinator-workflow-F
 - DIARY-DEV-runtime-environment-resolution-D
 - DIARY-DEV-deployment-config-defaults-A
 - DIARY-DEV-deployment-config-defaults-C
@@ -670,6 +728,8 @@
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-local-data-reset:section:0
 - DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-questionnaire-manage-modal:section:6
+- DIARY-BASE-questionnaire-lock-after-submission:section:1
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
@@ -965,14 +1025,46 @@
 
 **DIARY:**
 
+- DIARY-BASE-questionnaire-finalization
+- DIARY-BASE-questionnaire-coordinator-workflow-H
+- DIARY-BASE-questionnaire-coordinator-workflow-J
+- DIARY-BASE-questionnaire-coordinator-workflow-K
+- DIARY-BASE-questionnaire-coordinator-workflow-L
+- DIARY-BASE-questionnaire-coordinator-workflow-M
+- DIARY-BASE-questionnaire-finalization-D
+- DIARY-BASE-questionnaire-cycle-tracking-E
+- DIARY-BASE-questionnaire-lock-after-submission-B
+- DIARY-BASE-questionnaire-lock-after-submission-D
+- DIARY-BASE-questionnaire-lock-after-submission-E
 - DIARY-PRD-questionnaire-portal-sent-rules-N
 - DIARY-PRD-questionnaire-portal-sent-rules-O
 - DIARY-GUI-questionnaire-portal-sent-workflow-R
+- DIARY-BASE-questionnaire-coordinator-workflow:section:0
+- DIARY-BASE-questionnaire-coordinator-workflow:section:6
+- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-lock-after-submission:section:1
 - DIARY-GUI-epistaxis-record:section:5
 - DIARY-PRD-participant-registration:section:1
 - DIARY-PRD-questionnaire-portal-sent-rules:section:0
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:8
+
+## Finalization Dialog
+
+**DIARY:**
+
+- DIARY-BASE-questionnaire-finalization-A
+- DIARY-BASE-questionnaire-finalization-C
+- DIARY-BASE-questionnaire-finalization-F
+- DIARY-BASE-questionnaire-finalization-G
+- DIARY-BASE-questionnaire-finalization:section:2
+
+## Finalized Cycle
+
+**DIARY:**
+
+- DIARY-BASE-questionnaire-manage-modal-E
+- DIARY-BASE-questionnaire-finalization-D
 
 ## Full Name
 
@@ -1294,6 +1386,7 @@
 
 - DIARY-PRD-mobile-application
 - DIARY-GUI-mobile-navigation
+- DIARY-BASE-questionnaire-coordinator-workflow-B
 - DIARY-DEV-runtime-environment-resolution-A
 - DIARY-OPS-single-promotable-artifact-C
 - DIARY-PRD-mobile-application-A
@@ -1323,6 +1416,7 @@
 - DIARY-PRD-participant-reconnection-F
 - DIARY-PRD-participant-mark-not-participating-D
 - DIARY-PRD-participant-reactivate-C
+- DIARY-BASE-questionnaire-coordinator-workflow:section:0
 - rem:spec/glossary-core.md:730
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-mobile-app.md:1
@@ -1380,6 +1474,16 @@
 - DIARY-PRD-participant-reconnection:section:0
 
 ## Multi-Sponsor Isolation
+
+## Next Cycle
+
+**DIARY:**
+
+- DIARY-BASE-questionnaire-coordinator-workflow-C
+- DIARY-BASE-questionnaire-manage-modal-E
+- DIARY-BASE-questionnaire-manage-modal-M
+- DIARY-BASE-questionnaire-finalization-D
+- DIARY-BASE-questionnaire-cycle-tracking-D
 
 ## NIST SP 800-63
 
@@ -1460,6 +1564,19 @@
 - DIARY-GUI-link-participant-flow
 - DIARY-BASE-audit-trail-E
 - DIARY-BASE-local-data-reset-B
+- DIARY-BASE-questionnaire-coordinator-workflow-A
+- DIARY-BASE-questionnaire-coordinator-workflow-B
+- DIARY-BASE-questionnaire-coordinator-workflow-F
+- DIARY-BASE-questionnaire-coordinator-workflow-G
+- DIARY-BASE-questionnaire-manage-modal-A
+- DIARY-BASE-questionnaire-cycle-tracking-B
+- DIARY-BASE-questionnaire-cycle-tracking-E
+- DIARY-BASE-questionnaire-cycle-tracking-G
+- DIARY-BASE-questionnaire-cycle-tracking-H
+- DIARY-BASE-questionnaire-lock-after-submission-A
+- DIARY-BASE-questionnaire-lock-after-submission-B
+- DIARY-BASE-questionnaire-lock-after-submission-C
+- DIARY-BASE-questionnaire-lock-after-submission-D
 - DIARY-BASE-sponsor-requested-settings-A
 - DIARY-BASE-sponsor-requested-settings-C
 - DIARY-BASE-sponsor-requested-settings-D
@@ -1698,6 +1815,14 @@
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-local-data-reset:section:0
 - DIARY-BASE-local-data-reset:section:1
+- DIARY-BASE-questionnaire-coordinator-workflow:section:0
+- DIARY-BASE-questionnaire-coordinator-workflow:section:6
+- DIARY-BASE-questionnaire-manage-modal:section:6
+- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-cycle-tracking:section:0
+- DIARY-BASE-questionnaire-cycle-tracking:section:4
+- DIARY-BASE-questionnaire-lock-after-submission:section:0
+- DIARY-BASE-questionnaire-lock-after-submission:section:1
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
@@ -2083,6 +2208,9 @@
 
 **DIARY:**
 
+- DIARY-BASE-questionnaire-coordinator-workflow
+- DIARY-BASE-questionnaire-finalization
+- DIARY-BASE-questionnaire-cycle-tracking
 - DIARY-PRD-notification-portal-sent-questionnaire
 - DIARY-PRD-questionnaire-system
 - DIARY-PRD-questionnaire-sponsor-configuration
@@ -2098,6 +2226,41 @@
 - DIARY-PRD-questionnaire-localization
 - DIARY-PRD-questionnaire-sponsor-eligibility
 - DIARY-PRD-questionnaire-score-calculation
+- DIARY-BASE-questionnaire-coordinator-workflow-A
+- DIARY-BASE-questionnaire-coordinator-workflow-B
+- DIARY-BASE-questionnaire-coordinator-workflow-C
+- DIARY-BASE-questionnaire-coordinator-workflow-D
+- DIARY-BASE-questionnaire-coordinator-workflow-E
+- DIARY-BASE-questionnaire-coordinator-workflow-F
+- DIARY-BASE-questionnaire-coordinator-workflow-G
+- DIARY-BASE-questionnaire-coordinator-workflow-H
+- DIARY-BASE-questionnaire-coordinator-workflow-I
+- DIARY-BASE-questionnaire-coordinator-workflow-J
+- DIARY-BASE-questionnaire-coordinator-workflow-K
+- DIARY-BASE-questionnaire-coordinator-workflow-M
+- DIARY-BASE-questionnaire-manage-modal-B
+- DIARY-BASE-questionnaire-manage-modal-D
+- DIARY-BASE-questionnaire-manage-modal-E
+- DIARY-BASE-questionnaire-manage-modal-H
+- DIARY-BASE-questionnaire-manage-modal-I
+- DIARY-BASE-questionnaire-manage-modal-N
+- DIARY-BASE-questionnaire-finalization-C
+- DIARY-BASE-questionnaire-finalization-D
+- DIARY-BASE-questionnaire-finalization-E
+- DIARY-BASE-questionnaire-finalization-F
+- DIARY-BASE-questionnaire-finalization-G
+- DIARY-BASE-questionnaire-cycle-tracking-A
+- DIARY-BASE-questionnaire-cycle-tracking-B
+- DIARY-BASE-questionnaire-cycle-tracking-C
+- DIARY-BASE-questionnaire-cycle-tracking-D
+- DIARY-BASE-questionnaire-cycle-tracking-E
+- DIARY-BASE-questionnaire-cycle-tracking-F
+- DIARY-BASE-questionnaire-cycle-tracking-G
+- DIARY-BASE-questionnaire-cycle-tracking-H
+- DIARY-BASE-questionnaire-cycle-tracking-J
+- DIARY-BASE-questionnaire-lock-after-submission-C
+- DIARY-BASE-questionnaire-lock-after-submission-D
+- DIARY-BASE-questionnaire-lock-after-submission-E
 - DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-GUI-audit-log-common-G
 - DIARY-GUI-participant-task-list-A
@@ -2177,6 +2340,16 @@
 - DIARY-PRD-questionnaire-score-calculation-C
 - DIARY-PRD-score-hht-qol-A
 - DIARY-PRD-score-nose-hht-A
+- rem:spec/base-questionnaire-coordinator.md:1
+- rem:spec/base-questionnaire-coordinator.md:3
+- DIARY-BASE-questionnaire-coordinator-workflow:section:0
+- DIARY-BASE-questionnaire-coordinator-workflow:section:6
+- DIARY-BASE-questionnaire-manage-modal:section:6
+- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-cycle-tracking:section:0
+- DIARY-BASE-questionnaire-cycle-tracking:section:4
+- DIARY-BASE-questionnaire-lock-after-submission:section:0
+- DIARY-BASE-questionnaire-lock-after-submission:section:1
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/prd-common-ui.md:7
@@ -2220,6 +2393,20 @@
 - rem:spec/prd-status-registry.md:48
 - rem:spec/prd-status-registry.md:50
 
+## Questionnaire Card
+
+**DIARY:**
+
+- DIARY-BASE-questionnaire-manage-modal-B
+- DIARY-BASE-questionnaire-manage-modal-D
+- DIARY-BASE-questionnaire-manage-modal-E
+- DIARY-BASE-questionnaire-manage-modal-G
+- DIARY-BASE-questionnaire-manage-modal-K
+- DIARY-BASE-questionnaire-manage-modal-L
+- DIARY-BASE-questionnaire-manage-modal-M
+- DIARY-BASE-questionnaire-finalization-D
+- DIARY-BASE-questionnaire-finalization-E
+
 ## Questionnaire Display Name
 
 **DIARY:**
@@ -2242,10 +2429,27 @@
 
 **DIARY:**
 
+- DIARY-BASE-questionnaire-coordinator-workflow-A
+- DIARY-BASE-questionnaire-coordinator-workflow-C
+- DIARY-BASE-questionnaire-manage-modal-B
+- DIARY-BASE-questionnaire-manage-modal-D
+- DIARY-BASE-questionnaire-manage-modal-E
+- DIARY-BASE-questionnaire-manage-modal-I
+- DIARY-BASE-questionnaire-cycle-tracking-B
+- DIARY-BASE-questionnaire-cycle-tracking-C
+- DIARY-BASE-questionnaire-cycle-tracking-D
+- DIARY-BASE-questionnaire-cycle-tracking-E
+- DIARY-BASE-questionnaire-cycle-tracking-G
+- DIARY-BASE-questionnaire-cycle-tracking-H
+- DIARY-BASE-questionnaire-cycle-tracking-J
 - DIARY-GUI-audit-log-common-G
 - DIARY-GUI-participant-task-list-F
 - DIARY-PRD-questionnaire-change-control-B
 - DIARY-PRD-questionnaire-score-calculation-C
+- DIARY-BASE-questionnaire-manage-modal:section:6
+- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-cycle-tracking:section:0
+- DIARY-BASE-questionnaire-cycle-tracking:section:4
 - DIARY-PRD-questionnaire-system:section:4
 - DIARY-PRD-questionnaire-sponsor-configuration:section:1
 - DIARY-PRD-questionnaire-change-control:section:1
@@ -2505,6 +2709,17 @@
 - DIARY-DEV-portal-reset-session-termination:section:0
 - DIARY-DEV-portal-reset-session-termination:section:1
 - DIARY-PRD-two-factor-authentication:section:4
+
+## Select Starting Cycle Dialog
+
+**DIARY:**
+
+- DIARY-BASE-questionnaire-manage-modal-I
+- DIARY-BASE-questionnaire-manage-modal-J
+- DIARY-BASE-questionnaire-manage-modal-K
+- DIARY-BASE-questionnaire-manage-modal-L
+- DIARY-BASE-questionnaire-manage-modal-M
+- DIARY-BASE-questionnaire-manage-modal:section:6
 
 ## Session
 
@@ -2879,6 +3094,8 @@
 - DIARY-BASE-local-data-reset:section:0
 - DIARY-BASE-local-data-reset:section:1
 - DIARY-BASE-ops-action-inventory:section:0
+- rem:spec/base-questionnaire-coordinator.md:3
+- DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
@@ -3044,6 +3261,7 @@
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
 - DIARY-BASE-audit-trail:section:1
+- rem:spec/base-questionnaire-coordinator.md:3
 - DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-node-sync-topology:section:2
@@ -3084,11 +3302,43 @@
 
 ## Sponsor-Level Action Extension
 
+## Starting Cycle
+
+**DIARY:**
+
+- DIARY-BASE-questionnaire-cycle-tracking-C
+- DIARY-BASE-questionnaire-cycle-tracking-J
+- DIARY-BASE-questionnaire-cycle-tracking-K
+- DIARY-BASE-questionnaire-manage-modal:section:6
+- DIARY-BASE-questionnaire-cycle-tracking:section:4
+
 ## Study Coordinator
 
 **DIARY:**
 
 - DIARY-GUI-audit-log-study-coordinator
+- DIARY-BASE-questionnaire-coordinator-workflow-D
+- DIARY-BASE-questionnaire-coordinator-workflow-E
+- DIARY-BASE-questionnaire-coordinator-workflow-H
+- DIARY-BASE-questionnaire-coordinator-workflow-I
+- DIARY-BASE-questionnaire-coordinator-workflow-L
+- DIARY-BASE-questionnaire-manage-modal-F
+- DIARY-BASE-questionnaire-manage-modal-G
+- DIARY-BASE-questionnaire-manage-modal-H
+- DIARY-BASE-questionnaire-manage-modal-I
+- DIARY-BASE-questionnaire-manage-modal-K
+- DIARY-BASE-questionnaire-manage-modal-L
+- DIARY-BASE-questionnaire-manage-modal-M
+- DIARY-BASE-questionnaire-manage-modal-N
+- DIARY-BASE-questionnaire-manage-modal-O
+- DIARY-BASE-questionnaire-finalization-A
+- DIARY-BASE-questionnaire-finalization-D
+- DIARY-BASE-questionnaire-finalization-E
+- DIARY-BASE-questionnaire-finalization-F
+- DIARY-BASE-questionnaire-finalization-G
+- DIARY-BASE-questionnaire-cycle-tracking-C
+- DIARY-BASE-questionnaire-cycle-tracking-J
+- DIARY-BASE-questionnaire-lock-after-submission-D
 - DIARY-DEV-portal-reaction-server-C
 - DIARY-GUI-audit-log-cra-C
 - DIARY-GUI-audit-log-cra-D
@@ -3111,6 +3361,11 @@
 - DIARY-PRD-role-definitions-A
 - DIARY-PRD-role-definitions-B
 - DIARY-PRD-user-account-create-C
+- DIARY-BASE-questionnaire-coordinator-workflow:section:0
+- DIARY-BASE-questionnaire-coordinator-workflow:section:6
+- DIARY-BASE-questionnaire-manage-modal:section:6
+- DIARY-BASE-questionnaire-cycle-tracking:section:0
+- DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-GUI-audit-log-cra:section:0
@@ -3140,7 +3395,13 @@
 
 **DIARY:**
 
+- DIARY-BASE-questionnaire-lock-after-submission
 - DIARY-PRD-questionnaire-submission-control
+- DIARY-BASE-questionnaire-coordinator-workflow-F
+- DIARY-BASE-questionnaire-lock-after-submission-A
+- DIARY-BASE-questionnaire-lock-after-submission-B
+- DIARY-BASE-questionnaire-lock-after-submission-C
+- DIARY-BASE-questionnaire-lock-after-submission-D
 - DIARY-PRD-evidence-bitcoin-timestamp-H
 - DIARY-PRD-evidence-device-fingerprint-A
 - DIARY-PRD-evidence-device-fingerprint-D
@@ -3163,6 +3424,9 @@
 - DIARY-GUI-questionnaire-portal-sent-workflow-Q
 - DIARY-PRD-sla-data-recovery-M
 - DIARY-PRD-reason-field-constraints-A
+- rem:spec/base-questionnaire-coordinator.md:3
+- DIARY-BASE-questionnaire-lock-after-submission:section:0
+- DIARY-BASE-questionnaire-lock-after-submission:section:1
 - rem:spec/prd-common-ui.md:35
 - DIARY-PRD-evidence-device-fingerprint:section:0
 - DIARY-PRD-mobile-application:section:1
@@ -3203,6 +3467,22 @@
 - rem:spec/prd-mobile-notifications.md:3
 - DIARY-GUI-participant-task-list:section:0
 - DIARY-PRD-notification-yesterday-entry:section:5
+
+## Terminal Cycle
+
+**DIARY:**
+
+- DIARY-BASE-questionnaire-finalization-E
+- DIARY-BASE-questionnaire-cycle-tracking-F
+- DIARY-BASE-questionnaire-cycle-tracking-G
+
+## Terminal Cycle Warning Dialog
+
+**DIARY:**
+
+- DIARY-BASE-questionnaire-finalization-E
+- DIARY-BASE-questionnaire-finalization-G
+- DIARY-BASE-questionnaire-finalization:section:2
 
 ## Time Picker
 
