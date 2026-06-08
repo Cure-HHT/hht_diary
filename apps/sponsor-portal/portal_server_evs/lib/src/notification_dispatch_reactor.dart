@@ -6,7 +6,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:comms/comms.dart';
-import 'package:event_sourcing/event_sourcing.dart';
+// event_sourcing also exports a `DispatchResult`; hide it so the explicit
+// `DispatchResult` type below resolves unambiguously to comms' FCM result.
+import 'package:event_sourcing/event_sourcing.dart' hide DispatchResult;
 
 /// Post-commit reactor that turns already-durable portal intent events
 /// (questionnaire assignment + participant lifecycle) into FCM pushes. It looks
@@ -84,7 +86,19 @@ class NotificationDispatchReactor {
           if (event.flowToken != null) 'flowToken': event.flowToken!,
         },
       );
-      final result = await channel.dispatch(message);
+      // dispatch() can THROW (transport faults: ADC/credential resolution,
+      // a TimeoutException from the send timeout, socket errors) rather than
+      // returning a DispatchResult terminal. Catch it so the outcome is still
+      // recorded as a notification_dispatch_failed audit event instead of being
+      // swallowed by the subscription's fire-and-forget backstop.
+      final DispatchResult result;
+      try {
+        result = await channel.dispatch(message);
+      } catch (e) {
+        await _recordFailure(event, participantId,
+            fcmTokenAggregateId: t.aggregateId, reason: 'dispatch_threw: $e');
+        continue;
+      }
       if (result.unregistered) {
         await _recordFailure(event, participantId,
             fcmTokenAggregateId: t.aggregateId, reason: 'UNREGISTERED');

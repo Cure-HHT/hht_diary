@@ -145,4 +145,26 @@ void main() {
     expect(failed, hasLength(1));
     expect(failed.single.data['reason'], 'UNREGISTERED');
   });
+
+  test(
+      'a thrown dispatch (transport fault) still records '
+      'notification_dispatch_failed', () async {
+    await registerToken('P4', 'android', 'TOKX');
+    // Simulate dispatch() throwing instead of returning a terminal (e.g. ADC
+    // resolution failure, or a TimeoutException from the send timeout).
+    channel.throwOnDispatch = StateError('metadata server unreachable');
+
+    await reactor
+        .handleIntent(questionnaireAssigned('P4', flowToken: 'QST000004'));
+
+    expect(channel.sent, hasLength(1));
+    final failed = await eventsOfType('notification_dispatch_failed');
+    expect(failed, hasLength(1));
+    expect(failed.single.data['participant_id'], 'P4');
+    expect(failed.single.data['fcm_token_aggregate_id'], 'P4:fcm:android');
+    expect(failed.single.data['reason'], startsWith('dispatch_threw:'));
+    expect(failed.single.flowToken, 'QST000004');
+    // No success event recorded for a thrown dispatch.
+    expect(await eventsOfType('notification_sent'), isEmpty);
+  });
 }

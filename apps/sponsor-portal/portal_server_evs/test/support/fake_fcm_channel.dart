@@ -11,12 +11,19 @@ class FakeFcmChannel implements Channel<FcmMessage> {
   final Map<String, DispatchResult> resultForToken = <String, DispatchResult>{};
   final List<FcmMessage> sent = <FcmMessage>[];
 
+  /// When set, [dispatch] THROWS this instead of returning a result —
+  /// simulates transport faults (ADC/credential resolution, send timeout,
+  /// socket errors) that surface as exceptions rather than DispatchResult.
+  Object? throwOnDispatch;
+
   @override
   String get name => 'fake-fcm';
 
   @override
   Future<DispatchResult> dispatch(FcmMessage message) async {
     sent.add(message);
+    final err = throwOnDispatch;
+    if (err != null) throw err;
     return resultForToken[message.fcmToken] ?? nextResult;
   }
 }
