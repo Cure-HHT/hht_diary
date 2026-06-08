@@ -13,6 +13,7 @@ import 'password_reset_screen.dart';
 import 'reset_link.dart';
 import 'audit_log_screen.dart';
 import 'connect_screen.dart';
+import 'connection_status_banner.dart';
 import 'firebase_auth_client.dart';
 import 'identity_config.dart';
 import 'login_screen.dart';
@@ -545,7 +546,16 @@ class _HomeShellState extends State<_HomeShell> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _buildBody(visible, selectedIndex),
+      // Surface transport-connection state: when the reactive WS is
+      // reconnecting/disconnected, a banner tells the user the data shown is the
+      // last received (lists keep their last rows via the ViewBuilder Stale
+      // state). Self-clears on reconnect.
+      // Implements: DIARY-GUI-portal-transport-status/A+B
+      body: ConnectionStatusBanner(
+        statusStream: ReActionScope.of(context).connectionStatusStream,
+        initial: ReActionScope.of(context).connectionStatus,
+        child: _buildBody(visible, selectedIndex),
+      ),
     );
   }
 

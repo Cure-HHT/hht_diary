@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # semver-only: bare version, no +N. The build id (+<sponsor_short_sha>) is
 # stamped at image-build time by callisto's portal-final.Dockerfile.
-version: 1.4.3
+version: 1.4.4
 
 environment:
   sdk: ^3.10.7
@@ -15,7 +15,7 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: event_sourcing
   firebase_core: ^4.3.0
   firebase_auth: ^6.1.3
@@ -23,12 +23,12 @@ dependencies:
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction
   reaction_widgets:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets
 
 dev_dependencies:
@@ -37,7 +37,7 @@ dev_dependencies:
   reaction_widgets_testing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: e4b02c7a8812a00f0433bfdd3d7de1d1aea42383
+      ref: c3fe9cca204c0f80fdd59917769f528a19d7e172
       path: reaction_widgets_testing
   flutter_lints: ^5.0.0
 
