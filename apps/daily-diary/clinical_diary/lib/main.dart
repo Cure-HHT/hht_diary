@@ -17,6 +17,7 @@ import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
+import 'package:clinical_diary/destinations/system_events_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
@@ -52,6 +53,7 @@ import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
 import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
     show AutomationInitiator;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:flutter/semantics.dart';
@@ -108,9 +110,21 @@ void main() async {
       TimezoneConverter.ensureInitialized();
 
       try {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
+        if (kIsWeb) {
+          // Web has no native google-services config, so it needs explicit options.
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.currentPlatform,
+          );
+        } else {
+          // CUR-1436 / CUR-1399: native platforms initialize from the per-flavor
+          // google-services.json / GoogleService-Info.plist, which target the
+          // cure-hht-admin project the portal sends FCM from. Passing explicit
+          // options here would override that native config and initialize against
+          // firebase_options.dart's hht-diary-mvp project, so device tokens would
+          // be minted in a different project than the sender and pushes would
+          // silently never arrive.
+          await Firebase.initializeApp();
+        }
         debugPrint('Firebase initialized successfully');
       } on FirebaseException catch (e) {
         // CUR-1278: on Android the google-services Gradle plugin's
@@ -374,15 +388,26 @@ class _AppRootState extends State<AppRoot> {
         // with no bootstrap-time restart.
         final ingestClient = http.Client();
         _diaryIngestClient = ingestClient;
+        // Native ingest endpoint: <backend>/api/v1/ingest/batch. Returns null
+        // pre-enrollment, which both destinations treat as "skip this cycle".
+        Future<Uri?> resolveIngestUrl() async {
+          final base = await _enrollmentService.getBackendUrl();
+          if (base == null) return null;
+          return Uri.parse('$base/api/v1/ingest/batch');
+        }
+
         final destination = DiaryServerDestination(
           client: ingestClient,
-          // Native ingest endpoint: <backend>/api/v1/ingest/batch. Returns null
-          // pre-enrollment, which the destination treats as "skip this cycle".
-          resolveIngestUrl: () async {
-            final base = await _enrollmentService.getBackendUrl();
-            if (base == null) return null;
-            return Uri.parse('$base/api/v1/ingest/batch');
-          },
+          resolveIngestUrl: resolveIngestUrl,
+          authToken: _enrollmentService.getJwtToken,
+        );
+        // Second outbound queue: ships system/FCM aggregates (FcmToken token
+        // registration + InboundMessage receipts) to the SAME ingest endpoint.
+        // It is activated at LINK time (not the trial-start watermark) so push
+        // routing tokens reach the portal as soon as the device links.
+        final systemDestination = SystemEventsDestination(
+          client: ingestClient,
+          resolveIngestUrl: resolveIngestUrl,
           authToken: _enrollmentService.getJwtToken,
         );
 
@@ -399,7 +424,7 @@ class _AppRootState extends State<AppRoot> {
             softwareVersion: softwareVersion,
             localUserId: deviceId, // stable per-install id; recording is never
             // enrollment-gated
-            outboundDestination: destination,
+            outboundDestinations: [destination, systemDestination],
           );
         } catch (_) {
           ingestClient.close();
@@ -473,11 +498,11 @@ class _AppRootState extends State<AppRoot> {
             _diarySyncTriggers = await installDiarySyncTriggers(
               // Foreground-only poll. Portal-originated lifecycle changes
               // (trial-start, disconnect, not-participating) reach the diary
-              // only via this /user/state reconcile, so a 15-min default left
-              // them invisible until an app relaunch. 60s keeps the foreground
-              // experience near-live without a push channel (FCM push is the
-              // eventual primary path, deferred to CUR-1436).
+              // via this /user/state reconcile, kept as the BACKUP path. 60s
+              // keeps the foreground experience near-live; FCM push is the
+              // PRIMARY trigger (onFcmReceipt below, CUR-1436).
               periodicInterval: const Duration(seconds: 60),
+              onFcmReceipt: _recordFcmReceipt,
               onTrigger: () async {
                 await _reconcileDiaryScope(diaryScope);
                 // Pause outbound sync while the participant is disconnected or
@@ -565,6 +590,30 @@ class _AppRootState extends State<AppRoot> {
         // own event log (DIARY-DEV-shared-events-catalog/A surface P4). Identity
         // only — the JWT/install-id stay in secure storage (state-in-event-log/B).
         await _recordParticipantLinkedOnce(diaryScope, participantId);
+        // Activate the system-events destination at link (monotonic): FCM
+        // tokens and receipts must reach the portal as soon as the device is
+        // linked, independent of the trial-start watermark that gates clinical
+        // diary entries. Epoch start = drain all system events once linked.
+        // Implements: DIARY-DEV-native-outbound-sync/C
+        final sysSchedule = await diaryScope.bundle.destinations.scheduleOf(
+          SystemEventsDestination.destinationId,
+        );
+        if (sysSchedule.startDate == null) {
+          await diaryScope.bundle.destinations.setStartDate(
+            SystemEventsDestination.destinationId,
+            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+            initiator: const esd.AutomationInitiator(
+              service: 'system-events-link-activation',
+            ),
+          );
+        }
+        // Re-register the current FCM token now that the participant id is known:
+        // a token minted pre-link could not be recorded (no participant-scoped
+        // aggregate id yet), so record it once here at the link transition.
+        final currentToken = _notificationService?.currentToken;
+        if (currentToken != null) {
+          await _registerFcmToken(currentToken);
+        }
         // Apply the portal-requested sponsor settings carried in the /link
         // response (set-once-at-link), through the diary's normal apply path.
         // Implements: DIARY-BASE-sponsor-requested-settings/A+B
@@ -818,43 +867,78 @@ class _AppRootState extends State<AppRoot> {
     }
   }
 
-  /// Register the FCM token with the diary server.
+  /// Record an FCM token mint/refresh as a `fcm_token_registered` event in the
+  /// diary's OWN event log, dispatched through the EVS ActionDispatcher.
   ///
-  /// Called on initial token retrieval and on token refresh.
+  /// Called on initial token retrieval and on token refresh. The token aggregate
+  /// id is participant-scoped (`{participantId}:fcm:{platform}`) so the portal
+  /// `/ingest` accepts it (ownership is enforced on the `{participantId}:` prefix,
+  /// and the JWT userId IS the participantId) and the portal projects one active
+  /// token per participant+platform. Until linked there is no participant id, so
+  /// the registration is deferred and re-run at the link transition.
+  ///
   /// REQ-CAL-p00082: Participant Alert Delivery
+  // Implements: DIARY-DEV-inbound-event-on-receipt/A
   Future<void> _registerFcmToken(String token) async {
-    final jwt = await _enrollmentService.getJwtToken();
-    if (jwt == null) {
-      debugPrint('[FCM] No JWT — user not linked yet, skipping');
+    final participantId = await _enrollmentService.getUserId();
+    if (participantId == null || participantId.isEmpty) {
+      debugPrint('[FCM] not linked yet — deferring token registration');
       return;
     }
-
-    final backendUrl = await _enrollmentService.getBackendUrl();
-    if (backendUrl == null) {
-      debugPrint('[FCM] No backend URL — user not linked yet, skipping');
-      return;
-    }
-
+    final scope = _diaryScope;
+    if (scope == null) return;
     final platform = Platform.isIOS ? 'ios' : 'android';
-    final url = '$backendUrl/api/v1/user/fcm-token';
-
     try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $jwt',
-        },
-        body: jsonEncode({'fcm_token': token, 'platform': platform}),
+      await scope.scope.actionSubmitter.submit(
+        esd.ActionSubmission(
+          actionName: 'register_fcm_token',
+          rawInput: <String, Object?>{
+            'aggregateId': '$participantId:fcm:$platform',
+            'token': token,
+            'platform': platform,
+            'registered_at': DateTime.now().toUtc().toIso8601String(),
+          },
+        ),
       );
+      debugPrint('[FCM] token recorded as fcm_token_registered ($platform)');
+    } catch (e, st) {
+      debugPrint('[FCM] register_fcm_token dispatch failed: $e\n$st');
+    }
+  }
 
-      if (response.statusCode == 200) {
-        debugPrint('[FCM] Token registered with diary server ($platform)');
-      } else {
-        debugPrint('[FCM] Token registration failed: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('[FCM] Token registration error: $e');
+  /// Record an inbound FCM message as a `fcm_message_received` event in the
+  /// diary's OWN event log, echoing the portal-minted `flowToken` (if any) so
+  /// the portal can stitch assigned -> delivered -> received. Dispatched
+  /// through the EVS action submitter. Best-effort: failures are logged
+  /// and swallowed and never block the sync drain.
+  ///
+  /// The receipt aggregate id is participant-scoped
+  /// (`{participantId}:rcv:{uuid}`) so the portal `/ingest` accepts it
+  /// (ownership is enforced on the `{participantId}:` prefix). Until linked
+  /// there is no participant id, so the receipt is skipped.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/B
+  // Implements: DIARY-DEV-outgoing-intent-correlation/D — echo the portal-minted flowToken.
+  Future<void> _recordFcmReceipt(RemoteMessage message) async {
+    final participantId = await _enrollmentService.getUserId();
+    if (participantId == null || participantId.isEmpty) return;
+    final scope = _diaryScope;
+    if (scope == null) return;
+    final data = message.data;
+    try {
+      await scope.scope.actionSubmitter.submit(
+        esd.ActionSubmission(
+          actionName: 'record_fcm_message_received',
+          rawInput: <String, Object?>{
+            'aggregateId': '$participantId:rcv:${const Uuid().v4()}',
+            'received_at': DateTime.now().toUtc().toIso8601String(),
+            'channel': 'fcm',
+            'message_type': (data['type'] as String?) ?? 'unknown',
+            if (data['flowToken'] is String) 'flowToken': data['flowToken'],
+          },
+        ),
+      );
+    } catch (e, st) {
+      debugPrint('[FCM] record_fcm_message_received dispatch failed: $e\n$st');
     }
   }
 

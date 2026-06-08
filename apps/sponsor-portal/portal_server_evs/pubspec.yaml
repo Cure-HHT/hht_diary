@@ -1,12 +1,14 @@
 name: portal_server_evs
 description: "Event-sourced portal server (reaction HTTP/WS shell over portal_service). Beta rebuild of portal_server."
-version: 0.5.3+6
+version: 0.5.4+7
 publish_to: none
 
 environment:
   sdk: ^3.5.0
 
 dependencies:
+  comms:
+    path: ../../common-dart/comms
   crypto: ^3.0.7
   event_sourcing:
     git:
