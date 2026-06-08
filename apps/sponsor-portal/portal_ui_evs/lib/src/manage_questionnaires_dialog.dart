@@ -246,6 +246,7 @@ class ManageQuestionnairesDialog extends StatelessWidget {
         builder: (ctx) => _ConfirmNextCycleDialog(participantId: participantId),
       );
       if (ok != true) return; // cancelled — no change
+      if (!context.mounted) return;
     }
 
     final outcome = await postSend(client, serverUrl, bearer, <String, Object?>{
@@ -555,7 +556,7 @@ class _ActionButton extends StatelessWidget {
       );
     }
 
-    final VoidCallback onPressed;
+    final VoidCallback? onPressed;
     switch (action) {
       case QuestionnaireCardAction.sendNow:
         onPressed = () => onSendNow(typeId);
@@ -563,11 +564,13 @@ class _ActionButton extends StatelessWidget {
         onPressed = () => onStartNextCycle(typeId);
       case QuestionnaireCardAction.callBack:
         // Call Back targets the current open instance. resolveCardState only
-        // offers callBack when an open instance exists, so the lookup is safe.
+        // offers callBack when an open instance exists, but if the open
+        // instance can't be resolved the button renders DISABLED (null) rather
+        // than as an enabled no-op.
         final current = _currentInstance();
-        onPressed = current == null ? () {} : () => onCallBack(current);
+        onPressed = current == null ? null : () => onCallBack(current);
       case QuestionnaireCardAction.finalize:
-        onPressed = () {}; // Unreachable — handled above.
+        onPressed = null; // Unreachable — handled above.
     }
 
     // Stable identifier for Playwright e2e (mirrors the send-eq-confirm-...

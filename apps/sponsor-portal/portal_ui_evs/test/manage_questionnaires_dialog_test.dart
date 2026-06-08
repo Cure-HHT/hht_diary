@@ -7,9 +7,13 @@
 //   the row tombstones (G), and Cancel makes no change (H).
 // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/D+E — Call Back
 //   dispatches the retraction action through the reaction scope.
+import 'dart:convert';
+
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:portal_ui_evs/src/manage_questionnaires_dialog.dart';
 import 'package:portal_ui_evs/src/questionnaire_instance.dart';
 import 'package:portal_ui_evs/src/questionnaire_types.dart';
@@ -246,6 +250,105 @@ void main() {
         await tester.tap(find.byTooltip('Close'));
         await tester.pumpAndSettle();
         expect(find.text('Manage Questionnaires'), findsNothing);
+
+        await fake.dispose();
+      },
+    );
+
+    // Verifies: DIARY-BASE-questionnaire-manage-modal/I+J+K+L — the full Send
+    //   Now multi-step path: Send Now -> server 422 needs_initial_cycle_selection
+    //   -> the Select Starting Cycle dialog -> choose a cycle -> Confirm and Send
+    //   re-POSTs with an explicit `studyEvent: 'Cycle <N> Day 1'`.
+    testWidgets(
+      'Send Now 422 -> cycle picker -> re-POST carries studyEvent (I/J/K/L)',
+      (tester) async {
+        // Mock client: first POST (no studyEvent) -> 422; second POST (with the
+        // chosen studyEvent) -> 200. Capture every request body.
+        final bodies = <Map<String, Object?>>[];
+        final client = MockClient((req) async {
+          final body = jsonDecode(req.body) as Map<String, Object?>;
+          bodies.add(body);
+          if (!body.containsKey('studyEvent')) {
+            return http.Response(
+              jsonEncode(<String, Object?>{
+                'error': 'needs_initial_cycle_selection',
+              }),
+              422,
+              headers: const {'content-type': 'application/json'},
+            );
+          }
+          return http.Response(
+            jsonEncode(<String, Object?>{
+              'instanceId': 'inst-9',
+              'studyEvent': body['studyEvent'],
+            }),
+            200,
+            headers: const {'content-type': 'application/json'},
+          );
+        });
+
+        final fake = FakeReaction();
+        fake.drivePermission(_authWith({'view:questionnaire_instance'}));
+
+        await pumpReactionWidget(
+          tester,
+          fake: fake,
+          child: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => ManageQuestionnairesDialog.show(
+                    context: context,
+                    participantId: 'P-1',
+                    siteId: 'S-1',
+                    serverUrl: 'http://test.local',
+                    identityCredential: 'cred',
+                    httpClient: client,
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('open'));
+        await tester.pump();
+        await tester.pump();
+
+        // Drive the view to Ready with NO rows for this participant, so every
+        // enabled type resolves to never-sent -> each card offers Send Now.
+        fake.emitViewUpdate<QuestionnaireInstance>(
+          'questionnaire_instance',
+          const EndOfReplay<QuestionnaireInstance>(sequence: 1),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        // Tap the first Send Now (the never-sent NOSE HHT card).
+        expect(find.text('Send Now'), findsWidgets);
+        await tester.tap(find.text('Send Now').first);
+        await tester.pumpAndSettle();
+
+        // The 422 routed to the Select Starting Cycle dialog.
+        expect(find.text('Select Starting Cycle'), findsOneWidget);
+
+        // Choose Cycle 3 from the dropdown.
+        await tester.tap(find.byType(DropdownButtonFormField<int>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Cycle 3').last);
+        await tester.pumpAndSettle();
+
+        // Confirm and Send -> re-POST with the explicit studyEvent.
+        await tester.tap(find.widgetWithText(FilledButton, 'Confirm and Send'));
+        await tester.pumpAndSettle();
+
+        // Two POSTs landed: the first without studyEvent (got 422), the second
+        // carrying the chosen cycle's studyEvent.
+        expect(bodies.length, 2);
+        expect(bodies.first.containsKey('studyEvent'), isFalse);
+        expect(bodies.last['studyEvent'], 'Cycle 3 Day 1');
+        expect(bodies.last['questionnaireType'], isNotNull);
 
         await fake.dispose();
       },
