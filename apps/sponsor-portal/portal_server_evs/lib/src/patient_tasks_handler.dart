@@ -73,20 +73,26 @@ Handler patientTasksHandler({required EventStore eventStore}) {
       );
     }
 
-    // Read questionnaire_instance and filter to this participant's rows.
+    // Read questionnaire_instance and filter to this participant's active rows.
     // Implements: DIARY-PRD-questionnaire-system/B
+    // Implements: DIARY-BASE-questionnaire-coordinator-workflow/M — a finalized
+    //   questionnaire is no longer an active task for the participant (the diary
+    //   has already submitted it); rows whose latest entryType is
+    //   'questionnaire_finalized' are skipped. Tombstoned (called-back) instances
+    //   are absent from the view entirely, so no extra filter is needed for them.
     final instanceRows =
         await eventStore.backend.findViewRows('questionnaire_instance');
     final tasks = <Map<String, Object?>>[];
     for (final r in instanceRows) {
-      if (r['participant_id'] == payload.userId) {
-        tasks.add(<String, Object?>{
-          'questionnaire_instance_id': r['aggregateId'],
-          'questionnaire_type': r['type'],
-          'status': _statusFor(r['entryType'] as String? ?? ''),
-          'study_event': r['study_event'],
-        });
-      }
+      if (r['participant_id'] != payload.userId) continue;
+      // Skip finalized instances — they are complete and no longer active tasks.
+      if (r['entryType'] == 'questionnaire_finalized') continue;
+      tasks.add(<String, Object?>{
+        'questionnaire_instance_id': r['aggregateId'],
+        'questionnaire_type': r['type'],
+        'status': _statusFor(r['entryType'] as String? ?? ''),
+        'study_event': r['study_event'],
+      });
     }
 
     return Response.ok(

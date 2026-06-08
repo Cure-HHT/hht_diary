@@ -1,6 +1,10 @@
 // Verifies: DIARY-PRD-questionnaire-system/B — the questionnaire_instance view
-//   tracks Completion Status per instance; a questionnaire_assigned event folds
-//   into a row keyed by the instance id, carrying participant_id + type.
+//   tracks Completion Status per instance; lifecycle events fold into the row.
+// Verifies: DIARY-BASE-questionnaire-coordinator-workflow/D — Call Back
+//   (questionnaire_called_back) tombstones the instance row so the card resets
+//   to Not Sent by absence.
+// Verifies: DIARY-BASE-questionnaire-coordinator-workflow/M — finalized instance
+//   row carries latest entryType == 'questionnaire_finalized'.
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -35,4 +39,85 @@ void main() {
     expect(row['type'], 'nose_hht');
     expect(row['study_event'], 'Cycle 1 Day 1');
   });
+
+  test(
+    'questionnaire_called_back tombstones the instance row (Call Back = retract)',
+    () async {
+      // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/D — the
+      //   questionnaire_called_back event removes the row; absence = Not Sent.
+      final db = await newDatabaseFactoryMemory().openDatabase('qi-2');
+      final backend = SembastBackend(database: db);
+      final store = await openPortalEventStore(backend: backend);
+      addTearDown(store.close);
+
+      await store.append(
+        entryType: 'questionnaire_assigned',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-CB',
+        eventType: 'questionnaire_assigned',
+        data: const <String, Object?>{
+          'participant_id': 'P-2',
+          'type': 'nose_hht',
+          'study_event': 'Cycle 1 Day 1',
+        },
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      // Confirm the row exists before the tombstone.
+      final before = await store.backend.findViewRows('questionnaire_instance');
+      expect(before.where((r) => r['aggregateId'] == 'QI-CB'), hasLength(1));
+
+      await store.append(
+        entryType: 'questionnaire_called_back',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-CB',
+        eventType: 'questionnaire_called_back',
+        data: const <String, Object?>{'participant_id': 'P-2'},
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      // After Call Back the row must be gone — card resets to Not Sent by absence.
+      final after = await store.backend.findViewRows('questionnaire_instance');
+      expect(after.where((r) => r['aggregateId'] == 'QI-CB'), isEmpty);
+    },
+  );
+
+  test(
+    'questionnaire_finalized folds into the instance row with updated entryType',
+    () async {
+      // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/M — finalized
+      //   instance reflects entryType == 'questionnaire_finalized'.
+      final db = await newDatabaseFactoryMemory().openDatabase('qi-3');
+      final backend = SembastBackend(database: db);
+      final store = await openPortalEventStore(backend: backend);
+      addTearDown(store.close);
+
+      await store.append(
+        entryType: 'questionnaire_assigned',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-FIN',
+        eventType: 'questionnaire_assigned',
+        data: const <String, Object?>{
+          'participant_id': 'P-3',
+          'type': 'nose_hht',
+          'study_event': 'Cycle 1 Day 1',
+        },
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      await store.append(
+        entryType: 'questionnaire_finalized',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-FIN',
+        eventType: 'questionnaire_finalized',
+        data: const <String, Object?>{'participant_id': 'P-3'},
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      final rows = await store.backend.findViewRows('questionnaire_instance');
+      final row = rows.singleWhere((r) => r['aggregateId'] == 'QI-FIN');
+      expect(row['entryType'], 'questionnaire_finalized');
+      expect(row['participant_id'], 'P-3');
+    },
+  );
 }

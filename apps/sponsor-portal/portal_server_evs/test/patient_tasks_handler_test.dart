@@ -148,6 +148,55 @@ void main() {
     expect(body['tasks'], isEmpty);
   });
 
+  test(
+      'questionnaire_finalized instance is NOT returned in active tasks '
+      '(finalized drops from /user/tasks list)', () async {
+    // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/M — once a
+    //   questionnaire is finalized it is no longer an active task for the
+    //   participant; the handler skips rows whose entryType is
+    //   'questionnaire_finalized'.
+    final store = await _openStore('tasks-finalized-drops');
+    addTearDown(store.close);
+    await _seedTrialStarted(store);
+
+    // Assign the questionnaire.
+    await store.append(
+      entryType: 'questionnaire_assigned',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-DONE',
+      eventType: 'questionnaire_assigned',
+      data: const <String, Object?>{
+        'participant_id': 'P-1',
+        'type': 'nose_hht',
+        'study_event': 'Cycle 1 Day 1',
+      },
+      initiator: const UserInitiator('coordinator-1'),
+    );
+
+    // Finalize the questionnaire — this folds into the row (entryType becomes
+    // 'questionnaire_finalized') but the instance is NOT tombstoned.
+    await store.append(
+      entryType: 'questionnaire_finalized',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-DONE',
+      eventType: 'questionnaire_finalized',
+      data: const <String, Object?>{
+        'participant_id': 'P-1',
+      },
+      initiator: const UserInitiator('coordinator-1'),
+    );
+
+    final token = createPatientJwt(authCode: 'ac', userId: 'P-1');
+    final handler = patientTasksHandler(eventStore: store);
+
+    final res = await handler(_get(auth: 'Bearer $token'));
+    expect(res.statusCode, 200);
+
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    // The finalized instance must NOT appear in the active task list.
+    expect(body['tasks'], isEmpty);
+  });
+
   test('disconnected participant still receives tasks; is_disconnected == true',
       () async {
     final store = await _openStore('tasks-disconnected');

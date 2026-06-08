@@ -112,18 +112,25 @@ final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
 );
 
 // Implements: DIARY-PRD-questionnaire-system/B — questionnaire_instance projects
-//   Completion Status per instance. Phase 1 folds the portal-originated
-//   questionnaire_assigned event (ACT-QST-001); the latest event's entryType is
-//   the status driver. Later phases extend eventTypes with the lifecycle events
-//   and join the diary <id>_survey submission. One row per instance aggregate.
+//   Completion Status per instance. The latest event's entryType is the status
+//   driver; lifecycle events fold into the row. One row per instance aggregate.
+//   The diary <id>_survey join for Ready-to-Review is a later (Phase 3) concern.
+// Implements: DIARY-BASE-questionnaire-coordinator-workflow/D — Call Back is the
+//   spec-authoritative retract: questionnaire_called_back TOMBSTONES the row so
+//   the coordinator card resets to Not Sent by absence of an active instance.
+//   Call Back is not a separate delete action — it acts directly as a tombstone.
 final AggregateProjectionSpec questionnaireInstanceSpec =
     AggregateProjectionSpec(
       viewName: 'questionnaire_instance',
       interest: const SubscriptionFilter(
         aggregateTypes: {'questionnaire_instance'},
-        eventTypes: {'questionnaire_assigned'},
+        eventTypes: {
+          'questionnaire_assigned',
+          'questionnaire_finalized',
+          'questionnaire_called_back',
+        },
       ),
-      tombstoneEventTypes: const {},
+      tombstoneEventTypes: const {'questionnaire_called_back'},
     );
 
 // Implements: DIARY-DEV-user-account-projection/A+B — users_index materializes per-user
