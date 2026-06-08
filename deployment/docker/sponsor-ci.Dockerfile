@@ -46,6 +46,7 @@ COPY --chown=10001:10001 apps/sponsor-portal/portal_service/pubspec.yaml ./apps/
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server_evs/pubspec.yaml ./apps/sponsor-portal/portal_server_evs/pubspec.yaml
 COPY --chown=10001:10001 apps/sponsor-portal/portal_ui_evs/pubspec.yaml ./apps/sponsor-portal/portal_ui_evs/pubspec.yaml
 COPY --chown=10001:10001 apps/common-flutter/diary_design_system/pubspec.yaml ./apps/common-flutter/diary_design_system/pubspec.yaml
+COPY --chown=10001:10001 apps/common-flutter/portal_screens/pubspec.yaml ./apps/common-flutter/portal_screens/pubspec.yaml
 
 # -----------------------------
 # Resolve dependencies
@@ -113,6 +114,7 @@ COPY --chown=10001:10001 apps/sponsor-portal/portal_service ./apps/sponsor-porta
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server_evs ./apps/sponsor-portal/portal_server_evs
 COPY --chown=10001:10001 apps/sponsor-portal/portal_ui_evs ./apps/sponsor-portal/portal_ui_evs
 COPY --chown=10001:10001 apps/common-flutter/diary_design_system ./apps/common-flutter/diary_design_system
+COPY --chown=10001:10001 apps/common-flutter/portal_screens ./apps/common-flutter/portal_screens
 
 # -----------------------------
 # Sanity checks
@@ -134,6 +136,7 @@ RUN set -euo pipefail && \
     test -d apps/sponsor-portal/portal_server_evs && \
     test -d apps/sponsor-portal/portal_ui_evs && \
     test -d apps/common-flutter/diary_design_system && \
+    test -d apps/common-flutter/portal_screens && \
     test ! -d sponsor-content && \
     test ! -f apps/sponsor-portal/portal_server/bin/server && \
     test ! -d apps/sponsor-portal/portal-ui/build/web && \
