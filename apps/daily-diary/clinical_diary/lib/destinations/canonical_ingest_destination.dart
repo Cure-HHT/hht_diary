@@ -63,7 +63,12 @@ abstract class CanonicalIngestDestination extends Destination {
   bool get serializesNatively => true;
 
   // ---------------------------------------------------------------------------
-  // Batching policy — ship promptly, coalesce same-tick events.
+  // Batching policy. Default: drain ASAP (no hold on a lone event). Subclasses
+  // that prefer to coalesce override [maxAccumulateTime] — `DiaryServerDestination`
+  // holds lone entries for `kDiaryBatchWindow`, while `SystemEventsDestination`
+  // keeps this ASAP default so push tokens/receipts ship immediately.
+  // `canAddToBatch` always admits, so whatever is available in one drain
+  // coalesces regardless of the hold.
   // ---------------------------------------------------------------------------
 
   @override

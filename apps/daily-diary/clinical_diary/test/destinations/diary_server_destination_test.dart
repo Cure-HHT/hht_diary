@@ -61,8 +61,12 @@ void main() {
       'serializesNatively is true',
       () => expect(d.serializesNatively, true),
     );
-    test('maxAccumulateTime is zero', () {
-      expect(d.maxAccumulateTime, Duration.zero);
+    // Clinical entries batch: a lone entry is held kDiaryBatchWindow so
+    // same-session events coalesce. Contrast SystemEventsDestination, which
+    // drains ASAP (Duration.zero) so push tokens/receipts ship immediately.
+    test('maxAccumulateTime batches (kDiaryBatchWindow, > 0)', () {
+      expect(d.maxAccumulateTime, kDiaryBatchWindow);
+      expect(d.maxAccumulateTime, greaterThan(Duration.zero));
     });
     test('canAddToBatch always true', () {
       expect(d.canAddToBatch(const [], _event()), true);

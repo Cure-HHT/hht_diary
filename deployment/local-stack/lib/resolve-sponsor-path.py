@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve the local path of the associated sponsor repo (e.g. hht_diary_callisto).
+"""Resolve the local path of the associated sponsor repo (e.g. hht_diary_<sponsor>).
 
 This toolkit lives in the *core* repo (hht_diary). The core path is the
 toolkit's own checkout (git rev-parse --show-toplevel), so it needs no
@@ -103,7 +103,7 @@ def validate(target: Path, *, source: str, raw: str | None) -> Path:
             f"{target} does not look like a sponsor repo: "
             f"missing marker file {MARKER}.\n"
             "Point SPONSOR_REPO (or [associated.sponsor].path) at a sponsor "
-            "checkout (e.g. hht_diary_callisto)."
+            "checkout (e.g. hht_diary_<sponsor>)."
         )
 
     return target

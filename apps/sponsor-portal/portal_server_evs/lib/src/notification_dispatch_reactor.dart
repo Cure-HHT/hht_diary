@@ -1,7 +1,10 @@
-// Implements: DIARY-DEV-outgoing-intent-correlation/B — delivery rides the existing
-//   push path (FcmChannel); the intent event is not the delivery mechanism.
+// Implements: DIARY-DEV-outgoing-intent-correlation/B — delivery rides the
+//   push path (the injected PushChannel); the intent event is not the delivery
+//   mechanism.
 // Implements: DIARY-DEV-outgoing-intent-correlation/C — the flowToken minted on the
-//   intent event is carried in the FCM data payload across the non-event-sourced hop.
+//   intent event is carried in the push data payload across the non-event-sourced hop.
+// Implements: DIARY-DEV-pluggable-push-transport/A — the reactor depends on the
+//   transport-neutral PushChannel (FCM or local-socket), selected at bootstrap.
 import 'dart:async';
 import 'dart:io';
 
@@ -11,12 +14,16 @@ import 'package:comms/comms.dart';
 import 'package:event_sourcing/event_sourcing.dart' hide DispatchResult;
 
 /// Post-commit reactor that turns already-durable portal intent events
-/// (questionnaire assignment + participant lifecycle) into FCM pushes. It looks
+/// (questionnaire assignment + participant lifecycle) into pushes. It looks
 /// up the recipient's active routing token in the `participant_fcm_tokens`
-/// projection, sends via [channel] directly (NOT via an outbox/notifications
-/// table), and records the outcome back into the event log
+/// projection, sends via the transport-neutral [channel] directly (NOT via an
+/// outbox/notifications table), and records the outcome back into the event log
 /// (`notification_sent` / `notification_dispatch_failed`), emitting
 /// `fcm_token_deactivated` on a dead token.
+///
+/// [channel] is a [PushChannel] — FCM in cloud deployments, local-socket on the
+/// local-stack — selected at bootstrap by `PUSH_MODE`. The reactor is wholly
+/// transport-agnostic; only the wire differs.
 class NotificationDispatchReactor {
   NotificationDispatchReactor({
     required this.eventStore,
@@ -26,7 +33,7 @@ class NotificationDispatchReactor {
 
   final EventStore eventStore;
   final StorageBackend backend;
-  final Channel<FcmMessage> channel;
+  final PushChannel channel;
 
   /// Intent entry types this reactor reacts to, mapped to their push shape.
   /// `questionnaire_assigned` is user-visible (lock-screen alert); the
@@ -77,23 +84,27 @@ class NotificationDispatchReactor {
       return;
     }
     for (final t in tokens) {
-      final message = FcmMessage(
-        fcmToken: t.token,
+      final target = PushTarget(
+        participantId: participantId,
+        platform: t.platform,
+        routingToken: t.token,
+      );
+      final message = PushMessage(
         userVisible: intent.userVisible,
-        notificationTitle: intent.userVisible ? intent.title : null,
+        title: intent.userVisible ? intent.title : null,
         data: <String, String>{
           'type': event.entryType,
           if (event.flowToken != null) 'flowToken': event.flowToken!,
         },
       );
-      // dispatch() can THROW (transport faults: ADC/credential resolution,
+      // send() can THROW (transport faults: ADC/credential resolution,
       // a TimeoutException from the send timeout, socket errors) rather than
       // returning a DispatchResult terminal. Catch it so the outcome is still
       // recorded as a notification_dispatch_failed audit event instead of being
       // swallowed by the subscription's fire-and-forget backstop.
       final DispatchResult result;
       try {
-        result = await channel.dispatch(message);
+        result = await channel.send(target, message);
       } catch (e) {
         await _recordFailure(event, participantId,
             fcmTokenAggregateId: t.aggregateId, reason: 'dispatch_threw: $e');
@@ -135,6 +146,11 @@ class NotificationDispatchReactor {
             _ActiveToken(
               aggregateId: row['aggregateId']! as String,
               token: row['token']! as String,
+              // platform tag from the row; fall back to the aggregateId suffix
+              // ({pid}:fcm:{platform}) so an older row without the field still
+              // routes.
+              platform: (row['platform'] as String?) ??
+                  (row['aggregateId']! as String).split(':').last,
             ),
     ];
   }
@@ -149,7 +165,7 @@ class NotificationDispatchReactor {
       flowToken: intent.flowToken,
       data: <String, Object?>{
         'participant_id': participantId,
-        'channel': 'fcm',
+        'channel': channel.name,
         'fcm_token_aggregate_id': fcmTokenAggregateId,
         'intent_entry_type': intent.entryType,
         'message_id': messageId,
@@ -168,7 +184,7 @@ class NotificationDispatchReactor {
       flowToken: intent.flowToken,
       data: <String, Object?>{
         'participant_id': participantId,
-        'channel': 'fcm',
+        'channel': channel.name,
         'fcm_token_aggregate_id': fcmTokenAggregateId,
         'intent_entry_type': intent.entryType,
         'reason': reason,
@@ -202,7 +218,12 @@ class _Intent {
 }
 
 class _ActiveToken {
-  const _ActiveToken({required this.aggregateId, required this.token});
+  const _ActiveToken({
+    required this.aggregateId,
+    required this.token,
+    required this.platform,
+  });
   final String aggregateId;
   final String token;
+  final String platform;
 }

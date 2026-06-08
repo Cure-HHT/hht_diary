@@ -234,7 +234,7 @@ RUN set -eu && \
     rm /tmp/portal_ui_app_version
 # portal_deployment is the AXIS-C wrap id: <sponsor>+<sponsor_build_sha>. The
 # build sha is reused from APP_VERSION so it can't drift from portal_ui_version.
-# (Real sponsors substitute their own id, e.g. callisto+<sha>; the deploy-event
+# (Real sponsors substitute their own id, e.g. <sponsor>+<sha>; the deploy-event
 # counter is injected separately at deploy time as Cloud Run env vars.)
 
 # gRPC health server binary (compiled from sponsor-ci source)

@@ -324,5 +324,51 @@ void main() {
         },
       );
     });
+
+    // Verifies: DIARY-DEV-pluggable-push-transport/A — FcmChannel is the FCM
+    //   adapter of the neutral PushChannel.send seam; the routingToken becomes
+    //   the FCM token and the message maps straight onto the v1 payload.
+    group('FcmChannel.send (PushChannel adapter)', () {
+      test(
+        'maps PushTarget.routingToken -> FCM token + builds v1 payload',
+        () async {
+          late Map<String, dynamic> sentMessage;
+          final channel = FcmChannel(
+            projectId: 'cure-hht-admin',
+            adcClient: _testAdc(
+              MockClient((request) async {
+                final body = jsonDecode(request.body) as Map<String, dynamic>;
+                sentMessage = body['message'] as Map<String, dynamic>;
+                return http.Response(jsonEncode({'name': 'msg-7'}), 200);
+              }),
+            ),
+          );
+
+          final result = await channel.send(
+            const PushTarget(
+              participantId: 'P1',
+              platform: 'android',
+              routingToken: 'tok-route',
+            ),
+            const PushMessage(
+              data: {'type': 'questionnaire_assigned', 'flowToken': 'QST1'},
+              userVisible: true,
+              title: 'New questionnaire',
+            ),
+          );
+
+          expect(result.success, isTrue);
+          expect(result.messageId, equals('msg-7'));
+          expect(sentMessage['token'], equals('tok-route'));
+          expect(
+            sentMessage['data'],
+            equals({'type': 'questionnaire_assigned', 'flowToken': 'QST1'}),
+          );
+          final notification =
+              sentMessage['notification'] as Map<String, dynamic>;
+          expect(notification['title'], equals('New questionnaire'));
+        },
+      );
+    });
   });
 }

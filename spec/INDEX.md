@@ -173,6 +173,7 @@
 | DIARY-DEV-participant-site-index             | Participant-Site Index Materializer                   | dev-portal-service.md              | 76e68990 |
 | DIARY-DEV-participant-state-poll             | Diary Lifecycle Propagation via State Poll            | dev-mobile-event-sourcing.md       | 0a04e639 |
 | DIARY-DEV-participant-status-projection      | Participant Linking-Status Projection                 | dev-portal-service.md              | aafda27d |
+| DIARY-DEV-pluggable-push-transport           | Pluggable Push-Notification Transport                 | dev-pluggable-push-transport.md    | 0493012c |
 | DIARY-DEV-portal-activation-code-lifecycle   | Activation code lifecycle                             | dev-portal-activation.md           | ec270b2e |
 | DIARY-DEV-portal-activation-email-delivery   | Activation email delivery                             | dev-portal-activation.md           | 8357a727 |
 | DIARY-DEV-portal-active-role-switch          | In-session active role switch                         | dev-portal-login.md                | 3d941dbc |

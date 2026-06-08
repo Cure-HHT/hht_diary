@@ -61,6 +61,26 @@ void main() {
       expect(back.registeredAt, '2025-10-16T08:30:00.000Z');
     });
 
+    // Verifies: DIARY-DEV-pluggable-push-transport/D — the local-stack web/Linux
+    //   diary registers a routing token under a non-FCM platform tag.
+    test('round-trips the local-stack web/linux platforms', () {
+      for (final platform in const [
+        DevicePlatform.web,
+        DevicePlatform.linux,
+        DevicePlatform.macos,
+        DevicePlatform.windows,
+      ]) {
+        final p = FcmTokenRegisteredPayload(
+          token: 'device-1',
+          platform: platform,
+          registeredAt: '2026-06-08T08:30:00.000Z',
+        );
+        final back = FcmTokenRegisteredPayload.fromJson(p.toJson());
+        expect(back.platform, platform);
+        expect(DevicePlatform.fromWire(platform.name), platform);
+      }
+    });
+
     test(
       'DIARY-DEV-shared-events-catalog/D: no OTP/session/recovery fields',
       () {
