@@ -11,6 +11,7 @@ import '../tokens/spacing_tokens.dart';
 ///
 /// **Controlled component.** The caller owns the current page and reacts to
 /// callbacks — this widget just renders.
+// Implements: DIARY-DEV-test-instrumentation/A
 class AppTablePagination extends StatelessWidget {
   /// 1-indexed current page.
   final int currentPage;
@@ -28,6 +29,11 @@ class AppTablePagination extends StatelessWidget {
   /// current page.
   final int maxNumberedPages;
 
+  /// Test-harness locator. When set, wraps the pagination row in a
+  /// `Semantics(identifier: ..., container: true, explicitChildNodes: true)`
+  /// node.
+  final String? semanticId;
+
   const AppTablePagination({
     super.key,
     required this.currentPage,
@@ -37,6 +43,7 @@ class AppTablePagination extends StatelessWidget {
     this.pageSizeOptions,
     this.onPageSizeChanged,
     this.maxNumberedPages = 5,
+    this.semanticId,
   });
 
   int get _totalPages =>
@@ -80,7 +87,7 @@ class AppTablePagination extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
+    final row = Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -134,6 +141,15 @@ class AppTablePagination extends StatelessWidget {
           onPressed: _canNext ? () => onPageChanged(currentPage + 1) : null,
         ),
       ],
+    );
+
+    if (semanticId == null) return row;
+
+    return Semantics(
+      identifier: semanticId,
+      container: true,
+      explicitChildNodes: true,
+      child: row,
     );
   }
 }

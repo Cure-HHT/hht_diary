@@ -1,5 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00005: Sponsor Configuration Detection Implementation
+//
+// Implements: DIARY-DEV-test-instrumentation/B
 
 import 'package:flutter/material.dart';
 
@@ -27,6 +29,7 @@ class EnvironmentBanner extends StatelessWidget {
     required this.child,
     required this.flavorName,
     this.show = true,
+    this.semanticId,
     super.key,
   });
 
@@ -41,6 +44,11 @@ class EnvironmentBanner extends StatelessWidget {
   /// flavor config (e.g. hide in UAT/prod).
   final bool show;
 
+  /// Test-harness locator. When set AND the ribbon is visible, wraps the
+  /// ribbon in a `Semantics(identifier: ..., value: <flavor label>, container: true, explicitChildNodes: true)`
+  /// node so tests can assert which environment they're hitting.
+  final String? semanticId;
+
   @override
   Widget build(BuildContext context) {
     final data = _EnvironmentRibbonData.forFlavor(flavorName);
@@ -48,14 +56,24 @@ class EnvironmentBanner extends StatelessWidget {
       return child;
     }
 
+    final ribbon = _EnvironmentRibbon(data: data);
+    final positioned = Positioned(
+      top: 0,
+      left: 0,
+      child: semanticId == null
+          ? ribbon
+          : Semantics(
+              identifier: semanticId,
+              value: data.label,
+              container: true,
+              explicitChildNodes: true,
+              child: ribbon,
+            ),
+    );
+
     return Directionality(
       textDirection: TextDirection.ltr,
-      child: Stack(
-        children: [
-          child,
-          Positioned(top: 0, left: 0, child: _EnvironmentRibbon(data: data)),
-        ],
-      ),
+      child: Stack(children: [child, positioned]),
     );
   }
 }

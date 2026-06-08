@@ -53,11 +53,6 @@ WidgetbookFolder knownBugsFolder() {
       // no visible defect. BUG-6 (stale hover) demoted — not a live defect;
       // see "Notes" for the disposition of all three.
       _component(
-        'BUG-7 · AsyncActionDialog double-submit on retry',
-        'Interactive',
-        const _DoubleSubmitDemo(),
-      ),
-      _component(
         'BUG-8 · AppBanner message text loses contrast',
         'Saturated container',
         const _BannerContrastDemo(),
@@ -436,112 +431,6 @@ class _SemanticContent extends StatelessWidget {
           title: 'Info',
           message: 'Heads up — infoContainer stays light-blue in dark mode.',
         ),
-      ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// BUG-7 — AsyncActionDialog double-submit on retry
-// ---------------------------------------------------------------------------
-
-class _DoubleSubmitDemo extends StatefulWidget {
-  const _DoubleSubmitDemo();
-
-  @override
-  State<_DoubleSubmitDemo> createState() => _DoubleSubmitDemoState();
-}
-
-class _DoubleSubmitDemoState extends State<_DoubleSubmitDemo> {
-  int _submits = 0;
-
-  Future<void> _open() async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => AsyncActionDialog<void>(
-        onSubmit: () async {
-          if (mounted) setState(() => _submits++);
-          await Future<void>.delayed(const Duration(milliseconds: 800));
-          throw StateError('Simulated failure (always fails to reach retry).');
-        },
-        confirmBuilder: (ctx, submit) => AppDialog(
-          title: 'Confirm action',
-          body: const Text(
-            'Press Submit, wait for the error, then DOUBLE-CLICK '
-            '"Try again" quickly.',
-          ),
-          actions: [
-            AppButton(
-              variant: AppButtonVariant.tertiary,
-              label: 'Cancel',
-              onPressed: () => Navigator.pop(ctx),
-            ),
-            AppButton(label: 'Submit', onPressed: submit),
-          ],
-        ),
-        successBuilder: (ctx, _) => AppDialog(
-          title: 'Done',
-          body: const Text('Succeeded.'),
-          actions: [
-            AppButton(label: 'Close', onPressed: () => Navigator.pop(ctx)),
-          ],
-        ),
-        errorBuilder: (ctx, error, retry) => AppDialog(
-          title: 'Failed',
-          body: Text('$error\n\nDouble-click "Try again" fast.'),
-          actions: [
-            AppButton(
-              variant: AppButtonVariant.tertiary,
-              label: 'Cancel',
-              onPressed: () => Navigator.pop(ctx),
-            ),
-            // Not disabled during the loading transition → re-entrant.
-            AppButton(
-              variant: AppButtonVariant.destructive,
-              label: 'Try again',
-              onPressed: retry,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return _BugPage(
-      title: 'BUG-7 · Retry is re-entrant — onSubmit can fire twice',
-      severity: 'Interactive · ships today · high confidence',
-      lookFor:
-          'Each onSubmit() bumps the counter below. Open the dialog, Submit, '
-          'wait for the error, then DOUBLE-CLICK "Try again". The counter jumps '
-          'by 2: _runSubmit has no in-flight guard, so two fast retry taps both '
-          'launch the real work — a double-submit hazard for mutating actions. '
-          'Fix is two-layered: (1) an in-flight guard in _runSubmit (ignore '
-          'taps while phase == loading), AND (2) the event_sourcing idempotency '
-          'ID/guard at the action layer, so a double-submit that slips past the '
-          'UI still dedupes server-side.',
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: AppButton(
-            label: 'Open async dialog',
-            leadingIcon: Icons.play_arrow,
-            onPressed: _open,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'onSubmit() invocations: $_submits',
-          style: theme.textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        if (_submits > 0)
-          TextButton(
-            onPressed: () => setState(() => _submits = 0),
-            child: const Text('Reset counter'),
-          ),
       ],
     );
   }

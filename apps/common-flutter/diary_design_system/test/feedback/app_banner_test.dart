@@ -70,5 +70,37 @@ void main() {
       );
       expect(find.text('Retry'), findsOneWidget);
     });
+
+    testWidgets(
+      'semanticId emits Semantics identifier and exposes message via value',
+      (tester) async {
+        await tester.pumpWidget(
+          _harness(
+            const AppBanner(
+              severity: AppBannerSeverity.error,
+              message: 'Sign-in failed.',
+              semanticId: 'login.error-banner',
+            ),
+          ),
+        );
+        final node = tester.getSemantics(find.byType(AppBanner));
+        expect(node.identifier, equals('login.error-banner'));
+        expect(node.value, equals('Sign-in failed.'));
+      },
+    );
+
+    testWidgets('no Semantics wrapper when semanticId is null', (tester) async {
+      await tester.pumpWidget(
+        _harness(
+          const AppBanner(
+            severity: AppBannerSeverity.info,
+            message: 'Just FYI',
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppBanner));
+      expect(node.identifier, isEmpty);
+      expect(node.value, isEmpty);
+    });
   });
 }

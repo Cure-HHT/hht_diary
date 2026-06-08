@@ -70,6 +70,25 @@ void main() {
       expect(find.byIcon(Icons.close), findsNothing);
     });
 
+    testWidgets('semanticId emits a Semantics identifier on the dialog root', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(font: AppFontFamily.inter),
+          home: Scaffold(
+            body: AppDialog(
+              title: 'Dialog',
+              body: const SizedBox.shrink(),
+              semanticId: 'disconnect.dialog',
+            ),
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppDialog));
+      expect(node.identifier, equals('disconnect.dialog'));
+    });
+
     group('.confirmation', () {
       testWidgets('returns true when confirmed', (tester) async {
         bool? result;
@@ -130,46 +149,6 @@ void main() {
           find.text('This action cannot be undone and will revoke access.'),
           findsOneWidget,
         );
-      });
-    });
-
-    group('.async', () {
-      testWidgets('returns the result the success builder pops with', (
-        tester,
-      ) async {
-        String? result;
-        await tester.pumpWidget(
-          _hostHarness((ctx) async {
-            result = await AppDialog.async<String>(
-              context: ctx,
-              onSubmit: () async => 'done',
-              confirmBuilder: (c, submit) => AppDialog(
-                title: 'Confirm',
-                body: const Text('Ready?'),
-                actions: [AppButton(label: 'Submit', onPressed: submit)],
-              ),
-              successBuilder: (c, value) => AppDialog(
-                title: 'Success',
-                body: Text(value),
-                actions: [
-                  AppButton(
-                    label: 'Done',
-                    onPressed: () => Navigator.of(c).pop(value),
-                  ),
-                ],
-              ),
-              errorBuilder: (c, error, retry) =>
-                  AppDialog(title: 'Error', body: Text(error.toString())),
-            );
-          }),
-        );
-        await tester.tap(find.text('Open'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(AppButton, 'Submit'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(AppButton, 'Done'));
-        await tester.pumpAndSettle();
-        expect(result, equals('done'));
       });
     });
 

@@ -7,7 +7,6 @@ import '../inputs/app_text_field.dart';
 import '../tokens/radius_tokens.dart';
 import '../tokens/spacing_tokens.dart';
 import 'app_dialog_size.dart';
-import 'async_action_dialog.dart';
 
 /// The design system dialog skeleton.
 ///
@@ -18,6 +17,46 @@ import 'async_action_dialog.dart';
 ///
 /// Layout: optional icon + title + optional subtitle in the header, a body
 /// area for whatever the caller wants, and a trailing-aligned actions row.
+///
+/// **Async dialogs.** The design system intentionally does not ship a
+/// confirm/loading/result state machine — callers compose [AppDialog]
+/// with whatever async primitive their app already uses. In the reactive
+/// portal (`portal_ui_evs/`) that's `ActionBuilder` from
+/// `package:reaction_widgets`, which mints a UUID-v4 idempotency key
+/// once per dialog and reuses it across retries:
+///
+/// ```dart
+/// showDialog<DisconnectResult>(
+///   context: context,
+///   builder: (ctx) => ActionBuilder(
+///     submissionFactory: () => ActionSubmission(
+///       actionName: 'disconnect_participant',
+///       rawInput: {'patientId': patientId},
+///     ),
+///     builder: (ctx, state, submit) => AppDialog(
+///       title: 'Disconnect participant',
+///       body: ...,
+///       actions: [
+///         AppButton(
+///           variant: AppButtonVariant.secondary,
+///           label: 'Cancel',
+///           onPressed: state is Submitting ? null : () => Navigator.pop(ctx),
+///         ),
+///         AppButton(
+///           variant: AppButtonVariant.destructive,
+///           label: 'Disconnect',
+///           loading: state is Submitting,
+///           onPressed: state is Submitting ? null : submit,
+///         ),
+///       ],
+///     ),
+///   ),
+/// );
+/// ```
+///
+/// `AppButton(loading: state is Submitting, onPressed: submit)` maps onto
+/// `ActionBuilder`'s `(state, submit)` 1:1.
+// Implements: DIARY-DEV-test-instrumentation/A
 class AppDialog extends StatelessWidget {
   final AppDialogSize size;
   final Widget? icon;
@@ -31,6 +70,11 @@ class AppDialog extends StatelessWidget {
   /// controlled separately by the caller's `showDialog(barrierDismissible:)`.
   final bool dismissible;
 
+  /// Test-harness locator. When set, wraps the dialog in a
+  /// `Semantics(identifier: ..., namesRoute: true, container: true, explicitChildNodes: true)`
+  /// node so Playwright can scope queries inside the dialog subtree.
+  final String? semanticId;
+
   const AppDialog({
     super.key,
     this.size = AppDialogSize.medium,
@@ -40,6 +84,7 @@ class AppDialog extends StatelessWidget {
     required this.body,
     this.actions = const [],
     this.dismissible = true,
+    this.semanticId,
   });
 
   @override
@@ -47,7 +92,7 @@ class AppDialog extends StatelessWidget {
     final theme = Theme.of(context);
     final borderRadius = BorderRadius.circular(RadiusTokens.lg);
 
-    return Dialog(
+    final dialog = Dialog(
       // Transparent so Material doesn't paint its own surface-tint /
       // elevation shadow on top of the explicit BoxShadow below.
       backgroundColor: Colors.transparent,
@@ -101,6 +146,16 @@ class AppDialog extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    if (semanticId == null) return dialog;
+
+    return Semantics(
+      identifier: semanticId,
+      namesRoute: true,
+      container: true,
+      explicitChildNodes: true,
+      child: dialog,
     );
   }
 
@@ -206,43 +261,6 @@ class AppDialog extends StatelessWidget {
         hintText: hintText,
         requiredField: requiredField,
         size: size,
-      ),
-    );
-  }
-
-  /// An async workflow dialog — wraps [AsyncActionDialog] in `showDialog` so a
-  /// single call site gets the modal + state machine + typed result.
-  ///
-  /// Returns the value the success builder pops with (typically the
-  /// [onSubmit] result), or `null` if the dialog is dismissed without
-  /// completing the success phase. Barrier dismiss defaults to disabled so an
-  /// accidental backdrop tap doesn't kill an in-flight request.
-  ///
-  /// See [AsyncActionDialog] for the per-builder responsibilities.
-  static Future<T?> async<T>({
-    required BuildContext context,
-    required Future<T> Function() onSubmit,
-    required Widget Function(BuildContext context, VoidCallback submit)
-    confirmBuilder,
-    required Widget Function(BuildContext context, T result) successBuilder,
-    required Widget Function(
-      BuildContext context,
-      Object error,
-      VoidCallback retry,
-    )
-    errorBuilder,
-    Widget Function(BuildContext context)? loadingBuilder,
-    bool barrierDismissible = false,
-  }) {
-    return showDialog<T>(
-      context: context,
-      barrierDismissible: barrierDismissible,
-      builder: (_) => AsyncActionDialog<T>(
-        onSubmit: onSubmit,
-        confirmBuilder: confirmBuilder,
-        successBuilder: successBuilder,
-        errorBuilder: errorBuilder,
-        loadingBuilder: loadingBuilder,
       ),
     );
   }

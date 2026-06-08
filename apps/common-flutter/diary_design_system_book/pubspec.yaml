@@ -13,6 +13,31 @@ dependencies:
   diary_design_system:
     path: ../diary_design_system
   widgetbook: ^3.22.0
+  # reaction_widgets is pulled in so the gallery can render a live demo of
+  # the canonical `ActionBuilder` + `AppDialog` composition — the
+  # design-system-only path for async dialogs (see AppDialog's doc-comment).
+  # `reaction_widgets_testing` ships `FakeReaction`, explicitly marked as a
+  # public deliverable for downstream consumers.
+  event_sourcing:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: event_sourcing
+  reaction:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: reaction
+  reaction_widgets:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: reaction_widgets
+  reaction_widgets_testing:
+    git:
+      url: https://github.com/Cure-HHT/event_sourcing.git
+      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      path: reaction_widgets_testing
 
 dev_dependencies:
   flutter_test:

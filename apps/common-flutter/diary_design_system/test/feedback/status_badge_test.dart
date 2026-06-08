@@ -36,5 +36,22 @@ void main() {
       expect(find.text('Disconnected'), findsOneWidget);
       expect(find.text('At risk'), findsNothing);
     });
+
+    testWidgets(
+      'semanticId emits a Semantics identifier with status exposed via value',
+      (tester) async {
+        await tester.pumpWidget(
+          _harness(
+            const StatusBadge(
+              kind: StatusBadgeKind.active,
+              semanticId: 'participant.status',
+            ),
+          ),
+        );
+        final node = tester.getSemantics(find.byType(StatusBadge));
+        expect(node.identifier, equals('participant.status'));
+        expect(node.value, equals('Active'));
+      },
+    );
   });
 }

@@ -108,5 +108,21 @@ void main() {
       );
       expect(find.text('Viewing 0-0 of 0'), findsOneWidget);
     });
+
+    testWidgets('semanticId emits a Semantics identifier', (tester) async {
+      await tester.pumpWidget(
+        _harness(
+          AppTablePagination(
+            currentPage: 1,
+            pageSize: 10,
+            totalCount: 124,
+            onPageChanged: (_) {},
+            semanticId: 'users.pagination',
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppTablePagination));
+      expect(node.identifier, equals('users.pagination'));
+    });
   });
 }

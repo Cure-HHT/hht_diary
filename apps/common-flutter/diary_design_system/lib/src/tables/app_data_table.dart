@@ -74,6 +74,7 @@ class AppTableColumn<T> {
 /// - No filter / search logic — search is a widget slot the caller wires up.
 /// - No client-side sorting — sort is a callback to the consumer.
 /// - No selection by default.
+// Implements: DIARY-DEV-test-instrumentation/A
 class AppDataTable<T> extends StatelessWidget {
   final List<AppTableColumn<T>> columns;
   final List<T> rows;
@@ -99,6 +100,21 @@ class AppDataTable<T> extends StatelessWidget {
   /// data cells should be handled per-cell in the column's `cellBuilder`.
   final bool Function(T row)? isRowInactive;
 
+  /// Stable per-row key derivation. When set, each `_DataRow` is keyed by
+  /// `rowKey(row)` so Flutter recycles row state by row identity rather
+  /// than by position — required for reactive views where the row list
+  /// reorders on every `Delta` / sort / reconnect (gallery BUG-6).
+  ///
+  /// When null, rows are keyless (position-keyed), matching pre-existing
+  /// behavior.
+  // Implements: DIARY-DEV-test-instrumentation/C
+  final Key Function(T row)? rowKey;
+
+  /// Test-harness locator. When set, wraps the table card in a
+  /// `Semantics(identifier: ..., container: true, explicitChildNodes: true)`
+  /// node so Playwright can scope queries to the table subtree.
+  final String? semanticId;
+
   const AppDataTable({
     super.key,
     required this.columns,
@@ -114,6 +130,8 @@ class AppDataTable<T> extends StatelessWidget {
     this.paginationControls,
     this.tabs,
     this.isRowInactive,
+    this.rowKey,
+    this.semanticId,
   });
 
   bool get _hasTopRow => searchField != null || paginationControls != null;
@@ -136,7 +154,7 @@ class AppDataTable<T> extends StatelessWidget {
     // Container (not DecoratedBox) so the child is inset by the border
     // thickness and clipped to the rounded shape. Otherwise the data rows'
     // ColoredBox would paint over the card's left/right borders.
-    return Container(
+    final card = Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border.all(color: theme.colorScheme.outlineVariant),
@@ -175,9 +193,19 @@ class AppDataTable<T> extends StatelessWidget {
             emptyBuilder: emptyBuilder,
             errorBuilder: errorBuilder,
             isRowInactive: isRowInactive,
+            rowKey: rowKey,
           ),
         ],
       ),
+    );
+
+    if (semanticId == null) return card;
+
+    return Semantics(
+      identifier: semanticId,
+      container: true,
+      explicitChildNodes: true,
+      child: card,
     );
   }
 }
@@ -319,6 +347,7 @@ class _Body<T> extends StatelessWidget {
   final WidgetBuilder? emptyBuilder;
   final Widget Function(BuildContext, Object)? errorBuilder;
   final bool Function(T row)? isRowInactive;
+  final Key Function(T row)? rowKey;
 
   const _Body({
     required this.columns,
@@ -328,6 +357,7 @@ class _Body<T> extends StatelessWidget {
     required this.emptyBuilder,
     required this.errorBuilder,
     required this.isRowInactive,
+    required this.rowKey,
   });
 
   @override
@@ -350,6 +380,7 @@ class _Body<T> extends StatelessWidget {
         children: [
           for (var i = 0; i < rows.length; i++) ...[
             _DataRow<T>(
+              key: rowKey?.call(rows[i]),
               columns: columns,
               row: rows[i],
               inactive: isRowInactive?.call(rows[i]) ?? false,
@@ -442,6 +473,7 @@ class _DataRow<T> extends StatefulWidget {
   final bool inactive;
 
   const _DataRow({
+    super.key,
     required this.columns,
     required this.row,
     required this.inactive,

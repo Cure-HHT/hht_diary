@@ -25,6 +25,7 @@ class AppTableTab {
 /// **Controlled component, no internal state.** The caller passes [tabs],
 /// the currently-active [activeKey], and reacts to [onTap]. Selecting a tab
 /// is the app's responsibility (refetch rows, update filter, etc.).
+// Implements: DIARY-DEV-test-instrumentation/A
 class AppTableTabs extends StatelessWidget {
   final List<AppTableTab> tabs;
   final String activeKey;
@@ -36,18 +37,24 @@ class AppTableTabs extends StatelessWidget {
   /// extends edge-to-edge regardless of this offset.
   final double leadingPadding;
 
+  /// Test-harness locator. When set, wraps the tab strip in a
+  /// `Semantics(identifier: ..., container: true, explicitChildNodes: true)`
+  /// node.
+  final String? semanticId;
+
   const AppTableTabs({
     super.key,
     required this.tabs,
     required this.activeKey,
     required this.onTap,
     this.leadingPadding = 0,
+    this.semanticId,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
+    final strip = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -75,6 +82,15 @@ class AppTableTabs extends StatelessWidget {
           ),
         ),
       ],
+    );
+
+    if (semanticId == null) return strip;
+
+    return Semantics(
+      identifier: semanticId,
+      container: true,
+      explicitChildNodes: true,
+      child: strip,
     );
   }
 }

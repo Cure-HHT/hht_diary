@@ -41,5 +41,22 @@ void main() {
       );
       expect(find.text('See all'), findsOneWidget);
     });
+
+    testWidgets('semanticId emits identifier + header flag + title label', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          const AppSectionHeader(
+            title: 'Assigned Sites',
+            semanticId: 'user.assigned-sites-header',
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppSectionHeader));
+      expect(node.identifier, equals('user.assigned-sites-header'));
+      expect(node.flagsCollection.isHeader, isTrue);
+      expect(node.label, equals('Assigned Sites'));
+    });
   });
 }

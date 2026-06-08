@@ -146,5 +146,49 @@ void main() {
       final box = tester.getSize(find.byType(FilledButton));
       expect(box.width, equals(400));
     });
+
+    testWidgets('semanticId emits a Semantics identifier with button role', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          AppButton(
+            label: 'Sign in',
+            semanticId: 'login.submit',
+            onPressed: () {},
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppButton));
+      expect(node.identifier, equals('login.submit'));
+      expect(node.flagsCollection.isButton, isTrue);
+    });
+
+    testWidgets('semanticLabel populates the Semantics label', (tester) async {
+      await tester.pumpWidget(
+        _harness(
+          AppButton(
+            leadingIcon: Icons.close,
+            semanticId: 'dialog.close',
+            semanticLabel: 'Close dialog',
+            onPressed: () {},
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppButton));
+      expect(node.identifier, equals('dialog.close'));
+      expect(node.label, equals('Close dialog'));
+    });
+
+    testWidgets('no Semantics wrapper when semanticId is null', (tester) async {
+      await tester.pumpWidget(
+        _harness(AppButton(label: 'Submit', onPressed: () {})),
+      );
+      // The wrapper Semantics is only emitted when semanticId or
+      // semanticLabel is set — otherwise the inner button's semantics
+      // bubble up unchanged.
+      final node = tester.getSemantics(find.byType(AppButton));
+      expect(node.identifier, isEmpty);
+    });
   });
 }
