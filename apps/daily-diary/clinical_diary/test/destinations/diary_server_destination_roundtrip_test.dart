@@ -120,7 +120,7 @@ void main() {
         await rt.scope.actionSubmitter.submit(
           const ActionSubmission(
             actionName: 'record_no_epistaxis_day',
-            rawInput: {'date': '2025-10-15'},
+            rawInput: {'date': '2025-10-15', 'participantId': 'P-test'},
           ),
         ),
         isA<DispatchSuccess<Object?>>(),
@@ -135,6 +135,7 @@ void main() {
             'startTimeZone': 'America/New_York',
             'startTimeUtcOffset': '-05:00',
             'intensity': 'mild',
+            'participantId': 'P-test',
           },
         ),
       );
@@ -217,7 +218,7 @@ void main() {
         await rt.scope.actionSubmitter.submit(
           const ActionSubmission(
             actionName: 'record_no_epistaxis_day',
-            rawInput: {'date': '2025-10-20'},
+            rawInput: {'date': '2025-10-20', 'participantId': 'P-test'},
           ),
         ),
         isA<DispatchSuccess<Object?>>(),

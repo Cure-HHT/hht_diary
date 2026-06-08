@@ -8,6 +8,7 @@ import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
+import 'package:clinical_diary/scope/diary_participant_id.dart';
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
@@ -378,7 +379,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await ReActionScope.of(context).actionSubmitter.submit(
       ActionSubmission(
         actionName: actionName,
-        rawInput: <String, Object?>{'date': localDate},
+        rawInput: <String, Object?>{
+          'date': localDate,
+          'participantId': diaryParticipantId(context),
+        },
       ),
     );
   }
@@ -601,7 +605,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (definition == null || !mounted) return;
 
     final aggregateId = task.targetId ?? task.id;
-    final entryType = '${qType.value}_survey';
 
     await Navigator.of(context).push(
       AppPageRoute<void>(
@@ -610,12 +613,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           instanceId: aggregateId,
           onSubmit: (submission) async {
             try {
-              await _recordSurveySubmission(
-                entryType: entryType,
-                aggregateId: aggregateId,
-                submission: submission,
-                studyEvent: task.studyEvent,
-              );
+              await _recordSurveySubmission(submission: submission);
               return const SubmitResult(success: true);
             } catch (e) {
               return SubmitResult(success: false, error: e.toString());
@@ -650,28 +648,57 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return QuestionnaireDefinition.findById(defs, type.value);
   }
 
-  /// Append the canonical "questionnaire finalized" event to the local
-  /// log. The payload is `submission.toJson()` (snake_case keys: full
-  /// `responses` list, `instance_id`, `questionnaire_type`, `version`,
-  /// `completed_at`) plus an optional `study_event` cycle label
-  /// (REQ-CAL-p00080). The ALCOA+ audit fact must be self-contained:
-  /// the responses array carries `display_label` and `normalized_label`
-  /// per entry so downstream consumers do not need to re-derive them
-  /// from the questionnaire definition at read time.
+  /// Finalize a questionnaire through the NATIVE `submit_questionnaire` action,
+  /// so the resulting `<id>_survey` / `finalized` event lands in the native
+  /// event-sourcing store and ships through the same `DiaryServerDestination`
+  /// (→ `POST /api/v1/ingest/batch`) as nosebleed records.
+  ///
+  /// The action parses a `QuestionnaireSubmissionPayload` (snake_case keys,
+  /// `responses` as a `question_id -> {value, display_label, normalized_label}`
+  /// MAP). The flow's [QuestionnaireSubmission] carries `responses` as a LIST
+  /// and a single `version` string, so this maps both into the payload shape:
+  /// the list is keyed by `question_id`, and the single definition version is
+  /// stamped onto all three version refs (schema/content/gui), which today come
+  /// from the one `QuestionnaireDefinition.version` field
+  /// (DIARY-PRD-questionnaire-versioning/J+K+L).
+  ///
+  /// The cycle label (`study_event`) is deliberately NOT carried on the
+  /// finalized survey event: the `QuestionnaireSubmissionPayload` cross-wire
+  /// contract (decision 1d / surface D6) is frozen and excludes it. The portal
+  /// owns the cycle mapping via its own `questionnaire_assigned` event, keyed by
+  /// the same `instance_id` that this event carries — so the cycle is recoverable
+  /// without duplicating it here.
+  ///
+  /// The ALCOA+ audit fact is self-contained: each response carries
+  /// `display_label` and `normalized_label` so downstream consumers do not need
+  /// to re-derive them from the questionnaire definition at read time.
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/N
+  // Implements: DIARY-DEV-action-write-path/A
   Future<void> _recordSurveySubmission({
-    required String entryType,
-    required String aggregateId,
     required QuestionnaireSubmission submission,
-    String? studyEvent,
   }) async {
-    await widget.runtime.entryService.record(
-      entryType: entryType,
-      aggregateId: aggregateId,
-      eventType: 'finalized',
-      answers: <String, Object?>{
-        ...submission.toJson(),
-        'study_event': ?studyEvent,
-      },
+    final responses = <String, Object?>{
+      for (final r in submission.responses)
+        r.questionId: <String, Object?>{
+          'value': r.value,
+          'display_label': r.displayLabel,
+          'normalized_label': r.normalizedLabel,
+        },
+    };
+    await ReActionScope.of(context).actionSubmitter.submit(
+      ActionSubmission(
+        actionName: 'submit_questionnaire',
+        rawInput: <String, Object?>{
+          'instance_id': submission.instanceId,
+          'questionnaire_type': submission.questionnaireType,
+          // One definition version stamped onto all three version refs.
+          'schema_version': submission.version,
+          'content_version': submission.version,
+          'gui_version': submission.version,
+          'completed_at': submission.completedAt.toIso8601String(),
+          'responses': responses,
+        },
+      ),
     );
   }
 
@@ -701,7 +728,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (definition == null || !mounted) return;
 
     final aggregateId = survey.entryId;
-    final entryType = survey.entryType;
 
     await Navigator.of(context).push(
       PageRouteBuilder<void>(
@@ -714,11 +740,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             instanceId: aggregateId,
             onSubmit: (submission) async {
               try {
-                await _recordSurveySubmission(
-                  entryType: entryType,
-                  aggregateId: aggregateId,
-                  submission: submission,
-                );
+                await _recordSurveySubmission(submission: submission);
                 return const SubmitResult(success: true);
               } catch (e) {
                 return SubmitResult(success: false, error: e.toString());
@@ -836,9 +858,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final todayStr = DateFormat('yyyy-MM-dd').format(today);
     final yesterdayStr = DateFormat('yyyy-MM-dd').format(yesterday);
 
+    // Chronological key for a today/yesterday entry: an epistaxis row sorts by
+    // its start, a completed survey by its completion time. Other views (day
+    // markers) have no time and yield null, which sorts as 0 (stable).
+    DateTime? timeOf(DiaryEntryView e) => switch (e) {
+      EpistaxisEntryView(:final startTime) => startTime,
+      SurveyEntryView(:final completedAt) => completedAt,
+      _ => null,
+    };
+
     int byStart(DiaryEntryView a, DiaryEntryView b) {
-      final aStart = a is EpistaxisEntryView ? a.startTime : null;
-      final bStart = b is EpistaxisEntryView ? b.startTime : null;
+      final aStart = timeOf(a);
+      final bStart = timeOf(b);
       if (aStart == null || bStart == null) return 0;
       return aStart.compareTo(bStart);
     }
@@ -851,14 +882,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // is reached through the Calendar.
     final groups = <_GroupedRecords>[];
 
-    // Yesterday's finalized nosebleed entries.
-    final yesterdayEntries =
-        view
-            .entriesOn(yesterdayStr)
-            .whereType<EpistaxisEntryView>()
-            .cast<DiaryEntryView>()
-            .toList()
-          ..sort(byStart);
+    // Yesterday's finalized nosebleed entries plus any completed surveys
+    // (DIARY-PRD-questionnaire-system/B: a finalized survey surfaces alongside
+    // the day's clinical entries).
+    final yesterdayEntries = <DiaryEntryView>[
+      ...view.entriesOn(yesterdayStr).whereType<EpistaxisEntryView>(),
+      ...view.entriesOn(yesterdayStr).whereType<SurveyEntryView>(),
+    ]..sort(byStart);
 
     // Any entry at all on yesterday (incl. day markers + incomplete checkpoints).
     final hasAnyYesterdayEntries =
@@ -875,10 +905,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
     );
 
-    // Today's finalized nosebleed entries plus today's incomplete checkpoints
+    // Today's finalized nosebleed entries plus today's completed surveys
+    // (DIARY-PRD-questionnaire-system/B) plus today's incomplete checkpoints
     // (CUR-488: in-progress entries surface in the today section).
     final todayEntries = <DiaryEntryView>[
       ...view.entriesOn(todayStr).whereType<EpistaxisEntryView>(),
+      ...view.entriesOn(todayStr).whereType<SurveyEntryView>(),
       ...view.incompleteEntries.where((e) => isEpistaxisOn(e, todayStr)),
     ]..sort(byStart);
 
@@ -1679,6 +1711,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onTap: switch (entry) {
                     EpistaxisEntryView() => () => _navigateToEditRecord(entry),
                     DayMarkerView() => () => _redispositionMarker(entry),
+                    // A completed survey is read-only in the diary list (no
+                    // edit / re-disposition affordance).
+                    SurveyEntryView() => null,
                   },
                   hasOverlap:
                       entry is EpistaxisEntryView && _hasOverlap(view, entry),

@@ -111,6 +111,38 @@ final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
   tombstoneEventTypes: const {},
 );
 
+// Implements: DIARY-PRD-questionnaire-system/B — questionnaire_instance projects
+//   Completion Status per instance. The latest event's entryType is the status
+//   driver; lifecycle events fold into the row. One row per instance aggregate.
+// Implements: DIARY-BASE-questionnaire-coordinator-workflow/G — a participant
+//   submission folds in via questionnaire_submission_received (emitted by the
+//   QuestionnaireSubmissionReactor when a diary <id>_survey finalized event
+//   arrives for this instance), moving the latest entryType to that value so the
+//   derived status becomes Ready to Review.
+// Implements: DIARY-BASE-questionnaire-coordinator-workflow/D — Call Back is the
+//   spec-authoritative retract: questionnaire_called_back TOMBSTONES the row so
+//   the coordinator card resets to Not Sent by absence of an active instance.
+//   Call Back is not a separate delete action — it acts directly as a tombstone.
+// Implements: DIARY-BASE-questionnaire-finalization/D+E — the finalize event's
+//   `cycle` and `end_event` data keys fold onto the row via the AggregateProjectionSpec
+//   key-wise merge (no spec change needed). `end_event` distinguishes a terminal
+//   Closed (End of Treatment / End of Study) from an after-finalize (Not Sent /
+//   Start-Next-Cycle) row; the card reads it to render the combined Closed badge.
+final AggregateProjectionSpec questionnaireInstanceSpec =
+    AggregateProjectionSpec(
+      viewName: 'questionnaire_instance',
+      interest: const SubscriptionFilter(
+        aggregateTypes: {'questionnaire_instance'},
+        eventTypes: {
+          'questionnaire_assigned',
+          'questionnaire_submission_received',
+          'questionnaire_finalized',
+          'questionnaire_called_back',
+        },
+      ),
+      tombstoneEventTypes: const {'questionnaire_called_back'},
+    );
+
 // Implements: DIARY-DEV-user-account-projection/A+B — users_index materializes per-user
 //   identity + an explicit account status from the portal_user lifecycle events. Status is
 //   carried on status-transition events and preserved across non-status events (key-wise

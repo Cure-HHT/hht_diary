@@ -352,6 +352,93 @@ void main() {
         });
         expect(service.taskCount, equals(0));
       });
+
+      test('questionnaire_assigned invokes onSyncRequested exactly once', () {
+        var syncCount = 0;
+        TaskService(httpClient: MockClient((_) async => http.Response('', 200)))
+          ..onSyncRequested = (() async => syncCount++)
+          ..handleFcmMessage({
+            'type': 'questionnaire_assigned',
+            'flowToken': 'tok-abc123',
+          });
+
+        expect(syncCount, equals(1));
+      });
+
+      test('questionnaire_assigned does not create a phantom task', () {
+        var syncCount = 0;
+        final service =
+            TaskService(
+                httpClient: MockClient((_) async => http.Response('', 200)),
+              )
+              ..onSyncRequested = (() async => syncCount++)
+              // Nudge carries no instance data — it must only trigger a sync,
+              // never fabricate a task locally.
+              ..handleFcmMessage({
+                'type': 'questionnaire_assigned',
+                'flowToken': 'tok-abc123',
+              });
+
+        expect(service.taskCount, equals(0));
+        expect(syncCount, equals(1));
+      });
+
+      test('questionnaire_assigned is a no-op when no callback wired', () {
+        // No onSyncRequested set — must not throw, must not add a task.
+        final service =
+            TaskService(
+              httpClient: MockClient((_) async => http.Response('', 200)),
+            )..handleFcmMessage({
+              'type': 'questionnaire_assigned',
+              'flowToken': 'tok-abc123',
+            });
+
+        expect(service.taskCount, equals(0));
+      });
+
+      test('unknown message type is a no-op', () {
+        var syncCount = 0;
+        final service =
+            TaskService(
+                httpClient: MockClient((_) async => http.Response('', 200)),
+              )
+              ..onSyncRequested = (() async => syncCount++)
+              ..handleFcmMessage({'type': 'something_else'});
+
+        expect(service.taskCount, equals(0));
+        expect(syncCount, equals(0));
+      });
+    });
+
+    group('removeTask (completion transition)', () {
+      test('removes the task, notifies, and persists', () async {
+        final service =
+            TaskService(
+              httpClient: MockClient((_) async => http.Response('', 200)),
+            )..handleFcmMessage({
+              'type': 'questionnaire_sent',
+              'questionnaire_instance_id': 'nose-inst-001',
+              'questionnaire_type': 'nose_hht',
+              'status': 'sent',
+            });
+        expect(service.taskCount, equals(1));
+
+        var notified = false;
+        service
+          ..addListener(() => notified = true)
+          // Simulate the home_screen onComplete path.
+          ..removeTask('nose-inst-001');
+
+        expect(service.taskCount, equals(0));
+        expect(notified, isTrue);
+
+        // Persistence: a fresh service loading from storage sees no task.
+        final reloaded = TaskService(
+          httpClient: MockClient((_) async => http.Response('', 200)),
+        );
+        await reloaded.loadTasks();
+        expect(reloaded.taskCount, equals(0));
+      });
     });
   });
 }

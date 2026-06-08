@@ -42,6 +42,7 @@ class EpistaxisEventPayload {
     required this.startTime,
     required this.startTimeZone,
     required this.startTimeUtcOffset,
+    required this.participantId,
     this.endTime,
     this.endTimeZone,
     this.endTimeUtcOffset,
@@ -51,6 +52,11 @@ class EpistaxisEventPayload {
   final String startTime;
   final String startTimeZone;
   final String startTimeUtcOffset;
+
+  /// The enrolled participant this entry belongs to. Carried on the row so the
+  /// canonical `diary_entries` view can filter by participant (epistaxis events
+  /// use a fresh-UUID aggregate id that does not embed the participant).
+  final String participantId;
   final String? endTime;
   final String? endTimeZone;
   final String? endTimeUtcOffset;
@@ -61,6 +67,7 @@ class EpistaxisEventPayload {
       startTime: json['startTime']! as String,
       startTimeZone: json['startTimeZone']! as String,
       startTimeUtcOffset: json['startTimeUtcOffset']! as String,
+      participantId: json['participantId']! as String,
       endTime: json['endTime'] as String?,
       endTimeZone: json['endTimeZone'] as String?,
       endTimeUtcOffset: json['endTimeUtcOffset'] as String?,
@@ -70,6 +77,7 @@ class EpistaxisEventPayload {
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
+      'participantId': participantId,
       'startTime': startTime,
       'startTimeZone': startTimeZone,
       'startTimeUtcOffset': startTimeUtcOffset,
@@ -85,13 +93,24 @@ class EpistaxisEventPayload {
 /// calendar [date] (ISO 8601, e.g. `2025-10-15`) the assertion covers. Both
 /// entry types share this shape; the entry-type id distinguishes them.
 class DayMarkerPayload {
-  const DayMarkerPayload({required this.date});
+  const DayMarkerPayload({required this.date, required this.participantId});
 
   final String date;
 
+  /// The enrolled participant this whole-day marker belongs to (matches the
+  /// `{participantId}:{localDate}` aggregate id), carried on the row so the
+  /// canonical `diary_entries` view can filter by participant.
+  final String participantId;
+
   factory DayMarkerPayload.fromJson(Map<String, Object?> json) {
-    return DayMarkerPayload(date: json['date']! as String);
+    return DayMarkerPayload(
+      date: json['date']! as String,
+      participantId: json['participantId']! as String,
+    );
   }
 
-  Map<String, Object?> toJson() => <String, Object?>{'date': date};
+  Map<String, Object?> toJson() => <String, Object?>{
+    'date': date,
+    'participantId': participantId,
+  };
 }

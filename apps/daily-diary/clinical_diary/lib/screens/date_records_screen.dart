@@ -208,6 +208,8 @@ class DateRecordsScreen extends StatelessWidget {
               : switch (entry) {
                   EpistaxisEntryView() => () => onEditEvent(entry),
                   DayMarkerView() => () => onRedispositionMarker(entry),
+                  // A completed survey is read-only (no edit/re-disposition).
+                  SurveyEntryView() => null,
                 },
           hasOverlap: _hasOverlap(entry),
         );

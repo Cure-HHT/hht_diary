@@ -131,7 +131,10 @@ Future<EventStore> openPortalEventStore({
     ..register(fcmActiveTokensSpec)
     // Implements: DIARY-DEV-participant-ingest/C — ingested diary events materialize
     //   into the diary_entries view.
-    ..register(diaryEntriesProjection);
+    ..register(diaryEntriesProjection)
+    // Implements: DIARY-PRD-questionnaire-system/B — questionnaire_instance projects
+    //   Completion Status per instance (Phase 1: folds questionnaire_assigned).
+    ..register(questionnaireInstanceSpec);
 
   final bundle = await bootstrapEventStore(
     backend: backend,

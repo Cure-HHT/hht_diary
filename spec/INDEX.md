@@ -95,14 +95,19 @@
 
 ## BASE (SPONSOR-EXCLUDABLE)
 
-| ID                                    | Title                                                         | File                         | Hash     |
-| ------------------------------------- | ------------------------------------------------------------- | ---------------------------- | -------- |
-| DIARY-BASE-audit-trail                | Audit Trail Foundation                                        | base-audit-trail.md          | 1f28ed43 |
-| DIARY-BASE-local-data-reset           | Local Data Reset to First-Launch State                        | base-local-data-reset.md     | 824fef24 |
-| DIARY-BASE-not-participating-notice   | Not-Participating Notice                                      | prd-mobile-notifications.md  | fb82706f |
-| DIARY-BASE-ops-action-inventory       | Operations Action Inventory                                   | base-ops-action-inventory.md | a1baca2c |
-| DIARY-BASE-sponsor-requested-settings | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md     | a8de6e0a |
-| DIARY-BASE-system-operator-role       | System Operator Role                                          | base-system-operator-role.md | e9d3432f |
+| ID                                             | Title                                                         | File                              | Hash     |
+| ---------------------------------------------- | ------------------------------------------------------------- | --------------------------------- | -------- |
+| DIARY-BASE-audit-trail                         | Audit Trail Foundation                                        | base-audit-trail.md               | 1f28ed43 |
+| DIARY-BASE-local-data-reset                    | Local Data Reset to First-Launch State                        | base-local-data-reset.md          | 824fef24 |
+| DIARY-BASE-not-participating-notice            | Not-Participating Notice                                      | prd-mobile-notifications.md       | fb82706f |
+| DIARY-BASE-ops-action-inventory                | Operations Action Inventory                                   | base-ops-action-inventory.md      | a1baca2c |
+| DIARY-BASE-questionnaire-coordinator-workflow  | Coordinator Questionnaire Workflow                            | base-questionnaire-coordinator.md | 40cba10f |
+| DIARY-BASE-questionnaire-cycle-tracking        | Questionnaire Cycle Tracking                                  | base-questionnaire-coordinator.md | 6dcb965e |
+| DIARY-BASE-questionnaire-finalization          | Questionnaire Finalization Workflow                           | base-questionnaire-coordinator.md | 1c17145b |
+| DIARY-BASE-questionnaire-lock-after-submission | Lock-After-Submission and Unlock                              | base-questionnaire-coordinator.md | a4f69437 |
+| DIARY-BASE-questionnaire-manage-modal          | Manage Questionnaires Modal                                   | base-questionnaire-coordinator.md | 27cf8328 |
+| DIARY-BASE-sponsor-requested-settings          | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md          | a8de6e0a |
+| DIARY-BASE-system-operator-role                | System Operator Role                                          | base-system-operator-role.md      | e9d3432f |
 
 ## INTERFACE
 

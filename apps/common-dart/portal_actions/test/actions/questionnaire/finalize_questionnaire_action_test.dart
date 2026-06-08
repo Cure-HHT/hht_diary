@@ -100,6 +100,9 @@ void main() {
       expect(e.flowToken, isNull);
       expect(e.data['finalized_by'], 'sc-1');
       expect(e.data['edc_export_ref'], 'EDC-REF-001');
+      // No cycle / terminal close supplied -> both null.
+      expect(e.data['cycle'], isNull);
+      expect(e.data['end_event'], isNull);
       expect(r.result.instanceId, 'qi-1');
     },
   );
@@ -111,5 +114,97 @@ void main() {
     );
     final e = r.events.single;
     expect(e.data['edc_export_ref'], isNull);
+  });
+
+  test('parseInput captures cycle + endEvent (trimmed)', () {
+    final input = action.parseInput(<String, Object?>{
+      'siteId': 's1',
+      'instanceId': 'qi-1',
+      'cycle': ' Cycle 2 Day 1 ',
+      'endEvent': ' end_of_treatment ',
+    });
+    expect(input.cycle, 'Cycle 2 Day 1');
+    expect(input.endEvent, 'end_of_treatment');
+  });
+
+  test('parseInput leaves cycle + endEvent null when absent/non-String', () {
+    final input = action.parseInput(<String, Object?>{
+      'siteId': 's1',
+      'instanceId': 'qi-1',
+      'cycle': 42,
+    });
+    expect(input.cycle, isNull);
+    expect(input.endEvent, isNull);
+  });
+
+  test('execute with a cycle records cycle + null end_event', () async {
+    final r = await action.execute(
+      const FinalizeQuestionnaireInput(
+        siteId: 's1',
+        instanceId: 'qi-3',
+        cycle: 'Cycle 2 Day 1',
+      ),
+      ctx,
+    );
+    final e = r.events.single;
+    expect(e.data['cycle'], 'Cycle 2 Day 1');
+    expect(e.data['end_event'], isNull);
+  });
+
+  test(
+    'execute with end_of_treatment records the terminal end_event',
+    () async {
+      final r = await action.execute(
+        const FinalizeQuestionnaireInput(
+          siteId: 's1',
+          instanceId: 'qi-4',
+          cycle: 'Cycle 3 Day 1',
+          endEvent: 'end_of_treatment',
+        ),
+        ctx,
+      );
+      final e = r.events.single;
+      expect(e.data['end_event'], 'end_of_treatment');
+      expect(e.data['cycle'], 'Cycle 3 Day 1');
+    },
+  );
+
+  test('validate rejects an invalid endEvent', () {
+    expect(
+      () => action.validate(
+        const FinalizeQuestionnaireInput(
+          siteId: 's1',
+          instanceId: 'qi-1',
+          endEvent: 'end_of_universe',
+        ),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('validate accepts a valid terminal endEvent', () {
+    expect(
+      () => action.validate(
+        const FinalizeQuestionnaireInput(
+          siteId: 's1',
+          instanceId: 'qi-1',
+          endEvent: 'end_of_study',
+        ),
+      ),
+      returnsNormally,
+    );
+  });
+
+  test('validate rejects an empty cycle string', () {
+    expect(
+      () => action.validate(
+        const FinalizeQuestionnaireInput(
+          siteId: 's1',
+          instanceId: 'qi-1',
+          cycle: '',
+        ),
+      ),
+      throwsArgumentError,
+    );
   });
 }

@@ -215,6 +215,14 @@ ePRO data collection system. Sponsors typically use a separate CTMS
 alongside the Diary Platform.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
+**Current Cycle**
+: The **Cycle** value assigned to the most recently sent **Questionnaire** of a given **Questionnaire Type** for a *Participant*.
+*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
+
+**Cycle**
+: The protocol event identifier assigned to a **Questionnaire** representing the treatment cycle during which it was administered. Valid values are **Cycle N Day 1** (where N is a positive whole number), **End of Treatment**, and **End of Study**.
+*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
+
 ## D
 
 **Daily Epistaxis Record**
@@ -495,6 +503,14 @@ prd-clinical-trials.md.
 : The Study Coordinator action that permanently locks participant answers, triggers score calculation and pushes the data to Rave EDC.
 *Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
 
+**Finalization Dialog**
+: The confirmation dialog displayed when **Finalize** is selected, containing a **Cycle** dropdown for selecting the **Cycle** value before confirming finalization.
+*Defined in: DIARY-BASE-questionnaire-finalization (DIARY)*
+
+**Finalized Cycle**
+: The **Cycle** value of the most recently finalized **Questionnaire** of a given **Questionnaire Type** for a *Participant*.
+*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
+
 **Full Name**
 : A common name, which is **PII**, of the person associated with a **User Account** that identifies a specific individual in the context of the **Sponsor Portal**.
 *Defined in: DIARY-PRD-user-account-create (DIARY)*
@@ -729,6 +745,10 @@ prd-architecture-multi-sponsor.md.
 
 ## N
 
+**Next Cycle**
+: The **Cycle** value that will be assigned when the next **Questionnaire** of that **Questionnaire Type** is sent — the **Finalized Cycle** N incremented by 1.
+*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
+
 **NOSE HHT**
 : The Nasal Outcome Score for Epistaxis in Hereditary Hemorrhagic Telangiectasia, a validated clinical instrument published in JAMA Otolaryngology — Head and Neck Surgery, 2020.
 *Defined in: DIARY-PRD-questionnaire-nose-hht (DIARY)*
@@ -866,6 +886,10 @@ ePROs.
 : A validated data collection instrument presented to a participant to capture self-reported clinical outcomes at protocol-defined points in a clinical trial.
 *Defined in: DIARY-PRD-questionnaire-system (DIARY)*
 
+**Questionnaire Card**
+: The interface component representing a single **Questionnaire Type** for a *Participant*, showing its current status and the actions available in that status.
+*Defined in: DIARY-BASE-questionnaire-manage-modal (DIARY)*
+
 **Questionnaire Display Name**
 : The participant-facing name of a **Questionnaire** as presented in the mobile application. Distinct from the instrument name used for internal identification and clinical reference.
 *Defined in: DIARY-PRD-questionnaire-system (DIARY)*
@@ -954,6 +978,10 @@ audit trails, timestamps, and data integrity.
 : The independent authentication factor required in addition to the **Password** during login. The specific method is sponsor-configurable per deployment.
 *Defined in: DIARY-PRD-two-factor-authentication (DIARY)*
 
+**Select Starting Cycle Dialog**
+: The dialog displayed when a *Study Coordinator* selects **Send Now** for the first time for a given **Questionnaire Type**, allowing selection of the **Starting Cycle** before sending.
+*Defined in: DIARY-BASE-questionnaire-manage-modal (DIARY)*
+
 **Session**
 : An authenticated period during which a **User Account** owner can access the **Sponsor Portal** without re-entering credentials.
 *Defined in: DIARY-PRD-session-management (DIARY)*
@@ -1040,6 +1068,10 @@ See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
 : An additional Action defined by a specific sponsor deployment beyond the platform Action Inventory.
 *Defined in: DIARY-PRD-action-inventory (DIARY)*
 
+**Starting Cycle**
+: The **Cycle** value assigned to the first **Questionnaire** of a given **Questionnaire Type** sent to a *Participant*.
+*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
+
 **Study Coordinator**
 : A portal user responsible for managing day-to-day participant interactions at one or more assigned Sites.
 *Defined in: DIARY-PRD-role-definitions (DIARY)*
@@ -1057,6 +1089,14 @@ See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
 **Task List**
 : The prioritized set of actionable items displayed on the **Participant's** **Main Screen** requiring **Participant** attention.
 *Defined in: DIARY-GUI-participant-task-list (DIARY)*
+
+**Terminal Cycle**
+: A **Cycle** value of **End of Treatment** or **End of Study** indicating no further **Questionnaires** of that **Questionnaire Type** will be sent to the *Participant*.
+*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
+
+**Terminal Cycle Warning Dialog**
+: The additional confirmation dialog displayed when a **Terminal Cycle** value is selected for finalization, warning that the **Questionnaire Type** will be permanently closed for the *Participant*.
+*Defined in: DIARY-BASE-questionnaire-finalization (DIARY)*
 
 **Time Picker**
 : The time selection component presenting the current time as default, a date selector, a timezone selector, and minute adjustment controls of -15, -5, -1, +1, +5, and +15 minutes.

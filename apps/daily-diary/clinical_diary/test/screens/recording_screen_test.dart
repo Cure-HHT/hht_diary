@@ -22,6 +22,7 @@ import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reaction/reaction.dart' show Authenticated;
 import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,7 +38,15 @@ void main() {
 
     setUp(() {
       SharedPreferences.setMockInitialValues({});
-      fake = FakeReaction();
+      fake = FakeReaction(
+        initialAuthStatus: Authenticated(
+          principal: Principal.user(
+            userId: 'P-test',
+            activeRole: 'participant',
+            roles: const {'participant'},
+          ),
+        ),
+      );
       // Device timezone fixed to UTC so stored == displayed (identity).
       TimezoneConverter.testDeviceOffsetMinutes = 0;
       // Generous queue of successes for every submit(). Actions that return an

@@ -10,7 +10,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/destinations/portal_inbound_poll.dart';
 import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
@@ -66,10 +65,9 @@ const _softwareVersion = 'clinical_diary@0.0.0+integration';
 const _userId = 'integration-user-001';
 
 const _legacySyncId = LegacySyncDestination.destinationId;
-const _legacyQSubmitId = LegacyQuestionnaireSubmitDestination.destinationId;
 
-/// Minimal valid `data` payload for a survey-finalized event — the
-/// shape `LegacyQuestionnaireSubmitDestination.transform` requires.
+/// Minimal valid `data` payload for a survey-finalized event, used to populate
+/// the recorded event + materialized view row in the survey scenarios.
 Map<String, Object?> _surveyData({String questionnaireType = 'nose_hht'}) =>
     <String, Object?>{
       'instance_id': 'agg-survey',
@@ -162,18 +160,16 @@ Future<_Fixture> _build() async {
   );
 }
 
-/// Activate every shim destination so historical replay promotes events
-/// already in the log into each destination's FIFO.
+/// Activate the legacy_sync (nosebleed) shim destination so historical replay
+/// promotes events already in the log into its FIFO. Questionnaire submissions
+/// no longer ship through a legacy shim here — they go through the native
+/// `DiaryServerDestination` (covered by
+/// `test/scope/diary_scope_bootstrap_test.dart`).
 Future<void> _activate(_Fixture fx) async {
   const initiator = AutomationInitiator(service: 'integration-test');
   final startAt = DateTime.utc(2020, 1, 1);
   await fx.runtime.destinations.setStartDate(
     _legacySyncId,
-    startAt,
-    initiator: initiator,
-  );
-  await fx.runtime.destinations.setStartDate(
-    _legacyQSubmitId,
     startAt,
     initiator: initiator,
   );
@@ -337,57 +333,67 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // Scenario 4: Questionnaire submit -> finalized event drains to
-  // /questionnaires/<id>/submit (not /sync).
+  // Scenario 4: Questionnaire submit -> finalized event + materialized view
+  // row, but the LEGACY bootstrap does NOT ship it anywhere (no
+  // questionnaire-submit shim). Questionnaire egress is the native
+  // DiaryServerDestination's job (the new diary_es.db store), exercised by
+  // test/scope/diary_scope_bootstrap_test.dart.
   // -------------------------------------------------------------------------
-  test('scenario 4: survey finalized -> 1 event, view is_complete=true, '
-      'drained to <baseUrl>/questionnaires/<id>/submit', () async {
-    final fx = await _build();
-    addTearDown(fx.tearDown);
+  test(
+    'scenario 4: survey finalized -> 1 event, view is_complete=true, and '
+    'the legacy bootstrap ships nothing (no questionnaire-submit shim)',
+    () async {
+      final fx = await _build();
+      addTearDown(fx.tearDown);
 
-    // The survey type id comes from the loader (questionnaire id +
-    // "_survey"). nose_hht is one of the bundled questionnaires, so
-    // 'nose_hht_survey' is registered.
-    expect(
-      fx.runtime.entryService.entryTypes.byId('nose_hht_survey'),
-      isNotNull,
-    );
+      // The survey type id comes from the loader (questionnaire id +
+      // "_survey"). nose_hht is one of the bundled questionnaires, so
+      // 'nose_hht_survey' is registered for the materialized view.
+      expect(
+        fx.runtime.entryService.entryTypes.byId('nose_hht_survey'),
+        isNotNull,
+      );
 
-    const instanceId = 'agg-s4';
-    await fx.runtime.entryService.record(
-      entryType: 'nose_hht_survey',
-      aggregateId: instanceId,
-      eventType: 'finalized',
-      answers: _surveyData(),
-    );
+      const instanceId = 'agg-s4';
+      await fx.runtime.entryService.record(
+        entryType: 'nose_hht_survey',
+        aggregateId: instanceId,
+        eventType: 'finalized',
+        answers: _surveyData(),
+      );
 
-    final events = await fx.runtime.backend.findEventsForAggregate(instanceId);
-    expect(events, hasLength(1));
+      final events = await fx.runtime.backend.findEventsForAggregate(
+        instanceId,
+      );
+      expect(events, hasLength(1));
 
-    final viewRow = (await fx.runtime.backend.findEntries(
-      entryType: 'nose_hht_survey',
-    )).singleWhere((e) => e.entryId == instanceId);
-    expect(viewRow.isComplete, isTrue);
-    expect(viewRow.isDeleted, isFalse);
+      final viewRow = (await fx.runtime.backend.findEntries(
+        entryType: 'nose_hht_survey',
+      )).singleWhere((e) => e.entryId == instanceId);
+      expect(viewRow.isComplete, isTrue);
+      expect(viewRow.isDeleted, isFalse);
 
-    await _activate(fx);
-    await fx.runtime.syncCycle();
+      // The legacy bootstrap registers only the nosebleed legacy_sync shim, so a
+      // questionnaire-submit destination is absent entirely.
+      expect(
+        fx.runtime.destinations.byId('legacy_questionnaire_submit'),
+        isNull,
+      );
 
-    final posts = fx.requests.where((r) => r.method == 'POST').toList();
-    expect(posts, isNotEmpty);
-    expect(
-      posts.any(
-        (r) =>
-            r.url.toString() == '${_baseUrl}questionnaires/$instanceId/submit',
-      ),
-      isTrue,
-      reason: 'survey-finalized must POST to the questionnaire submit URL',
-    );
+      await _activate(fx);
+      await fx.runtime.syncCycle();
 
-    // No nosebleed events were recorded, so legacy_sync's FIFO should
-    // be empty (or have nothing wedged).
-    expect(await fx.runtime.backend.anyFifoWedged(), isFalse);
-  });
+      // No survey egress from the legacy store: no POST to a questionnaire
+      // submit URL, and nothing wedged.
+      final posts = fx.requests.where((r) => r.method == 'POST').toList();
+      expect(
+        posts.any((r) => r.url.path.contains('/questionnaires/')),
+        isFalse,
+        reason: 'the legacy bootstrap must not POST surveys anywhere',
+      );
+      expect(await fx.runtime.backend.anyFifoWedged(), isFalse);
+    },
+  );
 
   // -------------------------------------------------------------------------
   // Scenario 5: Tombstone inbound from portal materializes a tombstone
@@ -446,46 +452,6 @@ void main() {
       entryType: 'nose_hht_survey',
     )).singleWhere((e) => e.entryId == 'agg-s5');
     expect(viewRow.isDeleted, isTrue);
-  });
-
-  // -------------------------------------------------------------------------
-  // Scenario 6: 409 questionnaire_deleted on /questionnaires/<id>/submit
-  // -> SendOk so the FIFO drains; no wedge.
-  // -------------------------------------------------------------------------
-  test('scenario 6: 409 {error: questionnaire_deleted} on questionnaire '
-      'submit -> FIFO drains (SendOk), no wedge', () async {
-    final fx = await _build();
-    addTearDown(fx.tearDown);
-
-    fx.handler.impl = (req) async {
-      if (req.method == 'POST' &&
-          req.url.path.contains('/questionnaires/') &&
-          req.url.path.endsWith('/submit')) {
-        return http.Response(
-          jsonEncode({'error': 'questionnaire_deleted'}),
-          409,
-        );
-      }
-      if (req.url.path.endsWith('inbound')) {
-        return http.Response('{"messages":[]}', 200);
-      }
-      return http.Response('', 200);
-    };
-
-    await fx.runtime.entryService.record(
-      entryType: 'nose_hht_survey',
-      aggregateId: 'agg-s6',
-      eventType: 'finalized',
-      answers: _surveyData(),
-    );
-
-    await _activate(fx);
-    await fx.runtime.syncCycle();
-
-    expect(await fx.runtime.backend.anyFifoWedged(), isFalse);
-    final fifo = await fx.runtime.backend.listFifoEntries(_legacyQSubmitId);
-    expect(fifo, isNotEmpty);
-    expect(fifo.last.finalStatus, FinalStatus.sent);
   });
 
   // -------------------------------------------------------------------------

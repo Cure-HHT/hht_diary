@@ -4,7 +4,6 @@
 
 import 'dart:async';
 
-import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/destinations/portal_inbound_poll.dart';
 import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
@@ -121,25 +120,22 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
   // 2. Load the clinical-diary entry type set (nosebleed types + surveys).
   final entryTypes = await loadClinicalDiaryEntryTypes();
 
-  // 3. Outbound destinations — two transitional shims that translate
-  //    canonical event_sourcing_datastore events to the legacy diary
-  //    server's existing endpoints. Replaced wholesale by a native
+  // 3. Outbound destination — a transitional shim that translates canonical
+  //    event_sourcing_datastore nosebleed events to the legacy diary server's
+  //    `/api/v1/user/sync` endpoint. Replaced wholesale by a native
   //    destination once the server cuts over to consume the canonical
-  //    `esd/batch@1` wire format.
+  //    `esd/batch@1` wire format. Questionnaire submissions ship through the
+  //    NATIVE `DiaryServerDestination` (the new `diary_es.db` store), not a
+  //    legacy shim here.
   //
   //    Entry-type partitioning is by `widgetId` because that field is
   //    the stable contract between an entry type and its UX renderer:
-  //    nosebleed-shaped events all render through `epistaxis_form_v1`,
-  //    questionnaire-shaped events all render through `survey_renderer_v1`.
+  //    nosebleed-shaped events all render through `epistaxis_form_v1`.
   //    URLs are resolved lazily so events recorded before enrollment
   //    stay queued in the FIFO and ship once the base URL becomes
   //    available.
   final nosebleedTypeIds = entryTypes
       .where((t) => t.widgetId == 'epistaxis_form_v1')
-      .map((t) => t.id)
-      .toList(growable: false);
-  final surveyTypeIds = entryTypes
-      .where((t) => t.widgetId == 'survey_renderer_v1')
       .map((t) => t.id)
       .toList(growable: false);
 
@@ -148,12 +144,6 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
     resolveBaseUrl: resolveBaseUrl,
     authToken: authToken,
     entryTypeIds: nosebleedTypeIds,
-  );
-  final legacyQuestionnaireSubmit = LegacyQuestionnaireSubmitDestination(
-    client: client,
-    resolveBaseUrl: resolveBaseUrl,
-    authToken: authToken,
-    entryTypeIds: surveyTypeIds,
   );
 
   // 4. Bootstrap the append-only datastore (registers entry types, wires
@@ -166,7 +156,7 @@ Future<ClinicalDiaryRuntime> bootstrapClinicalDiary({
       softwareVersion: softwareVersion,
     ),
     entryTypes: entryTypes,
-    destinations: [legacySync, legacyQuestionnaireSubmit],
+    destinations: [legacySync],
     materializers: const [DiaryEntriesMaterializer(promoter: identityPromoter)],
     initialViewTargetVersions: {
       'diary_entries': {for (final t in entryTypes) t.id: t.registeredVersion},

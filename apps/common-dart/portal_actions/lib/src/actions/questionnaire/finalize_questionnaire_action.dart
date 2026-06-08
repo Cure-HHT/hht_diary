@@ -8,10 +8,20 @@ class FinalizeQuestionnaireInput {
     required this.siteId,
     required this.instanceId,
     this.edcExportRef,
+    this.cycle,
+    this.endEvent,
   });
   final String siteId;
   final String instanceId;
   final String? edcExportRef;
+
+  /// The study_event (Cycle value) being finalized, e.g. `'Cycle 2 Day 1'`.
+  /// Null when cycle tracking is disabled / no cycle is recorded.
+  final String? cycle;
+
+  /// A terminal close marker: one of `'end_of_treatment'` / `'end_of_study'`,
+  /// or null for a normal (non-terminal) cycle finalize.
+  final String? endEvent;
 }
 
 class FinalizeQuestionnaireResult {
@@ -51,12 +61,16 @@ class FinalizeQuestionnaireAction
         'FinalizeQuestionnaireAction expects {siteId, instanceId}: String',
       );
     }
-    // Optional String field
+    // Optional String fields (trimmed; null when absent / non-String).
     final edcExportRef = raw['edcExportRef'];
+    final cycle = raw['cycle'];
+    final endEvent = raw['endEvent'];
     return FinalizeQuestionnaireInput(
       siteId: siteId.trim(),
       instanceId: instanceId.trim(),
       edcExportRef: edcExportRef is String ? edcExportRef : null,
+      cycle: cycle is String ? cycle.trim() : null,
+      endEvent: endEvent is String ? endEvent.trim() : null,
     );
   }
 
@@ -72,6 +86,25 @@ class FinalizeQuestionnaireAction
         'must be non-empty',
       );
     }
+    // A terminal close marker, when present, must be one of the two terminal
+    // cycle values. The server / UI controls the exact Cycle label, so cycle
+    // validation stays light here — only reject an obviously empty string.
+    if (input.cycle != null && input.cycle!.isEmpty) {
+      throw ArgumentError.value(
+        input.cycle,
+        'cycle',
+        'must be non-empty when present',
+      );
+    }
+    if (input.endEvent != null &&
+        input.endEvent != 'end_of_treatment' &&
+        input.endEvent != 'end_of_study') {
+      throw ArgumentError.value(
+        input.endEvent,
+        'endEvent',
+        "must be 'end_of_treatment' or 'end_of_study' when present",
+      );
+    }
   }
 
   @override
@@ -80,6 +113,11 @@ class FinalizeQuestionnaireAction
       ? BoundScope(class_: 'site', value: input.siteId)
       : null;
 
+  // Implements: DIARY-BASE-questionnaire-finalization/D+E — the finalized event
+  //   records WHICH cycle was finalized (`cycle`) and whether the close is
+  //   terminal (`end_event`: End of Treatment / End of Study). D = a normal
+  //   cycle finalize (null end_event); E = a terminal close that permanently
+  //   blocks further sends (the next-cycle computation reads `end_event`).
   @override
   Future<ExecutionResult<FinalizeQuestionnaireResult>> execute(
     FinalizeQuestionnaireInput input,
@@ -96,6 +134,8 @@ class FinalizeQuestionnaireAction
           data: <String, Object?>{
             'finalized_by': ctx.principal.id,
             'edc_export_ref': input.edcExportRef,
+            'cycle': input.cycle,
+            'end_event': input.endEvent,
           },
         ),
       ],

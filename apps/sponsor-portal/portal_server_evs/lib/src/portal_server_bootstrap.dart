@@ -16,9 +16,11 @@ import 'package:shelf_router/shelf_router.dart';
 import 'activation_code_store.dart';
 import 'activation_reactor.dart';
 import 'linking_code_lifecycle_reactor.dart';
+import 'questionnaire_submission_reactor.dart';
 import 'activation_routes.dart';
 import 'audit_row.dart';
 import 'dev_credential_auth_validator.dart';
+import 'diary_entries_debug_handler.dart';
 import 'local_push_registry.dart';
 import 'local_push_ws_handler.dart';
 import 'local_socket_push_channel.dart';
@@ -30,8 +32,10 @@ import 'password_reset_routes.dart';
 import 'patient_ingest_handler.dart';
 import 'patient_link_handler.dart';
 import 'patient_state_handler.dart';
+import 'patient_tasks_handler.dart';
 import 'portal_view_scopes.dart';
 import 'seed_config.dart';
+import 'send_questionnaire_handler.dart';
 import 'session_cascade_reactor.dart';
 import 'session_config.dart';
 import 'session_store.dart';
@@ -226,8 +230,8 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //     (each grant is the sole event under aggregate id `<role>:view:<view>`),
   //     so re-running every boot adds NEW grants on redeploy without re-appending
   //     duplicates — matching the action-permission + role-assignment seeds.
-  Future<void> grantView(String role, String view) async {
-    final aggregateId = '$role:view:$view';
+  Future<void> grantPermission(String role, String permissionName) async {
+    final aggregateId = '$role:$permissionName';
     final existing =
         await eventStore.backend.findEventsForAggregate(aggregateId);
     if (existing.any((e) => e.eventType == 'permission_granted')) return;
@@ -238,11 +242,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
       eventType: 'permission_granted',
       data: PermissionGrantedPayload(
         role: role,
-        permissionName: 'view:$view',
+        permissionName: permissionName,
       ).toJson(),
       initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
     );
   }
+
+  Future<void> grantView(String role, String view) =>
+      grantPermission(role, 'view:$view');
 
   // The Administrator AND the SystemOperator hold the user-management
   // permissions, so both can subscribe to the role-assignments view + the
@@ -262,6 +269,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
   for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
     await grantView(role, 'sites_index');
     await grantView(role, 'participant_record');
+    // The operational roles read questionnaire instance status (one row per
+    // instance) to drive the Manage Questionnaires modal's live per-status view.
+    await grantView(role, 'questionnaire_instance');
   }
   // The RAVE-sync status screen is visible to operations roles too.
   for (final role in const [
@@ -272,6 +282,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
   ]) {
     await grantView(role, 'rave_sync_status');
   }
+  // Debug-only: the Study Coordinator may read a participant's raw diary entries
+  // via /admin/diary-entries. Granted directly (not via the action-validated role
+  // seed) because it gates a tooling endpoint, not a registered Action — there is
+  // no ACT-id/REQ behind it. Pairs the custom permission with the diary_entries
+  // view read so the endpoint can serve the canonical rows.
+  await grantPermission('StudyCoordinator', diaryDebugViewPermission);
+  await grantView('StudyCoordinator', 'diary_entries');
 
   // 4c. Role assignments — config-driven + idempotent, applied on EVERY boot
   //     (NOT inside the seed-once gate above). `bootstrapRoleAssignments` diffs
@@ -479,6 +496,18 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final userTierReactor =
       UserTierReactor(eventStore: eventStore, backend: backend)..start();
 
+  // 7f-bis. Questionnaire submission reactor — on a diary `<id>_survey`
+  //     `finalized` event (whose aggregateId == the questionnaire instance id),
+  //     emits a dedicated `questionnaire_submission_received` event on the
+  //     instance aggregate so the questionnaire_instance row folds to Ready to
+  //     Review. Filters out non-survey diary entries and guards against phantom
+  //     rows / Closed-instance regressions.
+  // Implements: DIARY-BASE-questionnaire-coordinator-workflow/G
+  final questionnaireSubmissionReactor = QuestionnaireSubmissionReactor(
+    eventStore: eventStore,
+    backend: backend,
+  )..start();
+
   // 7g. Notification dispatch reactor — on a durable portal intent event
   //     (questionnaire assignment + participant lifecycle), looks up the
   //     recipient's active routing token in participant_fcm_tokens and sends a
@@ -573,6 +602,33 @@ Future<PortalServerBoot> bootstrapPortalServer({
     }
   }
 
+  // Send-orchestration: POST /admin/questionnaire/send. Reads the
+  // questionnaire_instance view + cycle settings, computes the next cycle, and
+  // dispatches ACT-QST-001 in-process (EVS actions cannot read projections
+  // mid-execute, so the cycle decision is made here). Authorization is enforced
+  // by the dispatch (site-scoped portal.questionnaire.send); the authenticated
+  // Principal is attached by authMiddleware and read via principalFromContext.
+  // Implements: DIARY-BASE-questionnaire-coordinator-workflow/C
+  // Implements: DIARY-BASE-questionnaire-cycle-tracking/D+K
+  Future<Response> sendQuestionnaireHandler(Request request) async {
+    final principal = principalFromContext(request);
+    if (principal == null) {
+      return Response.forbidden('unauthenticated');
+    }
+    final Map<String, Object?> body;
+    try {
+      final raw = await request.readAsString();
+      final decoded = raw.isEmpty ? <String, Object?>{} : jsonDecode(raw);
+      if (decoded is! Map<String, Object?>) {
+        return Response(400, body: 'expected a JSON object body');
+      }
+      body = decoded;
+    } catch (_) {
+      return Response(400, body: 'invalid JSON body');
+    }
+    return respondToSend(eventStore, dispatcher, principal, body);
+  }
+
   // Audit-trail read, gated to principals holding portal.audit.view. Reads the
   // event log reverse-chronological and maps each event to an audit row via the
   // shared auditRowJson mapper. The authenticated Principal is attached by
@@ -601,6 +657,23 @@ Future<PortalServerBoot> bootstrapPortalServer({
     );
   }
 
+  // Debug-only diary-entries read, gated to portal.diary.view_debug (SC).
+  Future<Response> diaryEntriesDebugHandler(Request request) async {
+    final principal = principalFromContext(request);
+    final Iterable<String> perms;
+    if (principal is UserPrincipal) {
+      final eff = await policy.effectivePermissionsFor(principal);
+      perms = eff.rolePermissions.map((p) => p.name);
+    } else {
+      perms = const <String>[];
+    }
+    if (!perms.contains(diaryDebugViewPermission)) {
+      return Response.forbidden('requires $diaryDebugViewPermission');
+    }
+    return respondWithDiaryEntries(
+        eventStore, request.url.queryParameters['participant']);
+  }
+
   final httpRouter = Router()
     ..get('/me', handlers.me)
     ..post('/actions', handlers.actions)
@@ -608,7 +681,15 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // it every gate fails closed (no widgets render, for any role).
     ..get('/permissions/snapshot', handlers.permissions)
     ..get('/audit', auditHandler)
+    // Under /admin/ so the reverse proxy's `^~ /admin/` block forwards it to the
+    // dart backend (a bare /debug/ prefix is not in the nginx proxy allow-list,
+    // so it would be served the SPA instead of reaching this handler).
+    ..get('/admin/diary-entries', diaryEntriesDebugHandler)
     ..post('/admin/rave-sync', raveSyncHandler)
+    // Send-orchestration for the coordinator's "Send Now" / "Start Next Cycle".
+    // Implements: DIARY-BASE-questionnaire-coordinator-workflow/C
+    // Implements: DIARY-BASE-questionnaire-cycle-tracking/D+K
+    ..post('/admin/questionnaire/send', sendQuestionnaireHandler)
     // Authed session routes (logout) — mounted inside the authed pipeline so
     // Bearer validation + principal context are present.
     // Implements: DIARY-DEV-portal-session-lifecycle/A
@@ -664,6 +745,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
       .addMiddleware(_cors())
       .addHandler(patientStateHandler(eventStore: eventStore));
 
+  // Patient tasks (public; in-handler patient-JWT auth): the participant's active
+  // assigned questionnaires, polled by the diary to discover them.
+  // Implements: DIARY-PRD-questionnaire-system/B+C+D
+  final tasksHandler = const Pipeline()
+      .addMiddleware(_cors())
+      .addHandler(patientTasksHandler(eventStore: eventStore));
+
   // Sponsor branding asset bytes (public-at-the-router; in-handler patient-JWT
   // auth, same gate as /user/state). Serves the logo bytes the diary fetches by
   // the manifest pointer; the role is resolved from the manifest + a fixed
@@ -708,6 +796,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // Patient state: trial-start watermark + linking status (public; JWT-gated).
     ..options('/api/v1/user/state', stateHandler)
     ..get('/api/v1/user/state', stateHandler)
+    // Patient tasks: active assigned questionnaires (public; JWT-gated in-handler).
+    ..options('/api/v1/user/tasks', tasksHandler)
+    ..get('/api/v1/user/tasks', tasksHandler)
     // Sponsor branding asset bytes (public-at-the-router; JWT-gated in-handler).
     // Implements: DIARY-DEV-sponsor-branding-source/E+F+G
     ..options('/api/v1/sponsor/branding/asset/<role>', brandingAssetHandler)
@@ -764,6 +855,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     await sessionCascadeReactor.stop();
     await linkingCodeReactor.stop();
     await userTierReactor.stop();
+    await questionnaireSubmissionReactor.stop();
     await notificationDispatchReactor?.stop();
     fcmChannel?.dispose();
     await handlers.dispose();
