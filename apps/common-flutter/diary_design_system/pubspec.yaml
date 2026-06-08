@@ -1,0 +1,27 @@
+name: diary_design_system
+description: Shared design system — tokens, theme, and reusable components — used by both the diary mobile app and the sponsor portal.
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ^3.10.7
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-VariableFont_opsz,wght.ttf
+        - asset: assets/fonts/Inter-Italic-VariableFont_opsz,wght.ttf
+          style: italic
+  assets:
+    - assets/fonts/Inter-OFL.txt

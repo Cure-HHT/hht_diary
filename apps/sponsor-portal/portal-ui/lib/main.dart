@@ -10,7 +10,7 @@
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:common_widgets/common_widgets.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';

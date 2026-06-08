@@ -1,0 +1,122 @@
+import 'package:flutter/material.dart';
+
+import '../theme/app_theme_extension.dart';
+import '../tokens/radius_tokens.dart';
+import '../tokens/spacing_tokens.dart';
+
+enum AppBannerSeverity { success, warning, error, info }
+
+/// Inline status / severity banner.
+///
+/// Replaces the ad-hoc `Container` + `Icon.warning_amber` + tinted border
+/// pattern that was duplicated across the portal dialogs. Each severity binds
+/// to its semantic color pair (foreground + container background) plus a
+/// canonical Material icon.
+///
+/// The [trailing] slot is for caller-supplied actions — a dismiss `AppButton`,
+/// a "Retry" button, an external link, etc. Keep it small; the banner is
+/// inline, not a full alert.
+class AppBanner extends StatelessWidget {
+  final AppBannerSeverity severity;
+  final String? title;
+  final String message;
+  final Widget? trailing;
+
+  /// Test-harness locator. When set, wraps the banner in a
+  /// `Semantics(identifier: ..., value: message, liveRegion: true, container: true)`
+  /// node so Playwright's `readSemanticValue` can read the banner's message
+  /// directly (critical for error-state assertions).
+  final String? semanticId;
+
+  const AppBanner({
+    super.key,
+    required this.severity,
+    required this.message,
+    this.title,
+    this.trailing,
+    this.semanticId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final semantic = theme.extension<AppSemanticColors>()!;
+    final (foreground, background, icon) = _resolveSeverity(theme, semantic);
+
+    final container = Container(
+      padding: EdgeInsets.all(SpacingTokens.md),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(RadiusTokens.md),
+        border: Border.all(color: foreground.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: foreground),
+          SizedBox(width: SpacingTokens.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (title != null) ...[
+                  Text(
+                    title!,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: foreground,
+                    ),
+                  ),
+                  SizedBox(height: SpacingTokens.xxs),
+                ],
+                Text(message, style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
+          if (trailing != null) ...[
+            SizedBox(width: SpacingTokens.sm),
+            trailing!,
+          ],
+        ],
+      ),
+    );
+
+    if (semanticId == null) return container;
+
+    return Semantics(
+      identifier: semanticId,
+      value: message,
+      liveRegion: true,
+      container: true,
+      explicitChildNodes: true,
+      child: container,
+    );
+  }
+
+  (Color foreground, Color background, IconData icon) _resolveSeverity(
+    ThemeData theme,
+    AppSemanticColors semantic,
+  ) {
+    return switch (severity) {
+      AppBannerSeverity.success => (
+        semantic.success,
+        semantic.successContainer,
+        Icons.check_circle_outline,
+      ),
+      AppBannerSeverity.warning => (
+        semantic.warning,
+        semantic.warningContainer,
+        Icons.warning_amber_outlined,
+      ),
+      AppBannerSeverity.error => (
+        theme.colorScheme.error,
+        theme.colorScheme.errorContainer,
+        Icons.error_outline,
+      ),
+      AppBannerSeverity.info => (
+        semantic.info,
+        semantic.infoContainer,
+        Icons.info_outline,
+      ),
+    };
+  }
+}
