@@ -48,7 +48,10 @@ class DiaryServerDestination extends CanonicalIngestDestination {
     required super.client,
     required super.resolveIngestUrl,
     required super.authToken,
-  });
+    Duration maxAccumulateTime = kDiaryBatchWindow,
+  }) : _maxAccumulateTime = maxAccumulateTime;
+
+  final Duration _maxAccumulateTime;
 
   /// Stable FIFO key for the primary diary server. SHALL NOT change for the
   /// lifetime of the store.
@@ -68,10 +71,12 @@ class DiaryServerDestination extends CanonicalIngestDestination {
   );
 
   /// Batch clinical entries: hold a lone entry up to [kDiaryBatchWindow] so
-  /// same-session events coalesce. Overrides the base ASAP default
+  /// same-session events coalesce. Defaults above the base ASAP
   /// (`Duration.zero`); contrast `SystemEventsDestination`, which keeps zero so
-  /// push tokens/receipts ship immediately.
+  /// push tokens/receipts ship immediately. Tests that exercise materialization
+  /// round-trip rather than batching pass `Duration.zero` so a lone entry drains
+  /// in one cycle.
   // Implements: DIARY-DEV-native-outbound-sync/A
   @override
-  Duration get maxAccumulateTime => kDiaryBatchWindow;
+  Duration get maxAccumulateTime => _maxAccumulateTime;
 }

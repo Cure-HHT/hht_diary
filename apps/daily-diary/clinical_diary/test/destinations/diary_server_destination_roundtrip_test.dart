@@ -85,6 +85,9 @@ Future<DiaryScopeRuntime> _bootDevice(
         resolveIngestUrl: () async =>
             Uri.parse('https://diary.example.com/ingest'),
         authToken: () async => 'jwt-token',
+        // This suite verifies materialization round-trip, not batching latency:
+        // drain a lone entry in one cycle instead of holding it kDiaryBatchWindow.
+        maxAccumulateTime: Duration.zero,
       ),
     ],
   );
@@ -199,6 +202,8 @@ void main() {
             client: client,
             resolveIngestUrl: () async => Uri.parse('https://x/ingest'),
             authToken: () async => 'jwt',
+            // Round-trip suite: drain lone entries immediately (not batching).
+            maxAccumulateTime: Duration.zero,
           ),
         ],
       );
