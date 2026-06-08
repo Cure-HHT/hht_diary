@@ -28,8 +28,11 @@ void main() {
     addTearDown(() => store.close());
   });
 
-  // Seed an active routing token into participant_fcm_tokens (device-authored
-  // fcm_token_registered, aggregate id "{pid}:fcm:{platform}").
+  // Seed an active routing token into participant_fcm_tokens using the REAL
+  // device wire shape: the diary's register_fcm_token action emits
+  // eventType='finalized' with the semantic name in entryType, aggregate id
+  // "{pid}:fcm:{platform}". This drives the projection fold through the same
+  // axis the device cross-posts on (Bug #1/#2 round-trip).
   Future<void> registerToken(
     String participantId,
     String platform,
@@ -39,7 +42,7 @@ void main() {
         entryType: 'fcm_token_registered',
         aggregateType: 'FcmToken',
         aggregateId: '$participantId:fcm:$platform',
-        eventType: 'fcm_token_registered',
+        eventType: 'finalized',
         data: <String, Object?>{
           'token': token,
           'platform': platform,
@@ -134,6 +137,9 @@ void main() {
     final deactivated = await eventsOfType('fcm_token_deactivated');
     expect(deactivated, hasLength(1));
     expect(deactivated.single.aggregateId, 'P3:fcm:android');
+    // Deactivation is a tombstone (eventType) so the participant_fcm_tokens
+    // projection's removeEventTypes:{'tombstone'} drops the dead-token row.
+    expect(deactivated.single.eventType, 'tombstone');
 
     final failed = await eventsOfType('notification_dispatch_failed');
     expect(failed, hasLength(1));
