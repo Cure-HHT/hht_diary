@@ -924,6 +924,15 @@ class _AppRootState extends State<AppRoot> {
     // REQ-CAL-p00081: Poll for tasks on app start (FCM fallback)
     unawaited(_taskService.syncTasks(_enrollmentService));
 
+    // CUR-1436/CUR-1447: a `questionnaire_assigned` FCM nudge carries only
+    // {type, flowToken} — the authoritative task list comes from
+    // `/user/tasks`. Inject the sync trigger so handleFcmMessage (sync) can
+    // fire a sync without TaskService holding the EnrollmentService. Mirrors
+    // the `tasksSync` / `onTaskSync` closures used elsewhere. Set before the
+    // local-stack early-return so WS-delivered nudges trigger a sync too.
+    _taskService.onSyncRequested = () =>
+        _taskService.syncTasks(_enrollmentService);
+
     // On the local-stack (AppEnv.local) the diary is web/Linux and has no FCM;
     // push arrives over the LocalSocketPushReceiver WS instead (wired in
     // _initializeRuntime). Skip ONLY the firebase_messaging init.
