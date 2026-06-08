@@ -17,6 +17,7 @@ import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/destinations/legacy_questionnaire_submit_destination.dart';
 import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
+import 'package:clinical_diary/destinations/system_events_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
@@ -387,15 +388,26 @@ class _AppRootState extends State<AppRoot> {
         // with no bootstrap-time restart.
         final ingestClient = http.Client();
         _diaryIngestClient = ingestClient;
+        // Native ingest endpoint: <backend>/api/v1/ingest/batch. Returns null
+        // pre-enrollment, which both destinations treat as "skip this cycle".
+        Future<Uri?> resolveIngestUrl() async {
+          final base = await _enrollmentService.getBackendUrl();
+          if (base == null) return null;
+          return Uri.parse('$base/api/v1/ingest/batch');
+        }
+
         final destination = DiaryServerDestination(
           client: ingestClient,
-          // Native ingest endpoint: <backend>/api/v1/ingest/batch. Returns null
-          // pre-enrollment, which the destination treats as "skip this cycle".
-          resolveIngestUrl: () async {
-            final base = await _enrollmentService.getBackendUrl();
-            if (base == null) return null;
-            return Uri.parse('$base/api/v1/ingest/batch');
-          },
+          resolveIngestUrl: resolveIngestUrl,
+          authToken: _enrollmentService.getJwtToken,
+        );
+        // Second outbound queue: ships system/FCM aggregates (FcmToken token
+        // registration + InboundMessage receipts) to the SAME ingest endpoint.
+        // It is activated at LINK time (not the trial-start watermark) so push
+        // routing tokens reach the portal as soon as the device links.
+        final systemDestination = SystemEventsDestination(
+          client: ingestClient,
+          resolveIngestUrl: resolveIngestUrl,
           authToken: _enrollmentService.getJwtToken,
         );
 
@@ -412,7 +424,7 @@ class _AppRootState extends State<AppRoot> {
             softwareVersion: softwareVersion,
             localUserId: deviceId, // stable per-install id; recording is never
             // enrollment-gated
-            outboundDestination: destination,
+            outboundDestinations: [destination, systemDestination],
           );
         } catch (_) {
           ingestClient.close();
@@ -578,6 +590,23 @@ class _AppRootState extends State<AppRoot> {
         // own event log (DIARY-DEV-shared-events-catalog/A surface P4). Identity
         // only — the JWT/install-id stay in secure storage (state-in-event-log/B).
         await _recordParticipantLinkedOnce(diaryScope, participantId);
+        // Activate the system-events destination at link (monotonic): FCM
+        // tokens and receipts must reach the portal as soon as the device is
+        // linked, independent of the trial-start watermark that gates clinical
+        // diary entries. Epoch start = drain all system events once linked.
+        // Implements: DIARY-DEV-native-outbound-sync/C
+        final sysSchedule = await diaryScope.bundle.destinations.scheduleOf(
+          SystemEventsDestination.destinationId,
+        );
+        if (sysSchedule.startDate == null) {
+          await diaryScope.bundle.destinations.setStartDate(
+            SystemEventsDestination.destinationId,
+            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+            initiator: const esd.AutomationInitiator(
+              service: 'system-events-link-activation',
+            ),
+          );
+        }
         // Re-register the current FCM token now that the participant id is known:
         // a token minted pre-link could not be recorded (no participant-scoped
         // aggregate id yet), so record it once here at the link transition.

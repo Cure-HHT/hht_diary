@@ -79,12 +79,14 @@ Future<DiaryScopeRuntime> _bootDevice(
     deviceId: 'DEV-1',
     softwareVersion: 'clinical_diary@0.0.0-test',
     localUserId: 'P-test',
-    outboundDestination: DiaryServerDestination(
-      client: client,
-      resolveIngestUrl: () async =>
-          Uri.parse('https://diary.example.com/ingest'),
-      authToken: () async => 'jwt-token',
-    ),
+    outboundDestinations: [
+      DiaryServerDestination(
+        client: client,
+        resolveIngestUrl: () async =>
+            Uri.parse('https://diary.example.com/ingest'),
+        authToken: () async => 'jwt-token',
+      ),
+    ],
   );
 
   // Watermark: activate the destination. Past date -> historical replay picks
@@ -192,11 +194,13 @@ void main() {
         deviceId: 'DEV-1',
         softwareVersion: 'clinical_diary@0.0.0-test',
         localUserId: 'P-test',
-        outboundDestination: DiaryServerDestination(
-          client: client,
-          resolveIngestUrl: () async => Uri.parse('https://x/ingest'),
-          authToken: () async => 'jwt',
-        ),
+        outboundDestinations: [
+          DiaryServerDestination(
+            client: client,
+            resolveIngestUrl: () async => Uri.parse('https://x/ingest'),
+            authToken: () async => 'jwt',
+          ),
+        ],
       );
       await rt.bundle.destinations.setStartDate(
         DiaryServerDestination.destinationId,
