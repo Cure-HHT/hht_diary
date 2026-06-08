@@ -32,6 +32,14 @@ npx playwright install chromium
 Pass extra Playwright flags after the script name (e.g.
 `scripts/run-e2e.sh --headed` or `scripts/run-e2e.sh tests/fonts.spec.ts`).
 
+**Offline vs. lifecycle:** `scripts/run-e2e.sh` builds the bundle *offline*
+(sponsor-config forced to a dead port) for the self-contained specs (`fonts`,
+`link-redeem`, `_smoke-record`). The full **participant-lifecycle** spec
+(`tests/p1-lifecycle.spec.ts`) instead drives the diary against a **running**
+EVS backend (`portal_server_evs`) and the portal-side Study-Coordinator
+actions. It has its own one-command runner and instructions:
+**[LIFECYCLE.md](LIFECYCLE.md)** (`scripts/run-lifecycle-e2e.sh`).
+
 ## How to add a new test
 
 1. **Annotate target widgets** in `lib/` with
