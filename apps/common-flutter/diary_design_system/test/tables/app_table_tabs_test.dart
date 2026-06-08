@@ -52,5 +52,20 @@ void main() {
       await tester.pump();
       expect(tapped, equals('active'));
     });
+
+    testWidgets('semanticId emits a Semantics identifier', (tester) async {
+      await tester.pumpWidget(
+        _harness(
+          AppTableTabs(
+            tabs: tabs,
+            activeKey: 'all',
+            onTap: (_) {},
+            semanticId: 'users.tabs',
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppTableTabs));
+      expect(node.identifier, equals('users.tabs'));
+    });
   });
 }

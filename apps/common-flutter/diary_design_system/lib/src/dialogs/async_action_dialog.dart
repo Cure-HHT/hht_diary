@@ -40,6 +40,7 @@ enum AsyncDialogPhase { confirm, loading, success, error }
 ///   ),
 /// );
 /// ```
+// Implements: DIARY-DEV-test-instrumentation/A
 class AsyncActionDialog<T> extends StatefulWidget {
   /// The async work to run when the user confirms.
   final Future<T> Function() onSubmit;
@@ -61,6 +62,11 @@ class AsyncActionDialog<T> extends StatefulWidget {
   final Widget Function(BuildContext context, Object error, VoidCallback retry)
   errorBuilder;
 
+  /// Test-harness locator. When set, wraps each phase's widget in a
+  /// `Semantics(identifier: ..., container: true, explicitChildNodes: true)`
+  /// node so Playwright can scope queries to the active phase.
+  final String? semanticId;
+
   const AsyncActionDialog({
     super.key,
     required this.onSubmit,
@@ -68,6 +74,7 @@ class AsyncActionDialog<T> extends StatefulWidget {
     required this.successBuilder,
     required this.errorBuilder,
     this.loadingBuilder,
+    this.semanticId,
   });
 
   @override
@@ -99,17 +106,26 @@ class _AsyncActionDialogState<T> extends State<AsyncActionDialog<T>> {
 
   @override
   Widget build(BuildContext context) {
-    switch (_phase) {
-      case AsyncDialogPhase.confirm:
-        return widget.confirmBuilder(context, _runSubmit);
-      case AsyncDialogPhase.loading:
-        return widget.loadingBuilder?.call(context) ??
-            const _DefaultLoadingDialog();
-      case AsyncDialogPhase.success:
-        return widget.successBuilder(context, _result as T);
-      case AsyncDialogPhase.error:
-        return widget.errorBuilder(context, _error!, _runSubmit);
-    }
+    final phase = switch (_phase) {
+      AsyncDialogPhase.confirm => widget.confirmBuilder(context, _runSubmit),
+      AsyncDialogPhase.loading =>
+        widget.loadingBuilder?.call(context) ?? const _DefaultLoadingDialog(),
+      AsyncDialogPhase.success => widget.successBuilder(context, _result as T),
+      AsyncDialogPhase.error => widget.errorBuilder(
+        context,
+        _error!,
+        _runSubmit,
+      ),
+    };
+
+    if (widget.semanticId == null) return phase;
+
+    return Semantics(
+      identifier: widget.semanticId,
+      container: true,
+      explicitChildNodes: true,
+      child: phase,
+    );
   }
 }
 

@@ -27,6 +27,7 @@ class AppDropdownItem<T> {
 /// below the trigger, same width, with full-width item rows. The currently
 /// selected item gets a light primary tint + trailing checkmark — matches
 /// Figma.
+// Implements: DIARY-DEV-test-instrumentation/A
 class AppDropdown<T> extends StatefulWidget {
   final String? label;
   final String? hintText;
@@ -37,6 +38,12 @@ class AppDropdown<T> extends StatefulWidget {
   final ValueChanged<T?>? onChanged;
   final bool required;
   final bool enabled;
+
+  /// Test-harness locator. When set, wraps the trigger in a
+  /// `Semantics(identifier: ..., button: true, value: <selectedLabel>, container: true, explicitChildNodes: true)`
+  /// so Playwright can locate it via `flt-semantics-identifier` and read
+  /// the selected option through `readSemanticValue`.
+  final String? semanticId;
 
   const AppDropdown({
     super.key,
@@ -49,6 +56,7 @@ class AppDropdown<T> extends StatefulWidget {
     this.onChanged,
     this.required = false,
     this.enabled = true,
+    this.semanticId,
   });
 
   @override
@@ -223,16 +231,27 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
       ],
     );
 
-    if (widget.label == null) return fieldWithHelpers;
+    final laidOut = widget.label == null
+        ? fieldWithHelpers
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _LabelRow(label: widget.label!, required: widget.required),
+              SizedBox(height: SpacingTokens.xs),
+              fieldWithHelpers,
+            ],
+          );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _LabelRow(label: widget.label!, required: widget.required),
-        SizedBox(height: SpacingTokens.xs),
-        fieldWithHelpers,
-      ],
+    if (widget.semanticId == null) return laidOut;
+
+    return Semantics(
+      identifier: widget.semanticId,
+      button: true,
+      value: selectedLabel ?? '',
+      container: true,
+      explicitChildNodes: true,
+      child: laidOut,
     );
   }
 }

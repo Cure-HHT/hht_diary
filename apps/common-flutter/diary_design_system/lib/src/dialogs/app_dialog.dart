@@ -18,6 +18,43 @@ import 'async_action_dialog.dart';
 ///
 /// Layout: optional icon + title + optional subtitle in the header, a body
 /// area for whatever the caller wants, and a trailing-aligned actions row.
+///
+/// **Reactive-portal callers** (anything in `portal_ui_evs/` that needs an
+/// async dialog) should compose this widget inside `ActionBuilder` from
+/// `package:reaction_widgets` rather than reach for [AsyncActionDialog]:
+///
+/// ```dart
+/// showDialog<DisconnectResult>(
+///   context: context,
+///   builder: (ctx) => ActionBuilder(
+///     submissionFactory: () => ActionSubmission(
+///       actionName: 'disconnect_participant',
+///       rawInput: {'patientId': patientId},
+///     ),
+///     builder: (ctx, state, submit) => AppDialog(
+///       title: 'Disconnect participant',
+///       body: ...,
+///       actions: [
+///         AppButton(
+///           variant: AppButtonVariant.secondary,
+///           label: 'Cancel',
+///           onPressed: state is Submitting ? null : () => Navigator.pop(ctx),
+///         ),
+///         AppButton(
+///           variant: AppButtonVariant.destructive,
+///           label: 'Disconnect',
+///           loading: state is Submitting,
+///           onPressed: state is Submitting ? null : submit,
+///         ),
+///       ],
+///     ),
+///   ),
+/// );
+/// ```
+///
+/// `ActionBuilder` mints a UUID-v4 idempotency key once per dialog and
+/// reuses it across retries — the guard that [AsyncActionDialog] lacks.
+// Implements: DIARY-DEV-test-instrumentation/A
 class AppDialog extends StatelessWidget {
   final AppDialogSize size;
   final Widget? icon;
@@ -31,6 +68,11 @@ class AppDialog extends StatelessWidget {
   /// controlled separately by the caller's `showDialog(barrierDismissible:)`.
   final bool dismissible;
 
+  /// Test-harness locator. When set, wraps the dialog in a
+  /// `Semantics(identifier: ..., namesRoute: true, container: true, explicitChildNodes: true)`
+  /// node so Playwright can scope queries inside the dialog subtree.
+  final String? semanticId;
+
   const AppDialog({
     super.key,
     this.size = AppDialogSize.medium,
@@ -40,6 +82,7 @@ class AppDialog extends StatelessWidget {
     required this.body,
     this.actions = const [],
     this.dismissible = true,
+    this.semanticId,
   });
 
   @override
@@ -47,7 +90,7 @@ class AppDialog extends StatelessWidget {
     final theme = Theme.of(context);
     final borderRadius = BorderRadius.circular(RadiusTokens.lg);
 
-    return Dialog(
+    final dialog = Dialog(
       // Transparent so Material doesn't paint its own surface-tint /
       // elevation shadow on top of the explicit BoxShadow below.
       backgroundColor: Colors.transparent,
@@ -101,6 +144,16 @@ class AppDialog extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    if (semanticId == null) return dialog;
+
+    return Semantics(
+      identifier: semanticId,
+      namesRoute: true,
+      container: true,
+      explicitChildNodes: true,
+      child: dialog,
     );
   }
 

@@ -70,6 +70,25 @@ void main() {
       expect(find.byIcon(Icons.close), findsNothing);
     });
 
+    testWidgets('semanticId emits a Semantics identifier on the dialog root', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(font: AppFontFamily.inter),
+          home: Scaffold(
+            body: AppDialog(
+              title: 'Dialog',
+              body: const SizedBox.shrink(),
+              semanticId: 'disconnect.dialog',
+            ),
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppDialog));
+      expect(node.identifier, equals('disconnect.dialog'));
+    });
+
     group('.confirmation', () {
       testWidgets('returns true when confirmed', (tester) async {
         bool? result;

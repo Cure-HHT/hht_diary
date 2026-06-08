@@ -29,5 +29,20 @@ void main() {
       expect(find.text('User info'), findsOneWidget);
       expect(find.text('Body text'), findsOneWidget);
     });
+
+    testWidgets('semanticId emits a Semantics identifier on the card', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          const AppCard(
+            semanticId: 'user-details.info-card',
+            child: Text('Inside'),
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppCard));
+      expect(node.identifier, equals('user-details.info-card'));
+    });
   });
 }

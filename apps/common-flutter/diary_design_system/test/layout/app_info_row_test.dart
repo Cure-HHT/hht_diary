@@ -31,5 +31,23 @@ void main() {
       expect(find.text('Status'), findsOneWidget);
       expect(find.text('Active'), findsOneWidget);
     });
+
+    testWidgets('semanticId emits identifier + label + value channels', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          const AppInfoRow(
+            label: 'Linking codes revoked',
+            value: '3',
+            semanticId: 'disconnect.codes-revoked',
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppInfoRow));
+      expect(node.identifier, equals('disconnect.codes-revoked'));
+      expect(node.label, equals('Linking codes revoked'));
+      expect(node.value, equals('3'));
+    });
   });
 }

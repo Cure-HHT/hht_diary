@@ -49,5 +49,19 @@ void main() {
       final decoration = container.decoration as BoxDecoration;
       expect(decoration.color, isNot(equals(Colors.transparent)));
     });
+
+    testWidgets(
+      'semanticId emits a Semantics identifier with label exposed via value',
+      (tester) async {
+        await tester.pumpWidget(
+          _harness(
+            const AppBadge(label: 'Admin', semanticId: 'user.role-badge'),
+          ),
+        );
+        final node = tester.getSemantics(find.byType(AppBadge));
+        expect(node.identifier, equals('user.role-badge'));
+        expect(node.value, equals('Admin'));
+      },
+    );
   });
 }

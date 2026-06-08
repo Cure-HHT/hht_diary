@@ -13,6 +13,7 @@ enum StatusBadgeKind { active, pending, atRisk, inactive }
 
 /// A small dot + label combo for showing a status — used in tables, user
 /// detail panels, and anywhere a single-glance state indicator is needed.
+// Implements: DIARY-DEV-test-instrumentation/B
 class StatusBadge extends StatelessWidget {
   final StatusBadgeKind kind;
 
@@ -20,7 +21,17 @@ class StatusBadge extends StatelessWidget {
   /// kind ("Active" / "Pending" / "At risk" / "Inactive").
   final String? label;
 
-  const StatusBadge({super.key, required this.kind, this.label});
+  /// Test-harness locator. When set, wraps the badge in a
+  /// `Semantics(identifier: ..., value: <label-or-default>, container: true, explicitChildNodes: true)`
+  /// node so Playwright can `readSemanticValue` the current status.
+  final String? semanticId;
+
+  const StatusBadge({
+    super.key,
+    required this.kind,
+    this.label,
+    this.semanticId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +45,9 @@ class StatusBadge extends StatelessWidget {
       StatusBadgeKind.inactive => (theme.colorScheme.outline, 'Inactive', true),
     };
 
-    return Row(
+    final effectiveLabel = label ?? defaultLabel;
+
+    final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -48,7 +61,7 @@ class StatusBadge extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Text(
-          label ?? defaultLabel,
+          effectiveLabel,
           style: TextStyle(
             fontWeight: FontWeight.w500,
             fontSize: 14,
@@ -58,6 +71,16 @@ class StatusBadge extends StatelessWidget {
           ),
         ),
       ],
+    );
+
+    if (semanticId == null) return row;
+
+    return Semantics(
+      identifier: semanticId,
+      value: effectiveLabel,
+      container: true,
+      explicitChildNodes: true,
+      child: row,
     );
   }
 }

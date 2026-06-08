@@ -16,11 +16,18 @@ enum AppBannerSeverity { success, warning, error, info }
 /// The [trailing] slot is for caller-supplied actions — a dismiss `AppButton`,
 /// a "Retry" button, an external link, etc. Keep it small; the banner is
 /// inline, not a full alert.
+// Implements: DIARY-DEV-test-instrumentation/B
 class AppBanner extends StatelessWidget {
   final AppBannerSeverity severity;
   final String? title;
   final String message;
   final Widget? trailing;
+
+  /// Test-harness locator. When set, wraps the banner in a
+  /// `Semantics(identifier: ..., value: message, liveRegion: true, container: true)`
+  /// node so Playwright's `readSemanticValue` can read the banner's message
+  /// directly (critical for error-state assertions).
+  final String? semanticId;
 
   const AppBanner({
     super.key,
@@ -28,6 +35,7 @@ class AppBanner extends StatelessWidget {
     required this.message,
     this.title,
     this.trailing,
+    this.semanticId,
   });
 
   @override
@@ -36,7 +44,7 @@ class AppBanner extends StatelessWidget {
     final semantic = theme.extension<AppSemanticColors>()!;
     final (foreground, background, icon) = _resolveSeverity(theme, semantic);
 
-    return Container(
+    final container = Container(
       padding: EdgeInsets.all(SpacingTokens.md),
       decoration: BoxDecoration(
         color: background,
@@ -71,6 +79,17 @@ class AppBanner extends StatelessWidget {
           ],
         ],
       ),
+    );
+
+    if (semanticId == null) return container;
+
+    return Semantics(
+      identifier: semanticId,
+      value: message,
+      liveRegion: true,
+      container: true,
+      explicitChildNodes: true,
+      child: container,
     );
   }
 

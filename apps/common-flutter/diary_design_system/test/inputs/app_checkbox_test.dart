@@ -1,3 +1,5 @@
+import 'dart:ui' show CheckedState;
+
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,6 +51,23 @@ void main() {
       );
       await tester.tap(find.text('Locked'));
       expect(observed, isNull);
+    });
+
+    testWidgets('semanticId emits Semantics identifier + checked state', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          const AppCheckbox(
+            value: true,
+            label: 'Send updates',
+            semanticId: 'prefs.send-updates',
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppCheckbox));
+      expect(node.identifier, equals('prefs.send-updates'));
+      expect(node.flagsCollection.isChecked, equals(CheckedState.isTrue));
     });
   });
 }

@@ -82,5 +82,24 @@ void main() {
     // constrained by kMinInteractiveDimension; a custom popup would be needed
     // to display both label and description per Figma. Tracked as an
     // iteration item; the AppDropdownItem.description field is preserved.
+
+    testWidgets('semanticId emits identifier + selected label as value', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _harness(
+          const AppDropdown<String>(
+            value: 'b',
+            items: _items,
+            hintText: 'Pick',
+            semanticId: 'site.selector',
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AppDropdown<String>));
+      expect(node.identifier, equals('site.selector'));
+      expect(node.flagsCollection.isButton, isTrue);
+      expect(node.value, equals('Banana'));
+    });
   });
 }

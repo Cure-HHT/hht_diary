@@ -34,6 +34,7 @@ enum AppButtonSize { small, medium, large }
 ///
 /// **Touch target** is at least 48dp on every size; the visual height of
 /// [AppButtonSize.small] is 32dp but the hit area is padded out to 48dp.
+// Implements: DIARY-DEV-test-instrumentation/A
 class AppButton extends StatelessWidget {
   final AppButtonVariant variant;
   final AppButtonSize size;
@@ -55,6 +56,16 @@ class AppButton extends StatelessWidget {
   /// When true, the button expands to fill its parent's width.
   final bool fullWidth;
 
+  /// Test-harness locator. When set, wraps the button in a
+  /// `Semantics(identifier: ..., button: true, container: true, explicitChildNodes: true)`
+  /// node so Playwright (or any harness) can target this button by
+  /// `flt-semantics-identifier`.
+  final String? semanticId;
+
+  /// Optional screen-reader label override. Useful for icon-only buttons
+  /// where [label] is null and the inner widgets have no readable text.
+  final String? semanticLabel;
+
   const AppButton({
     super.key,
     this.variant = AppButtonVariant.primary,
@@ -65,6 +76,8 @@ class AppButton extends StatelessWidget {
     this.onPressed,
     this.loading = false,
     this.fullWidth = false,
+    this.semanticId,
+    this.semanticLabel,
   });
 
   bool get _isIconOnly =>
@@ -96,7 +109,20 @@ class AppButton extends StatelessWidget {
       ),
     };
 
-    return fullWidth ? SizedBox(width: double.infinity, child: button) : button;
+    final sized = fullWidth
+        ? SizedBox(width: double.infinity, child: button)
+        : button;
+
+    if (semanticId == null && semanticLabel == null) return sized;
+
+    return Semantics(
+      identifier: semanticId,
+      label: semanticLabel,
+      button: true,
+      container: true,
+      explicitChildNodes: true,
+      child: sized,
+    );
   }
 
   ButtonStyle _styleFor(BuildContext context) {

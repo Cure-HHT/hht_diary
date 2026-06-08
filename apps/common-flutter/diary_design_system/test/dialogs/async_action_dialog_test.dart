@@ -98,6 +98,33 @@ void main() {
       expect(find.textContaining('boom'), findsOneWidget);
     });
 
+    testWidgets('semanticId emits a Semantics identifier on the active phase', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAppTheme(font: AppFontFamily.inter),
+          home: Scaffold(
+            body: AsyncActionDialog<String>(
+              semanticId: 'disconnect.async',
+              onSubmit: () async => 'ok',
+              confirmBuilder: (ctx, submit) => AppDialog(
+                title: 'Confirm',
+                body: const Text('Ready?'),
+                actions: [AppButton(label: 'Submit', onPressed: submit)],
+              ),
+              successBuilder: (ctx, result) =>
+                  AppDialog(title: 'Success', body: Text(result)),
+              errorBuilder: (ctx, error, retry) =>
+                  AppDialog(title: 'Error', body: Text(error.toString())),
+            ),
+          ),
+        ),
+      );
+      final node = tester.getSemantics(find.byType(AsyncActionDialog<String>));
+      expect(node.identifier, equals('disconnect.async'));
+    });
+
     testWidgets('retry callback re-runs onSubmit', (tester) async {
       var attempts = 0;
       await tester.pumpWidget(

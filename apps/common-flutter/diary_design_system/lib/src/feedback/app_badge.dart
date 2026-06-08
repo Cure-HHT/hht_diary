@@ -32,16 +32,23 @@ enum AppBadgeTone { neutral, primary, danger, warning, success }
 /// AppBadge(label: 'Site Study Coordinator', tone: AppBadgeTone.primary)
 /// AppBadge(label: 'CRA', tone: AppBadgeTone.neutral)
 /// ```
+// Implements: DIARY-DEV-test-instrumentation/B
 class AppBadge extends StatelessWidget {
   final String label;
   final AppBadgeVariant variant;
   final AppBadgeTone tone;
+
+  /// Test-harness locator. When set, wraps the badge in a
+  /// `Semantics(identifier: ..., value: label, container: true, explicitChildNodes: true)`
+  /// node so Playwright can `readSemanticValue` the badge text.
+  final String? semanticId;
 
   const AppBadge({
     super.key,
     required this.label,
     this.variant = AppBadgeVariant.outlined,
     this.tone = AppBadgeTone.neutral,
+    this.semanticId,
   });
 
   @override
@@ -62,7 +69,7 @@ class AppBadge extends StatelessWidget {
       AppBadgeVariant.filled => (theme.colorScheme.surface, accent, accent),
     };
 
-    return Container(
+    final chip = Container(
       padding: EdgeInsets.symmetric(horizontal: SpacingTokens.sm, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
@@ -79,6 +86,16 @@ class AppBadge extends StatelessWidget {
           color: fg,
         ),
       ),
+    );
+
+    if (semanticId == null) return chip;
+
+    return Semantics(
+      identifier: semanticId,
+      value: label,
+      container: true,
+      explicitChildNodes: true,
+      child: chip,
     );
   }
 }
