@@ -174,6 +174,40 @@ void main() {
       expect(find.text('Enter verification code'), findsOneWidget);
     });
 
+    testWidgets('returning from OTP leaves the login form re-submittable', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          LoginScreen(
+            serverUrl: url,
+            authClient: _FakeAuth(),
+            onSession: (_) {},
+            httpClient: _json(200, {'maskedEmail': 'a***@b.org'}),
+          ),
+        ),
+      );
+      await tester.enterText(find.byType(TextFormField).at(0), 'a@b.org');
+      await tester.enterText(find.byType(TextFormField).at(1), 'pw');
+      await tester.pump();
+      await tester.tap(find.text('Sign In'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Enter verification code'), findsOneWidget);
+      // Back to Login: the form must not be stuck in the loading/disabled state.
+      await tester.tap(find.text('Back to Login'));
+      await tester.pumpAndSettle();
+      expect(find.text('Clinical Trial Portal'), findsOneWidget);
+      expect(_primaryEnabled(tester, 'Sign In'), isTrue);
+      expect(
+        find.descendant(
+          of: find.byType(FilledButton),
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsNothing,
+      );
+    });
+
     testWidgets('failed sign-in renders an error banner', (tester) async {
       await tester.pumpWidget(
         _host(
@@ -275,6 +309,26 @@ void main() {
       await tester.pumpAndSettle();
       expect(paths, contains('/login'));
       expect(find.textContaining('new code has been sent'), findsOneWidget);
+    });
+
+    testWidgets('Resend on a non-200 shows an error, not a success notice', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          OtpScreen(
+            serverUrl: url,
+            idToken: 'idtok',
+            maskedEmail: 'a***@b.org',
+            onSession: (_) {},
+            httpClient: _json(401, null),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Resend code'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('new code has been sent'), findsNothing);
+      expect(find.textContaining("Couldn't resend"), findsOneWidget);
     });
   });
 
