@@ -290,7 +290,7 @@ class _UserRow {
 
   static _UserRow fromRow(Map<String, Object?> row) => _UserRow(
     email: (row['aggregateId'] as String?) ?? (row['email'] as String?) ?? '?',
-    name: (row['name'] as String?) ?? (row['after'] as String?) ?? '—',
+    name: (row['name'] as String?) ?? '—',
     status: statusFromRow(row),
   );
 }

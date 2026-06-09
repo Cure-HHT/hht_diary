@@ -106,8 +106,10 @@ class EditUserAccountAction
           aggregateId: input.userId,
           entryType: 'user_profile_changed',
           eventType: 'user_profile_changed',
+          // Canonical key 'name' (matches user_created) so the
+          // users_index key-wise merge updates the row's display name.
           data: <String, Object?>{
-            'after': input.name,
+            'name': input.name,
             'changed_by': ctx.principal.id,
           },
         ),
