@@ -44,7 +44,7 @@ void main() {
 
       expect(find.text('Clinical Trial Portal'), findsOneWidget);
       expect(find.text('Administrator Dashboard'), findsOneWidget);
-      expect(find.text('Admin'), findsOneWidget);
+      expect(find.text('Administrator'), findsOneWidget);
       expect(find.text('Dr. Emily Parker'), findsOneWidget);
       expect(find.text('Logout'), findsOneWidget);
     });

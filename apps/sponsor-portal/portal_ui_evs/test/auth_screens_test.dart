@@ -456,7 +456,7 @@ void main() {
         ),
       );
       expect(find.text('Welcome, Dr. Emily Parker'), findsOneWidget);
-      expect(find.text('Admin'), findsOneWidget);
+      expect(find.text('Administrator'), findsOneWidget);
       expect(find.text('CRA'), findsOneWidget);
       expect(find.text('Study Coordinator'), findsOneWidget);
       // Participant terminology (not "Patient").

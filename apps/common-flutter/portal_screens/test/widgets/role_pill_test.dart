@@ -75,7 +75,7 @@ void main() {
       await tester.pumpWidget(
         _harness(RolePill(systemRole: 'Administrator', onTap: () => taps++)),
       );
-      await tester.tap(find.text('Admin'));
+      await tester.tap(find.text('Administrator'));
       expect(taps, 1);
     });
 

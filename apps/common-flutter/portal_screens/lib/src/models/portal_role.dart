@@ -25,7 +25,7 @@ enum PortalRole {
   /// Full administrative access. Wildcard scope.
   administrator(
     systemName: 'Administrator',
-    canonicalDisplayName: 'Admin',
+    canonicalDisplayName: 'Administrator',
     tone: AppBadgeTone.danger,
   ),
 
