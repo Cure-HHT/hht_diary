@@ -55,6 +55,38 @@ void main() {
       expect(items, const [UserRowAction.viewDetails]);
     });
 
+    test('operator-tier target offers View Details only unless the viewer '
+        'can manage the operator tier', () {
+      const sysop = PortalUserView(
+        email: 'sysop@x.io',
+        name: 'Sys Op',
+        status: UserStatusView.active,
+        assignments: [
+          RoleAssignmentView(
+            role: 'SystemOperator',
+            boundSites: [],
+            isWildcard: true,
+          ),
+        ],
+      );
+      // Admin viewer (all capability flags, but no operator-tier
+      // management): the server would deny every action -> hide them.
+      expect(_config().itemsFor(sysop), const [UserRowAction.viewDetails]);
+
+      // SystemOperator viewer: full status-legal menu.
+      final operatorViewer = UserRowActionsConfig(
+        onAction: (_, _) {},
+        canEdit: true,
+        canDeactivate: true,
+        canManageOperatorTier: true,
+      );
+      expect(operatorViewer.itemsFor(sysop), const [
+        UserRowAction.viewDetails,
+        UserRowAction.edit,
+        UserRowAction.deactivate,
+      ]);
+    });
+
     test('own row never offers Edit or Deactivate '
         '(DIARY-GUI-user-information-modal/K)', () {
       final config = UserRowActionsConfig(

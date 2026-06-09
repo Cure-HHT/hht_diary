@@ -597,6 +597,10 @@ class _HomeShellState extends State<_HomeShell> {
         UserPrincipal(:final userId) => userId,
         final p => p.id,
       },
+      activeRole: switch (widget.principal) {
+        UserPrincipal(:final activeRole) => activeRole,
+        _ => null,
+      },
     ),
     'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/portal_role.dart';
 import '../models/portal_user_view.dart';
 import '../models/user_status_view.dart';
 
@@ -30,6 +31,7 @@ class UserRowActionsConfig {
     this.canReactivate = false,
     this.canResendInvite = false,
     this.canUnlock = false,
+    this.canManageOperatorTier = false,
     this.currentUserEmail,
     this.inviteSentEmails = const <String>{},
   });
@@ -51,6 +53,13 @@ class UserRowActionsConfig {
   final bool canResendInvite;
   final bool canUnlock;
 
+  /// True when the active role may manage operator-tier accounts (i.e.
+  /// the viewer is a System Operator). When false, rows whose user holds
+  /// the SystemOperator role offer View Details only — the server denies
+  /// every user-scoped action against them (user-contained-in-tier,
+  /// fail-closed), so showing the actions would just surface denials.
+  final bool canManageOperatorTier;
+
   /// Emails whose activation invite was re-sent in this session. Their
   /// "Resend Invite" item renders as a disabled "Invite Sent" entry
   /// (Figma: User Managment / Actions / Invite Sent).
@@ -65,6 +74,14 @@ class UserRowActionsConfig {
   // Implements: DIARY-GUI-user-information-modal/K
   List<UserRowAction> itemsFor(PortalUserView user) {
     final isSelf = user.email == currentUserEmail;
+    // Operator-tier targets are untouchable for non-operator viewers —
+    // hide (not dim) the actions the server would deny.
+    final operatorTarget = user.distinctRoles.contains(
+      PortalRole.systemOperator.systemName,
+    );
+    if (operatorTarget && !canManageOperatorTier) {
+      return const <UserRowAction>[UserRowAction.viewDetails];
+    }
     return <UserRowAction>[
       UserRowAction.viewDetails,
       if (canEdit && !isSelf && _isEditable(user.status)) UserRowAction.edit,

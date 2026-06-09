@@ -25,12 +25,20 @@ import 'user_account_logic.dart';
 /// projections under CUR-1474), so in practice it opens whenever the outer
 /// gate does; the empty-assignments fallback remains as a defensive default.
 class UsersScreenBinding extends StatefulWidget {
-  const UsersScreenBinding({super.key, this.currentUserId});
+  const UsersScreenBinding({super.key, this.currentUserId, this.activeRole});
 
   /// The authenticated principal's userId (the account email). Forwarded
   /// to the row-actions config so Edit / Deactivate are suppressed on
   /// the admin's own row (DIARY-GUI-user-information-modal/K).
   final String? currentUserId;
+
+  /// The principal's active role. Operator-tier targets (rows holding
+  /// SystemOperator) only offer management actions when this is
+  /// SystemOperator — mirrors the server's user-contained-in-tier gate,
+  /// which the active role's tier coverage derives from. Permission
+  /// NAMES can't drive this: Administrator also holds e.g.
+  /// portal.user.grant_role, just with staff-tier-only coverage.
+  final String? activeRole;
 
   /// Permission a role must hold to see the users tab + table at all.
   static const String viewUsersPermission = 'portal.user.view_accounts';
@@ -124,6 +132,13 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
           ),
         ),
     ];
+    // Only an active SystemOperator role can touch operator-tier targets
+    // or grant the SystemOperator role. Permission names can't decide
+    // this (Administrator holds the same names with staff-tier-only
+    // coverage), so it keys off the active role like the server's tier
+    // derivation does.
+    final isOperator =
+        widget.activeRole == PortalRole.systemOperator.systemName;
     return _PermissionsGate(
       builder: (context, permissions) {
         final canCreate = permissions.contains(
@@ -138,6 +153,7 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
             'portal.user.resend_activation',
           ),
           canUnlock: permissions.contains('portal.user.unlock'),
+          canManageOperatorTier: isOperator,
           currentUserEmail: widget.currentUserId,
           inviteSentEmails: _inviteSent,
           onAction: (user, action) {
@@ -147,9 +163,7 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
                 user: user,
                 action: action,
                 config: config,
-                canGrantOperator: permissions.contains(
-                  'portal.user.grant_role',
-                ),
+                canGrantOperator: isOperator,
               ),
             );
           },
@@ -161,9 +175,7 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
           onCreate: canCreate
               ? () => _openCreateUserDialog(
                   context,
-                  offerSystemOperator: permissions.contains(
-                    'portal.user.grant_role',
-                  ),
+                  offerSystemOperator: isOperator,
                 )
               : () {},
           rowActions: config,
