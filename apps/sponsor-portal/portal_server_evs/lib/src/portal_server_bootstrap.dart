@@ -438,9 +438,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
 
   // 7f. User tier reactor — keeps user_tier_index correct by emitting
   //     user_tier_changed whenever a user's SystemOperator assignment changes.
+  //     The boot-time reconcile sweeps users whose events landed before the
+  //     reactor was listening (the step-4 seeds), so seeded accounts get
+  //     their tier row instead of failing closed on every user-scoped action.
   // Implements: DIARY-DEV-operator-tier-authz/A
   final userTierReactor =
       UserTierReactor(eventStore: eventStore, backend: backend)..start();
+  await userTierReactor.reconcileAll();
 
   // 7f-bis. Questionnaire submission reactor — on a diary `<id>_survey`
   //     `finalized` event (whose aggregateId == the questionnaire instance id),
