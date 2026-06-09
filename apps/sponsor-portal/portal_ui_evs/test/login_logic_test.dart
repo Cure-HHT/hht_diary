@@ -19,6 +19,14 @@ void main() {
     expect(isValidOtp('12345a'), isFalse);
   });
 
+  // Verifies: DIARY-GUI-password-forgot-workflow/P
+  test('meetsPasswordPolicy enforces the minimum length', () {
+    expect(minPasswordLength, 8);
+    expect(meetsPasswordPolicy('1234567'), isFalse);
+    expect(meetsPasswordPolicy('12345678'), isTrue);
+    expect(meetsPasswordPolicy(''), isFalse);
+  });
+
   // Verifies: DIARY-DEV-portal-second-factor-toggle/C
   test('loginNextStep: a session token routes straight to the session', () {
     expect(

@@ -367,7 +367,18 @@ Future<PortalServerBoot> bootstrapPortalServer({
     'authDomain': Platform.environment['PORTAL_IDENTITY_AUTH_DOMAIN'] ?? '',
     'messagingSenderId':
         Platform.environment['PORTAL_IDENTITY_SENDER_ID'] ?? '',
-    'emulatorHost': Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ?? '',
+    // Emulator host ADVERTISED TO THE BROWSER (the SPA calls
+    // FirebaseAuth.useAuthEmulator with this). It must be reachable from the
+    // browser's origin, which is NOT the same as the server's reach: in the
+    // local-stack the server talks to the emulator over the docker network
+    // (FIREBASE_AUTH_EMULATOR_HOST=firebase-emulator:9099), but the host
+    // browser can only resolve the published port (localhost:9099). So prefer
+    // PORTAL_IDENTITY_EMULATOR_HOST when set (the browser-facing value),
+    // falling back to FIREBASE_AUTH_EMULATOR_HOST for deployments where the two
+    // coincide.
+    'emulatorHost': Platform.environment['PORTAL_IDENTITY_EMULATOR_HOST'] ??
+        Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ??
+        '',
     // The client resolves its login-UI mode (Firebase Login/OTP vs dev
     // ConnectScreen) at runtime from this field, so a single web image works
     // against both dev and session-auth deployments.
