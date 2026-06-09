@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portal_screens/portal_screens.dart';
 import 'package:portal_ui_evs/src/user_account_logic.dart';
 
 void main() {
@@ -138,6 +139,103 @@ void main() {
         assignRoleAction, // ACT-USR-007  (Administrator, site)
         assignRoleAction, // ACT-USR-007  (Administrator, tier:staff)
       ]);
+    });
+  });
+
+  group('currentTuplesFor', () {
+    test('site-scoped assignments expand one tuple per bound site; '
+        'wildcards contribute a single role-only tuple', () {
+      const user = PortalUserView(
+        email: 'eparker@clinicaltrial.com',
+        name: 'Dr. Emily Parker',
+        status: UserStatusView.active,
+        assignments: [
+          RoleAssignmentView(
+            role: 'StudyCoordinator',
+            boundSites: ['s1', 's2'],
+            isWildcard: false,
+          ),
+          RoleAssignmentView(
+            role: 'Administrator',
+            boundSites: [],
+            isWildcard: true,
+          ),
+        ],
+      );
+      final tuples = currentTuplesFor(user);
+      expect(tuples.map((t) => (t.role, t.site)).toList(), [
+        ('StudyCoordinator', 's1'),
+        ('StudyCoordinator', 's2'),
+        ('Administrator', ''),
+      ]);
+
+      // Round-trip: feeding the tuples back as the unchanged desired
+      // state must produce an empty plan (no spurious revokes/assigns).
+      final plan = planAssignmentChanges(
+        desired: const [
+          DesiredAssignment(role: 'StudyCoordinator', sites: ['s1', 's2']),
+          DesiredAssignment(role: 'Administrator', sites: []),
+        ],
+        current: tuples,
+      );
+      expect(plan.assignRoles, isEmpty);
+      expect(plan.assignSites, isEmpty);
+      expect(plan.revokeRoles, isEmpty);
+      expect(plan.revokeSites, isEmpty);
+    });
+  });
+
+  group('editUserSubmissions', () {
+    const emptyPlan = AssignmentPlan(
+      assignRoles: [],
+      assignSites: [],
+      revokeRoles: [],
+      revokeSites: [],
+    );
+
+    test('no profile change + empty plan -> no submissions', () {
+      final subs = editUserSubmissions(
+        userId: 'u@x.io',
+        newName: null,
+        newEmail: null,
+        plan: emptyPlan,
+      );
+      expect(subs, isEmpty);
+    });
+
+    test('profile edit precedes the assignment realization and only '
+        'carries the changed fields', () {
+      const plan = AssignmentPlan(
+        assignRoles: [],
+        assignSites: [('CRA', 'site-2')],
+        revokeRoles: [],
+        revokeSites: [],
+      );
+      final subs = editUserSubmissions(
+        userId: 'u@x.io',
+        newName: 'New Name',
+        newEmail: null,
+        plan: plan,
+      );
+      expect(subs.map((s) => s.actionName).toList(), [
+        editUserAction, // ACT-USR-002 first
+        assignSiteAction,
+      ]);
+      expect(subs.first.rawInput, {'userId': 'u@x.io', 'name': 'New Name'});
+    });
+
+    test('email change emits newEmail', () {
+      final subs = editUserSubmissions(
+        userId: 'u@x.io',
+        newName: null,
+        newEmail: 'new@x.io',
+        plan: emptyPlan,
+      );
+      expect(subs.single.actionName, editUserAction);
+      expect(subs.single.rawInput, {
+        'userId': 'u@x.io',
+        'newEmail': 'new@x.io',
+      });
     });
   });
 }

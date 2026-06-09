@@ -58,12 +58,19 @@ class AppCheckbox extends StatelessWidget {
                 children: [
                   box,
                   SizedBox(width: SpacingTokens.sm),
-                  Text(
-                    label!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: enabled
-                          ? theme.colorScheme.onSurface
-                          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  // Flexible so long labels (e.g. "002 - Stanford Medical
+                  // Center" in a boxed site checklist) wrap instead of
+                  // overflowing the row.
+                  Flexible(
+                    child: Text(
+                      label!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: enabled
+                            ? theme.colorScheme.onSurface
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.4,
+                              ),
+                      ),
                     ),
                   ),
                 ],

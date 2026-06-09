@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/portal_user_view.dart';
 import '../models/user_status_view.dart';
 import '../widgets/role_pill.dart';
+import 'user_row_actions.dart';
 
 /// User Management screen — the admin's flat-table view of every portal
 /// user, with search + status filter + pagination.
@@ -14,10 +15,9 @@ import '../widgets/role_pill.dart';
 /// joins it with `user_role_scopes`, maps each row into a
 /// [PortalUserView], and hands the whole list here on every emission.
 ///
-/// **Per Q5 in the plan, the row kebab menu is deferred to Phase 7.**
-/// This phase ships the table, search, status tabs, and pagination.
-/// The right-most column on each row is a placeholder ellipsis the
-/// kebab will mount into.
+/// The row kebab menu (Phase 7) renders when [rowActions] is provided;
+/// without it the right-most column keeps the passive ellipsis
+/// placeholder so previews/tests without wiring still lay out correctly.
 class UsersScreen extends StatefulWidget {
   const UsersScreen({
     super.key,
@@ -25,6 +25,7 @@ class UsersScreen extends StatefulWidget {
     required this.isLoading,
     required this.canCreate,
     required this.onCreate,
+    this.rowActions,
     this.pageSize = 8,
   });
 
@@ -46,6 +47,10 @@ class UsersScreen extends StatefulWidget {
   /// the existing create-user dialog and dispatches the action via
   /// `ActionClient`.
   final VoidCallback onCreate;
+
+  /// Row kebab wiring — capability flags + the action callback. Null
+  /// renders the disabled placeholder ellipsis instead of a menu.
+  final UserRowActionsConfig? rowActions;
 
   /// Rows per page. Defaults match the Figma's "Viewing 1-8 of N".
   final int pageSize;
@@ -262,7 +267,17 @@ class _UsersScreenState extends State<UsersScreen> {
       AppTableColumn<PortalUserView>(
         key: 'status',
         label: 'Status',
-        cellBuilder: (_, u) => StatusBadge(kind: _statusBadgeKindFor(u.status)),
+        cellBuilder: (_, u) {
+          // Session-local invite acknowledgment (Figma: the freshly
+          // re-invited row reads "Pending / Invite Sent").
+          final inviteSent =
+              u.status == UserStatusView.pending &&
+              (widget.rowActions?.inviteSentFor(u) ?? false);
+          return StatusBadge(
+            kind: _statusBadgeKindFor(u.status),
+            label: inviteSent ? 'Pending / Invite Sent' : null,
+          );
+        },
       ),
       AppTableColumn<PortalUserView>(
         key: 'actions',
@@ -278,20 +293,26 @@ class _UsersScreenState extends State<UsersScreen> {
         // Bumping this value shifts the kebab further left. 128 ≈ flush
         // under the chevron glyph in the pagination strip; tune here.
         width: 128,
-        cellBuilder: (ctx, _) => IconButton(
-          icon: const Icon(Icons.more_horiz, size: 18),
-          tooltip: 'Row actions (coming soon)',
-          onPressed: null,
-          iconSize: 18,
-          visualDensity: VisualDensity.compact,
-          style: IconButton.styleFrom(
-            foregroundColor: Theme.of(
-              ctx,
-            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-            minimumSize: const Size(32, 32),
-            padding: EdgeInsets.zero,
-          ),
-        ),
+        cellBuilder: (ctx, u) {
+          final config = widget.rowActions;
+          if (config == null) {
+            return IconButton(
+              icon: const Icon(Icons.more_horiz, size: 18),
+              tooltip: 'Row actions (coming soon)',
+              onPressed: null,
+              iconSize: 18,
+              visualDensity: VisualDensity.compact,
+              style: IconButton.styleFrom(
+                foregroundColor: Theme.of(
+                  ctx,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                minimumSize: const Size(32, 32),
+                padding: EdgeInsets.zero,
+              ),
+            );
+          }
+          return UserRowMenu(user: u, config: config);
+        },
       ),
     ];
   }

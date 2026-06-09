@@ -6,6 +6,7 @@ import 'package:portal_screens/portal_screens.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
 import 'create_user_dialog.dart';
+import 'user_account_flows.dart';
 import 'user_account_logic.dart';
 
 /// Thin reactive wrapper that feeds [UsersScreen] a snapshot of users
@@ -14,9 +15,8 @@ import 'user_account_logic.dart';
 /// Sits between `portal_ui_evs`'s `ViewBuilder` plumbing and the pure
 /// presentation layer in `portal_screens`: subscribes to the two
 /// projections, maps the raw rows into the snapshot value types that
-/// `UsersScreen` consumes, and emits the action callbacks back out
-/// (no-ops for now — Phase 7 wires the kebab actions, Phase 7.5 wires
-/// the Create User dialog).
+/// `UsersScreen` consumes, and routes the Create-User CTA + row kebab
+/// actions to their dialog flows (`user_account_flows.dart`).
 ///
 /// Self-gates on `portal.user.view_accounts` (ACT-SEE-003) so a role that
 /// can't read the directory never opens a subscription. The inner
@@ -24,7 +24,7 @@ import 'user_account_logic.dart';
 /// Action governs both the `users_index` and `user_role_scopes`
 /// projections under CUR-1474), so in practice it opens whenever the outer
 /// gate does; the empty-assignments fallback remains as a defensive default.
-class UsersScreenBinding extends StatelessWidget {
+class UsersScreenBinding extends StatefulWidget {
   const UsersScreenBinding({super.key});
 
   /// Permission a role must hold to see the users tab + table at all.
@@ -36,9 +36,23 @@ class UsersScreenBinding extends StatelessWidget {
   /// inner gate is kept separate so the structure survives a future split.
   static const String viewAssignmentsPermission = 'portal.user.view_accounts';
 
+  /// Permission a role must hold to see the "Create User" CTA on the
+  /// directory header.
+  static const String createUserPermission = 'portal.user.create';
+
+  @override
+  State<UsersScreenBinding> createState() => _UsersScreenBindingState();
+}
+
+class _UsersScreenBindingState extends State<UsersScreenBinding> {
+  /// Emails whose activation invite was re-sent in this session. UI-only
+  /// acknowledgment (Figma "Invite Sent"); the projection has no
+  /// resend-recency column, and the badge resets on reload by design.
+  final Set<String> _inviteSent = <String>{};
+
   @override
   Widget build(BuildContext context) => PermissionGate(
-    permission: viewUsersPermission,
+    permission: UsersScreenBinding.viewUsersPermission,
     fallback: const Center(
       child: Text("You don't have permission to view users."),
     ),
@@ -58,7 +72,7 @@ class UsersScreenBinding extends StatelessWidget {
         // so a role with view:users_index but without view:user_role_scopes
         // still gets a usable table — empty assignments, but rows visible.
         return PermissionGate(
-          permission: viewAssignmentsPermission,
+          permission: UsersScreenBinding.viewAssignmentsPermission,
           fallback: _renderUsersScreen(
             users: users,
             assignmentsByUser: const <String, List<_Assignment>>{},
@@ -89,12 +103,6 @@ class UsersScreenBinding extends StatelessWidget {
     ),
   );
 
-  /// Permission a role must hold to see the "Create User" CTA on the
-  /// directory header. The button stays hidden when the active role is
-  /// missing this permission — gated reactively by [_CreateCtaGate] so
-  /// it re-evaluates on a role switch without rebuilding the table.
-  static const String createUserPermission = 'portal.user.create';
-
   Widget _renderUsersScreen({
     required List<_UserRow> users,
     required Map<String, List<_Assignment>> assignmentsByUser,
@@ -111,39 +119,123 @@ class UsersScreenBinding extends StatelessWidget {
           ),
         ),
     ];
-    return _CreateCtaGate(
-      builder: (context, canCreate) => UsersScreen(
-        users: views,
-        isLoading: isLoading,
-        canCreate: canCreate,
-        onCreate: canCreate ? () => _openCreateUserDialog(context) : () {},
-      ),
+    return _PermissionsGate(
+      builder: (context, permissions) {
+        final canCreate = permissions.contains(
+          UsersScreenBinding.createUserPermission,
+        );
+        late final UserRowActionsConfig config;
+        config = UserRowActionsConfig(
+          canEdit: permissions.contains('portal.user.edit'),
+          canDeactivate: permissions.contains('portal.user.deactivate'),
+          canReactivate: permissions.contains('portal.user.reactivate'),
+          canResendInvite: permissions.contains(
+            'portal.user.resend_activation',
+          ),
+          canUnlock: permissions.contains('portal.user.unlock'),
+          inviteSentEmails: _inviteSent,
+          onAction: (user, action) {
+            unawaited(
+              _handleRowAction(
+                context,
+                user: user,
+                action: action,
+                config: config,
+                canGrantOperator: permissions.contains(
+                  'portal.user.grant_role',
+                ),
+              ),
+            );
+          },
+        );
+        return UsersScreen(
+          users: views,
+          isLoading: isLoading,
+          canCreate: canCreate,
+          onCreate: canCreate
+              ? () => _openCreateUserDialog(
+                  context,
+                  offerSystemOperator: permissions.contains(
+                    'portal.user.grant_role',
+                  ),
+                )
+              : () {},
+          rowActions: config,
+        );
+      },
     );
   }
 
-  void _openCreateUserDialog(BuildContext context) {
+  Future<void> _handleRowAction(
+    BuildContext context, {
+    required PortalUserView user,
+    required UserRowAction action,
+    required UserRowActionsConfig config,
+    required bool canGrantOperator,
+  }) async {
+    switch (action) {
+      case UserRowAction.viewDetails:
+        final next = await showUserDetailsFlow(
+          context,
+          user: user,
+          config: config,
+        );
+        if (next != null && context.mounted) {
+          await _handleRowAction(
+            context,
+            user: user,
+            action: next,
+            config: config,
+            canGrantOperator: canGrantOperator,
+          );
+        }
+      case UserRowAction.edit:
+        await showEditUserFlow(
+          context,
+          user: user,
+          offerSystemOperator: canGrantOperator,
+        );
+      case UserRowAction.resendInvite:
+        final sent = await resendInviteFlow(context, user: user);
+        if (sent && mounted) {
+          setState(() => _inviteSent.add(user.email));
+        }
+      case UserRowAction.deactivate:
+        await showDeactivateUserFlow(context, user: user);
+      case UserRowAction.reactivate:
+        await showReactivateUserFlow(context, user: user);
+      case UserRowAction.unlock:
+        await showUnlockUserFlow(context, user: user);
+    }
+  }
+
+  void _openCreateUserDialog(
+    BuildContext context, {
+    required bool offerSystemOperator,
+  }) {
     showDialog<void>(
       context: context,
-      builder: (_) => const CreateUserDialog(),
+      builder: (_) =>
+          CreateUserDialog(offerSystemOperator: offerSystemOperator),
     );
   }
 }
 
-/// Subscribes to the active permission snapshot and rebuilds when the
-/// active role holds [UsersScreenBinding.createUserPermission] flips.
-/// Mirrors [PermissionGate]'s subscription but exposes the held-status
-/// as a bool to a [builder] so the parent renders a single [UsersScreen]
-/// with the right `canCreate` prop instead of two divergent branches.
-class _CreateCtaGate extends StatefulWidget {
-  const _CreateCtaGate({required this.builder});
+/// Subscribes to the active permission snapshot and rebuilds when it
+/// changes (e.g. on a role switch). Mirrors [PermissionGate]'s
+/// subscription but exposes the full set of held permission names so
+/// the parent can derive every capability flag from one subscription
+/// instead of stacking six gates.
+class _PermissionsGate extends StatefulWidget {
+  const _PermissionsGate({required this.builder});
 
-  final Widget Function(BuildContext context, bool canCreate) builder;
+  final Widget Function(BuildContext context, Set<String> permissions) builder;
 
   @override
-  State<_CreateCtaGate> createState() => _CreateCtaGateState();
+  State<_PermissionsGate> createState() => _PermissionsGateState();
 }
 
-class _CreateCtaGateState extends State<_CreateCtaGate> {
+class _PermissionsGateState extends State<_PermissionsGate> {
   StreamSubscription<EffectiveAuthorization?>? _sub;
   EffectiveAuthorization? _auth;
 
@@ -165,17 +257,14 @@ class _CreateCtaGateState extends State<_CreateCtaGate> {
     super.dispose();
   }
 
-  bool get _canCreate {
+  Set<String> get _permissions {
     final auth = _auth;
-    if (auth == null) return false;
-    for (final p in auth.rolePermissions) {
-      if (p.name == UsersScreenBinding.createUserPermission) return true;
-    }
-    return false;
+    if (auth == null) return const <String>{};
+    return {for (final p in auth.rolePermissions) p.name};
   }
 
   @override
-  Widget build(BuildContext context) => widget.builder(context, _canCreate);
+  Widget build(BuildContext context) => widget.builder(context, _permissions);
 }
 
 // -----------------------------------------------------------------------------

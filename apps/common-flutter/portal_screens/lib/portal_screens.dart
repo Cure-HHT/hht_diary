@@ -11,6 +11,7 @@ export 'src/models/audit_entry_view.dart';
 export 'src/models/portal_role.dart';
 export 'src/models/portal_user_view.dart';
 export 'src/models/role_assignment_view.dart';
+export 'src/models/site_option_view.dart';
 export 'src/models/user_status_view.dart';
 
 // Phase 3: portal-wide reusable widgets.
@@ -23,6 +24,11 @@ export 'src/widgets/portal_dashboard.dart';
 
 // Phase 5: admin screens.
 export 'src/admin/users_screen.dart';
+// Phase 7: row actions + user lifecycle dialogs.
+export 'src/admin/user_details_dialog.dart';
+export 'src/admin/user_form_dialog.dart';
+export 'src/admin/user_lifecycle_dialogs.dart';
+export 'src/admin/user_row_actions.dart';
 // Phase 6: audit logs screen.
 export 'src/admin/audit_logs_screen.dart';
 // Fixture data — used by the example preview app and the test suite.
