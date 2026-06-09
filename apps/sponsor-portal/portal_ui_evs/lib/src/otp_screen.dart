@@ -90,8 +90,9 @@ class _OtpScreenState extends State<OtpScreen> {
         body: jsonEncode({'idToken': widget.idToken}),
       );
       if (!mounted) return;
-      // Only claim success on a 2xx; a non-200 (e.g. expired idToken) means no
-      // new code was issued, so surface an error instead of a misleading notice.
+      // Claim success only on 200, matching the /login contract used
+      // throughout this flow; a non-200 (e.g. expired idToken) means no new
+      // code was issued, so surface an error instead of a misleading notice.
       setState(() {
         _resending = false;
         if (r.statusCode == 200) {
