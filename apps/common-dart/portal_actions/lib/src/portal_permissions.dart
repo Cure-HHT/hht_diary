@@ -96,6 +96,16 @@ final Map<String, Permission> portalPermissionsByActId = <String, Permission>{
   'ACT-SIT-001': const Permission('portal.site.view', scopeClass: 'site'),
   'ACT-AUD-001': const Permission('portal.audit.view'),
   'ACT-ADM-001': const Permission('portal.admin.view_settings'),
+  // View ("SEE") category — gate-check reads modeled as Actions so every
+  // grantable view-read permission references an inventory Action.
+  // Implements: DIARY-PRD-action-inventory/A
+  'ACT-SEE-001': const Permission(
+    'portal.questionnaire.view_status',
+    scopeClass: 'site',
+  ),
+  'ACT-SEE-002': const Permission('portal.rave.view_sync'),
+  'ACT-SEE-003': const Permission('portal.user.view_accounts'),
+  'ACT-SEE-004': const Permission('portal.diary.view_entries'),
   // Operations (DIARY-BASE-ops-action-inventory): unscoped, ops-only.
   'ACT-OPS-001': const Permission('portal.rave.unwedge'),
   'ACT-OPS-002': const Permission('portal.user.create_sysop'),

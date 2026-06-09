@@ -42,8 +42,10 @@ import 'session_store.dart';
 import 'session_token_validator.dart';
 import 'sponsor_branding_asset_handler.dart';
 import 'sponsor_branding_seed.dart';
+import 'sponsor_config_dir.dart';
 import 'sponsor_config_seed.dart';
 import 'user_tier_reactor.dart';
+import 'view_permission_namer.dart';
 import 'ws_keepalive_interval.dart';
 
 /// Composed server: the top-level shelf [router] (ready for shelf_io.serve),
@@ -105,9 +107,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //   -> seed runs.
   final alreadySeeded = await _portalSeedMarkerPresent(backend);
 
-  // 2. Authorization policy from the SP1/SP2 role-permission seed.
-  final bootstrap =
-      await buildPortalAuthorizationPolicy(eventStore: eventStore);
+  // 2. Authorization policy from the sponsor role-permissions.yaml.
+  final env = environment ?? Platform.environment;
+  final sponsorDir = resolveSponsorConfigDir(env);
+  final roleGrantsYaml = loadRolePermissionsYaml(sponsorDir);
+  final bootstrap = await buildPortalAuthorizationPolicy(
+    eventStore: eventStore,
+    roleGrantsYaml: roleGrantsYaml,
+  );
   final AuthorizationPolicy policy;
   switch (bootstrap) {
     case PolicyReady():
@@ -126,7 +133,6 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //     participant_site_index views at startup is GATED inside the
   //     `if (!alreadySeeded)` seed block below (see step 4b there).
   // Implements: DIARY-DEV-rave-edc-ingest/A
-  final env = environment ?? Platform.environment;
   final lockoutConfig = LockoutConfig.fromEnv(env);
   final RaveClient resolvedRaveClient;
   final List<String> studyOids;
@@ -153,18 +159,15 @@ Future<PortalServerBoot> bootstrapPortalServer({
   );
 
   // Implements: DIARY-DEV-portal-durable-event-store/C — one-time seed gate.
-  //   Steps 3 (view-permission grants), 4 (role assignments) and 4b (boot RAVE
-  //   sync) are all side-effecting appends; against a durable store they must
-  //   run exactly once. The `ingester` is DECLARED above this block (it is reused
-  //   later by the on-demand /admin/rave-sync handler); only its boot-time
+  //   Steps 4 (role assignments) and 4b (boot RAVE sync) are side-effecting
+  //   appends; against a durable store they must run exactly once. Read gating is
+  //   now modeled as Action permissions seeded from role-permissions.yaml (no
+  //   per-boot view-grant appends). The `ingester` is DECLARED above this block
+  //   (it is reused later by the on-demand /admin/rave-sync handler); only its
+  //   boot-time
   //   `syncAll` is gated here. The marker is appended LAST under aggregate id
   //   'singleton' so the targeted read in _portalSeedMarkerPresent finds it.
   if (!alreadySeeded) {
-    // 3. View-read permission grants are NOT seeded here — they are idempotent
-    //    and run on EVERY boot (after this seed-once gate) via `_grantViewPerms`,
-    //    so adding a grant propagates on redeploy without a DB reset (consistent
-    //    with the action-permission seed + role assignments). See step 3c below.
-
     // 4. Role assignments are NOT seeded here — they are config-driven and
     //    idempotent, so they run on EVERY boot (after this seed-once gate) via
     //    `_resolveRoleAssignmentSeed` + `bootstrapRoleAssignments`. See below.
@@ -220,75 +223,6 @@ Future<PortalServerBoot> bootstrapPortalServer({
       initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
     );
   }
-
-  // 3c. View-read permission grants — idempotent, applied on EVERY boot (NOT in
-  //     the seed-once gate above). Clients subscribe to the views that drive
-  //     their screens; ReactionHandlers' default ViewPermissionNamer is
-  //     `view:<viewName>`. These are view-read permissions, not action
-  //     permissions, so they are appended directly rather than via the validated
-  //     action-permission seed. `grantView` skips a grant the role already holds
-  //     (each grant is the sole event under aggregate id `<role>:view:<view>`),
-  //     so re-running every boot adds NEW grants on redeploy without re-appending
-  //     duplicates — matching the action-permission + role-assignment seeds.
-  Future<void> grantPermission(String role, String permissionName) async {
-    final aggregateId = '$role:$permissionName';
-    final existing =
-        await eventStore.backend.findEventsForAggregate(aggregateId);
-    if (existing.any((e) => e.eventType == 'permission_granted')) return;
-    await eventStore.append(
-      entryType: 'role_permission_grant',
-      aggregateType: 'role_permission_grant',
-      aggregateId: aggregateId,
-      eventType: 'permission_granted',
-      data: PermissionGrantedPayload(
-        role: role,
-        permissionName: permissionName,
-      ).toJson(),
-      initiator: const AutomationInitiator(service: 'portal-skeleton-seed'),
-    );
-  }
-
-  Future<void> grantView(String role, String view) =>
-      grantPermission(role, 'view:$view');
-
-  // The Administrator AND the SystemOperator hold the user-management
-  // permissions, so both can subscribe to the role-assignments view + the
-  // user-accounts index. The operator-tier is the role that provisions the
-  // first Administrators, so it must be able to read the user list to do so.
-  for (final role in const ['Administrator', 'SystemOperator']) {
-    await grantView(role, 'user_role_scopes');
-    await grantView(role, 'users_index');
-  }
-  // The SystemOperator also reads the site list (sites_index) so the user
-  // provisioning UI can offer the real RAVE-synced sites when assigning a
-  // site-scoped role — site reference data, NOT participant/clinical data
-  // (it deliberately does not get participant_record).
-  await grantView('SystemOperator', 'sites_index');
-  // The site list + participant records back the StudyCoordinator/CRA/Admin
-  // operational screens.
-  for (final role in const ['StudyCoordinator', 'CRA', 'Administrator']) {
-    await grantView(role, 'sites_index');
-    await grantView(role, 'participant_record');
-    // The operational roles read questionnaire instance status (one row per
-    // instance) to drive the Manage Questionnaires modal's live per-status view.
-    await grantView(role, 'questionnaire_instance');
-  }
-  // The RAVE-sync status screen is visible to operations roles too.
-  for (final role in const [
-    'StudyCoordinator',
-    'CRA',
-    'Administrator',
-    'SystemOperator',
-  ]) {
-    await grantView(role, 'rave_sync_status');
-  }
-  // Debug-only: the Study Coordinator may read a participant's raw diary entries
-  // via /admin/diary-entries. Granted directly (not via the action-validated role
-  // seed) because it gates a tooling endpoint, not a registered Action — there is
-  // no ACT-id/REQ behind it. Pairs the custom permission with the diary_entries
-  // view read so the endpoint can serve the canonical rows.
-  await grantPermission('StudyCoordinator', diaryDebugViewPermission);
-  await grantView('StudyCoordinator', 'diary_entries');
 
   // 4c. Role assignments — config-driven + idempotent, applied on EVERY boot
   //     (NOT inside the seed-once gate above). `bootstrapRoleAssignments` diffs
@@ -366,6 +300,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   //    dart:io-free (see generateLinkingCode).
   final dispatcher = await buildPortalDispatcher(
       eventStore: eventStore,
+      roleGrantsYaml: roleGrantsYaml,
       idempotency: idempotency,
       linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX');
 
@@ -568,6 +503,11 @@ Future<PortalServerBoot> bootstrapPortalServer({
     policy: policy,
     scopeClassRegistry: buildPortalScopeRegistry(),
     viewScopeRegistry: buildPortalViewScopeRegistry(),
+    // Implements: DIARY-DEV-view-action-permissions/A+B — read-model
+    //   subscriptions gate on the Action permission governing the underlying
+    //   data (via portalViewPermissionNamer), not the framework `view:<name>`
+    //   default; an unregistered projection fails closed.
+    viewPermissionNamer: portalViewPermissionNamer,
     // Keepalive on the /subscriptions WS so an idle/half-open connection is not
     // silently reaped (which would leave the reactive client believing it is
     // still connected and never triggering its lifecycle-driven reconnect).
@@ -657,7 +597,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     );
   }
 
-  // Debug-only diary-entries read, gated to portal.diary.view_debug (SC).
+  // Debug-only diary-entries read, gated to portal.diary.view_entries (SC).
   Future<Response> diaryEntriesDebugHandler(Request request) async {
     final principal = principalFromContext(request);
     final Iterable<String> perms;

@@ -10,6 +10,7 @@
 // carries operator-tier wildcard coverage (ValueWildcardScope(tier)) and CAN.
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_service/portal_service.dart';
+import '_reference_role_grants.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
@@ -44,7 +45,11 @@ _openMatrix(String dbName) async {
     backend: SembastBackend(database: db),
   );
 
-  final bootstrap = await buildPortalAuthorizationPolicy(eventStore: store);
+  final yaml = referenceRoleGrantsYaml();
+  final bootstrap = await buildPortalAuthorizationPolicy(
+    eventStore: store,
+    roleGrantsYaml: yaml,
+  );
   expect(bootstrap.isReady, isTrue, reason: 'seed errors: ${bootstrap.errors}');
 
   await bootstrapRoleAssignments(
@@ -88,7 +93,10 @@ _openMatrix(String dbName) async {
   await seedTier('staff-target', 'staff');
   await seedTier('op-target', 'operator');
 
-  final dispatcher = await buildPortalDispatcher(eventStore: store);
+  final dispatcher = await buildPortalDispatcher(
+    eventStore: store,
+    roleGrantsYaml: yaml,
+  );
   return (store: store, policy: bootstrap.policy, dispatcher: dispatcher);
 }
 

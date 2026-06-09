@@ -212,3 +212,4 @@
 | DIARY-DEV-sponsor-config-source              | Sponsor Configuration Parameter Source                | dev-portal-settings.md             | 336be2a6 |
 | DIARY-DEV-state-in-event-log                 | Qualifying App State Lives in the Event Log           | dev-mobile-event-sourcing.md       | d6fb9049 |
 | DIARY-DEV-user-account-projection            | User account projection                               | dev-portal-service.md              | ae8627b4 |
+| DIARY-DEV-view-action-permissions            | Read-model subscriptions gate on Action permissions   | dev-view-action-permissions.md     | c3069fa4 |

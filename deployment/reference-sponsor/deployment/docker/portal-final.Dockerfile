@@ -195,6 +195,10 @@ ENV APP_WEB_ROOT=/app/web
 # operators provision the first Administrators through the portal. The file is
 # bundled below from deployment/seed/portal-users.json.
 ENV PORTAL_SEED_USERS_PATH=/app/seed/portal-users.json
+# Sponsor config directory (CUR-1474): portal-server reads role-permissions.yaml
+# and other sponsor config from this directory. A container has no repo tree to
+# walk up to the reference sponsor, so the pointer must be set explicitly here.
+ENV SPONSOR_CONFIG_DIR=/app/sponsor
 # ENVIRONMENT must be set at deploy time (dev/qa/uat/prod). The portal-server
 # reports it to the SPA via /api/v1/portal/config/identity so the client
 # resolves its environment (banner, dev-tools, prod gating) at runtime. No
@@ -265,6 +269,11 @@ COPY deployment/scripts/start.sh /app/start.sh
 
 # Portal seed-users (CUR-1437): read at boot via PORTAL_SEED_USERS_PATH.
 COPY deployment/seed/portal-users.json /app/seed/portal-users.json
+
+# Unified sponsor config directory (CUR-1474). The portal-server reads ONE dir,
+# resolved from SPONSOR_CONFIG_DIR. role-permissions.yaml binds each role to its
+# Action permissions (CAL-DEV-role-permissions-seed).
+COPY deployment/sponsor /app/sponsor
 
 RUN set -eu && \
     chmod +x /app/portal-server /app/grpc_health_server /app/start.sh && \

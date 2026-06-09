@@ -13,7 +13,7 @@ import 'participant_status.dart';
 import 'start_trial_dialog.dart';
 
 // Reactive Participants list over the participant_record view (gated
-// view:participant_record). Each row shows the participant id, site and REAL
+// portal.participant.view). Each row shows the participant id, site and REAL
 // derived status, plus a lifecycle-action row. A button is ENABLED iff the
 // pure state machine (enabledActions) permits it for the current status;
 // otherwise it renders disabled with a tooltip explaining the diary gate.
@@ -21,7 +21,7 @@ import 'start_trial_dialog.dart';
 //
 // Implements: DIARY-DEV-participant-status-projection/A+B
 
-const String _viewPerm = 'view:participant_record';
+const String _viewPerm = 'portal.participant.view';
 
 const String _kLinkAction = 'ACT-PAT-001'; // {siteId, participantId}
 const String _kStartTrialAction = 'ACT-PAT-002'; // {siteId, participantId}

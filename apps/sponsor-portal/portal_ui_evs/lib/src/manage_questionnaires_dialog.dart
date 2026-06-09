@@ -2,7 +2,7 @@
 // Questionnaire Card per enabled Questionnaire Type, each rendering the Type's
 // current Status + paired Cycle info and exactly the action buttons the
 // per-status matrix permits. Status is derived live from the reactive
-// `questionnaire_instance` view (gated view:questionnaire_instance), filtered
+// `questionnaire_instance` view (gated portal.questionnaire.view_status), filtered
 // client-side to the selected participant.
 //
 // The modal OWNS the three action flows (Send Now / Start Next Cycle / Call
@@ -30,7 +30,7 @@ import 'questionnaire_instance.dart';
 import 'questionnaire_types.dart';
 import 'send_questionnaire_flow.dart';
 
-const String _viewPerm = 'view:questionnaire_instance';
+const String _viewPerm = 'portal.questionnaire.view_status';
 const String _kCallBackAction = 'ACT-QST-002'; // {siteId, instanceId, reason}
 const String _kFinalizeAction =
     'ACT-QST-003'; // {siteId, instanceId, cycle?, endEvent?}

@@ -4,7 +4,7 @@ import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
 // Read-only status panel over the reactive rave_sync_status view (single row,
-// AggregateProjectionSpec on aggregateId 'rave_sync'), gated view:rave_sync_status.
+// AggregateProjectionSpec on aggregateId 'rave_sync'), gated portal.rave.view_sync.
 // The Unwedge button dispatches UnwedgeRaveSyncAction (ACT-OPS-001), gated to the
 // SystemOperator-only portal.rave.unwedge permission.
 // Implements: DIARY-DEV-rave-edc-ingest/C+D
@@ -49,7 +49,7 @@ class RaveSyncScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PermissionGate(
-    permission: 'view:rave_sync_status',
+    permission: 'portal.rave.view_sync',
     fallback: const Center(
       child: Text("You don't have permission to view RAVE sync status."),
     ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:reaction_widgets/reaction_widgets.dart';
 
 // First reader of the sites_index materialization (portal_service
-// TableProjectionSpec). Read-only reactive list, gated on view:sites_index.
+// TableProjectionSpec). Read-only reactive list, gated on portal.site.view.
 // Implements: DIARY-DEV-rave-edc-ingest/A
 
 /// One sites_index row (columns: site_id/site_name/site_number/is_active).
@@ -31,7 +31,7 @@ class SitesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PermissionGate(
-    permission: 'view:sites_index',
+    permission: 'portal.site.view',
     fallback: const Center(
       child: Text("You don't have permission to view sites."),
     ),

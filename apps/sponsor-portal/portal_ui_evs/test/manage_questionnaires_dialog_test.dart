@@ -228,7 +228,7 @@ void main() {
       'close dismisses (C)',
       (tester) async {
         final fake = FakeReaction();
-        fake.drivePermission(_authWith({'view:questionnaire_instance'}));
+        fake.drivePermission(_authWith({'portal.questionnaire.view_status'}));
 
         await pumpReactionWidget(
           tester,
@@ -330,7 +330,7 @@ void main() {
         });
 
         final fake = FakeReaction();
-        fake.drivePermission(_authWith({'view:questionnaire_instance'}));
+        fake.drivePermission(_authWith({'portal.questionnaire.view_status'}));
 
         await pumpReactionWidget(
           tester,

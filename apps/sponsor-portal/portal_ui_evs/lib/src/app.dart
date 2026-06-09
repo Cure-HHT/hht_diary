@@ -586,7 +586,9 @@ class _HomeShellState extends State<_HomeShell> {
         'server_commit': 'Server commit',
         'diary_app': 'Diary app',
         'portal_deployment': 'Deployment',
-        'deploy': 'Deploy #',
+        // 'deploy' (the run-number counter) is now the modal topline above,
+        // so it is intentionally omitted from the detail rows to avoid
+        // duplicating it.
         'deploy_commit': 'Deploy commit',
       }.entries)
         if (widget.serverVersions[e.key] case final String val
@@ -602,6 +604,20 @@ class _HomeShellState extends State<_HomeShell> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              // Deploy counter (the deploy workflow's GitHub Actions
+              // run_number, global across dev/qa/uat) as the modal's topline —
+              // the "v XX" the app bar used to show pre-makeover. Deployed-only:
+              // PORTAL_DEPLOY_SEQ is unset off Cloud Run, so hide when absent.
+              if (widget.serverVersions['deploy'] case final String deploy
+                  when deploy.isNotEmpty) ...[
+                Text(
+                  'Deploy #$deploy',
+                  style: Theme.of(ctx).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1),
+                const SizedBox(height: 12),
+              ],
               if (rows.isEmpty)
                 const Text('No version information available.')
               else

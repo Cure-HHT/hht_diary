@@ -31,6 +31,10 @@ void main() {
         'ACT-SIT-001',
         'ACT-AUD-001',
         'ACT-ADM-001',
+        'ACT-SEE-001',
+        'ACT-SEE-002',
+        'ACT-SEE-003',
+        'ACT-SEE-004',
       ]),
     );
     for (final p in byId.values) {
@@ -58,8 +62,8 @@ void main() {
     );
     expect(portalPermissionsByActId['ACT-OPS-003']!.scopeClass, isNull);
     // 28 ACT-id-backed permissions + 1 grant_role pseudo-id (the second
-    // permission AssignRoleAction declares) = 29.
-    expect(portalPermissionsByActId.length, 29);
+    // permission AssignRoleAction declares) + 4 ACT-SEE view permissions = 33.
+    expect(portalPermissionsByActId.length, 33);
   });
 
   // Verifies: DIARY-DEV-operator-tier-authz/B — the target-bearing user-
@@ -129,4 +133,17 @@ void main() {
       }
     },
   );
+
+  // Verifies: DIARY-PRD-action-inventory/A — the View ("SEE") category.
+  test('ACT-SEE view permissions are declared with the agreed names', () {
+    final byId = portalPermissionsByActId;
+    expect(byId['ACT-SEE-001']?.name, 'portal.questionnaire.view_status');
+    expect(byId['ACT-SEE-002']?.name, 'portal.rave.view_sync');
+    expect(byId['ACT-SEE-003']?.name, 'portal.user.view_accounts');
+    expect(byId['ACT-SEE-004']?.name, 'portal.diary.view_entries');
+    expect(byId['ACT-SEE-001']?.scopeClass, 'site');
+    expect(byId['ACT-SEE-002']?.scopeClass, isNull);
+    expect(byId['ACT-SEE-003']?.scopeClass, isNull);
+    expect(byId['ACT-SEE-004']?.scopeClass, isNull);
+  });
 }

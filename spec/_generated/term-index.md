@@ -10,6 +10,7 @@
 
 - DIARY-BASE-ops-action-inventory
 - DIARY-DEV-action-write-path
+- DIARY-DEV-view-action-permissions
 - DIARY-PRD-action-inventory
 - DIARY-PRD-sla-corrective-preventive
 - DIARY-BASE-ops-action-inventory-A
@@ -31,6 +32,8 @@
 - DIARY-DEV-portal-reaction-server-B
 - DIARY-DEV-operator-tier-authz-C
 - DIARY-DEV-operator-tier-authz-F
+- DIARY-DEV-view-action-permissions-A
+- DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-administrator-settings-B
 - DIARY-GUI-administrator-settings-G
 - DIARY-GUI-audit-log-common-A
@@ -120,6 +123,7 @@
 - DIARY-DEV-operator-tier-authz:section:1
 - DIARY-DEV-portal-settings-store:section:0
 - DIARY-DEV-portal-settings-store:section:1
+- DIARY-DEV-view-action-permissions:section:0
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -243,6 +247,7 @@
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
+- DIARY-DEV-view-action-permissions:section:0
 - rem:spec/prd-administrator-settings.md:1
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -685,6 +690,7 @@
 - DIARY-DEV-sponsor-branding-assets-B
 - DIARY-DEV-sponsor-branding-assets-C
 - DIARY-DEV-sponsor-branding-assets-D
+- DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
 - DIARY-PRD-entry-overlap-resolution-E
@@ -770,6 +776,7 @@
 - DIARY-DEV-sponsor-branding-source:section:0
 - DIARY-DEV-sponsor-branding-assets:section:0
 - DIARY-DEV-sponsor-branding-assets:section:1
+- DIARY-DEV-view-action-permissions:section:0
 - rem:spec/glossary-core.md:730
 - rem:spec/glossary-core.md:756
 - DIARY-OPS-single-promotable-artifact:section:1
@@ -808,6 +815,7 @@
 - DIARY-PRD-questionnaire-system:section:4
 - DIARY-PRD-questionnaire-daily-epistaxis:section:1
 - rem:spec/prd-questionnaire-versioning.md:3
+- DIARY-PRD-action-inventory:section:1
 - rem:spec/prd-requirements-management.md:3
 - rem:spec/prd-sla.md:3
 - rem:spec/prd-status-registry.md:19
@@ -1611,6 +1619,7 @@
 - DIARY-DEV-relink-device-gate-A
 - DIARY-DEV-relink-device-gate-B
 - DIARY-DEV-relink-device-gate-C
+- DIARY-DEV-view-action-permissions-A
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-study-coordinator-B
 - DIARY-GUI-audit-log-cra-A
@@ -1847,6 +1856,7 @@
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-relink-device-gate:section:0
 - DIARY-DEV-shared-events-catalog:section:0
+- DIARY-DEV-view-action-permissions:section:0
 - rem:spec/glossary-core.md:730
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
@@ -2263,6 +2273,7 @@
 - DIARY-BASE-questionnaire-lock-after-submission-D
 - DIARY-BASE-questionnaire-lock-after-submission-E
 - DIARY-DEV-outgoing-intent-correlation-A
+- DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-audit-log-common-G
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-F
@@ -2598,6 +2609,8 @@
 - DIARY-DEV-operator-tier-authz-A
 - DIARY-DEV-operator-tier-authz-D
 - DIARY-DEV-operator-tier-authz-E
+- DIARY-DEV-view-action-permissions-B
+- DIARY-DEV-view-action-permissions-C
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-session-management-F
 - DIARY-OPS-rave-unwedge-authz-A
@@ -2644,6 +2657,7 @@
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
+- DIARY-DEV-view-action-permissions:section:0
 - rem:spec/glossary-core.md:730
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -2904,6 +2918,7 @@
 - DIARY-DEV-portal-reaction-server-C
 - DIARY-DEV-rave-edc-ingest-A
 - DIARY-DEV-participant-status-projection-A
+- DIARY-DEV-view-action-permissions-A
 - DIARY-GUI-audit-log-cra-A
 - DIARY-GUI-audit-log-cra-B
 - DIARY-GUI-audit-log-cra-D
@@ -3122,6 +3137,7 @@
 - DIARY-DEV-sponsor-branding-source:section:0
 - DIARY-DEV-sponsor-branding-assets:section:0
 - DIARY-DEV-sponsor-branding-assets:section:1
+- DIARY-DEV-view-action-permissions:section:0
 - rem:spec/glossary-core.md:730
 - rem:spec/glossary-core.md:747
 - rem:spec/glossary-core.md:749
@@ -3702,6 +3718,7 @@
 - DIARY-DEV-operator-tier-authz-C
 - DIARY-DEV-operator-tier-authz-F
 - DIARY-DEV-portal-test-account-provisioning-A
+- DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-audit-log-common-A
 - DIARY-GUI-audit-log-common-C
 - DIARY-GUI-audit-log-administrator-A

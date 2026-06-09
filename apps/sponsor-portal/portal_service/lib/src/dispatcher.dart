@@ -8,16 +8,19 @@ import 'authz.dart';
 import 'self_management_guard_policy.dart';
 
 /// Build a portal ActionDispatcher over [eventStore]. Bootstraps the
-/// authorization policy from the role-permission seed; throws [StateError]
-/// (carrying the seed validation errors) if the seed is malformed, since a
-/// fail-safe policy would silently deny every dispatch.
+/// authorization policy from [roleGrantsYaml] (the sponsor role-permissions.yaml
+/// source); throws [StateError] (carrying the seed validation errors) if the
+/// seed is malformed, since a fail-safe policy would silently deny every
+/// dispatch.
 Future<ActionDispatcher> buildPortalDispatcher({
   required EventStore eventStore,
+  required String roleGrantsYaml,
   IdempotencyStore? idempotency,
   String linkingPrefix = 'XX',
 }) async {
   final bootstrap = await buildPortalAuthorizationPolicy(
     eventStore: eventStore,
+    roleGrantsYaml: roleGrantsYaml,
   );
   final AuthorizationPolicy policy;
   switch (bootstrap) {

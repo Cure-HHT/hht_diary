@@ -17,6 +17,8 @@ import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
+import '_reference_role_grants.dart';
+
 /// Open a portal event store (using the production [openPortalEventStore] which
 /// already registers participant_site_index), then seed the role-permission
 /// grants and the given role assignments. Returns the live policy + store +
@@ -33,7 +35,11 @@ _openSeeded({
     backend: SembastBackend(database: db),
   );
 
-  final bootstrap = await buildPortalAuthorizationPolicy(eventStore: store);
+  final yaml = referenceRoleGrantsYaml();
+  final bootstrap = await buildPortalAuthorizationPolicy(
+    eventStore: store,
+    roleGrantsYaml: yaml,
+  );
   expect(bootstrap.isReady, isTrue, reason: 'seed errors: ${bootstrap.errors}');
 
   await bootstrapRoleAssignments(
@@ -41,7 +47,10 @@ _openSeeded({
     seed: RoleAssignmentSeed(entries: assignments),
   );
 
-  final dispatcher = await buildPortalDispatcher(eventStore: store);
+  final dispatcher = await buildPortalDispatcher(
+    eventStore: store,
+    roleGrantsYaml: yaml,
+  );
   return (store: store, policy: bootstrap.policy, dispatcher: dispatcher);
 }
 

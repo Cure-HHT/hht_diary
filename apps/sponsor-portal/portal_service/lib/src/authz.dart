@@ -8,7 +8,6 @@ import 'package:portal_actions/portal_actions.dart';
 
 import 'fcm_projections.dart';
 import 'projections.dart';
-import 'role_seed.dart';
 import 'scope_classes.dart';
 
 /// Stable per-installation identity stamped onto every appended event's
@@ -156,11 +155,12 @@ Future<EventStore> openPortalEventStore({
 /// (deny-everything) carrying the validation errors.
 Future<AuthorizationBootstrapResult> buildPortalAuthorizationPolicy({
   required EventStore eventStore,
+  required String roleGrantsYaml,
 }) {
   return bootstrapActionPermissions(
     eventStore: eventStore,
     declaredPermissions: buildPortalActionRegistry().allDeclaredPermissions,
     scopeClassRegistry: buildPortalScopeRegistry(),
-    yamlSource: portalRoleSeedYaml,
+    yamlSource: roleGrantsYaml,
   );
 }
