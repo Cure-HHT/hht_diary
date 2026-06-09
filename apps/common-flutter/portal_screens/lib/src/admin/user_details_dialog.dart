@@ -7,12 +7,19 @@ import '../models/user_status_view.dart';
 import '../widgets/role_pill.dart';
 import 'user_row_actions.dart';
 
-/// User Details dialog (Figma: User Managment / User Details).
+/// Soft mint fill behind the identity card (Figma: User Details). The
+/// design system's neutral surfaceContainer tones are gray; this panel
+/// carries the brand's pale teal tint, so the literal lives here in the
+/// consumer (raw color tokens are intentionally not exported).
+const Color _kIdentityCardFill = Color(0xFFF4F9F8);
+
+/// User Details dialog (Figma: User Details / User Information).
 ///
 /// Read-only summary of one user — status, name, email, role pills,
-/// assigned sites — plus the action list mirroring the row kebab. Pops
-/// with the chosen [UserRowAction] (the wiring layer then opens the
-/// matching flow dialog) or `null` on Close.
+/// assigned sites — plus the action list mirroring the row kebab, all
+/// grouped inside one tinted identity card. Pops with the chosen
+/// [UserRowAction] (the wiring layer then opens the matching flow
+/// dialog) or `null` on Close.
 ///
 /// Pure presentation: the caller resolves site labels and pre-computes
 /// the legal [actions] before opening.
@@ -73,57 +80,68 @@ class UserDetailsDialog extends StatelessWidget {
       semanticId: 'user-details-dialog',
       body: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (user.status != UserStatusView.active) ...[
-            StatusBadge(
-              kind: _badgeKindFor(user.status),
-              semanticId: 'user-details-status',
-            ),
-            const SizedBox(height: 8),
-          ],
-          Text(
-            user.name,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          AppCard(
+            color: _kIdentityCardFill,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                StatusBadge(
+                  kind: _badgeKindFor(user.status),
+                  semanticId: 'user-details-status',
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  user.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  user.email,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final role in user.distinctRoles)
+                      RolePill(
+                        systemRole: role,
+                        variant: AppBadgeVariant.outlined,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                _AssignedSites(user: user, sites: sites),
+                if (visibleActions.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  const AppSectionHeader(title: 'Actions'),
+                  const SizedBox(height: 8),
+                  for (final action in visibleActions) ...[
+                    _ActionRow(
+                      action: action,
+                      inviteSent: inviteSent,
+                      onTap: () => Navigator.of(context).pop(action),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            user.email,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            children: [
-              for (final role in user.distinctRoles) RolePill(systemRole: role),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _AssignedSites(user: user, sites: sites),
-          if (visibleActions.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Text(
-              'Actions',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            for (final action in visibleActions) ...[
-              _ActionRow(
-                action: action,
-                inviteSent: inviteSent,
-                onTap: () => Navigator.of(context).pop(action),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ],
-          const SizedBox(height: 4),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
         ],
       ),
       actions: [
@@ -164,28 +182,27 @@ class _AssignedSites extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < sites.length; i++) ...[
-            if (i > 0) const SizedBox(height: 8),
-            Text(sites[i].label, style: theme.textTheme.bodyMedium),
+            if (i > 0) const SizedBox(height: 10),
+            Text(
+              sites[i].label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            // Figma shows a location subtitle ("New York, NY") under each
+            // site; sites_index carries no location data yet, so the line
+            // is omitted until EDC ingest provides one.
           ],
         ],
       );
     }
 
-    final count = user.hasWildcardScope ? null : sites.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              'Assigned Sites',
-              style: theme.textTheme.labelLarge?.copyWith(color: muted),
-            ),
-            if (count != null) ...[
-              const SizedBox(width: 6),
-              AppBadge(label: '$count', variant: AppBadgeVariant.tinted),
-            ],
-          ],
+        AppSectionHeader(
+          title: 'Assigned Sites',
+          count: user.hasWildcardScope ? null : sites.length,
         ),
         const SizedBox(height: 8),
         content,
@@ -211,17 +228,20 @@ class _ActionRow extends StatelessWidget {
     final disabled = action == UserRowAction.resendInvite && inviteSent;
     final destructive = action == UserRowAction.deactivate;
 
+    // Figma: actionable rows carry their accent color on BOTH icon and
+    // label (teal for edit/resend, red for deactivate); the spent
+    // "Invite Sent" row is muted with a leading check.
     final color = disabled
         ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
         : destructive
         ? theme.colorScheme.error
-        : theme.colorScheme.onSurface;
+        : theme.colorScheme.primary;
 
     final icon = disabled
         ? Icons.check
         : switch (action) {
             UserRowAction.edit => Icons.edit_outlined,
-            UserRowAction.resendInvite => Icons.mail_outline,
+            UserRowAction.resendInvite => Icons.send_outlined,
             UserRowAction.deactivate => Icons.block_outlined,
             UserRowAction.reactivate => Icons.refresh,
             UserRowAction.unlock => Icons.lock_open_outlined,
@@ -231,7 +251,8 @@ class _ActionRow extends StatelessWidget {
     final label = disabled ? 'Invite Sent' : userRowActionLabel(action);
 
     return Material(
-      color: Colors.transparent,
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: disabled ? null : onTap,
         borderRadius: BorderRadius.circular(8),

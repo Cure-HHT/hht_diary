@@ -94,6 +94,7 @@ Future<bool?> showEditUserFlow(
   BuildContext context, {
   required PortalUserView user,
   bool offerSystemOperator = false,
+  VoidCallback? onBack,
 }) {
   final roles = <String>[
     PortalRole.administrator.systemName,
@@ -130,9 +131,11 @@ Future<bool?> showEditUserFlow(
         initialEmail: user.email,
         initialRoles: user.distinctRoles.toSet(),
         initialSites: user.boundSites.toSet(),
+        warningTitle: 'Active sessions will be terminated',
         warning:
-            'Active sessions will be terminated. The user will need to '
-            'log in again to see the updated permissions.',
+            'The user will need to log in again to see their updated '
+            'permissions.',
+        onBack: onBack,
         onSubmit: (data) => _saveEdit(context, user, data),
       ),
     ),
@@ -176,9 +179,11 @@ Future<String?> _saveEdit(
 Future<bool?> showDeactivateUserFlow(
   BuildContext context, {
   required PortalUserView user,
+  VoidCallback? onBack,
 }) => DeactivateUserDialog.show(
   context,
   userName: user.name,
+  onBack: onBack,
   onSubmit: (reason) => _submitOne(context, deactivateUserAction, {
     'userId': user.email,
     'reason': reason,
@@ -190,9 +195,11 @@ Future<bool?> showDeactivateUserFlow(
 Future<bool?> showReactivateUserFlow(
   BuildContext context, {
   required PortalUserView user,
+  VoidCallback? onBack,
 }) => ReactivateUserDialog.show(
   context,
   userName: user.name,
+  onBack: onBack,
   onSubmit: (reason) => _submitOne(context, reactivateUserAction, {
     'userId': user.email,
     'reason': reason,

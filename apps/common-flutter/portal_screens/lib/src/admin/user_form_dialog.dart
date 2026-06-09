@@ -2,6 +2,7 @@ import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 
 import '../models/site_option_view.dart';
+import 'user_lifecycle_dialogs.dart' show UserFlowBackLink;
 
 /// Splits a stored display name into the form's (first, last) fields:
 /// first token vs. remainder. The inverse of how the form composes the
@@ -67,6 +68,8 @@ class UserFormDialog extends StatefulWidget {
     this.initialRoles = const <String>{},
     this.initialSites = const <String>{},
     this.warning,
+    this.warningTitle,
+    this.onBack,
     this.sitesLoading = false,
   });
 
@@ -98,6 +101,14 @@ class UserFormDialog extends StatefulWidget {
   /// Warning banner under the form (edit variant: "Active sessions will
   /// be terminated…"). Hidden when null.
   final String? warning;
+
+  /// Bold first line inside the warning banner (Figma: the edit
+  /// variant's titled amber panel). Ignored when [warning] is null.
+  final String? warningTitle;
+
+  /// Invoked after the dialog pops itself via the "← User Details"
+  /// back-link; null hides the link (create flow / kebab-launched edit).
+  final VoidCallback? onBack;
 
   /// True while the wiring layer's sites subscription hasn't delivered
   /// yet — renders a placeholder in the checklist box.
@@ -182,6 +193,9 @@ class _UserFormDialogState extends State<UserFormDialog> {
       size: AppDialogSize.small,
       title: widget.title,
       subtitle: widget.subtitle,
+      breadcrumb: widget.onBack == null
+          ? null
+          : UserFlowBackLink(onBack: widget.onBack!, enabled: !_submitting),
       dismissible: !_submitting,
       semanticId: 'user-form-dialog',
       body: Column(
@@ -261,6 +275,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
             const SizedBox(height: 16),
             AppBanner(
               severity: AppBannerSeverity.warning,
+              title: widget.warningTitle,
               message: widget.warning!,
               semanticId: 'user-form-warning',
             ),

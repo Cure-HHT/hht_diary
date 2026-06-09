@@ -190,7 +190,22 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
     required UserRowAction action,
     required UserRowActionsConfig config,
     required bool canGrantOperator,
+    bool fromDetails = false,
   }) async {
+    // Flow dialogs launched FROM the details modal carry a "\u2190 User
+    // Details" back-link that reopens it (Figma); kebab-launched flows
+    // don't.
+    final VoidCallback? backToDetails = fromDetails && context.mounted
+        ? () => unawaited(
+            _handleRowAction(
+              context,
+              user: user,
+              action: UserRowAction.viewDetails,
+              config: config,
+              canGrantOperator: canGrantOperator,
+            ),
+          )
+        : null;
     switch (action) {
       case UserRowAction.viewDetails:
         final next = await showUserDetailsFlow(
@@ -205,6 +220,7 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
             action: next,
             config: config,
             canGrantOperator: canGrantOperator,
+            fromDetails: true,
           );
         }
       case UserRowAction.edit:
@@ -212,6 +228,7 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
           context,
           user: user,
           offerSystemOperator: canGrantOperator,
+          onBack: backToDetails,
         );
       case UserRowAction.resendInvite:
         final sent = await resendInviteFlow(context, user: user);
@@ -219,9 +236,17 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
           setState(() => _inviteSent.add(user.email));
         }
       case UserRowAction.deactivate:
-        await showDeactivateUserFlow(context, user: user);
+        await showDeactivateUserFlow(
+          context,
+          user: user,
+          onBack: backToDetails,
+        );
       case UserRowAction.reactivate:
-        await showReactivateUserFlow(context, user: user);
+        await showReactivateUserFlow(
+          context,
+          user: user,
+          onBack: backToDetails,
+        );
       case UserRowAction.unlock:
         await showUnlockUserFlow(context, user: user);
     }

@@ -13,6 +13,11 @@ class AppCheckbox extends StatelessWidget {
   final bool? value;
   final ValueChanged<bool?>? onChanged;
   final String? label;
+
+  /// Optional muted second line under [label] (Figma: the site
+  /// checklists' "001 - Memorial Hospital" / "New York, NY" entries).
+  /// Ignored when [label] is null.
+  final String? subtitle;
   final bool enabled;
   final bool tristate;
 
@@ -26,6 +31,7 @@ class AppCheckbox extends StatelessWidget {
     required this.value,
     this.onChanged,
     this.label,
+    this.subtitle,
     this.enabled = true,
     this.tristate = false,
     this.semanticId,
@@ -62,15 +68,28 @@ class AppCheckbox extends StatelessWidget {
                   // Center" in a boxed site checklist) wrap instead of
                   // overflowing the row.
                   Flexible(
-                    child: Text(
-                      label!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: enabled
-                            ? theme.colorScheme.onSurface
-                            : theme.colorScheme.onSurface.withValues(
-                                alpha: 0.4,
-                              ),
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label!,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: enabled
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.4,
+                                  ),
+                          ),
+                        ),
+                        if (subtitle != null)
+                          Text(
+                            subtitle!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],

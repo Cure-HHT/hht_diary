@@ -89,6 +89,19 @@ void main() {
       expect(find.text('All sites'), findsOneWidget);
     });
 
+    testWidgets('active user shows the Active status badge in the '
+        'identity card', (tester) async {
+      await _pumpDialog(
+        tester,
+        UserDetailsDialog(
+          user: MockData.sarahJohnson,
+          sites: _sites,
+          actions: const [],
+        ),
+      );
+      expect(find.text('Active'), findsOneWidget);
+    });
+
     testWidgets('invite-sent renders the resend row disabled', (tester) async {
       await _pumpDialog(
         tester,
@@ -254,8 +267,9 @@ void main() {
   });
 
   group('Deactivate / Reactivate dialogs', () {
-    testWidgets('deactivate: confirm gated on reason, destructive submit, '
-        'error stays open', (tester) async {
+    testWidgets('deactivate: confirm gated on reason; error stays open', (
+      tester,
+    ) async {
       final submitted = <String>[];
       var fail = true;
       await _pumpDialog(
@@ -274,7 +288,9 @@ void main() {
       AppButton confirm() =>
           tester.widget<AppButton>(find.widgetWithText(AppButton, 'Confirm'));
       expect(confirm().onPressed, isNull);
-      expect(confirm().variant, AppButtonVariant.destructive);
+      // Figma: the lifecycle confirms use the primary (navy) button; the
+      // destructive consequences are conveyed by the red effects panel.
+      expect(confirm().variant, AppButtonVariant.primary);
 
       await tester.enterText(find.byType(TextFormField), 'offboarded');
       await tester.pump();
@@ -309,6 +325,35 @@ void main() {
       await tester.tap(find.widgetWithText(AppButton, 'Confirm'));
       await tester.pump(const Duration(milliseconds: 50));
       expect(seenReason, 'a' * 100);
+    });
+
+    testWidgets('reason field renders the live 0/100 counter and the '
+        'back-link pops then invokes onBack', (tester) async {
+      var wentBack = false;
+      await _pumpDialog(
+        tester,
+        Builder(
+          builder: (context) => AppButton(
+            label: 'open',
+            onPressed: () => DeactivateUserDialog.show(
+              context,
+              userName: 'X',
+              onSubmit: (_) async => null,
+              onBack: () => wentBack = true,
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('0/100'), findsOneWidget);
+      expect(find.text('← User Details'), findsOneWidget);
+
+      await tester.tap(find.text('← User Details'));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(wentBack, isTrue);
+      expect(find.byType(DeactivateUserDialog), findsNothing);
     });
 
     testWidgets('reactivate: primary confirm + info effects panel', (

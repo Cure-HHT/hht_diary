@@ -19,7 +19,18 @@ enum AppBannerSeverity { success, warning, error, info }
 class AppBanner extends StatelessWidget {
   final AppBannerSeverity severity;
   final String? title;
-  final String message;
+
+  /// Plain-text body. Optional when [body] is provided.
+  final String? message;
+
+  /// Rich body slot rendered where [message] would go — for content a
+  /// single Text can't express (Figma: the "Effects of this action"
+  /// panels' bullet lists). Takes precedence over [message].
+  final Widget? body;
+
+  /// Overrides the severity's canonical icon (Figma: the deactivate
+  /// panel's block glyph, the reactivate panel's circled info glyph).
+  final IconData? icon;
   final Widget? trailing;
 
   /// Test-harness locator. When set, wraps the banner in a
@@ -31,17 +42,26 @@ class AppBanner extends StatelessWidget {
   const AppBanner({
     super.key,
     required this.severity,
-    required this.message,
+    this.message,
+    this.body,
+    this.icon,
     this.title,
     this.trailing,
     this.semanticId,
-  });
+  }) : assert(
+         message != null || body != null,
+         'AppBanner requires message and/or body',
+       );
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final semantic = theme.extension<AppSemanticColors>()!;
-    final (foreground, background, icon) = _resolveSeverity(theme, semantic);
+    final (foreground, background, severityIcon) = _resolveSeverity(
+      theme,
+      semantic,
+    );
+    final effectiveIcon = icon ?? severityIcon;
 
     final container = Container(
       padding: EdgeInsets.all(SpacingTokens.md),
@@ -53,7 +73,7 @@ class AppBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: foreground),
+          Icon(effectiveIcon, size: 20, color: foreground),
           SizedBox(width: SpacingTokens.sm),
           Expanded(
             child: Column(
@@ -68,7 +88,10 @@ class AppBanner extends StatelessWidget {
                   ),
                   SizedBox(height: SpacingTokens.xxs),
                 ],
-                Text(message, style: theme.textTheme.bodySmall),
+                if (body != null)
+                  body!
+                else
+                  Text(message!, style: theme.textTheme.bodySmall),
               ],
             ),
           ),
@@ -84,7 +107,7 @@ class AppBanner extends StatelessWidget {
 
     return Semantics(
       identifier: semanticId,
-      value: message,
+      value: message ?? title ?? '',
       liveRegion: true,
       container: true,
       explicitChildNodes: true,

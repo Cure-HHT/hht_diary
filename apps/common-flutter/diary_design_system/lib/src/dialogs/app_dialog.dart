@@ -63,6 +63,10 @@ class AppDialog extends StatelessWidget {
   final Widget? icon;
   final String title;
   final String? subtitle;
+
+  /// Optional slot rendered above the title inside the header (Figma:
+  /// the "\u2190 User Details" back-link on the user flow dialogs).
+  final Widget? breadcrumb;
   final Widget body;
   final List<Widget> actions;
 
@@ -82,6 +86,7 @@ class AppDialog extends StatelessWidget {
     this.icon,
     required this.title,
     this.subtitle,
+    this.breadcrumb,
     required this.body,
     this.actions = const [],
     this.dismissible = true,
@@ -131,6 +136,7 @@ class AppDialog extends StatelessWidget {
                   icon: icon,
                   title: title,
                   subtitle: subtitle,
+                  breadcrumb: breadcrumb,
                   dismissible: dismissible,
                 ),
                 Flexible(
@@ -420,12 +426,14 @@ class _Header extends StatelessWidget {
   final Widget? icon;
   final String title;
   final String? subtitle;
+  final Widget? breadcrumb;
   final bool dismissible;
 
   const _Header({
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.breadcrumb,
     required this.dismissible,
   });
 
@@ -453,6 +461,10 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (breadcrumb != null) ...[
+                  breadcrumb!,
+                  SizedBox(height: SpacingTokens.xs),
+                ],
                 Text(title, style: theme.textTheme.titleLarge),
                 if (subtitle != null) ...[
                   SizedBox(height: SpacingTokens.xxs),
