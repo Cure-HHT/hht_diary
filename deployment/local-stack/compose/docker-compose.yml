@@ -196,6 +196,32 @@ services:
       # value here wins over Doppler (same mechanism as SPONSOR_ID above).
       # To rehearse session auth deliberately: PORTAL_AUTH_MODE=session ./local-stack portal
       PORTAL_AUTH_MODE: "${PORTAL_AUTH_MODE:-dev}"
+      # PORTAL_SESSION_SIGNING_KEY: required by the server when AUTH_MODE=session.
+      # Doppler dev does NOT inject it into this container (and --preserve-env
+      # only keeps already-present vars), so session boot fails without a value
+      # here. Provide a local-only HS256 signing key so the documented
+      # `PORTAL_AUTH_MODE=session ./local-stack portal` path boots. Local-stack
+      # only — never a real secret.
+      PORTAL_SESSION_SIGNING_KEY: "${PORTAL_SESSION_SIGNING_KEY:-local-stack-session-signing-key-not-secret}"
+      # PORTAL_DEV_SEED_PASSWORD: dev/test-only knob (CUR-1437). When set, boot's
+      # seedTestAccountActivations provisions each seed-user email in the Firebase
+      # emulator with this shared password and marks it active — so the reference
+      # seed users (sysop@/admin@/cra@/sc@reference.local) are login-capable under
+      # session auth with no activation link. Local-stack default 'example';
+      # production NEVER sets this (the env is the prod guard).
+      PORTAL_DEV_SEED_PASSWORD: "${PORTAL_DEV_SEED_PASSWORD:-example}"
+      # PORTAL_SEED_REQUIRE_2FA: seeds the require_second_factor portal setting.
+      # Default false locally so seed-user login lands straight on the dashboard
+      # (no email OTP). Set to "true" to exercise the OTP screen — the code is
+      # printed to the portal-final console-mode email log.
+      PORTAL_SEED_REQUIRE_2FA: "${PORTAL_SEED_REQUIRE_2FA:-false}"
+      # PORTAL_IDENTITY_EMULATOR_HOST: emulator host ADVERTISED TO THE BROWSER via
+      # /config/identity (the SPA's useAuthEmulator target). The server itself
+      # reaches the emulator over the docker network (FIREBASE_AUTH_EMULATOR_HOST
+      # below = firebase-emulator:9099), but the host browser can only resolve the
+      # published port, so it must be localhost:9099. The CSP patch in
+      # portal-start-local.sh already allow-lists localhost:9099.
+      PORTAL_IDENTITY_EMULATOR_HOST: "localhost:9099"
       #
       # EVS event store. The portal reads DB_* and creates its own tables on
       # boot (no schema job). In durable mode PORTAL_DB_HOST defaults to the

@@ -20,6 +20,8 @@ import 'firebase_auth_client.dart';
 import 'identity_config.dart';
 import 'login_screen.dart';
 import 'nav_sections.dart';
+import 'role_selection_screen.dart';
+import 'role_selector.dart';
 import 'password_reset_screen.dart';
 import 'session_activity_listener.dart';
 import 'session_config.dart';
@@ -108,6 +110,12 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// re-showing the reset screen (the ?reset= code is still in the URL).
   bool _resetDismissed = false;
   bool _activationDismissed = false;
+
+  /// True once a multi-role user has picked their starting role on the
+  /// post-login role-selection step. Single-role users never see that step.
+  /// Reset on every fresh login / disconnect so the choice is per-session.
+  // Implements: DIARY-GUI-role-switching/A
+  bool _roleConfirmed = false;
 
   /// The current identity credential.
   ///
@@ -247,7 +255,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     // so auto-reload onto the new bundle if this one is stale.
     // Implements: DIARY-GUI-portal-stale-client-reload/B
     unawaited(_checkServerVersion(forceLoginScreen: true));
-    setState(() => _identityCredential = identity.split('|').first);
+    setState(() {
+      _identityCredential = identity.split('|').first;
+      _roleConfirmed = false;
+    });
     _scope.authSession.setCredential(identity);
   }
 
@@ -259,7 +270,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     // the new bundle if this one is stale.
     // Implements: DIARY-GUI-portal-stale-client-reload/B
     unawaited(_checkServerVersion(forceLoginScreen: true));
-    setState(() => _identityCredential = token);
+    setState(() {
+      _identityCredential = token;
+      _roleConfirmed = false;
+    });
     _scope.authSession.setCredential(token);
   }
 
@@ -303,7 +317,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
         }
       }
     }
-    setState(() => _identityCredential = null);
+    setState(() {
+      _identityCredential = null;
+      _roleConfirmed = false;
+    });
     _scope.authSession.setCredential(null);
   }
 
@@ -383,11 +400,44 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       const Scaffold(body: Center(child: CircularProgressIndicator()));
 
   /// The Firebase email/password login surface (session-auth mode).
-  Widget _loginScreen() => LoginScreen(
+  /// [notice] surfaces a non-error message inside the card (e.g. the
+  /// session-ended prompt).
+  Widget _loginScreen({String? notice}) => LoginScreen(
     serverUrl: _serverUrl,
     authClient: RealFirebaseAuthClient(),
     onSession: _onSession,
+    notice: notice,
   );
+
+  /// Builds the authenticated home. A multi-role user first sees the
+  /// role-selection step (until they pick a starting role); single-role users
+  /// and users who've already chosen go straight to the dashboard shell.
+  // Implements: DIARY-GUI-role-switching/A+B
+  Widget _authenticatedHome(Principal principal) {
+    if (principal is UserPrincipal &&
+        roleSelectorVisible(principal.roles) &&
+        !_roleConfirmed) {
+      return RoleSelectionScreen(
+        userName: principal.userId,
+        roles: principal.roles,
+        activeRole: principal.activeRole,
+        onRoleSelected: (role) async {
+          await _onRoleSelected(role);
+          if (mounted) setState(() => _roleConfirmed = true);
+        },
+        onBackToLogin: _disconnect,
+      );
+    }
+    return _wrapWithTimeout(
+      _HomeShell(
+        principal: principal,
+        identityCredential: _identityCredential,
+        serverVersions: _serverVersions,
+        onDisconnect: _disconnect,
+        onRoleSelected: _onRoleSelected,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -422,33 +472,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     }
 
     final Widget home = switch (_status) {
-      Authenticated(:final principal) => _wrapWithTimeout(
-        _HomeShell(
-          principal: principal,
-          identityCredential: _identityCredential,
-          serverVersions: _serverVersions,
-          onDisconnect: () {
-            _disconnect();
-          },
-          onRoleSelected: _onRoleSelected,
-        ),
-      ),
+      Authenticated(:final principal) => _authenticatedHome(principal),
       Expired() => switch (_sessionAuth) {
         null => _loadingScaffold(),
-        true => Scaffold(
-          body: Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Session ended — please sign in again.',
-                  style: TextStyle(color: Colors.orange),
-                ),
-              ),
-              Expanded(child: _loginScreen()),
-            ],
-          ),
-        ),
+        true => _loginScreen(notice: 'Session ended — please sign in again.'),
         false => Scaffold(
           body: ConnectScreen(
             onConnect: _onConnect,
@@ -459,7 +486,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       },
       NotAuthenticated() => switch (_sessionAuth) {
         null => _loadingScaffold(),
-        true => Scaffold(body: _loginScreen()),
+        true => _loginScreen(),
         false => Scaffold(
           body: ConnectScreen(onConnect: _onConnect, serverUrl: _serverUrl),
         ),

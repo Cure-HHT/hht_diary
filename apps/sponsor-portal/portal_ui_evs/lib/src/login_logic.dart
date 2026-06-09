@@ -8,6 +8,15 @@ bool loginFormReady({required String email, required String password}) =>
 
 bool isValidOtp(String code) => RegExp(r'^\d{6}$').hasMatch(code);
 
+/// Minimum password length enforced client-side for inline feedback. The
+/// server remains authoritative on the real policy.
+// Implements: DIARY-GUI-password-forgot-workflow/P
+const int minPasswordLength = 8;
+
+/// Whether [pw] satisfies the client-side length policy.
+// Implements: DIARY-GUI-password-forgot-workflow/P
+bool meetsPasswordPolicy(String pw) => pw.length >= minPasswordLength;
+
 sealed class LoginNext {
   const LoginNext();
   const factory LoginNext.session(String token) = LoginNextSession;

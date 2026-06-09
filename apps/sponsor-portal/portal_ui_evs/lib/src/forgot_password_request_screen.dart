@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'auth_scaffold.dart';
 import 'login_logic.dart';
 
 /// Two-state screen: request (email form) → confirmation.
@@ -58,61 +60,60 @@ class _ForgotPasswordRequestScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Reset your password')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: _confirmed ? _buildConfirmation(context) : _buildRequest(),
-          ),
+    if (_confirmed) {
+      return AuthScaffold(
+        semanticId: 'forgot-confirm-screen',
+        title: 'Check your email',
+        subtitle:
+            "If that email is registered, we've sent a reset link. It expires "
+            "in 24 hours. Check your spam folder if you don't see it.",
+        child: AuthLinkButton(
+          label: 'Back to Login',
+          onPressed: () => Navigator.of(context).pop(),
+          semanticId: 'back-to-login',
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _buildRequest() {
     final ready = isValidEmail(_email.text);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          controller: _email,
-          onChanged: (_) => setState(() {}),
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(labelText: 'Email'),
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: (!ready || _submitting) ? null : _submit,
-          child: Text(_submitting ? 'Sending…' : 'Send reset link'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Back to Login'),
-        ),
-      ],
-    );
-  }
+    final emailError = _email.text.isNotEmpty && !ready
+        ? 'Enter a valid email address.'
+        : null;
 
-  Widget _buildConfirmation(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          "If that email is registered, we've sent a reset link. "
-          'It expires in 24 hours. '
-          "Check your spam folder if you don't see it.",
-        ),
-        const SizedBox(height: 24),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Back to Login'),
-        ),
-      ],
+    return AuthScaffold(
+      semanticId: 'forgot-screen',
+      title: 'Forgot your password?',
+      subtitle: "Enter your email and we'll send you a link to reset it.",
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppTextField(
+            controller: _email,
+            label: 'Email',
+            hintText: 'Enter your email',
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            errorText: emailError,
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => (ready && !_submitting) ? _submit() : null,
+            semanticId: 'forgot-email',
+          ),
+          const SizedBox(height: 24),
+          AppButton(
+            label: 'Submit',
+            fullWidth: true,
+            loading: _submitting,
+            onPressed: ready ? _submit : null,
+            semanticId: 'forgot-submit',
+          ),
+          const SizedBox(height: 8),
+          AuthLinkButton(
+            label: 'Back to Login',
+            onPressed: () => Navigator.of(context).pop(),
+            semanticId: 'back-to-login',
+          ),
+        ],
+      ),
     );
   }
 }
