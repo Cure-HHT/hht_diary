@@ -134,11 +134,25 @@ build_images() {
   # CI/Cloud Run builds leave this empty and ship one environment-independent
   # bundle that resolves its environment from the server at runtime. The
   # portal-final image is owned by the SPONSOR repo and built in its context.
+  #
+  # BUILD_ID: unique per invocation (local-<6 hex>) so every rebuild stamps a
+  # distinct portal_ui_version. The pubspec semver rarely moves between local
+  # rebuilds, so the CI default (`+local`) made consecutive builds report the
+  # SAME version — the portal's stale-client detection could never tell a new
+  # local bundle shipped, and open tabs silently kept running the old one.
+  # With a per-build id the next /health check after a re-up auto-reloads the
+  # login screen / prompts an authenticated tab, same as a real deploy.
+  # Cheap: only the post-compile sed-stamping layer re-runs (seconds); the
+  # Flutter web compile layer still caches on source content.
+  local build_id
+  build_id="local-$(od -An -N3 -tx1 /dev/urandom | tr -d ' \n')"
+  log "    BUILD_ID=$build_id (cache-busting portal_ui_version stamp)"
   docker build \
     --file "$sponsor_repo/deployment/docker/portal-final.Dockerfile" \
     --build-arg "SPONSOR_CI_IMAGE=$ci" \
     --build-arg "PORTAL_SERVER_IMAGE=$pbin" \
     --build-arg "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099" \
+    --build-arg "BUILD_ID=$build_id" \
     --tag  "$pfinal" \
     "$sponsor_repo"
 
