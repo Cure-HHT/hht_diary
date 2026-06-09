@@ -2,6 +2,7 @@ import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 
 import '../models/site_option_view.dart';
+import 'panel_tint.dart';
 import 'user_lifecycle_dialogs.dart' show UserFlowBackLink;
 
 /// Splits a stored display name into the form's (first, last) fields:
@@ -210,7 +211,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
             semanticId: 'user-form-first-name',
             onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           AppTextField(
             label: 'Last Name',
             required: true,
@@ -219,7 +220,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
             semanticId: 'user-form-last-name',
             onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           AppTextField(
             label: 'Email',
             required: true,
@@ -229,7 +230,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
             semanticId: 'user-form-email',
             onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _FieldLabel(label: 'Roles', required: true),
           const SizedBox(height: 4),
           for (final role in widget.roleOptions)
@@ -398,6 +399,7 @@ class _SitesChecklist extends StatelessWidget {
       constraints: const BoxConstraints(maxHeight: 220),
       width: double.infinity,
       decoration: BoxDecoration(
+        color: kAdminPanelTint,
         border: Border.all(color: theme.colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(8),
       ),

@@ -655,55 +655,38 @@ class _HomeShellState extends State<_HomeShell> {
     ];
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Version details'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // Deploy counter (the deploy workflow's GitHub Actions
-              // run_number, global across dev/qa/uat) as the modal's topline —
-              // the "v XX" the app bar used to show pre-makeover. Deployed-only:
-              // PORTAL_DEPLOY_SEQ is unset off Cloud Run, so hide when absent.
-              if (widget.serverVersions['deploy'] case final String deploy
-                  when deploy.isNotEmpty) ...[
-                Text(
-                  'Deploy #$deploy',
-                  style: Theme.of(ctx).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
-              ],
-              if (rows.isEmpty)
-                const Text('No version information available.')
-              else
-                for (final r in rows)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        SizedBox(
-                          width: 150,
-                          child: Text(
-                            '${r.key}:',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        Expanded(child: SelectableText(r.value)),
-                      ],
-                    ),
-                  ),
+      builder: (ctx) => AppDialog(
+        size: AppDialogSize.small,
+        title: 'Version details',
+        semanticId: 'version-details-dialog',
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            // Deploy counter (the deploy workflow's GitHub Actions
+            // run_number, global across dev/qa/uat) as the modal's topline —
+            // the "v XX" the app bar used to show pre-makeover. Deployed-only:
+            // PORTAL_DEPLOY_SEQ is unset off Cloud Run, so hide when absent.
+            if (widget.serverVersions['deploy'] case final String deploy
+                when deploy.isNotEmpty) ...[
+              Text(
+                'Deploy #$deploy',
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
             ],
-          ),
+            if (rows.isEmpty)
+              const Text('No version information available.')
+            else
+              for (final r in rows)
+                AppInfoRow(label: r.key, valueWidget: SelectableText(r.value)),
+            const SizedBox(height: 8),
+          ],
         ),
         actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
-          ),
+          AppButton(label: 'Close', onPressed: () => Navigator.of(ctx).pop()),
         ],
       ),
     );

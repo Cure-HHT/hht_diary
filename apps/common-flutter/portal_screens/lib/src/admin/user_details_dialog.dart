@@ -5,13 +5,8 @@ import '../models/portal_user_view.dart';
 import '../models/site_option_view.dart';
 import '../models/user_status_view.dart';
 import '../widgets/role_pill.dart';
+import 'panel_tint.dart';
 import 'user_row_actions.dart';
-
-/// Soft mint fill behind the identity card (Figma: User Details). The
-/// design system's neutral surfaceContainer tones are gray; this panel
-/// carries the brand's pale teal tint, so the literal lives here in the
-/// consumer (raw color tokens are intentionally not exported).
-const Color _kIdentityCardFill = Color(0xFFF4F9F8);
 
 /// User Details dialog (Figma: User Details / User Information).
 ///
@@ -83,7 +78,7 @@ class UserDetailsDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           AppCard(
-            color: _kIdentityCardFill,
+            color: kAdminPanelTint,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,

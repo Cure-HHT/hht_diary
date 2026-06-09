@@ -58,7 +58,9 @@ class AppCheckbox extends StatelessWidget {
                   )
                 : null,
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: SpacingTokens.xs),
+              // xxs: the Figma role/site checklists run tighter than the
+              // default control rhythm.
+              padding: EdgeInsets.symmetric(vertical: SpacingTokens.xxs),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
