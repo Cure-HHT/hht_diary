@@ -54,6 +54,25 @@ void main() {
       final items = _config(all: false).itemsFor(MockData.adminUser);
       expect(items, const [UserRowAction.viewDetails]);
     });
+
+    test('own row never offers Edit or Deactivate '
+        '(DIARY-GUI-user-information-modal/K)', () {
+      final config = UserRowActionsConfig(
+        onAction: (_, _) {},
+        canEdit: true,
+        canDeactivate: true,
+        currentUserEmail: MockData.adminUser.email,
+      );
+      expect(config.itemsFor(MockData.adminUser), const [
+        UserRowAction.viewDetails,
+      ]);
+      // Other rows are unaffected.
+      expect(config.itemsFor(MockData.sarahJohnson), const [
+        UserRowAction.viewDetails,
+        UserRowAction.edit,
+        UserRowAction.deactivate,
+      ]);
+    });
   });
 
   group('UserRowMenu', () {

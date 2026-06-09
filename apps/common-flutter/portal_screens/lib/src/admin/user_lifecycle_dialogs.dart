@@ -1,5 +1,6 @@
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Deactivate User Account dialog (Figma: User Details / Deactivate
 /// User Account).
@@ -7,6 +8,8 @@ import 'package:flutter/material.dart';
 /// Red "Effects of this action" panel, a required reason field, and a
 /// destructive Confirm. [onSubmit] receives the trimmed reason and
 /// resolves to `null` on success or a user-facing error message.
+// Implements: DIARY-GUI-user-account-deactivate/B+C+D
+// Implements: DIARY-PRD-user-account-deactivate/F
 class DeactivateUserDialog extends StatelessWidget {
   const DeactivateUserDialog({
     super.key,
@@ -52,6 +55,8 @@ class DeactivateUserDialog extends StatelessWidget {
 
 /// Reactivate User Account dialog (Figma: User Details / Reactivate
 /// User Account).
+// Implements: DIARY-GUI-user-account-reactivate/B+C+D
+// Implements: DIARY-PRD-user-account-reactivate/D
 class ReactivateUserDialog extends StatelessWidget {
   const ReactivateUserDialog({
     super.key,
@@ -176,6 +181,9 @@ class _LifecycleConfirmDialogState extends State<_LifecycleConfirmDialog> {
             message: widget.effects.map((e) => '•  $e').join('\n'),
           ),
           const SizedBox(height: 16),
+          // Implements: DIARY-PRD-reason-field-constraints/A+B — submit
+          // is gated on a non-whitespace reason and input is capped at
+          // 100 characters.
           AppTextField(
             label: widget.reasonLabel,
             required: true,
@@ -183,6 +191,7 @@ class _LifecycleConfirmDialogState extends State<_LifecycleConfirmDialog> {
             enabled: !_submitting,
             minLines: 2,
             maxLines: 4,
+            inputFormatters: [LengthLimitingTextInputFormatter(100)],
             semanticId: '${widget.semanticId}-reason',
             onChanged: (v) => setState(() => _reason = v),
           ),

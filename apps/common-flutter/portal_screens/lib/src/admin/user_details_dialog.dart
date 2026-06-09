@@ -16,6 +16,7 @@ import 'user_row_actions.dart';
 ///
 /// Pure presentation: the caller resolves site labels and pre-computes
 /// the legal [actions] before opening.
+// Implements: DIARY-GUI-user-information-modal/A+B+I+J+L
 class UserDetailsDialog extends StatelessWidget {
   const UserDetailsDialog({
     super.key,

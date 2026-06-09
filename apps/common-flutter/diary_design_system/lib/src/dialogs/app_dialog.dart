@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../buttons/app_button.dart';
 import '../feedback/app_banner.dart';
@@ -386,12 +387,16 @@ class _ReasonDialogState extends State<_ReasonDialog> {
               onChanged: (v) => setState(() => _selected = v),
             )
           else
+            // Implements: DIARY-PRD-reason-field-constraints/A+B —
+            // submit stays disabled for whitespace-only input and the
+            // free-text reason is capped at 100 characters platform-wide.
             AppTextField(
               label: widget.reasonLabel,
               required: widget.requiredField,
               hintText: widget.hintText,
               maxLines: 3,
               minLines: 1,
+              inputFormatters: [LengthLimitingTextInputFormatter(100)],
               onChanged: (v) => setState(() => _text = v),
             ),
         ],

@@ -8,11 +8,6 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 import 'site_options.dart';
 import 'user_account_logic.dart';
 
-// Implements: DIARY-PRD-user-account-edit/A — Edit User dialog wiring
-//   (profile/email change + assignment diff realization).
-// Implements: DIARY-PRD-user-account-deactivate/A — Deactivate flow wiring
-//   (reason-required confirm -> ACT-USR-003).
-
 /// Human label for a denied/failed dispatch — shown inside dialog error
 /// banners.
 String dispatchDenialLabel(DispatchResult<Object?> r) => switch (r) {
@@ -92,6 +87,9 @@ Future<UserRowAction?> showUserDetailsFlow(
 /// Opens the Edit User dialog pre-filled from [user]; on Save dispatches
 /// the profile edit (when changed) followed by the assignment diff.
 /// Resolves to true when something was submitted successfully.
+// Implements: DIARY-GUI-user-information-modal/M
+// Implements: DIARY-PRD-user-account-edit/E — assignment changes dispatch
+//   immediately on save; enforcement is server-side.
 Future<bool?> showEditUserFlow(
   BuildContext context, {
   required PortalUserView user,
@@ -172,6 +170,7 @@ Future<String?> _saveEdit(
 }
 
 /// Deactivate confirmation -> ACT-USR-003. Resolves true on success.
+// Implements: DIARY-GUI-user-account-deactivate/B
 Future<bool?> showDeactivateUserFlow(
   BuildContext context, {
   required PortalUserView user,
@@ -185,6 +184,7 @@ Future<bool?> showDeactivateUserFlow(
 );
 
 /// Reactivate confirmation -> ACT-USR-004. Resolves true on success.
+// Implements: DIARY-GUI-user-account-reactivate/B
 Future<bool?> showReactivateUserFlow(
   BuildContext context, {
   required PortalUserView user,

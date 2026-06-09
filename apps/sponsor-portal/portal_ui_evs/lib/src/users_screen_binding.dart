@@ -25,7 +25,12 @@ import 'user_account_logic.dart';
 /// projections under CUR-1474), so in practice it opens whenever the outer
 /// gate does; the empty-assignments fallback remains as a defensive default.
 class UsersScreenBinding extends StatefulWidget {
-  const UsersScreenBinding({super.key});
+  const UsersScreenBinding({super.key, this.currentUserId});
+
+  /// The authenticated principal's userId (the account email). Forwarded
+  /// to the row-actions config so Edit / Deactivate are suppressed on
+  /// the admin's own row (DIARY-GUI-user-information-modal/K).
+  final String? currentUserId;
 
   /// Permission a role must hold to see the users tab + table at all.
   static const String viewUsersPermission = 'portal.user.view_accounts';
@@ -133,6 +138,7 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
             'portal.user.resend_activation',
           ),
           canUnlock: permissions.contains('portal.user.unlock'),
+          currentUserEmail: widget.currentUserId,
           inviteSentEmails: _inviteSent,
           onAction: (user, action) {
             unawaited(

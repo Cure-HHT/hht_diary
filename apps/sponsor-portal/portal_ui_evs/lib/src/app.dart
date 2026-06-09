@@ -592,7 +592,12 @@ class _HomeShellState extends State<_HomeShell> {
   /// reactive bindings (Phase 6.5); the rest still mount their legacy
   /// widgets pending their own redesign.
   Widget _screenFor(String label) => switch (label) {
-    'User Accounts' => const UsersScreenBinding(),
+    'User Accounts' => UsersScreenBinding(
+      currentUserId: switch (widget.principal) {
+        UserPrincipal(:final userId) => userId,
+        final p => p.id,
+      },
+    ),
     'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',
       serverUrl: _serverUrl,

@@ -279,6 +279,26 @@ void main() {
       expect(submitted, hasLength(2));
     });
 
+    testWidgets('reason input is capped at 100 characters '
+        '(DIARY-PRD-reason-field-constraints/B)', (tester) async {
+      String? seenReason;
+      await _pumpDialog(
+        tester,
+        DeactivateUserDialog(
+          userName: 'X',
+          onSubmit: (reason) async {
+            seenReason = reason;
+            return null;
+          },
+        ),
+      );
+      await tester.enterText(find.byType(TextFormField), 'a' * 150);
+      await tester.pump();
+      await tester.tap(find.widgetWithText(AppButton, 'Confirm'));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(seenReason, 'a' * 100);
+    });
+
     testWidgets('reactivate: primary confirm + info effects panel', (
       tester,
     ) async {

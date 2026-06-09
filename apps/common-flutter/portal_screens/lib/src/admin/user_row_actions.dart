@@ -30,11 +30,18 @@ class UserRowActionsConfig {
     this.canReactivate = false,
     this.canResendInvite = false,
     this.canUnlock = false,
+    this.currentUserEmail,
     this.inviteSentEmails = const <String>{},
   });
 
   /// Fired when a menu item is tapped.
   final void Function(PortalUserView user, UserRowAction action) onAction;
+
+  /// The authenticated user's own id/email. Edit and Deactivate are
+  /// suppressed on this row — self-edit and self-deactivation are
+  /// prohibited at the PRD level, and the GUI makes the unavailable
+  /// state visible instead of surfacing a server rejection.
+  final String? currentUserEmail;
 
   /// Permission-derived capability flags. `viewDetails` has no flag —
   /// anyone who can see the table may inspect a row.
@@ -51,17 +58,26 @@ class UserRowActionsConfig {
 
   /// The menu items legal for [user] — status-legal actions intersected
   /// with the held capabilities, in Figma order. [UserRowAction.viewDetails]
-  /// is always present so the kebab never renders an empty menu.
-  List<UserRowAction> itemsFor(PortalUserView user) => <UserRowAction>[
-    UserRowAction.viewDetails,
-    if (canEdit && _isEditable(user.status)) UserRowAction.edit,
-    if (canResendInvite && user.status == UserStatusView.pending)
-      UserRowAction.resendInvite,
-    if (canDeactivate && _isEditable(user.status)) UserRowAction.deactivate,
-    if (canReactivate && user.status == UserStatusView.revoked)
-      UserRowAction.reactivate,
-    if (canUnlock && user.status == UserStatusView.locked) UserRowAction.unlock,
-  ];
+  /// is always present so the kebab never renders an empty menu. The
+  /// authenticated user's own row never offers Edit or Deactivate.
+  // Implements: DIARY-GUI-user-account-deactivate/A
+  // Implements: DIARY-GUI-user-account-reactivate/A
+  // Implements: DIARY-GUI-user-information-modal/K
+  List<UserRowAction> itemsFor(PortalUserView user) {
+    final isSelf = user.email == currentUserEmail;
+    return <UserRowAction>[
+      UserRowAction.viewDetails,
+      if (canEdit && !isSelf && _isEditable(user.status)) UserRowAction.edit,
+      if (canResendInvite && user.status == UserStatusView.pending)
+        UserRowAction.resendInvite,
+      if (canDeactivate && !isSelf && _isEditable(user.status))
+        UserRowAction.deactivate,
+      if (canReactivate && user.status == UserStatusView.revoked)
+        UserRowAction.reactivate,
+      if (canUnlock && user.status == UserStatusView.locked)
+        UserRowAction.unlock,
+    ];
+  }
 
   bool inviteSentFor(PortalUserView user) =>
       inviteSentEmails.contains(user.email);
