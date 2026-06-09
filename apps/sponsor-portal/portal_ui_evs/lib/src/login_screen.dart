@@ -78,6 +78,10 @@ class _LoginScreenState extends State<LoginScreen> {
         case LoginNextSession(:final token):
           widget.onSession(token);
         case LoginNextOtp(:final maskedEmail):
+          // Clear the in-flight state before navigating so that returning from
+          // the OTP screen ("Back to Login") lands on a usable, re-submittable
+          // login form rather than one stuck disabled/loading.
+          setState(() => _busy = false);
           Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => OtpScreen(
