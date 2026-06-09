@@ -187,6 +187,33 @@ void main() {
       expect(submit().onPressed, isNotNull);
     });
 
+    testWidgets('malformed email blocks submit and shows the inline error '
+        'until corrected', (tester) async {
+      await _pumpDialog(
+        tester,
+        form(
+          initialFirstName: 'Emily',
+          initialLastName: 'Parker',
+          initialRoles: const {'Administrator'},
+        ),
+      );
+      AppButton submit() =>
+          tester.widget<AppButton>(find.widgetWithText(AppButton, 'Confirm'));
+
+      await tester.enterText(find.byType(TextFormField).at(2), 'not-an-email');
+      await tester.pump();
+      expect(find.text('Enter a valid email address.'), findsOneWidget);
+      expect(submit().onPressed, isNull);
+
+      await tester.enterText(
+        find.byType(TextFormField).at(2),
+        'eparker@clinicaltrial.com',
+      );
+      await tester.pump();
+      expect(find.text('Enter a valid email address.'), findsNothing);
+      expect(submit().onPressed, isNotNull);
+    });
+
     testWidgets('onSubmit error renders banner and keeps the form open', (
       tester,
     ) async {

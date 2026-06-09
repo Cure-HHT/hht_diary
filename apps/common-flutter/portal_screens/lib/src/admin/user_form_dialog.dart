@@ -5,6 +5,14 @@ import '../models/site_option_view.dart';
 import 'panel_tint.dart';
 import 'user_lifecycle_dialogs.dart' show UserFlowBackLink;
 
+/// Email-format gate for the user form (mirrors the login screen's
+/// rule): one non-whitespace local part, an @, and a dotted domain.
+/// The server stays authoritative; this only blocks obvious typos
+/// before an account is created against them.
+final RegExp _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+bool isValidUserEmail(String email) => _emailRe.hasMatch(email.trim());
+
 /// Splits a stored display name into the form's (first, last) fields:
 /// first token vs. remainder. The inverse of how the form composes the
 /// display name (`'$first $last'`), so round-trips are stable; names
@@ -142,12 +150,19 @@ class _UserFormDialogState extends State<UserFormDialog> {
   String get _composedName =>
       '${_firstName.text.trim()} ${_lastName.text.trim()}'.trim();
 
+  /// Inline error under the email field once the user has typed
+  /// something that isn't a plausible address.
+  String? get _emailError =>
+      _email.text.trim().isEmpty || isValidUserEmail(_email.text)
+      ? null
+      : 'Enter a valid email address.';
+
   bool get _canSubmit {
     if (_submitting) return false;
     if (_firstName.text.trim().isEmpty || _lastName.text.trim().isEmpty) {
       return false;
     }
-    if (_email.text.trim().isEmpty) return false;
+    if (!isValidUserEmail(_email.text)) return false;
     if (_roles.isEmpty) return false;
     if (_needsSites && _sites.isEmpty) return false;
     return true;
@@ -227,6 +242,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
             controller: _email,
             enabled: !_submitting,
             keyboardType: TextInputType.emailAddress,
+            errorText: _emailError,
             semanticId: 'user-form-email',
             onChanged: (_) => setState(() {}),
           ),
