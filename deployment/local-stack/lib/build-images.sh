@@ -97,16 +97,31 @@ build_images() {
   # firebase-emulator:local — sponsor-agnostic cached base image (JRE +
   # firebase-tools). The tag carries no sponsor suffix so cmd_down's
   # removal loop ignores it; the image survives `down` cycles for free.
-  # We always invoke `docker build` rather than skipping on tag-existence
-  # so a Dockerfile edit (e.g. bumping FIREBASE_TOOLS_VERSION) is picked
-  # up automatically. Docker's layer cache keeps the warm path to ~1-3s;
-  # cold-build is ~45s.
+  #
+  # Built ONLY when the tag is missing (or LOCAL_STACK_REBUILD_FB=1).
+  # Rebuilding every run looks free (layer cache) but is not stable:
+  # once BuildKit evicts this image's layers under disk pressure (routine
+  # after a day of Flutter image builds), the rebuild mints a NEW image
+  # ID, compose recreates the emulator container, and its in-memory
+  # accounts vanish — sign-ins fail with user-not-found until the portal
+  # boot seed re-provisions them. The stale-client banner steers users
+  # straight into that window after every portal rebuild, so the
+  # emulator container must stay put across portal rebuilds. To pick up
+  # a Dockerfile edit (e.g. a FIREBASE_TOOLS_VERSION bump):
+  #   LOCAL_STACK_REBUILD_FB=1 ./local-stack portal
+  # (or `down`, which removes :local images... except this one — use the
+  # env knob or `docker rmi firebase-emulator:local`).
   local fb="firebase-emulator:local"
-  log "[cache] $fb (~1-3s warm, ~45s cold)"
-  docker build \
-    --file "$SCRIPT_DIR/../firebase-emulator/Dockerfile" \
-    --tag  "$fb" \
-    "$SCRIPT_DIR/../firebase-emulator"
+  if [ "${LOCAL_STACK_REBUILD_FB:-0}" = "1" ] || \
+     ! docker image inspect "$fb" >/dev/null 2>&1; then
+    log "[cache] building $fb (~45s cold)"
+    docker build \
+      --file "$SCRIPT_DIR/../firebase-emulator/Dockerfile" \
+      --tag  "$fb" \
+      "$SCRIPT_DIR/../firebase-emulator"
+  else
+    log "[cache] $fb exists — skipping rebuild (LOCAL_STACK_REBUILD_FB=1 to force)"
+  fi
 
   local ci="sponsor-ci-${sponsor}:local"
   local pbin="portal-server-binary-${sponsor}:local"
