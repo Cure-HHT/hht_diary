@@ -53,7 +53,7 @@ void main() {
         await tester.pumpWidget(
           _harness(const RolePill(systemRole: 'StudyCoordinator')),
         );
-        expect(find.text('Site Study Coordinator'), findsOneWidget);
+        expect(find.text('Study Coordinator'), findsOneWidget);
       },
     );
 

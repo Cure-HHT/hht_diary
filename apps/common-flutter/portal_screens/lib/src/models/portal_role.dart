@@ -29,11 +29,11 @@ enum PortalRole {
     tone: AppBadgeTone.danger,
   ),
 
-  /// Per-site clinical workflow operator. Canonical label per the Figma
-  /// UI Pack; sponsors may still override (e.g. "Investigator").
+  /// Per-site clinical workflow operator. Sponsors may still override
+  /// the label per-tenant (e.g. "Investigator").
   studyCoordinator(
     systemName: 'StudyCoordinator',
-    canonicalDisplayName: 'Site Study Coordinator',
+    canonicalDisplayName: 'Study Coordinator',
     tone: AppBadgeTone.primary,
   ),
 

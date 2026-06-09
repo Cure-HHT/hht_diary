@@ -56,7 +56,7 @@ void main() {
 
       expect(find.text('Dr. Sarah Johnson'), findsOneWidget);
       expect(find.text('sjohnson@clinicaltrial.com'), findsOneWidget);
-      expect(find.text('Site Study Coordinator'), findsOneWidget);
+      expect(find.text('Study Coordinator'), findsOneWidget);
       expect(find.text('001 - Memorial Hospital'), findsOneWidget);
       // viewDetails is filtered out of the action list — we're already here.
       expect(find.text('View Details'), findsNothing);

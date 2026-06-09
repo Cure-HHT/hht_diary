@@ -38,7 +38,7 @@ class CreateUserDialog extends StatelessWidget {
       builder: (context, sites, sitesLoading) => UserFormDialog(
         title: 'Create User',
         subtitle:
-            'Add a new site study coordinator, CRA, or admin to '
+            'Add a new study coordinator, CRA, or admin to '
             'the system.',
         submitLabel: 'Confirm',
         roleOptions: roles,
