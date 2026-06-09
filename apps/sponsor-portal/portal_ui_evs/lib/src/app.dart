@@ -24,7 +24,10 @@ import 'password_reset_screen.dart';
 import 'session_activity_listener.dart';
 import 'session_config.dart';
 import 'session_timeout_controller.dart';
+import 'stale_client.dart';
+import 'update_available_banner.dart';
 import 'users_screen_binding.dart';
+import 'web_platform.dart';
 // Legacy screens still referenced for the destinations the redesign hasn't
 // touched yet (Sites / Participants / RAVE Sync) — they pass through unchanged
 // in this partial-integration phase (Phase 6.5).
@@ -60,7 +63,12 @@ const String _appVersion = String.fromEnvironment(
 );
 
 class PortalEvsApp extends StatefulWidget {
-  const PortalEvsApp({super.key});
+  const PortalEvsApp({super.key, this.web = const WebPlatform()});
+
+  /// Browser seam for service-worker eviction, full-document reload, and the
+  /// once-per-session auto-reload guard. Defaults to the real (web) impl;
+  /// tests inject a fake to assert reload/guard behaviour without a browser.
+  final WebPlatform web;
 
   @override
   State<PortalEvsApp> createState() => _PortalEvsAppState();
@@ -70,6 +78,23 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   late final RemoteScope _scope;
   late final StreamSubscription<AuthStatus> _authSub;
   AuthStatus _status = const NotAuthenticated();
+
+  /// Server version manifest from `GET /health` `.versions`. Fetched at boot
+  /// and on each transport reconnect; passed down to [_HomeShell] so the
+  /// "Deploy #N" label + version popup keep working from a single source.
+  Map<String, Object?> _serverVersions = const <String, Object?>{};
+
+  /// Whether the non-blocking "new version available" banner is shown. Set only
+  /// for an authenticated User (and as the login-screen loop-guard fallback);
+  /// the login screen otherwise auto-reloads rather than prompting.
+  bool _updateAvailable = false;
+
+  /// Transport-status subscription used to re-check the deployed version on
+  /// each reconnect — a deploy drains the old Cloud Run revision, dropping the
+  /// WS; the reconnect lands on the new revision, where `/health` reports the
+  /// new `portal_ui_version`. No polling timer is needed.
+  StreamSubscription<ConnectionStatus>? _connSub;
+  ConnectionStatus _lastConn = const Disconnected();
 
   /// Login-UI mode, resolved at runtime from `GET /config/identity` (`authMode`).
   /// Null while the config is still loading; `true` renders the Firebase
@@ -113,8 +138,76 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       setState(() => _status = next);
       unawaited(_syncTimeoutController(next));
     });
+    // Re-check the deployed version whenever the transport (re)connects. A
+    // deploy drops the WS (old revision drains); the reconnect lands on the new
+    // revision and a `/health` read surfaces the new `portal_ui_version`.
+    _lastConn = _scope.connectionStatus;
+    _connSub = _scope.connectionStatusStream.listen((status) {
+      final reconnected = status is Connected && _lastConn is! Connected;
+      _lastConn = status;
+      if (reconnected) unawaited(_checkServerVersion());
+    });
+    // One-shot boot check: catches a stale bundle already loaded (e.g. served
+    // by a legacy service worker) and seeds the version manifest for the popup.
+    unawaited(_checkServerVersion());
     _resolveAuthMode();
   }
+
+  /// Fetch `/health`, update the version manifest, and act on a version
+  /// mismatch. Event-driven (boot, reconnect, login attempt) — there is no
+  /// polling timer. [forceLoginScreen] treats the User as unauthenticated
+  /// regardless of [_status] for the login-attempt call site, so a logged-out
+  /// User who initiates sign-in on a stale bundle auto-reloads rather than
+  /// being prompted.
+  // Implements: DIARY-GUI-portal-stale-client-reload/A+B+C
+  Future<void> _checkServerVersion({bool forceLoginScreen = false}) async {
+    Map<String, Object?>? versions;
+    try {
+      // /health is public + same-origin; `.versions` carries portal_ui_version
+      // (the deployed bundle id), the deploy counter, and the rest.
+      final res = await http.get(Uri.parse('$_serverUrl/health'));
+      if (res.statusCode != 200) return;
+      final json = jsonDecode(res.body) as Map<String, Object?>;
+      final v = json['versions'];
+      if (v is Map) versions = Map<String, Object?>.from(v);
+    } catch (_) {
+      // Best-effort: an unreachable /health leaves the popup on the bundle
+      // version and never trips the (empty-guarded) staleness check.
+      return;
+    }
+    if (versions == null || !mounted) return;
+    final authenticated = !forceLoginScreen && _status is Authenticated;
+    final action = decideStaleClientAction(
+      clientVersion: _appVersion,
+      serverVersions: versions,
+      authenticated: authenticated,
+      autoReloadAlreadyTried: widget.web.autoReloadAlreadyTried,
+    );
+    switch (action) {
+      case StaleClientAction.none:
+        // Matched (or post-reload) build: re-arm the auto-reload guard so a
+        // later deploy in the same tab can auto-reload again.
+        widget.web.clearAutoReloadGuard();
+        setState(() {
+          _serverVersions = versions!;
+          _updateAvailable = false;
+        });
+      case StaleClientAction.banner:
+        setState(() {
+          _serverVersions = versions!;
+          _updateAvailable = true;
+        });
+      case StaleClientAction.reload:
+        setState(() => _serverVersions = versions!);
+        widget.web.markAutoReloadTried();
+        widget.web.reloadPage();
+    }
+  }
+
+  /// User-initiated reload from the update banner (authenticated path). Not
+  /// guarded — the User chose to reload, so it should always proceed.
+  // Implements: DIARY-GUI-portal-stale-client-reload/A
+  void _reloadForUpdate() => widget.web.reloadPage();
 
   /// Resolves the login-UI mode from the server's identity config. When the
   /// server reports `authMode == 'session'`, initialises Firebase from the same
@@ -139,6 +232,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   void dispose() {
     _timeoutController?.dispose();
     unawaited(_authSub.cancel());
+    unawaited(_connSub?.cancel());
     unawaited(_scope.dispose());
     super.dispose();
   }
@@ -149,6 +243,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// appends a single `|role`; the typed value (with any role) is used for the
   /// initial connect.
   void _onConnect(String identity) {
+    // Login attempt from the (unauthenticated) login screen: nothing to lose,
+    // so auto-reload onto the new bundle if this one is stale.
+    // Implements: DIARY-GUI-portal-stale-client-reload/B
+    unawaited(_checkServerVersion(forceLoginScreen: true));
     setState(() => _identityCredential = identity.split('|').first);
     _scope.authSession.setCredential(identity);
   }
@@ -157,6 +255,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// with Firebase. Stores the session token so [_HomeShell] can pass it to
   /// [RoleSelector].
   void _onSession(String token) {
+    // Login attempt from the (unauthenticated) login screen: auto-reload onto
+    // the new bundle if this one is stale.
+    // Implements: DIARY-GUI-portal-stale-client-reload/B
+    unawaited(_checkServerVersion(forceLoginScreen: true));
     setState(() => _identityCredential = token);
     _scope.authSession.setCredential(token);
   }
@@ -324,6 +426,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
         _HomeShell(
           principal: principal,
           identityCredential: _identityCredential,
+          serverVersions: _serverVersions,
           onDisconnect: () {
             _disconnect();
           },
@@ -374,7 +477,15 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
           font: AppFontFamily.inter,
           brightness: Brightness.light,
         ),
-        home: home,
+        // Non-blocking "new version available" strip above whatever home is
+        // showing (authenticated shell, or the login screen as a loop-guard
+        // fallback). Authenticated users are prompted, never auto-reloaded.
+        // Implements: DIARY-GUI-portal-stale-client-reload/A
+        home: UpdateAvailableBanner(
+          visible: _updateAvailable,
+          onReload: _reloadForUpdate,
+          child: home,
+        ),
       ),
     );
   }
@@ -391,11 +502,17 @@ class _HomeShell extends StatefulWidget {
     required this.principal,
     required this.onDisconnect,
     required this.onRoleSelected,
+    required this.serverVersions,
     this.identityCredential,
   });
 
   final Principal principal;
   final VoidCallback onDisconnect;
+
+  /// Server `/health` `.versions` manifest, fetched + kept fresh by
+  /// [_PortalEvsAppState] (boot + each reconnect). Drives the "Deploy #N"
+  /// app-bar label and the version-details popup.
+  final Map<String, Object?> serverVersions;
 
   /// Called with the chosen role string so the parent can update the
   /// credential claim (`credential|role`) and reconnect the WS.
@@ -422,18 +539,6 @@ class _HomeShellState extends State<_HomeShell> {
   /// nav visibility and per-screen gating react identically to a role switch.
   EffectiveAuthorization? _auth;
   StreamSubscription<EffectiveAuthorization?>? _permSub;
-
-  /// Server-reported version manifest from `GET /health` `.versions`:
-  /// `portal_server_evs` (semver+N), `server_commit`, `diary_app`,
-  /// `portal_deployment`, `deploy` (the deploy counter), `deploy_commit`.
-  /// The app-bar shows only the deploy counter; the rest live in the popup.
-  Map<String, Object?> _serverVersions = const <String, Object?>{};
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_loadServerVersions());
-  }
 
   @override
   void didChangeDependencies() {
@@ -468,23 +573,6 @@ class _HomeShellState extends State<_HomeShell> {
     _ => const SizedBox.shrink(),
   };
 
-  Future<void> _loadServerVersions() async {
-    try {
-      // /health is public + same-origin-reachable; .versions carries the
-      // server binary id, deploy counter, and the rest of the manifest.
-      final res = await http.get(Uri.parse('$_serverUrl/health'));
-      if (!mounted || res.statusCode != 200) return;
-      final json = jsonDecode(res.body) as Map<String, Object?>;
-      final v = json['versions'];
-      if (v is Map) {
-        setState(() => _serverVersions = Map<String, Object?>.from(v));
-      }
-    } catch (_) {
-      // Best-effort: if /health is unreachable, the label falls back to the
-      // bundle version and the popup just shows fewer rows.
-    }
-  }
-
   /// Popup listing the full version/provenance manifest. "Portal UI" is this
   /// bundle's own full version (APP_VERSION); the rest come from `/health` —
   /// including `diary_app`, the diary mobile-app version in the source this
@@ -501,7 +589,8 @@ class _HomeShellState extends State<_HomeShell> {
         'deploy': 'Deploy #',
         'deploy_commit': 'Deploy commit',
       }.entries)
-        if (_serverVersions[e.key] case final String val when val.isNotEmpty)
+        if (widget.serverVersions[e.key] case final String val
+            when val.isNotEmpty)
           MapEntry(e.value, val),
     ];
     showDialog<void>(
