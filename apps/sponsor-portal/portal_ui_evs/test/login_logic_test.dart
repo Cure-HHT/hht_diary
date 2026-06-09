@@ -49,4 +49,28 @@ void main() {
       const LoginNext.otp('b***@y'),
     );
   });
+
+  test('signInErrorForAuthCode: transport and rate-limit codes do not '
+      'blame the credentials', () {
+    expect(
+      signInErrorForAuthCode('network-request-failed'),
+      unreachableSignInError,
+    );
+    expect(
+      signInErrorForAuthCode('too-many-requests'),
+      tooManyAttemptsSignInError,
+    );
+    expect(signInErrorForAuthCode('wrong-password'), credentialSignInError);
+    expect(signInErrorForAuthCode('invalid-credential'), credentialSignInError);
+    // Unknown codes stay generic — nothing internal leaks to the form.
+    expect(signInErrorForAuthCode('weird-new-code'), credentialSignInError);
+  });
+
+  test('signInErrorForLoginStatus: 5xx is a service fault, 4xx a '
+      'rejected login', () {
+    expect(signInErrorForLoginStatus(401), credentialSignInError);
+    expect(signInErrorForLoginStatus(403), credentialSignInError);
+    expect(signInErrorForLoginStatus(500), serverSignInError);
+    expect(signInErrorForLoginStatus(503), serverSignInError);
+  });
 }

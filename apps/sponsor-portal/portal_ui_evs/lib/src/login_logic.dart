@@ -17,6 +17,35 @@ const int minPasswordLength = 8;
 // Implements: DIARY-GUI-password-forgot-workflow/P
 bool meetsPasswordPolicy(String pw) => pw.length >= minPasswordLength;
 
+/// Sign-in failure messages. A transport failure must NOT blame the
+/// user's credentials — "check your email and password" when the auth
+/// service was unreachable sends the user on a futile password-reset
+/// loop (seen on the local-stack when the auth emulator restarts under
+/// an open page).
+const String credentialSignInError =
+    'Sign-in failed. Check your email and password.';
+const String unreachableSignInError =
+    'Could not reach the sign-in service. Check your connection and '
+    'try again.';
+const String tooManyAttemptsSignInError =
+    'Too many sign-in attempts. Wait a moment and try again.';
+const String serverSignInError =
+    'The sign-in service reported an error. Try again in a moment.';
+
+/// Maps a FirebaseAuthException code to the login banner message.
+/// Unknown codes stay on the credential message so nothing internal
+/// leaks to the form.
+String signInErrorForAuthCode(String code) => switch (code) {
+  'network-request-failed' => unreachableSignInError,
+  'too-many-requests' => tooManyAttemptsSignInError,
+  _ => credentialSignInError,
+};
+
+/// Maps a non-200 POST /login status to the banner message: 5xx is a
+/// server-side fault, anything else is treated as a rejected login.
+String signInErrorForLoginStatus(int statusCode) =>
+    statusCode >= 500 ? serverSignInError : credentialSignInError;
+
 sealed class LoginNext {
   const LoginNext();
   const factory LoginNext.session(String token) = LoginNextSession;

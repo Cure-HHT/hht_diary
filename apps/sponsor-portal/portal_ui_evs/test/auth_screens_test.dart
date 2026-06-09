@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:diary_design_system/diary_design_system.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -20,9 +21,13 @@ import 'package:portal_ui_evs/src/role_selection_screen.dart';
 
 /// Controllable auth client: returns [token], errors, or hangs on [completer].
 class _FakeAuth implements FirebaseAuthClient {
-  _FakeAuth({this.throwError = false, this.completer});
+  _FakeAuth({this.throwError = false, this.completer, this.error});
   final bool throwError;
   final Completer<String>? completer;
+
+  /// Specific error to throw (e.g. a FirebaseAuthException). Takes
+  /// precedence over the generic [throwError].
+  final Object? error;
 
   @override
   Future<String> signInAndGetIdToken({
@@ -30,6 +35,7 @@ class _FakeAuth implements FirebaseAuthClient {
     required String password,
   }) {
     if (completer != null) return completer!.future;
+    if (error != null) return Future<String>.error(error!);
     if (throwError) return Future<String>.error(StateError('bad creds'));
     return Future<String>.value('idtok');
   }
@@ -192,6 +198,35 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(AppBanner), findsOneWidget);
       expect(find.textContaining('Sign-in failed'), findsOneWidget);
+    });
+
+    testWidgets('unreachable auth service shows the transport message, '
+        'not the credentials one', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          LoginScreen(
+            serverUrl: url,
+            authClient: _FakeAuth(
+              error: FirebaseAuthException(code: 'network-request-failed'),
+            ),
+            onSession: (_) {},
+            httpClient: _json(200, {'sessionToken': 'tok'}),
+          ),
+        ),
+      );
+      await tester.enterText(find.byType(TextFormField).at(0), 'a@b.org');
+      await tester.enterText(find.byType(TextFormField).at(1), 'pw');
+      await tester.pump();
+      await tester.tap(find.text('Sign In'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Could not reach the sign-in service'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Check your email and password'),
+        findsNothing,
+      );
     });
   });
 
