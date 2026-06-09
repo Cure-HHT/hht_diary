@@ -94,7 +94,7 @@ See: REQ-p00022 (Analyst Read-Only Access).
 *Defined in: DIARY-PRD-user-authentication (DIARY)*
 
 **Application Menu**
-: The menu accessed from the left side of the top navigation bar, grouping application-level functions.
+: The menu accessed from the right side of the top navigation bar, providing access to account, study, and support functions.
 *Defined in: DIARY-GUI-mobile-navigation (DIARY)*
 
 **Application Privacy Policy**
@@ -724,7 +724,7 @@ See: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078
 ## M
 
 **Main Screen**
-: The default screen displayed to the **Participant** upon opening the mobile application.
+: The default screen displayed to the **Participant** upon opening the **Mobile Application**.
 *Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
 **Mobile Application**
@@ -752,6 +752,10 @@ prd-architecture-multi-sponsor.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 ## N
+
+**Needs your attention**
+: The collapsible panel within the **Task List** zone that displays the count of active tasks and, when expanded, the individual task items requiring **Participant** action.
+*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
 **Next Cycle**
 : The **Cycle** value that will be assigned when the next **Questionnaire** of that **Questionnaire Type** is sent — the **Finalized Cycle** N incremented by 1.
@@ -895,7 +899,7 @@ ePROs.
 *Defined in: DIARY-PRD-questionnaire-system (DIARY)*
 
 **Questionnaire Task**
-: A task indicating a **Portal-Sent Questionnaire** has been sent to the **Participant** and has not yet been submitted.
+: A task indicating an **Assigned Questionnaire** has been sent to the **Participant** and has not yet been submitted.
 *Defined in: DIARY-GUI-participant-task-list (DIARY)*
 
 **Questionnaire Type**
@@ -1080,14 +1084,10 @@ See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
 : The participant action that signals all questions are answered and the Questionnaire is ready for Study Coordinator review.
 *Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
 
-**System Notice Area**
-: A dedicated zone at the top of the Main Screen reserved for persistent, non-dismissable system notices that require the Participant's attention.
-*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
-
 ## T
 
 **Task List**
-: The prioritized set of actionable items displayed on the **Participant's** **Main Screen** requiring **Participant** attention.
+: The prioritized set of actionable items displayed within the **Needs your attention** panel on the **Participant**'s **Main Screen**.
 *Defined in: DIARY-GUI-participant-task-list (DIARY)*
 
 **Terminal Cycle**
@@ -1151,9 +1151,9 @@ or more Roles.
 : A modal dialog displaying the details and available actions for a selected **User Account**.
 *Defined in: DIARY-GUI-user-management-tabs (DIARY)*
 
-**User Menu**
-: The menu accessed from the right side of the top navigation bar, grouping account and study-related actions.
-*Defined in: DIARY-GUI-mobile-navigation (DIARY)*
+**User Profile Screen**
+: The screen accessible from the **Application Menu** that displays the **Participant**'s study participation status and application settings.
+*Defined in: DIARY-GUI-user-profile (DIARY)*
 
 **UTC (Coordinated Universal Time)** *(not indexed)*
 : Primary time standard used worldwide, not affected by time zones or
@@ -1174,9 +1174,9 @@ Displayed in the user's local time zone in the Diary app and Portal.
 
 ## Y
 
-**Yesterday Reminder Task**
-: A task prompting the **Participant** to record a **Daily Status** for the previous day.
-*Defined in: DIARY-GUI-participant-task-list (DIARY)*
+**Yesterday Confirmation Prompt**
+: An inline prompt displayed within the **Your Records** content area under the Yesterday date section when the **Participant** has not recorded a **Daily Status** for the previous day.
+*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
 # References
 

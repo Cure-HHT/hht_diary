@@ -123,7 +123,7 @@ G. When a **Participant** is disconnected, the System SHALL release the binding 
 
 ### Rationale
 
-Disconnection sits between linking (the **Participant** is in *Trial*) and mark-as-not-participating (the **Participant** has left the *Trial*). It encodes the case where the link is operationally broken — a device fault, a connectivity issue, a temporary withdrawal — but the **Participant** is still expected to resume. Preserving all data and history is the audit-trail requirement; the disconnection event must not erase the historical record. Continuing to apply *Sponsor*-specific rules to the **Mobile Application** is the operational requirement; the **Participant** should still see locked records, validation rules, and *Questionnaire* restrictions that apply to their *Trial* *Role*, because they may reconnect at any time and the **Mobile Application** must not silently revert to personal-use behavior in the interim. The reason format is *Sponsor*-configurable because some sponsors require a controlled vocabulary for downstream analysis (CAL- overlay encodes one such list) while others want free-text capture.
+Disconnection sits between linking (the **Participant** is in *Trial*) and mark-as-not-participating (the **Participant** has left the *Trial*). It encodes the case where the link is operationally broken — a device fault, a connectivity issue, a temporary withdrawal — but the **Participant** is still expected to resume. Preserving all data and history is the audit-trail requirement; the disconnection event must not erase the historical record. Continuing to apply *Sponsor*-specific rules to the **Mobile Application** is the operational requirement; the **Participant** should still see locked records, validation rules, and *Questionnaire* restrictions that apply to their *Trial* *Role*, because they may reconnect at any time and the **Mobile Application** must not silently revert to personal-use behavior in the interim. The reason format is *Sponsor*-configurable because some sponsors require a controlled vocabulary for downstream analysis (a *Sponsor* overlay encodes one such list) while others want free-text capture.
 
 *End* *Participant Disconnection Workflow* | **Hash**: d449c26a
 
@@ -175,7 +175,7 @@ D. When the *Action* is confirmed, the System SHALL stop applying *Sponsor*-spec
 
 ### Rationale
 
-Mark-as-not-participating is the off-*Trial* state: the **Participant** has either completed the protocol or withdrawn, and the platform no longer needs to enforce *Trial*-specific rules against their device. Routing the *Action* through **Disconnected** as a precondition keeps the lifecycle linear (Linked → Disconnected → Not Participating) and prevents the case where a still-actively-linked device suddenly loses its *Trial* constraints without the Coordinator first severing the link. Removing *Sponsor*-specific rules from the **Mobile Application** lets a former **Participant** retain personal use of the app post-*Trial* without remaining subject to record-locking, validation thresholds, or reminder schedules that were specific to their *Trial* *Role*. Reason capture mirrors disconnection's pattern, with the controlled-vocabulary case being more common for end-of-*Trial* reporting (CAL- overlay encodes the predefined list this deployment uses).
+Mark-as-not-participating is the off-*Trial* state: the **Participant** has either completed the protocol or withdrawn, and the platform no longer needs to enforce *Trial*-specific rules against their device. Routing the *Action* through **Disconnected** as a precondition keeps the lifecycle linear (Linked → Disconnected → Not Participating) and prevents the case where a still-actively-linked device suddenly loses its *Trial* constraints without the Coordinator first severing the link. Removing *Sponsor*-specific rules from the **Mobile Application** lets a former **Participant** retain personal use of the app post-*Trial* without remaining subject to record-locking, validation thresholds, or reminder schedules that were specific to their *Trial* *Role*. Reason capture mirrors disconnection's pattern, with the controlled-vocabulary case being more common for end-of-*Trial* reporting (a *Sponsor* overlay encodes the predefined list a given study uses).
 
 *End* *Mark as Not Participating* | **Hash**: 84fb8bf2
 
@@ -255,13 +255,13 @@ N. The interface SHALL present the actions available in the **Participant Action
 
 **Action Availability**
 
-O. The interface SHALL display the primary *Action* in the *Action* column and the secondary actions in the **Participant Actions Modal** according to the *Action* availability table defined in CAL-GUI-*Participant*-dashboard-configuration.
+O. The interface SHALL display the primary *Action* in the *Action* column and the secondary actions in the **Participant Actions Modal** according to the *Sponsor*-configured *Action* availability table.
 
 ### Rationale
 
 The **Participant Dashboard** is the *Study Coordinator*'s daily working surface, and its design choices favor speed and accuracy over visual variety. Tab-by-status organisation keeps the candidate set for any given *Action* small and self-consistent — a Coordinator looking to disconnect a **Participant** finds them under the Active tab, never mixed with **Not Connected** rows. Cross-tab partial-match search supports the recurring "find this specific **Participant** ID" workflow without forcing the Coordinator to first guess which tab they live under. Tab counts that update with the search reflect the same scoping rule, so the Coordinator can see at a glance whether the search matched within each status grouping. Row selection opens the modal rather than navigating away because the dashboard context (other **Participants**, current tab, search state) must remain visible behind the modal for the common workflow of consecutive lookups.
 
-*End* *Participant Dashboard* | **Hash**: ce22fd18
+*End* *Participant Dashboard* | **Hash**: 023f392e
 
 ## DIARY-GUI-show-linking-code: Show Linking Code
 

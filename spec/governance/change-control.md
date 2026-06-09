@@ -35,7 +35,7 @@ effectiveness, or data integrity now requires a CCF, and the corresponding
 PR MUST reference the approved Change Control Number, e.g.:
 
 ```text
-# Verifies: REQ-CAL-p00029-A; Approved per CCF-2026-001
+# Verifies: REQ-DIARY-p00029-A; Approved per CCF-2026-001
 ```
 
 ## Change Categories

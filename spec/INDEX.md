@@ -20,7 +20,7 @@
 | DIARY-PRD-entry-duration-check                   | Duration Reasonableness Check                       | prd-diary-entry-rules.md                  | fa7bd4b8 |
 | DIARY-PRD-entry-overlap-resolution               | Overlapping Event Detection and Resolution          | prd-diary-entry-rules.md                  | 1069b1e5 |
 | DIARY-PRD-entry-time-restrictions                | Time-Based Entry Restrictions                       | prd-diary-entry-rules.md                  | 7edebe14 |
-| DIARY-PRD-epistaxis-capture-standard             | HHT Epistaxis Data Capture Standard                 | prd-epistaxis.md                          | ffddaa95 |
+| DIARY-PRD-epistaxis-capture-standard             | HHT Epistaxis Data Capture Standard                 | prd-epistaxis.md                          | 20e8ce77 |
 | DIARY-PRD-evidence-bitcoin-timestamp             | Bitcoin-Based Timestamp Implementation              | prd-evidence-records.md                   | cd352683 |
 | DIARY-PRD-evidence-device-fingerprint            | Device Fingerprinting                               | prd-evidence-records.md                   | a0cc9ff7 |
 | DIARY-PRD-evidence-email-identity                | Hashed Email Identity Verification                  | prd-evidence-records.md                   | 01c59686 |
@@ -113,6 +113,7 @@
 
 | ID                                           | Title                                      | File                                      | Hash     |
 | -------------------------------------------- | ------------------------------------------ | ----------------------------------------- | -------- |
+| DIARY-GUI-accessibility-preferences          | Accessibility and Preferences              | prd-mobile-navigation.md                  | 95c62ef0 |
 | DIARY-GUI-administrator-dashboard            | Administrator Dashboard                    | prd-user-account.md                       | a0642fc7 |
 | DIARY-GUI-administrator-settings             | Administrator Settings Interface           | prd-administrator-settings.md             | b3c6cc2f |
 | DIARY-GUI-audit-log-administrator            | Administrator Audit Log View               | prd-audit-log.md                          | 1f44ba79 |
@@ -127,10 +128,10 @@
 | DIARY-GUI-join-study-screen                  | Join the Study Screen                      | prd-device-linking.md                     | 8aff3bce |
 | DIARY-GUI-link-participant-flow              | Link Participant Flow                      | prd-participant.md                        | 9c9abfe0 |
 | DIARY-GUI-linking-confirmation               | Successful Linking Confirmation            | prd-device-linking.md                     | b2e4c450 |
-| DIARY-GUI-main-screen-layout                 | Main Screen Layout                         | prd-mobile-navigation.md                  | 0e9dccb1 |
-| DIARY-GUI-mobile-navigation                  | Mobile Application Navigation and Screens  | prd-mobile-navigation.md                  | ecc7e268 |
-| DIARY-GUI-participant-dashboard              | Participant Dashboard                      | prd-participant.md                        | ce22fd18 |
-| DIARY-GUI-participant-task-list              | Participant Task List                      | prd-mobile-notifications.md               | 916aca8a |
+| DIARY-GUI-main-screen-layout                 | Main Screen Layout                         | prd-mobile-navigation.md                  | 29975741 |
+| DIARY-GUI-mobile-navigation                  | Mobile Application Navigation and Screens  | prd-mobile-navigation.md                  | 059118bb |
+| DIARY-GUI-participant-dashboard              | Participant Dashboard                      | prd-participant.md                        | 023f392e |
+| DIARY-GUI-participant-task-list              | Participant Task List                      | prd-mobile-notifications.md               | bd0b6947 |
 | DIARY-GUI-participation-status-badge         | Participation Status Badge                 | prd-mobile-notifications.md               | 6f306233 |
 | DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface         | prd-portal-auth.md                        | d41e7764 |
 | DIARY-GUI-portal-session-expiry              | Portal session expiry interface            | prd-portal-auth.md                        | 0a1581a9 |
@@ -147,6 +148,7 @@
 | DIARY-GUI-user-authentication                | Diary User Authentication — Interface      | prd-mobile-app.md                         | 86acaf51 |
 | DIARY-GUI-user-information-modal             | User Information Modal                     | prd-user-account.md                       | 378c3dcd |
 | DIARY-GUI-user-management-tabs               | User Management Tabs                       | prd-user-account.md                       | f36341b4 |
+| DIARY-GUI-user-profile                       | User Profile Screen                        | prd-mobile-navigation.md                  | c915b967 |
 
 ## OPERATIONS
 
