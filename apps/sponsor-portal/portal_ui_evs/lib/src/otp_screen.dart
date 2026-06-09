@@ -84,15 +84,21 @@ class _OtpScreenState extends State<OtpScreen> {
       _notice = null;
     });
     try {
-      await _http.post(
+      final r = await _http.post(
         Uri.parse('${widget.serverUrl}/login'),
         headers: const {'Content-Type': 'application/json'},
         body: jsonEncode({'idToken': widget.idToken}),
       );
       if (!mounted) return;
+      // Only claim success on a 2xx; a non-200 (e.g. expired idToken) means no
+      // new code was issued, so surface an error instead of a misleading notice.
       setState(() {
         _resending = false;
-        _notice = 'A new code has been sent to your email.';
+        if (r.statusCode == 200) {
+          _notice = 'A new code has been sent to your email.';
+        } else {
+          _error = "Couldn't resend the code. Please restart sign-in.";
+        }
       });
     } catch (_) {
       if (!mounted) return;
