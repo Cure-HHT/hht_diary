@@ -8,7 +8,7 @@ The **Participant** lifecycle in the **Sponsor Portal** is governed by linking-c
 
 ### Overview
 
-The **Mobile **Linking Code** mechanism provides a secure, time-limited channel through which clinical staff can link a Participant**'s device to the **Sponsor Portal** without requiring the **Participant** to authenticate directly. Single-use enforcement and unpredictability ensure that codes cannot be reused or guessed, while configurable expiry balances security with the practical time **Participants** need to complete the linking process.
+The **Mobile Linking Code** mechanism provides a secure, time-limited channel through which a *Study Coordinator* can link a **Participant**'s device to the **Sponsor Portal** without requiring the **Participant** to authenticate directly. Each code is randomly generated and valid for a single use, so it cannot be predicted or reused. The expiry duration is configurable per study, so each study can set a window that gives participants enough time to complete the linking process.
 
 
 Mobile Linking Code

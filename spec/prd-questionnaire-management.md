@@ -8,7 +8,7 @@ The platform's **Questionnaire** system rests on a clinical *Questionnaire* foun
 
 ### Overview
 
-Clinical trials use structured questionnaires to collect reliable data in a consistent and compliant way. The questionnaires are carefully built to ensure accuracy and a good *Participant* experience. New questionnaires can be added as needed, and the content always comes from approved documents, not edited directly in the app. This requirement is the foundation that all other *Questionnaire*-handling requirements refine.
+Clinical trials use structured questionnaires to collect reliable data in a consistent and compliant way. The questionnaires are carefully built to ensure accuracy and a good *Participant* experience. New questionnaires can be added as needed, and the content always comes from approved documents, not edited directly in the app.
 
 
 Questionnaire

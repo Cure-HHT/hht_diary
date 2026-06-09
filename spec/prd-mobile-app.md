@@ -12,7 +12,7 @@ The *Mobile Application* serves dual purposes: personal health tracking for indi
 
 
 Mobile Application
-: The iOS and Android application provided by the System for participant-reported diary data capture and questionnaire completion. Operates in personal use mode without an account or in linked use mode connected to a **Sponsor Portal** deployment.
+: The *Mobile Application* (iOS and Android) operates in personal use mode with no account required, or in linked use mode connected to a **Sponsor Portal**.
 
 User
 : An individual using the **Mobile Application** in personal use mode, without an account and without a link to a clinical trial. A User who subsequently links to a study becomes a **Participant**.
@@ -70,7 +70,7 @@ E. For linked **Participants**, the System SHALL automatically synchronize unsyn
 
 ### Overview
 
-Clinical *Trial* **Participants** may need to record nosebleeds that occurred before their first *Mobile Application* usage. The **Diary Start Day** establishes the earliest date for which *Diary* entries are valid, balancing the need for historical data capture with the requirement to maintain reliable data quality. The **Diary Start Day** is set automatically based on the **Participant**'s actual entries, when a **Participant** records data for a date earlier than any prior entry, the **Diary Start Day** moves backward to that date. The **Diary Start Day** never moves forward, even if the earliest entry is subsequently deleted, to preserve the historical scope of the *Diary* and ensure that documented gaps remain visible.
+The **Diary Start Day** establishes the earliest date for which *Diary* entries are valid, balancing the need for historical data capture with the requirement to maintain reliable data quality. The **Diary Start Day** is set automatically based on the **Participant**'s actual entries, when a **Participant** records data for a date earlier than any prior entry, the **Diary Start Day** moves backward to that date. The **Diary Start Day** never moves forward, even if the earliest entry is subsequently deleted, to preserve the historical scope of the *Diary* and ensure that documented gaps remain visible.
 
 
 Diary Start Day

@@ -1495,7 +1495,6 @@
 - rem:spec/prd-mobile-app.md:1
 - rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-mobile-application:section:0
-- DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-diary-start-day:section:1
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
@@ -1541,6 +1540,7 @@
 - DIARY-GUI-link-participant-flow-B
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-GUI-join-study-screen:section:0
+- DIARY-PRD-linking-code-lifecycle:section:0
 - DIARY-PRD-linking-code-lifecycle:section:6
 - DIARY-PRD-participant-reconnection:section:0
 
@@ -2442,7 +2442,6 @@
 - DIARY-GUI-portal-session-expiry:section:1
 - rem:spec/prd-questionnaire-management.md:1
 - rem:spec/prd-questionnaire-management.md:3
-- DIARY-PRD-questionnaire-system:section:0
 - DIARY-PRD-questionnaire-system:section:4
 - DIARY-PRD-questionnaire-sponsor-configuration:section:0
 - DIARY-PRD-questionnaire-sponsor-configuration:section:1
@@ -3482,6 +3481,7 @@
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
 - DIARY-PRD-notification-portal-sent-questionnaire:section:4
 - rem:spec/prd-participant.md:3
+- DIARY-PRD-linking-code-lifecycle:section:0
 - DIARY-PRD-linking-code-lifecycle:section:6
 - DIARY-PRD-participant-link-new:section:1
 - DIARY-PRD-participant-mark-not-participating:section:0
@@ -3658,7 +3658,6 @@
 - DIARY-PRD-evidence-email-identity:section:0
 - DIARY-PRD-mobile-application:section:0
 - DIARY-PRD-mobile-application:section:1
-- DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-diary-start-day:section:1
 - DIARY-PRD-privacy-policy:section:1
 - DIARY-GUI-accessibility-preferences:section:1

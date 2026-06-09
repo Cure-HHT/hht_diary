@@ -15,7 +15,7 @@ User Account
 : The complete set of identity, credential, and authorization data that the **Sponsor Portal** maintains for a single human user.
 
 Full Name
-: A common name, which is **PII**, of the person associated with a **User Account** that identifies a specific individual in the context of the **Sponsor Portal**.
+: The full name of the person associated with a **User Account**, comprising two separate fields: First Name (given name) and Last Name (family name). Personally identifiable information (**PII**) that identifies a specific individual in the context of the **Sponsor Portal**.
 
 Email Address
 : A unique technical identifier used as a destination for system notifications and as a username for authentication to access the system.

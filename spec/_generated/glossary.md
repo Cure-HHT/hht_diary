@@ -520,7 +520,7 @@ prd-clinical-trials.md.
 *Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
 
 **Full Name**
-: A common name, which is **PII**, of the person associated with a **User Account** that identifies a specific individual in the context of the **Sponsor Portal**.
+: The full name of the person associated with a **User Account**, comprising two separate fields: First Name (given name) and Last Name (family name). Personally identifiable information (**PII**) that identifies a specific individual in the context of the **Sponsor Portal**.
 *Defined in: DIARY-PRD-user-account-create (DIARY)*
 
 ## G
@@ -728,7 +728,7 @@ See: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078
 *Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
 **Mobile Application**
-: The iOS and Android application provided by the System for participant-reported diary data capture and questionnaire completion. Operates in personal use mode without an account or in linked use mode connected to a **Sponsor Portal** deployment.
+: The *Mobile Application* (iOS and Android) operates in personal use mode with no account required, or in linked use mode connected to a **Sponsor Portal**.
 *Defined in: DIARY-PRD-mobile-application (DIARY)*
 
 **Mobile Linking Code**
