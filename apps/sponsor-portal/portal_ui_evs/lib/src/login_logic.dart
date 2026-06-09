@@ -1,7 +1,10 @@
-// Implements: DIARY-PRD-two-factor-authentication/B (client-side form gating)
-final _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+import 'package:portal_screens/portal_screens.dart' show isValidUserEmail;
 
-bool isValidEmail(String email) => _emailRe.hasMatch(email);
+// Implements: DIARY-PRD-two-factor-authentication/B (client-side form gating)
+// Single email-format rule shared with the Create/Edit User form —
+// defined once in portal_screens (the package this app already depends
+// on), delegated to here.
+bool isValidEmail(String email) => isValidUserEmail(email);
 
 bool loginFormReady({required String email, required String password}) =>
     isValidEmail(email) && password.isNotEmpty;
