@@ -3,7 +3,6 @@
 //   the framework default `view:<projection>`. Projections backing an inventory
 //   entity-read Action reuse that Action's permission (A); internal feeds gate
 //   on their ACT-SEE-* View Action permission (B).
-import 'package:reaction/reaction.dart' show ViewPermissionNamer;
 
 /// Projection view-name -> the Action permission name required to subscribe.
 ///
@@ -21,11 +20,10 @@ const Map<String, String> _viewPermissionByProjection = <String, String>{
   'diary_entries': 'portal.diary.view_entries', // ACT-SEE-004
 };
 
-/// The portal's [ViewPermissionNamer]. A registered projection gates on its
-/// Action permission. An UNREGISTERED projection fails closed: it returns the
-/// framework-style `view:<name>` sentinel, which no role holds (all role grants
-/// are Action permissions now), so the subscription is denied rather than
-/// silently allowed.
-// ignore: prefer_function_declarations_over_variables
-final ViewPermissionNamer portalViewPermissionNamer = (String viewName) =>
+/// The portal's `ViewPermissionNamer` implementation. A registered projection
+/// gates on its Action permission. An UNREGISTERED projection fails closed: it
+/// returns the framework-style `view:<name>` sentinel, which no role holds (all
+/// role grants are Action permissions now), so the subscription is denied
+/// rather than silently allowed.
+String portalViewPermissionNamer(String viewName) =>
     _viewPermissionByProjection[viewName] ?? 'view:$viewName';

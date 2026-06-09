@@ -27,14 +27,18 @@ void main() {
       },
     );
 
-    // Verifies: DIARY-GUI-role-switching/E+F
-    test('a StudyCoordinator-like set has no Phase-6.5 sections', () {
+    // Verifies: DIARY-GUI-role-switching/E+F — a StudyCoordinator holds
+    //   portal.audit.view (CUR-1474 matrix fix) but not
+    //   portal.user.view_accounts, so it sees Audit Log only. Its other grants
+    //   (Sites/Participants/RAVE Sync) gate sections not shipped in Phase 6.5.
+    test('a StudyCoordinator-like set sees only Audit Log', () {
       final held = <String>{
         'portal.site.view',
         'portal.participant.view',
         'portal.rave.view_sync',
+        'portal.audit.view',
       };
-      expect(visibleSections(held), isEmpty);
+      expect(_labels(visibleSections(held)), <String>['Audit Log']);
     });
 
     // Verifies: DIARY-GUI-role-switching/E+F — SystemOperator holds
