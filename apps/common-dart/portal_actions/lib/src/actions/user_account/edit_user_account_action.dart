@@ -6,6 +6,7 @@
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../portal_permissions.dart';
+import '../../user_email_format.dart';
 
 class EditUserAccountInput {
   EditUserAccountInput({
@@ -77,6 +78,13 @@ class EditUserAccountAction
         input.newEmail != null && input.newEmail!.trim().isNotEmpty;
     if (!(nameChanged || emailChanged)) {
       throw ArgumentError('no change requested');
+    }
+    if (emailChanged && !isValidAccountEmail(input.newEmail!)) {
+      throw ArgumentError.value(
+        input.newEmail,
+        'newEmail',
+        'must be a valid email address',
+      );
     }
   }
 

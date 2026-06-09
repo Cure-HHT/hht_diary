@@ -5,6 +5,28 @@ import 'package:portal_actions/portal_actions.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('validate rejects a malformed newEmail', () {
+    final action = EditUserAccountAction();
+    expect(
+      () => action.validate(
+        EditUserAccountInput(
+          userId: 'u-1',
+          name: null,
+          newEmail: 'not-an-email',
+        ),
+      ),
+      throwsArgumentError,
+    );
+    // A valid address still passes.
+    action.validate(
+      EditUserAccountInput(
+        userId: 'u-1',
+        name: null,
+        newEmail: 'new@example.com',
+      ),
+    );
+  });
+
   final action = EditUserAccountAction();
   final ctx = ActionContext(
     principal: Principal.user(
