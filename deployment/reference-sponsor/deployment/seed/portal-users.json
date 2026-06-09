@@ -1,5 +1,5 @@
 {
-  "_comment": "Reference seed-users for the no-sponsor local-stack (read by portal_server_evs via PORTAL_SEED_USERS_PATH; parsed by seed_config.dart). Applied idempotently on boot. One user per role so a core dev can exercise every role's portal UI from hht_diary alone. Under PORTAL_AUTH_MODE=dev the userId (an email) is typed verbatim with no password. Under PORTAL_AUTH_MODE=session the local-stack sets PORTAL_DEV_SEED_PASSWORD=example, so seedTestAccountActivations provisions each email in the Firebase emulator with the shared password 'example' and marks it active -- log in with e.g. admin@reference.local / example (no activation link; no email PIN while PORTAL_SEED_REQUIRE_2FA=false). Scopes mirror the canonical bootstrap-admin assignment (site wildcard + tier:staff for staff-tier roles; tier+site wildcard for SystemOperator).",
+  "_comment": "Reference seed-users for the no-sponsor local-stack (read by portal_server_evs via PORTAL_SEED_USERS_PATH; parsed by seed_config.dart). Applied idempotently on boot. One user per role so a core dev can exercise every role's portal UI from hht_diary alone. Under PORTAL_AUTH_MODE=dev the userId (an email) is typed verbatim with no password. Under PORTAL_AUTH_MODE=session the local-stack sets PORTAL_DEV_SEED_PASSWORD=example, so seedTestAccountActivations provisions each email in the Firebase emulator with the shared password 'example' and marks it active -- log in with e.g. admin@reference.local / example (no activation link; no email PIN while PORTAL_SEED_REQUIRE_2FA=false). Admin/SystemOperator scopes mirror the canonical bootstrap-admin assignment (site wildcard + tier:staff; tier+site wildcard for SystemOperator). The site-scoped roles (StudyCoordinator, CRA) are bound to single dev sites (site-1/site-2 from DevSeedRaveClient) to mirror the production model -- explicit per-site assignments, never wildcards.",
   "users": [
     {
       "userId": "sysop@reference.local",
@@ -18,13 +18,13 @@
     {
       "userId": "cra@reference.local",
       "assignments": [
-        { "role": "CRA", "scope": { "class": "site", "wildcard": true } }
+        { "role": "CRA", "scope": { "class": "site", "value": "site-2" } }
       ]
     },
     {
       "userId": "sc@reference.local",
       "assignments": [
-        { "role": "StudyCoordinator", "scope": { "class": "site", "wildcard": true } }
+        { "role": "StudyCoordinator", "scope": { "class": "site", "value": "site-1" } }
       ]
     },
     {
