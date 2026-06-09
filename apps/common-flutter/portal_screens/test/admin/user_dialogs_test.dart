@@ -56,7 +56,7 @@ void main() {
 
       expect(find.text('Dr. Sarah Johnson'), findsOneWidget);
       expect(find.text('sjohnson@clinicaltrial.com'), findsOneWidget);
-      expect(find.text('Study Coordinator'), findsOneWidget);
+      expect(find.text('Site Study Coordinator'), findsOneWidget);
       expect(find.text('001 - Memorial Hospital'), findsOneWidget);
       // viewDetails is filtered out of the action list — we're already here.
       expect(find.text('View Details'), findsNothing);
@@ -104,13 +104,23 @@ void main() {
     });
   });
 
+  group('splitDisplayName', () {
+    test('first token vs remainder; round-trips the composed form', () {
+      expect(splitDisplayName('Emily Parker'), ('Emily', 'Parker'));
+      expect(splitDisplayName('Dr. Emily Parker'), ('Dr.', 'Emily Parker'));
+      expect(splitDisplayName('Cher'), ('Cher', ''));
+      expect(splitDisplayName('  Emily  Parker '), ('Emily', 'Parker'));
+    });
+  });
+
   group('UserFormDialog', () {
     Widget form({
       Future<String?> Function(UserFormData)? onSubmit,
       String? warning,
       Set<String> initialRoles = const <String>{},
       Set<String> initialSites = const <String>{},
-      String initialName = '',
+      String initialFirstName = '',
+      String initialLastName = '',
       String initialEmail = '',
     }) => UserFormDialog(
       title: 'Create User',
@@ -120,7 +130,8 @@ void main() {
       siteScopedRoles: const {'StudyCoordinator', 'CRA'},
       siteOptions: _sites,
       warning: warning,
-      initialName: initialName,
+      initialFirstName: initialFirstName,
+      initialLastName: initialLastName,
       initialEmail: initialEmail,
       initialRoles: initialRoles,
       initialSites: initialSites,
@@ -135,12 +146,10 @@ void main() {
           tester.widget<AppButton>(find.widgetWithText(AppButton, 'Confirm'));
       expect(submit().onPressed, isNull);
 
+      await tester.enterText(find.byType(TextFormField).at(0), 'Emily');
+      await tester.enterText(find.byType(TextFormField).at(1), 'Parker');
       await tester.enterText(
-        find.byType(TextFormField).first,
-        'Dr. Emily Parker',
-      );
-      await tester.enterText(
-        find.byType(TextFormField).last,
+        find.byType(TextFormField).at(2),
         'eparker@clinicaltrial.com',
       );
       await tester.pump();
@@ -171,7 +180,8 @@ void main() {
       await _pumpDialog(
         tester,
         form(
-          initialName: 'X',
+          initialFirstName: 'X',
+          initialLastName: 'Y',
           initialEmail: 'x@y.z',
           initialRoles: const {'Administrator'},
           onSubmit: (_) async => 'Create denied: denied (portal.user.create)',
@@ -191,7 +201,8 @@ void main() {
       await _pumpDialog(
         tester,
         form(
-          initialName: 'X',
+          initialFirstName: 'X',
+          initialLastName: 'Y',
           initialEmail: 'x@y.z',
           initialRoles: const {'Administrator'},
           onSubmit: (_) => gate.future,
@@ -221,7 +232,8 @@ void main() {
       await _pumpDialog(
         tester,
         form(
-          initialName: '  Dr. Emily Parker ',
+          initialFirstName: ' Dr. ',
+          initialLastName: ' Emily Parker ',
           initialEmail: ' eparker@clinicaltrial.com ',
           initialRoles: const {'StudyCoordinator'},
           initialSites: const {'S-002'},

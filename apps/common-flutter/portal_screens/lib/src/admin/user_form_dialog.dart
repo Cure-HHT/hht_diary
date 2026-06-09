@@ -3,6 +3,18 @@ import 'package:flutter/material.dart';
 
 import '../models/site_option_view.dart';
 
+/// Splits a stored display name into the form's (first, last) fields:
+/// first token vs. remainder. The inverse of how the form composes the
+/// display name (`'$first $last'`), so round-trips are stable; names
+/// stored before the split-field form simply put everything after the
+/// first word into Last Name.
+(String, String) splitDisplayName(String name) {
+  final trimmed = name.trim();
+  final space = trimmed.indexOf(' ');
+  if (space < 0) return (trimmed, '');
+  return (trimmed.substring(0, space), trimmed.substring(space + 1).trim());
+}
+
 /// What the user typed/selected in the Create / Edit User form.
 @immutable
 class UserFormData {
@@ -13,6 +25,9 @@ class UserFormData {
     required this.sites,
   });
 
+  /// Composed display name — `'$firstName $lastName'`. The backend
+  /// models a single name string; the First/Last split exists only in
+  /// the form (per the Figma) until localization needs more.
   final String name;
   final String email;
 
@@ -46,7 +61,8 @@ class UserFormDialog extends StatefulWidget {
     required this.siteOptions,
     required this.onSubmit,
     this.roleDisplayName,
-    this.initialName = '',
+    this.initialFirstName = '',
+    this.initialLastName = '',
     this.initialEmail = '',
     this.initialRoles = const <String>{},
     this.initialSites = const <String>{},
@@ -73,7 +89,8 @@ class UserFormDialog extends StatefulWidget {
   /// name when null.
   final String Function(String role)? roleDisplayName;
 
-  final String initialName;
+  final String initialFirstName;
+  final String initialLastName;
   final String initialEmail;
   final Set<String> initialRoles;
   final Set<String> initialSites;
@@ -94,8 +111,11 @@ class UserFormDialog extends StatefulWidget {
 }
 
 class _UserFormDialogState extends State<UserFormDialog> {
-  late final TextEditingController _name = TextEditingController(
-    text: widget.initialName,
+  late final TextEditingController _firstName = TextEditingController(
+    text: widget.initialFirstName,
+  );
+  late final TextEditingController _lastName = TextEditingController(
+    text: widget.initialLastName,
   );
   late final TextEditingController _email = TextEditingController(
     text: widget.initialEmail,
@@ -107,9 +127,15 @@ class _UserFormDialogState extends State<UserFormDialog> {
 
   bool get _needsSites => _roles.any(widget.siteScopedRoles.contains);
 
+  String get _composedName =>
+      '${_firstName.text.trim()} ${_lastName.text.trim()}'.trim();
+
   bool get _canSubmit {
     if (_submitting) return false;
-    if (_name.text.trim().isEmpty || _email.text.trim().isEmpty) return false;
+    if (_firstName.text.trim().isEmpty || _lastName.text.trim().isEmpty) {
+      return false;
+    }
+    if (_email.text.trim().isEmpty) return false;
     if (_roles.isEmpty) return false;
     if (_needsSites && _sites.isEmpty) return false;
     return true;
@@ -117,7 +143,8 @@ class _UserFormDialogState extends State<UserFormDialog> {
 
   @override
   void dispose() {
-    _name.dispose();
+    _firstName.dispose();
+    _lastName.dispose();
     _email.dispose();
     super.dispose();
   }
@@ -129,7 +156,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
     });
     final error = await widget.onSubmit(
       UserFormData(
-        name: _name.text.trim(),
+        name: _composedName,
         email: _email.text.trim(),
         roles: {..._roles},
         // Only meaningful while a site-scoped role is selected; pass the
@@ -162,11 +189,20 @@ class _UserFormDialogState extends State<UserFormDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppTextField(
-            label: 'Name',
+            label: 'First Name',
             required: true,
-            controller: _name,
+            controller: _firstName,
             enabled: !_submitting,
-            semanticId: 'user-form-name',
+            semanticId: 'user-form-first-name',
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 16),
+          AppTextField(
+            label: 'Last Name',
+            required: true,
+            controller: _lastName,
+            enabled: !_submitting,
+            semanticId: 'user-form-last-name',
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 16),
@@ -237,7 +273,9 @@ class _UserFormDialogState extends State<UserFormDialog> {
               semanticId: 'user-form-error',
             ),
           ],
-          const SizedBox(height: 4),
+          const SizedBox(height: 16),
+          // Hairline above the footer actions (Figma: Create New User).
+          const Divider(height: 1),
         ],
       ),
       actions: [

@@ -53,7 +53,7 @@ void main() {
         await tester.pumpWidget(
           _harness(const RolePill(systemRole: 'StudyCoordinator')),
         );
-        expect(find.text('Study Coordinator'), findsOneWidget);
+        expect(find.text('Site Study Coordinator'), findsOneWidget);
       },
     );
 
@@ -75,7 +75,7 @@ void main() {
       await tester.pumpWidget(
         _harness(RolePill(systemRole: 'Administrator', onTap: () => taps++)),
       );
-      await tester.tap(find.text('Administrator'));
+      await tester.tap(find.text('Admin'));
       expect(taps, 1);
     });
 

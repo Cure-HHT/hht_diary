@@ -205,8 +205,8 @@ void main() {
       // emilyParker has Administrator + StudyCoordinator (one of each).
       // The chip pill labels render the canonical display names.
       await _pump(tester, users: const [MockData.emilyParker]);
-      expect(find.text('Administrator'), findsOneWidget);
-      expect(find.text('Study Coordinator'), findsOneWidget);
+      expect(find.text('Admin'), findsOneWidget);
+      expect(find.text('Site Study Coordinator'), findsOneWidget);
     });
 
     testWidgets('empty filtered set surfaces the empty-state copy', (

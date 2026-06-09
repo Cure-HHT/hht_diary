@@ -106,6 +106,7 @@ Future<bool?> showEditUserFlow(
         user.distinctRoles.contains(PortalRole.systemOperator.systemName))
       PortalRole.systemOperator.systemName,
   ];
+  final (firstName, lastName) = splitDisplayName(user.name);
   return showDialog<bool>(
     context: context,
     barrierDismissible: false,
@@ -124,7 +125,8 @@ Future<bool?> showEditUserFlow(
         roleDisplayName: portalRoleDisplayName,
         siteOptions: sites,
         sitesLoading: sitesLoading,
-        initialName: user.name,
+        initialFirstName: firstName,
+        initialLastName: lastName,
         initialEmail: user.email,
         initialRoles: user.distinctRoles.toSet(),
         initialSites: user.boundSites.toSet(),

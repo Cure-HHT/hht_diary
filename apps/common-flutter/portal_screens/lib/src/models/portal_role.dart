@@ -25,15 +25,15 @@ enum PortalRole {
   /// Full administrative access. Wildcard scope.
   administrator(
     systemName: 'Administrator',
-    canonicalDisplayName: 'Administrator',
+    canonicalDisplayName: 'Admin',
     tone: AppBadgeTone.danger,
   ),
 
-  /// Per-site clinical workflow operator. Sponsors often surface this as
-  /// "Site Study Coordinator" or "Investigator".
+  /// Per-site clinical workflow operator. Canonical label per the Figma
+  /// UI Pack; sponsors may still override (e.g. "Investigator").
   studyCoordinator(
     systemName: 'StudyCoordinator',
-    canonicalDisplayName: 'Study Coordinator',
+    canonicalDisplayName: 'Site Study Coordinator',
     tone: AppBadgeTone.primary,
   ),
 
