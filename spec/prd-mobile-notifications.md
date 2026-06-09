@@ -96,7 +96,7 @@ The three task types correspond to the three categories of follow-up the platfor
 
 ### Overview
 
-**Participants** need immediate, clear notification when their *Mobile Application* is disconnected from the *Sponsor* portal. A persistent, non-dismissible notification ensures the **Participant** is always aware of their disconnected state and cannot accidentally or intentionally hide it.
+**Participants** need immediate, clear notification when their *Mobile Application* is disconnected from the *Sponsor* Portal. A persistent, non-dismissible notification ensures the **Participant** is always aware of their disconnected state and cannot accidentally or intentionally hide it.
 
 
 Disconnection Notification
@@ -229,11 +229,11 @@ C. When a *Participant* completes or deletes an **Incomplete Record** before the
 
 **Configuration**
 
-D. The **System** SHALL support a *Sponsor*-configurable *Lock Warning Offset* per deployment.
+D. The **System** SHALL support a *Sponsor*-configurable *Lock Warning Offset* per study.
 
-E. The **System** SHALL support *Sponsor*-configurable notification text per deployment.
+E. The **System** SHALL support *Sponsor*-configurable notification text per study.
 
-F. When the *Lock Warning Offset* is not configured for a deployment, the **System** SHALL NOT send the notification.
+F. When the *Lock Warning Offset* is not configured for a study, the **System** SHALL NOT send the notification.
 
 G. The *Lock Warning Offset* SHALL be less than the *Lock Threshold* defined in *Diary*-PRD-entry-time-restrictions.
 
@@ -241,41 +241,41 @@ G. The *Lock Warning Offset* SHALL be less than the *Lock Threshold* defined in 
 
 The **Lock Threshold** produces an irreversible state — once exceeded, the **Incomplete Record** is permanently retained in its missing-field state and cannot be completed, edited, or deleted. The lock-warning notification exists because that irreversible outcome benefits from one final *Participant* nudge before it lands; without the warning, a *Participant* who simply forgot about an *Incomplete Record* discovers the permanent lock only on next app open, long after they could have done anything about it. Once-per-record (assertion B) prevents notification spam from a single long-lingering record; suppression on completion or deletion before the warning offset (assertion C) avoids notifying about records the *Participant* has already resolved. The opt-out semantics (not configured = no notification) and the Lock-Warning-less-than-Lock-Threshold invariant compose with the parent **Entry Time Restrictions** REQ — if a deployment hasn't configured the parent thresholds, the warning has no boundary to anchor to and is therefore not sent.
 
-*End* *Incomplete Record Lock Warning Notification* | **Hash**: 304d6ab8
+*End* *Incomplete Record Lock Warning Notification* | **Hash**: 33c1d5d9
 
-## DIARY-PRD-notification-portal-sent-questionnaire: Portal-Sent Questionnaire Notification
+## DIARY-PRD-notification-portal-sent-questionnaire: Assigned Questionnaire Notification
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 
 ### Overview
 
-When a **Study Coordinator** sends a **Portal-Sent Questionnaire** from the *Sponsor* Portal, the **Participant** must be made aware that a new *Questionnaire* is available for completion. A push notification serves as the awareness mechanism. The ***Questionnaire** Task* on the **Main Screen** provides the **Participant**'s entry point into the *Questionnaire* flow once the application is open.
+When a **Study Coordinator** sends an **Assigned Questionnaire** from the *Sponsor* Portal, the **Participant** must be made aware that a new *Questionnaire* is available for completion. A push notification serves as the awareness mechanism. The ***Questionnaire** Task* on the **Main Screen** provides the **Participant**'s entry point into the *Questionnaire* flow once the application is open.
 
 ### Assertions
 
 **Trigger**
 
-A. When a **Portal-Sent **Questionnaire** is successfully delivered to the Mobile Application**, the System SHALL deliver a **Push Notification** to the **Participant**.
+A. When an **Assigned **Questionnaire** is successfully delivered to the Mobile Application**, the System SHALL deliver a **Push Notification** to the **Participant**.
 
 **Offline Delivery**
 
-B. When the **Mobile Application** is offline at the time a **Portal-Sent **Questionnaire** is sent, the System SHALL deliver the Push Notification** when the **Mobile Application** next establishes connectivity.
+B. When the **Mobile Application** is offline at the time an **Assigned **Questionnaire** is sent, the System SHALL deliver the Push Notification** when the **Mobile Application** next establishes connectivity.
 
 **Suppression**
 
-C. The System SHALL NOT deliver a **Push Notification** for a **Portal-Sent **Questionnaire** that has already been submitted by the Participant**.
+C. The System SHALL NOT deliver a **Push Notification** for an **Assigned **Questionnaire** that has already been submitted by the Participant**.
 
-D. The System SHALL NOT deliver a **Push Notification** for a **Portal-Sent **Questionnaire** that has been called back by the Study Coordinator**.
+D. The System SHALL NOT deliver a **Push Notification** for an **Assigned **Questionnaire** that has been called back by the Study Coordinator**.
 
 ### Rationale
 
-The push notification is the *Participant*'s awareness signal that a new **Portal-Sent Questionnaire** is waiting; without it, the *Participant* would discover the *Questionnaire* only when they happen to open the app, which can extend the response window beyond what the **Study Coordinator** intended. Trigger-on-delivery (rather than trigger-on-send-from-portal) is the correct boundary because delivery is what actually puts the *Questionnaire* on the *Participant*'s device; sending from the portal to an offline device is a *Sponsor*-side *Action* that has no *Participant*-side effect yet. Offline-deferred delivery follows the cross-cutting notification template — the OS deferred-delivery mechanism is sufficient for the nudge purpose. *Submission* and call-back suppression closes the two cases where the notification would be misleading: a *Questionnaire* already submitted no longer needs the *Participant*'s attention, and a called-back *Questionnaire* is no longer assigned to them and a notification would invite wasted effort on an inactive *Questionnaire*.
+The push notification is the *Participant*'s awareness signal that a new **Assigned Questionnaire** is waiting; without it, the *Participant* would discover the *Questionnaire* only when they happen to open the app, which can extend the response window beyond what the **Study Coordinator** intended. Trigger-on-delivery (rather than trigger-on-send-from-portal) is the correct boundary because delivery is what actually puts the *Questionnaire* on the *Participant*'s device; sending from the portal to an offline device is a *Sponsor*-side *Action* that has no *Participant*-side effect yet. Offline-deferred delivery follows the cross-cutting notification template — the OS deferred-delivery mechanism is sufficient for the nudge purpose. *Submission* and call-back suppression closes the two cases where the notification would be misleading: a *Questionnaire* already submitted no longer needs the *Participant*'s attention, and a called-back *Questionnaire* is no longer assigned to them and a notification would invite wasted effort on an inactive *Questionnaire*.
 
 ### Screen reference
 
-See: ![Portal-Sent *Questionnaire* Notification](./images/image-29.png)
+See: ![Assigned *Questionnaire* Notification](./images/image-29.png)
 
-*End* *Portal-Sent Questionnaire Notification* | **Hash**: 88bc4533
+*End* *Assigned Questionnaire Notification* | **Hash**: ba788b82
 
 ## DIARY-PRD-notification-yesterday-entry: Yesterday Entry Reminder Notification
 
@@ -309,7 +309,7 @@ E. The System SHALL deliver at most one Yesterday Entry Reminder Notification pe
 
 **Configuration**
 
-F. The System SHALL support *Sponsor*-configurable **Reminder Time** per deployment.
+F. The System SHALL support *Sponsor*-configurable **Reminder Time** per study.
 
 ### Rationale
 
@@ -319,7 +319,7 @@ ALCOA+ Complete principle requires a **Daily Status** for every day in the *Diar
 
 See: ![Yesterday Entry Reminder Notification](./images/image-30.png)
 
-*End* *Yesterday Entry Reminder Notification* | **Hash**: 7c39d944
+*End* *Yesterday Entry Reminder Notification* | **Hash**: 43b40b3d
 
 ## DIARY-PRD-notification-ongoing-epistaxis: Ongoing Epistaxis Event Reminder
 
@@ -361,7 +361,7 @@ G. The default **Reminder Schedule** for the **Mobile Application** SHALL be emp
 
 H. The **System** SHALL allow a **Participant** to configure their own **Reminder Schedule** in **Mobile Application** settings.
 
-I. The **System** SHALL support *Sponsor*-configurable **Reminder Schedule** per deployment.
+I. The **System** SHALL support *Sponsor*-configurable **Reminder Schedule** per study.
 
 J. When a *Sponsor*-configured **Reminder Schedule** is in effect, the **System** SHALL apply the *Sponsor*-configured schedule and SHALL NOT apply the **Participant**'s personally configured schedule.
 
@@ -373,7 +373,7 @@ A nosebleed event captured with an accurate start time but a missing or wildly-l
 
 See: ![Ongoing *Epistaxis Event* Reminder](./images/image-31.png)
 
-*End* *Ongoing Epistaxis Event Reminder* | **Hash**: 8b8197fb
+*End* *Ongoing Epistaxis Event Reminder* | **Hash**: 65bce7fa
 
 ## DIARY-PRD-notification-historical-gap: Historical Gap Reminder
 
@@ -416,9 +416,9 @@ H. In linked use mode, the **Historical Gap Reminder** SHALL be enabled by defau
 
 **Configuration**
 
-I. The **System** SHALL support *Sponsor*-configurable **Reminder Time** per deployment.
+I. The **System** SHALL support *Sponsor*-configurable **Reminder Time** per study.
 
-J. The **System** SHALL support *Sponsor*-configurable notification text per deployment.
+J. The **System** SHALL support *Sponsor*-configurable notification text per study.
 
 ### Rationale
 
@@ -428,4 +428,4 @@ Historical gaps (days within the *Diary* period that have no **Daily Status**) a
 
 See: ![*Historical Gap* Reminder](./images/image-32.png)
 
-*End* *Historical Gap Reminder* | **Hash**: d0a485a3
+*End* *Historical Gap Reminder* | **Hash**: 176f4250

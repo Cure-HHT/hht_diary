@@ -177,7 +177,7 @@ N. Each nosebleed entry in the list SHALL display the start time, timezone, seve
 
 O. Each entry in the list SHALL be selectable.
 
-P. Submitted **Portal-Sent Questionnaires** SHALL appear in the entries list on the date they were submitted.
+P. Submitted **Assigned Questionnaires** SHALL appear in the entries list on the date they were submitted.
 
 **Entry Selection**
 
@@ -197,7 +197,7 @@ U. When the **Participant** selects a locked date with a **Daily Status** record
 
 ### Rationale
 
-The *Calendar* is the *Participant*'s at-a-glance survey of their *Diary* period: every date's visual indicator answers "have I recorded for this day, and if so, what?" without forcing the *Participant* to drill into each date. The seven-state legend (recorded events, confirmed no-events, don't-remember, incomplete-or-missing, not-recorded, locked, today) covers every *Diary*-state distinction the platform tracks; collapsing two states into one indicator would hide either incomplete-record warnings or locked-date evidence that the *Participant* needs to see. The *Day View* bifurcation (no-status-recorded prompt vs. status-recorded list) reflects two distinct *Participant* journeys — first-time entry for a date (Add / No / Don't recall three-*Action* prompt) vs. revisiting an already-recorded date (entry list with Add new event affordance). Lock-state handling on a locked date suppresses every *Action* that would attempt to modify the date, surfacing the lock explicitly rather than letting the *Participant* tap an *Action* and discover the rejection — the explanatory message ("can no longer be edited") is what makes the lock comprehensible. Submitted **Portal-Sent Questionnaires** appearing in the date's entry list grounds the *Questionnaire* as a part of the *Diary* record on the date it landed, rather than as an out-of-band artifact the *Participant* has to navigate separately to find.
+The *Calendar* is the *Participant*'s at-a-glance survey of their *Diary* period: every date's visual indicator answers "have I recorded for this day, and if so, what?" without forcing the *Participant* to drill into each date. The seven-state legend (recorded events, confirmed no-events, don't-remember, incomplete-or-missing, not-recorded, locked, today) covers every *Diary*-state distinction the platform tracks; collapsing two states into one indicator would hide either incomplete-record warnings or locked-date evidence that the *Participant* needs to see. The *Day View* bifurcation (no-status-recorded prompt vs. status-recorded list) reflects two distinct *Participant* journeys — first-time entry for a date (Add / No / Don't recall three-*Action* prompt) vs. revisiting an already-recorded date (entry list with Add new event affordance). Lock-state handling on a locked date suppresses every *Action* that would attempt to modify the date, surfacing the lock explicitly rather than letting the *Participant* tap an *Action* and discover the rejection — the explanatory message ("can no longer be edited") is what makes the lock comprehensible. Submitted **Assigned Questionnaires** appearing in the date's entry list grounds the *Questionnaire* as a part of the *Diary* record on the date it landed, rather than as an out-of-band artifact the *Participant* has to navigate separately to find.
 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
@@ -206,4 +206,4 @@ The *Calendar* is the *Participant*'s at-a-glance survey of their *Diary* period
 > Satisfies) when the need arises. Until that seam exists, this REQ is
 > normative for the Callisto deployment.
 
-*End* *Calendar and Day View* | **Hash**: 8051d0f5
+*End* *Calendar and Day View* | **Hash**: dc55717e

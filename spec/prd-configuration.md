@@ -4,15 +4,15 @@
 
 ## Overview
 
-The platform defines a baseline set of behaviors and default values that apply to every deployment. Each *Sponsor* deployment may, where the platform requirement explicitly permits configuration, override those defaults with values appropriate to that study's protocol. This requirement establishes the precedence rule that resolves any apparent conflict between a platform requirement and a *Sponsor* configuration: when both apply to the same behavior, the *Sponsor* configuration governs. The rule is structural — it ensures that *Sponsor*-specific values such as thresholds, reason lists, reminder times, and enabled features take effect deterministically without requiring each individual platform requirement to restate the precedence relationship. The rule applies only within the bounds set by the platform requirement itself; *Sponsor* configuration cannot grant capabilities the platform does not expose, and cannot override platform behavior that is not declared as configurable.
+The platform defines a baseline set of behaviors and default values that apply to every study. Each *Sponsor* may, where the platform requirement explicitly permits configuration, override those defaults with values appropriate to that study's protocol. This requirement establishes the precedence rule that resolves any apparent conflict between a platform requirement and a *Sponsor* configuration: when both apply to the same behavior, the *Sponsor* configuration governs. The rule is structural — it ensures that *Sponsor*-specific values such as thresholds, reason lists, reminder times, and enabled features take effect deterministically without requiring each individual platform requirement to restate the precedence relationship. The rule applies only within the bounds set by the platform requirement itself; *Sponsor* configuration cannot grant capabilities the platform does not expose, and cannot override platform behavior that is not declared as configurable.
 
 ## Definitions
 
-**Platform Requirement**: A requirement that defines behavior, structure, or default values applicable to every deployment of the **System**. Identified by a requirement ID of the form REQ-pXXXXX or GUI-pXXXXX.
+**Platform Requirement**: A requirement that defines behavior, structure, or default values applicable to every study of the **System**. Identified by a requirement ID prefixed with `DIARY-PRD-` or `DIARY-GUI-`.
 
-**Sponsor Configuration Requirement**: A requirement that specifies the values applied to a configurable parameter exposed by a **Platform Requirement** for a specific *Sponsor* deployment. Identified by a requirement ID of the form REQ-CAL-pXXXXX for the *Sponsor*-specific deployment, with analogous prefixes for other deployments.
+**Sponsor Configuration Requirement**: A requirement that specifies the values applied to a configurable parameter exposed by a **Platform Requirement** for a specific study. Identified by a requirement ID prefixed with `CAL-` (e.g. `CAL-PRD-`) for the *Sponsor*-specific configuration, with analogous prefixes for other Sponsors.
 
-**Configurable Parameter**: A value, threshold, list, label, enablement flag, or option that a **Platform Requirement** explicitly declares as configurable per deployment.
+**Configurable Parameter**: A value, threshold, list, label, enablement flag, or option that a **Platform Requirement** explicitly declares as configurable per study.
 
 **Configuration Conflict**: A state in which a **Sponsor Configuration Requirement** specifies a value for a **Configurable Parameter** that differs from the default value or behavior described in the corresponding **Platform Requirement**.
 

@@ -31,7 +31,7 @@ Clinical *Trial* *Sponsor* portals are routinely staffed by individuals who hold
 
 ### Overview
 
-The *Action* Inventory enumerates every operation subject to *Role*-based access control. It is the authoritative source for the *Sponsor*-level permissions table — every permission granted or denied in a *Sponsor* deployment must reference an *Action* from this inventory. Actions not listed here cannot be granted or denied. *Sponsor* deployments may extend the inventory with deployment-specific actions.
+The *Action* Inventory enumerates every operation subject to *Role*-based access control. It is the authoritative source for the *Sponsor*-level permissions table — every permission granted or denied in a *Sponsor* Portal must reference an *Action* from this inventory. Actions not listed here cannot be granted or denied. *Sponsor* Portal may extend the inventory with **Sponsor-Level Action Extensions**.
 
 
 Action
@@ -41,7 +41,7 @@ Action Inventory
 : The complete enumerated set of Actions the System recognizes, comprising the platform-level inventory in this requirement and any sponsor-level extensions.
 
 Sponsor-Level Action Extension
-: An additional Action defined by a specific sponsor deployment beyond the platform Action Inventory.
+: An additional Action supported for a specific Sponsor at that Sponsor's request, beyond the standard platform Action Inventory.
 
 ### Assertions
 
@@ -100,7 +100,7 @@ The *Action* Inventory is the single source of truth for what operations the pla
 
 ### Overview
 
-This requirement defines the generic *Role* templates the platform provides and maps the *Sponsor* portal's named roles to those templates. *Sponsor* deployments bind permissions to roles via the deployment's permissions table; the platform-side definitions establish the shared vocabulary.
+This requirement defines the generic *Role* templates the platform provides and maps the *Sponsor* Portal's named roles to those templates. *Sponsor* Portal binds permissions to roles via the permissions table; the platform-side definitions establish the shared vocabulary.
 
 
 Study Coordinator
@@ -114,7 +114,7 @@ Administrator
 
 ### Assertions
 
-A. The System SHALL recognize the following roles in the *Sponsor* portal: **Study Coordinator**, **Clinical Research Associate**, and **Administrator**.
+A. The System SHALL recognize the following roles in the *Sponsor* Portal: **Study Coordinator**, **Clinical Research Associate**, and **Administrator**.
 
 B. The System SHALL map the **Study Coordinator** *Role* to the **Investigator** generic *Role* template.
 
@@ -126,7 +126,7 @@ D. The System SHALL map the **Administrator** *Role* to the **Administrator** ge
 
 The *Sponsor* portal's named roles are deployment-facing labels chosen for clarity to clinical staff; the underlying generic *Role* templates (*Investigator*, Auditor, *Administrator*) carry the platform-level semantics and are the units of inheritance for cross-*Sponsor* permission patterns. Establishing the mapping at the platform level lets *Sponsor* configurations alter labels and add scope rules without diverging from the platform's shared model, and lets cross-cutting compliance behavior key off the generic template rather than every *Sponsor*'s chosen name.
 
-*End* *Role Definitions* | **Hash**: b03a41dc
+*End* *Role Definitions* | **Hash**: 2e6af384
 
 ## DIARY-GUI-role-switching: Role Switching — Interface Behavior
 
@@ -135,7 +135,7 @@ The *Sponsor* portal's named roles are deployment-facing labels chosen for clari
 
 ### Overview
 
-This requirement specifies how the *Sponsor* portal interface exposes *Role* switching to users assigned more than one *Role*.
+This requirement specifies how the *Sponsor* Portal interface exposes *Role* switching to users assigned more than one *Role*.
 
 
 Role Selector

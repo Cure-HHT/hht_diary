@@ -194,8 +194,9 @@
 - DIARY-PRD-user-authentication-E
 - DIARY-PRD-user-authentication-F
 - DIARY-PRD-user-authentication-G
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
 
 ## Administrator
 
@@ -309,6 +310,23 @@
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-PRD-action-inventory:section:1
 
+## Application Biometric Lock
+
+**DIARY:**
+
+- DIARY-PRD-user-authentication-F
+- DIARY-PRD-user-authentication-I
+- DIARY-PRD-user-authentication-L
+- DIARY-PRD-user-authentication-M
+- DIARY-GUI-user-authentication-A
+- DIARY-GUI-user-authentication-B
+- DIARY-GUI-user-authentication-C
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication:section:7
+- DIARY-GUI-user-authentication:section:0
+- DIARY-GUI-user-authentication:section:3
+
 ## Application Menu
 
 **DIARY:**
@@ -328,6 +346,21 @@
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
 - DIARY-GUI-mobile-navigation:section:5
+
+## Assigned Questionnaire
+
+**DIARY:**
+
+- DIARY-PRD-notification-portal-sent-questionnaire
+- DIARY-PRD-questionnaire-portal-sent-rules
+- DIARY-GUI-questionnaire-portal-sent-workflow
+- DIARY-PRD-questionnaire-portal-sent-rules-A
+- DIARY-PRD-questionnaire-portal-sent-rules-F
+- DIARY-PRD-questionnaire-portal-sent-rules-G
+- DIARY-PRD-notification-portal-sent-questionnaire:section:0
+- DIARY-PRD-notification-portal-sent-questionnaire:section:4
+- DIARY-PRD-questionnaire-portal-sent-rules:section:5
+- DIARY-GUI-questionnaire-portal-sent-workflow:section:0
 
 ## Audit Trail
 
@@ -646,23 +679,25 @@
 **DIARY:**
 
 - DIARY-PRD-user-authentication-E
+- DIARY-BASE-user-authentication-pin:section:0
 - DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication:section:5
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
 
 ## Diary
 
 **DIARY:**
 
+- DIARY-BASE-user-authentication-pin
 - DIARY-DEV-evs-stack-adoption
 - DIARY-DEV-participant-state-poll
 - DIARY-PRD-mobile-application
 - DIARY-PRD-diary-start-day
 - DIARY-PRD-user-authentication
-- DIARY-PRD-user-authentication-pin
+- DIARY-GUI-user-authentication
 - DIARY-BASE-audit-trail-E
 - DIARY-BASE-local-data-reset-A
 - DIARY-BASE-questionnaire-coordinator-workflow-F
+- DIARY-BASE-user-authentication-pin-A
 - DIARY-DEV-runtime-environment-resolution-D
 - DIARY-DEV-deployment-config-defaults-A
 - DIARY-DEV-deployment-config-defaults-C
@@ -718,7 +753,6 @@
 - DIARY-PRD-user-authentication-C
 - DIARY-PRD-user-authentication-D
 - DIARY-PRD-user-authentication-G
-- DIARY-PRD-user-authentication-pin-A
 - DIARY-PRD-device-health-diagnostics-C
 - DIARY-GUI-main-screen-layout-F
 - DIARY-GUI-calendar-day-view-C
@@ -739,6 +773,9 @@
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- rem:spec/base-user-authentication-pin.md:1
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - rem:spec/dev-mobile-event-sourcing.md:1
@@ -780,6 +817,7 @@
 - rem:spec/glossary-core.md:730
 - rem:spec/glossary-core.md:756
 - DIARY-OPS-single-promotable-artifact:section:1
+- DIARY-PRD-configuration-precedence:section:1
 - rem:spec/prd-diary-entry-rules.md:1
 - rem:spec/prd-diary-entry-rules.md:3
 - DIARY-PRD-entry-time-restrictions:section:4
@@ -793,8 +831,9 @@
 - DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-diary-start-day:section:1
 - DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
+- DIARY-GUI-user-authentication:section:0
+- DIARY-GUI-user-authentication:section:3
 - DIARY-PRD-device-health-diagnostics:section:0
 - DIARY-PRD-device-health-diagnostics:section:1
 - DIARY-GUI-main-screen-layout:section:0
@@ -858,18 +897,22 @@
 
 **DIARY:**
 
+- DIARY-BASE-user-authentication-pin
 - DIARY-PRD-user-authentication
-- DIARY-PRD-user-authentication-pin
+- DIARY-GUI-user-authentication
+- DIARY-BASE-user-authentication-pin-A
 - DIARY-PRD-user-authentication-A
 - DIARY-PRD-user-authentication-B
 - DIARY-PRD-user-authentication-C
 - DIARY-PRD-user-authentication-D
 - DIARY-PRD-user-authentication-G
-- DIARY-PRD-user-authentication-pin-A
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
+- DIARY-GUI-user-authentication:section:0
+- DIARY-GUI-user-authentication:section:3
 
 ## Disconnection Notification
 
@@ -972,7 +1015,7 @@
 - DIARY-PRD-epistaxis-capture-standard:section:1
 - DIARY-PRD-day-disposition:section:0
 - DIARY-PRD-day-disposition:section:1
-- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication:section:7
 - DIARY-PRD-notification-ongoing-epistaxis:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:5
 - DIARY-PRD-notification-ongoing-epistaxis:section:6
@@ -1002,9 +1045,9 @@
 
 **DIARY:**
 
-- DIARY-PRD-user-authentication-pin-F
-- DIARY-PRD-user-authentication-pin-K
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-BASE-user-authentication-pin-F
+- DIARY-BASE-user-authentication-pin-K
+- DIARY-BASE-user-authentication-pin:section:6
 
 ## FDA 21 CFR Part 11
 
@@ -1161,18 +1204,17 @@
 - DIARY-PRD-user-authentication-D
 - DIARY-PRD-user-authentication-E
 - DIARY-PRD-user-authentication-F
-- DIARY-PRD-user-authentication-K
+- DIARY-PRD-user-authentication-N
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-G
 - DIARY-PRD-session-management-I
 - DIARY-GUI-portal-session-expiry-A
+- DIARY-BASE-user-authentication-pin:section:6
 - DIARY-DEV-portal-session-token:section:1
 - DIARY-DEV-portal-session-lifecycle:section:0
 - DIARY-DEV-portal-session-config:section:0
 - DIARY-DEV-portal-reaction-server:section:1
-- DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication:section:5
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
 - DIARY-PRD-session-management:section:6
 
 ## Incomplete Record
@@ -1396,6 +1438,8 @@
 - DIARY-PRD-mobile-application
 - DIARY-GUI-mobile-navigation
 - DIARY-BASE-questionnaire-coordinator-workflow-B
+- DIARY-BASE-user-authentication-pin-D
+- DIARY-BASE-user-authentication-pin-F
 - DIARY-DEV-runtime-environment-resolution-A
 - DIARY-OPS-single-promotable-artifact-C
 - DIARY-PRD-mobile-application-A
@@ -1407,8 +1451,6 @@
 - DIARY-PRD-user-authentication-A
 - DIARY-PRD-user-authentication-B
 - DIARY-PRD-user-authentication-C
-- DIARY-PRD-user-authentication-pin-D
-- DIARY-PRD-user-authentication-pin-F
 - DIARY-PRD-device-health-diagnostics-A
 - DIARY-GUI-service-mode-entry-A
 - DIARY-BASE-not-participating-notice-A
@@ -1426,6 +1468,8 @@
 - DIARY-PRD-participant-mark-not-participating-D
 - DIARY-PRD-participant-reactivate-C
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - rem:spec/glossary-core.md:730
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-mobile-app.md:1
@@ -1435,9 +1479,6 @@
 - DIARY-PRD-diary-start-day:section:1
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
-- DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
 - DIARY-PRD-device-health-diagnostics:section:0
 - DIARY-PRD-device-health-diagnostics:section:1
 - rem:spec/prd-mobile-navigation.md:1
@@ -1591,6 +1632,13 @@
 - DIARY-BASE-sponsor-requested-settings-D
 - DIARY-BASE-sponsor-requested-settings-E
 - DIARY-BASE-system-operator-role-B
+- DIARY-BASE-user-authentication-pin-A
+- DIARY-BASE-user-authentication-pin-B
+- DIARY-BASE-user-authentication-pin-C
+- DIARY-BASE-user-authentication-pin-D
+- DIARY-BASE-user-authentication-pin-F
+- DIARY-BASE-user-authentication-pin-G
+- DIARY-BASE-user-authentication-pin-H
 - DIARY-DEV-deployment-config-defaults-E
 - DIARY-DEV-deployment-config-defaults-F
 - DIARY-DEV-linking-code-lifecycle-B
@@ -1682,14 +1730,12 @@
 - DIARY-PRD-user-authentication-F
 - DIARY-PRD-user-authentication-G
 - DIARY-PRD-user-authentication-H
+- DIARY-PRD-user-authentication-I
 - DIARY-PRD-user-authentication-J
-- DIARY-PRD-user-authentication-pin-A
-- DIARY-PRD-user-authentication-pin-B
-- DIARY-PRD-user-authentication-pin-C
-- DIARY-PRD-user-authentication-pin-D
-- DIARY-PRD-user-authentication-pin-F
-- DIARY-PRD-user-authentication-pin-G
-- DIARY-PRD-user-authentication-pin-H
+- DIARY-PRD-user-authentication-K
+- DIARY-PRD-user-authentication-L
+- DIARY-PRD-user-authentication-M
+- DIARY-GUI-user-authentication-B
 - DIARY-GUI-mobile-navigation-G
 - DIARY-GUI-mobile-navigation-J
 - DIARY-GUI-calendar-day-view-A
@@ -1836,6 +1882,8 @@
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - DIARY-DEV-native-outbound-sync:section:1
@@ -1892,8 +1940,9 @@
 - DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-privacy-policy:section:1
 - DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
+- DIARY-GUI-user-authentication:section:0
+- DIARY-GUI-user-authentication:section:3
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-main-screen-layout:section:0
 - DIARY-GUI-main-screen-layout:section:5
@@ -2121,66 +2170,36 @@
 
 **DIARY:**
 
-- DIARY-PRD-user-authentication-pin
+- DIARY-BASE-user-authentication-pin
+- DIARY-BASE-user-authentication-pin-A
+- DIARY-BASE-user-authentication-pin-B
+- DIARY-BASE-user-authentication-pin-C
+- DIARY-BASE-user-authentication-pin-D
+- DIARY-BASE-user-authentication-pin-E
+- DIARY-BASE-user-authentication-pin-F
+- DIARY-BASE-user-authentication-pin-G
+- DIARY-BASE-user-authentication-pin-H
+- DIARY-BASE-user-authentication-pin-I
+- DIARY-BASE-user-authentication-pin-J
 - DIARY-PRD-evidence-patient-authentication-C
 - DIARY-PRD-evidence-patient-authentication-G
 - DIARY-PRD-evidence-patient-authentication-H
 - DIARY-PRD-evidence-patient-authentication-I
-- DIARY-PRD-user-authentication-F
-- DIARY-PRD-user-authentication-pin-A
-- DIARY-PRD-user-authentication-pin-B
-- DIARY-PRD-user-authentication-pin-C
-- DIARY-PRD-user-authentication-pin-D
-- DIARY-PRD-user-authentication-pin-E
-- DIARY-PRD-user-authentication-pin-F
-- DIARY-PRD-user-authentication-pin-G
-- DIARY-PRD-user-authentication-pin-H
-- DIARY-PRD-user-authentication-pin-I
-- DIARY-PRD-user-authentication-pin-J
+- rem:spec/base-user-authentication-pin.md:1
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - DIARY-PRD-evidence-patient-authentication:section:0
-- DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication:section:5
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
-
-## PIN Policy
-
-**DIARY:**
-
-- DIARY-PRD-user-authentication-I
-- DIARY-PRD-user-authentication-J
-- DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication:section:5
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
 
 ## PIN Reset
 
 **DIARY:**
 
-- DIARY-PRD-user-authentication-pin-F
-- DIARY-PRD-user-authentication-pin-G
-- DIARY-PRD-user-authentication-pin-H
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
-
-## Portal-Sent Questionnaire
-
-**DIARY:**
-
-- DIARY-PRD-notification-portal-sent-questionnaire
-- DIARY-PRD-questionnaire-portal-sent-rules
-- DIARY-GUI-questionnaire-portal-sent-workflow
-- DIARY-GUI-participant-task-list-A
-- DIARY-GUI-participant-task-list-G
-- DIARY-GUI-participant-task-list-H
-- DIARY-GUI-participant-task-list-I
-- DIARY-PRD-questionnaire-portal-sent-rules-A
-- DIARY-PRD-questionnaire-portal-sent-rules-F
-- DIARY-PRD-questionnaire-portal-sent-rules-G
-- DIARY-PRD-notification-portal-sent-questionnaire:section:0
-- DIARY-PRD-notification-portal-sent-questionnaire:section:4
-- DIARY-PRD-questionnaire-portal-sent-rules:section:5
-- DIARY-GUI-questionnaire-portal-sent-workflow:section:0
+- DIARY-BASE-user-authentication-pin-F
+- DIARY-BASE-user-authentication-pin-G
+- DIARY-BASE-user-authentication-pin-H
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 
 ## Preamble
 
@@ -2984,6 +3003,9 @@
 - DIARY-BASE-sponsor-requested-settings-B
 - DIARY-BASE-sponsor-requested-settings-E
 - DIARY-BASE-system-operator-role-A
+- DIARY-BASE-user-authentication-pin-G
+- DIARY-BASE-user-authentication-pin-J
+- DIARY-BASE-user-authentication-pin-K
 - DIARY-DEV-deployment-config-defaults-A
 - DIARY-DEV-deployment-config-defaults-D
 - DIARY-DEV-deployment-config-defaults-F
@@ -3003,6 +3025,7 @@
 - DIARY-PRD-administrator-settings-A
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G
+- DIARY-GUI-administrator-settings-E
 - DIARY-GUI-portal-transport-status-A
 - DIARY-GUI-portal-stale-client-reload-A
 - DIARY-GUI-portal-stale-client-reload-B
@@ -3033,11 +3056,7 @@
 - DIARY-PRD-mobile-offline-first-D
 - DIARY-PRD-diary-start-day-G
 - DIARY-PRD-privacy-policy-A
-- DIARY-PRD-user-authentication-J
-- DIARY-PRD-user-authentication-K
-- DIARY-PRD-user-authentication-pin-G
-- DIARY-PRD-user-authentication-pin-J
-- DIARY-PRD-user-authentication-pin-K
+- DIARY-PRD-user-authentication-N
 - DIARY-PRD-device-health-diagnostics-A
 - DIARY-GUI-mobile-navigation-A
 - DIARY-GUI-participant-task-list-A
@@ -3120,6 +3139,8 @@
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-participant-state-poll:section:1
@@ -3169,9 +3190,7 @@
 - DIARY-PRD-diary-start-day:section:1
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
-- DIARY-PRD-user-authentication:section:5
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
 - DIARY-PRD-device-health-diagnostics:section:0
 - DIARY-PRD-device-health-diagnostics:section:1
 - DIARY-GUI-service-mode-entry:section:1
@@ -3679,12 +3698,13 @@
 
 **DIARY:**
 
+- DIARY-BASE-user-authentication-pin
 - DIARY-DEV-portal-user-activated-binding
 - DIARY-DEV-user-account-projection
 - DIARY-DEV-portal-seed-config
 - DIARY-DEV-operator-tier-authz
 - DIARY-PRD-user-authentication
-- DIARY-PRD-user-authentication-pin
+- DIARY-GUI-user-authentication
 - DIARY-PRD-user-account-create
 - DIARY-PRD-user-account-edit
 - DIARY-PRD-user-account-deactivate
@@ -3693,6 +3713,7 @@
 - DIARY-GUI-user-account-deactivate
 - DIARY-GUI-user-account-reactivate
 - DIARY-GUI-user-information-modal
+- DIARY-BASE-user-authentication-pin-A
 - DIARY-DEV-deployment-config-defaults-E
 - DIARY-DEV-portal-activation-code-lifecycle-D
 - DIARY-DEV-portal-identity-provisioning-A
@@ -3738,9 +3759,7 @@
 - DIARY-PRD-user-authentication-C
 - DIARY-PRD-user-authentication-D
 - DIARY-PRD-user-authentication-G
-- DIARY-PRD-user-authentication-I
-- DIARY-PRD-user-authentication-J
-- DIARY-PRD-user-authentication-pin-A
+- DIARY-GUI-user-authentication-A
 - DIARY-PRD-device-health-diagnostics-A
 - DIARY-PRD-device-health-diagnostics-D
 - DIARY-GUI-service-mode-entry-A
@@ -3842,6 +3861,9 @@
 - DIARY-GUI-user-information-modal-M
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-E
+- rem:spec/base-user-authentication-pin.md:1
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-portal-activation-code-lifecycle:section:0
@@ -3890,8 +3912,9 @@
 - rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-mobile-application:section:1
 - DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
+- DIARY-GUI-user-authentication:section:0
+- DIARY-GUI-user-authentication:section:3
 - DIARY-PRD-device-health-diagnostics:section:0
 - DIARY-PRD-device-health-diagnostics:section:1
 - DIARY-GUI-service-mode-entry:section:0

@@ -69,7 +69,7 @@ A configuration-driven approach allows the *Sponsor* to tailor *Questionnaire* b
 
 ### Assertions
 
-A. The System SHALL support *Sponsor*-specific configuration of which **Questionnaires** are enabled per deployment.
+A. The System SHALL support *Sponsor*-specific configuration of which **Questionnaires** are enabled per study.
 
 B. The System SHALL support *Sponsor*-specific configuration of *Participant* reminder behavior for each enabled **Questionnaire**.
 
@@ -83,7 +83,7 @@ E. The System SHALL support *Sponsor*-specific configuration of which languages 
 
 The five configuration axes named here — enablement, reminder behavior, post-*Submission* processing, post-*Submission* editability, and language — are the dimensions along which clinical protocols typically vary between sponsors using the same underlying **Questionnaire Type**. Encoding them as *Sponsor* configuration rather than platform code keeps the platform's *Questionnaire* library stable across deployments while letting each *Sponsor* express the protocol-specific decisions that their IRB and operations teams require. The configuration approach is bounded — sponsors choose from the offered axes, they do not edit *Questionnaire* content — which preserves the change-control discipline established in the foundation requirement.
 
-*End* *Sponsor Questionnaire Configuration* | **Hash**: efaae01f
+*End* *Sponsor Questionnaire Configuration* | **Hash**: 1dab5997
 
 ## DIARY-PRD-questionnaire-submission-control: Clinical Data Submission Control
 
@@ -121,7 +121,7 @@ A. The System SHALL use predefined **Questionnaires** for all clinical data coll
 
 B. The System SHALL NOT allow **Questionnaires** to be created, modified, or deleted during *Trial* operation. If any new **Questionnaire** is required, a new **Questionnaire Type** will be implemented. Modifications for an existing **Questionnaire** will follow the process outlined in the below two assertions.
 
-C. Changes to **Questionnaires** SHALL be subject to formal change control procedures before deployment.
+C. Changes to **Questionnaires** SHALL be subject to formal change control procedures before release.
 
 D. The System SHALL maintain backward compatibility to allow viewing of data collected with previous **Questionnaire** versions.
 
@@ -129,4 +129,4 @@ D. The System SHALL maintain backward compatibility to allow viewing of data col
 
 Mid-*Trial* **Questionnaire** changes would silently alter the meaning of the data being collected: a question reworded between Day 30 and Day 60 of a *Participant*'s enrollment produces two non-comparable answer streams under the same instrument name. The change-control discipline encoded here prevents that class of error by treating every **Questionnaire** modification as a deliberate engineering act subject to review and approval. The new-*Questionnaire*-Type rule (rather than in-place edit) keeps the data semantics for any given **Questionnaire Type** stable for the lifetime of any *Trial* that uses it. Backward-compatible viewing is essential because trials regularly span multiple **Questionnaire** versions when long-running studies adopt updated instruments part-way through; reviewers must be able to inspect historical data captured under the previous version without that data being silently re-interpreted under the new version's rules.
 
-*End* *Questionnaire Change Control* | **Hash**: 5410f8c2
+*End* *Questionnaire Change Control* | **Hash**: 71e0a7a5

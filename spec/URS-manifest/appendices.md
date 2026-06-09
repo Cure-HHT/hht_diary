@@ -4,7 +4,7 @@
 
 ### 7.1.1 Questionnaire Review Screen {-}
 
-*Trigger:* **Participant** answers the final question of a **Portal-Sent Questionnaire**, before **Submission**.   
+*Trigger:* **Participant** answers the final question of an **Assigned Questionnaire**, before **Submission**.   
 *Displays:* **Questionnaire Display Name**, every question in original order, the **Participant**'s selected response beneath each question, an Edit affordance per question, and a **Submit** action.   
 *Outcome:* Selecting **Submit** completes **Submission**.   
 *Reference:* DIARY-GUI-questionnaire-portal-sent-workflow.
@@ -13,7 +13,7 @@
 
 ### 7.1.2 Questionnaire Preamble Screen {-}
 
-*Trigger:* **Participant** opens a **Portal-Sent Questionnaire**.   
+*Trigger:* **Participant** opens an **Assigned Questionnaire**.   
 *Displays:* **Questionnaire Display Name**, estimated time to complete.
 
 *Actions:* **I'm Ready** (proceed to first question), **Not Now** (return to **Main Screen**). *Reference:* DIARY-PRD-questionnaire-portal-sent-rules, DIARY-GUI-questionnaire-portal-sent-workflow.
@@ -233,7 +233,7 @@ After Participant was linked to the Mobile Application
 
 ### 7.3.11 Post-Submission Acknowledgement Dialog {-}
 
-*Trigger:* **Participant** confirms **Submission** of a **Portal-Sent Questionnaire**.   
+*Trigger:* **Participant** confirms **Submission** of an **Assigned Questionnaire**.   
 *Consequence summary:* Confirms the **Questionnaire** has been submitted and informs the **Participant** that the **Study Coordinator** will review the responses.   
 *Pattern:* Acknowledgement Dialog (see §4.1).   
 *Reference:* DIARY-GUI-questionnaire-portal-sent-workflow.
@@ -242,7 +242,7 @@ After Participant was linked to the Mobile Application
 
 ### 7.3.12 Session Expiry Dialog {-}
 
-*Trigger:* **Participant** opens a **Portal-Sent Questionnaire** that has reached **Session Expiry**.   
+*Trigger:* **Participant** opens an **Assigned Questionnaire** that has reached **Session Expiry**.   
 *Consequence summary:* Informs the **Participant** that the session has expired and previous answers were not saved.   
 *Actions:* **Start Again** (begin the **Questionnaire** from the **Preamble**), **Not Now** (return to **Main Screen**).   
 *Pattern:* Acknowledgement Dialog (see §4.1).   
@@ -284,13 +284,13 @@ After Participant was linked to the Mobile Application
 
 ### 7.3.16 Call Back Notice {-}
 
-*Trigger:* A **Portal-Sent Questionnaire** assigned to the **Participant** has been called back by the **Study Coordinator**.   
+*Trigger:* An **Assigned Questionnaire** assigned to the **Participant** has been called back by the **Study Coordinator**.   
 *Consequence summary:* Informs the **Participant** that the **Questionnaire** is no longer active and any answers entered will not be saved.   
 *Presentation contexts:*
 
-* The **Portal-Sent Questionnaire** is called back while the **Participant** has it open.  
+* The **Assigned Questionnaire** is called back while the **Participant** has it open.  
 * The **Participant** opens the **Mobile Application** after a call back has occurred.  
-* The **Participant** attempts to submit a **Portal-Sent Questionnaire** that has been called back while offline.
+* The **Participant** attempts to submit an **Assigned Questionnaire** that has been called back while offline.
 
 *Behavior:* Cannot be dismissed by tapping outside its bounds. On acknowledgement, the **Participant** is returned to the **Main Screen** and the corresponding **Questionnaire Task** is removed from the **Task List**.   
 *Pattern:* Acknowledgement Dialog (see §4.1).   
@@ -329,9 +329,9 @@ A persistent, non-dismissible in-app notification displayed in the System Notice
 
 ![](image-28.png)
 
-### 7.4.4 Portal-Sent Questionnaire Notification {-}
+### 7.4.4 Assigned Questionnaire Notification {-}
 
-A push notification delivered to the Participant when a Study Coordinator sends a Portal-Sent Questionnaire from the Sponsor Portal. Tapping the notification opens the Mobile Application; the Participant accesses the Questionnaire from the Questionnaire Task on the Main Screen. The wording is sponsor-configurable; the default text is *\["A \[Questionnaire Display Name\] questionnaire is ready for you to complete. Open the app to begin."\]*
+A push notification delivered to the Participant when a Study Coordinator sends an Assigned Questionnaire from the Sponsor Portal. Tapping the notification opens the Mobile Application; the Participant accesses the Questionnaire from the Questionnaire Task on the Main Screen. The wording is sponsor-configurable; the default text is *\["A \[Questionnaire Display Name\] questionnaire is ready for you to complete. Open the app to begin."\]*
 
 ![](image-29.png)
 
