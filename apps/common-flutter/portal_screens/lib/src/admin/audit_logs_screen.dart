@@ -7,11 +7,18 @@ import 'audit_log_row.dart';
 /// Audit Logs screen — read-only table of system activity, expandable
 /// per row to surface the raw audit JSON.
 ///
-/// **Snapshot in, callbacks out.** The wiring layer (`portal_ui_evs`)
-/// owns the HTTP fetch against `/audit`, the cred/role-claim handling,
-/// and the `PermissionGate` for `portal.audit.view`; here we render a
-/// pre-parsed list of [AuditEntryView]s and emit [onRefresh] when the
-/// user asks for fresh data.
+/// **Snapshot in, callbacks out — server-paged.** The wiring layer
+/// (`portal_ui_evs`) owns the HTTP fetch against `/audit`, the
+/// cred/role-claim handling, and the `PermissionGate` for
+/// `portal.audit.view`; here we render the CURRENT PAGE of pre-parsed
+/// [AuditEntryView]s and surface every navigation intent as a callback:
+/// [onPageChanged] / [onPageSizeChanged] when the user flips pages,
+/// [onSearchChanged] when the search text settles, [onRefresh] for a
+/// refetch. The screen holds no paging or filtering state of its own —
+/// [page], [pageSize], [totalCount] and [searchQuery] are inputs, so
+/// the pagination header reflects the full server-side log, not just
+/// the rows in hand. Search is evaluated server-side over the whole
+/// log; the screen merely reports the query.
 ///
 /// The visual chrome (search + pagination + column headers in a
 /// rounded card) mirrors `AppDataTable`'s chrome but isn't built on
@@ -20,101 +27,67 @@ import 'audit_log_row.dart';
 /// underneath the row" affordance is core to the Figma. If audit logs
 /// ends up being one of several screens that need expansion, we'll
 /// promote the pattern to the design system; for now it lives here.
-class AuditLogsScreen extends StatefulWidget {
+class AuditLogsScreen extends StatelessWidget {
   const AuditLogsScreen({
     super.key,
     required this.entries,
     required this.isLoading,
     required this.onRefresh,
     this.errorMessage,
-    this.pageSize = 8,
+    required this.page,
+    required this.pageSize,
+    required this.totalCount,
+    required this.onPageChanged,
+    required this.onPageSizeChanged,
+    this.searchQuery = '',
+    required this.onSearchChanged,
   });
 
-  /// Snapshot of every audit entry the wiring layer has fetched, in
-  /// reverse-chronological order. The screen never re-sorts — it trusts
-  /// the wiring layer.
+  /// The current page of audit entries, in reverse-chronological
+  /// order. The screen never re-sorts or re-slices — it trusts the
+  /// wiring layer.
   final List<AuditEntryView> entries;
 
   /// True while the most recent fetch hasn't returned yet. Drives the
   /// in-table spinner.
   final bool isLoading;
 
-  /// Fired when the user asks for a refresh. Today the only trigger is
-  /// the keyboard shortcut / wiring layer's auto-refresh — the Figma
-  /// does not show an explicit Refresh button on this screen. Kept on
-  /// the API so the wiring layer can wire it up later without a screen
-  /// change.
+  /// Fired when the user asks for a refetch of the current page (e.g.
+  /// the error state's Retry button).
   final VoidCallback onRefresh;
 
   /// Non-null when the most recent fetch failed. The screen swaps the
   /// row body for an inline error block + Retry button.
   final String? errorMessage;
 
-  /// Rows per page. Defaults match the Figma's "Viewing 1-8 of N".
+  /// 1-based page the wiring layer most recently fetched.
+  final int page;
+
+  /// Rows per page. The Figma's default is 8.
   final int pageSize;
 
-  @override
-  State<AuditLogsScreen> createState() => _AuditLogsScreenState();
-}
+  /// True size of the audit log on the server (or of the server-side
+  /// match set while [searchQuery] is non-empty) — NOT the length of
+  /// [entries]. Drives the honest "Viewing X-Y of N" header.
+  final int totalCount;
 
-class _AuditLogsScreenState extends State<AuditLogsScreen> {
-  String _search = '';
-  int _page = 1;
-  late int _pageSize = widget.pageSize;
+  /// User flipped to a different (1-based) page.
+  final ValueChanged<int> onPageChanged;
 
-  @override
-  void didUpdateWidget(covariant AuditLogsScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final maxPage = _maxPageFor(_filtered().length);
-    if (_page > maxPage) _page = maxPage;
-  }
+  /// User picked a different rows-per-page size.
+  final ValueChanged<int> onPageSizeChanged;
 
-  // ---------------------------------------------------------------------------
-  // Filter / page
-  // ---------------------------------------------------------------------------
+  /// The search query the current [entries] were fetched under. Only
+  /// used for the empty-state copy; the text field manages its own
+  /// edit state.
+  final String searchQuery;
 
-  /// Email-substring filter against the initiator label (the `raw`
-  /// payload's `initiator.label`, which is the email-like identifier
-  /// the wiring layer stores). Falls back to the formatted actor name +
-  /// activity label so the filter behaves intuitively when the row's
-  /// initiator is automation (no email).
-  List<AuditEntryView> _filtered() {
-    final q = _search.trim().toLowerCase();
-    if (q.isEmpty) return widget.entries;
-    return widget.entries.where((e) {
-      final initiator = e.raw['initiator'];
-      final initiatorLabel = initiator is Map
-          ? (initiator['label']?.toString() ?? '')
-          : '';
-      return initiatorLabel.toLowerCase().contains(q) ||
-          e.actorName.toLowerCase().contains(q) ||
-          e.activityLabel.toLowerCase().contains(q);
-    }).toList();
-  }
-
-  int _maxPageFor(int total) {
-    if (total == 0) return 1;
-    return ((total - 1) ~/ _pageSize) + 1;
-  }
-
-  List<AuditEntryView> _pageSlice(List<AuditEntryView> rows) {
-    final start = (_page - 1) * _pageSize;
-    if (start >= rows.length) return const <AuditEntryView>[];
-    final end = (start + _pageSize) > rows.length
-        ? rows.length
-        : start + _pageSize;
-    return rows.sublist(start, end);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Build
-  // ---------------------------------------------------------------------------
+  /// Search text settled (the field debounces internally). The wiring
+  /// layer re-fetches page 1 under the new query.
+  final ValueChanged<String> onSearchChanged;
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filtered();
-    final pageRows = _pageSlice(filtered);
-
     // Same column widths used by the header row and every body row so
     // the cells stay vertically aligned. Activity is the only flex
     // column — it consumes the remainder.
@@ -136,24 +109,18 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
           const _Header(),
           const SizedBox(height: 24),
           _AuditTable(
-            rows: pageRows,
-            isLoading: widget.isLoading,
-            errorMessage: widget.errorMessage,
-            onRetry: widget.onRefresh,
+            rows: entries,
+            isLoading: isLoading,
+            errorMessage: errorMessage,
+            onRetry: onRefresh,
             columnWidths: columnWidths,
-            search: _search,
-            onSearchChanged: (v) => setState(() {
-              _search = v;
-              _page = 1;
-            }),
-            page: _page,
-            pageSize: _pageSize,
-            totalCount: filtered.length,
-            onPageChanged: (p) => setState(() => _page = p),
-            onPageSizeChanged: (size) => setState(() {
-              _pageSize = size;
-              _page = 1;
-            }),
+            search: searchQuery,
+            onSearchChanged: onSearchChanged,
+            page: page,
+            pageSize: pageSize,
+            totalCount: totalCount,
+            onPageChanged: onPageChanged,
+            onPageSizeChanged: onPageSizeChanged,
           ),
         ],
       ),
@@ -318,7 +285,9 @@ class _TopRow extends StatelessWidget {
             child: SizedBox(
               width: 360,
               child: AppTextField.search(
-                hintText: 'Search by email',
+                // Server-side search over the ENTIRE audit log (initiator
+                // email / action name), not just the loaded page.
+                hintText: 'Search by email or action',
                 onChanged: onSearchChanged,
               ),
             ),

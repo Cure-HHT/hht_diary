@@ -191,11 +191,8 @@ class _PreviewHome extends StatelessWidget {
                   DashboardDestination(
                     key: 'audit',
                     label: 'Audit Logs',
-                    body: (ctx) => AuditLogsScreen(
-                      entries: MockData.auditEntries,
-                      isLoading: false,
-                      onRefresh: () => _snack(ctx, 'Refresh fired'),
-                    ),
+                    body: (ctx) =>
+                        _AuditLogsPreview(onSnack: (m) => _snack(ctx, m)),
                   ),
                   DashboardDestination(
                     key: 'sites',
@@ -304,6 +301,64 @@ class _Caption extends StatelessWidget {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
       ),
+    );
+  }
+}
+
+/// Mimics the server-paged contract portal_ui_evs's binding fulfils in
+/// production: slices the mock entries per page/search locally and feeds
+/// [AuditLogsScreen] the current page plus the true total, so the preview
+/// exercises the pagination + search callbacks end-to-end.
+class _AuditLogsPreview extends StatefulWidget {
+  const _AuditLogsPreview({required this.onSnack});
+
+  final ValueChanged<String> onSnack;
+
+  @override
+  State<_AuditLogsPreview> createState() => _AuditLogsPreviewState();
+}
+
+class _AuditLogsPreviewState extends State<_AuditLogsPreview> {
+  int _page = 1;
+  int _pageSize = 8;
+  String _query = '';
+
+  List<AuditEntryView> get _matches {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return MockData.auditEntries;
+    return MockData.auditEntries
+        .where(
+          (e) =>
+              e.actorName.toLowerCase().contains(q) ||
+              e.activityLabel.toLowerCase().contains(q),
+        )
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final matches = _matches;
+    final start = (_page - 1) * _pageSize;
+    final pageRows = start >= matches.length
+        ? const <AuditEntryView>[]
+        : matches.sublist(start, (start + _pageSize).clamp(0, matches.length));
+    return AuditLogsScreen(
+      entries: pageRows,
+      isLoading: false,
+      onRefresh: () => widget.onSnack('Refresh fired'),
+      page: _page,
+      pageSize: _pageSize,
+      totalCount: matches.length,
+      searchQuery: _query,
+      onPageChanged: (p) => setState(() => _page = p),
+      onPageSizeChanged: (s) => setState(() {
+        _pageSize = s;
+        _page = 1;
+      }),
+      onSearchChanged: (q) => setState(() {
+        _query = q;
+        _page = 1;
+      }),
     );
   }
 }

@@ -7,15 +7,17 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 
 import 'audit_format.dart';
 
-/// Thin wrapper that feeds [AuditLogsScreen] a snapshot of audit
-/// entries fetched from `GET /audit`.
+/// Thin wrapper that feeds [AuditLogsScreen] one PAGE of audit entries
+/// fetched from `GET /audit?limit=&offset=&q=`.
 ///
-/// All the HTTP / credential / parse logic from the legacy
-/// `AuditLogScreen` lives here (it never belonged in the presentation
-/// layer); the new design-system screen just receives a list of
-/// [AuditEntryView]s + `isLoading` + `errorMessage` and emits
-/// [AuditLogsScreen.onRefresh] back here when the user triggers a
-/// refetch.
+/// All the HTTP / credential / parse logic lives here (it never
+/// belonged in the presentation layer). The binding owns the paging
+/// state — current page, page size, search query, and the server's
+/// true total — and refetches whenever [AuditLogsScreen] reports a
+/// page flip, page-size change, or settled search input. Search is
+/// evaluated SERVER-SIDE over the whole log (the screen's search box
+/// debounces internally), so a match on the oldest entry is found even
+/// when it isn't loaded.
 ///
 /// Self-gates on `portal.audit.view`.
 class AuditLogScreenBinding extends StatefulWidget {
@@ -23,6 +25,7 @@ class AuditLogScreenBinding extends StatefulWidget {
     super.key,
     required this.identityCredential,
     required this.serverUrl,
+    this.httpClient,
   });
 
   /// Bare identity credential — session token in session mode, userId
@@ -31,6 +34,9 @@ class AuditLogScreenBinding extends StatefulWidget {
 
   /// Portal server base URL, resolved at runtime by the app shell.
   final String serverUrl;
+
+  /// Injection point for tests; production uses a real client.
+  final http.Client? httpClient;
 
   static const String viewAuditPermission = 'portal.audit.view';
 
@@ -43,14 +49,25 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
   bool _loading = false;
   String? _error;
   List<AuditEntryView> _entries = const <AuditEntryView>[];
+  int _page = 1;
+  int _pageSize = 8;
+  String _query = '';
+  int _total = 0;
+
+  /// Monotonic fetch token: a response is applied only if no newer
+  /// fetch started after it (rapid page flips would otherwise let a
+  /// slow page-2 response clobber the already-rendered page 3).
+  int _fetchSeq = 0;
+
+  http.Client get _http => widget.httpClient ?? http.Client();
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Fetch exactly once on first build. Refresh is manual (driven by
-    // AuditLogsScreen.onRefresh). Permission errors are harmless — the
-    // PermissionGate in build() suppresses the body and the server
-    // enforces portal.audit.view independently.
+    // Fetch exactly once on first build; later fetches are driven by
+    // the screen's paging/search callbacks. Permission errors are
+    // harmless — the PermissionGate in build() suppresses the body and
+    // the server enforces portal.audit.view independently.
     if (!_started) {
       _started = true;
       _fetch();
@@ -58,6 +75,7 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
   }
 
   Future<void> _fetch() async {
+    final seq = ++_fetchSeq;
     setState(() {
       _loading = true;
       _error = null;
@@ -77,11 +95,19 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
       // legacy AuditLogScreen used. The server reads the role claim to
       // authorize the request under the active role.
       final cred = '${widget.identityCredential}|${p.activeRole}';
-      final resp = await http.get(
-        Uri.parse('${widget.serverUrl}/audit?limit=200'),
+      final q = _query.trim();
+      final uri = Uri.parse('${widget.serverUrl}/audit').replace(
+        queryParameters: <String, String>{
+          'limit': '$_pageSize',
+          'offset': '${(_page - 1) * _pageSize}',
+          if (q.isNotEmpty) 'q': q,
+        },
+      );
+      final resp = await _http.get(
+        uri,
         headers: <String, String>{'Authorization': 'Bearer $cred'},
       );
-      if (!mounted) return;
+      if (!mounted || seq != _fetchSeq) return;
       if (resp.statusCode != 200) {
         setState(() {
           _error = 'HTTP ${resp.statusCode}';
@@ -89,20 +115,49 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
         });
         return;
       }
-      final rawRows = parseAuditRows(resp.body);
+      final page = parseAuditPage(resp.body);
       setState(() {
         _entries = <AuditEntryView>[
-          for (final row in rawRows) _toEntryView(row),
+          for (final row in page.rows) _toEntryView(row),
         ];
+        _total = page.total;
         _loading = false;
       });
+      // The requested page can fall off the end — e.g. the match set
+      // shrank while searching. Snap to the last page that exists.
+      final maxPage = _total == 0 ? 1 : ((_total - 1) ~/ _pageSize) + 1;
+      if (_page > maxPage) {
+        setState(() => _page = maxPage);
+        await _fetch();
+      }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || seq != _fetchSeq) return;
       setState(() {
         _error = '$e';
         _loading = false;
       });
     }
+  }
+
+  void _onPageChanged(int page) {
+    setState(() => _page = page);
+    _fetch();
+  }
+
+  void _onPageSizeChanged(int size) {
+    setState(() {
+      _pageSize = size;
+      _page = 1;
+    });
+    _fetch();
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _query = query;
+      _page = 1;
+    });
+    _fetch();
   }
 
   @override
@@ -116,6 +171,13 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
       isLoading: _loading,
       errorMessage: _error,
       onRefresh: _fetch,
+      page: _page,
+      pageSize: _pageSize,
+      totalCount: _total,
+      searchQuery: _query,
+      onPageChanged: _onPageChanged,
+      onPageSizeChanged: _onPageSizeChanged,
+      onSearchChanged: _onSearchChanged,
     ),
   );
 }

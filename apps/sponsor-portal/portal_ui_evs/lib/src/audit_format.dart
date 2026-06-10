@@ -14,6 +14,21 @@ List<Map<String, Object?>> parseAuditRows(String responseBody) {
       .toList();
 }
 
+/// One page of the server-paged /audit response: the rows in hand plus the
+/// server's true total (full log size, or match-set size while a `q` filter
+/// is active).
+typedef AuditPage = ({List<Map<String, Object?>> rows, int total});
+
+// Implements: DIARY-GUI-audit-log-common/A — parses one page of the /audit
+//   response. `total` falls back to the row count when the server omits it,
+//   so an older server still renders (with page-local pagination).
+AuditPage parseAuditPage(String responseBody) {
+  final rows = parseAuditRows(responseBody);
+  final decoded = jsonDecode(responseBody);
+  final total = decoded is Map ? decoded['total'] : null;
+  return (rows: rows, total: total is int ? total : rows.length);
+}
+
 // Overrides only where title-casing the entry-type id reads poorly (e.g. acronyms).
 const Map<String, String> _entryTypeLabels = <String, String>{
   'site_synced_from_edc': 'Site Synced From EDC',

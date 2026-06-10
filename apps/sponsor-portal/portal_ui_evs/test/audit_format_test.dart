@@ -62,4 +62,19 @@ void main() {
       expect(parseAuditRows('[]'), isEmpty);
     });
   });
+
+  group('parseAuditPage', () {
+    test('reads rows and the server-reported total', () {
+      final page = parseAuditPage(
+        '{"rows":[{"entry_type":"x"}],"count":1,"total":204}',
+      );
+      expect(page.rows, hasLength(1));
+      expect(page.total, 204);
+    });
+
+    test('falls back to rows.length when total is absent or malformed', () {
+      expect(parseAuditPage('{"rows":[{"a":1},{"b":2}]}').total, 2);
+      expect(parseAuditPage('{"rows":[{"a":1}],"total":"nope"}').total, 1);
+    });
+  });
 }
