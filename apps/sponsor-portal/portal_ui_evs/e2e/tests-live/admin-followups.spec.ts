@@ -63,7 +63,7 @@ test('Settings link opens the read-only Study Settings page', async ({
     .first()
     .waitFor({ state: 'attached', timeout: 30_000 });
   await page
-    .getByText('These settings are currently view-only', { exact: false })
+    .getByText('These settings are view only', { exact: false })
     .first()
     .waitFor({ state: 'attached', timeout: 15_000 });
 

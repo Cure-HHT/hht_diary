@@ -1,5 +1,6 @@
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// One parameter row in a [StudySettingsSectionView].
 @immutable
@@ -8,6 +9,7 @@ class StudySettingRowView {
     required this.label,
     required this.value,
     this.implemented = true,
+    this.variableName,
   });
 
   /// Parameter display name (left column).
@@ -21,6 +23,13 @@ class StudySettingRowView {
   /// False renders the value in the dimmer not-yet-implemented style so
   /// real values and placeholders are visually distinct at a glance.
   final bool implemented;
+
+  /// The parameter's true source identifier (settings key, env var, or
+  /// code symbol — e.g. `clinical.lockThresholdHours`). When the screen
+  /// runs with [StudySettingsScreen.showVariableNames], hovering the row
+  /// reveals it and clicking copies it, so a developer can grep for it.
+  /// Null for rows with no backing implementation.
+  final String? variableName;
 }
 
 /// One titled group of parameters on the Study Settings page.
@@ -51,12 +60,18 @@ class StudySettingsScreen extends StatelessWidget {
     required this.isLoading,
     required this.onRetry,
     this.errorMessage,
+    this.showVariableNames = false,
   });
 
   final List<StudySettingsSectionView> sections;
   final bool isLoading;
   final VoidCallback onRetry;
   final String? errorMessage;
+
+  /// Developer affordance for SystemOperator viewers: rows with a
+  /// [StudySettingRowView.variableName] show it on hover and copy it to
+  /// the clipboard on click. Off for regular roles.
+  final bool showVariableNames;
 
   @override
   Widget build(BuildContext context) {
@@ -74,9 +89,7 @@ class StudySettingsScreen extends StatelessWidget {
             const SizedBox(height: 16),
             const AppBanner(
               severity: AppBannerSeverity.info,
-              message:
-                  'These settings are currently view-only. Editing will be '
-                  'available in a future release.',
+              message: 'These settings are view only.',
               semanticId: 'settings-banner',
             ),
             const SizedBox(height: 24),
@@ -85,6 +98,7 @@ class StudySettingsScreen extends StatelessWidget {
               isLoading: isLoading,
               errorMessage: errorMessage,
               onRetry: onRetry,
+              showVariableNames: showVariableNames,
               theme: theme,
             ),
           ],
@@ -136,6 +150,7 @@ class _Body extends StatelessWidget {
     required this.isLoading,
     required this.errorMessage,
     required this.onRetry,
+    required this.showVariableNames,
     required this.theme,
   });
 
@@ -143,6 +158,7 @@ class _Body extends StatelessWidget {
   final bool isLoading;
   final String? errorMessage;
   final VoidCallback onRetry;
+  final bool showVariableNames;
   final ThemeData theme;
 
   @override
@@ -215,7 +231,11 @@ class _Body extends StatelessWidget {
       children: [
         for (var i = 0; i < sections.length; i++) ...[
           if (i > 0) const SizedBox(height: 48),
-          _Section(section: sections[i], theme: theme),
+          _Section(
+            section: sections[i],
+            showVariableNames: showVariableNames,
+            theme: theme,
+          ),
         ],
       ],
     );
@@ -223,9 +243,14 @@ class _Body extends StatelessWidget {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({required this.section, required this.theme});
+  const _Section({
+    required this.section,
+    required this.showVariableNames,
+    required this.theme,
+  });
 
   final StudySettingsSectionView section;
+  final bool showVariableNames;
   final ThemeData theme;
 
   @override
@@ -261,37 +286,60 @@ class _Section extends StatelessWidget {
         const SizedBox(height: 8),
         _divider(),
         for (final row in section.rows) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: _columnsRow(
-              left: Text(
-                row.label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w400,
-                  fontSize: 14,
-                  height: 20 / 14,
-                  letterSpacing: -0.15,
-                  color: theme.colorScheme.onSurface,
-                ),
-              ),
-              right: Text(
-                row.value,
-                style: TextStyle(
-                  fontWeight: FontWeight.w400,
-                  fontSize: 14,
-                  height: 20 / 14,
-                  letterSpacing: -0.15,
-                  fontStyle: row.implemented ? null : FontStyle.italic,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: row.implemented ? 1.0 : 0.7,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          _rowWidget(context, row),
           if (row != section.rows.last) _divider(),
         ],
       ],
+    );
+  }
+
+  Widget _rowWidget(BuildContext context, StudySettingRowView row) {
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: _columnsRow(
+        left: Text(
+          row.label,
+          style: TextStyle(
+            fontWeight: FontWeight.w400,
+            fontSize: 14,
+            height: 20 / 14,
+            letterSpacing: -0.15,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        right: Text(
+          row.value,
+          style: TextStyle(
+            fontWeight: FontWeight.w400,
+            fontSize: 14,
+            height: 20 / 14,
+            letterSpacing: -0.15,
+            fontStyle: row.implemented ? null : FontStyle.italic,
+            color: theme.colorScheme.onSurfaceVariant.withValues(
+              alpha: row.implemented ? 1.0 : 0.7,
+            ),
+          ),
+        ),
+      ),
+    );
+    final name = row.variableName;
+    if (!showVariableNames || name == null) return content;
+    // SystemOperator developer affordance: hover reveals the parameter's
+    // true source identifier; click copies it so it can be grepped.
+    return Tooltip(
+      message: name,
+      child: InkWell(
+        onTap: () {
+          Clipboard.setData(ClipboardData(text: name));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Copied $name'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
+        child: content,
+      ),
     );
   }
 

@@ -37,9 +37,17 @@ List<StudySettingsSectionView> buildStudySettingsSections(String responseBody) {
 
   bool boolOf(String key) => c[key] == true;
 
-  StudySettingRowView row(String label, String? value) => value == null
+  // [variableName] is the parameter's true source identifier (settings
+  // key, env var, or class.field) — surfaced to SystemOperator viewers as
+  // a hover/copy developer affordance.
+  StudySettingRowView row(String label, String? value, String variableName) =>
+      value == null
       ? _todo(label)
-      : StudySettingRowView(label: label, value: value);
+      : StudySettingRowView(
+          label: label,
+          value: value,
+          variableName: variableName,
+        );
 
   String? minutes(String key) {
     final v = intOf(key);
@@ -68,11 +76,13 @@ List<StudySettingsSectionView> buildStudySettingsSections(String responseBody) {
         row(
           'Sponsor Portal Session Idle Timeout',
           minutes('session_idle_minutes'),
+          'session_idle_minutes',
         ),
         _todo('Password Expiry Interval'),
         row(
           'Two-Factor Authentication Code Expiry',
           minutes('two_factor_code_expiry_minutes'),
+          'PORTAL_OTP_TTL_MINUTES',
         ),
       ],
     ),
@@ -81,7 +91,11 @@ List<StudySettingsSectionView> buildStudySettingsSections(String responseBody) {
       description:
           'Defines mobile access, linking, and app lock security rules.',
       rows: [
-        row('Mobile Linking Code Expiry', hours('linking_code_expiry_hours')),
+        row(
+          'Mobile Linking Code Expiry',
+          hours('linking_code_expiry_hours'),
+          'linkingCodeTtl',
+        ),
         _todo('Application Lock Idle Timeout'),
         _todo('Application Lock PIN Length'),
         _todo('Application Lock Failed Attempt Threshold'),
@@ -96,10 +110,12 @@ List<StudySettingsSectionView> buildStudySettingsSections(String responseBody) {
         StudySettingRowView(
           label: 'Justification Threshold',
           value: gateThreshold('justification_threshold_hours'),
+          variableName: 'clinical.justificationThresholdHours',
         ),
         StudySettingRowView(
           label: 'Lock Threshold',
           value: gateThreshold('lock_threshold_hours'),
+          variableName: 'clinical.lockThresholdHours',
         ),
         StudySettingRowView(
           label: 'Short Duration Confirmation',
@@ -108,6 +124,7 @@ List<StudySettingsSectionView> buildStudySettingsSections(String responseBody) {
           value: boolOf('short_duration_confirm')
               ? 'Enabled (1 minute)'
               : 'Disabled',
+          variableName: 'clinical.shortDurationConfirm',
         ),
         StudySettingRowView(
           label: 'Long Duration Confirmation',
@@ -116,6 +133,7 @@ List<StudySettingsSectionView> buildStudySettingsSections(String responseBody) {
               : 'Disabled '
                     '(threshold ${intOf('long_duration_threshold_minutes')} '
                     'minutes)',
+          variableName: 'clinical.longDurationThresholdMinutes',
         ),
       ],
     ),
@@ -126,6 +144,7 @@ List<StudySettingsSectionView> buildStudySettingsSections(String responseBody) {
         row(
           'NOSE HHT and HHT-QoL Session Timeout',
           minutes('questionnaire_session_timeout_minutes'),
+          'sessionTimeoutMinutes',
         ),
         row(
           'NOSE HHT and HHT-QoL Timeout Warning Threshold',
@@ -133,6 +152,7 @@ List<StudySettingsSectionView> buildStudySettingsSections(String responseBody) {
               ? null
               : '${intOf('questionnaire_timeout_warning_minutes')} minutes '
                     'before expiry',
+          'timeoutWarningMinutes',
         ),
       ],
     ),
@@ -173,12 +193,14 @@ List<StudySettingsSectionView> buildStudySettingsSections(String responseBody) {
               ? null
               : '${intOf('two_factor_issue_max_per_window')} per '
                     '${intOf('two_factor_issue_window_minutes')} minutes',
+          'OtpStore.maxIssuesPerWindow',
         ),
         row(
           'Two-Factor Code Attempt Limit',
           intOf('two_factor_max_attempts') == null
               ? null
               : '${intOf('two_factor_max_attempts')} attempts',
+          'OtpStore.maxAttempts',
         ),
         row(
           'Password Reset Request Limit',
@@ -186,8 +208,13 @@ List<StudySettingsSectionView> buildStudySettingsSections(String responseBody) {
               ? null
               : '${intOf('password_reset_issue_max_per_window')} per '
                     '${intOf('password_reset_issue_window_minutes')} minutes',
+          'PasswordResetCodeStore.maxIssuesPerWindow',
         ),
-        row('Password Reset Link Expiry', hours('password_reset_ttl_hours')),
+        row(
+          'Password Reset Link Expiry',
+          hours('password_reset_ttl_hours'),
+          'PasswordResetCodeStore.ttl',
+        ),
       ],
     ),
   ];

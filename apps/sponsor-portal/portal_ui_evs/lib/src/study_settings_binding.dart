@@ -108,5 +108,9 @@ class _StudySettingsBindingState extends State<StudySettingsBinding> {
     isLoading: _loading,
     errorMessage: _error,
     onRetry: _fetch,
+    // SystemOperator developer affordance: hover shows each parameter's
+    // true source identifier, click copies it.
+    showVariableNames:
+        widget.activeRole == PortalRole.systemOperator.systemName,
   );
 }

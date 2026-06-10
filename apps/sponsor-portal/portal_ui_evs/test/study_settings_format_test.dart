@@ -132,4 +132,35 @@ void main() {
       'Not yet implemented',
     );
   });
+
+  test('real rows carry their true source identifiers; unimplemented rows '
+      'carry none', () {
+    final sections = buildStudySettingsSections(jsonEncode(_fullPayload));
+    expect(
+      _row(sections, 'Sponsor Portal Session Idle Timeout').variableName,
+      'session_idle_minutes',
+    );
+    expect(
+      _row(sections, 'Two-Factor Authentication Code Expiry').variableName,
+      'PORTAL_OTP_TTL_MINUTES',
+    );
+    expect(
+      _row(sections, 'Mobile Linking Code Expiry').variableName,
+      'linkingCodeTtl',
+    );
+    expect(
+      _row(sections, 'Justification Threshold').variableName,
+      'clinical.justificationThresholdHours',
+    );
+    expect(
+      _row(sections, 'Long Duration Confirmation').variableName,
+      'clinical.longDurationThresholdMinutes',
+    );
+    expect(
+      _row(sections, 'Two-Factor Code Attempt Limit').variableName,
+      'OtpStore.maxAttempts',
+    );
+    expect(_row(sections, 'Password Expiry Interval').variableName, isNull);
+    expect(_row(sections, 'Login Rate Limit Threshold').variableName, isNull);
+  });
 }
