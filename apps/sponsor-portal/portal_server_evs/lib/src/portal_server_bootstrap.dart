@@ -655,14 +655,24 @@ Future<PortalServerBoot> bootstrapPortalServer({
   }
 
   // Read-only study-configuration aggregate for the portal's Study
-  // Settings page. Any authenticated portal user may read it (the values
-  // are study parameters, not secrets); unauthenticated requests are
-  // rejected. Unimplemented parameters are absent from the payload by
-  // design — see study_config.dart.
+  // Settings page. Gated on the ACT-ADM-001 read permission
+  // (portal.admin.view_settings — granted per the sponsor's permissions
+  // matrix, e.g. Administrator + SystemOperator). Unimplemented
+  // parameters are absent from the payload by design — see
+  // study_config.dart.
+  // Implements: DIARY-PRD-action-inventory/A
   Future<Response> studyConfigHandler(Request request) async {
+    const viewSettingsPermission = 'portal.admin.view_settings';
     final principal = principalFromContext(request);
-    if (principal is! UserPrincipal) {
-      return Response.forbidden('requires an authenticated portal user');
+    final Iterable<String> perms;
+    if (principal is UserPrincipal) {
+      final eff = await policy.effectivePermissionsFor(principal);
+      perms = eff.rolePermissions.map((p) => p.name);
+    } else {
+      perms = const <String>[];
+    }
+    if (!perms.contains(viewSettingsPermission)) {
+      return Response.forbidden('requires $viewSettingsPermission');
     }
     final body = await studyConfigJson(
       backend: backend,

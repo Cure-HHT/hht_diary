@@ -35,6 +35,37 @@ void main() {
   });
 
   test(
+      'gated on portal.admin.view_settings (ACT-ADM-001): every seeded '
+      'role holds it -> 200; a principal without roles is denied', () async {
+    final b = await boot('study-config-gate.db');
+    // Product decision (CUR-1485): the read-only settings page is
+    // reference material for ALL portal staff, so every role is granted
+    // the ACT-ADM-001 permission in the sponsor matrix.
+    // No CRA user exists in the dev seed, so CRA isn't exercised here;
+    // its grant is pinned by the sponsor matrix drift guard instead.
+    for (final allowed in ['admin-1', 'sysop-1', 'sc-1']) {
+      final resp = await b.router(
+        Request(
+          'GET',
+          Uri.parse('http://localhost/config/study'),
+          headers: {'Authorization': 'Bearer $allowed'},
+        ),
+      );
+      expect(resp.statusCode, 200, reason: '$allowed holds view_settings');
+    }
+    // The permission gate itself still denies a principal that resolves
+    // no grants (unknown user -> no roles -> no permissions).
+    final denied = await b.router(
+      Request(
+        'GET',
+        Uri.parse('http://localhost/config/study'),
+        headers: const {'Authorization': 'Bearer nobody-1'},
+      ),
+    );
+    expect(denied.statusCode, anyOf(401, 403));
+  });
+
+  test(
       'authenticated user -> 200 with effective values; unimplemented '
       'params absent', () async {
     final b = await boot('study-config-shape.db');

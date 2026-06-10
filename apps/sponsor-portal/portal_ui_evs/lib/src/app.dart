@@ -777,7 +777,16 @@ class _HomeShellState extends State<_HomeShell> {
         // logo sits left of the title block).
         logo: const SponsorBrandMark(maxHeight: 40),
         // Opens the read-only Study Settings page over the active tab.
-        onSettings: () => setState(() => _showSettings = true),
+        // Visible only to roles holding the ACT-ADM-001 read permission
+        // (Administrator + SystemOperator per the sponsor matrix); the
+        // server enforces the same gate on GET /config/study.
+        onSettings:
+            (_auth?.rolePermissions.any(
+                  (p) => p.name == 'portal.admin.view_settings',
+                ) ??
+                false)
+            ? () => setState(() => _showSettings = true)
+            : null,
       ),
       // Study Settings isn't a tab: it overlays the body while the strip
       // shows no active pill; any tab tap below dismisses it.
