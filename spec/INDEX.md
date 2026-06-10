@@ -134,7 +134,7 @@
 | DIARY-GUI-participation-status-badge         | Participation Status Badge                 | prd-mobile-notifications.md               | 6f306233 |
 | DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface         | prd-portal-auth.md                        | d41e7764 |
 | DIARY-GUI-portal-session-expiry              | Portal session expiry interface            | prd-portal-auth.md                        | 0a1581a9 |
-| DIARY-GUI-portal-stale-client-reload         | Portal Stale-Client Reload Prompt          | prd-common-ui.md                          | 375e8009 |
+| DIARY-GUI-portal-stale-client-reload         | Portal Stale-Client Reload Prompt          | prd-common-ui.md                          | b099c1fa |
 | DIARY-GUI-portal-transport-status            | Portal Transport Status Banner             | prd-common-ui.md                          | 20c55120 |
 | DIARY-GUI-questionnaire-portal-sent-workflow | Portal-Sent Questionnaire Workflow         | prd-questionnaire-participant-workflow.md | ca0d5613 |
 | DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry               | prd-questionnaire-participant-workflow.md | 02879dd5 |

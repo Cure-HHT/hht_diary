@@ -180,18 +180,22 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     });
     // One-shot boot check: catches a stale bundle already loaded (e.g. served
     // by a legacy service worker) and seeds the version manifest for the popup.
-    unawaited(_checkServerVersion());
+    // The ONLY call site allowed to auto-reload — nothing can have been typed
+    // this early. Later checks (reconnect, sign-in) banner instead.
+    unawaited(_checkServerVersion(atBoot: true));
     _resolveAuthMode();
   }
 
   /// Fetch `/health`, update the version manifest, and act on a version
   /// mismatch. Event-driven (boot, reconnect, login attempt) — there is no
-  /// polling timer. [forceLoginScreen] treats the User as unauthenticated
-  /// regardless of [_status] for the login-attempt call site, so a logged-out
-  /// User who initiates sign-in on a stale bundle auto-reloads rather than
-  /// being prompted.
+  /// polling timer. Only the boot call site sets [atBoot]: an automatic
+  /// reload is free only before the *User* could have typed anything. A
+  /// deploy landing under an open login tab (reconnect) or discovered at
+  /// sign-in must never reload — it would wipe typed credentials or discard
+  /// the just-established session, making the deploy look like a failed
+  /// login (the repeatedly-reported "can't log in: version out of date").
   // Implements: DIARY-GUI-portal-stale-client-reload/A+B+C
-  Future<void> _checkServerVersion({bool forceLoginScreen = false}) async {
+  Future<void> _checkServerVersion({bool atBoot = false}) async {
     Map<String, Object?>? versions;
     try {
       // /health is public + same-origin; `.versions` carries portal_ui_version
@@ -207,11 +211,11 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       return;
     }
     if (versions == null || !mounted) return;
-    final authenticated = !forceLoginScreen && _status is Authenticated;
     final action = decideStaleClientAction(
       clientVersion: _appVersion,
       serverVersions: versions,
-      authenticated: authenticated,
+      authenticated: _status is Authenticated,
+      atBoot: atBoot,
       autoReloadAlreadyTried: widget.web.autoReloadAlreadyTried,
     );
     switch (action) {
@@ -274,10 +278,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// appends a single `|role`; the typed value (with any role) is used for the
   /// initial connect.
   void _onConnect(String identity) {
-    // Login attempt from the (unauthenticated) login screen: nothing to lose,
-    // so auto-reload onto the new bundle if this one is stale.
+    // Sign-in on a stale bundle completes; staleness surfaces via the
+    // banner only (a reload here would discard this very login).
     // Implements: DIARY-GUI-portal-stale-client-reload/B
-    unawaited(_checkServerVersion(forceLoginScreen: true));
+    unawaited(_checkServerVersion());
     setState(() {
       _identityCredential = identity.split('|').first;
       _roleConfirmed = false;
@@ -289,10 +293,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// with Firebase. Stores the session token so [_HomeShell] can pass it to
   /// [RoleSelector].
   void _onSession(String token) {
-    // Login attempt from the (unauthenticated) login screen: auto-reload onto
-    // the new bundle if this one is stale.
+    // Sign-in on a stale bundle completes; staleness surfaces via the
+    // banner only (a reload here would discard this very login).
     // Implements: DIARY-GUI-portal-stale-client-reload/B
-    unawaited(_checkServerVersion(forceLoginScreen: true));
+    unawaited(_checkServerVersion());
     setState(() {
       _identityCredential = token;
       _roleConfirmed = false;

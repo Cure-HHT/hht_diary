@@ -70,23 +70,45 @@ void main() {
           clientVersion: client,
           serverVersions: const {'portal_ui_version': newer},
           authenticated: true,
+          atBoot: false,
           autoReloadAlreadyTried: false,
         ),
         StaleClientAction.banner,
       );
     });
 
-    // AC: older build + login screen (unauthenticated) -> auto-reload.
+    // AC: older build found AT BOOT, before the User could have typed
+    // anything -> auto-reload (the only free moment to do so).
     // Verifies: DIARY-GUI-portal-stale-client-reload/B
-    test('older build, login screen -> reload', () {
+    test('older build, login screen, at boot -> reload', () {
       expect(
         decideStaleClientAction(
           clientVersion: client,
           serverVersions: const {'portal_ui_version': newer},
           authenticated: false,
+          atBoot: true,
           autoReloadAlreadyTried: false,
         ),
         StaleClientAction.reload,
+      );
+    });
+
+    // AC: staleness discovered AFTER boot (deploy landed under an open
+    // login tab — reconnect or sign-in attempt) must NEVER reload: the
+    // User may have credentials typed or a session just established, and
+    // a reload discards both (the "eaten login"). Banner instead.
+    // Verifies: DIARY-GUI-portal-stale-client-reload/B
+    test('older build, login screen, after boot (reconnect/sign-in) -> '
+        'banner, never reload', () {
+      expect(
+        decideStaleClientAction(
+          clientVersion: client,
+          serverVersions: const {'portal_ui_version': newer},
+          authenticated: false,
+          atBoot: false,
+          autoReloadAlreadyTried: false,
+        ),
+        StaleClientAction.banner,
       );
     });
 
@@ -98,6 +120,7 @@ void main() {
           clientVersion: client,
           serverVersions: const {'portal_ui_version': newer},
           authenticated: true,
+          atBoot: true,
           autoReloadAlreadyTried: true,
         ),
         StaleClientAction.banner,
@@ -112,6 +135,7 @@ void main() {
           clientVersion: client,
           serverVersions: const {'portal_ui_version': newer},
           authenticated: false,
+          atBoot: true,
           autoReloadAlreadyTried: true,
         ),
         StaleClientAction.banner,
@@ -126,6 +150,7 @@ void main() {
             clientVersion: client,
             serverVersions: const {'portal_ui_version': client},
             authenticated: authed,
+            atBoot: true,
             autoReloadAlreadyTried: false,
           ),
           StaleClientAction.none,

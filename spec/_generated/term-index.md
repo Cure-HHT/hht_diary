@@ -2811,6 +2811,7 @@
 - DIARY-DEV-portal-legacy-sw-eviction:section:1
 - DIARY-DEV-sponsor-branding-source:section:1
 - DIARY-PRD-administrator-settings:section:5
+- DIARY-GUI-portal-stale-client-reload:section:1
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
 - DIARY-PRD-session-management:section:0
