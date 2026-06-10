@@ -203,6 +203,13 @@ services:
       # `PORTAL_AUTH_MODE=session ./local-stack portal` path boots. Local-stack
       # only — never a real secret.
       PORTAL_SESSION_SIGNING_KEY: "${PORTAL_SESSION_SIGNING_KEY:-local-stack-session-signing-key-not-secret}"
+      # PORTAL_ACTIVATION_CODE_PEPPER: HMAC pepper for the durable activation-
+      # code hashes (CUR-1490). A fixed local-only value keeps local-stack
+      # hermetic — the compose env wins over `doppler run --preserve-env`
+      # (same mechanism as PORTAL_SESSION_SIGNING_KEY above), so local codes
+      # never depend on the real dev pepper, and the dev-fallback boot warning
+      # stays quiet. Local-stack only — never a real secret.
+      PORTAL_ACTIVATION_CODE_PEPPER: "${PORTAL_ACTIVATION_CODE_PEPPER:-local-stack-activation-pepper-not-secret}"
       # PORTAL_DEV_SEED_PASSWORD: dev/test-only knob (CUR-1437). When set, boot's
       # seedTestAccountActivations provisions each seed-user email in the Firebase
       # emulator with this shared password and marks it active — so the reference
