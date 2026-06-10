@@ -166,6 +166,68 @@ void main() {
     );
   });
 
+  group('PortalAppBar — CUR-1483 header shape', () {
+    PortalAppBar bar({Widget? logo, VoidCallback? onSettings}) => PortalAppBar(
+      title: 'Clinical Trial Portal',
+      subtitle: 'Administrator Dashboard',
+      userName: 'Dr. Emily Parker',
+      activeRole: 'Administrator',
+      availableRoles: const ['Administrator', 'CRA'],
+      onRoleSelected: (_) {},
+      onLogout: () {},
+      onHelp: () {},
+      onSettings: onSettings,
+      logo: logo,
+    );
+
+    testWidgets('logo slot renders left of the brand block when provided', (
+      tester,
+    ) async {
+      const logoKey = Key('test-logo');
+      await _pumpBar(
+        tester,
+        bar(logo: const SizedBox(key: logoKey, width: 40, height: 40)),
+      );
+      expect(find.byKey(logoKey), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(logoKey)).dx,
+        lessThan(tester.getTopLeft(find.text('Clinical Trial Portal')).dx),
+        reason: 'logo sits left of the title block',
+      );
+    });
+
+    testWidgets('right cluster order: user name, role pill, Settings, Logout', (
+      tester,
+    ) async {
+      await _pumpBar(tester, bar(onSettings: () {}));
+      final nameX = tester.getTopLeft(find.text('Dr. Emily Parker')).dx;
+      final roleX = tester.getTopLeft(find.text('Administrator')).dx;
+      final settingsX = tester.getTopLeft(find.text('Settings')).dx;
+      final logoutX = tester.getTopLeft(find.text('Logout')).dx;
+      expect(nameX, lessThan(roleX), reason: 'name before role pill');
+      expect(roleX, lessThan(settingsX), reason: 'role before Settings');
+      expect(settingsX, lessThan(logoutX), reason: 'Settings before Logout');
+    });
+
+    testWidgets('Settings link fires its callback and carries its id', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      var taps = 0;
+      await _pumpBar(tester, bar(onSettings: () => taps++));
+      expect(find.bySemanticsIdentifier('appbar-settings'), findsOneWidget);
+      await tester.tap(find.text('Settings'));
+      await tester.pump();
+      expect(taps, 1);
+      handle.dispose();
+    });
+
+    testWidgets('Settings link absent when onSettings is null', (tester) async {
+      await _pumpBar(tester, bar());
+      expect(find.text('Settings'), findsNothing);
+    });
+  });
+
   group('PortalAppBar — assertions', () {
     test('multi-role mode requires onRoleSelected', () {
       expect(

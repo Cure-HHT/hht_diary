@@ -12,6 +12,7 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:portal_screens/portal_screens.dart';
 
 import 'activation_link.dart';
+import 'auth_scaffold.dart';
 import 'activation_screen.dart';
 import 'audit_log_screen_binding.dart';
 import 'connect_screen.dart';
@@ -761,6 +762,12 @@ class _HomeShellState extends State<_HomeShell> {
         // app-bar deploy-counter tap, now hung off the help affordance
         // so the chrome above doesn't need its own version label.
         onHelp: _showVersionsDialog,
+        // Same sponsor-served logo the auth cards use (CUR-1483 Figma:
+        // logo sits left of the title block).
+        logo: const SponsorBrandMark(maxHeight: 40),
+        // No Settings surface exists yet — the no-op renders the link
+        // per the Figma; CUR-1483 tracks wiring it when one lands.
+        onSettings: () {},
       ),
       destinations: <DashboardDestination>[
         for (final s in visible)

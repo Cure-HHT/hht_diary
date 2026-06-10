@@ -1,7 +1,42 @@
 import 'package:flutter/foundation.dart';
 
+import 'portal_role.dart';
 import 'role_assignment_view.dart';
 import 'user_status_view.dart';
+
+/// The Users-table row-visibility rule for operator-tier accounts:
+/// an account whose KNOWN roles are exactly {SystemOperator} is visible
+/// only when the viewer's active role is SystemOperator. A SysOp who
+/// also holds a regular role stays visible to everyone — rendered
+/// normally, SysOp badge included.
+///
+/// Accounts with NO known roles are never hidden: role data flows from a
+/// separately-gated `user_role_scopes` subscription, so an empty role set
+/// usually means "assignments not visible to this viewer", and hiding the
+/// whole directory on missing data would be wrong. This is a PRESENTATION
+/// rule layered over the server's action-level operator-tier enforcement
+/// (DIARY-DEV-operator-tier-authz) — the rows still reach any client
+/// holding the users-view permission.
+///
+/// SPEC GAP: DIARY-DEV-operator-tier-authz's assertions cover only the
+/// tier projection and Action authorization, not row VISIBILITY; this
+/// rule needs a GUI/DEV assertion of its own (flagged per convention
+/// rather than minted ad hoc — CUR-1483).
+List<PortalUserView> visibleUserRows({
+  required List<PortalUserView> users,
+  required bool viewerIsOperator,
+}) {
+  if (viewerIsOperator) return users;
+  return users
+      .where((u) {
+        final roles = u.distinctRoles;
+        final sysOpOnly =
+            roles.isNotEmpty &&
+            roles.every((r) => r == PortalRole.systemOperator.systemName);
+        return !sysOpOnly;
+      })
+      .toList(growable: false);
+}
 
 /// One row in the User Management table.
 ///
