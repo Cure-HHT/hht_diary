@@ -3,8 +3,10 @@ import 'dart:convert';
 // Implements: DIARY-GUI-audit-log-common/A — parses the /audit response body into audit
 //   rows, tolerating (skipping) any non-object element so a malformed row can't crash the
 //   list (the Timestamp/Action/User/Details table is built from these rows).
-List<Map<String, Object?>> parseAuditRows(String responseBody) {
-  final decoded = jsonDecode(responseBody);
+List<Map<String, Object?>> parseAuditRows(String responseBody) =>
+    _rowsFrom(jsonDecode(responseBody));
+
+List<Map<String, Object?>> _rowsFrom(Object? decoded) {
   if (decoded is! Map) return const <Map<String, Object?>>[];
   final rows = decoded['rows'];
   if (rows is! List) return const <Map<String, Object?>>[];
@@ -23,8 +25,8 @@ typedef AuditPage = ({List<Map<String, Object?>> rows, int total});
 //   response. `total` falls back to the row count when the server omits it,
 //   so an older server still renders (with page-local pagination).
 AuditPage parseAuditPage(String responseBody) {
-  final rows = parseAuditRows(responseBody);
   final decoded = jsonDecode(responseBody);
+  final rows = _rowsFrom(decoded);
   final total = decoded is Map ? decoded['total'] : null;
   return (rows: rows, total: total is int ? total : rows.length);
 }

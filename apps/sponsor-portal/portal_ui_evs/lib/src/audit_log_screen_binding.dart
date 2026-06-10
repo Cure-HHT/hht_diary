@@ -59,7 +59,20 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
   /// slow page-2 response clobber the already-rendered page 3).
   int _fetchSeq = 0;
 
-  http.Client get _http => widget.httpClient ?? http.Client();
+  /// Lazily-created client owned by this state when none is injected —
+  /// one client for the binding's lifetime (keep-alive across page
+  /// flips, no socket churn), closed in [dispose]. An injected client
+  /// is the owner's to close.
+  http.Client? _ownedClient;
+
+  http.Client get _http =>
+      widget.httpClient ?? (_ownedClient ??= http.Client());
+
+  @override
+  void dispose() {
+    _ownedClient?.close();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
