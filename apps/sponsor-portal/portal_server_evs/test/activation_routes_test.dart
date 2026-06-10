@@ -93,6 +93,30 @@ void main() {
     expect(after.where((e) => e.eventType == 'user_activated'), hasLength(1));
   });
 
+  test(
+      'POST with a short password -> 400 with the stated rule; the code is '
+      'NOT consumed, so a compliant retry succeeds', () async {
+    final code = store.issue(
+        email: 'jane@site.org', expiresAt: t0.add(const Duration(days: 14)));
+    final short = await router().call(Request(
+      'POST',
+      Uri.parse('http://x/activate'),
+      body: jsonEncode({'code': code, 'password': 'pw12345'}), // 7 chars
+    ));
+    expect(short.statusCode, 400);
+    final body = jsonDecode(await short.readAsString()) as Map<String, Object?>;
+    expect(body['message'], kShortPasswordMessage);
+    final events = await eventStore.backend.findAllEvents();
+    expect(events.where((e) => e.eventType == 'user_activated'), isEmpty);
+
+    // The rule rejected BEFORE consuming the single-use code: retrying
+    // with a compliant password must succeed.
+    final retry = await router().call(Request(
+        'POST', Uri.parse('http://x/activate'),
+        body: jsonEncode({'code': code, 'password': 'pw123456'})));
+    expect(retry.statusCode, 200);
+  });
+
   test('POST with provisioning failure appends no event', () async {
     final code = store.issue(
         email: 'jane@site.org', expiresAt: t0.add(const Duration(days: 14)));

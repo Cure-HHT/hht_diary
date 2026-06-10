@@ -14,6 +14,11 @@ const kInvalidLinkMessage =
     'This link is no longer valid. Please contact your Administrator to '
     'request a new activation email.';
 
+/// Minimum password length for account activation (stated on the
+/// activation page; enforced here authoritatively).
+const int kMinActivationPasswordLength = 8;
+const kShortPasswordMessage = 'Password must be at least 8 characters long.';
+
 const _activationInitiator = AutomationInitiator(service: 'activation');
 
 typedef Provisioner = Future<LookupOrProvisionResult> Function({
@@ -65,6 +70,13 @@ Router buildActivationRouter({
     final password = raw['password'];
     if (code is! String || password is! String || password.isEmpty) {
       return _json({'ok': false, 'message': kInvalidLinkMessage}, status: 400);
+    }
+    // Server-authoritative password rule, mirrored (not imported) by the
+    // activation page's client-side gate — the client states the rule, the
+    // server enforces it regardless of what any client does.
+    if (password.length < kMinActivationPasswordLength) {
+      return _json({'ok': false, 'message': kShortPasswordMessage},
+          status: 400);
     }
     final found = store.validate(code, now: now());
     if (found == null) {
