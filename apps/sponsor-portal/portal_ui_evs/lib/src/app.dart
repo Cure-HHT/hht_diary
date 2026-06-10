@@ -434,6 +434,9 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     authClient: RealFirebaseAuthClient(),
     onSession: _onSession,
     notice: notice,
+    // The bundle's own APP_VERSION — carries the +local-XXXXXX build id
+    // on local-stack builds, so the login screen names the exact build.
+    appVersion: _appVersion,
   );
 
   /// Builds the authenticated home. A multi-role user first sees the

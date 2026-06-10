@@ -41,6 +41,18 @@ class _FakeAuth implements FirebaseAuthClient {
   }
 }
 
+class _RecordingAuth implements FirebaseAuthClient {
+  String? lastEmail;
+  @override
+  Future<String> signInAndGetIdToken({
+    required String email,
+    required String password,
+  }) {
+    lastEmail = email;
+    return Future<String>.value('idtok');
+  }
+}
+
 http.Client _json(
   int status,
   Object? body, {
@@ -465,6 +477,65 @@ void main() {
       await tester.tap(find.text('CRA'));
       await tester.pumpAndSettle();
       expect(chosen, 'CRA');
+    });
+  });
+
+  group('LoginScreen — version footer + input hygiene', () {
+    testWidgets('renders the bundle version discreetly when provided', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          LoginScreen(
+            serverUrl: url,
+            authClient: _FakeAuth(),
+            onSession: (_) {},
+            httpClient: _json(200, {'sessionToken': 't'}),
+            appVersion: '1.4.13+local-abc123',
+          ),
+        ),
+      );
+      expect(find.text('Version 1.4.13+local-abc123'), findsOneWidget);
+    });
+
+    testWidgets('no version footer when APP_VERSION is empty', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          LoginScreen(
+            serverUrl: url,
+            authClient: _FakeAuth(),
+            onSession: (_) {},
+            httpClient: _json(200, {'sessionToken': 't'}),
+          ),
+        ),
+      );
+      expect(find.textContaining('Version '), findsNothing);
+    });
+
+    testWidgets('email is trimmed before sign-in (autofill spaces must not '
+        'become an opaque credential failure)', (tester) async {
+      final auth = _RecordingAuth();
+      await tester.pumpWidget(
+        _host(
+          LoginScreen(
+            serverUrl: url,
+            authClient: auth,
+            onSession: (_) {},
+            httpClient: _json(200, {'sessionToken': 't'}),
+          ),
+        ),
+      );
+      await tester.enterText(find.byType(TextFormField).at(0), ' a@b.org ');
+      await tester.enterText(find.byType(TextFormField).at(1), 'pw');
+      await tester.pump();
+      expect(
+        _primaryEnabled(tester, 'Sign In'),
+        isTrue,
+        reason: 'padded-but-valid email must not disable the form',
+      );
+      await tester.tap(find.text('Sign In'));
+      await tester.pump();
+      expect(auth.lastEmail, 'a@b.org');
     });
   });
 }

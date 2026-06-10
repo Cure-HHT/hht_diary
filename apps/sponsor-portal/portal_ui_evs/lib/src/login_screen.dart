@@ -20,6 +20,7 @@ class LoginScreen extends StatefulWidget {
     required this.onSession,
     this.httpClient,
     this.notice,
+    this.appVersion = '',
   });
   final String serverUrl;
   final FirebaseAuthClient authClient;
@@ -29,6 +30,13 @@ class LoginScreen extends StatefulWidget {
   /// Optional non-error notice shown above the form — e.g. "Session ended —
   /// please sign in again." Rendered as an info banner inside the card.
   final String? notice;
+
+  /// This bundle's full `<semver>+<build_id>` (APP_VERSION) — the value
+  /// that gets the per-build random `+local-XXXXXX` id on local-stack
+  /// builds. Rendered as a discreet centered footer under the form so a
+  /// glance at the login screen identifies the exact running build.
+  /// Empty (local `flutter run` without the define) renders nothing.
+  final String appVersion;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -64,7 +72,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       final idToken = await widget.authClient.signInAndGetIdToken(
-        email: _email.text,
+        // Trimmed: a trailing space from autofill/paste must not turn into
+        // an opaque sign-in failure.
+        email: _email.text.trim(),
         password: _pw.text,
       );
       final r = await _http.post(
@@ -123,8 +133,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ready = loginFormReady(email: _email.text, password: _pw.text);
-    final emailError = _email.text.isNotEmpty && !isValidEmail(_email.text)
+    final email = _email.text.trim();
+    final ready = loginFormReady(email: email, password: _pw.text);
+    final emailError = email.isNotEmpty && !isValidEmail(email)
         ? 'Enter a valid email address.'
         : null;
 
@@ -195,6 +206,27 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             semanticId: 'login-forgot',
           ),
+          if (widget.appVersion.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Semantics(
+              identifier: 'login-version',
+              container: true,
+              explicitChildNodes: true,
+              child: Text(
+                'Version ${widget.appVersion}',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.w400,
+                  fontSize: 11,
+                  height: 16 / 11,
+                  letterSpacing: -0.1,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
