@@ -46,8 +46,8 @@ Router buildActivationRouter({
 }) {
   final router = Router();
 
-  router.get('/activate/<code>', (Request req, String code) {
-    final found = store.validate(code, now: now());
+  router.get('/activate/<code>', (Request req, String code) async {
+    final found = await store.validate(code, now: now());
     if (found == null) {
       return _json({'valid': false, 'message': kInvalidLinkMessage});
     }
@@ -78,7 +78,7 @@ Router buildActivationRouter({
       return _json({'ok': false, 'message': kShortPasswordMessage},
           status: 400);
     }
-    final found = store.validate(code, now: now());
+    final found = await store.validate(code, now: now());
     if (found == null) {
       return _json({'ok': false, 'message': kInvalidLinkMessage}, status: 400);
     }
@@ -122,7 +122,7 @@ Router buildActivationRouter({
       },
       initiator: _activationInitiator,
     );
-    store.consume(code);
+    await store.consume(code, now: now());
     return _json({'ok': true});
   });
 

@@ -275,12 +275,26 @@ Future<PortalServerBoot> bootstrapPortalServer({
     password: Platform.environment['PORTAL_DEV_SEED_PASSWORD'],
   );
 
-  // 5. Activation reactor + routes: ephemeral code store + email sender +
-  //    reactor that watches for user_activation_code_issued events. Routes are
-  //    PUBLIC (mounted outside authMiddleware on topRouter).
+  // 5. Activation reactor + routes: durable code store (keyed-hash lifecycle
+  //    in the event store, so pending links survive restarts/deploys) + email
+  //    sender + reactor that watches for user_activation_code_issued events.
+  //    Routes are PUBLIC (mounted outside authMiddleware on topRouter).
   // Implements: DIARY-DEV-portal-activation-email-delivery/A+B
-  // Implements: DIARY-DEV-portal-activation-code-lifecycle/A
-  final activationStore = ActivationCodeStore();
+  // Implements: DIARY-DEV-portal-activation-code-lifecycle/E+F
+  final activationPepper = env['PORTAL_ACTIVATION_CODE_PEPPER'] ?? '';
+  if (activationPepper.isEmpty) {
+    stderr.writeln(
+      '[bootstrap] PORTAL_ACTIVATION_CODE_PEPPER is not set; using the '
+      'dev-only default. Deployed environments must deliver a real pepper '
+      'via Doppler.',
+    );
+  }
+  final activationStore = ActivationCodeStore(
+    eventStore: eventStore,
+    pepper: activationPepper.isEmpty
+        ? 'dev-activation-pepper-not-for-production'
+        : activationPepper,
+  );
   final activationSender = ActivationEmailSender(
     transport: EmailTransport.fromConfig(EmailConfig.fromEnvironment()),
   );

@@ -22,7 +22,11 @@ void main() {
     final db = await newDatabaseFactoryMemory().openDatabase('act.db');
     eventStore =
         await openPortalEventStore(backend: SembastBackend(database: db));
-    store = ActivationCodeStore(codeGen: () => 'AB-CD');
+    store = ActivationCodeStore(
+      eventStore: eventStore,
+      pepper: 'test-pepper',
+      codeGen: () => 'AB-CD',
+    );
   });
 
   Router router({
@@ -44,7 +48,7 @@ void main() {
 
   test('GET valid code -> masked email; invalid -> generic rejection',
       () async {
-    store.issue(
+    await store.issue(
         email: 'jane@site.org', expiresAt: t0.add(const Duration(days: 14)));
     final ok = await router()
         .call(Request('GET', Uri.parse('http://x/activate/AB-CD')));
@@ -65,7 +69,7 @@ void main() {
   test(
       'POST valid -> appends user_activated(status active, firebase_uid) and consumes',
       () async {
-    final code = store.issue(
+    final code = await store.issue(
         email: 'jane@site.org', expiresAt: t0.add(const Duration(days: 14)));
     final resp = await router().call(Request(
       'POST',
@@ -96,7 +100,7 @@ void main() {
   test(
       'POST with a short password -> 400 with the stated rule; the code is '
       'NOT consumed, so a compliant retry succeeds', () async {
-    final code = store.issue(
+    final code = await store.issue(
         email: 'jane@site.org', expiresAt: t0.add(const Duration(days: 14)));
     final short = await router().call(Request(
       'POST',
@@ -118,7 +122,7 @@ void main() {
   });
 
   test('POST with provisioning failure appends no event', () async {
-    final code = store.issue(
+    final code = await store.issue(
         email: 'jane@site.org', expiresAt: t0.add(const Duration(days: 14)));
     final r = router(
       provision: (
@@ -139,7 +143,7 @@ void main() {
     // e.g. the local-dev ADC/credential-acquisition failure (invalid_rapt)
     // thrown by the Identity Platform client before the REST call — NOT an
     // IdentityAdminException. The handler must return a clean 502, not a 500.
-    final code = store.issue(
+    final code = await store.issue(
         email: 'jane@site.org', expiresAt: t0.add(const Duration(days: 14)));
     final r = router(
       provision: (

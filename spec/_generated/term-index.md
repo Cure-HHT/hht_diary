@@ -1848,6 +1848,7 @@
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-pluggable-push-transport:section:0
+- DIARY-DEV-portal-activation-code-lifecycle:section:1
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-portal-reaction-server:section:1
@@ -4088,7 +4089,6 @@
 
 **DIARY:**
 
-- DIARY-DEV-portal-activation-code-lifecycle-A
 - DIARY-DEV-portal-activation-email-delivery-A
 - DIARY-PRD-password-forgot-B
 - DIARY-PRD-password-forgot-D
