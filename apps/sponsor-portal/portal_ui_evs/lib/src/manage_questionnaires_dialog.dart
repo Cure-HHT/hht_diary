@@ -253,44 +253,55 @@ class ManageQuestionnairesDialog extends StatelessWidget {
     required String questionnaireType,
     required bool startNextCycle,
   }) async {
+    // A client minted here (no injection) is ours to close when the send
+    // flow ends — early returns included — or its sockets linger.
+    final ownsClient = httpClient == null;
     final client = httpClient ?? http.Client();
-    final bearer = _bearer(context);
+    try {
+      final bearer = _bearer(context);
 
-    // Start Next Cycle shows a brief confirm first (no cycle picker, assertion
-    // M); Send Now goes straight to the POST.
-    if (startNextCycle) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => _ConfirmNextCycleDialog(participantId: participantId),
-      );
-      if (ok != true) return; // cancelled — no change
-      if (!context.mounted) return;
-    }
-
-    final outcome = await postSend(client, serverUrl, bearer, <String, Object?>{
-      'siteId': siteId,
-      'participantId': participantId,
-      'questionnaireType': questionnaireType,
-    });
-    if (!context.mounted) return;
-
-    switch (outcome) {
-      case SendSent():
-        // The card flips to Sent reactively via the view; a brief confirmation.
-        _snack(context, 'Questionnaire sent.');
-      case SendNeedsCycleSelection():
-        // First send of this type: pick the starting cycle, then re-POST with
-        // an explicit `studyEvent: 'Cycle <N> Day 1'` (assertions I/J/K/L).
-        await _selectStartingCycleAndSend(
-          context,
-          client: client,
-          bearer: bearer,
-          questionnaireType: questionnaireType,
+      // Start Next Cycle shows a brief confirm first (no cycle picker,
+      // assertion M); Send Now goes straight to the POST.
+      if (startNextCycle) {
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) =>
+              _ConfirmNextCycleDialog(participantId: participantId),
         );
-      case SendBlocked(:final reason):
-        _showError(context, reason);
-      case SendError(:final message):
-        _showError(context, message);
+        if (ok != true) return; // cancelled — no change
+        if (!context.mounted) return;
+      }
+
+      final outcome =
+          await postSend(client, serverUrl, bearer, <String, Object?>{
+            'siteId': siteId,
+            'participantId': participantId,
+            'questionnaireType': questionnaireType,
+          });
+      if (!context.mounted) return;
+
+      switch (outcome) {
+        case SendSent():
+          // The card flips to Sent reactively via the view; a brief
+          // confirmation.
+          _snack(context, 'Questionnaire sent.');
+        case SendNeedsCycleSelection():
+          // First send of this type: pick the starting cycle, then re-POST
+          // with an explicit `studyEvent: 'Cycle <N> Day 1'` (assertions
+          // I/J/K/L).
+          await _selectStartingCycleAndSend(
+            context,
+            client: client,
+            bearer: bearer,
+            questionnaireType: questionnaireType,
+          );
+        case SendBlocked(:final reason):
+          _showError(context, reason);
+        case SendError(:final message):
+          _showError(context, message);
+      }
+    } finally {
+      if (ownsClient) client.close();
     }
   }
 
