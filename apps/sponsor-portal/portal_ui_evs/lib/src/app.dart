@@ -28,6 +28,7 @@ import 'session_activity_listener.dart';
 import 'session_config.dart';
 import 'session_timeout_controller.dart';
 import 'stale_client.dart';
+import 'study_settings_binding.dart';
 import 'update_available_banner.dart';
 import 'users_screen_binding.dart';
 import 'web_platform.dart';
@@ -578,6 +579,12 @@ class _HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<_HomeShell> {
+  /// True while the app-bar Settings link's Study Settings page overlays
+  /// the active tab's body. Cleared by any tab tap (PortalDashboard fires
+  /// onDestinationChanged even for the already-active tab while an
+  /// override is showing).
+  bool _showSettings = false;
+
   /// The label of the selected nav destination. Tracked by label (not index)
   /// so the selection survives the visible set changing on a role switch — a
   /// raw index would point at a different (or hidden) section. Null until the
@@ -765,10 +772,21 @@ class _HomeShellState extends State<_HomeShell> {
         // Same sponsor-served logo the auth cards use (CUR-1483 Figma:
         // logo sits left of the title block).
         logo: const SponsorBrandMark(maxHeight: 40),
-        // No Settings surface exists yet — the no-op renders the link
-        // per the Figma; CUR-1483 tracks wiring it when one lands.
-        onSettings: () {},
+        // Opens the read-only Study Settings page over the active tab.
+        onSettings: () => setState(() => _showSettings = true),
       ),
+      // Study Settings isn't a tab: it overlays the body while the strip
+      // shows no active pill; any tab tap below dismisses it.
+      bodyOverride: _showSettings
+          ? StudySettingsBinding(
+              identityCredential: widget.identityCredential ?? '',
+              serverUrl: _serverUrl,
+              activeRole: switch (widget.principal) {
+                UserPrincipal(:final activeRole) => activeRole,
+                _ => null,
+              },
+            )
+          : null,
       destinations: <DashboardDestination>[
         for (final s in visible)
           DashboardDestination(
@@ -784,7 +802,10 @@ class _HomeShellState extends State<_HomeShell> {
         // switches that change which sections are visible).
         for (final s in visible) {
           if (s.label.toLowerCase().replaceAll(' ', '-') == key) {
-            setState(() => _selectedLabel = s.label);
+            setState(() {
+              _selectedLabel = s.label;
+              _showSettings = false;
+            });
             return;
           }
         }

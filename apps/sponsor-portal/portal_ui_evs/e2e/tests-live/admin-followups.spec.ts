@@ -51,3 +51,39 @@ test('sysop: SysOp-only row IS visible to an operator viewer', async ({
     .first()
     .waitFor({ state: 'attached', timeout: 30_000 });
 });
+
+test('Settings link opens the read-only Study Settings page', async ({
+  page,
+}) => {
+  await login(page, 'admin@reference.local', 'example');
+
+  await page.locator(byId('appbar-settings')).first().click();
+  await page
+    .locator(byId('settings-screen'))
+    .first()
+    .waitFor({ state: 'attached', timeout: 30_000 });
+  await page
+    .getByText('These settings are currently view-only', { exact: false })
+    .first()
+    .waitFor({ state: 'attached', timeout: 15_000 });
+
+  // Real effective values from GET /config/study...
+  await expect(page.getByText('10 minutes').first()).toBeAttached();
+  await expect(page.getByText('72 hours').first()).toBeAttached();
+  // ...alongside honest placeholders for unimplemented parameters.
+  await expect(
+    page.getByText('Not yet implemented').first(),
+  ).toBeAttached();
+
+  await page.screenshot({
+    path: 'test-results/study-settings.png',
+    fullPage: false,
+  });
+
+  // A tab tap dismisses the override and returns to the tab's body.
+  await page.locator(byId('tab-user-accounts')).first().click();
+  await page
+    .locator(byId('users-search'))
+    .first()
+    .waitFor({ state: 'attached', timeout: 30_000 });
+});

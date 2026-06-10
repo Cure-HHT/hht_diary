@@ -44,6 +44,7 @@ import 'sponsor_branding_asset_handler.dart';
 import 'sponsor_branding_seed.dart';
 import 'sponsor_config_dir.dart';
 import 'sponsor_config_seed.dart';
+import 'study_config.dart';
 import 'user_tier_reactor.dart';
 import 'view_permission_namer.dart';
 import 'ws_keepalive_interval.dart';
@@ -252,7 +253,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
   await seedSponsorConfig(
     eventStore: eventStore,
     backend: backend,
-    env: Platform.environment,
+    // The resolved env (honours the bootstrap's `environment` test seam),
+    // not Platform.environment directly — tests can seed sponsor config.
+    env: env,
   );
 
   // Implements: DIARY-DEV-sponsor-branding-source/C+D — idempotent sponsor
@@ -651,6 +654,28 @@ Future<PortalServerBoot> bootstrapPortalServer({
     );
   }
 
+  // Read-only study-configuration aggregate for the portal's Study
+  // Settings page. Any authenticated portal user may read it (the values
+  // are study parameters, not secrets); unauthenticated requests are
+  // rejected. Unimplemented parameters are absent from the payload by
+  // design — see study_config.dart.
+  Future<Response> studyConfigHandler(Request request) async {
+    final principal = principalFromContext(request);
+    if (principal is! UserPrincipal) {
+      return Response.forbidden('requires an authenticated portal user');
+    }
+    final body = await studyConfigJson(
+      backend: backend,
+      env: env,
+      otpStore: otpStore,
+      passwordResetStore: passwordResetStore,
+    );
+    return Response.ok(
+      jsonEncode(body),
+      headers: const {'Content-Type': 'application/json'},
+    );
+  }
+
   // Debug-only diary-entries read, gated to portal.diary.view_entries (SC).
   Future<Response> diaryEntriesDebugHandler(Request request) async {
     final principal = principalFromContext(request);
@@ -675,6 +700,10 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // it every gate fails closed (no widgets render, for any role).
     ..get('/permissions/snapshot', handlers.permissions)
     ..get('/audit', auditHandler)
+    // Study Settings read — inside the authed pipeline (unlike the public
+    // /config/identity + /config/session login surfaces); the /config/
+    // prefix is already in the nginx proxy allow-list.
+    ..get('/config/study', studyConfigHandler)
     // Under /admin/ so the reverse proxy's `^~ /admin/` block forwards it to the
     // dart backend (a bare /debug/ prefix is not in the nginx proxy allow-list,
     // so it would be served the SPA instead of reaching this handler).
