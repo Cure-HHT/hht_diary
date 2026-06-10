@@ -479,6 +479,13 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     final activationCode = activationCodeFromUri(Uri.base);
     if (activationCode != null && !_activationDismissed) {
       return MaterialApp(
+        // The public pages render design-kit widgets, whose theme
+        // extensions (AppSemanticColors etc.) exist only on buildAppTheme —
+        // a bare default-theme MaterialApp grey-boxes them in release.
+        theme: buildAppTheme(
+          font: AppFontFamily.inter,
+          brightness: Brightness.light,
+        ),
         home: ActivationScreen(
           serverUrl: _serverUrl,
           code: activationCode,
@@ -493,6 +500,11 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     final resetCode = resetCodeFromUri(Uri.base);
     if (resetCode != null && !_resetDismissed) {
       return MaterialApp(
+        // Same theme requirement as the activation mount above.
+        theme: buildAppTheme(
+          font: AppFontFamily.inter,
+          brightness: Brightness.light,
+        ),
         home: PasswordResetScreen(
           serverUrl: _serverUrl,
           code: resetCode,
