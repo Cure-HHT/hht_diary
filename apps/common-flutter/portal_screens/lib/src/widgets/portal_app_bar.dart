@@ -152,6 +152,7 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
                   label: 'Logout',
                   leadingIcon: Icons.logout,
                   onPressed: onLogout,
+                  semanticId: 'appbar-logout',
                 ),
               ],
             ),
@@ -179,37 +180,46 @@ class _HelpIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Tooltip(
-      message: 'Help',
-      // Material itself paints the brand-blue circle. The PNG asset is
-      // just the white `?` glyph, sitting on top with transparent
-      // background so the circle shows through.
-      child: Material(
-        color: theme.colorScheme.primary,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onPressed,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 32,
-            height: 32,
-            child: Center(
-              child: Image.asset(
-                'assets/icons/help.png',
-                package: 'portal_screens',
-                width: 28,
-                height: 28,
-                // Widget tests don't initialise the package's asset
-                // bundle, so Image.asset would throw mid-test. The
-                // errorBuilder also makes a production asset-cache
-                // miss degrade to a Material default instead of a
-                // stack trace. Material already paints the circle, so
-                // the fallback is just the glyph.
-                errorBuilder: (context, _, _) => Icon(
-                  Icons.question_mark,
-                  size: 16,
-                  color: theme.colorScheme.onPrimary,
+    return Semantics(
+      // Raw InkWell (not AppButton), so the Playwright handle is wrapped
+      // here. container + explicitChildNodes keep the identifier on its
+      // own node (web flattener gotcha — event_sourcing prd-reaction).
+      identifier: 'appbar-help',
+      button: true,
+      container: true,
+      explicitChildNodes: true,
+      child: Tooltip(
+        message: 'Help',
+        // Material itself paints the brand-blue circle. The PNG asset is
+        // just the white `?` glyph, sitting on top with transparent
+        // background so the circle shows through.
+        child: Material(
+          color: theme.colorScheme.primary,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: Center(
+                child: Image.asset(
+                  'assets/icons/help.png',
+                  package: 'portal_screens',
+                  width: 28,
+                  height: 28,
+                  // Widget tests don't initialise the package's asset
+                  // bundle, so Image.asset would throw mid-test. The
+                  // errorBuilder also makes a production asset-cache
+                  // miss degrade to a Material default instead of a
+                  // stack trace. Material already paints the circle, so
+                  // the fallback is just the glyph.
+                  errorBuilder: (context, _, _) => Icon(
+                    Icons.question_mark,
+                    size: 16,
+                    color: theme.colorScheme.onPrimary,
+                  ),
                 ),
               ),
             ),
@@ -303,7 +313,15 @@ class _RoleCluster extends StatelessWidget {
         for (final role in availableRoles)
           PopupMenuItem<String>(
             value: role,
-            child: Text(role == systemRole ? '$role  ✓' : role),
+            // Domain-keyed handle per option — the menu item's own node
+            // carries the button role, so the identifier needs its own
+            // (container) node or the web flattener merges it away.
+            child: Semantics(
+              identifier: 'role-option-$role',
+              container: true,
+              explicitChildNodes: true,
+              child: Text(role == systemRole ? '$role  ✓' : role),
+            ),
           ),
       ],
     );
@@ -333,6 +351,9 @@ class _RoleCluster extends StatelessWidget {
       color: theme.colorScheme.onSurfaceVariant,
     );
     return Semantics(
+      identifier: 'appbar-role-switcher',
+      container: true,
+      explicitChildNodes: true,
       button: true,
       label: 'Switch role',
       child: InkWell(

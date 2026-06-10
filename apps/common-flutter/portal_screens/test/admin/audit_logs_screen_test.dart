@@ -213,4 +213,42 @@ void main() {
       expect(find.text('No audit entries yet.'), findsOneWidget);
     });
   });
+
+  group('AuditLogsScreen — Playwright instrumentation', () {
+    testWidgets('search, pagination and rows carry semantics identifiers', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester, entries: MockData.auditEntries, totalCount: 204);
+
+      expect(find.bySemanticsIdentifier('audit-search'), findsOneWidget);
+      expect(find.bySemanticsIdentifier('audit-pagination'), findsOneWidget);
+      // Rows are domain-keyed by event id — never positional (pages and
+      // refreshes reorder them).
+      expect(
+        find.bySemanticsIdentifier(
+          'audit-row-${MockData.auditEntries.first.id}',
+        ),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('expanding a row surfaces its -details identifier', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester, entries: MockData.auditEntries, totalCount: 204);
+
+      final id = MockData.auditEntries.first.id;
+      expect(find.bySemanticsIdentifier('audit-row-$id-details'), findsNothing);
+      await tester.tap(find.bySemanticsIdentifier('audit-row-$id'));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(
+        find.bySemanticsIdentifier('audit-row-$id-details'),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+  });
 }

@@ -10,6 +10,7 @@ Future<void> _pump(
   bool isLoading = false,
   VoidCallback? onCreate,
   int pageSize = 8,
+  UserRowActionsConfig? rowActions,
 }) async {
   tester.view.physicalSize = const Size(1600, 1000);
   tester.view.devicePixelRatio = 1.0;
@@ -27,6 +28,7 @@ Future<void> _pump(
           canCreate: canCreate,
           onCreate: onCreate ?? () {},
           pageSize: pageSize,
+          rowActions: rowActions,
         ),
       ),
     ),
@@ -222,6 +224,56 @@ void main() {
     testWidgets('isLoading propagates to AppDataTable spinner', (tester) async {
       await _pump(tester, users: const [], isLoading: true);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
+  });
+
+  group('UsersScreen — Playwright instrumentation', () {
+    testWidgets('chrome and row kebabs carry semantics identifiers', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pump(
+        tester,
+        users: MockData.users,
+        rowActions: UserRowActionsConfig(onAction: (_, _) {}),
+      );
+
+      expect(find.bySemanticsIdentifier('users-search'), findsOneWidget);
+      expect(find.bySemanticsIdentifier('users-pagination'), findsOneWidget);
+      expect(find.bySemanticsIdentifier('users-status-tabs'), findsOneWidget);
+      expect(find.bySemanticsIdentifier('users-create'), findsOneWidget);
+      // Kebabs are domain-keyed by the row's email — never positional
+      // (the list reorders under filters and sorts).
+      expect(
+        find.bySemanticsIdentifier(
+          'user-actions-${MockData.users.first.email}',
+        ),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('open kebab menu items carry user-action-* identifiers', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pump(
+        tester,
+        users: MockData.users,
+        rowActions: UserRowActionsConfig(onAction: (_, _) {}, canEdit: true),
+      );
+
+      await tester.tap(
+        find.bySemanticsIdentifier(
+          'user-actions-${MockData.users.first.email}',
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        find.bySemanticsIdentifier('user-action-viewDetails'),
+        findsOneWidget,
+      );
+      handle.dispose();
     });
   });
 }

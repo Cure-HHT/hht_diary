@@ -285,6 +285,7 @@ class _TopRow extends StatelessWidget {
             child: SizedBox(
               width: 360,
               child: AppTextField.search(
+                semanticId: 'audit-search',
                 // Server-side search over the ENTIRE audit log (initiator
                 // email / action name), not just the loaded page.
                 hintText: 'Search by email or action',
@@ -294,6 +295,7 @@ class _TopRow extends StatelessWidget {
           ),
           SizedBox(width: 20),
           AppTablePagination(
+            semanticId: 'audit-pagination',
             currentPage: page,
             pageSize: pageSize,
             totalCount: totalCount,

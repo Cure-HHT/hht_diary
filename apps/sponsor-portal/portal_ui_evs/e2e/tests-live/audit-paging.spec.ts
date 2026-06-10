@@ -53,21 +53,19 @@ test('audit log pages through the full event log to the oldest entry', async ({
   await submit.waitFor({ state: 'attached', timeout: 15_000 });
   await submit.click();
 
-  // --- open the Audit Logs tab ----------------------------------------------
-  const auditTab = page.getByRole('button', { name: /Audit Log/ }).first();
+  // --- open the Audit Log tab ------------------------------------------------
+  // Dashboard tab pills carry `tab-<key>` identifiers; keys derive from the
+  // nav section label ("Audit Log" -> audit-log).
+  const auditTab = page.locator(byId('tab-audit-log')).first();
   await auditTab.waitFor({ state: 'attached', timeout: 30_000 });
   await auditTab.click();
 
   // --- page 1 reports the server's true total -------------------------------
-  // Anchor on the audit screen's subtitle first — the Users screen has its
-  // own "Viewing ..." header that would match too early.
-  await page
-    .getByText('View system activity and changes.')
-    .first()
-    .waitFor({ state: 'attached', timeout: 30_000 });
-  // The audit log's total is 200+ on the seeded stack (3+ digits), unlike
-  // the 7-user Users table.
-  const header = page.getByText(/Viewing 1-\d+ of \d{3,}/).first();
+  // Scope to the audit screen's own pagination handle — the Users screen
+  // has its own "Viewing ..." header that would otherwise match.
+  const pagination = page.locator(byId('audit-pagination')).first();
+  await pagination.waitFor({ state: 'attached', timeout: 30_000 });
+  const header = pagination.getByText(/Viewing 1-\d+ of \d+/).first();
   await header.waitFor({ state: 'attached', timeout: 30_000 });
   const headerText = (await header.textContent())!;
   const total = Number(headerText.match(/of (\d+)/)![1]);
@@ -76,12 +74,13 @@ test('audit log pages through the full event log to the oldest entry', async ({
 
   // --- jump to the last page = the OLDEST entries ---------------------------
   const lastPage = Math.ceil(total / PAGE_SIZE);
-  await page.getByRole('button', { name: String(lastPage), exact: true })
+  await pagination
+    .getByRole('button', { name: String(lastPage), exact: true })
     .first()
     .click();
 
   const lastStart = (lastPage - 1) * PAGE_SIZE + 1;
-  const lastHeader = page
+  const lastHeader = pagination
     .getByText(new RegExp(`Viewing ${lastStart}-${total} of ${total}`))
     .first();
   await lastHeader.waitFor({ state: 'attached', timeout: 30_000 });

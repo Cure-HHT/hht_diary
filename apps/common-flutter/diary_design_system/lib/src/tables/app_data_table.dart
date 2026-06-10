@@ -145,6 +145,9 @@ class AppDataTable<T> extends StatelessWidget {
             tabs: (tabs as AppTableTabs).tabs,
             activeKey: (tabs as AppTableTabs).activeKey,
             onTap: (tabs as AppTableTabs).onTap,
+            // Carry the caller's automation handle through the rebuild —
+            // dropping it here silently strips the Playwright selector.
+            semanticId: (tabs as AppTableTabs).semanticId,
             leadingPadding: SpacingTokens.xxl,
           )
         : tabs;

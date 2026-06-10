@@ -146,17 +146,26 @@ class UserRowMenu extends StatelessWidget {
             onSelected: () => config.onAction(user, action),
           ),
       ],
-      builder: (context, controller, _) => IconButton(
-        icon: const Icon(Icons.more_horiz, size: 18),
-        tooltip: 'Row actions',
-        onPressed: () =>
-            controller.isOpen ? controller.close() : controller.open(),
-        iconSize: 18,
-        visualDensity: VisualDensity.compact,
-        style: IconButton.styleFrom(
-          foregroundColor: theme.colorScheme.onSurfaceVariant,
-          minimumSize: const Size(32, 32),
-          padding: EdgeInsets.zero,
+      builder: (context, controller, _) => Semantics(
+        // Domain-keyed Playwright handle: rows reorder under filters and
+        // sorts, so the email (the table's row key) addresses the kebab,
+        // never the position. container + explicitChildNodes keep the
+        // identifier from merging into the IconButton's node on web.
+        identifier: 'user-actions-${user.email}',
+        container: true,
+        explicitChildNodes: true,
+        child: IconButton(
+          icon: const Icon(Icons.more_horiz, size: 18),
+          tooltip: 'Row actions',
+          onPressed: () =>
+              controller.isOpen ? controller.close() : controller.open(),
+          iconSize: 18,
+          visualDensity: VisualDensity.compact,
+          style: IconButton.styleFrom(
+            foregroundColor: theme.colorScheme.onSurfaceVariant,
+            minimumSize: const Size(32, 32),
+            padding: EdgeInsets.zero,
+          ),
         ),
       ),
     );
@@ -186,20 +195,30 @@ class _MenuItem extends StatelessWidget {
         ? theme.colorScheme.error
         : theme.colorScheme.onSurface;
 
-    return MenuItemButton(
-      onPressed: disabled ? null : onSelected,
-      leadingIcon: disabled ? Icon(Icons.check, size: 16, color: color) : null,
-      style: MenuItemButton.styleFrom(
-        minimumSize: const Size(168, 36),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-      ),
-      child: Text(
-        disabled ? 'Invite Sent' : userRowActionLabel(action),
-        style: TextStyle(
-          fontSize: 13,
-          height: 20 / 13,
-          fontWeight: FontWeight.w500,
-          color: color,
+    // Only one row menu is ever open, so the action name alone is a
+    // stable handle (`user-action-edit`, ...). The MenuItemButton is the
+    // role-bearing child — the identifier needs its own container node.
+    return Semantics(
+      identifier: 'user-action-${action.name}',
+      container: true,
+      explicitChildNodes: true,
+      child: MenuItemButton(
+        onPressed: disabled ? null : onSelected,
+        leadingIcon: disabled
+            ? Icon(Icons.check, size: 16, color: color)
+            : null,
+        style: MenuItemButton.styleFrom(
+          minimumSize: const Size(168, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+        ),
+        child: Text(
+          disabled ? 'Invite Sent' : userRowActionLabel(action),
+          style: TextStyle(
+            fontSize: 13,
+            height: 20 / 13,
+            fontWeight: FontWeight.w500,
+            color: color,
+          ),
         ),
       ),
     );

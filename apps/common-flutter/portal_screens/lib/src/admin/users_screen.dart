@@ -176,6 +176,7 @@ class _UsersScreenState extends State<UsersScreen> {
             searchField: SizedBox(
               width: 360,
               child: AppTextField.search(
+                semanticId: 'users-search',
                 hintText: 'Search by email',
                 onChanged: (v) {
                   setState(() {
@@ -186,6 +187,7 @@ class _UsersScreenState extends State<UsersScreen> {
               ),
             ),
             paginationControls: AppTablePagination(
+              semanticId: 'users-pagination',
               currentPage: _page,
               pageSize: _pageSize,
               totalCount: filtered.length,
@@ -199,6 +201,7 @@ class _UsersScreenState extends State<UsersScreen> {
               },
             ),
             tabs: AppTableTabs(
+              semanticId: 'users-status-tabs',
               tabs: [
                 for (final f in _StatusFilter.values)
                   AppTableTab(key: f.key, label: f.label, count: _countFor(f)),
@@ -367,6 +370,7 @@ class _Header extends StatelessWidget {
             label: 'Create User',
             leadingIcon: Icons.add,
             onPressed: onCreate,
+            semanticId: 'users-create',
           ),
         ],
       ],
