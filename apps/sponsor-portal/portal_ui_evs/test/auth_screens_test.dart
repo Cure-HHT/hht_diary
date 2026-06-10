@@ -538,4 +538,34 @@ void main() {
       expect(auth.lastEmail, 'a@b.org');
     });
   });
+
+  group('OtpScreen — Figma shape', () {
+    testWidgets('generic subtitle, masked placeholder, resend link above '
+        'Verify', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          OtpScreen(
+            serverUrl: url,
+            idToken: 'idtok',
+            maskedEmail: 'e***@r***.local',
+            onSession: (_) {},
+            httpClient: _json(200, {'sessionToken': 't'}),
+          ),
+        ),
+      );
+      expect(
+        find.text('We sent a 6-digit code to your email.'),
+        findsOneWidget,
+      );
+      expect(find.text('Verification Code'), findsOneWidget);
+
+      // Resend renders as an underlined text link sitting ABOVE Verify.
+      final resend = tester.widget<Text>(find.text('Resend code'));
+      expect(resend.style?.decoration, TextDecoration.underline);
+      expect(
+        tester.getTopLeft(find.text('Resend code')).dy,
+        lessThan(tester.getTopLeft(find.text('Verify')).dy),
+      );
+    });
+  });
 }
