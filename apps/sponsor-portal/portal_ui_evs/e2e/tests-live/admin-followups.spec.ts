@@ -50,6 +50,14 @@ test('sysop: SysOp-only row IS visible to an operator viewer', async ({
     .getByText('sysop@reference.local')
     .first()
     .waitFor({ state: 'attached', timeout: 30_000 });
+
+  // ACT-ADM-001 is granted to every role: the operator must reach the
+  // Study Settings page (CUR-1485 product decision).
+  await page.locator(byId('appbar-settings')).first().click();
+  await page
+    .locator(byId('settings-screen'))
+    .first()
+    .waitFor({ state: 'attached', timeout: 30_000 });
 });
 
 test('Settings link opens the read-only Study Settings page', async ({
