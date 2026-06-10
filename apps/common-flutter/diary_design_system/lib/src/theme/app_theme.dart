@@ -57,10 +57,14 @@ ThemeData buildAppTheme({
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: colorScheme.surface,
+      // Figma "Primary Bg": form fields carry a pale ice fill, not the
+      // plain surface (Create/Edit User, login). Raw value lives here —
+      // the theme owns color decisions.
+      fillColor: const Color(0xFFF4F8F9),
+      isDense: true,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: SpacingTokens.md,
-        vertical: SpacingTokens.sm,
+        vertical: SpacingTokens.sm + 2,
       ),
       // Input borders use the lighter outlineVariant (Figma "Light Gray"
       // #ECEEF0) — outline (#A4B9C2) is too heavy for form fields.

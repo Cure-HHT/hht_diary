@@ -438,9 +438,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
 
   // 7f. User tier reactor — keeps user_tier_index correct by emitting
   //     user_tier_changed whenever a user's SystemOperator assignment changes.
+  //     The boot-time reconcile sweeps users whose events landed before the
+  //     reactor was listening (the step-4 seeds), so seeded accounts get
+  //     their tier row instead of failing closed on every user-scoped action.
   // Implements: DIARY-DEV-operator-tier-authz/A
   final userTierReactor =
       UserTierReactor(eventStore: eventStore, backend: backend)..start();
+  await userTierReactor.reconcileAll();
 
   // 7f-bis. Questionnaire submission reactor — on a diary `<id>_survey`
   //     `finalized` event (whose aggregateId == the questionnaire instance id),
@@ -584,6 +588,16 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // event log reverse-chronological and maps each event to an audit row via the
   // shared auditRowJson mapper. The authenticated Principal is attached by
   // authMiddleware and read via principalFromContext.
+  //
+  // Pages server-side via the additive `offset` param (plus the existing
+  // `limit`) so the oldest entry stays reachable however large the log grows,
+  // and reports the true log size as `total` so the client can render honest
+  // pagination. `q` filters the WHOLE log server-side (initiator label /
+  // entry type) — filtering only a fetched page would silently hide matches.
+  //
+  // NOTE: pagination/filtering is a spec gap against DIARY-DEV-audit-log-read
+  // (its assertions cover the read and the permission gate, not paging);
+  // anchored to that REQ per team convention rather than minting a new one.
   // Implements: DIARY-DEV-audit-log-read/A+B
   Future<Response> auditHandler(Request request) async {
     final principal = principalFromContext(request);
@@ -597,13 +611,42 @@ Future<PortalServerBoot> bootstrapPortalServer({
     if (!auditAccessAllowed(perms)) {
       return Response.forbidden('requires $auditViewPermission');
     }
-    final requested =
-        int.tryParse(request.url.queryParameters['limit'] ?? '') ?? 200;
+    final params = request.url.queryParameters;
+    final requested = int.tryParse(params['limit'] ?? '') ?? 200;
     final limit = requested.clamp(1, 1000);
-    final events = await backend.readEventsReverse().take(limit).toList();
-    final rows = events.map(auditRowJson).toList();
+    final offset =
+        (int.tryParse(params['offset'] ?? '') ?? 0).clamp(0, 1 << 52);
+    final query = (params['q'] ?? '').trim();
+
+    final rows = <Map<String, Object?>>[];
+    final int total;
+    if (query.isEmpty) {
+      // The sequence counter is the store's contiguous local append counter,
+      // so it doubles as the log size without scanning the log.
+      total = await backend.readSequenceCounter();
+      await for (final e
+          in backend.readEventsReverse().skip(offset).take(limit)) {
+        rows.add(auditRowJson(e));
+      }
+    } else {
+      // A filtered total requires a full reverse scan (the stream keyset-
+      // pages its DB reads underneath, so memory stays bounded). Acceptable
+      // at current log sizes; revisit if logs reach millions of events.
+      var matched = 0;
+      await for (final e in backend.readEventsReverse()) {
+        if (!auditEventMatchesQuery(e, query)) continue;
+        if (matched >= offset && rows.length < limit) rows.add(auditRowJson(e));
+        matched++;
+      }
+      total = matched;
+    }
     return Response.ok(
-      jsonEncode(<String, Object?>{'rows': rows, 'count': rows.length}),
+      jsonEncode(<String, Object?>{
+        'rows': rows,
+        'count': rows.length,
+        'total': total,
+        'offset': offset,
+      }),
       headers: const {'Content-Type': 'application/json'},
     );
   }

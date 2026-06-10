@@ -6,6 +6,7 @@
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../portal_permissions.dart';
+import '../../user_email_format.dart';
 
 class EditUserAccountInput {
   EditUserAccountInput({
@@ -78,6 +79,13 @@ class EditUserAccountAction
     if (!(nameChanged || emailChanged)) {
       throw ArgumentError('no change requested');
     }
+    if (emailChanged && !isValidAccountEmail(input.newEmail!)) {
+      throw ArgumentError.value(
+        input.newEmail,
+        'newEmail',
+        'must be a valid email address',
+      );
+    }
   }
 
   // Implements: DIARY-DEV-operator-tier-authz/C
@@ -106,8 +114,10 @@ class EditUserAccountAction
           aggregateId: input.userId,
           entryType: 'user_profile_changed',
           eventType: 'user_profile_changed',
+          // Canonical key 'name' (matches user_created) so the
+          // users_index key-wise merge updates the row's display name.
           data: <String, Object?>{
-            'after': input.name,
+            'name': input.name,
             'changed_by': ctx.principal.id,
           },
         ),

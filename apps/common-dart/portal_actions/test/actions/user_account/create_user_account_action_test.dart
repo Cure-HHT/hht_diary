@@ -79,6 +79,27 @@ void main() {
   });
 
   // Verifies: DIARY-PRD-action-inventory/A
+  test('validate rejects a malformed email (format is enforced at the '
+      'action boundary, not only in client forms)', () {
+    final action = makeAction();
+    for (final bad in ['not-an-email', 'a@b', 'a b@c.com', '@x.com']) {
+      expect(
+        () => action.validate(
+          CreateUserAccountInput(
+            email: bad,
+            name: 'Alice',
+            activationExpiresAt: '2026-12-01T00:00:00Z',
+            roles: const <String>[],
+            sites: const <String>[],
+          ),
+        ),
+        throwsArgumentError,
+        reason: '"$bad" must be rejected',
+      );
+    }
+  });
+
+  // Verifies: DIARY-PRD-action-inventory/A
   test('DIARY-PRD-action-inventory/A: validate rejects blank name', () {
     final action = makeAction();
     expect(

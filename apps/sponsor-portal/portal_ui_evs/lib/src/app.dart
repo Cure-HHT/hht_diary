@@ -81,6 +81,21 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   late final StreamSubscription<AuthStatus> _authSub;
   AuthStatus _status = const NotAuthenticated();
 
+  /// Root navigator handle so auth transitions can clear stacked routes.
+  /// Swapping [MaterialApp.home] only replaces the root route's child —
+  /// any routes pushed above it (dialogs, the OTP/forgot-password pushes,
+  /// or a phantom barrier left by the reload-while-dialog-open history
+  /// quirk) stay mounted ON TOP of the next session's UI and silently eat
+  /// every click. Popping to the first route on each auth edge guarantees
+  /// a fresh session never starts under a leftover modal barrier.
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  /// Pops every route above the root. Safe to call when nothing is
+  /// stacked (no-op).
+  void _popToRoot() {
+    _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+  }
+
   /// Server version manifest from `GET /health` `.versions`. Fetched at boot
   /// and on each transport reconnect; passed down to [_HomeShell] so the
   /// "Deploy #N" label + version popup keep working from a single source.
@@ -143,6 +158,12 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     _status = _scope.authSession.current;
     _authSub = _scope.authSession.stream.listen((next) {
       if (!mounted) return;
+      // Auth edge (login OR logout/expiry): clear any routes stacked
+      // above home before the new surface renders, so leftover dialog
+      // barriers can never block the next session.
+      if ((next is Authenticated) != (_status is Authenticated)) {
+        _popToRoot();
+      }
       setState(() => _status = next);
       unawaited(_syncTimeoutController(next));
     });
@@ -495,6 +516,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     return ReActionScope(
       scope: _scope,
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         title: 'Portal EVS Skeleton',
         // CUR-1450: adopt the diary_design_system brand (Carina blue +
         // Inter typography). Sites / Participants / RAVE Sync re-theme
@@ -592,7 +614,16 @@ class _HomeShellState extends State<_HomeShell> {
   /// reactive bindings (Phase 6.5); the rest still mount their legacy
   /// widgets pending their own redesign.
   Widget _screenFor(String label) => switch (label) {
-    'User Accounts' => const UsersScreenBinding(),
+    'User Accounts' => UsersScreenBinding(
+      currentUserId: switch (widget.principal) {
+        UserPrincipal(:final userId) => userId,
+        final p => p.id,
+      },
+      activeRole: switch (widget.principal) {
+        UserPrincipal(:final activeRole) => activeRole,
+        _ => null,
+      },
+    ),
     'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',
       serverUrl: _serverUrl,
@@ -624,55 +655,38 @@ class _HomeShellState extends State<_HomeShell> {
     ];
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Version details'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // Deploy counter (the deploy workflow's GitHub Actions
-              // run_number, global across dev/qa/uat) as the modal's topline —
-              // the "v XX" the app bar used to show pre-makeover. Deployed-only:
-              // PORTAL_DEPLOY_SEQ is unset off Cloud Run, so hide when absent.
-              if (widget.serverVersions['deploy'] case final String deploy
-                  when deploy.isNotEmpty) ...[
-                Text(
-                  'Deploy #$deploy',
-                  style: Theme.of(ctx).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
-              ],
-              if (rows.isEmpty)
-                const Text('No version information available.')
-              else
-                for (final r in rows)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        SizedBox(
-                          width: 150,
-                          child: Text(
-                            '${r.key}:',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        Expanded(child: SelectableText(r.value)),
-                      ],
-                    ),
-                  ),
+      builder: (ctx) => AppDialog(
+        size: AppDialogSize.small,
+        title: 'Version details',
+        semanticId: 'version-details-dialog',
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            // Deploy counter (the deploy workflow's GitHub Actions
+            // run_number, global across dev/qa/uat) as the modal's topline —
+            // the "v XX" the app bar used to show pre-makeover. Deployed-only:
+            // PORTAL_DEPLOY_SEQ is unset off Cloud Run, so hide when absent.
+            if (widget.serverVersions['deploy'] case final String deploy
+                when deploy.isNotEmpty) ...[
+              Text(
+                'Deploy #$deploy',
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
             ],
-          ),
+            if (rows.isEmpty)
+              const Text('No version information available.')
+            else
+              for (final r in rows)
+                AppInfoRow(label: r.key, valueWidget: SelectableText(r.value)),
+            const SizedBox(height: 8),
+          ],
         ),
         actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
-          ),
+          AppButton(label: 'Close', onPressed: () => Navigator.of(ctx).pop()),
         ],
       ),
     );

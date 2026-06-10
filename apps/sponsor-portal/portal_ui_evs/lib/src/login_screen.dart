@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:diary_design_system/diary_design_system.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -40,10 +41,17 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
   bool _busy = false;
 
-  http.Client get _http => widget.httpClient ?? http.Client();
+  /// Lazily-created client owned by this state when none is injected —
+  /// one client for the screen's lifetime, closed in [dispose]. An
+  /// injected client is the owner's to close.
+  http.Client? _ownedClient;
+
+  http.Client get _http =>
+      widget.httpClient ?? (_ownedClient ??= http.Client());
 
   @override
   void dispose() {
+    _ownedClient?.close();
     _email.dispose();
     _pw.dispose();
     super.dispose();
@@ -67,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (r.statusCode != 200) {
         setState(() {
           _busy = false;
-          _error = 'Sign-in failed. Check your email and password.';
+          _error = signInErrorForLoginStatus(r.statusCode);
         });
         return;
       }
@@ -93,10 +101,22 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
       }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _busy = false;
+        _error = signInErrorForAuthCode(e.code);
+      });
+    } on http.ClientException {
+      // The POST /login transport failed — the portal itself was
+      // unreachable, not a credential problem.
+      setState(() {
+        _busy = false;
+        _error = unreachableSignInError;
+      });
     } catch (_) {
       setState(() {
         _busy = false;
-        _error = 'Sign-in failed. Check your email and password.';
+        _error = credentialSignInError;
       });
     }
   }

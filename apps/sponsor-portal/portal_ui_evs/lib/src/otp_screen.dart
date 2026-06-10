@@ -35,10 +35,17 @@ class _OtpScreenState extends State<OtpScreen> {
   bool _busy = false;
   bool _resending = false;
 
-  http.Client get _http => widget.httpClient ?? http.Client();
+  /// Lazily-created client owned by this state when none is injected —
+  /// one client for the screen's lifetime, closed in [dispose]. An
+  /// injected client is the owner's to close.
+  http.Client? _ownedClient;
+
+  http.Client get _http =>
+      widget.httpClient ?? (_ownedClient ??= http.Client());
 
   @override
   void dispose() {
+    _ownedClient?.close();
     _code.dispose();
     super.dispose();
   }

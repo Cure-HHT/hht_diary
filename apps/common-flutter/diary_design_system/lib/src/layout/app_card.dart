@@ -11,6 +11,10 @@ class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
 
+  /// Background fill. Defaults to the plain surface; pass a tinted fill
+  /// for emphasized panels (Figma: the User Details identity card).
+  final Color? color;
+
   /// Optional title rendered above the child with a small bottom margin.
   final String? title;
 
@@ -23,6 +27,7 @@ class AppCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(SpacingTokens.lg),
+    this.color,
     this.title,
     this.semanticId,
   });
@@ -33,7 +38,7 @@ class AppCard extends StatelessWidget {
 
     final container = Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: color ?? theme.colorScheme.surface,
         border: Border.all(color: theme.colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(RadiusTokens.md),
       ),

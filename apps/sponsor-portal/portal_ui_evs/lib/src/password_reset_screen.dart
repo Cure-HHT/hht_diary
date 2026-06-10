@@ -44,7 +44,13 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   bool _showPw = false;
   bool _showConfirm = false;
 
-  http.Client get _http => widget.httpClient ?? http.Client();
+  /// Lazily-created client owned by this state when none is injected —
+  /// one client for the screen's lifetime, closed in [dispose]. An
+  /// injected client is the owner's to close.
+  http.Client? _ownedClient;
+
+  http.Client get _http =>
+      widget.httpClient ?? (_ownedClient ??= http.Client());
 
   @override
   void initState() {
@@ -54,6 +60,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
 
   @override
   void dispose() {
+    _ownedClient?.close();
     _pw.dispose();
     _confirm.dispose();
     super.dispose();
