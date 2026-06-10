@@ -2,13 +2,20 @@ import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:widgetbook/widgetbook.dart';
 
+import 'use_cases/app_alert_row.dart';
 import 'use_cases/app_banner.dart';
 import 'use_cases/app_button.dart';
 import 'use_cases/app_checkbox.dart';
+import 'use_cases/app_code_input.dart';
+import 'use_cases/app_consent_row.dart';
 import 'use_cases/app_data_table.dart';
 import 'use_cases/app_dialog.dart';
 import 'use_cases/app_dropdown.dart';
+import 'use_cases/app_expansion_tile.dart';
+import 'use_cases/app_segmented_choice.dart';
 import 'use_cases/app_text_field.dart';
+import 'use_cases/branded_status_card.dart';
+import 'use_cases/event_list_item.dart';
 import 'use_cases/feedback_layout.dart';
 import 'use_cases/known_bugs.dart';
 
@@ -40,6 +47,18 @@ class DesignSystemBook extends StatelessWidget {
             appDropdownComponent(),
             appCheckboxComponent(),
             appDataTableComponent(),
+          ],
+        ),
+        WidgetbookFolder(
+          name: 'Notifications + Alerts',
+          children: [
+            appExpansionTileComponent(),
+            appAlertRowComponent(),
+            eventListItemComponent(),
+            appConsentRowComponent(),
+            appCodeInputComponent(),
+            brandedStatusCardComponent(),
+            appSegmentedChoiceComponent(),
           ],
         ),
         feedbackLayoutFolder(),

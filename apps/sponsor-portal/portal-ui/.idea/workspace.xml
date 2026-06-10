@@ -48,7 +48,7 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "fix/CUR-993-inactivity-session-issue",
+    "git-widget-placeholder": "CUR-1450-portal-evs-admin-redesign",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "/Users/muhammadumair/Anaspar/hht_diary/apps/sponsor-portal/portal-ui",
     "node.js.detected.package.eslint": "true",
@@ -60,7 +60,7 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Flutter.dev">
     <configuration name="main.dart" type="FlutterRunConfigurationType" factoryName="Flutter">
       <option name="filePath" value="$PROJECT_DIR$/lib/main.dart" />
       <method v="2" />

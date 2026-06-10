@@ -22,6 +22,14 @@ class AppBanner extends StatelessWidget {
   final String message;
   final Widget? trailing;
 
+  /// Override the default severity icon. When null, the severity's canonical
+  /// glyph is used. Ignored when [showIcon] is false.
+  final IconData? icon;
+
+  /// When false, no leading icon is rendered — for the soft info note
+  /// pattern in the Figma where the message stands alone.
+  final bool showIcon;
+
   /// Test-harness locator. When set, wraps the banner in a
   /// `Semantics(identifier: ..., value: message, liveRegion: true, container: true)`
   /// node so Playwright's `readSemanticValue` can read the banner's message
@@ -34,6 +42,8 @@ class AppBanner extends StatelessWidget {
     required this.message,
     this.title,
     this.trailing,
+    this.icon,
+    this.showIcon = true,
     this.semanticId,
   });
 
@@ -41,7 +51,10 @@ class AppBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final semantic = theme.extension<AppSemanticColors>()!;
-    final (foreground, background, icon) = _resolveSeverity(theme, semantic);
+    final (foreground, background, defaultIcon) = _resolveSeverity(
+      theme,
+      semantic,
+    );
 
     final container = Container(
       padding: EdgeInsets.all(SpacingTokens.md),
@@ -53,8 +66,10 @@ class AppBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: foreground),
-          SizedBox(width: SpacingTokens.sm),
+          if (showIcon) ...[
+            Icon(icon ?? defaultIcon, size: 20, color: foreground),
+            SizedBox(width: SpacingTokens.sm),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

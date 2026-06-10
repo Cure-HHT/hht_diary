@@ -16,6 +16,13 @@ enum AppButtonVariant {
 
   /// Filled with theme error. For Disconnect / Delete / irreversible actions.
   destructive,
+
+  /// Borderless 34-px pill used inside [AppSegmentedChoice] — white fill
+  /// + `onSurface` label when [AppButton.selected] is false, primary-
+  /// light fill + primary-light-soft label when selected. Ignores
+  /// [AppButtonSize] (always 34-px); `size` is honoured for the other
+  /// variants only.
+  segment,
 }
 
 enum AppButtonSize { small, medium, large }
@@ -68,6 +75,11 @@ class AppButton extends StatelessWidget {
   /// where [label] is null and the inner widgets have no readable text.
   final String? semanticLabel;
 
+  /// Only meaningful for [AppButtonVariant.segment] — toggles the
+  /// selected (primary-light fill) vs unselected (white fill) chrome.
+  /// Ignored for every other variant.
+  final bool selected;
+
   const AppButton({
     super.key,
     this.variant = AppButtonVariant.primary,
@@ -78,6 +90,7 @@ class AppButton extends StatelessWidget {
     this.onPressed,
     this.loading = false,
     this.fullWidth = false,
+    this.selected = false,
     this.semanticLabel,
     this.semanticId,
   }) : assert(
@@ -104,7 +117,9 @@ class AppButton extends StatelessWidget {
     final effectiveOnPressed = _isEnabled ? onPressed : null;
 
     final Widget button = switch (variant) {
-      AppButtonVariant.primary || AppButtonVariant.destructive => FilledButton(
+      AppButtonVariant.primary ||
+      AppButtonVariant.destructive ||
+      AppButtonVariant.segment => FilledButton(
         onPressed: effectiveOnPressed,
         style: style,
         child: child,
@@ -241,6 +256,33 @@ class AppButton extends StatelessWidget {
             letterSpacing: -0.15,
           ),
         );
+
+      case AppButtonVariant.segment:
+        // Segment ignores `size` — always Figma 34-px pill with 12-px
+        // horizontal padding. Background + foreground swap on
+        // [selected]; no border in either state.
+        final semantic = Theme.of(context).extension<AppSemanticColors>()!;
+        final segBackground = selected ? semantic.primaryLight : cs.surface;
+        final segForeground = selected
+            ? semantic.primaryLightSoft
+            : cs.onSurface;
+        return FilledButton.styleFrom(
+          backgroundColor: segBackground,
+          foregroundColor: segForeground,
+          disabledBackgroundColor: segBackground.withValues(alpha: 0.4),
+          disabledForegroundColor: segForeground.withValues(alpha: 0.4),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          shape: shape,
+          minimumSize: const Size(0, 34),
+          // Inter Medium 14 / line-height 21.25 / letter-spacing -0.2233.
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            height: 21.25 / 14,
+            letterSpacing: -0.2233,
+          ),
+        );
     }
   }
 
@@ -283,7 +325,20 @@ class AppButton extends StatelessWidget {
           Icon(leadingIcon, size: _iconSize),
           SizedBox(width: SpacingTokens.sm),
         ],
-        Text(label ?? ''),
+        // Flexible + ellipsis so a label longer than the allocated
+        // width (e.g. "Don't remember" inside an AppSegmentedChoice
+        // column) truncates cleanly instead of overflowing the button
+        // chrome. Flexible inside a `MainAxisSize.min` Row hugs by
+        // default and only shrinks when the parent imposes a tighter
+        // constraint — so this stays safe for free-floating buttons.
+        Flexible(
+          child: Text(
+            label ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ),
         if (hasTrailing) ...[
           SizedBox(width: SpacingTokens.sm),
           Icon(trailingIcon, size: _iconSize),
@@ -304,6 +359,9 @@ class AppButton extends StatelessWidget {
         return cs.onError;
       case AppButtonVariant.tertiary:
         return cs.primary;
+      case AppButtonVariant.segment:
+        final semantic = Theme.of(context).extension<AppSemanticColors>()!;
+        return selected ? semantic.primaryLightSoft : cs.onSurface;
     }
   }
 }

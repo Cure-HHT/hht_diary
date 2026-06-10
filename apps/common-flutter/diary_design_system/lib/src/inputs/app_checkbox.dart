@@ -16,6 +16,11 @@ class AppCheckbox extends StatelessWidget {
   final bool enabled;
   final bool tristate;
 
+  /// When true, the box border and label are rendered in
+  /// `colorScheme.error`. Used by [AppConsentRow] and by form fields that
+  /// surface a validation error without an inline error label.
+  final bool hasError;
+
   /// Test-harness locator. When set, wraps the checkbox in a
   /// `Semantics(identifier: ..., checked: value ?? false, container: true, explicitChildNodes: true)`
   /// node so Playwright can target it and assert its checked state.
@@ -28,12 +33,14 @@ class AppCheckbox extends StatelessWidget {
     this.label,
     this.enabled = true,
     this.tristate = false,
+    this.hasError = false,
     this.semanticId,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final errorColor = theme.colorScheme.error;
 
     final box = Checkbox(
       value: value,
@@ -41,6 +48,10 @@ class AppCheckbox extends StatelessWidget {
       onChanged: enabled ? onChanged : null,
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      side: hasError ? BorderSide(color: errorColor, width: 1.5) : null,
+      fillColor: hasError && (value ?? false)
+          ? WidgetStatePropertyAll(errorColor)
+          : null,
     );
 
     final laidOut = label == null
@@ -61,7 +72,9 @@ class AppCheckbox extends StatelessWidget {
                   Text(
                     label!,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: enabled
+                      color: hasError
+                          ? errorColor
+                          : enabled
                           ? theme.colorScheme.onSurface
                           : theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
