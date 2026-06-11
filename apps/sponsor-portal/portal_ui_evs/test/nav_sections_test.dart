@@ -23,23 +23,32 @@ void main() {
         expect(_labels(visibleSections(held)), <String>[
           'User Accounts',
           'Sites',
+          'Participants',
           'Audit Log',
         ]);
       },
     );
 
     // Verifies: DIARY-GUI-role-switching/E+F — a StudyCoordinator holds
-    //   portal.site.view + portal.audit.view (CUR-1474 matrix fix) but not
-    //   portal.user.view_accounts, so it sees Sites + Audit Log.
-    test('a StudyCoordinator-like set sees Sites + Audit Log', () {
-      final held = <String>{
-        'portal.site.view',
-        'portal.participant.view',
-        'portal.rave.view_sync',
-        'portal.audit.view',
-      };
-      expect(_labels(visibleSections(held)), <String>['Sites', 'Audit Log']);
-    });
+    //   site/participant/audit views (CUR-1474 matrix fix) but not
+    //   portal.user.view_accounts. An Administrator without
+    //   portal.participant.view never sees Participants (CUR-1472).
+    test(
+      'a StudyCoordinator-like set sees Sites + Participants + Audit Log',
+      () {
+        final held = <String>{
+          'portal.site.view',
+          'portal.participant.view',
+          'portal.rave.view_sync',
+          'portal.audit.view',
+        };
+        expect(_labels(visibleSections(held)), <String>[
+          'Sites',
+          'Participants',
+          'Audit Log',
+        ]);
+      },
+    );
 
     // Verifies: DIARY-GUI-role-switching/E+F — SystemOperator holds
     //   portal.user.view_accounts + portal.site.view but not

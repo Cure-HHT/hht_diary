@@ -19,16 +19,17 @@ class NavSectionSpec {
 /// governs its data, not a `view:<projection>` name.
 ///   User Accounts -> users_screen_binding.dart `portal.user.view_accounts`
 ///   Sites         -> sites_screen_binding.dart `portal.site.view`
+///   Participants  -> participants_screen_binding.dart `portal.participant.view`
 ///   Audit Log     -> audit_log_screen_binding.dart `portal.audit.view`
-/// (Participants `portal.participant.view` and RAVE Sync
-/// `portal.rave.view_sync` return as their legacy screens are recomposed
-/// on the design kit.)
+/// (RAVE Sync `portal.rave.view_sync` returns when its legacy screen is
+/// recomposed on the design kit.)
 const List<NavSectionSpec> kNavSections = <NavSectionSpec>[
   NavSectionSpec(
     label: 'User Accounts',
     permission: 'portal.user.view_accounts',
   ),
   NavSectionSpec(label: 'Sites', permission: 'portal.site.view'),
+  NavSectionSpec(label: 'Participants', permission: 'portal.participant.view'),
   NavSectionSpec(label: 'Audit Log', permission: 'portal.audit.view'),
 ];
 

@@ -111,8 +111,10 @@ class StartTrialDialog extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              "This will send the EQ questionnaire to the participant's mobile "
-              'app.',
+              "Confirming will activate Diary Data Synchronization between "
+              "the Participant's Mobile Application and the Sponsor Portal. "
+              'Diary entries will begin transmitting to the Sponsor Portal '
+              'and Rave EDC.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
