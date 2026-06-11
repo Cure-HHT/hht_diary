@@ -41,6 +41,10 @@ class AuditLogsScreen extends StatelessWidget {
     required this.onPageSizeChanged,
     this.searchQuery = '',
     required this.onSearchChanged,
+    this.title = 'Audit Logs',
+    this.subtitle = 'View system activity and changes.',
+    this.onBack,
+    this.backLabel = 'Back to Sites',
   });
 
   /// The current page of audit entries, in reverse-chronological
@@ -86,6 +90,22 @@ class AuditLogsScreen extends StatelessWidget {
   /// layer re-fetches page 1 under the new query.
   final ValueChanged<String> onSearchChanged;
 
+  /// Header title. The default is the top-level Audit Logs tab; a
+  /// scoped instance (the Sites drill-in) overrides it, e.g.
+  /// "Audit Logs - 001 Memorial Hospital".
+  final String title;
+
+  /// Header subtitle. The info tooltip renders only with the default
+  /// subtitle (the scoped drill-in has no tooltip in the design).
+  final String subtitle;
+
+  /// When non-null, a back link ([backLabel], leading arrow) renders
+  /// before the header block and fires this on tap.
+  final VoidCallback? onBack;
+
+  /// Label for the [onBack] link.
+  final String backLabel;
+
   @override
   Widget build(BuildContext context) {
     // Same column widths used by the header row and every body row so
@@ -106,7 +126,12 @@ class AuditLogsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _Header(),
+          _Header(
+            title: title,
+            subtitle: subtitle,
+            onBack: onBack,
+            backLabel: backLabel,
+          ),
           const SizedBox(height: 24),
           _AuditTable(
             rows: entries,
@@ -130,19 +155,31 @@ class AuditLogsScreen extends StatelessWidget {
 
 /// Title (32 SemiBold) + subtitle (14 Regular, muted) with a trailing
 /// `(i)` info icon. The icon is a passive tooltip — the Figma shows no
-/// affordance for opening anything from it.
+/// affordance for opening anything from it. With [onBack] set (the
+/// Sites drill-in), a back link leads the block and the tooltip is
+/// omitted.
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({
+    required this.title,
+    required this.subtitle,
+    required this.onBack,
+    required this.backLabel,
+  });
+
+  final String title;
+  final String subtitle;
+  final VoidCallback? onBack;
+  final String backLabel;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
+    final headerBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Audit Logs',
+          title,
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 32,
@@ -155,29 +192,68 @@ class _Header extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'View system activity and changes.',
-              style: TextStyle(
-                fontWeight: FontWeight.w400,
+            Flexible(
+              child: Text(
+                subtitle,
+                style: TextStyle(
+                  fontWeight: FontWeight.w400,
+                  fontSize: 14,
+                  height: 20 / 14,
+                  letterSpacing: -0.15,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            if (onBack == null) ...[
+              const SizedBox(width: 6),
+              Tooltip(
+                message:
+                    'Entries come from the system\'s tamper-evident audit '
+                    'log. Reverse chronological — most recent first.',
+                child: Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+    if (onBack == null) return headerBlock;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Semantics(
+          identifier: 'audit-back',
+          button: true,
+          child: TextButton.icon(
+            onPressed: onBack,
+            icon: const Icon(Icons.arrow_back, size: 18),
+            label: Text(backLabel),
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.onSurface,
+              textStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
                 fontSize: 14,
                 height: 20 / 14,
                 letterSpacing: -0.15,
-                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(width: 6),
-            Tooltip(
-              message:
-                  'Entries come from the system\'s tamper-evident audit '
-                  'log. Reverse chronological — most recent first.',
-              child: Icon(
-                Icons.info_outline,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+          ),
         ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SizedBox(
+            height: 40,
+            child: VerticalDivider(
+              width: 1,
+              color: theme.colorScheme.outlineVariant,
+            ),
+          ),
+        ),
+        Expanded(child: headerBlock),
       ],
     );
   }

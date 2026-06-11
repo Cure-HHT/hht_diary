@@ -26,6 +26,11 @@ class AuditLogScreenBinding extends StatefulWidget {
     required this.identityCredential,
     required this.serverUrl,
     this.httpClient,
+    this.siteId,
+    this.title,
+    this.subtitle,
+    this.onBack,
+    this.backLabel,
   });
 
   /// Bare identity credential — session token in session mode, userId
@@ -37,6 +42,18 @@ class AuditLogScreenBinding extends StatefulWidget {
 
   /// Injection point for tests; production uses a real client.
   final http.Client? httpClient;
+
+  /// When set, every fetch carries `site=<siteId>` so the server narrows
+  /// the log to that site (site events + the site's participants' events)
+  /// — the Sites page drill-in. Search and paging compose with it.
+  final String? siteId;
+
+  /// Optional header overrides for the scoped instance; null keeps the
+  /// top-level Audit Logs defaults.
+  final String? title;
+  final String? subtitle;
+  final VoidCallback? onBack;
+  final String? backLabel;
 
   static const String viewAuditPermission = 'portal.audit.view';
 
@@ -109,11 +126,13 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
       // authorize the request under the active role.
       final cred = '${widget.identityCredential}|${p.activeRole}';
       final q = _query.trim();
+      final site = widget.siteId?.trim() ?? '';
       final uri = Uri.parse('${widget.serverUrl}/audit').replace(
         queryParameters: <String, String>{
           'limit': '$_pageSize',
           'offset': '${(_page - 1) * _pageSize}',
           if (q.isNotEmpty) 'q': q,
+          if (site.isNotEmpty) 'site': site,
         },
       );
       final resp = await _http.get(
@@ -191,6 +210,10 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
       onPageChanged: _onPageChanged,
       onPageSizeChanged: _onPageSizeChanged,
       onSearchChanged: _onSearchChanged,
+      title: widget.title ?? 'Audit Logs',
+      subtitle: widget.subtitle ?? 'View system activity and changes.',
+      onBack: widget.onBack,
+      backLabel: widget.backLabel ?? 'Back to Sites',
     ),
   );
 }

@@ -101,6 +101,38 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
+    testWidgets('onRowTap makes the whole row a click target', (tester) async {
+      _User? tapped;
+      await tester.pumpWidget(
+        _harness(
+          AppDataTable<_User>(
+            columns: _columns,
+            rows: const [
+              _User('Dr. Emily Parker', 'eparker@clinicaltrial.com'),
+              _User('Dr. James Smith', 'jsmith@clinicaltrial.com'),
+            ],
+            onRowTap: (u) => tapped = u,
+          ),
+        ),
+      );
+      await tester.tap(find.text('jsmith@clinicaltrial.com'));
+      expect(tapped?.name, 'Dr. James Smith');
+    });
+
+    testWidgets('rows stay passive without onRowTap', (tester) async {
+      await tester.pumpWidget(
+        _harness(
+          AppDataTable<_User>(
+            columns: _columns,
+            rows: const [_User('Dr. Emily Parker', 'e@x.com')],
+          ),
+        ),
+      );
+      // Tapping row content must be a no-op (no GestureDetector target).
+      await tester.tap(find.text('Dr. Emily Parker'), warnIfMissed: false);
+      await tester.pump();
+    });
+
     testWidgets('onSort fires with the column key and ascending first', (
       tester,
     ) async {

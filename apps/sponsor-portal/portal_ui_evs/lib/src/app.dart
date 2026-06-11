@@ -28,6 +28,7 @@ import 'session_activity_listener.dart';
 import 'session_config.dart';
 import 'session_timeout_controller.dart';
 import 'stale_client.dart';
+import 'sites_screen_binding.dart';
 import 'study_settings_binding.dart';
 import 'update_available_banner.dart';
 import 'users_screen_binding.dart';
@@ -650,6 +651,10 @@ class _HomeShellState extends State<_HomeShell> {
         UserPrincipal(:final activeRole) => activeRole,
         _ => null,
       },
+    ),
+    'Sites' => SitesScreenBinding(
+      identityCredential: widget.identityCredential ?? '',
+      serverUrl: _serverUrl,
     ),
     'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',

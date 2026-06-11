@@ -634,10 +634,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
     final offset =
         (int.tryParse(params['offset'] ?? '') ?? 0).clamp(0, 1 << 52);
     final query = (params['q'] ?? '').trim();
+    // Optional site filter (the Sites page drill-in): site events match by
+    // aggregate, participant events join through participant_site_index.
+    final siteFilter = (params['site'] ?? '').trim();
 
     final rows = <Map<String, Object?>>[];
     final int total;
-    if (query.isEmpty) {
+    if (query.isEmpty && siteFilter.isEmpty) {
       // The sequence counter is the store's contiguous local append counter,
       // so it doubles as the log size without scanning the log.
       total = await backend.readSequenceCounter();
@@ -649,9 +652,23 @@ Future<PortalServerBoot> bootstrapPortalServer({
       // A filtered total requires a full reverse scan (the stream keyset-
       // pages its DB reads underneath, so memory stays bounded). Acceptable
       // at current log sizes; revisit if logs reach millions of events.
+      // The participant->site lookup is resolved ONCE per request, not per
+      // event.
+      final participantSite = siteFilter.isEmpty
+          ? const <String, String>{}
+          : <String, String>{
+              for (final row
+                  in await backend.findViewRows('participant_site_index'))
+                if (row['participant_id'] is String && row['site_id'] is String)
+                  row['participant_id']! as String: row['site_id']! as String,
+            };
+      bool matches(StoredEvent e) =>
+          (query.isEmpty || auditEventMatchesQuery(e, query)) &&
+          (siteFilter.isEmpty ||
+              auditEventMatchesSite(e, siteFilter, participantSite));
       var matched = 0;
       await for (final e in backend.readEventsReverse()) {
-        if (!auditEventMatchesQuery(e, query)) continue;
+        if (!matches(e)) continue;
         if (matched >= offset && rows.length < limit) rows.add(auditRowJson(e));
         matched++;
       }

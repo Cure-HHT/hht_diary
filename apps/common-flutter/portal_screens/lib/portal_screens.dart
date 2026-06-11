@@ -31,6 +31,7 @@ export 'src/admin/user_lifecycle_dialogs.dart';
 export 'src/admin/user_row_actions.dart';
 // Phase 6: audit logs screen.
 export 'src/admin/audit_logs_screen.dart';
+export 'src/admin/sites_screen.dart';
 export 'src/admin/study_settings_screen.dart';
 // Fixture data — used by the example preview app and the test suite.
 // Public so consumers can import the canonical sample users / audit
