@@ -210,6 +210,14 @@ services:
       # never depend on the real dev pepper, and the dev-fallback boot warning
       # stays quiet. Local-stack only — never a real secret.
       PORTAL_ACTIVATION_CODE_PEPPER: "${PORTAL_ACTIVATION_CODE_PEPPER:-local-stack-activation-pepper-not-secret}"
+      # PORTAL_URL: the UI origin stamped into activation/reset email links.
+      # Hard-pinned literal, NOT "${PORTAL_URL:-...}": the dev Doppler config
+      # carries the deployed Cloud Run URL, so a doppler-wrapped host shell
+      # would interpolate it right back into the default — and the in-container
+      # `doppler run --preserve-env` injects it too when compose stays silent.
+      # Local-stack email links must always point at this stack's own UI
+      # (nginx at :8080).
+      PORTAL_URL: "http://localhost:8080"
       # PORTAL_DEV_SEED_PASSWORD: dev/test-only knob (CUR-1437). When set, boot's
       # seedTestAccountActivations provisions each seed-user email in the Firebase
       # emulator with this shared password and marks it active — so the reference

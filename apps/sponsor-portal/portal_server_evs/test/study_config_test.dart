@@ -41,9 +41,7 @@ void main() {
     // Product decision (CUR-1485): the read-only settings page is
     // reference material for ALL portal staff, so every role is granted
     // the ACT-ADM-001 permission in the sponsor matrix.
-    // No CRA user exists in the dev seed, so CRA isn't exercised here;
-    // its grant is pinned by the sponsor matrix drift guard instead.
-    for (final allowed in ['admin-1', 'sysop-1', 'sc-1']) {
+    for (final allowed in ['admin-1', 'sysop-1', 'sc-1', 'cra-1']) {
       final resp = await b.router(
         Request(
           'GET',

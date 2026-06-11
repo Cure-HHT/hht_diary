@@ -995,6 +995,13 @@ const RoleAssignmentSeed _localConvenienceSeed = RoleAssignmentSeed(
       role: 'StudyCoordinator',
       scope: BoundScope(class_: 'site', value: 'site-1'),
     ),
+    // CRA at site-2 (mirrors cra@reference.local in the reference sponsor
+    // seed) so CRA-role flows and grants are exercisable in local/test runs.
+    RoleAssignmentSeedEntry(
+      userId: 'cra-1',
+      role: 'CRA',
+      scope: BoundScope(class_: 'site', value: 'site-2'),
+    ),
     RoleAssignmentSeedEntry(
       userId: 'multi-1',
       role: 'Administrator',
