@@ -1,4 +1,5 @@
 // Verifies: DIARY-GUI-show-linking-code/A
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:portal_ui_evs/src/activation_code_display.dart';
 import 'package:portal_ui_evs/src/participants_screen_binding.dart';
 import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
+
+/// pumpReactionWidget wraps a bare MaterialApp (no kit theme); kit
+/// components null-assert the theme extensions.
+Widget _kitThemed(Widget child) => Theme(
+  data: buildAppTheme(font: AppFontFamily.inter),
+  child: child,
+);
 
 void main() {
   // ---- ActivationCodeDisplay widget ----
@@ -112,8 +120,10 @@ void main() {
     await pumpReactionWidget(
       tester,
       fake: fake,
-      child: const Scaffold(
-        body: LinkParticipantDialog(participantId: 'P-1', siteId: 'S-1'),
+      child: _kitThemed(
+        const Scaffold(
+          body: LinkParticipantDialog(participantId: 'P-1', siteId: 'S-1'),
+        ),
       ),
     );
 
@@ -153,8 +163,10 @@ void main() {
     await pumpReactionWidget(
       tester,
       fake: fake,
-      child: const Scaffold(
-        body: LinkParticipantDialog(participantId: 'P-1', siteId: 'S-1'),
+      child: _kitThemed(
+        const Scaffold(
+          body: LinkParticipantDialog(participantId: 'P-1', siteId: 'S-1'),
+        ),
       ),
     );
 

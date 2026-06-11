@@ -9,6 +9,8 @@
 //   dispatches the retraction action through the reaction scope.
 import 'dart:convert';
 
+import 'package:diary_design_system/diary_design_system.dart';
+
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -63,6 +65,7 @@ _pumpCard(
   final finalizes = <QuestionnaireInstance>[];
   await tester.pumpWidget(
     MaterialApp(
+      theme: buildAppTheme(font: AppFontFamily.inter),
       home: Scaffold(
         body: ManageQuestionnairesCardHarness(
           participantId: 'P-1',
@@ -84,6 +87,15 @@ _pumpCard(
   );
 }
 
+/// pumpReactionWidget wraps a bare MaterialApp (no kit theme); kit
+/// components null-assert the theme extensions, so harness children are
+/// wrapped in the app theme. showDialog captures InheritedTheme from the
+/// launching context, so dialogs inherit it too.
+Widget _kitThemed(Widget child) => Theme(
+  data: buildAppTheme(font: AppFontFamily.inter),
+  child: child,
+);
+
 void main() {
   const noseHht = QuestionnaireType(id: 'nose_hht', displayName: 'NOSE HHT');
 
@@ -98,7 +110,7 @@ void main() {
       expect(find.text('NOSE HHT'), findsOneWidget); // assertion D (type name)
       expect(find.text('Not Sent'), findsOneWidget); // status
       expect(find.text('Send Now'), findsOneWidget);
-      expect(find.text('Call Back'), findsNothing);
+      expect(find.byTooltip('Call Back'), findsNothing);
       expect(find.text('Start Next Cycle'), findsNothing);
       expect(find.text('Finalize'), findsNothing);
 
@@ -122,13 +134,13 @@ void main() {
       );
 
       expect(find.text('Sent'), findsOneWidget);
-      expect(find.textContaining('Current Cycle'), findsOneWidget);
+      expect(find.textContaining('Current:'), findsOneWidget);
       expect(find.textContaining('Cycle 1 Day 1'), findsOneWidget);
-      expect(find.text('Call Back'), findsOneWidget);
+      expect(find.byTooltip('Call Back'), findsOneWidget);
       expect(find.text('Send Now'), findsNothing);
       expect(find.text('Start Next Cycle'), findsNothing);
 
-      await tester.tap(find.text('Call Back'));
+      await tester.tap(find.byTooltip('Call Back'));
       expect(cb.callBacks.length, 1);
       expect(cb.callBacks.single.instanceId, 'inst-1');
     });
@@ -153,7 +165,7 @@ void main() {
         expect(find.text('Next Cycle'), findsOneWidget);
         expect(find.text('Start Next Cycle'), findsOneWidget);
         expect(find.text('Send Now'), findsNothing);
-        expect(find.text('Call Back'), findsNothing);
+        expect(find.byTooltip('Call Back'), findsNothing);
 
         await tester.tap(find.text('Start Next Cycle'));
         expect(cb.nextCycles, <String>['nose_hht']);
@@ -177,7 +189,7 @@ void main() {
 
       expect(find.text('Ready to Review'), findsOneWidget);
       expect(find.text('Finalize'), findsOneWidget);
-      expect(find.text('Call Back'), findsOneWidget);
+      expect(find.byTooltip('Call Back'), findsOneWidget);
 
       // Finalize is now wired: it targets the open instance.
       final finalize = tester.widget<FilledButton>(
@@ -216,7 +228,7 @@ void main() {
       expect(find.text('Closed · End of Study'), findsOneWidget);
       // No actions are offered on a terminally-closed card.
       expect(find.text('Finalize'), findsNothing);
-      expect(find.text('Call Back'), findsNothing);
+      expect(find.byTooltip('Call Back'), findsNothing);
       expect(find.text('Send Now'), findsNothing);
       expect(find.text('Start Next Cycle'), findsNothing);
     });
@@ -233,18 +245,20 @@ void main() {
         await pumpReactionWidget(
           tester,
           fake: fake,
-          child: Builder(
-            builder: (context) => Scaffold(
-              body: Center(
-                child: ElevatedButton(
-                  onPressed: () => ManageQuestionnairesDialog.show(
-                    context: context,
-                    participantId: 'P-1',
-                    siteId: 'S-1',
-                    serverUrl: 'http://test.local',
-                    identityCredential: 'cred',
+          child: _kitThemed(
+            Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () => ManageQuestionnairesDialog.show(
+                      context: context,
+                      participantId: 'P-1',
+                      siteId: 'S-1',
+                      serverUrl: 'http://test.local',
+                      identityCredential: 'cred',
+                    ),
+                    child: const Text('open'),
                   ),
-                  child: const Text('open'),
                 ),
               ),
             ),
@@ -285,7 +299,7 @@ void main() {
 
         // The NOSE HHT card (which has the sent instance) offers Call Back; the
         // never-sent HHT-QoL card offers Send Now.
-        expect(find.text('Call Back'), findsOneWidget);
+        expect(find.byTooltip('Call Back'), findsOneWidget);
         expect(find.text('Send Now'), findsOneWidget);
 
         // Assertion C: the close action dismisses the dialog with no change.
@@ -335,19 +349,21 @@ void main() {
         await pumpReactionWidget(
           tester,
           fake: fake,
-          child: Builder(
-            builder: (context) => Scaffold(
-              body: Center(
-                child: ElevatedButton(
-                  onPressed: () => ManageQuestionnairesDialog.show(
-                    context: context,
-                    participantId: 'P-1',
-                    siteId: 'S-1',
-                    serverUrl: 'http://test.local',
-                    identityCredential: 'cred',
-                    httpClient: client,
+          child: _kitThemed(
+            Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () => ManageQuestionnairesDialog.show(
+                      context: context,
+                      participantId: 'P-1',
+                      siteId: 'S-1',
+                      serverUrl: 'http://test.local',
+                      identityCredential: 'cred',
+                      httpClient: client,
+                    ),
+                    child: const Text('open'),
                   ),
-                  child: const Text('open'),
                 ),
               ),
             ),
@@ -378,11 +394,11 @@ void main() {
         // Choose Cycle 3 from the dropdown.
         await tester.tap(find.byType(DropdownButtonFormField<int>));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Cycle 3').last);
+        await tester.tap(find.text('Cycle 3 Day 1').last);
         await tester.pumpAndSettle();
 
         // Confirm and Send -> re-POST with the explicit studyEvent.
-        await tester.tap(find.widgetWithText(FilledButton, 'Confirm and Send'));
+        await tester.tap(find.text('Confirm and Send'));
         await tester.pumpAndSettle();
 
         // Two POSTs landed: the first without studyEvent (got 422), the second
@@ -405,24 +421,28 @@ void main() {
       await pumpReactionWidget(
         tester,
         fake: fake,
-        child: const Scaffold(
-          body: CallBackDialogHarness(
-            participantId: 'P-1',
-            siteId: 'S-1',
-            instanceId: 'inst-1',
+        child: _kitThemed(
+          const Scaffold(
+            body: CallBackDialogHarness(
+              participantId: 'P-1',
+              siteId: 'S-1',
+              instanceId: 'inst-1',
+            ),
           ),
         ),
       );
 
-      final confirm = find.widgetWithText(FilledButton, 'Confirm');
+      final confirm = find.byWidgetPredicate(
+        (w) => w is AppButton && w.label == 'Confirm',
+      );
       expect(confirm, findsOneWidget);
       // Empty reason -> disabled.
-      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+      expect(tester.widget<AppButton>(confirm).onPressed, isNull);
 
       await tester.enterText(find.byType(TextField), 'duplicate send');
       await tester.pump();
       // Non-empty reason -> enabled.
-      expect(tester.widget<FilledButton>(confirm).onPressed, isNotNull);
+      expect(tester.widget<AppButton>(confirm).onPressed, isNotNull);
 
       await fake.dispose();
     });
@@ -440,18 +460,20 @@ void main() {
       await pumpReactionWidget(
         tester,
         fake: fake,
-        child: const Scaffold(
-          body: CallBackDialogHarness(
-            participantId: 'P-1',
-            siteId: 'S-1',
-            instanceId: 'inst-1',
+        child: _kitThemed(
+          const Scaffold(
+            body: CallBackDialogHarness(
+              participantId: 'P-1',
+              siteId: 'S-1',
+              instanceId: 'inst-1',
+            ),
           ),
         ),
       );
 
       await tester.enterText(find.byType(TextField), 'wrong cycle');
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
+      await tester.tap(find.text('Confirm'));
       await tester.pumpAndSettle();
 
       // The dispatch landed (success surface rendered before auto-close).
@@ -489,12 +511,14 @@ void main() {
       await pumpReactionWidget(
         tester,
         fake: fake,
-        child: Scaffold(
-          body: FinalizationDialogHarness(
-            participantId: 'P-1',
-            siteId: 'S-1',
-            instanceId: 'inst-1',
-            currentStudyEvent: currentStudyEvent,
+        child: _kitThemed(
+          Scaffold(
+            body: FinalizationDialogHarness(
+              participantId: 'P-1',
+              siteId: 'S-1',
+              instanceId: 'inst-1',
+              currentStudyEvent: currentStudyEvent,
+            ),
           ),
         ),
       );
@@ -506,7 +530,7 @@ void main() {
     ) async {
       final fake = await pumpFinalize(tester);
 
-      expect(find.text('Finalize Questionnaire'), findsWidgets);
+      expect(find.text('Confirm'), findsWidgets);
       expect(find.text('Cancel'), findsOneWidget);
 
       // Default selection = the current cycle (shown in the dropdown).
@@ -528,9 +552,7 @@ void main() {
       final fake = await pumpFinalize(tester);
 
       // Default selection is the current cycle. Finalize directly (no warning).
-      await tester.tap(
-        find.widgetWithText(FilledButton, 'Finalize Questionnaire'),
-      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
       await tester.pumpAndSettle();
 
       expect(fake.submittedActions.length, 1);
@@ -555,17 +577,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Finalize -> the Terminal Cycle Warning opens (no dispatch yet).
-      await tester.tap(
-        find.widgetWithText(FilledButton, 'Finalize Questionnaire'),
-      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
       await tester.pumpAndSettle();
       expect(find.text('Permanently Close Questionnaire?'), findsOneWidget);
       expect(fake.submittedActions, isEmpty);
 
       // Confirm the warning -> dispatch {endEvent}.
-      await tester.tap(
-        find.widgetWithText(FilledButton, 'Close as End of Treatment'),
-      );
+      await tester.tap(find.text('Close as End of Treatment'));
       await tester.pumpAndSettle();
 
       expect(fake.submittedActions.length, 1);
@@ -588,20 +606,18 @@ void main() {
         await tester.tap(find.text('End of Study').last);
         await tester.pumpAndSettle();
 
-        await tester.tap(
-          find.widgetWithText(FilledButton, 'Finalize Questionnaire'),
-        );
+        await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
         await tester.pumpAndSettle();
         expect(find.text('Permanently Close Questionnaire?'), findsOneWidget);
 
         // Cancel the warning (the topmost Cancel; the Finalization Dialog
         // behind it also has a Cancel).
-        await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
+        await tester.tap(find.text('Cancel').last);
         await tester.pumpAndSettle();
 
         // Back on the Finalization Dialog, nothing dispatched (G).
         expect(find.text('Permanently Close Questionnaire?'), findsNothing);
-        expect(find.text('Finalize Questionnaire'), findsWidgets);
+        expect(find.text('Confirm'), findsWidgets);
         expect(fake.submittedActions, isEmpty);
 
         await fake.dispose();
@@ -613,7 +629,7 @@ void main() {
     ) async {
       final fake = await pumpFinalize(tester);
 
-      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
       expect(fake.submittedActions, isEmpty);
