@@ -38,17 +38,17 @@ E. The **Rate Limit Cooldown** SHALL be calculated from the first failed attempt
 
 **Configuration**
 
-F. The System SHALL support *Sponsor*-configurable **Rate Limit Threshold** per deployment.
+F. The System SHALL support *Sponsor*-configurable **Rate Limit Threshold** per study.
 
-G. The System SHALL support *Sponsor*-configurable **Rate Limit Cooldown** per deployment.
+G. The System SHALL support *Sponsor*-configurable **Rate Limit Cooldown** per study.
 
-H. The System SHALL support *Sponsor*-configurable error message text per deployment.
+H. The System SHALL support *Sponsor*-configurable error message text per study.
 
 ### Rationale
 
 Linking codes are short, human-typeable secrets that confer access to a clinical-*Trial* *Participant* identity; the platform's threat model has to assume that someone may attempt to guess or enumerate valid codes. Two mitigations compose: a generic error message that does not distinguish "code does not exist" from "code expired" from "code already used" (assertions A and B — distinguishing them would tell an attacker exactly which guesses are worth pursuing), and a rate limit that caps the number of attempts in a window. The *Site*-contact guidance (assertion C) is the legitimate-*User* recovery path that survives the genericity rule — a real *Participant* who has mistyped their code gets the same message as an enumerator, but they also get the actionable next step (contact the *Site*). The cooldown anchored at the first failed attempt in the window (assertion E) prevents the trivial workaround of attempting just below the threshold, waiting one second, and continuing — the window is a fixed time interval from the first miss. *Sponsor*-configurable threshold, cooldown, and text let each deployment tune the security/usability trade-off and customize the message.
 
-*End* *Linking Code Entry Error Handling* | **Hash**: 1eb043a2
+*End* *Linking Code Entry Error Handling* | **Hash**: dc87b4cf
 
 ## DIARY-GUI-join-study-screen: Join the Study Screen
 
@@ -82,9 +82,9 @@ The **Join the Study** screen has to do two things at once: capture the *Linking
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
 *End* *Join the Study Screen* | **Hash**: 8aff3bce
 
@@ -110,9 +110,9 @@ A successful link transitions the *Participant* from a personal-use **User** to 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
 ### Screen reference
 

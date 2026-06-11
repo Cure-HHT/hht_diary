@@ -13,7 +13,7 @@ compliance.
 
 ---
 
-# REQ-CAL-o00001: EARS Syntax for Conditional Requirements
+# REQ-DIARY-o00001: EARS Syntax for Conditional Requirements
 
 **Level**: ops | **Status**: Draft | **Implements**: -
 
@@ -70,7 +70,7 @@ A. Assertions SHALL use prescriptive language ("The System SHALL ..."), not
 
 ---
 
-# REQ-CAL-o00002: Glossary Term Enforcement
+# REQ-DIARY-o00002: Glossary Term Enforcement
 
 **Level**: ops | **Status**: Draft | **Implements**: -
 
@@ -91,7 +91,7 @@ B. Automated health checks SHALL flag any unbolded domain-specific term that
 
 ---
 
-# REQ-CAL-o00003: Assertion Independence
+# REQ-DIARY-o00003: Assertion Independence
 
 **Level**: ops | **Status**: Draft | **Implements**: -
 
@@ -135,7 +135,7 @@ E. An assertion SHALL NOT use phrases such as "in addition to" to introduce a
 
 ---
 
-# REQ-CAL-o00004: Assertion Clarity
+# REQ-DIARY-o00004: Assertion Clarity
 
 **Level**: ops | **Status**: Draft | **Implements**: -
 
@@ -170,7 +170,7 @@ D. The SHALL keyword SHALL NOT appear outside the Assertions section of a
 
 ---
 
-# REQ-CAL-o00005: Notation and Formatting
+# REQ-DIARY-o00005: Notation and Formatting
 
 **Level**: ops | **Status**: Draft | **Implements**: -
 

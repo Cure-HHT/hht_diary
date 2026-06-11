@@ -12,7 +12,7 @@ of the code.
 - **SDLC Management**: how software is planned, developed, and released
   (e.g., the Agile / Scrum process mapped to GAMP 5).
 - **Requirements Management**: how requirements are captured and hashed
-  (e.g., the `REQ-CAL-p00029` family).
+  (e.g., the `REQ-DIARY-p00029` family).
 - **Code Review & Commit**: the peer-review process that ensures only
   validated code reaches production.
 - **Configuration Management**: how Terraform, Git, and Doppler are used

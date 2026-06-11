@@ -21,10 +21,10 @@
 *Defined in: DIARY-PRD-user-account-activation-workflow (DIARY)*
 
 **Active Authentication Path**
-: The authentication path engaged by **Diary User Authentication** for a given **Participant**, derived from the **PIN Policy** and the **Device Authentication** state on the **Participant**'s device:
-  - **In-application PIN** when the **PIN Policy** is **Required**, or when the **PIN Policy** is **Required When Device Authentication Is Not Enabled** and **Device Authentication** is not enabled on the **Participant**'s device.
-  - **Device Authentication** when the **PIN Policy** is not **Required** and **Device Authentication** is enabled on the **Participant**'s device.
-  - **None** when the **PIN Policy** is **Not Required** and **Device Authentication** is not enabled on the **Participant**'s device.
+: The specific authentication method the **System** applies to a given **Participant**, determined by their device and setup:
+  - **Device Authentication** if the **Participant**'s device has a screen lock enabled.
+  - **Application Biometric Lock** if the **Participant**'s device has no screen lock enabled and the **Participant** has set up the **Application Biometric Lock**.
+  - **None** if the **Participant** is in personal use mode and has not set up the **Application Biometric Lock**.
 *Defined in: DIARY-PRD-user-authentication (DIARY)*
 
 **Admin** *(not indexed)*
@@ -89,13 +89,21 @@ compliance auditing.
 See: REQ-p00022 (Analyst Read-Only Access).
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
+**Application Biometric Lock**
+: Authentication performed within the **Mobile Application** using the biometric sensors of the **Participant**'s device, used when the **Participant**'s device does not have a screen lock enabled.
+*Defined in: DIARY-PRD-user-authentication (DIARY)*
+
 **Application Menu**
-: The menu accessed from the left side of the top navigation bar, grouping application-level functions.
+: The menu accessed from the right side of the top navigation bar, providing access to account, study, and support functions.
 *Defined in: DIARY-GUI-mobile-navigation (DIARY)*
 
 **Application Privacy Policy**
 : The privacy policy governing the Mobile Application itself, covering platform-level data handling.
 *Defined in: DIARY-PRD-privacy-policy (DIARY)*
+
+**Assigned Questionnaire**
+: A Questionnaire initiated by a Study Coordinator from the Sponsor Portal and delivered to the participant via push notification.
+*Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
 
 **Audit Trail**
 : A computer-generated, time-stamped record that captures the who, what,
@@ -148,7 +156,7 @@ exported in CDISC-compliant formats for regulatory submission.
 *Defined in: DIARY-PRD-role-definitions (DIARY)*
 
 **Clinical Trial Privacy Policy**
-: The privacy policy governing a Participant's participation in a specific clinical trial, covering sponsor-side data handling. Sponsor-configurable per deployment.
+: The privacy policy governing a Participant's participation in a specific clinical trial, covering sponsor-side data handling. Sponsor-configurable per study.
 *Defined in: DIARY-PRD-privacy-policy (DIARY)*
 
 **Code Expiry**
@@ -214,14 +222,6 @@ Diary Platform is not a CTMS — it is specifically a health diary /
 ePRO data collection system. Sponsors typically use a separate CTMS
 alongside the Diary Platform.
 *Defined in: file:spec/glossary-core.md (DIARY)*
-
-**Current Cycle**
-: The **Cycle** value assigned to the most recently sent **Questionnaire** of a given **Questionnaire Type** for a *Participant*.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
-
-**Cycle**
-: The protocol event identifier assigned to a **Questionnaire** representing the treatment cycle during which it was administered. Valid values are **Cycle N Day 1** (where N is a positive whole number), **End of Treatment**, and **End of Study**.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
 
 ## D
 
@@ -345,7 +345,7 @@ See: REQ-p00044 (Clinical Trial Compliant Diary Platform).
 *Defined in: DIARY-PRD-diary-start-day (DIARY)*
 
 **Diary User Authentication**
-: The access-control mechanism that gates **Participant** data and **Participant** *Actions* in the **Mobile Application**, satisfied via the **Active Authentication Path** for the **Participant**.
+: The mechanism that requires the **Participant** to authenticate before accessing data or performing actions in the **Mobile Application**. The authentication method used is determined by the **Active Authentication Path**.
 *Defined in: DIARY-PRD-user-authentication (DIARY)*
 
 **Disconnection Notification**
@@ -475,7 +475,7 @@ See: REQ-p00004 (Immutable Audit Trail via Event Sourcing), REQ-p01000
 
 **Failed Attempt Threshold**
 : The configurable number of consecutive failed **PIN** entry attempts that triggers a **Participant** lockout pending **PIN Reset**.
-*Defined in: DIARY-PRD-user-authentication-pin (DIARY)*
+*Defined in: DIARY-BASE-user-authentication-pin (DIARY)*
 
 **FDA (U.S. Food and Drug Administration)** *(not indexed)*
 : United States federal agency responsible for regulating
@@ -503,16 +503,8 @@ prd-clinical-trials.md.
 : The Study Coordinator action that permanently locks participant answers, triggers score calculation and pushes the data to Rave EDC.
 *Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
 
-**Finalization Dialog**
-: The confirmation dialog displayed when **Finalize** is selected, containing a **Cycle** dropdown for selecting the **Cycle** value before confirming finalization.
-*Defined in: DIARY-BASE-questionnaire-finalization (DIARY)*
-
-**Finalized Cycle**
-: The **Cycle** value of the most recently finalized **Questionnaire** of a given **Questionnaire Type** for a *Participant*.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
-
 **Full Name**
-: A common name, which is **PII**, of the person associated with a **User Account** that identifies a specific individual in the context of the **Sponsor Portal**.
+: The full name of the person associated with a **User Account**, comprising two separate fields: First Name (given name) and Last Name (family name). Personally identifiable information (**PII**) that identifies a specific individual in the context of the **Sponsor Portal**.
 *Defined in: DIARY-PRD-user-account-create (DIARY)*
 
 ## G
@@ -615,7 +607,7 @@ See: REQ-p00011 (ALCOA+ Data Integrity Principles).
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Idle Timeout**
-: The configurable elapsed time, used both as the maximum **Participant** in-app inactivity before re-authentication is required and as the trust window for the most recent successful authentication on the **Active Authentication Path**.
+: The configurable elapsed time used as the maximum period of **Participant** inactivity before re-authentication is required, and as the trust window for the most recent successful authentication on the **Active Authentication Path**.
 *Defined in: DIARY-PRD-user-authentication (DIARY)*
 
 **IMP (Investigational Medicinal Product)** *(not indexed)*
@@ -716,11 +708,11 @@ See: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078
 ## M
 
 **Main Screen**
-: The default screen displayed to the **Participant** upon opening the mobile application.
+: The default screen displayed to the **Participant** upon opening the **Mobile Application**.
 *Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
 **Mobile Application**
-: The iOS and Android application provided by the System for participant-reported diary data capture and questionnaire completion. Operates in personal use mode without an account or in linked use mode connected to a **Sponsor Portal** deployment.
+: The *Mobile Application* (iOS and Android) operates in personal use mode with no account required, or in linked use mode connected to a **Sponsor Portal**.
 *Defined in: DIARY-PRD-mobile-application (DIARY)*
 
 **Mobile Linking Code**
@@ -745,9 +737,9 @@ prd-architecture-multi-sponsor.md.
 
 ## N
 
-**Next Cycle**
-: The **Cycle** value that will be assigned when the next **Questionnaire** of that **Questionnaire Type** is sent — the **Finalized Cycle** N incremented by 1.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
+**Needs your attention**
+: The collapsible panel within the **Task List** zone that displays the count of active tasks and, when expanded, the individual task items requiring **Participant** action.
+*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
 **NOSE HHT**
 : The Nasal Outcome Score for Epistaxis in Hereditary Hemorrhagic Telangiectasia, a validated clinical instrument published in JAMA Otolaryngology — Head and Neck Surgery, 2020.
@@ -851,19 +843,11 @@ See: prd-security-data-classification.md.
 
 **PIN**
 : A numeric secret of configurable length set by the **Participant** and used to satisfy **Diary User Authentication** when the in-application **PIN** mechanism is the active path.
-*Defined in: DIARY-PRD-user-authentication-pin (DIARY)*
-
-**PIN Policy**
-: The setting that determines whether the in-application **PIN** mechanism is used for a given **Participant**. Permitted values: **Not Required** (the in-application **PIN** mechanism is never used), **Required When Device Authentication Is Not Enabled** (the in-application **PIN** mechanism is used only when **Device Authentication** is not enabled on the **Participant**'s device), and **Required** (the in-application **PIN** mechanism is always used).
-*Defined in: DIARY-PRD-user-authentication (DIARY)*
+*Defined in: DIARY-BASE-user-authentication-pin (DIARY)*
 
 **PIN Reset**
 : A *Sponsor*-initiated command that clears the **Participant**'s **PIN** and returns the **Participant** to the **PIN** setup state on next access.
-*Defined in: DIARY-PRD-user-authentication-pin (DIARY)*
-
-**Portal-Sent Questionnaire**
-: A Questionnaire initiated by a Study Coordinator from the Sponsor Portal and delivered to the participant via push notification.
-*Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
+*Defined in: DIARY-BASE-user-authentication-pin (DIARY)*
 
 **Preamble**
 : The introductory content block presented to the participant before questionnaire questions begin informing the participant of the estimated completion time and that answers will not be saved until Submission.
@@ -886,16 +870,12 @@ ePROs.
 : A validated data collection instrument presented to a participant to capture self-reported clinical outcomes at protocol-defined points in a clinical trial.
 *Defined in: DIARY-PRD-questionnaire-system (DIARY)*
 
-**Questionnaire Card**
-: The interface component representing a single **Questionnaire Type** for a *Participant*, showing its current status and the actions available in that status.
-*Defined in: DIARY-BASE-questionnaire-manage-modal (DIARY)*
-
 **Questionnaire Display Name**
 : The participant-facing name of a **Questionnaire** as presented in the mobile application. Distinct from the instrument name used for internal identification and clinical reference.
 *Defined in: DIARY-PRD-questionnaire-system (DIARY)*
 
 **Questionnaire Task**
-: A task indicating a **Portal-Sent Questionnaire** has been sent to the **Participant** and has not yet been submitted.
+: A task indicating an **Assigned Questionnaire** has been sent to the **Participant** and has not yet been submitted.
 *Defined in: DIARY-GUI-participant-task-list (DIARY)*
 
 **Questionnaire Type**
@@ -975,12 +955,8 @@ audit trails, timestamps, and data integrity.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Second Factor**
-: The independent authentication factor required in addition to the **Password** during login. The specific method is sponsor-configurable per deployment.
+: The independent authentication factor required in addition to the **Password** during login. The specific method is sponsor-configurable per study.
 *Defined in: DIARY-PRD-two-factor-authentication (DIARY)*
-
-**Select Starting Cycle Dialog**
-: The dialog displayed when a *Study Coordinator* selects **Send Now** for the first time for a given **Questionnaire Type**, allowing selection of the **Starting Cycle** before sending.
-*Defined in: DIARY-BASE-questionnaire-manage-modal (DIARY)*
 
 **Session**
 : An authenticated period during which a **User Account** owner can access the **Sponsor Portal** without re-entering credentials.
@@ -1065,12 +1041,8 @@ See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Sponsor-Level Action Extension**
-: An additional Action defined by a specific sponsor deployment beyond the platform Action Inventory.
+: An additional Action supported for a specific Sponsor at that Sponsor's request, beyond the standard platform Action Inventory.
 *Defined in: DIARY-PRD-action-inventory (DIARY)*
-
-**Starting Cycle**
-: The **Cycle** value assigned to the first **Questionnaire** of a given **Questionnaire Type** sent to a *Participant*.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
 
 **Study Coordinator**
 : A portal user responsible for managing day-to-day participant interactions at one or more assigned Sites.
@@ -1080,19 +1052,11 @@ See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
 : The participant action that signals all questions are answered and the Questionnaire is ready for Study Coordinator review.
 *Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
 
-**System Notice Area**
-: A dedicated zone at the top of the Main Screen reserved for persistent, non-dismissable system notices that require the Participant's attention.
-*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
-
 ## T
 
 **Task List**
-: The prioritized set of actionable items displayed on the **Participant's** **Main Screen** requiring **Participant** attention.
+: The prioritized set of actionable items displayed within the **Needs your attention** panel on the **Participant**'s **Main Screen**.
 *Defined in: DIARY-GUI-participant-task-list (DIARY)*
-
-**Terminal Cycle**
-: A **Cycle** value of **End of Treatment** or **End of Study** indicating no further **Questionnaires** of that **Questionnaire Type** will be sent to the *Participant*.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
 
 **Terminal Cycle Warning Dialog**
 : The additional confirmation dialog displayed when a **Terminal Cycle** value is selected for finalization, warning that the **Questionnaire Type** will be permanently closed for the *Participant*.
@@ -1151,9 +1115,9 @@ or more Roles.
 : A modal dialog displaying the details and available actions for a selected **User Account**.
 *Defined in: DIARY-GUI-user-management-tabs (DIARY)*
 
-**User Menu**
-: The menu accessed from the right side of the top navigation bar, grouping account and study-related actions.
-*Defined in: DIARY-GUI-mobile-navigation (DIARY)*
+**User Profile Screen**
+: The screen accessible from the **Application Menu** that displays the **Participant**'s study participation status and application settings.
+*Defined in: DIARY-GUI-user-profile (DIARY)*
 
 **UTC (Coordinated Universal Time)** *(not indexed)*
 : Primary time standard used worldwide, not affected by time zones or
@@ -1174,9 +1138,9 @@ Displayed in the user's local time zone in the Diary app and Portal.
 
 ## Y
 
-**Yesterday Reminder Task**
-: A task prompting the **Participant** to record a **Daily Status** for the previous day.
-*Defined in: DIARY-GUI-participant-task-list (DIARY)*
+**Yesterday Confirmation Prompt**
+: An inline prompt displayed within the **Your Records** content area under the Yesterday date section when the **Participant** has not recorded a **Daily Status** for the previous day.
+*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
 # References
 

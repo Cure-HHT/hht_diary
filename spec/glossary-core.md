@@ -16,14 +16,14 @@ For order of precedence between this glossary and external Reference
 Documents, see `governance/glossary-precedence.md`. For the syntax of an
 individual glossary entry, see `governance/glossary-example.md`.
 Authoring rules for glossary-term enforcement live in
-`governance/style-guide.md` (REQ-CAL-o00002 and REQ-CAL-o00005-C).
+`governance/style-guide.md` (REQ-DIARY-o00002 and REQ-DIARY-o00005-C).
 
 ## Conventions
 
 - An assertion that uses a domain-specific term unbolded triggers an
-  automated health-check failure (`governance/style-guide.md` REQ-CAL-o00002-B).
+  automated health-check failure (`governance/style-guide.md` REQ-DIARY-o00002-B).
 - Any acronym used within a requirements document SHALL be a defined
-  term in this glossary (`governance/style-guide.md` REQ-CAL-o00005-C).
+  term in this glossary (`governance/style-guide.md` REQ-DIARY-o00005-C).
 - Terms are listed alphabetically.
 - A term that exists in a Reference Document SHALL be defined here as a
   Reference Term that points at the external source (see the

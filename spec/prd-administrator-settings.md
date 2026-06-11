@@ -8,7 +8,7 @@ This section defines the **Administrator Settings** surface, a read-only view av
 
 ### Overview
 
-The **Sponsor Portal** maintains a body of *Sponsor*-configured platform parameters that govern System behavior. These parameters are defined in individual requirements throughout the specification and are typically static for the duration of a deployment. **Administrators** require visibility into the current values of these parameters to support troubleshooting, audit response, and operational verification, without needing to consult the specification or contact CureHHT personnel. The **Administrator Settings** surface consolidates these values into a single read-only view scoped to the **Administrator** *Role*.
+The **Sponsor Portal** maintains a body of *Sponsor*-configured platform parameters that govern System behavior. These parameters are defined in individual requirements throughout the specification and are typically static for the duration of a study. **Administrators** require visibility into the current values of these parameters to support troubleshooting, audit response, and operational verification, without needing to consult the specification or contact CureHHT personnel. The **Administrator Settings** surface consolidates these values into a single read-only view scoped to the **Administrator** *Role*.
 
 
 Configuration Parameter
@@ -40,15 +40,15 @@ E. The **System** SHALL NOT permit modification of any **Configuration Parameter
 
 **Configuration**
 
-F. The **System** SHALL support *Sponsor*-configurable selection of which **Configuration Parameters** are surfaced in **Administrator Settings** per deployment.
+F. The **System** SHALL support *Sponsor*-configurable selection of which **Configuration Parameters** are surfaced in **Administrator Settings** per study.
 
-G. The **System** SHALL support *Sponsor*-configurable definition of **Configuration Categories** per deployment.
+G. The **System** SHALL support *Sponsor*-configurable definition of **Configuration Categories** per study.
 
 ### Rationale
 
 *Sponsor*-configured parameters (*Session* timeouts, code expiries, threshold values, reminder schedules) shape the system's runtime behavior but are not visible to the **Administrator** who is operationally responsible for the deployment. Without a surface that exposes these values, troubleshooting and audit response require the **Administrator** to either read the specification or escalate to CureHHT, neither of which scales. Consolidating the visible parameters under the **Administrator** *Role*, with one **Configuration Category** per logical grouping and one source-requirement reference per parameter, gives the **Administrator** a single place to confirm "what is this deployment configured to do?" without granting modification capability. Modification stays out of band (the parameters are set during *Sponsor* onboarding and changed via CureHHT change-control) because their values are tightly coupled to compliance review; a runtime modification surface would bypass that review.
 
-*End* *Administrator Settings Surface* | **Hash**: 274785ed
+*End* *Administrator Settings Surface* | **Hash**: d733a2f6
 
 ## DIARY-GUI-administrator-settings: Administrator Settings Interface
 
@@ -71,7 +71,7 @@ C. The interface SHALL display each **Configuration Category** as a labeled sect
 
 D. The interface SHALL display each **Configuration Parameter** as a row within its **Configuration Category** section, showing the parameter name, the current value, and the unit of measurement where applicable.
 
-E. The interface SHALL display **Configuration Parameters** in the order defined by the deployment configuration.
+E. The interface SHALL display **Configuration Parameters** in the order defined by the *Sponsor* configuration.
 
 **Read-Only Indication**
 
@@ -83,4 +83,4 @@ G. The interface SHALL NOT present any input control, edit *Action*, or save *Ac
 
 Settings is a low-frequency surface — an **Administrator** opens it during troubleshooting or audit response, not during routine workflow — so it is reached via a single header *Action* rather than a tab. Presenting it as a full-page view that replaces the tab content (rather than a modal or a side-panel) reflects the surface's information density (multiple categories, many parameters per category) and lets the **Administrator** scan the entire configuration without scrolling between panels. The explicit read-only notice and the absence of any input control communicate the read-only contract at the GUI level: an **Administrator** who reaches this screen should not waste time looking for an edit affordance, and should know who to contact (CureHHT personnel) when a value needs to change. The back *Action* returns to the previously active tab rather than always defaulting to **Users** because Administrators frequently reach Settings from the audit log during an investigation and should be returned to the same investigation context.
 
-*End* *Administrator Settings Interface* | **Hash**: fca0242e
+*End* *Administrator Settings Interface* | **Hash**: b3c6cc2f

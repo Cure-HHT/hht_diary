@@ -1,6 +1,6 @@
 # *Mobile Application* Navigation and Screens
 
-The foundational navigation surfaces of the **Mobile Application** comprise the **Main Screen** layout (zones, task area, content area, fixed bottom actions), the two top-navigation-bar menus (*User* Menu, *Application Menu*) and their dependent screens, and the *Calendar* / *Day View* pair the *Participant* uses to navigate to any past date.
+The foundational navigation surfaces of the **Mobile Application** comprise the **Main Screen** layout (zones, the **Needs your attention** task panel, the **Your Records** content area, fixed bottom actions), the single **Application Menu** and the screens it reaches (**User Profile**, Accessibility and Preferences), and the *Calendar* / *Day View* pair the *Participant* uses to navigate to any past date.
 
 ## DIARY-GUI-main-screen-layout: Main Screen Layout
 
@@ -8,57 +8,76 @@ The foundational navigation surfaces of the **Mobile Application** comprise the 
 
 ### Overview
 
-The **Main Screen** is the **Participant's** primary interface for daily *Diary* use. Organizing the screen into distinct zones ensures that urgent items (disconnection alerts and tasks) are always visible, *Diary* content is scrollable, and the primary recording *Action* is always accessible. When no tasks or alerts are active, the content area expands to use the full available space.
+The **Main Screen** is the **Participant**'s primary interface for daily *Diary* use. Organizing the screen into distinct zones ensures that tasks are always visible, *Diary* content is scrollable, and the primary recording *Action* is always accessible.
 
 
 Main Screen
-: The default screen displayed to the **Participant** upon opening the mobile application.
+: The default screen displayed to the **Participant** upon opening the **Mobile Application**.
 
-System Notice Area
-: A dedicated zone at the top of the Main Screen reserved for persistent, non-dismissable system notices that require the Participant's attention.
+Needs your attention
+: The collapsible panel within the **Task List** zone that displays the count of active tasks and, when expanded, the individual task items requiring **Participant** action.
+
+Yesterday Confirmation Prompt
+: An inline prompt displayed within the **Your Records** content area under the Yesterday date section when the **Participant** has not recorded a **Daily Status** for the previous day.
 
 ### Assertions
 
 **Screen Zones**
 
-A. The *Main Screen* SHALL display the following zones in order from top to bottom: *System Notice Area* (when applicable), top navigation bar, *Task List* (when tasks are active), content area, and fixed bottom actions.
+A. The **Main Screen** SHALL display the following zones in order from top to bottom: top navigation bar, **Task List** zone, **Your Records** content area, and fixed bottom actions.
 
-B. The *System Notice Area* SHALL appear above the top navigation bar.
+**Task List Zone**
 
-C. When the *System Notice Area* is displayed, it SHALL NOT reduce the space available for any other *Main Screen* zone.
+B. The **Task List** zone SHALL contain a **Needs your attention** panel.
 
-**Task List Area**
+C. The **Needs your attention** panel SHALL display the count of active tasks regardless of whether the panel is expanded or collapsed.
 
-D. When the **Task List** contains more tasks than the available space allows, the **Task List** SHALL scroll within its allocated area.
+D. When the **Participant** taps the **Needs your attention** panel header, the **System** SHALL toggle the panel between collapsed and expanded states.
 
-E. When no tasks are active and no **Disconnection Notification** is displayed, the content area SHALL expand to fill the available space.
+E. When expanded, the **Needs your attention** panel SHALL display all active task items.
 
-**Content Area**
+F. When collapsed, the **Needs your attention** panel SHALL display the task count and SHALL NOT display individual task items.
 
-F. The content area SHALL display *Diary* entries grouped by date, showing Yesterday and Today sections.
+G. When a **Disconnection Notification** is active, the **System** SHALL display it within the **Task List** zone above the **Needs your attention** panel.
 
-G. The content area SHALL be scrollable between the task area and the fixed bottom actions.
+**Your Records Content Area**
 
-H. When a date section contains no entries, the content area SHALL display a message indicating no events for that date.
+H. The **Your Records** content area SHALL display *Diary* entries and completed **Assigned Questionnaires** grouped by date, showing Yesterday and Today sections.
+
+I. The **Your Records** content area SHALL be scrollable between the **Task List** zone and the fixed bottom actions.
+
+J. When a date section contains no entries, the **Your Records** content area SHALL display a message indicating no records for that date.
+
+K. When the **Participant** has not recorded a **Daily Status** for the previous day, the **System** SHALL display the **Yesterday Confirmation Prompt** within the **Your Records** content area under the Yesterday date section.
+
+L. The **Yesterday Confirmation Prompt** SHALL present three response options: Yes, No, and Don't Remember.
+
+M. When the **Participant** selects Yes, the interface SHALL navigate the **Participant** to the nosebleed recording flow with the date set to the previous day.
+
+N. When the **Participant** selects No, the interface SHALL record a **Daily Status** of No Nosebleed for the previous day and remove the **Yesterday Confirmation Prompt**.
+
+O. When the **Participant** selects Don't Remember, the interface SHALL record a **Daily Status** of Don't Remember for the previous day and remove the **Yesterday Confirmation Prompt**.
+
+P. The **Yesterday Confirmation Prompt** SHALL NOT appear if the **Participant** has already recorded a **Daily Status** for the previous day.
 
 **Fixed Bottom Actions**
 
-I. The **Main Screen** SHALL display a Record Nosebleed button fixed at the bottom, regardless of scroll position.
+Q. The **Main Screen** SHALL display a Record Nosebleed button fixed at the bottom, regardless of scroll position.
 
-J. The **Main Screen** SHALL display a *Calendar* button fixed at the bottom below the Record Nosebleed button, regardless of scroll position.
+R. The **Main Screen** SHALL display a View *Calendar* button fixed at the bottom below the Record Nosebleed button, regardless of scroll position.
 
 ### Rationale
 
-The five-zone structure (*System Notice Area*, top navigation bar, *Task List*, content area, fixed bottom actions) reflects an attention-priority ordering: persistent system notices appear above everything because they typically encode a state the *Participant* must acknowledge (e.g. **Disconnection Notification**), and the fixed bottom actions appear at the most-reachable thumb position because they are the two highest-frequency *Participant* actions (Record Nosebleed, open *Calendar*). The *Task List* zone collapsing when empty (with the content area expanding to fill the space) keeps the screen from carrying empty chrome for participants in a quiet stretch of the *Trial* — most days, when there are no incomplete records or pending portal-sent questionnaires, the content area uses the full middle of the screen. Yesterday / Today grouping in the content area matches the everyday read pattern: the most recent days are what the *Participant* actually wants to see; the *Calendar* is the path to anything older.
+The zone ordering — top navigation bar, **Task List** zone, **Your Records** content area, fixed bottom actions — is an attention-priority layout: the **Needs your attention** panel sits directly under the navigation bar so pending work is the first thing the **Participant** sees, and the two highest-frequency actions (Record Nosebleed, View *Calendar*) are pinned at the most-reachable thumb position regardless of scroll. Making the **Needs your attention** panel collapsible keeps a persistent, always-visible task count without forcing the full *Task List* to compete with *Diary* content for vertical space; a **Participant** with nothing pending sees a small count rather than empty chrome. Surfacing the **Disconnection Notification** inside the **Task List** zone above the panel keeps connection state in the same attention region as tasks. The **Yesterday Confirmation Prompt** lives inline in **Your Records** under the Yesterday section — where the **Participant** naturally looks to check whether yesterday is accounted for — and its three options (Yes / No / Don't Remember) map directly to the three valid **Daily Status** values, so confirming the previous day is a one-tap *Action* resolved in place.
 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
-*End* *Main Screen Layout* | **Hash**: 0e9dccb1
+*End* *Main Screen Layout* | **Hash**: 29975741
 
 ## DIARY-GUI-mobile-navigation: Mobile Application Navigation and Screens
 
@@ -66,63 +85,42 @@ The five-zone structure (*System Notice Area*, top navigation bar, *Task List*, 
 
 ### Overview
 
-The *Mobile Application* provides two menus accessible from the top navigation bar: a **User Menu** for account and study-related actions, and an **Application Menu** for application-level functions. Each menu leads to dedicated screens. The top navigation bar is visible on the **Main Screen** at all times.
+The **Mobile Application** provides a single **Application Menu** accessible from the top navigation bar, containing account, study, and support actions. The top navigation bar is visible on the **Main Screen** at all times.
 
-
-User Menu
-: The menu accessed from the right side of the top navigation bar, grouping account and study-related actions.
 
 Application Menu
-: The menu accessed from the left side of the top navigation bar, grouping application-level functions.
+: The menu accessed from the right side of the top navigation bar, providing access to account, study, and support functions.
 
 ### Assertions
 
 **Top Navigation Bar**
 
-A. The **Main Screen** SHALL display a top navigation bar containing the **Application Menu** access on the left, the *Sponsor* or Application logo in the center, and the **User Menu** access on the right.
+A. The **Main Screen** SHALL display a top navigation bar containing the *Sponsor* or **Mobile Application** logo on the left and the **Application Menu** access on the right.
 
 B. The top navigation bar SHALL remain visible on the **Main Screen** at all times.
 
-C. Only one menu SHALL be open at a time. Opening one menu SHALL close the other if it is open.
-
-D. Tapping anywhere outside an open menu SHALL dismiss it.
-
-**User Menu**
-
-E. The **User Menu** SHALL contain the following items: Join the Study, *User* Profile, and Help Center.
-
-F. When the **User** clicks the "Join the Study" button SHALL navigate to the *Linking Code* entry screen.
-
-G. When the **Participant** is linked to a study, "Join the Study" button SHALL not be visible on the menu.
-
-H. The Help Center screen SHALL display contact information for support.
-
-**User Profile Screen**
-
-I. When the **User** is not linked to any study, the Clinical *Trial* section SHALL display a message indicating no active study link and guidance on how to join.
-
-J. When the **Participant** is linked to a study, the Clinical *Trial* section SHALL display the **Participation Status Badge**.
+C. Tapping anywhere outside the open **Application Menu** SHALL dismiss it.
 
 **Application Menu**
 
-K. The **Application Menu** SHALL contain the following items: Accessibility and Preferences, **Application Privacy Policy**, and Licenses.
+D. The **Application Menu** SHALL contain the following items: *User* Profile, Join the Study, and Help Center.
 
-L. The **Application Privacy Policy** screen SHALL display or link to the **Application Privacy Policy**.
+E. When the **Participant** is linked to a study, the **Application Menu** SHALL NOT display the Join the Study item.
 
-M. The Licenses screen SHALL display open-source and third-party license information.
+F. When the **User** selects Join the Study, the **System** SHALL navigate the **User** to the *Linking Code* entry screen.
 
 ### Rationale
 
-The two-menu split (*User* Menu on the right, *Application Menu* on the left) groups actions by the question the *Participant* is asking: "something about my study" (*User* Menu: Join the Study, *User* Profile, Help Center) vs. "something about the app itself" (*Application Menu*: Accessibility, *Application Privacy Policy*, Licenses). Single-menu-open-at-a-time is a standard mobile-UX safety (opening one menu closes the other) so the *Participant* never sees two competing surfaces *Overlap*. Hiding Join the Study when already linked (assertion G) removes the no-op *Action* from the menu — once the *Participant* is a **Participant**, the *Action* that converted them from **User** to **Participant** is no longer meaningful. The *User* Profile's Clinical *Trial* section is the *Participant*'s anchor for their study status: empty + guidance when unlinked, **Participation Status Badge** when linked. The *Application Menu*'s three items are the standard app-level metadata participants may need to reach but rarely do (privacy, accessibility, licenses).
+Collapsing the former two-menu split (a separate *User* Menu and *Application Menu*) into a single **Application Menu** removes the navigation ambiguity of deciding which menu holds a given *Action* — every account, study, and support destination now lives behind one affordance on the right of the navigation bar. The menu carries only the three entry points a **Participant** reaches directly from the navigation bar — *User* Profile (which in turn surfaces status, settings, privacy, and accessibility), Join the Study, and Help Center — while the richer per-screen detail lives in the dedicated screen requirements (`DIARY-GUI-user-profile`, `DIARY-GUI-accessibility-preferences`). Hiding Join the Study once the **Participant** is linked removes the no-op *Action* that converted them from **User** to **Participant** in the first place. Dismiss-on-outside-tap is the standard mobile affordance for a transient menu surface.
 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
-*End* *Mobile Application Navigation and Screens* | **Hash**: ecc7e268
+*End* *Mobile Application Navigation and Screens* | **Hash**: 059118bb
 
 ## DIARY-GUI-calendar-day-view: Calendar and Day View
 
@@ -177,7 +175,7 @@ N. Each nosebleed entry in the list SHALL display the start time, timezone, seve
 
 O. Each entry in the list SHALL be selectable.
 
-P. Submitted **Portal-Sent Questionnaires** SHALL appear in the entries list on the date they were submitted.
+P. Submitted **Assigned Questionnaires** SHALL appear in the entries list on the date they were submitted.
 
 **Entry Selection**
 
@@ -197,13 +195,95 @@ U. When the **Participant** selects a locked date with a **Daily Status** record
 
 ### Rationale
 
-The *Calendar* is the *Participant*'s at-a-glance survey of their *Diary* period: every date's visual indicator answers "have I recorded for this day, and if so, what?" without forcing the *Participant* to drill into each date. The seven-state legend (recorded events, confirmed no-events, don't-remember, incomplete-or-missing, not-recorded, locked, today) covers every *Diary*-state distinction the platform tracks; collapsing two states into one indicator would hide either incomplete-record warnings or locked-date evidence that the *Participant* needs to see. The *Day View* bifurcation (no-status-recorded prompt vs. status-recorded list) reflects two distinct *Participant* journeys — first-time entry for a date (Add / No / Don't recall three-*Action* prompt) vs. revisiting an already-recorded date (entry list with Add new event affordance). Lock-state handling on a locked date suppresses every *Action* that would attempt to modify the date, surfacing the lock explicitly rather than letting the *Participant* tap an *Action* and discover the rejection — the explanatory message ("can no longer be edited") is what makes the lock comprehensible. Submitted **Portal-Sent Questionnaires** appearing in the date's entry list grounds the *Questionnaire* as a part of the *Diary* record on the date it landed, rather than as an out-of-band artifact the *Participant* has to navigate separately to find.
+The *Calendar* is the *Participant*'s at-a-glance survey of their *Diary* period: every date's visual indicator answers "have I recorded for this day, and if so, what?" without forcing the *Participant* to drill into each date. The seven-state legend (recorded events, confirmed no-events, don't-remember, incomplete-or-missing, not-recorded, locked, today) covers every *Diary*-state distinction the platform tracks; collapsing two states into one indicator would hide either incomplete-record warnings or locked-date evidence that the *Participant* needs to see. The *Day View* bifurcation (no-status-recorded prompt vs. status-recorded list) reflects two distinct *Participant* journeys — first-time entry for a date (Add / No / Don't recall three-*Action* prompt) vs. revisiting an already-recorded date (entry list with Add new event affordance). Lock-state handling on a locked date suppresses every *Action* that would attempt to modify the date, surfacing the lock explicitly rather than letting the *Participant* tap an *Action* and discover the rejection — the explanatory message ("can no longer be edited") is what makes the lock comprehensible. Submitted **Assigned Questionnaires** appearing in the date's entry list grounds the *Questionnaire* as a part of the *Diary* record on the date it landed, rather than as an out-of-band artifact the *Participant* has to navigate separately to find.
 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
-*End* *Calendar and Day View* | **Hash**: 8051d0f5
+*End* *Calendar and Day View* | **Hash**: dc55717e
+
+## DIARY-GUI-user-profile: User Profile Screen
+
+**Level**: GUI | **Status**: Draft | **Implements**: -
+
+### Overview
+
+The **User Profile** screen consolidates the **Participant**'s study connection status, personal settings, and application information in a single place. **Participants** use it to check their study link, join a study, manage authentication preferences, and access privacy and legal information.
+
+
+User Profile Screen
+: The screen accessible from the **Application Menu** that displays the **Participant**'s study participation status and application settings.
+
+### Assertions
+
+**Your Status**
+
+A. The **User Profile** screen SHALL display a Your Status section showing the **Participant**'s current study participation state.
+
+B. When the **User** is not linked to a study, the Your Status section SHALL display a message indicating no active study link and a Join the Study button.
+
+C. When the **User** selects the Join the Study button from the **User Profile** screen, the **System** SHALL navigate the **User** to the *Linking Code* entry screen.
+
+D. When the **Participant** is linked to a study, the Your Status section SHALL display the **Participation Status Badge** as defined in `DIARY-GUI-participation-status-badge`.
+
+**Export Data**
+
+E. The **User Profile** screen SHALL display an Export Data option.
+
+**Settings and Information**
+
+F. The **User Profile** screen SHALL display an **Application Privacy Policy** option that navigates the **User** to the **Application Privacy Policy** screen.
+
+G. The **User Profile** screen SHALL display a Licenses option that navigates the **User** to a screen showing open-source and third-party license information.
+
+H. The **User Profile** screen SHALL display an Accessibility and Preferences option that navigates the **User** to the accessibility and preferences settings.
+
+I. The **User Profile** screen SHALL display the **Application Biometric Lock** configuration option as defined in `DIARY-GUI-user-authentication`.
+
+### Rationale
+
+The **User Profile** screen is the single destination for everything personal-to-the-**Participant** that is not part of the daily recording flow: study status, data export, and the app-level settings and legal information. Consolidating these behind one **Application Menu** entry keeps the navigation bar uncluttered and gives the **Participant** one predictable place to look. The Your Status section is the anchor for study connection — guidance plus a Join the Study button when unlinked, the **Participation Status Badge** when linked — so a **Participant** can always confirm and act on their link state from one screen. Delegating the biometric-lock control (`DIARY-GUI-user-authentication`) and the accessibility settings (`DIARY-GUI-accessibility-preferences`) to their own requirements keeps each concern independently specified while presenting them to the **Participant** as entries on this one screen.
+
+> **Follow-up — configurability**: This requirement currently encodes
+> the only option implemented in code. Future sponsors may require
+> different rules; introduce a configurable seam (e.g. a parameter on
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
+
+*End* *User Profile Screen* | **Hash**: c915b967
+
+## DIARY-GUI-accessibility-preferences: Accessibility and Preferences
+
+**Level**: GUI | **Status**: Draft | **Implements**: -
+
+### Overview
+
+The Accessibility and Preferences screen allows **Participants** to customize the **Mobile Application** for better readability and usability, accommodating different visual and reading needs.
+
+### Assertions
+
+A. The Accessibility and Preferences screen SHALL display a Dyslexia-friendly font option.
+
+B. When the **Participant** enables the Dyslexia-friendly font, the **System** SHALL apply the OpenDyslexic font throughout the **Mobile Application**.
+
+C. The Accessibility and Preferences screen SHALL display a Larger Text and Controls option.
+
+D. When the **Participant** enables Larger Text and Controls, the **System** SHALL increase the size of text and interactive elements throughout the **Mobile Application**.
+
+### Rationale
+
+*Participant*-reported outcome data is only as reliable as the **Participant**'s ability to read the prompts and operate the controls, and an HHT *Trial* population spans a wide range of ages and visual needs. Offering an OpenDyslexic font option and a Larger Text and Controls option — applied application-wide rather than per-screen — lets a **Participant** who needs either accommodation set it once and have it hold across the whole recording and *Questionnaire* flow, reducing miskeyed entries and abandoned tasks that would otherwise degrade data completeness.
+
+> **Follow-up — configurability**: This requirement currently encodes
+> the only option implemented in code. Future sponsors may require
+> different rules; introduce a configurable seam (e.g. a parameter on
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
+
+*End* *Accessibility and Preferences* | **Hash**: 95c62ef0

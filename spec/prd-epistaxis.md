@@ -32,7 +32,7 @@ D. The System SHALL calculate the duration of an **Epistaxis Event** from the re
 
 E. The System SHALL require the *Participant* to record an **Intensity** value for each **Epistaxis Event**.
 
-F. The System SHALL present notes options from a predefined list (defined in CAL-PRD-entry-time-restrictions-configuration) for each **Epistaxis Event**; the available options SHALL be *Sponsor*-configurable per study protocol.
+F. The System SHALL present notes options from a predefined list for each **Epistaxis Event**; the available options SHALL be *Sponsor*-configurable per study protocol.
 
 G. The System SHALL classify an **Epistaxis Event** as an **Incomplete Record** when it has been saved with one or more required fields not recorded.
 
@@ -40,7 +40,7 @@ G. The System SHALL classify an **Epistaxis Event** as an **Incomplete Record** 
 
 The *Daily Status* / *Epistaxis Event* two-level structure exists because the clinical question is two-leveled: "Did anything happen today?" (a daily-grain answer that can be Had Nosebleed, No Nosebleed, or Don't Remember) and, when something did happen, "What were the events?" (per-event start, end, *Intensity*). Mutually exclusive **Daily Status** values prevent contradictory records (a *Participant* cannot simultaneously have had a nosebleed and not had one). Required start, end, and **Intensity** on each **Epistaxis Event** capture the three primary outcome measures (frequency by count, duration by interval, severity by *Intensity*); allowing any of these to be missing without an explicit incomplete-*Record State* would silently downgrade dataset quality. Timezone-aware capture is essential because participants travel and durations computed from naive timestamps across a DST boundary or international move can be off by an hour or more. The **Incomplete Record** classification lets the platform distinguish "in progress, missing data" from "fully captured" so the *Participant* can be prompted to finish and the dataset can flag what is not yet complete.
 
-*End* *HHT Epistaxis Data Capture Standard* | **Hash**: ffddaa95
+*End* *HHT Epistaxis Data Capture Standard* | **Hash**: 20e8ce77
 
 ## DIARY-GUI-epistaxis-record: Record Nosebleed Event
 
@@ -103,9 +103,9 @@ The three-step structure (Start, Max *Intensity*, End) matches the clinical mode
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
 *End* *Record Nosebleed Event* | **Hash**: 83c8479f
 
@@ -145,9 +145,9 @@ The delete *Action* is exposed on every screen of the recording flow because the
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
 ### Screen reference
 
