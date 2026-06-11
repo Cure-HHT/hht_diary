@@ -86,11 +86,10 @@ re-sent.
 **Level**: BASE | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-questionnaire-coordinator-workflow
 
-Questionnaire Card
-: The interface component representing a single **Questionnaire Type** for a *Participant*, showing its current status and the actions available in that status.
-
-Select Starting Cycle Dialog
-: The dialog displayed when a *Study Coordinator* selects **Send Now** for the first time for a given **Questionnaire Type**, allowing selection of the **Starting Cycle** before sending.
+The **Questionnaire Card** and **Select Starting Cycle Dialog** terms used
+below are defined by the deploying study's requirement set (each *Sponsor*
+overlay defines them once for the federated glossary; defining them here
+as well would duplicate the definitions).
 
 ### Assertions
 
@@ -167,8 +166,8 @@ Popover handles the **Delivery Failed** state inline without a separate screen.
 **Level**: BASE | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-questionnaire-coordinator-workflow
 
-Finalization Dialog
-: The confirmation dialog displayed when **Finalize** is selected, containing a **Cycle** dropdown for selecting the **Cycle** value before confirming finalization.
+The **Finalization Dialog** term used below is defined by the deploying
+study's requirement set.
 
 Terminal Cycle Warning Dialog
 : The additional confirmation dialog displayed when a **Terminal Cycle** value is selected for finalization, warning that the **Questionnaire Type** will be permanently closed for the *Participant*.
@@ -229,23 +228,11 @@ apply is per-study configuration. *Cycle* tracking is independent per
 **Questionnaire Type**.
 
 
-Cycle
-: The protocol event identifier assigned to a **Questionnaire** representing the treatment cycle during which it was administered. Valid values are **Cycle N Day 1** (where N is a positive whole number), **End of Treatment**, and **End of Study**.
-
-Current Cycle
-: The **Cycle** value assigned to the most recently sent **Questionnaire** of a given **Questionnaire Type** for a *Participant*.
-
-Finalized Cycle
-: The **Cycle** value of the most recently finalized **Questionnaire** of a given **Questionnaire Type** for a *Participant*.
-
-Next Cycle
-: The **Cycle** value that will be assigned when the next **Questionnaire** of that **Questionnaire Type** is sent — the **Finalized Cycle** N incremented by 1.
-
-Starting Cycle
-: The **Cycle** value assigned to the first **Questionnaire** of a given **Questionnaire Type** sent to a *Participant*.
-
-Terminal Cycle
-: A **Cycle** value of **End of Treatment** or **End of Study** indicating no further **Questionnaires** of that **Questionnaire Type** will be sent to the *Participant*.
+The **Cycle**, **Current Cycle**, **Finalized Cycle**, **Next Cycle**,
+**Starting Cycle**, and **Terminal Cycle** terms used below are defined by
+the deploying study's requirement set (each *Sponsor* overlay defines them
+once for the federated glossary; defining them here as well would
+duplicate the definitions).
 
 ### Assertions
 
