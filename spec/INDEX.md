@@ -134,7 +134,7 @@
 | DIARY-GUI-participation-status-badge         | Participation Status Badge                 | prd-mobile-notifications.md               | 6f306233 |
 | DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface         | prd-portal-auth.md                        | d41e7764 |
 | DIARY-GUI-portal-session-expiry              | Portal session expiry interface            | prd-portal-auth.md                        | 0a1581a9 |
-| DIARY-GUI-portal-stale-client-reload         | Portal Stale-Client Reload Prompt          | prd-common-ui.md                          | 375e8009 |
+| DIARY-GUI-portal-stale-client-reload         | Portal Stale-Client Reload Prompt          | prd-common-ui.md                          | b099c1fa |
 | DIARY-GUI-portal-transport-status            | Portal Transport Status Banner             | prd-common-ui.md                          | 20c55120 |
 | DIARY-GUI-questionnaire-portal-sent-workflow | Portal-Sent Questionnaire Workflow         | prd-questionnaire-participant-workflow.md | ca0d5613 |
 | DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry               | prd-questionnaire-participant-workflow.md | 02879dd5 |
@@ -180,7 +180,7 @@
 | DIARY-DEV-participant-state-poll             | Diary Lifecycle Propagation via State Poll            | dev-mobile-event-sourcing.md       | 0a04e639 |
 | DIARY-DEV-participant-status-projection      | Participant Linking-Status Projection                 | dev-portal-service.md              | aafda27d |
 | DIARY-DEV-pluggable-push-transport           | Pluggable Push-Notification Transport                 | dev-pluggable-push-transport.md    | 0493012c |
-| DIARY-DEV-portal-activation-code-lifecycle   | Activation code lifecycle                             | dev-portal-activation.md           | ec270b2e |
+| DIARY-DEV-portal-activation-code-lifecycle   | Activation code lifecycle                             | dev-portal-activation.md           | a4ef3665 |
 | DIARY-DEV-portal-activation-email-delivery   | Activation email delivery                             | dev-portal-activation.md           | 8357a727 |
 | DIARY-DEV-portal-active-role-switch          | In-session active role switch                         | dev-portal-login.md                | 3d941dbc |
 | DIARY-DEV-portal-durable-event-store         | Durable, environment-selected event store             | dev-portal-service.md              | cfb9c8c5 |

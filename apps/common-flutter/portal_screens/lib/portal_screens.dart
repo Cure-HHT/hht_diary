@@ -8,6 +8,7 @@ library;
 
 // Phase 2: value types.
 export 'src/models/audit_entry_view.dart';
+export 'src/models/participant_row_view.dart';
 export 'src/models/portal_role.dart';
 export 'src/models/portal_user_view.dart';
 export 'src/models/role_assignment_view.dart';
@@ -31,6 +32,9 @@ export 'src/admin/user_lifecycle_dialogs.dart';
 export 'src/admin/user_row_actions.dart';
 // Phase 6: audit logs screen.
 export 'src/admin/audit_logs_screen.dart';
+export 'src/admin/participants_screen.dart';
+export 'src/admin/sites_screen.dart';
+export 'src/admin/study_settings_screen.dart';
 // Fixture data — used by the example preview app and the test suite.
 // Public so consumers can import the canonical sample users / audit
 // entries without forking the fixture file.

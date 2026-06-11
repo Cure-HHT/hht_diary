@@ -124,7 +124,9 @@ class _OtpScreenState extends State<OtpScreen> {
     return AuthScaffold(
       semanticId: 'otp-screen',
       title: 'Enter verification code',
-      subtitle: 'We sent a 6-digit code to ${widget.maskedEmail}',
+      // Figma copy is the generic phrase; the masked address still rides on
+      // [OtpScreen.maskedEmail] for logs/tests but isn't displayed.
+      subtitle: 'We sent a 6-digit code to your email.',
       banner: _error != null
           ? AppBanner(
               severity: AppBannerSeverity.error,
@@ -144,7 +146,7 @@ class _OtpScreenState extends State<OtpScreen> {
           AppTextField(
             controller: _code,
             label: 'Verification Code',
-            hintText: 'Enter 6-digit code',
+            hintText: '******',
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
             inputFormatters: [
@@ -155,7 +157,41 @@ class _OtpScreenState extends State<OtpScreen> {
             onSubmitted: (_) => (ready && !_busy) ? _submit() : null,
             semanticId: 'otp-code',
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
+          // Figma: a left-aligned underlined text link directly under the
+          // field, not a full-width button.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Semantics(
+              identifier: 'otp-resend',
+              button: true,
+              container: true,
+              explicitChildNodes: true,
+              child: InkWell(
+                onTap: (_busy || _resending) ? null : _resend,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 4,
+                  ),
+                  child: Text(
+                    _resending ? 'Sending…' : 'Resend code',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w400,
+                      fontSize: 14,
+                      height: 20 / 14,
+                      letterSpacing: -0.15,
+                      decoration: TextDecoration.underline,
+                      color: Theme.of(context).colorScheme.primary,
+                      decorationColor: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           AppButton(
             label: 'Verify',
             fullWidth: true,
@@ -164,12 +200,6 @@ class _OtpScreenState extends State<OtpScreen> {
             semanticId: 'otp-submit',
           ),
           const SizedBox(height: 8),
-          AuthLinkButton(
-            label: 'Resend code',
-            loading: _resending,
-            onPressed: _busy ? null : _resend,
-            semanticId: 'otp-resend',
-          ),
           AuthLinkButton(
             label: 'Back to Login',
             onPressed: () => Navigator.of(context).pop(),

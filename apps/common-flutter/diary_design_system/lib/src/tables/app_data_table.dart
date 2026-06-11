@@ -113,6 +113,11 @@ class AppDataTable<T> extends StatelessWidget {
   /// node so Playwright can scope queries to the table subtree.
   final String? semanticId;
 
+  /// When set, every data row becomes a click target (pointer cursor +
+  /// whole-row hit area) firing with its row value — for drill-in tables
+  /// where the row IS the action. Null keeps rows passive.
+  final void Function(T row)? onRowTap;
+
   const AppDataTable({
     super.key,
     required this.columns,
@@ -130,6 +135,7 @@ class AppDataTable<T> extends StatelessWidget {
     this.isRowInactive,
     this.rowKey,
     this.semanticId,
+    this.onRowTap,
   });
 
   bool get _hasTopRow => searchField != null || paginationControls != null;
@@ -195,6 +201,7 @@ class AppDataTable<T> extends StatelessWidget {
             errorBuilder: errorBuilder,
             isRowInactive: isRowInactive,
             rowKey: rowKey,
+            onRowTap: onRowTap,
           ),
         ],
       ),
@@ -349,6 +356,7 @@ class _Body<T> extends StatelessWidget {
   final Widget Function(BuildContext, Object)? errorBuilder;
   final bool Function(T row)? isRowInactive;
   final Key Function(T row)? rowKey;
+  final void Function(T row)? onRowTap;
 
   const _Body({
     required this.columns,
@@ -359,6 +367,7 @@ class _Body<T> extends StatelessWidget {
     required this.errorBuilder,
     required this.isRowInactive,
     required this.rowKey,
+    required this.onRowTap,
   });
 
   @override
@@ -385,6 +394,7 @@ class _Body<T> extends StatelessWidget {
               columns: columns,
               row: rows[i],
               inactive: isRowInactive?.call(rows[i]) ?? false,
+              onTap: onRowTap == null ? null : () => onRowTap!(rows[i]),
             ),
             if (i < rows.length - 1) _IndentedDivider(theme: theme),
           ],
@@ -472,12 +482,14 @@ class _DataRow<T> extends StatefulWidget {
   final List<AppTableColumn<T>> columns;
   final T row;
   final bool inactive;
+  final VoidCallback? onTap;
 
   const _DataRow({
     super.key,
     required this.columns,
     required this.row,
     required this.inactive,
+    this.onTap,
   });
 
   @override
@@ -503,22 +515,35 @@ class _DataRowState<T> extends State<_DataRow<T>> {
               .outline // Grey (#A4B9C2)
         : theme.colorScheme.onSurfaceVariant; // Dark Grey (#54636A)
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: ColoredBox(
-        color: bg,
-        child: DefaultTextStyle.merge(
-          style: _rowBaseStyle.copyWith(color: defaultColor),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final col in widget.columns)
-                _buildCell(context, col, defaultColor),
-            ],
-          ),
+    final content = ColoredBox(
+      color: bg,
+      child: DefaultTextStyle.merge(
+        style: _rowBaseStyle.copyWith(color: defaultColor),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final col in widget.columns)
+              _buildCell(context, col, defaultColor),
+          ],
         ),
       ),
+    );
+
+    return MouseRegion(
+      // Clickable rows read as buttons: pointer cursor + whole-row hit area
+      // (the existing hover highlight doubles as the affordance).
+      cursor: widget.onTap != null
+          ? SystemMouseCursors.click
+          : MouseCursor.defer,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: widget.onTap == null
+          ? content
+          : GestureDetector(
+              onTap: widget.onTap,
+              behavior: HitTestBehavior.opaque,
+              child: content,
+            ),
     );
   }
 

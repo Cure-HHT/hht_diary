@@ -111,6 +111,28 @@ final AggregateProjectionSpec participantRecordSpec = AggregateProjectionSpec(
   tombstoneEventTypes: const {},
 );
 
+// Implements: DIARY-DEV-portal-activation-code-lifecycle/D+E — activation_codes
+//   folds the activation-code hash lifecycle into one row per email (the row key
+//   is the email, so a fresh mint OVERWRITES the prior row — supersession by
+//   fold). Rows carry only the keyed code hash; the ActivationCodeStore
+//   validates/consumes against this view, so pending codes survive restarts.
+//   Deliberately NOT in portalViewPermissionNamer's map: the fail-closed
+//   `view:activation_codes` sentinel keeps it server-internal.
+final TableProjectionSpec activationCodesSpec = TableProjectionSpec(
+  viewName: 'activation_codes',
+  interest: const SubscriptionFilter(
+    eventTypes: {'activation_code_minted', 'activation_code_consumed'},
+    aggregateTypes: {'portal_user'},
+  ),
+  insertEventTypes: const {
+    'activation_code_minted',
+    'activation_code_consumed',
+  },
+  removeEventTypes: const {},
+  rowKey: const CompositeKey(['data.email']),
+  rowData: const WholePayload(),
+);
+
 // Implements: DIARY-PRD-questionnaire-system/B — questionnaire_instance projects
 //   Completion Status per instance. The latest event's entryType is the status
 //   driver; lifecycle events fold into the row. One row per instance aggregate.

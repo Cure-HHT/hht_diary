@@ -153,6 +153,64 @@ void main() {
     });
   });
 
+  group('site filters the log to one site', () {
+    test(
+        'returns site events by aggregate and participant events via the '
+        'participant->site index; nothing else', () async {
+      final body = await getAudit('?site=site-1&limit=1000');
+      final rows = (body['rows'] as List).cast<Map<String, Object?>>();
+      expect(rows, isNotEmpty);
+      expect(body['total'], rows.length,
+          reason: 'large limit -> total equals the filtered row count');
+      // DevSeedRaveClient: site-1 hosts DEV-001-001 / DEV-001-002; site-2 and
+      // site-3 host the others.
+      for (final row in rows) {
+        switch (row['aggregate_type']) {
+          case 'site':
+            expect(row['aggregate_id'], 'site-1');
+          case 'participant':
+            expect(row['aggregate_id'], startsWith('DEV-001-'));
+          default:
+            fail('site filter leaked aggregate_type=${row['aggregate_type']}');
+        }
+      }
+      // The site's own sync event is reachable through the filter.
+      expect(
+        rows.any((r) =>
+            r['entry_type'] == 'site_synced_from_edc' &&
+            r['aggregate_id'] == 'site-1'),
+        isTrue,
+      );
+      // And at least one participant event joined in via the index.
+      expect(rows.any((r) => r['aggregate_type'] == 'participant'), isTrue);
+    });
+
+    test('composes with q', () async {
+      final body = await getAudit('?site=site-1&q=site%20synced&limit=1000');
+      final rows = (body['rows'] as List).cast<Map<String, Object?>>();
+      expect(rows, isNotEmpty);
+      for (final row in rows) {
+        expect(row['entry_type'], 'site_synced_from_edc');
+        expect(row['aggregate_id'], 'site-1');
+      }
+    });
+
+    test('pages within the filtered set with an honest total', () async {
+      final all = await getAudit('?site=site-1&limit=1000');
+      final total = all['total']! as int;
+      expect(total, greaterThan(1), reason: 'fixture has site + participants');
+      final page2 = await getAudit('?site=site-1&limit=1&offset=1');
+      expect(page2['rows'], hasLength(1));
+      expect(page2['total'], total);
+    });
+
+    test('unknown site -> empty rows, total 0', () async {
+      final body = await getAudit('?site=no-such-site');
+      expect(body['rows'], isEmpty);
+      expect(body['total'], 0);
+    });
+  });
+
   test('paging params do not bypass the permission gate', () async {
     final resp = await boot.router(
       Request(

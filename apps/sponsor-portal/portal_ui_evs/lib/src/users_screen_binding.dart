@@ -121,7 +121,7 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
     required Map<String, List<_Assignment>> assignmentsByUser,
     required bool isLoading,
   }) {
-    final views = <PortalUserView>[
+    final allViews = <PortalUserView>[
       for (final u in users)
         PortalUserView(
           email: u.email,
@@ -139,6 +139,14 @@ class _UsersScreenBindingState extends State<UsersScreenBinding> {
     // derivation does.
     final isOperator =
         widget.activeRole == PortalRole.systemOperator.systemName;
+    // SysOp-ONLY accounts are an operator concern — hidden from staff
+    // viewers entirely. A SysOp who also holds a regular role renders
+    // normally (badge included). See visibleUserRows for the
+    // missing-role-data and read-scope caveats.
+    final views = visibleUserRows(
+      users: allViews,
+      viewerIsOperator: isOperator,
+    );
     return _PermissionsGate(
       builder: (context, permissions) {
         final canCreate = permissions.contains(

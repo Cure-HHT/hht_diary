@@ -12,6 +12,7 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:portal_screens/portal_screens.dart';
 
 import 'activation_link.dart';
+import 'auth_scaffold.dart';
 import 'activation_screen.dart';
 import 'audit_log_screen_binding.dart';
 import 'connect_screen.dart';
@@ -27,6 +28,9 @@ import 'session_activity_listener.dart';
 import 'session_config.dart';
 import 'session_timeout_controller.dart';
 import 'stale_client.dart';
+import 'participants_screen_binding.dart';
+import 'sites_screen_binding.dart';
+import 'study_settings_binding.dart';
 import 'update_available_banner.dart';
 import 'users_screen_binding.dart';
 import 'web_platform.dart';
@@ -178,18 +182,22 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     });
     // One-shot boot check: catches a stale bundle already loaded (e.g. served
     // by a legacy service worker) and seeds the version manifest for the popup.
-    unawaited(_checkServerVersion());
+    // The ONLY call site allowed to auto-reload — nothing can have been typed
+    // this early. Later checks (reconnect, sign-in) banner instead.
+    unawaited(_checkServerVersion(atBoot: true));
     _resolveAuthMode();
   }
 
   /// Fetch `/health`, update the version manifest, and act on a version
   /// mismatch. Event-driven (boot, reconnect, login attempt) — there is no
-  /// polling timer. [forceLoginScreen] treats the User as unauthenticated
-  /// regardless of [_status] for the login-attempt call site, so a logged-out
-  /// User who initiates sign-in on a stale bundle auto-reloads rather than
-  /// being prompted.
+  /// polling timer. Only the boot call site sets [atBoot]: an automatic
+  /// reload is free only before the *User* could have typed anything. A
+  /// deploy landing under an open login tab (reconnect) or discovered at
+  /// sign-in must never reload — it would wipe typed credentials or discard
+  /// the just-established session, making the deploy look like a failed
+  /// login (the repeatedly-reported "can't log in: version out of date").
   // Implements: DIARY-GUI-portal-stale-client-reload/A+B+C
-  Future<void> _checkServerVersion({bool forceLoginScreen = false}) async {
+  Future<void> _checkServerVersion({bool atBoot = false}) async {
     Map<String, Object?>? versions;
     try {
       // /health is public + same-origin; `.versions` carries portal_ui_version
@@ -205,11 +213,11 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       return;
     }
     if (versions == null || !mounted) return;
-    final authenticated = !forceLoginScreen && _status is Authenticated;
     final action = decideStaleClientAction(
       clientVersion: _appVersion,
       serverVersions: versions,
-      authenticated: authenticated,
+      authenticated: _status is Authenticated,
+      atBoot: atBoot,
       autoReloadAlreadyTried: widget.web.autoReloadAlreadyTried,
     );
     switch (action) {
@@ -272,10 +280,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// appends a single `|role`; the typed value (with any role) is used for the
   /// initial connect.
   void _onConnect(String identity) {
-    // Login attempt from the (unauthenticated) login screen: nothing to lose,
-    // so auto-reload onto the new bundle if this one is stale.
+    // Sign-in on a stale bundle completes; staleness surfaces via the
+    // banner only (a reload here would discard this very login).
     // Implements: DIARY-GUI-portal-stale-client-reload/B
-    unawaited(_checkServerVersion(forceLoginScreen: true));
+    unawaited(_checkServerVersion());
     setState(() {
       _identityCredential = identity.split('|').first;
       _roleConfirmed = false;
@@ -287,10 +295,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// with Firebase. Stores the session token so [_HomeShell] can pass it to
   /// [RoleSelector].
   void _onSession(String token) {
-    // Login attempt from the (unauthenticated) login screen: auto-reload onto
-    // the new bundle if this one is stale.
+    // Sign-in on a stale bundle completes; staleness surfaces via the
+    // banner only (a reload here would discard this very login).
     // Implements: DIARY-GUI-portal-stale-client-reload/B
-    unawaited(_checkServerVersion(forceLoginScreen: true));
+    unawaited(_checkServerVersion());
     setState(() {
       _identityCredential = token;
       _roleConfirmed = false;
@@ -428,6 +436,9 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     authClient: RealFirebaseAuthClient(),
     onSession: _onSession,
     notice: notice,
+    // The bundle's own APP_VERSION — carries the +local-XXXXXX build id
+    // on local-stack builds, so the login screen names the exact build.
+    appVersion: _appVersion,
   );
 
   /// Builds the authenticated home. A multi-role user first sees the
@@ -470,6 +481,13 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     final activationCode = activationCodeFromUri(Uri.base);
     if (activationCode != null && !_activationDismissed) {
       return MaterialApp(
+        // The public pages render design-kit widgets, whose theme
+        // extensions (AppSemanticColors etc.) exist only on buildAppTheme —
+        // a bare default-theme MaterialApp grey-boxes them in release.
+        theme: buildAppTheme(
+          font: AppFontFamily.inter,
+          brightness: Brightness.light,
+        ),
         home: ActivationScreen(
           serverUrl: _serverUrl,
           code: activationCode,
@@ -484,6 +502,11 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     final resetCode = resetCodeFromUri(Uri.base);
     if (resetCode != null && !_resetDismissed) {
       return MaterialApp(
+        // Same theme requirement as the activation mount above.
+        theme: buildAppTheme(
+          font: AppFontFamily.inter,
+          brightness: Brightness.light,
+        ),
         home: PasswordResetScreen(
           serverUrl: _serverUrl,
           code: resetCode,
@@ -577,6 +600,12 @@ class _HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<_HomeShell> {
+  /// True while the app-bar Settings link's Study Settings page overlays
+  /// the active tab's body. Cleared by any tab tap (PortalDashboard fires
+  /// onDestinationChanged even for the already-active tab while an
+  /// override is showing).
+  bool _showSettings = false;
+
   /// The label of the selected nav destination. Tracked by label (not index)
   /// so the selection survives the visible set changing on a role switch — a
   /// raw index would point at a different (or hidden) section. Null until the
@@ -623,6 +652,14 @@ class _HomeShellState extends State<_HomeShell> {
         UserPrincipal(:final activeRole) => activeRole,
         _ => null,
       },
+    ),
+    'Sites' => SitesScreenBinding(
+      identityCredential: widget.identityCredential ?? '',
+      serverUrl: _serverUrl,
+    ),
+    'Participants' => ParticipantsScreenBinding(
+      identityCredential: widget.identityCredential ?? '',
+      serverUrl: _serverUrl,
     ),
     'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',
@@ -761,7 +798,33 @@ class _HomeShellState extends State<_HomeShell> {
         // app-bar deploy-counter tap, now hung off the help affordance
         // so the chrome above doesn't need its own version label.
         onHelp: _showVersionsDialog,
+        // Same sponsor-served logo the auth cards use (CUR-1483 Figma:
+        // logo sits left of the title block).
+        logo: const SponsorBrandMark(maxHeight: 40),
+        // Opens the read-only Study Settings page over the active tab.
+        // Visible only to roles holding the ACT-ADM-001 read permission
+        // (Administrator + SystemOperator per the sponsor matrix); the
+        // server enforces the same gate on GET /config/study.
+        onSettings:
+            (_auth?.rolePermissions.any(
+                  (p) => p.name == 'portal.admin.view_settings',
+                ) ??
+                false)
+            ? () => setState(() => _showSettings = true)
+            : null,
       ),
+      // Study Settings isn't a tab: it overlays the body while the strip
+      // shows no active pill; any tab tap below dismisses it.
+      bodyOverride: _showSettings
+          ? StudySettingsBinding(
+              identityCredential: widget.identityCredential ?? '',
+              serverUrl: _serverUrl,
+              activeRole: switch (widget.principal) {
+                UserPrincipal(:final activeRole) => activeRole,
+                _ => null,
+              },
+            )
+          : null,
       destinations: <DashboardDestination>[
         for (final s in visible)
           DashboardDestination(
@@ -777,7 +840,10 @@ class _HomeShellState extends State<_HomeShell> {
         // switches that change which sections are visible).
         for (final s in visible) {
           if (s.label.toLowerCase().replaceAll(' ', '-') == key) {
-            setState(() => _selectedLabel = s.label);
+            setState(() {
+              _selectedLabel = s.label;
+              _showSettings = false;
+            });
             return;
           }
         }
