@@ -52,6 +52,12 @@ class AppButton extends StatelessWidget {
   final IconData? leadingIcon;
   final IconData? trailingIcon;
 
+  /// Optional custom leading widget (e.g. a Figma-exported PNG via
+  /// [Image.asset]). Takes precedence over [leadingIcon] when both are set
+  /// — callers that need a sponsor-supplied glyph instead of a Material
+  /// icon pass this. Sized to the variant's icon dimension automatically.
+  final Widget? leadingWidget;
+
   /// Tap callback. When null AND [loading] is false, the button is disabled.
   final VoidCallback? onPressed;
 
@@ -86,6 +92,7 @@ class AppButton extends StatelessWidget {
     this.size = AppButtonSize.medium,
     this.label,
     this.leadingIcon,
+    this.leadingWidget,
     this.trailingIcon,
     this.onPressed,
     this.loading = false,
@@ -243,14 +250,22 @@ class AppButton extends StatelessWidget {
         );
 
       case AppButtonVariant.tertiary:
+        // Bind to AppButtonColors.primary.background so tertiary text matches
+        // the primary button's fill exactly. Reading from cs.primary instead
+        // drifts whenever a host app overrides the ColorScheme seed without
+        // touching AppButtonColors (e.g. clinical_diary's teal seed paints
+        // tertiary in a lighter green-teal than the dark Carina primary).
+        final buttonColors = Theme.of(context).extension<AppButtonColors>()!;
+        final tertiaryColor = buttonColors.primary.background;
         return TextButton.styleFrom(
-          foregroundColor: cs.primary,
+          foregroundColor: tertiaryColor,
           padding: padding,
           shape: shape,
           minimumSize: minimumSize,
           // Inter Regular 14 / line-height 20 / letter-spacing -0.15.
-          textStyle: const TextStyle(
+          textStyle: TextStyle(
             fontWeight: FontWeight.w400,
+            color: tertiaryColor,
             fontSize: 14,
             height: 20 / 14,
             letterSpacing: -0.15,
@@ -316,13 +331,17 @@ class AppButton extends StatelessWidget {
       return Icon(leadingIcon, size: _iconSize);
     }
 
-    final hasLeading = leadingIcon != null;
+    final hasLeading = leadingWidget != null || leadingIcon != null;
     final hasTrailing = trailingIcon != null;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (hasLeading) ...[
-          Icon(leadingIcon, size: _iconSize),
+          SizedBox(
+            width: _iconSize,
+            height: _iconSize,
+            child: leadingWidget ?? Icon(leadingIcon, size: _iconSize),
+          ),
           SizedBox(width: SpacingTokens.sm),
         ],
         // Flexible + ellipsis so a label longer than the allocated
@@ -358,7 +377,7 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.destructive:
         return cs.onError;
       case AppButtonVariant.tertiary:
-        return cs.primary;
+        return buttonColors!.primary.background;
       case AppButtonVariant.segment:
         final semantic = Theme.of(context).extension<AppSemanticColors>()!;
         return selected ? semantic.primaryLightSoft : cs.onSurface;

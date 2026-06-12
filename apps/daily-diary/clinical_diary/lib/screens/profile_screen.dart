@@ -5,11 +5,32 @@
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
+import 'package:clinical_diary/screens/license_screen.dart';
+import 'package:clinical_diary/widgets/back_to_home_row.dart';
+import 'package:clinical_diary/widgets/brand_header.dart';
 import 'package:clinical_diary/widgets/branding_logo.dart';
+import 'package:clinical_diary/widgets/user_menu_button.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// User profile screen with linking status, data sharing, and settings
+/// User profile screen — Figma node 441:6951 ("User Profile Screens").
+///
+/// Four states share the same shell (brand header, "< Home" breadcrumb,
+/// title, "Your Status" section, menu list, sponsor-logo disclaimer) and
+/// differ only in the status card area:
+///
+///   * Not linked     → [AppCard] with the "Join the Study" call-to-action.
+///   * Connected      → [BrandedStatusCard] (success tone, sponsor logo header).
+///   * Ended          → [BrandedStatusCard] (neutral tone).
+///   * Disconnected   → [AppBanner] (error) above the title PLUS a
+///                       [BrandedStatusCard] (error tone) with an
+///                       "Enter New Linking Code" secondary action.
+///
+/// The top-bar logo on this screen always renders the **CureHHT** mark —
+/// it never swaps to the sponsor logo on linking. The sponsor branding lives
+/// only inside the status card's white header strip on this screen, matching
+/// the Figma.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     required this.onBack,
@@ -59,53 +80,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _isEditingName = false;
-  late TextEditingController _nameController;
-  final _nameFocusNode = FocusNode();
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(text: widget.userName);
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _nameFocusNode.dispose();
-    super.dispose();
-  }
-
-  void _startEditing() {
-    setState(() {
-      _nameController.text = widget.userName;
-      _isEditingName = true;
-    });
-    // Auto-focus after rebuild
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _nameFocusNode.requestFocus();
-    });
-  }
-
-  void _cancelEditing() {
-    setState(() {
-      _nameController.text = widget.userName;
-      _isEditingName = false;
-    });
-  }
-
-  void _saveName() {
-    final trimmedName = _nameController.text.trim();
-    if (trimmedName.isNotEmpty) {
-      widget.onUpdateUserName(trimmedName);
-    } else {
-      _nameController.text = widget.userName; // Reset to original if empty
-    }
-    setState(() {
-      _isEditingName = false;
-    });
-  }
-
   void _openClinicalTrialPrivacyPolicy() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -114,32 +88,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  String _getPrivacyText() {
-    final isEnrolledInTrial = widget.isEnrolledInTrial;
-    final enrollmentStatus = widget.enrollmentStatus;
-    final enrollmentEndDateTime = widget.enrollmentEndDateTime;
+  void _openLicenses() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const LicensesPage()));
+  }
 
-    var text = 'Your health data is stored locally on your device.';
-
-    if (isEnrolledInTrial && enrollmentStatus == 'active') {
-      text +=
-          ' Clinical trial participation involves sharing anonymized data with researchers according to the study protocol.';
-    }
-
-    if (isEnrolledInTrial &&
-        enrollmentStatus == 'ended' &&
-        enrollmentEndDateTime != null) {
-      final endDateStr = DateFormat.yMMMd().format(enrollmentEndDateTime);
-      text +=
-          ' Clinical trial participation ended on $endDateStr. Previously shared data remains with researchers indefinitely for scientific analysis.';
-    }
-
-    if (!isEnrolledInTrial) {
-      text +=
-          ' No data is shared with external parties unless you choose to participate in research or clinical trials.';
-    }
-
-    return text;
+  void _showPrivacyComingSoon() {
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.privacyComingSoon),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -150,137 +112,126 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: widget.onBack,
-                    icon: const Icon(Icons.arrow_back),
-                    tooltip: l10n.back,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.profile,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+            // Top brand header — always CureHHT on the profile screen, even
+            // when the participant is linked to a sponsor (per Figma).
+            BrandHeader(
+              leading: Image.asset(
+                'assets/images/cure-hht-grey.png',
+                width: 107,
+                height: 42,
+                fit: BoxFit.contain,
+              ),
+              // Reuse the same hamburger menu the home screen uses; hide
+              // the "User Profile" row since we're already on profile.
+              trailing: UserMenuButton(
+                onJoinStudy: widget.isEnrolledInTrial
+                    ? null
+                    : widget.onStartClinicalTrialEnrollment,
+                onShowHelpCenter: _showPrivacyComingSoon,
               ),
             ),
-
-            // Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // 1. User Info Section (Name)
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.person,
-                            size: 20,
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.6,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 600),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                BackToHomeRow(onBack: widget.onBack),
+                                if (widget.isDisconnected) ...[
+                                  const SizedBox(height: 4),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                    ),
+                                    child: AppBanner(
+                                      severity: AppBannerSeverity.error,
+                                      message: l10n
+                                          .profileDisconnectionBannerMessage,
+                                    ),
+                                  ),
+                                ],
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    24,
+                                    16,
+                                    24,
+                                    8,
+                                  ),
+                                  child: Text(
+                                    l10n.userProfile,
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: theme.colorScheme.onSurface,
+                                          letterSpacing: -0.5,
+                                        ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    24,
+                                    0,
+                                    24,
+                                    12,
+                                  ),
+                                  child: AppSectionHeader(
+                                    title: l10n.yourStatus,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: _buildStatusSection(theme, l10n),
+                                ),
+                                const SizedBox(height: 24),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                  ),
+                                  child: _buildMenuList(theme, l10n),
+                                ),
+                                // Spacer pushes the disclaimer to the bottom
+                                // of the viewport when content is short, while
+                                // [IntrinsicHeight] lets content scroll past
+                                // it on small screens.
+                                const Spacer(),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    36,
+                                    24,
+                                    36,
+                                    24,
+                                  ),
+                                  child: Text(
+                                    l10n.sponsorLogoFootnote,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontSize: 12,
+                                      height: 1.5,
+                                    ),
+                                    textAlign: TextAlign.left,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _isEditingName
-                                ? Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextField(
-                                          controller: _nameController,
-                                          focusNode: _nameFocusNode,
-                                          decoration: InputDecoration(
-                                            hintText: l10n.enterYourName,
-                                            isDense: true,
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 8,
-                                                ),
-                                          ),
-                                          onSubmitted: (_) => _saveName(),
-                                          onEditingComplete: _saveName,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      TextButton(
-                                        onPressed: _cancelEditing,
-                                        child: Text(l10n.cancel),
-                                      ),
-                                    ],
-                                  )
-                                : Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          widget.userName,
-                                          style: theme.textTheme.titleMedium,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        onPressed: _startEditing,
-                                        icon: const Icon(Icons.edit, size: 20),
-                                        tooltip: l10n.editName,
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // 2. Accessibility & Preferences Button
-                      OutlinedButton.icon(
-                        onPressed: widget.onShowSettings,
-                        icon: const Icon(Icons.settings, size: 20),
-                        label: Text(l10n.accessibilityAndPreferences),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
                         ),
                       ),
-
-                      const SizedBox(height: 24),
-
-                      // 3. REQ-CAL-p00076: Participation Status Badge or Link Button
-                      // CUR-1165: Hide enroll button when not_participating — this
-                      // is not a disconnection; participant should not re-enroll.
-                      if ((!widget.isEnrolledInTrial ||
-                              widget.isDisconnected) &&
-                          !widget.isNotParticipating) ...[
-                        OutlinedButton.icon(
-                          onPressed: widget.onStartClinicalTrialEnrollment,
-                          icon: const Icon(Icons.description, size: 20),
-                          label: Text(l10n.enrollInClinicalTrial),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 48),
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-                      ],
-
-                      // 4. Privacy & Data Protection Card
-                      _buildPrivacyCard(theme),
-                      const SizedBox(height: 24),
-                      if (widget.isEnrolledInTrial ||
-                          widget.isDisconnected ||
-                          widget.isNotParticipating)
-                        _buildParticipationStatusBadge(theme, l10n),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -289,439 +240,192 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// REQ-CAL-p00076: Build the participation status badge
-  Widget _buildParticipationStatusBadge(
-    ThemeData theme,
-    AppLocalizations l10n,
-  ) {
-    // Determine status and colors
+  Widget _buildStatusSection(ThemeData theme, AppLocalizations l10n) {
     final isNotParticipating = widget.isNotParticipating;
     final isDisconnected = widget.isDisconnected;
-    // CUR-1165: not_participating is distinct from active — exclude it explicitly
     final isActive =
         widget.isEnrolledInTrial && !isDisconnected && !isNotParticipating;
 
-    Color bgColor;
-    Color borderColor;
-    Color iconColor;
-    Color subtextColor;
-    IconData statusIcon;
-    String statusMessage;
-
-    if (isDisconnected) {
-      // Disconnected state - exact brand colors
-      bgColor = const Color(0xFFFFFBEA);
-      borderColor = Colors.amber.shade300;
-      iconColor = Colors.amber.shade700;
-      subtextColor = const Color(0xFF7B3306);
-      statusIcon = Icons.warning_amber_rounded;
-      statusMessage = l10n.participationStatusDisconnectedMessage;
-    } else if (isNotParticipating) {
-      // CUR-1165: Not participating state — grey/inactive styling (GUI-p00076)
-      bgColor = const Color(0xFFF9FAFB);
-      borderColor = const Color(0xFFE7E8EC);
-      iconColor = const Color(0xFF586170);
-      subtextColor = const Color(0xFF586170);
-      statusIcon = Icons.check;
-      statusMessage = l10n.participationStatusNotParticipatingMessage;
-    } else if (isActive) {
-      // Active state - green styling
-      bgColor = Colors.green.shade50;
-      borderColor = Colors.green.shade200;
-      iconColor = Colors.green.shade700;
-      subtextColor = Colors.green.shade700;
-      statusIcon = Icons.check;
-      statusMessage = l10n.participationStatusActiveMessage;
-    } else {
-      // Fallback: enrolled but status unknown
-      bgColor = Colors.grey.shade100;
-      borderColor = Colors.grey.shade300;
-      iconColor = Colors.grey.shade600;
-      subtextColor = Colors.grey.shade600;
-      statusIcon = Icons.person_off;
-      statusMessage = l10n.participationStatusNotParticipatingMessage;
+    if (!widget.isEnrolledInTrial && !isDisconnected) {
+      return _buildJoinStudyCard(theme, l10n);
     }
 
+    // Status icons exported straight from Figma (assets/icons/figma/) so
+    // the glyph, stroke weight and colour match the spec exactly. Rendered
+    // via [Image.asset] (not [ImageIcon]) so the Figma-supplied tone tint
+    // survives — BrandedStatusCard's [iconWidget] slot bypasses tinting.
+    final BrandedStatusTone tone;
+    final String iconAsset;
+    final String title;
+    if (isDisconnected) {
+      tone = BrandedStatusTone.error;
+      iconAsset = _ProfileIcons.statusDisconnected;
+      title = l10n.participationStatusDisconnected;
+    } else if (isNotParticipating) {
+      tone = BrandedStatusTone.neutral;
+      iconAsset = _ProfileIcons.statusEnded;
+      title = l10n.studyParticipationEnded;
+    } else if (isActive) {
+      tone = BrandedStatusTone.success;
+      iconAsset = _ProfileIcons.statusConnected;
+      title = l10n.participationStatusConnected;
+    } else {
+      tone = BrandedStatusTone.neutral;
+      iconAsset = _ProfileIcons.statusEnded;
+      title = l10n.studyParticipationEnded;
+    }
+
+    return BrandedStatusCard(
+      tone: tone,
+      header: _sponsorLogoHeader(),
+      iconWidget: Image.asset(iconAsset, width: 34, height: 34),
+      title: title,
+      body: _buildStatusBody(theme, l10n),
+      action: isDisconnected
+          ? AppButton(
+              variant: AppButtonVariant.secondary,
+              label: l10n.enterNewLinkingCode,
+              fullWidth: true,
+              onPressed: widget.onStartClinicalTrialEnrollment,
+            )
+          : null,
+    );
+  }
+
+  Widget _sponsorLogoHeader() {
+    if (widget.sponsorLogoBuilder != null) {
+      return widget.sponsorLogoBuilder!(
+        width: 150,
+        height: 30,
+        fallback: const SizedBox(height: 30, width: 150),
+      );
+    }
+    return const SizedBox(height: 30, width: 150);
+  }
+
+  Widget _buildStatusBody(ThemeData theme, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            Image.asset('assets/images/users.png'),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.clinicalTrialLabel,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                  ),
-                ],
+        if (widget.enrollmentDateTime != null)
+          Text(
+            l10n.joinedDate(
+              _formatEnrollmentDateTime(widget.enrollmentDateTime!),
+            ),
+            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+          ),
+        if (widget.enrollmentEndDateTime != null &&
+            (widget.isNotParticipating || widget.enrollmentStatus == 'ended'))
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              l10n.endedDate(
+                _formatEnrollmentDateTime(widget.enrollmentEndDateTime!),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Card(
-          color: bgColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: borderColor, width: isDisconnected ? 2 : 1),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isNotParticipating) ...[
-                  // CUR-1165: Not-participating clean layout matching design.
-                  // Implements: DIARY-GUI-participation-status-badge/H — the
-                  //   sponsor logo is shown on the badge in the Not-Participating
-                  //   state, rendered from the retained content-addressed cache.
-                  if (widget.sponsorLogoBuilder != null)
-                    Center(
-                      child: widget.sponsorLogoBuilder!(
-                        width: 120,
-                        height: 60,
-                        fallback: const SizedBox(height: 60),
-                      ),
-                    )
-                  else
-                    const SizedBox(),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Container(
-                        height: 40,
-                        width: 40,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFFF3F4F6),
-                        ),
-                        child: const Icon(
-                          Icons.check,
-                          color: Color(0xFF586170),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          statusMessage,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF212C3B),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (widget.enrollmentCode != null)
-                    Text(
-                      l10n.linkingCode(
-                        _formatEnrollmentCode(widget.enrollmentCode!),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  if (widget.enrollmentDateTime != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.joinedDate(
-                        _formatEnrollmentDateTime(widget.enrollmentDateTime!),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                      ),
-                    ),
-                  ],
-                  if (widget.enrollmentEndDateTime != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.endedDate(
-                        _formatEnrollmentDateTime(
-                          widget.enrollmentEndDateTime!,
-                        ),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF586170),
-                      ),
-                    ),
-                  ],
-                ] else ...[
-                  // Active / disconnected states: existing layout.
-                  // Implements: DIARY-DEV-sponsor-branding-assets/D — the badge
-                  //   logo renders from the content-addressed cache, not a URL.
-                  if (widget.sponsorLogoBuilder != null)
-                    widget.sponsorLogoBuilder!(
-                      width: 120,
-                      height: 40,
-                      fallback: const SizedBox(
-                        height: 40,
-                        width: 120,
-                        child: Center(
-                          child: Icon(Icons.broken_image_outlined, size: 32),
-                        ),
-                      ),
-                    )
-                  else
-                    const SizedBox(),
-                  const SizedBox(height: 12),
-
-                  if (isDisconnected) ...[
-                    // Disconnected layout: icon + bold title, then code + body + button
-                    Row(
-                      children: [
-                        Container(
-                          height: 40,
-                          width: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.amber.shade100,
-                          ),
-                          child: Icon(statusIcon, color: iconColor, size: 22),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            l10n.connectionIssueDetected,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF7B3306),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (widget.enrollmentCode != null)
-                      Text(
-                        l10n.currentCode(
-                          _formatEnrollmentCode(widget.enrollmentCode!),
-                        ),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFFC05C0D),
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.connectionIssueBody,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFF7B3306),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    OutlinedButton(
-                      onPressed: widget.onStartClinicalTrialEnrollment,
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 52),
-                        backgroundColor: const Color(0xFFF6F8F5),
-                        foregroundColor: const Color(0xFF7B3306),
-                        side: BorderSide(color: Colors.grey.shade300),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        l10n.enterNewLinkingCode,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF7B3306),
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Container(
-                          height: 40,
-                          width: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: borderColor,
-                          ),
-                          child: Icon(statusIcon, color: iconColor),
-                        ),
-                        const SizedBox(width: 20),
-                        Flexible(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                statusMessage,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: subtextColor,
-                                ),
-                                textAlign: TextAlign.start,
-                              ),
-
-                              // Linking details (if linked)
-                              if (widget.isEnrolledInTrial) ...[
-                                const SizedBox(height: 5),
-                                if (widget.enrollmentCode != null)
-                                  Text(
-                                    l10n.linkingCode(
-                                      _formatEnrollmentCode(
-                                        widget.enrollmentCode!,
-                                      ),
-                                    ),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: subtextColor,
-                                      fontFamily: 'monospace',
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                if (widget.enrollmentDateTime != null) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    l10n.joinedDate(
-                                      _formatEnrollmentDateTime(
-                                        widget.enrollmentDateTime!,
-                                      ),
-                                    ),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: subtextColor,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                                // CUR-1165: Show end date when not_participating (GUI-p00076)
-                                if (widget.enrollmentEndDateTime != null) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    l10n.endedDate(
-                                      _formatEnrollmentDateTime(
-                                        widget.enrollmentEndDateTime!,
-                                      ),
-                                    ),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: subtextColor,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ],
-
-                              // REQ-p00045: Clinical Trial Privacy Policy link
-                              const SizedBox(height: 12),
-                              InkWell(
-                                onTap: _openClinicalTrialPrivacyPolicy,
-                                borderRadius: BorderRadius.circular(4),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.open_in_new,
-                                        size: 14,
-                                        color: subtextColor,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          l10n.viewClinicalTrialPrivacyPolicy,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: subtextColor,
-                                                decoration:
-                                                    TextDecoration.underline,
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 12,
-                                              ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-
-                              // Reconnect button for disconnected state
-                              if (isDisconnected) ...[
-                                const SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  onPressed:
-                                      widget.onStartClinicalTrialEnrollment,
-                                  icon: const Icon(Icons.link, size: 18),
-                                  label: Text(l10n.enterNewLinkingCode),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.orange.shade600,
-                                    foregroundColor: Colors.white,
-                                    minimumSize: const Size(
-                                      double.infinity,
-                                      44,
-                                    ),
-                                  ),
-                                ),
-                                if (widget.siteName != null) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    l10n.contactYourSiteWithName(
-                                      widget.siteName!,
-                                    ),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: subtextColor,
-                                      fontSize: 11,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ],
+              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
             ),
           ),
-        ),
+        if (widget.enrollmentCode != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              l10n.linkingCode(_formatEnrollmentCode(widget.enrollmentCode!)),
+              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildPrivacyCard(ThemeData theme) {
-    return Card(
-      color: Colors.blue.shade50,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.blue.shade200),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Privacy & Data Protection',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: Colors.blue.shade900,
-                fontWeight: FontWeight.w600,
-              ),
+  Widget _buildJoinStudyCard(ThemeData theme, AppLocalizations l10n) {
+    return AppCard(
+      color: Colors.white,
+      noBorder: true,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.notLinkedToStudyTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
             ),
-            const SizedBox(height: 8),
-            Text(
-              _getPrivacyText(),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.blue.shade800,
-              ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.enterLinkingCodeToConnect,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          AppButton(
+            variant: AppButtonVariant.primary,
+            label: l10n.joinTheStudy,
+            leadingWidget: Image.asset(
+              _ProfileIcons.btnJoinStudy,
+              width: 16,
+              height: 16,
+            ),
+            fullWidth: true,
+            onPressed: widget.onStartClinicalTrialEnrollment,
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildMenuList(ThemeData theme, AppLocalizations l10n) {
+    // Single declarative list drives the rows — no per-row markup duplication.
+    // Per Figma every row is the same shape (icon · label · chevron),
+    // including Use Face ID / Fingerprint. Glyphs are Figma exports under
+    // assets/icons/figma/ so stroke weight and proportions match exactly.
+    final items = <_MenuItemSpec>[
+      _MenuItemSpec(
+        iconAsset: _ProfileIcons.menuExport,
+        label: l10n.exportData,
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.exportDataHint),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        },
+      ),
+      _MenuItemSpec(
+        iconAsset: _ProfileIcons.menuPolicy,
+        label: l10n.applicationPrivacyPolicy,
+        onTap: _openClinicalTrialPrivacyPolicy,
+      ),
+      _MenuItemSpec(
+        iconAsset: _ProfileIcons.menuLicenses,
+        label: l10n.licenses,
+        onTap: _openLicenses,
+      ),
+      _MenuItemSpec(
+        iconAsset: _ProfileIcons.menuSettings,
+        label: l10n.accessibilityAndPreferences,
+        onTap: widget.onShowSettings,
+      ),
+      _MenuItemSpec(
+        iconAsset: _ProfileIcons.menuFingerprint,
+        label: l10n.useFaceIdOrFingerprint,
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.privacyComingSoon),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
+      ),
+    ];
+
+    return Column(children: [for (final item in items) _MenuItem(spec: item)]);
   }
 
   String _formatEnrollmentCode(String code) {
@@ -732,8 +436,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String _formatEnrollmentDateTime(DateTime dateTime) {
-    final date = DateFormat.yMMMd().format(dateTime);
-    final time = DateFormat.jm().format(dateTime); // 12-hour format with AM/PM
+    final date = DateFormat('M/d/yyyy').format(dateTime);
+    final time = DateFormat.jm().format(dateTime);
     return '$date at $time';
+  }
+}
+
+/// Asset paths for the Figma-exported PNG glyphs used on the profile
+/// screen. Kept colocated so any reorganisation of the icon export folder
+/// only touches one file. (Both BrandedStatusCard.iconWidget and the menu
+/// list reach for these.)
+abstract class _ProfileIcons {
+  static const _base = 'assets/icons/figma';
+  static const statusConnected = '$_base/status_connected.png';
+  static const statusEnded = '$_base/status_ended.png';
+  static const statusDisconnected = '$_base/status_disconnected.png';
+  static const menuExport = '$_base/menu_export.png';
+  static const menuPolicy = '$_base/menu_policy.png';
+  static const menuLicenses = '$_base/menu_licenses.png';
+  static const menuSettings = '$_base/menu_settings.png';
+  static const menuFingerprint = '$_base/menu_fingerprint.png';
+  static const btnJoinStudy = '$_base/btn_join_study.png';
+}
+
+/// Declarative description of one row in the profile menu list. Lets
+/// [_ProfileScreenState._buildMenuList] build the rows from a single list
+/// instead of repeating the row markup five times.
+class _MenuItemSpec {
+  const _MenuItemSpec({
+    required this.iconAsset,
+    required this.label,
+    required this.onTap,
+  });
+
+  /// Path to a Figma-exported PNG under assets/icons/figma/.
+  final String iconAsset;
+  final String label;
+  final VoidCallback onTap;
+}
+
+/// Row in the profile menu list — leading Figma glyph, label, trailing
+/// chevron. Used for every row including Use Face ID / Fingerprint (no
+/// switch).
+class _MenuItem extends StatelessWidget {
+  const _MenuItem({required this.spec});
+
+  final _MenuItemSpec spec;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: spec.onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Image.asset(spec.iconAsset, width: 18, height: 18),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                spec.label,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

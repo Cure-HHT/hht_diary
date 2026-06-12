@@ -34,10 +34,27 @@ enum EventListItemTone { neutral, critical, warning }
 class EventListItem extends StatelessWidget {
   final String leading;
   final IconData? icon;
+
+  /// Bundled image asset path rendered in the icon slot. When non-null this
+  /// takes precedence over [icon] — use it for richer per-row glyphs (e.g.
+  /// the clinical diary's intensity PNGs) where an [IconData] isn't enough.
+  /// Sized [iconImageSize] square; falls back to a small drop if missing.
+  final String? iconAssetPath;
+
+  /// Display size for [iconAssetPath]. Defaults to 20 — a touch larger than
+  /// the 16-px Material glyph so coloured PNG artwork reads at the same
+  /// optical weight.
+  final double iconImageSize;
+
   final String? secondary;
   final Widget? trailing;
   final VoidCallback? onTap;
   final EventListItemTone tone;
+
+  /// Optional left-edge accent bar — a 4-px vertical stripe inside the row's
+  /// rounded corner. Use for status cues (e.g. red bar on a finalised record,
+  /// amber bar on an incomplete one) so the row reads at a glance.
+  final Color? accentColor;
 
   /// When true, leading + secondary are rendered in
   /// `colorScheme.onSurfaceVariant` — the muted treatment used in the
@@ -54,10 +71,13 @@ class EventListItem extends StatelessWidget {
     super.key,
     required this.leading,
     this.icon,
+    this.iconAssetPath,
+    this.iconImageSize = 20,
     this.secondary,
     this.trailing,
     this.onTap,
     this.tone = EventListItemTone.neutral,
+    this.accentColor,
     this.semanticId,
   }) : _muted = false;
 
@@ -67,10 +87,13 @@ class EventListItem extends StatelessWidget {
   const EventListItem.empty(String message, {super.key, this.semanticId})
     : leading = message,
       icon = null,
+      iconAssetPath = null,
+      iconImageSize = 20,
       secondary = null,
       trailing = null,
       onTap = null,
       tone = EventListItemTone.neutral,
+      accentColor = null,
       _muted = true;
 
   @override
@@ -93,25 +116,44 @@ class EventListItem extends StatelessWidget {
     );
 
     final radius = BorderRadius.circular(RadiusTokens.md);
+    final rowContent = Row(
+      children: [
+        Text(leading, style: primaryStyle),
+        // Image asset wins over the IconData when both are set — used by
+        // the clinical diary's nosebleed intensity glyphs.
+        if (iconAssetPath != null) ...[
+          SizedBox(width: SpacingTokens.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(RadiusTokens.sm - 1),
+            child: Image.asset(
+              iconAssetPath!,
+              width: iconImageSize,
+              height: iconImageSize,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ] else if (icon != null) ...[
+          SizedBox(width: SpacingTokens.sm),
+          Icon(icon, size: 16, color: iconColor),
+        ],
+        if (secondary != null) ...[
+          SizedBox(width: SpacingTokens.sm),
+          Text(secondary!, style: secondaryStyle),
+        ],
+        if (trailing != null) ...[const Spacer(), trailing!],
+      ],
+    );
+
+    // Outer rounded surface. When [accentColor] is set we lay a 4-px coloured
+    // bar inside the left edge (Stack overlay so the row content keeps its
+    // standard horizontal padding — the bar floats on top instead of pushing
+    // content in).
     final inner = Padding(
       padding: EdgeInsets.symmetric(
         horizontal: SpacingTokens.md,
         vertical: SpacingTokens.sm,
       ),
-      child: Row(
-        children: [
-          Text(leading, style: primaryStyle),
-          if (icon != null) ...[
-            SizedBox(width: SpacingTokens.sm),
-            Icon(icon, size: 16, color: iconColor),
-          ],
-          if (secondary != null) ...[
-            SizedBox(width: SpacingTokens.sm),
-            Text(secondary!, style: secondaryStyle),
-          ],
-          if (trailing != null) ...[const Spacer(), trailing!],
-        ],
-      ),
+      child: rowContent,
     );
 
     final surface = DecoratedBox(
@@ -120,7 +162,27 @@ class EventListItem extends StatelessWidget {
         borderRadius: radius,
         border: border == null ? null : Border.all(color: border),
       ),
-      child: inner,
+      child: accentColor == null
+          ? inner
+          : Stack(
+              children: [
+                inner,
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 4,
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      borderRadius: const BorderRadius.horizontal(
+                        left: Radius.circular(RadiusTokens.md),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
 
     final Widget row = onTap == null

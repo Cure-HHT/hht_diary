@@ -33,10 +33,26 @@ enum BrandedStatusTone { success, neutral, error }
 class BrandedStatusCard extends StatelessWidget {
   final BrandedStatusTone tone;
   final Widget header;
-  final IconData icon;
+
+  /// Material icon used in the leading 34×34 slot. Ignored when
+  /// [iconWidget] is provided (callers that need a sponsor-supplied PNG /
+  /// SVG glyph pass [iconWidget] instead — common on the profile screen
+  /// where the leading glyph is exported straight from Figma).
+  final IconData? icon;
+
+  /// Optional custom widget rendered in place of [icon] — usually an
+  /// `ImageIcon(AssetImage(...))` for a Figma-exported glyph. Exactly one
+  /// of [icon] / [iconWidget] must be non-null.
+  final Widget? iconWidget;
   final String title;
   final Widget? body;
   final Widget? action;
+
+  /// When false, the outer tone-coloured stroke is dropped so the tinted
+  /// body blends into the surrounding surface (Figma's profile-screen
+  /// treatment). Defaults to true to preserve the bordered look used on
+  /// the notifications screen and design-system gallery.
+  final bool bordered;
 
   /// Test-harness locator. When set, wraps the card in a
   /// `Semantics(identifier: ..., container: true, explicitChildNodes: true)`
@@ -47,12 +63,17 @@ class BrandedStatusCard extends StatelessWidget {
     super.key,
     required this.tone,
     required this.header,
-    required this.icon,
+    this.icon,
+    this.iconWidget,
     required this.title,
     this.body,
     this.action,
+    this.bordered = true,
     this.semanticId,
-  });
+  }) : assert(
+         (icon == null) != (iconWidget == null),
+         'BrandedStatusCard requires exactly one of icon or iconWidget',
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +84,7 @@ class BrandedStatusCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(RadiusTokens.md),
-        border: Border.all(color: accent),
+        border: bordered ? Border.all(color: accent) : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -89,7 +110,10 @@ class BrandedStatusCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 34, color: textColor),
+                IconTheme.merge(
+                  data: IconThemeData(size: 34, color: textColor),
+                  child: iconWidget ?? Icon(icon),
+                ),
                 SizedBox(width: SpacingTokens.md),
                 Expanded(
                   child: DefaultTextStyle.merge(
