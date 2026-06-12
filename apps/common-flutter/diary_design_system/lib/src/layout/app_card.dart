@@ -12,18 +12,15 @@ class AppCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final bool noBorder;
 
-  /// Background fill. Defaults to the plain surface; pass a tinted fill
-  /// for emphasized panels (Figma: the User Details identity card).
-  final Color? color;
-
-  /// Optional title rendered above the child with a small bottom margin.
-  final String? title;
-
-  /// Card fill colour. Defaults to [ColorScheme.surface]. Pass
+  /// Card fill colour. Defaults to [ColorScheme.surface]. Pass a tinted fill
+  /// for emphasized panels (Figma: the User Details identity card), or
   /// [Colors.transparent] to render an unfilled card whose interior matches
   /// the page background (the "Join the Study" card on the profile screen
   /// uses this).
   final Color? color;
+
+  /// Optional title rendered above the child with a small bottom margin.
+  final String? title;
 
   /// Test-harness locator. When set, wraps the card in a
   /// `Semantics(identifier: ..., container: true, explicitChildNodes: true)`
@@ -36,7 +33,6 @@ class AppCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(SpacingTokens.lg),
     this.color,
     this.title,
-    this.color,
     this.semanticId,
     this.noBorder = false,
   });

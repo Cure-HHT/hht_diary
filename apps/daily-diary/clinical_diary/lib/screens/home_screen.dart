@@ -1188,7 +1188,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_hasWedgedFifo) {
       banners.add(
         // TODO(i18n): localize.
-        AppBanner(
+        const AppBanner(
           severity: AppBannerSeverity.error,
           title: 'Some data is not syncing',
           message: 'Please update the app.',

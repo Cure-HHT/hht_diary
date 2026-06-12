@@ -30,12 +30,9 @@ class AppBanner extends StatelessWidget {
 
   /// Overrides the severity's canonical icon (Figma: the deactivate
   /// panel's block glyph, the reactivate panel's circled info glyph).
+  /// Ignored when [showIcon] is false.
   final IconData? icon;
   final Widget? trailing;
-
-  /// Override the default severity icon. When null, the severity's canonical
-  /// glyph is used. Ignored when [showIcon] is false.
-  final IconData? icon;
 
   /// When false, no leading icon is rendered — for the soft info note
   /// pattern in the Figma where the message stands alone.
@@ -55,7 +52,6 @@ class AppBanner extends StatelessWidget {
     this.icon,
     this.title,
     this.trailing,
-    this.icon,
     this.showIcon = true,
     this.semanticId,
   }) : assert(
