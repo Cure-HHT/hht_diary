@@ -62,7 +62,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       semanticId: 'role-selection-screen',
       title: 'Welcome, ${widget.userName}',
       subtitle: 'Select a role to continue',
-      banner: const AppBanner(
+      banner: AppBanner(
         severity: AppBannerSeverity.info,
         message:
             'You can switch roles at any time using the role dropdown in the '
