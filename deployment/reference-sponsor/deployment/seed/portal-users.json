@@ -1,11 +1,39 @@
 {
-  "_comment": "Reference seed-users for the no-sponsor local-stack (read by portal_server_evs via PORTAL_SEED_USERS_PATH; parsed by seed_config.dart). Applied idempotently on boot. Under the local-stack's PORTAL_AUTH_MODE=dev, userId is the dev-credential login id typed verbatim (no password). One SystemOperator is enough to drive the operator UI run-through from core alone; provision further roles through the portal.",
+  "_comment": "Reference seed-users for the no-sponsor local-stack (read by portal_server_evs via PORTAL_SEED_USERS_PATH; parsed by seed_config.dart). Applied idempotently on boot. One user per role so a core dev can exercise every role's portal UI from hht_diary alone. Under PORTAL_AUTH_MODE=dev the userId (an email) is typed verbatim with no password. Under PORTAL_AUTH_MODE=session the local-stack sets PORTAL_DEV_SEED_PASSWORD=example, so seedTestAccountActivations provisions each email in the Firebase emulator with the shared password 'example' and marks it active -- log in with e.g. admin@reference.local / example (no activation link; no email PIN while PORTAL_SEED_REQUIRE_2FA=false). Admin/SystemOperator scopes mirror the canonical bootstrap-admin assignment (site wildcard + tier:staff; tier+site wildcard for SystemOperator). The site-scoped roles (StudyCoordinator, CRA) are bound to single dev sites (site-1/site-2 from DevSeedRaveClient) to mirror the production model -- explicit per-site assignments, never wildcards.",
   "users": [
     {
-      "userId": "dev@reference.local",
+      "userId": "sysop@reference.local",
       "assignments": [
         { "role": "SystemOperator", "scope": { "class": "tier", "wildcard": true } },
         { "role": "SystemOperator", "scope": { "class": "site", "wildcard": true } }
+      ]
+    },
+    {
+      "userId": "admin@reference.local",
+      "assignments": [
+        { "role": "Administrator", "scope": { "class": "site", "wildcard": true } },
+        { "role": "Administrator", "scope": { "class": "tier", "value": "staff" } }
+      ]
+    },
+    {
+      "userId": "cra@reference.local",
+      "assignments": [
+        { "role": "CRA", "scope": { "class": "site", "value": "site-2" } }
+      ]
+    },
+    {
+      "userId": "sc@reference.local",
+      "assignments": [
+        { "role": "StudyCoordinator", "scope": { "class": "site", "value": "site-1" } }
+      ]
+    },
+    {
+      "_comment": "Multi-role user: holds Administrator + CRA so login shows the post-login role-selection step (DIARY-GUI-role-switching). Single-role users skip it.",
+      "userId": "multirole@reference.local",
+      "assignments": [
+        { "role": "Administrator", "scope": { "class": "site", "wildcard": true } },
+        { "role": "Administrator", "scope": { "class": "tier", "value": "staff" } },
+        { "role": "CRA", "scope": { "class": "site", "wildcard": true } }
       ]
     }
   ]

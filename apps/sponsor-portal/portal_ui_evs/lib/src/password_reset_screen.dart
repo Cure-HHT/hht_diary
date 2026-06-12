@@ -1,10 +1,13 @@
 import 'dart:convert';
 
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'activation_link.dart';
+import 'auth_scaffold.dart';
 import 'forgot_password_request_screen.dart';
+import 'login_logic.dart';
 
 /// Public password-reset page reached via the emailed magic link (?reset=...).
 /// Not part of the reactive authed shell.
@@ -32,7 +35,7 @@ class PasswordResetScreen extends StatefulWidget {
 class _PasswordResetScreenState extends State<PasswordResetScreen> {
   bool _loading = true;
   bool _valid = false;
-  String? _inlineError;
+  String? _formError;
   String? _done;
   bool _submitting = false;
 
@@ -41,7 +44,13 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   bool _showPw = false;
   bool _showConfirm = false;
 
-  http.Client get _http => widget.httpClient ?? http.Client();
+  /// Lazily-created client owned by this state when none is injected —
+  /// one client for the screen's lifetime, closed in [dispose]. An
+  /// injected client is the owner's to close.
+  http.Client? _ownedClient;
+
+  http.Client get _http =>
+      widget.httpClient ?? (_ownedClient ??= http.Client());
 
   @override
   void initState() {
@@ -51,6 +60,7 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
 
   @override
   void dispose() {
+    _ownedClient?.close();
     _pw.dispose();
     _confirm.dispose();
     super.dispose();
@@ -75,13 +85,20 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
   }
 
   Future<void> _submit() async {
+    if (!meetsPasswordPolicy(_pw.text)) {
+      setState(
+        () => _formError =
+            'Password must be at least $minPasswordLength characters.',
+      );
+      return;
+    }
     if (!passwordsMatch(_pw.text, _confirm.text)) {
-      setState(() => _inlineError = 'Passwords must match and be non-empty.');
+      setState(() => _formError = 'Passwords must match.');
       return;
     }
     setState(() {
       _submitting = true;
-      _inlineError = null;
+      _formError = null;
     });
     try {
       final r = await _http.post(
@@ -95,122 +112,152 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
         if (r.statusCode == 200 && body['ok'] == true) {
           _done = 'Password changed — you can now sign in.';
         } else if (r.statusCode == 400) {
-          _inlineError = (body['message'] as String?)?.isNotEmpty == true
+          _formError = (body['message'] as String?)?.isNotEmpty == true
               ? body['message'] as String
               : 'Reset failed.';
         } else {
-          _inlineError = 'Reset failed. Please try again.';
+          _formError = 'Reset failed. Please try again.';
         }
       });
     } catch (_) {
       setState(() {
         _submitting = false;
-        _inlineError = 'Reset failed. Please try again.';
+        _formError = 'Reset failed. Please try again.';
       });
+    }
+  }
+
+  void _backToLogin() {
+    final cb = widget.onBackToLogin;
+    if (cb != null) {
+      cb();
+    } else {
+      Navigator.of(context).maybePop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Reset your password')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: _loading
-                ? const CircularProgressIndicator()
-                : _done != null
-                ? _buildDone(context)
-                : !_valid
-                ? _buildInvalidLink(context)
-                : _buildResetForm(),
-          ),
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_done != null) {
+      return AuthScaffold(
+        semanticId: 'reset-done-screen',
+        title: 'Password changed',
+        subtitle: _done,
+        child: AuthLinkButton(
+          label: 'Back to Login',
+          onPressed: _backToLogin,
+          semanticId: 'back-to-login',
         ),
-      ),
-    );
-  }
-
-  Widget _buildDone(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(_done!, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 24),
-        TextButton(
-          onPressed:
-              widget.onBackToLogin ?? () => Navigator.of(context).maybePop(),
-          child: const Text('Back to Login'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInvalidLink(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text('This reset link is no longer valid.'),
-        const SizedBox(height: 24),
-        TextButton(
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => ForgotPasswordRequestScreen(
-                serverUrl: widget.serverUrl,
-                httpClient: widget.httpClient,
+      );
+    }
+    if (!_valid) {
+      return AuthScaffold(
+        semanticId: 'reset-invalid-screen',
+        title: 'Link expired',
+        subtitle: 'This reset link is no longer valid.',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppButton(
+              label: 'Request a new reset',
+              fullWidth: true,
+              onPressed: () => Navigator.of(context).pushReplacement(
+                MaterialPageRoute<void>(
+                  builder: (_) => ForgotPasswordRequestScreen(
+                    serverUrl: widget.serverUrl,
+                    httpClient: widget.httpClient,
+                  ),
+                ),
               ),
+              semanticId: 'reset-request-new',
             ),
-          ),
-          child: const Text('Request a new reset'),
+            const SizedBox(height: 8),
+            AuthLinkButton(
+              label: 'Back to Login',
+              onPressed: _backToLogin,
+              semanticId: 'back-to-login',
+            ),
+          ],
         ),
-      ],
-    );
+      );
+    }
+    return _buildResetForm();
   }
 
   Widget _buildResetForm() {
-    final ready = passwordsMatch(_pw.text, _confirm.text);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          controller: _pw,
-          obscureText: !_showPw,
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            labelText: 'New password',
-            suffixIcon: IconButton(
-              icon: Icon(_showPw ? Icons.visibility_off : Icons.visibility),
-              onPressed: () => setState(() => _showPw = !_showPw),
-            ),
+    final tooShort = _pw.text.isNotEmpty && !meetsPasswordPolicy(_pw.text);
+    final mismatch = _confirm.text.isNotEmpty && _confirm.text != _pw.text
+        ? 'Passwords do not match.'
+        : null;
+    final ready =
+        meetsPasswordPolicy(_pw.text) &&
+        passwordsMatch(_pw.text, _confirm.text);
+
+    return AuthScaffold(
+      semanticId: 'reset-screen',
+      title: 'Create new password',
+      subtitle:
+          'Your password must be at least $minPasswordLength characters long',
+      banner: _formError != null
+          ? AppBanner(
+              severity: AppBannerSeverity.error,
+              message: _formError!,
+              semanticId: 'reset-error',
+            )
+          : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppTextField(
+            controller: _pw,
+            label: 'New Password',
+            hintText: 'Enter new password',
+            obscureText: !_showPw,
+            textInputAction: TextInputAction.next,
+            errorText: tooShort
+                ? 'At least $minPasswordLength characters.'
+                : null,
+            suffixIcon: _showPw ? Icons.visibility_off : Icons.visibility,
+            onSuffixTap: () => setState(() => _showPw = !_showPw),
+            onChanged: (_) => setState(() {}),
+            semanticId: 'reset-password',
           ),
-        ),
-        TextField(
-          controller: _confirm,
-          obscureText: !_showConfirm,
-          onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            labelText: 'Confirm password',
-            suffixIcon: IconButton(
-              icon: Icon(
-                _showConfirm ? Icons.visibility_off : Icons.visibility,
-              ),
-              onPressed: () => setState(() => _showConfirm = !_showConfirm),
-            ),
+          const SizedBox(height: 16),
+          AppTextField(
+            controller: _confirm,
+            label: 'Confirm Password',
+            hintText: 'Confirm new password',
+            obscureText: !_showConfirm,
+            textInputAction: TextInputAction.done,
+            errorText: mismatch,
+            suffixIcon: _showConfirm ? Icons.visibility_off : Icons.visibility,
+            onSuffixTap: () => setState(() => _showConfirm = !_showConfirm),
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => (ready && !_submitting) ? _submit() : null,
+            semanticId: 'reset-confirm',
           ),
-        ),
-        const SizedBox(height: 16),
-        if (_inlineError != null)
-          Text(_inlineError!, style: const TextStyle(color: Colors.red)),
-        const SizedBox(height: 8),
-        FilledButton(
-          onPressed: (!ready || _submitting) ? null : _submit,
-          child: Text(_submitting ? 'Resetting…' : 'Reset password'),
-        ),
-      ],
+          const SizedBox(height: 24),
+          AppButton(
+            label: 'Reset Password',
+            fullWidth: true,
+            loading: _submitting,
+            onPressed: ready ? _submit : null,
+            semanticId: 'reset-submit',
+          ),
+          const SizedBox(height: 8),
+          AuthLinkButton(
+            label: 'Back to Login',
+            onPressed: _backToLogin,
+            semanticId: 'back-to-login',
+          ),
+        ],
+      ),
     );
   }
 }

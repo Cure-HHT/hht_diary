@@ -45,6 +45,12 @@ class AppTextField extends StatefulWidget {
   final bool autofocus;
   final int? maxLines;
   final int? minLines;
+
+  /// When set, caps input at this many characters and renders the
+  /// native "n/maxLength" counter under the field (Figma: the reason
+  /// dialogs' "0/100"). Enforcement and display stay in sync because
+  /// both come from the same underlying TextFormField support.
+  final int? maxLength;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
 
@@ -89,6 +95,7 @@ class AppTextField extends StatefulWidget {
     this.autofocus = false,
     this.maxLines = 1,
     this.minLines,
+    this.maxLength,
     this.keyboardType,
     this.textInputAction,
     this.prefixIcon,
@@ -213,6 +220,7 @@ class _AppTextFieldState extends State<AppTextField> {
       autofocus: widget.autofocus,
       maxLines: widget.maxLines,
       minLines: widget.minLines,
+      maxLength: widget.maxLength,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
       inputFormatters: widget.inputFormatters,

@@ -51,6 +51,7 @@ class PortalDashboard extends StatefulWidget {
     required this.destinations,
     this.initialKey,
     this.onDestinationChanged,
+    this.bodyOverride,
   }) : assert(
          destinations.length > 0,
          'PortalDashboard needs at least one destination',
@@ -69,7 +70,17 @@ class PortalDashboard extends StatefulWidget {
 
   /// Fired after the selected destination changes. The value passed is
   /// the new selected key (matches [DashboardDestination.key]).
+  ///
+  /// Also fired when the user taps the ALREADY-active tab while a
+  /// [bodyOverride] is showing — that tap means "leave the override and
+  /// return to this tab", so the owner must hear it to clear the override.
   final ValueChanged<String>? onDestinationChanged;
+
+  /// When non-null, rendered INSTEAD of the active destination's body and
+  /// no tab pill shows as active. Used for chrome-launched surfaces that
+  /// aren't tabs (e.g. the app bar's Settings page). Tab taps still fire
+  /// [onDestinationChanged]; the owner clears the override in response.
+  final Widget? bodyOverride;
 
   @override
   State<PortalDashboard> createState() => _PortalDashboardState();
@@ -107,7 +118,9 @@ class _PortalDashboardState extends State<PortalDashboard> {
   }
 
   void _select(String key) {
-    if (key == _activeKey) return;
+    // While an override is showing, re-tapping the active tab is a real
+    // navigation (back to that tab) — don't short-circuit it.
+    if (key == _activeKey && widget.bodyOverride == null) return;
     setState(() => _activeKey = key);
     widget.onDestinationChanged?.call(key);
   }
@@ -134,12 +147,16 @@ class _PortalDashboardState extends State<PortalDashboard> {
               alignment: Alignment.centerLeft,
               child: DashboardTabs(
                 tabs: [for (final d in widget.destinations) d._asTab],
-                activeKey: _activeKey,
+                // With an override showing, no tab is the active surface;
+                // a key that matches no tab renders every pill inactive.
+                activeKey: widget.bodyOverride == null
+                    ? _activeKey
+                    : '__override__',
                 onTap: _select,
               ),
             ),
           ),
-          Expanded(child: active.body(context)),
+          Expanded(child: widget.bodyOverride ?? active.body(context)),
         ],
       ),
     );

@@ -5,6 +5,7 @@ import 'package:portal_screens/portal_screens.dart';
 // without duplicating the sample data.
 
 void main() {
+  _visibleUserRowsTests();
   group('RoleAssignmentView', () {
     test('equal instances compare and hash equal', () {
       const a = RoleAssignmentView(
@@ -140,6 +141,44 @@ void main() {
               'index ${i - 1} (${timestamps[i - 1]}).',
         );
       }
+    });
+  });
+}
+
+PortalUserView _user(String email, List<String> roles) => PortalUserView(
+  email: email,
+  name: email,
+  status: UserStatusView.active,
+  assignments: [
+    for (final r in roles)
+      RoleAssignmentView(role: r, boundSites: const [], isWildcard: true),
+  ],
+);
+
+void _visibleUserRowsTests() {
+  group('visibleUserRows — SysOp row visibility', () {
+    final admin = _user('admin@x.test', ['Administrator']);
+    final sysOpOnly = _user('sysop@x.test', ['SystemOperator']);
+    final sysOpPlusCra = _user('dual@x.test', ['SystemOperator', 'CRA']);
+    final noRoles = _user('pending@x.test', []);
+    final all = [admin, sysOpOnly, sysOpPlusCra, noRoles];
+
+    test('operator viewer sees every row', () {
+      expect(visibleUserRows(users: all, viewerIsOperator: true), all);
+    });
+
+    test('staff viewer: SysOp-ONLY rows hidden; dual-role SysOp visible', () {
+      final visible = visibleUserRows(users: all, viewerIsOperator: false);
+      expect(visible, [admin, sysOpPlusCra, noRoles]);
+    });
+
+    test('rows with no known roles are never hidden (assignments may be '
+        'gated for this viewer)', () {
+      final visible = visibleUserRows(
+        users: [noRoles],
+        viewerIsOperator: false,
+      );
+      expect(visible, [noRoles]);
     });
   });
 }

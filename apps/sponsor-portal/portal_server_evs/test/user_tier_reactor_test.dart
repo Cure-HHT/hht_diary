@@ -300,4 +300,54 @@ void main() {
         reason:
             'revoking the last SystemOperator assignment must revert tier to staff');
   });
+
+  // Verifies: DIARY-DEV-operator-tier-authz/A — boot-seed reconciliation:
+  // events appended BEFORE any reactor was running still produce tier rows.
+  test(
+      'reconcileAll backfills tier rows for users whose events predate '
+      'the reactor (boot seeds)', () async {
+    // Mirror the real bootstrap order: seeds append role_assigned (and a
+    // user_created for a role-less account) with NO reactor running...
+    await _appendRoleAssigned(store,
+        userId: 'seed-admin', role: 'Administrator');
+    await _appendRoleAssigned(store,
+        userId: 'seed-sysop', role: 'SystemOperator');
+    await store.append(
+      entryType: 'user_created',
+      aggregateType: 'portal_user',
+      aggregateId: 'seed-invitee@x.io',
+      eventType: 'user_created',
+      data: <String, Object?>{
+        'email': 'seed-invitee@x.io',
+        'name': 'Invitee',
+        'status': 'pending',
+      },
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+
+    // ...then the reactor starts (live-only) and reconciles.
+    final reactor = UserTierReactor(eventStore: store, backend: backend)
+      ..start();
+    addTearDown(reactor.stop);
+    await reactor.reconcileAll();
+
+    final rows = await backend.findViewRows('user_tier_index');
+    expect(_tierFor(rows, 'seed-admin'), equals('staff'),
+        reason: 'seeded Administrator must get a staff tier row');
+    expect(_tierFor(rows, 'seed-sysop'), equals('operator'),
+        reason: 'seeded SystemOperator must get an operator tier row');
+    expect(_tierFor(rows, 'seed-invitee@x.io'), equals('staff'),
+        reason: 'role-less user_created account must default to staff');
+
+    // Second sweep is a no-op: no duplicate user_tier_changed events.
+    final before = (await backend.readEventsReverse().toList())
+        .where((e) => e.eventType == 'user_tier_changed')
+        .length;
+    await reactor.reconcileAll();
+    final after = (await backend.readEventsReverse().toList())
+        .where((e) => e.eventType == 'user_tier_changed')
+        .length;
+    expect(after, equals(before),
+        reason: 'reconcileAll must be idempotent (append only on change)');
+  });
 }

@@ -19,7 +19,18 @@ enum AppBannerSeverity { success, warning, error, info }
 class AppBanner extends StatelessWidget {
   final AppBannerSeverity severity;
   final String? title;
-  final String message;
+
+  /// Plain-text body. Optional when [body] is provided.
+  final String? message;
+
+  /// Rich body slot rendered where [message] would go — for content a
+  /// single Text can't express (Figma: the "Effects of this action"
+  /// panels' bullet lists). Takes precedence over [message].
+  final Widget? body;
+
+  /// Overrides the severity's canonical icon (Figma: the deactivate
+  /// panel's block glyph, the reactivate panel's circled info glyph).
+  final IconData? icon;
   final Widget? trailing;
 
   /// Override the default severity icon. When null, the severity's canonical
@@ -39,13 +50,18 @@ class AppBanner extends StatelessWidget {
   const AppBanner({
     super.key,
     required this.severity,
-    required this.message,
+    this.message,
+    this.body,
+    this.icon,
     this.title,
     this.trailing,
     this.icon,
     this.showIcon = true,
     this.semanticId,
-  });
+  }) : assert(
+         message != null || body != null,
+         'AppBanner requires message and/or body',
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +99,10 @@ class AppBanner extends StatelessWidget {
                   ),
                   SizedBox(height: SpacingTokens.xxs),
                 ],
-                Text(message, style: theme.textTheme.bodySmall),
+                if (body != null)
+                  body!
+                else
+                  Text(message!, style: theme.textTheme.bodySmall),
               ],
             ),
           ),
@@ -99,7 +118,7 @@ class AppBanner extends StatelessWidget {
 
     return Semantics(
       identifier: semanticId,
-      value: message,
+      value: message ?? title ?? '',
       liveRegion: true,
       container: true,
       explicitChildNodes: true,

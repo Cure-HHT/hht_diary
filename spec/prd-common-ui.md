@@ -76,12 +76,12 @@ The *Sponsor Portal* is a long-lived single-page client: once loaded, a tab keep
 
 A. When the deployed server reports a portal UI version different from the running bundle's compiled version, the *Sponsor Portal* SHALL surface a non-blocking banner offering the *User* a control to reload onto the new version.
 
-B. When the *User* is unauthenticated (on the login screen), the *Sponsor Portal* SHALL reload onto the new version automatically rather than prompting.
+B. When the bundle is found stale at initial page load, before the *User* has had any opportunity to begin signing in, the *Sponsor Portal* SHALL reload onto the new version automatically rather than prompting. At any later moment while unauthenticated — including a transport reconnect or a sign-in attempt — the *Sponsor Portal* SHALL surface the banner and SHALL NOT reload automatically.
 
 C. The *Sponsor Portal* SHALL NOT automatically reload an authenticated *User*; the reload SHALL be initiated by the *User* via the banner control.
 
 ### Rationale
 
-Server and client ship from the same build, which stamps the identical version into both the bundle and the server's health report, so an inequality is a definitive "this tab is on an old build" signal — no separate update channel is needed. Prompting rather than silently reloading protects an authenticated *User* mid-form from losing work; on the login screen there is nothing to lose, so an automatic reload is the least-friction way to guarantee sign-in happens on the current build. The check is event-driven (on load, on transport reconnect after a deploy drains the old server, and on a login attempt) rather than polled, because those are exactly the moments the running build can first diverge from the deployed one.
+Server and client ship from the same build, which stamps the identical version into both the bundle and the server's health report, so an inequality is a definitive "this tab is on an old build" signal — no separate update channel is needed. Prompting rather than silently reloading protects an authenticated *User* mid-form from losing work. At initial load nothing has been typed, so an automatic reload is free and guarantees sign-in starts on the current build; at any later unauthenticated moment the *User* may have credentials in the form or an authentication in flight, and a deploy landing under an open login tab must not discard them — an automatic reload there makes the deploy read as a failed login. A stale bundle authenticates correctly, and the banner follows the *User* into the *Session* for a reload at a convenient moment. The check is event-driven (on load, on transport reconnect after a deploy drains the old server, and on a login attempt) rather than polled, because those are exactly the moments the running build can first diverge from the deployed one.
 
-*End* *Portal Stale-Client Reload Prompt* | **Hash**: 375e8009
+*End* *Portal Stale-Client Reload Prompt* | **Hash**: b099c1fa

@@ -87,6 +87,14 @@ class _Pill extends StatelessWidget {
     final bg = isActive ? theme.colorScheme.surface : Colors.transparent;
 
     return Semantics(
+      // Stable Playwright handle derived from the tab's machine key
+      // (`tab-users`, `tab-audit`, ...). container + explicitChildNodes
+      // keep the identifier on its own node — without them the web
+      // flt-semantics flattener merges it into the button node and the
+      // selector disappears (see event_sourcing prd-reaction §automation).
+      identifier: 'tab-${tab.key}',
+      container: true,
+      explicitChildNodes: true,
       button: true,
       selected: isActive,
       label: tab.label,

@@ -13,6 +13,11 @@ class AppCheckbox extends StatelessWidget {
   final bool? value;
   final ValueChanged<bool?>? onChanged;
   final String? label;
+
+  /// Optional muted second line under [label] (Figma: the site
+  /// checklists' "001 - Memorial Hospital" / "New York, NY" entries).
+  /// Ignored when [label] is null.
+  final String? subtitle;
   final bool enabled;
   final bool tristate;
 
@@ -31,6 +36,7 @@ class AppCheckbox extends StatelessWidget {
     required this.value,
     this.onChanged,
     this.label,
+    this.subtitle,
     this.enabled = true,
     this.tristate = false,
     this.hasError = false,
@@ -63,20 +69,40 @@ class AppCheckbox extends StatelessWidget {
                   )
                 : null,
             child: Padding(
-              padding: EdgeInsets.symmetric(vertical: SpacingTokens.xs),
+              // xxs: the Figma role/site checklists run tighter than the
+              // default control rhythm.
+              padding: EdgeInsets.symmetric(vertical: SpacingTokens.xxs),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   box,
                   SizedBox(width: SpacingTokens.sm),
-                  Text(
-                    label!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: hasError
-                          ? errorColor
-                          : enabled
-                          ? theme.colorScheme.onSurface
-                          : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                  // Flexible so long labels (e.g. "002 - Stanford Medical
+                  // Center" in a boxed site checklist) wrap instead of
+                  // overflowing the row.
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label!,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: enabled
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.4,
+                                  ),
+                          ),
+                        ),
+                        if (subtitle != null)
+                          Text(
+                            subtitle!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],

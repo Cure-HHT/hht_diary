@@ -19,6 +19,14 @@ void main() {
     expect(isValidOtp('12345a'), isFalse);
   });
 
+  // Verifies: DIARY-GUI-password-forgot-workflow/P
+  test('meetsPasswordPolicy enforces the minimum length', () {
+    expect(minPasswordLength, 8);
+    expect(meetsPasswordPolicy('1234567'), isFalse);
+    expect(meetsPasswordPolicy('12345678'), isTrue);
+    expect(meetsPasswordPolicy(''), isFalse);
+  });
+
   // Verifies: DIARY-DEV-portal-second-factor-toggle/C
   test('loginNextStep: a session token routes straight to the session', () {
     expect(
@@ -40,5 +48,29 @@ void main() {
       loginNextStep({'sessionToken': '', 'maskedEmail': 'b***@y'}),
       const LoginNext.otp('b***@y'),
     );
+  });
+
+  test('signInErrorForAuthCode: transport and rate-limit codes do not '
+      'blame the credentials', () {
+    expect(
+      signInErrorForAuthCode('network-request-failed'),
+      unreachableSignInError,
+    );
+    expect(
+      signInErrorForAuthCode('too-many-requests'),
+      tooManyAttemptsSignInError,
+    );
+    expect(signInErrorForAuthCode('wrong-password'), credentialSignInError);
+    expect(signInErrorForAuthCode('invalid-credential'), credentialSignInError);
+    // Unknown codes stay generic — nothing internal leaks to the form.
+    expect(signInErrorForAuthCode('weird-new-code'), credentialSignInError);
+  });
+
+  test('signInErrorForLoginStatus: 5xx is a service fault, 4xx a '
+      'rejected login', () {
+    expect(signInErrorForLoginStatus(401), credentialSignInError);
+    expect(signInErrorForLoginStatus(403), credentialSignInError);
+    expect(signInErrorForLoginStatus(500), serverSignInError);
+    expect(signInErrorForLoginStatus(503), serverSignInError);
   });
 }

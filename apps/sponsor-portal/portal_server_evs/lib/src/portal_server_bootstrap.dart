@@ -44,6 +44,7 @@ import 'sponsor_branding_asset_handler.dart';
 import 'sponsor_branding_seed.dart';
 import 'sponsor_config_dir.dart';
 import 'sponsor_config_seed.dart';
+import 'study_config.dart';
 import 'user_tier_reactor.dart';
 import 'view_permission_namer.dart';
 import 'ws_keepalive_interval.dart';
@@ -252,7 +253,9 @@ Future<PortalServerBoot> bootstrapPortalServer({
   await seedSponsorConfig(
     eventStore: eventStore,
     backend: backend,
-    env: Platform.environment,
+    // The resolved env (honours the bootstrap's `environment` test seam),
+    // not Platform.environment directly — tests can seed sponsor config.
+    env: env,
   );
 
   // Implements: DIARY-DEV-sponsor-branding-source/C+D — idempotent sponsor
@@ -272,12 +275,26 @@ Future<PortalServerBoot> bootstrapPortalServer({
     password: Platform.environment['PORTAL_DEV_SEED_PASSWORD'],
   );
 
-  // 5. Activation reactor + routes: ephemeral code store + email sender +
-  //    reactor that watches for user_activation_code_issued events. Routes are
-  //    PUBLIC (mounted outside authMiddleware on topRouter).
+  // 5. Activation reactor + routes: durable code store (keyed-hash lifecycle
+  //    in the event store, so pending links survive restarts/deploys) + email
+  //    sender + reactor that watches for user_activation_code_issued events.
+  //    Routes are PUBLIC (mounted outside authMiddleware on topRouter).
   // Implements: DIARY-DEV-portal-activation-email-delivery/A+B
-  // Implements: DIARY-DEV-portal-activation-code-lifecycle/A
-  final activationStore = ActivationCodeStore();
+  // Implements: DIARY-DEV-portal-activation-code-lifecycle/E+F
+  final activationPepper = env['PORTAL_ACTIVATION_CODE_PEPPER'] ?? '';
+  if (activationPepper.isEmpty) {
+    stderr.writeln(
+      '[bootstrap] PORTAL_ACTIVATION_CODE_PEPPER is not set; using the '
+      'dev-only default. Deployed environments must deliver a real pepper '
+      'via Doppler.',
+    );
+  }
+  final activationStore = ActivationCodeStore(
+    eventStore: eventStore,
+    pepper: activationPepper.isEmpty
+        ? 'dev-activation-pepper-not-for-production'
+        : activationPepper,
+  );
   final activationSender = ActivationEmailSender(
     transport: EmailTransport.fromConfig(EmailConfig.fromEnvironment()),
   );
@@ -367,7 +384,18 @@ Future<PortalServerBoot> bootstrapPortalServer({
     'authDomain': Platform.environment['PORTAL_IDENTITY_AUTH_DOMAIN'] ?? '',
     'messagingSenderId':
         Platform.environment['PORTAL_IDENTITY_SENDER_ID'] ?? '',
-    'emulatorHost': Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ?? '',
+    // Emulator host ADVERTISED TO THE BROWSER (the SPA calls
+    // FirebaseAuth.useAuthEmulator with this). It must be reachable from the
+    // browser's origin, which is NOT the same as the server's reach: in the
+    // local-stack the server talks to the emulator over the docker network
+    // (FIREBASE_AUTH_EMULATOR_HOST=firebase-emulator:9099), but the host
+    // browser can only resolve the published port (localhost:9099). So prefer
+    // PORTAL_IDENTITY_EMULATOR_HOST when set (the browser-facing value),
+    // falling back to FIREBASE_AUTH_EMULATOR_HOST for deployments where the two
+    // coincide.
+    'emulatorHost': Platform.environment['PORTAL_IDENTITY_EMULATOR_HOST'] ??
+        Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'] ??
+        '',
     // The client resolves its login-UI mode (Firebase Login/OTP vs dev
     // ConnectScreen) at runtime from this field, so a single web image works
     // against both dev and session-auth deployments.
@@ -427,9 +455,13 @@ Future<PortalServerBoot> bootstrapPortalServer({
 
   // 7f. User tier reactor — keeps user_tier_index correct by emitting
   //     user_tier_changed whenever a user's SystemOperator assignment changes.
+  //     The boot-time reconcile sweeps users whose events landed before the
+  //     reactor was listening (the step-4 seeds), so seeded accounts get
+  //     their tier row instead of failing closed on every user-scoped action.
   // Implements: DIARY-DEV-operator-tier-authz/A
   final userTierReactor =
       UserTierReactor(eventStore: eventStore, backend: backend)..start();
+  await userTierReactor.reconcileAll();
 
   // 7f-bis. Questionnaire submission reactor — on a diary `<id>_survey`
   //     `finalized` event (whose aggregateId == the questionnaire instance id),
@@ -573,6 +605,16 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // event log reverse-chronological and maps each event to an audit row via the
   // shared auditRowJson mapper. The authenticated Principal is attached by
   // authMiddleware and read via principalFromContext.
+  //
+  // Pages server-side via the additive `offset` param (plus the existing
+  // `limit`) so the oldest entry stays reachable however large the log grows,
+  // and reports the true log size as `total` so the client can render honest
+  // pagination. `q` filters the WHOLE log server-side (initiator label /
+  // entry type) — filtering only a fetched page would silently hide matches.
+  //
+  // NOTE: pagination/filtering is a spec gap against DIARY-DEV-audit-log-read
+  // (its assertions cover the read and the permission gate, not paging);
+  // anchored to that REQ per team convention rather than minting a new one.
   // Implements: DIARY-DEV-audit-log-read/A+B
   Future<Response> auditHandler(Request request) async {
     final principal = principalFromContext(request);
@@ -586,13 +628,91 @@ Future<PortalServerBoot> bootstrapPortalServer({
     if (!auditAccessAllowed(perms)) {
       return Response.forbidden('requires $auditViewPermission');
     }
-    final requested =
-        int.tryParse(request.url.queryParameters['limit'] ?? '') ?? 200;
+    final params = request.url.queryParameters;
+    final requested = int.tryParse(params['limit'] ?? '') ?? 200;
     final limit = requested.clamp(1, 1000);
-    final events = await backend.readEventsReverse().take(limit).toList();
-    final rows = events.map(auditRowJson).toList();
+    final offset =
+        (int.tryParse(params['offset'] ?? '') ?? 0).clamp(0, 1 << 52);
+    final query = (params['q'] ?? '').trim();
+    // Optional site filter (the Sites page drill-in): site events match by
+    // aggregate, participant events join through participant_site_index.
+    final siteFilter = (params['site'] ?? '').trim();
+
+    final rows = <Map<String, Object?>>[];
+    final int total;
+    if (query.isEmpty && siteFilter.isEmpty) {
+      // The sequence counter is the store's contiguous local append counter,
+      // so it doubles as the log size without scanning the log.
+      total = await backend.readSequenceCounter();
+      await for (final e
+          in backend.readEventsReverse().skip(offset).take(limit)) {
+        rows.add(auditRowJson(e));
+      }
+    } else {
+      // A filtered total requires a full reverse scan (the stream keyset-
+      // pages its DB reads underneath, so memory stays bounded). Acceptable
+      // at current log sizes; revisit if logs reach millions of events.
+      // The participant->site lookup is resolved ONCE per request, not per
+      // event.
+      final participantSite = siteFilter.isEmpty
+          ? const <String, String>{}
+          : <String, String>{
+              for (final row
+                  in await backend.findViewRows('participant_site_index'))
+                if (row['participant_id'] is String && row['site_id'] is String)
+                  row['participant_id']! as String: row['site_id']! as String,
+            };
+      bool matches(StoredEvent e) =>
+          (query.isEmpty || auditEventMatchesQuery(e, query)) &&
+          (siteFilter.isEmpty ||
+              auditEventMatchesSite(e, siteFilter, participantSite));
+      var matched = 0;
+      await for (final e in backend.readEventsReverse()) {
+        if (!matches(e)) continue;
+        if (matched >= offset && rows.length < limit) rows.add(auditRowJson(e));
+        matched++;
+      }
+      total = matched;
+    }
     return Response.ok(
-      jsonEncode(<String, Object?>{'rows': rows, 'count': rows.length}),
+      jsonEncode(<String, Object?>{
+        'rows': rows,
+        'count': rows.length,
+        'total': total,
+        'offset': offset,
+      }),
+      headers: const {'Content-Type': 'application/json'},
+    );
+  }
+
+  // Read-only study-configuration aggregate for the portal's Study
+  // Settings page. Gated on the ACT-ADM-001 read permission
+  // (portal.admin.view_settings — granted per the sponsor's permissions
+  // matrix, e.g. Administrator + SystemOperator). Unimplemented
+  // parameters are absent from the payload by design — see
+  // study_config.dart.
+  // Implements: DIARY-PRD-action-inventory/A
+  Future<Response> studyConfigHandler(Request request) async {
+    const viewSettingsPermission = 'portal.admin.view_settings';
+    final principal = principalFromContext(request);
+    final Iterable<String> perms;
+    if (principal is UserPrincipal) {
+      final eff = await policy.effectivePermissionsFor(principal);
+      perms = eff.rolePermissions.map((p) => p.name);
+    } else {
+      perms = const <String>[];
+    }
+    if (!perms.contains(viewSettingsPermission)) {
+      return Response.forbidden('requires $viewSettingsPermission');
+    }
+    final body = await studyConfigJson(
+      backend: backend,
+      env: env,
+      otpStore: otpStore,
+      passwordResetStore: passwordResetStore,
+    );
+    return Response.ok(
+      jsonEncode(body),
       headers: const {'Content-Type': 'application/json'},
     );
   }
@@ -621,6 +741,10 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // it every gate fails closed (no widgets render, for any role).
     ..get('/permissions/snapshot', handlers.permissions)
     ..get('/audit', auditHandler)
+    // Study Settings read — inside the authed pipeline (unlike the public
+    // /config/identity + /config/session login surfaces); the /config/
+    // prefix is already in the nginx proxy allow-list.
+    ..get('/config/study', studyConfigHandler)
     // Under /admin/ so the reverse proxy's `^~ /admin/` block forwards it to the
     // dart backend (a bare /debug/ prefix is not in the nginx proxy allow-list,
     // so it would be served the SPA instead of reaching this handler).
@@ -887,6 +1011,13 @@ const RoleAssignmentSeed _localConvenienceSeed = RoleAssignmentSeed(
       userId: 'sc-1',
       role: 'StudyCoordinator',
       scope: BoundScope(class_: 'site', value: 'site-1'),
+    ),
+    // CRA at site-2 (mirrors cra@reference.local in the reference sponsor
+    // seed) so CRA-role flows and grants are exercisable in local/test runs.
+    RoleAssignmentSeedEntry(
+      userId: 'cra-1',
+      role: 'CRA',
+      scope: BoundScope(class_: 'site', value: 'site-2'),
     ),
     RoleAssignmentSeedEntry(
       userId: 'multi-1',

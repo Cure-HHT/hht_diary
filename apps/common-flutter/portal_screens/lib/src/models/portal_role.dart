@@ -29,8 +29,8 @@ enum PortalRole {
     tone: AppBadgeTone.danger,
   ),
 
-  /// Per-site clinical workflow operator. Sponsors often surface this as
-  /// "Site Study Coordinator" or "Investigator".
+  /// Per-site clinical workflow operator. Sponsors may still override
+  /// the label per-tenant (e.g. "Investigator").
   studyCoordinator(
     systemName: 'StudyCoordinator',
     canonicalDisplayName: 'Study Coordinator',

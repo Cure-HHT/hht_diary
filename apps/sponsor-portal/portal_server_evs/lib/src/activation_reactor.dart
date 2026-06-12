@@ -6,9 +6,14 @@ import 'package:portal_identity/portal_identity.dart';
 
 import 'activation_code_store.dart';
 
-/// Subscribes to `user_activation_code_issued`, mints a code into the
-/// ephemeral [ActivationCodeStore], and emails the verification link.
+/// Subscribes to `user_activation_code_issued`, mints a code through the
+/// durable [ActivationCodeStore], and emails the verification link.
 /// The portal_user aggregateId IS the recipient email.
+///
+/// The subscription is push-only (new appends): historical issuance events are
+/// deliberately NOT replayed at boot, so a restart never auto-resends emails —
+/// pending codes survive via the store's event-backed view, and Resend Invite
+/// is the manual recovery path.
 // Implements: DIARY-DEV-portal-activation-email-delivery/A
 // Implements: DIARY-DEV-portal-activation-code-lifecycle/A
 class ActivationReactor {
@@ -56,7 +61,7 @@ class ActivationReactor {
   Future<void> handleIssued(StoredEvent event) async {
     final email = event.aggregateId;
     final expiresAt = DateTime.parse(event.data['expires_at']! as String);
-    final code = store.issue(email: email, expiresAt: expiresAt);
+    final code = await store.issue(email: email, expiresAt: expiresAt);
     // [portalUrl] is the portal UI origin (NOT the server). The link opens the
     // Flutter activation page, which reads ?code= from its own URL and then
     // calls the server itself. Root path so it resolves on any UI host (plain

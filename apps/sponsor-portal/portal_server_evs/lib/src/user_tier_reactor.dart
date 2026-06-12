@@ -74,6 +74,32 @@ class UserTierReactor {
     });
   }
 
+  /// One-shot sweep ensuring every known user has a correct
+  /// [user_tier_index] row. Covers events appended while no reactor was
+  /// running — boot seeds (role assignments + test-account user_created
+  /// land BEFORE the reactors start) and stores from deploys that
+  /// predate this reactor. Without it, seeded accounts have no tier row
+  /// and the user-contained-in-tier containment fails closed, denying
+  /// every admin user-management action against them.
+  ///
+  /// Idempotent ([_ensureTierRow] appends only on difference); called
+  /// once per boot right after [start].
+  // Implements: DIARY-DEV-operator-tier-authz/A
+  Future<void> reconcileAll() async {
+    final userIds = <String>{};
+    for (final row in await backend.findViewRows('user_role_scopes')) {
+      final id = row['user_id'] as String?;
+      if (id != null) userIds.add(id);
+    }
+    for (final row in await backend.findViewRows('users_index')) {
+      final id = row['email'] as String?;
+      if (id != null) userIds.add(id);
+    }
+    for (final id in userIds) {
+      await _ensureTierRow(id);
+    }
+  }
+
   // Implements: DIARY-DEV-operator-tier-authz/A
   Future<void> _handleUserCreated(StoredEvent event) async {
     // The aggregateId on portal_user events IS the user id.

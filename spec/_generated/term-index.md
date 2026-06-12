@@ -1848,6 +1848,7 @@
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-pluggable-push-transport:section:0
+- DIARY-DEV-portal-activation-code-lifecycle:section:1
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-portal-reaction-server:section:1
@@ -2811,6 +2812,7 @@
 - DIARY-DEV-portal-legacy-sw-eviction:section:1
 - DIARY-DEV-sponsor-branding-source:section:1
 - DIARY-PRD-administrator-settings:section:5
+- DIARY-GUI-portal-stale-client-reload:section:1
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
 - DIARY-PRD-session-management:section:0
@@ -4087,7 +4089,6 @@
 
 **DIARY:**
 
-- DIARY-DEV-portal-activation-code-lifecycle-A
 - DIARY-DEV-portal-activation-email-delivery-A
 - DIARY-PRD-password-forgot-B
 - DIARY-PRD-password-forgot-D

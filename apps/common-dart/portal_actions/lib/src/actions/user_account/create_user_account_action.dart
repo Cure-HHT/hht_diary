@@ -5,6 +5,7 @@ import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../flow_token_minter.dart';
 import '../../portal_permissions.dart';
+import '../../user_email_format.dart';
 
 class CreateUserAccountInput {
   CreateUserAccountInput({
@@ -88,6 +89,13 @@ class CreateUserAccountAction
   void validate(CreateUserAccountInput input) {
     if (input.email.trim().isEmpty) {
       throw ArgumentError.value(input.email, 'email', 'must be non-empty');
+    }
+    if (!isValidAccountEmail(input.email)) {
+      throw ArgumentError.value(
+        input.email,
+        'email',
+        'must be a valid email address',
+      );
     }
     if (input.name.trim().isEmpty) {
       throw ArgumentError.value(input.name, 'name', 'must be non-empty');
