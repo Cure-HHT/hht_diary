@@ -116,32 +116,59 @@ class EventListItem extends StatelessWidget {
     );
 
     final radius = BorderRadius.circular(RadiusTokens.md);
-    final rowContent = Row(
-      children: [
-        Text(leading, style: primaryStyle),
-        // Image asset wins over the IconData when both are set — used by
-        // the clinical diary's nosebleed intensity glyphs.
-        if (iconAssetPath != null) ...[
-          SizedBox(width: SpacingTokens.sm),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(RadiusTokens.sm - 1),
-            child: Image.asset(
-              iconAssetPath!,
-              width: iconImageSize,
-              height: iconImageSize,
-              fit: BoxFit.cover,
+    // Leading + secondary are loose-Flexible so large text scales wrap
+    // instead of right-overflowing — the row height is a MINIMUM that grows
+    // to fit. Loose fit preserves intrinsic widths when space allows, so the
+    // 1.0-scale layout is unchanged. The Expanded group keeps [trailing]
+    // pinned to the right edge, and [trailing] is capped to a fraction of
+    // the row so its own content can wrap under large scales too.
+    final rowContent = LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(child: Text(leading, style: primaryStyle)),
+                  // Image asset wins over the IconData when both are set —
+                  // used by the clinical diary's nosebleed intensity glyphs.
+                  if (iconAssetPath != null) ...[
+                    SizedBox(width: SpacingTokens.sm),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(RadiusTokens.sm - 1),
+                      child: Image.asset(
+                        iconAssetPath!,
+                        width: iconImageSize,
+                        height: iconImageSize,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ] else if (icon != null) ...[
+                    SizedBox(width: SpacingTokens.sm),
+                    Icon(icon, size: 16, color: iconColor),
+                  ],
+                  if (secondary != null) ...[
+                    SizedBox(width: SpacingTokens.sm),
+                    Flexible(child: Text(secondary!, style: secondaryStyle)),
+                  ],
+                ],
+              ),
             ),
-          ),
-        ] else if (icon != null) ...[
-          SizedBox(width: SpacingTokens.sm),
-          Icon(icon, size: 16, color: iconColor),
-        ],
-        if (secondary != null) ...[
-          SizedBox(width: SpacingTokens.sm),
-          Text(secondary!, style: secondaryStyle),
-        ],
-        if (trailing != null) ...[const Spacer(), trailing!],
-      ],
+            if (trailing != null) ...[
+              SizedBox(width: SpacingTokens.sm),
+              // Bounded (instead of a plain Row slot's unbounded width) so
+              // Flexible/Text descendants inside the trailing widget can
+              // shrink and wrap rather than force a right overflow.
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: constraints.maxWidth * 0.6,
+                ),
+                child: trailing!,
+              ),
+            ],
+          ],
+        );
+      },
     );
 
     // Outer rounded surface. When [accentColor] is set we lay a 4-px coloured

@@ -181,9 +181,13 @@ class EventListItem extends StatelessWidget {
     }
     if (isIncomplete) {
       children.add(
-        _IncompletePill(
-          label: l10n.incomplete,
-          accent: semantic?.warning ?? theme.colorScheme.error,
+        // Flexible so the pill can shrink (its label wraps) when large text
+        // scales exhaust the bounded trailing slot the DS row provides.
+        Flexible(
+          child: _IncompletePill(
+            label: l10n.incomplete,
+            accent: semantic?.warning ?? theme.colorScheme.error,
+          ),
         ),
       );
     }
@@ -345,11 +349,15 @@ class _IncompletePill extends StatelessWidget {
         children: [
           Icon(Icons.info_outline, size: 12, color: accent),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: accent,
-              fontWeight: FontWeight.w500,
+          // Flexible so the label wraps instead of overflowing when the
+          // trailing slot is width-constrained at large text scales.
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: accent,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

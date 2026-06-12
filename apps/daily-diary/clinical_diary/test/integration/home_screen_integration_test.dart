@@ -286,9 +286,12 @@ void main() {
 
         // Surfaces as one list item.
         expect(find.byType(EventListItem), findsOneWidget);
-        // The orange incomplete banner shows its count (as the only active
-        // important item it occupies the inline top slot). The "tap to
-        // complete" affordance is now the banner's chevron + tooltip.
+        // The incomplete alert is consolidated as a row inside the "Needs your
+        // attention" tile. The tile was first built before the checkpoint
+        // existed (count 0 → starts collapsed), so expand it to reveal the
+        // alert row with its count.
+        await tester.tap(find.text('Needs your attention'));
+        await _settle(tester);
         expect(find.text('1 incomplete record'), findsOneWidget);
       },
     );
