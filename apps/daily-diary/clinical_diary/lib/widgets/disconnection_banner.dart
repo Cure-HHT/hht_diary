@@ -4,28 +4,21 @@
 //   REQ-CAL-p00065: Reactivate Participant
 //   REQ-p05004: Disconnection Notification (persistent, non-dismissible)
 //
-// Persistent warning banner shown when participant is disconnected from the study.
-// Non-dismissible per REQ-p05004. Tapping shows site contact info with phone.
+// Persistent warning banner shown when participant is disconnected from the
+// study. Non-dismissible per REQ-p05004. Tapping the chevron expands a
+// design-system [AppCard] with site contact info and a tappable phone link.
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Persistent warning banner shown when a participant has been disconnected
 /// from the study by their Study Coordinator.
-///
-/// Non-dismissible per REQ-p05004 — stays visible until participant reconnects.
-/// Displays at the top of the screen with:
-/// - Warning icon and message to contact the study site
-/// - Tap to expand and show site contact details
-/// - Tappable phone number to initiate a call
 class DisconnectionBanner extends StatefulWidget {
   const DisconnectionBanner({this.siteName, this.sitePhoneNumber, super.key});
 
-  /// Optional site name to include in the message
   final String? siteName;
-
-  /// Optional site phone number for contact (REQ-CAL-p00077)
   final String? sitePhoneNumber;
 
   @override
@@ -35,10 +28,8 @@ class DisconnectionBanner extends StatefulWidget {
 class _DisconnectionBannerState extends State<DisconnectionBanner> {
   bool _isExpanded = false;
 
-  /// Attempt to make a phone call
   Future<void> _makePhoneCall() async {
     if (widget.sitePhoneNumber == null) return;
-
     final uri = Uri.parse('tel:${widget.sitePhoneNumber}');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
@@ -51,176 +42,108 @@ class _DisconnectionBannerState extends State<DisconnectionBanner> {
     final theme = Theme.of(context);
     final hasContactInfo =
         widget.siteName != null || widget.sitePhoneNumber != null;
+    final subtitle = widget.siteName != null
+        ? l10n.contactYourSiteWithName(widget.siteName!)
+        : l10n.contactYourSite;
 
-    return Material(
-      child: InkWell(
-        onTap: hasContactInfo
-            ? () => setState(() => _isExpanded = !_isExpanded)
-            : null,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.red.shade50,
-            border: Border(
-              bottom: BorderSide(color: Colors.red.shade200, width: 1),
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppBanner(
+          severity: AppBannerSeverity.error,
+          title: l10n.disconnectedFromStudy,
+          message: subtitle,
+          trailing: hasContactInfo
+              ? IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minHeight: 32,
+                    minWidth: 32,
+                  ),
+                  icon: Icon(
+                    _isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: theme.colorScheme.error,
+                  ),
+                  onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                )
+              : null,
+        ),
+        if (_isExpanded && hasContactInfo) ...[
+          const SizedBox(height: 8),
+          AppCard(
+            title: l10n.siteContactInfo,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Main banner row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Warning icon
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      color: Colors.red.shade700,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 12),
-
-                    // Content
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
+                if (widget.siteName != null)
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_city,
+                        size: 16,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.siteName!,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                if (widget.sitePhoneNumber != null) ...[
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: _makePhoneCall,
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
                         children: [
-                          Text(
-                            l10n.disconnectedFromStudy,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red.shade900,
+                          Icon(
+                            Icons.phone,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.sitePhoneNumber!,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                decoration: TextDecoration.underline,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.siteName != null
-                                ? l10n.contactYourSiteWithName(widget.siteName!)
-                                : l10n.contactYourSite,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.red.shade800,
-                            ),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 12,
+                            color: theme.colorScheme.primary,
                           ),
                         ],
                       ),
                     ),
-
-                    // Expand indicator (if has contact info)
-                    if (hasContactInfo)
-                      Icon(
-                        _isExpanded
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        color: Colors.red.shade600,
-                        size: 20,
-                      ),
-                  ],
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Text(
+                  l10n.tapToCall,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
-
-                // Expanded contact details
-                if (_isExpanded && hasContactInfo)
-                  _buildExpandedContactDetails(theme, l10n),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExpandedContactDetails(ThemeData theme, AppLocalizations l10n) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12, left: 40),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.red.shade200),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              l10n.siteContactInfo,
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.red.shade900,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Site name
-            if (widget.siteName != null)
-              Row(
-                children: [
-                  Icon(
-                    Icons.location_city,
-                    size: 16,
-                    color: Colors.red.shade700,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      widget.siteName!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.red.shade900,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-            // Phone number (tappable)
-            if (widget.sitePhoneNumber != null) ...[
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: _makePhoneCall,
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Icon(Icons.phone, size: 16, color: Colors.blue.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          widget.sitePhoneNumber!,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.blue.shade700,
-                            decoration: TextDecoration.underline,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 12,
-                        color: Colors.blue.shade700,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-
-            // Hint text
-            const SizedBox(height: 8),
-            Text(
-              l10n.tapToCall,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade600,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
-        ),
-      ),
+        ],
+      ],
     );
   }
 }

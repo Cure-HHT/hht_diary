@@ -2,6 +2,7 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
@@ -165,7 +166,7 @@ void main() {
       expect(called, true);
     });
 
-    testWidgets('has three OutlinedButtons', (tester) async {
+    testWidgets('has three action buttons', (tester) async {
       await tester.pumpWidget(
         wrapWithScaffold(
           YesterdayBanner(
@@ -177,7 +178,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(OutlinedButton), findsNWidgets(3));
+      // The Yes / No / Don't remember actions render via the design-system
+      // AppSegmentedChoice, one AppButton per option.
+      expect(find.bySubtype<AppSegmentedChoice<dynamic>>(), findsOneWidget);
+      expect(find.byType(AppButton), findsNWidgets(3));
     });
 
     testWidgets('No button has check icon', (tester) async {
@@ -195,7 +199,9 @@ void main() {
       expect(find.byIcon(Icons.check), findsNothing);
     });
 
-    testWidgets('has yellow background', (tester) async {
+    testWidgets('has primary soft background from design tokens', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         wrapWithScaffold(
           YesterdayBanner(
@@ -207,9 +213,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final container = tester.widget<Container>(find.byType(Container).first);
+      final container = tester.widget<Container>(
+        find
+            .descendant(
+              of: find.byType(YesterdayBanner),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+
+      // Banner surface comes from the AppSemanticColors theme extension.
+      final semantic = Theme.of(
+        tester.element(find.byType(YesterdayBanner)),
+      ).extension<AppSemanticColors>()!;
       final decoration = container.decoration as BoxDecoration;
-      expect(decoration.color, Colors.yellow.shade50);
+      expect(decoration.color, semantic.primaryLightSoft);
     });
   });
 }

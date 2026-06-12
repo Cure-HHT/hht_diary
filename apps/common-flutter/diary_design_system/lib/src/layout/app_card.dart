@@ -10,9 +10,13 @@ import '../tokens/spacing_tokens.dart';
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
+  final bool noBorder;
 
-  /// Background fill. Defaults to the plain surface; pass a tinted fill
-  /// for emphasized panels (Figma: the User Details identity card).
+  /// Card fill colour. Defaults to [ColorScheme.surface]. Pass a tinted fill
+  /// for emphasized panels (Figma: the User Details identity card), or
+  /// [Colors.transparent] to render an unfilled card whose interior matches
+  /// the page background (the "Join the Study" card on the profile screen
+  /// uses this).
   final Color? color;
 
   /// Optional title rendered above the child with a small bottom margin.
@@ -30,6 +34,7 @@ class AppCard extends StatelessWidget {
     this.color,
     this.title,
     this.semanticId,
+    this.noBorder = false,
   });
 
   @override
@@ -39,7 +44,9 @@ class AppCard extends StatelessWidget {
     final container = Container(
       decoration: BoxDecoration(
         color: color ?? theme.colorScheme.surface,
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        border: noBorder
+            ? null
+            : Border.all(color: theme.colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(RadiusTokens.md),
       ),
       padding: padding,

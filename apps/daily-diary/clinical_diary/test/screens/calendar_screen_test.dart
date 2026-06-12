@@ -18,6 +18,7 @@ import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/day_selection_screen.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/user_preferences.dart';
+import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
@@ -120,18 +121,20 @@ void main() {
       await tester.pumpWidget(
         ReActionScope(
           scope: fake,
-          child: const MaterialApp(
-            locale: Locale('en'),
+          child: MaterialApp(
+            locale: const Locale('en'),
             supportedLocales: AppLocalizations.supportedLocales,
-            localizationsDelegates: [
+            localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
+            // App theme so DS widgets can resolve their theme extensions.
+            theme: AppTheme.getLightThemeWithFont(),
             // Disable animation so the table-calendar page animator doesn't tick
             // forever under pumpAndSettle.
-            home: AppPreferencesScope(
+            home: const AppPreferencesScope(
               preferences: UserPreferences(useAnimation: false),
               child: CalendarScreen(),
             ),

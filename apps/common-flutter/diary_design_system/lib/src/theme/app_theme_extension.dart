@@ -19,10 +19,26 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
   // Severity (banners, alerts, callouts)
   final Color success;
   final Color successContainer;
+
+  /// Foreground color for text/icons sitting on [successContainer] —
+  /// the darker "approved" variant (Figma "Approved Dark"). Material's
+  /// ColorScheme has `onErrorContainer` but no analogue for the
+  /// success family, so this slot fills that gap.
+  final Color onSuccessContainer;
+
   final Color warning;
   final Color warningContainer;
   final Color info;
   final Color infoContainer;
+
+  // Brand tonal accents — the medium-light primary used as an
+  // info-style accent across tiles, alert rows, and counter pills.
+  // Maps to Figma "Primary Light" / "Primary Light Soft".
+  // Brand-derived (would track a sponsor's primary in a future
+  // BrandPalette extension); kept here so components can bind without
+  // reaching into raw tokens.
+  final Color primaryLight;
+  final Color primaryLightSoft;
 
   const AppSemanticColors({
     required this.statusActive,
@@ -31,10 +47,13 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     required this.statusNoData,
     required this.success,
     required this.successContainer,
+    required this.onSuccessContainer,
     required this.warning,
     required this.warningContainer,
     required this.info,
     required this.infoContainer,
+    required this.primaryLight,
+    required this.primaryLightSoft,
   });
 
   /// Default light-mode semantic colors, sourced directly from tokens.
@@ -49,10 +68,13 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     statusNoData: ColorTokens.statusNoData,
     success: ColorTokens.approved,
     successContainer: ColorTokens.approvedBg,
+    onSuccessContainer: ColorTokens.approvedDark,
     warning: ColorTokens.pending,
     warningContainer: ColorTokens.pendingBg,
     info: ColorTokens.info500,
     infoContainer: ColorTokens.info100,
+    primaryLight: ColorTokens.primaryHover,
+    primaryLightSoft: ColorTokens.primaryDisabled,
   );
 
   /// Minimal dark-mode placeholder until a proper dark palette is designed.
@@ -64,10 +86,13 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     statusNoData: ColorTokens.grey,
     success: ColorTokens.approved,
     successContainer: ColorTokens.approvedDark,
+    onSuccessContainer: ColorTokens.approvedBg,
     warning: ColorTokens.pending,
     warningContainer: ColorTokens.pendingDark,
     info: ColorTokens.info500,
     infoContainer: ColorTokens.info100,
+    primaryLight: ColorTokens.primaryHover,
+    primaryLightSoft: ColorTokens.primaryDisabled,
   );
 
   @override
@@ -78,10 +103,13 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     Color? statusNoData,
     Color? success,
     Color? successContainer,
+    Color? onSuccessContainer,
     Color? warning,
     Color? warningContainer,
     Color? info,
     Color? infoContainer,
+    Color? primaryLight,
+    Color? primaryLightSoft,
   }) {
     return AppSemanticColors(
       statusActive: statusActive ?? this.statusActive,
@@ -90,10 +118,13 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       statusNoData: statusNoData ?? this.statusNoData,
       success: success ?? this.success,
       successContainer: successContainer ?? this.successContainer,
+      onSuccessContainer: onSuccessContainer ?? this.onSuccessContainer,
       warning: warning ?? this.warning,
       warningContainer: warningContainer ?? this.warningContainer,
       info: info ?? this.info,
       infoContainer: infoContainer ?? this.infoContainer,
+      primaryLight: primaryLight ?? this.primaryLight,
+      primaryLightSoft: primaryLightSoft ?? this.primaryLightSoft,
     );
   }
 
@@ -111,6 +142,11 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
         other.successContainer,
         t,
       )!,
+      onSuccessContainer: Color.lerp(
+        onSuccessContainer,
+        other.onSuccessContainer,
+        t,
+      )!,
       warning: Color.lerp(warning, other.warning, t)!,
       warningContainer: Color.lerp(
         warningContainer,
@@ -119,6 +155,12 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
       )!,
       info: Color.lerp(info, other.info, t)!,
       infoContainer: Color.lerp(infoContainer, other.infoContainer, t)!,
+      primaryLight: Color.lerp(primaryLight, other.primaryLight, t)!,
+      primaryLightSoft: Color.lerp(
+        primaryLightSoft,
+        other.primaryLightSoft,
+        t,
+      )!,
     );
   }
 }

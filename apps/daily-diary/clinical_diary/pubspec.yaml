@@ -3,7 +3,7 @@ description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Proc
 publish_to: "none"
 
 
-version: 0.9.63+141
+version: 0.9.64+142
 
 environment:
   sdk: ^3.10.7
@@ -155,6 +155,8 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/icons/figma/
+    - assets/icons/figma/menu/
     - assets/config/
 
     - assets/licenses/

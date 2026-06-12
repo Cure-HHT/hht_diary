@@ -156,7 +156,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
               semanticId: 'activation-error',
             )
           : (_done
-                ? const AppBanner(
+                ? AppBanner(
                     severity: AppBannerSeverity.success,
                     message: 'Account activated — you can now sign in.',
                     semanticId: 'activation-done',
