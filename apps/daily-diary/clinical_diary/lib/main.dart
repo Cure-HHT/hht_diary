@@ -41,6 +41,7 @@ import 'package:clinical_diary/settings/local_reset_policy.dart';
 import 'package:clinical_diary/settings/user_preferences.dart';
 import 'package:clinical_diary/theme/app_theme.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
+import 'package:clinical_diary/widgets/qa_evidence_overlay.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
@@ -1259,7 +1260,9 @@ class _AppRootState extends State<AppRoot> {
                   textScaler: TextScaler.linear(textScaleFactor),
                 ),
                 child: ResponsiveWebFrame(
-                  child: child ?? const SizedBox.shrink(),
+                  child: QaEvidenceOverlay(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),
