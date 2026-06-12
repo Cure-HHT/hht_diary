@@ -1,0 +1,120 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00031: Automated QA Testing
+#
+# Builds the Clinical Diary iOS XCTest package on macOS and runs it in
+# Firebase Test Lab. This is separate from ios-build.yml, which produces and
+# optionally deploys App Store/TestFlight IPA artifacts.
+
+name: iOS Firebase Test Lab
+
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: "App flavor"
+        required: true
+        type: choice
+        default: qa
+        options:
+          - qa
+      integration_target:
+        description: "Flutter integration test target"
+        required: true
+        type: string
+        default: integration_test/mobile_qa_smoke_test.dart
+      timeout:
+        description: "Firebase Test Lab timeout"
+        required: true
+        type: string
+        default: 15m
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ios-ftl-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ios-ftl:
+    name: Build XCTest & Run FTL
+    runs-on: macos-26
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load pinned versions
+        run: |
+          grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          working-directory: apps/daily-diary/clinical_diary/ios
+
+      - name: Install Flutter dependencies
+        working-directory: apps/daily-diary/clinical_diary
+        run: flutter pub get
+
+      - name: Install CocoaPods dependencies
+        working-directory: apps/daily-diary/clinical_diary/ios
+        run: bundle exec pod install
+
+      - name: Build iOS XCTest package
+        working-directory: apps/daily-diary/clinical_diary
+        env:
+          FLAVOR: ${{ inputs.flavor }}
+          INTEGRATION_TARGET: ${{ inputs.integration_target }}
+        run: |
+          chmod +x ./tool/build_ios_xctest_device_farm.sh
+          ./tool/build_ios_xctest_device_farm.sh
+
+      - name: Upload XCTest package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clinical-diary-ios-${{ inputs.flavor }}-xctest
+          path: apps/daily-diary/clinical_diary/build/device-farm/clinical-diary-ios-xctest.zip
+          retention-days: 30
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Run Firebase Test Lab iOS matrix
+        working-directory: apps/daily-diary/clinical_diary
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          TIMEOUT: ${{ inputs.timeout }}
+        run: |
+          gcloud config set project "$GCP_PROJECT_ID"
+          gcloud firebase test ios run \
+            --type=xctest \
+            --test=build/device-farm/clinical-diary-ios-xctest.zip \
+            --timeout="$TIMEOUT" \
+            --record-video \
+            --project="$GCP_PROJECT_ID" \
+            --results-history-name=clinical-diary-ios \
+            --client-details=matrixLabel="Clinical Diary iOS QA Evidence" \
+            --device=model=iphone16pro,version=18.3,locale=en_US,orientation=portrait \
+            --device=model=iphonese3,version=18.4,locale=en_US,orientation=portrait \
+            --device=model=iphone14pro,version=16.6,locale=en_US,orientation=portrait \
+            --device=model=iphone11pro,version=16.6,locale=en_US,orientation=portrait \
+            --device=model=iphone8,version=16.6,locale=en_US,orientation=portrait \
+            --device=model=ipad10,version=16.6,locale=en_US,orientation=landscape \
+            --format=json
