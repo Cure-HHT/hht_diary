@@ -791,7 +791,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     await Navigator.push<void>(
       context,
-      AppPageRoute(builder: (context) => const IncompleteRecordsScreen()),
+      AppPageRoute(
+        // Same hamburger menu as Home — home owns the enrollment service,
+        // so it supplies the row callbacks (mirrors Profile / Enrollment).
+        builder: (context) => IncompleteRecordsScreen(
+          onShowProfile: _handleShowProfile,
+          onJoinStudy: _isEnrolled ? null : _handleEnrollFromMenu,
+          onShowHelpCenter: _handleShowHelpCenter,
+        ),
+      ),
     );
   }
 
@@ -1271,10 +1279,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             fullWidth: true,
             leadingIcon: Icons.calendar_today_outlined,
             onPressed: () async {
-              // Figma 682:3056: the calendar is a full screen, not a dialog.
-              await Navigator.push<void>(
-                context,
-                AppPageRoute(builder: (context) => const CalendarScreen()),
+              await showDialog<void>(
+                context: context,
+                builder: (context) => const CalendarScreen(),
               );
             },
           ),

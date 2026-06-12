@@ -9,15 +9,27 @@ import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
-import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/widgets/back_to_home_row.dart';
 import 'package:clinical_diary/widgets/brand_header.dart';
+import 'package:clinical_diary/widgets/user_menu_button.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class IncompleteRecordsScreen extends StatelessWidget {
-  const IncompleteRecordsScreen({super.key});
+  const IncompleteRecordsScreen({
+    this.onShowProfile,
+    this.onJoinStudy,
+    this.onShowHelpCenter,
+    super.key,
+  });
+
+  /// Same hamburger menu as Home / Profile / Enrollment. The parent (home)
+  /// supplies the callbacks because it owns the enrollment service and the
+  /// navigation these rows need; null hides the corresponding row.
+  final VoidCallback? onShowProfile;
+  final VoidCallback? onJoinStudy;
+  final VoidCallback? onShowHelpCenter;
 
   @override
   Widget build(BuildContext context) {
@@ -43,11 +55,10 @@ class IncompleteRecordsScreen extends StatelessWidget {
                 height: 42,
                 fit: BoxFit.contain,
               ),
-              trailing: PopupMenuButton<String>(
-                icon: const Icon(Icons.menu, color: Color(0xFF04161E)),
-                tooltip: l10n.userMenu,
-                onSelected: (value) => _handleMenuSelection(context, value),
-                itemBuilder: _menuItems,
+              trailing: UserMenuButton(
+                onShowProfile: onShowProfile,
+                onJoinStudy: onJoinStudy,
+                onShowHelpCenter: onShowHelpCenter,
               ),
             ),
             BackToHomeRow(onBack: () => Navigator.of(context).pop()),
@@ -129,52 +140,6 @@ class IncompleteRecordsScreen extends StatelessWidget {
     await Navigator.of(context).push<String?>(
       AppPageRoute(builder: (context) => RecordingScreen(existing: entry)),
     );
-  }
-
-  /// Stateless subset of the home-screen user menu. Items that require the
-  /// enrollment service (Profile, Enroll) aren't surfaced here — the
-  /// participant can reach them from Home.
-  List<PopupMenuEntry<String>> _menuItems(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return [
-      PopupMenuItem(
-        value: 'accessibility',
-        child: Row(
-          children: [
-            const Icon(Icons.settings, size: 20),
-            const SizedBox(width: 12),
-            Text(l10n.accessibilityAndPreferences),
-          ],
-        ),
-      ),
-      PopupMenuItem(
-        value: 'privacy',
-        child: Row(
-          children: [
-            const Icon(Icons.privacy_tip, size: 20),
-            const SizedBox(width: 12),
-            Text(l10n.privacy),
-          ],
-        ),
-      ),
-    ];
-  }
-
-  Future<void> _handleMenuSelection(BuildContext context, String value) async {
-    if (value == 'accessibility') {
-      await Navigator.push(
-        context,
-        AppPageRoute<void>(builder: (_) => const SettingsScreen()),
-      );
-    } else if (value == 'privacy') {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).privacyComingSoon),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
   }
 }
 
