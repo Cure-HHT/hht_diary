@@ -191,11 +191,15 @@ void main() {
       expect(find.text('Finalize'), findsOneWidget);
       expect(find.byTooltip('Call Back'), findsOneWidget);
 
-      // Finalize is now wired: it targets the open instance.
-      final finalize = tester.widget<FilledButton>(
+      // Finalize is now wired: it targets the open instance. Match the
+      // common ButtonStyleButton superclass, not the exact FilledButton
+      // type: the Figma-green Finalize button is a FilledButton.icon, which
+      // resolves to a private _FilledButtonWithIcon subclass on some Flutter
+      // versions (find.byType is exact-type, so it would miss it).
+      final finalize = tester.widget<ButtonStyleButton>(
         find.ancestor(
           of: find.text('Finalize'),
-          matching: find.byType(FilledButton),
+          matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
         ),
       );
       expect(finalize.onPressed, isNotNull);
