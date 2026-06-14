@@ -267,6 +267,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     final outcome = await resolveAuthBootstrap(
       fetchConfig: () => fetchIdentityConfig(_serverUrl),
       initFirebase: initFirebaseWithConfig,
+      verifyConnected: verifyEmulatorConnected,
     );
     if (!mounted) return;
     setState(() {

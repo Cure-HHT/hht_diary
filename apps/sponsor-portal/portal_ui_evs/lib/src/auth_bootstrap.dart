@@ -33,30 +33,55 @@ typedef IdentityConfigFetcher = Future<Map<String, Object?>?> Function();
 /// Initializes Firebase from the config; returns normally on success and
 /// THROWS on failure (so the retry loop can react). Returns whether an
 /// emulator was wired (informational; callers gate on success/throw).
+/// Initializes Firebase from the config; returns true when an emulator was
+/// wired (`useAuthEmulator` called), false for a production deployment.
 typedef FirebaseInitializer = Future<bool> Function(Map<String, Object?> cfg);
+
+/// Probes whether an auth call actually REACHES the emulator yet. Throws while
+/// the SDK hasn't applied the emulator connect (calls still hit production);
+/// returns normally once it has. This is the behavioural readiness signal —
+/// `useAuthEmulator()` resolves BEFORE the connect lands, so awaiting it is not
+/// enough.
+typedef EmulatorConnectivityProbe = Future<void> Function();
 
 Future<void> _wait(Duration d) => Future<void>.delayed(d);
 
-/// Resolves the auth bootstrap outcome. Session-mode Firebase init is retried
-/// up to [maxAttempts] (with [retryDelay] between tries) because the failure
-/// is transient per page-load; only a clean init yields [sessionReady].
+/// Resolves the auth bootstrap outcome, gating a session-mode login on the
+/// emulator being genuinely reachable.
 ///
-/// All I/O is injected ([fetchConfig], [initFirebase], [sleep]) so the
-/// gating + retry logic is unit-testable without Firebase or a server.
+/// In emulator deployments `useAuthEmulator()` returns before the SDK applies
+/// the connect, so [initFirebase] completing is NOT sufficient — a login shown
+/// in that window submits against production and fails (the flaky-login race).
+/// So after init, [verifyConnected] is POLLED (up to [maxAttempts], [retryDelay]
+/// apart) until an auth call reaches the emulator; only then [sessionReady].
+/// A production deployment (no emulator) skips the probe. All I/O is injected
+/// so the gating + poll logic is unit-testable without Firebase or a server.
 Future<AuthBootstrapOutcome> resolveAuthBootstrap({
   required IdentityConfigFetcher fetchConfig,
   required FirebaseInitializer initFirebase,
-  int maxAttempts = 3,
-  Duration retryDelay = const Duration(milliseconds: 300),
+  required EmulatorConnectivityProbe verifyConnected,
+  int maxAttempts = 15,
+  Duration retryDelay = const Duration(milliseconds: 200),
   Future<void> Function(Duration) sleep = _wait,
 }) async {
   final cfg = await fetchConfig();
   if (cfg == null || cfg['authMode'] != 'session') {
     return AuthBootstrapOutcome.dev;
   }
+  final bool emulator;
+  try {
+    emulator = await initFirebase(cfg);
+  } catch (_) {
+    return AuthBootstrapOutcome.failed;
+  }
+  // Production: no emulator to wait on — the login can render immediately.
+  if (!emulator) return AuthBootstrapOutcome.sessionReady;
+  // Emulator: poll until an auth call actually reaches it (the connect lands
+  // after useAuthEmulator returns), so the login is never submittable against
+  // production in the gap.
   for (var attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      await initFirebase(cfg);
+      await verifyConnected();
       return AuthBootstrapOutcome.sessionReady;
     } catch (_) {
       if (attempt < maxAttempts - 1) await sleep(retryDelay);
