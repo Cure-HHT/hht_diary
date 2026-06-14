@@ -30,6 +30,7 @@ import 'session_config.dart';
 import 'session_timeout_controller.dart';
 import 'stale_client.dart';
 import 'participants_screen_binding.dart';
+import 'rave_sync_screen_binding.dart';
 import 'sites_screen_binding.dart';
 import 'study_settings_binding.dart';
 import 'update_available_banner.dart';
@@ -713,6 +714,7 @@ class _HomeShellState extends State<_HomeShell> {
       identityCredential: widget.identityCredential ?? '',
       serverUrl: _serverUrl,
     ),
+    'RAVE Sync' => const RaveSyncScreenBinding(),
     'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',
       serverUrl: _serverUrl,
