@@ -79,7 +79,8 @@ void main() {
       expect(
         order,
         <String>['wipe', 'init'],
-        reason: 'the pre-init wipe must happen before Firebase.initializeApp '
+        reason:
+            'the pre-init wipe must happen before Firebase.initializeApp '
             '(flutterfire #9528) — otherwise the IndexedDB restore uses the '
             'Auth instance and useAuthEmulator is silently dropped',
       );

@@ -82,13 +82,23 @@ class WebPlatform {
     }
 
     try {
-      final req =
-          web.window.indexedDB.deleteDatabase('firebaseLocalStorageDb');
+      final req = web.window.indexedDB.deleteDatabase('firebaseLocalStorageDb');
       req.onsuccess = done.toJS;
       req.onerror = done.toJS;
-      // onblocked: a connection is still open; rely on the timeout below.
-      await completer.future
-          .timeout(const Duration(milliseconds: 800), onTimeout: () {});
+      // A connection is still open (unexpected pre-init): log it for
+      // diagnosability but do NOT complete — rely on the timeout below so boot
+      // never stalls; the delete lands once the connection closes.
+      req.onblocked = ((web.Event _) {
+        web.console.warn(
+          'clearFirebaseAuthDb: deleteDatabase blocked — a connection is '
+                  'still open; relying on the timeout'
+              .toJS,
+        );
+      }).toJS;
+      await completer.future.timeout(
+        const Duration(milliseconds: 800),
+        onTimeout: () {},
+      );
     } catch (e) {
       // indexedDB unavailable / delete threw — proceed; init may still bind.
       web.console.warn('clearFirebaseAuthDb failed: $e'.toJS);
