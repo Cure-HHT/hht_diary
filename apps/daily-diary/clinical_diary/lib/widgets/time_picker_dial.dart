@@ -2,6 +2,7 @@ import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -200,10 +201,69 @@ class _TimePickerDialState extends State<TimePickerDial> {
     widget.onTimeChanged?.call(newTime);
   }
 
+  /// Figma 515:3482 ("Time Picker" dialog): the Material pickers run on the
+  /// full design-system [ColorScheme] (buildAppLightColorScheme) instead of
+  /// the app's legacy teal seed, so every slot M3 reads (selection chrome,
+  /// dial, day-period toggle, Cancel/OK) resolves to the Figma palette.
+  ///
+  /// The dialog background is forced to `scheme.surface` (white): M3 paints
+  /// picker dialogs with `surfaceContainerHigh` by default, which is a grey
+  /// in the design-system surface scale.
+  Widget _pickerTheme(BuildContext context, Widget? child) {
+    final theme = Theme.of(context);
+    final scheme = buildAppLightColorScheme();
+    // M3 rounds picker dialogs at 28; the design system caps surfaces at the
+    // `lg` radius token (12).
+    final dialogShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    );
+    return Theme(
+      data: theme.copyWith(
+        colorScheme: scheme,
+        datePickerTheme: DatePickerThemeData(
+          backgroundColor: scheme.surface,
+          shape: dialogShape,
+        ),
+        timePickerTheme: TimePickerThemeData(
+          backgroundColor: scheme.surface,
+          shape: dialogShape,
+          // Light Gray dial face with the primary hand/knob (Figma 515:3502).
+          dialBackgroundColor: scheme.surfaceContainer,
+          dialHandColor: scheme.primary,
+          // Selected hour/minute field: primary-tinted container; unselected:
+          // Light Gray (Figma 515:3486/3491).
+          hourMinuteColor: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? scheme.primaryContainer
+                : scheme.surfaceContainer,
+          ),
+          hourMinuteTextColor: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+          ),
+          // AM/PM toggle: filled primary when selected (Figma 515:3496).
+          dayPeriodColor: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? scheme.primary
+                : scheme.surface,
+          ),
+          dayPeriodTextColor: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? scheme.onPrimary
+                : scheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+      child: child!,
+    );
+  }
+
   Future<void> _showTimePicker() async {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_selectedTime),
+      builder: _pickerTheme,
     );
 
     if (picked != null) {
@@ -243,6 +303,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
       initialDate: _selectedTime,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: _pickerTheme,
     );
 
     if (picked != null) {
@@ -412,6 +473,10 @@ class _TimePickerDialState extends State<TimePickerDial> {
       padding: const EdgeInsets.symmetric(horizontal: 23.0, vertical: 16.0),
       child: Column(
         children: [
+          // Figma 682:2947: the heading + date chip + time + nudges + confirm
+          // button render as one vertically-centered group.
+          const Spacer(),
+
           // CUR-488 Phase 2: Don't scale title to avoid scrolling on small screens
           MediaQuery(
             data: MediaQuery.of(
@@ -419,130 +484,107 @@ class _TimePickerDialState extends State<TimePickerDial> {
             ).copyWith(textScaler: TextScaler.noScaling),
             child: Text(
               widget.title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+              // Figma "Heading 3" — Inter SemiBold 24 on Black.
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                height: 34 / 24,
+                letterSpacing: 0.18,
+                color: Color(0xFF04161E),
+              ),
             ),
           ),
 
-          const Spacer(),
+          const SizedBox(height: 28),
 
-          // Date display above time (tappable, DateHeader-like styling)
+          // Date chip above time (tappable, Figma 682:2953)
           GestureDetector(
             onTap: _showDatePicker,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFFECEEF0),
+                borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    DateFormat('EEEE, MMMM d', locale).format(_selectedTime),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 17,
+                    color: Color(0xFF54636A),
                   ),
                   const SizedBox(width: 8),
-                  Icon(
-                    Icons.calendar_today,
-                    size: 16,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  Text(
+                    DateFormat('EEEE, MMM d', locale).format(_selectedTime),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      height: 25.5 / 17,
+                      letterSpacing: -0.43,
+                      color: Color(0xFF54636A),
+                    ),
                   ),
                 ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 28),
+
+          // Time display (tappable, Figma 682:2966 — Inter Light 64)
+          GestureDetector(
+            onTap: _showTimePicker,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                use24Hour
+                    ? timeFormat.format(_selectedTime)
+                    : '${DateFormat('h:mm', locale).format(_selectedTime)} '
+                          '${periodFormat.format(_selectedTime)}',
+                style: const TextStyle(
+                  fontSize: 64,
+                  fontWeight: FontWeight.w300,
+                  height: 1,
+                  letterSpacing: 0.22,
+                  color: Color(0xFF04161E),
+                ),
               ),
             ),
           ),
 
           const SizedBox(height: 12),
 
-          // Time display (tappable)
+          // Timezone selector (subtle, below time — Figma 682:2967)
           GestureDetector(
-            onTap: _showTimePicker,
+            onTap: _showTimezonePicker,
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(
-                  use24Hour
-                      ? timeFormat.format(_selectedTime)
-                      : DateFormat('h:mm', locale).format(_selectedTime),
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w300,
-                    fontSize: 72,
-                  ),
-                ),
-                if (!use24Hour) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    periodFormat.format(_selectedTime),
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w400,
+                const Icon(Icons.public, size: 17, color: Color(0xFFA4B9C2)),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    _timezoneLabel(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      height: 21.25 / 15,
+                      letterSpacing: -0.22,
+                      color: Color(0xFF54636A),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 28),
 
-          // Timezone selector (subtle, below time)
-          GestureDetector(
-            onTap: _showTimezonePicker,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.public,
-                    size: 14,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    getTimezoneDisplayName(
-                      _normalizeTimezone(_selectedTimezone),
-                    ),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_drop_down,
-                    size: 16,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Quick adjust buttons
+          // Quick adjust buttons (Figma 682:2973)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -563,7 +605,7 @@ class _TimePickerDialState extends State<TimePickerDial> {
                 onPressed: () => _adjustMinutes(-1),
                 showError: _errorButtonDelta == -1,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 8),
               _AdjustButton(
                 label: '+1',
                 onPressed: () => _adjustMinutes(1),
@@ -584,40 +626,43 @@ class _TimePickerDialState extends State<TimePickerDial> {
             ],
           ),
 
-          const Spacer(),
+          const SizedBox(height: 28),
 
-          // Confirm button
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () {
-                // REQ-p01066-K: Show error for future times instead of silently clamping
-                // This can happen when timezone conversion shifts the time forward
-                // (e.g., picking Hawaii time from CET device shifts stored time +11 hours)
-                if (_isDisplayedTimeInFuture(_selectedTime)) {
-                  final l10n = AppLocalizations.of(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(l10n.cannotSelectFutureTime),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                  return;
-                }
-                widget.onConfirm(_selectedTime);
-              },
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: Text(
-                widget.confirmLabel,
-                style: const TextStyle(fontSize: 18),
-              ),
-            ),
+          // Confirm button (Figma 682:2987 — design-system AppButton)
+          AppButton(
+            size: AppButtonSize.large,
+            fullWidth: true,
+            label: widget.confirmLabel,
+            onPressed: () {
+              // REQ-p01066-K: Show error for future times instead of silently clamping
+              // This can happen when timezone conversion shifts the time forward
+              // (e.g., picking Hawaii time from CET device shifts stored time +11 hours)
+              if (_isDisplayedTimeInFuture(_selectedTime)) {
+                final l10n = AppLocalizations.of(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.cannotSelectFutureTime),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+              widget.onConfirm(_selectedTime);
+            },
           ),
+
+          const Spacer(),
         ],
       ),
     );
+  }
+
+  /// Figma 682:2970 renders the timezone as "PDT - America/Los Angeles":
+  /// abbreviation + the IANA id with underscores opened up.
+  String _timezoneLabel() {
+    final iana = _normalizeTimezone(_selectedTimezone);
+    final abbr = getTimezoneAbbreviation(iana, at: _selectedTime);
+    return '$abbr - ${iana.replaceAll('_', ' ')}';
   }
 }
 
@@ -633,29 +678,38 @@ class _AdjustButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Figma 682:2974: Light Gray pill, radius ~10, primary-colored Medium 17
+    // label. The primary hex comes from the design-system button extension so
+    // sponsor brand overrides keep flowing through.
+    final primary =
+        Theme.of(context).extension<AppButtonColors>()?.primary.background ??
+        Theme.of(context).colorScheme.primary;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         color: showError
             ? Theme.of(context).colorScheme.errorContainer
-            : Theme.of(context).colorScheme.surfaceContainerHighest,
+            : const Color(0xFFECEEF0),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: TextStyle(
+                fontSize: 17,
                 fontWeight: FontWeight.w500,
+                height: 25.5 / 17,
+                letterSpacing: -0.43,
                 color: showError
                     ? Theme.of(context).colorScheme.onErrorContainer
-                    : null,
+                    : primary,
               ),
             ),
           ),

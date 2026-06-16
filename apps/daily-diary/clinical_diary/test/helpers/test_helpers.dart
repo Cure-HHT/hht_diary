@@ -2,16 +2,16 @@
 // Provides localization support and common test utilities
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/theme/app_theme.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 /// Wraps a widget with MaterialApp and localization support for testing.
 /// This ensures that widgets using AppLocalizations.of(context) work correctly.
 ///
-/// Defaults to the real app theme: design-system widgets (AppButton,
-/// AppBanner, ...) resolve `Theme.extension<AppButtonColors>()!` /
-/// `<AppSemanticColors>()!`, which throw under a bare MaterialApp theme.
+/// The default theme is the shared `diary_design_system` theme so that
+/// design-system components (which read AppSemanticColors / AppButtonColors
+/// theme extensions) render correctly in widget tests.
 Widget wrapWithMaterialApp(
   Widget child, {
   Locale locale = const Locale('en'),
@@ -27,7 +27,7 @@ Widget wrapWithMaterialApp(
       GlobalWidgetsLocalizations.delegate,
       GlobalCupertinoLocalizations.delegate,
     ],
-    theme: theme ?? AppTheme.getLightThemeWithFont(),
+    theme: theme ?? buildAppTheme(),
     navigatorObservers: navigatorObserver != null ? [navigatorObserver] : [],
     home: child,
   );

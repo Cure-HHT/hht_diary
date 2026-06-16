@@ -333,7 +333,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Back out -> auto-save as a checkpoint.
-      await tester.tap(find.text('Back'));
+      await tester.tap(find.text('Home'));
       await tester.pumpAndSettle();
 
       final s = submissionFor('checkpoint_epistaxis_event');
@@ -371,7 +371,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Back'));
+        await tester.tap(find.text('Home'));
         await tester.pumpAndSettle();
 
         final s = submissionFor('edit_epistaxis_event');
@@ -400,7 +400,7 @@ void main() {
 
         await pumpScreen(tester, existing: existing);
 
-        await tester.tap(find.byIcon(Icons.delete_outline));
+        await tester.tap(find.byTooltip('Delete record'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Entered by mistake'));
         await tester.pumpAndSettle();
@@ -469,7 +469,7 @@ void main() {
       );
 
       expect(find.textContaining('locked'), findsOneWidget);
-      expect(find.byIcon(Icons.delete_outline), findsNothing);
+      expect(find.byTooltip('Delete record'), findsNothing);
 
       // Even if a Save button is reachable, the locked guard refuses to submit.
       final save = find.widgetWithText(FilledButton, 'Save Changes');
@@ -533,7 +533,7 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
       // On the recording screen now; tap the trash (new entry, nothing saved).
-      await tester.tap(find.byIcon(Icons.delete_outline));
+      await tester.tap(find.byTooltip('Delete record'));
       await tester.pumpAndSettle();
 
       expect(
@@ -771,6 +771,41 @@ void main() {
         );
         expect(find.byType(OverlapCompareScreen), findsOneWidget);
         expect(find.text('open'), findsNothing); // recording screen replaced
+      },
+    );
+
+    // The warning surfaces as soon as the START time falls inside an existing
+    // entry — before any end time is set. While only the start is known the
+    // candidate is a single instant; if that instant lies within a finalized
+    // entry's range the warning shows. It stays NON-blocking (no Resolve
+    // affordance yet, since the entry isn't finalizable), so the participant can
+    // still set intensity/end time.
+    testWidgets(
+      'warning shows when only the start time overlaps (no end time yet)',
+      (tester) async {
+        final base = DateTime.now();
+        final other = buildEpistaxisView(
+          aggregateId: 'agg-start-only-other',
+          startTime: DateTime(base.year, base.month, base.day, 13),
+          endTime: DateTime(base.year, base.month, base.day, 14),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        // A resumed draft with ONLY a start time (no end, no intensity) sitting
+        // inside `other`'s 13:00–14:00 range.
+        final editing = buildEpistaxisView(
+          aggregateId: 'agg-start-only-self',
+          startTime: DateTime(base.year, base.month, base.day, 13, 30),
+          isComplete: false,
+        );
+
+        await pumpScreen(tester, existing: editing);
+        seedDiaryEntries([other]);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Overlapping Events Detected'), findsOneWidget);
+        // Non-blocking: no Resolve button until the entry has an end time.
+        expect(find.text('Resolve'), findsNothing);
       },
     );
   });
