@@ -10,6 +10,7 @@ library;
 export 'src/models/audit_entry_view.dart';
 export 'src/models/participant_row_view.dart';
 export 'src/models/portal_role.dart';
+export 'src/models/rave_sync_view.dart';
 export 'src/models/portal_user_view.dart';
 export 'src/models/role_assignment_view.dart';
 export 'src/models/site_option_view.dart';
@@ -33,6 +34,7 @@ export 'src/admin/user_row_actions.dart';
 // Phase 6: audit logs screen.
 export 'src/admin/audit_logs_screen.dart';
 export 'src/admin/participants_screen.dart';
+export 'src/admin/rave_sync_screen.dart';
 export 'src/admin/sites_screen.dart';
 export 'src/admin/study_settings_screen.dart';
 // Fixture data — used by the example preview app and the test suite.

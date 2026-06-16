@@ -15,6 +15,7 @@
 // StartTrialDialog).
 //
 // Implements: DIARY-BASE-questionnaire-manage-modal/A+B+C+D+E
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 // Explicit for @visibleForTesting (also re-exported transitively by
 // material.dart, hence the ignore).
@@ -107,54 +108,14 @@ class ManageQuestionnairesDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return AlertDialog(
-      title: Row(
-        children: <Widget>[
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Manage Questionnaires',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // Assertion A: the modal header shows the participant identifier.
-                Text.rich(
-                  TextSpan(
-                    text: 'Participant ',
-                    children: <InlineSpan>[
-                      TextSpan(
-                        text: participantId,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Assertion C: a close action dismisses with no change.
-          Semantics(
-            identifier: 'qst-close-$participantId',
-            button: true,
-            container: true,
-            explicitChildNodes: true,
-            child: IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close),
-              tooltip: 'Close',
-            ),
-          ),
-        ],
-      ),
-      content: SizedBox(
+    // Assertion A: the modal header shows the participant identifier.
+    // Assertion C: the kit dialog's close (X) dismisses with no change.
+    return AppDialog(
+      size: AppDialogSize.medium,
+      title: 'Manage Questionnaires',
+      subtitle: 'Participant ID: $participantId',
+      semanticId: 'qst-modal-$participantId',
+      body: SizedBox(
         width: 520,
         child: PermissionGate(
           permission: _viewPerm,
@@ -434,52 +395,86 @@ class _QuestionnaireCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final state = resolveCardState(rowsForType);
-    return Card(
+    // The ready-to-review card carries the Figma's soft warm tint so the
+    // reviewable questionnaire reads at a glance.
+    final ready = state.status == QuestionnaireInstanceStatus.readyToReview;
+    return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Type name + status badge.
-            Row(
+      decoration: BoxDecoration(
+        color: ready ? const Color(0xFFFFFBEB) : theme.colorScheme.surface,
+        border: Border.all(
+          color: ready
+              ? const Color(0xFFFDE68A)
+              : theme.colorScheme.outlineVariant,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // Leading questionnaire icon chip (Figma).
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFDBEAFE),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.description_outlined,
+              size: 22,
+              color: Color(0xFF2563EB),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Expanded(
-                  child: Text(
-                    type.displayName,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                Text(
+                  type.displayName,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                _StatusBadge(state: state),
+                const SizedBox(height: 8),
+                // Cycle info paired inline with the status chip it
+                // describes (assertion D).
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: <Widget>[
+                    _CycleInfo(state: state),
+                    _StatusBadge(state: state),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 8),
-            // Cycle info paired inline with the status it describes
-            // (assertion D).
-            _CycleInfo(state: state),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: <Widget>[
-                for (final action in state.actions)
-                  _ActionButton(
-                    participantId: participantId,
-                    siteId: siteId,
-                    typeId: type.id,
-                    action: action,
-                    state: state,
-                    onSendNow: onSendNow,
-                    onStartNextCycle: onStartNextCycle,
-                    onCallBack: onCallBack,
-                    onFinalize: onFinalize,
-                  ),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          // Action cluster, top-right (Figma): the per-status buttons,
+          // with Call Back as the trash affordance.
+          Wrap(
+            spacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              for (final action in state.actions)
+                _ActionButton(
+                  participantId: participantId,
+                  siteId: siteId,
+                  typeId: type.id,
+                  action: action,
+                  state: state,
+                  onSendNow: onSendNow,
+                  onStartNextCycle: onStartNextCycle,
+                  onCallBack: onCallBack,
+                  onFinalize: onFinalize,
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -505,15 +500,43 @@ class _StatusBadge extends StatelessWidget {
         state.status == QuestionnaireInstanceStatus.closed && endEvent != null
         ? 'Closed · ${_endEventLabel(endEvent)}'
         : state.status.label;
+    // Per-status pill tints (Figma): Sent soft blue, Ready to Review warm
+    // outline, Not Sent / Closed neutral.
+    final (Color bg, Color fg, Color border) = switch (state.status) {
+      QuestionnaireInstanceStatus.sent => (
+        const Color(0xFFEFF6FF),
+        const Color(0xFF1D4ED8),
+        const Color(0xFFBFDBFE),
+      ),
+      QuestionnaireInstanceStatus.readyToReview => (
+        const Color(0xFFFFFBEB),
+        const Color(0xFFD97706),
+        const Color(0xFFFBBF24),
+      ),
+      QuestionnaireInstanceStatus.closed => (
+        const Color(0xFF0E7490),
+        Colors.white,
+        const Color(0xFF0E7490),
+      ),
+      _ => (
+        theme.colorScheme.surface,
+        theme.colorScheme.onSurfaceVariant,
+        theme.colorScheme.outlineVariant,
+      ),
+    };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        color: bg,
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: fg,
+        ),
       ),
     );
   }
@@ -539,11 +562,11 @@ class _CycleInfo extends StatelessWidget {
       fontWeight: FontWeight.bold,
     );
 
-    // Current Cycle (Sent / Ready to Review).
+    // Current cycle (Sent / Ready to Review) — Figma: "Current: Cycle N Day 1".
     if (state.currentStudyEvent != null) {
       return Text.rich(
         TextSpan(
-          text: 'Current Cycle: ',
+          text: 'Current: ',
           style: muted,
           children: <InlineSpan>[
             TextSpan(text: state.currentStudyEvent, style: emph),
@@ -631,12 +654,42 @@ class _ActionButton extends StatelessWidget {
     // Stable identifier for Playwright e2e (mirrors the send-eq-confirm-...
     // pattern); container + explicitChildNodes keep it from being merged away
     // by the button's own button semantics.
+    //
+    // Call Back renders as the Figma's trash affordance (tooltip carries the
+    // action name); Finalize as the green check button; Send Now / Start Next
+    // Cycle as kit primary buttons.
+    final Widget button = switch (action) {
+      QuestionnaireCardAction.callBack => IconButton(
+        onPressed: onPressed,
+        tooltip: action.label,
+        icon: const Icon(
+          Icons.delete_outline,
+          size: 20,
+          color: Color(0xFFDC2626),
+        ),
+        visualDensity: VisualDensity.compact,
+      ),
+      QuestionnaireCardAction.finalize => FilledButton.icon(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF16A34A),
+          foregroundColor: Colors.white,
+        ),
+        icon: const Icon(Icons.check_circle_outline, size: 18),
+        label: Text(action.label),
+      ),
+      _ => AppButton(
+        label: action.label,
+        leadingIcon: Icons.send_outlined,
+        onPressed: onPressed,
+      ),
+    };
     return Semantics(
       identifier: 'qst-${action.name}-$typeId-$participantId',
       button: true,
       container: true,
       explicitChildNodes: true,
-      child: FilledButton(onPressed: onPressed, child: Text(action.label)),
+      child: button,
     );
   }
 
@@ -676,25 +729,33 @@ class _SelectStartingCycleDialogState
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Select Starting Cycle'),
-      content: Column(
+    return AppDialog(
+      size: AppDialogSize.small,
+      title: 'Select Starting Cycle',
+      subtitle:
+          'Choose which cycle this questionnaire belongs to for participant '
+          '${widget.participantId}.',
+      dismissible: false,
+      semanticId: 'qst-cycle-dialog-${widget.participantId}',
+      body: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text(
-            'This is the first send of this questionnaire. Choose the cycle it '
-            'starts on.',
-            style: Theme.of(context).textTheme.bodyMedium,
+          const AppBanner(
+            severity: AppBannerSeverity.info,
+            message:
+                "Select Cycle 1 Day 1 if this is the participant's first "
+                'cycle, or a later cycle if the participant started on '
+                'paper diaries.',
           ),
           const SizedBox(height: 16),
           // Assertion I: a cycle dropdown over the const Cycle 1..12 range.
           DropdownButtonFormField<int>(
             initialValue: _cycle,
-            decoration: const InputDecoration(labelText: 'Starting cycle'),
+            decoration: const InputDecoration(labelText: 'Starting Cycle'),
             items: <DropdownMenuItem<int>>[
               for (var n = 1; n <= _kMaxStartingCycle; n++)
-                DropdownMenuItem<int>(value: n, child: Text('Cycle $n')),
+                DropdownMenuItem<int>(value: n, child: Text('Cycle $n Day 1')),
             ],
             onChanged: (v) => setState(() => _cycle = v ?? _cycle),
           ),
@@ -702,21 +763,17 @@ class _SelectStartingCycleDialogState
       ),
       actions: <Widget>[
         // Assertion L: Cancel pops null -> no change.
-        TextButton(
+        AppButton(
+          variant: AppButtonVariant.secondary,
+          label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
         ),
         // Assertions J/K: Confirm pops the chosen cycle -> re-POST with
         // studyEvent.
-        Semantics(
-          identifier: 'qst-cycle-confirm-${widget.participantId}',
-          button: true,
-          container: true,
-          explicitChildNodes: true,
-          child: FilledButton(
-            onPressed: () => Navigator.of(context).pop(_cycle),
-            child: const Text('Confirm and Send'),
-          ),
+        AppButton(
+          label: 'Confirm and Send',
+          onPressed: () => Navigator.of(context).pop(_cycle),
+          semanticId: 'qst-cycle-confirm-${widget.participantId}',
         ),
       ],
     );
@@ -735,27 +792,24 @@ class _ConfirmNextCycleDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Start Next Cycle'),
-      content: Text(
+    return AppDialog(
+      size: AppDialogSize.small,
+      title: 'Start Next Cycle',
+      dismissible: false,
+      body: Text(
         'Send the next cycle of this questionnaire to participant '
         '$participantId? The cycle is determined automatically.',
-        style: Theme.of(context).textTheme.bodyMedium,
       ),
       actions: <Widget>[
-        TextButton(
+        AppButton(
+          variant: AppButtonVariant.secondary,
+          label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
         ),
-        Semantics(
-          identifier: 'qst-nextcycle-confirm-$participantId',
-          button: true,
-          container: true,
-          explicitChildNodes: true,
-          child: FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Start Next Cycle'),
-          ),
+        AppButton(
+          label: 'Start Next Cycle',
+          onPressed: () => Navigator.of(context).pop(true),
+          semanticId: 'qst-nextcycle-confirm-$participantId',
         ),
       ],
     );
@@ -823,7 +877,7 @@ class _CallBackDialogState extends State<_CallBackDialog> {
     );
   }
 
-  AlertDialog _form(
+  Widget _form(
     BuildContext context,
     ThemeData theme,
     void Function() submit,
@@ -835,11 +889,14 @@ class _CallBackDialogState extends State<_CallBackDialog> {
       Failed(:final error) => 'Call back failed: $error',
       _ => null,
     };
-    return AlertDialog(
-      title: const Text('Call Back Questionnaire'),
-      content: Column(
+    return AppDialog(
+      size: AppDialogSize.small,
+      title: 'Call Back Questionnaire',
+      dismissible: false,
+      semanticId: 'qst-callback-dialog-${widget.participantId}',
+      body: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
             'Retract this questionnaire from participant '
@@ -861,40 +918,33 @@ class _CallBackDialogState extends State<_CallBackDialog> {
           ),
           if (message != null) ...<Widget>[
             const SizedBox(height: 12),
-            Text(
-              message,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-            ),
+            AppBanner(severity: AppBannerSeverity.error, message: message),
           ],
         ],
       ),
       actions: <Widget>[
         // Assertion H: Cancel dismisses with no change.
-        TextButton(
+        AppButton(
+          variant: AppButtonVariant.secondary,
+          label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
         ),
-        Semantics(
-          identifier: 'qst-callback-confirm-${widget.participantId}',
-          button: true,
-          container: true,
-          explicitChildNodes: true,
-          child: FilledButton(
-            // Disabled until a non-empty reason is entered (assertion F).
-            onPressed: reasonEmpty ? null : submit,
-            child: const Text('Confirm'),
-          ),
+        AppButton(
+          variant: AppButtonVariant.destructive,
+          label: 'Confirm',
+          // Disabled until a non-empty reason is entered (assertion F).
+          onPressed: reasonEmpty ? null : submit,
+          semanticId: 'qst-callback-confirm-${widget.participantId}',
         ),
       ],
     );
   }
 
-  AlertDialog _busy(ThemeData theme) => AlertDialog(
-    title: const Text('Calling back…'),
-    content: const SizedBox(
-      width: 280,
+  Widget _busy(ThemeData theme) => const AppDialog(
+    size: AppDialogSize.small,
+    title: 'Calling back…',
+    dismissible: false,
+    body: SizedBox(
       height: 60,
       child: Center(child: CircularProgressIndicator()),
     ),
@@ -1104,7 +1154,7 @@ class _FinalizationDialogState extends State<_FinalizationDialog> {
     submit();
   }
 
-  AlertDialog _form(
+  Widget _form(
     BuildContext context,
     ThemeData theme,
     void Function() submit,
@@ -1115,15 +1165,22 @@ class _FinalizationDialogState extends State<_FinalizationDialog> {
       Failed(:final error) => 'Finalize failed: $error',
       _ => null,
     };
-    return AlertDialog(
-      title: const Text('Finalize Questionnaire'),
-      content: Column(
+    final selectionLabel = switch (_choice) {
+      _CycleChoice(:final studyEvent) => studyEvent,
+      _TerminalChoice(:final endEvent) => _endEventLabel(endEvent),
+    };
+    return AppDialog(
+      size: AppDialogSize.small,
+      title: 'Finalize Questionnaire?',
+      subtitle: 'Participant ID: ${widget.participantId}',
+      dismissible: false,
+      semanticId: 'qst-finalize-dialog-${widget.participantId}',
+      body: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            'Lock this questionnaire for participant ${widget.participantId} and '
-            'select the cycle to finalize.',
+            'Are you sure you want to finalize this Questionnaire?',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -1138,24 +1195,52 @@ class _FinalizationDialogState extends State<_FinalizationDialog> {
               setState(() => _choice = _choiceFor(v));
             },
           ),
+          const SizedBox(height: 12),
+          AppBanner(
+            severity: AppBannerSeverity.info,
+            message:
+                'This questionnaire will be finalized as: '
+                '$selectionLabel',
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Effects of this action:',
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Finalize this Questionnaire\n'
+            'Calculate the score and send it to EDC\n'
+            'Lock all Participant responses permanently',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'After finalization, the Participant cannot edit or update '
+            'their answers in the Daily Diary app.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           if (message != null) ...<Widget>[
             const SizedBox(height: 12),
-            Text(
-              message,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-            ),
+            AppBanner(severity: AppBannerSeverity.error, message: message),
           ],
         ],
       ),
       actions: <Widget>[
         // Assertion F: Cancel dismisses with no change.
-        TextButton(
+        AppButton(
+          variant: AppButtonVariant.secondary,
+          label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
         ),
-        // Assertion C: the Finalize Questionnaire button.
+        // Assertion C: the Finalize Questionnaire button (Figma: green).
         Semantics(
           identifier: 'qst-finalize-confirm-${widget.participantId}',
           button: true,
@@ -1163,17 +1248,22 @@ class _FinalizationDialogState extends State<_FinalizationDialog> {
           explicitChildNodes: true,
           child: FilledButton(
             onPressed: () => _onFinalize(submit),
-            child: const Text('Finalize Questionnaire'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF16A34A),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Confirm'),
           ),
         ),
       ],
     );
   }
 
-  AlertDialog _busy(ThemeData theme) => const AlertDialog(
-    title: Text('Finalizing…'),
-    content: SizedBox(
-      width: 280,
+  Widget _busy(ThemeData theme) => const AppDialog(
+    size: AppDialogSize.small,
+    title: 'Finalizing…',
+    dismissible: false,
+    body: SizedBox(
       height: 60,
       child: Center(child: CircularProgressIndicator()),
     ),
@@ -1199,36 +1289,29 @@ class _TerminalCycleWarningDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final label = _endEventLabel(endEvent);
-    return AlertDialog(
-      title: Row(
-        children: <Widget>[
-          Icon(Icons.warning_amber, color: theme.colorScheme.error),
-          const SizedBox(width: 8),
-          const Expanded(child: Text('Permanently Close Questionnaire?')),
-        ],
-      ),
-      content: Text(
+    return AppDialog(
+      size: AppDialogSize.medium,
+      icon: Icon(Icons.warning_amber, color: theme.colorScheme.error),
+      title: 'Permanently Close Questionnaire?',
+      dismissible: false,
+      body: Text(
         'Finalizing as "$label" will permanently close this questionnaire for '
         'participant $participantId. No further cycles of this questionnaire '
         'can be sent. This cannot be undone.',
-        style: theme.textTheme.bodyMedium,
       ),
       actions: <Widget>[
         // Assertion G: Cancel pops false -> return to the Finalization Dialog
         // unchanged.
-        TextButton(
+        AppButton(
+          variant: AppButtonVariant.secondary,
+          label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
         ),
-        Semantics(
-          identifier: 'qst-terminal-warning-confirm-$participantId',
-          button: true,
-          container: true,
-          explicitChildNodes: true,
-          child: FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Close as $label'),
-          ),
+        AppButton(
+          variant: AppButtonVariant.destructive,
+          label: 'Close as $label',
+          onPressed: () => Navigator.of(context).pop(true),
+          semanticId: 'qst-terminal-warning-confirm-$participantId',
         ),
       ],
     );
