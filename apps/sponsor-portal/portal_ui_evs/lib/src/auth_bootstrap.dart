@@ -1,18 +1,25 @@
 // Auth-mode bootstrap: resolve the login UI mode from the server's identity
-// config and, in session mode, wire Firebase + the auth emulator BEFORE the
-// login surface is presented.
+// config and, in an emulator deployment, wire Firebase + the auth emulator
+// reliably BEFORE the login surface is presented.
 //
-// Why this exists: the login screen must never render against production
-// Firebase when the deployment reports an emulator host. A silently-failed
-// `useAuthEmulator` would leave the SPA pointed at prod — every sign-in then
-// fails and the Firebase-injected "Running in emulator mode" banner is absent.
-// That made local-stack logins (and any automated test driving them) flaky,
-// fixed only by reloading until a load happened to connect. So here the
-// emulator connect is RETRIED and its outcome GATES readiness: the caller
-// keeps showing the loading state until `sessionReady`, and surfaces an
-// explicit failure rather than a prod-pointed login.
+// Why the pre-init wipe exists (flutterfire #9528): on web, the Firebase JS SDK
+// auto-restores any persisted user from IndexedDB (`firebaseLocalStorageDb`)
+// during `Firebase.initializeApp`. That restore "uses" the Auth instance before
+// `useAuthEmulator` can run (it requires the initialized app), so the later
+// `connectAuthEmulator` is silently rejected (`auth/emulator-config-failed`,
+// swallowed by firebase_auth_web). The Dart `useAuthEmulator` returns success
+// while the JS binding never applied, and every sign-in then hits PRODUCTION and
+// fails with `api-key-not-valid` — the flaky local-stack login (intermittent
+// because the restore races the bind; "reload/clear-site-data recovers").
 //
-// Implements: DIARY-DEV-portal-second-factor-toggle/C
+// The fix is to delete `firebaseLocalStorageDb` BEFORE `initializeApp` on
+// emulator deployments: with no stored user there is nothing to restore, the
+// instance is never used early, and the emulator connect binds cleanly every
+// load. Production deployments (no emulator host) are never wiped — that would
+// log every user out on each load — so a real restored session is left intact
+// and the server's 401 path remains the staleness gate.
+//
+// Implements: DIARY-DEV-portal-emulator-bootstrap/A+B+C
 
 /// The resolved bootstrap outcome the app shell renders from.
 enum AuthBootstrapOutcome {
@@ -23,69 +30,48 @@ enum AuthBootstrapOutcome {
   /// the Firebase login surface.
   sessionReady,
 
-  /// Session mode but Firebase/emulator init kept failing — render an
-  /// explicit error (do NOT fall back to a prod-pointed login).
+  /// Session mode but Firebase/emulator init failed — render an explicit error
+  /// (do NOT fall back to a prod-pointed login).
   failed,
 }
 
 typedef IdentityConfigFetcher = Future<Map<String, Object?>?> Function();
 
-/// Initializes Firebase from the config; returns normally on success and
-/// THROWS on failure (so the retry loop can react). Returns whether an
-/// emulator was wired (informational; callers gate on success/throw).
-/// Initializes Firebase from the config; returns true when an emulator was
-/// wired (`useAuthEmulator` called), false for a production deployment.
+/// Initializes Firebase from the config and, when the deployment reports an
+/// emulator host, connects the auth emulator. Returns whether an emulator was
+/// wired (informational); THROWS on failure so the caller surfaces an explicit
+/// error rather than a prod-pointed login.
 typedef FirebaseInitializer = Future<bool> Function(Map<String, Object?> cfg);
 
-/// Probes whether an auth call actually REACHES the emulator yet. Throws while
-/// the SDK hasn't applied the emulator connect (calls still hit production);
-/// returns normally once it has. This is the behavioural readiness signal —
-/// `useAuthEmulator()` resolves BEFORE the connect lands, so awaiting it is not
-/// enough.
-typedef EmulatorConnectivityProbe = Future<void> Function();
+/// Deletes the Firebase Auth persistence DB (`firebaseLocalStorageDb`). Injected
+/// so the ordering logic is unit-testable without `package:web`; the real impl
+/// lives on the `WebPlatform` web seam (a no-op off web / on the test VM).
+typedef AuthDbCleaner = Future<void> Function();
 
-Future<void> _wait(Duration d) => Future<void>.delayed(d);
-
-/// Resolves the auth bootstrap outcome, gating a session-mode login on the
-/// emulator being genuinely reachable.
+/// Resolves the auth bootstrap outcome.
 ///
-/// In emulator deployments `useAuthEmulator()` returns before the SDK applies
-/// the connect, so [initFirebase] completing is NOT sufficient — a login shown
-/// in that window submits against production and fails (the flaky-login race).
-/// So after init, [verifyConnected] is POLLED (up to [maxAttempts], [retryDelay]
-/// apart) until an auth call reaches the emulator; only then [sessionReady].
-/// A production deployment (no emulator) skips the probe. All I/O is injected
-/// so the gating + poll logic is unit-testable without Firebase or a server.
+/// In an emulator deployment the persisted Firebase Auth IndexedDB is wiped via
+/// [clearAuthDb] BEFORE [initFirebase] runs, so the SDK has no user to
+/// auto-restore and `useAuthEmulator` binds cleanly (flutterfire #9528). A
+/// production deployment (no `emulatorHost`) is never wiped. All I/O is injected
+/// so the sequencing is unit-testable without Firebase, a server, or a browser.
 Future<AuthBootstrapOutcome> resolveAuthBootstrap({
   required IdentityConfigFetcher fetchConfig,
   required FirebaseInitializer initFirebase,
-  required EmulatorConnectivityProbe verifyConnected,
-  int maxAttempts = 15,
-  Duration retryDelay = const Duration(milliseconds: 200),
-  Future<void> Function(Duration) sleep = _wait,
+  required AuthDbCleaner clearAuthDb,
 }) async {
   final cfg = await fetchConfig();
   if (cfg == null || cfg['authMode'] != 'session') {
     return AuthBootstrapOutcome.dev;
   }
-  final bool emulator;
+  final emulatorHost = (cfg['emulatorHost'] as String?) ?? '';
   try {
-    emulator = await initFirebase(cfg);
+    // #9528: the wipe MUST precede initializeApp (inside initFirebase). Only on
+    // emulator deployments — never wipe a production session.
+    if (emulatorHost.isNotEmpty) await clearAuthDb();
+    await initFirebase(cfg);
   } catch (_) {
     return AuthBootstrapOutcome.failed;
   }
-  // Production: no emulator to wait on — the login can render immediately.
-  if (!emulator) return AuthBootstrapOutcome.sessionReady;
-  // Emulator: poll until an auth call actually reaches it (the connect lands
-  // after useAuthEmulator returns), so the login is never submittable against
-  // production in the gap.
-  for (var attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      await verifyConnected();
-      return AuthBootstrapOutcome.sessionReady;
-    } catch (_) {
-      if (attempt < maxAttempts - 1) await sleep(retryDelay);
-    }
-  }
-  return AuthBootstrapOutcome.failed;
+  return AuthBootstrapOutcome.sessionReady;
 }
