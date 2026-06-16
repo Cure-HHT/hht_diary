@@ -17,4 +17,7 @@ class WebPlatform {
   void markAutoReloadTried() {}
 
   void clearAutoReloadGuard() {}
+
+  /// No IndexedDB off web; nothing to wipe.
+  Future<void> clearFirebaseAuthDb() async {}
 }

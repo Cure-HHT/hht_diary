@@ -123,13 +123,14 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// Null while the config is still loading; `true` renders the Firebase
   /// Login/OTP screens, `false` renders the dev ConnectScreen. Resolving at
   /// runtime lets one web image serve both dev and session-auth deployments.
-  // Implements: DIARY-DEV-portal-second-factor-toggle/C
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/C
   bool? _sessionAuth;
 
-  /// True when session-mode Firebase/emulator init exhausted its retries.
-  /// Renders an explicit error+reload rather than a login pointed at the
-  /// wrong (production) Firebase — a silently-failed emulator connect was the
-  /// root cause of the flaky local-stack logins. See [_resolveAuthMode].
+  /// True when session-mode Firebase/emulator init failed. Renders an explicit
+  /// error+reload rather than a login pointed at the wrong (production)
+  /// Firebase — a silently-failed emulator connect was the root cause of the
+  /// flaky local-stack logins. See [_resolveAuthMode].
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/C
   bool _authInitFailed = false;
 
   /// Set to true after the user taps "Back to Login" on the password-reset done
@@ -256,19 +257,18 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
 
   /// Resolves the login-UI mode from the server's identity config. In session
   /// mode, Firebase (and, when the deployment reports one, the auth emulator)
-  /// MUST be wired before the login surface renders: a silently-failed
-  /// emulator connect would leave the SPA pointed at production, so every
-  /// sign-in fails and the Firebase "emulator mode" banner is absent (the
-  /// flaky-local-login symptom). [resolveAuthBootstrap] retries the init and
-  /// gates the outcome — the login only appears on `sessionReady`, the loading
-  /// state holds until then, and exhausted retries surface an explicit error
+  /// MUST be wired before the login surface renders. On an emulator deployment
+  /// the persisted Firebase Auth IndexedDB is wiped BEFORE init so the emulator
+  /// connect binds cleanly instead of silently falling through to production —
+  /// the flaky-local-login root cause (flutterfire #9528). The login appears
+  /// only on `sessionReady`; a genuine init failure surfaces an explicit error
   /// rather than a prod-pointed login.
-  // Implements: DIARY-DEV-portal-second-factor-toggle/C
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/A+B+C
   Future<void> _resolveAuthMode() async {
     final outcome = await resolveAuthBootstrap(
       fetchConfig: () => fetchIdentityConfig(_serverUrl),
       initFirebase: initFirebaseWithConfig,
-      verifyConnected: verifyEmulatorConnected,
+      clearAuthDb: widget.web.clearFirebaseAuthDb,
     );
     if (!mounted) return;
     setState(() {

@@ -1,133 +1,100 @@
-// Verifies: DIARY-DEV-portal-second-factor-toggle/C — the auth-mode bootstrap
-// gates a session-mode login on the emulator being GENUINELY reachable: it
-// polls a connectivity probe after init (because useAuthEmulator returns before
-// the connect lands) and only reaches the login once an auth call hits the
-// emulator — never in the gap where a submit would hit production.
+// Verifies: DIARY-DEV-portal-emulator-bootstrap/A+B+C — the auth-mode bootstrap
+// resolves the login UI from /config/identity and, in an emulator deployment,
+// WIPES the Firebase Auth IndexedDB (firebaseLocalStorageDb) BEFORE initializing
+// Firebase. That pre-init wipe is the fix for flutterfire #9528: with no stored
+// user to auto-restore, the SDK never "uses" the Auth instance before
+// useAuthEmulator binds, so the emulator connect applies cleanly and auth never
+// silently falls through to production. Production deployments (no emulator host)
+// must NOT be wiped — that would log every user out on each load.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portal_ui_evs/src/auth_bootstrap.dart';
 
 void main() {
-  Future<void> noSleep(Duration _) async {}
-  Future<void> ok() async {}
-  Future<void> never() async => throw StateError('not reachable');
-
-  test('null config -> dev', () async {
+  test('null config -> dev (no init, no wipe)', () async {
+    var initCalls = 0;
+    var wipeCalls = 0;
     final outcome = await resolveAuthBootstrap(
       fetchConfig: () async => null,
-      initFirebase: (_) async => false,
-      verifyConnected: ok,
-      sleep: noSleep,
+      initFirebase: (_) async {
+        initCalls++;
+        return false;
+      },
+      clearAuthDb: () async => wipeCalls++,
     );
     expect(outcome, AuthBootstrapOutcome.dev);
+    expect(initCalls, 0);
+    expect(wipeCalls, 0);
   });
 
-  test('authMode != session -> dev (no firebase init)', () async {
+  test('authMode != session -> dev (no firebase init, no wipe)', () async {
     var initCalls = 0;
+    var wipeCalls = 0;
     final outcome = await resolveAuthBootstrap(
       fetchConfig: () async => <String, Object?>{'authMode': 'dev'},
       initFirebase: (_) async {
         initCalls++;
         return false;
       },
-      verifyConnected: ok,
-      sleep: noSleep,
+      clearAuthDb: () async => wipeCalls++,
     );
     expect(outcome, AuthBootstrapOutcome.dev);
     expect(initCalls, 0);
+    expect(wipeCalls, 0);
   });
 
   test(
-    'production session (no emulator) -> sessionReady WITHOUT probing',
+    'production session (no emulator host) -> sessionReady, NEVER wipes',
     () async {
-      var probeCalls = 0;
+      var wipeCalls = 0;
       final outcome = await resolveAuthBootstrap(
         fetchConfig: () async => <String, Object?>{'authMode': 'session'},
-        initFirebase: (_) async => false, // no emulator wired
-        verifyConnected: () async {
-          probeCalls++;
-        },
-        sleep: noSleep,
+        initFirebase: (_) async => false,
+        clearAuthDb: () async => wipeCalls++,
       );
       expect(outcome, AuthBootstrapOutcome.sessionReady);
       expect(
-        probeCalls,
+        wipeCalls,
         0,
-        reason: 'production must not probe a (missing) emulator',
+        reason: 'wiping prod firebaseLocalStorageDb would log users out',
       );
     },
   );
 
-  test('emulator reachable on first probe -> sessionReady', () async {
-    var probeCalls = 0;
-    final outcome = await resolveAuthBootstrap(
-      fetchConfig: () async => <String, Object?>{
-        'authMode': 'session',
-        'emulatorHost': 'localhost:9099',
-      },
-      initFirebase: (_) async => true,
-      verifyConnected: () async {
-        probeCalls++;
-      },
-      sleep: noSleep,
-    );
-    expect(outcome, AuthBootstrapOutcome.sessionReady);
-    expect(probeCalls, 1);
-  });
-
   test(
-    'emulator connect lands late: probe throws then succeeds -> sessionReady',
+    'emulator session -> wipes Auth IndexedDB BEFORE init, then sessionReady',
     () async {
-      var probeCalls = 0;
+      final order = <String>[];
       final outcome = await resolveAuthBootstrap(
         fetchConfig: () async => <String, Object?>{
           'authMode': 'session',
           'emulatorHost': 'localhost:9099',
         },
-        initFirebase: (_) async => true,
-        verifyConnected: () async {
-          probeCalls++;
-          if (probeCalls < 4) throw StateError('connect not applied yet');
+        initFirebase: (_) async {
+          order.add('init');
+          return true;
         },
-        maxAttempts: 15,
-        sleep: noSleep,
+        clearAuthDb: () async => order.add('wipe'),
       );
       expect(outcome, AuthBootstrapOutcome.sessionReady);
       expect(
-        probeCalls,
-        4,
-        reason: 'polls until an auth call reaches the emulator',
+        order,
+        <String>['wipe', 'init'],
+        reason:
+            'the pre-init wipe must happen before Firebase.initializeApp '
+            '(flutterfire #9528) — otherwise the IndexedDB restore uses the '
+            'Auth instance and useAuthEmulator is silently dropped',
       );
-    },
-  );
-
-  test(
-    'emulator never reachable -> failed (NOT a prod-pointed login)',
-    () async {
-      var probeCalls = 0;
-      final outcome = await resolveAuthBootstrap(
-        fetchConfig: () async => <String, Object?>{
-          'authMode': 'session',
-          'emulatorHost': 'localhost:9099',
-        },
-        initFirebase: (_) async => true,
-        verifyConnected: () async {
-          probeCalls++;
-          await never();
-        },
-        maxAttempts: 5,
-        sleep: noSleep,
-      );
-      expect(outcome, AuthBootstrapOutcome.failed);
-      expect(probeCalls, 5, reason: 'exhausts the probe budget before failing');
     },
   );
 
   test('init throws -> failed', () async {
     final outcome = await resolveAuthBootstrap(
-      fetchConfig: () async => <String, Object?>{'authMode': 'session'},
+      fetchConfig: () async => <String, Object?>{
+        'authMode': 'session',
+        'emulatorHost': 'localhost:9099',
+      },
       initFirebase: (_) async => throw StateError('init blew up'),
-      verifyConnected: ok,
-      sleep: noSleep,
+      clearAuthDb: () async {},
     );
     expect(outcome, AuthBootstrapOutcome.failed);
   });
