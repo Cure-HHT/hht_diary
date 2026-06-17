@@ -8,8 +8,8 @@ void main() {
   group('visibleSections', () {
     // Verifies: DIARY-GUI-role-switching/E+F — the shell shows only the sections
     //   the active role holds the gating permission for. The redesigned
-    //   dashboard ships User Accounts + Sites + Audit Log; Participants /
-    //   RAVE Sync return when their own redesign round lands.
+    //   dashboard now ships User Accounts + Sites + Participants + RAVE Sync +
+    //   Audit Log on the kit.
     test(
       'an Administrator-like permission set sees every section, in order',
       () {
@@ -24,46 +24,50 @@ void main() {
           'User Accounts',
           'Sites',
           'Participants',
+          'RAVE Sync',
           'Audit Log',
         ]);
       },
     );
 
     // Verifies: DIARY-GUI-role-switching/E+F — a StudyCoordinator holds
-    //   site/participant/audit views (CUR-1474 matrix fix) but not
+    //   site/participant/rave/audit views (CUR-1474 matrix fix) but not
     //   portal.user.view_accounts. An Administrator without
     //   portal.participant.view never sees Participants (CUR-1472).
+    test('a StudyCoordinator-like set sees Sites + Participants + RAVE Sync + '
+        'Audit Log', () {
+      final held = <String>{
+        'portal.site.view',
+        'portal.participant.view',
+        'portal.rave.view_sync',
+        'portal.audit.view',
+      };
+      expect(_labels(visibleSections(held)), <String>[
+        'Sites',
+        'Participants',
+        'RAVE Sync',
+        'Audit Log',
+      ]);
+    });
+
+    // Verifies: DIARY-GUI-role-switching/E+F — SystemOperator holds
+    //   portal.user.view_accounts + portal.site.view + portal.rave.view_sync
+    //   but not portal.audit.view, so it sees those three (in order).
     test(
-      'a StudyCoordinator-like set sees Sites + Participants + Audit Log',
+      'a SystemOperator-like set sees User Accounts + Sites + RAVE Sync',
       () {
         final held = <String>{
+          'portal.user.view_accounts',
           'portal.site.view',
-          'portal.participant.view',
           'portal.rave.view_sync',
-          'portal.audit.view',
         };
         expect(_labels(visibleSections(held)), <String>[
+          'User Accounts',
           'Sites',
-          'Participants',
-          'Audit Log',
+          'RAVE Sync',
         ]);
       },
     );
-
-    // Verifies: DIARY-GUI-role-switching/E+F — SystemOperator holds
-    //   portal.user.view_accounts + portal.site.view but not
-    //   portal.audit.view, so it sees User Accounts + Sites.
-    test('a SystemOperator-like set sees User Accounts + Sites', () {
-      final held = <String>{
-        'portal.user.view_accounts',
-        'portal.site.view',
-        'portal.rave.view_sync',
-      };
-      expect(_labels(visibleSections(held)), <String>[
-        'User Accounts',
-        'Sites',
-      ]);
-    });
 
     // Verifies: DIARY-GUI-role-switching/E+F
     test('no held permissions hides every section', () {

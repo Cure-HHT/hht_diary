@@ -69,6 +69,29 @@ Making the *Second Factor* conditional on a recorded setting is what lets a non-
 
 *End* *Conditional second factor* | **Hash**: d4b853aa
 
+## DIARY-DEV-portal-emulator-bootstrap: Portal client emulator bootstrap
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-DEV-runtime-environment-resolution
+
+### Overview
+
+The portal client wires the Identity Platform *Auth* emulator from the runtime identity configuration the server provides over the same origin, before any login surface is presented. On a deployment that reports an emulator host the client first deletes its persisted *Auth* state, then initializes the *Auth* SDK, then connects the emulator — so the SDK has no stored *User* to auto-restore and the emulator connection is never silently dropped. A deployment that reports no emulator host (production) leaves persisted *Auth* state intact and connects no emulator.
+
+### Assertions
+
+A. On a deployment whose runtime identity configuration reports an *Auth* emulator host, the portal client SHALL delete its persisted *Auth* state before initializing the *Auth* SDK and then connect the reported emulator, so the SDK auto-restores no *User* and the emulator connection applies rather than being silently dropped.
+
+B. On a deployment whose runtime identity configuration reports no emulator host, the portal client SHALL NOT delete persisted *Auth* state, leaving a restorable *Session* intact.
+
+C. The portal client SHALL present the login surface only after *Auth* initialization — including the emulator connection when one is reported — completes, and SHALL surface an explicit failure rather than a login that would authenticate against production when initialization fails.
+
+### Rationale
+
+On the web the *Auth* SDK auto-restores any persisted *User* during initialization, which uses the *Auth* instance before the emulator can be connected; the connect is then rejected and silently swallowed, leaving the client pointed at production so every sign-in fails against the non-production dummy key (the intermittent local login that "a reload fixes"). Deleting persisted *Auth* state before initialization removes the *User* there is to restore, so the emulator connects deterministically on every load. The delete is gated on a reported emulator host so a production deployment never wipes a real restorable *Session* — there the server's request rejection remains the staleness gate. Gating the login surface on completed initialization, and failing explicitly rather than falling through, keeps a misconfigured or unreachable emulator from masquerading as a production-pointed login.
+
+*End* *Portal client emulator bootstrap* | **Hash**: 8ce0878f
+
 ## DIARY-DEV-portal-session-token: Portal session token
 
 **Level**: DEV | **Status**: Draft | **Implements**: -

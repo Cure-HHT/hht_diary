@@ -67,7 +67,7 @@ class EpistaxisEventPayload {
       startTime: json['startTime']! as String,
       startTimeZone: json['startTimeZone']! as String,
       startTimeUtcOffset: json['startTimeUtcOffset']! as String,
-      participantId: json['participantId']! as String,
+      participantId: ((json['participantId']) ?? "") as String,
       endTime: json['endTime'] as String?,
       endTimeZone: json['endTimeZone'] as String?,
       endTimeUtcOffset: json['endTimeUtcOffset'] as String?,

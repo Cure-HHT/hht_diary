@@ -184,6 +184,7 @@
 | DIARY-DEV-portal-activation-email-delivery   | Activation email delivery                             | dev-portal-activation.md           | 8357a727 |
 | DIARY-DEV-portal-active-role-switch          | In-session active role switch                         | dev-portal-login.md                | 3d941dbc |
 | DIARY-DEV-portal-durable-event-store         | Durable, environment-selected event store             | dev-portal-service.md              | cfb9c8c5 |
+| DIARY-DEV-portal-emulator-bootstrap          | Portal client emulator bootstrap                      | dev-portal-login.md                | 8ce0878f |
 | DIARY-DEV-portal-identity-provisioning       | Identity Platform provisioning                        | dev-portal-activation.md           | 0e3eb2b5 |
 | DIARY-DEV-portal-legacy-sw-eviction          | Legacy service-worker eviction + reload-loop guard    | dev-portal-web-lifecycle.md        | bb48c254 |
 | DIARY-DEV-portal-login-identity-verification | Login identity verification                           | dev-portal-login.md                | 4b3d6032 |
