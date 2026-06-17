@@ -912,10 +912,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     // Yesterday's finalized nosebleed entries plus any completed surveys
     // (DIARY-PRD-questionnaire-system/B: a finalized survey surfaces alongside
-    // the day's clinical entries).
+    // the day's clinical entries) plus any whole-day marker (no-nosebleed /
+    // don't-remember). CUR-1491: the marker MUST surface as its own row so a
+    // recorded "Don't remember" (or "No nosebleeds") renders its distinct
+    // status instead of falling through to the bare "No records" empty state —
+    // "nothing recorded" and "acknowledged uncertainty" are different clinical
+    // states (cf. REQ-CAL-d00012).
     final yesterdayEntries = <DiaryEntryView>[
       ...view.entriesOn(yesterdayStr).whereType<EpistaxisEntryView>(),
       ...view.entriesOn(yesterdayStr).whereType<SurveyEntryView>(),
+      ...view.entriesOn(yesterdayStr).whereType<DayMarkerView>(),
     ]..sort(byStart);
 
     // Any entry at all on yesterday (incl. day markers + incomplete checkpoints).
@@ -939,6 +945,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final todayEntries = <DiaryEntryView>[
       ...view.entriesOn(todayStr).whereType<EpistaxisEntryView>(),
       ...view.entriesOn(todayStr).whereType<SurveyEntryView>(),
+      // CUR-1491: today's whole-day marker surfaces as its own row too (same
+      // reasoning as the yesterday group above).
+      ...view.entriesOn(todayStr).whereType<DayMarkerView>(),
       ...view.incompleteEntries.where((e) => isEpistaxisOn(e, todayStr)),
     ]..sort(byStart);
 
