@@ -152,10 +152,12 @@ class _IncompleteRecordRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = Localizations.localeOf(context).languageCode;
-    final timestamp = DateFormat(
-      'hh:mm a MM/dd/yyyy',
-      locale,
-    ).format(entry.startTime);
+    // Leading space so the row's merged semantics (and any layout where the
+    // label sits flush against the time) read "Incomplete Record 10:43 AM
+    // 06/15/2026" rather than "Incomplete Record10:43 AM 06/15/2026" — the
+    // two Text children are otherwise concatenated without a separator.
+    final timestamp =
+        ' ${DateFormat('hh:mm a MM/dd/yyyy', locale).format(entry.startTime)}';
     const accent = Color(0xFFB9790A);
 
     final radius = BorderRadius.circular(8);
