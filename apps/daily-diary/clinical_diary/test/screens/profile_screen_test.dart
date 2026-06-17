@@ -8,7 +8,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/widgets/back_to_home_row.dart';
 import 'package:clinical_diary/widgets/branding_logo.dart';
@@ -16,6 +15,7 @@ import 'package:clinical_diary/widgets/user_menu_button.dart';
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
@@ -50,6 +50,7 @@ void main() {
       String? siteName,
       String? sitePhoneNumber,
       BrandingLogoBuilder? sponsorLogoBuilder,
+      ExternalUrlLauncher? externalUrlLauncher,
     }) {
       return wrapWithMaterialApp(
         ProfileScreen(
@@ -57,6 +58,9 @@ void main() {
           onStartClinicalTrialEnrollment: () {},
           onShowSettings: () {},
           sponsorLogoBuilder: sponsorLogoBuilder,
+          externalUrlLauncher:
+              externalUrlLauncher ??
+              (url, {mode = LaunchMode.platformDefault}) async => true,
           isEnrolledInTrial: isEnrolledInTrial,
           isDisconnected: isDisconnected,
           isNotParticipating: isNotParticipating,
@@ -288,15 +292,31 @@ void main() {
         },
       );
 
-      // Verifies: REQ-p00045 (Clinical Trial Privacy Policy)
+      // CUR-1495: the Application Privacy Policy row launches the external URL.
+      test('Application Privacy Policy URL is the CureHHT app policy', () {
+        expect(
+          kApplicationPrivacyPolicyUrl,
+          'https://anspar.org/privacy-cure-hht-app/',
+        );
+      });
+
       testWidgets(
-        'tapping Application Privacy Policy opens the privacy policy screen',
+        'tapping Application Privacy Policy launches the policy URL in the '
+        'external browser',
         (tester) async {
+          Uri? launchedUri;
+          LaunchMode? launchedMode;
           await tester.pumpWidget(
             buildProfileScreen(
               isEnrolledInTrial: true,
               isDisconnected: false,
               enrollmentStatus: 'active',
+              externalUrlLauncher:
+                  (url, {mode = LaunchMode.platformDefault}) async {
+                    launchedUri = url;
+                    launchedMode = mode;
+                    return true;
+                  },
             ),
           );
           await tester.pumpAndSettle();
@@ -308,7 +328,39 @@ void main() {
           await tester.tap(find.text('Application Privacy Policy'));
           await tester.pumpAndSettle();
 
-          expect(find.byType(ClinicalTrialPrivacyPolicyScreen), findsOneWidget);
+          expect(
+            launchedUri,
+            Uri.parse('https://anspar.org/privacy-cure-hht-app/'),
+          );
+          expect(launchedMode, LaunchMode.externalApplication);
+        },
+      );
+
+      testWidgets(
+        'shows an error SnackBar when the privacy policy launch fails',
+        (tester) async {
+          await tester.pumpWidget(
+            buildProfileScreen(
+              isEnrolledInTrial: true,
+              isDisconnected: false,
+              enrollmentStatus: 'active',
+              externalUrlLauncher:
+                  (url, {mode = LaunchMode.platformDefault}) async => false,
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          await tester.scrollUntilVisible(
+            find.text('Application Privacy Policy'),
+            200,
+          );
+          await tester.tap(find.text('Application Privacy Policy'));
+          await tester.pump();
+
+          expect(
+            find.text('Could not open the privacy policy'),
+            findsOneWidget,
+          );
         },
       );
     });
