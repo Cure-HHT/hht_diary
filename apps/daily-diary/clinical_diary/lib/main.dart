@@ -21,6 +21,11 @@ import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
 import 'package:clinical_diary/firebase_options.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/notifications/epistaxis_reminder_schedule.dart';
+import 'package:clinical_diary/notifications/local_notification_scheduler.dart';
+import 'package:clinical_diary/notifications/ongoing_epistaxis_reminder_service.dart';
+import 'package:clinical_diary/notifications/yesterday_reminder_schedule.dart';
+import 'package:clinical_diary/notifications/yesterday_reminder_service.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/scope/diary_sync_triggers.dart';
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
@@ -265,6 +270,17 @@ class _AppRootState extends State<AppRoot> {
   MobileNotificationService? _notificationService;
   Object? _bootstrapError;
   DebugBridge? _debugBridge;
+
+  /// Schedules the Ongoing Epistaxis (nosebleed) Reminder notifications off the
+  /// device-local `diary_incomplete` projection. Null on web/local-stack, where
+  /// it is backed by a no-op scheduler. Disposed with the runtime.
+  // Implements: DIARY-PRD-notification-ongoing-epistaxis/A
+  OngoingEpistaxisReminderService? _epistaxisReminderService;
+
+  /// Schedules the daily Yesterday Entry Reminder. Re-evaluated from the sync
+  /// triggers and fed the resolved config from the settings projection.
+  // Implements: DIARY-PRD-notification-yesterday-entry/A
+  YesterdayReminderService? _yesterdayReminderService;
 
   @override
   void initState() {
@@ -567,6 +583,11 @@ class _AppRootState extends State<AppRoot> {
                   : null,
               onTrigger: () async {
                 await _reconcileDiaryScope(diaryScope);
+                // Re-evaluate the daily Yesterday reminder on every trigger
+                // (app-resume / periodic / connectivity / push) so a newly
+                // recorded day cancels it and a new day re-schedules it.
+                // Implements: DIARY-PRD-notification-yesterday-entry/D
+                unawaited(_yesterdayReminderService?.reevaluate());
                 // Pause outbound sync while the participant is disconnected or
                 // not-participating (DIARY-DEV-participant-state-poll/B). The
                 // reconcile above refreshed both notifiers from /state.
@@ -584,6 +605,42 @@ class _AppRootState extends State<AppRoot> {
           // the app was closed is picked up without waiting for a trigger.
           unawaited(_reconcileDiaryScope(diaryScope));
         }
+      }
+
+      // Reminder services: observe the device-local diary projections and
+      // schedule the Ongoing Epistaxis and daily Yesterday Entry reminders. The
+      // native plugin has no web implementation, and the local-stack runs
+      // web/Linux without a tray, so both use a no-op scheduler.
+      // Implements: DIARY-PRD-notification-ongoing-epistaxis/A
+      // Implements: DIARY-PRD-notification-yesterday-entry/A
+      try {
+        final LocalNotificationScheduler scheduler;
+        if (kIsWeb || EnvProfile.current.env == AppEnv.local) {
+          scheduler = const NoOpLocalNotificationScheduler();
+        } else {
+          final flutterScheduler = FlutterLocalNotificationScheduler();
+          // A tapped reminder opens the app; routing is by payload. The home
+          // screen already surfaces the Yesterday banner, so a tap needs no
+          // extra navigation today — kept as a seam for future deep-linking.
+          await flutterScheduler.initialize(onTap: _onReminderTapped);
+          scheduler = flutterScheduler;
+        }
+        final reminderService = OngoingEpistaxisReminderService(
+          viewSource: diaryScope.scope.viewSource,
+          scheduler: scheduler,
+        );
+        await reminderService.start();
+        _epistaxisReminderService = reminderService;
+
+        _yesterdayReminderService = YesterdayReminderService(
+          viewSource: diaryScope.scope.viewSource,
+          scheduler: scheduler,
+        );
+        // Re-evaluate once at boot so a missed day surfaces without waiting for
+        // a trigger; config arrives via the settings ViewBuilder in build().
+        unawaited(_yesterdayReminderService!.reevaluate());
+      } catch (e, stack) {
+        debugPrint('[Bootstrap] reminder services failed: $e\n$stack');
       }
 
       if (mounted) {
@@ -866,6 +923,18 @@ class _AppRootState extends State<AppRoot> {
       debugPrint('[Reset] sync-trigger dispose failed: $e\n$stack');
     }
     _diarySyncTriggers = null;
+    try {
+      await _epistaxisReminderService?.dispose();
+    } catch (e, stack) {
+      debugPrint('[Reset] epistaxis reminder dispose failed: $e\n$stack');
+    }
+    _epistaxisReminderService = null;
+    try {
+      await _yesterdayReminderService?.dispose();
+    } catch (e, stack) {
+      debugPrint('[Reset] yesterday reminder dispose failed: $e\n$stack');
+    }
+    _yesterdayReminderService = null;
     _diaryIngestClient?.close();
     _diaryIngestClient = null;
     try {
@@ -1096,6 +1165,15 @@ class _AppRootState extends State<AppRoot> {
     unawaited(_taskService.syncTasks(_enrollmentService));
   }
 
+  /// Called when a local reminder notification is tapped (foreground or launch).
+  /// Tapping opens the app; the home screen already surfaces the Yesterday
+  /// banner when yesterday is unrecorded, so no extra navigation is needed today.
+  /// Kept as a seam for future deep-linking by [payload].
+  // Implements: DIARY-PRD-notification-yesterday-entry/A
+  void _onReminderTapped(String? payload) {
+    debugPrint('[Reminder] notification tapped: $payload');
+  }
+
   @override
   void dispose() {
     _notificationService?.dispose();
@@ -1110,6 +1188,18 @@ class _AppRootState extends State<AppRoot> {
     unawaited(localPushController?.close());
     _taskService.dispose();
     unawaited(_debugBridge?.stop());
+    unawaited(
+      _epistaxisReminderService?.dispose().catchError(
+        (Object e, StackTrace st) =>
+            debugPrint('[EpistaxisReminder] dispose error: $e\n$st'),
+      ),
+    );
+    unawaited(
+      _yesterdayReminderService?.dispose().catchError(
+        (Object e, StackTrace st) =>
+            debugPrint('[YesterdayReminder] dispose error: $e\n$st'),
+      ),
+    );
     _runtime?.dispose();
     // CUR-1169 I2a: tear down the native outbound sync triggers + HTTP client
     // before disposing the scope they drive.
@@ -1326,6 +1416,21 @@ class _AppRootState extends State<AppRoot> {
             deploymentDefaults: AppConfig.deploymentUiDefaults,
           );
           _reconcileUiPicks(diaryScope, prefs, sponsorUiConfig);
+          // Feed the resolved Reminder Schedule (sponsor-over-personal-over-empty)
+          // to the reminder service off the same settings projection.
+          // Implements: DIARY-PRD-notification-ongoing-epistaxis/G+I+J
+          _epistaxisReminderService?.updateSchedule(
+            resolveEpistaxisReminderSchedule(settingsMap),
+          );
+          // Feed the resolved Yesterday reminder config (sponsor-over-personal)
+          // plus the clinical lock gate so a locked day is never reminded.
+          // Implements: DIARY-PRD-notification-yesterday-entry/F
+          unawaited(
+            _yesterdayReminderService?.updateConfig(
+              config: resolveYesterdayReminderConfig(settingsMap),
+              gate: clinicalRules.gate,
+            ),
+          );
           return _buildMaterialApp(
             prefs: prefs,
             clinicalRules: clinicalRules,
