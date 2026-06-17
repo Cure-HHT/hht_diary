@@ -460,14 +460,10 @@ void main() {
         );
 
         // The banner is gone and the marker renders its distinct "Don't
-        // remember" status (leading "Unknown" + "Unable to recall events for
-        // this day").
-        expect(find.text("Don't remember"), findsNothing);
-        expect(find.text('Unknown'), findsOneWidget);
-        expect(
-          find.text('Unable to recall events for this day'),
-          findsOneWidget,
-        );
+        // remember" status (CUR-1491: minimal muted row, label reads
+        // "Don't remember" — not "Unknown").
+        expect(find.text("Don't remember"), findsOneWidget);
+        expect(find.text('Unknown'), findsNothing);
 
         // The yesterday card must NOT fall through to the "No records" empty
         // placeholder (today's empty card may still show one — scope the

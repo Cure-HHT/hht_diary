@@ -56,11 +56,13 @@ class EventListItem extends StatelessWidget {
   /// amber bar on an incomplete one) so the row reads at a glance.
   final Color? accentColor;
 
-  /// When true, leading + secondary are rendered in
+  /// When true, leading + secondary + icon are rendered in
   /// `colorScheme.onSurfaceVariant` — the muted treatment used in the
-  /// Figma's empty / "no activity yet" rows. Set automatically by
-  /// [EventListItem.empty]; not part of the public ctor.
-  final bool _muted;
+  /// Figma's empty / "no activity yet" rows and recorded day-marker rows
+  /// (e.g. a "Don't remember" status). Set automatically by
+  /// [EventListItem.empty]; also settable directly for a recorded-but-muted
+  /// row that still wants an [onTap].
+  final bool muted;
 
   /// Test-harness locator. When set, wraps the row in a
   /// `Semantics(identifier: ..., container: true, explicitChildNodes: true)`
@@ -78,8 +80,9 @@ class EventListItem extends StatelessWidget {
     this.onTap,
     this.tone = EventListItemTone.neutral,
     this.accentColor,
+    this.muted = false,
     this.semanticId,
-  }) : _muted = false;
+  });
 
   /// Empty-state row — a single muted line of explanatory text in place
   /// of the timestamp/duration layout. Always renders in the neutral
@@ -94,7 +97,7 @@ class EventListItem extends StatelessWidget {
       onTap = null,
       tone = EventListItemTone.neutral,
       accentColor = null,
-      _muted = true;
+      muted = true;
 
   @override
   Widget build(BuildContext context) {
@@ -102,11 +105,11 @@ class EventListItem extends StatelessWidget {
     final cs = theme.colorScheme;
     final (background, border, secondaryColor) = _toneSurface(theme);
 
-    final primaryTextColor = _muted ? cs.onSurfaceVariant : cs.onSurface;
-    final secondaryTextColor = _muted
+    final primaryTextColor = muted ? cs.onSurfaceVariant : cs.onSurface;
+    final secondaryTextColor = muted
         ? cs.onSurfaceVariant
         : (secondaryColor ?? cs.onSurface);
-    final iconColor = _muted ? cs.onSurfaceVariant : cs.onSurface;
+    final iconColor = muted ? cs.onSurfaceVariant : cs.onSurface;
 
     final primaryStyle = theme.textTheme.bodyMedium?.copyWith(
       color: primaryTextColor,
