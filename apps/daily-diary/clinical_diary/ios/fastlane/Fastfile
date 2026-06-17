@@ -156,11 +156,18 @@ platform :ios do
             groups: ["Internal Testing"]
           )
         when "external"
+          # Apple requires "What to Test" notes for external distribution;
+          # upload_to_testflight errors without a changelog when
+          # distribute_external is true. Fall back to a placeholder so a
+          # missing RELEASE_NOTES can't fail the upload.
+          changelog = ENV["RELEASE_NOTES"]
+          changelog = "Bug fixes and improvements." if changelog.nil? || changelog.strip.empty?
           upload_to_testflight(
             api_key: api_key,
             skip_waiting_for_build_processing: true,
             distribute_external: true,
-            groups: ["External Testing"]
+            groups: ["External Testing"],
+            changelog: changelog
           )
         when "release"
           release_notes = ENV["RELEASE_NOTES"] || ""
