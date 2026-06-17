@@ -39,6 +39,10 @@ void main() {
     Future<void> pump(
       WidgetTester tester, {
       ClinicalRules rules = const ClinicalRules(),
+      // CUR-1438: default to the editable path so the existing write-path
+      // assertions still exercise the controls. The UAT-locked default
+      // (AppConfig.allowAdvancedSettingsEditing = false) has its own test.
+      bool allowEditing = true,
     }) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -52,7 +56,7 @@ void main() {
           child: wrapWithMaterialApp(
             ClinicalRulesScope(
               rules: rules,
-              child: const AdvancedSettingsScreen(),
+              child: AdvancedSettingsScreen(allowEditing: allowEditing),
             ),
           ),
         ),
@@ -120,6 +124,26 @@ void main() {
               s.actionName == 'set_user_setting' &&
               s.rawInput['key'] == shortDurationConfirmKey,
         ),
+        isEmpty,
+      );
+    });
+
+    // CUR-1438: for the Callisto UAT build the Advanced controls stay visible
+    // but are locked to the study-protocol defaults — read-only, no writes.
+    testWidgets('locks every control when editing is disabled (UAT)', (
+      tester,
+    ) async {
+      await pump(tester, allowEditing: false);
+
+      // The locked note is shown across the controls.
+      expect(find.textContaining('Set by your study'), findsWidgets);
+
+      // Tapping the switches writes nothing.
+      await tester.tap(find.text('Confirm very short nosebleeds'));
+      await tester.tap(find.text('Show a review step before saving'));
+      await tester.pumpAndSettle();
+      expect(
+        fake.submittedActions.where((s) => s.actionName == 'set_user_setting'),
         isEmpty,
       );
     });

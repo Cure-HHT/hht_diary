@@ -120,6 +120,7 @@ class _LogoMenuState extends State<LogoMenu> {
     );
     return PopupMenuButton<String>(
       tooltip: l10n.appMenu,
+      enabled: widget.showDevTools,
       child: Padding(
         padding: const EdgeInsets.all(4.0),
         child: Stack(
