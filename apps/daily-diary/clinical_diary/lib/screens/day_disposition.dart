@@ -30,9 +30,10 @@ class MarkerToReplace {
 /// for [localDate] (`yyyy-MM-dd`) through the scope's action submitter. Returns
 /// true on a successful (or idempotent) dispatch, false on any failure — the
 /// submitter returns a failure `DispatchResult` without throwing, so the caller
-/// MUST inspect this rather than assume success.
+/// MUST inspect this rather than assume success. Public so the calendar's
+/// inline day-options panel can reuse the same write path.
 // Implements: DIARY-DEV-action-write-path/A
-Future<bool> _submitDayMarker(
+Future<bool> submitDayMarker(
   BuildContext context,
   String actionName,
   String localDate,
@@ -52,7 +53,7 @@ Future<bool> _submitDayMarker(
 
 /// Surface a save-failure snackbar (mirrors `RecordingScreen._submitAction`) so
 /// a failed day-marker write is not silently dismissed as if it succeeded.
-void _showSaveFailed(BuildContext context) {
+void showDayMarkerSaveFailed(BuildContext context) {
   if (!context.mounted) return;
   final l10n = AppLocalizations.of(context);
   ScaffoldMessenger.of(context).showSnackBar(
@@ -137,7 +138,7 @@ Future<void> showDayDispositionPicker(
           );
         },
         onNoNosebleeds: () async {
-          final ok = await _submitDayMarker(
+          final ok = await submitDayMarker(
             context,
             'record_no_epistaxis_day',
             localDate,
@@ -145,7 +146,7 @@ Future<void> showDayDispositionPicker(
           // On failure keep the picker open and tell the participant, so the
           // day is not left silently un-dispositioned.
           if (!ok) {
-            if (pickerContext.mounted) _showSaveFailed(pickerContext);
+            if (pickerContext.mounted) showDayMarkerSaveFailed(pickerContext);
             return;
           }
           if (pickerContext.mounted) {
@@ -153,13 +154,13 @@ Future<void> showDayDispositionPicker(
           }
         },
         onUnknown: () async {
-          final ok = await _submitDayMarker(
+          final ok = await submitDayMarker(
             context,
             'record_unknown_day',
             localDate,
           );
           if (!ok) {
-            if (pickerContext.mounted) _showSaveFailed(pickerContext);
+            if (pickerContext.mounted) showDayMarkerSaveFailed(pickerContext);
             return;
           }
           if (pickerContext.mounted) {

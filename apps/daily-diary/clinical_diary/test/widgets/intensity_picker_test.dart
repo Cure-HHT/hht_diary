@@ -110,10 +110,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The selected intensity should show with bold font
-      // Note: label has newline because spaces are replaced with \n
-      final textWidget = tester.widget<Text>(find.text('Steady\nstream'));
-      expect(textWidget.style?.fontWeight, FontWeight.bold);
+      // The selected intensity label renders in the theme primary color
+      // (Figma redesign: selection cue is the primary ring + tinted label,
+      // not a bold weight).
+      final textWidget = tester.widget<Text>(find.text('Steady stream'));
+      final context = tester.element(find.byType(IntensityPicker));
+      expect(textWidget.style?.color, Theme.of(context).colorScheme.primary);
     });
 
     testWidgets('non-selected severities have normal font weight', (

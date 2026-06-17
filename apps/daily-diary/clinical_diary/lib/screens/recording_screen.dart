@@ -12,7 +12,7 @@ import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
 import 'package:clinical_diary/utils/date_time_formatter.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
-import 'package:clinical_diary/widgets/date_header.dart';
+import 'package:clinical_diary/widgets/back_to_home_row.dart';
 import 'package:clinical_diary/widgets/delete_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/duration_confirmation_dialog.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
@@ -22,6 +22,7 @@ import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:clinical_diary/widgets/overlap_warning.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:diary_shared_model/diary_shared_model.dart'
     show ClinicalRules, EntryGate, entryGateForDate;
 import 'package:event_sourcing/event_sourcing.dart';
@@ -359,18 +360,20 @@ class _RecordingScreenState extends State<RecordingScreen> {
   }
 
   /// Overlapping finalized epistaxis entries (as typed view-models) for the
-  /// current candidate range, excluding the entry being edited. Returns an
-  /// empty list when there is no end time yet (an open-ended candidate is not
-  /// matched against neighbours here).
+  /// current candidate range, excluding the entry being edited.
+  ///
+  /// Before the participant sets an end time the candidate is the single start
+  /// instant; passing `_startDateTime` as both ends makes
+  /// `overlappingEpistaxisEntries` detect when that instant falls inside an
+  /// existing entry's range, so the warning surfaces as soon as the start time
+  /// overlaps an existing record — not only after an end time is set.
   // Implements: DIARY-DEV-reactive-read-path/A
+  // Implements: DIARY-GUI-entry-overlap-resolution
   List<EpistaxisEntryView> _overlappingEvents(DiaryView view) {
-    if (_endDateTime == null) {
-      return const <EpistaxisEntryView>[];
-    }
     final rows = overlappingEpistaxisEntries(
       view.finalizedRows,
       _startDateTime,
-      _endDateTime!,
+      _endDateTime ?? _startDateTime,
       excludeAggregateId: _aggregateId,
     );
     return rows
@@ -772,31 +775,40 @@ class _RecordingScreenState extends State<RecordingScreen> {
         }
       },
       child: Scaffold(
+        // Figma 515-2320: the recording flow renders on a plain white page,
+        // not the grey app-shell background.
+        backgroundColor: Colors.white,
         body: SafeArea(
           child: Column(
             children: [
-              // Header with back and delete buttons
+              // Header with back ("< Home") and delete buttons (Figma 682:2813)
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 8.0,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TextButton.icon(
-                      onPressed: () async {
+                    BackToHomeRow(
+                      onBack: () async {
                         final shouldPop = await _handleExit();
                         if (shouldPop && context.mounted) {
                           Navigator.pop(context);
                         }
                       },
-                      icon: const Icon(Icons.arrow_back),
-                      label: Text(l10n.back),
                     ),
                     // Delete button — hidden on a locked (read-only) date.
+                    // Figma 682:2821: exported trash glyph (Critical red).
                     if (!_isLocked)
                       IconButton(
                         onPressed: _handleDelete,
-                        icon: const Icon(Icons.delete_outline),
-                        color: Theme.of(context).colorScheme.error,
+                        icon: Image.asset(
+                          'assets/icons/figma/delete_record.png',
+                          width: 26,
+                          height: 26,
+                          fit: BoxFit.contain,
+                        ),
                         tooltip: l10n.deleteRecordTooltip,
                       ),
                   ],
@@ -806,19 +818,31 @@ class _RecordingScreenState extends State<RecordingScreen> {
               // DIARY-PRD-entry-time-restrictions: read-only lock notice.
               if (_isLocked) _buildLockBanner(),
 
-              // Date header - not editable
-              DateHeader(
-                date: _startDateTime,
-                editable: false,
-                onChange: (newDate) => {},
+              // Date title — plain centered text (Figma 515:3077), not editable
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  DateFormat(
+                    'EEEE, MMM d',
+                    Localizations.localeOf(context).languageCode,
+                  ).format(_startDateTime),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                    letterSpacing: -0.33,
+                    color: Color(0xFF0A0A0A),
+                  ),
+                ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
               // Summary bar
               _buildSummaryBar(l10n),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               // Overlap warning
               if (overlappingEvents.isNotEmpty)
@@ -826,7 +850,14 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: OverlapWarning(
                     overlappingEntries: overlappingEvents,
-                    onResolve: () => unawaited(_saveRecord()),
+                    // The warning is non-blocking: while only the start time is
+                    // set it is informational, so the participant can keep
+                    // setting intensity/end time. The Resolve affordance (which
+                    // finalizes and opens the side-by-side compare screen) only
+                    // appears once the entry has an end time and is finalizable.
+                    onResolve: _endDateTime != null
+                        ? () => unawaited(_saveRecord())
+                        : null,
                   ),
                 ),
 
@@ -909,56 +940,63 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final showStartTz = startDiffersFromDevice || timezonesDiffer;
     final showEndTz = endDiffersFromDevice || timezonesDiffer;
 
+    // Figma 682:2993: light-gray card, equal-width segments separated by
+    // hairline dividers; the active segment gets a white rounded chip.
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFECEEF0),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Start time
-          _buildSummaryItem(
-            label: l10n.start,
-            value: _formatStartTime(locale, l10n),
-            subtitle: showStartTz ? startTzAbbr : null,
-            isActive: _currentStep == RecordingStep.startTime,
-            onTap: () => _goToStep(RecordingStep.startTime),
+          Expanded(
+            child: _buildSummaryItem(
+              label: l10n.start,
+              value: _formatStartTime(locale, l10n),
+              subtitle: showStartTz ? startTzAbbr : null,
+              isActive: _currentStep == RecordingStep.startTime,
+              onTap: () => _goToStep(RecordingStep.startTime),
+            ),
           ),
 
           _buildDivider(),
 
           // Intensity - wrapped in FlashHighlight for CUR-464
-          FlashHighlight(
-            flash: _flashIntensity,
-            highlightColor: Colors.orange,
-            onFlashComplete: () {
-              if (mounted) {
-                setState(() => _flashIntensity = false);
-              }
-            },
-            builder: (context, highlightColor) => _buildSummaryItem(
-              label: l10n.maxIntensity,
-              value: _intensity != null
-                  ? l10n.intensityName(_intensity!.name)
-                  : l10n.selectIntensity,
-              isActive: _currentStep == RecordingStep.intensity,
-              onTap: () => _goToStep(RecordingStep.intensity),
-              highlightColor: highlightColor,
+          Expanded(
+            child: FlashHighlight(
+              flash: _flashIntensity,
+              highlightColor: Colors.orange,
+              onFlashComplete: () {
+                if (mounted) {
+                  setState(() => _flashIntensity = false);
+                }
+              },
+              builder: (context, highlightColor) => _buildSummaryItem(
+                label: l10n.maxIntensity,
+                value: _intensity != null
+                    ? l10n.intensityName(_intensity!.name)
+                    : l10n.selectIntensity,
+                isActive: _currentStep == RecordingStep.intensity,
+                onTap: () => _goToStep(RecordingStep.intensity),
+                highlightColor: highlightColor,
+              ),
             ),
           ),
 
           _buildDivider(),
 
           // End time - CUR-464: flash intensity if not set
-          _buildSummaryItem(
-            label: l10n.end,
-            value: _formatEndTime(locale, l10n),
-            subtitle: showEndTz ? endTzAbbr : null,
-            isActive: _currentStep == RecordingStep.endTime,
-            onTap: _handleEndTimeTap,
+          Expanded(
+            child: _buildSummaryItem(
+              label: l10n.end,
+              value: _formatEndTime(locale, l10n),
+              subtitle: showEndTz ? endTzAbbr : null,
+              isActive: _currentStep == RecordingStep.endTime,
+              onTap: _handleEndTimeTap,
+            ),
           ),
         ],
       ),
@@ -973,56 +1011,49 @@ class _RecordingScreenState extends State<RecordingScreen> {
     VoidCallback? onTap,
     Color? highlightColor,
   }) {
+    // Figma 682:2995: active segment is a white rounded chip; labels are
+    // 12px Dark Grey, values 16px Medium Black regardless of active state.
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         decoration: BoxDecoration(
-          color:
-              highlightColor ??
-              (isActive
-                  ? Theme.of(context).colorScheme.primaryContainer
-                  : Colors.transparent),
-          borderRadius: BorderRadius.circular(16),
+          color: highlightColor ?? (isActive ? Colors.white : null),
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
           children: [
             Text(
               label,
-              style: TextStyle(
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
                 fontSize: 12,
-                color: isActive
-                    ? Theme.of(context).colorScheme.onPrimaryContainer
-                    : Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                height: 17 / 12,
+                letterSpacing: -0.06,
+                color: Color(0xFF54636A),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               value,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                color: isActive
-                    ? Theme.of(context).colorScheme.onPrimaryContainer
-                    : Theme.of(context).colorScheme.onSurface,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                height: 25.5 / 16,
+                letterSpacing: -0.43,
+                color: Color(0xFF04161E),
               ),
             ),
             if (subtitle != null) ...[
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isActive
-                      ? Theme.of(
-                          context,
-                        ).colorScheme.onPrimaryContainer.withValues(alpha: 0.7)
-                      : Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 10, color: Color(0xFF54636A)),
               ),
             ],
           ],
@@ -1034,8 +1065,9 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildDivider() {
     return Container(
       width: 1,
-      height: 30,
-      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+      height: 56,
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      color: const Color(0xFFA4B9C2).withValues(alpha: 0.5),
     );
   }
 
@@ -1194,24 +1226,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
           const Spacer(),
 
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _isSaving ? null : _saveRecord,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: _isSaving
-                  ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(buttonText, style: const TextStyle(fontSize: 18)),
-            ),
+          AppButton(
+            size: AppButtonSize.large,
+            fullWidth: true,
+            label: buttonText,
+            loading: _isSaving,
+            onPressed: _isSaving ? null : _saveRecord,
           ),
         ],
       ),
