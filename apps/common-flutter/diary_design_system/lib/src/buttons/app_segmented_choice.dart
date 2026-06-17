@@ -25,6 +25,12 @@ class AppSegmentedChoice<T> extends StatelessWidget {
   final ValueChanged<T>? onChanged;
   final bool enabled;
 
+  /// When true, an option label too wide for its equal-width segment is
+  /// scaled down (smaller font) to fit on one line instead of ellipsizing —
+  /// so a long label like "Don't remember" stays fully readable next to short
+  /// ones, without changing the equal-width segment layout (CUR-1491).
+  final bool shrinkLabelToFit;
+
   /// Test-harness locator prefix. When set, each option gets the
   /// identifier `<semanticId>-<value>` so harnesses can target each
   /// button individually and assert the selected state.
@@ -36,30 +42,34 @@ class AppSegmentedChoice<T> extends StatelessWidget {
     required this.value,
     required this.onChanged,
     this.enabled = true,
+    this.shrinkLabelToFit = false,
     this.semanticId,
   }) : assert(options.length > 0, 'AppSegmentedChoice requires ≥ 1 option');
 
   @override
   Widget build(BuildContext context) {
+    AppButton buildButton(int i) => AppButton(
+      variant: AppButtonVariant.segment,
+      label: options[i].label,
+      selected: options[i].value == value,
+      // CUR-1491: scale a too-long label (e.g. "Don't remember") down to fit
+      // its equal-width third on one line instead of truncating to "Don't
+      // re...". The segment layout below is unchanged.
+      shrinkLabelToFit: shrinkLabelToFit,
+      fullWidth: true,
+      onPressed: enabled && onChanged != null
+          ? () => onChanged!(options[i].value)
+          : null,
+      semanticId: semanticId == null ? null : '$semanticId-${options[i].value}',
+    );
+
+    // Equal-width segments sharing the row.
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < options.length; i++) ...[
           if (i > 0) SizedBox(width: SpacingTokens.sm),
-          Expanded(
-            child: AppButton(
-              variant: AppButtonVariant.segment,
-              label: options[i].label,
-              selected: options[i].value == value,
-              fullWidth: true,
-              onPressed: enabled && onChanged != null
-                  ? () => onChanged!(options[i].value)
-                  : null,
-              semanticId: semanticId == null
-                  ? null
-                  : '$semanticId-${options[i].value}',
-            ),
-          ),
+          Expanded(child: buildButton(i)),
         ],
       ],
     );

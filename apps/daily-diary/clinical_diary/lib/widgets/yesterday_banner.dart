@@ -59,6 +59,11 @@ class YesterdayBanner extends StatelessWidget {
             // Dispatch surface — no sticky selection. Each tap fires the
             // matching callback (write a marker / open the recording screen).
             value: null,
+            // CUR-1491: the three equal-width segments give "Don't remember"
+            // only a third of the row, too narrow for one line on a phone —
+            // scale its font down to fit so the full label shows instead of
+            // truncating to "Don't re...".
+            shrinkLabelToFit: true,
             options: [
               AppChoiceOption(value: _YesterdayChoice.yes, label: l10n.yes),
               AppChoiceOption(value: _YesterdayChoice.no, label: l10n.no),

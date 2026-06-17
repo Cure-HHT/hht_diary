@@ -4,6 +4,7 @@
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 
@@ -164,6 +165,45 @@ void main() {
       await tester.pump();
 
       expect(called, true);
+    });
+
+    // CUR-1491: on a narrow phone the three equal-width segments give
+    // "Don't remember" only a third of the row. The full label must stay
+    // visible (its font scaled down to fit on one line) rather than
+    // truncating to "Don't re...". Assert the laid-out paragraph does not
+    // exceed its line budget (no ellipsis truncation).
+    testWidgets('renders full "Don\'t remember" label without truncation on a '
+        'narrow screen', (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          YesterdayBanner(
+            onNoNosebleeds: () {},
+            onHadNosebleeds: () {},
+            onDontRemember: () {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final textFinder = find.text("Don't remember");
+      expect(textFinder, findsOneWidget);
+
+      // The full string is present and the paragraph is not truncated.
+      final paragraph = tester.renderObject<RenderParagraph>(textFinder);
+      expect(
+        paragraph.didExceedMaxLines,
+        isFalse,
+        reason:
+            'the "Don\'t remember" label must not be ellipsis-truncated; '
+            'it should wrap to show the full text',
+      );
     });
 
     testWidgets('has three action buttons', (tester) async {
