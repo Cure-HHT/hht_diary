@@ -245,5 +245,28 @@ void main() {
         expect(s.rawInput['value'], 'de');
       });
     });
+
+    group('Daily Reminder', () {
+      // Verifies: DIARY-PRD-notification-yesterday-entry/F
+      testWidgets(
+        'toggling the daily reminder submits reminder.yesterdayEnabled',
+        (tester) async {
+          setUpTestScreenSize(tester);
+          addTearDown(() => resetTestScreenSize(tester));
+
+          await tester.pumpWidget(buildSettingsScreen());
+          await tester.pumpAndSettle();
+
+          final toggle = find.text('Enable daily reminder');
+          await tester.scrollUntilVisible(toggle, 200);
+          await tester.tap(toggle);
+          await tester.pumpAndSettle();
+
+          // Default is enabled → tapping turns it off.
+          final s = submissionFor('reminder.yesterdayEnabled');
+          expect(s.rawInput['value'], false);
+        },
+      );
+    });
   });
 }
