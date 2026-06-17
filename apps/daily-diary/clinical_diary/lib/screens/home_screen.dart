@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
@@ -1279,9 +1280,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             fullWidth: true,
             leadingIcon: Icons.calendar_today_outlined,
             onPressed: () async {
+              // CUR-1494: bound calendar back-navigation to 365 days before
+              // app install (DIARY-PRD-diary-start-day/D). The install date is
+              // the legacy-sync destination's start date, stamped at first
+              // launch; a lookup failure falls back to a now-relative floor.
+              DateTime? installDate;
+              try {
+                final schedule = await widget.runtime.destinations.scheduleOf(
+                  LegacySyncDestination.destinationId,
+                );
+                installDate = schedule.startDate;
+              } catch (_) {
+                installDate = null;
+              }
+              if (!context.mounted) return;
               await showDialog<void>(
                 context: context,
-                builder: (context) => const CalendarScreen(),
+                builder: (context) => CalendarScreen(installDate: installDate),
               );
             },
           ),

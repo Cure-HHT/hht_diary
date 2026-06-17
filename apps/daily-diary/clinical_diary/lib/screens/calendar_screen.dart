@@ -17,13 +17,39 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+/// The earliest day the calendar may navigate to or select.
+///
+/// Per DIARY-PRD-diary-start-day/D the *Diary* must not allow a date earlier
+/// than 365 days before *Mobile Application* installation on this device, so
+/// the floor is anchored to [installDate] (the install timestamp stamped at
+/// first launch). When the install date is unknown — the destination schedule
+/// has no start date yet — fall back to 365 days before [now], a safe bound
+/// that still forbids the unbounded back-navigation this guards against.
+/// Returns a local-midnight date.
+// Implements: DIARY-PRD-diary-start-day/D — the calendar SHALL NOT allow
+//   navigation/selection earlier than 365 days before app installation.
+DateTime calendarEarliestDay({
+  required DateTime? installDate,
+  required DateTime now,
+}) {
+  final anchor = (installDate ?? now).toLocal();
+  final floor = anchor.subtract(const Duration(days: 365));
+  return DateTime(floor.year, floor.month, floor.day);
+}
+
 /// Calendar screen showing nosebleed history with color-coded days.
 ///
 /// Reads day status reactively from the live [DiaryView] (no async loading,
 /// no local status cache); writes (day markers) go through the scope's
 /// `actionSubmitter`.
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key});
+  const CalendarScreen({this.installDate, super.key});
+
+  /// *Mobile Application* install timestamp on this device (the legacy-sync
+  /// destination's start date, stamped at first launch). Anchors the 365-day
+  /// back-navigation floor; null falls back to 365 days before now. See
+  /// [calendarEarliestDay] and DIARY-PRD-diary-start-day/D.
+  final DateTime? installDate;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -75,6 +101,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return dateOnly.isAfter(today);
   }
 
+  /// Check if a date is earlier than the 365-day-below-install floor and so is
+  /// not selectable. Mirrors [_isFutureDate] for the lower bound: `firstDay`
+  /// already prevents navigating before the floor, but `outsideDaysVisible`
+  /// padding cells from an adjacent month can fall below it, so this also
+  /// guards the enabled-predicate and tap dispatch (defense-in-depth).
+  // Implements: DIARY-PRD-diary-start-day/D
+  bool _isBeforeEarliest(DateTime date) {
+    final earliest = calendarEarliestDay(
+      installDate: widget.installDate,
+      now: DateTime.now(),
+    );
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    return dateOnly.isBefore(earliest);
+  }
+
   /// Day-tap dispatch: future days are inert; a day with no finalized records
   /// opens the 3-choice day-disposition picker, a day with records opens the
   /// [DateRecordsScreen] populated from the live view.
@@ -88,8 +129,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     DateTime selectedDay,
     DateTime focusedDay,
   ) async {
-    // Don't allow selection of future dates (CUR-407)
-    if (_isFutureDate(selectedDay)) {
+    // Don't allow selection of future dates (CUR-407) or dates earlier than
+    // the 365-day-below-install floor (CUR-1494, DIARY-PRD-diary-start-day/D).
+    if (_isFutureDate(selectedDay) || _isBeforeEarliest(selectedDay)) {
       return;
     }
 
@@ -256,7 +298,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TableCalendar<void>(
-                firstDay: DateTime(2020, 1, 1),
+                // CUR-1494: bound back-navigation to 365 days before app
+                // install (DIARY-PRD-diary-start-day/D) instead of a hardcoded
+                // 2020 floor that let participants scroll back years.
+                firstDay: calendarEarliestDay(
+                  installDate: widget.installDate,
+                  now: DateTime.now(),
+                ),
                 lastDay: DateTime.now().add(const Duration(days: 365)),
                 focusedDay: _focusedDay,
                 // CUR-599: Always show 6 weeks to prevent height changes
@@ -264,7 +312,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 // CUR-599: Respect user animation preference for page transitions
                 pageAnimationEnabled: _animationsEnabled(context),
                 selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                enabledDayPredicate: (day) => !_isFutureDate(day),
+                enabledDayPredicate: (day) =>
+                    !_isFutureDate(day) && !_isBeforeEarliest(day),
                 onDaySelected: (selectedDay, focusedDay) =>
                     _onDaySelected(view, selectedDay, focusedDay),
                 onPageChanged: _handleMonthChange,
