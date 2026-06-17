@@ -135,11 +135,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ).push(MaterialPageRoute<void>(builder: (_) => const LicensesPage()));
   }
 
-  void _showPrivacyComingSoon() {
+  /// Generic "Coming soon" toast for features that aren't built yet (Help
+  /// Center, Export Data, Use Face ID / Fingerprint). Uses the generic
+  /// [AppLocalizations.comingSoon] string so the message matches the tapped
+  /// item instead of mislabeling it as a privacy setting (CUR-1493).
+  void _showComingSoon() {
     final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(l10n.privacyComingSoon),
+        content: Text(l10n.comingSoon),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -170,7 +174,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onJoinStudy: widget.isEnrolledInTrial
                     ? null
                     : widget.onStartClinicalTrialEnrollment,
-                onShowHelpCenter: _showPrivacyComingSoon,
+                onShowHelpCenter: _showComingSoon,
               ),
             ),
             Expanded(
@@ -435,14 +439,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _MenuItemSpec(
         iconAsset: _ProfileIcons.menuExport,
         label: l10n.exportData,
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.exportDataHint),
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        },
+        onTap: _showComingSoon,
       ),
       _MenuItemSpec(
         iconAsset: _ProfileIcons.menuPolicy,
@@ -462,14 +459,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _MenuItemSpec(
         iconAsset: _ProfileIcons.menuFingerprint,
         label: l10n.useFaceIdOrFingerprint,
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.privacyComingSoon),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        },
+        onTap: _showComingSoon,
       ),
     ];
 
