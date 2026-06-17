@@ -106,7 +106,7 @@ Disconnection is an operational state with clinical-data consequences: data the 
 
 ### Screen reference
 
-See: ![*Disconnection Notification*](./images/image-28.png)
+See: ![*Disconnection Notification*](./images/notification-disconnection.png)
 
 *End* *Disconnection Notification* | **Hash**: ac967ad3
 
@@ -259,7 +259,7 @@ The push notification is the *Participant*'s awareness signal that a new **Assig
 
 ### Screen reference
 
-See: ![Assigned *Questionnaire* Notification](./images/image-29.png)
+See: ![Assigned *Questionnaire* Notification](./images/notification-assigned-questionnaire.png)
 
 *End* *Assigned Questionnaire Notification* | **Hash**: 238b9aa8
 
@@ -303,7 +303,7 @@ ALCOA+ Complete principle requires a **Daily Status** for every day in the *Diar
 
 ### Screen reference
 
-See: ![Yesterday Entry Reminder Notification](./images/image-30.png)
+See: ![Yesterday Entry Reminder Notification](./images/notification-yesterday-entry-reminder.png)
 
 *End* *Yesterday Entry Reminder Notification* | **Hash**: 43b40b3d
 
@@ -357,7 +357,7 @@ A nosebleed event captured with an accurate start time but a missing or wildly-l
 
 ### Screen reference
 
-See: ![Ongoing *Epistaxis Event* Reminder](./images/image-31.png)
+See: ![Ongoing *Epistaxis Event* Reminder](./images/notification-ongoing-epistaxis-event-reminder.png)
 
 *End* *Ongoing Epistaxis Event Reminder* | **Hash**: 65bce7fa
 
@@ -412,6 +412,6 @@ Historical gaps (days within the *Diary* period that have no **Daily Status**) a
 
 ### Screen reference
 
-See: ![*Historical Gap* Reminder](./images/image-32.png)
+See: ![*Historical Gap* Reminder](./images/notification-historical-gap-reminder.png)
 
 *End* *Historical Gap Reminder* | **Hash**: 176f4250

@@ -69,7 +69,7 @@ The *Preamble* exists because an **Assigned Questionnaire** is a non-trivial com
 
 ### Screen reference
 
-See: ![*Questionnaire* *Preamble* Screen](./images/image-02.png)
+See: ![*Questionnaire* *Preamble* Screen](./images/screen-questionnaire-preamble.png)
 
 *End* *Assigned Questionnaire Rules* | **Hash**: 3f1a10dd
 
@@ -155,11 +155,11 @@ The four-screen structure (*Preamble*, Question, Review, Acknowledgement) makes 
 
 See:
 
-![*Questionnaire* *Review Screen*](./images/image-01.png)
+![*Questionnaire* *Review Screen*](./images/screen-questionnaire-review.png)
 
-![*Questionnaire* *Preamble* Screen](./images/image-02.png)
+![*Questionnaire* *Preamble* Screen](./images/screen-questionnaire-preamble.png)
 
-![Post-*Submission* Acknowledgement Dialog](./images/image-19.png)
+![Post-*Submission* Acknowledgement Dialog](./images/dialog-post-submission-acknowledgement.png)
 
 *End* *Assigned Questionnaire Workflow* | **Hash**: ca0d5613
 
@@ -225,11 +225,11 @@ Some clinical questionnaires (e.g. the *NOSE HHT*, the *HHT-QoL*) require contem
 
 See:
 
-![*Session* Expiry Dialog](./images/image-20.png)
+![*Session* Expiry Dialog](./images/dialog-session-expiry.png)
 
-![*Timeout Warning Notification*](./images/image-26.png)
+![*Timeout Warning Notification*](./images/notification-timeout-warning.png)
 
-![*Session* Expiry Notification](./images/image-27.png)
+![*Session* Expiry Notification](./images/notification-session-expiry.png)
 
 *End* *Questionnaire Session Timeout* | **Hash**: 4e7f3306
 
@@ -283,6 +283,6 @@ The **Session Expiry Dialog** is the in-app companion to the **Session Expiry No
 
 ### Screen reference
 
-See: ![*Session* Expiry Dialog](./images/image-20.png)
+See: ![*Session* Expiry Dialog](./images/dialog-session-expiry.png)
 
 *End* *Questionnaire Session Expiry* | **Hash**: 02879dd5

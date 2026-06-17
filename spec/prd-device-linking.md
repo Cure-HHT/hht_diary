@@ -116,6 +116,6 @@ A successful link transitions the *Participant* from a personal-use **User** to 
 
 ### Screen reference
 
-See: ![Successful Linking Confirmation](./images/image-25.png)
+See: ![Successful Linking Confirmation](./images/dialog-successful-linking-confirmation.png)
 
 *End* *Successful Linking Confirmation* | **Hash**: 495858e9
