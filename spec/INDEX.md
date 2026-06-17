@@ -40,13 +40,13 @@
 | DIARY-PRD-notification-historical-gap            | Historical Gap Reminder                             | prd-mobile-notifications.md               | 176f4250 |
 | DIARY-PRD-notification-incomplete-record-lock    | Incomplete Record Lock Warning Notification         | prd-mobile-notifications.md               | 33c1d5d9 |
 | DIARY-PRD-notification-ongoing-epistaxis         | Ongoing Epistaxis Event Reminder                    | prd-mobile-notifications.md               | 65bce7fa |
-| DIARY-PRD-notification-portal-sent-questionnaire | Assigned Questionnaire Notification                 | prd-mobile-notifications.md               | ba788b82 |
+| DIARY-PRD-notification-portal-sent-questionnaire | Assigned Questionnaire Notification                 | prd-mobile-notifications.md               | 238b9aa8 |
 | DIARY-PRD-notification-yesterday-entry           | Yesterday Entry Reminder Notification               | prd-mobile-notifications.md               | 43b40b3d |
 | DIARY-PRD-participant-disconnection              | Participant Disconnection Workflow                  | prd-participant.md                        | d449c26a |
-| DIARY-PRD-participant-link-new                   | Link New Participant Workflow                       | prd-participant.md                        | 6bd7ce5c |
+| DIARY-PRD-participant-link-new                   | Link New Participant Workflow                       | prd-participant.md                        | 551290b7 |
 | DIARY-PRD-participant-mark-not-participating     | Mark as Not Participating                           | prd-participant.md                        | 84fb8bf2 |
 | DIARY-PRD-participant-reactivate                 | Reactivate Participant                              | prd-participant.md                        | ef34372b |
-| DIARY-PRD-participant-reconnection               | Participant Reconnection Workflow                   | prd-participant.md                        | 72d588e7 |
+| DIARY-PRD-participant-reconnection               | Participant Reconnection Workflow                   | prd-participant.md                        | 4401496c |
 | DIARY-PRD-participant-registration               | Participant Registration                            | prd-participant.md                        | 5f285232 |
 | DIARY-PRD-password-forgot                        | Forgot Password                                     | prd-portal-auth.md                        | 0aa45cc5 |
 | DIARY-PRD-password-requirements                  | Password Requirements                               | prd-portal-auth.md                        | e31a37b2 |
@@ -70,7 +70,7 @@
 | DIARY-PRD-role-definitions                       | Role Definitions                                    | prd-rbac.md                               | 2e6af384 |
 | DIARY-PRD-score-hht-qol                          | HHT-QoL Score Calculation                           | prd-score-calculation.md                  | 67ca87e3 |
 | DIARY-PRD-score-nose-hht                         | NOSE HHT Score Calculation                          | prd-score-calculation.md                  | 634f9daf |
-| DIARY-PRD-session-management                     | Session Management                                  | prd-portal-auth.md                        | 433c264b |
+| DIARY-PRD-session-management                     | Session Management                                  | prd-portal-auth.md                        | c7e0471e |
 | DIARY-PRD-sla-chronic-failure-escalation         | Chronic Failure Escalation                          | prd-sla.md                                | 18eb2eed |
 | DIARY-PRD-sla-corrective-preventive              | Corrective and Preventive Action                    | prd-sla.md                                | 168ba70d |
 | DIARY-PRD-sla-customer-notification              | Customer Incident Notification                      | prd-sla.md                                | 93c0d962 |
@@ -125,9 +125,9 @@
 | DIARY-GUI-entry-overlap-resolution           | Overlapping Event Resolution Flow          | prd-diary-entry-rules.md                  | 7bee74de |
 | DIARY-GUI-epistaxis-delete                   | Nosebleed Event Delete                     | prd-epistaxis.md                          | 0cb2cfd1 |
 | DIARY-GUI-epistaxis-record                   | Record Nosebleed Event                     | prd-epistaxis.md                          | 83c8479f |
-| DIARY-GUI-join-study-screen                  | Join the Study Screen                      | prd-device-linking.md                     | 8aff3bce |
+| DIARY-GUI-join-study-screen                  | Join the Study Screen                      | prd-device-linking.md                     | 1ad808e9 |
 | DIARY-GUI-link-participant-flow              | Link Participant Flow                      | prd-participant.md                        | 9c9abfe0 |
-| DIARY-GUI-linking-confirmation               | Successful Linking Confirmation            | prd-device-linking.md                     | b2e4c450 |
+| DIARY-GUI-linking-confirmation               | Successful Linking Confirmation            | prd-device-linking.md                     | 495858e9 |
 | DIARY-GUI-main-screen-layout                 | Main Screen Layout                         | prd-mobile-navigation.md                  | 29975741 |
 | DIARY-GUI-mobile-navigation                  | Mobile Application Navigation and Screens  | prd-mobile-navigation.md                  | 059118bb |
 | DIARY-GUI-participant-dashboard              | Participant Dashboard                      | prd-participant.md                        | 023f392e |

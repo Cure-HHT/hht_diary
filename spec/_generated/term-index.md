@@ -352,6 +352,10 @@
 - DIARY-GUI-participant-task-list-H
 - DIARY-GUI-participant-task-list-I
 - DIARY-GUI-participant-task-list-J
+- DIARY-PRD-notification-portal-sent-questionnaire-A
+- DIARY-PRD-notification-portal-sent-questionnaire-B
+- DIARY-PRD-notification-portal-sent-questionnaire-C
+- DIARY-PRD-notification-portal-sent-questionnaire-D
 - DIARY-PRD-questionnaire-portal-sent-rules-A
 - DIARY-PRD-questionnaire-portal-sent-rules-F
 - DIARY-PRD-questionnaire-portal-sent-rules-G
@@ -459,6 +463,7 @@
 - rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
+- DIARY-GUI-participation-status-badge:section:6
 
 ## Code Expiry
 
@@ -1123,7 +1128,6 @@
 - DIARY-PRD-user-authentication-E
 - DIARY-PRD-user-authentication-F
 - DIARY-PRD-user-authentication-N
-- DIARY-PRD-session-management-C
 - DIARY-BASE-user-authentication-pin:section:6
 - DIARY-DEV-portal-session-token:section:1
 - DIARY-DEV-portal-session-lifecycle:section:0
@@ -1210,15 +1214,11 @@
 - DIARY-DEV-participant-link-issuance-A
 - DIARY-DEV-shared-events-catalog-D
 - DIARY-PRD-linking-code-entry-errors-D
-- DIARY-GUI-join-study-screen-D
-- DIARY-GUI-linking-confirmation-A
 - DIARY-GUI-mobile-navigation-F
 - DIARY-GUI-user-profile-C
 - DIARY-GUI-participation-status-badge-B
 - DIARY-GUI-participation-status-badge-D
 - DIARY-GUI-participation-status-badge-E
-- DIARY-PRD-participant-link-new-C
-- DIARY-PRD-participant-reconnection-E
 - DIARY-GUI-show-linking-code-A
 - DIARY-GUI-show-linking-code-C
 - DIARY-DEV-linking-code-lifecycle:section:0
@@ -1228,12 +1228,8 @@
 - DIARY-GUI-linking-confirmation:section:0
 - DIARY-PRD-notification-disconnection:section:1
 - DIARY-GUI-participation-status-badge:section:6
-- DIARY-PRD-linking-code-lifecycle:section:6
-- DIARY-PRD-participant-link-new:section:0
-- DIARY-PRD-participant-link-new:section:1
 - DIARY-GUI-show-linking-code:section:0
 - DIARY-GUI-show-linking-code:section:2
-- DIARY-GUI-link-participant-flow:section:0
 - rem:spec/prd-status-registry.md:33
 
 ## Linking Code Validation Failure
@@ -1405,6 +1401,8 @@
 
 - DIARY-DEV-participant-state-poll-B
 - DIARY-GUI-join-study-screen-A
+- DIARY-GUI-join-study-screen-D
+- DIARY-GUI-linking-confirmation-A
 - DIARY-PRD-linking-code-lifecycle-A
 - DIARY-PRD-linking-code-lifecycle-B
 - DIARY-PRD-linking-code-lifecycle-D
@@ -1412,7 +1410,9 @@
 - DIARY-PRD-linking-code-lifecycle-F
 - DIARY-PRD-linking-code-lifecycle-G
 - DIARY-PRD-participant-link-new-B
+- DIARY-PRD-participant-link-new-C
 - DIARY-PRD-participant-reconnection-D
+- DIARY-PRD-participant-reconnection-E
 - DIARY-GUI-show-linking-code-A
 - DIARY-GUI-show-linking-code-B
 - DIARY-GUI-link-participant-flow-A
@@ -1421,7 +1421,11 @@
 - DIARY-GUI-join-study-screen:section:0
 - DIARY-PRD-linking-code-lifecycle:section:0
 - DIARY-PRD-linking-code-lifecycle:section:6
+- DIARY-PRD-participant-link-new:section:0
+- DIARY-PRD-participant-link-new:section:1
 - DIARY-PRD-participant-reconnection:section:0
+- DIARY-GUI-show-linking-code:section:2
+- DIARY-GUI-link-participant-flow:section:0
 
 ## Multi-Sponsor Isolation
 
@@ -1952,6 +1956,8 @@
 
 - DIARY-PRD-linking-code-lifecycle-H
 - DIARY-GUI-show-linking-code-C
+- DIARY-PRD-linking-code-lifecycle:section:6
+- DIARY-GUI-show-linking-code:section:2
 
 ## Participation Status Badge
 
@@ -2209,10 +2215,6 @@
 - DIARY-GUI-participant-task-list-H
 - DIARY-GUI-participant-task-list-I
 - DIARY-GUI-participant-task-list-K
-- DIARY-PRD-notification-portal-sent-questionnaire-A
-- DIARY-PRD-notification-portal-sent-questionnaire-B
-- DIARY-PRD-notification-portal-sent-questionnaire-C
-- DIARY-PRD-notification-portal-sent-questionnaire-D
 - DIARY-PRD-questionnaire-system-A
 - DIARY-PRD-questionnaire-system-B
 - DIARY-PRD-questionnaire-system-F
@@ -2742,6 +2744,7 @@
 
 **DIARY:**
 
+- DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-G
 - DIARY-PRD-session-management-I
 - DIARY-GUI-portal-session-expiry-A
@@ -3032,7 +3035,6 @@
 - DIARY-PRD-notification-ongoing-epistaxis:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:5
 - DIARY-PRD-notification-historical-gap:section:5
-- DIARY-PRD-linking-code-lifecycle:section:6
 - DIARY-PRD-participant-registration:section:0
 - DIARY-PRD-participant-registration:section:1
 - DIARY-PRD-participant-link-new:section:1
@@ -3133,6 +3135,7 @@
 - DIARY-PRD-device-health-diagnostics:section:0
 - rem:spec/prd-participant.md:3
 - DIARY-PRD-linking-code-lifecycle:section:0
+- DIARY-PRD-linking-code-lifecycle:section:6
 - DIARY-PRD-participant-registration:section:1
 - DIARY-PRD-participant-link-new:section:0
 - DIARY-PRD-participant-disconnection:section:0

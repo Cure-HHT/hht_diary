@@ -180,7 +180,7 @@ H. The System SHALL support *Sponsor*-configurable display of the *Sponsor* logo
 
 ### Rationale
 
-The badge consolidates "where do I stand with this study" into a single visual the *Participant* always finds in the same place (Clinical *Trial* section of the *User* Profile). Three state variants cover the three operational situations: actively-linked (*Sponsor* logo, *Linking Code*, join date — full participation context), disconnected (warning indicator, *Linking Code*, Enter New *Linking Code* *Action* — the recovery path is reachable from the badge itself), and not-participating (inactive style with end date — the badge persists as historical evidence of past participation without competing for attention against current state). The *Clinical *Trial* Privacy Policy* link persists across status changes because the policy version the *Participant* consented to is part of their permanent record, and they have a continuing right to retrieve it. Automatic update on status change is the standard freshness guarantee; *Sponsor*-configurable logo display in the Not Participating state lets the deployment decide whether the badge in its end-of-participation state still carries *Sponsor* branding (an end-of-*Trial* communication preference).
+The badge consolidates "where do I stand with this study" into a single visual the *Participant* always finds in the same place (Clinical *Trial* section of the *User* Profile). Three state variants cover the three operational situations: actively-linked (*Sponsor* logo, *Linking Code*, join date — full participation context), disconnected (warning indicator, *Linking Code*, Enter New *Linking Code* *Action* — the recovery path is reachable from the badge itself), and not-participating (inactive style with end date — the badge persists as historical evidence of past participation without competing for attention against current state). The *Clinical Trial Privacy Policy* link persists across status changes because the policy version the *Participant* consented to is part of their permanent record, and they have a continuing right to retrieve it. Automatic update on status change is the standard freshness guarantee; *Sponsor*-configurable logo display in the Not Participating state lets the deployment decide whether the badge in its end-of-participation state still carries *Sponsor* branding (an end-of-*Trial* communication preference).
 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
@@ -241,17 +241,17 @@ When a **Study Coordinator** sends an **Assigned Questionnaire** from the *Spons
 
 **Trigger**
 
-A. When an **Assigned **Questionnaire** is successfully delivered to the Mobile Application**, the System SHALL deliver a **Push Notification** to the **Participant**.
+A. When an **Assigned Questionnaire** is successfully delivered to the **Mobile Application**, the System SHALL deliver a **Push Notification** to the **Participant**.
 
 **Offline Delivery**
 
-B. When the **Mobile Application** is offline at the time an **Assigned **Questionnaire** is sent, the System SHALL deliver the Push Notification** when the **Mobile Application** next establishes connectivity.
+B. When the **Mobile Application** is offline at the time an **Assigned Questionnaire** is sent, the System SHALL deliver the **Push Notification** when the **Mobile Application** next establishes connectivity.
 
 **Suppression**
 
-C. The System SHALL NOT deliver a **Push Notification** for an **Assigned **Questionnaire** that has already been submitted by the Participant**.
+C. The System SHALL NOT deliver a **Push Notification** for an **Assigned Questionnaire** that has already been submitted by the **Participant**.
 
-D. The System SHALL NOT deliver a **Push Notification** for an **Assigned **Questionnaire** that has been called back by the Study Coordinator**.
+D. The System SHALL NOT deliver a **Push Notification** for an **Assigned Questionnaire** that has been called back by the **Study Coordinator**.
 
 ### Rationale
 
@@ -261,7 +261,7 @@ The push notification is the *Participant*'s awareness signal that a new **Assig
 
 See: ![Assigned *Questionnaire* Notification](./images/image-29.png)
 
-*End* *Assigned Questionnaire Notification* | **Hash**: ba788b82
+*End* *Assigned Questionnaire Notification* | **Hash**: 238b9aa8
 
 ## DIARY-PRD-notification-yesterday-entry: Yesterday Entry Reminder Notification
 

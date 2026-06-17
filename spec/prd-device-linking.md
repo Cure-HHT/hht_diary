@@ -71,7 +71,7 @@ B. The screen SHALL display a **Linking Consent** checkbox with text confirming 
 
 C. The **Linking Consent** text SHALL include a link that opens the **Clinical Trial Privacy Policy**.
 
-D. The **Submit** *Action* SHALL be disabled until both a complete **Mobile **Linking Code** is entered and the Linking Consent** checkbox is checked.
+D. The **Submit** *Action* SHALL be disabled until both a complete **Mobile Linking Code** is entered and the **Linking Consent** checkbox is checked.
 
 E. The System SHALL retain the **Linking Consent** acknowledgement, including the **Clinical Trial Privacy Policy** version, against the **Participant** record upon successful link.
 
@@ -86,7 +86,7 @@ The **Join the Study** screen has to do two things at once: capture the *Linking
 > *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
 > exists, this REQ is normative for the current deployment.
 
-*End* *Join the Study Screen* | **Hash**: 8aff3bce
+*End* *Join the Study Screen* | **Hash**: 1ad808e9
 
 ## DIARY-GUI-linking-confirmation: Successful Linking Confirmation
 
@@ -99,7 +99,7 @@ When a *Participant* successfully enters a valid Mobile *Linking Code* on the Jo
 
 ### Assertions
 
-A. When the **Participant** successfully submits a valid **Mobile **Linking Code**, the interface SHALL display an Acknowledgement Dialog** confirming that the device has been linked to the study.
+A. When the **Participant** successfully submits a valid **Mobile Linking Code**, the interface SHALL display an **Acknowledgement Dialog** confirming that the device has been linked to the study.
 
 B. When the **Participant** acknowledges the dialog, the interface SHALL navigate the **Participant** to the **User Profile** screen.
 
@@ -118,4 +118,4 @@ A successful link transitions the *Participant* from a personal-use **User** to 
 
 See: ![Successful Linking Confirmation](./images/image-25.png)
 
-*End* *Successful Linking Confirmation* | **Hash**: b2e4c450
+*End* *Successful Linking Confirmation* | **Hash**: 495858e9
