@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:portal_screens/portal_screens.dart' hide ParticipantsScreen;
@@ -505,16 +506,7 @@ class LinkParticipantDialog extends StatelessWidget {
         },
       ),
       builder: (context, state, submit) {
-        final theme = Theme.of(context);
         switch (state) {
-          case Submitting():
-            return const AlertDialog(
-              content: SizedBox(
-                width: 300,
-                height: 80,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            );
           case Success():
             final data = switch (state.result) {
               DispatchSuccess<Object?>(:final result) => result,
@@ -533,63 +525,107 @@ class LinkParticipantDialog extends StatelessWidget {
               footer: expiresInLabel(expiresAt, DateTime.now()),
             );
           case Denied() || Failed():
-            return AlertDialog(
-              title: const Text('Error'),
-              content: Text(switch (state) {
-                Denied(:final result) => 'Not permitted ($result).',
-                Failed(:final error) => 'Failed: $error',
-                _ => 'An error occurred.',
-              }, style: TextStyle(color: theme.colorScheme.error)),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(onPressed: submit, child: const Text('Try Again')),
-              ],
-            );
+            return _ErrorDialog(state: state, onRetry: submit);
           default:
-            return AlertDialog(
-              title: const Text('Link Participant'),
-              content: SizedBox(
-                width: 440,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Participant ID: $participantId',
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Are you sure you want to generate a Linking Code? The '
-                      'Participant will use this code to connect their Mobile '
-                      'Application. The code will expire after 72 hours.',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
+            // Idle + Submitting share the confirm shape; the Confirm
+            // button carries the in-flight spinner (kit pattern).
+            final busy = state is Submitting;
+            return AppDialog(
+              size: AppDialogSize.small,
+              title: 'Link Participant',
+              dismissible: false,
+              semanticId: 'link-participant-dialog-$participantId',
+              body: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ParticipantIdLine(participantId: participantId),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Are you sure you want to generate a Linking Code? The '
+                    'Participant will use this code to connect their Mobile '
+                    'Application. The code will expire after 72 hours.',
+                  ),
+                ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                AppButton(
+                  variant: AppButtonVariant.secondary,
+                  label: 'Cancel',
+                  onPressed: busy ? null : () => Navigator.of(context).pop(),
                 ),
-                Semantics(
-                  identifier: 'link-participant-confirm-$participantId',
-                  button: true,
-                  container: true,
-                  explicitChildNodes: true,
-                  child: FilledButton(
-                    onPressed: submit,
-                    child: const Text('Confirm'),
-                  ),
+                AppButton(
+                  label: 'Confirm',
+                  loading: busy,
+                  onPressed: busy ? null : submit,
+                  semanticId: 'link-participant-confirm-$participantId',
                 ),
               ],
             );
         }
       },
+    );
+  }
+}
+
+/// "Participant ID: [participantId]" header line shared by the dialogs.
+class _ParticipantIdLine extends StatelessWidget {
+  const _ParticipantIdLine({required this.participantId});
+
+  final String participantId;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text.rich(
+      TextSpan(
+        text: 'Participant ID: ',
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        children: [
+          TextSpan(
+            text: participantId,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shared kit error dialog for a Denied/Failed dispatch.
+class _ErrorDialog extends StatelessWidget {
+  const _ErrorDialog({required this.state, required this.onRetry});
+
+  final ActionState state;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppDialog(
+      size: AppDialogSize.small,
+      title: 'Error',
+      dismissible: false,
+      body: AppBanner(
+        severity: AppBannerSeverity.error,
+        message: switch (state) {
+          Denied(:final result) => 'The action was not permitted ($result).',
+          Failed(:final error) => 'Failed: $error',
+          _ => 'An error occurred.',
+        },
+      ),
+      actions: [
+        AppButton(
+          variant: AppButtonVariant.secondary,
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        AppButton(label: 'Try Again', onPressed: onRetry),
+      ],
     );
   }
 }
@@ -613,47 +649,44 @@ class _MobileLinkingCodeDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return AlertDialog(
-      title: const Text('Mobile Linking Code'),
-      content: SizedBox(
-        width: 440,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Participant ID: $participantId',
-              style: theme.textTheme.titleSmall,
+    return AppDialog(
+      size: AppDialogSize.small,
+      title: 'Mobile Linking Code',
+      semanticId: 'linking-code-dialog-$participantId',
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _ParticipantIdLine(participantId: participantId),
+          const SizedBox(height: 12),
+          Text(subtitle, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 16),
+          Opacity(
+            opacity: muted ? 0.55 : 1,
+            child: Semantics(
+              identifier: 'linking-code-$participantId',
+              value: code,
+              container: true,
+              explicitChildNodes: true,
+              child: ActivationCodeDisplay(code: code, fontSize: 20),
             ),
+          ),
+          if (footer.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text(subtitle, style: theme.textTheme.bodyMedium),
-            const SizedBox(height: 16),
-            Opacity(
-              opacity: muted ? 0.55 : 1,
-              child: Semantics(
-                identifier: 'linking-code-$participantId',
-                value: code,
-                container: true,
-                explicitChildNodes: true,
-                child: ActivationCodeDisplay(code: code, fontSize: 20),
+            Text(
+              footer,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            if (footer.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                footer,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
       actions: [
-        FilledButton(
+        AppButton(
+          label: 'OK',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('OK'),
+          semanticId: 'linking-code-ok-$participantId',
         ),
       ],
     );
@@ -715,16 +748,7 @@ class _LifecycleActionDialog extends StatelessWidget {
       submissionFactory: () =>
           ActionSubmission(actionName: actionName, rawInput: rawInput),
       builder: (context, state, submit) {
-        final theme = Theme.of(context);
         switch (state) {
-          case Submitting():
-            return const AlertDialog(
-              content: SizedBox(
-                width: 300,
-                height: 80,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            );
           case Success():
             final data = switch (state.result) {
               DispatchSuccess<Object?>(:final result) => result,
@@ -746,56 +770,47 @@ class _LifecycleActionDialog extends StatelessWidget {
                 ),
               );
             }
-            return AlertDialog(
-              title: Text(title),
-              content: Text('Done. The participant\'s status has updated.'),
+            return AppDialog(
+              size: AppDialogSize.small,
+              title: title,
+              dismissible: false,
+              body: const Text("Done. The participant's status has updated."),
               actions: [
-                FilledButton(
+                AppButton(
+                  label: 'OK',
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('OK'),
                 ),
               ],
             );
           case Denied() || Failed():
-            return AlertDialog(
-              title: const Text('Error'),
-              content: Text(switch (state) {
-                Denied(:final result) => 'Not permitted ($result).',
-                Failed(:final error) => 'Failed: $error',
-                _ => 'An error occurred.',
-              }, style: TextStyle(color: theme.colorScheme.error)),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(onPressed: submit, child: const Text('Try Again')),
-              ],
-            );
+            return _ErrorDialog(state: state, onRetry: submit);
           default:
-            return AlertDialog(
-              title: Text(title),
-              content: SizedBox(
-                width: 440,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Participant ID: $participantId',
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(body, style: theme.textTheme.bodyMedium),
-                  ],
-                ),
+            final busy = state is Submitting;
+            return AppDialog(
+              size: AppDialogSize.small,
+              title: title,
+              dismissible: false,
+              semanticId: 'lifecycle-dialog-$participantId',
+              body: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ParticipantIdLine(participantId: participantId),
+                  const SizedBox(height: 16),
+                  Text(body),
+                ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                AppButton(
+                  variant: AppButtonVariant.secondary,
+                  label: 'Cancel',
+                  onPressed: busy ? null : () => Navigator.of(context).pop(),
                 ),
-                FilledButton(onPressed: submit, child: Text(confirmLabel)),
+                AppButton(
+                  label: confirmLabel,
+                  loading: busy,
+                  onPressed: busy ? null : submit,
+                ),
               ],
             );
         }

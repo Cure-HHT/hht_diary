@@ -144,11 +144,12 @@ build_images() {
     "$core"
 
   log "[3/3] building $pfinal"
-  # Local-stack bakes FIREBASE_AUTH_EMULATOR_HOST into the SPA so it talks to
-  # the Firebase emulator (browser-side; Flutter web reads it at compile time).
-  # CI/Cloud Run builds leave this empty and ship one environment-independent
-  # bundle that resolves its environment from the server at runtime. The
-  # portal-final image is owned by the SPONSOR repo and built in its context.
+  # The portal web bundle is environment-independent — the SPA reads the
+  # browser-facing Firebase Auth emulator host at runtime from /config/identity
+  # (the portal-final container sets PORTAL_IDENTITY_EMULATOR_HOST=localhost:9099),
+  # so nothing emulator-related is baked into the build. The local-stack image is
+  # byte-for-byte the deployed recipe. The portal-final image is owned by the
+  # SPONSOR repo and built in its context.
   #
   # BUILD_ID: unique per invocation (local-<6 hex>) so every rebuild stamps a
   # distinct portal_ui_version. The pubspec semver rarely moves between local
@@ -166,7 +167,6 @@ build_images() {
     --file "$sponsor_repo/deployment/docker/portal-final.Dockerfile" \
     --build-arg "SPONSOR_CI_IMAGE=$ci" \
     --build-arg "PORTAL_SERVER_IMAGE=$pbin" \
-    --build-arg "FIREBASE_AUTH_EMULATOR_HOST=localhost:9099" \
     --build-arg "BUILD_ID=$build_id" \
     --tag  "$pfinal" \
     "$sponsor_repo"

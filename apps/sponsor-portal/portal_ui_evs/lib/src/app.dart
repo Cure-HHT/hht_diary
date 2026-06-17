@@ -12,6 +12,7 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:portal_screens/portal_screens.dart';
 
 import 'activation_link.dart';
+import 'auth_bootstrap.dart';
 import 'auth_scaffold.dart';
 import 'activation_screen.dart';
 import 'audit_log_screen_binding.dart';
@@ -29,6 +30,7 @@ import 'session_config.dart';
 import 'session_timeout_controller.dart';
 import 'stale_client.dart';
 import 'participants_screen_binding.dart';
+import 'rave_sync_screen_binding.dart';
 import 'sites_screen_binding.dart';
 import 'study_settings_binding.dart';
 import 'update_available_banner.dart';
@@ -121,8 +123,15 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// Null while the config is still loading; `true` renders the Firebase
   /// Login/OTP screens, `false` renders the dev ConnectScreen. Resolving at
   /// runtime lets one web image serve both dev and session-auth deployments.
-  // Implements: DIARY-DEV-portal-second-factor-toggle/C
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/C
   bool? _sessionAuth;
+
+  /// True when session-mode Firebase/emulator init failed. Renders an explicit
+  /// error+reload rather than a login pointed at the wrong (production)
+  /// Firebase — a silently-failed emulator connect was the root cause of the
+  /// flaky local-stack logins. See [_resolveAuthMode].
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/C
+  bool _authInitFailed = false;
 
   /// Set to true after the user taps "Back to Login" on the password-reset done
   /// view so [build] falls through to the normal auth switch instead of
@@ -246,23 +255,32 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   // Implements: DIARY-GUI-portal-stale-client-reload/A
   void _reloadForUpdate() => widget.web.reloadPage();
 
-  /// Resolves the login-UI mode from the server's identity config. When the
-  /// server reports `authMode == 'session'`, initialises Firebase from the same
-  /// config so [LoginScreen] can authenticate. Falls back to dev mode if the
-  /// config can't be fetched. Firebase init errors are swallowed here and
-  /// surface through the LoginScreen UI on the first sign-in attempt.
-  // Implements: DIARY-DEV-portal-second-factor-toggle/C
+  /// Resolves the login-UI mode from the server's identity config. In session
+  /// mode, Firebase (and, when the deployment reports one, the auth emulator)
+  /// MUST be wired before the login surface renders. On an emulator deployment
+  /// the persisted Firebase Auth IndexedDB is wiped BEFORE init so the emulator
+  /// connect binds cleanly instead of silently falling through to production —
+  /// the flaky-local-login root cause (flutterfire #9528). The login appears
+  /// only on `sessionReady`; a genuine init failure surfaces an explicit error
+  /// rather than a prod-pointed login.
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/A+B+C
   Future<void> _resolveAuthMode() async {
-    var session = false;
-    final cfg = await fetchIdentityConfig(_serverUrl);
-    if (cfg != null) {
-      session = cfg['authMode'] == 'session';
-      if (session) {
-        await initFirebaseWithConfig(cfg).catchError((Object _) {});
-      }
-    }
+    final outcome = await resolveAuthBootstrap(
+      fetchConfig: () => fetchIdentityConfig(_serverUrl),
+      initFirebase: initFirebaseWithConfig,
+      clearAuthDb: widget.web.clearFirebaseAuthDb,
+    );
     if (!mounted) return;
-    setState(() => _sessionAuth = session);
+    setState(() {
+      switch (outcome) {
+        case AuthBootstrapOutcome.dev:
+          _sessionAuth = false;
+        case AuthBootstrapOutcome.sessionReady:
+          _sessionAuth = true;
+        case AuthBootstrapOutcome.failed:
+          _authInitFailed = true;
+      }
+    });
   }
 
   @override
@@ -428,6 +446,34 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   Widget _loadingScaffold() =>
       const Scaffold(body: Center(child: CircularProgressIndicator()));
 
+  /// Shown when session-mode auth init exhausted its retries: an explicit,
+  /// recoverable error instead of a login pointed at the wrong Firebase.
+  Widget _authInitFailedScaffold() => Scaffold(
+    body: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const AppBanner(
+              severity: AppBannerSeverity.error,
+              message:
+                  "Couldn't reach the authentication service. Check your "
+                  'connection and reload.',
+              semanticId: 'auth-init-failed',
+            ),
+            const SizedBox(height: 16),
+            AppButton(
+              label: 'Reload',
+              onPressed: widget.web.reloadPage,
+              semanticId: 'auth-init-reload',
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
   /// The Firebase email/password login surface (session-auth mode).
   /// [notice] surfaces a non-error message inside the card (e.g. the
   /// session-ended prompt).
@@ -515,27 +561,34 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       );
     }
 
-    final Widget home = switch (_status) {
-      Authenticated(:final principal) => _authenticatedHome(principal),
-      Expired() => switch (_sessionAuth) {
-        null => _loadingScaffold(),
-        true => _loginScreen(notice: 'Session ended — please sign in again.'),
-        false => Scaffold(
-          body: ConnectScreen(
-            onConnect: _onConnect,
-            message: 'Session ended — reconnect.',
-            serverUrl: _serverUrl,
-          ),
-        ),
-      },
-      NotAuthenticated() => switch (_sessionAuth) {
-        null => _loadingScaffold(),
-        true => _loginScreen(),
-        false => Scaffold(
-          body: ConnectScreen(onConnect: _onConnect, serverUrl: _serverUrl),
-        ),
-      },
-    };
+    final Widget home = _authInitFailed
+        ? _authInitFailedScaffold()
+        : switch (_status) {
+            Authenticated(:final principal) => _authenticatedHome(principal),
+            Expired() => switch (_sessionAuth) {
+              null => _loadingScaffold(),
+              true => _loginScreen(
+                notice: 'Session ended — please sign in again.',
+              ),
+              false => Scaffold(
+                body: ConnectScreen(
+                  onConnect: _onConnect,
+                  message: 'Session ended — reconnect.',
+                  serverUrl: _serverUrl,
+                ),
+              ),
+            },
+            NotAuthenticated() => switch (_sessionAuth) {
+              null => _loadingScaffold(),
+              true => _loginScreen(),
+              false => Scaffold(
+                body: ConnectScreen(
+                  onConnect: _onConnect,
+                  serverUrl: _serverUrl,
+                ),
+              ),
+            },
+          };
     return ReActionScope(
       scope: _scope,
       child: MaterialApp(
@@ -661,6 +714,7 @@ class _HomeShellState extends State<_HomeShell> {
       identityCredential: widget.identityCredential ?? '',
       serverUrl: _serverUrl,
     ),
+    'RAVE Sync' => const RaveSyncScreenBinding(),
     'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',
       serverUrl: _serverUrl,

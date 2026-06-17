@@ -115,12 +115,12 @@ services:
         condition: service_healthy
         required: false
     environment:
-      # 'local' selects the SPA bundle compiled with
-      # FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 baked in (see
-      # portal-final.Dockerfile build loop), so the browser-side SPA
-      # routes auth through the firebase-emulator service rather than
-      # production Firebase. The other flavors (dev/qa/uat/prod) target
-      # Cloud Run with real Firebase.
+      # 'local' marks this as the local-stack deployment. The SPA bundle is
+      # environment-independent (nothing baked); the browser-side SPA routes
+      # auth through the firebase-emulator service because /config/identity
+      # advertises PORTAL_IDENTITY_EMULATOR_HOST=localhost:9099 at runtime, which
+      # the SPA passes to useAuthEmulator. The other flavors (dev/qa/uat/prod)
+      # target Cloud Run with real Firebase (no emulator host advertised).
       ENVIRONMENT: local
       # CUR-1264: portal-start-local.sh branches on this. "mock" (default)
       # strips RAVE_UAT_* before exec'ing the server so sync no-ops and the

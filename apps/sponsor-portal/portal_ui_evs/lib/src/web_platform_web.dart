@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
@@ -57,4 +58,50 @@ class WebPlatform {
 
   void clearAutoReloadGuard() =>
       web.window.sessionStorage.removeItem(_guardKey);
+
+  /// Deletes Firebase Auth's persistence DB (`firebaseLocalStorageDb`) so the
+  /// next Firebase init starts with NO stored user.
+  ///
+  /// flutterfire #9528: on web the SDK auto-restores a persisted user during
+  /// `Firebase.initializeApp`, which "uses" the Auth instance before
+  /// `useAuthEmulator` can run — the emulator connect is then silently rejected
+  /// and every auth call hits production. Wiping the DB BEFORE init removes the
+  /// user to restore, so the emulator binds cleanly. Called only on emulator
+  /// deployments (the bootstrap guards on `emulatorHost`); a production session
+  /// is never wiped, so a real restored login survives.
+  ///
+  /// Best-effort: pre-init no SDK connection holds the DB open, so the delete
+  /// completes immediately. The 800ms timeout (and the `blocked`/`error`
+  /// fall-throughs) keep boot from stalling in the unexpected case where a
+  /// connection is still open — the delete then completes once it closes.
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/A
+  Future<void> clearFirebaseAuthDb() async {
+    final completer = Completer<void>();
+    void done(web.Event _) {
+      if (!completer.isCompleted) completer.complete();
+    }
+
+    try {
+      final req = web.window.indexedDB.deleteDatabase('firebaseLocalStorageDb');
+      req.onsuccess = done.toJS;
+      req.onerror = done.toJS;
+      // A connection is still open (unexpected pre-init): log it for
+      // diagnosability but do NOT complete — rely on the timeout below so boot
+      // never stalls; the delete lands once the connection closes.
+      req.onblocked = ((web.Event _) {
+        web.console.warn(
+          'clearFirebaseAuthDb: deleteDatabase blocked — a connection is '
+                  'still open; relying on the timeout'
+              .toJS,
+        );
+      }).toJS;
+      await completer.future.timeout(
+        const Duration(milliseconds: 800),
+        onTimeout: () {},
+      );
+    } catch (e) {
+      // indexedDB unavailable / delete threw — proceed; init may still bind.
+      web.console.warn('clearFirebaseAuthDb failed: $e'.toJS);
+    }
+  }
 }
