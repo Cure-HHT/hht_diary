@@ -1028,11 +1028,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // CUR-1493: the home user-menu Help Center is not built yet — show the
+  // generic "Coming soon" notice, not the unrelated "Privacy settings coming
+  // soon" toast.
   void _handleShowHelpCenter() {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AppLocalizations.of(context).privacyComingSoon),
+        content: Text(AppLocalizations.of(context).comingSoon),
         duration: const Duration(seconds: 2),
       ),
     );
