@@ -1,0 +1,352 @@
+# IMPLEMENTS REQUIREMENTS:
+#   REQ-d00006: Mobile App Build and Release Process
+#   REQ-o00043: Automated Deployment Pipeline
+name: Firebase Test Lab
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to test"
+        required: true
+        type: choice
+        options: [android, ios, both]
+        default: android
+      flavor:
+        description: "Application flavor"
+        required: true
+        type: choice
+        options: [dev, qa, uat]
+        default: qa
+      timeout:
+        description: "Per-device Test Lab timeout"
+        required: true
+        type: string
+        default: "15m"
+      use_orchestrator:
+        description: "Use Android Test Orchestrator"
+        required: true
+        type: boolean
+        default: false
+      android_devices:
+        description: "Optional Android device specs, one per line (model=...,version=...,locale=en,orientation=portrait). Blank uses Test Lab default."
+        required: false
+        type: string
+        default: ""
+      ios_devices:
+        description: "Optional iOS device specs, one per line. Blank uses Test Lab default."
+        required: false
+        type: string
+        default: ""
+      ios_xcode_version:
+        description: "Optional Firebase-supported Xcode version. Blank uses Test Lab default."
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-test-lab-${{ github.ref }}-${{ inputs.platform }}-${{ inputs.flavor }}
+  cancel-in-progress: false
+
+env:
+  APP_DIR: apps/daily-diary/clinical_diary
+  TEST_TARGET: integration_test/firebase_test_lab_smoke_test.dart
+  GCP_PROJECT_ID: cure-hht-qa
+
+jobs:
+  android:
+    name: Android instrumentation
+    if: inputs.platform == 'android' || inputs.platform == 'both'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load pinned versions
+        run: grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.pub-cache
+          key: firebase-test-lab-pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.lock') }}
+          restore-keys: firebase-test-lab-pub-${{ runner.os }}-
+
+      - name: Pre-install Android CMake
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          if [ ! -d "$SDK/cmake/${ANDROID_CMAKE_VERSION}" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmake;${ANDROID_CMAKE_VERSION}"
+          fi
+
+      - name: Build application and instrumentation APKs
+        run: |
+          firebase-test-lab/scripts/build-android.sh \
+            "${{ inputs.flavor }}" \
+            "$TEST_TARGET"
+
+      - name: Upload Android test inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-test-lab-android-inputs-${{ inputs.flavor }}-${{ github.run_id }}
+          path: ${{ env.APP_DIR }}/build/firebase-test-lab/android
+          retention-days: 90
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Verify Test Lab identity and inventory
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/firebase-test-lab/android/evidence
+          gcloud config set project "$GCP_PROJECT_ID"
+          ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"
+          ACTIVE_ACCOUNT="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' | head -n 1)"
+          test "$ACTIVE_PROJECT" = "$GCP_PROJECT_ID"
+          test -n "$ACTIVE_ACCOUNT"
+          echo "Authenticated principal: $ACTIVE_ACCOUNT"
+          echo "Firebase Test Lab project: $ACTIVE_PROJECT"
+          gcloud firebase test android models list --format=json \
+            > build/firebase-test-lab/android/evidence/models.json
+          gcloud firebase test android versions list --format=json \
+            > build/firebase-test-lab/android/evidence/versions.json
+
+      - name: Run Android Firebase Test Lab matrix
+        id: android_ftl
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          FLAVOR: ${{ inputs.flavor }}
+          TEST_TIMEOUT: ${{ inputs.timeout }}
+          ANDROID_DEVICES: ${{ inputs.android_devices }}
+          USE_ORCHESTRATOR: ${{ inputs.use_orchestrator }}
+          FIREBASE_RESULTS_BUCKET: ${{ vars.FIREBASE_TEST_LAB_RESULTS_BUCKET }}
+          APP_APK: build/firebase-test-lab/android/app-${{ inputs.flavor }}-debug.apk
+          TEST_APK: build/firebase-test-lab/android/app-${{ inputs.flavor }}-debug-androidTest.apk
+          RESULTS_DIR: hht-diary/${{ github.run_id }}/${{ github.run_attempt }}/android-${{ inputs.flavor }}-${{ github.sha }}
+          EVIDENCE_DIR: build/firebase-test-lab/android/evidence
+        run: |
+          set +e
+          ../../../firebase-test-lab/scripts/run-android-test-lab.sh
+          status=$?
+          set -e
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          # Preserve the matrix exit code for the final enforcement step while
+          # allowing evidence upload and the job summary to run first.
+          exit 0
+
+      - name: Write Android summary
+        if: always()
+        env:
+          EXIT_CODE: ${{ steps.android_ftl.outputs.exit_code }}
+        run: |
+          case "${EXIT_CODE:-missing}" in
+            0) RESULT="Passed" ;;
+            10) RESULT="Test cases failed" ;;
+            15) RESULT="Indeterminate / infrastructure error" ;;
+            19) RESULT="Canceled" ;;
+            missing|'') RESULT="Did not execute" ;;
+            *) RESULT="Failed (gcloud exit ${EXIT_CODE})" ;;
+          esac
+          {
+            echo "### Android Firebase Test Lab"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Project | \`$GCP_PROJECT_ID\` |"
+            echo "| Flavor | \`${{ inputs.flavor }}\` |"
+            echo "| Test target | \`$TEST_TARGET\` |"
+            echo "| Result | **$RESULT** |"
+            echo "| gcloud exit code | \`${EXIT_CODE:-n/a}\` |"
+            echo "| Commit | \`${GITHUB_SHA::7}\` |"
+            echo "| Firebase console | https://console.firebase.google.com/project/cure-hht-qa/testlab |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Android evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-test-lab-android-evidence-${{ inputs.flavor }}-${{ github.run_id }}
+          path: ${{ env.APP_DIR }}/build/firebase-test-lab/android
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Enforce Android matrix result
+        if: always()
+        env:
+          EXIT_CODE: ${{ steps.android_ftl.outputs.exit_code }}
+        run: |
+          if [ -z "${EXIT_CODE:-}" ]; then
+            echo "::error::Android Firebase Test Lab matrix did not execute."
+            exit 1
+          fi
+          exit "$EXIT_CODE"
+
+  ios:
+    name: iOS XCTest
+    if: inputs.platform == 'ios' || inputs.platform == 'both'
+    runs-on: macos-26
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load pinned versions
+        run: grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+          working-directory: apps/daily-diary/clinical_diary/ios
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.pub-cache
+          key: firebase-test-lab-pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.lock') }}
+          restore-keys: firebase-test-lab-pub-${{ runner.os }}-
+
+      - name: Build XCTest package
+        run: |
+          firebase-test-lab/scripts/build-ios.sh \
+            "${{ inputs.flavor }}" \
+            "$TEST_TARGET"
+
+      - name: Upload iOS test input
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-test-lab-ios-input-${{ inputs.flavor }}-${{ github.run_id }}
+          path: ${{ env.APP_DIR }}/build/firebase-test-lab/ios
+          retention-days: 90
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: ${{ vars.GCP_SA_EMAIL }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Verify Test Lab identity and inventory
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/firebase-test-lab/ios/evidence
+          gcloud config set project "$GCP_PROJECT_ID"
+          ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"
+          ACTIVE_ACCOUNT="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' | head -n 1)"
+          test "$ACTIVE_PROJECT" = "$GCP_PROJECT_ID"
+          test -n "$ACTIVE_ACCOUNT"
+          echo "Authenticated principal: $ACTIVE_ACCOUNT"
+          echo "Firebase Test Lab project: $ACTIVE_PROJECT"
+          gcloud firebase test ios models list --format=json \
+            > build/firebase-test-lab/ios/evidence/models.json
+          gcloud firebase test ios versions list --format=json \
+            > build/firebase-test-lab/ios/evidence/versions.json
+
+      - name: Run iOS Firebase Test Lab matrix
+        id: ios_ftl
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          FLAVOR: ${{ inputs.flavor }}
+          TEST_TIMEOUT: ${{ inputs.timeout }}
+          IOS_DEVICES: ${{ inputs.ios_devices }}
+          IOS_XCODE_VERSION: ${{ inputs.ios_xcode_version }}
+          FIREBASE_RESULTS_BUCKET: ${{ vars.FIREBASE_TEST_LAB_RESULTS_BUCKET }}
+          XCTEST_ZIP: build/firebase-test-lab/ios/ios-${{ inputs.flavor }}-xctest.zip
+          RESULTS_DIR: hht-diary/${{ github.run_id }}/${{ github.run_attempt }}/ios-${{ inputs.flavor }}-${{ github.sha }}
+          EVIDENCE_DIR: build/firebase-test-lab/ios/evidence
+        run: |
+          set +e
+          ../../../firebase-test-lab/scripts/run-ios-test-lab.sh
+          status=$?
+          set -e
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Write iOS summary
+        if: always()
+        env:
+          EXIT_CODE: ${{ steps.ios_ftl.outputs.exit_code }}
+        run: |
+          case "${EXIT_CODE:-missing}" in
+            0) RESULT="Passed" ;;
+            10) RESULT="Test cases failed" ;;
+            15) RESULT="Indeterminate / infrastructure error" ;;
+            19) RESULT="Canceled" ;;
+            missing|'') RESULT="Did not execute" ;;
+            *) RESULT="Failed (gcloud exit ${EXIT_CODE})" ;;
+          esac
+          {
+            echo "### iOS Firebase Test Lab"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Project | \`$GCP_PROJECT_ID\` |"
+            echo "| Flavor | \`${{ inputs.flavor }}\` |"
+            echo "| Test target | \`$TEST_TARGET\` |"
+            echo "| Result | **$RESULT** |"
+            echo "| gcloud exit code | \`${EXIT_CODE:-n/a}\` |"
+            echo "| Commit | \`${GITHUB_SHA::7}\` |"
+            echo "| Firebase console | https://console.firebase.google.com/project/cure-hht-qa/testlab |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload iOS evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-test-lab-ios-evidence-${{ inputs.flavor }}-${{ github.run_id }}
+          path: ${{ env.APP_DIR }}/build/firebase-test-lab/ios
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Enforce iOS matrix result
+        if: always()
+        env:
+          EXIT_CODE: ${{ steps.ios_ftl.outputs.exit_code }}
+        run: |
+          if [ -z "${EXIT_CODE:-}" ]; then
+            echo "::error::iOS Firebase Test Lab matrix did not execute."
+            exit 1
+          fi
+          exit "$EXIT_CODE"
