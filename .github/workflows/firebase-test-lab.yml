@@ -101,7 +101,7 @@ jobs:
 
       - name: Build application and instrumentation APKs
         run: |
-          firebase-test-lab/scripts/build-android.sh \
+          bash firebase-test-lab/scripts/build-android.sh \
             "${{ inputs.flavor }}" \
             "$TEST_TARGET"
 
@@ -155,7 +155,7 @@ jobs:
           EVIDENCE_DIR: build/firebase-test-lab/android/evidence
         run: |
           set +e
-          ../../../firebase-test-lab/scripts/run-android-test-lab.sh
+          bash ../../../firebase-test-lab/scripts/run-android-test-lab.sh
           status=$?
           set -e
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
@@ -245,7 +245,7 @@ jobs:
 
       - name: Build XCTest package
         run: |
-          firebase-test-lab/scripts/build-ios.sh \
+          bash firebase-test-lab/scripts/build-ios.sh \
             "${{ inputs.flavor }}" \
             "$TEST_TARGET"
 
@@ -298,7 +298,7 @@ jobs:
           EVIDENCE_DIR: build/firebase-test-lab/ios/evidence
         run: |
           set +e
-          ../../../firebase-test-lab/scripts/run-ios-test-lab.sh
+          bash ../../../firebase-test-lab/scripts/run-ios-test-lab.sh
           status=$?
           set -e
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
