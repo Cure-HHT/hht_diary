@@ -34,6 +34,20 @@ Future<void> _pumpUntil(
 }
 
 void main() {
+  // The normal Clinical Diary CI discovers every integration_test/*_test.dart
+  // target and runs it on a desktop platform. This smoke test is intentionally
+  // device-only because it starts the full app and captures a Test Lab
+  // screenshot. Register a skipped placeholder on desktop before initializing
+  // the integration-test binding so Linux/macOS/Windows CI cannot hang here.
+  if (!Platform.isAndroid && !Platform.isIOS) {
+    test(
+      'Clinical Diary Firebase Test Lab smoke test is device-only',
+      () {},
+      skip: 'Runs only on Android or iOS Firebase Test Lab devices.',
+    );
+    return;
+  }
+
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Clinical Diary starts and renders the Home screen', (
