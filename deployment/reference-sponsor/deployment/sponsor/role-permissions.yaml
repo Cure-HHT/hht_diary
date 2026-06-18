@@ -1,5 +1,5 @@
 # Reference sponsor authorization seed (DIARY-DEV-view-action-permissions,
-# CAL-DEV-role-permissions-seed). The canonical EXAMPLE used by local dev, CI,
+# DIARY-DEV-role-permissions-seed). The canonical EXAMPLE used by local dev, CI,
 # and platform tests. Every grant is an Action permission from
 # DIARY-PRD-action-inventory (no view:<projection> names). SystemOperator is the
 # platform-owned minimum (DIARY-BASE-system-operator-role).

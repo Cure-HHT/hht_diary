@@ -207,6 +207,7 @@
 | DIARY-DEV-rave-edc-ingest                    | RAVE/EDC Ingest as Edge Events                        | dev-portal-service.md              | e93b0ede |
 | DIARY-DEV-reactive-read-path                 | Screens Read via Reactive Subscriptions               | dev-mobile-event-sourcing.md       | f37501bb |
 | DIARY-DEV-relink-device-gate                 | Relink Device Gate                                    | dev-relink-device-gate.md          | d82aa19c |
+| DIARY-DEV-role-permissions-seed              | File-based role-to-Action authorization seed          | dev-portal-service.md              | c4e10419 |
 | DIARY-DEV-runtime-environment-resolution     | Runtime Environment Resolution                        | dev-environment-resolution.md      | b0c74776 |
 | DIARY-DEV-schema-version-check               | Runtime Schema Version Check                          | dev-schema-version-check.md        | 260cb67b |
 | DIARY-DEV-shared-events-catalog              | Shared Cross-Wire Event Catalog                       | dev-shared-events-catalog.md       | 29c6b0c8 |

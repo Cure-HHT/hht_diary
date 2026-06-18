@@ -13,7 +13,7 @@ void main() {
       .map((p) => p.name)
       .toSet();
 
-  // Verifies: CAL-DEV-role-permissions-seed/B
+  // Verifies: DIARY-DEV-role-permissions-seed/B
   test('every granted permission is a declared Action permission', () {
     final doc = loadYaml(_referenceYaml()) as YamlMap;
     final grants = doc['grants'] as YamlMap;
@@ -61,7 +61,7 @@ void main() {
     });
   });
 
-  // Verifies: CAL-DEV-role-permissions-seed/C — SystemOperator minimum.
+  // Verifies: DIARY-DEV-role-permissions-seed/C — SystemOperator minimum.
   test('SystemOperator grants are a superset of the platform minimum', () {
     final grants = (loadYaml(_referenceYaml()) as YamlMap)['grants'] as YamlMap;
     final sysop =

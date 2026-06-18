@@ -9,6 +9,7 @@
 **DIARY:**
 
 - DIARY-DEV-action-write-path
+- DIARY-DEV-role-permissions-seed
 - DIARY-DEV-view-action-permissions
 - DIARY-PRD-sla-corrective-preventive
 - DIARY-BASE-ops-action-inventory-A
@@ -26,6 +27,8 @@
 - DIARY-DEV-inbound-event-on-receipt-B
 - DIARY-DEV-inbound-event-on-receipt-C
 - DIARY-DEV-portal-reaction-server-B
+- DIARY-DEV-role-permissions-seed-A
+- DIARY-DEV-role-permissions-seed-B
 - DIARY-DEV-operator-tier-authz-C
 - DIARY-DEV-operator-tier-authz-F
 - DIARY-DEV-view-action-permissions-A
@@ -115,6 +118,8 @@
 - DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-DEV-user-account-projection:section:1
 - DIARY-DEV-portal-seed-config:section:1
+- DIARY-DEV-role-permissions-seed:section:0
+- DIARY-DEV-role-permissions-seed:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
 - DIARY-DEV-portal-settings-store:section:0
@@ -668,6 +673,7 @@
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-participant-status-projection-B
+- DIARY-DEV-role-permissions-seed-C
 - DIARY-DEV-sponsor-config-source-D
 - DIARY-DEV-shared-events-catalog-B
 - DIARY-DEV-sponsor-branding-assets-A
@@ -739,6 +745,7 @@
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
+- DIARY-DEV-role-permissions-seed:section:0
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-sponsor-config-source:section:0
 - DIARY-DEV-sponsor-config-source:section:1
@@ -2497,6 +2504,7 @@
 - DIARY-BASE-system-operator-role
 - DIARY-DEV-portal-active-role-switch
 - DIARY-DEV-portal-seed-config
+- DIARY-DEV-role-permissions-seed
 - DIARY-PRD-rbac-customizable
 - DIARY-PRD-role-definitions
 - DIARY-GUI-role-switching
@@ -2511,6 +2519,8 @@
 - DIARY-DEV-user-account-projection-C
 - DIARY-DEV-portal-durable-event-store-C
 - DIARY-DEV-portal-seed-config-A
+- DIARY-DEV-role-permissions-seed-A
+- DIARY-DEV-role-permissions-seed-C
 - DIARY-DEV-operator-tier-authz-A
 - DIARY-DEV-operator-tier-authz-D
 - DIARY-DEV-operator-tier-authz-E
@@ -2556,6 +2566,8 @@
 - DIARY-DEV-portal-durable-event-store:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
+- DIARY-DEV-role-permissions-seed:section:0
+- DIARY-DEV-role-permissions-seed:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
 - DIARY-DEV-view-action-permissions:section:0
@@ -2860,6 +2872,7 @@
 - DIARY-DEV-deployment-config-defaults-F
 - DIARY-DEV-linking-code-lifecycle-A
 - DIARY-DEV-portal-seed-config-B
+- DIARY-DEV-role-permissions-seed-A
 - DIARY-DEV-sponsor-config-source-A
 - DIARY-DEV-sponsor-config-source-B
 - DIARY-DEV-sponsor-branding-source-A
@@ -2969,6 +2982,8 @@
 - DIARY-DEV-portal-session-config:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
+- DIARY-DEV-role-permissions-seed:section:0
+- DIARY-DEV-role-permissions-seed:section:1
 - DIARY-DEV-sponsor-config-source:section:0
 - DIARY-DEV-sponsor-config-source:section:1
 - rem:spec/dev-sponsor-branding.md:1
@@ -3577,6 +3592,7 @@
 - DIARY-DEV-user-account-projection:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
+- DIARY-DEV-role-permissions-seed:section:0
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-portal-test-account-provisioning:section:0
 - DIARY-DEV-portal-test-account-provisioning:section:1

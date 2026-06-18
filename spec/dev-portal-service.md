@@ -327,6 +327,29 @@ Seeding *User*-*Role* assignments from data keeps the deployed roster out of the
 
 *End* *Config-driven user-role seed* | **Hash**: 89ccad9f
 
+## DIARY-DEV-role-permissions-seed: File-based role-to-Action authorization seed
+
+**Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-rbac-customizable
+
+### Overview
+
+The binding from each *Role* to the *Action* permissions it holds is data, not code: a deployed environment supplies it as a *Sponsor*-maintained `role-permissions.yaml`, loaded as the authorization seed at boot. This is the permission-grant counterpart of the *User*-*Role* roster seed (`DIARY-DEV-portal-seed-config`): the roster declares who holds each *Role*, while this seed declares what each *Role* may do.
+
+### Assertions
+
+A. A *Sponsor*-supplied `role-permissions.yaml`, identified by configuration, SHALL be the authorization seed that binds each *Role* to the *Action* permissions it holds, expressed in *Action* vocabulary only (no `view:<projection>` names).
+
+B. The loader SHALL reject a grant that is not a declared *Action* permission, failing the boot rather than seeding an unknown permission.
+
+C. The loader SHALL validate that the file's *System Operator* grants are a superset of the platform-required minimum (`DIARY-BASE-system-operator-role`).
+
+### Rationale
+
+Expressing policy as *Role* -> *Action* permissions in a single file makes the *Sponsor* binding the single source of truth and keeps it 1:1 with the enforced grants. Rejecting undeclared permissions and validating the *System Operator* minimum makes a malformed or under-provisioned seed a boot failure, not a latent authorization gap.
+
+*End* *File-based role-to-Action authorization seed* | **Hash**: c4e10419
+
 ## DIARY-DEV-operator-tier-authz: Operator-Tier Authorization for User Management
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
