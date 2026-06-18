@@ -1,9 +1,9 @@
 name: PR732 Format Capture
 
 on:
-  push:
+  pull_request:
     branches:
-      - firebase-test-lab-github-actions-20260617
+      - main
 
 permissions:
   contents: read
