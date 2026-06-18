@@ -187,7 +187,11 @@ void main() {
         'Pouring',
         'Gushing',
       ]) {
-        expect(find.text(label), findsOneWidget, reason: '$label should render');
+        expect(
+          find.text(label),
+          findsOneWidget,
+          reason: '$label should render',
+        );
       }
     });
 
