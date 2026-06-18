@@ -1,0 +1,76 @@
+// IMPLEMENTS REQUIREMENTS:
+//   REQ-d00006: Mobile App Build and Release Process
+//   REQ-o00043: Automated Deployment Pipeline
+//
+// Minimal, deterministic on-device smoke coverage for Firebase Test Lab.
+// This intentionally uses synthetic/unlinked local state and does not require
+// patient credentials, participant identifiers, or production data.
+
+import 'dart:io';
+
+import 'package:clinical_diary/main.dart' as app;
+import 'package:clinical_diary/screens/home_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+
+Future<void> _pumpUntil(
+  WidgetTester tester,
+  bool Function() condition, {
+  required String description,
+  Duration timeout = const Duration(minutes: 2),
+  Duration interval = const Duration(milliseconds: 250),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    await tester.pump(interval);
+    if (condition()) {
+      return;
+    }
+  }
+  fail('Timed out waiting for $description');
+}
+
+void main() {
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
+
+  testWidgets('Clinical Diary starts and renders the Home screen', (
+    WidgetTester tester,
+  ) async {
+    await app.main();
+
+    await _pumpUntil(
+      tester,
+      () =>
+          find.byType(HomeScreen).evaluate().isNotEmpty ||
+          find.textContaining('Failed to initialize storage').evaluate().isNotEmpty,
+      description: 'the Home screen or a bootstrap error',
+    );
+
+    expect(
+      find.textContaining('Failed to initialize storage'),
+      findsNothing,
+      reason: 'The device-local datastore must initialize successfully.',
+    );
+    expect(find.byType(MaterialApp), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.byType(Scaffold), findsWidgets);
+    expect(tester.takeException(), isNull);
+
+    // Android screenshots require converting the Flutter surface first.
+    if (Platform.isAndroid) {
+      await binding.convertFlutterSurfaceToImage();
+      await tester.pumpAndSettle();
+    }
+    await binding.takeScreenshot('firebase_test_lab_home');
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump(const Duration(milliseconds: 250));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
