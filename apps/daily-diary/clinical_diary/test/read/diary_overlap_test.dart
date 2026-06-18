@@ -77,16 +77,18 @@ void main() {
   });
 
   // Adjacency (existing end == candidate start) is not an overlap.
-  test('candidate starting exactly at an existing range end does not overlap',
-      () {
-    final rows = [
-      _ep('a', '2025-10-15T11:00:00.000Z', '2025-10-15T12:00:00.000Z'),
-    ];
-    final hits = overlappingEpistaxisEntries(
-      rows,
-      DateTime.parse('2025-10-15T12:00:00.000Z'),
-      DateTime.parse('2025-10-15T12:30:00.000Z'),
-    );
-    expect(hits, isEmpty);
-  });
+  test(
+    'candidate starting exactly at an existing range end does not overlap',
+    () {
+      final rows = [
+        _ep('a', '2025-10-15T11:00:00.000Z', '2025-10-15T12:00:00.000Z'),
+      ];
+      final hits = overlappingEpistaxisEntries(
+        rows,
+        DateTime.parse('2025-10-15T12:00:00.000Z'),
+        DateTime.parse('2025-10-15T12:30:00.000Z'),
+      );
+      expect(hits, isEmpty);
+    },
+  );
 }

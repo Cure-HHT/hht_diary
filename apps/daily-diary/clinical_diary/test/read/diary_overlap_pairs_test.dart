@@ -97,29 +97,31 @@ void main() {
     expect(overlapPairs(view), isEmpty);
   });
 
-  test('open-ended entry on another entry start overlaps (start inclusive)',
-      () {
-    // `[start, end)`: start is inclusive (CUR-715), so a point at another
-    // range's START is inside that range and overlaps.
-    final view = _view([
-      _ep(
-        'a',
-        '2025-10-15T13:00:00.000Z',
-        '2025-10-15T14:00:00.000Z',
-        updatedAt: '2025-10-15T14:00:00.000Z',
-      ),
-      _ep(
-        'open',
-        '2025-10-15T13:00:00.000Z',
-        null,
-        updatedAt: '2025-10-15T15:00:00.000Z',
-      ),
-    ]);
-    final pairs = overlapPairs(view);
-    expect(pairs, hasLength(1));
-    expect(pairs.single.preExisting.aggregateId, 'a');
-    expect(pairs.single.justTouched.aggregateId, 'open');
-  });
+  test(
+    'open-ended entry on another entry start overlaps (start inclusive)',
+    () {
+      // `[start, end)`: start is inclusive (CUR-715), so a point at another
+      // range's START is inside that range and overlaps.
+      final view = _view([
+        _ep(
+          'a',
+          '2025-10-15T13:00:00.000Z',
+          '2025-10-15T14:00:00.000Z',
+          updatedAt: '2025-10-15T14:00:00.000Z',
+        ),
+        _ep(
+          'open',
+          '2025-10-15T13:00:00.000Z',
+          null,
+          updatedAt: '2025-10-15T15:00:00.000Z',
+        ),
+      ]);
+      final pairs = overlapPairs(view);
+      expect(pairs, hasLength(1));
+      expect(pairs.single.preExisting.aggregateId, 'a');
+      expect(pairs.single.justTouched.aggregateId, 'open');
+    },
+  );
 
   test('open-ended entry is a point at its start (touching != overlap)', () {
     final view = _view([
