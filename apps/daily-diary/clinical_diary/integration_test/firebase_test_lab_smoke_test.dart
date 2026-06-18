@@ -36,46 +36,40 @@ Future<void> _pumpUntil(
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets(
-    'Clinical Diary starts and renders the Home screen',
-    (WidgetTester tester) async {
-      await app.main();
+  testWidgets('Clinical Diary starts and renders the Home screen', (
+    WidgetTester tester,
+  ) async {
+    await app.main();
 
-      await _pumpUntil(
-        tester,
-        () {
-          final homeScreenFound =
-              find.byType(HomeScreen).evaluate().isNotEmpty;
-          final bootstrapErrorFound = find
-              .textContaining('Failed to initialize storage')
-              .evaluate()
-              .isNotEmpty;
+    await _pumpUntil(tester, () {
+      final homeScreenFound = find.byType(HomeScreen).evaluate().isNotEmpty;
+      final bootstrapErrorFound = find
+          .textContaining('Failed to initialize storage')
+          .evaluate()
+          .isNotEmpty;
 
-          return homeScreenFound || bootstrapErrorFound;
-        },
-        description: 'the Home screen or a bootstrap error',
-      );
+      return homeScreenFound || bootstrapErrorFound;
+    }, description: 'the Home screen or a bootstrap error');
 
-      expect(
-        find.textContaining('Failed to initialize storage'),
-        findsNothing,
-        reason: 'The device-local datastore must initialize successfully.',
-      );
-      expect(find.byType(MaterialApp), findsOneWidget);
-      expect(find.byType(HomeScreen), findsOneWidget);
-      expect(find.byType(Scaffold), findsWidgets);
-      expect(tester.takeException(), isNull);
+    expect(
+      find.textContaining('Failed to initialize storage'),
+      findsNothing,
+      reason: 'The device-local datastore must initialize successfully.',
+    );
+    expect(find.byType(MaterialApp), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.byType(Scaffold), findsWidgets);
+    expect(tester.takeException(), isNull);
 
-      // Android screenshots require converting the Flutter surface first.
-      if (Platform.isAndroid) {
-        await binding.convertFlutterSurfaceToImage();
-        await tester.pump();
-      }
+    // Android screenshots require converting the Flutter surface first.
+    if (Platform.isAndroid) {
+      await binding.convertFlutterSurfaceToImage();
+      await tester.pump();
+    }
 
-      await binding.takeScreenshot('firebase_test_lab_home');
+    await binding.takeScreenshot('firebase_test_lab_home');
 
-      expect(find.byType(HomeScreen), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
