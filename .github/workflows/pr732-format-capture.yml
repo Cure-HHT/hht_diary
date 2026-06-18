@@ -1,0 +1,35 @@
+name: PR732 Format Capture
+
+on:
+  push:
+    branches:
+      - firebase-test-lab-github-actions-20260617
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load pinned versions
+        run: grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Format smoke test
+        run: dart format apps/daily-diary/clinical_diary/integration_test/firebase_test_lab_smoke_test.dart
+
+      - name: Upload formatted source
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr732-formatted-source-${{ github.sha }}
+          path: apps/daily-diary/clinical_diary/integration_test/firebase_test_lab_smoke_test.dart
+          retention-days: 1
