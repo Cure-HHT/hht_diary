@@ -378,8 +378,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   List<EpistaxisEntryView> _overlappingEvents(DiaryView view) {
     final now = DateTime.now();
     final candidateEnd =
-        _endDateTime ??
-        (now.isAfter(_startDateTime) ? now : _startDateTime);
+        _endDateTime ?? (now.isAfter(_startDateTime) ? now : _startDateTime);
     final rows = overlappingEpistaxisEntries(
       view.finalizedRows,
       _startDateTime,
