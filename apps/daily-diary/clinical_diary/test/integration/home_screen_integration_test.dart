@@ -287,11 +287,11 @@ void main() {
         // Surfaces as one list item.
         expect(find.byType(EventListItem), findsOneWidget);
         // The incomplete alert is consolidated as a row inside the "Needs your
-        // attention" tile. The tile was first built before the checkpoint
-        // existed (count 0 → starts collapsed), so expand it to reveal the
-        // alert row with its count.
-        await tester.tap(find.text('Needs your attention'));
-        await _settle(tester);
+        // attention" tile. Before the checkpoint existed the whole Task List
+        // section was hidden (count 0 → no section at all, CUR-1519), so the
+        // tile is built fresh once the checkpoint arrives — with count > 0 it
+        // starts expanded, surfacing the alert row immediately.
+        expect(find.text('Needs your attention'), findsOneWidget);
         expect(find.text('1 incomplete record'), findsOneWidget);
       },
     );
