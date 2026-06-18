@@ -116,10 +116,41 @@ List<String> uncoveredDays(
       .toList();
 }
 
-/// Epistaxis rows whose recorded `[startTime, endTime]` intersects the candidate
-/// range `[candidateStart, candidateEnd]`. Open-ended entries (no endTime) are
-/// treated as a point at their startTime. [excludeAggregateId] drops the entry
-/// being edited. Backs the overlap warning (DIARY-PRD-entry-overlap-resolution).
+/// Whether two epistaxis time ranges intersect under the canonical `[start, end)`
+/// convention: the start instant is INCLUDED, the end instant EXCLUDED (CUR-715).
+/// A zero-length range (`end == start`, e.g. an open-ended entry or a candidate
+/// whose end is not set yet) occupies the single `start` instant. Consequences:
+///   * a point on another range's START overlaps (start is inclusive),
+///   * a point on another range's END does NOT overlap (end is exclusive),
+///   * adjacency (one range's end == the next range's start) does NOT overlap.
+///
+/// This is the single source of truth shared by [overlappingEpistaxisEntries]
+/// (the warning) and `epistaxisRangesOverlap` (the pairs view) so the two never
+/// drift on boundary semantics.
+// Implements: DIARY-PRD-entry-overlap-resolution/B
+bool epistaxisIntervalsOverlap(
+  DateTime aStart,
+  DateTime aEnd,
+  DateTime bStart,
+  DateTime bEnd,
+) {
+  final aIsPoint = !aEnd.isAfter(aStart); // aEnd <= aStart
+  final bIsPoint = !bEnd.isAfter(bStart);
+  if (aIsPoint && bIsPoint) return aStart.isAtSameMomentAs(bStart);
+  // A point overlaps a range iff it lies in the half-open `[start, end)`:
+  // start <= point < end.
+  if (aIsPoint) return !aStart.isBefore(bStart) && aStart.isBefore(bEnd);
+  if (bIsPoint) return !bStart.isBefore(aStart) && bStart.isBefore(aEnd);
+  // Two real ranges: standard half-open intersection (touching ends excluded).
+  return aStart.isBefore(bEnd) && bStart.isBefore(aEnd);
+}
+
+/// Epistaxis rows whose recorded `[startTime, endTime)` intersects the candidate
+/// range `[candidateStart, candidateEnd)`. Open-ended entries (no endTime) and a
+/// not-yet-ended candidate (`candidateEnd == candidateStart`) are treated as a
+/// point at their startTime; start is inclusive, end exclusive (see
+/// [epistaxisIntervalsOverlap]). [excludeAggregateId] drops the entry being
+/// edited. Backs the overlap warning (DIARY-PRD-entry-overlap-resolution).
 // Implements: DIARY-PRD-entry-overlap-resolution
 List<DiaryEntryRow> overlappingEpistaxisEntries(
   Iterable<DiaryEntryRow> rows,
@@ -127,8 +158,6 @@ List<DiaryEntryRow> overlappingEpistaxisEntries(
   DateTime candidateEnd, {
   String? excludeAggregateId,
 }) {
-  bool intersects(DateTime aStart, DateTime aEnd) =>
-      aStart.isBefore(candidateEnd) && aEnd.isAfter(candidateStart);
   final out = <DiaryEntryRow>[];
   for (final r in rows) {
     if (r.entryType != 'epistaxis_event') continue;
@@ -141,7 +170,9 @@ List<DiaryEntryRow> overlappingEpistaxisEntries(
     if (start == null) continue;
     final endRaw = r.data['endTime'];
     final end = endRaw is String ? (DateTime.tryParse(endRaw) ?? start) : start;
-    if (intersects(start, end)) out.add(r);
+    if (epistaxisIntervalsOverlap(start, end, candidateStart, candidateEnd)) {
+      out.add(r);
+    }
   }
   return out;
 }

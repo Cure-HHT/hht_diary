@@ -1198,6 +1198,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// outstanding tasks (questionnaires, reminders) — render as
   /// [AppAlertRow]s inside the tile. Tasks are hidden while disconnected
   /// (CUR-1164: no valid questionnaires until reconnection).
+  ///
+  /// When there is nothing requiring attention (count == 0) the whole
+  /// section — heading and tile — collapses to nothing rather than showing
+  /// an empty "Needs your attention (0)" tile (CUR-1519).
+  // Implements: DIARY-GUI-main-screen-layout-A — the Task List zone renders
+  //   only when tasks are active; with zero items the zone is absent.
   Widget _buildTaskListSection(
     BuildContext context,
     DiaryView view,
@@ -1231,6 +1237,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
     ];
     final count = rows.length;
+    // Nothing to surface: hide the entire section rather than showing an
+    // empty "Needs your attention (0)" tile (CUR-1519).
+    if (count == 0) {
+      return const SizedBox.shrink();
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
