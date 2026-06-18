@@ -39,7 +39,7 @@ void main() {
   testWidgets('Clinical Diary starts and renders the Home screen', (
     WidgetTester tester,
   ) async {
-    await app.main();
+    app.main();
 
     await _pumpUntil(tester, () {
       final homeScreenFound = find.byType(HomeScreen).evaluate().isNotEmpty;
