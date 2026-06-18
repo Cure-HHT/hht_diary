@@ -44,7 +44,8 @@ void main() {
       await _pumpUntil(
         tester,
         () {
-          final homeScreenFound = find.byType(HomeScreen).evaluate().isNotEmpty;
+          final homeScreenFound =
+              find.byType(HomeScreen).evaluate().isNotEmpty;
           final bootstrapErrorFound = find
               .textContaining('Failed to initialize storage')
               .evaluate()
