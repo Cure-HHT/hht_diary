@@ -579,7 +579,7 @@ void main() {
         expect(result.auditAction, equals('resend_activation'));
       });
 
-      // Implements: DIARY-PRD-user-account-edit/H
+      // Implements: DIARY-BASE-system-operator-role/D
       // The Developer Admin tier remains protected — only a Developer
       // Admin may re-invite a revoked Developer Admin.
       test(

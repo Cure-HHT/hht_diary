@@ -561,9 +561,9 @@ Future<Response> updatePortalUserHandler(Request request, String userId) async {
     currentSiteIds = (sitesResult.first[0] as List).cast<String>();
   }
 
-  // Implements: DIARY-PRD-user-account-edit/A+H, DIARY-PRD-user-account-deactivate/A
+  // Implements: DIARY-PRD-user-account-edit/A, DIARY-BASE-system-operator-role/D, DIARY-PRD-user-account-deactivate/A
   // Regular Administrators may modify each other (assertion A); only a
-  // Developer Admin may modify a Developer Admin (assertion H) — the
+  // Developer Admin may modify a Developer Admin (operator-tier protection) — the
   // operator tier is the recovery floor for the deployment.
   final targetIsDeveloperAdmin = targetRoles.contains('Developer Admin');
   if (targetIsDeveloperAdmin && !user.hasRole('Developer Admin')) {

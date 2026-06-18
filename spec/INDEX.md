@@ -86,8 +86,8 @@
 | DIARY-PRD-user-account-activation-resend         | Resend Activation Email                             | prd-user-account.md                       | fb61a75a |
 | DIARY-PRD-user-account-activation-workflow       | Account Activation Workflow                         | prd-user-account.md                       | bc27bb86 |
 | DIARY-PRD-user-account-create                    | Create User Account                                 | prd-user-account.md                       | 862753f8 |
-| DIARY-PRD-user-account-deactivate                | Deactivate User Account                             | prd-user-account.md                       | a3cf00fe |
-| DIARY-PRD-user-account-edit                      | Edit User Account                                   | prd-user-account.md                       | 3ecfa0d9 |
+| DIARY-PRD-user-account-deactivate                | Deactivate User Account                             | prd-user-account.md                       | e31cba84 |
+| DIARY-PRD-user-account-edit                      | Edit User Account                                   | prd-user-account.md                       | fbc46f1c |
 | DIARY-PRD-user-account-reactivate                | Reactivate User Account                             | prd-user-account.md                       | eb83c7e5 |
 | DIARY-PRD-user-account-site-assignment           | Site Assignment                                     | prd-user-account.md                       | 3aa95698 |
 | DIARY-PRD-user-authentication                    | Diary User Authentication                           | prd-mobile-app.md                         | 6e2db0c7 |
@@ -106,7 +106,7 @@
 | DIARY-BASE-questionnaire-lock-after-submission | Lock-After-Submission and Unlock                              | base-questionnaire-coordinator.md | a4f69437 |
 | DIARY-BASE-questionnaire-manage-modal          | Manage Questionnaires Modal                                   | base-questionnaire-coordinator.md | 27cf8328 |
 | DIARY-BASE-sponsor-requested-settings          | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md          | a8de6e0a |
-| DIARY-BASE-system-operator-role                | System Operator Role                                          | base-system-operator-role.md      | e9d3432f |
+| DIARY-BASE-system-operator-role                | System Operator Role                                          | base-system-operator-role.md      | b876db52 |
 | DIARY-BASE-user-authentication-pin             | Diary User Authentication — In-Application PIN Mechanism      | base-user-authentication-pin.md   | 1119836b |
 
 ## INTERFACE

@@ -330,7 +330,7 @@ Seeding *User*-*Role* assignments from data keeps the deployed roster out of the
 ## DIARY-DEV-operator-tier-authz: Operator-Tier Authorization for User Management
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-PRD-user-account-edit
+**Refines**: DIARY-BASE-system-operator-role-D, DIARY-PRD-user-account-edit
 
 ### Overview
 

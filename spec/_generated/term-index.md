@@ -22,8 +22,6 @@
 - DIARY-BASE-questionnaire-manage-modal-J
 - DIARY-BASE-questionnaire-manage-modal-O
 - DIARY-BASE-questionnaire-finalization-C
-- DIARY-BASE-system-operator-role-B
-- DIARY-BASE-system-operator-role-C
 - DIARY-DEV-action-write-path-B
 - DIARY-DEV-inbound-event-on-receipt-B
 - DIARY-DEV-inbound-event-on-receipt-C
@@ -611,7 +609,6 @@
 
 **DIARY:**
 
-- DIARY-PRD-user-account-deactivate-A
 - DIARY-PRD-user-account-deactivate-B
 - DIARY-GUI-user-account-deactivate-A
 - DIARY-GUI-user-account-deactivate-B
@@ -1541,7 +1538,6 @@
 - DIARY-BASE-sponsor-requested-settings-C
 - DIARY-BASE-sponsor-requested-settings-D
 - DIARY-BASE-sponsor-requested-settings-E
-- DIARY-BASE-system-operator-role-B
 - DIARY-BASE-user-authentication-pin-A
 - DIARY-BASE-user-authentication-pin-B
 - DIARY-BASE-user-authentication-pin-C
@@ -2506,8 +2502,7 @@
 - DIARY-GUI-role-switching
 - DIARY-BASE-ops-action-inventory-A
 - DIARY-BASE-ops-action-inventory-C
-- DIARY-BASE-system-operator-role-A
-- DIARY-BASE-system-operator-role-B
+- DIARY-BASE-system-operator-role-D
 - DIARY-DEV-portal-session-lifecycle-B
 - DIARY-DEV-portal-active-role-switch-A
 - DIARY-DEV-portal-active-role-switch-B
@@ -2541,8 +2536,6 @@
 - DIARY-PRD-user-account-create-C
 - DIARY-PRD-user-account-edit-B
 - DIARY-PRD-user-account-edit-E
-- DIARY-PRD-user-account-edit-H
-- DIARY-PRD-user-account-deactivate-A
 - DIARY-GUI-user-management-tabs-L
 - DIARY-GUI-user-information-modal-A
 - DIARY-GUI-user-information-modal-B
@@ -2859,7 +2852,6 @@
 - DIARY-BASE-sponsor-requested-settings-A
 - DIARY-BASE-sponsor-requested-settings-B
 - DIARY-BASE-sponsor-requested-settings-E
-- DIARY-BASE-system-operator-role-A
 - DIARY-BASE-user-authentication-pin-G
 - DIARY-BASE-user-authentication-pin-J
 - DIARY-BASE-user-authentication-pin-K
@@ -3657,6 +3649,7 @@
 - DIARY-PRD-user-account-reactivate
 - DIARY-GUI-user-account-deactivate
 - DIARY-GUI-user-account-reactivate
+- DIARY-BASE-system-operator-role-D
 - DIARY-DEV-portal-activation-code-lifecycle-D
 - DIARY-DEV-portal-identity-provisioning-A
 - DIARY-DEV-portal-activation-email-delivery-A
@@ -3704,7 +3697,6 @@
 - DIARY-PRD-user-account-edit-E
 - DIARY-PRD-user-account-edit-F
 - DIARY-PRD-user-account-edit-G
-- DIARY-PRD-user-account-edit-H
 - DIARY-PRD-user-account-deactivate-A
 - DIARY-PRD-user-account-deactivate-B
 - DIARY-PRD-user-account-deactivate-C

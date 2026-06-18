@@ -1,5 +1,5 @@
 // Verifies: DIARY-DEV-operator-tier-authz/C+D+F
-// Verifies: DIARY-PRD-user-account-edit/H
+// Verifies: DIARY-BASE-system-operator-role/D
 //
 // Operator-tier authorization matrix. User-management permissions are tier-
 // scoped via the `user` scope class (user-contained-in-tier through
@@ -166,7 +166,7 @@ void main() {
       }
     });
 
-    // Verifies: DIARY-PRD-user-account-edit/H — end-to-end dispatch: Administrator
+    // Verifies: DIARY-BASE-system-operator-role/D — end-to-end dispatch: Administrator
     //   editing/deactivating a staff account succeeds.
     test(
       'dispatch: Administrator edits/deactivates staff-target -> success',
@@ -201,7 +201,7 @@ void main() {
       },
     );
 
-    // Verifies: DIARY-PRD-user-account-edit/H — end-to-end dispatch: Administrator
+    // Verifies: DIARY-BASE-system-operator-role/D — end-to-end dispatch: Administrator
     //   editing/deactivating an OPERATOR account is denied AND records an
     //   action_denial event.
     test('dispatch: Administrator edits/deactivates op-target -> denied + '
