@@ -362,18 +362,28 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// Overlapping finalized epistaxis entries (as typed view-models) for the
   /// current candidate range, excluding the entry being edited.
   ///
-  /// Before the participant sets an end time the candidate is the single start
-  /// instant; passing `_startDateTime` as both ends makes
-  /// `overlappingEpistaxisEntries` detect when that instant falls inside an
-  /// existing entry's range, so the warning surfaces as soon as the start time
-  /// overlaps an existing record — not only after an end time is set.
+  /// Before the participant sets an end time the entry is ONGOING — it spans
+  /// from its start up to the present moment. Evaluating the candidate as
+  /// `[start, now]` (rather than the start instant alone) makes the early
+  /// warning surface CONSISTENTLY whenever an existing record falls anywhere in
+  /// that span — including when the start time precedes an existing record that
+  /// the ongoing event now runs into. The previous start-instant-only check
+  /// missed that case, so the warning only appeared after the end time was set
+  /// (CUR-1518 Issue 1). `now` is clamped to never precede the start (it cannot
+  /// in production, since a future start is rejected) so the candidate range
+  /// stays well-formed.
   // Implements: DIARY-DEV-reactive-read-path/A
-  // Implements: DIARY-GUI-entry-overlap-resolution
+  // Implements: DIARY-GUI-entry-overlap-resolution/A
+  // Implements: DIARY-PRD-entry-overlap-resolution/A+C
   List<EpistaxisEntryView> _overlappingEvents(DiaryView view) {
+    final now = DateTime.now();
+    final candidateEnd =
+        _endDateTime ??
+        (now.isAfter(_startDateTime) ? now : _startDateTime);
     final rows = overlappingEpistaxisEntries(
       view.finalizedRows,
       _startDateTime,
-      _endDateTime ?? _startDateTime,
+      candidateEnd,
       excludeAggregateId: _aggregateId,
     );
     return rows
@@ -514,16 +524,21 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _aggregateId = savedId;
       if (mounted) {
         // If this finalize created/left an overlap, go STRAIGHT to the
-        // side-by-side resolve screen (replacing this one) instead of returning
-        // to the previous screen. When we were ourselves opened from the overlap
-        // flow (an Edit on the compare screen) just pop back — that compare
-        // screen re-derives and re-renders or auto-pops.
+        // side-by-side Resolution Screen. We PUSH it on top of this recording
+        // screen (rather than replacing it) so that:
+        //   - Cancel/Back on the Resolution Screen returns here, NOT to the Main
+        //     Screen (DIARY-GUI-entry-overlap-resolution/M, CUR-1518 Issue 4);
+        //   - once the conflict is resolved the compare screen auto-pops back to
+        //     this screen's Confirm Record step for a final review + save.
+        // When we were ourselves opened from the overlap flow (an Edit on the
+        // compare screen) just pop back — that compare screen re-derives and
+        // re-renders or auto-pops.
         final conflict = widget.fromOverlapResolution
             ? null
             : _firstOverlapConflict();
         if (conflict != null) {
           unawaited(
-            Navigator.pushReplacement(
+            Navigator.push(
               context,
               AppPageRoute<void>(
                 builder: (_) => OverlapCompareScreen(
@@ -620,6 +635,20 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _endDateTime = storedEndTime;
     });
 
+    // CUR-1518 Issue 3 (DIARY-GUI-entry-overlap-resolution/C): confirming an end
+    // time that confirms an overlap routes STRAIGHT to the Resolution Screen,
+    // rather than continuing the normal flow or waiting on a button. `_saveRecord`
+    // persists the entry first (DIARY-PRD-entry-overlap-resolution/D) and then
+    // pushes the compare screen. The Confirm Record step is staged underneath so
+    // the participant lands on it for a final review once the conflict resolves.
+    if (_firstOverlapConflict() != null) {
+      if (_rules.useReviewScreen) {
+        setState(() => _currentStep = RecordingStep.complete);
+      }
+      await _saveRecord();
+      return;
+    }
+
     // CUR-464: When useReviewScreen is false, save immediately and return.
     if (!_rules.useReviewScreen) {
       await _saveRecord();
@@ -693,6 +722,22 @@ class _RecordingScreenState extends State<RecordingScreen> {
     if (_isLocked) {
       return true;
     }
+
+    // CUR-1518 Issue 4 (DIARY-GUI-entry-overlap-resolution/M): once an end time
+    // confirms an overlap, the participant must resolve the conflict (or delete
+    // the entry via the trash action) before leaving — they CANNOT slip back to
+    // the Main Screen with a logically-impossible overlapping record. Route back
+    // into the Resolution flow instead of popping. The compare screen is pushed
+    // ON TOP, so this screen stays beneath it as the Confirm Record host.
+    // (The Edit-from-compare case is exempt — backing out there belongs to the
+    // compare screen above us, which re-derives or auto-pops.)
+    if (!widget.fromOverlapResolution &&
+        _endDateTime != null &&
+        _firstOverlapConflict() != null) {
+      await _saveRecord();
+      return false;
+    }
+
     if (!_hasUnsavedPartialRecord()) {
       return true;
     }
@@ -844,21 +889,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
               const SizedBox(height: 24),
 
-              // Overlap warning
+              // Overlap warning — informational only (no action). It surfaces as
+              // soon as the start time indicates a potential overlap and stays
+              // non-blocking so the participant keeps recording
+              // (DIARY-GUI-entry-overlap-resolution/A+B). Resolution is triggered
+              // automatically when the end time confirms the overlap, not from
+              // this banner.
               if (overlappingEvents.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: OverlapWarning(
-                    overlappingEntries: overlappingEvents,
-                    // The warning is non-blocking: while only the start time is
-                    // set it is informational, so the participant can keep
-                    // setting intensity/end time. The Resolve affordance (which
-                    // finalizes and opens the side-by-side compare screen) only
-                    // appears once the entry has an end time and is finalizable.
-                    onResolve: _endDateTime != null
-                        ? () => unawaited(_saveRecord())
-                        : null,
-                  ),
+                  child: OverlapWarning(overlappingEntries: overlappingEvents),
                 ),
 
               if (overlappingEvents.isNotEmpty) const SizedBox(height: 16),

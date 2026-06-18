@@ -602,9 +602,9 @@ void main() {
     );
 
     // Finalizing an entry that overlaps another routes STRAIGHT to the
-    // side-by-side compare screen (replacing this screen) — not back to the
-    // host / summary. The screen is pushed from a host route (as in production),
-    // so the route replacement has somewhere to land.
+    // side-by-side compare screen — not back to the host / summary. The compare
+    // screen is PUSHED on top of the recording screen (CUR-1518 Issue 4), so the
+    // host's "open" button stays covered while resolution is pending.
     Future<void> pumpRecordingFromHost(
       WidgetTester tester, {
       required EpistaxisEntryView editing,
@@ -684,10 +684,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 400));
 
         expect(find.byType(OverlapCompareScreen), findsOneWidget);
-        expect(
-          find.text('open'),
-          findsNothing,
-        ); // recording screen was replaced
+        // The recording screen stays beneath the compare screen, so the host's
+        // "open" button is covered (not popped back to).
+        expect(find.text('open'), findsNothing);
       },
     );
 
@@ -728,22 +727,25 @@ void main() {
       expect(find.text('open'), findsOneWidget);
     });
 
-    // Tapping the inline overlap warning's "Resolve" button finalizes the
-    // in-progress entry and routes straight to the side-by-side compare screen
-    // (replacing the recording screen), not back to the host and not on top.
+    // CUR-1518 Issue 4 (DIARY-GUI-entry-overlap-resolution/M): with a CONFIRMED
+    // overlap (end time set + a conflicting record) the participant must NOT be
+    // able to slip back to the Main Screen. Tapping Home routes back into the
+    // Resolution flow instead of popping to the host ("open" = the Main Screen
+    // proxy here).
     testWidgets(
-      'overlap "Resolve" finalizes the entry and routes to the compare screen',
+      'Home with a confirmed overlap re-routes to resolution, not the Main Screen',
       (tester) async {
         final base = DateTime.now();
         final other = buildEpistaxisView(
-          aggregateId: 'agg-resolve-other',
+          aggregateId: 'agg-block-other',
           startTime: DateTime(base.year, base.month, base.day, 13),
           endTime: DateTime(base.year, base.month, base.day, 14),
           endTimeZone: 'UTC',
           intensity: NosebleedIntensity.dripping,
         );
+        // A complete entry whose range sits inside `other` (confirmed overlap).
         final editing = buildEpistaxisView(
-          aggregateId: 'agg-resolve-self',
+          aggregateId: 'agg-block-self',
           startTime: DateTime(base.year, base.month, base.day, 13, 30),
           endTime: DateTime(base.year, base.month, base.day, 13, 45),
           endTimeZone: 'UTC',
@@ -755,31 +757,21 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Overlapping Events Detected'), findsOneWidget);
 
-        await tester.tap(find.text('Resolve'));
-        // _saveRecord is async; drain the microtask chain before pumping frames.
+        // Attempt to leave to the Main Screen.
+        await tester.tap(find.text('Home'));
         await tester.runAsync(() => Future<void>.delayed(Duration.zero));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
 
-        // The entry was finalized (edit_epistaxis_event submitted) and the
-        // screen was replaced with the side-by-side compare screen.
-        expect(
-          fake.submittedActions.where(
-            (a) => a.actionName == 'edit_epistaxis_event',
-          ),
-          isNotEmpty,
-        );
+        // Did NOT reach the Main Screen — routed to the Resolution Screen.
         expect(find.byType(OverlapCompareScreen), findsOneWidget);
-        expect(find.text('open'), findsNothing); // recording screen replaced
+        expect(find.text('open'), findsNothing);
       },
     );
 
-    // The warning surfaces as soon as the START time falls inside an existing
-    // entry — before any end time is set. While only the start is known the
-    // candidate is a single instant; if that instant lies within a finalized
-    // entry's range the warning shows. It stays NON-blocking (no Resolve
-    // affordance yet, since the entry isn't finalizable), so the participant can
-    // still set intensity/end time.
+    // The warning surfaces as soon as the START time indicates a potential
+    // overlap — before any end time is set. The banner is informational only
+    // (CUR-1518 Issue 2), so the participant can still set intensity/end time.
     testWidgets(
       'warning shows when only the start time overlaps (no end time yet)',
       (tester) async {
@@ -804,8 +796,98 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Overlapping Events Detected'), findsOneWidget);
-        // Non-blocking: no Resolve button until the entry has an end time.
+        // Informational only — never offers a Resolve action.
         expect(find.text('Resolve'), findsNothing);
+      },
+    );
+
+    // CUR-1518 Issue 1 (DIARY-GUI-entry-overlap-resolution/A): the warning must
+    // also surface when the ongoing start time PRECEDES an existing record — the
+    // start-only entry is treated as ongoing up to now, so it overlaps anything
+    // in that span. (The old start-instant-only check missed this case, so the
+    // warning only appeared after the end time was set.) Times are anchored to
+    // `now` so the case is exercised deterministically regardless of wall clock.
+    testWidgets(
+      'warning shows when the ongoing start precedes an existing record',
+      (tester) async {
+        final now = DateTime.now();
+        // Existing record entirely in the past, but AFTER the draft's start.
+        final other = buildEpistaxisView(
+          aggregateId: 'agg-precede-other',
+          startTime: now.subtract(const Duration(hours: 1)),
+          endTime: now.subtract(const Duration(minutes: 30)),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        // Draft started 2h ago, still ongoing (no end) — its start is BEFORE
+        // `other`'s start, so a start-instant-only check would not flag it.
+        final editing = buildEpistaxisView(
+          aggregateId: 'agg-precede-self',
+          startTime: now.subtract(const Duration(hours: 2)),
+          isComplete: false,
+        );
+
+        await pumpScreen(tester, existing: editing);
+        seedDiaryEntries([other]);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Overlapping Events Detected'), findsOneWidget);
+      },
+    );
+
+    // CUR-1518 Issue 3 (DIARY-GUI-entry-overlap-resolution/C): confirming the
+    // end time on an entry that overlaps an existing record routes STRAIGHT to
+    // the Resolution Screen — without a Resolve button and without first sitting
+    // on the Confirm Record step.
+    testWidgets(
+      'confirming the end time on an overlapping entry routes to resolution',
+      (tester) async {
+        final now = DateTime.now();
+        // Whole-minute, safely-past times so the end-time dial (which snaps to
+        // minutes) does not produce a value before start or in the future.
+        final other = buildEpistaxisView(
+          aggregateId: 'agg-endconfirm-other',
+          startTime: DateTime(now.year, now.month, now.day - 1, 10),
+          endTime: DateTime(now.year, now.month, now.day - 1, 14),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        // Resumed draft (start + intensity, no end) whose start sits inside
+        // `other`. Confirming the end (defaults to the start) keeps the overlap.
+        final editing = buildEpistaxisView(
+          aggregateId: 'agg-endconfirm-self',
+          startTime: DateTime(now.year, now.month, now.day - 1, 11),
+          intensity: NosebleedIntensity.dripping,
+          isComplete: false,
+        );
+
+        await pumpScreen(
+          tester,
+          existing: editing,
+          rules: const ClinicalRules(
+            useReviewScreen: true,
+            shortDurationConfirm: true,
+          ),
+        );
+        seedDiaryEntries([other]);
+        await tester.pumpAndSettle();
+        expect(find.text('Nosebleed End Time'), findsOneWidget);
+
+        // Confirm the end time -> short-duration confirm -> auto-routes.
+        await tester.tap(find.text('Set End Time'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Yes'));
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(OverlapCompareScreen), findsOneWidget);
+        expect(
+          fake.submittedActions.where(
+            (a) => a.actionName == 'edit_epistaxis_event',
+          ),
+          isNotEmpty,
+        );
       },
     );
   });
