@@ -1,4 +1,5 @@
 import 'package:clinical_diary/read/diary_incomplete_projection.dart';
+import 'package:clinical_diary/read/questionnaire_status_projection.dart';
 import 'package:clinical_diary/scope/diary_action_registry.dart';
 import 'package:clinical_diary/scope/local_participant_authorization_policy.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
@@ -80,15 +81,29 @@ Future<DiaryScopeRuntime> bootstrapDiaryScope({
   List<EntryTypeDefinition> extraEntryTypes = const [],
   List<Destination> outboundDestinations = const [],
 }) async {
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S — register the
+  //   shared questionnaire lifecycle entry types so the diary store accepts
+  //   appends of questionnaire_finalized / questionnaire_unlocked (diary is a
+  //   second emitter; per-event provenance records the real origin).
   final entryTypes = <EntryTypeDefinition>[
     for (final t in diaryOriginatedEventTypes) t.definition,
     _actionDenialEntryType,
     ...extraEntryTypes,
+    for (final t in questionnaireEventTypes.where(
+      (t) =>
+          t.definition.id == 'questionnaire_finalized' ||
+          t.definition.id == 'questionnaire_unlocked',
+    ))
+      t.definition,
   ];
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S — register the
+  //   questionnaire_status projection so device-observed lifecycle events are
+  //   materialized into the questionnaire_status view.
   final projections = ProjectionRegistry()
     ..register(diaryEntriesProjection)
     ..register(settingsProjection)
-    ..register(diaryIncompleteProjection);
+    ..register(diaryIncompleteProjection)
+    ..register(questionnaireStatusProjection);
 
   final source = Source(
     hopId: 'mobile-device',
