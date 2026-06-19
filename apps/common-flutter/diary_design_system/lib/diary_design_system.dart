@@ -22,18 +22,25 @@ export 'src/theme/brand_palette.dart';
 
 // Components
 export 'src/buttons/app_button.dart';
+export 'src/buttons/app_segmented_choice.dart';
 export 'src/dialogs/app_dialog.dart';
 export 'src/dialogs/app_dialog_size.dart';
+export 'src/feedback/app_alert_row.dart';
 export 'src/feedback/app_badge.dart';
 export 'src/feedback/app_banner.dart';
+export 'src/feedback/branded_status_card.dart';
 export 'src/feedback/status_badge.dart';
 export 'src/inputs/app_checkbox.dart';
+export 'src/inputs/app_code_input.dart';
+export 'src/inputs/app_consent_row.dart';
 export 'src/inputs/app_dropdown.dart';
 export 'src/inputs/app_text_field.dart';
 export 'src/layout/app_card.dart';
+export 'src/layout/app_expansion_tile.dart';
 export 'src/layout/app_info_row.dart';
 export 'src/layout/app_section_header.dart';
 export 'src/layout/breakpoints.dart';
+export 'src/layout/event_list_item.dart';
 export 'src/layout/responsive_builder.dart';
 export 'src/tables/app_data_table.dart';
 export 'src/tables/app_table_pagination.dart';

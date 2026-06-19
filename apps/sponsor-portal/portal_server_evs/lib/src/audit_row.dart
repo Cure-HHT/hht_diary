@@ -27,6 +27,47 @@ Map<String, Object?> auditRowJson(StoredEvent e) => <String, Object?>{
       'data': e.data,
     };
 
+/// Case-insensitive substring filter backing `GET /audit`'s `q` param.
+/// Matches who (the initiator label) and what (the entry type — both the raw
+/// id and its space-separated form, so a query typed against the humanized
+/// Action column, e.g. "Site Synced", still hits `site_synced_from_edc`).
+///
+/// NOTE: server-side filtering is a spec gap against DIARY-DEV-audit-log-read
+/// (its assertions cover the reverse-chronological read and the permission
+/// gate, not filtering); anchored to that REQ rather than minting a new one.
+// Implements: DIARY-DEV-audit-log-read/A
+bool auditEventMatchesQuery(StoredEvent e, String query) {
+  final q = query.toLowerCase();
+  final label = switch (e.initiator) {
+    UserInitiator(:final userId) => userId,
+    AutomationInitiator(:final service) => service,
+    AnonymousInitiator() => 'anon',
+  };
+  return label.toLowerCase().contains(q) ||
+      e.entryType.toLowerCase().contains(q) ||
+      e.entryType.replaceAll('_', ' ').toLowerCase().contains(q);
+}
+
+/// Site filter backing `GET /audit`'s `site` param: an event belongs to a
+/// site when the site itself is the aggregate, or when the aggregate is a
+/// participant that [participantSite] (the participant_site_index view,
+/// resolved once per request) maps to that site. Events on other aggregates
+/// (users, sessions, rave_sync, ...) have no site association and never match.
+///
+/// Same spec-gap anchoring as [auditEventMatchesQuery]: filtering is anchored
+/// to DIARY-DEV-audit-log-read rather than minting a new REQ.
+// Implements: DIARY-DEV-audit-log-read/A
+bool auditEventMatchesSite(
+  StoredEvent e,
+  String siteId,
+  Map<String, String> participantSite,
+) =>
+    switch (e.aggregateType) {
+      'site' => e.aggregateId == siteId,
+      'participant' => participantSite[e.aggregateId] == siteId,
+      _ => false,
+    };
+
 Map<String, Object?> _initiatorJson(Initiator i) => switch (i) {
       UserInitiator(:final userId) => {'kind': 'user', 'label': userId},
       AutomationInitiator(:final service) => {

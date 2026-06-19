@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
@@ -12,8 +13,7 @@ import 'package:clinical_diary/scope/diary_participant_id.dart';
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
-import 'package:clinical_diary/screens/day_disposition.dart';
-import 'package:clinical_diary/screens/important_screen.dart';
+import 'package:clinical_diary/screens/incomplete_records_screen.dart';
 import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/questionnaire_placeholder_screen.dart';
@@ -29,13 +29,16 @@ import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:clinical_diary/settings/clinical_rules_scope.dart';
 import 'package:clinical_diary/settings/local_reset_policy.dart';
 import 'package:clinical_diary/utils/app_page_route.dart';
+import 'package:clinical_diary/widgets/brand_header.dart';
 import 'package:clinical_diary/widgets/branding_logo.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
-import 'package:clinical_diary/widgets/task_list_widget.dart';
+import 'package:clinical_diary/widgets/user_menu_button.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
+import 'package:diary_design_system/diary_design_system.dart'
+    hide EventListItem;
 import 'package:diary_shared_model/diary_shared_model.dart'
     show EntryGate, entryGateForDate;
 import 'package:eq/eq.dart';
@@ -537,6 +540,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               AppPageRoute<void>(
                 builder: (context) => ClinicalTrialEnrollmentScreen(
                   enrollmentService: widget.enrollmentService,
+                  // From the profile-launched flow the user came from
+                  // profile, so popping enrollment + reopening profile
+                  // returns them where they started.
+                  onShowProfile: () {
+                    Navigator.of(context).pop();
+                    _handleShowProfile();
+                  },
                 ),
               ),
             );
@@ -756,22 +766,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // Implements: DIARY-DEV-reactive-read-path/A
   // Implements: DIARY-PRD-incomplete-entry-preservation/B
   Future<void> _handleIncompleteRecordsClick(DiaryView view) async {
-    final incomplete = view.incompleteEntries;
+    final incomplete = view.incompleteEntries
+        .whereType<EpistaxisEntryView>()
+        .toList();
     if (incomplete.isEmpty) return;
 
-    // Navigate to edit (resume) the first incomplete entry. Only epistaxis
-    // entries are editable in the recording screen.
-    final firstIncomplete = incomplete.first;
-    if (firstIncomplete is! EpistaxisEntryView) return;
+    // Single incomplete record → jump straight to the recording-screen edit
+    // path. More than one → open the dedicated list so the participant picks
+    // which to resume. Only epistaxis entries are editable today.
+    //
+    // The diary list refreshes reactively via DiaryViewBuilder, so no manual
+    // reload is needed after returning. The recording screen pops its
+    // aggregate id (a String) on save, so the route result type must be
+    // String?-compatible — a <bool> route throws on pop.
+    if (incomplete.length == 1) {
+      await Navigator.push<String?>(
+        context,
+        AppPageRoute(
+          builder: (context) => RecordingScreen(existing: incomplete.first),
+        ),
+      );
+      return;
+    }
 
-    // The diary list refreshes reactively via DiaryViewBuilder; no manual
-    // reload is needed after returning from the recording screen. The recording
-    // screen pops its aggregate id (a String) on save, so the route result type
-    // must be String?-compatible — a <bool> route throws on pop.
-    await Navigator.push<String?>(
+    await Navigator.push<void>(
       context,
       AppPageRoute(
-        builder: (context) => RecordingScreen(existing: firstIncomplete),
+        // Same hamburger menu as Home — home owns the enrollment service,
+        // so it supplies the row callbacks (mirrors Profile / Enrollment).
+        builder: (context) => IncompleteRecordsScreen(
+          onShowProfile: _handleShowProfile,
+          onJoinStudy: _isEnrolled ? null : _handleEnrollFromMenu,
+          onShowHelpCenter: _handleShowHelpCenter,
+        ),
       ),
     );
   }
@@ -794,26 +821,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
     // Nothing to do after the screen pops — the home surface re-derives the
     // banner reactively from the next DiaryView emission.
-  }
-
-  /// Re-disposition a tapped day-[marker]: open the same 3-choice picker the
-  /// calendar uses, seeded with that marker so a "Record nosebleed" choice
-  /// tombstones it on save (convert). Marker↔marker choices re-record on the
-  /// day aggregate (latest-wins). A marker always carries a localDate.
-  // Implements: DIARY-PRD-day-disposition/B
-  Future<void> _redispositionMarker(DayMarkerView marker) async {
-    final localDate = marker.localDate;
-    if (localDate == null) return;
-    final day = DateTime.parse(localDate);
-    await showDayDispositionPicker(
-      context,
-      localDay: DateTime(day.year, day.month, day.day),
-      localDate: localDate,
-      marker: MarkerToReplace(
-        aggregateId: marker.aggregateId,
-        entryType: marker.entryType,
-      ),
-    );
   }
 
   Future<void> _navigateToEditRecord(EpistaxisEntryView entry) async {
@@ -884,10 +891,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     // Yesterday's finalized nosebleed entries plus any completed surveys
     // (DIARY-PRD-questionnaire-system/B: a finalized survey surfaces alongside
-    // the day's clinical entries).
+    // the day's clinical entries) plus any whole-day marker (no-nosebleed /
+    // don't-remember). CUR-1491: the marker MUST surface as its own row so a
+    // recorded "Don't remember" (or "No nosebleeds") renders its distinct
+    // status instead of falling through to the bare "No records" empty state —
+    // "nothing recorded" and "acknowledged uncertainty" are different clinical
+    // states (cf. REQ-CAL-d00012).
     final yesterdayEntries = <DiaryEntryView>[
       ...view.entriesOn(yesterdayStr).whereType<EpistaxisEntryView>(),
       ...view.entriesOn(yesterdayStr).whereType<SurveyEntryView>(),
+      ...view.entriesOn(yesterdayStr).whereType<DayMarkerView>(),
     ]..sort(byStart);
 
     // Any entry at all on yesterday (incl. day markers + incomplete checkpoints).
@@ -911,6 +924,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final todayEntries = <DiaryEntryView>[
       ...view.entriesOn(todayStr).whereType<EpistaxisEntryView>(),
       ...view.entriesOn(todayStr).whereType<SurveyEntryView>(),
+      // CUR-1491: today's whole-day marker surfaces as its own row too (same
+      // reasoning as the yesterday group above).
+      ...view.entriesOn(todayStr).whereType<DayMarkerView>(),
       ...view.incompleteEntries.where((e) => isEpistaxisOn(e, todayStr)),
     ]..sort(byStart);
 
@@ -956,612 +972,112 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // Implements: DIARY-DEV-reactive-read-path/A
   Widget _buildScaffold(BuildContext context, DiaryView view) {
-    // Top-to-bottom areas: header · alerts · notifications · yesterday+today ·
-    // record. Each is a clearly-delimited region below.
     final incompleteCount = view.incompleteEntries.length;
     final overlapCount = overlapPairs(view).length;
     // Sponsor branding is displayed only while ACTIVELY participating: on
     // not-participating the app stops applying this sponsor-specific rule.
     // Implements: DIARY-PRD-participant-mark-not-participating/D
-    // Branding shows while the participant is ENROLLED and participating.
-    // "Disconnected" is a state *within* enrollment — it means "we can't sync
-    // right now", not "un-enrolled" — so it MUST NOT revert branding. Only
-    // un-enrollment (not-participating / withdrawal) reverts to the app default.
     // Gate on the live not-participating notifier rather than a re-read of
     // enrollment: that notifier fires from the reconcile BEFORE its
     // clearEnrollment() completes, so re-reading `isEnrolled()` would race and
-    // leave stale branding until a page change. Reading the notifier here makes
-    // the revert land on the reconcile poll with no navigation required.
+    // leave stale branding until a page change.
     final brandingActive =
         _isEnrolled && !widget.enrollmentService.notParticipatingNotifier.value;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // -- 1. HEADER --------------------------------------------------
-            // Header with interactive logo and user menu
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 12.0,
+            _buildHeader(context, brandingActive),
+            if (_isLoading)
+              const Expanded(child: Center(child: CircularProgressIndicator()))
+            else
+              Expanded(
+                child: _buildBody(context, view, incompleteCount, overlapCount),
               ),
-              child: Row(
-                children: [
-                  // Logo menu on the left
-                  LogoMenu(
-                    sponsorLogoBuilder: brandingActive
-                        ? _brandingLogoBuilder
-                        : null,
-                    onResetAllData: _handleResetAllData,
-                    resetEnabled: _canResetData,
-                    isEnrolled: _isEnrolled,
-                    onEndClinicalTrial: _isEnrolled
-                        ? _handleEndClinicalTrial
-                        : null,
-                    onInstructionsAndFeedback: _handleInstructionsAndFeedback,
-                    showDevTools: AppConfig.showDevTools,
-                    onOpenServiceMode: widget.serviceModeContextBuilder == null
-                        ? null
-                        : _openServiceMode,
-                  ),
-                  // Centered title - CUR-488 Phase 2: Use FittedBox to scale on small screens
-                  Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        // Show the sponsor title while enrolled and
-                        // participating; revert to the app default only on
-                        // un-enrollment (not-participating). A disconnect does
-                        // NOT revert it — the participant is still enrolled, just
-                        // unable to sync. (Branding settings are retained per
-                        // DIARY-DEV-sponsor-branding-assets/D regardless.)
-                        (brandingActive &&
-                                (widget.sponsorBranding.title?.isNotEmpty ??
-                                    false))
-                            ? widget.sponsorBranding.title!
-                            : AppLocalizations.of(context).appTitle,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                  // Profile menu on the right
-                  // CUR-1307: identified for Playwright web automation.
-                  Semantics(
-                    identifier: 'user-menu-button',
-                    button: true,
-                    container: true,
-                    explicitChildNodes: true,
-                    child: PopupMenuButton<String>(
-                      icon: const Icon(Icons.person_outline),
-                      tooltip: AppLocalizations.of(context).userMenu,
-                      onSelected: (value) async {
-                        if (value == 'profile') {
-                          await _handleShowProfile();
-                        } else if (value == 'accessibility') {
-                          await Navigator.push(
-                            context,
-                            AppPageRoute<void>(
-                              builder: (context) => const SettingsScreen(),
-                            ),
-                          );
-                        } else if (value == 'privacy') {
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                AppLocalizations.of(context).privacyComingSoon,
-                              ),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        } else if (value == 'enroll') {
-                          final wasEnrolled = _isEnrolled;
-                          await Navigator.push(
-                            context,
-                            AppPageRoute<void>(
-                              builder: (context) =>
-                                  ClinicalTrialEnrollmentScreen(
-                                    enrollmentService: widget.enrollmentService,
-                                  ),
-                            ),
-                          );
-                          await _checkEnrollmentStatus();
-                          if (_isEnrolled) {
-                            widget.onEnrolled?.call();
-                          }
-                          await _checkDisconnectionStatus();
-                          // CUR-1114: Open profile only if enrollment state changed
-                          if (!wasEnrolled && _isEnrolled && mounted) {
-                            await _handleShowProfile();
-                          }
-                        }
-                      },
-                      itemBuilder: (context) {
-                        final l10n = AppLocalizations.of(context);
-                        return [
-                          // REQ-CAL-p00076: Profile menu item at top
-                          PopupMenuItem(
-                            value: 'profile',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.person, size: 20),
-                                const SizedBox(width: 12),
-                                Text(l10n.profile),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'accessibility',
-                            // CUR-1307: identified for Playwright web automation
-                            // (PopupMenuItems render into an overlay when open).
-                            child: Semantics(
-                              identifier: 'menu-accessibility',
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.settings, size: 20),
-                                  const SizedBox(width: 12),
-                                  Text(l10n.accessibilityAndPreferences),
-                                ],
-                              ),
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'privacy',
-                            child: Row(
-                              children: [
-                                const Icon(Icons.privacy_tip, size: 20),
-                                const SizedBox(width: 12),
-                                Text(l10n.privacy),
-                              ],
-                            ),
-                          ),
-                          // CUR-1055: Only show divider and enroll option when not yet enrolled
-                          if (!_isEnrolled) ...[
-                            const PopupMenuDivider(),
-                            PopupMenuItem(
-                              value: 'enroll',
-                              // CUR-1307: identified for Playwright web automation.
-                              child: Semantics(
-                                identifier: 'menu-enroll',
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.group_add, size: 20),
-                                    const SizedBox(width: 12),
-                                    Text(l10n.enrollInClinicalTrial),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ];
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // -- 2 & 3. ALERTS + NOTIFICATIONS ------------------------------
-            // The single most-urgent "important item" shows inline (top slot);
-            // everything else collapses into one "N more important items" row
-            // that opens the Important page. This keeps the home screen
-            // uncluttered and bounded no matter how many alerts/tasks fire at
-            // once. Priority: disconnection > sync-wedged > incomplete >
-            // overlap > tasks.
-            // Implements: DIARY-GUI-main-screen-layout-A+C
-            // NOTE: the inline-top + collapse model is not yet in the
-            // requirement's assertions (which still describe separate notice +
-            // task zones); divergence to be reconciled in a later spec pass.
-            if (!_isLoading)
-              ListenableBuilder(
-                listenable: widget.taskService,
-                builder: (context, _) {
-                  final alerts = _buildAlerts(
-                    context,
-                    view,
-                    incompleteCount,
-                    overlapCount,
-                  );
-                  // Tasks are hidden while disconnected (no valid
-                  // questionnaires — CUR-1164).
-                  final tasks = _isDisconnected
-                      ? const <Task>[]
-                      : widget.taskService.tasks;
-                  final totalImportant = alerts.length + tasks.length;
-                  // Top slot: the most-urgent alert, else the top task.
-                  final topInline = alerts.isNotEmpty
-                      ? alerts.first.banner
-                      : (tasks.isNotEmpty
-                            ? TaskListWidget(
-                                taskService: widget.taskService,
-                                onTaskTap: _navigateToQuestionnaire,
-                                limit: 1,
-                              )
-                            : null);
-                  final moreCount = topInline == null ? 0 : totalImportant - 1;
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ?topInline,
-                      if (moreCount > 0)
-                        _buildMoreImportantRow(context, moreCount, alerts),
-                    ],
-                  );
-                },
-              ),
-
-            // -- 4 & 5. YESTERDAY + TODAY ----------------------------------
-            // One bounded block of real-estate. It scrolls internally when
-            // yesterday + today overflow, pinned to the bottom (newest) by
-            // default. Everything older is reached through the Calendar.
-            Expanded(child: _buildEventsBlock(context, view)),
-
-            // -- 6. RECORD -------------------------------------------------
-            // Bottom action area
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Missing data button (placeholder)
-                  // TODO: Add missing data functionality
-
-                  // Main record button - compact red button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 80,
-                    child: FilledButton(
-                      onPressed: _navigateToRecording,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 4,
-                        shadowColor: Colors.black.withValues(alpha: 0.3),
-                      ),
-                      // FittedBox (as the header title) scales the label down to
-                      // fit rather than overflowing with a wide/large font.
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.add, size: 32),
-                            const SizedBox(width: 12),
-                            Text(
-                              AppLocalizations.of(context).recordNosebleed,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Calendar button
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      // The calendar reads/writes the same reactive diary store;
-                      // the home list updates on its own when the dialog closes.
-                      await showDialog<void>(
-                        context: context,
-                        builder: (context) => const CalendarScreen(),
-                      );
-                    },
-                    icon: const Icon(Icons.calendar_today),
-                    label: Text(AppLocalizations.of(context).calendar),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildBottomActions(context),
           ],
         ),
       ),
     );
   }
 
-  /// Builds the active alerts in priority order (most urgent first):
-  /// disconnection > sync-wedged > incomplete > overlap. Each alert carries
-  /// both its bespoke inline banner (shown when it wins the top slot) and the
-  /// simple icon/title/onTap projection used by the Important page and the
-  /// "N more important items" summary row.
-  // Implements: DIARY-GUI-main-screen-layout-A
-  List<_HomeAlert> _buildAlerts(
-    BuildContext context,
-    DiaryView view,
-    int incompleteCount,
-    int overlapCount,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    return [
-      // Disconnection (red, persistent, non-dismissible per REQ-p05004).
-      if (_isDisconnected)
-        _HomeAlert(
-          icon: Icons.warning_amber_rounded,
-          color: Colors.red.shade700,
-          // TODO(i18n): localize.
-          title: 'Disconnected from Study',
-          subtitle: 'Please contact your study site.',
-          banner: DisconnectionBanner(
-            siteName: _siteName,
-            sitePhoneNumber: _sitePhoneNumber,
-          ),
-        ),
-      // Not-participating: a GENTLE, informational end-of-participation notice
-      // (distinct from the alarming disconnection banner above), so the
-      // participant is not surprised when sponsor branding + sync stop. Text is
-      // sponsor-configurable (ui.notParticipatingMessage) with a localized
-      // default. Mutually exclusive with disconnection (latest lifecycle event).
-      // Implements: DIARY-BASE-not-participating-notice/A+C
-      if (widget.enrollmentService.notParticipatingNotifier.value)
-        _HomeAlert(
-          icon: Icons.info_outline,
-          color: Colors.blueGrey.shade600,
-          title: _notParticipatingMessage(context),
-          banner: _notParticipatingBanner(context),
-        ),
-      // Sync wedged: a destination FIFO is wedged on an unknown event-type
-      // bridge mismatch — participant should update the app to drain it.
-      if (_hasWedgedFifo)
-        _HomeAlert(
-          icon: Icons.sync_problem,
-          color: Colors.red.shade400,
-          // TODO(i18n): localize.
-          title: 'Some data is not syncing',
-          subtitle: 'Please update the app.',
-          banner: const _SyncWedgedBanner(),
-        ),
-      // Incomplete-entry reminder (preserves in-progress entries).
-      // Implements: DIARY-PRD-incomplete-entry-preservation/B
-      if (incompleteCount > 0)
-        _HomeAlert(
-          icon: Icons.warning_amber_rounded,
-          color: Colors.orange.shade800,
-          title: l10n.incompleteRecordCount(incompleteCount),
-          onTap: () => _handleIncompleteRecordsClick(view),
-          banner: _incompleteBanner(context, view, incompleteCount),
-        ),
-      // Unresolved overlaps (amber — distinct, lower-urgency than incomplete).
-      // Implements: DIARY-PRD-entry-overlap-resolution/B
-      if (overlapCount > 0)
-        _HomeAlert(
-          icon: Icons.merge_type,
-          color: Colors.amber.shade900,
-          // TODO(i18n): localize + pluralize.
-          title: overlapCount == 1
-              ? '1 overlapping record needs resolving'
-              : '$overlapCount overlapping records need resolving',
-          onTap: () => _handleResolveOverlaps(view),
-          banner: _overlapBanner(context, view, overlapCount),
-        ),
-    ];
-  }
-
-  /// Resolved not-participating notice text: sponsor-configured value if set,
-  /// else the diary's localized default.
-  // Implements: DIARY-BASE-not-participating-notice/B
-  String _notParticipatingMessage(BuildContext context) =>
-      SponsorUiConfigScope.of(context).notParticipatingMessage ??
-      AppLocalizations.of(context).leftClinicalTrial;
-
-  /// Gentle, informational not-participating notice (the bespoke inline form).
-  // Implements: DIARY-BASE-not-participating-notice/A
-  Widget _notParticipatingBanner(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey.shade50,
-        borderRadius: BorderRadius.circular(12),
+  /// Header row — sponsor logo (left) + hamburger user menu (right). Matches
+  /// the Figma Sponsor Portal UI Pack home layout (no centered title). Layout
+  /// is delegated to [BrandHeader] so sub-screens that show the same bar can
+  /// reuse the structure.
+  Widget _buildHeader(BuildContext context, bool brandingActive) {
+    return BrandHeader(
+      leading: LogoMenu(
+        sponsorLogoBuilder: brandingActive ? _brandingLogoBuilder : null,
+        onResetAllData: _handleResetAllData,
+        resetEnabled: _canResetData,
+        isEnrolled: _isEnrolled,
+        onEndClinicalTrial: _isEnrolled ? _handleEndClinicalTrial : null,
+        onInstructionsAndFeedback: _handleInstructionsAndFeedback,
+        showDevTools: AppConfig.showDevTools,
+        onOpenServiceMode: widget.serviceModeContextBuilder == null
+            ? null
+            : _openServiceMode,
       ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: Colors.blueGrey.shade700, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _notParticipatingMessage(context),
-              style: TextStyle(
-                color: Colors.blueGrey.shade800,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
+      trailing: UserMenuButton(
+        onShowProfile: _handleShowProfile,
+        onJoinStudy: _isEnrolled ? null : _handleEnrollFromMenu,
+        onShowHelpCenter: _handleShowHelpCenter,
       ),
     );
   }
 
-  /// Orange incomplete-records banner (the bespoke inline form).
-  Widget _incompleteBanner(
-    BuildContext context,
-    DiaryView view,
-    int incompleteCount,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    return InkWell(
-      onTap: () => _handleIncompleteRecordsClick(view),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.orange.shade100,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: Colors.orange.shade800,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                l10n.incompleteRecordCount(incompleteCount),
-                style: TextStyle(
-                  color: Colors.orange.shade800,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            // Tappable affordance (whole banner is an InkWell). A chevron —
-            // rather than a second competing text label — keeps the count
-            // readable on narrow screens and at large text scales.
-            const SizedBox(width: 8),
-            Tooltip(
-              message: l10n.tapToComplete,
-              child: Icon(Icons.chevron_right, color: Colors.orange.shade600),
-            ),
-          ],
-        ),
+  // CUR-1493: the home user-menu Help Center is not built yet — show the
+  // generic "Coming soon" notice, not the unrelated "Privacy settings coming
+  // soon" toast.
+  void _handleShowHelpCenter() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context).comingSoon),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  /// Amber unresolved-overlap banner (the bespoke inline form).
-  Widget _overlapBanner(
-    BuildContext context,
-    DiaryView view,
-    int overlapCount,
-  ) {
-    return InkWell(
-      onTap: () => _handleResolveOverlaps(view),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.amber.shade100,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.merge_type, color: Colors.amber.shade900, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              // TODO(i18n): localize + pluralize.
-              child: Text(
-                overlapCount == 1
-                    ? '1 overlapping record needs resolving'
-                    : '$overlapCount overlapping records need resolving',
-                style: TextStyle(
-                  color: Colors.amber.shade900,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // TODO(i18n): localize tooltip.
-            Tooltip(
-              message: 'Resolve',
-              child: Icon(Icons.chevron_right, color: Colors.amber.shade700),
-            ),
-          ],
+  Future<void> _handleEnrollFromMenu() async {
+    final wasEnrolled = _isEnrolled;
+    await Navigator.push(
+      context,
+      AppPageRoute<void>(
+        builder: (context) => ClinicalTrialEnrollmentScreen(
+          enrollmentService: widget.enrollmentService,
+          // Pop enrollment first, then open profile — home owns the route
+          // and has the cached enrollment / disconnection state profile needs.
+          onShowProfile: () {
+            Navigator.of(context).pop();
+            _handleShowProfile();
+          },
         ),
       ),
     );
-  }
-
-  /// The collapsed "N more important items" row that opens the Important page.
-  Widget _buildMoreImportantRow(
-    BuildContext context,
-    int moreCount,
-    List<_HomeAlert> alerts,
-  ) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Material(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => _openImportant(context, alerts),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.notifications_none,
-                  color: theme.colorScheme.onSurfaceVariant,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  // TODO(i18n): localize + pluralize.
-                  child: Text(
-                    moreCount == 1
-                        ? '1 more important item'
-                        : '$moreCount more important items',
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Opens the Important page: the full alert list (page-row projection) plus
-  /// the full task list, in two sections.
-  Future<void> _openImportant(
-    BuildContext context,
-    List<_HomeAlert> alerts,
-  ) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ImportantScreen(
-          alerts: [
-            for (final a in alerts)
-              ImportantAlert(
-                icon: a.icon,
-                color: a.color,
-                title: a.title,
-                subtitle: a.subtitle,
-                onTap: a.onTap,
-              ),
-          ],
-          taskService: widget.taskService,
-          onTaskTap: _navigateToQuestionnaire,
-        ),
-      ),
-    );
-  }
-
-  /// The Yesterday + Today block (areas 4 & 5): a bounded, internally-scrolling
-  /// list of the yesterday and today day-groups, auto-pinned to the bottom
-  /// (newest) on first load. Wrapped in [Expanded] by the caller.
-  // Implements: DIARY-DEV-reactive-read-path/A
-  Widget _buildEventsBlock(BuildContext context, DiaryView view) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+    await _checkEnrollmentStatus();
+    if (_isEnrolled) widget.onEnrolled?.call();
+    await _checkDisconnectionStatus();
+    // CUR-1114: Open profile only if enrollment state changed.
+    if (!wasEnrolled && _isEnrolled && mounted) {
+      await _handleShowProfile();
     }
+  }
+
+  /// Scrollable body — banners, Task List section (expansion tile), and the
+  /// "Your Records" day-card stack. Pull-to-refresh re-syncs tasks so the
+  /// patient has a manual recovery path when FCM is slow (CUR-1398).
+  Widget _buildBody(
+    BuildContext context,
+    DiaryView view,
+    int incompleteCount,
+    int overlapCount,
+  ) {
     final groups = _groupRecordsByDay(context, view);
-    // Default to the most recent events: jump to the bottom once, after the
-    // first laid-out frame that has a scrollable extent.
+    // Default to the most recent events: jump the Today card's internal list
+    // to the bottom once after the first laid-out frame.
     if (!_didScrollEventsToBottom) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _didScrollEventsToBottom) return;
@@ -1571,38 +1087,463 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         }
       });
     }
-    return RefreshIndicator(
-      // The diary list itself is reactive (DiaryViewBuilder) and needs no
-      // reload. CUR-1398: pull-to-refresh re-pulls /tasks so the patient has a
-      // manual recovery path when FCM is slow or fails (questionnaires shown as
-      // "Sent" in the portal but not yet surfaced on the home screen).
-      onRefresh: () => widget.taskService.syncTasks(widget.enrollmentService),
-      child: Scrollbar(
-        thumbVisibility: true,
-        controller: _scrollController,
-        child: ListView.builder(
-          controller: _scrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: groups.length,
-          itemBuilder: (context, index) =>
-              _buildGroup(context, view, groups[index]),
+
+    // Fixed page layout (no top-level scroll). Banners, the Task List
+    // section, and the "Your Records" header sit at their natural heights;
+    // the two day cards split the remaining vertical space via `Expanded`
+    // and scroll their own entry list when the entries exceed that share.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ..._buildTopBanners(context),
+          // Implements: DIARY-GUI-main-screen-layout-A.
+          // Capped to ~38% of the available height so a busy "Needs your
+          // attention" tile (many alerts/tasks) can't starve the events
+          // area below — its inner scroll handles the overflow.
+          ListenableBuilder(
+            listenable: widget.taskService,
+            builder: (context, _) => _buildTaskListSection(
+              context,
+              view,
+              incompleteCount,
+              overlapCount,
+            ),
+          ),
+          const SizedBox(height: 16),
+          AppSectionHeader(title: AppLocalizations.of(context).yourRecords),
+          const SizedBox(height: 12),
+          // Events area: Yesterday grows with its content up to half of the
+          // available height (capped via a ConstrainedBox so its inner list
+          // starts scrolling once it would exceed that share); Today claims
+          // whatever Yesterday leaves behind via [Expanded]. Both still hug
+          // their content when empty.
+          // Events area. Yesterday hugs its content up to a hard cap at
+          // half the available height (see the [ConstrainedBox] inside
+          // [_dayCardSlot]); Today claims the remaining vertical space via
+          // [Expanded] regardless of Yesterday's size.
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final yesterdayMaxHeight = (constraints.maxHeight - 12) / 2;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < groups.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 12),
+                      _dayCardSlot(
+                        context,
+                        view,
+                        groups[i],
+                        isToday: i == groups.length - 1,
+                        yesterdayMaxHeight: yesterdayMaxHeight,
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  /// Inline banners that appear above the Task List section: disconnection
+  /// (preserves the expand-to-show-contact behaviour via DisconnectionBanner),
+  /// not-participating notice, and the sync-wedged warning.
+  List<Widget> _buildTopBanners(BuildContext context) {
+    final banners = <Widget>[];
+    // Disconnection (red, persistent, non-dismissible per REQ-p05004).
+    if (_isDisconnected) {
+      banners.add(
+        DisconnectionBanner(
+          siteName: _siteName,
+          sitePhoneNumber: _sitePhoneNumber,
         ),
+      );
+    }
+    // Not-participating: gentle informational notice. Mutually exclusive with
+    // disconnection (latest lifecycle event).
+    // Implements: DIARY-BASE-not-participating-notice/A+C
+    if (widget.enrollmentService.notParticipatingNotifier.value) {
+      banners.add(
+        AppBanner(
+          severity: AppBannerSeverity.info,
+          message: _notParticipatingMessage(context),
+        ),
+      );
+    }
+    // Sync wedged — destination FIFO is wedged on an unknown event-type bridge.
+    if (_hasWedgedFifo) {
+      banners.add(
+        // TODO(i18n): localize.
+        const AppBanner(
+          severity: AppBannerSeverity.error,
+          title: 'Some data is not syncing',
+          message: 'Please update the app.',
+        ),
+      );
+    }
+    return [
+      for (final b in banners) ...[b, const SizedBox(height: 12)],
+    ];
+  }
+
+  /// "Task List" section header + the "Needs your attention" expansion tile.
+  ///
+  /// All actionable items — incomplete records, unresolved overlaps, and
+  /// outstanding tasks (questionnaires, reminders) — render as
+  /// [AppAlertRow]s inside the tile. Tasks are hidden while disconnected
+  /// (CUR-1164: no valid questionnaires until reconnection).
+  ///
+  /// When there is nothing requiring attention (count == 0) the whole
+  /// section — heading and tile — collapses to nothing rather than showing
+  /// an empty "Needs your attention (0)" tile (CUR-1519).
+  // Implements: DIARY-GUI-main-screen-layout-A — the Task List zone renders
+  //   only when tasks are active; with zero items the zone is absent.
+  Widget _buildTaskListSection(
+    BuildContext context,
+    DiaryView view,
+    int incompleteCount,
+    int overlapCount,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final tasks = _isDisconnected ? const <Task>[] : widget.taskService.tasks;
+    final rows = <Widget>[
+      if (incompleteCount > 0)
+        AppAlertRow.incompleteRecord(
+          count: incompleteCount,
+          onTap: () => _handleIncompleteRecordsClick(view),
+        ),
+      if (overlapCount > 0)
+        AppAlertRow(
+          tone: AppAlertRowTone.warning,
+          icon: Icons.merge_type,
+          // TODO(i18n): localize + pluralize.
+          label: overlapCount == 1
+              ? '1 overlapping record needs resolving'
+              : '$overlapCount overlapping records need resolving',
+          onTap: () => _handleResolveOverlaps(view),
+        ),
+      for (final task in tasks)
+        AppAlertRow(
+          tone: _toneForTaskType(task.taskType),
+          icon: _iconForTaskType(task.taskType),
+          label: task.title,
+          onTap: () => _navigateToQuestionnaire(task),
+        ),
+    ];
+    final count = rows.length;
+    // Nothing to surface: hide the entire section rather than showing an
+    // empty "Needs your attention (0)" tile (CUR-1519).
+    if (count == 0) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppSectionHeader(title: l10n.taskList),
+        const SizedBox(height: 12),
+        AppExpansionTile(
+          title: l10n.needsYourAttention,
+          count: count,
+          initiallyExpanded: count > 0,
+          children: rows,
+        ),
+      ],
+    );
+  }
+
+  /// Bottom action area — primary "Record Nosebleed" + tertiary "View
+  /// Calendar". Pinned outside the scrollable so they're always reachable.
+  Widget _buildBottomActions(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AppButton(
+            variant: AppButtonVariant.destructive,
+            size: AppButtonSize.large,
+            label: l10n.recordNosebleed,
+            leadingIcon: Icons.add,
+            fullWidth: true,
+            onPressed: _navigateToRecording,
+          ),
+          const SizedBox(height: 8),
+          AppButton(
+            variant: AppButtonVariant.tertiary,
+            size: AppButtonSize.large,
+            label: l10n.viewCalendar,
+            fullWidth: true,
+            leadingIcon: Icons.calendar_today_outlined,
+            onPressed: () async {
+              // CUR-1494: bound calendar back-navigation to 365 days before
+              // app install (DIARY-PRD-diary-start-day/D). The install date is
+              // the legacy-sync destination's start date, stamped at first
+              // launch; a lookup failure falls back to a now-relative floor.
+              DateTime? installDate;
+              try {
+                final schedule = await widget.runtime.destinations.scheduleOf(
+                  LegacySyncDestination.destinationId,
+                );
+                installDate = schedule.startDate;
+              } catch (_) {
+                installDate = null;
+              }
+              if (!context.mounted) return;
+              await showDialog<void>(
+                context: context,
+                builder: (context) => CalendarScreen(installDate: installDate),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ---- Task → alert-row helpers ---------------------------------------------
+
+  AppAlertRowTone _toneForTaskType(TaskType type) {
+    switch (type) {
+      case TaskType.questionnaire:
+        return AppAlertRowTone.primary;
+      case TaskType.incompleteRecord:
+      case TaskType.yesterdayReminder:
+        return AppAlertRowTone.warning;
+      case TaskType.missingDays:
+        return AppAlertRowTone.primary;
+    }
+  }
+
+  IconData _iconForTaskType(TaskType type) {
+    switch (type) {
+      case TaskType.questionnaire:
+        return Icons.assignment_turned_in_outlined;
+      case TaskType.incompleteRecord:
+        return Icons.info_outlined;
+      case TaskType.yesterdayReminder:
+        return Icons.today_outlined;
+      case TaskType.missingDays:
+        return Icons.calendar_today_outlined;
+    }
+  }
+
+  /// Resolved not-participating notice text: sponsor-configured value if set,
+  /// else the diary's localized default.
+  // Implements: DIARY-BASE-not-participating-notice/B
+  String _notParticipatingMessage(BuildContext context) =>
+      SponsorUiConfigScope.of(context).notParticipatingMessage ??
+      AppLocalizations.of(context).leftClinicalTrial;
+
+  /// Slot wrapper for a day card.
+  ///
+  /// - **Empty (Yesterday or Today)** → hugs its placeholder so the
+  ///   sibling can stretch into the leftover space.
+  /// - **Yesterday populated** → wrapped in [ConstrainedBox] capped at
+  ///   [yesterdayMaxHeight] (≈ half the events area). Hugs content while
+  ///   under the cap; scrolls internally once entries would exceed it.
+  /// - **Today populated** → wrapped in [Flexible(loose)] so it hugs its
+  ///   own content but can grow up to whatever vertical space Yesterday
+  ///   leaves behind. With 1 entry it stays ~one row tall; with many
+  ///   entries it grows until it fills the remaining space, then scrolls.
+  ///
+  /// Today owns the live [_scrollController] (jump-to-bottom + flash) and
+  /// [RefreshIndicator] re-syncing /tasks.
+  Widget _dayCardSlot(
+    BuildContext context,
+    DiaryView view,
+    _GroupedRecords group, {
+    required bool isToday,
+    required double yesterdayMaxHeight,
+  }) {
+    final isEmpty = group.entries.isEmpty;
+    if (isEmpty) {
+      return _buildDayCard(context, view, group, sizeToContent: true);
+    }
+    if (isToday) {
+      final card = _buildDayCard(
+        context,
+        view,
+        group,
+        scrollController: _scrollController,
+        refreshOnPull: true,
+        sizeToContent: true,
+      );
+      // Flexible(loose) with the only flex sibling in the column gets the
+      // full remaining space as its `maxHeight`; the inner shrink-wrap
+      // ListView hugs content up to that max and scrolls past it.
+      return Flexible(fit: FlexFit.loose, child: card);
+    }
+    final card = _buildDayCard(context, view, group, sizeToContent: true);
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: yesterdayMaxHeight),
+      child: card,
+    );
+  }
+
+  /// A single day-group card — "Yesterday | Thursday, May 21, 2026" header
+  /// followed by either entries, the yesterday-confirmation prompt, or a
+  /// muted "no records" empty row.
+  ///
+  /// [sizeToContent] true → the card hugs its body (used for empty groups
+  /// so the sibling card can claim the rest of the column). False → the
+  /// card fills its parent's vertical share via the inner [Expanded] and
+  /// the entry list scrolls internally on overflow.
+  // Implements: DIARY-DEV-reactive-read-path/A
+  Widget _buildDayCard(
+    BuildContext context,
+    DiaryView view,
+    _GroupedRecords group, {
+    ScrollController? scrollController,
+    bool refreshOnPull = false,
+    bool sizeToContent = false,
+  }) {
+    final theme = Theme.of(context);
+    final prefs = AppPreferencesScope.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
+
+    final header = group.date == null
+        ? null
+        : Row(
+            children: [
+              Text(
+                group.label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '|',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.outline,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  DateFormat('EEEE, MMMM d, y', locale).format(group.date!),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          );
+
+    Widget body;
+    if (group.entries.isEmpty) {
+      // Empty cards hug their content — no Align/expansion, so the card
+      // shrinks to the height of the "No records" pill or the yesterday
+      // confirmation prompt.
+      body = _emptyGroupContent(context, group);
+    } else {
+      body = ListView.builder(
+        controller: scrollController,
+        // shrinkWrap when the card is sized to its content (under a
+        // [ConstrainedBox] cap); fill the bound when the card takes the
+        // rest of the events column (under [Expanded]) so the list
+        // occupies the full available height with empty space inside if
+        // entries don't fill it.
+        shrinkWrap: sizeToContent,
+        // Always scrollable so the RefreshIndicator gesture works even when
+        // the list is shorter than its container.
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.zero,
+        itemCount: group.entries.length,
+        itemBuilder: (context, i) {
+          final entry = group.entries[i];
+          return Padding(
+            // CUR-489: GlobalKey for the flash-to-newest-record affordance.
+            key: _getKeyForRecord(entry.aggregateId),
+            padding: const EdgeInsets.only(bottom: 8),
+            // CUR-464: FlashHighlight animates newly-recorded entries.
+            child: FlashHighlight(
+              flash: entry.aggregateId == _flashRecordId,
+              enabled: prefs.useAnimation,
+              onFlashComplete: () {
+                if (mounted) {
+                  setState(() {
+                    _flashRecordId = null;
+                  });
+                }
+              },
+              builder: (context, highlightColor) => EventListItem(
+                view: entry,
+                // Epistaxis taps edit. CUR-1491: day markers in the home
+                // yesterday/today list are display-only — a recorded
+                // "Don't remember" / "No nosebleeds" status is not a tappable
+                // affordance (re-disposition stays available from the
+                // calendar's date-records screen).
+                onTap: switch (entry) {
+                  EpistaxisEntryView() => () => _navigateToEditRecord(entry),
+                  DayMarkerView() => null,
+                  SurveyEntryView() => null,
+                },
+                hasOverlap:
+                    entry is EpistaxisEntryView && _hasOverlap(view, entry),
+                highlightColor: highlightColor,
+              ),
+            ),
+          );
+        },
+      );
+      if (refreshOnPull) {
+        body = RefreshIndicator(
+          onRefresh: () =>
+              widget.taskService.syncTasks(widget.enrollmentService),
+          child: body,
+        );
+      }
+    }
+
+    // [sizeToContent] picks how the card sizes itself:
+    // - true: Column(min) hugs to content, body wrapped in
+    //   `Flexible(loose)` so the parent ConstrainedBox cap reaches the
+    //   ListView and it scrolls once entries would exceed the cap.
+    // - false: Column(max) fills its parent (typically [Expanded]) and
+    //   body is wrapped in `Expanded` so the non-shrinkwrap ListView is
+    //   bounded by the card's height and scrolls when entries overflow.
+    final isEmpty = group.entries.isEmpty;
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: sizeToContent ? MainAxisSize.min : MainAxisSize.max,
+        children: [
+          if (header != null) ...[header, const SizedBox(height: 12)],
+          if (isEmpty)
+            body
+          else if (sizeToContent)
+            // Flexible(loose) forwards the parent ConstrainedBox's
+            // maxHeight to the shrink-wrap ListView so the cap reaches it
+            // and the list scrolls once entries would exceed the cap.
+            Flexible(fit: FlexFit.loose, child: body)
+          else
+            // Card fills its [Expanded] slot; the ListView (no shrinkWrap)
+            // needs Expanded to bound its height so it scrolls on overflow.
+            Expanded(child: body),
+        ],
       ),
     );
   }
 
   /// Empty-state content for a day group. The Yesterday section, when not
   /// locked, shows the No/Had/Don't-remember confirmation prompt instead of a
-  /// bare empty state (the prompt lives in the Yesterday area, not a separate
-  /// banner). Implements: DIARY-PRD-day-disposition/B
+  /// bare empty state. Implements: DIARY-PRD-day-disposition/B
   Widget _emptyGroupContent(BuildContext context, _GroupedRecords group) {
-    // Only prompt when yesterday has NO entry at all (incl. a day marker or an
-    // incomplete checkpoint) — i.e. the participant hasn't answered yet.
     if (group.isYesterday && group.isEmpty) {
       // Defense-in-depth for the day-level lock: the prompt's quick actions
       // write markers / open recording for yesterday directly, so suppress it
-      // when yesterday is past the lock threshold (only possible under a sub-day
-      // lock); the calendar is the primary read-only gate.
+      // when yesterday is past the lock threshold.
       final yesterdayLocked =
           entryGateForDate(
             eventLocalMidnight: DateUtils.dateOnly(
@@ -1620,110 +1561,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       }
     }
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Center(
-        child: Text(
-          'no events ${group.label.toLowerCase()}',
-          style: TextStyle(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.5),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Implements: DIARY-GUI-epistaxis-record/A
-  Widget _buildGroup(
-    BuildContext context,
-    DiaryView view,
-    _GroupedRecords group,
-  ) {
-    final prefs = AppPreferencesScope.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Day divider + label (Yesterday / Today) and the full date.
-        if (group.date != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 8),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        group.label,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ),
-                    const Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  DateFormat(
-                    'EEEE, MMMM d, y',
-                    Localizations.localeOf(context).languageCode,
-                  ).format(group.date!),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-
-        // Records or empty state
-        if (group.entries.isEmpty)
-          _emptyGroupContent(context, group)
-        else
-          ...group.entries.map(
-            (entry) => Padding(
-              // CUR-489: Use GlobalKey for scroll-to-item functionality
-              key: _getKeyForRecord(entry.aggregateId),
-              padding: const EdgeInsets.only(bottom: 8),
-              // CUR-464: Wrap with FlashHighlight to animate new records
-              child: FlashHighlight(
-                flash: entry.aggregateId == _flashRecordId,
-                enabled: prefs.useAnimation,
-                onFlashComplete: () {
-                  if (mounted) {
-                    setState(() {
-                      _flashRecordId = null;
-                    });
-                  }
-                },
-                builder: (context, highlightColor) => EventListItem(
-                  view: entry,
-                  // Epistaxis taps edit the record; day-marker taps re-disposition
-                  // the day via the shared 3-choice picker.
-                  // Implements: DIARY-PRD-day-disposition/B
-                  onTap: switch (entry) {
-                    EpistaxisEntryView() => () => _navigateToEditRecord(entry),
-                    DayMarkerView() => () => _redispositionMarker(entry),
-                    // A completed survey is read-only in the diary list (no
-                    // edit / re-disposition affordance).
-                    SurveyEntryView() => null,
-                  },
-                  hasOverlap:
-                      entry is EpistaxisEntryView && _hasOverlap(view, entry),
-                  highlightColor: highlightColor,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
+    return EventListItem.empty(AppLocalizations.of(context).noRecords);
   }
 }
 
@@ -1743,64 +1581,4 @@ class _GroupedRecords {
   /// The "Yesterday" section. When empty (and not locked) it renders the
   /// yesterday confirmation prompt instead of a bare empty state.
   final bool isYesterday;
-}
-
-/// Banner shown when at least one destination FIFO is wedged on a
-/// `unknown_event_type` bridge.  Surfaces the situation so the participant
-/// updates the app; underlying scope is "visible state", not UX polish.
-/// One active home alert: its bespoke inline [banner] (shown when it wins the
-/// single top slot) plus the simple icon/title/[onTap] projection used by the
-/// Important page rows and the collapsed summary count.
-class _HomeAlert {
-  const _HomeAlert({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.banner,
-    this.subtitle,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String? subtitle;
-
-  /// Action when the row/banner is tapped. Null for informational alerts
-  /// (e.g. the non-dismissible disconnection notice).
-  final VoidCallback? onTap;
-
-  /// The rich, bespoke inline banner for the home top slot.
-  final Widget banner;
-}
-
-class _SyncWedgedBanner extends StatelessWidget {
-  const _SyncWedgedBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.red.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.sync_problem, color: Colors.red.shade800, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Some data is not syncing — please update the app.',
-              style: TextStyle(
-                color: Colors.red.shade800,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

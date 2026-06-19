@@ -47,19 +47,34 @@ class _AuditLogRowState extends State<AuditLogRow> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        InkWell(
-          onTap: _toggle,
-          child: _CollapsedRow(
-            entry: widget.entry,
-            columnWidths: widget.columnWidths,
-            expanded: _expanded,
+        Semantics(
+          // Domain-keyed Playwright handle (the event id) — pages and
+          // refreshes reorder rows, so never address them positionally.
+          // container + explicitChildNodes keep the identifier on its own
+          // node (web flattener gotcha — event_sourcing prd-reaction).
+          identifier: 'audit-row-${widget.entry.id}',
+          button: true,
+          container: true,
+          explicitChildNodes: true,
+          child: InkWell(
+            onTap: _toggle,
+            child: _CollapsedRow(
+              entry: widget.entry,
+              columnWidths: widget.columnWidths,
+              expanded: _expanded,
+            ),
           ),
         ),
         if (_expanded)
-          _ExpandedPanel(
-            entry: widget.entry,
-            timestampColumnWidth: widget.columnWidths.timestamp,
-            theme: theme,
+          Semantics(
+            identifier: 'audit-row-${widget.entry.id}-details',
+            container: true,
+            explicitChildNodes: true,
+            child: _ExpandedPanel(
+              entry: widget.entry,
+              timestampColumnWidth: widget.columnWidths.timestamp,
+              theme: theme,
+            ),
           ),
       ],
     );

@@ -167,20 +167,30 @@ if [ "$RUN_INTEGRATION" = true ]; then
         FILE_INDEX=0
 
         for test_file in integration_test/*_test.dart; do
-            if [ -f "$test_file" ]; then
-                echo ""
-                echo "   Running: $test_file"
-                FILE_INDEX=$((FILE_INDEX + 1))
+            if [ ! -f "$test_file" ]; then
+                continue
+            fi
 
-                if [ "$WITH_COVERAGE" = true ]; then
-                    $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE" --coverage
-                    if [ -f "coverage/lcov.info" ]; then
-                        mv coverage/lcov.info "coverage/lcov-integration-$FILE_INDEX.info"
-                        INTEGRATION_COVERAGE_FILES="$INTEGRATION_COVERAGE_FILES coverage/lcov-integration-$FILE_INDEX.info"
-                    fi
-                else
-                    $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE"
+            # Device-only target: the dedicated Firebase Test Lab workflow builds
+            # and executes this test on Android/iOS. Do not compile it for desktop CI.
+            if [ "$test_file" = "integration_test/firebase_test_lab_smoke_test.dart" ]; then
+                echo ""
+                echo "   Skipping device-only Firebase Test Lab test: $test_file"
+                continue
+            fi
+
+            echo ""
+            echo "   Running: $test_file"
+            FILE_INDEX=$((FILE_INDEX + 1))
+
+            if [ "$WITH_COVERAGE" = true ]; then
+                $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE" --coverage
+                if [ -f "coverage/lcov.info" ]; then
+                    mv coverage/lcov.info "coverage/lcov-integration-$FILE_INDEX.info"
+                    INTEGRATION_COVERAGE_FILES="$INTEGRATION_COVERAGE_FILES coverage/lcov-integration-$FILE_INDEX.info"
                 fi
+            else
+                $XVFB_PREFIX flutter test "$test_file" -d "$DEVICE"
             fi
         done
 

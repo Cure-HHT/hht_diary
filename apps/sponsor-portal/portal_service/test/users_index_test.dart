@@ -31,11 +31,12 @@ void main() {
     expect(rows.single['status'], 'pending');
     expect(rows.single['name'], 'U');
 
-    // non-status event: status preserved, new-name field merged (action uses key 'after')
-    await ev('user_profile_changed', {'after': 'U2', 'changed_by': 'admin-1'});
+    // non-status event: status preserved, canonical name key overwritten
+    // by the key-wise merge (so the table's display name updates on edit)
+    await ev('user_profile_changed', {'name': 'U2', 'changed_by': 'admin-1'});
     rows = await store.backend.findViewRows('users_index');
     expect(rows.single['status'], 'pending');
-    expect(rows.single['after'], 'U2');
+    expect(rows.single['name'], 'U2');
 
     // status transition
     await ev('user_deactivated', {'reason': 'x', 'status': 'revoked'});

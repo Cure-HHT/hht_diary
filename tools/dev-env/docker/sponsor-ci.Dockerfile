@@ -21,12 +21,7 @@ COPY apps/common-dart/otel_common ./apps/common-dart/otel_common
 COPY apps/common-dart/grpc_health ./apps/common-dart/grpc_health
 COPY apps/common-dart/comms ./apps/common-dart/comms
 COPY apps/edc/rave-integration ./apps/edc/rave-integration
-COPY apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
-COPY apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
-COPY apps/sponsor-portal/portal-ui ./apps/sponsor-portal/portal-ui
 COPY apps/common-flutter/diary_design_system ./apps/common-flutter/diary_design_system
-COPY apps/daily-diary/diary_functions ./apps/daily-diary/diary_functions
-COPY apps/daily-diary/diary_server ./apps/daily-diary/diary_server
 
 # Resolve dependencies for shared packages/apps
 WORKDIR /workspace/src/apps/common-dart/trial_data_types
@@ -41,21 +36,6 @@ RUN dart pub get
 WORKDIR /workspace/src/apps/edc/rave-integration
 RUN dart pub get
 
-WORKDIR /workspace/src/apps/sponsor-portal/portal_functions
-RUN dart pub get
-
-WORKDIR /workspace/src/apps/sponsor-portal/portal_server
-RUN dart pub get
-
-WORKDIR /workspace/src/apps/sponsor-portal/portal-ui
-RUN flutter pub get
-
-WORKDIR /workspace/src/apps/daily-diary/diary_functions
-RUN dart pub get
-
-WORKDIR /workspace/src/apps/daily-diary/diary_server
-RUN dart pub get
-
 WORKDIR /workspace/src
 
 # Validate expected image shape during build
@@ -66,15 +46,8 @@ RUN set -euo pipefail && \
     test -d /workspace/src/apps/common-dart/grpc_health && \
     test -d /workspace/src/apps/common-dart/comms && \
     test -d /workspace/src/apps/edc/rave-integration && \
-    test -d /workspace/src/apps/sponsor-portal/portal_functions && \
-    test -d /workspace/src/apps/sponsor-portal/portal_server && \
-    test -d /workspace/src/apps/sponsor-portal/portal-ui && \
     test -d /workspace/src/apps/common-flutter/diary_design_system && \
-    test -d /workspace/src/apps/daily-diary/diary_functions && \
-    test -d /workspace/src/apps/daily-diary/diary_server && \
-    test ! -d /workspace/src/sponsor-content && \
-    test ! -f /workspace/src/apps/sponsor-portal/portal_server/bin/server && \
-    test ! -d /workspace/src/apps/sponsor-portal/portal-ui/build/web
+    test ! -d /workspace/src/sponsor-content
 
 # Create and use a non-root user
 RUN groupadd --gid 10001 appuser && \

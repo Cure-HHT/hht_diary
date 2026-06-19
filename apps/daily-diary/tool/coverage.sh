@@ -17,7 +17,7 @@ LCOV_FILES=()
 rm -rf "$SCRIPT_DIR/coverage"
 mkdir -p "$SCRIPT_DIR/coverage"
 
-for project in diary_functions diary_server clinical_diary; do
+for project in clinical_diary; do
     TEST_SCRIPT="$SCRIPT_DIR/$project/tool/test.sh"
     if [ -x "$TEST_SCRIPT" ]; then
         echo ""
@@ -79,7 +79,7 @@ echo "=============================================="
 echo "Daily Diary Coverage Summary"
 echo "=============================================="
 
-for project in diary_functions diary_server clinical_diary; do
+for project in clinical_diary; do
     CHILD_LCOV="$SCRIPT_DIR/coverage/lcov-${project}.info"
     if [ -f "$CHILD_LCOV" ]; then
         PCT=$(get_coverage_percentage "$CHILD_LCOV")

@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/screens/overlap_compare_screen.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
@@ -241,6 +242,8 @@ void main() {
           scope: fake,
           child: MaterialApp(
             navigatorKey: navKey,
+            // Design-system theme so AppButton's theme extensions resolve.
+            theme: buildAppTheme(),
             home: Builder(
               builder: (host) => Scaffold(
                 body: Center(

@@ -3,7 +3,7 @@ description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Proc
 publish_to: "none"
 
 
-version: 0.9.63+141
+version: 0.9.75+155
 
 environment:
   sdk: ^3.10.7
@@ -85,6 +85,7 @@ dependencies:
   # AND !kIsWeb (shelf needs dart:io). See lib/services/debug_bridge.dart.
   shelf: ^1.4.0
   shelf_router: ^1.1.4
+  flutter_local_notifications: ^20.1.0
 
 dev_dependencies:
   flutter_test:
@@ -155,6 +156,8 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/icons/figma/
+    - assets/icons/figma/menu/
     - assets/config/
 
     - assets/licenses/

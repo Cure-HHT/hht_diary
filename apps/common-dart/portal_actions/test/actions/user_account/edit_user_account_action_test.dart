@@ -5,6 +5,28 @@ import 'package:portal_actions/portal_actions.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('validate rejects a malformed newEmail', () {
+    final action = EditUserAccountAction();
+    expect(
+      () => action.validate(
+        EditUserAccountInput(
+          userId: 'u-1',
+          name: null,
+          newEmail: 'not-an-email',
+        ),
+      ),
+      throwsArgumentError,
+    );
+    // A valid address still passes.
+    action.validate(
+      EditUserAccountInput(
+        userId: 'u-1',
+        name: null,
+        newEmail: 'new@example.com',
+      ),
+    );
+  });
+
   final action = EditUserAccountAction();
   final ctx = ActionContext(
     principal: Principal.user(
@@ -24,7 +46,8 @@ void main() {
     );
   });
 
-  test('name change emits user_profile_changed {after} (no before)', () async {
+  test('name change emits user_profile_changed carrying the canonical '
+      '{name} key so the users_index merge updates the row', () async {
     final input = action.parseInput(<String, Object?>{
       'userId': 'u-1',
       'name': 'New Name',
@@ -33,8 +56,14 @@ void main() {
     final e = result.events.firstWhere(
       (d) => d.eventType == 'user_profile_changed',
     );
-    expect(e.data['after'], 'New Name');
-    expect(e.data.containsKey('before'), isFalse);
+    expect(e.data['name'], 'New Name');
+    expect(
+      e.data.containsKey('after'),
+      isFalse,
+      reason:
+          "legacy audit-table key 'after' must not reappear — the display "
+          'name folds from the canonical name key',
+    );
     expect(e.data['changed_by'], 'admin-1');
   });
 

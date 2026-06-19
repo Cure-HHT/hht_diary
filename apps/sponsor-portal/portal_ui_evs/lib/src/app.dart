@@ -12,6 +12,8 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:portal_screens/portal_screens.dart';
 
 import 'activation_link.dart';
+import 'auth_bootstrap.dart';
+import 'auth_scaffold.dart';
 import 'activation_screen.dart';
 import 'audit_log_screen_binding.dart';
 import 'connect_screen.dart';
@@ -20,11 +22,17 @@ import 'firebase_auth_client.dart';
 import 'identity_config.dart';
 import 'login_screen.dart';
 import 'nav_sections.dart';
+import 'role_selection_screen.dart';
+import 'role_selector.dart';
 import 'password_reset_screen.dart';
 import 'session_activity_listener.dart';
 import 'session_config.dart';
 import 'session_timeout_controller.dart';
 import 'stale_client.dart';
+import 'participants_screen_binding.dart';
+import 'rave_sync_screen_binding.dart';
+import 'sites_screen_binding.dart';
+import 'study_settings_binding.dart';
 import 'update_available_banner.dart';
 import 'users_screen_binding.dart';
 import 'web_platform.dart';
@@ -79,6 +87,21 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   late final StreamSubscription<AuthStatus> _authSub;
   AuthStatus _status = const NotAuthenticated();
 
+  /// Root navigator handle so auth transitions can clear stacked routes.
+  /// Swapping [MaterialApp.home] only replaces the root route's child —
+  /// any routes pushed above it (dialogs, the OTP/forgot-password pushes,
+  /// or a phantom barrier left by the reload-while-dialog-open history
+  /// quirk) stay mounted ON TOP of the next session's UI and silently eat
+  /// every click. Popping to the first route on each auth edge guarantees
+  /// a fresh session never starts under a leftover modal barrier.
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  /// Pops every route above the root. Safe to call when nothing is
+  /// stacked (no-op).
+  void _popToRoot() {
+    _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+  }
+
   /// Server version manifest from `GET /health` `.versions`. Fetched at boot
   /// and on each transport reconnect; passed down to [_HomeShell] so the
   /// "Deploy #N" label + version popup keep working from a single source.
@@ -100,14 +123,27 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// Null while the config is still loading; `true` renders the Firebase
   /// Login/OTP screens, `false` renders the dev ConnectScreen. Resolving at
   /// runtime lets one web image serve both dev and session-auth deployments.
-  // Implements: DIARY-DEV-portal-second-factor-toggle/C
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/C
   bool? _sessionAuth;
+
+  /// True when session-mode Firebase/emulator init failed. Renders an explicit
+  /// error+reload rather than a login pointed at the wrong (production)
+  /// Firebase — a silently-failed emulator connect was the root cause of the
+  /// flaky local-stack logins. See [_resolveAuthMode].
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/C
+  bool _authInitFailed = false;
 
   /// Set to true after the user taps "Back to Login" on the password-reset done
   /// view so [build] falls through to the normal auth switch instead of
   /// re-showing the reset screen (the ?reset= code is still in the URL).
   bool _resetDismissed = false;
   bool _activationDismissed = false;
+
+  /// True once a multi-role user has picked their starting role on the
+  /// post-login role-selection step. Single-role users never see that step.
+  /// Reset on every fresh login / disconnect so the choice is per-session.
+  // Implements: DIARY-GUI-role-switching/A
+  bool _roleConfirmed = false;
 
   /// The current identity credential.
   ///
@@ -135,6 +171,12 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     _status = _scope.authSession.current;
     _authSub = _scope.authSession.stream.listen((next) {
       if (!mounted) return;
+      // Auth edge (login OR logout/expiry): clear any routes stacked
+      // above home before the new surface renders, so leftover dialog
+      // barriers can never block the next session.
+      if ((next is Authenticated) != (_status is Authenticated)) {
+        _popToRoot();
+      }
       setState(() => _status = next);
       unawaited(_syncTimeoutController(next));
     });
@@ -149,18 +191,22 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     });
     // One-shot boot check: catches a stale bundle already loaded (e.g. served
     // by a legacy service worker) and seeds the version manifest for the popup.
-    unawaited(_checkServerVersion());
+    // The ONLY call site allowed to auto-reload — nothing can have been typed
+    // this early. Later checks (reconnect, sign-in) banner instead.
+    unawaited(_checkServerVersion(atBoot: true));
     _resolveAuthMode();
   }
 
   /// Fetch `/health`, update the version manifest, and act on a version
   /// mismatch. Event-driven (boot, reconnect, login attempt) — there is no
-  /// polling timer. [forceLoginScreen] treats the User as unauthenticated
-  /// regardless of [_status] for the login-attempt call site, so a logged-out
-  /// User who initiates sign-in on a stale bundle auto-reloads rather than
-  /// being prompted.
+  /// polling timer. Only the boot call site sets [atBoot]: an automatic
+  /// reload is free only before the *User* could have typed anything. A
+  /// deploy landing under an open login tab (reconnect) or discovered at
+  /// sign-in must never reload — it would wipe typed credentials or discard
+  /// the just-established session, making the deploy look like a failed
+  /// login (the repeatedly-reported "can't log in: version out of date").
   // Implements: DIARY-BASE-portal-stale-client-reload/A+B+C
-  Future<void> _checkServerVersion({bool forceLoginScreen = false}) async {
+  Future<void> _checkServerVersion({bool atBoot = false}) async {
     Map<String, Object?>? versions;
     try {
       // /health is public + same-origin; `.versions` carries portal_ui_version
@@ -176,11 +222,11 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       return;
     }
     if (versions == null || !mounted) return;
-    final authenticated = !forceLoginScreen && _status is Authenticated;
     final action = decideStaleClientAction(
       clientVersion: _appVersion,
       serverVersions: versions,
-      authenticated: authenticated,
+      authenticated: _status is Authenticated,
+      atBoot: atBoot,
       autoReloadAlreadyTried: widget.web.autoReloadAlreadyTried,
     );
     switch (action) {
@@ -209,23 +255,32 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   // Implements: DIARY-BASE-portal-stale-client-reload/A
   void _reloadForUpdate() => widget.web.reloadPage();
 
-  /// Resolves the login-UI mode from the server's identity config. When the
-  /// server reports `authMode == 'session'`, initialises Firebase from the same
-  /// config so [LoginScreen] can authenticate. Falls back to dev mode if the
-  /// config can't be fetched. Firebase init errors are swallowed here and
-  /// surface through the LoginScreen UI on the first sign-in attempt.
-  // Implements: DIARY-DEV-portal-second-factor-toggle/C
+  /// Resolves the login-UI mode from the server's identity config. In session
+  /// mode, Firebase (and, when the deployment reports one, the auth emulator)
+  /// MUST be wired before the login surface renders. On an emulator deployment
+  /// the persisted Firebase Auth IndexedDB is wiped BEFORE init so the emulator
+  /// connect binds cleanly instead of silently falling through to production —
+  /// the flaky-local-login root cause (flutterfire #9528). The login appears
+  /// only on `sessionReady`; a genuine init failure surfaces an explicit error
+  /// rather than a prod-pointed login.
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/A+B+C
   Future<void> _resolveAuthMode() async {
-    var session = false;
-    final cfg = await fetchIdentityConfig(_serverUrl);
-    if (cfg != null) {
-      session = cfg['authMode'] == 'session';
-      if (session) {
-        await initFirebaseWithConfig(cfg).catchError((Object _) {});
-      }
-    }
+    final outcome = await resolveAuthBootstrap(
+      fetchConfig: () => fetchIdentityConfig(_serverUrl),
+      initFirebase: initFirebaseWithConfig,
+      clearAuthDb: widget.web.clearFirebaseAuthDb,
+    );
     if (!mounted) return;
-    setState(() => _sessionAuth = session);
+    setState(() {
+      switch (outcome) {
+        case AuthBootstrapOutcome.dev:
+          _sessionAuth = false;
+        case AuthBootstrapOutcome.sessionReady:
+          _sessionAuth = true;
+        case AuthBootstrapOutcome.failed:
+          _authInitFailed = true;
+      }
+    });
   }
 
   @override
@@ -243,11 +298,14 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// appends a single `|role`; the typed value (with any role) is used for the
   /// initial connect.
   void _onConnect(String identity) {
-    // Login attempt from the (unauthenticated) login screen: nothing to lose,
-    // so auto-reload onto the new bundle if this one is stale.
+    // Sign-in on a stale bundle completes; staleness surfaces via the
+    // banner only (a reload here would discard this very login).
     // Implements: DIARY-BASE-portal-stale-client-reload/B
-    unawaited(_checkServerVersion(forceLoginScreen: true));
-    setState(() => _identityCredential = identity.split('|').first);
+    unawaited(_checkServerVersion());
+    setState(() {
+      _identityCredential = identity.split('|').first;
+      _roleConfirmed = false;
+    });
     _scope.authSession.setCredential(identity);
   }
 
@@ -255,11 +313,14 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// with Firebase. Stores the session token so [_HomeShell] can pass it to
   /// [RoleSelector].
   void _onSession(String token) {
-    // Login attempt from the (unauthenticated) login screen: auto-reload onto
-    // the new bundle if this one is stale.
+    // Sign-in on a stale bundle completes; staleness surfaces via the
+    // banner only (a reload here would discard this very login).
     // Implements: DIARY-BASE-portal-stale-client-reload/B
-    unawaited(_checkServerVersion(forceLoginScreen: true));
-    setState(() => _identityCredential = token);
+    unawaited(_checkServerVersion());
+    setState(() {
+      _identityCredential = token;
+      _roleConfirmed = false;
+    });
     _scope.authSession.setCredential(token);
   }
 
@@ -303,7 +364,10 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
         }
       }
     }
-    setState(() => _identityCredential = null);
+    setState(() {
+      _identityCredential = null;
+      _roleConfirmed = false;
+    });
     _scope.authSession.setCredential(null);
   }
 
@@ -382,12 +446,76 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   Widget _loadingScaffold() =>
       const Scaffold(body: Center(child: CircularProgressIndicator()));
 
+  /// Shown when session-mode auth init exhausted its retries: an explicit,
+  /// recoverable error instead of a login pointed at the wrong Firebase.
+  Widget _authInitFailedScaffold() => Scaffold(
+    body: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const AppBanner(
+              severity: AppBannerSeverity.error,
+              message:
+                  "Couldn't reach the authentication service. Check your "
+                  'connection and reload.',
+              semanticId: 'auth-init-failed',
+            ),
+            const SizedBox(height: 16),
+            AppButton(
+              label: 'Reload',
+              onPressed: widget.web.reloadPage,
+              semanticId: 'auth-init-reload',
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
   /// The Firebase email/password login surface (session-auth mode).
-  Widget _loginScreen() => LoginScreen(
+  /// [notice] surfaces a non-error message inside the card (e.g. the
+  /// session-ended prompt).
+  Widget _loginScreen({String? notice}) => LoginScreen(
     serverUrl: _serverUrl,
     authClient: RealFirebaseAuthClient(),
     onSession: _onSession,
+    notice: notice,
+    // The bundle's own APP_VERSION — carries the +local-XXXXXX build id
+    // on local-stack builds, so the login screen names the exact build.
+    appVersion: _appVersion,
   );
+
+  /// Builds the authenticated home. A multi-role user first sees the
+  /// role-selection step (until they pick a starting role); single-role users
+  /// and users who've already chosen go straight to the dashboard shell.
+  // Implements: DIARY-GUI-role-switching/A+B
+  Widget _authenticatedHome(Principal principal) {
+    if (principal is UserPrincipal &&
+        roleSelectorVisible(principal.roles) &&
+        !_roleConfirmed) {
+      return RoleSelectionScreen(
+        userName: principal.userId,
+        roles: principal.roles,
+        activeRole: principal.activeRole,
+        onRoleSelected: (role) async {
+          await _onRoleSelected(role);
+          if (mounted) setState(() => _roleConfirmed = true);
+        },
+        onBackToLogin: _disconnect,
+      );
+    }
+    return _wrapWithTimeout(
+      _HomeShell(
+        principal: principal,
+        identityCredential: _identityCredential,
+        serverVersions: _serverVersions,
+        onDisconnect: _disconnect,
+        onRoleSelected: _onRoleSelected,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -399,6 +527,13 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     final activationCode = activationCodeFromUri(Uri.base);
     if (activationCode != null && !_activationDismissed) {
       return MaterialApp(
+        // The public pages render design-kit widgets, whose theme
+        // extensions (AppSemanticColors etc.) exist only on buildAppTheme —
+        // a bare default-theme MaterialApp grey-boxes them in release.
+        theme: buildAppTheme(
+          font: AppFontFamily.inter,
+          brightness: Brightness.light,
+        ),
         home: ActivationScreen(
           serverUrl: _serverUrl,
           code: activationCode,
@@ -413,6 +548,11 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     final resetCode = resetCodeFromUri(Uri.base);
     if (resetCode != null && !_resetDismissed) {
       return MaterialApp(
+        // Same theme requirement as the activation mount above.
+        theme: buildAppTheme(
+          font: AppFontFamily.inter,
+          brightness: Brightness.light,
+        ),
         home: PasswordResetScreen(
           serverUrl: _serverUrl,
           code: resetCode,
@@ -421,53 +561,38 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       );
     }
 
-    final Widget home = switch (_status) {
-      Authenticated(:final principal) => _wrapWithTimeout(
-        _HomeShell(
-          principal: principal,
-          identityCredential: _identityCredential,
-          serverVersions: _serverVersions,
-          onDisconnect: () {
-            _disconnect();
-          },
-          onRoleSelected: _onRoleSelected,
-        ),
-      ),
-      Expired() => switch (_sessionAuth) {
-        null => _loadingScaffold(),
-        true => Scaffold(
-          body: Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Session ended — please sign in again.',
-                  style: TextStyle(color: Colors.orange),
+    final Widget home = _authInitFailed
+        ? _authInitFailedScaffold()
+        : switch (_status) {
+            Authenticated(:final principal) => _authenticatedHome(principal),
+            Expired() => switch (_sessionAuth) {
+              null => _loadingScaffold(),
+              true => _loginScreen(
+                notice: 'Session ended — please sign in again.',
+              ),
+              false => Scaffold(
+                body: ConnectScreen(
+                  onConnect: _onConnect,
+                  message: 'Session ended — reconnect.',
+                  serverUrl: _serverUrl,
                 ),
               ),
-              Expanded(child: _loginScreen()),
-            ],
-          ),
-        ),
-        false => Scaffold(
-          body: ConnectScreen(
-            onConnect: _onConnect,
-            message: 'Session ended — reconnect.',
-            serverUrl: _serverUrl,
-          ),
-        ),
-      },
-      NotAuthenticated() => switch (_sessionAuth) {
-        null => _loadingScaffold(),
-        true => Scaffold(body: _loginScreen()),
-        false => Scaffold(
-          body: ConnectScreen(onConnect: _onConnect, serverUrl: _serverUrl),
-        ),
-      },
-    };
+            },
+            NotAuthenticated() => switch (_sessionAuth) {
+              null => _loadingScaffold(),
+              true => _loginScreen(),
+              false => Scaffold(
+                body: ConnectScreen(
+                  onConnect: _onConnect,
+                  serverUrl: _serverUrl,
+                ),
+              ),
+            },
+          };
     return ReActionScope(
       scope: _scope,
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         title: 'Portal EVS Skeleton',
         // CUR-1450: adopt the diary_design_system brand (Carina blue +
         // Inter typography). Sites / Participants / RAVE Sync re-theme
@@ -528,6 +653,12 @@ class _HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<_HomeShell> {
+  /// True while the app-bar Settings link's Study Settings page overlays
+  /// the active tab's body. Cleared by any tab tap (PortalDashboard fires
+  /// onDestinationChanged even for the already-active tab while an
+  /// override is showing).
+  bool _showSettings = false;
+
   /// The label of the selected nav destination. Tracked by label (not index)
   /// so the selection survives the visible set changing on a role switch — a
   /// raw index would point at a different (or hidden) section. Null until the
@@ -565,7 +696,25 @@ class _HomeShellState extends State<_HomeShell> {
   /// reactive bindings (Phase 6.5); the rest still mount their legacy
   /// widgets pending their own redesign.
   Widget _screenFor(String label) => switch (label) {
-    'User Accounts' => const UsersScreenBinding(),
+    'User Accounts' => UsersScreenBinding(
+      currentUserId: switch (widget.principal) {
+        UserPrincipal(:final userId) => userId,
+        final p => p.id,
+      },
+      activeRole: switch (widget.principal) {
+        UserPrincipal(:final activeRole) => activeRole,
+        _ => null,
+      },
+    ),
+    'Sites' => SitesScreenBinding(
+      identityCredential: widget.identityCredential ?? '',
+      serverUrl: _serverUrl,
+    ),
+    'Participants' => ParticipantsScreenBinding(
+      identityCredential: widget.identityCredential ?? '',
+      serverUrl: _serverUrl,
+    ),
+    'RAVE Sync' => const RaveSyncScreenBinding(),
     'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',
       serverUrl: _serverUrl,
@@ -597,55 +746,38 @@ class _HomeShellState extends State<_HomeShell> {
     ];
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Version details'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              // Deploy counter (the deploy workflow's GitHub Actions
-              // run_number, global across dev/qa/uat) as the modal's topline —
-              // the "v XX" the app bar used to show pre-makeover. Deployed-only:
-              // PORTAL_DEPLOY_SEQ is unset off Cloud Run, so hide when absent.
-              if (widget.serverVersions['deploy'] case final String deploy
-                  when deploy.isNotEmpty) ...[
-                Text(
-                  'Deploy #$deploy',
-                  style: Theme.of(ctx).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
-              ],
-              if (rows.isEmpty)
-                const Text('No version information available.')
-              else
-                for (final r in rows)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        SizedBox(
-                          width: 150,
-                          child: Text(
-                            '${r.key}:',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        Expanded(child: SelectableText(r.value)),
-                      ],
-                    ),
-                  ),
+      builder: (ctx) => AppDialog(
+        size: AppDialogSize.small,
+        title: 'Version details',
+        semanticId: 'version-details-dialog',
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            // Deploy counter (the deploy workflow's GitHub Actions
+            // run_number, global across dev/qa/uat) as the modal's topline —
+            // the "v XX" the app bar used to show pre-makeover. Deployed-only:
+            // PORTAL_DEPLOY_SEQ is unset off Cloud Run, so hide when absent.
+            if (widget.serverVersions['deploy'] case final String deploy
+                when deploy.isNotEmpty) ...[
+              Text(
+                'Deploy #$deploy',
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
             ],
-          ),
+            if (rows.isEmpty)
+              const Text('No version information available.')
+            else
+              for (final r in rows)
+                AppInfoRow(label: r.key, valueWidget: SelectableText(r.value)),
+            const SizedBox(height: 8),
+          ],
         ),
         actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
-          ),
+          AppButton(label: 'Close', onPressed: () => Navigator.of(ctx).pop()),
         ],
       ),
     );
@@ -720,7 +852,33 @@ class _HomeShellState extends State<_HomeShell> {
         // app-bar deploy-counter tap, now hung off the help affordance
         // so the chrome above doesn't need its own version label.
         onHelp: _showVersionsDialog,
+        // Same sponsor-served logo the auth cards use (CUR-1483 Figma:
+        // logo sits left of the title block).
+        logo: const SponsorBrandMark(maxHeight: 40),
+        // Opens the read-only Study Settings page over the active tab.
+        // Visible only to roles holding the ACT-ADM-001 read permission
+        // (Administrator + SystemOperator per the sponsor matrix); the
+        // server enforces the same gate on GET /config/study.
+        onSettings:
+            (_auth?.rolePermissions.any(
+                  (p) => p.name == 'portal.admin.view_settings',
+                ) ??
+                false)
+            ? () => setState(() => _showSettings = true)
+            : null,
       ),
+      // Study Settings isn't a tab: it overlays the body while the strip
+      // shows no active pill; any tab tap below dismisses it.
+      bodyOverride: _showSettings
+          ? StudySettingsBinding(
+              identityCredential: widget.identityCredential ?? '',
+              serverUrl: _serverUrl,
+              activeRole: switch (widget.principal) {
+                UserPrincipal(:final activeRole) => activeRole,
+                _ => null,
+              },
+            )
+          : null,
       destinations: <DashboardDestination>[
         for (final s in visible)
           DashboardDestination(
@@ -736,7 +894,10 @@ class _HomeShellState extends State<_HomeShell> {
         // switches that change which sections are visible).
         for (final s in visible) {
           if (s.label.toLowerCase().replaceAll(' ', '-') == key) {
-            setState(() => _selectedLabel = s.label);
+            setState(() {
+              _selectedLabel = s.label;
+              _showSettings = false;
+            });
             return;
           }
         }

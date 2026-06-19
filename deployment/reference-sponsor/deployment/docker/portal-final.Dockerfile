@@ -18,11 +18,11 @@
 #
 # Single promotable web bundle: the SPA carries no environment identity and
 # discovers its environment at runtime from the server's same-origin config
-# (/api/v1/portal/config/identity, which reports ENVIRONMENT). The same bundle
-# is served in every deployed environment. The only build-time variant is the
-# local-stack image, which bakes FIREBASE_AUTH_EMULATOR_HOST so the SPA talks
-# to the Firebase emulator (browser-side; Flutter web's String.fromEnvironment
-# is compile-time-only, so a runtime container env var is invisible to the SPA).
+# (/api/v1/portal/config/identity, which reports ENVIRONMENT and — on the
+# local-stack — the browser-facing Firebase Auth emulator host). The same bundle
+# is served in EVERY environment, the local-stack included: there is no
+# build-time variant. (The SPA reads the emulator host from /config/identity at
+# runtime and calls useAuthEmulator with it; nothing is baked into the build.)
 
 ARG SPONSOR_CI_IMAGE=ghcr.io/cure-hht/sponsor-ci:main-latest
 ARG PORTAL_SERVER_IMAGE=ghcr.io/cure-hht/portal-server:main-latest
@@ -34,16 +34,10 @@ ARG DOPPLER_VERSION=3.75.1
 # only in CI, not locally).
 ARG BUILD_ID=local
 
-# Firebase Auth emulator host, baked into the SPA only for the local-stack
-# image. Empty for every deployed build (CI/Cloud Run) — those resolve their
-# environment from the server at runtime, so one bundle serves them all.
-ARG FIREBASE_AUTH_EMULATOR_HOST=""
-
 # ─── Stage 1: Build the Flutter web bundle with sponsor content ──
 FROM ${SPONSOR_CI_IMAGE} AS web-build
 
 ARG BUILD_ID
-ARG FIREBASE_AUTH_EMULATOR_HOST
 
 WORKDIR /workspace/src
 
@@ -79,8 +73,9 @@ RUN set -eu && \
 # Build the single portal web bundle.
 #
 # Implements: DIARY-OPS-single-promotable-artifact/B — one environment-
-# independent bundle; no APP_FLAVOR. The local-stack image is the only variant,
-# and differs solely by the baked emulator host.
+# independent bundle; no APP_FLAVOR and no build-time variant. The SPA resolves
+# the Firebase Auth emulator host at runtime from /config/identity, so even the
+# local-stack image is byte-for-byte the deployed build recipe.
 #
 # Cache strategy: the Flutter compile is the most expensive layer in this
 # Dockerfile, so its cache key must be independent of the per-commit
@@ -104,14 +99,7 @@ RUN set -eu && \
     APP_SEMVER="$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d+ -f1)" && \
     mkdir -p /workspace/out && \
     printf '%s' "${APP_SEMVER}" > /workspace/out/APP_SEMVER && \
-    echo "Building portal-ui APP_SEMVER=${APP_SEMVER} (sentinel: __BUILD_ID__)" && \
-    EMU_DEFINE=""; \
-    if [ -n "${FIREBASE_AUTH_EMULATOR_HOST}" ]; then \
-      echo "━━━ local-stack build: baking FIREBASE_AUTH_EMULATOR_HOST=${FIREBASE_AUTH_EMULATOR_HOST} ━━━"; \
-      EMU_DEFINE="--dart-define=FIREBASE_AUTH_EMULATOR_HOST=${FIREBASE_AUTH_EMULATOR_HOST}"; \
-    else \
-      echo "━━━ deployed build: environment-independent bundle (no APP_FLAVOR) ━━━"; \
-    fi; \
+    echo "Building portal-ui APP_SEMVER=${APP_SEMVER} (sentinel: __BUILD_ID__); environment-independent bundle — emulator host resolved at runtime from /config/identity, not baked" && \
     # IMPLEMENTS: REQ-p00009 (sponsor portal must always serve the
     # latest deploy; offline-first SW caches old main.dart.js and
     # makes deploys invisible without a hard reload),
@@ -124,7 +112,6 @@ RUN set -eu && \
     flutter build web --release \
       --pwa-strategy=none \
       --dart-define=APP_VERSION="${APP_SEMVER}+__BUILD_ID__" \
-      ${EMU_DEFINE} \
       --output="/workspace/out/web" && \
     test -f "/workspace/out/web/index.html" && \
     echo "✅ portal web compile complete"

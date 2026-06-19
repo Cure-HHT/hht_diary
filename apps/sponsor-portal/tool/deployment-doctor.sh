@@ -162,40 +162,30 @@ header "3. Version Verification"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-LOCAL_PORTAL_SERVER_VER=$(grep '^version:' "$REPO_ROOT/apps/sponsor-portal/portal_server/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
-LOCAL_PORTAL_FUNCTIONS_VER=$(grep '^version:' "$REPO_ROOT/apps/sponsor-portal/portal_functions/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
+LOCAL_PORTAL_SERVER_EVS_VER=$(grep '^version:' "$REPO_ROOT/apps/sponsor-portal/portal_server_evs/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
 LOCAL_TRIAL_DATA_TYPES_VER=$(grep '^version:' "$REPO_ROOT/apps/common-dart/trial_data_types/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
 
 info "Local versions (from working tree):"
-info "  portal_server:    $LOCAL_PORTAL_SERVER_VER"
-info "  portal_functions: $LOCAL_PORTAL_FUNCTIONS_VER"
-info "  trial_data_types: $LOCAL_TRIAL_DATA_TYPES_VER"
+info "  portal_server_evs: $LOCAL_PORTAL_SERVER_EVS_VER"
+info "  trial_data_types:  $LOCAL_TRIAL_DATA_TYPES_VER"
 
 # Compare with deployed versions from /health response
 if [[ "$HEALTH_STATUS" == "200" ]]; then
-  DEPLOYED_PORTAL_SERVER=$(echo "$HEALTH_BODY" | jq -r '.versions.portal_server // "unknown"' 2>/dev/null || echo "unknown")
-  DEPLOYED_PORTAL_FUNCTIONS=$(echo "$HEALTH_BODY" | jq -r '.versions.portal_functions // "unknown"' 2>/dev/null || echo "unknown")
+  DEPLOYED_PORTAL_SERVER_EVS=$(echo "$HEALTH_BODY" | jq -r '.versions.portal_server_evs // "unknown"' 2>/dev/null || echo "unknown")
   DEPLOYED_TRIAL_DATA_TYPES=$(echo "$HEALTH_BODY" | jq -r '.versions.trial_data_types // "unknown"' 2>/dev/null || echo "unknown")
 
   info "Deployed versions (from /health):"
-  info "  portal_server:    $DEPLOYED_PORTAL_SERVER"
-  info "  portal_functions: $DEPLOYED_PORTAL_FUNCTIONS"
-  info "  trial_data_types: $DEPLOYED_TRIAL_DATA_TYPES"
+  info "  portal_server_evs: $DEPLOYED_PORTAL_SERVER_EVS"
+  info "  trial_data_types:  $DEPLOYED_TRIAL_DATA_TYPES"
 
-  if [[ "$DEPLOYED_PORTAL_SERVER" == "unknown" ]]; then
+  if [[ "$DEPLOYED_PORTAL_SERVER_EVS" == "unknown" ]]; then
     warn "Server not reporting versions (pre-version-injection build?)"
   else
     # Compare each version
-    if [[ "$DEPLOYED_PORTAL_SERVER" == "$LOCAL_PORTAL_SERVER_VER" ]]; then
-      pass "portal_server version matches: $DEPLOYED_PORTAL_SERVER"
+    if [[ "$DEPLOYED_PORTAL_SERVER_EVS" == "$LOCAL_PORTAL_SERVER_EVS_VER" ]]; then
+      pass "portal_server_evs version matches: $DEPLOYED_PORTAL_SERVER_EVS"
     else
-      warn "portal_server version mismatch: deployed=$DEPLOYED_PORTAL_SERVER local=$LOCAL_PORTAL_SERVER_VER"
-    fi
-
-    if [[ "$DEPLOYED_PORTAL_FUNCTIONS" == "$LOCAL_PORTAL_FUNCTIONS_VER" ]]; then
-      pass "portal_functions version matches: $DEPLOYED_PORTAL_FUNCTIONS"
-    else
-      warn "portal_functions version mismatch: deployed=$DEPLOYED_PORTAL_FUNCTIONS local=$LOCAL_PORTAL_FUNCTIONS_VER"
+      warn "portal_server_evs version mismatch: deployed=$DEPLOYED_PORTAL_SERVER_EVS local=$LOCAL_PORTAL_SERVER_EVS_VER"
     fi
 
     if [[ "$DEPLOYED_TRIAL_DATA_TYPES" == "$LOCAL_TRIAL_DATA_TYPES_VER" ]]; then

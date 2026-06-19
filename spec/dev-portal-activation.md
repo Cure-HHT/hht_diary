@@ -10,15 +10,17 @@
 Account activation turns an *Administrator*-created *User Account* into a credentialed
 account. The portal mints a single-use, time-limited activation code, delivers it as a
 *Verification Link*, and consumes it when the *Account Owner* sets a *Password*. The code is
-a transient secret: the portal holds only a one-way hash of it in an ephemeral
-server-side store, never in the append-only event log, and the cleartext exists solely in
-the delivered link.
+a transient secret with a durable lifecycle: the portal persists the mint and consumption
+of each code as events carrying only a keyed one-way hash, so pending links remain valid
+across server restarts and deployments while the cleartext exists solely in the delivered
+link.
 
 ### Assertions
 
 A. The portal SHALL generate each activation code from a cryptographically secure random
-source and SHALL persist only a one-way hash of it, so the cleartext code exists solely
-in the delivered *Verification Link*.
+source and SHALL persist only a keyed one-way hash of it (HMAC-SHA-256 under a
+server-side pepper), so the cleartext code exists solely in the delivered *Verification
+Link*.
 
 B. The portal SHALL treat an activation code as single-use: once consumed it SHALL be
 invalidated and SHALL NOT be accepted again.
@@ -28,20 +30,35 @@ C. The portal SHALL reject an activation code once its issuance expiry has passe
 D. When a new activation code is issued for a *User Account*, the portal SHALL invalidate
 any previously issued unused code for that *User Account*.
 
-E. The portal SHALL hold activation codes and their state in an ephemeral server-side
-store and SHALL NOT write them to the append-only event log.
+E. The portal SHALL persist each activation code's lifecycle (mint, consumption) as
+events in the append-only event log, such that a pending code remains valid across
+server restarts and deployments.
+
+F. No event payload SHALL contain a cleartext activation code, and the pepper SHALL be
+delivered through the deployment environment and SHALL NOT be recorded in the event log.
 
 ### Rationale
 
-The activation code is the proof that the recipient controls the registered email, so it
-must be unguessable (a cryptographically secure source), unreplayable (single-use,
-invalidated on consumption), and bounded in time (rejected after expiry). Issuing a fresh
-code invalidates the prior one so a resend never leaves two valid paths open at once. The
-code is a short-lived secret with no audit value once spent, so it is held in an ephemeral
-side store rather than the tamper-evident event log, which records only the durable
-lifecycle facts: that a code was issued, and that the account was activated.
+The activation code is the proof that the recipient controls the registered email — an
+email-possession attestation on which the attributability chain rests: nobody but the
+mailbox owner ever sees a usable code. This is a deliberate contrast with *Participant*
+*Linking Codes*, which staff view by design (Show Code) because the coordinator vouches
+for the *Participant* in person. So the code must be unguessable (a cryptographically
+secure source), unreplayable (single-use, invalidated on consumption), and bounded in
+time (rejected after expiry). Issuing a fresh code invalidates the prior one so a resend
+never leaves two valid paths open at once.
 
-*End* *Activation code lifecycle* | **Hash**: ec270b2e
+Persisting the hash lifecycle as events is what keeps an outstanding invite usable across
+a deploy — with only in-process state, every restart voids every pending link. The hash
+is keyed rather than plain because a code carries roughly 50 bits of entropy: ample
+against online guessing (single-use, expiring, superseded) but borderline against offline
+brute force of a leaked plain digest; an HMAC under a pepper the event log never contains
+makes the stored values useless without a secret held outside the log. Rotating the
+pepper invalidates outstanding codes, which is acceptable: resending the invitation is
+the manual recovery path, and deliberately so — automatic resend on restart would be
+noisy and would invalidate in-flight links on every deploy.
+
+*End* *Activation code lifecycle* | **Hash**: a4ef3665
 
 ## DIARY-DEV-portal-identity-provisioning: Identity Platform provisioning
 

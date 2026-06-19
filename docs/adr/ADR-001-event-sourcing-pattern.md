@@ -267,7 +267,7 @@ Key metrics to monitor:
 - [Event Sourcing Pattern - Martin Fowler](https://martinfowler.com/eaaDev/EventSourcing.html)
 - [FDA 21 CFR Part 11](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/part-11-electronic-records-electronic-signatures-scope-and-application)
 - [Event Sourcing for CQRS](https://docs.microsoft.com/en-us/azure/architecture/patterns/event-sourcing)
-- Database implementation: ~~`database/schema.sql`, `database/triggers.sql`~~ — the original in-repo relational event store was retired in the EVS cutover (CUR-1170). Event sourcing is now provided by the external `event_sourcing` library, whose `PostgresBackend` creates and owns the event-store schema at runtime; the deployed server is `portal_server_evs`.
+- Database implementation: the `event_sourcing` library's `PostgresBackend` creates and owns the event-store schema at runtime; the deployed server is `portal_server_evs`.
 
 ---
 

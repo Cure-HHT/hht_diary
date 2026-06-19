@@ -57,6 +57,12 @@ final List<EntryTypeDefinition> portalPrivateEventTypes = <EntryTypeDefinition>[
   _e('system_config_changed', 'System Config Changed'),
   // 4.2 portal_user (operator-tier authz)
   _e('user_tier_changed', 'User Tier Changed'),
+  // 4.2 portal_user (durable activation-code hash lifecycle). Payloads carry
+  // ONLY a keyed hash of the code — the cleartext exists solely in the emailed
+  // link and is never written to the event log.
+  // Implements: DIARY-DEV-portal-activation-code-lifecycle/E
+  _e('activation_code_minted', 'Activation Code Minted'),
+  _e('activation_code_consumed', 'Activation Code Consumed'),
   // Implements: DIARY-DEV-sponsor-branding-source/A — event-sourced sponsor
   //   branding (metadata + asset manifest; image bytes never in the log).
   _e('sponsor_branding_configured', 'Sponsor Branding Configured'),

@@ -55,6 +55,12 @@ class AppLocalizations {
 
       // Home Screen
       'recordNosebleed': 'Record Nosebleed',
+      'viewCalendar': 'View Calendar',
+      'taskList': 'Task List',
+      'needsYourAttention': 'Needs your attention',
+      'yourRecords': 'Your Records',
+      'noRecords': 'No records',
+      'ongoing': 'Ongoing',
       'overlappingRecordNotAllowed':
           'This entry overlaps an existing record. Please modify the time range.',
       'noEventsToday': 'no events today',
@@ -448,6 +454,24 @@ class AppLocalizations {
       'contactYourSiteWithName': 'Please contact {0}.',
       'siteContactInfo': 'Site Contact Information',
       'tapToCall': 'Tap phone number to call',
+
+      // Profile redesign — matches Figma User Profile screen
+      'home': 'Home',
+      'yourStatus': 'Your Status',
+      'notLinkedToStudyTitle': "You're not linked to a study yet",
+      'enterLinkingCodeToConnect':
+          'Enter your linking code to connect this app to your clinical trial.',
+      'joinTheStudy': 'Join the Study',
+      'applicationPrivacyPolicy': 'Application Privacy Policy',
+      'couldNotOpenPrivacyPolicy': 'Could not open the privacy policy',
+      'useFaceIdOrFingerprint': 'Use Face ID / Fingerprint',
+      'exportDataHint': 'Use the app menu to export your data.',
+      'sponsorLogoFootnote':
+          'The logo displayed on the home screen reminds you that you are sharing your data with a third party.',
+      'profileDisconnectionBannerMessage':
+          'You are disconnected from the study. Your entries will be saved on this device and synced once reconnected. Please contact your site.',
+      'participationStatusConnected': 'Connected',
+      'studyParticipationEnded': 'Study Participation Ended',
     },
     'es': {
       // General
@@ -870,6 +894,24 @@ class AppLocalizations {
       'contactYourSiteWithName': 'Por favor, contacte a {0}.',
       'siteContactInfo': 'Informacion de Contacto del Sitio',
       'tapToCall': 'Toque el numero para llamar',
+
+      // Profile redesign — matches Figma User Profile screen
+      'home': 'Inicio',
+      'yourStatus': 'Su Estado',
+      'notLinkedToStudyTitle': 'Aun no esta vinculado a un estudio',
+      'enterLinkingCodeToConnect':
+          'Ingrese su codigo de vinculacion para conectar esta aplicacion a su ensayo clinico.',
+      'joinTheStudy': 'Unirse al Estudio',
+      'applicationPrivacyPolicy': 'Politica de Privacidad de la Aplicacion',
+      'couldNotOpenPrivacyPolicy': 'No se pudo abrir la politica de privacidad',
+      'useFaceIdOrFingerprint': 'Usar Face ID / Huella Digital',
+      'exportDataHint': 'Use el menu de la aplicacion para exportar sus datos.',
+      'sponsorLogoFootnote':
+          'El logotipo que aparece en la pantalla de inicio le recuerda que esta compartiendo sus datos con un tercero.',
+      'profileDisconnectionBannerMessage':
+          'Esta desconectado del estudio. Sus entradas se guardaran en este dispositivo y se sincronizaran una vez reconectado. Por favor, contacte a su sitio.',
+      'participationStatusConnected': 'Conectado',
+      'studyParticipationEnded': 'Participacion en el Estudio Finalizada',
     },
     'fr': {
       // General
@@ -1304,6 +1346,27 @@ class AppLocalizations {
       'contactYourSiteWithName': 'Veuillez contacter {0}.',
       'siteContactInfo': 'Coordonnees du Site',
       'tapToCall': 'Appuyez pour appeler',
+
+      // Profile redesign — matches Figma User Profile screen
+      'home': 'Accueil',
+      'yourStatus': 'Votre Statut',
+      'notLinkedToStudyTitle': "Vous n'etes pas encore lie a une etude",
+      'enterLinkingCodeToConnect':
+          'Entrez votre code de liaison pour connecter cette application a votre essai clinique.',
+      'joinTheStudy': "Rejoindre l'etude",
+      'applicationPrivacyPolicy':
+          "Politique de Confidentialite de l'Application",
+      'couldNotOpenPrivacyPolicy':
+          "Impossible d'ouvrir la politique de confidentialite",
+      'useFaceIdOrFingerprint': 'Utiliser Face ID / Empreinte digitale',
+      'exportDataHint':
+          "Utilisez le menu de l'application pour exporter vos donnees.",
+      'sponsorLogoFootnote':
+          "Le logo affiche sur l'ecran d'accueil vous rappelle que vous partagez vos donnees avec un tiers.",
+      'profileDisconnectionBannerMessage':
+          "Vous etes deconnecte de l'etude. Vos entrees seront enregistrees sur cet appareil et synchronisees une fois reconnectees. Veuillez contacter votre site.",
+      'participationStatusConnected': 'Connecte',
+      'studyParticipationEnded': "Participation a l'etude terminee",
     },
     'de': {
       // General
@@ -1731,6 +1794,26 @@ class AppLocalizations {
       'contactYourSiteWithName': 'Bitte kontaktieren Sie {0}.',
       'siteContactInfo': 'Kontaktinformationen der Studienstelle',
       'tapToCall': 'Tippen Sie auf die Telefonnummer, um anzurufen',
+
+      // Profile redesign — matches Figma User Profile screen
+      'home': 'Startseite',
+      'yourStatus': 'Ihr Status',
+      'notLinkedToStudyTitle': 'Sie sind noch nicht mit einer Studie verbunden',
+      'enterLinkingCodeToConnect':
+          'Geben Sie Ihren Verknupfungscode ein, um diese App mit Ihrer klinischen Studie zu verbinden.',
+      'joinTheStudy': 'An der Studie teilnehmen',
+      'applicationPrivacyPolicy': 'Datenschutzrichtlinie der Anwendung',
+      'couldNotOpenPrivacyPolicy':
+          'Die Datenschutzrichtlinie konnte nicht geoffnet werden',
+      'useFaceIdOrFingerprint': 'Face ID / Fingerabdruck verwenden',
+      'exportDataHint':
+          'Verwenden Sie das App-Menu, um Ihre Daten zu exportieren.',
+      'sponsorLogoFootnote':
+          'Das auf dem Startbildschirm angezeigte Logo erinnert Sie daran, dass Sie Ihre Daten mit einem Dritten teilen.',
+      'profileDisconnectionBannerMessage':
+          'Sie sind von der Studie getrennt. Ihre Eintrage werden auf diesem Gerat gespeichert und nach der Wiederherstellung der Verbindung synchronisiert. Bitte kontaktieren Sie Ihre Studienstelle.',
+      'participationStatusConnected': 'Verbunden',
+      'studyParticipationEnded': 'Studienteilnahme beendet',
     },
   };
 
@@ -1781,6 +1864,12 @@ class AppLocalizations {
   String get endTrial => translate('endTrial');
   String get leftClinicalTrial => translate('leftClinicalTrial');
   String get userMenu => translate('userMenu');
+  String get taskList => translate('taskList');
+  String get needsYourAttention => translate('needsYourAttention');
+  String get yourRecords => translate('yourRecords');
+  String get viewCalendar => translate('viewCalendar');
+  String get noRecords => translate('noRecords');
+  String get ongoing => translate('ongoing');
   String get privacyComingSoon => translate('privacyComingSoon');
   String get switchedToSimpleUI => translate('switchedToSimpleUI');
   String get switchedToClassicUI => translate('switchedToClassicUI');
@@ -2182,6 +2271,25 @@ class AppLocalizations {
       translate('clinicalTrialPrivacyPolicy');
   String get viewClinicalTrialPrivacyPolicy =>
       translate('viewClinicalTrialPrivacyPolicy');
+
+  // Profile redesign — matches Figma User Profile screen
+  String get home => translate('home');
+  String get yourStatus => translate('yourStatus');
+  String get notLinkedToStudyTitle => translate('notLinkedToStudyTitle');
+  String get enterLinkingCodeToConnect =>
+      translate('enterLinkingCodeToConnect');
+  String get joinTheStudy => translate('joinTheStudy');
+  String get applicationPrivacyPolicy => translate('applicationPrivacyPolicy');
+  String get couldNotOpenPrivacyPolicy =>
+      translate('couldNotOpenPrivacyPolicy');
+  String get useFaceIdOrFingerprint => translate('useFaceIdOrFingerprint');
+  String get exportDataHint => translate('exportDataHint');
+  String get sponsorLogoFootnote => translate('sponsorLogoFootnote');
+  String get profileDisconnectionBannerMessage =>
+      translate('profileDisconnectionBannerMessage');
+  String get participationStatusConnected =>
+      translate('participationStatusConnected');
+  String get studyParticipationEnded => translate('studyParticipationEnded');
 }
 
 class _AppLocalizationsDelegate

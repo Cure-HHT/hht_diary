@@ -4,6 +4,7 @@
 //   projection; same native, derive-don't-cache shape as dayStatusForLocalDate.
 // Implements: DIARY-PRD-entry-overlap-resolution/A+B
 import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 
 /// One unresolved overlap: the [preExisting] entry (rendered on the LEFT) and
@@ -15,13 +16,14 @@ class OverlapPair {
   final EpistaxisEntryView justTouched;
 }
 
-/// Whether two epistaxis entries' `[start, end]` ranges intersect. An open-ended
-/// entry (no end) is treated as a point at its start. Touching endpoints do NOT
-/// overlap (open intervals), mirroring `overlappingEpistaxisEntries`.
+/// Whether two epistaxis entries' `[start, end)` ranges intersect. An open-ended
+/// entry (no end) is treated as a point at its start. Start is inclusive, end is
+/// exclusive (CUR-715); delegates to the shared [epistaxisIntervalsOverlap] so
+/// boundary semantics stay identical to `overlappingEpistaxisEntries`.
 bool epistaxisRangesOverlap(EpistaxisEntryView a, EpistaxisEntryView b) {
   final aEnd = a.endTime ?? a.startTime;
   final bEnd = b.endTime ?? b.startTime;
-  return a.startTime.isBefore(bEnd) && aEnd.isAfter(b.startTime);
+  return epistaxisIntervalsOverlap(a.startTime, aEnd, b.startTime, bEnd);
 }
 
 /// All unresolved overlapping pairs among the finalized epistaxis entries in

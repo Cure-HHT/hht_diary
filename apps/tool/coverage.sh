@@ -19,12 +19,7 @@ mkdir -p "$SCRIPT_DIR/coverage"
 
 PROJECTS=(
     "common-dart/trial_data_types"
-    "daily-diary/diary_functions"
-    "daily-diary/diary_server"
     "daily-diary/clinical_diary"
-    "sponsor-portal/portal_functions"
-    "sponsor-portal/portal_server"
-    "sponsor-portal/portal-ui"
     "edc/rave-integration"
 )
 

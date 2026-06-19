@@ -15,7 +15,7 @@ sponsors:
     tag: string               # Git tag to clone (for multi-repo) or "main" for mono-repo
     mobile_module: boolean    # Has mobile module integration code
     portal: boolean           # Has portal application
-    region: string            # AWS region (e.g., "eu-west-1")
+    region: string            # GCP region (e.g., "europe-west9")
 
 # Example Manifest:
 # sponsors:
@@ -26,7 +26,7 @@ sponsors:
 #     tag: v1.2.3                       # Locked to specific version
 #     mobile_module: true
 #     portal: true
-#     region: eu-west-1
+#     region: europe-west9
 #
 #   - name: titan
 #     code: TIT
@@ -35,4 +35,4 @@ sponsors:
 #     tag: v2.0.1
 #     mobile_module: true
 #     portal: false  # Direct EDC integration, no portal
-#     region: us-west-2
+#     region: europe-west9

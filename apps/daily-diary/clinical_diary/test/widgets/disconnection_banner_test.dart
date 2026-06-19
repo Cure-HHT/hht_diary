@@ -7,6 +7,7 @@
 // Widget tests for DisconnectionBanner
 
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -39,11 +40,13 @@ void main() {
       expect(find.text('Please contact Test Medical Center.'), findsOneWidget);
     });
 
-    testWidgets('has warning icon', (tester) async {
+    testWidgets('has error severity icon', (tester) async {
       await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      // AppBanner with AppBannerSeverity.error renders the canonical
+      // error_outline glyph.
+      expect(find.byIcon(Icons.error_outline), findsOneWidget);
     });
 
     // REQ-p05004: Banner must be persistent and non-dismissible
@@ -54,22 +57,27 @@ void main() {
       expect(find.byIcon(Icons.close), findsNothing);
     });
 
-    testWidgets('has red background color', (tester) async {
+    testWidgets('has error container background color', (tester) async {
       await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
 
-      // Find the Container with decoration
+      // Find the AppBanner's decorated Container
       final container = tester.widget<Container>(
         find
             .descendant(
-              of: find.byType(DisconnectionBanner),
+              of: find.byType(AppBanner),
               matching: find.byType(Container),
             )
             .first,
       );
 
+      // AppBanner with AppBannerSeverity.error uses the theme's
+      // errorContainer color for its background.
+      final colorScheme = Theme.of(
+        tester.element(find.byType(DisconnectionBanner)),
+      ).colorScheme;
       final decoration = container.decoration as BoxDecoration;
-      expect(decoration.color, Colors.red.shade50);
+      expect(decoration.color, colorScheme.errorContainer);
     });
 
     testWidgets('spans full width of parent', (tester) async {

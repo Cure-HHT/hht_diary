@@ -115,12 +115,12 @@ services:
         condition: service_healthy
         required: false
     environment:
-      # 'local' selects the SPA bundle compiled with
-      # FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 baked in (see
-      # portal-final.Dockerfile build loop), so the browser-side SPA
-      # routes auth through the firebase-emulator service rather than
-      # production Firebase. The other flavors (dev/qa/uat/prod) target
-      # Cloud Run with real Firebase.
+      # 'local' marks this as the local-stack deployment. The SPA bundle is
+      # environment-independent (nothing baked); the browser-side SPA routes
+      # auth through the firebase-emulator service because /config/identity
+      # advertises PORTAL_IDENTITY_EMULATOR_HOST=localhost:9099 at runtime, which
+      # the SPA passes to useAuthEmulator. The other flavors (dev/qa/uat/prod)
+      # target Cloud Run with real Firebase (no emulator host advertised).
       ENVIRONMENT: local
       # CUR-1264: portal-start-local.sh branches on this. "mock" (default)
       # strips RAVE_UAT_* before exec'ing the server so sync no-ops and the
@@ -196,6 +196,47 @@ services:
       # value here wins over Doppler (same mechanism as SPONSOR_ID above).
       # To rehearse session auth deliberately: PORTAL_AUTH_MODE=session ./local-stack portal
       PORTAL_AUTH_MODE: "${PORTAL_AUTH_MODE:-dev}"
+      # PORTAL_SESSION_SIGNING_KEY: required by the server when AUTH_MODE=session.
+      # Doppler dev does NOT inject it into this container (and --preserve-env
+      # only keeps already-present vars), so session boot fails without a value
+      # here. Provide a local-only HS256 signing key so the documented
+      # `PORTAL_AUTH_MODE=session ./local-stack portal` path boots. Local-stack
+      # only — never a real secret.
+      PORTAL_SESSION_SIGNING_KEY: "${PORTAL_SESSION_SIGNING_KEY:-local-stack-session-signing-key-not-secret}"
+      # PORTAL_ACTIVATION_CODE_PEPPER: HMAC pepper for the durable activation-
+      # code hashes (CUR-1490). A fixed local-only value keeps local-stack
+      # hermetic — the compose env wins over `doppler run --preserve-env`
+      # (same mechanism as PORTAL_SESSION_SIGNING_KEY above), so local codes
+      # never depend on the real dev pepper, and the dev-fallback boot warning
+      # stays quiet. Local-stack only — never a real secret.
+      PORTAL_ACTIVATION_CODE_PEPPER: "${PORTAL_ACTIVATION_CODE_PEPPER:-local-stack-activation-pepper-not-secret}"
+      # PORTAL_URL: the UI origin stamped into activation/reset email links.
+      # Hard-pinned literal, NOT "${PORTAL_URL:-...}": the dev Doppler config
+      # carries the deployed Cloud Run URL, so a doppler-wrapped host shell
+      # would interpolate it right back into the default — and the in-container
+      # `doppler run --preserve-env` injects it too when compose stays silent.
+      # Local-stack email links must always point at this stack's own UI
+      # (nginx at :8080).
+      PORTAL_URL: "http://localhost:8080"
+      # PORTAL_DEV_SEED_PASSWORD: dev/test-only knob (CUR-1437). When set, boot's
+      # seedTestAccountActivations provisions each seed-user email in the Firebase
+      # emulator with this shared password and marks it active — so the reference
+      # seed users (sysop@/admin@/cra@/sc@reference.local) are login-capable under
+      # session auth with no activation link. Local-stack default 'example';
+      # production NEVER sets this (the env is the prod guard).
+      PORTAL_DEV_SEED_PASSWORD: "${PORTAL_DEV_SEED_PASSWORD:-example}"
+      # PORTAL_SEED_REQUIRE_2FA: seeds the require_second_factor portal setting.
+      # Default false locally so seed-user login lands straight on the dashboard
+      # (no email OTP). Set to "true" to exercise the OTP screen — the code is
+      # printed to the portal-final console-mode email log.
+      PORTAL_SEED_REQUIRE_2FA: "${PORTAL_SEED_REQUIRE_2FA:-false}"
+      # PORTAL_IDENTITY_EMULATOR_HOST: emulator host ADVERTISED TO THE BROWSER via
+      # /config/identity (the SPA's useAuthEmulator target). The server itself
+      # reaches the emulator over the docker network (FIREBASE_AUTH_EMULATOR_HOST
+      # below = firebase-emulator:9099), but the host browser can only resolve the
+      # published port, so it must be localhost:9099. The CSP patch in
+      # portal-start-local.sh already allow-lists localhost:9099.
+      PORTAL_IDENTITY_EMULATOR_HOST: "localhost:9099"
       #
       # EVS event store. The portal reads DB_* and creates its own tables on
       # boot (no schema job). In durable mode PORTAL_DB_HOST defaults to the

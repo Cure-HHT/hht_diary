@@ -179,17 +179,12 @@ jobs:
             test -d /workspace/src/apps/common-dart/diary_shared_model
             test -d /workspace/src/apps/common-dart/portal_actions
             test -d /workspace/src/apps/edc/rave-integration
-            test -d /workspace/src/apps/sponsor-portal/portal_functions
-            test -d /workspace/src/apps/sponsor-portal/portal_server
-            test -d /workspace/src/apps/sponsor-portal/portal-ui
             test -d /workspace/src/apps/sponsor-portal/portal_identity
             test -d /workspace/src/apps/sponsor-portal/portal_service
             test -d /workspace/src/apps/sponsor-portal/portal_server_evs
             test -d /workspace/src/apps/sponsor-portal/portal_ui_evs
 
             test ! -d /workspace/src/sponsor-content
-            test ! -f /workspace/src/apps/sponsor-portal/portal_server/bin/server
-            test ! -d /workspace/src/apps/sponsor-portal/portal-ui/build/web
             test ! -d /workspace/src/apps/sponsor-portal/portal_ui_evs/build/web
           '
 

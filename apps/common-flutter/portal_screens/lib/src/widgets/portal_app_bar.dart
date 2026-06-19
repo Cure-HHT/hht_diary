@@ -38,7 +38,9 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onLogout,
     this.activeRoleDisplayName,
     this.onRoleSelected,
+    this.onSettings,
     this.onHelp,
+    this.logo,
     this.horizontalPadding = 48,
   }) : assert(
          availableRoles.length <= 1 || onRoleSelected != null,
@@ -80,10 +82,21 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// missing wiring in debug).
   final ValueChanged<String>? onRoleSelected;
 
+  /// Settings link callback (the blue underlined "Settings" between the
+  /// role pill and the help icon in the Figma). When null, the link
+  /// doesn't render. A Settings surface doesn't exist yet — wiring a
+  /// no-op keeps the chrome faithful to the design until it lands.
+  final VoidCallback? onSettings;
+
   /// Help icon callback. When null, the icon doesn't render at all.
   /// Plan §3 Q8: render the icon for v1 but `onHelp: () {}` is fine to
   /// keep the click as a no-op until docs land.
   final VoidCallback? onHelp;
+
+  /// Optional sponsor logo rendered left of the title block. The wiring
+  /// layer passes its branding widget (e.g. portal_ui_evs's
+  /// SponsorBrandMark); null keeps the brand text flush left.
+  final Widget? logo;
 
   /// Horizontal padding inside the bar. The default lines the title up
   /// with the body card's left edge in the canonical layout; consumers
@@ -111,15 +124,15 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                  child: _Brand(title: title, subtitle: subtitle),
+                  child: Row(
+                    children: [
+                      if (logo != null) ...[logo!, const SizedBox(width: 16)],
+                      _Brand(title: title, subtitle: subtitle),
+                    ],
+                  ),
                 ),
-                _RoleCluster(
-                  systemRole: activeRole,
-                  displayName: activeRoleDisplayName,
-                  availableRoles: availableRoles,
-                  onRoleSelected: onRoleSelected,
-                ),
-                const SizedBox(width: 16),
+                // Right cluster, Figma order: user name · hairline ·
+                // role pill · Settings · help · Logout.
                 Text(
                   userName,
                   // Inter Regular 14 / line-height 20 / letter-spacing -0.15 /
@@ -132,17 +145,27 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
                     color: theme.colorScheme.onSurface,
                   ),
                 ),
-                // Thin vertical separator between identity and action
-                // clusters — matches the hairline in the Figma between
-                // the user name and the help / logout group.
+                // Thin vertical separator between identity and the role /
+                // action cluster.
                 const SizedBox(width: 16),
                 Container(
                   width: 1,
                   height: 24,
                   color: theme.colorScheme.outlineVariant,
                 ),
+                const SizedBox(width: 16),
+                _RoleCluster(
+                  systemRole: activeRole,
+                  displayName: activeRoleDisplayName,
+                  availableRoles: availableRoles,
+                  onRoleSelected: onRoleSelected,
+                ),
+                if (onSettings != null) ...[
+                  const SizedBox(width: 20),
+                  _SettingsLink(onPressed: onSettings!),
+                ],
                 if (onHelp != null) ...[
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   _HelpIconButton(onPressed: onHelp!),
                 ],
                 const SizedBox(width: 16),
@@ -152,8 +175,56 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
                   label: 'Logout',
                   leadingIcon: Icons.logout,
                   onPressed: onLogout,
+                  semanticId: 'appbar-logout',
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The "Settings" link — primary-blue label with a 2px underline bar
+/// sitting a few px below the text (Figma: reads as an active-tab style
+/// indicator, not a text decoration).
+class _SettingsLink extends StatelessWidget {
+  const _SettingsLink({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      identifier: 'appbar-settings',
+      button: true,
+      container: true,
+      explicitChildNodes: true,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Container(
+            padding: const EdgeInsets.only(bottom: 4),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: theme.colorScheme.primary, width: 2),
+              ),
+            ),
+            child: Text(
+              'Settings',
+              // Inter Medium 14 / 20, primary — matches the role-cluster
+              // text rhythm with the link tone from the Figma.
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                height: 20 / 14,
+                letterSpacing: -0.15,
+                color: theme.colorScheme.primary,
+              ),
             ),
           ),
         ),
@@ -179,37 +250,46 @@ class _HelpIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Tooltip(
-      message: 'Help',
-      // Material itself paints the brand-blue circle. The PNG asset is
-      // just the white `?` glyph, sitting on top with transparent
-      // background so the circle shows through.
-      child: Material(
-        color: theme.colorScheme.primary,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onPressed,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 32,
-            height: 32,
-            child: Center(
-              child: Image.asset(
-                'assets/icons/help.png',
-                package: 'portal_screens',
-                width: 28,
-                height: 28,
-                // Widget tests don't initialise the package's asset
-                // bundle, so Image.asset would throw mid-test. The
-                // errorBuilder also makes a production asset-cache
-                // miss degrade to a Material default instead of a
-                // stack trace. Material already paints the circle, so
-                // the fallback is just the glyph.
-                errorBuilder: (context, _, _) => Icon(
-                  Icons.question_mark,
-                  size: 16,
-                  color: theme.colorScheme.onPrimary,
+    return Semantics(
+      // Raw InkWell (not AppButton), so the Playwright handle is wrapped
+      // here. container + explicitChildNodes keep the identifier on its
+      // own node (web flattener gotcha — event_sourcing prd-reaction).
+      identifier: 'appbar-help',
+      button: true,
+      container: true,
+      explicitChildNodes: true,
+      child: Tooltip(
+        message: 'Help',
+        // Material itself paints the brand-blue circle. The PNG asset is
+        // just the white `?` glyph, sitting on top with transparent
+        // background so the circle shows through.
+        child: Material(
+          color: theme.colorScheme.primary,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: Center(
+                child: Image.asset(
+                  'assets/icons/help.png',
+                  package: 'portal_screens',
+                  width: 28,
+                  height: 28,
+                  // Widget tests don't initialise the package's asset
+                  // bundle, so Image.asset would throw mid-test. The
+                  // errorBuilder also makes a production asset-cache
+                  // miss degrade to a Material default instead of a
+                  // stack trace. Material already paints the circle, so
+                  // the fallback is just the glyph.
+                  errorBuilder: (context, _, _) => Icon(
+                    Icons.question_mark,
+                    size: 16,
+                    color: theme.colorScheme.onPrimary,
+                  ),
                 ),
               ),
             ),
@@ -303,7 +383,15 @@ class _RoleCluster extends StatelessWidget {
         for (final role in availableRoles)
           PopupMenuItem<String>(
             value: role,
-            child: Text(role == systemRole ? '$role  ✓' : role),
+            // Domain-keyed handle per option — the menu item's own node
+            // carries the button role, so the identifier needs its own
+            // (container) node or the web flattener merges it away.
+            child: Semantics(
+              identifier: 'role-option-$role',
+              container: true,
+              explicitChildNodes: true,
+              child: Text(role == systemRole ? '$role  ✓' : role),
+            ),
           ),
       ],
     );
@@ -333,6 +421,9 @@ class _RoleCluster extends StatelessWidget {
       color: theme.colorScheme.onSurfaceVariant,
     );
     return Semantics(
+      identifier: 'appbar-role-switcher',
+      container: true,
+      explicitChildNodes: true,
       button: true,
       label: 'Switch role',
       child: InkWell(

@@ -43,4 +43,52 @@ void main() {
     );
     expect(hits, isEmpty);
   });
+
+  // `[start, end)`: start is inclusive (CUR-715). A candidate that is still a
+  // point (start set, no end yet -> candidateEnd == candidateStart) landing on
+  // an existing range's START must be detected as overlapping.
+  test('point candidate on an existing range start overlaps', () {
+    final rows = [
+      _ep('a', '2025-10-15T12:00:00.000Z', '2025-10-15T12:30:00.000Z'),
+    ];
+    final at = DateTime.parse('2025-10-15T12:00:00.000Z');
+    final hits = overlappingEpistaxisEntries(rows, at, at);
+    expect(hits.map((r) => r.aggregateId), ['a']);
+  });
+
+  // start is inclusive, so a point inside the range obviously overlaps too.
+  test('point candidate inside an existing range overlaps', () {
+    final rows = [
+      _ep('a', '2025-10-15T12:00:00.000Z', '2025-10-15T12:30:00.000Z'),
+    ];
+    final at = DateTime.parse('2025-10-15T12:15:00.000Z');
+    final hits = overlappingEpistaxisEntries(rows, at, at);
+    expect(hits.map((r) => r.aggregateId), ['a']);
+  });
+
+  // end is exclusive: a point on an existing range's END does NOT overlap.
+  test('point candidate on an existing range end does not overlap', () {
+    final rows = [
+      _ep('a', '2025-10-15T12:00:00.000Z', '2025-10-15T12:30:00.000Z'),
+    ];
+    final at = DateTime.parse('2025-10-15T12:30:00.000Z');
+    final hits = overlappingEpistaxisEntries(rows, at, at);
+    expect(hits, isEmpty);
+  });
+
+  // Adjacency (existing end == candidate start) is not an overlap.
+  test(
+    'candidate starting exactly at an existing range end does not overlap',
+    () {
+      final rows = [
+        _ep('a', '2025-10-15T11:00:00.000Z', '2025-10-15T12:00:00.000Z'),
+      ];
+      final hits = overlappingEpistaxisEntries(
+        rows,
+        DateTime.parse('2025-10-15T12:00:00.000Z'),
+        DateTime.parse('2025-10-15T12:30:00.000Z'),
+      );
+      expect(hits, isEmpty);
+    },
+  );
 }

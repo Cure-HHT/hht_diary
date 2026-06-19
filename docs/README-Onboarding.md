@@ -47,7 +47,7 @@ During a regulatory audit, an FDA inspector may ask questions like:
 │         │                    │                    │             │
 │         ▼                    ▼                    │             │
 │  ┌──────────────────────────────────────────┐    │             │
-│  │           Supabase / PostgreSQL          │────┘             │
+│  │           Cloud SQL / PostgreSQL         │────┘             │
 │  │  • Event Store (immutable)               │                  │
 │  │  • Row-Level Security (RLS)              │                  │
 │  │  • Audit Triggers                        │                  │
@@ -61,10 +61,10 @@ During a regulatory audit, an FDA inspector may ask questions like:
 
 | Component | Purpose | Where to Learn More |
 | --------- | ------- | ------------------- |
-| Mobile App (Flutter) | Participant diary entry | `apps/daily-diary/clinical_diary/`, `spec/prd-diary-app.md` |
-| Web Portal (Flutter) | Investigator/sponsor/admin interface | `apps/portal/`, `spec/prd-portal.md` |
-| Database (PostgreSQL) | EVS event store + hash-chained audit trail (schema created at runtime by the `event_sourcing` library; the in-repo `database/` SQL was removed in the EVS cutover, CUR-1170) | `apps/sponsor-portal/portal_server_evs`, `spec/dev-database.md` |
-| EDC Integration | Export to sponsor's Electronic Data Capture | `spec/dev-CDISC.md` |
+| Mobile App (Flutter) | Participant diary entry | `apps/daily-diary/clinical_diary/`, `spec/prd-mobile-app.md` |
+| Web Portal (Flutter) | Investigator/sponsor/admin interface | `apps/portal/` |
+| Database (PostgreSQL) | EVS event store + hash-chained audit trail (schema created at runtime by the `event_sourcing` library) | `apps/sponsor-portal/portal_server_evs` |
+| EDC Integration | Export to sponsor's Electronic Data Capture | `apps/sponsor-portal/portal_server_evs` |
 
 ## Core Architectural Patterns
 
@@ -78,13 +78,11 @@ DiaryEntryCreated → DiaryEntryEdited → DiaryEntrySubmitted
 
 This provides a complete, immutable history. You can reconstruct the state at any point in time.
 
-**Read**: `docs/adr/ADR-001-event-sourcing-pattern.md`, `spec/prd-event-sourcing-system.md`
+**Read**: `docs/adr/ADR-001-event-sourcing-pattern.md`, `docs/event-sourcing-gap-analysis.md`
 
 ### 2. Data Isolation (per-sponsor VPC + event-sourced permissions)
 
-Data isolation is enforced two ways under the event-sourcing model: each sponsor runs in its own GCP project / VPC (hard tenancy boundary), and within a deployment access is governed by event-sourced permissions evaluated in the application layer — not PostgreSQL row-level security, which was retired with the relational schema in the EVS cutover.
-
-**Read**: `docs/adr/ADR-003-row-level-security.md` (historical — superseded by the EVS cutover).
+Data isolation is enforced two ways: each sponsor runs in its own GCP project / VPC (hard tenancy boundary), and within a deployment access is governed by event-sourced permissions evaluated in the application layer.
 
 ### 3. Multi-Sponsor Architecture
 
@@ -95,13 +93,11 @@ The platform serves multiple sponsors (pharmaceutical companies running trials).
 
 Core code is shared; sponsor-specific code lives in `sponsor/{name}/`.
 
-**Read**: `spec/prd-architecture-multi-sponsor.md`, `spec/dev-architecture-multi-sponsor.md`
-
 ### 4. Evidence Records
 
 For audit purposes, we generate cryptographically-signed evidence records that prove data integrity at a point in time.
 
-**Read**: `spec/prd-evidence-records.md`, `spec/dev-evidence-records.md`
+**Read**: `spec/prd-evidence-records.md`
 
 ## Development Workflow
 
@@ -140,9 +136,9 @@ Git hooks enforce this. Your commit will be rejected without a valid requirement
 
 ### Quick Start
 
-1. **Read prerequisites**: `docs/development-prerequisites.md`
+1. **Read prerequisites**: `docs/setup-dev-environment.md` (section "1. Prerequisites")
 2. **Set up dev environment**: `docs/setup-dev-environment.md`
-3. **Configure secrets**: `docs/setup-doppler-new-dev.md`
+3. **Configure secrets**: `docs/setup-doppler.md` (points to the authoritative model in `hht_admin`)
 
 ### Recommended: Dev Container
 
@@ -170,8 +166,6 @@ Our CI/CD pipeline runs multiple security scanners:
 - **Trivy** - Dependency vulnerability scanning
 - **Flutter Analyze** - Dart static analysis
 
-(Squawk PostgreSQL migration linting was removed in the EVS cutover — there are no in-repo SQL migrations anymore.)
-
 **Read**: `docs/security/scanning-strategy.md`
 
 ## Key Specifications to Read First
@@ -179,11 +173,8 @@ Our CI/CD pipeline runs multiple security scanners:
 In order of priority:
 
 1. `spec/README.md` - How our documentation system works
-2. `spec/prd-system.md` - System overview
-3. `spec/prd-clinical-trials.md` - Domain context (what clinical trials are)
-4. `spec/prd-security.md` - Security requirements
-5. `spec/dev-core-practices.md` - Development standards
-6. `docs/adr/ADR-001-event-sourcing-pattern.md` - Why we use event sourcing
+2. `spec/prd-rbac.md` - Security and role-based access requirements
+3. `docs/adr/ADR-001-event-sourcing-pattern.md` - Why we use event sourcing
 
 ## Glossary Quick Reference
 
@@ -196,7 +187,7 @@ In order of priority:
 | RLS | Row-Level Security - PostgreSQL feature for data isolation |
 | HHT | Hereditary Hemorrhagic Telangiectasia - the disease our first trials focus on |
 
-**Full glossary**: `spec/prd-glossary.md`
+**Full glossary**: `spec/glossary-core.md`
 
 ## Getting Help
 

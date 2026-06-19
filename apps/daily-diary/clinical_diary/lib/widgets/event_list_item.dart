@@ -5,105 +5,123 @@ import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
-import 'package:diary_shared_model/diary_shared_model.dart';
+import 'package:diary_design_system/diary_design_system.dart' as ds;
+import 'package:diary_shared_model/diary_shared_model.dart'
+    show NosebleedIntensity;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
-/// List item widget for displaying a nosebleed-related diary entry.
-///
-/// Reads from a [DiaryEntryView] (sealed: [EpistaxisEntryView] or
-/// [DayMarkerView]) rather than the legacy materialized-view row.
-/// The view's `entryType` selects between the "no nosebleeds" / "unknown"
-/// cards and the regular nosebleed card; for the regular card [EpistaxisEntryView]
-/// supplies typed start/end time, timezone, intensity, and duration fields.
-///
-/// Implements CUR-443: One-line history format with intensity icon.
+/// Domain wrapper around the design system's [ds.EventListItem]. Maps a
+/// [DiaryEntryView] (sealed: epistaxis / day-marker / survey) onto a single
+/// row across all four states — empty, no-record marker, incomplete, and
+/// complete — so every row in "Your Records" goes through one DS primitive.
 class EventListItem extends StatelessWidget {
   const EventListItem({
-    required this.view,
+    required DiaryEntryView this.view,
     super.key,
     this.onTap,
     this.hasOverlap = false,
     this.highlightColor,
-  });
+  }) : emptyMessage = null;
 
-  /// The typed diary-entry view to render. Expected `entryType` values:
-  /// `epistaxis_event`, `no_epistaxis_event`, or `unknown_day_event`.
-  final DiaryEntryView view;
+  /// Empty-state row — a muted line of explanatory text in place of the
+  /// timestamp/duration layout. Delegates to [ds.EventListItem.empty].
+  const EventListItem.empty(String message, {super.key})
+    : view = null,
+      onTap = null,
+      hasOverlap = false,
+      highlightColor = null,
+      emptyMessage = message;
+
+  /// The typed diary-entry view to render. Null when [EventListItem.empty]
+  /// builds the no-records placeholder.
+  final DiaryEntryView? view;
   final VoidCallback? onTap;
-
-  /// Whether this entry overlaps with another entry's time range.
   final bool hasOverlap;
 
-  /// Optional highlight color to apply to the card background (for flash animation)
+  /// Optional tint applied behind the row for the flash-on-save animation.
   final Color? highlightColor;
 
-  // --- Accessors over the view-model -----------------------------------------
+  /// Empty-state message — set only via [EventListItem.empty].
+  final String? emptyMessage;
 
-  bool get _isNoNosebleedsEvent => view.entryType == 'no_epistaxis_event';
-  bool get _isUnknownEvent => view.entryType == 'unknown_day_event';
-  bool get _isIncomplete => !view.isComplete;
+  @override
+  Widget build(BuildContext context) {
+    if (emptyMessage != null) {
+      return ds.EventListItem.empty(emptyMessage!);
+    }
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
+    final v = view!;
 
-  /// Format start time for one-line display (e.g., "9:09 PM")
-  /// CUR-597: Times are displayed in the event's timezone, not device timezone.
-  /// If the event has a stored timezone, convert the stored time to that timezone.
-  String _startTimeFormatted(String locale) {
-    final ep = view as EpistaxisEntryView;
-    final stored = ep.startTime;
-    final tz = ep.startTimeZone;
-    final displayTime = TimezoneConverter.toDisplayedDateTime(stored, tz);
-    return DateFormat.jm(locale).format(displayTime);
-  }
+    Widget row;
+    if (v is EpistaxisEntryView) {
+      row = _buildEpistaxisRow(context, l10n, locale, v);
+    } else if (v is SurveyEntryView) {
+      // Preserves the `Key('survey-card')` finder used by home_screen_test.
+      row = KeyedSubtree(
+        key: const Key('survey-card'),
+        child: _buildSurveyRow(context, locale, v),
+      );
+    } else {
+      row = _buildMarkerRow(context, l10n);
+    }
 
-  /// CUR-516: Get timezone display string if different from device TZ
-  /// Returns null if timezone matches device TZ, otherwise returns abbreviation(s)
-  /// CUR-597: Uses TimezoneService for device timezone to support test overrides.
-  String? get _timezoneDisplay {
-    final ep = view as EpistaxisEntryView;
-    final deviceTimezone =
-        TimezoneService.instance.currentTimezone ?? DateTime.now().timeZoneName;
-    final deviceTzAbbr = normalizeDeviceTimezone(deviceTimezone);
-    final startTz = ep.startTimeZone;
-    final endTz = ep.endTimeZone;
-
-    final startAbbr = getTimezoneAbbreviation(
-      startTz,
-      at: TimezoneConverter.toDisplayedDateTime(ep.startTime, startTz),
+    if (highlightColor == null) return row;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: highlightColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: row,
     );
-    final endAt = ep.endTime ?? ep.startTime;
-    final endAbbr = endTz != null
-        ? getTimezoneAbbreviation(
-            endTz,
-            at: TimezoneConverter.toDisplayedDateTime(endAt, endTz),
-          )
-        : null;
-
-    // startAbbr is always a String (getTimezoneAbbreviation never returns null).
-    final startDiffersFromDevice = startAbbr != deviceTzAbbr;
-    final endDiffersFromDevice = endAbbr != null && endAbbr != deviceTzAbbr;
-    final timezonesDiffer = endAbbr != null && startAbbr != endAbbr;
-
-    if (!startDiffersFromDevice && !endDiffersFromDevice && !timezonesDiffer) {
-      return null;
-    }
-
-    if (timezonesDiffer) {
-      return '$startAbbr/$endAbbr';
-    }
-    if (startDiffersFromDevice) {
-      return startAbbr;
-    }
-    if (endDiffersFromDevice) {
-      return endAbbr;
-    }
-    return startAbbr;
   }
 
-  /// Get the intensity icon image path
-  String? get _intensityImagePath {
-    final ep = view as EpistaxisEntryView;
-    final intensity = ep.intensity;
+  // ---- Epistaxis row --------------------------------------------------------
+
+  /// CUR-443: One-line nosebleed row routed through [ds.EventListItem]. The
+  /// DS row supports an `iconAssetPath`, so the per-intensity PNG sits
+  /// between time and duration — same layout the previous list used.
+  ///
+  /// Figma cue: a vertical accent bar on the left edge — `colorScheme.error`
+  /// (red) for finalised rows, `semantic.warning` (amber) for in-progress
+  /// rows — so the row's status reads at a glance. No chevron: the entire
+  /// row is the tap affordance.
+  Widget _buildEpistaxisRow(
+    BuildContext context,
+    AppLocalizations l10n,
+    String locale,
+    EpistaxisEntryView entry,
+  ) {
+    final theme = Theme.of(context);
+    final semantic = theme.extension<ds.AppSemanticColors>();
+    final isIncomplete = !entry.isComplete;
+    final (durationText, _) = _durationInfo(entry);
+    final time = _startTimeFormatted(locale, entry);
+    final secondary = isIncomplete ? l10n.ongoing : durationText;
+    final intensityAsset = _intensityImagePath(entry.intensity);
+    final accent = isIncomplete
+        ? (semantic?.warning ?? theme.colorScheme.error)
+        : theme.colorScheme.error;
+
+    return ds.EventListItem(
+      leading: time,
+      iconAssetPath: intensityAsset,
+      icon: intensityAsset == null ? Icons.water_drop_outlined : null,
+      secondary: secondary.isEmpty ? null : secondary,
+      tone: isIncomplete
+          ? ds.EventListItemTone.warning
+          : ds.EventListItemTone.neutral,
+      accentColor: accent,
+      onTap: onTap,
+      trailing: _epistaxisTrailing(context, l10n, entry, isIncomplete),
+    );
+  }
+
+  /// Path to the intensity PNG asset for [intensity]. Mirrors the asset map
+  /// the previous list used. Returns null when intensity is unrecorded.
+  String? _intensityImagePath(NosebleedIntensity? intensity) {
     if (intensity == null) return null;
     switch (intensity) {
       case NosebleedIntensity.spotting:
@@ -121,55 +139,160 @@ class EventListItem extends StatelessWidget {
     }
   }
 
-  /// Check if the event crosses midnight (ends on a different day).
-  /// Delegated to the view-model which compares wall-clock date prefixes.
-  bool get _isMultiDay {
-    final ep = view as EpistaxisEntryView;
-    return ep.isMultiDay;
+  Widget? _epistaxisTrailing(
+    BuildContext context,
+    AppLocalizations l10n,
+    EpistaxisEntryView entry,
+    bool isIncomplete,
+  ) {
+    final theme = Theme.of(context);
+    final semantic = theme.extension<ds.AppSemanticColors>();
+    final children = <Widget>[];
+    final tzText = _timezoneDisplay(entry);
+    if (tzText != null) {
+      children.add(
+        Text(
+          tzText,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+    if (entry.isMultiDay) {
+      children.add(
+        Text(
+          l10n.translate('plusOneDay'),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
+    if (hasOverlap) {
+      children.add(
+        Icon(
+          Icons.warning_amber_rounded,
+          size: 18,
+          color: semantic?.warning ?? theme.colorScheme.error,
+        ),
+      );
+    }
+    if (isIncomplete) {
+      children.add(
+        // Flexible so the pill can shrink (its label wraps) when large text
+        // scales exhaust the bounded trailing slot the DS row provides.
+        Flexible(
+          child: _IncompletePill(
+            label: l10n.incomplete,
+            accent: semantic?.warning ?? theme.colorScheme.error,
+          ),
+        ),
+      );
+    }
+    // No chevron — the whole row is the tap affordance (Figma cue).
+    if (children.isEmpty) return null;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          children[i],
+        ],
+      ],
+    );
   }
 
-  /// CUR-488: Show "Incomplete" for ongoing events (no end time set)
-  /// Show minimum "1m" if start and end are the same (0 duration)
-  /// Returns (text, isIncomplete) tuple for styling
-  (String, bool) _getDurationInfo(AppLocalizations l10n) {
-    final ep = view as EpistaxisEntryView;
-    if (ep.endTime == null) {
-      return (l10n.incomplete, true);
-    }
-    final minutes = ep.durationMinutes;
-    if (minutes == null) return ('', false);
-    if (minutes == 0) return ('1m', false);
-    if (minutes < 60) return ('${minutes}m', false);
-    final hours = minutes ~/ 60;
-    final remainingMinutes = minutes % 60;
-    if (remainingMinutes == 0) return ('${hours}h', false);
-    return ('${hours}h ${remainingMinutes}m', false);
+  // ---- Survey row -----------------------------------------------------------
+
+  /// Implements: DIARY-PRD-questionnaire-system/B — a finalized questionnaire
+  /// surfaces alongside the day's clinical entries.
+  Widget _buildSurveyRow(
+    BuildContext context,
+    String locale,
+    SurveyEntryView survey,
+  ) {
+    final theme = Theme.of(context);
+    final name = _questionnaireDisplayName(survey.questionnaireType);
+    final timeText = DateFormat.jm(locale).format(survey.completedAt);
+    return ds.EventListItem(
+      leading: name,
+      icon: Icons.assignment_turned_in_outlined,
+      secondary: 'Completed · $timeText',
+      tone: ds.EventListItemTone.neutral,
+      onTap: onTap,
+      trailing: onTap == null
+          ? null
+          : Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final locale = Localizations.localeOf(context).languageCode;
+  // ---- Marker row (no_epistaxis_event / unknown_day_event) ------------------
 
-    if (_isNoNosebleedsEvent) {
-      return _buildNoNosebleedsCard(context, l10n);
-    }
-
-    if (_isUnknownEvent) {
-      return _buildUnknownCard(context, l10n);
-    }
-
-    // Implements: DIARY-PRD-questionnaire-system/B — a completed questionnaire
-    // surfaces in the diary's day list as a "Completed" survey affordance.
-    if (view is SurveyEntryView) {
-      return _buildSurveyCard(context, locale, view as SurveyEntryView);
-    }
-
-    return _buildNosebleedCard(context, l10n, locale);
+  Widget _buildMarkerRow(BuildContext context, AppLocalizations l10n) {
+    final v = view!;
+    final isNoNosebleeds = v.entryType == 'no_epistaxis_event';
+    // CUR-1491: recorded day markers render with the same muted, minimal style
+    // as the "No records" empty row (Figma EventListItem 486:1725) — just the
+    // status label, no icon / secondary / chevron — distinguished only by the
+    // text ("Don't remember" vs "No nosebleeds"). Display-only in the home
+    // list (the caller passes onTap: null); the calendar's date-records screen
+    // still passes an onTap for re-disposition.
+    final leading = isNoNosebleeds ? l10n.noNosebleeds : l10n.dontRemember;
+    return ds.EventListItem(leading: leading, muted: true, onTap: onTap);
   }
 
-  /// Friendly display name for a questionnaire type id, falling back to the raw
-  /// id when it is not one of the hard-coded [QuestionnaireType]s.
+  // ---- Field helpers --------------------------------------------------------
+
+  /// CUR-597: Times are displayed in the event's stored timezone, not device
+  /// timezone — so a record made in NY still reads "10:00 AM EST" on a UTC
+  /// device.
+  String _startTimeFormatted(String locale, EpistaxisEntryView entry) {
+    final displayTime = TimezoneConverter.toDisplayedDateTime(
+      entry.startTime,
+      entry.startTimeZone,
+    );
+    return DateFormat.jm(locale).format(displayTime);
+  }
+
+  /// CUR-516: Returns the timezone abbreviation to render alongside the row
+  /// when it differs from the device timezone (or differs between start/end).
+  /// Null when start matches device and start == end.
+  String? _timezoneDisplay(EpistaxisEntryView entry) {
+    final deviceTimezone =
+        TimezoneService.instance.currentTimezone ?? DateTime.now().timeZoneName;
+    final deviceTzAbbr = normalizeDeviceTimezone(deviceTimezone);
+    final startTz = entry.startTimeZone;
+    final endTz = entry.endTimeZone;
+    final startAbbr = getTimezoneAbbreviation(
+      startTz,
+      at: TimezoneConverter.toDisplayedDateTime(entry.startTime, startTz),
+    );
+    final endAt = entry.endTime ?? entry.startTime;
+    final endAbbr = endTz != null
+        ? getTimezoneAbbreviation(
+            endTz,
+            at: TimezoneConverter.toDisplayedDateTime(endAt, endTz),
+          )
+        : null;
+    final startDiffersFromDevice = startAbbr != deviceTzAbbr;
+    final endDiffersFromDevice = endAbbr != null && endAbbr != deviceTzAbbr;
+    final timezonesDiffer = endAbbr != null && startAbbr != endAbbr;
+    if (!startDiffersFromDevice && !endDiffersFromDevice && !timezonesDiffer) {
+      return null;
+    }
+    if (timezonesDiffer) return '$startAbbr/$endAbbr';
+    if (startDiffersFromDevice) return startAbbr;
+    if (endDiffersFromDevice) return endAbbr;
+    return startAbbr;
+  }
+
+  /// Friendly display name for a questionnaire type id.
   String _questionnaireDisplayName(String type) {
     for (final t in QuestionnaireType.values) {
       if (t.value == type) return t.displayName;
@@ -177,332 +300,56 @@ class EventListItem extends StatelessWidget {
     return type;
   }
 
-  /// Build card for a completed questionnaire submission (`<id>_survey`).
-  /// Mirrors the marker cards' icon + title + subtitle layout, showing the
-  /// questionnaire's friendly name, a "Completed" label, and the completion time.
-  Widget _buildSurveyCard(
-    BuildContext context,
-    String locale,
-    SurveyEntryView survey,
-  ) {
-    final name = _questionnaireDisplayName(survey.questionnaireType);
-    final timeText = DateFormat.jm(locale).format(survey.completedAt);
-    return Card(
-      key: const Key('survey-card'),
-      margin: EdgeInsets.zero,
-      color: Colors.blue.shade50,
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.15),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            children: [
-              Icon(
-                Icons.assignment_turned_in,
-                color: Colors.blue.shade700,
-                size: 32,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.blue.shade800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Completed · $timeText',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.blue.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (onTap != null)
-                Icon(Icons.chevron_right, color: Colors.blue.shade400),
-            ],
-          ),
-        ),
-      ),
-    );
+  /// CUR-488: Format duration as "1m", "45m", "2h", "1h 15m"; null durations
+  /// return an empty string (the row's `secondary` is then hidden).
+  (String, bool) _durationInfo(EpistaxisEntryView entry) {
+    if (entry.endTime == null) return ('', true);
+    final minutes = entry.durationMinutes;
+    if (minutes == null) return ('', false);
+    if (minutes == 0) return ('1m', false);
+    if (minutes < 60) return ('${minutes}m', false);
+    final hours = minutes ~/ 60;
+    final remaining = minutes % 60;
+    if (remaining == 0) return ('${hours}h', false);
+    return ('${hours}h ${remaining}m', false);
   }
+}
 
-  /// Build card for "No nosebleed events" type
-  Widget _buildNoNosebleedsCard(BuildContext context, AppLocalizations l10n) {
-    return Card(
-      margin: EdgeInsets.zero,
-      color: Colors.green.shade50,
-      // CUR-488 Phase 2: Increased elevation for more visible shadows
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.15),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green.shade700, size: 32),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.noNosebleeds,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.green.shade800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.translate('confirmedNoEvents'),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.green.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (onTap != null)
-                Icon(Icons.chevron_right, color: Colors.green.shade400),
-            ],
-          ),
-        ),
+/// Small "Incomplete" pill rendered in [EventListItem]'s trailing slot when
+/// an epistaxis row has no end time yet.
+class _IncompletePill extends StatelessWidget {
+  const _IncompletePill({required this.label, required this.accent});
+  final String label;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final semantic = theme.extension<ds.AppSemanticColors>();
+    final bg = semantic?.warningContainer ?? theme.colorScheme.errorContainer;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(9999),
       ),
-    );
-  }
-
-  /// Build card for "Unknown" event type
-  Widget _buildUnknownCard(BuildContext context, AppLocalizations l10n) {
-    return Card(
-      margin: EdgeInsets.zero,
-      color: Colors.yellow.shade50,
-      // CUR-488 Phase 2: Increased elevation for more visible shadows
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.15),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            children: [
-              Icon(Icons.help_outline, color: Colors.orange.shade700, size: 32),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.unknown,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: Colors.orange.shade800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.translate('unableToRecallEvents'),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.orange.shade700,
-                      ),
-                    ),
-                  ],
-                ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.info_outline, size: 12, color: accent),
+          const SizedBox(width: 4),
+          // Flexible so the label wraps instead of overflowing when the
+          // trailing slot is width-constrained at large text scales.
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: accent,
+                fontWeight: FontWeight.w500,
               ),
-              if (onTap != null)
-                Icon(Icons.chevron_right, color: Colors.orange.shade400),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Build card for regular nosebleed events
-  /// CUR-443: One-line format: "9:09 PM PST (icon) 1h 11m" with warning icon
-  /// Fixed-width columns for alignment across rows
-  /// CUR-488 Phase 2: Enhanced styling with better shadows, colors, and incomplete tint
-  /// CUR-516: Show timezone when different from device TZ
-  Widget _buildNosebleedCard(
-    BuildContext context,
-    AppLocalizations l10n,
-    String locale,
-  ) {
-    // Fixed column widths for cross-row alignment (these fit horizontally even
-    // worst-case at the narrowest supported 360dp width). The row's height is a
-    // MINIMUM, not fixed: with a larger or wider font (Larger Text / OpenDyslexic)
-    // the time/duration may wrap and the row grows to fit, instead of being
-    // clamped to a fixed height and overflowing. "12:59 AM" ~80px, 24h ~45px.
-    final use24Hour = !DateFormat.jm(locale).pattern!.contains('a');
-    final timeWidth = use24Hour ? 52.0 : 100.0;
-    const iconWidth = 32.0;
-    const durationWidth = 84.0;
-
-    final (durationText, isIncompleteDuration) = _getDurationInfo(l10n);
-
-    final cardColor =
-        highlightColor ?? (_isIncomplete ? Colors.orange.shade50 : null);
-
-    final timezoneText = _timezoneDisplay;
-    final showTimezone = timezoneText != null;
-    final minCardHeight = showTimezone ? 52.0 : 40.0;
-
-    return Card(
-      margin: EdgeInsets.zero,
-      color: cardColor,
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.15),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: minCardHeight),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            child: Row(
-              children: [
-                // Start time - fixed width, right aligned
-                SizedBox(
-                  width: timeWidth,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        _startTimeFormatted(locale),
-                        textAlign: TextAlign.right,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      if (showTimezone)
-                        Text(
-                          timezoneText,
-                          textAlign: TextAlign.right,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.6),
-                                fontSize: 10,
-                              ),
-                        ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                // Intensity mini-icon - fixed width container with tight border
-                SizedBox(
-                  width: iconWidth,
-                  child: _intensityImagePath != null
-                      ? Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.outline.withValues(alpha: 0.5),
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: Image.asset(
-                              _intensityImagePath!,
-                              width: 28,
-                              height: 28,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        )
-                      : null,
-                ),
-
-                // Duration - fixed width with left padding
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: SizedBox(
-                    width: durationWidth,
-                    child: Text(
-                      durationText,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: isIncompleteDuration
-                            ? Colors.orange.shade700
-                            : Theme.of(context).colorScheme.onSurface,
-                        fontWeight: isIncompleteDuration
-                            ? FontWeight.w500
-                            : null,
-                        fontSize: isIncompleteDuration ? 12 : null,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Spacer to push status indicators to the right
-                Expanded(
-                  child: _isMultiDay
-                      ? Padding(
-                          padding: const EdgeInsets.only(left: 4),
-                          child: Text(
-                            l10n.translate('plusOneDay'),
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.6),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-
-                // Incomplete indicator (compact)
-                if (_isIncomplete) ...[
-                  Icon(
-                    Icons.edit_outlined,
-                    size: 20,
-                    color: Colors.orange.shade700,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-
-                // Overlap warning icon
-                if (hasOverlap) ...[
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 24,
-                    color: Colors.orange.shade600,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-
-                // Chevron
-                if (onTap != null)
-                  Icon(
-                    Icons.chevron_right,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
-              ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

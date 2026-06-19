@@ -22,7 +22,7 @@ import 'dart:async';
 import 'package:clinical_diary/read/diary_incomplete_projection.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
-import 'package:clinical_diary/screens/important_screen.dart';
+import 'package:clinical_diary/screens/incomplete_records_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/task_service.dart';
@@ -32,6 +32,7 @@ import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:diary_design_system/diary_design_system.dart' show AppCard;
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -289,7 +290,10 @@ void main() {
     //   event_sourcing store (diary_es.db), where DiaryServerDestination's
     //   outbound FIFO lives, is surfaced to the participant. The legacy
     //   runtime.backend wedge check does not see that store.
-    const wedgeText = 'Some data is not syncing — please update the app.';
+    //
+    // The wedge banner is now an AppBanner with separate title + message texts.
+    const wedgeTitle = 'Some data is not syncing';
+    const wedgeMessage = 'Please update the app.';
 
     testWidgets(
       'native-store FIFO wedge surfaces the sync-wedged banner (legacy clean)',
@@ -297,7 +301,8 @@ void main() {
         // Legacy runtime.backend is a fresh in-memory store with no wedged FIFO;
         // only the native store is wedged. The banner must still surface.
         await pumpScreen(tester, nativeFifoWedged: () async => true);
-        expect(find.text(wedgeText), findsOneWidget);
+        expect(find.text(wedgeTitle), findsOneWidget);
+        expect(find.text(wedgeMessage), findsOneWidget);
       },
     );
 
@@ -305,7 +310,8 @@ void main() {
       'no wedge banner when neither legacy nor native store is wedged',
       (tester) async {
         await pumpScreen(tester, nativeFifoWedged: () async => false);
-        expect(find.text(wedgeText), findsNothing);
+        expect(find.text(wedgeTitle), findsNothing);
+        expect(find.text(wedgeMessage), findsNothing);
       },
     );
 
@@ -315,10 +321,26 @@ void main() {
         await pumpScreen(tester);
 
         expect(find.text('Record Nosebleed'), findsOneWidget);
-        expect(find.text('Calendar'), findsOneWidget);
+        // The calendar affordance is now the tertiary "View Calendar" button
+        // pinned in the bottom action area.
+        expect(find.text('View Calendar'), findsOneWidget);
         // No-yesterday banner is present (no entries → no yesterday records).
         expect(find.text('Yes'), findsOneWidget);
         expect(find.text('No'), findsOneWidget);
+      },
+    );
+
+    // Verifies: DIARY-GUI-main-screen-layout-A — with nothing requiring
+    //   attention (no incomplete records, no overlaps, no tasks) the whole
+    //   Task List section is hidden rather than showing an empty
+    //   "Needs your attention (0)" tile (CUR-1519).
+    testWidgets(
+      'hides the Task List section entirely when there are zero tasks',
+      (tester) async {
+        await pumpScreen(tester);
+
+        expect(find.text('Task List'), findsNothing);
+        expect(find.text('Needs your attention'), findsNothing);
       },
     );
 
@@ -431,6 +453,80 @@ void main() {
       },
     );
 
+    // CUR-1491: a recorded "don't remember" (unknown_day_event) marker on
+    // yesterday must surface as its own status row — NOT fall through to the
+    // bare "No records" empty state. "nothing recorded" and "acknowledged
+    // uncertainty" are different clinical states (cf. REQ-CAL-d00012).
+    testWidgets(
+      'a finalized "don\'t remember" marker on yesterday shows the unknown '
+      'status row, not "No records"',
+      (tester) async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        await pumpScreen(
+          tester,
+          finalized: [
+            DiaryEntryRow(
+              aggregateId: 'P:${dateKey(yesterday)}',
+              entryType: 'unknown_day_event',
+              data: <String, Object?>{'date': dateKey(yesterday)},
+            ),
+          ],
+        );
+
+        // The banner is gone and the marker renders its distinct "Don't
+        // remember" status (CUR-1491: minimal muted row, label reads
+        // "Don't remember" — not "Unknown").
+        expect(find.text("Don't remember"), findsOneWidget);
+        expect(find.text('Unknown'), findsNothing);
+
+        // The yesterday card must NOT fall through to the "No records" empty
+        // placeholder (today's empty card may still show one — scope the
+        // check to the Yesterday card via its "Yesterday" header label).
+        final yesterdayCard = find.ancestor(
+          of: find.text('Yesterday'),
+          matching: find.byType(AppCard),
+        );
+        expect(yesterdayCard, findsOneWidget);
+        expect(
+          find.descendant(of: yesterdayCard, matching: find.text('No records')),
+          findsNothing,
+          reason:
+              'the yesterday section must reflect the recorded '
+              '"don\'t remember" marker, never "No records"',
+        );
+      },
+    );
+
+    // CUR-1491 companion: a "no nosebleeds" marker likewise surfaces as its
+    // own row rather than "No records".
+    testWidgets(
+      'a finalized "no nosebleeds" marker on yesterday shows its status row, '
+      'not "No records"',
+      (tester) async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        await pumpScreen(
+          tester,
+          finalized: [
+            DiaryEntryRow(
+              aggregateId: 'P:${dateKey(yesterday)}',
+              entryType: 'no_epistaxis_event',
+              data: <String, Object?>{'date': dateKey(yesterday)},
+            ),
+          ],
+        );
+
+        expect(find.text('No nosebleeds'), findsOneWidget);
+        final yesterdayCard = find.ancestor(
+          of: find.text('Yesterday'),
+          matching: find.byType(AppCard),
+        );
+        expect(
+          find.descendant(of: yesterdayCard, matching: find.text('No records')),
+          findsNothing,
+        );
+      },
+    );
+
     testWidgets('tap "Record Nosebleed" pushes the recording screen', (
       tester,
     ) async {
@@ -488,11 +584,13 @@ void main() {
     });
 
     // Verifies: DIARY-GUI-main-screen-layout-A — when more than one important
-    //   item is active, only the single most-urgent one shows inline and the
-    //   rest collapse into one "N more important items" row (so the alert area
-    //   stays bounded regardless of how many fire at once).
+    //   item is active, the disconnection notice keeps its bespoke inline
+    //   banner while every actionable item is consolidated as a row inside the
+    //   single "Needs your attention" tile (so the alert area stays bounded
+    //   regardless of how many fire at once).
     testWidgets(
-      'multiple alerts collapse: top inline + "N more important items" row',
+      'multiple alerts: inline disconnection banner + items consolidated in '
+      'the "Needs your attention" tile',
       (tester) async {
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day, 10);
@@ -503,38 +601,52 @@ void main() {
           incomplete: [epistaxisRow(today, aggregateId: 'agg-inc-1')],
         );
 
-        // Disconnection wins the inline top slot.
+        // Disconnection keeps its bespoke inline banner above the tile.
         expect(find.byType(DisconnectionBanner), findsOneWidget);
-        // The incomplete alert collapses into the summary row...
-        expect(find.text('1 more important item'), findsOneWidget);
-        // ...and is therefore NOT shown inline on the home screen.
-        expect(find.text('1 incomplete record'), findsNothing);
+        // The incomplete alert renders as a row inside the consolidated
+        // "Needs your attention" tile, not as a free-floating banner.
+        expect(find.text('Needs your attention'), findsOneWidget);
+        expect(find.text('1 incomplete record'), findsOneWidget);
       },
     );
 
-    // Verifies: DIARY-GUI-main-screen-layout-A — the collapsed summary row
-    //   opens the Important page listing every active item.
-    testWidgets('the summary row opens the Important page with all items', (
-      tester,
-    ) async {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day, 10);
-      await enrollment.setDisconnected(true);
-      await pumpScreen(
-        tester,
-        incomplete: [epistaxisRow(today, aggregateId: 'agg-inc-1')],
-      );
+    // Verifies: DIARY-GUI-main-screen-layout-A — the consolidated
+    //   incomplete-records row in the "Needs your attention" tile opens the
+    //   Incomplete Records page listing every incomplete item (the overflow
+    //   destination that replaced the legacy Important page).
+    // Verifies: DIARY-PRD-incomplete-entry-preservation/B — with more than one
+    //   incomplete record, the row opens the dedicated list so the participant
+    //   picks which to resume.
+    testWidgets(
+      'the incomplete-records row opens the Incomplete Records page with all '
+      'items',
+      (tester) async {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day, 10);
+        final incompleteRows = [
+          epistaxisRow(today, aggregateId: 'agg-inc-1'),
+          epistaxisRow(
+            today.add(const Duration(hours: 2)),
+            aggregateId: 'agg-inc-2',
+          ),
+        ];
+        await pumpScreen(tester, incomplete: incompleteRows);
 
-      await tester.tap(find.text('1 more important item'));
-      await _settle(tester);
+        await tester.tap(find.text('2 incomplete records'));
+        await _settle(tester);
 
-      expect(find.byType(ImportantScreen), findsOneWidget);
-      expect(find.text('Important'), findsOneWidget);
-      // The full list: the Alerts section shows both the top item and the one
-      // that was collapsed on the home screen.
-      expect(find.text('ALERTS'), findsOneWidget);
-      expect(find.text('Disconnected from Study'), findsWidgets);
-      expect(find.text('1 incomplete record'), findsOneWidget);
-    });
+        expect(find.byType(IncompleteRecordsScreen), findsOneWidget);
+        // The pushed screen's DiaryViewBuilder subscribes fresh and the fake's
+        // view stream has no replay buffer — re-drive the incomplete view so
+        // the new subscriber receives the rows.
+        seedDiary(incomplete: incompleteRows);
+        await _settle(tester);
+
+        expect(find.text('Incomplete Records'), findsOneWidget);
+        // The full list: both incomplete items that were consolidated behind
+        // the single home-screen row.
+        expect(find.text('Incomplete Record'), findsNWidgets(2));
+      },
+    );
   });
 }

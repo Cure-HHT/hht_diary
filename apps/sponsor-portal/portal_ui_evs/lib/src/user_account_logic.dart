@@ -2,7 +2,9 @@
 // Implements: DIARY-DEV-user-account-projection/C — pure desired-vs-current assignment diff
 //   (cartesian over roles x sites), realized via the single-tuple assign/revoke actions.
 
-import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
+import 'package:event_sourcing/event_sourcing.dart'
+    show ActionSubmission, BoundScope, TotalWildcardScope, ValueWildcardScope;
+import 'package:portal_screens/portal_screens.dart' show PortalUserView;
 
 /// Action names the user-account assign/revoke plan dispatches. Kept here (not
 /// just in the screen) so the pure submission builder and its test reference
@@ -11,6 +13,14 @@ const String assignRoleAction = 'ACT-USR-007';
 const String assignSiteAction = 'ACT-USR-008';
 const String revokeRoleAction = 'ACT-USR-010';
 const String revokeSiteAction = 'ACT-USR-011';
+
+/// Lifecycle / profile action names dispatched by the row-actions flows.
+const String createUserAction = 'ACT-USR-001';
+const String editUserAction = 'ACT-USR-002';
+const String deactivateUserAction = 'ACT-USR-003';
+const String reactivateUserAction = 'ACT-USR-004';
+const String unlockUserAction = 'ACT-USR-005';
+const String resendActivationAction = 'ACT-USR-006';
 
 enum UserStatus {
   pending,
@@ -153,6 +163,62 @@ AssignmentPlan planAssignmentChanges({
 /// Pure: no widget/scope dependency, so the screen can build the submissions
 /// here and the test can assert action/rawInput shapes + revoke-before-assign
 /// ordering.
+/// Role-level scopes a non-site role's assignment carries. The
+/// Administrator needs site-wildcard + staff-tier (so it can manage
+/// staff accounts per DIARY-DEV-operator-tier-authz/E); SystemOperator
+/// carries a single total wildcard. Site-scoped roles never call this —
+/// their tuples go through ACT-USR-008/011 instead.
+List<Object> roleScopesJsonFor(String role) => switch (roleScopeKind(role)) {
+  RoleScopeKind.allSites => <Object>[
+    const ValueWildcardScope(class_: 'site').toJson(),
+    const BoundScope(class_: 'tier', value: 'staff').toJson(),
+  ],
+  RoleScopeKind.everything => <Object>[const TotalWildcardScope().toJson()],
+  RoleScopeKind.site => throw StateError(
+    'roleScopesJsonFor called for site-scoped role $role',
+  ),
+};
+
+/// Activation-link expiry stamped on create / reactivate / resend
+/// submissions: 14 days out, UTC.
+String activationExpiresAtFromNow() =>
+    DateTime.now().toUtc().add(const Duration(days: 14)).toIso8601String();
+
+/// The `(role, site)` tuples a user currently holds, in the shape
+/// [planAssignmentChanges] diffs against. Site-scoped assignments
+/// contribute one tuple per bound site; wildcard assignments contribute
+/// a single tuple whose site value is ignored by the planner (non-site
+/// roles diff by role name only).
+List<CurrentTuple> currentTuplesFor(PortalUserView user) => <CurrentTuple>[
+  for (final a in user.assignments)
+    if (roleScopeKind(a.role) == RoleScopeKind.site)
+      for (final site in a.boundSites) CurrentTuple(role: a.role, site: site)
+    else
+      CurrentTuple(role: a.role, site: ''),
+];
+
+/// Builds the ordered submission list for the Edit User flow: the
+/// ACT-USR-002 profile/email edit first (when anything changed), then
+/// the assignment-plan realization. [newName] / [newEmail] are null when
+/// unchanged — when both are null no ACT-USR-002 is emitted.
+List<ActionSubmission> editUserSubmissions({
+  required String userId,
+  required String? newName,
+  required String? newEmail,
+  required AssignmentPlan plan,
+}) => <ActionSubmission>[
+  if (newName != null || newEmail != null)
+    ActionSubmission(
+      actionName: editUserAction,
+      rawInput: <String, Object?>{
+        'userId': userId,
+        if (newName != null) 'name': newName,
+        if (newEmail != null) 'newEmail': newEmail,
+      },
+    ),
+  ...assignmentSubmissions(plan, userId, roleScopesJsonFor),
+];
+
 List<ActionSubmission> assignmentSubmissions(
   AssignmentPlan plan,
   String userId,

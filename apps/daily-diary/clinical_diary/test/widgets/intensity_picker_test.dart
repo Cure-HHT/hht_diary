@@ -110,10 +110,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The selected intensity should show with bold font
-      // Note: label has newline because spaces are replaced with \n
-      final textWidget = tester.widget<Text>(find.text('Steady\nstream'));
-      expect(textWidget.style?.fontWeight, FontWeight.bold);
+      // The selected intensity label renders in the theme primary color
+      // (Figma redesign: selection cue is the primary ring + tinted label,
+      // not a bold weight).
+      final textWidget = tester.widget<Text>(find.text('Steady stream'));
+      final context = tester.element(find.byType(IntensityPicker));
+      expect(textWidget.style?.color, Theme.of(context).colorScheme.primary);
     });
 
     testWidgets('non-selected severities have normal font weight', (
@@ -158,6 +160,70 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(GridView), findsOneWidget);
+    });
+
+    // Verifies: DIARY-GUI-epistaxis-record/G
+    // CUR-1517 regression: all six options must render when there is room.
+    testWidgets('renders all six intensity options on a tall screen', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithMaterialApp(
+          Scaffold(
+            body: SizedBox(
+              height: 900,
+              child: IntensityPicker(onSelect: (_) {}),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      for (final label in const [
+        'Spotting',
+        'Dripping',
+        'Dripping quickly',
+        'Steady stream',
+        'Pouring',
+        'Gushing',
+      ]) {
+        expect(
+          find.text(label),
+          findsOneWidget,
+          reason: '$label should render',
+        );
+      }
+    });
+
+    // Verifies: DIARY-GUI-epistaxis-record/G
+    // CUR-1517 regression: on a short screen the grid must scroll (no clipped
+    // overflow) so the bottom options ("Pouring"/"Gushing") stay reachable.
+    testWidgets('scrolls to the bottom options on a short screen', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithMaterialApp(
+          Scaffold(
+            body: SizedBox(
+              height: 360,
+              child: IntensityPicker(onSelect: (_) {}),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The constrained layout must not overflow (the original bug clipped the
+      // bottom row silently with NeverScrollableScrollPhysics).
+      expect(tester.takeException(), isNull);
+
+      // The bottom option is reachable by scrolling the grid into view.
+      await tester.scrollUntilVisible(
+        find.text('Gushing'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Gushing'), findsOneWidget);
     });
 
     testWidgets('works without initial selection', (tester) async {

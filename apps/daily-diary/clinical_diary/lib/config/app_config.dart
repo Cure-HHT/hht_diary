@@ -148,6 +148,26 @@ class AppConfig {
   /// Determined by EnvProfile - only enabled in dev, qa, uat, and local.
   static bool get showResetData => EnvProfile.current.showResetData;
 
+  /// CUR-1438: whether to surface the settings the team chose NOT to expose for
+  /// the Callisto UAT build — the Color Scheme / dark-mode picker (dark mode is
+  /// not enabled), the Language selector (translations are not yet
+  /// professionally validated), and the "Larger text and controls" toggle
+  /// (accessibility is limited to fonts for UAT). Defaults to false so these
+  /// are hidden from the Settings UI; the underlying screens, preferences, and
+  /// logic are kept intact, so re-enabling any of them is a one-line flip here,
+  /// not a feature rebuild. The developer Feature Flags menu stays gated by
+  /// [showAllConfigsScreen] (already hidden in uat/prod).
+  static const bool showUatRestrictedSettings = false;
+
+  /// CUR-1438: whether the Advanced (clinical entry rules) settings are
+  /// user-editable. Defaults to false for the Callisto UAT build, so the
+  /// Advanced screen stays VISIBLE but every control renders read-only (locked
+  /// to the deployed study-protocol defaults). No logic is removed — flipping
+  /// this to true restores editing. Per-key sponsor locks from the settings
+  /// projection still apply on top of this (a key locked there stays locked
+  /// regardless).
+  static const bool allowAdvancedSettingsEditing = false;
+
   // ============================================================
   // Deployment UI configuration defaults
   // ============================================================

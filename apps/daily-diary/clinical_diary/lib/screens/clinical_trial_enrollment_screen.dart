@@ -5,19 +5,32 @@
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
-import 'package:clinical_diary/widgets/enrollment_success_dialog.dart';
+import 'package:clinical_diary/widgets/back_to_home_row.dart';
+import 'package:clinical_diary/widgets/brand_header.dart';
+import 'package:clinical_diary/widgets/user_menu_button.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Clinical trial enrollment screen with 10-character code input (XXXXX-XXXXX)
-/// Accessed from the user profile menu, not at app startup
+/// "Join the Study" — linking-code entry screen. Matches the Figma
+/// `Join the Study` design (file qWMfvnr455NSByXqsDcok7, node 427-4237)
+/// and is built on the shared diary_design_system (AppCodeInput,
+/// AppConsentRow, AppButton).
 class ClinicalTrialEnrollmentScreen extends StatefulWidget {
   const ClinicalTrialEnrollmentScreen({
     required this.enrollmentService,
+    this.onShowProfile,
     super.key,
   });
   final EnrollmentService enrollmentService;
+
+  /// Called when the participant taps **User Profile** in the trailing
+  /// hamburger menu. Wired from the parent so the route that knows how to
+  /// build the profile screen (with cached enrollment / disconnection
+  /// state) owns the navigation. When null the menu item is hidden — the
+  /// enrollment screen itself has no way to construct a meaningful profile.
+  final VoidCallback? onShowProfile;
 
   @override
   State<ClinicalTrialEnrollmentScreen> createState() =>
@@ -26,43 +39,25 @@ class ClinicalTrialEnrollmentScreen extends StatefulWidget {
 
 class _ClinicalTrialEnrollmentScreenState
     extends State<ClinicalTrialEnrollmentScreen> {
-  final _code1Controller = TextEditingController();
-  final _code2Controller = TextEditingController();
-  final _code1FocusNode = FocusNode();
-  final _code2FocusNode = FocusNode();
+  final _codeController = TextEditingController();
 
   bool _isLoading = false;
   String? _errorMessage;
   bool _hasAgreedToSharing = false;
-  bool _showSuccessDialog = false;
+  bool _isLinked = false;
 
-  @override
-  void initState() {
-    super.initState();
-    // Auto-focus the first text field
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _code1FocusNode.requestFocus();
-    });
-  }
+  bool get _isCodeComplete => _codeController.text.length == 10;
+  bool get _isReadyToSubmit =>
+      _isCodeComplete && _hasAgreedToSharing && !_isLoading;
 
   @override
   void dispose() {
-    _code1Controller.dispose();
-    _code2Controller.dispose();
-    _code1FocusNode.dispose();
-    _code2FocusNode.dispose();
+    _codeController.dispose();
     super.dispose();
   }
 
-  bool get _isComplete =>
-      _code1Controller.text.length == 5 &&
-      _code2Controller.text.length == 5 &&
-      _hasAgreedToSharing;
-
-  String get _fullCode => _code1Controller.text + _code2Controller.text;
-
   Future<void> _enroll() async {
-    if (!_isComplete) return;
+    if (!_isReadyToSubmit) return;
 
     setState(() {
       _isLoading = true;
@@ -70,33 +65,24 @@ class _ClinicalTrialEnrollmentScreenState
     });
 
     try {
-      await widget.enrollmentService.enroll(_fullCode);
-
-      // Show success dialog
+      await widget.enrollmentService.enroll(_codeController.text);
+      if (!mounted) return;
       setState(() {
-        _showSuccessDialog = true;
+        _isLoading = false;
+        _isLinked = true;
       });
-
-      // Wait 2 seconds then close
-      await Future<void>.delayed(const Duration(seconds: 2));
-
-      if (mounted) {
-        Navigator.of(context).pop(true);
-      }
     } on EnrollmentException catch (e) {
+      if (!mounted) return;
       setState(() {
+        _isLoading = false;
         _errorMessage = e.message;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
+        _isLoading = false;
         _errorMessage = 'Error: $e';
       });
-    } finally {
-      if (mounted && !_showSuccessDialog) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
@@ -108,425 +94,263 @@ class _ClinicalTrialEnrollmentScreenState
     );
   }
 
-  void _onCode1Changed(String value) {
-    if (_errorMessage != null) {
-      setState(() => _errorMessage = null);
-    }
-
-    // Paste/parity: the whole 10-char code can be pasted into the first box
-    // (the two boxes act as one). Keep the first 5 here and flow any remainder
-    // into the second box, rather than silently truncating to 5. Input
-    // formatters have already stripped non-alphanumerics (e.g. the dash) and
-    // upper-cased the value, so `value` is the clean code text.
-    if (value.length > 5) {
-      final first = value.substring(0, 5);
-      final overflow = value.substring(5);
-      final second = overflow.length > 5 ? overflow.substring(0, 5) : overflow;
-      _code1Controller.value = TextEditingValue(
-        text: first,
-        selection: const TextSelection.collapsed(offset: 5),
-      );
-      _code2Controller.value = TextEditingValue(
-        text: second,
-        selection: TextSelection.collapsed(offset: second.length),
-      );
-      // Land the cursor where the user would continue: end of box 2 if it still
-      // needs input, otherwise drop focus (the code is complete).
-      if (second.length == 5) {
-        _code2FocusNode.unfocus();
-      } else {
-        _code2FocusNode.requestFocus();
-      }
-      setState(() {});
-      return;
-    }
-
-    // Auto-focus next field when this one is complete
-    if (value.length == 5) {
-      _code2FocusNode.requestFocus();
-    }
-    setState(() {});
+  void _handleShowPrivacy() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context).privacyComingSoon),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
-  void _onCode2Changed(String value) {
+  void _onCodeChanged(String _) {
     if (_errorMessage != null) {
       setState(() => _errorMessage = null);
+    } else {
+      setState(() {});
     }
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          body: SafeArea(
-            child: Column(
-              children: [
-                // Header with back button
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: _isLoading
-                            ? null
-                            : () => Navigator.of(context).pop(),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Clinical Trial Linking',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 24),
-
-                        // Title
-                        Text(
-                          'Enter Linking Code',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        // Description
-                        Text(
-                          'Please enter the 10-digit linking code provided by your research coordinator.',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.7),
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // Code input fields (XXXXX - XXXXX)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // First 5 characters
-                            Expanded(
-                              // CUR-1307: identified for Playwright web automation.
-                              child: Semantics(
-                                identifier: 'enroll-code1',
-                                textField: true,
-                                child: TextField(
-                                  controller: _code1Controller,
-                                  focusNode: _code1FocusNode,
-                                  enabled: !_isLoading,
-                                  textAlign: TextAlign.center,
-                                  textCapitalization:
-                                      TextCapitalization.characters,
-                                  // No hard maxLength: pasting the full code into
-                                  // this box spans both boxes (overflow flows into
-                                  // box 2 in _onCode1Changed). A hard cap here
-                                  // would silently truncate a full-code paste.
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        letterSpacing: 4,
-                                        fontWeight: FontWeight.bold,
-                                        fontFamily: 'monospace',
-                                      ),
-                                  decoration: InputDecoration(
-                                    hintText: 'XXXXX',
-                                    hintStyle: TextStyle(
-                                      letterSpacing: 4,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.3),
-                                    ),
-                                    counterText: '',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    filled: true,
-                                    fillColor: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                  ),
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.allow(
-                                      RegExp('[a-zA-Z0-9]'),
-                                    ),
-                                    UpperCaseTextFormatter(),
-                                  ],
-                                  onChanged: _onCode1Changed,
-                                ),
-                              ),
-                            ),
-
-                            // Dash separator
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              child: Text(
-                                '-',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.5),
-                                    ),
-                              ),
-                            ),
-
-                            // Second 5 characters
-                            Expanded(
-                              // CUR-1307: identified for Playwright web automation.
-                              child: Semantics(
-                                identifier: 'enroll-code2',
-                                textField: true,
-                                child: TextField(
-                                  controller: _code2Controller,
-                                  focusNode: _code2FocusNode,
-                                  enabled: !_isLoading,
-                                  textAlign: TextAlign.center,
-                                  textCapitalization:
-                                      TextCapitalization.characters,
-                                  maxLength: 5,
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        letterSpacing: 4,
-                                        fontWeight: FontWeight.bold,
-                                        fontFamily: 'monospace',
-                                      ),
-                                  decoration: InputDecoration(
-                                    hintText: 'XXXXX',
-                                    hintStyle: TextStyle(
-                                      letterSpacing: 4,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.3),
-                                    ),
-                                    counterText: '',
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    filled: true,
-                                    fillColor: Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                                  ),
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.allow(
-                                      RegExp('[a-zA-Z0-9]'),
-                                    ),
-                                    UpperCaseTextFormatter(),
-                                  ],
-                                  onChanged: _onCode2Changed,
-                                  onSubmitted: (_) => _enroll(),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        // Code format hint
-                        Text(
-                          'Code format: XXXXX-XXXXX (letters and numbers)',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.5),
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Linking consent checkbox (REQ-p00045)
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            border: Border.all(color: Colors.blue.shade200),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            children: [
-                              // Required: Consent to Clinical Trial Privacy Policy
-                              InkWell(
-                                onTap: _isLoading
-                                    ? null
-                                    : () => setState(
-                                        () => _hasAgreedToSharing =
-                                            !_hasAgreedToSharing,
-                                      ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Checkbox(
-                                      value: _hasAgreedToSharing,
-                                      onChanged: _isLoading
-                                          ? null
-                                          : (value) => setState(
-                                              () => _hasAgreedToSharing =
-                                                  value ?? false,
-                                            ),
-                                    ),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(top: 12),
-                                        child: Text.rich(
-                                          TextSpan(
-                                            style: TextStyle(
-                                              color: Colors.blue.shade800,
-                                              fontSize: 14,
-                                            ),
-                                            children: [
-                                              TextSpan(
-                                                text: AppLocalizations.of(
-                                                  context,
-                                                ).linkingConsentPrefix,
-                                              ),
-                                              TextSpan(
-                                                text: AppLocalizations.of(
-                                                  context,
-                                                ).privacyPolicy,
-                                                style: const TextStyle(
-                                                  decoration:
-                                                      TextDecoration.underline,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                                recognizer: TapGestureRecognizer()
-                                                  ..onTap =
-                                                      _openClinicalTrialPrivacyPolicy,
-                                              ),
-                                              TextSpan(
-                                                text: AppLocalizations.of(
-                                                  context,
-                                                ).linkingConsentSuffix,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Error message
-                        if (_errorMessage != null) ...[
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.errorContainer,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onErrorContainer,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onErrorContainer,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Enroll button
-                        FilledButton(
-                          onPressed: _isLoading || !_isComplete
-                              ? null
-                              : _enroll,
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.check, size: 20),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Link to Clinical Trial',
-                                      style: TextStyle(fontSize: 16),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            BrandHeader(
+              leading: Image.asset(
+                'assets/images/cure-hht-grey.png',
+                height: 42,
+                fit: BoxFit.contain,
+              ),
+              // Same hamburger menu as Home / Profile; **Join the Study**
+              // is hidden because we're already on the linking screen.
+              // **User Profile** is shown when the parent supplied
+              // [widget.onShowProfile], which owns the navigation (it has
+              // the enrollment data this screen lacks).
+              trailing: UserMenuButton(
+                onShowProfile: widget.onShowProfile,
+                onShowHelpCenter: _handleShowPrivacy,
+              ),
             ),
+            if (!_isLinked)
+              BackToHomeRow(
+                semanticId: 'enroll-back',
+                onBack: _isLoading ? null : () => Navigator.of(context).pop(),
+              ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                child: _isLinked
+                    ? const _LinkedSuccessPanel()
+                    : _buildForm(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final hasError = _errorMessage != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Page title — "Join the Study" (Figma h1, 32px / -0.22).
+        const Text(
+          'Join the Study',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w600,
+            height: 1.1,
+            letterSpacing: -0.22,
+            color: Color(0xFF04161E),
           ),
         ),
-        // Success dialog overlay
-        if (_showSuccessDialog)
-          // CUR-1307: identified for Playwright web automation.
-          Semantics(
-            identifier: 'enroll-success',
-            child: const ColoredBox(
-              color: Colors.black54,
-              child: Center(child: EnrollmentSuccessDialog()),
-            ),
+        const SizedBox(height: 32),
+
+        // Section heading — "Enter Linking Code" + description.
+        const Text(
+          'Enter Linking Code',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            height: 26.4 / 22,
+            letterSpacing: -0.44,
+            color: Color(0xFF04161E),
           ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Please enter the 10-digit linking code provided by your research coordinator.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: const Color(0xFF54636A),
+            height: 23.25 / 15,
+            letterSpacing: -0.22,
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // Code input — 2 × 5 segments with dash separator (Figma).
+        AppCodeInput(
+          controller: _codeController,
+          onChanged: _onCodeChanged,
+          onCompleted: (_) => _onCodeChanged(_codeController.text),
+          enabled: !_isLoading,
+          state: hasError ? AppCodeInputState.invalid : AppCodeInputState.idle,
+          helperText: 'Code format: XXXXX-XXXXX, letters and numbers',
+          errorText: _errorMessage,
+          semanticId: 'enroll-code',
+        ),
+
+        const SizedBox(height: 24),
+
+        // Consent — Privacy Policy link (Figma Primary-Light-Soft tile).
+        AppConsentRow(
+          value: _hasAgreedToSharing,
+          onChanged: _isLoading
+              ? null
+              : (v) => setState(() => _hasAgreedToSharing = v),
+          semanticId: 'enroll-consent',
+          bodyBuilder: (context, foreground) {
+            return Text.rich(
+              TextSpan(
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 15,
+                  height: 22.5 / 15,
+                  letterSpacing: -0.22,
+                ),
+                children: [
+                  TextSpan(text: l10n.linkingConsentPrefix),
+                  TextSpan(
+                    text: l10n.privacyPolicy,
+                    style: TextStyle(
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = _openClinicalTrialPrivacyPolicy,
+                  ),
+                  TextSpan(text: l10n.linkingConsentSuffix),
+                ],
+              ),
+            );
+          },
+        ),
+
+        const SizedBox(height: 24),
+
+        // Primary CTA — "Link to Clinical Trial" / "Linking…" while busy.
+        AppButton(
+          label: _isLoading ? 'Linking…' : 'Link to Clinical Trial',
+          variant: AppButtonVariant.primary,
+          size: AppButtonSize.large,
+          fullWidth: true,
+          onPressed: _isReadyToSubmit ? _enroll : null,
+          semanticId: 'enroll-submit',
+        ),
+
+        const SizedBox(height: 12),
+
+        // Helper text — "Contact your study site if you need help finding…".
+        Text(
+          'Contact your study site if you need help finding your linking code.',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: const Color(0xFF54636A),
+            height: 19.5 / 13,
+            fontSize: 13,
+            letterSpacing: -0.1,
+          ),
+        ),
       ],
     );
   }
 }
 
-/// Text input formatter that converts to uppercase
+/// Success state — "You're linked to the study" (Figma Linked frame).
+class _LinkedSuccessPanel extends StatelessWidget {
+  const _LinkedSuccessPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>()!;
+    return Semantics(
+      identifier: 'enroll-success',
+      container: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 48),
+          Center(
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: semantic.primaryLightSoft,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(Icons.person_outline, size: 60, color: cs.primary),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Center(
+            child: Text(
+              "You're linked\nto the study",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w600,
+                height: 1.1,
+                letterSpacing: -0.22,
+                color: Color(0xFF04161E),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Center(
+            child: Text(
+              'Your app is now connected to your clinical trial. You can start recording your data.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                height: 22.5 / 15,
+                letterSpacing: -0.22,
+                color: Color(0xFF54636A),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+          AppButton(
+            label: 'Continue',
+            variant: AppButtonVariant.primary,
+            size: AppButtonSize.large,
+            fullWidth: true,
+            onPressed: () => Navigator.of(context).pop(true),
+            semanticId: 'enroll-continue',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Text input formatter that converts to uppercase. Kept exported for
+/// backwards compatibility with consumers / tests that imported it from
+/// this file before the AppCodeInput migration.
 class UpperCaseTextFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(

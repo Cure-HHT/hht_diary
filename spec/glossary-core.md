@@ -207,7 +207,7 @@ Developer Admin
   only, with full audit trail logging of all access.
 : Context: internal operations only, not accessible to sponsors or
   clinical trial users.
-: See: ops-security.md for developer admin procedures.
+: See: docs/security-secret-management.md for developer admin procedures.
 : Indexed: false
 
 Diary

@@ -7,7 +7,8 @@
 #     PostgreSQL, no Firebase emulator)
 #   - portal_ui_evs (the live EVS portal UI): flutter analyze + test + coverage
 # The legacy raw-Postgres packages (portal_functions, portal_server) and the
-# legacy UI (portal-ui) were retired with the EVS cutover and are reference-only.
+# legacy UI (portal-ui) were removed from the repo in the EVS cleanup; this
+# workflow tests only the EVS stack.
 
 name: Sponsor Portal CI
 

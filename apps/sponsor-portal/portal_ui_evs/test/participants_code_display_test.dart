@@ -1,12 +1,19 @@
 // Verifies: DIARY-GUI-show-linking-code/A
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portal_ui_evs/src/activation_code_display.dart';
-import 'package:portal_ui_evs/src/participant_status.dart';
-import 'package:portal_ui_evs/src/participants_screen.dart';
+import 'package:portal_ui_evs/src/participants_screen_binding.dart';
 import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
+
+/// pumpReactionWidget wraps a bare MaterialApp (no kit theme); kit
+/// components null-assert the theme extensions.
+Widget _kitThemed(Widget child) => Theme(
+  data: buildAppTheme(font: AppFontFamily.inter),
+  child: child,
+);
 
 void main() {
   // ---- ActivationCodeDisplay widget ----
@@ -76,49 +83,29 @@ void main() {
     expect(find.textContaining('Expires'), findsOneWidget);
   });
 
-  // ---- Submission shape: issuing actions carry ONLY identity ----
+  // ---- expires-in label (Figma "Expires in 3 days, 0 hours") ----
 
-  test('issue/reconnect/reactivate submissions carry no client code', () {
-    for (final action in <ParticipantAction>[
-      ParticipantAction.issueLinkingCode,
-      ParticipantAction.reconnect,
-    ]) {
-      final sub = submissionForTest(
-        action,
-        siteId: 'S-1',
-        participantId: 'P-1',
-      )!;
-      expect(sub.input.keys.toSet(), <String>{
-        'siteId',
-        'participantId',
-      }, reason: '$action must submit only identity keys');
-      expect(sub.input.containsKey('linkingCode'), isFalse);
-      expect(sub.input.containsKey('expiresAt'), isFalse);
-    }
-
-    // reactivate keeps reason, but still no linkingCode/expiresAt.
-    final reactivate = submissionForTest(
-      ParticipantAction.reactivate,
-      siteId: 'S-1',
-      participantId: 'P-1',
-    )!;
-    expect(reactivate.input.keys.toSet(), <String>{
-      'siteId',
-      'participantId',
-      'reason',
-    });
-    expect(reactivate.input.containsKey('linkingCode'), isFalse);
-    expect(reactivate.input.containsKey('expiresAt'), isFalse);
+  test('expiresInLabel floors to days + hours and flags expiry', () {
+    final now = DateTime.utc(2026, 6, 1, 12);
+    expect(
+      expiresInLabel('2026-06-04T12:30:00.000Z', now),
+      'Expires in 3 days, 0 hours',
+    );
+    expect(
+      expiresInLabel('2026-06-01T18:00:00.000Z', now),
+      'Expires in 0 days, 6 hours',
+    );
+    expect(expiresInLabel('2026-06-01T11:00:00.000Z', now), 'Expired');
+    expect(expiresInLabel(null, now), '');
   });
 
-  // ---- KEY spec test: issuing surfaces the SERVER code ----
+  // ---- KEY spec test: linking surfaces the SERVER code, and the
+  // submission carries ONLY identity (the client never supplies the
+  // code or expiry) ----
 
-  testWidgets('issuing surfaces the SERVER-returned linking code', (
-    tester,
-  ) async {
+  testWidgets('Link Participant confirm dispatches identity-only and '
+      'surfaces the SERVER-returned linking code', (tester) async {
     final fake = FakeReaction();
-    // The server (not the client) generates the code; queue it as the
-    // action result the dispatcher returns on submit.
     fake.queueDispatchResult(
       const DispatchSuccess<Object?>(
         <String, Object?>{
@@ -130,36 +117,38 @@ void main() {
       ),
     );
 
-    // A notConnected participant: issueLinkingCode is the enabled action.
     await pumpReactionWidget(
       tester,
       fake: fake,
-      child: const Scaffold(
-        body: ActionBuilderHarness(siteId: 'S-1', participantId: 'P-1'),
+      child: _kitThemed(
+        const Scaffold(
+          body: LinkParticipantDialog(participantId: 'P-1', siteId: 'S-1'),
+        ),
       ),
     );
 
-    // The plain button is shown initially (no client-generated code).
+    // Confirm step first; no client-generated code anywhere.
     expect(find.text('CASERVER1'), findsNothing);
-
-    await tester.tap(find.text(ParticipantAction.issueLinkingCode.label));
+    await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
 
-    // After success, the SERVER code is surfaced inline.
+    // The SERVER code is surfaced (Figma: Mobile Linking Code dialog).
     expect(find.text('CASERVER1'), findsOneWidget);
     expect(find.byIcon(Icons.copy_outlined), findsOneWidget);
+    expect(find.textContaining('Expire'), findsWidgets);
+
+    // The submission carried ONLY identity keys.
+    final sub = fake.submittedActions.single;
+    expect(sub.actionName, 'ACT-PAT-001');
+    expect(sub.rawInput.keys.toSet(), <String>{'siteId', 'participantId'});
 
     await fake.dispose();
   });
 
-  testWidgets('issuing surfaces the code on an idempotency-hit replay', (
+  testWidgets('the code surfaces on an idempotency-hit replay too', (
     tester,
   ) async {
     final fake = FakeReaction();
-    // A double-tap / retry / same-key resubmit of an Idempotency.required
-    // action returns DispatchIdempotencyHit carrying the cached result.
-    // ActionBuilder maps it to the Success state (same as DispatchSuccess),
-    // so the cached code must surface inline too.
     fake.queueDispatchResult(
       const DispatchIdempotencyHit<Object?>(
         <String, Object?>{
@@ -174,19 +163,17 @@ void main() {
     await pumpReactionWidget(
       tester,
       fake: fake,
-      child: const Scaffold(
-        body: ActionBuilderHarness(siteId: 'S-1', participantId: 'P-1'),
+      child: _kitThemed(
+        const Scaffold(
+          body: LinkParticipantDialog(participantId: 'P-1', siteId: 'S-1'),
+        ),
       ),
     );
 
-    expect(find.text('CACACHED1'), findsNothing);
-
-    await tester.tap(find.text(ParticipantAction.issueLinkingCode.label));
+    await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
 
-    // The cached code is surfaced inline on the idempotency-hit replay.
     expect(find.text('CACACHED1'), findsOneWidget);
-    expect(find.byIcon(Icons.copy_outlined), findsOneWidget);
 
     await fake.dispose();
   });

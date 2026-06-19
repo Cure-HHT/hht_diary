@@ -4,6 +4,7 @@
 
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -45,11 +46,11 @@ void main() {
     }
 
     group('Basic Rendering', () {
-      testWidgets('displays title', (tester) async {
+      testWidgets('displays Join the Study title', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        expect(find.text('Clinical Trial Linking'), findsOneWidget);
+        expect(find.text('Join the Study'), findsOneWidget);
       });
 
       testWidgets('displays linking code title', (tester) async {
@@ -83,22 +84,21 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.text('Code format: XXXXX-XXXXX (letters and numbers)'),
+          find.text('Code format: XXXXX-XXXXX, letters and numbers'),
           findsOneWidget,
         );
       });
 
-      testWidgets('displays linking consent checkbox with Privacy Policy link', (
+      testWidgets('displays linking consent row with Privacy Policy link', (
         tester,
       ) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        // Only one checkbox remains after removing the optional share-prior-to-linking one
-        expect(find.byType(Checkbox), findsOneWidget);
-        // The consent text is now a RichText with "Privacy Policy" as a tappable link
+        // Single consent row via the design system AppConsentRow.
+        expect(find.byType(AppConsentRow), findsOneWidget);
+        // Consent text is a RichText with "Privacy Policy" as a tappable link.
         expect(find.byType(RichText), findsWidgets);
-        // Verify the consent text with clickable Privacy Policy link
         expect(
           find.textContaining('I have read, understand, and consent to the'),
           findsOneWidget,
@@ -126,11 +126,12 @@ void main() {
         expect(find.text('Link to Clinical Trial'), findsOneWidget);
       });
 
-      testWidgets('displays back button', (tester) async {
+      testWidgets('displays back-to-home affordance', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+        expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+        expect(find.text('Home'), findsOneWidget);
       });
     });
 
@@ -231,23 +232,31 @@ void main() {
     });
 
     group('Checkbox Interactions', () {
-      testWidgets('can toggle required consent checkbox', (tester) async {
+      testWidgets('can toggle required consent row', (tester) async {
         await tester.pumpWidget(buildScreen());
         await tester.pumpAndSettle();
 
-        // Find the required checkbox by its text
-        final requiredCheckbox = find.ancestor(
-          of: find.textContaining('I have read, understand'),
-          matching: find.byType(InkWell),
+        // Resting state: no check glyph rendered.
+        expect(
+          find.descendant(
+            of: find.byType(AppConsentRow),
+            matching: find.byIcon(Icons.check),
+          ),
+          findsNothing,
         );
 
-        await tester.tap(requiredCheckbox);
-        await tester.pump();
+        // Tap the consent row body.
+        await tester.tap(find.byType(AppConsentRow));
+        await tester.pumpAndSettle();
 
-        // The only checkbox should now be checked
-        final checkboxes = find.byType(Checkbox);
-        final consentCheckbox = tester.widget<Checkbox>(checkboxes.first);
-        expect(consentCheckbox.value, isTrue);
+        // Checked state: AppConsentRow renders an Icons.check glyph.
+        expect(
+          find.descendant(
+            of: find.byType(AppConsentRow),
+            matching: find.byIcon(Icons.check),
+          ),
+          findsOneWidget,
+        );
       });
     });
 
@@ -275,7 +284,7 @@ void main() {
         await tester.enterText(textFields.at(1), 'FGHIJ');
         await tester.pump();
 
-        // Don't check the consent checkbox
+        // Don't check the consent row
 
         final enrollButton = tester.widget<FilledButton>(
           find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
@@ -296,13 +305,9 @@ void main() {
         await tester.enterText(textFields.at(1), 'FGHIJ');
         await tester.pump();
 
-        // Check the consent checkbox
-        final requiredCheckbox = find.ancestor(
-          of: find.textContaining('I have read, understand'),
-          matching: find.byType(InkWell),
-        );
-        await tester.tap(requiredCheckbox);
-        await tester.pump();
+        // Check the consent row
+        await tester.tap(find.byType(AppConsentRow));
+        await tester.pumpAndSettle();
 
         final enrollButton = tester.widget<FilledButton>(
           find.widgetWithText(FilledButton, 'Link to Clinical Trial'),
@@ -312,9 +317,11 @@ void main() {
     });
 
     group('Linking Error Handling', () {
-      testWidgets('shows error message on linking failure', (tester) async {
+      testWidgets('shows invalid-code error caption on linking failure', (
+        tester,
+      ) async {
         final mockClient = MockClient((_) async {
-          return http.Response('{"error": "Invalid code"}', 400);
+          return http.Response('{"error": "Invalid linking code"}', 400);
         });
 
         await tester.pumpWidget(buildScreen(httpClient: mockClient));
@@ -326,13 +333,8 @@ void main() {
         await tester.pump();
         await tester.enterText(textFields.at(1), 'FGHIJ');
         await tester.pump();
-
-        final requiredCheckbox = find.ancestor(
-          of: find.textContaining('I have read, understand'),
-          matching: find.byType(InkWell),
-        );
-        await tester.tap(requiredCheckbox);
-        await tester.pump();
+        await tester.tap(find.byType(AppConsentRow));
+        await tester.pumpAndSettle();
 
         // Tap link button
         await tester.tap(
@@ -340,13 +342,18 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Should show error message
-        expect(find.byIcon(Icons.error_outline), findsOneWidget);
+        // The AppCodeInput flips to its `invalid` state and surfaces the
+        // server message as its errorText caption.
+        final codeInput = tester.widget<AppCodeInput>(
+          find.byType(AppCodeInput),
+        );
+        expect(codeInput.errorText, isNotNull);
+        expect(codeInput.state, AppCodeInputState.invalid);
       });
 
-      testWidgets('clears error message when code changes', (tester) async {
+      testWidgets('clears error caption when code changes', (tester) async {
         final mockClient = MockClient((_) async {
-          return http.Response('{"error": "Invalid code"}', 400);
+          return http.Response('{"error": "Invalid linking code"}', 400);
         });
 
         await tester.pumpWidget(buildScreen(httpClient: mockClient));
@@ -358,13 +365,8 @@ void main() {
         await tester.pump();
         await tester.enterText(textFields.at(1), 'FGHIJ');
         await tester.pump();
-
-        final requiredCheckbox = find.ancestor(
-          of: find.textContaining('I have read, understand'),
-          matching: find.byType(InkWell),
-        );
-        await tester.tap(requiredCheckbox);
-        await tester.pump();
+        await tester.tap(find.byType(AppConsentRow));
+        await tester.pumpAndSettle();
 
         // Tap link button to get error
         await tester.tap(
@@ -372,15 +374,16 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Verify error is shown
-        expect(find.byIcon(Icons.error_outline), findsOneWidget);
+        // Error caption is set
+        var codeInput = tester.widget<AppCodeInput>(find.byType(AppCodeInput));
+        expect(codeInput.errorText, isNotNull);
 
         // Change code to clear error
         await tester.enterText(textFields.first, 'XXXXX');
         await tester.pump();
 
-        // Error should be cleared
-        expect(find.byIcon(Icons.error_outline), findsNothing);
+        codeInput = tester.widget<AppCodeInput>(find.byType(AppCodeInput));
+        expect(codeInput.errorText, isNull);
       });
     });
 
@@ -421,7 +424,7 @@ void main() {
         await tester.tap(find.text('Open'));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.byIcon(Icons.arrow_back));
+        await tester.tap(find.byIcon(Icons.chevron_left));
         await tester.pumpAndSettle();
 
         expect(popped, isTrue);

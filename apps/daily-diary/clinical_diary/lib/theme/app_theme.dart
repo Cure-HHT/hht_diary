@@ -1,6 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
 //   REQ-d00004: Local-First Data Entry Implementation
 
+import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 
 /// App theme configuration
@@ -63,15 +64,40 @@ class AppTheme {
     return _buildDarkTheme(fontFamily: effectiveFontFamily);
   }
 
+  /// Page background — soft grey behind white cards, matching the Figma
+  /// "Sponsor Portal UI Pack" home screen.
+  static const Color pageBackgroundLight = Color(0xFFF4F6F8);
+
+  /// Row surface for "No records" / neutral data rows — Figma "Primary Bg"
+  /// (`#F7FAFB`). Drives `colorScheme.surfaceContainerLow`, which the DS
+  /// [EventListItem] resolves for both empty-state and finalised rows so the
+  /// two share one pale surface (only the left accent + glyph differ).
+  static const Color rowSurfaceLight = Color(0xFFF7FAFB);
+
   static ThemeData _buildLightTheme({String? fontFamily}) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       fontFamily: fontFamily,
+      // Register the design-system theme extensions so DS widgets (AppBanner,
+      // AppAlertRow, AppButton, AppExpansionTile, ...) can resolve their
+      // semantic/button colors. Without this, `theme.extension<AppSemanticColors>()!`
+      // inside those widgets blows up with a null-check error at first paint.
+      extensions: const <ThemeExtension<dynamic>>[
+        AppSemanticColors.light,
+        AppButtonColors.light,
+      ],
+      // Grey page bg with white cards — Figma "Your Records" pattern. AppCard
+      // and other DS surfaces read `colorScheme.surface`, so we force it to
+      // pure white here rather than the seed-tinted off-white the M3 generator
+      // returns; the page bg goes to `scaffoldBackgroundColor` below.
+      scaffoldBackgroundColor: pageBackgroundLight,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryTeal,
         brightness: Brightness.light,
         primary: primaryTeal,
+        surface: Colors.white,
+        surfaceContainerLow: rowSurfaceLight,
       ),
       appBarTheme: const AppBarTheme(
         centerTitle: true,
@@ -126,6 +152,10 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       fontFamily: fontFamily,
+      extensions: const <ThemeExtension<dynamic>>[
+        AppSemanticColors.dark,
+        AppButtonColors.dark,
+      ],
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryTeal,
         brightness: Brightness.dark,

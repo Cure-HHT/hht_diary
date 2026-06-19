@@ -173,8 +173,8 @@ This package is the **domain layer** in our three-layer architecture:
 ### Used By
 
 - **Client**: Flutter applications (clinical_diary)
-- **Server**: Supabase Edge Functions (Dart)
-- **Database**: PostgreSQL table definitions
+- **Server**: Dart server (portal_server_evs)
+- **Database**: Cloud SQL (PostgreSQL) event store
 
 ### Basis for PostgreSQL Tables
 

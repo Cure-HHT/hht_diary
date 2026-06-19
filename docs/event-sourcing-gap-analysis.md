@@ -20,7 +20,7 @@ EVS does not mandate per-event schema version identifiers or compatibility check
 
 > Every event SHALL include its schema version identifier; the library SHALL verify schema compatibility before deserializing and applying events during materialization.
 
-Candidate home: `event_sourcing/spec/prd-event-log.md` or a new `prd-schema-contract.md`.
+Candidate home: `event_sourcing/spec/prd-event-log.md`.
 
 ### Atomic multi-action / batch operations (was REQ-p01012)
 
@@ -36,7 +36,7 @@ EVS leaves event-type governance to the consuming application. The diary require
 
 > The library SHALL provide a registry of valid event types and versions; the dispatch flow SHALL reject actions that produce unregistered event types. The registry SHALL track deprecation and sunset metadata per type version.
 
-Candidate home: `event_sourcing/spec/prd-action-dispatch.md` or a new `prd-event-type-registry.md`. NOTE: the diary's REQ-p01050 mixed in sponsor-eligibility metadata (assertion F, P) which is clinical-domain leakage; the EVS version should drop those.
+Candidate home: `event_sourcing/spec/prd-action-dispatch.md`. NOTE: the diary's REQ-p01050 mixed in sponsor-eligibility metadata (assertion F, P) which is clinical-domain leakage; the EVS version should drop those.
 
 ### Observability hooks (was REQ-p01014)
 
@@ -52,7 +52,7 @@ EVS-PRD-regulatory-alignment covers integrity violations but not the full error 
 
 > The library SHALL classify failures into distinct categories (parse, validation, authorization, execution, conflict, storage) with distinct signaling so consumers can distinguish operational failure modes.
 
-Candidate home: `event_sourcing/spec/prd-regulatory-alignment.md` or a new `prd-error-handling.md`.
+Candidate home: `event_sourcing/spec/prd-regulatory-alignment.md`.
 
 ## Deferred to URS-Phase-3
 

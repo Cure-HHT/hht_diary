@@ -113,6 +113,9 @@ Future<EventStore> openPortalEventStore({
     ..register(userTierIndexSpec)
     ..register(participantSiteIndexSpec)
     ..register(linkingCodesSpec)
+    // Implements: DIARY-DEV-portal-activation-code-lifecycle/E — activation_codes
+    //   projects the durable keyed-hash lifecycle the ActivationCodeStore reads.
+    ..register(activationCodesSpec)
     ..register(sitesIndexSpec)
     ..register(participantRecordSpec)
     ..register(usersIndexSpec)

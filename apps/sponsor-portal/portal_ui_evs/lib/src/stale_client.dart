@@ -48,9 +48,16 @@ bool isClientStale({
 ///
 /// * not stale -> [StaleClientAction.none]
 /// * stale + authenticated -> [StaleClientAction.banner] (prompt, never auto)
-/// * stale + login screen, not yet auto-reloaded this session ->
-///   [StaleClientAction.reload]
-/// * stale + login screen, auto-reload ALREADY tried this session ->
+/// * stale + login screen AT BOOT, not yet auto-reloaded this session ->
+///   [StaleClientAction.reload] — the page just loaded, nothing can have
+///   been typed yet, so the reload is free.
+/// * stale + login screen AFTER boot (transport reconnect after a deploy,
+///   or a sign-in attempt) -> [StaleClientAction.banner]. The *User* may
+///   have credentials in the form or an authentication already in flight;
+///   an automatic reload here discards both and makes a deploy look like a
+///   failed login. A stale bundle signs in fine — the banner persists into
+///   the authenticated session for a reload at the *User*'s convenience.
+/// * stale + login screen at boot, auto-reload ALREADY tried this session ->
 ///   [StaleClientAction.banner] — the loop guard: a reload that returned a
 ///   still-stale bundle (e.g. a legacy service worker still controlling the
 ///   page) must surface the manual affordance instead of reloading forever.
@@ -60,6 +67,7 @@ StaleClientAction decideStaleClientAction({
   required String clientVersion,
   required Map<String, Object?> serverVersions,
   required bool authenticated,
+  required bool atBoot,
   required bool autoReloadAlreadyTried,
 }) {
   final stale = isClientStale(
@@ -68,6 +76,7 @@ StaleClientAction decideStaleClientAction({
   );
   if (!stale) return StaleClientAction.none;
   if (authenticated) return StaleClientAction.banner;
+  if (!atBoot) return StaleClientAction.banner;
   if (autoReloadAlreadyTried) return StaleClientAction.banner;
   return StaleClientAction.reload;
 }

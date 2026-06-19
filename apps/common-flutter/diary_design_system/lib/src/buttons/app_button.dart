@@ -16,6 +16,13 @@ enum AppButtonVariant {
 
   /// Filled with theme error. For Disconnect / Delete / irreversible actions.
   destructive,
+
+  /// Borderless 34-px pill used inside [AppSegmentedChoice] — white fill
+  /// + `onSurface` label when [AppButton.selected] is false, primary-
+  /// light fill + primary-light-soft label when selected. Ignores
+  /// [AppButtonSize] (always 34-px); `size` is honoured for the other
+  /// variants only.
+  segment,
 }
 
 enum AppButtonSize { small, medium, large }
@@ -45,6 +52,12 @@ class AppButton extends StatelessWidget {
   final IconData? leadingIcon;
   final IconData? trailingIcon;
 
+  /// Optional custom leading widget (e.g. a Figma-exported PNG via
+  /// [Image.asset]). Takes precedence over [leadingIcon] when both are set
+  /// — callers that need a sponsor-supplied glyph instead of a Material
+  /// icon pass this. Sized to the variant's icon dimension automatically.
+  final Widget? leadingWidget;
+
   /// Tap callback. When null AND [loading] is false, the button is disabled.
   final VoidCallback? onPressed;
 
@@ -68,16 +81,33 @@ class AppButton extends StatelessWidget {
   /// where [label] is null and the inner widgets have no readable text.
   final String? semanticLabel;
 
+  /// Only meaningful for [AppButtonVariant.segment] — toggles the
+  /// selected (primary-light fill) vs unselected (white fill) chrome.
+  /// Ignored for every other variant.
+  final bool selected;
+
+  /// When true, a label too wide for the button is scaled down (smaller font)
+  /// to fit on a single line instead of ellipsizing. Used for narrow equal-
+  /// width segments (e.g. "Don't remember" inside an [AppSegmentedChoice]) so
+  /// the full label stays readable at a smaller size rather than truncating to
+  /// "Don't re...". The button keeps its size; only the label font shrinks, and
+  /// only as much as needed (labels that already fit are unchanged). Defaults
+  /// to false so free-floating buttons keep their single-line ellipsis.
+  final bool shrinkLabelToFit;
+
   const AppButton({
     super.key,
     this.variant = AppButtonVariant.primary,
     this.size = AppButtonSize.medium,
     this.label,
     this.leadingIcon,
+    this.leadingWidget,
     this.trailingIcon,
     this.onPressed,
     this.loading = false,
     this.fullWidth = false,
+    this.selected = false,
+    this.shrinkLabelToFit = false,
     this.semanticLabel,
     this.semanticId,
   }) : assert(
@@ -104,7 +134,9 @@ class AppButton extends StatelessWidget {
     final effectiveOnPressed = _isEnabled ? onPressed : null;
 
     final Widget button = switch (variant) {
-      AppButtonVariant.primary || AppButtonVariant.destructive => FilledButton(
+      AppButtonVariant.primary ||
+      AppButtonVariant.destructive ||
+      AppButtonVariant.segment => FilledButton(
         onPressed: effectiveOnPressed,
         style: style,
         child: child,
@@ -228,17 +260,52 @@ class AppButton extends StatelessWidget {
         );
 
       case AppButtonVariant.tertiary:
+        // Bind to AppButtonColors.primary.background so tertiary text matches
+        // the primary button's fill exactly. Reading from cs.primary instead
+        // drifts whenever a host app overrides the ColorScheme seed without
+        // touching AppButtonColors (e.g. clinical_diary's teal seed paints
+        // tertiary in a lighter green-teal than the dark Carina primary).
+        final buttonColors = Theme.of(context).extension<AppButtonColors>()!;
+        final tertiaryColor = buttonColors.primary.background;
         return TextButton.styleFrom(
-          foregroundColor: cs.primary,
+          foregroundColor: tertiaryColor,
           padding: padding,
           shape: shape,
           minimumSize: minimumSize,
           // Inter Regular 14 / line-height 20 / letter-spacing -0.15.
-          textStyle: const TextStyle(
+          textStyle: TextStyle(
             fontWeight: FontWeight.w400,
+            color: tertiaryColor,
             fontSize: 14,
             height: 20 / 14,
             letterSpacing: -0.15,
+          ),
+        );
+
+      case AppButtonVariant.segment:
+        // Segment ignores `size` — always Figma 34-px pill with 12-px
+        // horizontal padding. Background + foreground swap on
+        // [selected]; no border in either state.
+        final semantic = Theme.of(context).extension<AppSemanticColors>()!;
+        final segBackground = selected ? semantic.primaryLight : cs.surface;
+        final segForeground = selected
+            ? semantic.primaryLightSoft
+            : cs.onSurface;
+        return FilledButton.styleFrom(
+          backgroundColor: segBackground,
+          foregroundColor: segForeground,
+          disabledBackgroundColor: segBackground.withValues(alpha: 0.4),
+          disabledForegroundColor: segForeground.withValues(alpha: 0.4),
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          shape: shape,
+          minimumSize: const Size(0, 34),
+          // Inter Medium 14 / line-height 21.25 / letter-spacing -0.2233.
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            height: 21.25 / 14,
+            letterSpacing: -0.2233,
           ),
         );
     }
@@ -274,16 +341,46 @@ class AppButton extends StatelessWidget {
       return Icon(leadingIcon, size: _iconSize);
     }
 
-    final hasLeading = leadingIcon != null;
+    final hasLeading = leadingWidget != null || leadingIcon != null;
     final hasTrailing = trailingIcon != null;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (hasLeading) ...[
-          Icon(leadingIcon, size: _iconSize),
+          SizedBox(
+            width: _iconSize,
+            height: _iconSize,
+            child: leadingWidget ?? Icon(leadingIcon, size: _iconSize),
+          ),
           SizedBox(width: SpacingTokens.sm),
         ],
-        Text(label ?? ''),
+        // Flexible so a label longer than the allocated width (e.g.
+        // "Don't remember" inside an AppSegmentedChoice column) is bounded
+        // by the button chrome instead of overflowing it. Flexible inside a
+        // `MainAxisSize.min` Row hugs by default and only shrinks when the
+        // parent imposes a tighter constraint — so this stays safe for
+        // free-floating buttons. With [shrinkLabelToFit] the label's font is
+        // scaled down to fit the available width on one line (full text stays
+        // readable at a smaller size, CUR-1491); otherwise it ellipsizes.
+        Flexible(
+          child: shrinkLabelToFit
+              ? FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: Text(
+                    label ?? '',
+                    maxLines: 1,
+                    softWrap: false,
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : Text(
+                  label ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+        ),
         if (hasTrailing) ...[
           SizedBox(width: SpacingTokens.sm),
           Icon(trailingIcon, size: _iconSize),
@@ -303,7 +400,10 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.destructive:
         return cs.onError;
       case AppButtonVariant.tertiary:
-        return cs.primary;
+        return buttonColors!.primary.background;
+      case AppButtonVariant.segment:
+        final semantic = Theme.of(context).extension<AppSemanticColors>()!;
+        return selected ? semantic.primaryLightSoft : cs.onSurface;
     }
   }
 }

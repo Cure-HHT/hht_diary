@@ -3,12 +3,28 @@
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
+import 'package:diary_design_system/diary_design_system.dart' as ds;
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers/diary_entry_factory.dart';
 import '../helpers/test_helpers.dart';
+
+/// Background colour of the design-system row's outer surface — the first
+/// [DecoratedBox] under [ds.EventListItem]. The neutral tone maps to
+/// `colorScheme.surfaceContainerLow` (AppTheme.rowSurfaceLight).
+Color? rowSurfaceColor(WidgetTester tester) {
+  final box = tester.widget<DecoratedBox>(
+    find
+        .descendant(
+          of: find.byType(ds.EventListItem),
+          matching: find.byType(DecoratedBox),
+        )
+        .first,
+  );
+  return (box.decoration as BoxDecoration).color;
+}
 
 void main() {
   group('EventListItem', () {
@@ -135,8 +151,9 @@ void main() {
       expect(find.text('2h'), findsOneWidget);
     });
 
-    // CUR-443: Incomplete indicator is now edit icon, not text badge
-    testWidgets('shows edit icon for incomplete records', (tester) async {
+    // CUR-1311: Incomplete records render an "Incomplete" pill (info icon +
+    // label) in the trailing slot.
+    testWidgets('shows Incomplete pill for incomplete records', (tester) async {
       final view = buildEpistaxisView(
         startTime: DateTime(2024, 1, 15, 10, 30),
         isComplete: false,
@@ -145,10 +162,13 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+      expect(find.text('Incomplete'), findsOneWidget);
+      expect(find.byIcon(Icons.info_outline), findsOneWidget);
     });
 
-    testWidgets('does not show edit icon for complete records', (tester) async {
+    testWidgets('does not show Incomplete pill for complete records', (
+      tester,
+    ) async {
       final view = buildEpistaxisView(
         startTime: DateTime(2024, 1, 15, 10, 30),
         endTime: DateTime(2024, 1, 15, 10, 45),
@@ -158,10 +178,16 @@ void main() {
       await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.edit_outlined), findsNothing);
+      expect(find.text('Incomplete'), findsNothing);
+      expect(find.byIcon(Icons.info_outline), findsNothing);
     });
 
-    testWidgets('shows chevron icon when onTap is provided', (tester) async {
+    // CUR-1311: Epistaxis rows show no chevron — the whole row is the tap
+    // affordance. CUR-1491: recorded day-marker rows also show no chevron —
+    // they render in the minimal muted "No records"-style row regardless of
+    // whether an onTap is wired.
+    testWidgets('does not show chevron icon on epistaxis rows even when '
+        'onTap is provided', (tester) async {
       final view = buildEpistaxisView(
         startTime: DateTime(2024, 1, 15, 10, 30),
         isComplete: false,
@@ -172,18 +198,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsNothing);
     });
 
-    testWidgets('does not show chevron icon when onTap is null', (
-      tester,
-    ) async {
-      final view = buildEpistaxisView(
-        startTime: DateTime(2024, 1, 15, 10, 30),
-        isComplete: false,
+    testWidgets('does not show chevron icon on marker rows even when '
+        'onTap is provided (minimal muted row)', (tester) async {
+      final view = buildDayMarkerView(
+        date: '2024-01-15',
+        entryType: 'no_epistaxis_event',
       );
 
-      await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
+      await tester.pumpWidget(
+        wrapWithScaffold(EventListItem(view: view, onTap: () {})),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.chevron_right), findsNothing);
@@ -207,13 +234,13 @@ void main() {
       expect(tapped, true);
     });
 
-    testWidgets('renders as a Card', (tester) async {
+    testWidgets('renders through the design-system row', (tester) async {
       final view = buildEpistaxisView(startTime: testDate, isComplete: false);
 
       await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
       await tester.pumpAndSettle();
 
-      expect(find.byType(Card), findsOneWidget);
+      expect(find.byType(ds.EventListItem), findsOneWidget);
     });
 
     testWidgets('displays intensity as image not bar', (tester) async {
@@ -262,18 +289,6 @@ void main() {
     });
 
     group('No Nosebleeds event card', () {
-      testWidgets('displays green checkmark icon', (tester) async {
-        final view = buildDayMarkerView(
-          date: '2024-01-15',
-          entryType: 'no_epistaxis_event',
-        );
-
-        await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
-        await tester.pumpAndSettle();
-
-        expect(find.byIcon(Icons.check_circle), findsOneWidget);
-      });
-
       testWidgets('displays "No nosebleeds" title', (tester) async {
         final view = buildDayMarkerView(
           date: '2024-01-15',
@@ -286,7 +301,11 @@ void main() {
         expect(find.text('No nosebleeds'), findsOneWidget);
       });
 
-      testWidgets('displays confirmation subtitle', (tester) async {
+      // CUR-1491: minimal muted "No records"-style row — label only, no icon
+      // and no secondary subtitle.
+      testWidgets('renders the minimal row: no icon, no subtitle', (
+        tester,
+      ) async {
         final view = buildDayMarkerView(
           date: '2024-01-15',
           entryType: 'no_epistaxis_event',
@@ -295,10 +314,14 @@ void main() {
         await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
         await tester.pumpAndSettle();
 
-        expect(find.text('Confirmed no events for this day'), findsOneWidget);
+        expect(find.byIcon(Icons.check_circle_outline), findsNothing);
+        expect(find.text('Confirmed no events for this day'), findsNothing);
       });
 
-      testWidgets('has green background', (tester) async {
+      // CUR-1311: Marker rows render on the neutral tone surface
+      // (colorScheme.surfaceContainerLow = AppTheme.rowSurfaceLight), not a
+      // green-tinted Card.
+      testWidgets('renders on the neutral row surface', (tester) async {
         final view = buildDayMarkerView(
           date: '2024-01-15',
           entryType: 'no_epistaxis_event',
@@ -307,8 +330,7 @@ void main() {
         await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
         await tester.pumpAndSettle();
 
-        final card = tester.widget<Card>(find.byType(Card));
-        expect(card.color, Colors.green.shade50);
+        expect(rowSurfaceColor(tester), const Color(0xFFF7FAFB));
       });
     });
 
@@ -370,8 +392,8 @@ void main() {
       });
     });
 
-    group('Unknown event card', () {
-      testWidgets('displays yellow question mark icon', (tester) async {
+    group("Don't remember event card", () {
+      testWidgets('displays "Don\'t remember" title', (tester) async {
         final view = buildDayMarkerView(
           date: '2024-01-15',
           entryType: 'unknown_day_event',
@@ -380,10 +402,17 @@ void main() {
         await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
         await tester.pumpAndSettle();
 
-        expect(find.byIcon(Icons.help_outline), findsOneWidget);
+        expect(find.text("Don't remember"), findsOneWidget);
+        // CUR-1491: the recorded "don't remember" status reads "Don't remember"
+        // (the participant's action), not "Unknown".
+        expect(find.text('Unknown'), findsNothing);
       });
 
-      testWidgets('displays "Unknown" title', (tester) async {
+      // CUR-1491: minimal muted "No records"-style row — label only, no icon
+      // and no secondary subtitle.
+      testWidgets('renders the minimal row: no icon, no subtitle', (
+        tester,
+      ) async {
         final view = buildDayMarkerView(
           date: '2024-01-15',
           entryType: 'unknown_day_event',
@@ -392,10 +421,14 @@ void main() {
         await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
         await tester.pumpAndSettle();
 
-        expect(find.text('Unknown'), findsOneWidget);
+        expect(find.byIcon(Icons.help_outline), findsNothing);
+        expect(find.text('Unable to recall events for this day'), findsNothing);
       });
 
-      testWidgets('displays unable to recall subtitle', (tester) async {
+      // CUR-1311: Marker rows render on the neutral tone surface
+      // (colorScheme.surfaceContainerLow = AppTheme.rowSurfaceLight), not a
+      // yellow-tinted Card.
+      testWidgets('renders on the neutral row surface', (tester) async {
         final view = buildDayMarkerView(
           date: '2024-01-15',
           entryType: 'unknown_day_event',
@@ -404,23 +437,7 @@ void main() {
         await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
         await tester.pumpAndSettle();
 
-        expect(
-          find.text('Unable to recall events for this day'),
-          findsOneWidget,
-        );
-      });
-
-      testWidgets('has yellow background', (tester) async {
-        final view = buildDayMarkerView(
-          date: '2024-01-15',
-          entryType: 'unknown_day_event',
-        );
-
-        await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
-        await tester.pumpAndSettle();
-
-        final card = tester.widget<Card>(find.byType(Card));
-        expect(card.color, Colors.yellow.shade50);
+        expect(rowSurfaceColor(tester), const Color(0xFFF7FAFB));
       });
     });
 
@@ -490,7 +507,7 @@ void main() {
         }
       }
 
-      testWidgets('incomplete row (edit + overlap icons) fits 360dp @ 2x', (
+      testWidgets('incomplete row (pill + overlap icon) fits 360dp @ 2x', (
         tester,
       ) async {
         final view = buildEpistaxisView(

@@ -49,8 +49,11 @@ Future<void> main(List<String> args) async {
   );
   stdout.writeln(
       'portal_server_evs listening on http://localhost:${server.port}');
-  stdout.writeln(
-      '  seeded: admin-1 (Administrator), sc-1 (StudyCoordinator @ site-1)');
+  final seedPath = Platform.environment['PORTAL_SEED_USERS_PATH'];
+  stdout.writeln(seedPath != null && seedPath.trim().isNotEmpty
+      ? '  role seed: $seedPath'
+      : '  role seed: in-code convenience seed '
+          '(admin-1, sc-1, cra-1, multi-1, sysop-1)');
 
   Future<void> shutdown() async {
     await server.close(force: true);

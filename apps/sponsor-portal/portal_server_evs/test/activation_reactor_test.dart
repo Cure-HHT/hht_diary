@@ -2,6 +2,8 @@ import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_identity/portal_identity.dart';
 import 'package:portal_server_evs/src/activation_code_store.dart';
 import 'package:portal_server_evs/src/activation_reactor.dart';
+import 'package:portal_service/portal_service.dart';
+import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
 class _CaptureTransport implements EmailTransport {
@@ -24,9 +26,24 @@ class _ThrowingTransport implements EmailTransport {
 }
 
 void main() {
+  late EventStore eventStore;
+
+  setUp(() async {
+    final db = await newDatabaseFactoryMemory().openDatabase('ar.db');
+    eventStore =
+        await openPortalEventStore(backend: SembastBackend(database: db));
+    addTearDown(() => eventStore.close());
+  });
+
+  ActivationCodeStore newStore(String code) => ActivationCodeStore(
+        eventStore: eventStore,
+        pepper: 'test-pepper',
+        codeGen: () => code,
+      );
+
   test('on user_activation_code_issued: mints a code and emails the link',
       () async {
-    final store = ActivationCodeStore(codeGen: () => 'AB-CD');
+    final store = newStore('AB-CD');
     final transport = _CaptureTransport();
     final reactor = ActivationReactor(
       store: store,
@@ -59,7 +76,7 @@ void main() {
       contains('https://portal.test/?code=AB-CD'),
     );
     expect(
-      store.validate('AB-CD', now: DateTime.utc(2026, 6, 2))?.email,
+      (await store.validate('AB-CD', now: DateTime.utc(2026, 6, 2)))?.email,
       'jane@site.org',
     );
   });
@@ -69,7 +86,7 @@ void main() {
   // portal). The code is still minted so activation works via retry/console.
   test('email delivery failure is swallowed; the code is still minted',
       () async {
-    final store = ActivationCodeStore(codeGen: () => 'XY-ZZ');
+    final store = newStore('XY-ZZ');
     final reactor = ActivationReactor(
       store: store,
       emailSender: ActivationEmailSender(transport: _ThrowingTransport()),
@@ -93,7 +110,7 @@ void main() {
     // And the activation code is still valid — delivery failure doesn't block
     // the participant/admin from activating with the code.
     expect(
-      store.validate('XY-ZZ', now: DateTime.utc(2026, 6, 2))?.email,
+      (await store.validate('XY-ZZ', now: DateTime.utc(2026, 6, 2)))?.email,
       'jane@site.org',
     );
   });

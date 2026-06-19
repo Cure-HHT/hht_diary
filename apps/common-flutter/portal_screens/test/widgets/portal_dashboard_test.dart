@@ -198,4 +198,29 @@ void main() {
       },
     );
   });
+
+  group('PortalDashboard — bodyOverride', () {
+    testWidgets('override renders instead of the active body; tapping the '
+        'active tab fires onDestinationChanged to dismiss it', (tester) async {
+      final changes = <String>[];
+      await _pumpDashboard(
+        tester,
+        PortalDashboard(
+          appBar: _stubAppBar(),
+          destinations: _stubDestinations(),
+          bodyOverride: const Text('settings-body'),
+          onDestinationChanged: changes.add,
+        ),
+      );
+      expect(find.text('settings-body'), findsOneWidget);
+      expect(find.text('users-body'), findsNothing);
+
+      // Re-tapping the (already-active) first tab must fire the callback
+      // so the owner can clear the override — the normal same-key
+      // short-circuit doesn't apply while an override shows.
+      await tester.tap(find.text('Users'));
+      await tester.pump();
+      expect(changes, ['users']);
+    });
+  });
 }

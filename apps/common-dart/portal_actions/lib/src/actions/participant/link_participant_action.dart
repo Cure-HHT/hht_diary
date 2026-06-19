@@ -29,6 +29,11 @@ class LinkParticipantResult {
   };
 }
 
+/// Validity window for an issued linking code. Single source for the
+/// expiry the action stamps and for read-only surfaces that report it
+/// (the portal's GET /config/study).
+const Duration linkingCodeTtl = Duration(hours: 72);
+
 /// ACT-PAT-001: issue a linking code so a participant can associate their
 /// device with this trial site. Emits `participant_linking_code_issued`.
 class LinkParticipantAction
@@ -101,7 +106,7 @@ class LinkParticipantAction
     final code = generateLinkingCode(prefix: linkingPrefix);
     final expiresAt = ctx.requestStartedAt
         .toUtc()
-        .add(const Duration(hours: 72))
+        .add(linkingCodeTtl)
         .toIso8601String();
     return ExecutionResult<LinkParticipantResult>(
       result: LinkParticipantResult(
