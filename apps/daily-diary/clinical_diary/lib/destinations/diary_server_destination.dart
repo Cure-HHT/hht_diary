@@ -1,8 +1,6 @@
-// End-state NATIVE outbound destination for the diary clinical entries.
+// Native outbound destination for the diary clinical entries.
 //
-// Unlike the transitional `LegacySyncDestination` (which hand-translates
-// canonical events into the legacy `/api/v1/user/sync` wire shape), this
-// destination ships the library's CANONICAL `esd/batch@1` `BatchEnvelope`
+// This destination ships the library's CANONICAL `esd/batch@1` `BatchEnvelope`
 // bytes verbatim to a diary-server event-sourcing ingest. Because both nodes
 // run on `event_sourcing`, there is no wire translation: `serializesNatively`
 // is `true`, the library's drain reconstructs the canonical envelope, and

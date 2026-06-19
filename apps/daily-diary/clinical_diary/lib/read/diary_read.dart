@@ -2,8 +2,7 @@
 //   Refines: DIARY-PRD-epistaxis-capture-standard
 //
 // Per-app diary read layer (A4): typed rows + pure query logic over the shared
-// canonical `diary_entries` projection, reproducing the legacy DiaryEntryReader
-// semantics so they can be differentially compared against it. The canonical
+// canonical `diary_entries` projection. The canonical
 // view holds only FINALIZED entries (checkpoints are diary-local, frozen P6), so
 // every row here is complete; the `incomplete` day-status therefore comes from
 // the diary-local set of aggregates that have an open checkpoint, passed in

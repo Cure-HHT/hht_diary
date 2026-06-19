@@ -8,11 +8,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Performs a full local factory reset: wipes ALL on-device diary state so the
 /// app returns to its first-launch condition.
 ///
-/// **Precondition:** the EventStores backing both Sembast stores
-/// (`diary_es.db` and `diary.db`) MUST already be CLOSED before calling this.
-/// Sembast holds the database file open while a `Database` is live, so the
-/// caller is responsible for disposing the `DiaryScopeRuntime` /
-/// `ClinicalDiaryRuntime` (which closes their stores) BEFORE invoking
+/// **Precondition:** the EventStore backing the Sembast store (`diary_es.db`)
+/// MUST already be CLOSED before calling this. Sembast holds the database file
+/// open while a `Database` is live, so the caller is responsible for disposing
+/// the `DiaryScopeRuntime` (which closes its store) BEFORE invoking
 /// [wipeLocalData]. Deleting an open file silently fails (or leaks a handle) on
 /// some platforms.
 ///
@@ -22,13 +21,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// after this returns.
 ///
 /// Steps:
-/// 1. Delete the new-stack event store `diary_es.db`.
-/// 2. Delete the legacy store `diary.db` (surveys live here too).
-/// 3. Clear secure storage except the stable install id
+/// 1. Delete the event store `diary_es.db`.
+/// 2. Clear secure storage except the stable install id
 ///    ([EnrollmentService.clearSecureStorageForFactoryReset] — drops
-///    enrollment, the session JWT, and legacy `auth_*` keys, keeps `app_uuid`).
-/// 4. Clear cached tasks ([TaskService.clearAll]).
-/// 5. Clear ALL SharedPreferences ([SharedPreferences.clear]) — wipes the
+///    enrollment, the session JWT, and `auth_*` keys, keeps `app_uuid`).
+/// 3. Clear cached tasks ([TaskService.clearAll]).
+/// 4. Clear ALL SharedPreferences ([SharedPreferences.clear]) — wipes the
 ///    device id, disconnection / not-participating flags, and any other diary
 ///    prefs, so re-init mints a fresh device id.
 // Implements: DIARY-BASE-local-data-reset/A
@@ -38,17 +36,15 @@ Future<void> wipeLocalData({
   required TaskService taskService,
   required SharedPreferences prefs,
 }) async {
-  // 1 + 2: delete the store files. Guard with existsSync and isolate each
-  // delete so a missing/locked file does not abort the rest of the wipe.
-  for (final fileName in const ['diary_es.db', 'diary.db']) {
-    try {
-      final file = File('$documentsPath/$fileName');
-      if (file.existsSync()) {
-        await file.delete();
-      }
-    } catch (e, stack) {
-      debugPrint('[LocalDataReset] delete($fileName) failed: $e\n$stack');
+  // 1: delete the event store file. Guard with existsSync so a missing/locked
+  // file does not abort the rest of the wipe.
+  try {
+    final file = File('$documentsPath/diary_es.db');
+    if (file.existsSync()) {
+      await file.delete();
     }
+  } catch (e, stack) {
+    debugPrint('[LocalDataReset] delete(diary_es.db) failed: $e\n$stack');
   }
 
   // 3: clear secure storage except the stable install id (app_uuid).
