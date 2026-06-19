@@ -58,6 +58,9 @@ Progress Indicator
 Time Picker
 : The time selection component presenting the current time as default, a date selector, a timezone selector, and minute adjustment controls of -15, -5, -1, +1, +5, and +15 minutes.
 
+Max Intensity
+: The peak **Intensity** recorded for an **Epistaxis Event** during the nosebleed recording flow.
+
 ### Assertions
 
 **Flow Structure**

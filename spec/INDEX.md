@@ -33,11 +33,11 @@
 | DIARY-PRD-incomplete-entry-preservation          | Incomplete Entry Preservation                       | prd-epistaxis.md                          | d8cd5a0c |
 | DIARY-PRD-linking-code-entry-errors              | Linking Code Entry Error Handling                   | prd-device-linking.md                     | dc87b4cf |
 | DIARY-PRD-linking-code-lifecycle                 | Linking Code Lifecycle Management                   | prd-participant.md                        | 6143a7c2 |
-| DIARY-PRD-mobile-application                     | Diary Mobile Application                            | prd-mobile-app.md                         | 910bb065 |
+| DIARY-PRD-mobile-application                     | Diary Mobile Application                            | prd-mobile-app.md                         | aa9928f9 |
 | DIARY-PRD-mobile-offline-first                   | Offline-First Data Entry                            | prd-mobile-app.md                         | ab325a3c |
 | DIARY-PRD-notification-behavior                  | Notification Behavior                               | prd-notification-behavior.md              | 8f7b4f54 |
 | DIARY-PRD-notification-disconnection             | Disconnection Notification                          | prd-mobile-notifications.md               | ac967ad3 |
-| DIARY-PRD-notification-historical-gap            | Historical Gap Reminder                             | prd-mobile-notifications.md               | 176f4250 |
+| DIARY-PRD-notification-historical-gap            | Historical Gap Reminder                             | prd-mobile-notifications.md               | 67c5f4d9 |
 | DIARY-PRD-notification-incomplete-record-lock    | Incomplete Record Lock Warning Notification         | prd-mobile-notifications.md               | 33c1d5d9 |
 | DIARY-PRD-notification-ongoing-epistaxis         | Ongoing Epistaxis Event Reminder                    | prd-mobile-notifications.md               | 65bce7fa |
 | DIARY-PRD-notification-portal-sent-questionnaire | Assigned Questionnaire Notification                 | prd-mobile-notifications.md               | 238b9aa8 |

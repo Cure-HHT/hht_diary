@@ -694,6 +694,10 @@ data collection procedures.
 : The Action a Study Coordinator performs to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status, transitioning the **Participant** to **Pending**.
 *Defined in: DIARY-GUI-link-participant-flow (DIARY)*
 
+**Linked use mode**
+: The **Mobile Application** connected to a **Sponsor Portal**, operating as the electronic source (eSource) for the clinical trial.
+*Defined in: DIARY-PRD-mobile-application (DIARY)*
+
 **Linking Code**
 : A unique, cryptographically random 10-character code used to securely
 connect a user's mobile Diary to a service. In clinical trial
@@ -738,6 +742,10 @@ See: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078
 **Main Screen**
 : The default screen displayed to the **Participant** upon opening the **Mobile Application**.
 *Defined in: DIARY-GUI-main-screen-layout (DIARY)*
+
+**Max Intensity**
+: The peak **Intensity** recorded for an **Epistaxis Event** during the nosebleed recording flow.
+*Defined in: DIARY-GUI-epistaxis-record (DIARY)*
 
 **Mobile Application**
 : The *Mobile Application* (iOS and Android) operates in personal use mode with no account required, or in linked use mode connected to a **Sponsor Portal**.
@@ -846,6 +854,10 @@ healthcare providers.
 Avoid: "Subject" (outdated, depersonalizing).
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
+**Personal use mode**
+: The **Mobile Application** operating with no account, storing all data locally for private health tracking outside any clinical trial.
+*Defined in: DIARY-PRD-mobile-application (DIARY)*
+
 **PHI (Protected Health Information)** *(not indexed)*
 : Any individually identifiable health information protected under HIPAA
 (name, dates, contact information, medical record numbers, health data
@@ -915,6 +927,10 @@ ePROs.
 *Defined in: DIARY-PRD-questionnaire-system (DIARY)*
 
 ## R
+
+**Rate Limit**
+: The mechanism that caps repeated failed attempts within a window, governed by the **Rate Limit Threshold** and **Rate Limit Cooldown**.
+*Defined in: DIARY-PRD-linking-code-entry-errors (DIARY)*
 
 **Rate Limit Cooldown**
 : The configurable duration after which the rate limit counter resets and the **User** may attempt linking again.
@@ -1143,6 +1159,10 @@ with the system, identified by a unique Email Address and bound to one
 or more Roles.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
+**User Profile**
+: The screen in the **Mobile Application** showing the **Participant**'s study participation details and settings.
+*Defined in: DIARY-GUI-user-profile (DIARY)*
+
 **User Profile Screen**
 : The screen accessible from the **Application Menu** that displays the **Participant**'s study participation status and application settings.
 *Defined in: DIARY-GUI-user-profile (DIARY)*
@@ -1168,6 +1188,10 @@ Displayed in the user's local time zone in the Diary app and Portal.
 
 **Yesterday Confirmation Prompt**
 : An inline prompt displayed within the **Your Records** content area under the Yesterday date section when the **Participant** has not recorded a **Daily Status** for the previous day.
+*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
+
+**Your Records**
+: The zone on the **Mobile Application** **Main Screen** that displays the **Participant**'s recorded diary entries.
 *Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
 # References

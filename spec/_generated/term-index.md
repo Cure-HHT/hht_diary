@@ -1278,7 +1278,6 @@
 - DIARY-GUI-epistaxis-record-I
 - rem:spec/prd-epistaxis.md:3
 - DIARY-PRD-epistaxis-capture-standard:section:1
-- DIARY-GUI-epistaxis-record:section:0
 - DIARY-GUI-epistaxis-record:section:5
 
 ## Investigator
@@ -1305,6 +1304,16 @@
 **DIARY:**
 
 - DIARY-GUI-link-participant-flow
+
+## Linked use mode
+
+**DIARY:**
+
+- DIARY-PRD-mobile-application-C
+- DIARY-PRD-notification-historical-gap-E
+- DIARY-PRD-notification-historical-gap-H
+- DIARY-GUI-linking-confirmation:section:0
+- DIARY-PRD-mobile-application:section:0
 
 ## Linking Code
 
@@ -1425,6 +1434,12 @@
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
 - DIARY-PRD-notification-yesterday-entry:section:0
 - DIARY-PRD-notification-behavior:section:4
+
+## Max Intensity
+
+**DIARY:**
+
+- DIARY-GUI-epistaxis-record:section:0
 
 ## Mobile Application
 
@@ -2186,6 +2201,20 @@
 - DIARY-PRD-questionnaire-localization:section:0
 - DIARY-PRD-sla-incident-severity:section:0
 
+## Personal use mode
+
+**DIARY:**
+
+- DIARY-PRD-mobile-application-C
+- DIARY-PRD-mobile-application-D
+- DIARY-PRD-mobile-application-E
+- DIARY-PRD-notification-historical-gap-F
+- DIARY-PRD-notification-historical-gap-G
+- DIARY-GUI-linking-confirmation:section:0
+- DIARY-PRD-mobile-application:section:0
+- DIARY-PRD-user-authentication:section:0
+- DIARY-GUI-user-authentication:section:3
+
 ## PII
 
 **DIARY:**
@@ -2488,6 +2517,13 @@
 - DIARY-PRD-questionnaire-sponsor-configuration:section:1
 - DIARY-PRD-questionnaire-change-control:section:1
 - DIARY-PRD-questionnaire-score-calculation:section:1
+
+## Rate Limit
+
+**DIARY:**
+
+- DIARY-PRD-linking-code-entry-errors-D
+- DIARY-PRD-linking-code-entry-errors:section:4
 
 ## Rate Limit Cooldown
 
@@ -3613,7 +3649,6 @@
 - DIARY-BASE-portal-stale-client-reload-A
 - DIARY-BASE-portal-stale-client-reload-B
 - DIARY-BASE-portal-stale-client-reload-C
-- DIARY-GUI-linking-confirmation-B
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-help-resources-C
 - DIARY-PRD-help-resources-D
@@ -3621,16 +3656,13 @@
 - DIARY-PRD-mobile-application-E
 - DIARY-PRD-mobile-application-F
 - DIARY-PRD-diary-start-day-A
-- DIARY-GUI-user-authentication-A
 - DIARY-PRD-device-health-diagnostics-A
 - DIARY-PRD-device-health-diagnostics-D
 - DIARY-GUI-service-mode-entry-A
 - DIARY-GUI-mobile-navigation-D
 - DIARY-GUI-mobile-navigation-F
-- DIARY-GUI-user-profile-A
 - DIARY-GUI-user-profile-B
 - DIARY-GUI-user-profile-C
-- DIARY-GUI-user-profile-E
 - DIARY-GUI-user-profile-F
 - DIARY-GUI-user-profile-G
 - DIARY-GUI-user-profile-H
@@ -3728,9 +3760,7 @@
 - DIARY-PRD-device-health-diagnostics:section:1
 - DIARY-GUI-service-mode-entry:section:0
 - DIARY-GUI-service-mode-entry:section:1
-- rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-mobile-navigation:section:3
-- DIARY-GUI-user-profile:section:0
 - DIARY-GUI-user-profile:section:4
 - DIARY-GUI-participation-status-badge:section:6
 - DIARY-PRD-notification-historical-gap:section:5
@@ -3865,6 +3895,24 @@
 - DIARY-GUI-administrator-dashboard:section:0
 - DIARY-GUI-administrator-dashboard:section:4
 
+## User Profile
+
+**DIARY:**
+
+- DIARY-GUI-linking-confirmation-B
+- DIARY-GUI-user-authentication-A
+- DIARY-GUI-user-profile-A
+- DIARY-GUI-user-profile-C
+- DIARY-GUI-user-profile-E
+- DIARY-GUI-user-profile-F
+- DIARY-GUI-user-profile-G
+- DIARY-GUI-user-profile-H
+- DIARY-GUI-user-profile-I
+- DIARY-GUI-linking-confirmation:section:1
+- rem:spec/prd-mobile-navigation.md:3
+- DIARY-GUI-user-profile:section:0
+- DIARY-GUI-user-profile:section:4
+
 ## User Profile Screen
 
 **DIARY:**
@@ -3925,5 +3973,18 @@
 - DIARY-GUI-main-screen-layout-N
 - DIARY-GUI-main-screen-layout-O
 - DIARY-GUI-main-screen-layout-P
+- DIARY-GUI-main-screen-layout:section:5
+- DIARY-GUI-participant-task-list:section:5
+
+## Your Records
+
+**DIARY:**
+
+- DIARY-GUI-main-screen-layout-A
+- DIARY-GUI-main-screen-layout-H
+- DIARY-GUI-main-screen-layout-I
+- DIARY-GUI-main-screen-layout-J
+- DIARY-GUI-main-screen-layout-K
+- rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-main-screen-layout:section:5
 - DIARY-GUI-participant-task-list:section:5

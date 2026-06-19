@@ -20,6 +20,9 @@ Needs your attention
 Yesterday Confirmation Prompt
 : An inline prompt displayed within the **Your Records** content area under the Yesterday date section when the **Participant** has not recorded a **Daily Status** for the previous day.
 
+Your Records
+: The zone on the **Mobile Application** **Main Screen** that displays the **Participant**'s recorded diary entries.
+
 ### Assertions
 
 **Screen Zones**
@@ -217,6 +220,9 @@ The **User Profile** screen consolidates the **Participant**'s study connection 
 
 User Profile Screen
 : The screen accessible from the **Application Menu** that displays the **Participant**'s study participation status and application settings.
+
+User Profile
+: The screen in the **Mobile Application** showing the **Participant**'s study participation details and settings.
 
 ### Assertions
 

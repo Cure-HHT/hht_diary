@@ -8,7 +8,7 @@ The **Mobile Application** foundation comprises the dual-mode (personal vs. link
 
 ### Overview
 
-The *Mobile Application* serves dual purposes: personal health tracking for individual **Users** and compliant data capture for clinical trials. In personal use mode the application requires no account and stores data locally. In linked use mode the application synchronizes data with the *Sponsor* Portal for clinical *Trial* participation.
+The *Mobile Application* serves dual purposes: personal health tracking for individual **Users** and compliant data capture for clinical trials. In *Personal use mode* the application requires no account and stores data locally. In *Linked use mode* the application synchronizes data with the *Sponsor* Portal for clinical *Trial* participation.
 
 
 Mobile Application
@@ -17,17 +17,23 @@ Mobile Application
 User
 : An individual using the **Mobile Application** in personal use mode, without an account and without a link to a clinical trial. A User who subsequently links to a study becomes a **Participant**.
 
+Personal use mode
+: The **Mobile Application** operating with no account, storing all data locally for private health tracking outside any clinical trial.
+
+Linked use mode
+: The **Mobile Application** connected to a **Sponsor Portal**, operating as the electronic source (eSource) for the clinical trial.
+
 ### Assertions
 
 A. The System SHALL provide a *Mobile Application* for iOS platforms, available via the iOS app store.
 
 B. The System SHALL provide a *Mobile Application* for Android platforms, available via the Android app store.
 
-C. The *Mobile Application* SHALL support full offline operation for core *Diary* functions in both personal use mode and linked use mode.
+C. The *Mobile Application* SHALL support full offline operation for core *Diary* functions in both *Personal use mode* and *Linked use mode*.
 
-D. The *Mobile Application* SHALL NOT require account creation or login for personal use mode.
+D. The *Mobile Application* SHALL NOT require account creation or login for *Personal use mode*.
 
-E. The **User** SHALL retain control over locally-entered data, including the right to delete it from the device while in personal use mode.
+E. The **User** SHALL retain control over locally-entered data, including the right to delete it from the device while in *Personal use mode*.
 
 F. The *Mobile Application* SHALL obtain explicit **User** consent before synchronizing pre-existing local data to the **Sponsor Portal** upon linking.
 
@@ -35,7 +41,7 @@ F. The *Mobile Application* SHALL obtain explicit **User** consent before synchr
 
 The dual-mode design serves two distinct populations from a single codebase: individuals tracking nosebleeds for personal health reasons (no clinical-*Trial* context, no *Sponsor*, no account) and clinical-*Trial* participants whose data feeds the *Sponsor*'s regulatory *Submission*. Personal mode is account-less by design — it removes onboarding friction for the first population, who would not benefit from an account they cannot use against any backend, and it keeps the device the single point of control for their data. Linked mode adds the **Sponsor Portal** synchronization path; the explicit-consent gate on first sync ensures the **User** transitioning to **Participant** affirmatively chooses to share their previously-private local entries with the *Sponsor*, rather than that data being silently uploaded on link. iOS and Android coverage is required because participants in any plausible clinical-*Trial* population will hold devices on both platforms; restricting to one would exclude participants without a fallback.
 
-*End* *Diary Mobile Application* | **Hash**: 910bb065
+*End* *Diary Mobile Application* | **Hash**: aa9928f9
 
 ## DIARY-PRD-mobile-offline-first: Offline-First Data Entry
 
@@ -137,7 +143,7 @@ Two privacy policies coexist in the **Mobile Application** because two distinct 
 
 ### Overview
 
-**Diary User Authentication** protects **Participant** data on the device while keeping the authentication step lightweight enough not to deter contemporaneous recording. Authentication is satisfied through one of two paths: **Device Authentication**, when the **Participant**'s device has a screen lock enabled, or the **Application Biometric Lock**, when it does not. In personal use mode, no authentication is required; the **Participant** may set up the **Application Biometric Lock** from profile settings at any time. Once linked to a study, at least one authentication path must be active — the **System** detects whether a device screen lock is present and, if not, requires the **Participant** to set up the **Application Biometric Lock** before proceeding, informing the **Participant** that they may alternatively enable a screen lock at the device level to satisfy the requirement.
+**Diary User Authentication** protects **Participant** data on the device while keeping the authentication step lightweight enough not to deter contemporaneous recording. Authentication is satisfied through one of two paths: **Device Authentication**, when the **Participant**'s device has a screen lock enabled, or the **Application Biometric Lock**, when it does not. In *Personal use mode*, no authentication is required; the **Participant** may set up the **Application Biometric Lock** from profile settings at any time. Once linked to a study, at least one authentication path must be active — the **System** detects whether a device screen lock is present and, if not, requires the **Participant** to set up the **Application Biometric Lock** before proceeding, informing the **Participant** that they may alternatively enable a screen lock at the device level to satisfy the requirement.
 
 
 Device Authentication
@@ -231,7 +237,7 @@ C. The **Application Biometric Lock** setup screen SHALL NOT present an option t
 
 ### Rationale
 
-Surfacing the **Application Biometric Lock** as a labeled profile-settings toggle ("Use Face ID / Fingerprint") lets a **Participant** in personal use mode opt into in-application protection at any time, and lets a linked **Participant** add or manage it from one place. The dedicated setup screen at study linking exists for the one case where authentication is mandatory but absent — a linked device with no screen lock — and it deliberately offers no skip or dismiss affordance, because allowing the **Participant** to bypass enrollment would leave **Participant** data unprotected in violation of the parent **Diary User Authentication** requirement.
+Surfacing the **Application Biometric Lock** as a labeled profile-settings toggle ("Use Face ID / Fingerprint") lets a **Participant** in *Personal use mode* opt into in-application protection at any time, and lets a linked **Participant** add or manage it from one place. The dedicated setup screen at study linking exists for the one case where authentication is mandatory but absent — a linked device with no screen lock — and it deliberately offers no skip or dismiss affordance, because allowing the **Participant** to bypass enrollment would leave **Participant** data unprotected in violation of the parent **Diary User Authentication** requirement.
 
 *End* *Diary User Authentication — Interface* | **Hash**: 86acaf51
 

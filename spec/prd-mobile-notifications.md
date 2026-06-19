@@ -390,15 +390,15 @@ C. The **System** SHALL deliver at most one **Historical Gap Reminder** per *Cal
 
 D. The **System** SHALL exclude from the **Historical Gap** evaluation any day for which the elapsed time has exceeded the **Lock Threshold**.
 
-E. In linked use mode, the **System** SHALL exclude from the **Historical Gap** evaluation any day before the ***Trial** Start* date.
+E. In *Linked use mode*, the **System** SHALL exclude from the **Historical Gap** evaluation any day before the ***Trial** Start* date.
 
 **Mode-Dependent Default**
 
-F. In personal use mode, the **Historical Gap Reminder** SHALL be disabled by default.
+F. In *Personal use mode*, the **Historical Gap Reminder** SHALL be disabled by default.
 
-G. In personal use mode, the **System** SHALL allow the **User** to enable or disable the **Historical Gap Reminder** from the *Mobile Application* settings.
+G. In *Personal use mode*, the **System** SHALL allow the **User** to enable or disable the **Historical Gap Reminder** from the *Mobile Application* settings.
 
-H. In linked use mode, the **Historical Gap Reminder** SHALL be enabled by default.
+H. In *Linked use mode*, the **Historical Gap Reminder** SHALL be enabled by default.
 
 **Configuration**
 
@@ -414,4 +414,4 @@ Historical gaps (days within the *Diary* period that have no **Daily Status**) a
 
 See: ![*Historical Gap* Reminder](./images/notification-historical-gap-reminder.png)
 
-*End* *Historical Gap Reminder* | **Hash**: 176f4250
+*End* *Historical Gap Reminder* | **Hash**: 67c5f4d9

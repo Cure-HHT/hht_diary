@@ -20,6 +20,9 @@ Rate Limit Threshold
 Rate Limit Cooldown
 : The configurable duration after which the rate limit counter resets and the **User** may attempt linking again.
 
+Rate Limit
+: The mechanism that caps repeated failed attempts within a window, governed by the **Rate Limit Threshold** and **Rate Limit Cooldown**.
+
 ### Assertions
 
 **Error Messaging**
@@ -46,7 +49,7 @@ H. The System SHALL support *Sponsor*-configurable error message text per study.
 
 ### Rationale
 
-Linking codes are short, human-typeable secrets that confer access to a clinical-*Trial* *Participant* identity; the platform's threat model has to assume that someone may attempt to guess or enumerate valid codes. Two mitigations compose: a generic error message that does not distinguish "code does not exist" from "code expired" from "code already used" (assertions A and B — distinguishing them would tell an attacker exactly which guesses are worth pursuing), and a rate limit that caps the number of attempts in a window. The *Site*-contact guidance (assertion C) is the legitimate-*User* recovery path that survives the genericity rule — a real *Participant* who has mistyped their code gets the same message as an enumerator, but they also get the actionable next step (contact the *Site*). The cooldown anchored at the first failed attempt in the window (assertion E) prevents the trivial workaround of attempting just below the threshold, waiting one second, and continuing — the window is a fixed time interval from the first miss. *Sponsor*-configurable threshold, cooldown, and text let each deployment tune the security/usability trade-off and customize the message.
+Linking codes are short, human-typeable secrets that confer access to a clinical-*Trial* *Participant* identity; the platform's threat model has to assume that someone may attempt to guess or enumerate valid codes. Two mitigations compose: a generic error message that does not distinguish "code does not exist" from "code expired" from "code already used" (assertions A and B — distinguishing them would tell an attacker exactly which guesses are worth pursuing), and a *Rate Limit* that caps the number of attempts in a window. The *Site*-contact guidance (assertion C) is the legitimate-*User* recovery path that survives the genericity rule — a real *Participant* who has mistyped their code gets the same message as an enumerator, but they also get the actionable next step (contact the *Site*). The cooldown anchored at the first failed attempt in the window (assertion E) prevents the trivial workaround of attempting just below the threshold, waiting one second, and continuing — the window is a fixed time interval from the first miss. *Sponsor*-configurable threshold, cooldown, and text let each deployment tune the security/usability trade-off and customize the message.
 
 *End* *Linking Code Entry Error Handling* | **Hash**: dc87b4cf
 
@@ -95,7 +98,7 @@ The **Join the Study** screen has to do two things at once: capture the *Linking
 
 ### Overview
 
-When a *Participant* successfully enters a valid Mobile *Linking Code* on the Join the Study screen, the interface needs to clearly confirm that the link was established and transition the *Participant* from personal use mode into linked use mode.
+When a *Participant* successfully enters a valid Mobile *Linking Code* on the Join the Study screen, the interface needs to clearly confirm that the link was established and transition the *Participant* from *Personal use mode* into *Linked use mode*.
 
 ### Assertions
 
