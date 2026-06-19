@@ -10,6 +10,7 @@ import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
+import 'package:clinical_diary/read/questionnaire_status_projection.dart';
 import 'package:clinical_diary/scope/diary_participant_id.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
@@ -148,6 +149,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _flashRecordId;
   final ScrollController _scrollController = ScrollController();
 
+  // CUR-1523: instance ids the device has observed as portal-FINALIZED (the
+  // `questionnaire_status` read-only set). A finalized questionnaire re-opens
+  // read-only (workflow/S); until finalized a submitted questionnaire re-opens
+  // to the editable Review Screen (workflow/R). Refreshed via a one-shot read of
+  // the native `questionnaire_status` view on init / resume / task change.
+  Set<String> _finalizedInstanceIds = const <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -156,6 +164,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _checkDisconnectionStatus();
     _refreshResetGate();
     _refreshWedgeStatus();
+    _refreshQuestionnaireStatus();
+    // Re-read the finalized set whenever the task list changes (a sync may have
+    // just minted a questionnaire_finalized for a task), so a re-opened task
+    // reflects the latest read-only gate.
+    widget.taskService.addListener(_refreshQuestionnaireStatus);
     // CUR-1164: React immediately when a background sync detects disconnection
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
@@ -179,6 +192,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _refreshWedgeStatus();
       _maybePushIncompleteSurvey();
+      _refreshQuestionnaireStatus();
     }
   }
 
@@ -207,8 +221,54 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.notParticipatingNotifier.removeListener(
       _onNotParticipatingChanged,
     );
+    widget.taskService.removeListener(_refreshQuestionnaireStatus);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// One-shot read of the native `questionnaire_status` view into the
+  /// device-observed FINALIZED instance-id set, then store it for the
+  /// re-open branch. Mirrors [_readIncompleteRowsOnce] (Completer +
+  /// EndOfReplay cancel; no live subscription).
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
+  Future<void> _refreshQuestionnaireStatus() async {
+    final finalized = await _readFinalizedInstanceIdsOnce();
+    if (!mounted) return;
+    setState(() => _finalizedInstanceIds = finalized);
+  }
+
+  /// One-shot read of the native `questionnaire_status` projection: subscribes,
+  /// collects the finalized instance ids until the EndOfReplay marker, then
+  /// cancels. Mirrors [_readIncompleteRowsOnce] exactly.
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
+  Future<Set<String>> _readFinalizedInstanceIdsOnce() async {
+    final completer = Completer<Set<String>>();
+    final ids = <String>{};
+    late final StreamSubscription<Update<QuestionnaireStatusRow>> sub;
+    sub = widget.diaryScope.scope.viewSource
+        .watch<QuestionnaireStatusRow>(
+          viewName: questionnaireStatusViewName,
+          mapper: QuestionnaireStatusRow.fromViewRow,
+        )
+        .listen(
+          (update) {
+            switch (update) {
+              case Snapshot<QuestionnaireStatusRow>(:final value):
+                if (value != null && value.isFinalized) {
+                  ids.add(value.instanceId);
+                }
+              case EndOfReplay<QuestionnaireStatusRow>():
+                if (!completer.isCompleted) completer.complete(ids);
+                unawaited(sub.cancel());
+              default:
+                break;
+            }
+          },
+          onError: (Object e, StackTrace st) {
+            if (!completer.isCompleted) completer.complete(ids);
+          },
+        );
+    return completer.future;
   }
 
   Future<void> _checkEnrollmentStatus() async {
@@ -594,7 +654,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // packages/trial_data_types/assets/data/questionnaires.json asset (the same
   // source loadClinicalDiaryEntryTypes uses to build EntryTypeDefinitions).
   // Submission writes a finalized survey event via EntryService.record.
-  Future<void> _navigateToQuestionnaire(Task task) async {
+  //
+  // CUR-1523: the destination depends on the questionnaire's lifecycle state.
+  // [view] supplies the device-local finalized `<id>_survey` rows (the SUBMITTED
+  // set + the prior answers for prefill); [_finalizedInstanceIds] is the
+  // portal-finalized read-only set. A finalized instance opens read-only
+  // (workflow/S); a submitted-but-not-finalized instance opens the editable
+  // Review Screen seeded with prior answers (workflow/R + task-list/K); a
+  // never-submitted instance opens the fresh flow.
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/R+S
+  // Implements: DIARY-GUI-participant-task-list/K
+  Future<void> _navigateToQuestionnaire(Task task, DiaryView view) async {
     final qType = task.questionnaireType;
 
     // Only NOSE HHT and QoL have full implementations
@@ -616,11 +686,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final aggregateId = task.targetId ?? task.id;
 
+    // The device-local finalized `<id>_survey` row for this instance, if the
+    // participant has already submitted it; carries the prior answers used to
+    // seed the Review Screen / read-only view.
+    final surveyView = _submittedSurveyFor(view, aggregateId);
+    final isFinalized = _finalizedInstanceIds.contains(aggregateId);
+
     await Navigator.of(context).push(
       AppPageRoute<void>(
         builder: (context) => QuestionnaireFlowScreen(
           definition: definition,
           instanceId: aggregateId,
+          // Seed prior answers when re-opening a submitted survey (review/edit
+          // or read-only). Null for a never-submitted instance (fresh flow).
+          initialResponses: surveyView?.prefillResponses,
+          // A portal-finalized instance is view-only (workflow/S); a submitted
+          // but not-yet-finalized instance is editable (workflow/R).
+          isReadOnly: isFinalized,
           onSubmit: (submission) async {
             try {
               await _recordSurveySubmission(submission: submission);
@@ -629,15 +711,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               return SubmitResult(success: false, error: e.toString());
             }
           },
-          onComplete: () {
-            // REQ-CAL-p00081-E: Remove task after completion
-            widget.taskService.removeTask(task.id);
-            Navigator.of(context).pop();
-          },
+          // CUR-1523: do NOT remove the task on completion. A submitted task
+          // stays in the list (leaving "Needs your attention" via
+          // categorization) and is removed only when `/user/tasks` drops it on
+          // finalization (task-list/I).
+          onComplete: () => Navigator.of(context).pop(),
           onDefer: () => Navigator.of(context).pop(),
         ),
       ),
     );
+  }
+
+  /// The device-local finalized `<id>_survey` [SurveyEntryView] for
+  /// [aggregateId], or null if the participant has not submitted it yet. Used
+  /// both to categorize a task as SUBMITTED and to seed the re-open prefill.
+  // Implements: DIARY-GUI-participant-task-list/K
+  SurveyEntryView? _submittedSurveyFor(DiaryView view, String aggregateId) {
+    for (final entry in view.entries.whereType<SurveyEntryView>()) {
+      if (entry.aggregateId == aggregateId) return entry;
+    }
+    return null;
   }
 
   /// Cached questionnaire definitions, lazy-loaded once from the bundled asset.
@@ -1250,7 +1343,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   ) {
     final l10n = AppLocalizations.of(context);
     final tasks = _isDisconnected ? const <Task>[] : widget.taskService.tasks;
-    final rows = <Widget>[
+
+    // CUR-1523: categorize questionnaire tasks by lifecycle. A questionnaire
+    // task whose instance has a device-local finalized `<id>_survey` row has
+    // been SUBMITTED: it leaves "Needs your attention" and renders a completed
+    // visual state instead (task-list/J), but it STAYS in the task list (no
+    // removeTask — removal happens only when `/user/tasks` drops it on portal
+    // finalization, task-list/I). Other tasks remain actionable as today.
+    final submittedInstanceIds = view.entries
+        .whereType<SurveyEntryView>()
+        .map((s) => s.aggregateId)
+        .toSet();
+    bool isSubmittedQuestionnaire(Task t) =>
+        t.taskType == TaskType.questionnaire &&
+        submittedInstanceIds.contains(t.id);
+
+    // Actionable items in the "Needs your attention" tile: alerts + tasks that
+    // have NOT been submitted yet. Submitted questionnaire tasks are excluded
+    // here so they don't inflate the attention count (CUR-1519).
+    final attentionRows = <Widget>[
       if (incompleteCount > 0)
         AppAlertRow.incompleteRecord(
           count: incompleteCount,
@@ -1267,17 +1378,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           onTap: () => _handleResolveOverlaps(view),
         ),
       for (final task in tasks)
-        AppAlertRow(
-          tone: _toneForTaskType(task.taskType),
-          icon: _iconForTaskType(task.taskType),
-          label: task.title,
-          onTap: () => _navigateToQuestionnaire(task),
-        ),
+        if (!isSubmittedQuestionnaire(task))
+          AppAlertRow(
+            tone: _toneForTaskType(task.taskType),
+            icon: _iconForTaskType(task.taskType),
+            label: task.title,
+            onTap: () => _navigateToQuestionnaire(task, view),
+          ),
     ];
-    final count = rows.length;
-    // Nothing to surface: hide the entire section rather than showing an
-    // empty "Needs your attention (0)" tile (CUR-1519).
-    if (count == 0) {
+
+    // Completed (submitted, awaiting review) questionnaire tasks — a distinct
+    // success-tone row outside the attention tile, still selectable so the
+    // participant can review/edit (task-list/K) or view a finalized submission
+    // read-only (workflow/S).
+    // Implements: DIARY-GUI-participant-task-list/J
+    final completedRows = <Widget>[
+      for (final task in tasks)
+        if (isSubmittedQuestionnaire(task))
+          AppAlertRow(
+            key: Key('completed-task-${task.id}'),
+            tone: AppAlertRowTone.success,
+            icon: Icons.check_circle_outline,
+            // TODO(i18n): localize.
+            label: '${task.title} — submitted',
+            onTap: () => _navigateToQuestionnaire(task, view),
+          ),
+    ];
+
+    final attentionCount = attentionRows.length;
+    // Nothing to surface at all (no attention items AND no completed tasks):
+    // hide the entire section rather than showing an empty tile (CUR-1519).
+    if (attentionCount == 0 && completedRows.isEmpty) {
       return const SizedBox.shrink();
     }
     return Column(
@@ -1285,12 +1416,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       children: [
         AppSectionHeader(title: l10n.taskList),
         const SizedBox(height: 12),
-        AppExpansionTile(
-          title: l10n.needsYourAttention,
-          count: count,
-          initiallyExpanded: count > 0,
-          children: rows,
-        ),
+        // The "Needs your attention" tile renders only when there is at least
+        // one actionable item; with only completed tasks left it is absent so
+        // it never shows a "(0)" count (CUR-1519).
+        if (attentionCount > 0) ...[
+          AppExpansionTile(
+            title: l10n.needsYourAttention,
+            count: attentionCount,
+            initiallyExpanded: true,
+            children: attentionRows,
+          ),
+          if (completedRows.isNotEmpty) const SizedBox(height: 12),
+        ],
+        ...completedRows,
       ],
     );
   }
