@@ -32,6 +32,7 @@ import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:diary_design_system/diary_design_system.dart' show AppCard;
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -329,6 +330,20 @@ void main() {
       },
     );
 
+    // Verifies: DIARY-GUI-main-screen-layout-A — with nothing requiring
+    //   attention (no incomplete records, no overlaps, no tasks) the whole
+    //   Task List section is hidden rather than showing an empty
+    //   "Needs your attention (0)" tile (CUR-1519).
+    testWidgets(
+      'hides the Task List section entirely when there are zero tasks',
+      (tester) async {
+        await pumpScreen(tester);
+
+        expect(find.text('Task List'), findsNothing);
+        expect(find.text('Needs your attention'), findsNothing);
+      },
+    );
+
     testWidgets('renders a driven finalized epistaxis_event in the list', (
       tester,
     ) async {
@@ -435,6 +450,80 @@ void main() {
 
         // With yesterday covered, the confirm banner's choices are gone.
         expect(find.text("Don't remember"), findsNothing);
+      },
+    );
+
+    // CUR-1491: a recorded "don't remember" (unknown_day_event) marker on
+    // yesterday must surface as its own status row — NOT fall through to the
+    // bare "No records" empty state. "nothing recorded" and "acknowledged
+    // uncertainty" are different clinical states (cf. REQ-CAL-d00012).
+    testWidgets(
+      'a finalized "don\'t remember" marker on yesterday shows the unknown '
+      'status row, not "No records"',
+      (tester) async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        await pumpScreen(
+          tester,
+          finalized: [
+            DiaryEntryRow(
+              aggregateId: 'P:${dateKey(yesterday)}',
+              entryType: 'unknown_day_event',
+              data: <String, Object?>{'date': dateKey(yesterday)},
+            ),
+          ],
+        );
+
+        // The banner is gone and the marker renders its distinct "Don't
+        // remember" status (CUR-1491: minimal muted row, label reads
+        // "Don't remember" — not "Unknown").
+        expect(find.text("Don't remember"), findsOneWidget);
+        expect(find.text('Unknown'), findsNothing);
+
+        // The yesterday card must NOT fall through to the "No records" empty
+        // placeholder (today's empty card may still show one — scope the
+        // check to the Yesterday card via its "Yesterday" header label).
+        final yesterdayCard = find.ancestor(
+          of: find.text('Yesterday'),
+          matching: find.byType(AppCard),
+        );
+        expect(yesterdayCard, findsOneWidget);
+        expect(
+          find.descendant(of: yesterdayCard, matching: find.text('No records')),
+          findsNothing,
+          reason:
+              'the yesterday section must reflect the recorded '
+              '"don\'t remember" marker, never "No records"',
+        );
+      },
+    );
+
+    // CUR-1491 companion: a "no nosebleeds" marker likewise surfaces as its
+    // own row rather than "No records".
+    testWidgets(
+      'a finalized "no nosebleeds" marker on yesterday shows its status row, '
+      'not "No records"',
+      (tester) async {
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        await pumpScreen(
+          tester,
+          finalized: [
+            DiaryEntryRow(
+              aggregateId: 'P:${dateKey(yesterday)}',
+              entryType: 'no_epistaxis_event',
+              data: <String, Object?>{'date': dateKey(yesterday)},
+            ),
+          ],
+        );
+
+        expect(find.text('No nosebleeds'), findsOneWidget);
+        final yesterdayCard = find.ancestor(
+          of: find.text('Yesterday'),
+          matching: find.byType(AppCard),
+        );
+        expect(
+          find.descendant(of: yesterdayCard, matching: find.text('No records')),
+          findsNothing,
+        );
       },
     );
 

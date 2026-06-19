@@ -183,7 +183,9 @@ void main() {
     });
 
     // CUR-1311: Epistaxis rows show no chevron — the whole row is the tap
-    // affordance. Marker/survey rows keep the chevron when tappable.
+    // affordance. CUR-1491: recorded day-marker rows also show no chevron —
+    // they render in the minimal muted "No records"-style row regardless of
+    // whether an onTap is wired.
     testWidgets('does not show chevron icon on epistaxis rows even when '
         'onTap is provided', (tester) async {
       final view = buildEpistaxisView(
@@ -199,9 +201,8 @@ void main() {
       expect(find.byIcon(Icons.chevron_right), findsNothing);
     });
 
-    testWidgets('shows chevron icon on marker rows when onTap is provided', (
-      tester,
-    ) async {
+    testWidgets('does not show chevron icon on marker rows even when '
+        'onTap is provided (minimal muted row)', (tester) async {
       final view = buildDayMarkerView(
         date: '2024-01-15',
         entryType: 'no_epistaxis_event',
@@ -210,20 +211,6 @@ void main() {
       await tester.pumpWidget(
         wrapWithScaffold(EventListItem(view: view, onTap: () {})),
       );
-      await tester.pumpAndSettle();
-
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
-    });
-
-    testWidgets('does not show chevron icon when onTap is null', (
-      tester,
-    ) async {
-      final view = buildDayMarkerView(
-        date: '2024-01-15',
-        entryType: 'no_epistaxis_event',
-      );
-
-      await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.chevron_right), findsNothing);
@@ -302,18 +289,6 @@ void main() {
     });
 
     group('No Nosebleeds event card', () {
-      testWidgets('displays checkmark icon', (tester) async {
-        final view = buildDayMarkerView(
-          date: '2024-01-15',
-          entryType: 'no_epistaxis_event',
-        );
-
-        await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
-        await tester.pumpAndSettle();
-
-        expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
-      });
-
       testWidgets('displays "No nosebleeds" title', (tester) async {
         final view = buildDayMarkerView(
           date: '2024-01-15',
@@ -326,7 +301,11 @@ void main() {
         expect(find.text('No nosebleeds'), findsOneWidget);
       });
 
-      testWidgets('displays confirmation subtitle', (tester) async {
+      // CUR-1491: minimal muted "No records"-style row — label only, no icon
+      // and no secondary subtitle.
+      testWidgets('renders the minimal row: no icon, no subtitle', (
+        tester,
+      ) async {
         final view = buildDayMarkerView(
           date: '2024-01-15',
           entryType: 'no_epistaxis_event',
@@ -335,7 +314,8 @@ void main() {
         await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
         await tester.pumpAndSettle();
 
-        expect(find.text('Confirmed no events for this day'), findsOneWidget);
+        expect(find.byIcon(Icons.check_circle_outline), findsNothing);
+        expect(find.text('Confirmed no events for this day'), findsNothing);
       });
 
       // CUR-1311: Marker rows render on the neutral tone surface
@@ -412,8 +392,8 @@ void main() {
       });
     });
 
-    group('Unknown event card', () {
-      testWidgets('displays yellow question mark icon', (tester) async {
+    group("Don't remember event card", () {
+      testWidgets('displays "Don\'t remember" title', (tester) async {
         final view = buildDayMarkerView(
           date: '2024-01-15',
           entryType: 'unknown_day_event',
@@ -422,10 +402,17 @@ void main() {
         await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
         await tester.pumpAndSettle();
 
-        expect(find.byIcon(Icons.help_outline), findsOneWidget);
+        expect(find.text("Don't remember"), findsOneWidget);
+        // CUR-1491: the recorded "don't remember" status reads "Don't remember"
+        // (the participant's action), not "Unknown".
+        expect(find.text('Unknown'), findsNothing);
       });
 
-      testWidgets('displays "Unknown" title', (tester) async {
+      // CUR-1491: minimal muted "No records"-style row — label only, no icon
+      // and no secondary subtitle.
+      testWidgets('renders the minimal row: no icon, no subtitle', (
+        tester,
+      ) async {
         final view = buildDayMarkerView(
           date: '2024-01-15',
           entryType: 'unknown_day_event',
@@ -434,22 +421,8 @@ void main() {
         await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
         await tester.pumpAndSettle();
 
-        expect(find.text('Unknown'), findsOneWidget);
-      });
-
-      testWidgets('displays unable to recall subtitle', (tester) async {
-        final view = buildDayMarkerView(
-          date: '2024-01-15',
-          entryType: 'unknown_day_event',
-        );
-
-        await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
-        await tester.pumpAndSettle();
-
-        expect(
-          find.text('Unable to recall events for this day'),
-          findsOneWidget,
-        );
+        expect(find.byIcon(Icons.help_outline), findsNothing);
+        expect(find.text('Unable to recall events for this day'), findsNothing);
       });
 
       // CUR-1311: Marker rows render on the neutral tone surface

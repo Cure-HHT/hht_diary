@@ -53,43 +53,36 @@ void main() {
 
       expect(find.text('Overlapping Events Detected'), findsOneWidget);
       expect(
-        find.text(
-          'This time overlaps with an existing nosebleed record from 10:00 AM to 10:30 AM',
-        ),
+        find.text('This event overlaps with 1 existing event'),
         findsOneWidget,
       );
     });
 
-    testWidgets(
-      'displays first overlapping entry time range when multiple exist',
-      (tester) async {
-        final overlappingEntries = [
-          createTestEntry(
-            startTime: DateTime(2024, 1, 15, 10, 0),
-            endTime: DateTime(2024, 1, 15, 10, 30),
-          ),
-          createTestEntry(
-            startTime: DateTime(2024, 1, 15, 11, 0),
-            endTime: DateTime(2024, 1, 15, 11, 45),
-          ),
-        ];
+    testWidgets('displays overlap count when multiple exist', (tester) async {
+      final overlappingEntries = [
+        createTestEntry(
+          startTime: DateTime(2024, 1, 15, 10, 0),
+          endTime: DateTime(2024, 1, 15, 10, 30),
+        ),
+        createTestEntry(
+          startTime: DateTime(2024, 1, 15, 11, 0),
+          endTime: DateTime(2024, 1, 15, 11, 45),
+        ),
+      ];
 
-        await tester.pumpWidget(
-          wrapWithScaffold(
-            OverlapWarning(overlappingEntries: overlappingEntries),
-          ),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        wrapWithScaffold(
+          OverlapWarning(overlappingEntries: overlappingEntries),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('Overlapping Events Detected'), findsOneWidget);
-        expect(
-          find.text(
-            'This time overlaps with an existing nosebleed record from 10:00 AM to 10:30 AM',
-          ),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(find.text('Overlapping Events Detected'), findsOneWidget);
+      expect(
+        find.text('This event overlaps with 2 existing events'),
+        findsOneWidget,
+      );
+    });
 
     testWidgets('displays warning icon', (tester) async {
       final overlappingEntry = createTestEntry(
@@ -107,7 +100,7 @@ void main() {
       expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
     });
 
-    testWidgets('has amber colored container', (tester) async {
+    testWidgets('has pending (amber) colored container', (tester) async {
       final overlappingEntry = createTestEntry(
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
@@ -128,10 +121,12 @@ void main() {
       );
 
       final decoration = container.decoration as BoxDecoration?;
-      expect(decoration?.color, Colors.amber.shade50);
+      expect(decoration?.color, const Color(0xFFFFF5DE));
     });
 
-    testWidgets('has amber border', (tester) async {
+    testWidgets('has rounded borderless container (Figma 675:2377)', (
+      tester,
+    ) async {
       final overlappingEntry = createTestEntry(
         startTime: DateTime(2024, 1, 15, 10, 0),
         endTime: DateTime(2024, 1, 15, 10, 30),
@@ -152,7 +147,8 @@ void main() {
       );
 
       final decoration = container.decoration as BoxDecoration?;
-      expect(decoration?.border, isNotNull);
+      expect(decoration?.border, isNull);
+      expect(decoration?.borderRadius, BorderRadius.circular(6));
     });
 
     testWidgets('renders as a Row with icon and text column', (tester) async {
@@ -195,10 +191,13 @@ void main() {
         find.byIcon(Icons.warning_amber_rounded),
       );
 
-      expect(icon.color, Colors.amber.shade700);
+      expect(icon.color, const Color(0xFFB9790A));
     });
 
-    testWidgets('does not show Resolve button when onResolve is null', (
+    // CUR-1518 Issue 2 (DIARY-GUI-entry-overlap-resolution/B): the early warning
+    // is informational only — it never offers a "Resolve" action, so it cannot
+    // pull the participant out of the recording flow prematurely.
+    testWidgets('never shows a Resolve button (informational only)', (
       tester,
     ) async {
       final overlappingEntry = createTestEntry(
@@ -214,59 +213,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Resolve'), findsNothing);
-    });
-
-    testWidgets('shows Resolve button when onResolve is provided', (
-      tester,
-    ) async {
-      final overlappingEntry = createTestEntry(
-        startTime: DateTime(2024, 1, 15, 10, 0),
-        endTime: DateTime(2024, 1, 15, 10, 30),
-      );
-
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          OverlapWarning(
-            overlappingEntries: [overlappingEntry],
-            onResolve: () {},
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Resolve'), findsOneWidget);
-    });
-
-    testWidgets('Resolve button invokes onResolve callback', (tester) async {
-      final overlappingEntries = [
-        createTestEntry(
-          startTime: DateTime(2024, 1, 15, 10, 0),
-          endTime: DateTime(2024, 1, 15, 10, 30),
-        ),
-        createTestEntry(
-          startTime: DateTime(2024, 1, 15, 11, 0),
-          endTime: DateTime(2024, 1, 15, 11, 30),
-        ),
-      ];
-
-      var tapped = false;
-
-      await tester.pumpWidget(
-        wrapWithScaffold(
-          OverlapWarning(
-            overlappingEntries: overlappingEntries,
-            onResolve: () {
-              tapped = true;
-            },
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Resolve'));
-      await tester.pumpAndSettle();
-
-      expect(tapped, isTrue);
+      expect(find.byType(TextButton), findsNothing);
     });
   });
 }

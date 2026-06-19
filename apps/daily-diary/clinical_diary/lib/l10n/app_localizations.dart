@@ -463,6 +463,7 @@ class AppLocalizations {
           'Enter your linking code to connect this app to your clinical trial.',
       'joinTheStudy': 'Join the Study',
       'applicationPrivacyPolicy': 'Application Privacy Policy',
+      'couldNotOpenPrivacyPolicy': 'Could not open the privacy policy',
       'useFaceIdOrFingerprint': 'Use Face ID / Fingerprint',
       'exportDataHint': 'Use the app menu to export your data.',
       'sponsorLogoFootnote':
@@ -902,6 +903,7 @@ class AppLocalizations {
           'Ingrese su codigo de vinculacion para conectar esta aplicacion a su ensayo clinico.',
       'joinTheStudy': 'Unirse al Estudio',
       'applicationPrivacyPolicy': 'Politica de Privacidad de la Aplicacion',
+      'couldNotOpenPrivacyPolicy': 'No se pudo abrir la politica de privacidad',
       'useFaceIdOrFingerprint': 'Usar Face ID / Huella Digital',
       'exportDataHint': 'Use el menu de la aplicacion para exportar sus datos.',
       'sponsorLogoFootnote':
@@ -1354,6 +1356,8 @@ class AppLocalizations {
       'joinTheStudy': "Rejoindre l'etude",
       'applicationPrivacyPolicy':
           "Politique de Confidentialite de l'Application",
+      'couldNotOpenPrivacyPolicy':
+          "Impossible d'ouvrir la politique de confidentialite",
       'useFaceIdOrFingerprint': 'Utiliser Face ID / Empreinte digitale',
       'exportDataHint':
           "Utilisez le menu de l'application pour exporter vos donnees.",
@@ -1799,6 +1803,8 @@ class AppLocalizations {
           'Geben Sie Ihren Verknupfungscode ein, um diese App mit Ihrer klinischen Studie zu verbinden.',
       'joinTheStudy': 'An der Studie teilnehmen',
       'applicationPrivacyPolicy': 'Datenschutzrichtlinie der Anwendung',
+      'couldNotOpenPrivacyPolicy':
+          'Die Datenschutzrichtlinie konnte nicht geoffnet werden',
       'useFaceIdOrFingerprint': 'Face ID / Fingerabdruck verwenden',
       'exportDataHint':
           'Verwenden Sie das App-Menu, um Ihre Daten zu exportieren.',
@@ -2274,6 +2280,8 @@ class AppLocalizations {
       translate('enterLinkingCodeToConnect');
   String get joinTheStudy => translate('joinTheStudy');
   String get applicationPrivacyPolicy => translate('applicationPrivacyPolicy');
+  String get couldNotOpenPrivacyPolicy =>
+      translate('couldNotOpenPrivacyPolicy');
   String get useFaceIdOrFingerprint => translate('useFaceIdOrFingerprint');
   String get exportDataHint => translate('exportDataHint');
   String get sponsorLogoFootnote => translate('sponsorLogoFootnote');

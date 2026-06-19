@@ -86,6 +86,15 @@ class AppButton extends StatelessWidget {
   /// Ignored for every other variant.
   final bool selected;
 
+  /// When true, a label too wide for the button is scaled down (smaller font)
+  /// to fit on a single line instead of ellipsizing. Used for narrow equal-
+  /// width segments (e.g. "Don't remember" inside an [AppSegmentedChoice]) so
+  /// the full label stays readable at a smaller size rather than truncating to
+  /// "Don't re...". The button keeps its size; only the label font shrinks, and
+  /// only as much as needed (labels that already fit are unchanged). Defaults
+  /// to false so free-floating buttons keep their single-line ellipsis.
+  final bool shrinkLabelToFit;
+
   const AppButton({
     super.key,
     this.variant = AppButtonVariant.primary,
@@ -98,6 +107,7 @@ class AppButton extends StatelessWidget {
     this.loading = false,
     this.fullWidth = false,
     this.selected = false,
+    this.shrinkLabelToFit = false,
     this.semanticLabel,
     this.semanticId,
   }) : assert(
@@ -344,19 +354,32 @@ class AppButton extends StatelessWidget {
           ),
           SizedBox(width: SpacingTokens.sm),
         ],
-        // Flexible + ellipsis so a label longer than the allocated
-        // width (e.g. "Don't remember" inside an AppSegmentedChoice
-        // column) truncates cleanly instead of overflowing the button
-        // chrome. Flexible inside a `MainAxisSize.min` Row hugs by
-        // default and only shrinks when the parent imposes a tighter
-        // constraint — so this stays safe for free-floating buttons.
+        // Flexible so a label longer than the allocated width (e.g.
+        // "Don't remember" inside an AppSegmentedChoice column) is bounded
+        // by the button chrome instead of overflowing it. Flexible inside a
+        // `MainAxisSize.min` Row hugs by default and only shrinks when the
+        // parent imposes a tighter constraint — so this stays safe for
+        // free-floating buttons. With [shrinkLabelToFit] the label's font is
+        // scaled down to fit the available width on one line (full text stays
+        // readable at a smaller size, CUR-1491); otherwise it ellipsizes.
         Flexible(
-          child: Text(
-            label ?? '',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
+          child: shrinkLabelToFit
+              ? FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: Text(
+                    label ?? '',
+                    maxLines: 1,
+                    softWrap: false,
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : Text(
+                  label ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
         ),
         if (hasTrailing) ...[
           SizedBox(width: SpacingTokens.sm),

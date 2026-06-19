@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:clinical_diary/config/app_config.dart';
+import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
@@ -12,7 +13,6 @@ import 'package:clinical_diary/scope/diary_participant_id.dart';
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
-import 'package:clinical_diary/screens/day_disposition.dart';
 import 'package:clinical_diary/screens/incomplete_records_screen.dart';
 import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
@@ -823,26 +823,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // banner reactively from the next DiaryView emission.
   }
 
-  /// Re-disposition a tapped day-[marker]: open the same 3-choice picker the
-  /// calendar uses, seeded with that marker so a "Record nosebleed" choice
-  /// tombstones it on save (convert). Marker↔marker choices re-record on the
-  /// day aggregate (latest-wins). A marker always carries a localDate.
-  // Implements: DIARY-PRD-day-disposition/B
-  Future<void> _redispositionMarker(DayMarkerView marker) async {
-    final localDate = marker.localDate;
-    if (localDate == null) return;
-    final day = DateTime.parse(localDate);
-    await showDayDispositionPicker(
-      context,
-      localDay: DateTime(day.year, day.month, day.day),
-      localDate: localDate,
-      marker: MarkerToReplace(
-        aggregateId: marker.aggregateId,
-        entryType: marker.entryType,
-      ),
-    );
-  }
-
   Future<void> _navigateToEditRecord(EpistaxisEntryView entry) async {
     // CUR-464: Result is now record ID (String) instead of bool. Flash + scroll
     // happen reactively once DiaryViewBuilder splices the edited row back in.
@@ -911,10 +891,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     // Yesterday's finalized nosebleed entries plus any completed surveys
     // (DIARY-PRD-questionnaire-system/B: a finalized survey surfaces alongside
-    // the day's clinical entries).
+    // the day's clinical entries) plus any whole-day marker (no-nosebleed /
+    // don't-remember). CUR-1491: the marker MUST surface as its own row so a
+    // recorded "Don't remember" (or "No nosebleeds") renders its distinct
+    // status instead of falling through to the bare "No records" empty state —
+    // "nothing recorded" and "acknowledged uncertainty" are different clinical
+    // states (cf. REQ-CAL-d00012).
     final yesterdayEntries = <DiaryEntryView>[
       ...view.entriesOn(yesterdayStr).whereType<EpistaxisEntryView>(),
       ...view.entriesOn(yesterdayStr).whereType<SurveyEntryView>(),
+      ...view.entriesOn(yesterdayStr).whereType<DayMarkerView>(),
     ]..sort(byStart);
 
     // Any entry at all on yesterday (incl. day markers + incomplete checkpoints).
@@ -938,6 +924,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final todayEntries = <DiaryEntryView>[
       ...view.entriesOn(todayStr).whereType<EpistaxisEntryView>(),
       ...view.entriesOn(todayStr).whereType<SurveyEntryView>(),
+      // CUR-1491: today's whole-day marker surfaces as its own row too (same
+      // reasoning as the yesterday group above).
+      ...view.entriesOn(todayStr).whereType<DayMarkerView>(),
       ...view.incompleteEntries.where((e) => isEpistaxisOn(e, todayStr)),
     ]..sort(byStart);
 
@@ -1039,11 +1028,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // CUR-1493: the home user-menu Help Center is not built yet — show the
+  // generic "Coming soon" notice, not the unrelated "Privacy settings coming
+  // soon" toast.
   void _handleShowHelpCenter() {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AppLocalizations.of(context).privacyComingSoon),
+        content: Text(AppLocalizations.of(context).comingSoon),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -1206,6 +1198,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// outstanding tasks (questionnaires, reminders) — render as
   /// [AppAlertRow]s inside the tile. Tasks are hidden while disconnected
   /// (CUR-1164: no valid questionnaires until reconnection).
+  ///
+  /// When there is nothing requiring attention (count == 0) the whole
+  /// section — heading and tile — collapses to nothing rather than showing
+  /// an empty "Needs your attention (0)" tile (CUR-1519).
+  // Implements: DIARY-GUI-main-screen-layout-A — the Task List zone renders
+  //   only when tasks are active; with zero items the zone is absent.
   Widget _buildTaskListSection(
     BuildContext context,
     DiaryView view,
@@ -1239,6 +1237,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
     ];
     final count = rows.length;
+    // Nothing to surface: hide the entire section rather than showing an
+    // empty "Needs your attention (0)" tile (CUR-1519).
+    if (count == 0) {
+      return const SizedBox.shrink();
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1279,9 +1282,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             fullWidth: true,
             leadingIcon: Icons.calendar_today_outlined,
             onPressed: () async {
+              // CUR-1494: bound calendar back-navigation to 365 days before
+              // app install (DIARY-PRD-diary-start-day/D). The install date is
+              // the legacy-sync destination's start date, stamped at first
+              // launch; a lookup failure falls back to a now-relative floor.
+              DateTime? installDate;
+              try {
+                final schedule = await widget.runtime.destinations.scheduleOf(
+                  LegacySyncDestination.destinationId,
+                );
+                installDate = schedule.startDate;
+              } catch (_) {
+                installDate = null;
+              }
+              if (!context.mounted) return;
               await showDialog<void>(
                 context: context,
-                builder: (context) => const CalendarScreen(),
+                builder: (context) => CalendarScreen(installDate: installDate),
               );
             },
           ),
@@ -1461,11 +1478,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               },
               builder: (context, highlightColor) => EventListItem(
                 view: entry,
-                // Epistaxis taps edit; day-marker taps re-disposition.
-                // Implements: DIARY-PRD-day-disposition/B
+                // Epistaxis taps edit. CUR-1491: day markers in the home
+                // yesterday/today list are display-only — a recorded
+                // "Don't remember" / "No nosebleeds" status is not a tappable
+                // affordance (re-disposition stays available from the
+                // calendar's date-records screen).
                 onTap: switch (entry) {
                   EpistaxisEntryView() => () => _navigateToEditRecord(entry),
-                  DayMarkerView() => () => _redispositionMarker(entry),
+                  DayMarkerView() => null,
                   SurveyEntryView() => null,
                 },
                 hasOverlap:

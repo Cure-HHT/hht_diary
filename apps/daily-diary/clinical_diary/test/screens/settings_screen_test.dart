@@ -101,19 +101,27 @@ void main() {
         expect(find.text('Back'), findsOneWidget);
       });
 
-      testWidgets('displays color scheme section', (tester) async {
+      // CUR-1438: Color Scheme / dark mode, the Language selector, and the
+      // "Larger Text and Controls" toggle are hidden for the Callisto UAT build
+      // (gated by AppConfig.showUatRestrictedSettings = false). The underlying
+      // preferences + write-path logic are retained, just not shown here.
+      testWidgets('hides the color scheme section for UAT (CUR-1438)', (
+        tester,
+      ) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
         await tester.pumpWidget(buildSettingsScreen());
         await tester.pumpAndSettle();
 
-        expect(find.text('Color Scheme'), findsOneWidget);
-        expect(find.text('Light Mode'), findsOneWidget);
-        expect(find.text('Dark Mode'), findsOneWidget);
+        expect(find.text('Color Scheme'), findsNothing);
+        expect(find.text('Light Mode'), findsNothing);
+        expect(find.text('Dark Mode'), findsNothing);
       });
 
-      testWidgets('displays accessibility section', (tester) async {
+      testWidgets('displays accessibility section (fonts only for UAT)', (
+        tester,
+      ) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
@@ -121,47 +129,30 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Accessibility'), findsOneWidget);
-        expect(find.text('Larger Text and Controls'), findsOneWidget);
+        // CUR-1438: "Larger Text and Controls" is hidden for UAT.
+        expect(find.text('Larger Text and Controls'), findsNothing);
       });
 
-      testWidgets('displays language section', (tester) async {
+      testWidgets('hides the language section for UAT (CUR-1438)', (
+        tester,
+      ) async {
         setUpTestScreenSize(tester);
         addTearDown(() => resetTestScreenSize(tester));
 
         await tester.pumpWidget(buildSettingsScreen());
         await tester.pumpAndSettle();
 
-        expect(find.text('Language'), findsOneWidget);
-        expect(find.text('English'), findsOneWidget);
-        expect(find.text('Español'), findsOneWidget);
-        expect(find.text('Français'), findsOneWidget);
-        expect(find.text('Deutsch'), findsOneWidget);
+        expect(find.text('Language'), findsNothing);
+        expect(find.text('Español'), findsNothing);
+        expect(find.text('Français'), findsNothing);
+        expect(find.text('Deutsch'), findsNothing);
       });
     });
 
-    group('Reflects driven preferences', () {
-      testWidgets('renders the larger-text checkbox as checked when set on', (
-        tester,
-      ) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(
-          buildSettingsScreen(
-            prefs: const UserPreferences(largerTextAndControls: true),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // First checkbox is the larger-text option.
-        final checkbox = tester.widget<Checkbox>(find.byType(Checkbox).first);
-        expect(checkbox.value, isTrue);
-      });
-    });
-
-    group('Color Scheme Interaction', () {
+    group('Daily Reminder', () {
+      // Verifies: DIARY-PRD-notification-yesterday-entry/F
       testWidgets(
-        'submits set_user_setting(pref.darkMode, false) on Light Mode',
+        'toggling the daily reminder submits reminder.yesterdayEnabled',
         (tester) async {
           setUpTestScreenSize(tester);
           addTearDown(() => resetTestScreenSize(tester));
@@ -169,81 +160,16 @@ void main() {
           await tester.pumpWidget(buildSettingsScreen());
           await tester.pumpAndSettle();
 
-          await tester.tap(find.text('Light Mode'));
+          final toggle = find.text('Enable daily reminder');
+          await tester.scrollUntilVisible(toggle, 200);
+          await tester.tap(toggle);
           await tester.pumpAndSettle();
 
-          final s = submissionFor(prefDarkMode);
+          // Default is enabled → tapping turns it off.
+          final s = submissionFor('reminder.yesterdayEnabled');
           expect(s.rawInput['value'], false);
         },
       );
-    });
-
-    group('Accessibility Options', () {
-      testWidgets('toggling larger text submits set_user_setting', (
-        tester,
-      ) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byType(Checkbox).first);
-        await tester.pumpAndSettle();
-
-        final s = submissionFor(prefLargerText);
-        expect(s.rawInput['value'], true);
-      });
-    });
-
-    group('Language Selection', () {
-      testWidgets('selecting Spanish submits pref.languageCode=es', (
-        tester,
-      ) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Español'));
-        await tester.pumpAndSettle();
-
-        final s = submissionFor(prefLanguageCode);
-        expect(s.rawInput['value'], 'es');
-      });
-
-      testWidgets('selecting French submits pref.languageCode=fr', (
-        tester,
-      ) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Français'));
-        await tester.pumpAndSettle();
-
-        final s = submissionFor(prefLanguageCode);
-        expect(s.rawInput['value'], 'fr');
-      });
-
-      testWidgets('selecting German submits pref.languageCode=de', (
-        tester,
-      ) async {
-        setUpTestScreenSize(tester);
-        addTearDown(() => resetTestScreenSize(tester));
-
-        await tester.pumpWidget(buildSettingsScreen());
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Deutsch'));
-        await tester.pumpAndSettle();
-
-        final s = submissionFor(prefLanguageCode);
-        expect(s.rawInput['value'], 'de');
-      });
     });
   });
 }

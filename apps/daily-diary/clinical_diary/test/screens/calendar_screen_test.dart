@@ -5,6 +5,9 @@
 //   reactively from the live diary_entries view (no async load).
 // Verifies: DIARY-DEV-action-write-path/A — choosing "No nosebleed events"
 //   submits record_no_epistaxis_day for that date through the actionSubmitter.
+// Verifies: DIARY-PRD-diary-start-day/D — the calendar's earliest navigable /
+//   selectable day is 365 days before app installation (CUR-1494); it does not
+//   allow unbounded back-navigation (previously hardcoded to 2020).
 //
 // Screen-level coverage for CalendarScreen on the new event_sourcing read/write
 // path. The diary_entries view is driven via FakeReaction.emitViewUpdate; writes
@@ -32,6 +35,52 @@ import 'package:table_calendar/table_calendar.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('calendarEarliestDay', () {
+    test('anchors the floor to 365 days before the install date', () {
+      final install = DateTime(2026, 6, 17, 14, 30);
+      final earliest = calendarEarliestDay(
+        installDate: install,
+        now: DateTime(2026, 6, 17, 15),
+      );
+      // 365 days before 2026-06-17 is 2025-06-17 (2026 is not a leap year that
+      // crosses Feb 29 in this window), normalized to local midnight.
+      expect(earliest, DateTime(2025, 6, 17));
+    });
+
+    test('stays fixed at install-anchored floor as now advances', () {
+      final install = DateTime(2026, 1, 1, 9);
+      final early = calendarEarliestDay(
+        installDate: install,
+        now: DateTime(2026, 1, 2),
+      );
+      final later = calendarEarliestDay(
+        installDate: install,
+        now: DateTime(2026, 4, 1),
+      );
+      // The floor is anchored to install, not now, so it does not drift.
+      expect(early, later);
+      expect(early, DateTime(2025, 1, 1));
+    });
+
+    test('falls back to 365 days before now when install date is unknown', () {
+      final earliest = calendarEarliestDay(
+        installDate: null,
+        now: DateTime(2026, 6, 17, 8),
+      );
+      expect(earliest, DateTime(2025, 6, 17));
+    });
+
+    test('returns a local-midnight date (no time-of-day component)', () {
+      final earliest = calendarEarliestDay(
+        installDate: DateTime(2026, 3, 10, 23, 59, 59),
+        now: DateTime(2026, 3, 11),
+      );
+      expect(earliest.hour, 0);
+      expect(earliest.minute, 0);
+      expect(earliest.second, 0);
+    });
+  });
 
   group('CalendarScreen', () {
     late FakeReaction fake;
@@ -110,6 +159,7 @@ void main() {
       WidgetTester tester, {
       List<DiaryEntryRow> rows = const [],
       List<DiaryEntryRow> incompleteRows = const [],
+      DateTime? installDate,
     }) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -134,9 +184,9 @@ void main() {
             theme: AppTheme.getLightThemeWithFont(),
             // Disable animation so the table-calendar page animator doesn't tick
             // forever under pumpAndSettle.
-            home: const AppPreferencesScope(
-              preferences: UserPreferences(useAnimation: false),
-              child: CalendarScreen(),
+            home: AppPreferencesScope(
+              preferences: const UserPreferences(useAnimation: false),
+              child: CalendarScreen(installDate: installDate),
             ),
           ),
         ),
@@ -188,6 +238,34 @@ void main() {
       expect(find.text('Incomplete/Missing'), findsOneWidget);
       expect(find.text('Not recorded'), findsOneWidget);
     });
+
+    testWidgets(
+      'bounds firstDay to 365 days before install, not a hardcoded 2020 floor',
+      (tester) async {
+        // Install ~30 days ago so the floor is ~335 days in the past — well
+        // after the old hardcoded DateTime(2020, 1, 1).
+        final installDate = DateTime.now().subtract(const Duration(days: 30));
+        await pumpScreen(tester, installDate: installDate);
+
+        final calendar = tester.widget<TableCalendar<void>>(
+          find.byType(TableCalendar<void>),
+        );
+        final expected = DateTime(
+          installDate.year,
+          installDate.month,
+          installDate.day,
+        ).subtract(const Duration(days: 365));
+
+        // table_calendar normalizes firstDay to UTC midnight, so compare the
+        // calendar date components rather than the exact (timezone-flagged)
+        // instant.
+        expect(calendar.firstDay.year, expected.year);
+        expect(calendar.firstDay.month, expected.month);
+        expect(calendar.firstDay.day, expected.day);
+        // Regression guard: the old hardcoded 2020 floor must be gone.
+        expect(calendar.firstDay.isAfter(DateTime.utc(2020, 12, 31)), isTrue);
+      },
+    );
 
     testWidgets('day-status coloring reflects the driven DiaryView', (
       tester,

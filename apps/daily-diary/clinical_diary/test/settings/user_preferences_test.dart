@@ -51,6 +51,52 @@ void main() {
       expect(prefs.selectedFont, 'Roboto');
     });
 
+    test('reads the personal epistaxis reminder schedule (H)', () {
+      final prefs = userPreferencesFromSettings({
+        'reminder.epistaxisSchedule': _user('reminder.epistaxisSchedule', <int>[
+          5,
+          10,
+          15,
+          30,
+        ]),
+      });
+      expect(prefs.epistaxisReminderScheduleMinutes, [5, 10, 15, 30]);
+    });
+
+    test('defaults the reminder schedule to empty and drops bad entries', () {
+      expect(
+        userPreferencesFromSettings(const {}).epistaxisReminderScheduleMinutes,
+        isEmpty,
+      );
+      final prefs = userPreferencesFromSettings({
+        'reminder.epistaxisSchedule': _user(
+          'reminder.epistaxisSchedule',
+          <Object?>[5, 0, -1, 'x', 10],
+        ),
+      });
+      expect(prefs.epistaxisReminderScheduleMinutes, [5, 10]);
+    });
+
+    test('reads the yesterday reminder enable + time, with defaults', () {
+      expect(
+        userPreferencesFromSettings(const {}).yesterdayReminderEnabled,
+        isTrue,
+      );
+      expect(
+        userPreferencesFromSettings(const {}).yesterdayReminderTimeMinutes,
+        540,
+      );
+      final prefs = userPreferencesFromSettings({
+        'reminder.yesterdayEnabled': _user('reminder.yesterdayEnabled', false),
+        'reminder.yesterdayTimeMinutes': _user(
+          'reminder.yesterdayTimeMinutes',
+          420,
+        ),
+      });
+      expect(prefs.yesterdayReminderEnabled, isFalse);
+      expect(prefs.yesterdayReminderTimeMinutes, 420);
+    });
+
     test('falls back to default when a value has the wrong type', () {
       final prefs = userPreferencesFromSettings({
         // bool key holding a String

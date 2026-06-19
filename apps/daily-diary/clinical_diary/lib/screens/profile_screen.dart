@@ -4,7 +4,6 @@
 //   REQ-p00045: Clinical Trial Privacy Policy
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
-import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
 import 'package:clinical_diary/screens/license_screen.dart';
 import 'package:clinical_diary/widgets/back_to_home_row.dart';
 import 'package:clinical_diary/widgets/brand_header.dart';
@@ -13,6 +12,25 @@ import 'package:clinical_diary/widgets/user_menu_button.dart';
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+/// Canonical URL for the **Application Privacy Policy** (CUR-1495). Opened in
+/// the device's default browser from the profile menu.
+const String kApplicationPrivacyPolicyUrl =
+    'https://anspar.org/privacy-cure-hht-app/';
+
+/// Signature for the indirection used to open an external URL. Injectable so
+/// tests can capture the requested [Uri] without touching platform channels.
+/// Returns `true` when the URL was successfully handed off to the platform.
+typedef ExternalUrlLauncher = Future<bool> Function(Uri url, {LaunchMode mode});
+
+/// Default launcher — delegates to `url_launcher`'s [launchUrl].
+Future<bool> _defaultExternalUrlLauncher(
+  Uri url, {
+  LaunchMode mode = LaunchMode.externalApplication,
+}) {
+  return launchUrl(url, mode: mode);
+}
 
 /// User profile screen — Figma node 441:6951 ("User Profile Screens").
 ///
@@ -48,6 +66,7 @@ class ProfileScreen extends StatefulWidget {
     this.siteName,
     this.sitePhoneNumber,
     this.sponsorLogoBuilder,
+    this.externalUrlLauncher = _defaultExternalUrlLauncher,
     super.key,
   });
 
@@ -75,17 +94,39 @@ class ProfileScreen extends StatefulWidget {
   // Implements: DIARY-DEV-sponsor-branding-assets/D
   final BrandingLogoBuilder? sponsorLogoBuilder;
 
+  /// Indirection used to open the **Application Privacy Policy** URL in the
+  /// device browser. Defaults to `url_launcher`'s [launchUrl]; overridden in
+  /// tests to capture the requested [Uri] without platform-channel mocking.
+  final ExternalUrlLauncher externalUrlLauncher;
+
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  void _openClinicalTrialPrivacyPolicy() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const ClinicalTrialPrivacyPolicyScreen(),
-      ),
-    );
+  /// Opens the **Application Privacy Policy** (CUR-1495) in the device's
+  /// default browser. On failure (launcher returns false or throws) a brief
+  /// error SnackBar is shown instead of crashing.
+  Future<void> _openApplicationPrivacyPolicy() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    var opened = false;
+    try {
+      opened = await widget.externalUrlLauncher(
+        Uri.parse(kApplicationPrivacyPolicyUrl),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened && mounted) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(l10n.couldNotOpenPrivacyPolicy),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _openLicenses() {
@@ -94,11 +135,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ).push(MaterialPageRoute<void>(builder: (_) => const LicensesPage()));
   }
 
-  void _showPrivacyComingSoon() {
+  /// Generic "Coming soon" toast for features that aren't built yet (Help
+  /// Center, Export Data, Use Face ID / Fingerprint). Uses the generic
+  /// [AppLocalizations.comingSoon] string so the message matches the tapped
+  /// item instead of mislabeling it as a privacy setting (CUR-1493).
+  void _showComingSoon() {
     final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(l10n.privacyComingSoon),
+        content: Text(l10n.comingSoon),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -129,7 +174,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onJoinStudy: widget.isEnrolledInTrial
                     ? null
                     : widget.onStartClinicalTrialEnrollment,
-                onShowHelpCenter: _showPrivacyComingSoon,
+                onShowHelpCenter: _showComingSoon,
               ),
             ),
             Expanded(
@@ -394,19 +439,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _MenuItemSpec(
         iconAsset: _ProfileIcons.menuExport,
         label: l10n.exportData,
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.exportDataHint),
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        },
+        onTap: _showComingSoon,
       ),
       _MenuItemSpec(
         iconAsset: _ProfileIcons.menuPolicy,
         label: l10n.applicationPrivacyPolicy,
-        onTap: _openClinicalTrialPrivacyPolicy,
+        onTap: _openApplicationPrivacyPolicy,
       ),
       _MenuItemSpec(
         iconAsset: _ProfileIcons.menuLicenses,
@@ -421,14 +459,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _MenuItemSpec(
         iconAsset: _ProfileIcons.menuFingerprint,
         label: l10n.useFaceIdOrFingerprint,
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.privacyComingSoon),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        },
+        onTap: _showComingSoon,
       ),
     ];
 

@@ -289,7 +289,9 @@ void main() {
       expect(tapped!.entryType, 'no_epistaxis_event');
     });
 
-    testWidgets('displays Unknown event card correctly', (tester) async {
+    testWidgets('displays "Don\'t remember" marker card correctly', (
+      tester,
+    ) async {
       final entry = buildDayMarkerView(
         aggregateId: 'test-1',
         date: '2025-11-28',
@@ -309,7 +311,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Unknown'), findsOneWidget);
+      // CUR-1491: the unknown-day marker reads "Don't remember", not "Unknown".
+      expect(find.text("Don't remember"), findsOneWidget);
+      expect(find.text('Unknown'), findsNothing);
     });
 
     testWidgets('displays event count in subtitle', (tester) async {

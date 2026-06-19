@@ -12,8 +12,11 @@ class IntensityPicker extends StatelessWidget {
   final NosebleedIntensity? selectedIntensity;
   final ValueChanged<NosebleedIntensity> onSelect;
 
+  // Implements: DIARY-GUI-epistaxis-record/G — present all six Intensity
+  // options as a selectable grid that fits (or scrolls) on every screen.
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     // CUR-488 Phase 2: Reduced top padding from 8 to 4 for small screens with large text
     return Padding(
       padding: const EdgeInsets.only(
@@ -22,58 +25,70 @@ class IntensityPicker extends StatelessWidget {
         top: 4.0,
         bottom: 8.0,
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Calculate icon size based on available height
-          // Header ~50px (title + subtitle + spacing), grid spacing ~12px (2 gaps)
-          // We need 3 rows of boxes to fit
-          const headerHeight = 50.0;
-          const gridSpacing = 12.0; // 2 gaps * 6px each
-          final availableHeight =
-              constraints.maxHeight - headerHeight - gridSpacing;
-          final boxHeight = (availableHeight / 3).clamp(50.0, 100.0);
-
-          // Icon should be ~45% of box height, leaving room for text
-          final iconSize = (boxHeight * 0.45).clamp(24.0, 44.0);
-          final fontSize = (boxHeight * 0.15).clamp(9.0, 13.0);
-
-          final l10n = AppLocalizations.of(context);
-          return Column(
-            children: [
-              // CUR-488 Phase 2: Don't scale titles to avoid scrolling on small screens
-              MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(textScaler: TextScaler.noScaling),
-                child: Column(
-                  children: [
-                    Text(
-                      l10n.howSevere,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.translate('selectBestOption'),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
+      child: Column(
+        children: [
+          // CUR-488 Phase 2: Don't scale titles to avoid scrolling on small screens
+          MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.noScaling),
+            child: Column(
+              children: [
+                // Figma "Heading 3" — Inter SemiBold 24 on Black.
+                Text(
+                  l10n.howSevere,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    height: 34 / 24,
+                    letterSpacing: 0.18,
+                    color: Color(0xFF04161E),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Expanded(
-                child: GridView.count(
+                const SizedBox(height: 4),
+                Text(
+                  l10n.translate('selectBestOption'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 21.25 / 15,
+                    letterSpacing: -0.22,
+                    color: Color(0xFF717182),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // CUR-1517: Size the grid from the height actually left for it (not a
+          // guessed header height) so the bottom row is never clipped, and keep
+          // it scrollable as a safety net so options are never hidden silently.
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Three rows of two cells with two 12px gaps between rows.
+                const rowGap = 12.0;
+                const numRows = 3;
+                final boxHeight =
+                    ((constraints.maxHeight - rowGap * (numRows - 1)) / numRows)
+                        .clamp(56.0, 150.0);
+
+                // Illustration fills most of the box, leaving room for the label
+                // (Figma 515:3296 — ~94px image + 19px label in a ~148px cell).
+                final iconSize = (boxHeight * 0.62).clamp(40.0, 94.0);
+                final fontSize = (boxHeight * 0.12).clamp(11.0, 15.0);
+
+                // Cell width matches what GridView allocates: full width minus
+                // one 12px cross-axis gap, split across two columns.
+                final cellWidth = (constraints.maxWidth - 12) / 2;
+
+                return GridView.count(
                   crossAxisCount: 2,
-                  // CUR-488 Phase 2: Reduced spacing from 6 to 4 for small screens
-                  mainAxisSpacing: 4,
-                  crossAxisSpacing: 4,
-                  childAspectRatio: (constraints.maxWidth / 2 - 9) / boxHeight,
-                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: rowGap,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: cellWidth / boxHeight,
+                  physics: const ClampingScrollPhysics(),
                   children: NosebleedIntensity.values.map((intensity) {
                     final isSelected = selectedIntensity == intensity;
                     return _IntensityOption(
@@ -85,11 +100,11 @@ class IntensityPicker extends StatelessWidget {
                       fontSize: fontSize,
                     );
                   }).toList(),
-                ),
-              ),
-            ],
-          );
-        },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -111,41 +126,39 @@ class _IntensityOption extends StatelessWidget {
   final double iconSize;
   final double fontSize;
 
+  // Figma 515:3288 illustrations, exported per-severity from the masked
+  // sprite (nodes 682:3046/3031/3051/3037/3040/3043).
   String get _imagePath {
     switch (intensity) {
       case NosebleedIntensity.spotting:
-        return 'assets/images/intensity_spotting.png';
+        return 'assets/icons/figma/intensity_spotting.png';
       case NosebleedIntensity.dripping:
-        return 'assets/images/intensity_dripping.png';
+        return 'assets/icons/figma/intensity_dripping.png';
       case NosebleedIntensity.drippingQuickly:
-        return 'assets/images/intensity_dripping_quickly.png';
+        return 'assets/icons/figma/intensity_dripping_quickly.png';
       case NosebleedIntensity.steadyStream:
-        return 'assets/images/intensity_steady_stream.png';
+        return 'assets/icons/figma/intensity_steady_stream.png';
       case NosebleedIntensity.pouring:
-        return 'assets/images/intensity_pouring.png';
+        return 'assets/icons/figma/intensity_pouring.png';
       case NosebleedIntensity.gushing:
-        return 'assets/images/intensity_gushing.png';
+        return 'assets/icons/figma/intensity_gushing.png';
     }
-  }
-
-  Color _getBackgroundColor(BuildContext context) {
-    if (isSelected) {
-      return Theme.of(context).colorScheme.primaryContainer;
-    }
-    return Theme.of(context).colorScheme.surfaceContainerHighest;
   }
 
   @override
   Widget build(BuildContext context) {
+    // Figma 515:3296: borderless option — illustration over a Medium label.
+    // The selected state keeps a visible cue (Light Gray chip + primary ring)
+    // so the summary-bar edit path still shows the current choice.
     return Material(
-      color: _getBackgroundColor(context),
-      borderRadius: BorderRadius.circular(12),
+      color: isSelected ? const Color(0xFFECEEF0) : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
             border: isSelected
                 ? Border.all(
                     color: Theme.of(context).colorScheme.primary,
@@ -153,49 +166,40 @@ class _IntensityOption extends StatelessWidget {
                   )
                 : null,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: isSelected
-                        ? Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.5)
-                        : Theme.of(
-                            context,
-                          ).colorScheme.outline.withValues(alpha: 0.4),
-                    width: 1.5,
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4.5),
-                  child: Image.asset(
-                    _imagePath,
-                    width: iconSize,
-                    height: iconSize,
-                    fit: BoxFit.cover,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // CUR-1517: let the illustration shrink to the space the cell
+                // actually has (capped at iconSize) so the label always fits
+                // and the cell never overflows on short screens.
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: iconSize),
+                    child: Image.asset(_imagePath, fit: BoxFit.contain),
                   ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                // Split two-word labels onto separate lines
-                intensityLabel.replaceAll(' ', '\n'),
-                style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface,
-                  height: 1.2,
+                const SizedBox(height: 8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    intensityLabel,
+                    style: TextStyle(
+                      fontSize: fontSize,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.22,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : const Color(0xFF0A0A0A),
+                      height: 1.25,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

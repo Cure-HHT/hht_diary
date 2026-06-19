@@ -235,27 +235,16 @@ class EventListItem extends StatelessWidget {
   // ---- Marker row (no_epistaxis_event / unknown_day_event) ------------------
 
   Widget _buildMarkerRow(BuildContext context, AppLocalizations l10n) {
-    final theme = Theme.of(context);
     final v = view!;
     final isNoNosebleeds = v.entryType == 'no_epistaxis_event';
-    final leading = isNoNosebleeds ? l10n.noNosebleeds : l10n.unknown;
-    final secondary = l10n.translate(
-      isNoNosebleeds ? 'confirmedNoEvents' : 'unableToRecallEvents',
-    );
-    return ds.EventListItem(
-      leading: leading,
-      icon: isNoNosebleeds ? Icons.check_circle_outline : Icons.help_outline,
-      secondary: secondary,
-      tone: ds.EventListItemTone.neutral,
-      onTap: onTap,
-      trailing: onTap == null
-          ? null
-          : Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-    );
+    // CUR-1491: recorded day markers render with the same muted, minimal style
+    // as the "No records" empty row (Figma EventListItem 486:1725) — just the
+    // status label, no icon / secondary / chevron — distinguished only by the
+    // text ("Don't remember" vs "No nosebleeds"). Display-only in the home
+    // list (the caller passes onTap: null); the calendar's date-records screen
+    // still passes an onTap for re-disposition.
+    final leading = isNoNosebleeds ? l10n.noNosebleeds : l10n.dontRemember;
+    return ds.EventListItem(leading: leading, muted: true, onTap: onTap);
   }
 
   // ---- Field helpers --------------------------------------------------------
