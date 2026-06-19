@@ -1,8 +1,10 @@
 // Verifies: DIARY-DEV-reactive-read-path/B
+// Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/R
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trial_data_types/trial_data_types.dart' as tdt;
 
 DiaryEntryRow _row(Map<String, Object?> data, String type) =>
     DiaryEntryRow(aggregateId: 'a1', entryType: type, data: data);
@@ -104,6 +106,73 @@ void main() {
       expect(v.responseCount, 2);
       expect(v.entryType, 'nose_hht_survey');
       expect(v.isComplete, isTrue);
+    });
+
+    test('prefillResponses maps stored responses to tdt.QuestionResponse', () {
+      final v = SurveyEntryView(
+        _row(
+          const QuestionnaireSubmissionPayload(
+            instanceId: 'inst-pf',
+            questionnaireType: 'nose_hht',
+            schemaVersion: 's1',
+            contentVersion: 'c1',
+            guiVersion: 'g1',
+            completedAt: '2026-06-08T11:34:00-04:00',
+            responses: {
+              'q1': QuestionResponse(
+                value: 2,
+                displayLabel: 'Mild',
+                normalizedLabel: '2',
+              ),
+              'q2': QuestionResponse(
+                value: 0,
+                displayLabel: 'None',
+                normalizedLabel: '0',
+              ),
+            },
+          ).toJson(),
+          'nose_hht_survey',
+        ),
+        isComplete: true,
+      );
+
+      final prefill = v.prefillResponses;
+      expect(prefill, hasLength(2));
+
+      final byId = {for (final r in prefill) r.questionId: r};
+      expect(byId['q1']?.value, 2);
+      expect(byId['q1']?.displayLabel, 'Mild');
+      expect(byId['q1']?.normalizedLabel, '2');
+      expect(byId['q2']?.value, 0);
+      expect(byId['q2']?.displayLabel, 'None');
+      expect(byId['q2']?.normalizedLabel, '0');
+
+      expect(prefill, everyElement(isA<tdt.QuestionResponse>()));
+    });
+
+    test('prefillResponses falls back to empty string for absent labels', () {
+      final v = SurveyEntryView(
+        _row(
+          const QuestionnaireSubmissionPayload(
+            instanceId: 'inst-pf2',
+            questionnaireType: 'qol',
+            schemaVersion: 's1',
+            contentVersion: 'c1',
+            guiVersion: 'g1',
+            completedAt: '2026-06-08T12:00:00Z',
+            responses: {'qfree': QuestionResponse(value: 3)},
+          ).toJson(),
+          'qol_survey',
+        ),
+        isComplete: true,
+      );
+
+      final prefill = v.prefillResponses;
+      expect(prefill, hasLength(1));
+      expect(prefill.first.questionId, 'qfree');
+      expect(prefill.first.value, 3);
+      expect(prefill.first.displayLabel, '');
+      expect(prefill.first.normalizedLabel, '');
     });
   });
 
