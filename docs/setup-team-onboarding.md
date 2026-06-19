@@ -569,9 +569,6 @@ docker compose up -d dev
    docker compose up -d dev
    ```
 
-4. **Check platform guide**:
-   See `docs/validation/dev-environment/platform-testing-guide.md`
-
 ---
 
 ## Best Practices
