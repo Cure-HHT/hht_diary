@@ -17,7 +17,7 @@ import 'package:reaction/reaction.dart';
 /// initial load there is no "last data received" yet — showing the banner then
 /// would be both visually noisy and factually wrong. Once connected, a later
 /// drop ([Reconnecting]/[Disconnected]) surfaces the banner.
-// Implements: DIARY-GUI-portal-transport-status/A+B
+// Implements: DIARY-BASE-portal-transport-status/A+B
 class ConnectionStatusBanner extends StatefulWidget {
   const ConnectionStatusBanner({
     super.key,

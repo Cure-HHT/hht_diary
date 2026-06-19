@@ -15,10 +15,13 @@ User Account
 : The complete set of identity, credential, and authorization data that the **Sponsor Portal** maintains for a single human user.
 
 Full Name
-: A common name, which is **PII**, of the person associated with a **User Account** that identifies a specific individual in the context of the **Sponsor Portal**.
+: The full name of the person associated with a **User Account**, comprising two separate fields: First Name (given name) and Last Name (family name). Personally identifiable information (**PII**) that identifies a specific individual in the context of the **Sponsor Portal**.
 
 Email Address
 : A unique technical identifier used as a destination for system notifications and as a username for authentication to access the system.
+
+PII
+: Personally Identifiable Information — data that identifies an individual, such as a person's name or email address.
 
 ### Assertions
 
@@ -49,6 +52,9 @@ Verification Link
 
 Activation Webpage
 : A **Verification Link** associated with a **User Account** that provides a mechanism for the **Account Owner** to activate their account and configure their password and 2FA.
+
+Account Owner
+: The person associated with a **User Account**, who activates and uses it.
 
 ### Assertions
 
@@ -161,30 +167,23 @@ F. When an **Administrator** changes a **User Account**'s **Email Address**, the
 
 G. When an **Administrator** initiates an **Email Address** change, the **System** SHALL notify the **User Account** owner at the original **Email Address** that a change has been initiated.
 
-H. The **System** SHALL restrict modification of a **User Account** holding the **System Operator** **Role** to requesters who also hold the **System Operator** **Role**.
-
 ### Rationale
 
-*User* edits encode four risks the platform contains structurally. First, an *Administrator* editing their own account could escalate privilege or remove their own *Deactivation* safeguard; prohibiting self-edit closes that channel. Second, *Role* or *Site* changes that take effect on the next login leave a window in which a *User* retains stale authorization; enforcing the change immediately collapses that window. Third, an email change is effectively a credential change (the email is the username and the activation channel), so the new address must be verified by the same mechanism used at account creation, and the prior address must be notified so that an unauthorized change initiated against an unattended *Administrator* *Session* is visible to the legitimate account owner. Fourth, the **System Operator** *Role* is the recovery tier of last resort for the deployment — the operator-level *Role* that can re-establish access if every regular **Administrator** locks themselves out — so allowing a regular **Administrator** to revoke or downgrade it would create a denial-of-service vector against the system operator. The regular **Administrator**↔**Administrator** path is explicitly permitted by assertion A; assertion H carves out only the *System Operator* tier.
+*User* edits encode three risks the platform contains structurally. First, an *Administrator* editing their own account could escalate privilege or remove their own *Deactivation* safeguard; prohibiting self-edit closes that channel. Second, *Role* or *Site* changes that take effect on the next login leave a window in which a *User* retains stale authorization; enforcing the change immediately collapses that window. Third, an email change is effectively a credential change (the email is the username and the activation channel), so the new address must be verified by the same mechanism used at account creation, and the prior address must be notified so that an unauthorized change initiated against an unattended *Administrator* *Session* is visible to the legitimate *Account Owner*. The regular **Administrator**↔**Administrator** path is explicitly permitted by assertion A.
 
-*End* *Edit User Account* | **Hash**: 3ecfa0d9
+*End* *Edit User Account* | **Hash**: fbc46f1c
 
 ## DIARY-PRD-user-account-deactivate: Deactivate User Account
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-create
 
-### Overview
-
-**Deactivation** is the *Action* of revoking a **User Account**'s ability to access the system without permanently removing the account or its associated data. A deactivated account retains all historical data and *Audit Trail* but cannot be used to log in or maintain active sessions.
-
-
 Deactivation
 : The action of revoking a **User Account**'s ability to access the system without permanently removing the account or its associated data. A deactivated account retains all historical data and **Audit Trail** but cannot be used to log in or maintain active sessions.
 
 ### Assertions
 
-A. The System SHALL allow an **Administrator** to deactivate any **User Account** except their own, including another **Administrator** account. The **System** SHALL restrict *Deactivation* of a **User Account** holding the **System Operator** **Role** to requesters who also hold the **System Operator** **Role**.
+A. The System SHALL allow an **Administrator** to deactivate any **User Account** except their own, including another **Administrator** account.
 
 B. The System SHALL terminate all active sessions associated with a **User Account** immediately upon **Deactivation**.
 
@@ -200,7 +199,7 @@ F. When an **Administrator** deactivates a **User Account**, the **System** SHAL
 
 *Deactivation* is the standard off-boarding mechanism for users who should no longer access the system — completion of a study assignment, *Role* change off the study, departure from the *Sponsor* or *Site* organization. Retaining the account record and its full **Audit Trail** is required by *FDA 21 CFR Part 11*: every historical *Action* attributed to that account must remain auditable indefinitely, even after the account is no longer usable. Terminating active sessions immediately is necessary because any *Session* in flight at *Deactivation* time was authenticated under the about-to-be-revoked credentials and must be invalidated to honor the access decision. Prohibiting self-*Deactivation* closes a denial-of-service vector against the *Administrator* workforce (an *Administrator* deactivating themselves and leaving no other active *Administrator* could lock out the deployment). The free-text reason is captured to support audit reviews of why each account was deactivated.
 
-*End* *Deactivate User Account* | **Hash**: a3cf00fe
+*End* *Deactivate User Account* | **Hash**: e31cba84
 
 ## DIARY-PRD-user-account-reactivate: Reactivate User Account
 
@@ -253,20 +252,26 @@ Free-text reason inputs accompany high-impact, irreversible actions (*Deactivati
 The *User* management interface separates active and inactive accounts into distinct tabs to reduce cognitive load and prevent accidental actions on the wrong account. Real-time search and preserved search state allow Administrators to work efficiently across tabs without losing context.
 
 
-User Information Modal
-: A modal dialog displaying the details and available actions for a selected **User Account**.
+Active Users
+: The **User Management** tab listing **User Accounts** in Active status.
+
+Inactive Users
+: The **User Management** tab listing **User Accounts** in Inactive status.
+
+Assigned Sites
+: The **Sites** a **User Account** is authorized to access, scoping the **Participants** and data the user can see.
 
 ### Assertions
 
 **Tab Display**
 
-A. The interface SHALL display two tabs: Active Users and Inactive Users.
+A. The interface SHALL display two tabs: *Active Users* and *Inactive Users*.
 
-B. The Active Users tab SHALL display all *User* Accounts with a status of Active or Pending Activation.
+B. The *Active Users* tab SHALL display all *User* Accounts with a status of Active or Pending Activation.
 
-C. The Inactive Users tab SHALL display all *User* Accounts with a status of Deactivated.
+C. The *Inactive Users* tab SHALL display all *User* Accounts with a status of Deactivated.
 
-D. The interface SHALL display the Active Users tab by default.
+D. The interface SHALL display the *Active Users* tab by default.
 
 E. The interface SHALL highlight the currently active tab.
 
@@ -298,7 +303,7 @@ N. The interface SHALL display a **Create User** *Action*.
 
 Active and inactive accounts are operationally distinct surfaces: actions available on one are not available on the other, and the most common *Administrator* error in unified lists is acting on an inactive account believing it was active. Splitting into two tabs makes the active/inactive distinction structural rather than visual, and immediate row-movement on status change keeps each tab self-consistent without manual refresh. Real-time search across **Full Name** and **Email Address** matches the two identifiers Administrators use in practice (a *Full Name* supplied by someone reporting an issue, or an *Email Address* supplied by the *User* themselves). Preserving search state across tabs supports the recurring workflow of "search for a *User*, check Active, then check Inactive" without forcing the *Administrator* to retype the query. Row selection opens the **User Information Modal** rather than navigating away, so the table context remains visible behind the modal and consecutive lookups are quick.
 
-*End* *User Management Tabs* | **Hash**: f36341b4
+*End* *User Management Tabs* | **Hash**: 763777de
 
 ## DIARY-GUI-user-account-deactivate: Deactivate User Account
 
@@ -307,7 +312,7 @@ Active and inactive accounts are operationally distinct surfaces: actions availa
 
 ### Overview
 
-The *Deactivation* *Action* is available from the Active Users tab only, since deactivated accounts are no longer present there after the *Action* completes.
+The *Deactivation* *Action* is available from the *Active Users* tab only, since deactivated accounts are no longer present there after the *Action* completes.
 
 ### Assertions
 
@@ -327,7 +332,7 @@ E. When *Deactivation* is confirmed, the interface SHALL move the **User Account
 
 ### Rationale
 
-The *Deactivation* surface is anchored to the **Active Users** tab because that is where the *Administrator* finds candidates for *Deactivation*; offering the same *Action* from the Inactive Users tab would be either a no-op (the account is already deactivated) or a confusing alternative entry point. Excluding the *Administrator*'s own account from the *Action* list closes the self-*Deactivation* channel from the GUI side, complementing the PRD-level prohibition and making the unavailable state visible rather than producing a back-end rejection after the *Administrator* has invested in the workflow. Requiring the reason at the confirmation step rather than after the *Action* commits gives the *Administrator* a final opportunity to back out and ensures the reason is captured before any state change is applied.
+The *Deactivation* surface is anchored to the **Active Users** tab because that is where the *Administrator* finds candidates for *Deactivation*; offering the same *Action* from the *Inactive Users* tab would be either a no-op (the account is already deactivated) or a confusing alternative entry point. Excluding the *Administrator*'s own account from the *Action* list closes the self-*Deactivation* channel from the GUI side, complementing the PRD-level prohibition and making the unavailable state visible rather than producing a back-end rejection after the *Administrator* has invested in the workflow. Requiring the reason at the confirmation step rather than after the *Action* commits gives the *Administrator* a final opportunity to back out and ensures the reason is captured before any state change is applied.
 
 *End* *Deactivate User Account* | **Hash**: bb9d75f2
 
@@ -338,7 +343,7 @@ The *Deactivation* surface is anchored to the **Active Users** tab because that 
 
 ### Overview
 
-Reactivation is initiated from the Inactive Users tab and immediately returns the account to the Active Users tab with **Pending Activation** status, requiring the *User* to complete the activation workflow before regaining access.
+Reactivation is initiated from the *Inactive Users* tab and immediately returns the account to the *Active Users* tab with **Pending Activation** status, requiring the *User* to complete the activation workflow before regaining access.
 
 ### Assertions
 
@@ -370,6 +375,9 @@ Reactivation is anchored to the **Inactive Users** tab to mirror the *Deactivati
 ### Overview
 
 The **User Information Modal** provides a summary view of a **User Account** and the primary actions available for that account. All account management actions are initiated from this modal.
+
+User Information Modal
+: A modal dialog displaying the details and available actions for a selected **User Account**.
 
 ### Assertions
 
@@ -405,7 +413,7 @@ M. When the *User* selects **Edit User**, the interface SHALL open the edit work
 
 ### Rationale
 
-The **User Information Modal** is the per-account hub: every lifecycle *Action* (edit, deactivate, reactivate) launches from here, and every account-related question (who, what *Role*, which Sites) is answered here. Scoping the *Site* list by *Role* addresses the multi-*Role* case directly — a *User* holding both *Study Coordinator* and CRA roles on overlapping but distinct *Site* sets is shown the correct subset for whichever *Role* context the *Administrator* is reasoning about. Surfacing **Sites** by *Role* rather than as a flat union prevents the inverse error in which an *Administrator* believes a *User* has *Study Coordinator* access at a *Site* that they actually have only as a CRA. Suppressing **Deactivate User** on the current *User*'s own account mirrors the PRD-level self-*Deactivation* prohibition and the GUI-level Active Users tab rule, so the unavailable state is consistent across every surface a self-*Deactivation* attempt could originate from.
+The **User Information Modal** is the per-account hub: every lifecycle *Action* (edit, deactivate, reactivate) launches from here, and every account-related question (who, what *Role*, which Sites) is answered here. Scoping the *Site* list by *Role* addresses the multi-*Role* case directly — a *User* holding both *Study Coordinator* and CRA roles on overlapping but distinct *Site* sets is shown the correct subset for whichever *Role* context the *Administrator* is reasoning about. Surfacing **Sites** by *Role* rather than as a flat union prevents the inverse error in which an *Administrator* believes a *User* has *Study Coordinator* access at a *Site* that they actually have only as a CRA. Suppressing **Deactivate User** on the current *User*'s own account mirrors the PRD-level self-*Deactivation* prohibition and the GUI-level *Active Users* tab rule, so the unavailable state is consistent across every surface a self-*Deactivation* attempt could originate from.
 
 *End* *User Information Modal* | **Hash**: 378c3dcd
 
@@ -415,7 +423,7 @@ The **User Information Modal** is the per-account hub: every lifecycle *Action* 
 
 ### Overview
 
-The **Administrator Dashboard** is the primary surface for an **Administrator** to manage **User Accounts** and review audit log activity. Organising the surface as a container with two top-level tabs separates **User Account** management from audit log review while keeping both areas reachable from a single entry point. The dashboard scaffolding defined here establishes the header, the top-level tab navigation, and the default landing tab; the contents of each tab are governed by the requirements referenced from those tabs.
+The **Administrator Dashboard** is the primary surface for an **Administrator** to manage **User Accounts** and review *Audit Log* activity. Organising the surface as a container with two top-level tabs separates **User Account** management from *Audit Log* review while keeping both areas reachable from a single entry point. The dashboard scaffolding defined here establishes the header, the top-level tab navigation, and the default landing tab; the contents of each tab are governed by the requirements referenced from those tabs.
 
 
 Administrator Dashboard
@@ -437,7 +445,7 @@ D. The **Administrator Dashboard** SHALL display two top-level tabs: **Users** a
 
 E. The **Users** tab SHALL display the *User* Management interface defined in *Diary*-GUI-*User*-management-tabs.
 
-F. The **Audit Logs** tab SHALL display the *Administrator* Audit Log View defined in *Diary*-GUI-audit-log-*Administrator*.
+F. The **Audit Logs** tab SHALL display the *Administrator* *Audit Log View* defined in *Diary*-GUI-audit-log-*Administrator*.
 
 G. The interface SHALL display the **Users** tab by default upon login.
 
@@ -449,6 +457,6 @@ I. When the **Administrator** selects **Logout**, the **System** SHALL terminate
 
 ### Rationale
 
-The **Administrator Dashboard** consolidates the two responsibilities of the **Administrator** *Role* — **User Account** management and audit review — into adjacent tabs of a single surface so the *Administrator* can switch between investigating an account and reviewing the audit log without navigating away from a shared context. A persistent header keeps identity (who is logged in, in what *Role*), system context (which *Sponsor* Portal), settings access, and logout reachable from any screen of the dashboard, which is necessary because an *Administrator* may need to log out from any state without first navigating back to a landing page. Defaulting to the **Users** tab on login matches the most common *Administrator* entry point (open the dashboard to perform account actions); the Audit Logs tab is one click away when investigation is the goal.
+The **Administrator Dashboard** consolidates the two responsibilities of the **Administrator** *Role* — **User Account** management and audit review — into adjacent tabs of a single surface so the *Administrator* can switch between investigating an account and reviewing the *Audit Log* without navigating away from a shared context. A persistent header keeps identity (who is logged in, in what *Role*), system context (which *Sponsor* Portal), settings access, and logout reachable from any screen of the dashboard, which is necessary because an *Administrator* may need to log out from any state without first navigating back to a landing page. Defaulting to the **Users** tab on login matches the most common *Administrator* entry point (open the dashboard to perform account actions); the Audit Logs tab is one click away when investigation is the goal.
 
-*End* *Administrator Dashboard* | **Hash**: a0642fc7
+*End* *Administrator Dashboard* | **Hash**: bdabc38a

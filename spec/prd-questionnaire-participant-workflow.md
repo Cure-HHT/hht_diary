@@ -1,17 +1,17 @@
 # *Participant* *Questionnaire* Workflow
 
-The *Participant*-facing workflow over **Portal-Sent Questionnaires** comprises the rules that govern how a *Participant* moves through *Preamble*, questions, Review, and *Submission*, the corresponding interface behavior, and the *Session* Timeout / *Session* Expiry mechanism that bounds how long an in-progress *Questionnaire* can be left idle.
+The *Participant*-facing workflow over **Assigned Questionnaires** comprises the rules that govern how a *Participant* moves through *Preamble*, questions, Review, and *Submission*, the corresponding interface behavior, and the *Session* Timeout / *Session* Expiry mechanism that bounds how long an in-progress *Questionnaire* can be left idle.
 
-## DIARY-PRD-questionnaire-portal-sent-rules: Portal-Sent Questionnaire Rules
+## DIARY-PRD-questionnaire-portal-sent-rules: Assigned Questionnaire Rules
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 
 ### Overview
 
-**Portal-Sent Questionnaires** are initiated by a **Study Coordinator** from the **Sponsor Portal** and delivered to the *Participant* via push notification. The rules below define what the *Participant* sees (*Preamble*), how they progress through the *Questionnaire*, when their answers become a *Submission*, and the editing window between *Submission* and *Finalization*.
+**Assigned Questionnaires** are initiated by a **Study Coordinator** from the **Sponsor Portal** and delivered to the *Participant* via push notification. The rules below define what the *Participant* sees (*Preamble*), how they progress through the *Questionnaire*, when their answers become a *Submission*, and the editing window between *Submission* and *Finalization*.
 
 
-Portal-Sent Questionnaire
+Assigned Questionnaire
 : A Questionnaire initiated by a Study Coordinator from the Sponsor Portal and delivered to the participant via push notification.
 
 Preamble
@@ -27,7 +27,7 @@ Finalization
 
 **Preamble**
 
-A. The System SHALL present the **Preamble** to the *Participant* each time the *Participant* opens a **Portal-Sent Questionnaire**.
+A. The System SHALL present the **Preamble** to the *Participant* each time the *Participant* opens an **Assigned Questionnaire**.
 
 B. The **Preamble** SHALL inform the *Participant* of the estimated time required to complete the *Questionnaire*.
 
@@ -39,9 +39,9 @@ E. When the *Participant* indicates they are not ready, the System SHALL return 
 
 **Completion Rules**
 
-F. The System SHALL present one question at a time during **Portal-Sent Questionnaire** completion.
+F. The System SHALL present one question at a time during **Assigned Questionnaire** completion.
 
-G. The System SHALL NOT permit the *Participant* to skip any question in a **Portal-Sent Questionnaire**.
+G. The System SHALL NOT permit the *Participant* to skip any question in an **Assigned Questionnaire**.
 
 H. The System SHALL preserve in-progress answers locally while the *Participant* is completing the *Questionnaire* and SHALL NOT commit answers as a *Submission* until the *Participant* completes **Submission**.
 
@@ -65,22 +65,22 @@ O. The System SHALL NOT permit the *Participant* to edit their answers after **F
 
 ### Rationale
 
-The *Preamble* exists because a **Portal-Sent Questionnaire** is a non-trivial commitment of *Participant* time (the *NOSE HHT* has 29 questions; an ad-hoc *Questionnaire* can be longer); telling the *Participant* up front how long it will take and that progress is preserved between sessions reduces the rate at which participants start and abandon mid-flow. One-question-at-a-time presentation matches the validated-instrument format (the source documents present questions one at a time on paper) and prevents the *Participant* from scanning ahead, which could bias later answers. Skipping is prohibited because the validated scoring algorithms require complete responses; partial questionnaires are not interpretable. The in-progress-preservation rule is the *Participant*-side guarantee that "Exit" is safe — combined with the **Session Timeout** override (which can discard in-progress answers if the *Participant* has been idle too long), it gives the *Participant* flexible but bounded continuation. Editing is open between *Submission* and *Finalization* because *Submission* signals "*Participant* is done", but the **Study Coordinator** review may surface answer issues the *Participant* should be able to correct without resubmitting from scratch; *Finalization* is the irreversible boundary because that is when the score is computed and the data ships to **Rave EDC**.
+The *Preamble* exists because an **Assigned Questionnaire** is a non-trivial commitment of *Participant* time (the *NOSE HHT* has 29 questions; an ad-hoc *Questionnaire* can be longer); telling the *Participant* up front how long it will take and that progress is preserved between sessions reduces the rate at which participants start and abandon mid-flow. One-question-at-a-time presentation matches the validated-instrument format (the source documents present questions one at a time on paper) and prevents the *Participant* from scanning ahead, which could bias later answers. Skipping is prohibited because the validated scoring algorithms require complete responses; partial questionnaires are not interpretable. The in-progress-preservation rule is the *Participant*-side guarantee that "Exit" is safe — combined with the **Session Timeout** override (which can discard in-progress answers if the *Participant* has been idle too long), it gives the *Participant* flexible but bounded continuation. Editing is open between *Submission* and *Finalization* because *Submission* signals "*Participant* is done", but the **Study Coordinator** review may surface answer issues the *Participant* should be able to correct without resubmitting from scratch; *Finalization* is the irreversible boundary because that is when the score is computed and the data ships to **Rave EDC**.
 
 ### Screen reference
 
-See: ![*Questionnaire* *Preamble* Screen](./images/image-02.png)
+See: ![*Questionnaire* *Preamble* Screen](./images/screen-questionnaire-preamble.png)
 
-*End* *Portal-Sent Questionnaire Rules* | **Hash**: afa0afe0
+*End* *Assigned Questionnaire Rules* | **Hash**: 3f1a10dd
 
-## DIARY-GUI-questionnaire-portal-sent-workflow: Portal-Sent Questionnaire Workflow
+## DIARY-GUI-questionnaire-portal-sent-workflow: Assigned Questionnaire Workflow
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-questionnaire-portal-sent-rules
 
 ### Overview
 
-The interface for a **Portal-Sent Questionnaire** spans four screens: the **Preamble**, the per-question screen, the **Review Screen** (after the final question), and the post-*Submission* Acknowledgement Dialog. The behavior on each screen tracks the PRD-level rules above and adds the visual affordances (*Progress Indicator*, navigation controls, *Action* labels) participants use to move through the flow.
+The interface for an **Assigned Questionnaire** spans four screens: the **Preamble**, the per-question screen, the **Review Screen** (after the final question), and the post-*Submission* Acknowledgement Dialog. The behavior on each screen tracks the PRD-level rules above and adds the visual affordances (*Progress Indicator*, navigation controls, *Action* labels) participants use to move through the flow.
 
 
 Review Screen
@@ -147,21 +147,21 @@ The four-screen structure (*Preamble*, Question, Review, Acknowledgement) makes 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
 ### Screen reference
 
 See:
 
-![*Questionnaire* *Review Screen*](./images/image-01.png)
+![*Questionnaire* *Review Screen*](./images/screen-questionnaire-review.png)
 
-![*Questionnaire* *Preamble* Screen](./images/image-02.png)
+![*Questionnaire* *Preamble* Screen](./images/screen-questionnaire-preamble.png)
 
-![Post-*Submission* Acknowledgement Dialog](./images/image-19.png)
+![Post-*Submission* Acknowledgement Dialog](./images/dialog-post-submission-acknowledgement.png)
 
-*End* *Portal-Sent Questionnaire Workflow* | **Hash**: ca0d5613
+*End* *Assigned Questionnaire Workflow* | **Hash**: ca0d5613
 
 ## DIARY-PRD-questionnaire-session-timeout: Questionnaire Session Timeout
 
@@ -225,11 +225,11 @@ Some clinical questionnaires (e.g. the *NOSE HHT*, the *HHT-QoL*) require contem
 
 See:
 
-![*Session* Expiry Dialog](./images/image-20.png)
+![*Session* Expiry Dialog](./images/dialog-session-expiry.png)
 
-![*Timeout Warning Notification*](./images/image-26.png)
+![*Timeout Warning Notification*](./images/notification-timeout-warning.png)
 
-![*Session* Expiry Notification](./images/image-27.png)
+![*Session* Expiry Notification](./images/notification-session-expiry.png)
 
 *End* *Questionnaire Session Timeout* | **Hash**: 4e7f3306
 
@@ -277,12 +277,12 @@ The **Session Expiry Dialog** is the in-app companion to the **Session Expiry No
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
 ### Screen reference
 
-See: ![*Session* Expiry Dialog](./images/image-20.png)
+See: ![*Session* Expiry Dialog](./images/dialog-session-expiry.png)
 
 *End* *Questionnaire Session Expiry* | **Hash**: 02879dd5

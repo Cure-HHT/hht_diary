@@ -2,13 +2,24 @@
 <!-- Do not edit manually; changes will be overwritten. -->
 # Term Index
 
-## ACT-PAT-001 — Link Participant
+## Account Owner
+
+**DIARY:**
+
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-portal-identity-provisioning:section:0
+- DIARY-DEV-portal-identity-provisioning:section:1
+- DIARY-DEV-portal-activation-email-delivery:section:0
+- DIARY-DEV-portal-user-activated-binding:section:1
+- DIARY-DEV-portal-session-lifecycle:section:1
+- DIARY-PRD-user-account-edit:section:1
 
 ## Action
 
 **DIARY:**
 
 - DIARY-DEV-action-write-path
+- DIARY-DEV-role-permissions-seed
 - DIARY-DEV-view-action-permissions
 - DIARY-PRD-sla-corrective-preventive
 - DIARY-BASE-ops-action-inventory-A
@@ -22,12 +33,12 @@
 - DIARY-BASE-questionnaire-manage-modal-J
 - DIARY-BASE-questionnaire-manage-modal-O
 - DIARY-BASE-questionnaire-finalization-C
-- DIARY-BASE-system-operator-role-B
-- DIARY-BASE-system-operator-role-C
 - DIARY-DEV-action-write-path-B
 - DIARY-DEV-inbound-event-on-receipt-B
 - DIARY-DEV-inbound-event-on-receipt-C
 - DIARY-DEV-portal-reaction-server-B
+- DIARY-DEV-role-permissions-seed-A
+- DIARY-DEV-role-permissions-seed-B
 - DIARY-DEV-operator-tier-authz-C
 - DIARY-DEV-operator-tier-authz-F
 - DIARY-DEV-view-action-permissions-A
@@ -104,8 +115,8 @@
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-ops-action-inventory:section:0
-- DIARY-BASE-questionnaire-manage-modal:section:6
-- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-manage-modal:section:7
+- DIARY-BASE-questionnaire-finalization:section:3
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - rem:spec/dev-mobile-event-sourcing.md:3
@@ -117,6 +128,8 @@
 - DIARY-DEV-rave-edc-ingest:section:1
 - DIARY-DEV-user-account-projection:section:1
 - DIARY-DEV-portal-seed-config:section:1
+- DIARY-DEV-role-permissions-seed:section:0
+- DIARY-DEV-role-permissions-seed:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
 - DIARY-DEV-portal-settings-store:section:0
@@ -129,9 +142,10 @@
 - rem:spec/prd-common-ui.md:42
 - DIARY-GUI-epistaxis-delete:section:3
 - DIARY-GUI-main-screen-layout:section:0
-- DIARY-GUI-mobile-navigation:section:5
+- DIARY-GUI-main-screen-layout:section:5
+- DIARY-GUI-mobile-navigation:section:3
 - DIARY-GUI-calendar-day-view:section:7
-- DIARY-GUI-participant-task-list:section:6
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-BASE-not-participating-notice:section:0
 - DIARY-BASE-not-participating-notice:section:1
 - DIARY-GUI-participation-status-badge:section:6
@@ -157,7 +171,6 @@
 - DIARY-PRD-user-account-create:section:1
 - DIARY-PRD-user-account-site-assignment:section:1
 - DIARY-PRD-user-account-deactivate:section:0
-- DIARY-PRD-user-account-deactivate:section:1
 - DIARY-PRD-reason-field-constraints:section:0
 - DIARY-PRD-reason-field-constraints:section:1
 - DIARY-GUI-user-account-deactivate:section:0
@@ -192,8 +205,25 @@
 - DIARY-PRD-user-authentication-E
 - DIARY-PRD-user-authentication-F
 - DIARY-PRD-user-authentication-G
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
+
+## Active Users
+
+**DIARY:**
+
+- DIARY-GUI-user-management-tabs-A
+- DIARY-GUI-user-management-tabs-B
+- DIARY-GUI-user-management-tabs-D
+- DIARY-GUI-user-account-deactivate-A
+- DIARY-GUI-user-account-reactivate-E
+- DIARY-GUI-user-information-modal-I
+- DIARY-GUI-user-account-deactivate:section:0
+- DIARY-GUI-user-account-deactivate:section:3
+- DIARY-GUI-user-account-reactivate:section:0
+- DIARY-GUI-user-account-reactivate:section:3
+- DIARY-GUI-user-information-modal:section:3
 
 ## Administrator
 
@@ -207,7 +237,6 @@
 - DIARY-GUI-audit-log-administrator-A
 - DIARY-PRD-help-resources-A
 - DIARY-PRD-role-definitions-A
-- DIARY-PRD-role-definitions-D
 - DIARY-PRD-user-account-create-A
 - DIARY-PRD-user-account-create-C
 - DIARY-PRD-user-account-activation-workflow-E
@@ -252,14 +281,13 @@
 - DIARY-OPS-rave-sync-cooldown:section:0
 - DIARY-PRD-rbac-customizable:section:1
 - DIARY-PRD-action-inventory:section:1
-- DIARY-PRD-role-definitions:section:1
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-create:section:0
 - DIARY-PRD-user-account-activation-workflow:section:6
 - DIARY-PRD-user-account-site-assignment:section:1
 - DIARY-PRD-user-account-activation-resend:section:1
 - DIARY-PRD-user-account-edit:section:1
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-management-tabs:section:5
 - DIARY-GUI-user-account-deactivate:section:3
@@ -300,25 +328,128 @@
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-PRD-action-inventory:section:1
 
+## Application Biometric Lock
+
+**DIARY:**
+
+- DIARY-PRD-user-authentication-F
+- DIARY-PRD-user-authentication-I
+- DIARY-PRD-user-authentication-L
+- DIARY-PRD-user-authentication-M
+- DIARY-GUI-user-authentication-A
+- DIARY-GUI-user-authentication-B
+- DIARY-GUI-user-authentication-C
+- DIARY-GUI-user-profile-I
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication:section:7
+- DIARY-GUI-user-authentication:section:0
+- DIARY-GUI-user-authentication:section:3
+
 ## Application Menu
 
 **DIARY:**
 
 - DIARY-GUI-mobile-navigation-A
-- DIARY-GUI-mobile-navigation-K
+- DIARY-GUI-mobile-navigation-C
+- DIARY-GUI-mobile-navigation-D
+- DIARY-GUI-mobile-navigation-E
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-mobile-navigation:section:0
-- DIARY-GUI-mobile-navigation:section:5
+- DIARY-GUI-mobile-navigation:section:3
+- DIARY-GUI-user-profile:section:4
 
 ## Application Privacy Policy
 
 **DIARY:**
 
-- DIARY-GUI-mobile-navigation-K
-- DIARY-GUI-mobile-navigation-L
+- DIARY-GUI-user-profile-F
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
-- DIARY-GUI-mobile-navigation:section:5
+
+## Assigned Questionnaire
+
+**DIARY:**
+
+- DIARY-PRD-notification-portal-sent-questionnaire
+- DIARY-PRD-questionnaire-portal-sent-rules
+- DIARY-GUI-questionnaire-portal-sent-workflow
+- DIARY-GUI-participant-task-list-A
+- DIARY-GUI-participant-task-list-H
+- DIARY-GUI-participant-task-list-I
+- DIARY-GUI-participant-task-list-J
+- DIARY-PRD-notification-portal-sent-questionnaire-A
+- DIARY-PRD-notification-portal-sent-questionnaire-B
+- DIARY-PRD-notification-portal-sent-questionnaire-C
+- DIARY-PRD-notification-portal-sent-questionnaire-D
+- DIARY-PRD-questionnaire-portal-sent-rules-A
+- DIARY-PRD-questionnaire-portal-sent-rules-F
+- DIARY-PRD-questionnaire-portal-sent-rules-G
+- DIARY-PRD-notification-portal-sent-questionnaire:section:0
+- DIARY-PRD-notification-portal-sent-questionnaire:section:4
+- DIARY-PRD-questionnaire-portal-sent-rules:section:5
+- DIARY-GUI-questionnaire-portal-sent-workflow:section:0
+
+## Assigned Sites
+
+**DIARY:**
+
+- DIARY-GUI-user-management-tabs-L
+- DIARY-BASE-system-operator-role:section:0
+- DIARY-GUI-audit-log-cra:section:0
+
+## Audit Log
+
+**DIARY:**
+
+- DIARY-DEV-audit-log-read
+- DIARY-GUI-audit-log-common-B
+- DIARY-GUI-audit-log-common-E
+- DIARY-GUI-audit-log-study-coordinator-B
+- DIARY-GUI-audit-log-cra-C
+- DIARY-GUI-audit-log-cra-D
+- DIARY-GUI-audit-log-cra-E
+- DIARY-PRD-platform-operations-monitoring-P
+- DIARY-GUI-administrator-settings:section:3
+- rem:spec/prd-audit-log.md:1
+- rem:spec/prd-audit-log.md:3
+- DIARY-GUI-audit-log-common:section:6
+- DIARY-GUI-audit-log-administrator:section:1
+- DIARY-PRD-platform-operations-monitoring:section:0
+- DIARY-PRD-action-inventory:section:1
+- DIARY-GUI-role-switching:section:3
+- DIARY-PRD-reason-field-constraints:section:1
+- DIARY-GUI-administrator-dashboard:section:0
+- DIARY-GUI-administrator-dashboard:section:4
+
+## Audit Log Entry
+
+**DIARY:**
+
+- DIARY-GUI-audit-log-common-C
+- DIARY-GUI-audit-log-common-H
+- rem:spec/prd-audit-log.md:3
+- DIARY-PRD-action-inventory:section:2
+
+## Audit Log View
+
+**DIARY:**
+
+- DIARY-GUI-audit-log-common
+- DIARY-GUI-audit-log-study-coordinator
+- DIARY-GUI-audit-log-cra
+- DIARY-GUI-audit-log-administrator
+- DIARY-GUI-audit-log-common-A
+- DIARY-GUI-audit-log-common-E
+- DIARY-GUI-audit-log-cra-B
+- DIARY-GUI-audit-log-administrator-A
+- DIARY-GUI-administrator-dashboard-F
+- rem:spec/prd-audit-log.md:3
+- DIARY-GUI-audit-log-common:section:0
+- DIARY-GUI-audit-log-study-coordinator:section:0
+- DIARY-GUI-audit-log-cra:section:0
+- DIARY-GUI-audit-log-administrator:section:0
+- DIARY-GUI-audit-log-administrator:section:1
 
 ## Audit Trail
 
@@ -355,7 +486,6 @@
 - DIARY-PRD-questionnaire-localization:section:0
 - DIARY-PRD-user-account-create:section:1
 - DIARY-PRD-user-account-deactivate:section:0
-- DIARY-PRD-user-account-deactivate:section:1
 - DIARY-PRD-reason-field-constraints:section:1
 - DIARY-GUI-user-account-reactivate:section:3
 
@@ -369,7 +499,7 @@
 - DIARY-PRD-day-disposition-A
 - DIARY-PRD-evidence-bitcoin-timestamp-C
 - DIARY-PRD-diary-start-day-I
-- DIARY-GUI-main-screen-layout-J
+- DIARY-GUI-main-screen-layout-R
 - DIARY-GUI-calendar-day-view-A
 - DIARY-GUI-calendar-day-view-B
 - DIARY-GUI-calendar-day-view-C
@@ -378,7 +508,7 @@
 - DIARY-GUI-calendar-day-view-H
 - DIARY-GUI-calendar-day-view-R
 - DIARY-GUI-calendar-day-view-S
-- DIARY-GUI-participant-task-list-H
+- DIARY-GUI-participant-task-list-I
 - DIARY-PRD-notification-yesterday-entry-A
 - DIARY-PRD-notification-yesterday-entry-C
 - DIARY-PRD-notification-yesterday-entry-D
@@ -419,6 +549,7 @@
 - rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
+- DIARY-GUI-participation-status-badge:section:6
 
 ## Code Expiry
 
@@ -484,48 +615,6 @@
 - DIARY-OPS-rave-alert-notification:section:0
 - DIARY-GUI-dev-admin-rave-sync-card:section:0
 
-## Current Cycle
-
-**DIARY:**
-
-- DIARY-BASE-questionnaire-manage-modal-E
-- DIARY-BASE-questionnaire-finalization-B
-- DIARY-BASE-questionnaire-finalization:section:2
-- rem:spec/prd-status-registry.md:50
-
-## Cycle
-
-**DIARY:**
-
-- DIARY-BASE-questionnaire-cycle-tracking
-- DIARY-BASE-questionnaire-coordinator-workflow-A
-- DIARY-BASE-questionnaire-coordinator-workflow-C
-- DIARY-BASE-questionnaire-coordinator-workflow-M
-- DIARY-BASE-questionnaire-manage-modal-D
-- DIARY-BASE-questionnaire-manage-modal-E
-- DIARY-BASE-questionnaire-manage-modal-I
-- DIARY-BASE-questionnaire-finalization-A
-- DIARY-BASE-questionnaire-finalization-B
-- DIARY-BASE-questionnaire-finalization-D
-- DIARY-BASE-questionnaire-cycle-tracking-A
-- DIARY-BASE-questionnaire-cycle-tracking-B
-- DIARY-BASE-questionnaire-cycle-tracking-C
-- DIARY-BASE-questionnaire-cycle-tracking-D
-- DIARY-BASE-questionnaire-cycle-tracking-E
-- DIARY-BASE-questionnaire-cycle-tracking-I
-- DIARY-BASE-questionnaire-cycle-tracking-J
-- DIARY-BASE-questionnaire-cycle-tracking-K
-- rem:spec/base-questionnaire-coordinator.md:3
-- DIARY-BASE-questionnaire-coordinator-workflow:section:0
-- DIARY-BASE-questionnaire-coordinator-workflow:section:6
-- DIARY-BASE-questionnaire-manage-modal:section:6
-- DIARY-BASE-questionnaire-finalization:section:2
-- DIARY-BASE-questionnaire-cycle-tracking:section:0
-- DIARY-BASE-questionnaire-cycle-tracking:section:4
-- DIARY-BASE-questionnaire-lock-after-submission:section:1
-- DIARY-GUI-dev-admin-rave-sync-card:section:0
-- rem:spec/prd-status-registry.md:50
-
 ## Daily Epistaxis Record
 
 **DIARY:**
@@ -543,6 +632,10 @@
 - DIARY-PRD-epistaxis-capture-standard-B
 - DIARY-PRD-epistaxis-capture-standard-C
 - DIARY-PRD-diary-start-day-I
+- DIARY-GUI-main-screen-layout-K
+- DIARY-GUI-main-screen-layout-N
+- DIARY-GUI-main-screen-layout-O
+- DIARY-GUI-main-screen-layout-P
 - DIARY-GUI-calendar-day-view-G
 - DIARY-GUI-calendar-day-view-I
 - DIARY-GUI-calendar-day-view-J
@@ -550,15 +643,11 @@
 - DIARY-GUI-calendar-day-view-M
 - DIARY-GUI-calendar-day-view-T
 - DIARY-GUI-calendar-day-view-U
-- DIARY-GUI-participant-task-list-A
-- DIARY-GUI-participant-task-list-M
-- DIARY-GUI-participant-task-list-N
-- DIARY-GUI-participant-task-list-P
 - DIARY-PRD-notification-yesterday-entry-A
 - DIARY-PRD-notification-yesterday-entry-D
 - DIARY-PRD-epistaxis-capture-standard:section:1
 - DIARY-PRD-day-disposition:section:1
-- DIARY-GUI-participant-task-list:section:6
+- DIARY-GUI-main-screen-layout:section:5
 - DIARY-PRD-notification-yesterday-entry:section:0
 - DIARY-PRD-notification-yesterday-entry:section:5
 - DIARY-PRD-notification-historical-gap:section:0
@@ -608,7 +697,6 @@
 
 **DIARY:**
 
-- DIARY-PRD-user-account-deactivate-A
 - DIARY-PRD-user-account-deactivate-B
 - DIARY-GUI-user-account-deactivate-A
 - DIARY-GUI-user-account-deactivate-B
@@ -620,7 +708,6 @@
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-edit:section:1
 - DIARY-PRD-user-account-deactivate:section:0
-- DIARY-PRD-user-account-deactivate:section:1
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-PRD-reason-field-constraints:section:1
 - DIARY-GUI-user-account-deactivate:section:0
@@ -633,9 +720,9 @@
 **DIARY:**
 
 - DIARY-PRD-user-authentication-E
+- DIARY-BASE-user-authentication-pin:section:0
 - DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication:section:5
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
 
 ## Diary
 
@@ -668,6 +755,7 @@
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-participant-status-projection-B
+- DIARY-DEV-role-permissions-seed-C
 - DIARY-DEV-sponsor-config-source-D
 - DIARY-DEV-shared-events-catalog-B
 - DIARY-DEV-sponsor-branding-assets-A
@@ -691,9 +779,11 @@
 - DIARY-PRD-mobile-offline-first-A
 - DIARY-PRD-mobile-offline-first-B
 - DIARY-PRD-device-health-diagnostics-C
-- DIARY-GUI-main-screen-layout-F
+- DIARY-GUI-main-screen-layout-H
 - DIARY-GUI-calendar-day-view-C
 - DIARY-GUI-calendar-day-view-G
+- DIARY-GUI-user-profile-D
+- DIARY-GUI-user-profile-I
 - DIARY-PRD-notification-incomplete-record-lock-A
 - DIARY-PRD-notification-incomplete-record-lock-G
 - DIARY-PRD-questionnaire-portal-sent-rules-K
@@ -703,11 +793,12 @@
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-local-data-reset:section:0
 - DIARY-BASE-ops-action-inventory:section:0
-- DIARY-BASE-questionnaire-manage-modal:section:6
+- DIARY-BASE-questionnaire-manage-modal:section:7
 - DIARY-BASE-questionnaire-lock-after-submission:section:1
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- rem:spec/base-user-authentication-pin.md:1
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - rem:spec/dev-mobile-event-sourcing.md:1
@@ -736,6 +827,7 @@
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
+- DIARY-DEV-role-permissions-seed:section:0
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-sponsor-config-source:section:0
 - DIARY-DEV-sponsor-config-source:section:1
@@ -746,9 +838,12 @@
 - DIARY-DEV-sponsor-branding-assets:section:0
 - DIARY-DEV-sponsor-branding-assets:section:1
 - DIARY-DEV-view-action-permissions:section:0
-- rem:spec/glossary-core.md:730
-- rem:spec/glossary-core.md:756
+- rem:spec/glossary-core.md:15
+- rem:spec/glossary-core.md:23
+- rem:spec/glossary-core.md:724
+- rem:spec/glossary-core.md:750
 - DIARY-OPS-single-promotable-artifact:section:1
+- DIARY-PRD-configuration-precedence:section:1
 - rem:spec/prd-diary-entry-rules.md:1
 - rem:spec/prd-diary-entry-rules.md:3
 - DIARY-PRD-entry-overlap-resolution:section:7
@@ -759,13 +854,17 @@
 - DIARY-PRD-mobile-offline-first:section:1
 - DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-diary-start-day:section:1
-- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication:section:7
 - DIARY-PRD-device-health-diagnostics:section:0
 - DIARY-PRD-device-health-diagnostics:section:1
 - DIARY-GUI-main-screen-layout:section:0
+- DIARY-GUI-main-screen-layout:section:5
+- DIARY-GUI-mobile-navigation:section:3
 - DIARY-GUI-calendar-day-view:section:0
 - DIARY-GUI-calendar-day-view:section:7
+- DIARY-GUI-user-profile:section:4
 - rem:spec/prd-mobile-notifications.md:3
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-BASE-not-participating-notice:section:1
 - DIARY-PRD-notification-incomplete-record-lock:section:0
 - DIARY-PRD-notification-yesterday-entry:section:0
@@ -798,7 +897,7 @@
 
 **DIARY:**
 
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 
 ## Diary Platform
 
@@ -823,25 +922,29 @@
 
 **DIARY:**
 
+- DIARY-BASE-user-authentication-pin
 - DIARY-PRD-user-authentication
-- DIARY-PRD-user-authentication-pin
+- DIARY-GUI-user-authentication
+- DIARY-BASE-user-authentication-pin-A
 - DIARY-PRD-user-authentication-A
 - DIARY-PRD-user-authentication-B
 - DIARY-PRD-user-authentication-C
 - DIARY-PRD-user-authentication-D
 - DIARY-PRD-user-authentication-G
-- DIARY-PRD-user-authentication-pin-A
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
+- DIARY-GUI-user-authentication:section:0
+- DIARY-GUI-user-authentication:section:3
 
 ## Disconnection Notification
 
 **DIARY:**
 
 - DIARY-PRD-notification-disconnection
-- DIARY-GUI-main-screen-layout-E
+- DIARY-GUI-main-screen-layout-G
 - DIARY-PRD-notification-disconnection-A
 - DIARY-PRD-notification-disconnection-B
 - DIARY-PRD-notification-disconnection-C
@@ -937,7 +1040,7 @@
 - DIARY-PRD-epistaxis-capture-standard:section:1
 - DIARY-PRD-day-disposition:section:0
 - DIARY-PRD-day-disposition:section:1
-- DIARY-PRD-user-authentication:section:0
+- DIARY-PRD-user-authentication:section:7
 - DIARY-PRD-notification-ongoing-epistaxis:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:5
 - DIARY-PRD-notification-ongoing-epistaxis:section:6
@@ -967,9 +1070,9 @@
 
 **DIARY:**
 
-- DIARY-PRD-user-authentication-pin-F
-- DIARY-PRD-user-authentication-pin-K
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-BASE-user-authentication-pin-F
+- DIARY-BASE-user-authentication-pin-K
+- DIARY-BASE-user-authentication-pin:section:6
 
 ## FDA 21 CFR Part 11
 
@@ -991,7 +1094,7 @@
 - DIARY-PRD-system-validation-traceability:section:1
 - DIARY-PRD-sla-root-cause-analysis:section:0
 - DIARY-PRD-sla-regulatory-event-support:section:0
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 
 ## FDA 21 CFR Part 11 (Regulation)
 
@@ -1005,7 +1108,11 @@
 - DIARY-BASE-questionnaire-coordinator-workflow-K
 - DIARY-BASE-questionnaire-coordinator-workflow-L
 - DIARY-BASE-questionnaire-coordinator-workflow-M
+- DIARY-BASE-questionnaire-finalization-A
+- DIARY-BASE-questionnaire-finalization-C
 - DIARY-BASE-questionnaire-finalization-D
+- DIARY-BASE-questionnaire-finalization-F
+- DIARY-BASE-questionnaire-finalization-G
 - DIARY-BASE-questionnaire-cycle-tracking-E
 - DIARY-BASE-questionnaire-lock-after-submission-B
 - DIARY-BASE-questionnaire-lock-after-submission-D
@@ -1015,30 +1122,15 @@
 - DIARY-GUI-questionnaire-portal-sent-workflow-R
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
 - DIARY-BASE-questionnaire-coordinator-workflow:section:6
-- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-finalization:section:0
+- DIARY-BASE-questionnaire-finalization:section:3
 - DIARY-BASE-questionnaire-lock-after-submission:section:1
 - DIARY-GUI-epistaxis-record:section:5
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-participant-registration:section:1
 - DIARY-PRD-questionnaire-portal-sent-rules:section:0
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:8
-
-## Finalization Dialog
-
-**DIARY:**
-
-- DIARY-BASE-questionnaire-finalization-A
-- DIARY-BASE-questionnaire-finalization-C
-- DIARY-BASE-questionnaire-finalization-F
-- DIARY-BASE-questionnaire-finalization-G
-- DIARY-BASE-questionnaire-finalization:section:2
-
-## Finalized Cycle
-
-**DIARY:**
-
-- DIARY-BASE-questionnaire-manage-modal-E
-- DIARY-BASE-questionnaire-finalization-D
 
 ## Full Name
 
@@ -1121,16 +1213,27 @@
 - DIARY-PRD-user-authentication-D
 - DIARY-PRD-user-authentication-E
 - DIARY-PRD-user-authentication-F
-- DIARY-PRD-user-authentication-K
-- DIARY-PRD-session-management-C
+- DIARY-PRD-user-authentication-N
+- DIARY-BASE-user-authentication-pin:section:6
 - DIARY-DEV-portal-session-token:section:1
 - DIARY-DEV-portal-session-lifecycle:section:0
 - DIARY-DEV-portal-session-config:section:0
 - DIARY-DEV-portal-reaction-server:section:1
-- DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication:section:5
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
 - DIARY-PRD-session-management:section:6
+
+## Inactive Users
+
+**DIARY:**
+
+- DIARY-GUI-user-management-tabs-A
+- DIARY-GUI-user-management-tabs-C
+- DIARY-GUI-user-account-deactivate-E
+- DIARY-GUI-user-account-reactivate-A
+- DIARY-GUI-user-information-modal-J
+- DIARY-GUI-user-account-deactivate:section:3
+- DIARY-GUI-user-account-reactivate:section:0
+- DIARY-GUI-user-account-reactivate:section:3
 
 ## Incomplete Record
 
@@ -1147,6 +1250,7 @@
 - DIARY-PRD-notification-ongoing-epistaxis-E
 - DIARY-PRD-notification-ongoing-epistaxis-F
 - DIARY-PRD-epistaxis-capture-standard:section:1
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-notification-incomplete-record-lock:section:0
 - DIARY-PRD-notification-incomplete-record-lock:section:3
 
@@ -1158,7 +1262,8 @@
 - DIARY-GUI-participant-task-list-B
 - DIARY-GUI-participant-task-list-C
 - DIARY-GUI-participant-task-list-E
-- DIARY-GUI-participant-task-list:section:6
+- DIARY-GUI-participant-task-list-F
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-notification-ongoing-epistaxis:section:5
 
 ## Intensity
@@ -1173,17 +1278,14 @@
 - DIARY-GUI-epistaxis-record-I
 - rem:spec/prd-epistaxis.md:3
 - DIARY-PRD-epistaxis-capture-standard:section:1
-- DIARY-GUI-epistaxis-record:section:0
 - DIARY-GUI-epistaxis-record:section:5
 
 ## Investigator
 
 **DIARY:**
 
-- DIARY-PRD-role-definitions-B
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - DIARY-OPS-rave-sync-cooldown:section:0
-- DIARY-PRD-role-definitions:section:1
 
 ## ISO/IEC 24760-1
 
@@ -1197,6 +1299,22 @@
 - DIARY-GUI-entry-overlap-resolution-F
 - DIARY-PRD-entry-time-restrictions:section:4
 
+## Link Participant
+
+**DIARY:**
+
+- DIARY-GUI-link-participant-flow
+
+## Linked use mode
+
+**DIARY:**
+
+- DIARY-PRD-mobile-application-C
+- DIARY-PRD-notification-historical-gap-E
+- DIARY-PRD-notification-historical-gap-H
+- DIARY-GUI-linking-confirmation:section:0
+- DIARY-PRD-mobile-application:section:0
+
 ## Linking Code
 
 **DIARY:**
@@ -1208,14 +1326,11 @@
 - DIARY-DEV-participant-link-issuance-A
 - DIARY-DEV-shared-events-catalog-D
 - DIARY-PRD-linking-code-entry-errors-D
-- DIARY-GUI-join-study-screen-D
-- DIARY-GUI-linking-confirmation-A
 - DIARY-GUI-mobile-navigation-F
+- DIARY-GUI-user-profile-C
 - DIARY-GUI-participation-status-badge-B
 - DIARY-GUI-participation-status-badge-D
 - DIARY-GUI-participation-status-badge-E
-- DIARY-PRD-participant-link-new-C
-- DIARY-PRD-participant-reconnection-E
 - DIARY-GUI-show-linking-code-A
 - DIARY-GUI-show-linking-code-C
 - DIARY-DEV-linking-code-lifecycle:section:0
@@ -1225,13 +1340,8 @@
 - DIARY-GUI-linking-confirmation:section:0
 - DIARY-PRD-notification-disconnection:section:1
 - DIARY-GUI-participation-status-badge:section:6
-- DIARY-PRD-linking-code-lifecycle:section:0
-- DIARY-PRD-linking-code-lifecycle:section:6
-- DIARY-PRD-participant-link-new:section:0
-- DIARY-PRD-participant-link-new:section:1
 - DIARY-GUI-show-linking-code:section:0
 - DIARY-GUI-show-linking-code:section:2
-- DIARY-GUI-link-participant-flow:section:0
 - rem:spec/prd-status-registry.md:33
 
 ## Linking Code Validation Failure
@@ -1271,7 +1381,7 @@
 - DIARY-PRD-notification-historical-gap-D
 - DIARY-PRD-entry-time-restrictions:section:4
 - DIARY-GUI-entry-overlap-resolution:section:6
-- DIARY-GUI-participant-task-list:section:6
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-notification-incomplete-record-lock:section:0
 - DIARY-PRD-notification-incomplete-record-lock:section:3
 
@@ -1308,9 +1418,8 @@
 - DIARY-GUI-main-screen-layout
 - DIARY-GUI-entry-overlap-resolution-M
 - DIARY-GUI-main-screen-layout-A
-- DIARY-GUI-main-screen-layout-C
-- DIARY-GUI-main-screen-layout-I
-- DIARY-GUI-main-screen-layout-J
+- DIARY-GUI-main-screen-layout-Q
+- DIARY-GUI-main-screen-layout-R
 - DIARY-GUI-mobile-navigation-A
 - DIARY-GUI-mobile-navigation-B
 - DIARY-GUI-calendar-day-view-H
@@ -1322,10 +1431,15 @@
 - DIARY-GUI-main-screen-layout:section:0
 - DIARY-GUI-mobile-navigation:section:0
 - DIARY-GUI-participant-task-list:section:0
-- DIARY-GUI-participant-task-list:section:6
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
 - DIARY-PRD-notification-yesterday-entry:section:0
 - DIARY-PRD-notification-behavior:section:4
+
+## Max Intensity
+
+**DIARY:**
+
+- DIARY-GUI-epistaxis-record:section:0
 
 ## Mobile Application
 
@@ -1334,6 +1448,8 @@
 - DIARY-PRD-mobile-application
 - DIARY-GUI-mobile-navigation
 - DIARY-BASE-questionnaire-coordinator-workflow-B
+- DIARY-BASE-user-authentication-pin-D
+- DIARY-BASE-user-authentication-pin-F
 - DIARY-DEV-runtime-environment-resolution-A
 - DIARY-OPS-single-promotable-artifact-C
 - DIARY-PRD-mobile-application-A
@@ -1345,10 +1461,11 @@
 - DIARY-PRD-user-authentication-A
 - DIARY-PRD-user-authentication-B
 - DIARY-PRD-user-authentication-C
-- DIARY-PRD-user-authentication-pin-D
-- DIARY-PRD-user-authentication-pin-F
 - DIARY-PRD-device-health-diagnostics-A
 - DIARY-GUI-service-mode-entry-A
+- DIARY-GUI-mobile-navigation-A
+- DIARY-GUI-accessibility-preferences-B
+- DIARY-GUI-accessibility-preferences-D
 - DIARY-BASE-not-participating-notice-A
 - DIARY-PRD-notification-portal-sent-questionnaire-A
 - DIARY-PRD-notification-portal-sent-questionnaire-B
@@ -1364,23 +1481,22 @@
 - DIARY-PRD-participant-mark-not-participating-D
 - DIARY-PRD-participant-reactivate-C
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
-- rem:spec/glossary-core.md:730
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
+- rem:spec/glossary-core.md:724
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-mobile-app.md:1
 - rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-mobile-application:section:0
-- DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-diary-start-day:section:1
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
-- DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
 - DIARY-PRD-device-health-diagnostics:section:0
 - DIARY-PRD-device-health-diagnostics:section:1
 - rem:spec/prd-mobile-navigation.md:1
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-mobile-navigation:section:0
+- DIARY-GUI-accessibility-preferences:section:0
 - rem:spec/prd-mobile-notifications.md:3
 - DIARY-PRD-notification-disconnection:section:0
 - DIARY-BASE-not-participating-notice:section:0
@@ -1403,6 +1519,8 @@
 
 - DIARY-DEV-participant-state-poll-B
 - DIARY-GUI-join-study-screen-A
+- DIARY-GUI-join-study-screen-D
+- DIARY-GUI-linking-confirmation-A
 - DIARY-PRD-linking-code-lifecycle-A
 - DIARY-PRD-linking-code-lifecycle-B
 - DIARY-PRD-linking-code-lifecycle-D
@@ -1410,27 +1528,41 @@
 - DIARY-PRD-linking-code-lifecycle-F
 - DIARY-PRD-linking-code-lifecycle-G
 - DIARY-PRD-participant-link-new-B
+- DIARY-PRD-participant-link-new-C
 - DIARY-PRD-participant-reconnection-D
+- DIARY-PRD-participant-reconnection-E
 - DIARY-GUI-show-linking-code-A
 - DIARY-GUI-show-linking-code-B
 - DIARY-GUI-link-participant-flow-A
 - DIARY-GUI-link-participant-flow-B
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-GUI-join-study-screen:section:0
+- DIARY-PRD-linking-code-lifecycle:section:0
 - DIARY-PRD-linking-code-lifecycle:section:6
+- DIARY-PRD-participant-link-new:section:0
+- DIARY-PRD-participant-link-new:section:1
 - DIARY-PRD-participant-reconnection:section:0
+- DIARY-GUI-show-linking-code:section:2
+- DIARY-GUI-link-participant-flow:section:0
 
 ## Multi-Sponsor Isolation
 
-## Next Cycle
+## Needs your attention
 
 **DIARY:**
 
-- DIARY-BASE-questionnaire-coordinator-workflow-C
-- DIARY-BASE-questionnaire-manage-modal-E
-- DIARY-BASE-questionnaire-manage-modal-M
-- DIARY-BASE-questionnaire-finalization-D
-- DIARY-BASE-questionnaire-cycle-tracking-D
+- DIARY-GUI-main-screen-layout-B
+- DIARY-GUI-main-screen-layout-C
+- DIARY-GUI-main-screen-layout-D
+- DIARY-GUI-main-screen-layout-E
+- DIARY-GUI-main-screen-layout-F
+- DIARY-GUI-main-screen-layout-G
+- DIARY-GUI-participant-task-list-A
+- DIARY-GUI-participant-task-list-M
+- DIARY-GUI-participant-task-list-N
+- rem:spec/prd-mobile-navigation.md:3
+- DIARY-GUI-main-screen-layout:section:5
+- DIARY-GUI-participant-task-list:section:0
 
 ## NIST SP 800-63
 
@@ -1490,7 +1622,6 @@
 - DIARY-PRD-entry-overlap-resolution:section:7
 - DIARY-GUI-entry-overlap-resolution:section:0
 - DIARY-GUI-entry-overlap-resolution:section:6
-- DIARY-GUI-mobile-navigation:section:5
 
 ## Participant
 
@@ -1508,7 +1639,6 @@
 - DIARY-PRD-participant-reconnection
 - DIARY-PRD-participant-reactivate
 - DIARY-GUI-participant-dashboard
-- DIARY-GUI-link-participant-flow
 - DIARY-BASE-audit-trail-E
 - DIARY-BASE-local-data-reset-B
 - DIARY-BASE-questionnaire-coordinator-workflow-A
@@ -1528,7 +1658,13 @@
 - DIARY-BASE-sponsor-requested-settings-C
 - DIARY-BASE-sponsor-requested-settings-D
 - DIARY-BASE-sponsor-requested-settings-E
-- DIARY-BASE-system-operator-role-B
+- DIARY-BASE-user-authentication-pin-A
+- DIARY-BASE-user-authentication-pin-B
+- DIARY-BASE-user-authentication-pin-C
+- DIARY-BASE-user-authentication-pin-D
+- DIARY-BASE-user-authentication-pin-F
+- DIARY-BASE-user-authentication-pin-G
+- DIARY-BASE-user-authentication-pin-H
 - DIARY-DEV-deployment-config-defaults-E
 - DIARY-DEV-deployment-config-defaults-F
 - DIARY-DEV-linking-code-lifecycle-B
@@ -1620,16 +1756,19 @@
 - DIARY-PRD-user-authentication-F
 - DIARY-PRD-user-authentication-G
 - DIARY-PRD-user-authentication-H
+- DIARY-PRD-user-authentication-I
 - DIARY-PRD-user-authentication-J
-- DIARY-PRD-user-authentication-pin-A
-- DIARY-PRD-user-authentication-pin-B
-- DIARY-PRD-user-authentication-pin-C
-- DIARY-PRD-user-authentication-pin-D
-- DIARY-PRD-user-authentication-pin-F
-- DIARY-PRD-user-authentication-pin-G
-- DIARY-PRD-user-authentication-pin-H
-- DIARY-GUI-mobile-navigation-G
-- DIARY-GUI-mobile-navigation-J
+- DIARY-PRD-user-authentication-K
+- DIARY-PRD-user-authentication-L
+- DIARY-PRD-user-authentication-M
+- DIARY-GUI-user-authentication-B
+- DIARY-GUI-main-screen-layout-D
+- DIARY-GUI-main-screen-layout-K
+- DIARY-GUI-main-screen-layout-M
+- DIARY-GUI-main-screen-layout-N
+- DIARY-GUI-main-screen-layout-O
+- DIARY-GUI-main-screen-layout-P
+- DIARY-GUI-mobile-navigation-E
 - DIARY-GUI-calendar-day-view-A
 - DIARY-GUI-calendar-day-view-F
 - DIARY-GUI-calendar-day-view-G
@@ -1641,17 +1780,18 @@
 - DIARY-GUI-calendar-day-view-R
 - DIARY-GUI-calendar-day-view-T
 - DIARY-GUI-calendar-day-view-U
+- DIARY-GUI-user-profile-A
+- DIARY-GUI-user-profile-D
+- DIARY-GUI-accessibility-preferences-B
+- DIARY-GUI-accessibility-preferences-D
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-C
 - DIARY-GUI-participant-task-list-D
-- DIARY-GUI-participant-task-list-G
+- DIARY-GUI-participant-task-list-E
 - DIARY-GUI-participant-task-list-H
-- DIARY-GUI-participant-task-list-K
-- DIARY-GUI-participant-task-list-M
+- DIARY-GUI-participant-task-list-I
+- DIARY-GUI-participant-task-list-L
 - DIARY-GUI-participant-task-list-N
-- DIARY-GUI-participant-task-list-O
-- DIARY-GUI-participant-task-list-P
-- DIARY-GUI-participant-task-list-R
 - DIARY-PRD-notification-disconnection-A
 - DIARY-PRD-notification-disconnection-B
 - DIARY-PRD-notification-disconnection-C
@@ -1705,7 +1845,6 @@
 - DIARY-GUI-participant-dashboard-K
 - DIARY-GUI-participant-dashboard-L
 - DIARY-GUI-participant-dashboard-M
-- DIARY-GUI-participant-dashboard-O
 - DIARY-GUI-show-linking-code-A
 - DIARY-GUI-show-linking-code-B
 - DIARY-GUI-show-linking-code-C
@@ -1764,8 +1903,8 @@
 - DIARY-BASE-local-data-reset:section:1
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
 - DIARY-BASE-questionnaire-coordinator-workflow:section:6
-- DIARY-BASE-questionnaire-manage-modal:section:6
-- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-manage-modal:section:7
+- DIARY-BASE-questionnaire-finalization:section:3
 - DIARY-BASE-questionnaire-cycle-tracking:section:0
 - DIARY-BASE-questionnaire-cycle-tracking:section:4
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
@@ -1773,6 +1912,8 @@
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - DIARY-DEV-native-outbound-sync:section:1
@@ -1795,7 +1936,7 @@
 - DIARY-DEV-relink-device-gate:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - DIARY-DEV-view-action-permissions:section:0
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-GUI-audit-log-cra:section:0
@@ -1830,18 +1971,22 @@
 - DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-privacy-policy:section:1
 - DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
+- DIARY-GUI-user-authentication:section:0
+- DIARY-GUI-user-authentication:section:3
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-main-screen-layout:section:0
 - DIARY-GUI-main-screen-layout:section:5
-- DIARY-GUI-mobile-navigation:section:5
+- DIARY-GUI-mobile-navigation:section:3
 - DIARY-GUI-calendar-day-view:section:0
 - DIARY-GUI-calendar-day-view:section:7
+- DIARY-GUI-user-profile:section:0
+- DIARY-GUI-user-profile:section:4
+- DIARY-GUI-accessibility-preferences:section:1
 - rem:spec/prd-mobile-notifications.md:1
 - rem:spec/prd-mobile-notifications.md:3
 - DIARY-GUI-participant-task-list:section:0
-- DIARY-GUI-participant-task-list:section:6
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-notification-disconnection:section:0
 - DIARY-PRD-notification-disconnection:section:1
 - DIARY-BASE-not-participating-notice:section:0
@@ -1928,13 +2073,15 @@
 
 - DIARY-PRD-linking-code-lifecycle-H
 - DIARY-GUI-show-linking-code-C
+- DIARY-PRD-linking-code-lifecycle:section:6
+- DIARY-GUI-show-linking-code:section:2
 
 ## Participation Status Badge
 
 **DIARY:**
 
 - DIARY-GUI-participation-status-badge
-- DIARY-GUI-mobile-navigation-J
+- DIARY-GUI-user-profile-D
 - DIARY-GUI-participation-status-badge-A
 - DIARY-GUI-participation-status-badge-B
 - DIARY-GUI-participation-status-badge-C
@@ -1944,7 +2091,7 @@
 - DIARY-GUI-participation-status-badge-G
 - DIARY-GUI-participation-status-badge-H
 - DIARY-GUI-linking-confirmation:section:1
-- DIARY-GUI-mobile-navigation:section:5
+- DIARY-GUI-user-profile:section:4
 - rem:spec/prd-mobile-notifications.md:3
 - DIARY-GUI-participation-status-badge:section:0
 
@@ -2044,7 +2191,7 @@
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-sla-incident-severity-B
 - DIARY-DEV-sponsor-branding-source:section:1
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - rem:spec/prd-evidence-records.md:3
 - DIARY-PRD-evidence-device-fingerprint:section:0
 - DIARY-PRD-evidence-patient-authentication:section:0
@@ -2055,70 +2202,61 @@
 - DIARY-PRD-questionnaire-localization:section:0
 - DIARY-PRD-sla-incident-severity:section:0
 
+## Personal use mode
+
+**DIARY:**
+
+- DIARY-PRD-mobile-application-C
+- DIARY-PRD-mobile-application-D
+- DIARY-PRD-mobile-application-E
+- DIARY-PRD-notification-historical-gap-F
+- DIARY-PRD-notification-historical-gap-G
+- DIARY-GUI-linking-confirmation:section:0
+- DIARY-PRD-mobile-application:section:0
+- DIARY-PRD-user-authentication:section:0
+- DIARY-GUI-user-authentication:section:3
+
+## PII
+
+**DIARY:**
+
+- DIARY-PRD-evidence-geolocation:section:0
+- DIARY-PRD-evidence-email-identity:section:0
+
 ## PIN
 
 **DIARY:**
 
-- DIARY-PRD-user-authentication-pin
+- DIARY-BASE-user-authentication-pin
+- DIARY-BASE-user-authentication-pin-A
+- DIARY-BASE-user-authentication-pin-B
+- DIARY-BASE-user-authentication-pin-C
+- DIARY-BASE-user-authentication-pin-D
+- DIARY-BASE-user-authentication-pin-E
+- DIARY-BASE-user-authentication-pin-F
+- DIARY-BASE-user-authentication-pin-G
+- DIARY-BASE-user-authentication-pin-H
+- DIARY-BASE-user-authentication-pin-I
+- DIARY-BASE-user-authentication-pin-J
 - DIARY-PRD-evidence-patient-authentication-C
 - DIARY-PRD-evidence-patient-authentication-G
 - DIARY-PRD-evidence-patient-authentication-H
 - DIARY-PRD-evidence-patient-authentication-I
-- DIARY-PRD-user-authentication-F
-- DIARY-PRD-user-authentication-pin-A
-- DIARY-PRD-user-authentication-pin-B
-- DIARY-PRD-user-authentication-pin-C
-- DIARY-PRD-user-authentication-pin-D
-- DIARY-PRD-user-authentication-pin-E
-- DIARY-PRD-user-authentication-pin-F
-- DIARY-PRD-user-authentication-pin-G
-- DIARY-PRD-user-authentication-pin-H
-- DIARY-PRD-user-authentication-pin-I
-- DIARY-PRD-user-authentication-pin-J
+- rem:spec/base-user-authentication-pin.md:1
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - DIARY-PRD-evidence-patient-authentication:section:0
-- DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication:section:5
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
-
-## PIN Policy
-
-**DIARY:**
-
-- DIARY-PRD-user-authentication-I
-- DIARY-PRD-user-authentication-J
-- DIARY-PRD-user-authentication:section:0
-- DIARY-PRD-user-authentication:section:5
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
 
 ## PIN Reset
 
 **DIARY:**
 
-- DIARY-PRD-user-authentication-pin-F
-- DIARY-PRD-user-authentication-pin-G
-- DIARY-PRD-user-authentication-pin-H
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
-
-## Portal-Sent Questionnaire
-
-**DIARY:**
-
-- DIARY-PRD-notification-portal-sent-questionnaire
-- DIARY-PRD-questionnaire-portal-sent-rules
-- DIARY-GUI-questionnaire-portal-sent-workflow
-- DIARY-GUI-participant-task-list-A
-- DIARY-GUI-participant-task-list-G
-- DIARY-GUI-participant-task-list-H
-- DIARY-GUI-participant-task-list-I
-- DIARY-PRD-questionnaire-portal-sent-rules-A
-- DIARY-PRD-questionnaire-portal-sent-rules-F
-- DIARY-PRD-questionnaire-portal-sent-rules-G
-- DIARY-PRD-notification-portal-sent-questionnaire:section:0
-- DIARY-PRD-notification-portal-sent-questionnaire:section:4
-- DIARY-PRD-questionnaire-portal-sent-rules:section:5
-- DIARY-GUI-questionnaire-portal-sent-workflow:section:0
+- DIARY-BASE-user-authentication-pin-F
+- DIARY-BASE-user-authentication-pin-G
+- DIARY-BASE-user-authentication-pin-H
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 
 ## Preamble
 
@@ -2183,10 +2321,15 @@
 - DIARY-BASE-questionnaire-coordinator-workflow-J
 - DIARY-BASE-questionnaire-coordinator-workflow-K
 - DIARY-BASE-questionnaire-coordinator-workflow-M
+- DIARY-BASE-questionnaire-manage-modal-B
 - DIARY-BASE-questionnaire-manage-modal-D
 - DIARY-BASE-questionnaire-manage-modal-E
+- DIARY-BASE-questionnaire-manage-modal-G
 - DIARY-BASE-questionnaire-manage-modal-H
 - DIARY-BASE-questionnaire-manage-modal-I
+- DIARY-BASE-questionnaire-manage-modal-K
+- DIARY-BASE-questionnaire-manage-modal-L
+- DIARY-BASE-questionnaire-manage-modal-M
 - DIARY-BASE-questionnaire-manage-modal-N
 - DIARY-BASE-questionnaire-finalization-C
 - DIARY-BASE-questionnaire-finalization-D
@@ -2207,13 +2350,9 @@
 - DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-participant-task-list-A
-- DIARY-GUI-participant-task-list-G
 - DIARY-GUI-participant-task-list-H
-- DIARY-GUI-participant-task-list-J
-- DIARY-PRD-notification-portal-sent-questionnaire-A
-- DIARY-PRD-notification-portal-sent-questionnaire-B
-- DIARY-PRD-notification-portal-sent-questionnaire-C
-- DIARY-PRD-notification-portal-sent-questionnaire-D
+- DIARY-GUI-participant-task-list-I
+- DIARY-GUI-participant-task-list-K
 - DIARY-PRD-questionnaire-system-A
 - DIARY-PRD-questionnaire-system-B
 - DIARY-PRD-questionnaire-system-F
@@ -2281,8 +2420,9 @@
 - rem:spec/base-questionnaire-coordinator.md:3
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
 - DIARY-BASE-questionnaire-coordinator-workflow:section:6
-- DIARY-BASE-questionnaire-manage-modal:section:6
-- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-manage-modal:section:0
+- DIARY-BASE-questionnaire-manage-modal:section:7
+- DIARY-BASE-questionnaire-finalization:section:3
 - DIARY-BASE-questionnaire-cycle-tracking:section:0
 - DIARY-BASE-questionnaire-cycle-tracking:section:4
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
@@ -2291,6 +2431,8 @@
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/prd-common-ui.md:7
 - DIARY-GUI-calendar-day-view:section:7
+- DIARY-GUI-accessibility-preferences:section:1
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
 - DIARY-PRD-notification-portal-sent-questionnaire:section:4
 - DIARY-PRD-notification-portal-sent-questionnaire:section:5
@@ -2300,7 +2442,6 @@
 - DIARY-GUI-portal-session-expiry:section:1
 - rem:spec/prd-questionnaire-management.md:1
 - rem:spec/prd-questionnaire-management.md:3
-- DIARY-PRD-questionnaire-system:section:0
 - DIARY-PRD-questionnaire-system:section:4
 - DIARY-PRD-questionnaire-sponsor-configuration:section:0
 - DIARY-PRD-questionnaire-sponsor-configuration:section:1
@@ -2329,20 +2470,6 @@
 - rem:spec/prd-status-registry.md:48
 - rem:spec/prd-status-registry.md:50
 
-## Questionnaire Card
-
-**DIARY:**
-
-- DIARY-BASE-questionnaire-manage-modal-B
-- DIARY-BASE-questionnaire-manage-modal-D
-- DIARY-BASE-questionnaire-manage-modal-E
-- DIARY-BASE-questionnaire-manage-modal-G
-- DIARY-BASE-questionnaire-manage-modal-K
-- DIARY-BASE-questionnaire-manage-modal-L
-- DIARY-BASE-questionnaire-manage-modal-M
-- DIARY-BASE-questionnaire-finalization-D
-- DIARY-BASE-questionnaire-finalization-E
-
 ## Questionnaire Display Name
 
 **DIARY:**
@@ -2354,12 +2481,12 @@
 **DIARY:**
 
 - DIARY-GUI-participant-task-list-A
-- DIARY-GUI-participant-task-list-F
 - DIARY-GUI-participant-task-list-G
-- DIARY-GUI-participant-task-list-I
+- DIARY-GUI-participant-task-list-H
 - DIARY-GUI-participant-task-list-J
 - DIARY-GUI-participant-task-list-K
-- DIARY-GUI-participant-task-list:section:6
+- DIARY-GUI-participant-task-list-L
+- DIARY-GUI-participant-task-list:section:5
 
 ## Questionnaire Type
 
@@ -2379,17 +2506,25 @@
 - DIARY-BASE-questionnaire-cycle-tracking-H
 - DIARY-BASE-questionnaire-cycle-tracking-J
 - DIARY-GUI-audit-log-common-G
-- DIARY-GUI-participant-task-list-F
+- DIARY-GUI-participant-task-list-G
 - DIARY-PRD-questionnaire-change-control-B
 - DIARY-PRD-questionnaire-score-calculation-C
-- DIARY-BASE-questionnaire-manage-modal:section:6
-- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-manage-modal:section:7
+- DIARY-BASE-questionnaire-finalization:section:3
 - DIARY-BASE-questionnaire-cycle-tracking:section:0
 - DIARY-BASE-questionnaire-cycle-tracking:section:4
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-questionnaire-system:section:4
 - DIARY-PRD-questionnaire-sponsor-configuration:section:1
 - DIARY-PRD-questionnaire-change-control:section:1
 - DIARY-PRD-questionnaire-score-calculation:section:1
+
+## Rate Limit
+
+**DIARY:**
+
+- DIARY-PRD-linking-code-entry-errors-D
+- DIARY-PRD-linking-code-entry-errors:section:4
 
 ## Rate Limit Cooldown
 
@@ -2511,13 +2646,13 @@
 - DIARY-BASE-system-operator-role
 - DIARY-DEV-portal-active-role-switch
 - DIARY-DEV-portal-seed-config
+- DIARY-DEV-role-permissions-seed
 - DIARY-PRD-rbac-customizable
 - DIARY-PRD-role-definitions
 - DIARY-GUI-role-switching
 - DIARY-BASE-ops-action-inventory-A
 - DIARY-BASE-ops-action-inventory-C
-- DIARY-BASE-system-operator-role-A
-- DIARY-BASE-system-operator-role-B
+- DIARY-BASE-system-operator-role-D
 - DIARY-DEV-portal-session-lifecycle-B
 - DIARY-DEV-portal-active-role-switch-A
 - DIARY-DEV-portal-active-role-switch-B
@@ -2526,6 +2661,8 @@
 - DIARY-DEV-user-account-projection-C
 - DIARY-DEV-portal-durable-event-store-C
 - DIARY-DEV-portal-seed-config-A
+- DIARY-DEV-role-permissions-seed-A
+- DIARY-DEV-role-permissions-seed-C
 - DIARY-DEV-operator-tier-authz-A
 - DIARY-DEV-operator-tier-authz-D
 - DIARY-DEV-operator-tier-authz-E
@@ -2539,9 +2676,6 @@
 - DIARY-PRD-action-inventory-A
 - DIARY-PRD-action-inventory-B
 - DIARY-PRD-action-inventory-C
-- DIARY-PRD-role-definitions-B
-- DIARY-PRD-role-definitions-C
-- DIARY-PRD-role-definitions-D
 - DIARY-GUI-role-switching-B
 - DIARY-GUI-role-switching-C
 - DIARY-GUI-role-switching-D
@@ -2551,8 +2685,6 @@
 - DIARY-PRD-user-account-create-C
 - DIARY-PRD-user-account-edit-B
 - DIARY-PRD-user-account-edit-E
-- DIARY-PRD-user-account-edit-H
-- DIARY-PRD-user-account-deactivate-A
 - DIARY-GUI-user-management-tabs-L
 - DIARY-GUI-user-information-modal-A
 - DIARY-GUI-user-information-modal-B
@@ -2573,10 +2705,12 @@
 - DIARY-DEV-portal-durable-event-store:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
+- DIARY-DEV-role-permissions-seed:section:0
+- DIARY-DEV-role-permissions-seed:section:1
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
 - DIARY-DEV-view-action-permissions:section:0
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-audit-log.md:3
@@ -2607,7 +2741,7 @@
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-create:section:1
 - DIARY-PRD-user-account-edit:section:1
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-information-modal:section:3
 - DIARY-GUI-administrator-dashboard:section:4
@@ -2643,17 +2777,6 @@
 - DIARY-DEV-portal-reset-session-termination:section:1
 - DIARY-PRD-two-factor-authentication:section:4
 
-## Select Starting Cycle Dialog
-
-**DIARY:**
-
-- DIARY-BASE-questionnaire-manage-modal-I
-- DIARY-BASE-questionnaire-manage-modal-J
-- DIARY-BASE-questionnaire-manage-modal-K
-- DIARY-BASE-questionnaire-manage-modal-L
-- DIARY-BASE-questionnaire-manage-modal-M
-- DIARY-BASE-questionnaire-manage-modal:section:6
-
 ## Session
 
 **DIARY:**
@@ -2683,7 +2806,7 @@
 - DIARY-PRD-session-management-A
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-D
-- DIARY-PRD-session-management-H
+- DIARY-PRD-session-management-G
 - DIARY-PRD-session-management-I
 - DIARY-PRD-session-management-K
 - DIARY-GUI-portal-session-expiry-B
@@ -2716,7 +2839,7 @@
 - DIARY-DEV-portal-legacy-sw-eviction:section:1
 - DIARY-DEV-sponsor-branding-source:section:1
 - DIARY-PRD-administrator-settings:section:5
-- DIARY-GUI-portal-stale-client-reload:section:1
+- DIARY-BASE-portal-stale-client-reload:section:1
 - rem:spec/prd-portal-auth.md:3
 - DIARY-PRD-password-forgot:section:5
 - DIARY-PRD-session-management:section:0
@@ -2731,7 +2854,7 @@
 - DIARY-GUI-questionnaire-session-expiry:section:6
 - DIARY-GUI-role-switching:section:3
 - DIARY-PRD-user-account-edit:section:1
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 
 ## Session Expiry
 
@@ -2768,7 +2891,8 @@
 
 **DIARY:**
 
-- DIARY-PRD-session-management-G
+- DIARY-PRD-session-management-C
+- DIARY-PRD-session-management-H
 - DIARY-PRD-session-management-I
 - DIARY-GUI-portal-session-expiry-A
 
@@ -2865,7 +2989,7 @@
 - DIARY-PRD-user-account-site-assignment:section:0
 - DIARY-PRD-user-account-site-assignment:section:1
 - DIARY-PRD-user-account-edit:section:1
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-information-modal:section:3
 
@@ -2882,12 +3006,15 @@
 - DIARY-BASE-sponsor-requested-settings-A
 - DIARY-BASE-sponsor-requested-settings-B
 - DIARY-BASE-sponsor-requested-settings-E
-- DIARY-BASE-system-operator-role-A
+- DIARY-BASE-user-authentication-pin-G
+- DIARY-BASE-user-authentication-pin-J
+- DIARY-BASE-user-authentication-pin-K
 - DIARY-DEV-deployment-config-defaults-A
 - DIARY-DEV-deployment-config-defaults-D
 - DIARY-DEV-deployment-config-defaults-F
 - DIARY-DEV-linking-code-lifecycle-A
 - DIARY-DEV-portal-seed-config-B
+- DIARY-DEV-role-permissions-seed-A
 - DIARY-DEV-sponsor-config-source-A
 - DIARY-DEV-sponsor-config-source-B
 - DIARY-DEV-sponsor-branding-source-A
@@ -2897,6 +3024,7 @@
 - DIARY-OPS-fcm-project-routing-D
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G
+- DIARY-GUI-administrator-settings-E
 - DIARY-PRD-configuration-precedence-A
 - DIARY-PRD-configuration-precedence-B
 - DIARY-PRD-configuration-precedence-C
@@ -2918,16 +3046,12 @@
 - DIARY-PRD-evidence-geolocation-C
 - DIARY-PRD-evidence-geolocation-N
 - DIARY-PRD-privacy-policy-A
-- DIARY-PRD-user-authentication-J
-- DIARY-PRD-user-authentication-K
-- DIARY-PRD-user-authentication-pin-G
-- DIARY-PRD-user-authentication-pin-J
-- DIARY-PRD-user-authentication-pin-K
+- DIARY-PRD-user-authentication-N
 - DIARY-PRD-device-health-diagnostics-A
 - DIARY-GUI-mobile-navigation-A
 - DIARY-GUI-participant-task-list-A
-- DIARY-GUI-participant-task-list-I
 - DIARY-GUI-participant-task-list-J
+- DIARY-GUI-participant-task-list-K
 - DIARY-PRD-notification-disconnection-D
 - DIARY-PRD-notification-disconnection-E
 - DIARY-BASE-not-participating-notice-B
@@ -2948,10 +3072,11 @@
 - DIARY-PRD-participant-mark-not-participating-C
 - DIARY-PRD-participant-mark-not-participating-D
 - DIARY-PRD-participant-reactivate-C
+- DIARY-GUI-participant-dashboard-O
 - DIARY-PRD-ancillary-platform-services-L
 - DIARY-PRD-two-factor-authentication-G
 - DIARY-PRD-two-factor-authentication-H
-- DIARY-PRD-session-management-G
+- DIARY-PRD-session-management-H
 - DIARY-PRD-session-management-J
 - DIARY-PRD-questionnaire-system-E
 - DIARY-PRD-questionnaire-sponsor-configuration-A
@@ -2986,15 +3111,21 @@
 - DIARY-BASE-local-data-reset:section:1
 - DIARY-BASE-ops-action-inventory:section:0
 - rem:spec/base-questionnaire-coordinator.md:3
+- DIARY-BASE-questionnaire-manage-modal:section:0
+- DIARY-BASE-questionnaire-cycle-tracking:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
+- DIARY-BASE-user-authentication-pin:section:0
+- DIARY-BASE-user-authentication-pin:section:6
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-portal-session-config:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
+- DIARY-DEV-role-permissions-seed:section:0
+- DIARY-DEV-role-permissions-seed:section:1
 - DIARY-DEV-sponsor-config-source:section:0
 - DIARY-DEV-sponsor-config-source:section:1
 - rem:spec/dev-sponsor-branding.md:1
@@ -3003,10 +3134,10 @@
 - DIARY-DEV-sponsor-branding-assets:section:0
 - DIARY-DEV-sponsor-branding-assets:section:1
 - DIARY-DEV-view-action-permissions:section:0
-- rem:spec/glossary-core.md:730
-- rem:spec/glossary-core.md:747
-- rem:spec/glossary-core.md:749
-- rem:spec/glossary-core.md:756
+- rem:spec/glossary-core.md:724
+- rem:spec/glossary-core.md:741
+- rem:spec/glossary-core.md:743
+- rem:spec/glossary-core.md:750
 - rem:spec/prd-administrator-settings.md:3
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -3019,6 +3150,9 @@
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-join-study-screen:section:1
 - DIARY-GUI-linking-confirmation:section:1
+- DIARY-GUI-entry-overlap-resolution:section:6
+- DIARY-GUI-epistaxis-record:section:5
+- DIARY-GUI-epistaxis-delete:section:3
 - rem:spec/prd-evidence-records.md:3
 - DIARY-PRD-evidence-geolocation:section:0
 - DIARY-PRD-evidence-email-identity:section:0
@@ -3029,11 +3163,15 @@
 - DIARY-PRD-diary-start-day:section:1
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
-- DIARY-PRD-user-authentication:section:5
-- DIARY-PRD-user-authentication-pin:section:0
-- DIARY-PRD-user-authentication-pin:section:6
+- DIARY-PRD-user-authentication:section:7
 - DIARY-PRD-device-health-diagnostics:section:1
 - DIARY-GUI-service-mode-entry:section:1
+- DIARY-GUI-main-screen-layout:section:5
+- DIARY-GUI-mobile-navigation:section:3
+- DIARY-GUI-calendar-day-view:section:7
+- DIARY-GUI-user-profile:section:4
+- DIARY-GUI-accessibility-preferences:section:1
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-notification-disconnection:section:0
 - DIARY-PRD-notification-disconnection:section:1
 - DIARY-BASE-not-participating-notice:section:0
@@ -3046,7 +3184,6 @@
 - DIARY-PRD-notification-ongoing-epistaxis:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:5
 - DIARY-PRD-notification-historical-gap:section:5
-- DIARY-PRD-linking-code-lifecycle:section:6
 - DIARY-PRD-participant-registration:section:0
 - DIARY-PRD-participant-registration:section:1
 - DIARY-PRD-participant-link-new:section:1
@@ -3066,7 +3203,9 @@
 - DIARY-PRD-questionnaire-sponsor-configuration:section:0
 - DIARY-PRD-questionnaire-sponsor-configuration:section:1
 - DIARY-PRD-questionnaire-submission-control:section:1
+- DIARY-GUI-questionnaire-portal-sent-workflow:section:8
 - DIARY-PRD-questionnaire-session-timeout:section:6
+- DIARY-GUI-questionnaire-session-expiry:section:5
 - rem:spec/prd-questionnaire-versioning.md:1
 - rem:spec/prd-questionnaire-versioning.md:3
 - DIARY-PRD-questionnaire-versioning:section:0
@@ -3087,7 +3226,7 @@
 - DIARY-PRD-sla-regulatory-event-support:section:0
 - rem:spec/prd-status-registry.md:19
 - rem:spec/prd-user-account.md:3
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 - DIARY-GUI-administrator-dashboard:section:4
 
 ## Sponsor Portal
@@ -3100,10 +3239,10 @@
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-PRD-administrator-settings-A
-- DIARY-GUI-portal-transport-status-A
-- DIARY-GUI-portal-stale-client-reload-A
-- DIARY-GUI-portal-stale-client-reload-B
-- DIARY-GUI-portal-stale-client-reload-C
+- DIARY-BASE-portal-transport-status-A
+- DIARY-BASE-portal-stale-client-reload-A
+- DIARY-BASE-portal-stale-client-reload-B
+- DIARY-BASE-portal-stale-client-reload-C
 - DIARY-PRD-help-resources-A
 - DIARY-PRD-help-resources-D
 - DIARY-PRD-mobile-application-F
@@ -3134,8 +3273,8 @@
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-PRD-administrator-settings:section:0
-- DIARY-GUI-portal-transport-status:section:0
-- DIARY-GUI-portal-stale-client-reload:section:0
+- DIARY-BASE-portal-transport-status:section:0
+- DIARY-BASE-portal-stale-client-reload:section:0
 - DIARY-PRD-help-resources:section:0
 - DIARY-PRD-help-resources:section:1
 - DIARY-PRD-help-resources:section:5
@@ -3145,6 +3284,7 @@
 - DIARY-PRD-device-health-diagnostics:section:0
 - rem:spec/prd-participant.md:3
 - DIARY-PRD-linking-code-lifecycle:section:0
+- DIARY-PRD-linking-code-lifecycle:section:6
 - DIARY-PRD-participant-registration:section:1
 - DIARY-PRD-participant-link-new:section:0
 - DIARY-PRD-participant-disconnection:section:0
@@ -3168,16 +3308,6 @@
 - DIARY-PRD-user-account-create:section:1
 
 ## Sponsor-Level Action Extension
-
-## Starting Cycle
-
-**DIARY:**
-
-- DIARY-BASE-questionnaire-cycle-tracking-C
-- DIARY-BASE-questionnaire-cycle-tracking-J
-- DIARY-BASE-questionnaire-cycle-tracking-K
-- DIARY-BASE-questionnaire-manage-modal:section:6
-- DIARY-BASE-questionnaire-cycle-tracking:section:4
 
 ## Study Coordinator
 
@@ -3226,11 +3356,10 @@
 - DIARY-GUI-link-participant-flow-B
 - DIARY-GUI-link-participant-flow-C
 - DIARY-PRD-role-definitions-A
-- DIARY-PRD-role-definitions-B
 - DIARY-PRD-user-account-create-C
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
 - DIARY-BASE-questionnaire-coordinator-workflow:section:6
-- DIARY-BASE-questionnaire-manage-modal:section:6
+- DIARY-BASE-questionnaire-manage-modal:section:7
 - DIARY-BASE-questionnaire-cycle-tracking:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:0
@@ -3238,10 +3367,11 @@
 - DIARY-GUI-audit-log-cra:section:0
 - DIARY-GUI-audit-log-cra:section:3
 - DIARY-PRD-help-resources:section:5
-- DIARY-GUI-participant-task-list:section:6
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-notification-portal-sent-questionnaire:section:0
 - DIARY-PRD-notification-portal-sent-questionnaire:section:4
 - rem:spec/prd-participant.md:3
+- DIARY-PRD-linking-code-lifecycle:section:0
 - DIARY-PRD-linking-code-lifecycle:section:6
 - DIARY-PRD-participant-link-new:section:1
 - DIARY-PRD-participant-mark-not-participating:section:0
@@ -3276,7 +3406,7 @@
 - DIARY-PRD-evidence-patient-authentication-M
 - DIARY-PRD-evidence-geolocation-F
 - DIARY-PRD-evidence-email-identity-B
-- DIARY-GUI-participant-task-list-J
+- DIARY-GUI-participant-task-list-K
 - DIARY-GUI-password-forgot-workflow-E
 - DIARY-PRD-questionnaire-sponsor-configuration-C
 - DIARY-PRD-questionnaire-sponsor-configuration-D
@@ -3297,6 +3427,7 @@
 - rem:spec/prd-common-ui.md:35
 - DIARY-PRD-evidence-device-fingerprint:section:0
 - DIARY-PRD-mobile-application:section:1
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-notification-portal-sent-questionnaire:section:4
 - DIARY-GUI-password-forgot-workflow:section:0
 - rem:spec/prd-questionnaire-management.md:3
@@ -3310,38 +3441,21 @@
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:9
 - DIARY-PRD-questionnaire-score-calculation:section:1
 
-## System Notice Area
-
-**DIARY:**
-
-- DIARY-GUI-main-screen-layout-A
-- DIARY-GUI-main-screen-layout-B
-- DIARY-GUI-main-screen-layout-C
-- DIARY-GUI-main-screen-layout:section:5
-
 ## Task List
 
 **DIARY:**
 
 - DIARY-GUI-participant-task-list
 - DIARY-GUI-main-screen-layout-A
-- DIARY-GUI-main-screen-layout-D
-- DIARY-GUI-participant-task-list-A
-- DIARY-GUI-participant-task-list-I
-- DIARY-GUI-participant-task-list-Q
-- DIARY-GUI-participant-task-list-R
+- DIARY-GUI-main-screen-layout-B
+- DIARY-GUI-main-screen-layout-G
+- DIARY-GUI-main-screen-layout-I
+- DIARY-GUI-participant-task-list-J
 - DIARY-GUI-main-screen-layout:section:5
 - rem:spec/prd-mobile-notifications.md:3
 - DIARY-GUI-participant-task-list:section:0
+- DIARY-GUI-participant-task-list:section:5
 - DIARY-PRD-notification-yesterday-entry:section:5
-
-## Terminal Cycle
-
-**DIARY:**
-
-- DIARY-BASE-questionnaire-finalization-E
-- DIARY-BASE-questionnaire-cycle-tracking-F
-- DIARY-BASE-questionnaire-cycle-tracking-G
 
 ## Terminal Cycle Warning Dialog
 
@@ -3349,7 +3463,7 @@
 
 - DIARY-BASE-questionnaire-finalization-E
 - DIARY-BASE-questionnaire-finalization-G
-- DIARY-BASE-questionnaire-finalization:section:2
+- DIARY-BASE-questionnaire-finalization:section:3
 
 ## Time Picker
 
@@ -3395,8 +3509,6 @@
 - DIARY-PRD-evidence-geolocation-H
 - DIARY-PRD-evidence-geolocation-M
 - DIARY-PRD-diary-start-day-G
-- DIARY-GUI-mobile-navigation-I
-- DIARY-GUI-mobile-navigation-J
 - DIARY-GUI-participation-status-badge-A
 - DIARY-GUI-participation-status-badge-B
 - DIARY-PRD-notification-historical-gap-E
@@ -3412,7 +3524,7 @@
 - DIARY-DEV-participant-state-poll:section:0
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-sponsor-branding-assets:section:1
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-linking-confirmation:section:1
@@ -3427,11 +3539,9 @@
 - DIARY-PRD-evidence-email-identity:section:0
 - DIARY-PRD-mobile-application:section:0
 - DIARY-PRD-mobile-application:section:1
-- DIARY-PRD-diary-start-day:section:0
 - DIARY-PRD-diary-start-day:section:1
 - DIARY-PRD-privacy-policy:section:1
-- DIARY-GUI-main-screen-layout:section:5
-- DIARY-GUI-mobile-navigation:section:5
+- DIARY-GUI-accessibility-preferences:section:1
 - DIARY-BASE-not-participating-notice:section:1
 - DIARY-GUI-participation-status-badge:section:0
 - DIARY-GUI-participation-status-badge:section:6
@@ -3540,10 +3650,9 @@
 - DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-audit-log-common-A
 - DIARY-GUI-audit-log-common-C
-- DIARY-GUI-portal-stale-client-reload-A
-- DIARY-GUI-portal-stale-client-reload-B
-- DIARY-GUI-portal-stale-client-reload-C
-- DIARY-GUI-linking-confirmation-B
+- DIARY-BASE-portal-stale-client-reload-A
+- DIARY-BASE-portal-stale-client-reload-B
+- DIARY-BASE-portal-stale-client-reload-C
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-help-resources-C
 - DIARY-PRD-help-resources-D
@@ -3551,14 +3660,17 @@
 - DIARY-PRD-mobile-application-E
 - DIARY-PRD-mobile-application-F
 - DIARY-PRD-diary-start-day-A
-- DIARY-PRD-user-authentication-I
-- DIARY-PRD-user-authentication-J
 - DIARY-PRD-device-health-diagnostics-A
 - DIARY-PRD-device-health-diagnostics-D
 - DIARY-GUI-service-mode-entry-A
-- DIARY-GUI-mobile-navigation-E
+- DIARY-GUI-mobile-navigation-D
 - DIARY-GUI-mobile-navigation-F
-- DIARY-GUI-mobile-navigation-I
+- DIARY-GUI-user-profile-B
+- DIARY-GUI-user-profile-C
+- DIARY-GUI-user-profile-F
+- DIARY-GUI-user-profile-G
+- DIARY-GUI-user-profile-H
+- DIARY-GUI-user-profile-I
 - DIARY-GUI-participation-status-badge-A
 - DIARY-PRD-notification-historical-gap-G
 - DIARY-GUI-participant-dashboard-F
@@ -3602,6 +3714,7 @@
 - DIARY-GUI-user-information-modal-M
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-E
+- rem:spec/base-user-authentication-pin.md:1
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-portal-user-activated-binding:section:1
@@ -3619,22 +3732,23 @@
 - DIARY-DEV-user-account-projection:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
+- DIARY-DEV-role-permissions-seed:section:0
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-portal-test-account-provisioning:section:0
 - DIARY-DEV-portal-test-account-provisioning:section:1
 - DIARY-DEV-sponsor-config-source:section:1
-- rem:spec/glossary-core.md:730
-- rem:spec/glossary-core.md:756
+- rem:spec/glossary-core.md:724
+- rem:spec/glossary-core.md:750
 - rem:spec/prd-audit-log.md:3
 - DIARY-GUI-audit-log-administrator:section:0
 - DIARY-GUI-audit-log-administrator:section:1
 - rem:spec/prd-common-ui.md:7
 - rem:spec/prd-common-ui.md:35
 - rem:spec/prd-common-ui.md:42
-- DIARY-GUI-portal-transport-status:section:0
-- DIARY-GUI-portal-transport-status:section:1
-- DIARY-GUI-portal-stale-client-reload:section:0
-- DIARY-GUI-portal-stale-client-reload:section:1
+- DIARY-BASE-portal-transport-status:section:0
+- DIARY-BASE-portal-transport-status:section:1
+- DIARY-BASE-portal-stale-client-reload:section:0
+- DIARY-BASE-portal-stale-client-reload:section:1
 - rem:spec/prd-device-linking.md:3
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-join-study-screen:section:0
@@ -3644,12 +3758,13 @@
 - DIARY-PRD-help-resources:section:1
 - DIARY-PRD-help-resources:section:5
 - DIARY-PRD-mobile-application:section:1
+- DIARY-PRD-user-authentication:section:7
 - DIARY-PRD-device-health-diagnostics:section:0
 - DIARY-PRD-device-health-diagnostics:section:1
 - DIARY-GUI-service-mode-entry:section:0
 - DIARY-GUI-service-mode-entry:section:1
-- rem:spec/prd-mobile-navigation.md:3
-- DIARY-GUI-mobile-navigation:section:5
+- DIARY-GUI-mobile-navigation:section:3
+- DIARY-GUI-user-profile:section:4
 - DIARY-GUI-participation-status-badge:section:6
 - DIARY-PRD-notification-historical-gap:section:5
 - DIARY-PRD-two-factor-authentication:section:4
@@ -3688,6 +3803,7 @@
 - DIARY-PRD-user-account-reactivate
 - DIARY-GUI-user-account-deactivate
 - DIARY-GUI-user-account-reactivate
+- DIARY-BASE-system-operator-role-D
 - DIARY-DEV-portal-activation-code-lifecycle-D
 - DIARY-DEV-portal-identity-provisioning-A
 - DIARY-DEV-portal-activation-email-delivery-A
@@ -3735,7 +3851,6 @@
 - DIARY-PRD-user-account-edit-E
 - DIARY-PRD-user-account-edit-F
 - DIARY-PRD-user-account-edit-G
-- DIARY-PRD-user-account-edit-H
 - DIARY-PRD-user-account-deactivate-A
 - DIARY-PRD-user-account-deactivate-B
 - DIARY-PRD-user-account-deactivate-C
@@ -3778,7 +3893,6 @@
 - DIARY-PRD-user-account-activation-workflow:section:6
 - DIARY-PRD-user-account-site-assignment:section:1
 - DIARY-PRD-user-account-activation-resend:section:1
-- DIARY-PRD-user-account-deactivate:section:0
 - DIARY-GUI-user-information-modal:section:0
 - DIARY-GUI-administrator-dashboard:section:0
 - DIARY-GUI-administrator-dashboard:section:4
@@ -3798,13 +3912,29 @@
 - DIARY-GUI-user-information-modal:section:0
 - DIARY-GUI-user-information-modal:section:3
 
-## User Menu
+## User Profile
 
 **DIARY:**
 
-- DIARY-GUI-mobile-navigation-A
-- DIARY-GUI-mobile-navigation-E
-- DIARY-GUI-mobile-navigation:section:0
+- DIARY-GUI-linking-confirmation-B
+- DIARY-GUI-user-authentication-A
+- DIARY-GUI-user-profile-A
+- DIARY-GUI-user-profile-C
+- DIARY-GUI-user-profile-E
+- DIARY-GUI-user-profile-F
+- DIARY-GUI-user-profile-G
+- DIARY-GUI-user-profile-H
+- DIARY-GUI-user-profile-I
+- DIARY-GUI-linking-confirmation:section:1
+- rem:spec/prd-mobile-navigation.md:3
+- DIARY-GUI-user-profile:section:0
+- DIARY-GUI-user-profile:section:4
+
+## User Profile Screen
+
+**DIARY:**
+
+- DIARY-GUI-user-profile
 
 ## Verification Code
 
@@ -3850,12 +3980,27 @@
 - DIARY-GUI-password-forgot-workflow:section:0
 - DIARY-PRD-user-account-activation-resend:section:1
 
-## Yesterday Reminder Task
+## Yesterday Confirmation Prompt
 
 **DIARY:**
 
-- DIARY-GUI-participant-task-list-A
-- DIARY-GUI-participant-task-list-L
-- DIARY-GUI-participant-task-list-P
-- DIARY-GUI-participant-task-list:section:6
-- DIARY-PRD-notification-yesterday-entry:section:0
+- DIARY-GUI-main-screen-layout-K
+- DIARY-GUI-main-screen-layout-L
+- DIARY-GUI-main-screen-layout-N
+- DIARY-GUI-main-screen-layout-O
+- DIARY-GUI-main-screen-layout-P
+- DIARY-GUI-main-screen-layout:section:5
+- DIARY-GUI-participant-task-list:section:5
+
+## Your Records
+
+**DIARY:**
+
+- DIARY-GUI-main-screen-layout-A
+- DIARY-GUI-main-screen-layout-H
+- DIARY-GUI-main-screen-layout-I
+- DIARY-GUI-main-screen-layout-J
+- DIARY-GUI-main-screen-layout-K
+- rem:spec/prd-mobile-navigation.md:3
+- DIARY-GUI-main-screen-layout:section:5
+- DIARY-GUI-participant-task-list:section:5

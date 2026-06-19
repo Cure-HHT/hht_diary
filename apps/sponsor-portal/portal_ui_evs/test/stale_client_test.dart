@@ -6,7 +6,7 @@ void main() {
   const newer = '1.5.0+def5678';
 
   group('isClientStale', () {
-    // Verifies: DIARY-GUI-portal-stale-client-reload/A
+    // Verifies: DIARY-BASE-portal-stale-client-reload/A
     test('true when server portal_ui_version differs from this bundle', () {
       expect(
         isClientStale(
@@ -63,7 +63,7 @@ void main() {
 
   group('decideStaleClientAction', () {
     // AC: older build + authenticated -> reload BANNER (prompt, not auto).
-    // Verifies: DIARY-GUI-portal-stale-client-reload/A+C
+    // Verifies: DIARY-BASE-portal-stale-client-reload/A+C
     test('older build, authenticated -> banner', () {
       expect(
         decideStaleClientAction(
@@ -79,7 +79,7 @@ void main() {
 
     // AC: older build found AT BOOT, before the User could have typed
     // anything -> auto-reload (the only free moment to do so).
-    // Verifies: DIARY-GUI-portal-stale-client-reload/B
+    // Verifies: DIARY-BASE-portal-stale-client-reload/B
     test('older build, login screen, at boot -> reload', () {
       expect(
         decideStaleClientAction(
@@ -97,7 +97,7 @@ void main() {
     // login tab — reconnect or sign-in attempt) must NEVER reload: the
     // User may have credentials typed or a session just established, and
     // a reload discards both (the "eaten login"). Banner instead.
-    // Verifies: DIARY-GUI-portal-stale-client-reload/B
+    // Verifies: DIARY-BASE-portal-stale-client-reload/B
     test('older build, login screen, after boot (reconnect/sign-in) -> '
         'banner, never reload', () {
       expect(
@@ -113,7 +113,7 @@ void main() {
     });
 
     // AC: never auto-reload an authenticated user, even after a prior reload.
-    // Verifies: DIARY-GUI-portal-stale-client-reload/C
+    // Verifies: DIARY-BASE-portal-stale-client-reload/C
     test('authenticated never reloads regardless of guard state', () {
       expect(
         decideStaleClientAction(

@@ -42,15 +42,15 @@ G. When the elapsed time for an event date exceeds the **Lock Threshold**, the S
 
 **Configuration**
 
-H. The System SHALL support *Sponsor*-configurable **Justification Threshold** per deployment.
+H. The System SHALL support *Sponsor*-configurable **Justification Threshold** per study.
 
-I. The System SHALL support *Sponsor*-configurable **Lock Threshold** per deployment.
+I. The System SHALL support *Sponsor*-configurable **Lock Threshold** per study.
 
 J. The **Lock Threshold** SHALL be greater than or equal to the **Justification Threshold**.
 
-K. The System SHALL support *Sponsor*-configurable definition of the **Entry Justification** predefined list per deployment.
+K. The System SHALL support *Sponsor*-configurable definition of the **Entry Justification** predefined list per study.
 
-L. When neither threshold is configured for a deployment, the System SHALL NOT apply time-based entry restrictions.
+L. When neither threshold is configured for a study, the System SHALL NOT apply time-based entry restrictions.
 
 M. The **Lock Threshold** SHALL apply only to event dates on or after the ***Trial** Start* date.
 
@@ -58,7 +58,7 @@ M. The **Lock Threshold** SHALL apply only to event dates on or after the ***Tri
 
 The two-tier model exists because two distinct integrity concerns argue for two distinct boundaries. Recall accuracy degrades gradually after an event, so for some window after the event date the data is still useful but the *Participant* should explicitly acknowledge they are entering it late (this is the **Justification Threshold** — a soft boundary that captures a categorical reason on the record). Beyond a longer window, the data is no longer clinically reliable regardless of justification, so the platform makes it impossible to modify (the **Lock Threshold** — a hard boundary that disables create/edit/delete). Predefined-list justifications (rather than free-text) match the analyzability goal: the *Audit Trail* aggregates over a controlled vocabulary of reasons rather than over unbounded prose. Deletion within the justification window does not require justification because the *Participant* is removing data they reported, not modifying it; the *Audit Trail* still captures the deletion event and its own reason via the standard delete flow. The `Lock >= Justification` invariant ensures the two tiers compose correctly (a Justification-required state always precedes a Lock state for the same date). The "only after ***Trial** Start* date" qualifier on the **Lock Threshold** means pre-*Trial* historical entries (covered by the **Diary Start Day**) are not subject to the lock, since those entries are explicitly retrospective and the lock semantics don't apply.
 
-*End* *Time-Based Entry Restrictions* | **Hash**: 7dcca73c
+*End* *Time-Based Entry Restrictions* | **Hash**: 7edebe14
 
 ## DIARY-PRD-entry-duration-check: Duration Reasonableness Check
 
@@ -98,19 +98,19 @@ E. The System SHALL display the confirmation prompt before the save operation co
 
 **Configuration**
 
-F. The System SHALL support *Sponsor*-configurable **Short Duration Threshold** per deployment.
+F. The System SHALL support *Sponsor*-configurable **Short Duration Threshold** per study.
 
-G. The System SHALL support *Sponsor*-configurable **Long Duration Threshold** per deployment.
+G. The System SHALL support *Sponsor*-configurable **Long Duration Threshold** per study.
 
-H. The System SHALL support *Sponsor*-configurable enablement of each check independently per deployment.
+H. The System SHALL support *Sponsor*-configurable enablement of each check independently per study.
 
-I. When a check is not enabled for a deployment, the System SHALL NOT display the corresponding confirmation prompt.
+I. When a check is not enabled for a study, the System SHALL NOT display the corresponding confirmation prompt.
 
 ### Rationale
 
 Duration outliers are a common data-entry-error signal: a typo or wrong-timezone selection can produce a one-second or twelve-hour nosebleed that the *Participant* did not actually have. A soft confirmation prompt at configured boundaries catches these without rejecting legitimately-outlying events (a multi-hour nosebleed can be real for certain HHT participants). The two checks are independently enableable because a deployment may want only one direction (e.g. only the short-duration check, if long durations are clinically plausible in the protocol). The pre-save timing rule (assertion E) ensures the *Participant* sees the prompt at the moment of decision rather than discovering after the fact that their entry was flagged. Reject-and-edit is the inverse of confirm-and-save and gives the *Participant* a direct path to correct a typo without re-entering the event from scratch.
 
-*End* *Duration Reasonableness Check* | **Hash**: bacdd0ae
+*End* *Duration Reasonableness Check* | **Hash**: fa7bd4b8
 
 ## DIARY-PRD-entry-overlap-resolution: Overlapping Event Detection and Resolution
 
@@ -180,7 +180,7 @@ Two nosebleeds cannot physically *Overlap*; allowing overlapping records into th
 
 ### Screen reference
 
-See: ![Resolve Conflict — *Resolution* Screen](./images/image-03.png)
+See: ![Resolve Conflict — *Resolution* Screen](./images/screen-resolve-conflict-resolution.png)
 
 *End* *Overlapping Event Detection and Resolution* | **Hash**: 1069b1e5
 
@@ -242,12 +242,12 @@ The early warning on start-time is a non-blocking signal: the *Participant* sees
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
 ### Screen reference
 
-See: ![Resolve Conflict — *Resolution* Screen](./images/image-03.png)
+See: ![Resolve Conflict — *Resolution* Screen](./images/screen-resolve-conflict-resolution.png)
 
 *End* *Overlapping Event Resolution Flow* | **Hash**: 7bee74de

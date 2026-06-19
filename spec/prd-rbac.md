@@ -1,6 +1,6 @@
 # *Role*-Based Access Control
 
-This section defines the *Role* model used across the solution: the generic *Role* templates provided by the platform, the inventory of actions subject to access control, and the *Sponsor* portal deployment's *Role* assignments and permissions. All functional requirements that reference roles or permissions depend on the definitions established here.
+This section defines the *Role* model used across the solution: the inventory of actions subject to access control, and the *Sponsor* portal *Role* assignments and permissions. All functional requirements that reference roles or permissions depend on the definitions established here.
 
 ## DIARY-PRD-rbac-customizable: Customizable Role-Based Access Control
 
@@ -9,6 +9,10 @@ This section defines the *Role* model used across the solution: the generic *Rol
 ### Overview
 
 The system supports multi-*Role* assignment and seamless *Role* switching without disrupting active sessions. Self-privilege-escalation is prevented structurally by disallowing users to modify *Role* assignments of their own account.
+
+
+Role
+: A named set of permissions that determines which Actions a User Account may perform in the Sponsor Portal.
 
 ### Assertions
 
@@ -31,7 +35,7 @@ Clinical *Trial* *Sponsor* portals are routinely staffed by individuals who hold
 
 ### Overview
 
-The *Action* Inventory enumerates every operation subject to *Role*-based access control. It is the authoritative source for the *Sponsor*-level permissions table — every permission granted or denied in a *Sponsor* deployment must reference an *Action* from this inventory. Actions not listed here cannot be granted or denied. *Sponsor* deployments may extend the inventory with deployment-specific actions.
+The *Action* Inventory enumerates every operation subject to *Role*-based access control. It is the authoritative source for the *Sponsor*-level permissions table — every permission granted or denied in a *Sponsor* Portal must reference an *Action* from this inventory. Actions not listed here cannot be granted or denied. *Sponsor* Portal may extend the inventory with **Sponsor-Level Action Extensions**.
 
 
 Action
@@ -41,7 +45,7 @@ Action Inventory
 : The complete enumerated set of Actions the System recognizes, comprising the platform-level inventory in this requirement and any sponsor-level extensions.
 
 Sponsor-Level Action Extension
-: An additional Action defined by a specific sponsor deployment beyond the platform Action Inventory.
+: An additional Action supported for a specific Sponsor at that Sponsor's request, beyond the standard platform Action Inventory.
 
 ### Assertions
 
@@ -80,7 +84,7 @@ D. The System SHALL support **Sponsor-Level *Action* Extensions** to the **Actio
 |  | ACT-USR-010 | Revoke *Role* from *User* Account |
 |  | ACT-USR-011 | Revoke *Site* from *User* Account |
 | **Site** | ACT-SIT-001 | View Sites |
-| **Audit Log** | ACT-AUD-001 | View audit log |
+| **Audit Log** | ACT-AUD-001 | View *Audit Log* |
 | **Administrator Settings** | ACT-ADM-001 | View ***Administrator** Settings* |
 | **View (read gates)** | ACT-SEE-001 | View *Questionnaire* Status |
 |  | ACT-SEE-002 | View RAVE Sync Status |
@@ -89,7 +93,7 @@ D. The System SHALL support **Sponsor-Level *Action* Extensions** to the **Actio
 
 ### Rationale
 
-The *Action* Inventory is the single source of truth for what operations the platform recognizes as access-controlled. *Sponsor* deployments author their permissions table by referencing these *Action* IDs; deployments may extend the inventory with *Sponsor*-specific actions but cannot redefine or remove platform actions. Centralizing the inventory ensures that every audit log entry, permission check, and *Role* binding refers to a stable, named operation rather than an ad hoc string, which is essential for *FDA 21 CFR Part 11* auditability and for cross-*Sponsor* consistency in the platform's compliance posture.
+The *Action* Inventory is the single source of truth for what operations the platform recognizes as access-controlled. *Sponsor* deployments author their permissions table by referencing these *Action* IDs; deployments may extend the inventory with *Sponsor*-specific actions but cannot redefine or remove platform actions. Centralizing the inventory ensures that every *Audit Log Entry*, permission check, and *Role* binding refers to a stable, named operation rather than an ad hoc string, which is essential for *FDA 21 CFR Part 11* auditability and for cross-*Sponsor* consistency in the platform's compliance posture.
 
 *End* *Action Inventory* | **Hash**: 5d130d8e
 
@@ -100,7 +104,7 @@ The *Action* Inventory is the single source of truth for what operations the pla
 
 ### Overview
 
-This requirement defines the generic *Role* templates the platform provides and maps the *Sponsor* portal's named roles to those templates. *Sponsor* deployments bind permissions to roles via the deployment's permissions table; the platform-side definitions establish the shared vocabulary.
+This requirement establishes the complete set of roles the *Sponsor* Portal provides. Each role's permissions are bound through the permissions table, not defined here.
 
 
 Study Coordinator
@@ -114,19 +118,13 @@ Administrator
 
 ### Assertions
 
-A. The System SHALL recognize the following roles in the *Sponsor* portal: **Study Coordinator**, **Clinical Research Associate**, and **Administrator**.
-
-B. The System SHALL map the **Study Coordinator** *Role* to the **Investigator** generic *Role* template.
-
-C. The System SHALL map the **Clinical Research Associate** *Role* to the **Auditor** generic *Role* template.
-
-D. The System SHALL map the **Administrator** *Role* to the **Administrator** generic *Role* template.
+A. The System SHALL make the following roles available for assignment in the *Sponsor* Portal: **Study Coordinator**, **Clinical Research Associate**, and **Administrator**.
 
 ### Rationale
 
-The *Sponsor* portal's named roles are deployment-facing labels chosen for clarity to clinical staff; the underlying generic *Role* templates (*Investigator*, Auditor, *Administrator*) carry the platform-level semantics and are the units of inheritance for cross-*Sponsor* permission patterns. Establishing the mapping at the platform level lets *Sponsor* configurations alter labels and add scope rules without diverging from the platform's shared model, and lets cross-cutting compliance behavior key off the generic template rather than every *Sponsor*'s chosen name.
+Each *Sponsor* defines its own roles and binds their permissions through the permissions table rather than inheriting from platform-level *Role* templates. Enumerating the available roles here establishes a shared vocabulary that *Sponsor* configurations and downstream requirements reference by name, while keeping the actual permission grants in the *Sponsor*-level permissions table preserves a single authoritative source for which *Actions* each *Role* may perform in a study.
 
-*End* *Role Definitions* | **Hash**: b03a41dc
+*End* *Role Definitions* | **Hash**: 9aa6251c
 
 ## DIARY-GUI-role-switching: Role Switching — Interface Behavior
 
@@ -135,7 +133,7 @@ The *Sponsor* portal's named roles are deployment-facing labels chosen for clari
 
 ### Overview
 
-This requirement specifies how the *Sponsor* portal interface exposes *Role* switching to users assigned more than one *Role*.
+This requirement specifies how the *Sponsor* Portal interface exposes *Role* switching to users assigned more than one *Role*.
 
 
 Role Selector
@@ -163,6 +161,6 @@ G. The **Role Selector** SHALL NOT present a confirmation step before switching 
 
 ### Rationale
 
-Users assigned multiple roles need an unobtrusive, always-visible affordance to confirm and change which *Role* is currently active, since the active *Role* determines visible data and available actions throughout the portal. Hiding the selector from single-*Role* users keeps the header uncluttered for the common case. Omitting a confirmation step keeps *Role* switching fast for users who switch many times per *Session*; the underlying audit log already records *Role* context for every *Action* so the cost of an accidental switch is bounded.
+Users assigned multiple roles need an unobtrusive, always-visible affordance to confirm and change which *Role* is currently active, since the active *Role* determines visible data and available actions throughout the portal. Hiding the selector from single-*Role* users keeps the header uncluttered for the common case. Omitting a confirmation step keeps *Role* switching fast for users who switch many times per *Session*; the underlying *Audit Log* already records *Role* context for every *Action* so the cost of an accidental switch is bounded.
 
 *End* *Role Switching — Interface Behavior* | **Hash**: f820206c

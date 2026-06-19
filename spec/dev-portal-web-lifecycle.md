@@ -16,6 +16,6 @@ B. The portal SHALL attempt an automatic reload at most once per browser *Sessio
 
 ### Rationale
 
-Unregistering on every boot is idempotent and cheap, and removes the interceptor at its root so subsequent deploys need only a normal reload. The once-per-*Session* guard exists because automatic reload (the login-screen path of `DIARY-GUI-portal-stale-client-reload`) could otherwise loop forever in the exact scenario this requirement addresses: a legacy worker that survives the reload would keep serving the old bundle while the network reports a new one. Bounding the automatic attempt and degrading to the manual banner converts an unusable reload loop into a single recoverable prompt.
+Unregistering on every boot is idempotent and cheap, and removes the interceptor at its root so subsequent deploys need only a normal reload. The once-per-*Session* guard exists because automatic reload (the login-screen path of `DIARY-BASE-portal-stale-client-reload`) could otherwise loop forever in the exact scenario this requirement addresses: a legacy worker that survives the reload would keep serving the old bundle while the network reports a new one. Bounding the automatic attempt and degrading to the manual banner converts an unusable reload loop into a single recoverable prompt.
 
 *End* *Legacy service-worker eviction + reload-loop guard* | **Hash**: bb48c254

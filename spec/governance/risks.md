@@ -10,7 +10,7 @@ the validation trace.
   access to Protected Health Information (PHI) or blinded study data.
 - **Mitigation**: Multi-Factor Authentication (MFA) and Role-Based Access
   Control (RBAC) enforcing minimum-necessary access for every user.
-- **Validation Trace**: REQ-CAL-p00029-A, REQ-CAL-p00029-E.
+- **Validation Trace**: REQ-DIARY-p00029-A, REQ-DIARY-p00029-E.
 
 ## R2. Loss of Data Integrity (ALCOA+ Violations)
 
@@ -19,7 +19,7 @@ the validation trace.
   legally indefensible.
 - **Mitigation**: a computer-generated, time-stamped audit trail capturing
   the who, what, when, and why of every data modification.
-- **Validation Trace**: REQ-CAL-p00029-J.
+- **Validation Trace**: REQ-DIARY-p00029-J.
 
 ## R3. System Downtime & Service Disruption
 
@@ -38,7 +38,7 @@ the validation trace.
   FDA, such as unique user identification or password aging.
 - **Mitigation**: hard-coded unique-email constraints, prevention of User
   ID reuse, and enforced password rotation.
-- **Validation Trace**: REQ-CAL-p00029-F, REQ-CAL-p00029-H.
+- **Validation Trace**: REQ-DIARY-p00029-F, REQ-DIARY-p00029-H.
 
 ## R5. Undocumented Software Changes (Scope Creep)
 

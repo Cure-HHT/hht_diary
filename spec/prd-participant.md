@@ -8,7 +8,7 @@ The **Participant** lifecycle in the **Sponsor Portal** is governed by linking-c
 
 ### Overview
 
-The **Mobile **Linking Code** mechanism provides a secure, time-limited channel through which clinical staff can link a Participant**'s device to the **Sponsor Portal** without requiring the **Participant** to authenticate directly. Single-use enforcement and unpredictability ensure that codes cannot be reused or guessed, while configurable expiry balances security with the practical time **Participants** need to complete the linking process.
+The **Mobile Linking Code** mechanism provides a secure, time-limited channel through which a *Study Coordinator* can link a **Participant**'s device to the **Sponsor Portal** without requiring the **Participant** to authenticate directly. Each code is randomly generated and valid for a single use, so it cannot be predicted or reused. The expiry duration is configurable per study, so each study can set a window that gives participants enough time to complete the linking process.
 
 
 Mobile Linking Code
@@ -47,7 +47,7 @@ H. The System SHALL retain the **Participant Linking Code** against the *Partici
 
 ### Rationale
 
-The **Mobile **Linking Code** is the bridge between two systems that otherwise do not share a credential surface: the **Sponsor** Portal** (operated by clinical staff with managed accounts) and the **Mobile Application** (operated by a **Participant** with no account). Three properties are essential to that bridge. Unpredictability prevents a code from being guessed or derived in the gap between *Study Coordinator* generation and **Participant** entry. Single-use enforcement prevents a code that has been written down, photographed, or otherwise leaked from being replayed by a second device. Expiry caps the window during which a leaked or stale code can be used at all. Keeping the code short and alphanumeric is a usability requirement — clinical staff dictate codes to **Participants** over phone or in person, and codes that require strict capitalization or special characters fail in practice. Retaining the **Participant **Linking Code** after use (under the **Participant** **Linking Code** definition rather than the active Mobile Linking Code**) lets clinical staff confirm which code was used for troubleshooting and audit purposes, without that retention re-enabling use of the spent code.
+The **Mobile Linking Code** is the bridge between two systems that otherwise do not share a credential surface: the **Sponsor Portal** (operated by clinical staff with managed accounts) and the **Mobile Application** (operated by a **Participant** with no account). Three properties are essential to that bridge. Unpredictability prevents a code from being guessed or derived in the gap between *Study Coordinator* generation and **Participant** entry. Single-use enforcement prevents a code that has been written down, photographed, or otherwise leaked from being replayed by a second device. Expiry caps the window during which a leaked or stale code can be used at all. Keeping the code short and alphanumeric is a usability requirement — clinical staff dictate codes to **Participants** over phone or in person, and codes that require strict capitalization or special characters fail in practice. Retaining the **Participant Linking Code** after use (under the **Participant Linking Code** definition rather than the active **Mobile Linking Code**) lets clinical staff confirm which code was used for troubleshooting and audit purposes, without that retention re-enabling use of the spent code.
 
 *End* *Linking Code Lifecycle Management* | **Hash**: 6143a7c2
 
@@ -81,7 +81,7 @@ B. When a **Participant** record is added to the **Sponsor Portal**, the System 
 
 ### Overview
 
-Linking connects a **Participant** record in the **Sponsor Portal** to the **Participant**'s **Mobile Application**, enabling data synchronization and *Questionnaire* distribution. The workflow is initiated by clinical staff and completed by the **Participant** entering the **Mobile **Linking Code** in the Mobile Application**.
+Linking connects a **Participant** record in the **Sponsor Portal** to the **Participant**'s **Mobile Application**, enabling data synchronization and *Questionnaire* distribution. The workflow is initiated by clinical staff and completed by the **Participant** entering the **Mobile Linking Code** in the **Mobile Application**.
 
 ### Assertions
 
@@ -89,13 +89,13 @@ A. The System SHALL allow a *Study Coordinator* to initiate the linking workflow
 
 B. When a *Study Coordinator* initiates the linking workflow, the System SHALL generate a **Mobile Linking Code**.
 
-C. When a **Participant** successfully enters a valid **Mobile **Linking Code** in the Mobile Application** for the first time, the System SHALL link the **Participant**'s device to the **Sponsor Portal**.
+C. When a **Participant** successfully enters a valid **Mobile Linking Code** in the **Mobile Application** for the first time, the System SHALL link the **Participant**'s device to the **Sponsor Portal**.
 
 ### Rationale
 
-The first-link workflow has two halves separated by a human-physical handoff: the *Study Coordinator* generates a **Mobile **Linking Code** in the portal, and the Participant** enters that code in the **Mobile Application**. The platform's responsibilities are bounded by that handoff: the portal generates an unguessable, single-use code (per `DIARY-PRD-linking-code-lifecycle`) and accepts the corresponding entry on the mobile side. Gating the initiation on **Not Connected** status keeps the workflow's precondition explicit — a **Participant** record must exist (typically via the *Sponsor* registration mechanism) and must not already be linked. The first-time qualifier on the **Mobile Application** entry distinguishes initial linking from subsequent reconnection, which uses the same mechanism but a different workflow (`DIARY-PRD-participant-reconnection`).
+The first-link workflow has two halves separated by a human-physical handoff: the *Study Coordinator* generates a **Mobile Linking Code** in the portal, and the **Participant** enters that code in the **Mobile Application**. The platform's responsibilities are bounded by that handoff: the portal generates an unguessable, single-use code (per `DIARY-PRD-linking-code-lifecycle`) and accepts the corresponding entry on the mobile side. Gating the initiation on **Not Connected** status keeps the workflow's precondition explicit — a **Participant** record must exist (typically via the *Sponsor* registration mechanism) and must not already be linked. The first-time qualifier on the **Mobile Application** entry distinguishes initial linking from subsequent reconnection, which uses the same mechanism but a different workflow (`DIARY-PRD-participant-reconnection`).
 
-*End* *Link New Participant Workflow* | **Hash**: 6bd7ce5c
+*End* *Link New Participant Workflow* | **Hash**: 551290b7
 
 ## DIARY-PRD-participant-disconnection: Participant Disconnection Workflow
 
@@ -123,7 +123,7 @@ G. When a **Participant** is disconnected, the System SHALL release the binding 
 
 ### Rationale
 
-Disconnection sits between linking (the **Participant** is in *Trial*) and mark-as-not-participating (the **Participant** has left the *Trial*). It encodes the case where the link is operationally broken — a device fault, a connectivity issue, a temporary withdrawal — but the **Participant** is still expected to resume. Preserving all data and history is the audit-trail requirement; the disconnection event must not erase the historical record. Continuing to apply *Sponsor*-specific rules to the **Mobile Application** is the operational requirement; the **Participant** should still see locked records, validation rules, and *Questionnaire* restrictions that apply to their *Trial* *Role*, because they may reconnect at any time and the **Mobile Application** must not silently revert to personal-use behavior in the interim. The reason format is *Sponsor*-configurable because some sponsors require a controlled vocabulary for downstream analysis (CAL- overlay encodes one such list) while others want free-text capture.
+Disconnection sits between linking (the **Participant** is in *Trial*) and mark-as-not-participating (the **Participant** has left the *Trial*). It encodes the case where the link is operationally broken — a device fault, a connectivity issue, a temporary withdrawal — but the **Participant** is still expected to resume. Preserving all data and history is the audit-trail requirement; the disconnection event must not erase the historical record. Continuing to apply *Sponsor*-specific rules to the **Mobile Application** is the operational requirement; the **Participant** should still see locked records, validation rules, and *Questionnaire* restrictions that apply to their *Trial* *Role*, because they may reconnect at any time and the **Mobile Application** must not silently revert to personal-use behavior in the interim. The reason format is *Sponsor*-configurable because some sponsors require a controlled vocabulary for downstream analysis (a *Sponsor* overlay encodes one such list) while others want free-text capture.
 
 *End* *Participant Disconnection Workflow* | **Hash**: d449c26a
 
@@ -145,7 +145,7 @@ C. The reconnection reason SHALL be captured via a **Reason Dialog — Free Text
 
 D. When reconnection is confirmed, the System SHALL generate a new **Mobile Linking Code**.
 
-E. When a **Participant** successfully enters the new **Mobile **Linking Code**, the System SHALL restore the Participant**'s link to the **Sponsor Portal**.
+E. When a **Participant** successfully enters the new **Mobile Linking Code**, the System SHALL restore the **Participant**'s link to the **Sponsor Portal**.
 
 F. When a **Participant**'s link is restored, the System SHALL synchronize all data recorded on the **Participant**'s **Mobile Application** during the disconnected period to the **Sponsor Portal**.
 
@@ -153,7 +153,7 @@ F. When a **Participant**'s link is restored, the System SHALL synchronize all d
 
 Reconnection re-uses the link-code mechanism deliberately: the same unguessable, single-use, time-bounded code that establishes a first link is also the credential that re-establishes one. Generating a fresh code (rather than re-issuing the original) closes any window in which a leaked or remembered code from the prior link could be exploited; the code that was originally used has long since been invalidated by the single-use rule, and the new code carries its own independent expiry. Synchronizing the disconnected-period data on link restoration is the principal value of the disconnect/reconnect distinction over mark-as-not-participating: the **Participant** continued recording *Diary* entries locally while disconnected, and reconnection promotes that buffered data to the portal so the *Trial*'s clinical record is complete. The free-text reason default with *Sponsor* override matches the pattern used by disconnection.
 
-*End* *Participant Reconnection Workflow* | **Hash**: 72d588e7
+*End* *Participant Reconnection Workflow* | **Hash**: 4401496c
 
 ## DIARY-PRD-participant-mark-not-participating: Mark as Not Participating
 
@@ -175,7 +175,7 @@ D. When the *Action* is confirmed, the System SHALL stop applying *Sponsor*-spec
 
 ### Rationale
 
-Mark-as-not-participating is the off-*Trial* state: the **Participant** has either completed the protocol or withdrawn, and the platform no longer needs to enforce *Trial*-specific rules against their device. Routing the *Action* through **Disconnected** as a precondition keeps the lifecycle linear (Linked → Disconnected → Not Participating) and prevents the case where a still-actively-linked device suddenly loses its *Trial* constraints without the Coordinator first severing the link. Removing *Sponsor*-specific rules from the **Mobile Application** lets a former **Participant** retain personal use of the app post-*Trial* without remaining subject to record-locking, validation thresholds, or reminder schedules that were specific to their *Trial* *Role*. Reason capture mirrors disconnection's pattern, with the controlled-vocabulary case being more common for end-of-*Trial* reporting (CAL- overlay encodes the predefined list this deployment uses).
+Mark-as-not-participating is the off-*Trial* state: the **Participant** has either completed the protocol or withdrawn, and the platform no longer needs to enforce *Trial*-specific rules against their device. Routing the *Action* through **Disconnected** as a precondition keeps the lifecycle linear (Linked → Disconnected → Not Participating) and prevents the case where a still-actively-linked device suddenly loses its *Trial* constraints without the Coordinator first severing the link. Removing *Sponsor*-specific rules from the **Mobile Application** lets a former **Participant** retain personal use of the app post-*Trial* without remaining subject to record-locking, validation thresholds, or reminder schedules that were specific to their *Trial* *Role*. Reason capture mirrors disconnection's pattern, with the controlled-vocabulary case being more common for end-of-*Trial* reporting (a *Sponsor* overlay encodes the predefined list a given study uses).
 
 *End* *Mark as Not Participating* | **Hash**: 84fb8bf2
 
@@ -255,13 +255,13 @@ N. The interface SHALL present the actions available in the **Participant Action
 
 **Action Availability**
 
-O. The interface SHALL display the primary *Action* in the *Action* column and the secondary actions in the **Participant Actions Modal** according to the *Action* availability table defined in CAL-GUI-*Participant*-dashboard-configuration.
+O. The interface SHALL display the primary *Action* in the *Action* column and the secondary actions in the **Participant Actions Modal** according to the *Sponsor*-configured *Action* availability table.
 
 ### Rationale
 
 The **Participant Dashboard** is the *Study Coordinator*'s daily working surface, and its design choices favor speed and accuracy over visual variety. Tab-by-status organisation keeps the candidate set for any given *Action* small and self-consistent — a Coordinator looking to disconnect a **Participant** finds them under the Active tab, never mixed with **Not Connected** rows. Cross-tab partial-match search supports the recurring "find this specific **Participant** ID" workflow without forcing the Coordinator to first guess which tab they live under. Tab counts that update with the search reflect the same scoping rule, so the Coordinator can see at a glance whether the search matched within each status grouping. Row selection opens the modal rather than navigating away because the dashboard context (other **Participants**, current tab, search state) must remain visible behind the modal for the common workflow of consecutive lookups.
 
-*End* *Participant Dashboard* | **Hash**: ce22fd18
+*End* *Participant Dashboard* | **Hash**: 023f392e
 
 ## DIARY-GUI-show-linking-code: Show Linking Code
 
@@ -284,7 +284,7 @@ C. When a *Study Coordinator* selects Show *Linking Code* for a **Participant** 
 
 ### Rationale
 
-Show *Linking Code* is a pseudo-*Action*: it does not change *Participant* state, it surfaces the existing view-*Participant* permission in a place the Coordinator already works. The split between **Mobile **Linking Code** (Pending) and **Participant** Linking Code** (every other status) reflects the linking-code lifecycle — Pending participants need the active code to complete linking; everyone else gets the historical reference for troubleshooting per `DIARY-PRD-linking-code-lifecycle` assertion H. The Save-as-PDF affordance supports the common workflow of giving the *Participant* a physical copy of their *Linking Code* at a *Site* visit.
+Show *Linking Code* is a pseudo-*Action*: it does not change *Participant* state, it surfaces the existing view-*Participant* permission in a place the Coordinator already works. The split between **Mobile Linking Code** (Pending) and **Participant Linking Code** (every other status) reflects the linking-code lifecycle — Pending participants need the active code to complete linking; everyone else gets the historical reference for troubleshooting per `DIARY-PRD-linking-code-lifecycle` assertion H. The Save-as-PDF affordance supports the common workflow of giving the *Participant* a physical copy of their *Linking Code* at a *Site* visit.
 
 *End* *Show Linking Code* | **Hash**: 30285056
 
@@ -295,10 +295,10 @@ Show *Linking Code* is a pseudo-*Action*: it does not change *Participant* state
 
 ### Overview
 
-This requirement declares the Link *Participant* *Action* (`ACT-PAT-001`) and specifies the dialog flow a *Study Coordinator* follows to issue a **Mobile **Linking Code** for a Participant** in **Not Connected** status.
+This requirement declares the Link *Participant* *Action* (`ACT-PAT-001`) and specifies the dialog flow a *Study Coordinator* follows to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status.
 
 
-ACT-PAT-001 — Link Participant
+Link Participant
 : The Action a Study Coordinator performs to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status, transitioning the **Participant** to **Pending**.
 
 ### Assertions

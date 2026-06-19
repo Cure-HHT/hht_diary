@@ -250,7 +250,7 @@ N. Geolocation collection settings SHALL be configurable at the *Sponsor* level.
 
 ### Rationale
 
-Geolocation provides additional evidence of data collection context, strengthening provenance claims and supporting data integrity verification. Location data is considered potential PII under privacy regulations, requiring explicit consent and transparency. This requirement balances the evidentiary value of geolocation with privacy protection and regulatory compliance by implementing a multi-layered consent model (*Sponsor* enablement, device permissions, *Patient* awareness).
+Geolocation provides additional evidence of data collection context, strengthening provenance claims and supporting data integrity verification. Location data is considered potential *PII* under privacy regulations, requiring explicit consent and transparency. This requirement balances the evidentiary value of geolocation with privacy protection and regulatory compliance by implementing a multi-layered consent model (*Sponsor* enablement, device permissions, *Patient* awareness).
 
 *End* *Optional Geolocation Tagging* | **Hash**: 34585973
 
@@ -279,6 +279,6 @@ H. The hash algorithm SHALL be documented for long-term reproducibility.
 
 ### Rationale
 
-This requirement establishes a privacy-preserving identity verification mechanism for clinical *Trial* data by using cryptographically hashed email addresses. The hash serves as a tamper-evident fingerprint that links data submissions to a specific *Patient* without exposing personally identifiable information (PII) in the evidence record. This approach enables auditors to independently verify data provenance by contacting patients directly through their verified *Email Address*, supporting *FDA 21 CFR Part 11* *Audit Trail* requirements while maintaining HIPAA compliance. The *Sponsor* maintains the original email separately for auditor disclosure when needed, allowing independent hash verification while keeping PII out of the main evidence chain.
+This requirement establishes a privacy-preserving identity verification mechanism for clinical *Trial* data by using cryptographically hashed email addresses. The hash serves as a tamper-evident fingerprint that links data submissions to a specific *Patient* without exposing personally identifiable information (*PII*) in the evidence record. This approach enables auditors to independently verify data provenance by contacting patients directly through their verified *Email Address*, supporting *FDA 21 CFR Part 11* *Audit Trail* requirements while maintaining HIPAA compliance. The *Sponsor* maintains the original email separately for auditor disclosure when needed, allowing independent hash verification while keeping *PII* out of the main evidence chain.
 
 *End* *Hashed Email Identity Verification* | **Hash**: 01c59686

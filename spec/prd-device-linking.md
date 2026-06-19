@@ -20,6 +20,9 @@ Rate Limit Threshold
 Rate Limit Cooldown
 : The configurable duration after which the rate limit counter resets and the **User** may attempt linking again.
 
+Rate Limit
+: The mechanism that caps repeated failed attempts within a window, governed by the **Rate Limit Threshold** and **Rate Limit Cooldown**.
+
 ### Assertions
 
 **Error Messaging**
@@ -38,17 +41,17 @@ E. The **Rate Limit Cooldown** SHALL be calculated from the first failed attempt
 
 **Configuration**
 
-F. The System SHALL support *Sponsor*-configurable **Rate Limit Threshold** per deployment.
+F. The System SHALL support *Sponsor*-configurable **Rate Limit Threshold** per study.
 
-G. The System SHALL support *Sponsor*-configurable **Rate Limit Cooldown** per deployment.
+G. The System SHALL support *Sponsor*-configurable **Rate Limit Cooldown** per study.
 
-H. The System SHALL support *Sponsor*-configurable error message text per deployment.
+H. The System SHALL support *Sponsor*-configurable error message text per study.
 
 ### Rationale
 
-Linking codes are short, human-typeable secrets that confer access to a clinical-*Trial* *Participant* identity; the platform's threat model has to assume that someone may attempt to guess or enumerate valid codes. Two mitigations compose: a generic error message that does not distinguish "code does not exist" from "code expired" from "code already used" (assertions A and B — distinguishing them would tell an attacker exactly which guesses are worth pursuing), and a rate limit that caps the number of attempts in a window. The *Site*-contact guidance (assertion C) is the legitimate-*User* recovery path that survives the genericity rule — a real *Participant* who has mistyped their code gets the same message as an enumerator, but they also get the actionable next step (contact the *Site*). The cooldown anchored at the first failed attempt in the window (assertion E) prevents the trivial workaround of attempting just below the threshold, waiting one second, and continuing — the window is a fixed time interval from the first miss. *Sponsor*-configurable threshold, cooldown, and text let each deployment tune the security/usability trade-off and customize the message.
+Linking codes are short, human-typeable secrets that confer access to a clinical-*Trial* *Participant* identity; the platform's threat model has to assume that someone may attempt to guess or enumerate valid codes. Two mitigations compose: a generic error message that does not distinguish "code does not exist" from "code expired" from "code already used" (assertions A and B — distinguishing them would tell an attacker exactly which guesses are worth pursuing), and a *Rate Limit* that caps the number of attempts in a window. The *Site*-contact guidance (assertion C) is the legitimate-*User* recovery path that survives the genericity rule — a real *Participant* who has mistyped their code gets the same message as an enumerator, but they also get the actionable next step (contact the *Site*). The cooldown anchored at the first failed attempt in the window (assertion E) prevents the trivial workaround of attempting just below the threshold, waiting one second, and continuing — the window is a fixed time interval from the first miss. *Sponsor*-configurable threshold, cooldown, and text let each deployment tune the security/usability trade-off and customize the message.
 
-*End* *Linking Code Entry Error Handling* | **Hash**: 1eb043a2
+*End* *Linking Code Entry Error Handling* | **Hash**: dc87b4cf
 
 ## DIARY-GUI-join-study-screen: Join the Study Screen
 
@@ -71,7 +74,7 @@ B. The screen SHALL display a **Linking Consent** checkbox with text confirming 
 
 C. The **Linking Consent** text SHALL include a link that opens the **Clinical Trial Privacy Policy**.
 
-D. The **Submit** *Action* SHALL be disabled until both a complete **Mobile **Linking Code** is entered and the Linking Consent** checkbox is checked.
+D. The **Submit** *Action* SHALL be disabled until both a complete **Mobile Linking Code** is entered and the **Linking Consent** checkbox is checked.
 
 E. The System SHALL retain the **Linking Consent** acknowledgement, including the **Clinical Trial Privacy Policy** version, against the **Participant** record upon successful link.
 
@@ -82,11 +85,11 @@ The **Join the Study** screen has to do two things at once: capture the *Linking
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
-*End* *Join the Study Screen* | **Hash**: 8aff3bce
+*End* *Join the Study Screen* | **Hash**: 1ad808e9
 
 ## DIARY-GUI-linking-confirmation: Successful Linking Confirmation
 
@@ -95,11 +98,11 @@ The **Join the Study** screen has to do two things at once: capture the *Linking
 
 ### Overview
 
-When a *Participant* successfully enters a valid Mobile *Linking Code* on the Join the Study screen, the interface needs to clearly confirm that the link was established and transition the *Participant* from personal use mode into linked use mode.
+When a *Participant* successfully enters a valid Mobile *Linking Code* on the Join the Study screen, the interface needs to clearly confirm that the link was established and transition the *Participant* from *Personal use mode* into *Linked use mode*.
 
 ### Assertions
 
-A. When the **Participant** successfully submits a valid **Mobile **Linking Code**, the interface SHALL display an Acknowledgement Dialog** confirming that the device has been linked to the study.
+A. When the **Participant** successfully submits a valid **Mobile Linking Code**, the interface SHALL display an **Acknowledgement Dialog** confirming that the device has been linked to the study.
 
 B. When the **Participant** acknowledges the dialog, the interface SHALL navigate the **Participant** to the **User Profile** screen.
 
@@ -110,12 +113,12 @@ A successful link transitions the *Participant* from a personal-use **User** to 
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the *Sponsor*-overlay parent, or a new platform-side template the
+> *Sponsor*-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 
 ### Screen reference
 
-See: ![Successful Linking Confirmation](./images/image-25.png)
+See: ![Successful Linking Confirmation](./images/dialog-successful-linking-confirmation.png)
 
-*End* *Successful Linking Confirmation* | **Hash**: b2e4c450
+*End* *Successful Linking Confirmation* | **Hash**: 495858e9

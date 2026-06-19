@@ -73,19 +73,19 @@ Conventions:
 - Multi-requirement files: `#` is file title; `##` are chapters (some are requirement blocks `## DIARY-PRD-...`, others are remainder sections `## Overview`); `###` are subsections.
 - A multi-REQ topic file SHOULD include orienting remainder sections.
 - **Filename = section heading**: the file's `#` title is the section heading that appears in the compiled URS-style PDF. Section structure is derivable from the filename + `#` title; no separate "section heading" convention is enforced. Where a section title and a REQ title coincide verbatim, that is acceptable (one is a chapter, the other a requirement inside it).
-- **PDF compile interleaving**: when the compiled URS PDF is regenerated, REQ blocks across files are interleaved by the URS-aligned ordinal of the REQ ID stripped of its namespace and level prefix (e.g. `DIARY-PRD-action-inventory` sorts as `action-inventory`; `CAL-PRD-role-definitions` sorts as `role-definitions`). This produces a single document ordered by topic kebab regardless of repo or audience tier, mirroring URS reading order. Implementation lives in the Phase-5 pdf template.
+- **PDF compile interleaving**: when the compiled URS PDF is regenerated, REQ blocks across files are interleaved by the URS-aligned ordinal of the REQ ID stripped of its namespace and level prefix (e.g. `DIARY-PRD-action-inventory` sorts as `action-inventory`; a sponsor REQ such as `SPONSOR-PRD-role-definitions` sorts as `role-definitions`). This produces a single document ordered by topic kebab regardless of repo or audience tier, mirroring URS reading order. Implementation lives in the Phase-5 pdf template.
 
 ### "Only option in code today" follow-up
 
-Several REQs (particularly `CAL-*` REQs with no platform-side parent and many `GUI-*` REQs) currently encode the only option implemented in code. There is no configurable seam — but there should be, because future sponsors may need different rules. Author these REQs with an explicit subsection flagging the gap:
+Several REQs (particularly sponsor-overlay REQs with no platform-side parent and many `GUI-*` REQs) currently encode the only option implemented in code. There is no configurable seam — but there should be, because future sponsors may need different rules. Author these REQs with an explicit subsection flagging the gap:
 
 ```markdown
 > **Follow-up — configurability**: This requirement currently encodes
 > the only option implemented in code. Future sponsors may require
 > different rules; introduce a configurable seam (e.g. a parameter on
-> the CAL-PRD-* parent, or a new platform-side template the CAL- REQ
-> Satisfies) when the need arises. Until that seam exists, this REQ is
-> normative for the Callisto deployment.
+> the sponsor-overlay parent, or a new platform-side template the
+> sponsor-overlay REQ Satisfies) when the need arises. Until that seam
+> exists, this REQ is normative for the current deployment.
 ```
 
 Capture each addition in the commit message so reviewers can audit the set.
@@ -99,7 +99,7 @@ Sibling repos in the Cure-HHT org:
 | Repo | Namespace | Example |
 | ---- | --------- | ------- |
 | `hht_diary` (this repo) | `DIARY-{PRD\|GUI\|OPS\|DEV}-{kebab}` | `DIARY-PRD-action-inventory` |
-| `hht_diary_callisto` | `CAL-{PRD\|GUI\|OPS\|DEV}-{kebab}` | `CAL-PRD-role-definitions` |
+| the sponsor overlay repo | sponsor-specific namespace (e.g. `SPONSOR-{PRD\|GUI\|OPS\|DEV}-{kebab}`) | — |
 | `hht_admin` | `HHT-{PRD\|OPS\|DEV}-{kebab}` | `HHT-OPS-storage-rules` |
 | `event_sourcing` | `EVS-{PRD\|OPS\|DEV}-{kebab}` | `EVS-DEV-provenance-entry-schema` |
 
@@ -107,10 +107,10 @@ When citing a foreign-repo REQ, use the foreign repo's convention. Link sibling 
 
 ### Federation convention (asymmetric `.elspais.local.toml`)
 
-**Only `hht_diary_callisto` declares `.elspais.local.toml` (pointing at hht_diary).** hht_diary does NOT declare a callisto associate. The reverse — both sides declaring each other — produces an elspais "Associate X declares its own associates" error because of the nested-associates restriction.
+**Only the sponsor overlay repo declares `.elspais.local.toml` (pointing at hht_diary).** hht_diary does NOT declare a sponsor associate. The reverse — both sides declaring each other — produces an elspais "Associate X declares its own associates" error because of the nested-associates restriction.
 
 Practical effects:
 
-- `elspais` run from the **callisto** worktree sees both repos' REQs (federation works; cross-repo Refines/Satisfies resolve cleanly).
-- `elspais` run from the **hht_diary** worktree sees only hht_diary REQs. Cross-repo refs from `DIARY-*` to `CAL-*` appear as "presumed cross-repo" and are suppressed by `[validation].allow_unresolved_cross_repo = true` in `.elspais.toml`.
-- The URS compile pipeline lives in [`Cure-HHT/hht_workflows`](https://github.com/Cure-HHT/hht_workflows) (`scripts/urs-compile/`) and is run from the **callisto** worktree as `PRIMARY_ROOT`, with this hht_diary worktree as `ASSOCIATE_ROOT`. The script uses the federated `elspais graph` so cross-repo refs resolve cleanly during PDF assembly.
+- `elspais` run from the **sponsor** worktree sees both repos' REQs (federation works; cross-repo Refines/Satisfies resolve cleanly).
+- `elspais` run from the **hht_diary** worktree sees only hht_diary REQs. Cross-repo refs from `DIARY-*` to the sponsor's REQs appear as "presumed cross-repo" and are suppressed by `[validation].allow_unresolved_cross_repo = true` in `.elspais.toml`.
+- The URS compile pipeline lives in [`Cure-HHT/hht_workflows`](https://github.com/Cure-HHT/hht_workflows) (`scripts/urs-compile/`) and is run from the **sponsor** worktree as `PRIMARY_ROOT`, with this hht_diary worktree as `ASSOCIATE_ROOT`. The script uses the federated `elspais graph` so cross-repo refs resolve cleanly during PDF assembly.

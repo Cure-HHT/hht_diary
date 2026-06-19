@@ -4,9 +4,9 @@
 
 ## A
 
-**ACT-PAT-001 — Link Participant**
-: The Action a Study Coordinator performs to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status, transitioning the **Participant** to **Pending**.
-*Defined in: DIARY-GUI-link-participant-flow (DIARY)*
+**Account Owner**
+: The person associated with a **User Account**, who activates and uses it.
+*Defined in: DIARY-PRD-user-account-activation-workflow (DIARY)*
 
 **Action**
 : A discrete operation that a user can perform within the System, subject to role-based access control. An Action either changes system state or retrieves protected data.
@@ -21,11 +21,15 @@
 *Defined in: DIARY-PRD-user-account-activation-workflow (DIARY)*
 
 **Active Authentication Path**
-: The authentication path engaged by **Diary User Authentication** for a given **Participant**, derived from the **PIN Policy** and the **Device Authentication** state on the **Participant**'s device:
-  - **In-application PIN** when the **PIN Policy** is **Required**, or when the **PIN Policy** is **Required When Device Authentication Is Not Enabled** and **Device Authentication** is not enabled on the **Participant**'s device.
-  - **Device Authentication** when the **PIN Policy** is not **Required** and **Device Authentication** is enabled on the **Participant**'s device.
-  - **None** when the **PIN Policy** is **Not Required** and **Device Authentication** is not enabled on the **Participant**'s device.
+: The specific authentication method the **System** applies to a given **Participant**, determined by their device and setup:
+  - **Device Authentication** if the **Participant**'s device has a screen lock enabled.
+  - **Application Biometric Lock** if the **Participant**'s device has no screen lock enabled and the **Participant** has set up the **Application Biometric Lock**.
+  - **None** if the **Participant** is in personal use mode and has not set up the **Application Biometric Lock**.
 *Defined in: DIARY-PRD-user-authentication (DIARY)*
+
+**Active Users**
+: The **User Management** tab listing **User Accounts** in Active status.
+*Defined in: DIARY-GUI-user-management-tabs (DIARY)*
 
 **Admin** *(not indexed)*
 : A staff member with privileges to create and manage User Accounts,
@@ -36,7 +40,7 @@ Scope: sponsor-wide access (all sites within one sponsor) in clinical
 trial context; organization-wide in non-CT deployments.
 Avoid: "Sponsor admin" (redundant in CT context); "super admin" (no
 such role).
-See: REQ-p00039 (Administrator Access with Audit Trail).
+See: Administrator Access with Audit Trail.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Administrator**
@@ -77,7 +81,7 @@ policies are enforced (Enduring); query interfaces provide access
 (Available).
 Clinical Trial Context: Required by FDA and EMA for clinical trial
 records.
-See: REQ-p00011 (ALCOA+ Data Integrity Principles),
+See: ALCOA+ Data Integrity Principles,
 prd-clinical-trials.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
@@ -86,16 +90,40 @@ prd-clinical-trials.md.
 analysis and reporting. Typically scoped to specific sites (may be
 sponsor-wide depending on assignment). Focused on data analysis, not
 compliance auditing.
-See: REQ-p00022 (Analyst Read-Only Access).
+See: Analyst Read-Only Access.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
+**Application Biometric Lock**
+: Authentication performed within the **Mobile Application** using the biometric sensors of the **Participant**'s device, used when the **Participant**'s device does not have a screen lock enabled.
+*Defined in: DIARY-PRD-user-authentication (DIARY)*
+
 **Application Menu**
-: The menu accessed from the left side of the top navigation bar, grouping application-level functions.
+: The menu accessed from the right side of the top navigation bar, providing access to account, study, and support functions.
 *Defined in: DIARY-GUI-mobile-navigation (DIARY)*
 
 **Application Privacy Policy**
 : The privacy policy governing the Mobile Application itself, covering platform-level data handling.
 *Defined in: DIARY-PRD-privacy-policy (DIARY)*
+
+**Assigned Questionnaire**
+: A Questionnaire initiated by a Study Coordinator from the Sponsor Portal and delivered to the participant via push notification.
+*Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
+
+**Assigned Sites**
+: The **Sites** a **User Account** is authorized to access, scoping the **Participants** and data the user can see.
+*Defined in: DIARY-GUI-user-management-tabs (DIARY)*
+
+**Audit Log**
+: A chronological record of Actions performed in the System, presented to each user according to their Role.
+*Defined in: DIARY-GUI-audit-log-common (DIARY)*
+
+**Audit Log Entry**
+: A single record in the Audit Log, capturing one Action with its actor, target, and timestamp.
+*Defined in: DIARY-GUI-audit-log-common (DIARY)*
+
+**Audit Log View**
+: The Sponsor Portal screen that presents the Audit Log to a user according to their Role.
+*Defined in: DIARY-GUI-audit-log-common (DIARY)*
 
 **Audit Trail**
 : A computer-generated, time-stamped record that captures the who, what,
@@ -110,8 +138,7 @@ Clinical Trial Context: required by FDA 21 CFR Part 11, EU Annex 11,
 and ICH-GCP guidelines for regulatory compliance. Implemented using
 the Event Store architecture (technical term) to create an Audit Trail
 (regulatory term).
-See: REQ-p00004 (Immutable Audit Trail via Event Sourcing), REQ-p70006
-(Comprehensive Audit Trail), prd-clinical-trials.md.
+See: Immutable Audit Trail via Event Sourcing, Comprehensive Audit Trail, prd-clinical-trials.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Auditor** *(not indexed)*
@@ -119,7 +146,7 @@ See: REQ-p00004 (Immutable Audit Trail via Event Sourcing), REQ-p70006
 and audit trails for regulatory compliance verification. Has full
 read-only access across all sites within a sponsor. Auditors can view
 but NEVER modify data.
-See: REQ-p00038 (Auditor Compliance Access).
+See: Auditor Compliance Access.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 ## C
@@ -148,7 +175,7 @@ exported in CDISC-compliant formats for regulatory submission.
 *Defined in: DIARY-PRD-role-definitions (DIARY)*
 
 **Clinical Trial Privacy Policy**
-: The privacy policy governing a Participant's participation in a specific clinical trial, covering sponsor-side data handling. Sponsor-configurable per deployment.
+: The privacy policy governing a Participant's participation in a specific clinical trial, covering sponsor-side data handling. Sponsor-configurable per study.
 *Defined in: DIARY-PRD-privacy-policy (DIARY)*
 
 **Code Expiry**
@@ -215,14 +242,6 @@ ePRO data collection system. Sponsors typically use a separate CTMS
 alongside the Diary Platform.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
-**Current Cycle**
-: The **Cycle** value assigned to the most recently sent **Questionnaire** of a given **Questionnaire Type** for a *Participant*.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
-
-**Cycle**
-: The protocol event identifier assigned to a **Questionnaire** representing the treatment cycle during which it was administered. Valid values are **Cycle N Day 1** (where N is a positive whole number), **End of Treatment**, and **End of Study**.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
-
 ## D
 
 **Daily Epistaxis Record**
@@ -243,8 +262,8 @@ Usage Context: use when discussing data storage, schema, or database
 architecture.
 Clinical Trial Context: may be referred to as "Clinical Trial
 Database" when emphasizing regulatory compliance features.
-See: REQ-p00046 (Clinical Data Storage System), REQ-p00003 (Separate
-Database Per Sponsor), prd-database.md.
+See: Clinical Data Storage System, Separate
+Database Per Sponsor, prd-database.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Day View**
@@ -260,7 +279,7 @@ user privacy.
 Clinical Trial Context: de-identified data can be shared with research
 partners; identified data requires explicit consent. Subject to GDPR
 and HIPAA requirements.
-See: REQ-p00016 (Separation of Identity and Clinical Data).
+See: Separation of Identity and Clinical Data.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Deactivation**
@@ -299,7 +318,7 @@ Avoid: "ePRO application" (too technical, confusing to users); "eCRF"
 (refers to a different concept in clinical trials); "eSource" (refers
 to the complete platform, not just the mobile app); "Clinical Diary"
 as the primary name (clinical trials are a feature, not the identity).
-See: REQ-p00043 (Diary Mobile Application), prd-mobile-app.md.
+See: Diary Mobile Application, prd-mobile-app.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Diary Data Synchronization**
@@ -318,7 +337,7 @@ Clinical Trial Context: when used in clinical trials, diary entries
 may capture protocol-specified data elements and serve as ePRO data.
 Avoid: "Event" (too generic); "Record" (too technical); "Data point"
 (depersonalizing).
-See: REQ-p00042 (HHT Epistaxis Data Capture Standard).
+See: HHT Epistaxis Data Capture Standard.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Diary Platform**
@@ -337,7 +356,7 @@ in formal documentation.
 Avoid: "Clinical Diary Platform" (implies clinical trials are
 primary); "eSource system"; "ePRO platform" (use only in
 sponsor-specific external documentation).
-See: REQ-p00044 (Clinical Trial Compliant Diary Platform).
+See: Clinical Trial Compliant Diary Platform.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Diary Start Day**
@@ -345,7 +364,7 @@ See: REQ-p00044 (Clinical Trial Compliant Diary Platform).
 *Defined in: DIARY-PRD-diary-start-day (DIARY)*
 
 **Diary User Authentication**
-: The access-control mechanism that gates **Participant** data and **Participant** *Actions* in the **Mobile Application**, satisfied via the **Active Authentication Path** for the **Participant**.
+: The mechanism that requires the **Participant** to authenticate before accessing data or performing actions in the **Mobile Application**. The authentication method used is determined by the **Active Authentication Path**.
 *Defined in: DIARY-PRD-user-authentication (DIARY)*
 
 **Disconnection Notification**
@@ -391,7 +410,7 @@ signatures.
 Usage Context: all diary entries (personal health tracking and
 clinical trial) are automatically attributed to the user who created
 them.
-See: REQ-p00010 (FDA 21 CFR Part 11 Compliance),
+See: FDA 21 CFR Part 11 Compliance,
 prd-clinical-trials.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
@@ -419,7 +438,7 @@ patient, without interpretation by clinicians. The Diary functions as
 an ePRO tool when used in clinical trials.
 Avoid: while technically accurate, avoid "ePRO" in user-facing
 communication. Use "Diary" instead.
-See: REQ-p00043 (Diary Mobile Application).
+See: Diary Mobile Application.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **eSource**
@@ -434,7 +453,7 @@ primary identity. Refers to the complete platform (Diary + Database +
 Portal), not just the mobile app. Use only when discussing clinical
 trial regulatory compliance.
 Regulatory Basis: FDA guidance on electronic source documentation.
-See: REQ-p00010 (FDA 21 CFR Part 11 Compliance).
+See: FDA 21 CFR Part 11 Compliance.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **ESS (Epistaxis Severity Score)** *(not indexed)*
@@ -454,8 +473,7 @@ Technical Details: every change (create, update, delete) appends an
 event to the Event Store. Current state is derived by replaying
 events.
 Usage Context: technical architecture and developer documentation.
-See: REQ-p00004 (Immutable Audit Trail via Event Sourcing), REQ-p01000
-(Event Sourcing Client Interface), prd-event-sourcing-system.md.
+See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, prd-event-sourcing-system.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Event Store**
@@ -467,20 +485,19 @@ replaying events, providing a complete change history.
 Usage Context: developer and architecture documentation.
 Clinical Trial Context: the Event Store implements the Audit Trail
 required by FDA 21 CFR Part 11 and other regulations.
-See: REQ-p00004 (Immutable Audit Trail via Event Sourcing), REQ-p01000
-(Event Sourcing Client Interface), prd-event-sourcing-system.md.
+See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, prd-event-sourcing-system.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 ## F
 
 **Failed Attempt Threshold**
 : The configurable number of consecutive failed **PIN** entry attempts that triggers a **Participant** lockout pending **PIN Reset**.
-*Defined in: DIARY-PRD-user-authentication-pin (DIARY)*
+*Defined in: DIARY-BASE-user-authentication-pin (DIARY)*
 
 **FDA (U.S. Food and Drug Administration)** *(not indexed)*
 : United States federal agency responsible for regulating
 pharmaceuticals, medical devices, and clinical trials.
-See: REQ-p00010 (FDA 21 CFR Part 11 Compliance).
+See: FDA 21 CFR Part 11 Compliance.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **FDA 21 CFR Part 11**
@@ -495,7 +512,7 @@ regulatory-mandated periods.
 Diary Platform Context: core compliance framework for clinical trial
 features.
 Usage Context: regulatory submissions, compliance documentation.
-See: REQ-p00010 (FDA 21 CFR Part 11 Compliance),
+See: FDA 21 CFR Part 11 Compliance,
 prd-clinical-trials.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
@@ -503,16 +520,8 @@ prd-clinical-trials.md.
 : The Study Coordinator action that permanently locks participant answers, triggers score calculation and pushes the data to Rave EDC.
 *Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
 
-**Finalization Dialog**
-: The confirmation dialog displayed when **Finalize** is selected, containing a **Cycle** dropdown for selecting the **Cycle** value before confirming finalization.
-*Defined in: DIARY-BASE-questionnaire-finalization (DIARY)*
-
-**Finalized Cycle**
-: The **Cycle** value of the most recently finalized **Questionnaire** of a given **Questionnaire Type** for a *Participant*.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
-
 **Full Name**
-: A common name, which is **PII**, of the person associated with a **User Account** that identifies a specific individual in the context of the **Sponsor Portal**.
+: The full name of the person associated with a **User Account**, comprising two separate fields: First Name (given name) and Last Name (family name). Personally identifiable information (**PII**) that identifies a specific individual in the context of the **Sponsor Portal**.
 *Defined in: DIARY-PRD-user-account-create (DIARY)*
 
 ## G
@@ -531,7 +540,7 @@ residents. EU users have GDPR rights (access, rectification, erasure,
 portability). Clinical trial participation may limit some rights for
 data integrity reasons. Applies based on user location, not sponsor
 location.
-See: REQ-p01061 (GDPR Compliance), REQ-p01062 (GDPR Data Portability).
+See: GDPR Compliance, GDPR Data Portability.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Google Cloud Platform (GCP)** *(not indexed)*
@@ -559,7 +568,7 @@ is shared with a care team.
 Distinction from Investigator: a Healthcare Provider reviews diary
 data for clinical care purposes. An Investigator reviews diary data as
 part of a clinical trial protocol.
-See: REQ-p70001 (Sponsor Portal Application).
+See: Sponsor Portal Application.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **HHT (Hereditary Hemorrhagic Telangiectasia)** *(not indexed)*
@@ -577,8 +586,8 @@ use case. Current sponsor: Cure HHT Foundation.
 : United States federal law protecting the privacy and security of
 individuals' medical information. Key requirement: Business Associate
 Agreements (BAAs) with service providers.
-See: REQ-p01020 (Privacy Policy and Regulatory Compliance
-Documentation).
+See: Privacy Policy and Regulatory Compliance
+Documentation.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Historical Gap**
@@ -611,11 +620,11 @@ for clinical trials involving human subjects. The 2016 revision
 emphasizes risk-based monitoring and data integrity. The Diary
 Platform follows ICH-GCP guidelines for data integrity (ALCOA+), audit
 trails, source data verification, and participant protection.
-See: REQ-p00011 (ALCOA+ Data Integrity Principles).
+See: ALCOA+ Data Integrity Principles.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Idle Timeout**
-: The configurable elapsed time, used both as the maximum **Participant** in-app inactivity before re-authentication is required and as the trust window for the most recent successful authentication on the **Active Authentication Path**.
+: The configurable elapsed time used as the maximum period of **Participant** inactivity before re-authentication is required, and as the trust window for the most recent successful authentication on the **Active Authentication Path**.
 *Defined in: DIARY-PRD-user-authentication (DIARY)*
 
 **IMP (Investigational Medicinal Product)** *(not indexed)*
@@ -623,6 +632,10 @@ See: REQ-p00011 (ALCOA+ Data Integrity Principles).
 trial. Diary entries help assess the IMP's efficacy and potential side
 effects.
 *Defined in: file:spec/glossary-core.md (DIARY)*
+
+**Inactive Users**
+: The **User Management** tab listing **User Accounts** in Inactive status.
+*Defined in: DIARY-GUI-user-management-tabs (DIARY)*
 
 **Incomplete Record**
 : An **Epistaxis Event** that has been saved but is missing one or more required fields: start time, **Intensity**, or end time.
@@ -654,8 +667,7 @@ engagement and data quality; send questionnaires and reminders to
 patients; review patient diary data for protocol compliance.
 Access: site-specific data only (via Row-Level Security).
 Avoid: "Site staff"; "clinical user"; "researcher" (be specific).
-See: REQ-p00036 (Investigator Site-Scoped Access), REQ-p00037
-(Investigator Annotation Restrictions).
+See: Investigator Site-Scoped Access, Investigator Annotation Restrictions.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **IRB / IEC (Institutional Review Board / Independent Ethics Committee)** *(not indexed)*
@@ -674,6 +686,14 @@ data collection procedures.
 
 ## L
 
+**Link Participant**
+: The Action a Study Coordinator performs to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status, transitioning the **Participant** to **Pending**.
+*Defined in: DIARY-GUI-link-participant-flow (DIARY)*
+
+**Linked use mode**
+: The **Mobile Application** connected to a **Sponsor Portal**, operating as the electronic source (eSource) for the clinical trial.
+*Defined in: DIARY-PRD-mobile-application (DIARY)*
+
 **Linking Code**
 : A unique, cryptographically random 10-character code used to securely
 connect a user's mobile Diary to a service. In clinical trial
@@ -685,8 +705,7 @@ Purpose: enables secure device connection without transmitting PII or
 creating accounts before the link is established.
 Usage Context: patient enrollment workflow (clinical trials), device
 provisioning.
-See: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078
-(Linking Code Validation).
+See: Linking Code Lifecycle Management, Linking Code Validation.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Linking Code Validation Failure**
@@ -716,11 +735,15 @@ See: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078
 ## M
 
 **Main Screen**
-: The default screen displayed to the **Participant** upon opening the mobile application.
+: The default screen displayed to the **Participant** upon opening the **Mobile Application**.
 *Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
+**Max Intensity**
+: The peak **Intensity** recorded for an **Epistaxis Event** during the nosebleed recording flow.
+*Defined in: DIARY-GUI-epistaxis-record (DIARY)*
+
 **Mobile Application**
-: The iOS and Android application provided by the System for participant-reported diary data capture and questionnaire completion. Operates in personal use mode without an account or in linked use mode connected to a **Sponsor Portal** deployment.
+: The *Mobile Application* (iOS and Android) operates in personal use mode with no account required, or in linked use mode connected to a **Sponsor Portal**.
 *Defined in: DIARY-PRD-mobile-application (DIARY)*
 
 **Mobile Linking Code**
@@ -738,16 +761,15 @@ Purpose: enables a single codebase to serve multiple sponsors while
 maintaining regulatory compliance and data privacy.
 Context: this is a clinical trial feature. Personal health tracking
 deployments may not use multi-sponsor architecture.
-See: REQ-p00001 (Complete Multi-Sponsor Data Separation), REQ-p00008
-(Single Mobile App for All Sponsors),
+See: Complete Multi-Sponsor Data Separation, Single Mobile App for All Sponsors,
 prd-architecture-multi-sponsor.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 ## N
 
-**Next Cycle**
-: The **Cycle** value that will be assigned when the next **Questionnaire** of that **Questionnaire Type** is sent — the **Finalized Cycle** N incremented by 1.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
+**Needs your attention**
+: The collapsible panel within the **Task List** zone that displays the count of active tasks and, when expanded, the individual task items requiring **Participant** action.
+*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
 **NOSE HHT**
 : The Nasal Outcome Score for Epistaxis in Hereditary Hemorrhagic Telangiectasia, a validated clinical instrument published in JAMA Otolaryngology — Head and Neck Surgery, 2020.
@@ -774,8 +796,8 @@ if internet unavailable; reduces dependency on network reliability;
 improves user experience and app responsiveness.
 Technical Implementation: local sembast NoSQL JSON database on device,
 background sync service.
-See: REQ-p00006 (Offline-First Data Entry), REQ-p01001 (Offline Event
-Queue with Automatic Synchronization), dev-app.md.
+See: Offline-First Data Entry, Offline Event
+Queue with Automatic Synchronization, dev-app.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Overlap**
@@ -826,12 +848,16 @@ healthcare providers.
 Avoid: "Subject" (outdated, depersonalizing).
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
+**Personal use mode**
+: The **Mobile Application** operating with no account, storing all data locally for private health tracking outside any clinical trial.
+*Defined in: DIARY-PRD-mobile-application (DIARY)*
+
 **PHI (Protected Health Information)** *(not indexed)*
 : Any individually identifiable health information protected under HIPAA
 (name, dates, contact information, medical record numbers, health data
 linked to an individual). PHI is encrypted at rest and in transit,
 subject to strict access controls via RBAC and RLS policies.
-See: REQ-p00016 (Separation of Identity and Clinical Data),
+See: Separation of Identity and Clinical Data,
 prd-security-data-classification.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
@@ -839,8 +865,12 @@ prd-security-data-classification.md.
 : PI: lead physician at a clinical trial site. Sub-I: physicians or
 staff assisting the PI. Both have Investigator role access in the
 Portal.
-See: REQ-p00036 (Investigator Site-Scoped Access).
+See: Investigator Site-Scoped Access.
 *Defined in: file:spec/glossary-core.md (DIARY)*
+
+**PII**
+: Personally Identifiable Information — data that identifies an individual, such as a person's name or email address.
+*Defined in: DIARY-PRD-user-account-create (DIARY)*
 
 **PII (Personally Identifiable Information)** *(not indexed)*
 : Information that can identify, contact, or locate a specific
@@ -851,19 +881,11 @@ See: prd-security-data-classification.md.
 
 **PIN**
 : A numeric secret of configurable length set by the **Participant** and used to satisfy **Diary User Authentication** when the in-application **PIN** mechanism is the active path.
-*Defined in: DIARY-PRD-user-authentication-pin (DIARY)*
-
-**PIN Policy**
-: The setting that determines whether the in-application **PIN** mechanism is used for a given **Participant**. Permitted values: **Not Required** (the in-application **PIN** mechanism is never used), **Required When Device Authentication Is Not Enabled** (the in-application **PIN** mechanism is used only when **Device Authentication** is not enabled on the **Participant**'s device), and **Required** (the in-application **PIN** mechanism is always used).
-*Defined in: DIARY-PRD-user-authentication (DIARY)*
+*Defined in: DIARY-BASE-user-authentication-pin (DIARY)*
 
 **PIN Reset**
 : A *Sponsor*-initiated command that clears the **Participant**'s **PIN** and returns the **Participant** to the **PIN** setup state on next access.
-*Defined in: DIARY-PRD-user-authentication-pin (DIARY)*
-
-**Portal-Sent Questionnaire**
-: A Questionnaire initiated by a Study Coordinator from the Sponsor Portal and delivered to the participant via push notification.
-*Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
+*Defined in: DIARY-BASE-user-authentication-pin (DIARY)*
 
 **Preamble**
 : The introductory content block presented to the participant before questionnaire questions begin informing the participant of the estimated completion time and that answers will not be saved until Submission.
@@ -886,16 +908,12 @@ ePROs.
 : A validated data collection instrument presented to a participant to capture self-reported clinical outcomes at protocol-defined points in a clinical trial.
 *Defined in: DIARY-PRD-questionnaire-system (DIARY)*
 
-**Questionnaire Card**
-: The interface component representing a single **Questionnaire Type** for a *Participant*, showing its current status and the actions available in that status.
-*Defined in: DIARY-BASE-questionnaire-manage-modal (DIARY)*
-
 **Questionnaire Display Name**
 : The participant-facing name of a **Questionnaire** as presented in the mobile application. Distinct from the instrument name used for internal identification and clinical reference.
 *Defined in: DIARY-PRD-questionnaire-system (DIARY)*
 
 **Questionnaire Task**
-: A task indicating a **Portal-Sent Questionnaire** has been sent to the **Participant** and has not yet been submitted.
+: A task indicating an **Assigned Questionnaire** has been sent to the **Participant** and has not yet been submitted.
 *Defined in: DIARY-GUI-participant-task-list (DIARY)*
 
 **Questionnaire Type**
@@ -903,6 +921,10 @@ ePROs.
 *Defined in: DIARY-PRD-questionnaire-system (DIARY)*
 
 ## R
+
+**Rate Limit**
+: The mechanism that caps repeated failed attempts within a window, governed by the **Rate Limit Threshold** and **Rate Limit Cooldown**.
+*Defined in: DIARY-PRD-linking-code-entry-errors (DIARY)*
 
 **Rate Limit Cooldown**
 : The configurable duration after which the rate limit counter resets and the **User** may attempt linking again.
@@ -918,7 +940,7 @@ Investigator, Admin, etc.) rather than individual users.
 Roles: User, Healthcare Provider, Caregiver, Investigator, Admin,
 Auditor, Analyst, Sponsor, Developer Admin.
 Usage Context: security architecture, access control documentation.
-See: REQ-p00005 (Role-Based Access Control), prd-security-RBAC.md.
+See: Role-Based Access Control, prd-security-RBAC.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Record State**
@@ -929,7 +951,7 @@ database terminology) optimized for queries.
 Usage Context: developer and technical architecture documentation.
 Contrast: "Event Store" contains the history; "Record State" contains
 current values.
-See: REQ-p01006 (Type-Safe Materialized View Queries),
+See: Type-Safe Materialized View Queries,
 prd-event-sourcing-system.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
@@ -958,7 +980,7 @@ prd-event-sourcing-system.md.
 which Electronic Records the account may read, write, or modify.
 Diary Platform Roles: User, Healthcare Provider, Caregiver,
 Investigator, Admin, Auditor, Analyst, Sponsor, Developer Admin.
-See: REQ-p00005 (Role-Based Access Control), prd-security-RBAC.md.
+See: Role-Based Access Control, prd-security-RBAC.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Role Selector**
@@ -975,12 +997,8 @@ audit trails, timestamps, and data integrity.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Second Factor**
-: The independent authentication factor required in addition to the **Password** during login. The specific method is sponsor-configurable per deployment.
+: The independent authentication factor required in addition to the **Password** during login. The specific method is sponsor-configurable per study.
 *Defined in: DIARY-PRD-two-factor-authentication (DIARY)*
-
-**Select Starting Cycle Dialog**
-: The dialog displayed when a *Study Coordinator* selects **Send Now** for the first time for a given **Questionnaire Type**, allowing selection of the **Starting Cycle** before sending.
-*Defined in: DIARY-BASE-questionnaire-manage-modal (DIARY)*
 
 **Session**
 : An authenticated period during which a **User Account** owner can access the **Sponsor Portal** without re-entering credentials.
@@ -1021,7 +1039,7 @@ investigators. This is a clinical-trial-specific concept.
 Usage Context: sites are organizational units within a sponsor's
 clinical trial. Patients are enrolled at a specific site by an
 investigator at that site.
-See: REQ-p00018 (Multi-Site Support Per Sponsor).
+See: Multi-Site Support Per Sponsor.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Sponsor**
@@ -1037,7 +1055,7 @@ developing HHT treatments.
 Key Distinction: sponsors are organizations using the clinical trial
 features of the Diary Platform. Not all Diary Platform deployments
 involve sponsors — some may be purely personal health tracking.
-See: REQ-p00001 (Complete Multi-Sponsor Data Separation),
+See: Complete Multi-Sponsor Data Separation,
 prd-architecture-multi-sponsor.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
@@ -1061,16 +1079,12 @@ healthcare provider reviewing a user's diary) and clinical trial use
 cases (investigator monitoring trial participants).
 Avoid: "Admin app"; "web app" (too generic); "Clinical Trial Portal"
 as the primary name.
-See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
+See: Sponsor Portal Application, prd-portal-auth.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Sponsor-Level Action Extension**
-: An additional Action defined by a specific sponsor deployment beyond the platform Action Inventory.
+: An additional Action supported for a specific Sponsor at that Sponsor's request, beyond the standard platform Action Inventory.
 *Defined in: DIARY-PRD-action-inventory (DIARY)*
-
-**Starting Cycle**
-: The **Cycle** value assigned to the first **Questionnaire** of a given **Questionnaire Type** sent to a *Participant*.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
 
 **Study Coordinator**
 : A portal user responsible for managing day-to-day participant interactions at one or more assigned Sites.
@@ -1080,19 +1094,11 @@ See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
 : The participant action that signals all questions are answered and the Questionnaire is ready for Study Coordinator review.
 *Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
 
-**System Notice Area**
-: A dedicated zone at the top of the Main Screen reserved for persistent, non-dismissable system notices that require the Participant's attention.
-*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
-
 ## T
 
 **Task List**
-: The prioritized set of actionable items displayed on the **Participant's** **Main Screen** requiring **Participant** attention.
+: The prioritized set of actionable items displayed within the **Needs your attention** panel on the **Participant**'s **Main Screen**.
 *Defined in: DIARY-GUI-participant-task-list (DIARY)*
-
-**Terminal Cycle**
-: A **Cycle** value of **End of Treatment** or **End of Study** indicating no further **Questionnaires** of that **Questionnaire Type** will be sent to the *Participant*.
-*Defined in: DIARY-BASE-questionnaire-cycle-tracking (DIARY)*
 
 **Terminal Cycle Warning Dialog**
 : The additional confirmation dialog displayed when a **Terminal Cycle** value is selected for finalization, warning that the **Questionnaire Type** will be permanently closed for the *Participant*.
@@ -1149,11 +1155,15 @@ or more Roles.
 
 **User Information Modal**
 : A modal dialog displaying the details and available actions for a selected **User Account**.
-*Defined in: DIARY-GUI-user-management-tabs (DIARY)*
+*Defined in: DIARY-GUI-user-information-modal (DIARY)*
 
-**User Menu**
-: The menu accessed from the right side of the top navigation bar, grouping account and study-related actions.
-*Defined in: DIARY-GUI-mobile-navigation (DIARY)*
+**User Profile**
+: The screen in the **Mobile Application** showing the **Participant**'s study participation details and settings.
+*Defined in: DIARY-GUI-user-profile (DIARY)*
+
+**User Profile Screen**
+: The screen accessible from the **Application Menu** that displays the **Participant**'s study participation status and application settings.
+*Defined in: DIARY-GUI-user-profile (DIARY)*
 
 **UTC (Coordinated Universal Time)** *(not indexed)*
 : Primary time standard used worldwide, not affected by time zones or
@@ -1174,9 +1184,13 @@ Displayed in the user's local time zone in the Diary app and Portal.
 
 ## Y
 
-**Yesterday Reminder Task**
-: A task prompting the **Participant** to record a **Daily Status** for the previous day.
-*Defined in: DIARY-GUI-participant-task-list (DIARY)*
+**Yesterday Confirmation Prompt**
+: An inline prompt displayed within the **Your Records** content area under the Yesterday date section when the **Participant** has not recorded a **Daily Status** for the previous day.
+*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
+
+**Your Records**
+: The zone on the **Mobile Application** **Main Screen** that displays the **Participant**'s recorded diary entries.
+*Defined in: DIARY-GUI-main-screen-layout (DIARY)*
 
 # References
 

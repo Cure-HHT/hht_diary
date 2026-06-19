@@ -14,7 +14,7 @@ void main() {
         ),
       );
 
-  // Verifies: DIARY-GUI-portal-stale-client-reload/A
+  // Verifies: DIARY-BASE-portal-stale-client-reload/A
   testWidgets('renders the strip and a Reload control when visible', (
     tester,
   ) async {

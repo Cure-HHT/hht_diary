@@ -20,17 +20,17 @@ B. The **System** SHALL require a **Password** to contain at least one uppercase
 
 C. The **System** SHALL reject a **Password** that is commonly used or easily guessable as per NIST SP 800-63B commonly used *Password* list.
 
-D. The **System** SHALL require a **Password** to be changed after 90 days, unless a different interval has been configured for the deployment.
+D. The **System** SHALL require a **Password** to be changed after 90 days, unless a different interval has been configured for the study.
 
 E. The **System** SHALL prevent a *User* from accessing the **System** until their **Password** has been changed upon expiry.
 
-F. The **System** SHALL reject a new **Password** that matches any of the *User*'s previous **Password Reuse Limit** **Passwords**, where **Password Reuse Limit** is configurable per deployment.
+F. The **System** SHALL reject a new **Password** that matches any of the *User*'s previous **Password Reuse Limit** **Passwords**, where **Password Reuse Limit** is configurable per study.
 
 ### Rationale
 
 The composition rules (length, character classes) and the common-*Password* rejection are baseline defenses against credential-guessing attacks: each rule independently raises the cost of a successful brute-force or dictionary attempt, and together they place the minimum acceptable *Password* well above the threshold at which automated attacks succeed against unprotected accounts. The NIST SP 800-63B reference is the authoritative source for the common-*Password* list and is named explicitly so the deployment can update the list as NIST updates its guidance. The 90-day expiry is a *Sponsor*-overridable default; the override exists because some *Sponsor* deployments operate under regulatory regimes that mandate a different interval. The reuse-limit rule prevents the common operator behavior of cycling between two passwords (defeats the purpose of expiry); making the limit configurable lets a deployment choose how aggressive its reuse defense should be.
 
-*End* *Password Requirements* | **Hash**: 08d843ff
+*End* *Password Requirements* | **Hash**: e31a37b2
 
 ## DIARY-PRD-two-factor-authentication: Two-Factor Authentication
 
@@ -38,11 +38,11 @@ The composition rules (length, character classes) and the common-*Password* reje
 
 ### Overview
 
-Two-Factor Authentication adds a second independent factor beyond the **Password** to prevent unauthorized access in the event of credential compromise. The platform supports configurable second factors so each *Sponsor* deployment can select the method that best fits its operational and regulatory context.
+Two-Factor Authentication adds a second independent factor beyond the **Password** to prevent unauthorized access in the event of credential compromise. The platform supports configurable second factors so each *Sponsor* Portal can select the method that best fits its operational and regulatory context.
 
 
 Second Factor
-: The independent authentication factor required in addition to the **Password** during login. The specific method is sponsor-configurable per deployment.
+: The independent authentication factor required in addition to the **Password** during login. The specific method is sponsor-configurable per study.
 
 Verification Code
 : A single-use, time-limited code presented as the **Second Factor** during login.
@@ -70,15 +70,15 @@ F. When a **Verification Code** has been invalidated, the **System** SHALL requi
 
 **Configuration**
 
-G. The **System** SHALL support *Sponsor*-configurable selection of the **Second Factor** method per deployment.
+G. The **System** SHALL support *Sponsor*-configurable selection of the **Second Factor** method per study.
 
-H. The **System** SHALL support *Sponsor*-configurable **Code Expiry** per deployment.
+H. The **System** SHALL support *Sponsor*-configurable **Code Expiry** per study.
 
 ### Rationale
 
 The single *Password* is no longer a sufficient credential for clinical *Trial* portal access: credential leakage from unrelated services, phishing, and shared-workstation compromise are all common, and any of them can hand an attacker a working *Password* without the *User* noticing. The *Second Factor* breaks that single-credential failure mode by requiring possession of an independent channel (email, authenticator app, or SMS, depending on *Sponsor* configuration) before access is granted. The **Verification Code** is single-use and time-limited because a code that survived either property would inherit the same replay vulnerability the *Second Factor* exists to prevent. *Sponsor*-configurability of the method and expiry duration recognises that the operational tradeoffs vary by deployment: a *Sponsor* with strict email infrastructure may choose a longer expiry; a *Sponsor* with authenticator-app adoption may choose a much shorter one.
 
-*End* *Two-Factor Authentication* | **Hash**: 56e254b8
+*End* *Two-Factor Authentication* | **Hash**: b699486d
 
 ## DIARY-PRD-password-forgot: Forgot Password
 
@@ -222,7 +222,7 @@ A. The **System** SHALL establish a **Session** when a **User Account** owner su
 
 B. The **System** SHALL track elapsed inactivity from the **User Account** owner's most recent interaction with the **Sponsor Portal**.
 
-C. When the **Session **Idle Timeout** is exceeded, the System** SHALL terminate the **Session** and require re-authentication.
+C. When the **Session Idle Timeout** is exceeded, the System SHALL terminate the **Session** and require re-authentication.
 
 **Termination**
 
@@ -232,25 +232,25 @@ E. When a **User Account** is deactivated, the **System** SHALL terminate all ac
 
 F. When a **User Account**'s **Role** or **Site** assignment is changed, the **System** SHALL terminate all active **Sessions** associated with that **User Account** immediately.
 
-H. When the **System** terminates a **Session** under assertion E or F, the **System** SHALL reject every subsequent request authenticated by a **Session** established before the termination timestamp.
+G. When the **System** terminates a **Session** under assertion E or F, the **System** SHALL reject every subsequent request authenticated by a **Session** established before the termination timestamp.
 
 **Configuration**
 
-G. The **System** SHALL support *Sponsor*-configurable **Session Idle Timeout** per deployment, with a default of 10 minutes.
+H. The **System** SHALL support *Sponsor*-configurable **Session Idle Timeout** per study, with a default of 10 minutes.
 
 **Timeout Warning**
 
 I. The **System** SHALL present a **Session Timeout Warning** to the **User Account** owner one **Timeout Warning Threshold** before the **Session Idle Timeout** is reached, allowing the owner to extend the **Session** without re-authenticating.
 
-J. The **System** SHALL support *Sponsor*-configurable **Timeout Warning Threshold** per deployment, with a default of 60 seconds.
+J. The **System** SHALL support *Sponsor*-configurable **Timeout Warning Threshold** per study, with a default of 60 seconds.
 
 K. When the **User Account** owner extends the **Session** from the **Session Timeout Warning**, the **System** SHALL reset elapsed inactivity.
 
 ### Rationale
 
-A **Session** in the **Sponsor Portal** is a high-value authentication artifact — it represents a successful two-factor login and confers access to clinical data and *User* Account management capabilities for its duration. The *Idle Timeout* caps the window in which an unattended workstation could be exploited; tracking inactivity from the *User*'s most recent interaction (rather than from *Session* creation) is the standard pattern that balances security against operational disruption. The cascade rules (*Deactivation*, *Role* change, *Site* change immediately terminate sessions) ensure that authorization changes take effect synchronously rather than waiting for the next login: a Coordinator who has lost their *Role* for cause cannot continue acting under the old *Role* until their **Session** happens to time out. Assertion H states the enforcement obligation explicitly: terminating a **Session** must reject every request bearing that **Session** on every subsequent authenticated endpoint, not merely mark the **Session** as terminated in storage — a bookkeeping flip without an enforcement check would leave the pre-termination credential operational until natural expiry and defeat the whole cascade. *Sponsor*-configurability of the timeout duration acknowledges that the right tradeoff between security and operator disruption varies by deployment; the 10-minute default reflects clinical-portal industry baseline. The **Session Timeout Warning** gives an active operator a chance to preserve in-progress work before an idle **Session** is terminated, and resetting elapsed inactivity on extension makes the warning a genuine reprieve rather than a notice; the warning lead is *Sponsor*-configurable for the same reason the timeout itself is — the right tradeoff between security and operator disruption varies by deployment.
+A **Session** in the **Sponsor Portal** is a high-value authentication artifact — it represents a successful two-factor login and confers access to clinical data and *User* Account management capabilities for its duration. The *Idle Timeout* caps the window in which an unattended workstation could be exploited; tracking inactivity from the *User*'s most recent interaction (rather than from *Session* creation) is the standard pattern that balances security against operational disruption. The cascade rules (*Deactivation*, *Role* change, *Site* change immediately terminate sessions) ensure that authorization changes take effect synchronously rather than waiting for the next login: a Coordinator who has lost their *Role* for cause cannot continue acting under the old *Role* until their **Session** happens to time out. Assertion G states the enforcement obligation explicitly: terminating a **Session** must reject every request bearing that **Session** on every subsequent authenticated endpoint, not merely mark the **Session** as terminated in storage — a bookkeeping flip without an enforcement check would leave the pre-termination credential operational until natural expiry and defeat the whole cascade. *Sponsor*-configurability of the timeout duration acknowledges that the right tradeoff between security and operator disruption varies by deployment; the 10-minute default reflects clinical-portal industry baseline. The **Session Timeout Warning** gives an active operator a chance to preserve in-progress work before an idle **Session** is terminated, and resetting elapsed inactivity on extension makes the warning a genuine reprieve rather than a notice; the warning lead is *Sponsor*-configurable for the same reason the timeout itself is — the right tradeoff between security and operator disruption varies by deployment.
 
-*End* *Session Management* | **Hash**: e0f4a981
+*End* *Session Management* | **Hash**: e4c6d237
 
 ## DIARY-GUI-portal-session-expiry: Portal session expiry interface
 

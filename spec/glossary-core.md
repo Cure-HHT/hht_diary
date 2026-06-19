@@ -16,14 +16,14 @@ For order of precedence between this glossary and external Reference
 Documents, see `governance/glossary-precedence.md`. For the syntax of an
 individual glossary entry, see `governance/glossary-example.md`.
 Authoring rules for glossary-term enforcement live in
-`governance/style-guide.md` (REQ-CAL-o00002 and REQ-CAL-o00005-C).
+`governance/style-guide.md` (REQ-DIARY-o00002 and REQ-DIARY-o00005-C).
 
 ## Conventions
 
 - An assertion that uses a domain-specific term unbolded triggers an
-  automated health-check failure (`governance/style-guide.md` REQ-CAL-o00002-B).
+  automated health-check failure (`governance/style-guide.md` REQ-DIARY-o00002-B).
 - Any acronym used within a requirements document SHALL be a defined
-  term in this glossary (`governance/style-guide.md` REQ-CAL-o00005-C).
+  term in this glossary (`governance/style-guide.md` REQ-DIARY-o00005-C).
 - Terms are listed alphabetically.
 - A term that exists in a Reference Document SHALL be defined here as a
   Reference Term that points at the external source (see the
@@ -57,7 +57,7 @@ ALCOA+ Principles
   (Available).
 : Clinical Trial Context: Required by FDA and EMA for clinical trial
   records.
-: See: REQ-p00011 (ALCOA+ Data Integrity Principles),
+: See: ALCOA+ Data Integrity Principles,
   prd-clinical-trials.md.
 : Indexed: false
 
@@ -80,7 +80,7 @@ Admin
   trial context; organization-wide in non-CT deployments.
 : Avoid: "Sponsor admin" (redundant in CT context); "super admin" (no
   such role).
-: See: REQ-p00039 (Administrator Access with Audit Trail).
+: See: Administrator Access with Audit Trail.
 : Indexed: false
 
 Analyst
@@ -88,7 +88,7 @@ Analyst
   analysis and reporting. Typically scoped to specific sites (may be
   sponsor-wide depending on assignment). Focused on data analysis, not
   compliance auditing.
-: See: REQ-p00022 (Analyst Read-Only Access).
+: See: Analyst Read-Only Access.
 : Indexed: false
 
 Audit Trail
@@ -104,15 +104,14 @@ Audit Trail
   and ICH-GCP guidelines for regulatory compliance. Implemented using
   the Event Store architecture (technical term) to create an Audit Trail
   (regulatory term).
-: See: REQ-p00004 (Immutable Audit Trail via Event Sourcing), REQ-p70006
-  (Comprehensive Audit Trail), prd-clinical-trials.md.
+: See: Immutable Audit Trail via Event Sourcing, Comprehensive Audit Trail, prd-clinical-trials.md.
 
 Auditor
 : An independent compliance reviewer with read-only access to all data
   and audit trails for regulatory compliance verification. Has full
   read-only access across all sites within a sponsor. Auditors can view
   but NEVER modify data.
-: See: REQ-p00038 (Auditor Compliance Access).
+: See: Auditor Compliance Access.
 : Indexed: false
 
 Caregiver
@@ -185,8 +184,8 @@ Database
   architecture.
 : Clinical Trial Context: may be referred to as "Clinical Trial
   Database" when emphasizing regulatory compliance features.
-: See: REQ-p00046 (Clinical Data Storage System), REQ-p00003 (Separate
-  Database Per Sponsor), prd-database.md.
+: See: Clinical Data Storage System, Separate
+  Database Per Sponsor, prd-database.md.
 
 De-identified Data
 : Health data with all personally identifiable information (name, email,
@@ -197,7 +196,7 @@ De-identified Data
 : Clinical Trial Context: de-identified data can be shared with research
   partners; identified data requires explicit consent. Subject to GDPR
   and HIPAA requirements.
-: See: REQ-p00016 (Separation of Identity and Clinical Data).
+: See: Separation of Identity and Clinical Data.
 
 Developer Admin
 : A system administrator with infrastructure-level access for deployment,
@@ -227,7 +226,7 @@ Diary
   (refers to a different concept in clinical trials); "eSource" (refers
   to the complete platform, not just the mobile app); "Clinical Diary"
   as the primary name (clinical trials are a feature, not the identity).
-: See: REQ-p00043 (Diary Mobile Application), prd-mobile-app.md.
+: See: Diary Mobile Application, prd-mobile-app.md.
 
 Diary Entry
 : A single user-reported record of a health event (e.g., nosebleed
@@ -241,7 +240,7 @@ Diary Entry
   may capture protocol-specified data elements and serve as ePRO data.
 : Avoid: "Event" (too generic); "Record" (too technical); "Data point"
   (depersonalizing).
-: See: REQ-p00042 (HHT Epistaxis Data Capture Standard).
+: See: HHT Epistaxis Data Capture Standard.
 
 Diary Platform
 : The complete system comprising all software, infrastructure, and data
@@ -259,7 +258,7 @@ Diary Platform
 : Avoid: "Clinical Diary Platform" (implies clinical trials are
   primary); "eSource system"; "ePRO platform" (use only in
   sponsor-specific external documentation).
-: See: REQ-p00044 (Clinical Trial Compliant Diary Platform).
+: See: Clinical Trial Compliant Diary Platform.
 
 eCOA (Electronic Clinical Outcome Assessment)
 : Umbrella term for electronic capture of clinical outcomes: ePRO
@@ -293,7 +292,7 @@ Electronic Signature
 : Usage Context: all diary entries (personal health tracking and
   clinical trial) are automatically attributed to the user who created
   them.
-: See: REQ-p00010 (FDA 21 CFR Part 11 Compliance),
+: See: FDA 21 CFR Part 11 Compliance,
   prd-clinical-trials.md.
 
 EMA (European Medicines Agency)
@@ -308,7 +307,7 @@ ePRO (Electronic Patient-Reported Outcomes)
   an ePRO tool when used in clinical trials.
 : Avoid: while technically accurate, avoid "ePRO" in user-facing
   communication. Use "Diary" instead.
-: See: REQ-p00043 (Diary Mobile Application).
+: See: Diary Mobile Application.
 : Indexed: false
 
 eSource
@@ -323,7 +322,7 @@ eSource
   Portal), not just the mobile app. Use only when discussing clinical
   trial regulatory compliance.
 : Regulatory Basis: FDA guidance on electronic source documentation.
-: See: REQ-p00010 (FDA 21 CFR Part 11 Compliance).
+: See: FDA 21 CFR Part 11 Compliance.
 
 ESS (Epistaxis Severity Score)
 : Standardized clinical assessment tool measuring the severity and
@@ -342,8 +341,7 @@ Event Sourcing
   event to the Event Store. Current state is derived by replaying
   events.
 : Usage Context: technical architecture and developer documentation.
-: See: REQ-p00004 (Immutable Audit Trail via Event Sourcing), REQ-p01000
-  (Event Sourcing Client Interface), prd-event-sourcing-system.md.
+: See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, prd-event-sourcing-system.md.
 
 Event Store
 : The immutable log of all changes to diary entries and system data,
@@ -354,13 +352,12 @@ Event Store
 : Usage Context: developer and architecture documentation.
 : Clinical Trial Context: the Event Store implements the Audit Trail
   required by FDA 21 CFR Part 11 and other regulations.
-: See: REQ-p00004 (Immutable Audit Trail via Event Sourcing), REQ-p01000
-  (Event Sourcing Client Interface), prd-event-sourcing-system.md.
+: See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, prd-event-sourcing-system.md.
 
 FDA (U.S. Food and Drug Administration)
 : United States federal agency responsible for regulating
   pharmaceuticals, medical devices, and clinical trials.
-: See: REQ-p00010 (FDA 21 CFR Part 11 Compliance).
+: See: FDA 21 CFR Part 11 Compliance.
 : Indexed: false
 
 FDA 21 CFR Part 11
@@ -375,7 +372,7 @@ FDA 21 CFR Part 11
 : Diary Platform Context: core compliance framework for clinical trial
   features.
 : Usage Context: regulatory submissions, compliance documentation.
-: See: REQ-p00010 (FDA 21 CFR Part 11 Compliance),
+: See: FDA 21 CFR Part 11 Compliance,
   prd-clinical-trials.md.
 
 FDA 21 CFR Part 11 (Regulation)
@@ -398,7 +395,7 @@ GDPR (General Data Protection Regulation)
   portability). Clinical trial participation may limit some rights for
   data integrity reasons. Applies based on user location, not sponsor
   location.
-: See: REQ-p01061 (GDPR Compliance), REQ-p01062 (GDPR Data Portability).
+: See: GDPR Compliance, GDPR Data Portability.
 : Indexed: false
 
 Google Cloud Platform (GCP)
@@ -420,7 +417,7 @@ Healthcare Provider
 : Distinction from Investigator: a Healthcare Provider reviews diary
   data for clinical care purposes. An Investigator reviews diary data as
   part of a clinical trial protocol.
-: See: REQ-p70001 (Sponsor Portal Application).
+: See: Sponsor Portal Application.
 : Indexed: false
 
 HHT (Hereditary Hemorrhagic Telangiectasia)
@@ -434,8 +431,8 @@ HIPAA (Health Insurance Portability and Accountability Act)
 : United States federal law protecting the privacy and security of
   individuals' medical information. Key requirement: Business Associate
   Agreements (BAAs) with service providers.
-: See: REQ-p01020 (Privacy Policy and Regulatory Compliance
-  Documentation).
+: See: Privacy Policy and Regulatory Compliance
+  Documentation.
 : Indexed: false
 
 ICF (Informed Consent Form)
@@ -458,7 +455,7 @@ ICH-GCP / ICH E6(R2)
   emphasizes risk-based monitoring and data integrity. The Diary
   Platform follows ICH-GCP guidelines for data integrity (ALCOA+), audit
   trails, source data verification, and participant protection.
-: See: REQ-p00011 (ALCOA+ Data Integrity Principles).
+: See: ALCOA+ Data Integrity Principles.
 : Indexed: false
 
 ICH E6(R2) (Guideline)
@@ -497,8 +494,7 @@ Investigator
   patients; review patient diary data for protocol compliance.
 : Access: site-specific data only (via Row-Level Security).
 : Avoid: "Site staff"; "clinical user"; "researcher" (be specific).
-: See: REQ-p00036 (Investigator Site-Scoped Access), REQ-p00037
-  (Investigator Annotation Restrictions).
+: See: Investigator Site-Scoped Access, Investigator Annotation Restrictions.
 
 IRB / IEC (Institutional Review Board / Independent Ethics Committee)
 : IRB (U.S.) / IEC (international): independent ethics committee that
@@ -519,8 +515,7 @@ Linking Code
   creating accounts before the link is established.
 : Usage Context: patient enrollment workflow (clinical trials), device
   provisioning.
-: See: REQ-p70007 (Linking Code Lifecycle Management), REQ-d00078
-  (Linking Code Validation).
+: See: Linking Code Lifecycle Management, Linking Code Validation.
 
 Multi-Sponsor Isolation
 : The architectural pattern ensuring complete data separation between
@@ -533,8 +528,7 @@ Multi-Sponsor Isolation
   maintaining regulatory compliance and data privacy.
 : Context: this is a clinical trial feature. Personal health tracking
   deployments may not use multi-sponsor architecture.
-: See: REQ-p00001 (Complete Multi-Sponsor Data Separation), REQ-p00008
-  (Single Mobile App for All Sponsors),
+: See: Complete Multi-Sponsor Data Separation, Single Mobile App for All Sponsors,
   prd-architecture-multi-sponsor.md.
 
 NIST SP 800-63
@@ -558,8 +552,8 @@ Offline-First
   improves user experience and app responsiveness.
 : Technical Implementation: local sembast NoSQL JSON database on device,
   background sync service.
-: See: REQ-p00006 (Offline-First Data Entry), REQ-p01001 (Offline Event
-  Queue with Automatic Synchronization), dev-app.md.
+: See: Offline-First Data Entry, Offline Event
+  Queue with Automatic Synchronization, dev-app.md.
 
 Patient
 : A human subject enrolled in a clinical trial who interacts with the
@@ -583,7 +577,7 @@ PHI (Protected Health Information)
   (name, dates, contact information, medical record numbers, health data
   linked to an individual). PHI is encrypted at rest and in transit,
   subject to strict access controls via RBAC and RLS policies.
-: See: REQ-p00016 (Separation of Identity and Clinical Data),
+: See: Separation of Identity and Clinical Data,
   prd-security-data-classification.md.
 : Indexed: false
 
@@ -591,7 +585,7 @@ PI / Sub-I (Principal Investigator / Sub-Investigator)
 : PI: lead physician at a clinical trial site. Sub-I: physicians or
   staff assisting the PI. Both have Investigator role access in the
   Portal.
-: See: REQ-p00036 (Investigator Site-Scoped Access).
+: See: Investigator Site-Scoped Access.
 : Indexed: false
 
 PII (Personally Identifiable Information)
@@ -614,7 +608,7 @@ RBAC (Role-Based Access Control)
 : Roles: User, Healthcare Provider, Caregiver, Investigator, Admin,
   Auditor, Analyst, Sponsor, Developer Admin.
 : Usage Context: security architecture, access control documentation.
-: See: REQ-p00005 (Role-Based Access Control), prd-security-RBAC.md.
+: See: Role-Based Access Control, prd-security-RBAC.md.
 
 Record State
 : The current values of diary entries and other data, derived from the
@@ -624,7 +618,7 @@ Record State
 : Usage Context: developer and technical architecture documentation.
 : Contrast: "Event Store" contains the history; "Record State" contains
   current values.
-: See: REQ-p01006 (Type-Safe Materialized View Queries),
+: See: Type-Safe Materialized View Queries,
   prd-event-sourcing-system.md.
 
 Role
@@ -632,7 +626,7 @@ Role
   which Electronic Records the account may read, write, or modify.
 : Diary Platform Roles: User, Healthcare Provider, Caregiver,
   Investigator, Admin, Auditor, Analyst, Sponsor, Developer Admin.
-: See: REQ-p00005 (Role-Based Access Control), prd-security-RBAC.md.
+: See: Role-Based Access Control, prd-security-RBAC.md.
 
 SDV (Source Data Verification)
 : Process of verifying that data in the trial database matches original
@@ -648,7 +642,7 @@ Site
 : Usage Context: sites are organizational units within a sponsor's
   clinical trial. Patients are enrolled at a specific site by an
   investigator at that site.
-: See: REQ-p00018 (Multi-Site Support Per Sponsor).
+: See: Multi-Site Support Per Sponsor.
 
 Sponsor
 : The regulated entity that holds the IND or IDE and contracts the
@@ -663,7 +657,7 @@ Sponsor
 : Key Distinction: sponsors are organizations using the clinical trial
   features of the Diary Platform. Not all Diary Platform deployments
   involve sponsors — some may be purely personal health tracking.
-: See: REQ-p00001 (Complete Multi-Sponsor Data Separation),
+: See: Complete Multi-Sponsor Data Separation,
   prd-architecture-multi-sponsor.md.
 
 Sponsor Portal
@@ -686,7 +680,7 @@ Sponsor Portal
   cases (investigator monitoring trial participants).
 : Avoid: "Admin app"; "web app" (too generic); "Clinical Trial Portal"
   as the primary name.
-: See: REQ-p70001 (Sponsor Portal Application), prd-portal-auth.md.
+: See: Sponsor Portal Application, prd-portal-auth.md.
 
 User
 : Any individual who uses the Diary Platform. The default term for

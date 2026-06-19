@@ -89,7 +89,7 @@ class EditUserAccountAction
   }
 
   // Implements: DIARY-DEV-operator-tier-authz/C
-  // Implements: DIARY-PRD-user-account-edit/H — the edit is gated on the target
+  // Implements: DIARY-BASE-system-operator-role/D — the edit is gated on the target
   //   account's tier (user-contained-in-tier), so a non-operator cannot edit a
   //   System Operator account.
   @override
