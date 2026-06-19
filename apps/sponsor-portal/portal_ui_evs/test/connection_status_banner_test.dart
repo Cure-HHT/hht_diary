@@ -1,4 +1,4 @@
-// Verifies: DIARY-GUI-portal-transport-status/A+B — the banner is hidden while
+// Verifies: DIARY-BASE-portal-transport-status/A+B — the banner is hidden while
 //   Connected, shown (over the retained child) once the transport DROPS after
 //   having connected, and self-clears on reconnect. It stays suppressed on a
 //   fresh load that has never connected (pre-connect Disconnected), so the

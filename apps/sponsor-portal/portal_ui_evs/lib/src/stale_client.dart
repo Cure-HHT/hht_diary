@@ -32,7 +32,7 @@ enum StaleClientAction {
 /// build value, so an inequality is a definitive staleness signal. An empty or
 /// absent value on either side — a local `flutter run` without the define, or
 /// an unreachable `/health` — yields `false`, so dev runs never trip.
-// Implements: DIARY-GUI-portal-stale-client-reload/A
+// Implements: DIARY-BASE-portal-stale-client-reload/A
 bool isClientStale({
   required String clientVersion,
   required Map<String, Object?> serverVersions,
@@ -54,7 +54,7 @@ bool isClientStale({
 ///   [StaleClientAction.banner] — the loop guard: a reload that returned a
 ///   still-stale bundle (e.g. a legacy service worker still controlling the
 ///   page) must surface the manual affordance instead of reloading forever.
-// Implements: DIARY-GUI-portal-stale-client-reload/A+B+C
+// Implements: DIARY-BASE-portal-stale-client-reload/A+B+C
 // Implements: DIARY-DEV-portal-legacy-sw-eviction/B
 StaleClientAction decideStaleClientAction({
   required String clientVersion,

@@ -413,7 +413,7 @@ The **User Information Modal** is the per-account hub: every lifecycle *Action* 
 
 ### Overview
 
-The **Administrator Dashboard** is the primary surface for an **Administrator** to manage **User Accounts** and review audit log activity. Organising the surface as a container with two top-level tabs separates **User Account** management from audit log review while keeping both areas reachable from a single entry point. The dashboard scaffolding defined here establishes the header, the top-level tab navigation, and the default landing tab; the contents of each tab are governed by the requirements referenced from those tabs.
+The **Administrator Dashboard** is the primary surface for an **Administrator** to manage **User Accounts** and review *Audit Log* activity. Organising the surface as a container with two top-level tabs separates **User Account** management from *Audit Log* review while keeping both areas reachable from a single entry point. The dashboard scaffolding defined here establishes the header, the top-level tab navigation, and the default landing tab; the contents of each tab are governed by the requirements referenced from those tabs.
 
 
 Administrator Dashboard
@@ -435,7 +435,7 @@ D. The **Administrator Dashboard** SHALL display two top-level tabs: **Users** a
 
 E. The **Users** tab SHALL display the *User* Management interface defined in *Diary*-GUI-*User*-management-tabs.
 
-F. The **Audit Logs** tab SHALL display the *Administrator* Audit Log View defined in *Diary*-GUI-audit-log-*Administrator*.
+F. The **Audit Logs** tab SHALL display the *Administrator* *Audit Log View* defined in *Diary*-GUI-audit-log-*Administrator*.
 
 G. The interface SHALL display the **Users** tab by default upon login.
 
@@ -447,6 +447,6 @@ I. When the **Administrator** selects **Logout**, the **System** SHALL terminate
 
 ### Rationale
 
-The **Administrator Dashboard** consolidates the two responsibilities of the **Administrator** *Role* — **User Account** management and audit review — into adjacent tabs of a single surface so the *Administrator* can switch between investigating an account and reviewing the audit log without navigating away from a shared context. A persistent header keeps identity (who is logged in, in what *Role*), system context (which *Sponsor* Portal), settings access, and logout reachable from any screen of the dashboard, which is necessary because an *Administrator* may need to log out from any state without first navigating back to a landing page. Defaulting to the **Users** tab on login matches the most common *Administrator* entry point (open the dashboard to perform account actions); the Audit Logs tab is one click away when investigation is the goal.
+The **Administrator Dashboard** consolidates the two responsibilities of the **Administrator** *Role* — **User Account** management and audit review — into adjacent tabs of a single surface so the *Administrator* can switch between investigating an account and reviewing the *Audit Log* without navigating away from a shared context. A persistent header keeps identity (who is logged in, in what *Role*), system context (which *Sponsor* Portal), settings access, and logout reachable from any screen of the dashboard, which is necessary because an *Administrator* may need to log out from any state without first navigating back to a landing page. Defaulting to the **Users** tab on login matches the most common *Administrator* entry point (open the dashboard to perform account actions); the Audit Logs tab is one click away when investigation is the goal.
 
-*End* *Administrator Dashboard* | **Hash**: a0642fc7
+*End* *Administrator Dashboard* | **Hash**: bdabc38a

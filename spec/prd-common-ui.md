@@ -46,9 +46,9 @@ The system shall use a consistent set of commonly displayed elements, buttons, a
 | Reason Dialog — Free Text | Displayed before a high-impact *Action*. Requires the *User* to enter a free text reason of up to 100 characters before proceeding. The *Action* SHALL NOT proceed until a reason is provided. |
 | Reason Dialog — Predefined List | Displayed before a high-impact *Action*. Requires the *User* to select a reason from a *Sponsor*-defined list before proceeding. The *Action* SHALL NOT proceed until a reason is selected. |
 
-## DIARY-GUI-portal-transport-status: Portal Transport Status Banner
+## DIARY-BASE-portal-transport-status: Portal Transport Status Banner
 
-**Level**: GUI | **Status**: Draft | **Implements**: -
+**Level**: BASE | **Status**: Draft | **Implements**: -
 
 <!-- satisfied-by: EVS-PRD-reaction-scope -->
 
@@ -66,9 +66,9 @@ The portal's lists are fed by a live subscription; a dropped transport otherwise
 
 *End* *Portal Transport Status Banner* | **Hash**: 20c55120
 
-## DIARY-GUI-portal-stale-client-reload: Portal Stale-Client Reload Prompt
+## DIARY-BASE-portal-stale-client-reload: Portal Stale-Client Reload Prompt
 
-**Level**: GUI | **Status**: Draft | **Implements**: -
+**Level**: BASE | **Status**: Draft | **Implements**: -
 
 The *Sponsor Portal* is a long-lived single-page client: once loaded, a tab keeps running its compiled bundle and never re-fetches the document on its own, so after a deploy it can run an older build than the deployed server indefinitely. The *User* needs to be brought onto the current build without losing in-progress work.
 

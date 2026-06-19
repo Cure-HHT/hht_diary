@@ -212,7 +212,6 @@
 - DIARY-GUI-audit-log-administrator-A
 - DIARY-PRD-help-resources-A
 - DIARY-PRD-role-definitions-A
-- DIARY-PRD-role-definitions-D
 - DIARY-PRD-user-account-create-A
 - DIARY-PRD-user-account-create-C
 - DIARY-PRD-user-account-activation-workflow-E
@@ -257,7 +256,6 @@
 - DIARY-OPS-rave-sync-cooldown:section:0
 - DIARY-PRD-rbac-customizable:section:1
 - DIARY-PRD-action-inventory:section:1
-- DIARY-PRD-role-definitions:section:1
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-create:section:0
 - DIARY-PRD-user-account-activation-workflow:section:6
@@ -366,6 +364,59 @@
 - DIARY-PRD-notification-portal-sent-questionnaire:section:4
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:0
+
+## Audit Log
+
+**DIARY:**
+
+- DIARY-DEV-audit-log-read
+- DIARY-GUI-audit-log-common-B
+- DIARY-GUI-audit-log-common-E
+- DIARY-GUI-audit-log-study-coordinator-B
+- DIARY-GUI-audit-log-cra-C
+- DIARY-GUI-audit-log-cra-D
+- DIARY-GUI-audit-log-cra-E
+- DIARY-PRD-platform-operations-monitoring-P
+- DIARY-GUI-administrator-settings:section:3
+- rem:spec/prd-audit-log.md:1
+- rem:spec/prd-audit-log.md:3
+- DIARY-GUI-audit-log-common:section:6
+- DIARY-GUI-audit-log-administrator:section:1
+- DIARY-PRD-platform-operations-monitoring:section:0
+- DIARY-PRD-action-inventory:section:1
+- DIARY-GUI-role-switching:section:3
+- DIARY-PRD-reason-field-constraints:section:1
+- DIARY-GUI-administrator-dashboard:section:0
+- DIARY-GUI-administrator-dashboard:section:4
+
+## Audit Log Entry
+
+**DIARY:**
+
+- DIARY-GUI-audit-log-common-C
+- DIARY-GUI-audit-log-common-H
+- rem:spec/prd-audit-log.md:3
+- DIARY-PRD-action-inventory:section:2
+
+## Audit Log View
+
+**DIARY:**
+
+- DIARY-GUI-audit-log-common
+- DIARY-GUI-audit-log-study-coordinator
+- DIARY-GUI-audit-log-cra
+- DIARY-GUI-audit-log-administrator
+- DIARY-GUI-audit-log-common-A
+- DIARY-GUI-audit-log-common-E
+- DIARY-GUI-audit-log-cra-B
+- DIARY-GUI-audit-log-administrator-A
+- DIARY-GUI-administrator-dashboard-F
+- rem:spec/prd-audit-log.md:3
+- DIARY-GUI-audit-log-common:section:0
+- DIARY-GUI-audit-log-study-coordinator:section:0
+- DIARY-GUI-audit-log-cra:section:0
+- DIARY-GUI-audit-log-administrator:section:0
+- DIARY-GUI-audit-log-administrator:section:1
 
 ## Audit Trail
 
@@ -1190,10 +1241,8 @@
 
 **DIARY:**
 
-- DIARY-PRD-role-definitions-B
 - rem:spec/glossary-core.md:730
 - DIARY-OPS-rave-sync-cooldown:section:0
-- DIARY-PRD-role-definitions:section:1
 
 ## ISO/IEC 24760-1
 
@@ -2534,9 +2583,6 @@
 - DIARY-PRD-action-inventory-A
 - DIARY-PRD-action-inventory-B
 - DIARY-PRD-action-inventory-C
-- DIARY-PRD-role-definitions-B
-- DIARY-PRD-role-definitions-C
-- DIARY-PRD-role-definitions-D
 - DIARY-GUI-role-switching-B
 - DIARY-GUI-role-switching-C
 - DIARY-GUI-role-switching-D
@@ -3097,10 +3143,10 @@
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-PRD-administrator-settings-A
-- DIARY-GUI-portal-transport-status-A
-- DIARY-GUI-portal-stale-client-reload-A
-- DIARY-GUI-portal-stale-client-reload-B
-- DIARY-GUI-portal-stale-client-reload-C
+- DIARY-BASE-portal-transport-status-A
+- DIARY-BASE-portal-stale-client-reload-A
+- DIARY-BASE-portal-stale-client-reload-B
+- DIARY-BASE-portal-stale-client-reload-C
 - DIARY-PRD-help-resources-A
 - DIARY-PRD-help-resources-D
 - DIARY-PRD-mobile-application-F
@@ -3131,8 +3177,8 @@
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-PRD-administrator-settings:section:0
-- DIARY-GUI-portal-transport-status:section:0
-- DIARY-GUI-portal-stale-client-reload:section:0
+- DIARY-BASE-portal-transport-status:section:0
+- DIARY-BASE-portal-stale-client-reload:section:0
 - DIARY-PRD-help-resources:section:0
 - DIARY-PRD-help-resources:section:1
 - DIARY-PRD-help-resources:section:5
@@ -3214,7 +3260,6 @@
 - DIARY-GUI-link-participant-flow-B
 - DIARY-GUI-link-participant-flow-C
 - DIARY-PRD-role-definitions-A
-- DIARY-PRD-role-definitions-B
 - DIARY-PRD-user-account-create-C
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
 - DIARY-BASE-questionnaire-coordinator-workflow:section:6
@@ -3508,9 +3553,9 @@
 - DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-audit-log-common-A
 - DIARY-GUI-audit-log-common-C
-- DIARY-GUI-portal-stale-client-reload-A
-- DIARY-GUI-portal-stale-client-reload-B
-- DIARY-GUI-portal-stale-client-reload-C
+- DIARY-BASE-portal-stale-client-reload-A
+- DIARY-BASE-portal-stale-client-reload-B
+- DIARY-BASE-portal-stale-client-reload-C
 - DIARY-GUI-linking-confirmation-B
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-help-resources-C
@@ -3605,10 +3650,10 @@
 - rem:spec/prd-common-ui.md:7
 - rem:spec/prd-common-ui.md:35
 - rem:spec/prd-common-ui.md:42
-- DIARY-GUI-portal-transport-status:section:0
-- DIARY-GUI-portal-transport-status:section:1
-- DIARY-GUI-portal-stale-client-reload:section:0
-- DIARY-GUI-portal-stale-client-reload:section:1
+- DIARY-BASE-portal-transport-status:section:0
+- DIARY-BASE-portal-transport-status:section:1
+- DIARY-BASE-portal-stale-client-reload:section:0
+- DIARY-BASE-portal-stale-client-reload:section:1
 - rem:spec/prd-device-linking.md:3
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-join-study-screen:section:0

@@ -159,7 +159,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// regardless of [_status] for the login-attempt call site, so a logged-out
   /// User who initiates sign-in on a stale bundle auto-reloads rather than
   /// being prompted.
-  // Implements: DIARY-GUI-portal-stale-client-reload/A+B+C
+  // Implements: DIARY-BASE-portal-stale-client-reload/A+B+C
   Future<void> _checkServerVersion({bool forceLoginScreen = false}) async {
     Map<String, Object?>? versions;
     try {
@@ -206,7 +206,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
 
   /// User-initiated reload from the update banner (authenticated path). Not
   /// guarded — the User chose to reload, so it should always proceed.
-  // Implements: DIARY-GUI-portal-stale-client-reload/A
+  // Implements: DIARY-BASE-portal-stale-client-reload/A
   void _reloadForUpdate() => widget.web.reloadPage();
 
   /// Resolves the login-UI mode from the server's identity config. When the
@@ -245,7 +245,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   void _onConnect(String identity) {
     // Login attempt from the (unauthenticated) login screen: nothing to lose,
     // so auto-reload onto the new bundle if this one is stale.
-    // Implements: DIARY-GUI-portal-stale-client-reload/B
+    // Implements: DIARY-BASE-portal-stale-client-reload/B
     unawaited(_checkServerVersion(forceLoginScreen: true));
     setState(() => _identityCredential = identity.split('|').first);
     _scope.authSession.setCredential(identity);
@@ -257,7 +257,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   void _onSession(String token) {
     // Login attempt from the (unauthenticated) login screen: auto-reload onto
     // the new bundle if this one is stale.
-    // Implements: DIARY-GUI-portal-stale-client-reload/B
+    // Implements: DIARY-BASE-portal-stale-client-reload/B
     unawaited(_checkServerVersion(forceLoginScreen: true));
     setState(() => _identityCredential = token);
     _scope.authSession.setCredential(token);
@@ -480,7 +480,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
         // Non-blocking "new version available" strip above whatever home is
         // showing (authenticated shell, or the login screen as a loop-guard
         // fallback). Authenticated users are prompted, never auto-reloaded.
-        // Implements: DIARY-GUI-portal-stale-client-reload/A
+        // Implements: DIARY-BASE-portal-stale-client-reload/A
         home: UpdateAvailableBanner(
           visible: _updateAvailable,
           onReload: _reloadForUpdate,
@@ -668,7 +668,7 @@ class _HomeShellState extends State<_HomeShell> {
       // reconnecting/disconnected, a banner tells the user the data shown is the
       // last received (lists keep their last rows via the ViewBuilder Stale
       // state). Self-clears on reconnect.
-      // Implements: DIARY-GUI-portal-transport-status/A+B
+      // Implements: DIARY-BASE-portal-transport-status/A+B
       body: ConnectionStatusBanner(
         statusStream: ReActionScope.of(context).connectionStatusStream,
         initial: ReActionScope.of(context).connectionStatus,

@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 /// portal UI version than the running bundle. On the login screen the app
 /// auto-reloads instead, so the banner there is only a fallback when an
 /// automatic reload returned a still-stale bundle (the loop guard).
-// Implements: DIARY-GUI-portal-stale-client-reload/A
+// Implements: DIARY-BASE-portal-stale-client-reload/A
 class UpdateAvailableBanner extends StatelessWidget {
   const UpdateAvailableBanner({
     super.key,

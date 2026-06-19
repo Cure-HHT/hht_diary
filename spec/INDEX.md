@@ -50,7 +50,7 @@
 | DIARY-PRD-participant-registration               | Participant Registration                            | prd-participant.md                        | 5f285232 |
 | DIARY-PRD-password-forgot                        | Forgot Password                                     | prd-portal-auth.md                        | 0aa45cc5 |
 | DIARY-PRD-password-requirements                  | Password Requirements                               | prd-portal-auth.md                        | e31a37b2 |
-| DIARY-PRD-platform-operations-monitoring         | Platform Operations and Monitoring                  | prd-platform-operations.md                | af349286 |
+| DIARY-PRD-platform-operations-monitoring         | Platform Operations and Monitoring                  | prd-platform-operations.md                | ccc8da44 |
 | DIARY-PRD-privacy-policy                         | Clinical Trial Privacy Policy                       | prd-mobile-app.md                         | 0296fa8c |
 | DIARY-PRD-questionnaire-change-control           | Questionnaire Change Control                        | prd-questionnaire-management.md           | 71e0a7a5 |
 | DIARY-PRD-questionnaire-daily-epistaxis          | Daily Epistaxis Record Questionnaire                | prd-questionnaire-overview.md             | f248d7d8 |
@@ -67,7 +67,7 @@
 | DIARY-PRD-questionnaire-versioning               | Questionnaire Versioning Model                      | prd-questionnaire-versioning.md           | cba3b718 |
 | DIARY-PRD-rbac-customizable                      | Customizable Role-Based Access Control              | prd-rbac.md                               | 24d64ddf |
 | DIARY-PRD-reason-field-constraints               | Reason Field Constraints                            | prd-user-account.md                       | b7b8a786 |
-| DIARY-PRD-role-definitions                       | Role Definitions                                    | prd-rbac.md                               | 2e6af384 |
+| DIARY-PRD-role-definitions                       | Role Definitions                                    | prd-rbac.md                               | 9aa6251c |
 | DIARY-PRD-score-hht-qol                          | HHT-QoL Score Calculation                           | prd-score-calculation.md                  | 67ca87e3 |
 | DIARY-PRD-score-nose-hht                         | NOSE HHT Score Calculation                          | prd-score-calculation.md                  | 634f9daf |
 | DIARY-PRD-session-management                     | Session Management                                  | prd-portal-auth.md                        | c7e0471e |
@@ -100,6 +100,8 @@
 | DIARY-BASE-local-data-reset                    | Local Data Reset to First-Launch State                        | base-local-data-reset.md          | 824fef24 |
 | DIARY-BASE-not-participating-notice            | Not-Participating Notice                                      | prd-mobile-notifications.md       | fb82706f |
 | DIARY-BASE-ops-action-inventory                | Operations Action Inventory                                   | base-ops-action-inventory.md      | a1baca2c |
+| DIARY-BASE-portal-stale-client-reload          | Portal Stale-Client Reload Prompt                             | prd-common-ui.md                  | 375e8009 |
+| DIARY-BASE-portal-transport-status             | Portal Transport Status Banner                                | prd-common-ui.md                  | 20c55120 |
 | DIARY-BASE-questionnaire-coordinator-workflow  | Coordinator Questionnaire Workflow                            | base-questionnaire-coordinator.md | 40cba10f |
 | DIARY-BASE-questionnaire-cycle-tracking        | Questionnaire Cycle Tracking                                  | base-questionnaire-coordinator.md | 6dcb965e |
 | DIARY-BASE-questionnaire-finalization          | Questionnaire Finalization Workflow                           | base-questionnaire-coordinator.md | 1c17145b |
@@ -114,12 +116,12 @@
 | ID                                           | Title                                      | File                                      | Hash     |
 | -------------------------------------------- | ------------------------------------------ | ----------------------------------------- | -------- |
 | DIARY-GUI-accessibility-preferences          | Accessibility and Preferences              | prd-mobile-navigation.md                  | 95c62ef0 |
-| DIARY-GUI-administrator-dashboard            | Administrator Dashboard                    | prd-user-account.md                       | a0642fc7 |
+| DIARY-GUI-administrator-dashboard            | Administrator Dashboard                    | prd-user-account.md                       | bdabc38a |
 | DIARY-GUI-administrator-settings             | Administrator Settings Interface           | prd-administrator-settings.md             | b3c6cc2f |
 | DIARY-GUI-audit-log-administrator            | Administrator Audit Log View               | prd-audit-log.md                          | 1f44ba79 |
-| DIARY-GUI-audit-log-common                   | Audit Log View — Common Presentation       | prd-audit-log.md                          | 92f0cef8 |
-| DIARY-GUI-audit-log-cra                      | CRA Audit Log View                         | prd-audit-log.md                          | 39017414 |
-| DIARY-GUI-audit-log-study-coordinator        | Study Coordinator Audit Log View           | prd-audit-log.md                          | ab4dc758 |
+| DIARY-GUI-audit-log-common                   | Audit Log View — Common Presentation       | prd-audit-log.md                          | 8187a8a1 |
+| DIARY-GUI-audit-log-cra                      | CRA Audit Log View                         | prd-audit-log.md                          | a5a86d21 |
+| DIARY-GUI-audit-log-study-coordinator        | Study Coordinator Audit Log View           | prd-audit-log.md                          | aeb42c07 |
 | DIARY-GUI-calendar-day-view                  | Calendar and Day View                      | prd-mobile-navigation.md                  | dc55717e |
 | DIARY-GUI-dev-admin-rave-sync-card           | Developer Admin Dashboard Rave Sync Card   | prd-rave-sync.md                          | 19da0ac2 |
 | DIARY-GUI-entry-overlap-resolution           | Overlapping Event Resolution Flow          | prd-diary-entry-rules.md                  | 7bee74de |
@@ -135,8 +137,6 @@
 | DIARY-GUI-participation-status-badge         | Participation Status Badge                 | prd-mobile-notifications.md               | 6f306233 |
 | DIARY-GUI-password-forgot-workflow           | Forgot Password Workflow Interface         | prd-portal-auth.md                        | d41e7764 |
 | DIARY-GUI-portal-session-expiry              | Portal session expiry interface            | prd-portal-auth.md                        | 0a1581a9 |
-| DIARY-GUI-portal-stale-client-reload         | Portal Stale-Client Reload Prompt          | prd-common-ui.md                          | 375e8009 |
-| DIARY-GUI-portal-transport-status            | Portal Transport Status Banner             | prd-common-ui.md                          | 20c55120 |
 | DIARY-GUI-questionnaire-portal-sent-workflow | Assigned Questionnaire Workflow            | prd-questionnaire-participant-workflow.md | ca0d5613 |
 | DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry               | prd-questionnaire-participant-workflow.md | 02879dd5 |
 | DIARY-GUI-rave-sync-paused-banner            | Sites and Participants Pages Paused Banner | prd-rave-sync.md                          | 75bc47b3 |

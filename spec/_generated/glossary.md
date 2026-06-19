@@ -105,6 +105,18 @@ See: REQ-p00022 (Analyst Read-Only Access).
 : A Questionnaire initiated by a Study Coordinator from the Sponsor Portal and delivered to the participant via push notification.
 *Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
 
+**Audit Log**
+: A chronological record of Actions performed in the System, presented to each user according to their Role.
+*Defined in: DIARY-GUI-audit-log-common (DIARY)*
+
+**Audit Log Entry**
+: A single record in the Audit Log, capturing one Action with its actor, target, and timestamp.
+*Defined in: DIARY-GUI-audit-log-common (DIARY)*
+
+**Audit Log View**
+: The Sponsor Portal screen that presents the Audit Log to a user according to their Role.
+*Defined in: DIARY-GUI-audit-log-common (DIARY)*
+
 **Audit Trail**
 : A computer-generated, time-stamped record that captures the who, what,
 when, and why of every modification to an Electronic Record, satisfying
