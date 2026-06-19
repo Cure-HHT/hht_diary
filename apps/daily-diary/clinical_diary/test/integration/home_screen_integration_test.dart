@@ -36,7 +36,7 @@
 //  4. The LogoMenu opens, navigates to the Licenses page, and the legacy
 //     "Check for updates" affordance is gone (CUR-990).
 //
-// All scenarios drive a real ClinicalDiaryRuntime against an in-memory
+// All scenarios drive a real DiaryScopeRuntime against an in-memory
 // Sembast backend (no MockClient HTTP path is exercised — the home screen
 // itself doesn't issue HTTP, the destinations layer does, and that's
 // covered by cutover_flow_test.dart).

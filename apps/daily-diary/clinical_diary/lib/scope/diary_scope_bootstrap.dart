@@ -5,8 +5,7 @@ import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:reaction/reaction.dart';
 
-/// Holder for the new reactive composition root, built alongside (not replacing)
-/// the old ClinicalDiaryRuntime during the transition.
+/// Holder for the diary's reactive composition root.
 class DiaryScopeRuntime {
   DiaryScopeRuntime({
     required this.scope,

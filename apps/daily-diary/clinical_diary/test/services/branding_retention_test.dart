@@ -73,11 +73,10 @@ void main() {
       }
     });
 
-    test('local-data-reset wipes the store files but RETAINS the branding '
+    test('local-data-reset wipes the store file but RETAINS the branding '
         'cache (different dir, not on the delete list)', () async {
-      // Seed the store files the wipe targets.
+      // Seed the store file the wipe targets.
       File('${docsDir.path}/diary_es.db').writeAsStringSync('es');
-      File('${docsDir.path}/diary.db').writeAsStringSync('legacy');
       // Seed a content-addressed branding asset (hash-named file).
       const sha = 'cafef00d';
       final logoFile = File('${brandingCacheDir.path}/$sha')
@@ -96,9 +95,8 @@ void main() {
         prefs: prefs,
       );
 
-      // Store files gone — but the branding cache survives the reset.
+      // Store file gone — but the branding cache survives the reset.
       expect(File('${docsDir.path}/diary_es.db').existsSync(), isFalse);
-      expect(File('${docsDir.path}/diary.db').existsSync(), isFalse);
       expect(logoFile.existsSync(), isTrue);
       expect(brandingCacheDir.existsSync(), isTrue);
       expect(logoFile.readAsBytesSync(), const [1, 2, 3, 4]);

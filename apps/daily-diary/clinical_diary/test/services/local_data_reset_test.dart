@@ -37,15 +37,12 @@ void main() {
     });
 
     test(
-      'deletes both store files, clears enrollment/tasks, and clears prefs',
+      'deletes the store file, clears enrollment/tasks, and clears prefs',
       () async {
-        // Seed fake store files in the temp documents dir.
+        // Seed a fake store file in the temp documents dir.
         final esFile = File('${tempDir.path}/diary_es.db')
           ..writeAsStringSync('es-store');
-        final legacyFile = File('${tempDir.path}/diary.db')
-          ..writeAsStringSync('legacy-store');
         expect(esFile.existsSync(), isTrue);
-        expect(legacyFile.existsSync(), isTrue);
 
         // Seed prefs (incl. a device id) so we can assert they are wiped.
         SharedPreferences.setMockInitialValues({
@@ -66,9 +63,8 @@ void main() {
           prefs: prefs,
         );
 
-        // Both store files deleted.
+        // Store file deleted.
         expect(esFile.existsSync(), isFalse);
-        expect(legacyFile.existsSync(), isFalse);
 
         // Enrollment cleared.
         expect(enrollment.factoryResetCalled, isTrue);
