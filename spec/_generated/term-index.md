@@ -840,8 +840,8 @@
 - DIARY-DEV-view-action-permissions:section:0
 - rem:spec/glossary-core.md:15
 - rem:spec/glossary-core.md:23
-- rem:spec/glossary-core.md:730
-- rem:spec/glossary-core.md:756
+- rem:spec/glossary-core.md:724
+- rem:spec/glossary-core.md:750
 - DIARY-OPS-single-promotable-artifact:section:1
 - DIARY-PRD-configuration-precedence:section:1
 - rem:spec/prd-diary-entry-rules.md:1
@@ -897,7 +897,7 @@
 
 **DIARY:**
 
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 
 ## Diary Platform
 
@@ -1284,7 +1284,7 @@
 
 **DIARY:**
 
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - DIARY-OPS-rave-sync-cooldown:section:0
 
 ## ISO/IEC 24760-1
@@ -1483,7 +1483,7 @@
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
 - DIARY-BASE-user-authentication-pin:section:0
 - DIARY-BASE-user-authentication-pin:section:6
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-mobile-app.md:1
 - rem:spec/prd-mobile-app.md:3
@@ -1935,7 +1935,7 @@
 - DIARY-DEV-relink-device-gate:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - DIARY-DEV-view-action-permissions:section:0
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-GUI-audit-log-cra:section:0
@@ -2190,7 +2190,7 @@
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-sla-incident-severity-B
 - DIARY-DEV-sponsor-branding-source:section:1
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - rem:spec/prd-evidence-records.md:3
 - DIARY-PRD-evidence-device-fingerprint:section:0
 - DIARY-PRD-evidence-patient-authentication:section:0
@@ -2709,7 +2709,7 @@
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-operator-tier-authz:section:1
 - DIARY-DEV-view-action-permissions:section:0
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
 - rem:spec/prd-audit-log.md:3
@@ -3130,10 +3130,10 @@
 - DIARY-DEV-sponsor-branding-assets:section:0
 - DIARY-DEV-sponsor-branding-assets:section:1
 - DIARY-DEV-view-action-permissions:section:0
-- rem:spec/glossary-core.md:730
-- rem:spec/glossary-core.md:747
-- rem:spec/glossary-core.md:749
-- rem:spec/glossary-core.md:756
+- rem:spec/glossary-core.md:724
+- rem:spec/glossary-core.md:741
+- rem:spec/glossary-core.md:743
+- rem:spec/glossary-core.md:750
 - rem:spec/prd-administrator-settings.md:3
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
@@ -3520,7 +3520,7 @@
 - DIARY-DEV-participant-state-poll:section:0
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-sponsor-branding-assets:section:1
-- rem:spec/glossary-core.md:730
+- rem:spec/glossary-core.md:724
 - DIARY-PRD-data-backup-and-archival:section:0
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-linking-confirmation:section:1
@@ -3730,8 +3730,8 @@
 - DIARY-DEV-portal-test-account-provisioning:section:0
 - DIARY-DEV-portal-test-account-provisioning:section:1
 - DIARY-DEV-sponsor-config-source:section:1
-- rem:spec/glossary-core.md:730
-- rem:spec/glossary-core.md:756
+- rem:spec/glossary-core.md:724
+- rem:spec/glossary-core.md:750
 - rem:spec/prd-audit-log.md:3
 - DIARY-GUI-audit-log-administrator:section:0
 - DIARY-GUI-audit-log-administrator:section:1
