@@ -43,13 +43,23 @@ DateTime calendarEarliestDay({
 /// no local status cache); writes (day markers) go through the scope's
 /// `actionSubmitter`.
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({this.installDate, super.key});
+  const CalendarScreen({
+    required this.onOpenSurvey,
+    this.installDate,
+    super.key,
+  });
 
   /// *Mobile Application* install timestamp on this device (the legacy-sync
   /// destination's start date, stamped at first launch). Anchors the 365-day
   /// back-navigation floor; null falls back to 365 days before now. See
   /// [calendarEarliestDay] and DIARY-PRD-diary-start-day/D.
   final DateTime? installDate;
+
+  /// Opens a [SurveyEntryView] from the calendar day-view in a read-only
+  /// questionnaire flow. Provided by the home screen, which owns the
+  /// navigator and the questionnaire-definition loader.
+  // Implements: DIARY-GUI-participant-task-list/H
+  final void Function(SurveyEntryView) onOpenSurvey;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -247,6 +257,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
             );
           },
+          // Survey records open read-only; available on both locked and
+          // unlocked days (locking forbids editing, not read-only viewing).
+          // Implements: DIARY-GUI-participant-task-list/H
+          onOpenSurvey: widget.onOpenSurvey,
         ),
       ),
     );

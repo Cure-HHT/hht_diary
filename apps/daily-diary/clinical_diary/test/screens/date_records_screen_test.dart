@@ -44,6 +44,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -79,6 +80,7 @@ void main() {
             onAddEvent: () => added = true,
             onEditEvent: (_) => edited = true,
             onRedispositionMarker: (_) => redispositioned = true,
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -103,6 +105,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -120,6 +123,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -141,6 +145,7 @@ void main() {
             onAddEvent: () => called = true,
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -161,6 +166,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -194,6 +200,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -224,6 +231,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (e) => tappedEntry = e,
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -251,6 +259,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -276,6 +285,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (m) => tapped = m,
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -306,6 +316,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -340,6 +351,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );
@@ -366,6 +378,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );

@@ -249,6 +249,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );

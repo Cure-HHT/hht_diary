@@ -736,10 +736,17 @@ void main() {
       },
     );
 
-    // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S — a task whose
-    //   instance is finalized in the questionnaire_status view opens read-only.
+    // Verifies: DIARY-GUI-participant-task-list/I — a finalized task (with a
+    //   local survey row) is REMOVED from the Task List entirely. It must not
+    //   appear in "Needs your attention" AND must not appear as a "— submitted"
+    //   completed row. The Task List section is absent (no tasks remain).
+    //   Read-only access lives on the survey RECORD in "Your Records", not on
+    //   the task list. This replaces the prior CUR-1523 test that asserted the
+    //   finalized task stayed as a "completed" row — that behaviour violated
+    //   assertion I.
     testWidgets(
-      'selecting a finalized task opens the questionnaire flow read-only',
+      'a finalized task (with local survey row) is absent from the Task List '
+      'entirely — not in attention, not as a completed row (assertion I)',
       (tester) async {
         const instanceId = 'q-finalized-1';
         addQuestionnaireTask(instanceId);
@@ -755,11 +762,52 @@ void main() {
           ],
         );
 
-        await tester.tap(find.byKey(const Key('completed-task-q-finalized-1')));
+        // Finalized task MUST NOT appear in "Needs your attention".
+        expect(find.text('Needs your attention'), findsNothing);
+        // Finalized task MUST NOT appear as a "— submitted" completed row.
+        expect(
+          find.byKey(const Key('completed-task-q-finalized-1')),
+          findsNothing,
+        );
+        // With no other tasks, the Task List section collapses entirely.
+        expect(find.text('Task List'), findsNothing);
+        // The survey RECORD is still visible in "Your Records" (today section).
+        expect(find.byKey(const Key('survey-card')), findsOneWidget);
+      },
+    );
+
+    // Verifies: DIARY-GUI-participant-task-list/H — tapping a survey RECORD in
+    //   "Your Records" (today/yesterday list) pushes QuestionnaireFlowScreen
+    //   with isReadOnly:true and the recorded answers as initialResponses.
+    // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S — the read-only
+    //   questionnaire surface is always seeded with the recorded answers.
+    testWidgets(
+      'tapping a survey record in "Your Records" opens the flow read-only '
+      'with initialResponses (assertions H + S)',
+      (tester) async {
+        const instanceId = 'q-record-tap-1';
+        // No task — just a finalized survey row in "Your Records".
+        final now = DateTime.now();
+        await pumpScreen(
+          tester,
+          finalized: [
+            surveyRow(
+              DateTime(now.year, now.month, now.day, 9),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
+
+        // The survey record is present in "Your Records".
+        expect(find.byKey(const Key('survey-card')), findsOneWidget);
+
+        // Tap the record — must open QuestionnaireFlowScreen read-only.
+        await tester.tap(find.byKey(const Key('survey-card')));
         await _settle(tester);
 
         final flow = flowScreen(tester);
         expect(flow.isReadOnly, isTrue);
+        expect(flow.initialResponses, isNotNull);
         expect(flow.initialResponses, isNotEmpty);
       },
     );
@@ -792,50 +840,54 @@ void main() {
       },
     );
 
-    // Verifies: DIARY-GUI-participant-task-list/I+J — a finalized task is
-    //   COMPLETED even with no local `<id>_survey` row (reachable after a
-    //   diary-reset/reinstall + re-link): it is categorized out of "Needs your
-    //   attention" by the portal-reported status alone, not by a local row.
+    // Verifies: DIARY-GUI-participant-task-list/I — a task whose portal status
+    //   is 'finalized' (no local survey row) is ABSENT from the Task List
+    //   entirely. Neither "Needs your attention" nor any "— submitted" completed
+    //   row renders. The Task List section itself collapses (no items at all).
+    //   This replaces the prior CUR-1523 test that asserted the finalized task
+    //   showed as a completed row — that behaviour violated assertion I.
     testWidgets(
-      'a finalized task with no local survey row is categorized completed and '
-      'absent from "Needs your attention"',
+      'a finalized task with no local survey row is absent from the Task List '
+      'entirely — Task List section collapses (assertion I)',
       (tester) async {
         const instanceId = 'q-fin-norow-1';
         addFinalizedStatusTask(instanceId);
         // No survey row driven into the diary view for this instance.
         await pumpScreen(tester);
 
-        expect(find.text('Task List'), findsOneWidget);
-        // The only questionnaire task is finalized → no actionable items.
+        // The only questionnaire task is finalized → Task List is gone entirely.
+        expect(find.text('Task List'), findsNothing);
         expect(find.text('Needs your attention'), findsNothing);
-        // It surfaces as a completed row keyed by the instance id.
+        // No "— submitted" completed row either.
         expect(
           find.byKey(const Key('completed-task-q-fin-norow-1')),
-          findsOneWidget,
+          findsNothing,
         );
       },
     );
 
-    // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S — a finalized
-    //   task with NO local responses must open READ-ONLY (never the editable
-    //   flow), so a participant cannot re-fill/submit a finalized questionnaire.
+    // Verifies: DIARY-GUI-participant-task-list/I — after a task is finalized
+    //   (portal status='finalized') there is no task row to tap at all, so the
+    //   questionnaire flow is unreachable via the task list. The task is fully
+    //   removed; read-only access lives on the survey record.
+    //   This replaces the prior CUR-1523 test that tapped a now-absent completed
+    //   row — that scenario is invalid under assertion I.
     testWidgets(
-      'selecting a finalized task with no local survey row opens read-only and '
-      'presents no submittable form',
+      'a finalized task with no local survey row has no task row in the UI '
+      '(cannot open the flow via the task list) (assertion I)',
       (tester) async {
         const instanceId = 'q-fin-norow-2';
         addFinalizedStatusTask(instanceId);
         await pumpScreen(tester);
 
-        await tester.tap(find.byKey(const Key('completed-task-q-fin-norow-2')));
-        await _settle(tester);
-
-        final flow = flowScreen(tester);
-        expect(flow.isReadOnly, isTrue);
-        // Read-only surface: the "Submitted Answers" review, with no Submit
-        // button — the editable flow is never reachable.
-        expect(find.text('Submitted Answers'), findsOneWidget);
-        expect(find.widgetWithText(FilledButton, 'Submit'), findsNothing);
+        // No task row exists at all — the task has been removed from the list.
+        expect(find.text('Task List'), findsNothing);
+        expect(
+          find.byKey(const Key('completed-task-q-fin-norow-2')),
+          findsNothing,
+        );
+        // The QuestionnaireFlowScreen is NOT pushed.
+        expect(find.byType(QuestionnaireFlowScreen), findsNothing);
       },
     );
   });
