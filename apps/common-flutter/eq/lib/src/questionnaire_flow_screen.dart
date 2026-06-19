@@ -88,8 +88,13 @@ class QuestionnaireFlowScreen extends StatefulWidget {
   /// CUR-1292: when true the flow opens directly on the review screen
   /// in view-only mode — no Submit button, no per-item edit affordances.
   /// Used to surface the answers of a portal-finalized submission so
-  /// the participant can verify what was sent. Requires [initialResponses]
-  /// to be supplied; otherwise there's nothing to view.
+  /// the participant can verify what was sent.
+  ///
+  /// CUR-1523: read-only is enforced regardless of whether
+  /// [initialResponses] is supplied. A finalized questionnaire with no
+  /// device-local copy still opens the immutable "Submitted Answers" surface
+  /// (questions shown as "Not answered") rather than the editable flow, so a
+  /// participant can never re-fill/re-submit a finalized questionnaire.
   final bool isReadOnly;
 
   @override
@@ -117,6 +122,27 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     WidgetsBinding.instance.addObserver(this);
     _allQuestions = widget.definition.allQuestions;
 
+    // CUR-1523: a read-only flow ALWAYS opens on the (view-only) review
+    // screen — even with no seed. A portal-finalized questionnaire that has no
+    // device-local copy (e.g. after a diary-reset/reinstall + re-link) must
+    // render its immutable "Submitted Answers" surface, never the editable
+    // flow. Honoring isReadOnly only when a seed is present would let a
+    // participant re-fill and re-submit a finalized questionnaire.
+    if (widget.isReadOnly) {
+      final seed = widget.initialResponses;
+      if (seed != null) {
+        final knownIds = {for (final q in _allQuestions) q.id};
+        for (final response in seed) {
+          if (knownIds.contains(response.questionId)) {
+            _responses[response.questionId] = response;
+          }
+        }
+      }
+      _state = _FlowState.review;
+      _sessionStartTime = DateTime.now();
+      return;
+    }
+
     final seed = widget.initialResponses;
     if (seed != null && seed.isNotEmpty) {
       // Resume path: ignore readiness/preamble — the participant already
@@ -131,10 +157,9 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
       final allAnswered = _allQuestions.every(
         (q) => _responses.containsKey(q.id),
       );
-      // Read-only view always lands on the review screen (the
-      // "Submitted Answers" surface). isReadOnly is only valid with a
-      // seed; the flow has nothing else to display in that mode.
-      if (widget.isReadOnly || allAnswered) {
+      // (Read-only is handled above and returns early; here the flow is
+      // always editable.) Land on review when every question is answered.
+      if (allAnswered) {
         _state = _FlowState.review;
       } else {
         var lastAnsweredIndex = -1;

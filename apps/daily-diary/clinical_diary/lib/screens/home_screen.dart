@@ -690,7 +690,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // participant has already submitted it; carries the prior answers used to
     // seed the Review Screen / read-only view.
     final surveyView = _submittedSurveyFor(view, aggregateId);
-    final isFinalized = _finalizedInstanceIds.contains(aggregateId);
+    // The read-only gate engages on EITHER corroborating signal:
+    //  - the durable on-device `questionnaire_status` projection
+    //    ([_finalizedInstanceIds]); OR
+    //  - the freshly-synced portal status on the task itself.
+    // The Task.status term makes the gate engage in the same cycle the
+    // 'finalized' status arrives (independent of mint -> view -> refresh
+    // timing) and also covers a finalized instance that has no local survey
+    // row (e.g. after a diary-reset/reinstall + re-link). The projection stays
+    // the durable record; the status is corroboration, not a replacement.
+    final isFinalized =
+        _finalizedInstanceIds.contains(aggregateId) ||
+        task.status == 'finalized';
 
     await Navigator.of(context).push(
       AppPageRoute<void>(
@@ -1345,18 +1356,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final tasks = _isDisconnected ? const <Task>[] : widget.taskService.tasks;
 
     // CUR-1523: categorize questionnaire tasks by lifecycle. A questionnaire
-    // task whose instance has a device-local finalized `<id>_survey` row has
-    // been SUBMITTED: it leaves "Needs your attention" and renders a completed
-    // visual state instead (task-list/J), but it STAYS in the task list (no
-    // removeTask — removal happens only when `/user/tasks` drops it on portal
-    // finalization, task-list/I). Other tasks remain actionable as today.
+    // task is COMPLETED — it leaves "Needs your attention" and renders a
+    // completed visual state instead (task-list/J), but STAYS in the task list
+    // (no removeTask — removal happens only when `/user/tasks` drops it on
+    // portal finalization, task-list/I) — when EITHER:
+    //  - it has a device-local finalized `<id>_survey` row (SUBMITTED); OR
+    //  - it is FINALIZED (a finalized task is completed even with no local
+    //    survey row, e.g. after a diary-reset/reinstall + re-link). Finalized
+    //    is corroborated by the durable `questionnaire_status` projection
+    //    ([_finalizedInstanceIds]) OR the freshly-synced portal status, so the
+    //    gate engages in the same cycle the status arrives. Other tasks remain
+    //    actionable as today.
     final submittedInstanceIds = view.entries
         .whereType<SurveyEntryView>()
         .map((s) => s.aggregateId)
         .toSet();
-    bool isSubmittedQuestionnaire(Task t) =>
+    // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
+    bool isFinalizedQuestionnaire(Task t) =>
+        _finalizedInstanceIds.contains(t.targetId ?? t.id) ||
+        t.status == 'finalized';
+    // Implements: DIARY-GUI-participant-task-list/I+J
+    bool isCompletedQuestionnaire(Task t) =>
         t.taskType == TaskType.questionnaire &&
-        submittedInstanceIds.contains(t.id);
+        (submittedInstanceIds.contains(t.id) || isFinalizedQuestionnaire(t));
 
     // Actionable items in the "Needs your attention" tile: alerts + tasks that
     // have NOT been submitted yet. Submitted questionnaire tasks are excluded
@@ -1378,7 +1400,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           onTap: () => _handleResolveOverlaps(view),
         ),
       for (final task in tasks)
-        if (!isSubmittedQuestionnaire(task))
+        if (!isCompletedQuestionnaire(task))
           AppAlertRow(
             tone: _toneForTaskType(task.taskType),
             icon: _iconForTaskType(task.taskType),
@@ -1394,7 +1416,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Implements: DIARY-GUI-participant-task-list/J
     final completedRows = <Widget>[
       for (final task in tasks)
-        if (isSubmittedQuestionnaire(task))
+        if (isCompletedQuestionnaire(task))
           AppAlertRow(
             key: Key('completed-task-${task.id}'),
             tone: AppAlertRowTone.success,

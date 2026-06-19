@@ -310,6 +310,92 @@ void main() {
         },
       );
 
+      test('refreshes the status of an already-present task when the server '
+          'reports a new status (sent -> finalized)', () async {
+        // Verifies: DIARY-GUI-participant-task-list/J — a synced status change
+        //   on an already-present task is reflected on the in-memory Task, so
+        //   the read-only / completed gate can engage on portal finalization.
+        var callCount = 0;
+        final client = MockClient((request) async {
+          callCount++;
+          final status = callCount == 1 ? 'sent' : 'finalized';
+          return http.Response(
+            jsonEncode({
+              'tasks': [
+                {
+                  'questionnaire_instance_id': 'inst-xfer',
+                  'questionnaire_type': 'nose_hht',
+                  'status': status,
+                  'study_event': 'visit_1',
+                  'version': 1,
+                  'sent_at': '2024-01-01T00:00:00Z',
+                },
+              ],
+              'isDisconnected': false,
+            }),
+            200,
+          );
+        });
+
+        final service = TaskService(httpClient: client);
+
+        // First sync: the task arrives as 'sent'.
+        await service.syncTasks(mockEnrollment);
+        expect(service.taskCount, equals(1));
+        expect(service.tasks.single.status, equals('sent'));
+
+        // Second sync: same instance, now 'finalized'. The already-present
+        // task must be refreshed (not frozen at 'sent').
+        var notified = false;
+        service.addListener(() => notified = true);
+        await service.syncTasks(mockEnrollment);
+
+        expect(service.taskCount, equals(1));
+        expect(service.tasks.single.status, equals('finalized'));
+        // A status change must notify listeners (drives the home-screen gate).
+        expect(notified, isTrue);
+
+        // Persistence: a fresh service loading from storage sees 'finalized'.
+        final reloaded = TaskService(
+          httpClient: MockClient((_) async => http.Response('', 200)),
+        );
+        await reloaded.loadTasks();
+        expect(reloaded.tasks.single.status, equals('finalized'));
+      });
+
+      test(
+        'an unchanged already-present task does not re-notify or re-add',
+        () async {
+          final client = MockClient((request) async {
+            return http.Response(
+              jsonEncode({
+                'tasks': [
+                  {
+                    'questionnaire_instance_id': 'inst-stable',
+                    'questionnaire_type': 'nose_hht',
+                    'status': 'sent',
+                  },
+                ],
+                'isDisconnected': false,
+              }),
+              200,
+            );
+          });
+
+          final service = TaskService(httpClient: client);
+          await service.syncTasks(mockEnrollment);
+          expect(service.taskCount, equals(1));
+
+          var notified = false;
+          service.addListener(() => notified = true);
+          // Re-sync identical data: no change, no duplicate, no notify.
+          await service.syncTasks(mockEnrollment);
+
+          expect(service.taskCount, equals(1));
+          expect(notified, isFalse);
+        },
+      );
+
       test('skips eq type tasks (CUR-1050)', () async {
         final client = MockClient((request) async {
           return http.Response(

@@ -623,6 +623,23 @@ void main() {
       return task;
     }
 
+    /// Adds a NOSE HHT questionnaire task whose portal-reported [status] is
+    /// 'finalized' (the state after the portal coordinator finalizes the
+    /// submission). No local `<id>_survey` row is implied.
+    Task addFinalizedStatusTask(String instanceId) {
+      final task = Task(
+        id: instanceId,
+        taskType: TaskType.questionnaire,
+        title: QuestionnaireType.noseHht.displayName,
+        createdAt: DateTime.now(),
+        targetId: instanceId,
+        questionnaireType: QuestionnaireType.noseHht,
+        status: 'finalized',
+      );
+      tasks.addTask(task);
+      return task;
+    }
+
     /// Mints a `questionnaire_finalized` lifecycle event into the native scope's
     /// questionnaire_status view (the same path QuestionnaireStatusSync uses), so
     /// the one-shot read sees [instanceId] as finalized (read-only).
@@ -772,6 +789,53 @@ void main() {
         // The task is NOT removed — it leaves "needs attention" via
         // categorization only once a finalized survey row exists for it.
         expect(tasks.tasks.map((t) => t.id), contains(instanceId));
+      },
+    );
+
+    // Verifies: DIARY-GUI-participant-task-list/I+J — a finalized task is
+    //   COMPLETED even with no local `<id>_survey` row (reachable after a
+    //   diary-reset/reinstall + re-link): it is categorized out of "Needs your
+    //   attention" by the portal-reported status alone, not by a local row.
+    testWidgets(
+      'a finalized task with no local survey row is categorized completed and '
+      'absent from "Needs your attention"',
+      (tester) async {
+        const instanceId = 'q-fin-norow-1';
+        addFinalizedStatusTask(instanceId);
+        // No survey row driven into the diary view for this instance.
+        await pumpScreen(tester);
+
+        expect(find.text('Task List'), findsOneWidget);
+        // The only questionnaire task is finalized → no actionable items.
+        expect(find.text('Needs your attention'), findsNothing);
+        // It surfaces as a completed row keyed by the instance id.
+        expect(
+          find.byKey(const Key('completed-task-q-fin-norow-1')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S — a finalized
+    //   task with NO local responses must open READ-ONLY (never the editable
+    //   flow), so a participant cannot re-fill/submit a finalized questionnaire.
+    testWidgets(
+      'selecting a finalized task with no local survey row opens read-only and '
+      'presents no submittable form',
+      (tester) async {
+        const instanceId = 'q-fin-norow-2';
+        addFinalizedStatusTask(instanceId);
+        await pumpScreen(tester);
+
+        await tester.tap(find.byKey(const Key('completed-task-q-fin-norow-2')));
+        await _settle(tester);
+
+        final flow = flowScreen(tester);
+        expect(flow.isReadOnly, isTrue);
+        // Read-only surface: the "Submitted Answers" review, with no Submit
+        // button — the editable flow is never reachable.
+        expect(find.text('Submitted Answers'), findsOneWidget);
+        expect(find.widgetWithText(FilledButton, 'Submit'), findsNothing);
       },
     );
   });

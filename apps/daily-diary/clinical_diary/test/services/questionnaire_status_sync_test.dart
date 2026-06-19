@@ -2,12 +2,20 @@
 //   QuestionnaireStatusSync coordinator mints record_questionnaire_finalized
 //   EXACTLY ONCE for a finalized task, and does NOT mint it again on a second
 //   reconcile when the questionnaire_status view already shows isFinalized.
+import 'dart:convert';
+
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/services/questionnaire_status_sync.dart';
+import 'package:clinical_diary/services/task_service.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:sembast/sembast_memory.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trial_data_types/trial_data_types.dart';
+
+import '../helpers/mock_enrollment_service.dart';
 
 Future<DiaryScopeRuntime> _boot() async {
   final db = await newDatabaseFactoryMemory().openDatabase(
@@ -42,6 +50,65 @@ Future<int> _finalizedEventCount(
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S — the real
+  //   syncTasks -> reconcile seam mints record_questionnaire_finalized exactly
+  //   once after the portal flips an ALREADY-PRESENT task from 'sent' to
+  //   'finalized' (the instance stays in /user/tasks across finalization).
+  test('syncTasks -> reconcile mints once after a sent -> finalized transition '
+      'on an already-present task', () async {
+    SharedPreferences.setMockInitialValues({});
+    final rt = await _boot();
+    final enrollment = MockEnrollmentService()
+      ..jwtToken = 'test-jwt'
+      ..backendUrl = 'https://test-backend.example.com';
+
+    var callCount = 0;
+    final client = MockClient((request) async {
+      callCount++;
+      final status = callCount == 1 ? 'sent' : 'finalized';
+      return http.Response(
+        jsonEncode({
+          'tasks': [
+            {
+              'questionnaire_instance_id': 'seam-i1',
+              'questionnaire_type': 'nose_hht',
+              'status': status,
+              'study_event': 'visit_1',
+              'version': 1,
+              'sent_at': '2024-01-01T00:00:00Z',
+            },
+          ],
+          'isDisconnected': false,
+        }),
+        200,
+      );
+    });
+
+    final taskService = TaskService(httpClient: client);
+    final sync = QuestionnaireStatusSync(scope: rt.scope);
+
+    // Cycle 1: task arrives 'sent' → reconcile mints nothing.
+    await taskService.syncTasks(enrollment);
+    await sync.reconcile(taskService.tasks);
+    expect(await _finalizedEventCount(rt, 'seam-i1'), 0);
+
+    // Cycle 2: SAME instance flips to 'finalized'. Without Finding 1's
+    // refresh the in-memory status would stay 'sent' and this would mint 0.
+    await taskService.syncTasks(enrollment);
+    expect(taskService.tasks.single.status, equals('finalized'));
+    await sync.reconcile(taskService.tasks);
+    expect(await _finalizedEventCount(rt, 'seam-i1'), 1);
+
+    // Cycle 3: another sync+reconcile must NOT mint again (idempotent).
+    await taskService.syncTasks(enrollment);
+    await sync.reconcile(taskService.tasks);
+    expect(await _finalizedEventCount(rt, 'seam-i1'), 1);
+
+    await rt.dispose();
+  });
+
   // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S
   test(
     'mints record_questionnaire_finalized once, not twice (idempotent)',
