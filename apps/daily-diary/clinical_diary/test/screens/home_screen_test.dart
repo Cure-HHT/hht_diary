@@ -776,17 +776,18 @@ void main() {
       },
     );
 
-    // Verifies: DIARY-GUI-participant-task-list/H — tapping a survey RECORD in
-    //   "Your Records" (today/yesterday list) pushes QuestionnaireFlowScreen
-    //   with isReadOnly:true and the recorded answers as initialResponses.
-    // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S — the read-only
-    //   questionnaire surface is always seeded with the recorded answers.
+    // Verifies: DIARY-GUI-participant-task-list/H — a submitted questionnaire is
+    //   accessible as a record; tapping it opens the flow.
+    // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/R — re-opening a
+    //   SUBMITTED (not finalized) instance from its record opens the EDITABLE
+    //   Review Screen seeded with prior answers — the open reflects the
+    //   instance's state, not where it was opened from (same as the Task).
     testWidgets(
-      'tapping a survey record in "Your Records" opens the flow read-only '
-      'with initialResponses (assertions H + S)',
+      'tapping a SUBMITTED (not finalized) survey record opens the EDITABLE '
+      'Review prefilled (assertions H + R)',
       (tester) async {
-        const instanceId = 'q-record-tap-1';
-        // No task — just a finalized survey row in "Your Records".
+        const instanceId = 'q-record-submitted-1';
+        // A submitted survey row in "Your Records" — NOT portal-finalized.
         final now = DateTime.now();
         await pumpScreen(
           tester,
@@ -798,10 +799,45 @@ void main() {
           ],
         );
 
-        // The survey record is present in "Your Records".
         expect(find.byKey(const Key('survey-card')), findsOneWidget);
 
-        // Tap the record — must open QuestionnaireFlowScreen read-only.
+        await tester.tap(find.byKey(const Key('survey-card')));
+        await _settle(tester);
+
+        final flow = flowScreen(tester);
+        // Not finalized → editable Review, seeded with the recorded answers.
+        expect(flow.isReadOnly, isFalse);
+        expect(flow.initialResponses, isNotNull);
+        expect(flow.initialResponses, isNotEmpty);
+      },
+    );
+
+    // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S — opening a
+    //   FINALIZED instance from its record presents the read-only state (no edit
+    //   or submit), seeded with the recorded answers.
+    // Verifies: DIARY-GUI-participant-task-list/H — finalized read-only access
+    //   lives on the survey record (the task is removed per assertion I).
+    testWidgets(
+      'tapping a FINALIZED survey record opens the flow READ-ONLY prefilled '
+      '(assertions H + S)',
+      (tester) async {
+        const instanceId = 'q-record-finalized-1';
+        // Mint the finalize into questionnaire_status BEFORE the screen reads it,
+        // so the instance is in the read-only set; the survey record remains.
+        await finalizeInstance(tester, instanceId);
+        final now = DateTime.now();
+        await pumpScreen(
+          tester,
+          finalized: [
+            surveyRow(
+              DateTime(now.year, now.month, now.day, 9),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
+
+        expect(find.byKey(const Key('survey-card')), findsOneWidget);
+
         await tester.tap(find.byKey(const Key('survey-card')));
         await _settle(tester);
 

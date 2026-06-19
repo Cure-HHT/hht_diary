@@ -681,9 +681,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
 
-    final definition = await _loadQuestionnaireDefinition(qType);
-    if (definition == null || !mounted) return;
-
     final aggregateId = task.targetId ?? task.id;
 
     // The device-local finalized `<id>_survey` row for this instance, if the
@@ -703,17 +700,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _finalizedInstanceIds.contains(aggregateId) ||
         task.status == 'finalized';
 
+    await _openQuestionnaireFlow(
+      qType: qType,
+      aggregateId: aggregateId,
+      isReadOnly: isFinalized,
+      submittedSurvey: surveyView,
+    );
+  }
+
+  /// Pushes the [QuestionnaireFlowScreen] for an instance. The single
+  /// flow-construction path shared by opening from a Task
+  /// ([_navigateToQuestionnaire]) and from a record ([_openSurveyRecord]): the
+  /// two callers differ only in how they derive [aggregateId], [qType],
+  /// [isReadOnly], and the prior-answers [submittedSurvey] from their input.
+  ///
+  /// [isReadOnly] true → view-only finalized questionnaire (workflow/S);
+  /// false → editable Review Screen seeded from [submittedSurvey] (workflow/R),
+  /// or the fresh flow when [submittedSurvey] is null (never submitted).
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/R+S
+  Future<void> _openQuestionnaireFlow({
+    required QuestionnaireType qType,
+    required String aggregateId,
+    required bool isReadOnly,
+    required SurveyEntryView? submittedSurvey,
+  }) async {
+    final definition = await _loadQuestionnaireDefinition(qType);
+    if (definition == null || !mounted) return;
+
     await Navigator.of(context).push(
       AppPageRoute<void>(
         builder: (context) => QuestionnaireFlowScreen(
           definition: definition,
           instanceId: aggregateId,
-          // Seed prior answers when re-opening a submitted survey (review/edit
-          // or read-only). Null for a never-submitted instance (fresh flow).
-          initialResponses: surveyView?.prefillResponses,
-          // A portal-finalized instance is view-only (workflow/S); a submitted
-          // but not-yet-finalized instance is editable (workflow/R).
-          isReadOnly: isFinalized,
+          // Prior answers seed the Review Screen (review/edit) or the read-only
+          // view; null for a never-submitted instance (fresh flow).
+          initialResponses: submittedSurvey?.prefillResponses,
+          isReadOnly: isReadOnly,
           onSubmit: (submission) async {
             try {
               await _recordSurveySubmission(submission: submission);
@@ -733,16 +755,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// Opens a submitted survey [SurveyEntryView] as a READ-ONLY questionnaire
-  /// flow. Called when the participant taps a survey record in "Your Records"
-  /// (home today/yesterday list) or the Calendar day-view.
+  /// Opens the questionnaire for a submitted survey [SurveyEntryView] from a
+  /// record (the home "Your Records" today/yesterday list or the Calendar
+  /// day-view).
   ///
-  /// Records are always read-only views — EDITING is only available via the
-  /// TASK (submitted-but-not-finalized row). This enforces the records/tasks
-  /// split: tasks = edit path; records = read-only view path.
+  /// The open reflects the instance's STATE, not where it was opened from —
+  /// exactly as opening it from its Task does: a finalized instance
+  /// ([_finalizedInstanceIds]) opens read-only (workflow/S); a submitted but
+  /// not-yet-finalized instance opens the editable Review Screen seeded with the
+  /// prior answers, re-submittable until finalization (workflow/R + rules/N).
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/R+S
   // Implements: DIARY-GUI-participant-task-list/H
-  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
-  Future<void> _openSurveyRecordReadOnly(SurveyEntryView survey) async {
+  Future<void> _openSurveyRecord(SurveyEntryView survey) async {
     final qTypeString = survey.questionnaireType;
     QuestionnaireType? qType;
     try {
@@ -754,25 +778,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (qType == null ||
         (qType != QuestionnaireType.noseHht &&
             qType != QuestionnaireType.qol)) {
-      // Unsupported type — no read-only view available; do nothing.
+      // Unsupported type — no flow available; do nothing.
       return;
     }
 
-    final definition = await _loadQuestionnaireDefinition(qType);
-    if (definition == null || !mounted) return;
+    // A finalized instance is view-only (workflow/S); a submitted but
+    // not-yet-finalized instance opens the editable Review (workflow/R). The
+    // questionnaire_status projection is the durable finalize signal.
+    final isReadOnly = _finalizedInstanceIds.contains(survey.aggregateId);
 
-    await Navigator.of(context).push(
-      AppPageRoute<void>(
-        builder: (context) => QuestionnaireFlowScreen(
-          definition: definition,
-          instanceId: survey.aggregateId,
-          initialResponses: survey.prefillResponses,
-          isReadOnly: true,
-          onSubmit: (_) async => const SubmitResult(success: false),
-          onComplete: () => Navigator.of(context).pop(),
-          onDefer: () => Navigator.of(context).pop(),
-        ),
-      ),
+    await _openQuestionnaireFlow(
+      qType: qType,
+      aggregateId: survey.aggregateId,
+      isReadOnly: isReadOnly,
+      submittedSurvey: survey,
     );
   }
 
@@ -1553,7 +1572,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 context: context,
                 builder: (context) => CalendarScreen(
                   installDate: installDate,
-                  onOpenSurvey: _openSurveyRecordReadOnly,
+                  onOpenSurvey: _openSurveyRecord,
                 ),
               );
             },
@@ -1743,7 +1762,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 onTap: switch (entry) {
                   EpistaxisEntryView() => () => _navigateToEditRecord(entry),
                   DayMarkerView() => null,
-                  SurveyEntryView() => () => _openSurveyRecordReadOnly(entry),
+                  SurveyEntryView() => () => _openSurveyRecord(entry),
                 },
                 hasOverlap:
                     entry is EpistaxisEntryView && _hasOverlap(view, entry),
