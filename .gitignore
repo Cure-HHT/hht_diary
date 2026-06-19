@@ -188,7 +188,6 @@ sponsor/*/
 # =====================================
 # Sponsor configuration secrets
 sponsor/*/config/*.env
-sponsor/*/config/supabase.env
 sponsor/*/config/secrets.*
 sponsor/*/config/.env*
 sponsor/*/.env*
@@ -244,10 +243,6 @@ terraform.rc
 /apps/sponsor-portal/prompts/CUR-629-first-admin-plan.md
 /apps/sponsor-portal/prompts/portal-project.md
 /apps/sponsor-portal/tool/package-lock.json
-/apps/sponsor-portal/portal-ui/coverage/
-/apps/sponsor-portal/portal-ui/coverage/
-/apps/sponsor-portal/portal-ui/coverage/
-/apps/sponsor-portal/portal-ui/coverage/
 /apps/tool/deploy_diary_server.sh
 /apps/tool/deploy_portal_server.sh
 tools/one-time-migrations/

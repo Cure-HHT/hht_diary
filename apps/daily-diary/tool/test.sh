@@ -10,7 +10,7 @@ echo "=============================================="
 echo "Daily Diary - All Test Suites"
 echo "=============================================="
 
-for project in diary_functions diary_server clinical_diary; do
+for project in clinical_diary; do
     TEST_SCRIPT="$SCRIPT_DIR/$project/tool/test.sh"
     if [ -x "$TEST_SCRIPT" ]; then
         echo ""

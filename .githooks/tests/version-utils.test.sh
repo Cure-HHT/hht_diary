@@ -85,11 +85,10 @@ echo "--------------------------------------"
 
 # ---- Own-dir source: semver+build on the owning project -------------
 assert clinical_diary  "apps/daily-diary/clinical_diary/lib/foo.dart"       "semver+build" "own lib/*.dart"
-assert portal-ui       "apps/sponsor-portal/portal-ui/lib/main.dart"        "semver+build" "own lib/*.dart"
-assert portal-ui       "apps/sponsor-portal/portal-ui/assets/logo.png"      "semver+build" "own assets/*"
-assert portal-ui       "apps/sponsor-portal/portal-ui/web/index.html"       "semver+build" "own web/*"
-assert diary_server    "apps/daily-diary/diary_server/bin/server.dart"      "semver+build" "own bin/*.dart"
-assert portal_server   "apps/sponsor-portal/portal_server/bin/server.dart"  "semver+build" "own bin/*.dart"
+assert portal_ui_evs   "apps/sponsor-portal/portal_ui_evs/lib/main.dart"    "semver+build" "own lib/*.dart"
+assert portal_ui_evs   "apps/sponsor-portal/portal_ui_evs/assets/logo.png"  "semver+build" "own assets/*"
+assert portal_ui_evs   "apps/sponsor-portal/portal_ui_evs/web/index.html"   "semver+build" "own web/*"
+assert portal_server_evs "apps/sponsor-portal/portal_server_evs/bin/server.dart" "semver+build" "own bin/*.dart"
 assert trial_data_types "apps/common-dart/trial_data_types/lib/x.dart"      "semver+build" "own lib/*.dart"
 
 # ---- Own-dir non-source: no bump ------------------------------------
@@ -97,8 +96,8 @@ assert clinical_diary "apps/daily-diary/clinical_diary/test/foo_test.dart"      
 assert clinical_diary "apps/daily-diary/clinical_diary/tool/gen.sh"              "none" "own tool/*"
 assert clinical_diary "apps/daily-diary/clinical_diary/README.md"                "none" "own README.md"
 assert clinical_diary "apps/daily-diary/clinical_diary/analysis_options.yaml"    "none" "own analysis_options.yaml"
-assert diary_server   "apps/daily-diary/diary_server/README.md"                  "none" "own README.md (server)"
-assert portal-ui      "apps/sponsor-portal/portal-ui/test/widget_test.dart"      "none" "own test/*"
+assert portal_server_evs "apps/sponsor-portal/portal_server_evs/README.md"       "none" "own README.md (server)"
+assert portal_ui_evs  "apps/sponsor-portal/portal_ui_evs/test/widget_test.dart"  "none" "own test/*"
 
 # ---- Unused platform dirs on clinical_diary: no bump ----------------
 assert clinical_diary "apps/daily-diary/clinical_diary/macos/Runner/Info.plist" "none" "own macos/* (dev-only)"
@@ -107,23 +106,16 @@ assert clinical_diary "apps/daily-diary/clinical_diary/macos/Runner/Info.plist" 
 assert clinical_diary "apps/daily-diary/clinical_diary/ios/Info.plist"      "build-only" "own ios/* (ships)"
 assert clinical_diary "apps/daily-diary/clinical_diary/android/build.gradle" "build-only" "own android/* (ships)"
 
-# ---- Non-shipping platform dirs on portal-ui: no bump ---------------
-assert portal-ui "apps/sponsor-portal/portal-ui/macos/Runner/Info.plist" "none" "own macos/* (dev-only)"
-
 # ---- Dependency cascade: trial_data_types/lib/ change ---------------
 # trial_data_types itself: semver+build. Direct + transitive dependents
-# (7 downstream projects): build-only. Unrelated library
-# (rave-integration): none.
+# (clinical_diary, portal_server_evs, eq): build-only. Unrelated
+# libraries (rave-integration) and non-dependents (portal_ui_evs): none.
 echo ""
 echo "  -- trial_data_types/lib/ cascade --"
 CASCADE_CHANGE="apps/common-dart/trial_data_types/lib/x.dart"
 assert trial_data_types  "$CASCADE_CHANGE" "semver+build" "dep origin"
 assert clinical_diary    "$CASCADE_CHANGE" "build-only"   "cascade downstream"
-assert portal-ui         "$CASCADE_CHANGE" "build-only"   "cascade downstream"
-assert diary_server      "$CASCADE_CHANGE" "build-only"   "cascade downstream"
-assert portal_server     "$CASCADE_CHANGE" "build-only"   "cascade downstream"
-assert diary_functions   "$CASCADE_CHANGE" "build-only"   "cascade downstream"
-assert portal_functions  "$CASCADE_CHANGE" "build-only"   "cascade downstream"
+assert portal_server_evs "$CASCADE_CHANGE" "build-only"   "cascade downstream"
 assert eq                "$CASCADE_CHANGE" "build-only"   "cascade downstream"
 assert rave-integration      "$CASCADE_CHANGE" "none"     "non-dependent"
 
@@ -133,24 +125,22 @@ echo "  -- trial_data_types/test/ non-cascade --"
 NONCASCADE_CHANGE="apps/common-dart/trial_data_types/test/x_test.dart"
 assert trial_data_types "$NONCASCADE_CHANGE" "none" "own test/*"
 assert clinical_diary   "$NONCASCADE_CHANGE" "none" "test/ does not cascade"
-assert portal-ui        "$NONCASCADE_CHANGE" "none" "test/ does not cascade"
+assert portal_server_evs "$NONCASCADE_CHANGE" "none" "test/ does not cascade"
 
-# ---- database/ migration: build-only on both servers, none elsewhere
+# ---- database/ migration: no live project depends on database/ ------
 echo ""
 echo "  -- database/ migration --"
 DB_CHANGE="database/migrations/0001_add_column.sql"
-assert diary_server   "$DB_CHANGE" "build-only" "migration affects server"
-assert portal_server  "$DB_CHANGE" "build-only" "migration affects server"
-assert clinical_diary "$DB_CHANGE" "none"       "migration does not affect client"
-assert portal-ui      "$DB_CHANGE" "none"       "migration does not affect client"
+assert clinical_diary    "$DB_CHANGE" "none" "migration does not affect client"
+assert portal_server_evs "$DB_CHANGE" "none" "EVS server has no database/ trigger"
+assert portal_ui_evs     "$DB_CHANGE" "none" "migration does not affect UI"
 
 # ---- tools/build/ infra: build-only on deployable apps only ---------
 echo ""
 echo "  -- tools/build/ infra --"
 TOOLS_CHANGE="tools/build/deploy.sh"
-assert portal-ui      "$TOOLS_CHANGE" "build-only" "deployable app"
-assert diary_server   "$TOOLS_CHANGE" "build-only" "deployable app"
-assert portal_server  "$TOOLS_CHANGE" "build-only" "deployable app"
+assert portal_ui_evs     "$TOOLS_CHANGE" "build-only" "deployable app"
+assert portal_server_evs "$TOOLS_CHANGE" "build-only" "deployable app"
 assert clinical_diary "$TOOLS_CHANGE" "none"       "clinical_diary has no tools/build trigger"
 
 # ---- Summary --------------------------------------------------------

@@ -468,57 +468,9 @@ apps:
       analysis_options: true
       auto_version_bump: true       # pre-push bumps patch on source changes
 
-  - name: diary_functions
-    path: apps/daily-diary/diary_functions
-    sdk_type: dart
-    dart_sdk: "^3.10.7"
-    version: 0.1.0
-
-    depends_on:
-      - trial_data_types            # path: ../../common-dart/trial_data_types
-
-    # Reference-only since the EVS cutover (CUR-1170). The raw-Postgres data
-    # path this served — incl. the database/ relational schema — was retired;
-    # the diary now ingests into portal_server_evs. Retained for reference,
-    # no longer built or tested by CI. No ci: block.
-    reference_only: true
-
-  - name: diary_server
-    path: apps/daily-diary/diary_server
-    sdk_type: dart
-    dart_sdk: "^3.10.7"
-    version: 0.1.0
-
-    depends_on:
-      - diary_functions             # path: ../diary_functions
-      # transitive: trial_data_types
-
-    # Reference-only since the EVS cutover (CUR-1170). The legacy raw-Postgres
-    # diary server is superseded by device->portal_server_evs /ingest. Retained
-    # for reference, no longer built or tested by CI. No ci: block.
-    reference_only: true
-
   # =========================================================================
   # Sponsor Portal
   # =========================================================================
-
-  - name: portal-ui
-    path: apps/sponsor-portal/portal-ui
-    sdk_type: flutter
-    dart_sdk: "^3.10.7"
-    version: 1.0.0+1
-
-    depends_on:
-      - diary_design_system         # path: ../../common-flutter/diary_design_system
-      - trial_data_types            # path: ../../common-dart/trial_data_types
-
-    platforms:
-      - web
-
-    # Reference-only since the EVS cutover (CUR-1170). The legacy sponsor-portal
-    # Flutter UI is superseded by portal_ui_evs; retained for reference, no
-    # longer built or tested by CI. No ci: block.
-    reference_only: true
 
   - name: portal_identity
     path: apps/sponsor-portal/portal_identity
@@ -655,36 +607,6 @@ apps:
       services: []
       analysis_options: true
 
-  - name: portal_functions
-    path: apps/sponsor-portal/portal_functions
-    sdk_type: dart
-    dart_sdk: "^3.10.7"
-    version: 0.1.0
-
-    depends_on:
-      - rave_integration            # path: ../../edc/rave-integration
-
-    # Reference-only since the EVS cutover (CUR-1170). Superseded by the
-    # event-sourced portal (portal_server_evs + portal_service); the raw-Postgres
-    # data path incl. database/ was retired. Retained for reference, no longer
-    # built or tested by CI. No ci: block.
-    reference_only: true
-
-  - name: portal_server
-    path: apps/sponsor-portal/portal_server
-    sdk_type: dart
-    dart_sdk: "^3.10.7"
-    version: 0.1.0
-
-    depends_on:
-      - portal_functions            # path: ../portal_functions
-      # transitive: rave_integration
-
-    # Reference-only since the EVS cutover (CUR-1170). Superseded by
-    # portal_server_evs. Retained for reference, no longer built or tested by
-    # CI. No ci: block.
-    reference_only: true
-
 # ---------------------------------------------------------------------------
 # Dependency graph (for topological build order)
 # ---------------------------------------------------------------------------
@@ -706,11 +628,6 @@ apps:
 #   common-flutter: diary_design_system, eq
 #   sponsor-portal: portal_identity, portal_service
 #
-# Reference-only since the EVS cutover (CUR-1170) — NOT built or tested by CI
-# (the raw-Postgres stack that they depended on was retired):
-#   diary_functions, diary_server, portal_functions, portal_server, portal-ui
-#   (portal-ui = legacy Flutter UI, superseded by portal_ui_evs)
-#
 # Local path-dependency edges (child -> deps), for topological build order:
 #   canonical_json_jcs   -> (none)        provenance -> (none)
 #   event_sourcing_datastore -> canonical_json_jcs, provenance
@@ -725,7 +642,6 @@ apps:
 #   portal_ui_evs        -> (none)
 #   clinical_diary       -> event_sourcing_datastore, diary_shared_model,
 #                           trial_data_types, eq, diary_design_system
-#   portal-ui            -> diary_design_system, trial_data_types
 #
 # A CI matrix job can topologically sort `depends_on` to produce build order.
 # ---------------------------------------------------------------------------

@@ -585,39 +585,13 @@ class UserInfo {
 }
 ```
 
-### Setting PostgreSQL Session Variables
+### Authorization Model
 
-> **Retired in the EVS cutover (2026-06, CUR-1170).** The raw-Postgres RLS-session-variable
-> pattern shown below (setting `app.current_user_*` before each query) belonged to the legacy
-> `portal_functions`/`portal_server` data layer, which is now reference-only and no longer
-> deployed. Under EVS, authorization is event-sourced permissions evaluated in the application
-> layer over the event log — not PostgreSQL RLS. The example is kept for historical context.
-
-```dart
-// lib/database/connection.dart  (legacy raw-Postgres layer — reference only)
-import 'package:postgres/postgres.dart';
-
-class DatabaseConnection {
-  final Connection _connection;
-
-  DatabaseConnection(this._connection);
-
-  /// Set session variables for RLS based on user claims
-  Future<void> setUserContext(UserInfo user) async {
-    await _connection.execute('''
-      SET app.current_user_id = '${user.uid}';
-      SET app.current_user_role = '${user.role}';
-      SET app.current_site_ids = '${user.siteIds.join(',')}';
-    ''');
-  }
-
-  /// Execute query with user context
-  Future<Result> queryWithContext(UserInfo user, String sql, [List<Object?>? parameters]) async {
-    await setUserContext(user);
-    return await _connection.execute(sql, parameters: parameters);
-  }
-}
-```
+Identity Platform issues the authentication token. `portal_server_evs` verifies the
+token to establish the caller's identity, then authorizes the request using
+event-sourced permissions evaluated in the application layer over the event log. Role
+and site assignments are themselves events, so authorization decisions read from the
+same event store rather than from PostgreSQL row-level security.
 
 ---
 
@@ -741,7 +715,7 @@ gcloud identity-platform configs describe \
 - [Firebase Auth for Flutter](https://firebase.flutter.dev/docs/auth/overview)
 - [Custom Claims](https://firebase.google.com/docs/auth/admin/custom-claims)
 - [JWT Verification](https://firebase.google.com/docs/auth/admin/verify-id-tokens)
-- **RBAC Implementation**: spec/prd-security-RBAC.md
+- **RBAC Implementation**: spec/prd-rbac.md
 - **RLS Policies**: spec/dev-security-RLS.md
 
 ---

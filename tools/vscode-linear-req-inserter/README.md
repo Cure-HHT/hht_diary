@@ -5,7 +5,7 @@ VS Code extension that integrates Linear project management with your developmen
 ## Features
 
 - 🎯 **Quick Insertion**: Press `Ctrl+Shift+R` (or `Cmd+Shift+R` on Mac) to insert requirements
-- ⌨️ **Auto-completion**: Type `//req`, `--req`, or `#req` to trigger requirement suggestions
+- ⌨️ **Auto-completion**: Type `//impl`, `--impl`, or `#impl` to trigger requirement suggestions
 - 📝 **Multi-format Support**: Automatically uses correct comment syntax for SQL, Dart, Python, JS/TS, Markdown, and more
 - 🔄 **Real-time Sync**: Fetches latest in-progress tickets from Linear
 - 📋 **Multi-select**: Select multiple requirements to insert at once
@@ -49,7 +49,7 @@ npm run compile
 ### 3. Add Requirements to Linear Tickets
 In your Linear ticket descriptions or comments, reference requirements like:
 ```markdown
-This implements REQ-p00001, REQ-o00042, and REQ-d00019
+This implements DIARY-PRD-user-account-create, DIARY-OPS-storage-rules, and DIARY-DEV-event-store-rename
 ```
 
 ## Usage
@@ -77,21 +77,21 @@ This implements REQ-p00001, REQ-o00042, and REQ-d00019
 
 ### SQL File (`database/schema.sql`)
 ```sql
--- REQ-p00001: Multi-Sponsor Data Isolation
--- REQ-o00042: Database Configuration Per Sponsor
--- REQ-d00019: Patient Data Isolation RLS Implementation
+-- Implements: DIARY-PRD-data-isolation: Multi-Sponsor Data Isolation
+-- Implements: DIARY-OPS-storage-rules: Database Configuration Per Sponsor
+-- Implements: DIARY-DEV-participant-isolation-rls: Participant Data Isolation RLS Implementation
 ```
 
 ### Dart File (`lib/main.dart`)
 ```dart
-// REQ-p00006: Offline-First Data Entry
-// REQ-d00004: Local-First Data Entry Implementation
+// Implements: DIARY-PRD-offline-first-entry: Offline-First Data Entry
+// Implements: DIARY-DEV-local-first-entry: Local-First Data Entry Implementation
 ```
 
 ### Python File (`scripts/migrate.py`)
 ```python
-# REQ-p00004: Immutable Audit Trail via Event Sourcing
-# REQ-d00007: Database Schema Implementation
+# Implements: DIARY-PRD-audit-trail: Immutable Audit Trail via Event Sourcing
+# Implements: DIARY-DEV-event-store-schema: Database Schema Implementation
 ```
 
 ## Configuration
@@ -111,9 +111,9 @@ This implements REQ-p00001, REQ-o00042, and REQ-d00019
    Implement database access controls
 
    Requirements:
-   - REQ-p00019: Patient Data Isolation
-   - REQ-p00020: Investigator Site-Scoped Access
-   - REQ-p00021: Investigator Annotation Restrictions
+   - DIARY-PRD-participant-data-isolation: Participant Data Isolation
+   - DIARY-PRD-investigator-site-access: Investigator Site-Scoped Access
+   - DIARY-PRD-investigator-annotation-restrictions: Investigator Annotation Restrictions
    ```
 
 2. **Move to "In Progress"**: Extension only shows in-progress tickets
@@ -128,10 +128,10 @@ The extension automatically detects file types and uses appropriate comment synt
 
 | File Types | Comment Style | Example |
 | --- | --- | --- |
-| `.sql` | `--` | `-- REQ-p00001: Title` |
-| `.dart`, `.js`, `.ts`, `.java`, `.cpp` | `//` | `// REQ-p00001: Title` |
-| `.py`, `.rb`, `.sh` | `#` | `# REQ-p00001: Title` |
-| `.html`, `.xml`, `.md` | `<!-- -->` | `<!-- REQ-p00001: Title -->` |
+| `.sql` | `--` | `-- Implements: DIARY-PRD-user-account-create: Title` |
+| `.dart`, `.js`, `.ts`, `.java`, `.cpp` | `//` | `// Implements: DIARY-PRD-user-account-create: Title` |
+| `.py`, `.rb`, `.sh` | `#` | `# Implements: DIARY-PRD-user-account-create: Title` |
+| `.html`, `.xml`, `.md` | `<!-- -->` | `<!-- Implements: DIARY-PRD-user-account-create: Title -->` |
 
 ## Troubleshooting
 
@@ -140,8 +140,8 @@ The extension automatically detects file types and uses appropriate comment synt
 - Check that tickets are assigned to you in Linear
 
 ### "No requirements found in tickets"
-- Add requirement references (REQ-p00001, etc.) to ticket descriptions or comments
-- Format must match: `REQ-[pod]\d{5}`
+- Add requirement references (DIARY-PRD-user-account-create, etc.) to ticket descriptions or comments
+- Format must match: `DIARY-(PRD|GUI|OPS|DEV)-[a-z0-9-]+`
 
 ### "Failed to fetch Linear tickets"
 - Verify API token is correct
@@ -151,7 +151,7 @@ The extension automatically detects file types and uses appropriate comment synt
 ### "Loaded 0 requirements"
 - Verify `spec/` directory exists in workspace
 - Check that `.md` files contain requirement definitions
-- Ensure requirements follow format: `### REQ-p00001: Title`
+- Ensure requirements follow format: `### DIARY-PRD-user-account-create: Title`
 
 ## Development
 

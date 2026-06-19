@@ -33,7 +33,7 @@ node fetch-tickets.js --token=$LINEAR_API_TOKEN --format=json > /tmp/tickets.jso
    - **Requirements tooling**: Can write Python validation scripts
    - **Dev environment**: Can create config files, setup instructions
    - **Documentation**: Can write ADRs, update specs
-   - **Avoid**: Tickets requiring external services not yet configured (Supabase project setup, Google Workspace, etc.)
+   - **Avoid**: Tickets requiring external services not yet configured (GCP project / Cloud SQL provisioning, Google Workspace, etc.)
 
 4. **Ticket diversity**: Select across different areas:
    - 1-2 database/schema tickets
@@ -107,7 +107,7 @@ If you cannot complete the ticket:
    ```bash
    # For each blocker, create a new ticket via Linear API
    # Example blockers:
-   # - "Supabase project not yet created" (blocks database schema deployment)
+   # - "GCP project / Cloud SQL instance not yet provisioned" (blocks deployment)
    # - "Google Workspace not configured" (blocks MFA setup)
    # - "Missing design decision" (blocks implementation choice)
    ```
@@ -161,9 +161,8 @@ After implementing 5 tickets:
 - Configuration file templates
 
 **Tier 3: Blocked by infrastructure**
-- Supabase schema deployment (need project created)
+- Database deployment (need GCP project / Cloud SQL instance provisioned)
 - MFA configuration (need Google Workspace)
-- RLS policy deployment (need Supabase)
 - CI/CD pipeline (need GitHub Actions configured)
 
 ### Ticket Types and Deliverables:

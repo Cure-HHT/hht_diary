@@ -1,14 +1,10 @@
-> **⚠️ HISTORICAL (as of 2026-06): superseded by the EVS cutover (CUR-1170).** The ALCOA+
-> principles described here remain relevant, but every concrete *verification procedure* below
-> runs SQL against the retired relational schema (`record_audit`, `sync_conflicts`,
-> `investigator_annotations`, `verify_audit_trail_integrity()`, `database/tamper_detection.sql`,
-> `database/migrations/`) — all of which were deleted in the EVS cutover. These queries no
-> longer execute and the `database/*` references are dangling. Current reality: the audit trail
-> IS the hash-chained EVS event log owned by the `event_sourcing` library (deployed via
-> `portal_server_evs`); tamper-evidence is the event-log hash chain, and access control is
-> event-sourced permissions. (DB-level tamper-resistance for the event store is an open gap
-> tracked in CUR-1439.) EVS-equivalent verification procedures have not yet been authored;
-> this document is kept for reference only until they are.
+> **⚠️ Out of date — pending rewrite.** The audit trail is the hash-chained event log owned by
+> the `event_sourcing` library (deployed via `portal_server_evs`); tamper-evidence is the
+> event-log hash chain, and access control is event-sourced permissions. (DB-level
+> tamper-resistance for the event store is tracked in CUR-1439.) The ALCOA+ principles below
+> apply, but the SQL verification procedures target a relational schema that is not part of the
+> current architecture; EVS-equivalent procedures are not yet authored — do not rely on the
+> procedures as-is.
 
 # Good Clinical Practice (GCP) Compliance Verification
 
@@ -49,7 +45,7 @@ The ALCOA+ framework extends traditional ALCOA (Attributable, Legible, Contempor
 #### System Implementation
 
 ✅ **COMPLIANT** - Every data entry includes:
-- User identification via `created_by` (UUID from Supabase Auth) (`database/schema.sql:record_audit.created_by`)
+- User identification via `created_by` (UUID from GCP Identity Platform) (`database/schema.sql:record_audit.created_by`)
 - User role at time of entry (`record_audit.role`)
 - Precise timestamp (`record_audit.server_timestamp`, `record_audit.client_timestamp`)
 - Device information (`record_audit.device_info`) - Device type, OS, app version
@@ -198,7 +194,7 @@ WHERE client_timestamp < prev_timestamp;
 -- Expected result: 0 or very few (only valid backdating)
 ```
 
-**Reference**: `spec/prd-clinical-trials.md:REQ-p00011` (Contemporaneous requirement)
+**Reference**: REQ-p00011 (Contemporaneous requirement)
 
 ---
 
@@ -442,7 +438,7 @@ ORDER BY version DESC;
 -- Expected: Most recent version dominates, older versions present
 ```
 
-**Reference**: `database/migrations/`, `spec/ops-database-migration.md`
+**Reference**: `database/migrations/`
 
 ---
 
@@ -454,7 +450,7 @@ ORDER BY version DESC;
 
 ✅ **COMPLIANT** - Endurance via:
 - **Immutable storage**: Event sourcing prevents deletion
-- **Backup retention**: Automated backups via Supabase (30+ days on Pro tier)
+- **Backup retention**: Automated Cloud SQL (PostgreSQL) backups
 - **Long-term archival**: 7+ year retention for FDA compliance (`database/schema.sql:99`)
 - **Tamper detection**: Ensures data integrity over time
 - **Export capabilities**: Auditors can export data at any time (`auditor_export_log`)
@@ -495,7 +491,7 @@ WHERE is_deleted = true;
 -- ORDER BY backup_date DESC;
 ```
 
-**Reference**: `spec/ops-database-setup.md` (Backup procedures), `database/schema.sql:record_audit` (immutable design)
+**Reference**: `database/schema.sql:record_audit` (immutable design)
 
 ---
 
@@ -509,7 +505,7 @@ WHERE is_deleted = true;
 - **Role-based access**: Auditors have read access to all data (`database/rls_policies.sql`)
 - **Export functionality**: CSV, JSON, PDF exports for auditors (`auditor_export_log`)
 - **Query performance**: Indexes optimize audit queries (`database/indexes.sql`)
-- **High availability**: Supabase provides 99.9% uptime SLA
+- **High availability**: GCP Cloud SQL provides a high-availability uptime SLA
 - **Audit trail search**: Full-text search on JSONB data via GIN indexes
 
 #### Verification Procedures
@@ -656,7 +652,7 @@ LIMIT 10;
 -- Expected: Original data still visible, operation shows deletion
 ```
 
-**Reference**: `database/triggers.sql`, `spec/prd-database-event-sourcing.md`
+**Reference**: `database/triggers.sql`
 
 ---
 
@@ -726,7 +722,7 @@ WHERE action_type LIKE '%ACCESS%'
 ORDER BY created_at DESC;
 ```
 
-**Reference**: `database/rls_policies.sql`, `spec/prd-security-RBAC.md`
+**Reference**: `database/rls_policies.sql`, `spec/prd-rbac.md`
 
 ---
 
@@ -966,14 +962,12 @@ Signature: ________________  Date: ________________
 
 **Provide to Inspector**:
 1. This GCP Compliance Verification document
-2. Supabase Pre-Deployment Audit (`docs/supabase-pre-deployment-audit.md`)
-3. Database schema documentation (`database/schema.sql`)
-4. RLS policy documentation (`database/rls_policies.sql`)
-5. Requirement traceability matrix (`traceability_matrix.md`)
-6. Sample audit trail exports (anonymized)
-7. ALCOA+ compliance reports (quarterly)
-8. Training records (anonymized)
-9. SOPs (all current versions)
+2. Database schema documentation (`database/schema.sql`)
+3. RLS policy documentation (`database/rls_policies.sql`)
+4. Sample audit trail exports (anonymized)
+5. ALCOA+ compliance reports (quarterly)
+6. Training records (anonymized)
+7. SOPs (all current versions)
 
 ---
 
@@ -1014,4 +1008,4 @@ The Clinical Trial Diary system is designed from the ground up to meet Good Clin
 - ALCOA+ Principles (MHRA GXP Data Integrity Guidance)
 - Database Schema: `database/schema.sql`
 - RLS Policies: `database/rls_policies.sql`
-- Requirement Specification: `spec/prd-clinical-trials.md:REQ-p00011`
+- Requirement Specification: REQ-p00011

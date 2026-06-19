@@ -413,19 +413,17 @@ Host Machine:
 │   ├── web_portal/
 │   └── shared_lib/
 │
-├── tools/
-│   └── dev-env/
-│       ├── docker/
-│       │   ├── base.Dockerfile
-│       │   ├── dev.Dockerfile
-│       │   ├── qa.Dockerfile
-│       │   ├── ops.Dockerfile
-│       │   └── mgmt.Dockerfile
-│       ├── docker-compose.yml
-│       ├── setup.sh
-│       └── README.md
-│
-└── (database/)               ← REMOVED in EVS cutover (CUR-1170); EVS event store schema is created at runtime by the event_sourcing library, no in-repo SQL
+└── tools/
+    └── dev-env/
+        ├── docker/
+        │   ├── base.Dockerfile
+        │   ├── dev.Dockerfile
+        │   ├── qa.Dockerfile
+        │   ├── ops.Dockerfile
+        │   └── mgmt.Dockerfile
+        ├── docker-compose.yml
+        ├── setup.sh
+        └── README.md
 
 
 Inside Containers:
@@ -635,7 +633,6 @@ Month 3:
 
 **References**:
 - docs/adr/ADR-006-docker-dev-environments.md
-- spec/dev-environment.md
 - tools/dev-env/README.md
 
 **Last Updated**: 2025-10-26

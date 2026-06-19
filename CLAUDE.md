@@ -76,7 +76,7 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 ### 4. Sponsor Isolation
 - Each sponsor has isolated code in `sponsor/{name}/`
 - NEVER cross-reference sponsors or share (inherit) sponsor-specific code
-- Core functionality goes in `packages/`, `apps/`, `database/`
+- Core functionality goes in `packages/`, `apps/`
 
 ### 5. Branch Protection
 - ALWAYS create a new branch before editing/creating/deleting files if on `main`
@@ -113,11 +113,6 @@ Pre-commit hook enforcement: `.githooks/pre-commit` section 6 checks that `*-des
 │   └── README.md             # Naming conventions & scope definitions
 ├── docs/                      # ADRs and implementation guides
 │   └── adr/                  # Architecture Decision Records
-├── database/                  # PostgreSQL schema
-│   ├── schema.sql            # Core table definitions
-│   ├── triggers.sql          # Event store & audit triggers
-│   ├── rls_policies.sql      # Row-level security
-│   └── migrations/           # Database migrations
 ├── packages/                  # Core Flutter abstractions (shared)
 ├── apps/                      # Flutter app templates
 ├── sponsor/                   # Sponsor-specific implementations
@@ -214,7 +209,7 @@ Prefer a specialized agent/skill for multi-step work; run independent calls in p
 - Use environment variables for all secrets
 - Do not use .env files for secrets
 - All secrets managed via Doppler (e.g. you were run with `doppler run -- claude`)
-- Database credentials managed via Doppler (see `spec/ops-security.md`)
+- Database credentials managed via Doppler (see `docs/security-secret-management.md`)
 - All audit events are tamper-evident (cryptographic hashing)
 
 ## Security Scanning
@@ -245,13 +240,6 @@ The project uses a **defense-in-depth security scanning strategy** with multiple
    - Checks: Type safety, unused code, potential nulls, security patterns
    - Exit behavior: BLOCKS PR if errors detected
 
-4. **Squawk** (PostgreSQL Migration Safety)
-   - Runs: CI/CD only (on changed SQL files)
-   - Purpose: Prevent dangerous PostgreSQL migrations (locks, downtime, data loss)
-   - Checks: Table locks, missing indexes, unsafe ALTER TABLE, NOT NULL without DEFAULT
-   - Exit behavior: BLOCKS PR if dangerous patterns detected
-   - Version pinned in `.github/versions.env`
-
 ### Why NOT CodeQL?
 
 **CodeQL does NOT support Dart/Flutter** (our primary language). The "28 CodeQL alerts" in repository history were about GitHub Actions workflow files, not codebase security. CodeQL was never actually enabled for application code scanning.
@@ -259,7 +247,6 @@ The project uses a **defense-in-depth security scanning strategy** with multiple
 **Current approach provides better coverage**:
 - Trivy scans dependencies and infrastructure
 - Flutter Analyze provides Dart-specific static analysis
-- Squawk prevents PostgreSQL migration issues
 - Gitleaks prevents secret leaks
 
 ### Security Scanning Guidance for Claude
@@ -268,10 +255,6 @@ When implementing code:
 - **Secrets**: Use environment variables, never hardcode. Gitleaks will block commits with secrets.
 - **Dependencies**: Keep packages updated. Trivy alerts appear in GitHub Security tab.
 - **Code Quality**: Run `flutter analyze` locally before committing. CI will fail if errors exist.
-- **Database Migrations**: Use safe PostgreSQL patterns. Squawk will block dangerous migrations.
-  - Always use `CONCURRENTLY` for index creation
-  - Add `DEFAULT` when adding NOT NULL columns
-  - Avoid operations that lock tables in production
 - **Review Findings**: Check PR status checks. Address any security scanner failures before merge.
 
 **Documentation**: See `docs/security/scanning-strategy.md` for complete scanner details, workflows, and troubleshooting.

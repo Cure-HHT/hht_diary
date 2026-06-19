@@ -46,12 +46,7 @@ jobs:
         run: |
           set -e
           for pkg in \
-              apps/sponsor-portal/portal_functions \
-              apps/sponsor-portal/portal_server \
-              apps/sponsor-portal/portal-ui \
               apps/daily-diary/clinical_diary \
-              apps/daily-diary/diary_functions \
-              apps/daily-diary/diary_server \
               apps/common-dart/trial_data_types
           do
             echo "::group::flutter pub get ($pkg)"

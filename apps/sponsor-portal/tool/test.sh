@@ -10,7 +10,7 @@ echo "=============================================="
 echo "Sponsor Portal - All Test Suites"
 echo "=============================================="
 
-for project in portal_functions portal_server portal-ui; do
+for project in portal_server_evs portal_ui_evs; do
     TEST_SCRIPT="$SCRIPT_DIR/$project/tool/test.sh"
     if [ -x "$TEST_SCRIPT" ]; then
         echo ""

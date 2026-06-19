@@ -276,7 +276,7 @@ A documented break-glass procedure exists for emergency situations
 only, with full audit trail logging of all access.
 Context: internal operations only, not accessible to sponsors or
 clinical trial users.
-See: ops-security.md for developer admin procedures.
+See: docs/security-secret-management.md for developer admin procedures.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Device Authentication**

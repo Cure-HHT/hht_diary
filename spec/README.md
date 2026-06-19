@@ -62,7 +62,7 @@ Two relationship kinds, both first-class in elspais 0.115+:
 
 A `spec/` file MAY contain:
 
-- **One or more requirement blocks** — each is a complete `DIARY-{LEVEL}-{component}` requirement per the grammar in `requirements-spec.md`. elspais detects a requirement block by the `DIARY-{LEVEL}-{component}` pattern in the heading text, not by heading depth.
+- **One or more requirement blocks** — each is a complete `DIARY-{LEVEL}-{component}` requirement per the requirement grammar (the elspais MCP `agent_instructions()`/`docs()`; the legacy `requirements-spec.md` grammar doc is archived under `spec-archive/`). elspais detects a requirement block by the `DIARY-{LEVEL}-{component}` pattern in the heading text, not by heading depth.
 - **Remainder sections** — any heading not matching the REQ pattern is non-normative prose: cross-system narrative, architecture orientation, decisions-rejected commentary, reading-order guidance.
 - **Mermaid diagrams** — render in any markdown-aware tool; treated as remainder content.
 - **Image links** — for renderers that display them inline.

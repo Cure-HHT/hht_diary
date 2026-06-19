@@ -36,9 +36,9 @@ While `spec/` contains formal requirements documents (WHAT and WHY), the `docs/`
 
 ## Directory Structure
 
-docs/ uses **flat hierarchical naming** for maximum visibility. Most files are in the root with topic-based prefixes, with only 3 subdirectories for special purposes.
+docs/ uses **flat hierarchical naming** for maximum visibility. Most files live in the root with topic-based prefixes; a handful of subdirectories group related material.
 
-### Subdirectories (3 only)
+### Subdirectories
 
 #### adr/ - Architecture Decision Records
 
@@ -48,43 +48,22 @@ Formal ADR process with template/lifecycle for documenting significant architect
 
 **Examples**:
 - `ADR-001-event-sourcing-pattern.md` - Why we use event sourcing
-- `ADR-002-jsonb-flexible-schema.md` - Why JSONB for diary data
-- `ADR-003-row-level-security.md` - Why RLS for multi-tenancy
 
-#### validation/ - IQ/OQ/PQ Compliance
+#### operations/ - Operational runbooks
 
-Formal validation protocols for FDA 21 CFR Part 11 compliance.
+Runbooks for running the deployed system (`runbook-*`): incident response, release/hotfix, dev-environment maintenance.
 
-**See**: `validation/README.md` for the validation process.
+#### Other subdirectories
 
-**Contains**:
-- Installation Qualification (IQ)
-- Operational Qualification (OQ)
-- Performance Qualification (PQ)
-- Platform testing guides
-
-#### WIP/ - Work In Progress
-
-Temporary investigation documents and unfinished work.
-
-**Default state**: Empty
-
-**Purpose**: Store temporary analysis, planning docs, and investigations while work is in progress.
-
-**Lifecycle**:
-1. Create WIP file for complex work
-2. Complete the work
-3. **Delete the WIP file** (or convert to ADR if architectural decision)
-
-**Examples of what goes in WIP/**:
-- CI/CD workflow analysis and bug reports
-- Database refactoring plans (during active refactoring)
-- Investigation notes for complex issues
-
-**Do NOT keep in WIP/**:
-- Completed work (delete the file)
-- Architectural decisions (create an ADR instead)
-- Permanent documentation (belongs in root or spec/)
+- `gcp/` - GCP setup guides (Cloud SQL, Identity Platform, Cloud Run)
+- `security/` - Security scanning strategy and secret-management integration
+- `migration/` - Platform migration notes
+- `branch-and-release/` - Branching strategy and release-flow diagrams
+- `diagram/` - Architecture diagrams (source + exports)
+- `whitepapers/` - Authentication and design whitepapers
+- `e2e/` - End-to-end test runbooks
+- `sponsor-summaries/` - Sponsor-facing feature overviews
+- `archive/` - Retained reference material (e.g. the URS-v1 migration mapping)
 
 ### Root Files - Flat Hierarchical Naming
 
@@ -94,15 +73,11 @@ Most documentation lives in the root with topic-based prefixes for easy discover
 
 **Topics**:
 - **setup-\*** : Onboarding, configuration, getting started
-  - Examples: `setup-team-onboarding.md`, `setup-doppler-new-dev.md`
-- **ops-\*** : Operations, monitoring, incident response, deployment
-  - Examples: `ops-monitoring-sentry.md`, `ops-incident-response-runbook.md`
-- **cicd-\*** : CI/CD pipelines, automation, validation
-  - Examples: `cicd-setup-guide.md`
-- **architecture-\*** : System architecture (non-ADR implementation details)
-  - Examples: `architecture-build-integrated-workflow.md`
-- **database-\*** : Database guides (note: the in-repo `database/` SQL schema was removed in the EVS cutover, CUR-1170; the EVS event store schema is created at runtime by the `event_sourcing` library)
-  - Examples: `database-supabase-pre-deployment-audit.md` (historical)
+  - Examples: `setup-team-onboarding.md`, `setup-dev-environment.md`
+- **operations/** : Operational runbooks live in the `operations/` subdirectory, named `runbook-*`
+  - Examples: `operations/runbook-incident-response.md`, `operations/runbook-deployment-production-tagging-hotfix.md`
+- **setup-\*-architecture** : System architecture (non-ADR implementation details)
+  - Examples: `setup-dev-environment-architecture.md`
 - **compliance-\*** : Compliance audits and verification
   - Examples: `compliance-gcp-verification.md`
 
@@ -171,7 +146,7 @@ When adding documentation:
 
 ## References
 
-- **Requirement format**: `spec/requirements-format.md`
+- **Requirement grammar**: the elspais MCP (`agent_instructions()` / `docs()`)
 - **Spec directory**: `spec/README.md`
 - **ADR process**: `adr/README.md`
 - **Project instructions**: `CLAUDE.md`

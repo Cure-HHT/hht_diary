@@ -388,7 +388,6 @@ Each production project includes:
 - **Cloud Run Deployment**: docs/gcp/cloud-run-deployment.md
 - **Identity Platform**: docs/gcp/identity-platform-setup.md
 - **Terraform Modules**: infrastructure/terraform/modules/
-- **Migration Checklist**: docs/migration/supabase-to-gcp-migration-checklist.md
 
 ---
 

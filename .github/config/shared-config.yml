@@ -1,18 +1,5 @@
 # Shared Configuration for GitHub Actions Workflows
 # This file centralizes common values to reduce duplication and improve maintainability
-# Reference in workflows: ${{ fromJSON(github.event.inputs.shared-config || '{}').aws.region || 'us-west-2' }}
-
-# AWS Configuration
-aws:
-  region: eu-west-1
-  account_id: "123456789012"  # Replace with actual account ID
-  ecr_registry: "123456789012.dkr.ecr.eu-west-1.amazonaws.com"
-  # S3 buckets follow pattern: hht-diary-{environment}-{sponsor}-{region}
-  # These are templates - actual values determined at runtime
-  s3_bucket_pattern: "hht-diary-{environment}-{sponsor}-{region}"
-  artifact_bucket: "hht-diary-artifacts-{region}"  # Shared artifacts
-  backup_bucket_pattern: "hht-diary-backups-{sponsor}-{region}"
-  retention_bucket_pattern: "hht-diary-retention-{sponsor}-{region}"  # FDA 21 CFR Part 11 compliance
 
 # Version Configuration
 versions:

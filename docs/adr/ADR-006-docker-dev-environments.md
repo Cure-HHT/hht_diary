@@ -79,8 +79,7 @@ We will use **Docker Compose with multi-service architecture** for development e
 - **Reason**: Excellent audit trails, zero-knowledge architecture, native Docker integration, free tier for small teams
 - **Alternatives Considered**:
   - HashiCorp Vault (too complex for 3-person team)
-  - AWS Secrets Manager (vendor lock-in, cost)
-  - Azure Key Vault (vendor lock-in, Windows-centric)
+  - Cloud-provider-native secret stores (vendor lock-in, cost)
   - Environment variables (no audit trail, insecure)
 
 **Base OS**: Ubuntu 24.04 LTS
@@ -315,9 +314,7 @@ We will use **Docker Compose with multi-service architecture** for development e
 - REQ-d00036: Shared Workspace and File Exchange
 
 **Related Documentation**:
-- spec/dev-environment.md: Development environment requirements
 - tools/dev-env/README.md: Setup instructions
-- docs/validation/dev-environment/: Validation protocols
 
 ---
 
