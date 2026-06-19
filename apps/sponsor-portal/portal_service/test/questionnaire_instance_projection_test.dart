@@ -219,4 +219,75 @@ void main() {
     expect(row['type'], 'nose_hht');
     expect(row['study_event'], 'Cycle 1 Day 1');
   });
+
+  test(
+    'questionnaire_unlocked folds into the instance row with updated entryType',
+    () async {
+      // Verifies: DIARY-GUI-participant-task-list/J — after assigned →
+      //   submission_received → finalized → unlocked, the instance row reflects
+      //   entryType == 'questionnaire_unlocked' so the diary re-presents the
+      //   task for re-submission.
+      final db = await newDatabaseFactoryMemory().openDatabase('qi-unlock');
+      final backend = SembastBackend(database: db);
+      final store = await openPortalEventStore(backend: backend);
+      addTearDown(store.close);
+
+      await store.append(
+        entryType: 'questionnaire_assigned',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-UNLOCK',
+        eventType: 'questionnaire_assigned',
+        data: const <String, Object?>{
+          'participant_id': 'P-6',
+          'type': 'nose_hht',
+          'study_event': 'Cycle 1 Day 1',
+        },
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      await store.append(
+        entryType: 'questionnaire_submission_received',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-UNLOCK',
+        eventType: 'questionnaire_submission_received',
+        data: const <String, Object?>{
+          'completed_at': '2026-02-02T00:00:00.000Z',
+          'questionnaire_type': 'nose_hht',
+        },
+        initiator: const AutomationInitiator(
+          service: 'questionnaire-submission',
+        ),
+      );
+
+      await store.append(
+        entryType: 'questionnaire_finalized',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-UNLOCK',
+        eventType: 'questionnaire_finalized',
+        data: const <String, Object?>{
+          'participant_id': 'P-6',
+          'cycle': 'Cycle 1 Day 1',
+          'end_event': null,
+        },
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      await store.append(
+        entryType: 'questionnaire_unlocked',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-UNLOCK',
+        eventType: 'questionnaire_unlocked',
+        data: const <String, Object?>{'participant_id': 'P-6'},
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      final rows = await store.backend.findViewRows('questionnaire_instance');
+      final row = rows.singleWhere((r) => r['aggregateId'] == 'QI-UNLOCK');
+      expect(row['entryType'], 'questionnaire_unlocked');
+      // The assigned-row fields are preserved through the key-wise merge.
+      expect(row['participant_id'], 'P-6');
+      expect(row['type'], 'nose_hht');
+      expect(row['study_event'], 'Cycle 1 Day 1');
+    },
+  );
 }
