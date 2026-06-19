@@ -19,16 +19,7 @@ point-in-time recovery, and FDA 21 CFR Part 11 compliance settings.
 - **Query Insights** for performance monitoring
 - **Sponsor-isolated** naming and labelling
 
-## Implemented Requirements
-
-| Requirement | Title | Assertions Covered |
-| ----------- | ----- | ------------------ |
-| REQ-o00056 | IaC for portal deployment | Infrastructure managed via Terraform |
-| REQ-p00042 | Infrastructure audit trail for FDA compliance | pgaudit, connection/query logging |
-| REQ-p00047 | Data Backup and Archival | A (automated backups), C (PITR), F (sponsor isolation) |
-| REQ-o00008 | Backup and Retention Policy | A (Cloud SQL automated backups), B (30-day PITR) |
-
-See `spec/prd-backup.md` and `spec/ops-operations.md` for full requirement text.
+See `spec/prd-data-backup.md` for the backup and retention requirements this module satisfies.
 
 ## Usage
 
@@ -47,7 +38,7 @@ module "database" {
   DB_PASSWORD            = var.DB_PASSWORD
   disk_size              = var.disk_size             # 0 = environment default
 
-  # Backup & recovery (REQ-p00047, REQ-o00008)
+  # Backup & recovery
   backup_start_time              = var.backup_start_time
   transaction_log_retention_days = var.transaction_log_retention_days
   backup_retention_override      = var.backup_retention_override
@@ -115,8 +106,7 @@ Point-in-time recovery allows restoring to any second within the
 | uat | 14 | 7 days |
 | dev / qa | 7 | 7 days |
 
-For long-term archival (7-year regulatory requirement), see `spec/prd-backup.md`
-(REQ-p00047 assertion D) and `spec/ops-operations.md` (REQ-o00008 assertion C).
+For long-term archival (7-year regulatory requirement), see `spec/prd-data-backup.md`.
 
 ## Restoring a Backup to a Temporary Clone Instance
 
