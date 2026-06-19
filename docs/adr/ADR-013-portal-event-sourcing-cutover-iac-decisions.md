@@ -7,9 +7,9 @@
 
 ## Status
 
-Proposed — decisions deferred.
+Resolved — the cutover shipped (CUR-1170, deployed via CUR-1437/CUR-1454).
 
-This ADR enumerates the architecture decisions that the portal cutover from raw `package:postgres` to `event_sourcing_datastore` (via a new `PostgresBackend` implementation of `StorageBackend`) will force. It does NOT resolve them. Its purpose is to record the question surface so that none of these decisions is forgotten before CUR-1170 begins implementation, and so that each can move from "open" to "resolved" individually.
+This ADR enumerated the architecture decisions that the portal cutover from raw `package:postgres` to `event_sourcing_datastore` (via a `PostgresBackend` implementation of `StorageBackend`) would force. Those decisions are now reflected in the shipped system: the portal runs as `portal_server_evs` over the `event_sourcing` library, whose `PostgresBackend` owns the event-store schema at runtime. The enumeration below is retained as a historical record of the decision surface; the "current state" descriptions in it describe the pre-cutover portal and are no longer accurate.
 
 ---
 

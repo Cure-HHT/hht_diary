@@ -315,9 +315,7 @@ We will use **Docker Compose with multi-service architecture** for development e
 - REQ-d00036: Shared Workspace and File Exchange
 
 **Related Documentation**:
-- spec/dev-environment.md: Development environment requirements
 - tools/dev-env/README.md: Setup instructions
-- docs/validation/dev-environment/: Validation protocols
 
 ---
 
