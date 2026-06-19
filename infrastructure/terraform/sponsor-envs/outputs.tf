@@ -27,6 +27,20 @@ output "region" {
 }
 
 # -----------------------------------------------------------------------------
+# Cloud Run URLs
+# -----------------------------------------------------------------------------
+
+# output "diary_server_url" {
+#   description = "Diary server URL"
+#   value       = module.cloud_run.diary_server_url
+# }
+
+# output "portal_server_url" {
+#   description = "Portal server URL"
+#   value       = module.cloud_run.portal_server_url
+# }
+
+# -----------------------------------------------------------------------------
 # Database
 # -----------------------------------------------------------------------------
 
@@ -79,12 +93,35 @@ output "region" {
 # }
 
 # -----------------------------------------------------------------------------
+# Container Images (via Artifact Registry GHCR proxy)
+# -----------------------------------------------------------------------------
+
+# output "diary_server_image" {
+#   description = "Diary server container image URL"
+#   value       = var.diary_server_image
+# }
+
+# output "portal_server_image" {
+#   description = "Portal server container image URL"
+#   value       = var.portal_server_image
+# }
+
+# -----------------------------------------------------------------------------
 # Compliance
 # -----------------------------------------------------------------------------
 
 # output "audit_compliance_status" {
 #   description = "FDA compliance status"
 #   value       = module.audit_logs.compliance_status
+# }
+
+# -----------------------------------------------------------------------------
+# Service Accounts
+# -----------------------------------------------------------------------------
+
+# output "portal_server_service_account_email" {
+#   description = "Portal server Cloud Run service account email (add to admin-project for Gmail SA impersonation)"
+#   value       = module.cloud_run.portal_server_service_account_email
 # }
 
 # -----------------------------------------------------------------------------
@@ -173,8 +210,13 @@ output "summary" {
 
     URLs:
       portal:      ${var.portal_server_url}
+      API:         ${var.diary_server_url}
 
     VPC CIDR:    10.${var.sponsor_id}.${local.env_offsets[var.environment]}.0/18
+
+    Container Images:
+      Diary:       ${var.diary_server_image}
+      Portal:      ${var.portal_server_image}
 
     Identity Platform:
       Enabled:     ${var.enable_identity_platform}

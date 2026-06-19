@@ -79,6 +79,13 @@ container_cpu    = "1"
 github_org  = "Cure-HHT"
 github_repo = "hht_diary"
 
+# Enable Cloud Build triggers (DEPRECATED - use GitHub Actions)
+enable_cloud_build_triggers = false
+
+# Container Images (via Artifact Registry GHCR proxy in admin project)
+diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
+portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
+
 # Disable public access due to organization policy restrictions
 allow_public_access = true
 
@@ -108,7 +115,10 @@ identity_platform_session_duration = 60
 
 # Additional authorized domains for OAuth (auto-includes project domains)
 identity_platform_authorized_domains = ["portal-qa.callisto.anspar.org"]
-# "diary-qa.callisto.anspar.org",
+# "diary-qa.callisto.anspar.org", 
+
+portal_server_url = "https://portal-server-421945483876.europe-west9.run.app"
+diary_server_url  = "https://diary-service-421945483876.europe-west9.run.app"
 
 # -----------------------------------------------------------------------------
 # Optional: Workforce Identity Federation

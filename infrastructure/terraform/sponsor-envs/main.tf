@@ -134,6 +134,52 @@ module "database" {
 # Cloud Run Services
 # -----------------------------------------------------------------------------
 # TODO import the existing network, synch with infrastructure/terraform/bootstrap/main.tf
+#
+# The cloud-run module creates:
+#   - Dedicated runtime SA ({sponsor}-{env}-run-sa) with least-privilege roles
+#   - diary-server Cloud Run service (Dart backend)
+#   - portal-server Cloud Run service (Flutter web)
+#   - IAM bindings for public access (if enabled)
+#
+# Secrets flow: Doppler token in Secret Manager → app fetches all secrets from Doppler at runtime
+# Container images: CI/CD updates via gcloud; Terraform ignores image changes (lifecycle.ignore_changes)
+#
+# module "cloud_run" {
+#   source = "../modules/cloud-run"
+#
+#   project_id       = var.project_id
+#   sponsor          = var.sponsor
+#   environment      = var.environment
+#   region           = var.region
+#   vpc_connector_id = module.vpc.connector_id
+#
+#   # Container images (via Artifact Registry GHCR proxy)
+#   diary_server_image  = var.diary_server_image
+#   portal_server_image = var.portal_server_image
+#
+#   # Database connection (private IP, no public access)
+#   db_host = module.database.private_ip_address
+#   db_name = module.database.database_name
+#   db_user = module.database.database_user
+#
+#   # Doppler runtime secret fetching (replaces direct Secret Manager refs)
+#   doppler_project_id      = "hht-diary"
+#   doppler_config_name     = var.environment
+#   doppler_token_secret_id = google_secret_manager_secret.doppler_token.secret_id
+#
+#   min_instances    = var.min_instances
+#   max_instances    = var.max_instances
+#   container_memory = var.container_memory
+#   container_cpu    = var.container_cpu
+#
+#   allow_public_access = var.allow_public_access
+#
+#   depends_on = [
+#     module.vpc,
+#     module.database,
+#     google_secret_manager_secret_version.doppler_token,
+#   ]
+# }
 
 # -----------------------------------------------------------------------------
 # Storage Buckets
@@ -158,7 +204,10 @@ module "database" {
 #   project_id            = var.project_id
 #   sponsor               = var.sponsor
 #   environment           = var.environment
+#   portal_url            = module.cloud_run.portal_server_url
 #   notification_channels = var.notification_channels
+
+#   depends_on = [module.cloud_run]
 # }
 
 # module "cloud_functions" {
@@ -255,6 +304,8 @@ module "identity_platform" {
 
   # Session settings
   session_duration_minutes = var.identity_platform_session_duration
+
+  # depends_on = [module.cloud_run]
 }
 
 # -----------------------------------------------------------------------------
@@ -275,6 +326,7 @@ module "identity_platform" {
 #   oidc_client_id         = var.workforce_identity_client_id
 #   oidc_client_secret     = var.workforce_identity_client_secret
 #   allowed_email_domain   = var.workforce_identity_allowed_domain
+#   cloud_run_service_name = module.cloud_run.portal_server_name
 # }
 
 # -----------------------------------------------------------------------------
@@ -288,6 +340,8 @@ module "identity_platform" {
 # 1. Add the Cloud Run service account to the admin project's
 #    sponsor_cloud_run_service_accounts variable
 # 2. Store the Gmail SA key in Doppler for this environment
+#
+# Cloud Run service account: ${module.cloud_run.portal_server_service_account_email}
 
 # -----------------------------------------------------------------------------
 # Gmail API for Email Sending (OTP, activation codes, notifications)

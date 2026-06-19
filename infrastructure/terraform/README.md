@@ -2,6 +2,11 @@
 
 Infrastructure as Code (IaC) for the HHT Clinical Trial Diary Platform using Terraform.
 
+**Implements Requirements:**
+- REQ-o00056: IaC for portal deployment
+- REQ-p00008: Multi-sponsor deployment model
+- REQ-p00042: Infrastructure audit trail for FDA compliance
+
 ## Overview
 
 This infrastructure supports a multi-sponsor clinical trial platform with strict FDA 21 CFR Part 11 compliance requirements. Each sponsor receives 4 isolated GCP projects (dev, qa, uat, prod) with comprehensive audit logging, VPC isolation, and environment-specific configurations.
@@ -991,8 +996,10 @@ Deploys Cloud Run services with Dart-optimized health checks.
 
 ## Related Documentation
 
-- [Operations security guide](../../docs/security-secret-management.md)
-
+- [Spec: Multi-Sponsor Architecture](../../spec/dev-architecture-multi-sponsor.md)
+- [Spec: Operations Security](../../spec/ops-security.md)
+- [ADR: Infrastructure as Code](../../docs/adr/adr-infrastructure-as-code.md)
+- [Pulumi (Legacy)](../pulumi/README.md)
 
 ## Support
 
