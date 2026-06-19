@@ -15,7 +15,6 @@ import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/config_defaults.dart';
 import 'package:clinical_diary/config/env_profile.dart';
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
-import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
 import 'package:clinical_diary/destinations/system_events_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
@@ -31,7 +30,6 @@ import 'package:clinical_diary/scope/diary_sync_triggers.dart';
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/branding_asset_cache.dart';
-import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/debug_bridge.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/link_sponsor_settings.dart';
@@ -49,16 +47,13 @@ import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/responsive_web_frame.dart';
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
-// Prefixed to disambiguate the new-stack AutomationInitiator from the legacy
-// `event_sourcing_datastore` AutomationInitiator imported above; the new diary
-// scope's DestinationRegistry.setStartDate takes the new-stack Initiator.
+// Prefixed for readability at the call sites that mint event drafts / set
+// destination watermarks; the diary scope's DestinationRegistry.setStartDate
+// takes the event_sourcing Initiator.
 import 'package:event_sourcing/event_sourcing.dart'
     as esd
     show AutomationInitiator, ActionSubmission;
-import 'package:event_sourcing/event_sourcing.dart'
-    show EntryTypeDefinition, SembastBackend;
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart'
-    show AutomationInitiator;
+import 'package:event_sourcing/event_sourcing.dart' show SembastBackend;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -213,11 +208,10 @@ class AppRoot extends StatefulWidget {
 class _AppRootState extends State<AppRoot> {
   final EnrollmentService _enrollmentService = EnrollmentService();
   final TaskService _taskService = TaskService();
-  ClinicalDiaryRuntime? _runtime;
 
-  /// CUR-1169 I1: the new reactive composition root, built alongside (not
-  /// replacing) [_runtime]. Mounted into the tree via [ReActionScope] so
-  /// reaction widgets can resolve a `LocalScope` during the transition.
+  /// The reactive composition root: the native `event_sourcing` diary scope
+  /// (`diary_es.db`). Mounted into the tree via [ReActionScope] so reaction
+  /// widgets can resolve a `LocalScope`, and the sole outbound sync runtime.
   DiaryScopeRuntime? _diaryScope;
 
   /// CUR-1169 I2a: foreground drain triggers (app-resume / connectivity /
@@ -290,25 +284,18 @@ class _AppRootState extends State<AppRoot> {
   }
 
   /// Bootstrap the event-sourcing runtime: open Sembast DB, mint or read the
-  /// device ID, and compose the [ClinicalDiaryRuntime].
+  /// device ID, and compose the native [DiaryScopeRuntime].
   Future<void> _initializeRuntime() async {
     try {
-      // Cross-platform Sembast: io for native (file-backed), web for browser
-      // (IndexedDB-backed via sembast_web). path_provider has no web
-      // implementation, so the docs-dir lookup is io-only.
-      final DatabaseFactory factory;
-      final String dbPath;
+      // Content-addressed sponsor-branding cache. path_provider has no web
+      // implementation, so the file-backed cache is native-only; web uses an
+      // in-process (per-session) cache.
       if (kIsWeb) {
-        factory = databaseFactoryWeb;
-        dbPath = 'diary.db'; // IndexedDB store name
         // Web has no filesystem: back the branding cache with an in-process
         // (per-session) map so the sponsor logo still fetches-once + verifies +
         // renders in the browser. Implements: DIARY-DEV-sponsor-branding-assets/A+B+C
         _brandingAssetCache = BrandingAssetCache.inMemory();
       } else {
-        factory = databaseFactoryIo;
-        final docsDir = await getApplicationDocumentsDirectory();
-        dbPath = '${docsDir.path}/diary.db';
         // Root the branding cache under the support dir (a stable on-device
         // location SEPARATE from the documents dir the local-data-reset wipes),
         // so cached branding assets are retained for posterity after
@@ -318,7 +305,6 @@ class _AppRootState extends State<AppRoot> {
           cacheDir: Directory('${supportDir.path}/branding_cache'),
         );
       }
-      final db = await factory.openDatabase(dbPath);
 
       final deviceId = await _readOrMintDeviceId();
 
@@ -332,73 +318,10 @@ class _AppRootState extends State<AppRoot> {
         softwareVersion = 'clinical_diary@0.0.0';
       }
 
-      final userId = await _enrollmentService.getUserId() ?? 'pre-enrollment';
-
-      final runtime = await bootstrapClinicalDiary(
-        sembastDatabase: db,
-        authToken: _enrollmentService.getJwtToken,
-        // The participant's backend URL is resolved from their linking code at
-        // enrollment time and persisted by EnrollmentService. Resolve it
-        // lazily on every use so the destination + inbound poll automatically
-        // pick up the URL the moment the participant links, without requiring a
-        // bootstrap-time restart. Returns null pre-enrollment, which the
-        // destination + inbound poll handle as "skip this cycle".
-        resolveBaseUrl: () async {
-          final base = await _enrollmentService.getBackendUrl();
-          if (base == null) return null;
-          // Trailing slash so the destination's `.resolve('events')` (and
-          // the inbound poll's `.resolve('inbound')`) produce
-          // `<backend>/api/v1/user/events` / `…/inbound`.
-          return Uri.parse('$base/api/v1/user/');
-        },
-        deviceId: deviceId,
-        softwareVersion: softwareVersion,
-        userId: userId,
-        // CUR-1164: Skip outbound sync + inbound poll while disconnected.
-        // Closure over the notifier value keeps the check sync.
-        isDisconnected: () => _enrollmentService.disconnectedNotifier.value,
-        // CUR-1398: include task-sync in every periodic / resume /
-        // connectivity / FCM-triggered tick so foreground state stays
-        // correct even when FCM delivery is slow or fails. Cold-start sync
-        // is still done separately in _initializeNotifications.
-        tasksSync: () => _taskService.syncTasks(_enrollmentService),
-      );
-
-      // Activate the legacy-sync (nosebleed) shim destination once at first
-      // install. The startDate is "today" on first install: there are no events
-      // recorded before the app exists, so anchoring the destination there is
-      // the correct watermark. setStartDate is monotonically non-increasing
-      // (REQ-d00129-C) — read the current schedule and skip the write when the
-      // destination is already activated so a process restart is a no-op.
-      // Questionnaire submissions now ship through the NATIVE
-      // `DiaryServerDestination` (gated on the trial-start watermark), so they
-      // are not activated here.
-      const initiator = AutomationInitiator(service: 'mobile-bootstrap');
-      final activationStartAt = DateTime.now().toUtc();
-      try {
-        final schedule = await runtime.destinations.scheduleOf(
-          LegacySyncDestination.destinationId,
-        );
-        if (schedule.startDate == null) {
-          await runtime.destinations.setStartDate(
-            LegacySyncDestination.destinationId,
-            activationStartAt,
-            initiator: initiator,
-          );
-        }
-      } catch (e, stack) {
-        debugPrint(
-          '[Bootstrap] activation(${LegacySyncDestination.destinationId}) '
-          'failed: $e\n$stack',
-        );
-      }
-
-      // CUR-1169 I1: build the new reactive composition root alongside the
-      // old runtime. Backed by a SEPARATE Sembast store (diary_es.db) so it
-      // shares nothing with the legacy store; mirrors the web/native factory
-      // selection above. Reuses the already-computed deviceId/softwareVersion.
-      // Failures route to _bootstrapError via the enclosing try/catch, exactly
-      // like the old runtime.
+      // Build the native `event_sourcing` reactive composition root. Backed by
+      // the `diary_es.db` Sembast store and driving the sole outbound sync
+      // (DiaryServerDestination + SystemEventsDestination). Failures route to
+      // _bootstrapError via the enclosing try/catch.
       final DiaryScopeRuntime diaryScope;
       Future<bool> Function()? nativeFifoWedged;
       Future<HealthProbeContext> Function()? serviceModeContextBuilder;
@@ -455,20 +378,9 @@ class _AppRootState extends State<AppRoot> {
         // a `submit_questionnaire` dispatch finalizes a `<id>_survey` DiaryEntry
         // event that ships through `DiaryServerDestination`. The nosebleed types
         // are registered internally by `bootstrapDiaryScope`; only the dynamic
-        // (data-driven) survey types are passed in here. `loadSurveyEntryTypes`
-        // returns the legacy `event_sourcing_datastore` definition shape, so map
-        // each to the native `event_sourcing` EntryTypeDefinition the new scope
-        // registers (id / name / version carry over; the native store materializes
-        // the survey into its diary_entries view).
+        // (data-driven) survey types are passed in here.
         // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/N
-        final surveyEntryTypes = [
-          for (final t in await loadSurveyEntryTypes())
-            EntryTypeDefinition(
-              id: t.id,
-              registeredVersion: t.registeredVersion,
-              name: t.name,
-            ),
-        ];
+        final surveyEntryTypes = await loadSurveyEntryTypes();
 
         try {
           diaryScope = await bootstrapDiaryScope(
@@ -596,6 +508,11 @@ class _AppRootState extends State<AppRoot> {
                   return;
                 }
                 await syncCycle.call();
+                // CUR-1398: re-pull /tasks on every periodic / resume /
+                // connectivity / FCM-triggered tick so a slow/dropped push
+                // doesn't leave the home screen stale. Gated by the same
+                // disconnected / not-participating short-circuit above.
+                await _taskService.syncTasks(_enrollmentService);
               },
             );
           } catch (e, stack) {
@@ -645,7 +562,6 @@ class _AppRootState extends State<AppRoot> {
 
       if (mounted) {
         setState(() {
-          _runtime = runtime;
           _deviceId = deviceId;
           _diaryScope = diaryScope;
           _nativeFifoWedged = nativeFifoWedged;
@@ -660,7 +576,7 @@ class _AppRootState extends State<AppRoot> {
       if (EnvProfile.current.env == AppEnv.local && !kIsWeb) {
         try {
           final bridge = DebugBridge(
-            runtime: runtime,
+            scope: diaryScope,
             // Closure over _taskService + _enrollmentService so the
             // bridge can fire a /tasks poll without holding the
             // services as fields.
@@ -910,13 +826,9 @@ class _AppRootState extends State<AppRoot> {
       }
     }
 
-    // 2. Dispose both runtimes (closes both EventStores so the files unlock),
-    //    plus the I2a sync-trigger handles + ingest client — mirrors dispose().
-    try {
-      await _runtime?.dispose();
-    } catch (e, stack) {
-      debugPrint('[Reset] runtime dispose failed: $e\n$stack');
-    }
+    // 2. Dispose the native diary scope (closes the EventStore so the file
+    //    unlocks), plus the sync-trigger handles + ingest client — mirrors
+    //    dispose(). The scope itself is disposed in step 3's block below.
     try {
       await _diarySyncTriggers?.dispose();
     } catch (e, stack) {
@@ -959,7 +871,6 @@ class _AppRootState extends State<AppRoot> {
     //    re-keys HomeScreen, forcing a fresh State against the new runtime.
     if (mounted) {
       setState(() {
-        _runtime = null;
         _diaryScope = null;
         _nativeFifoWedged = null;
         _serviceModeContextBuilder = null;
@@ -980,10 +891,9 @@ class _AppRootState extends State<AppRoot> {
   }
 
   /// Initialize FCM notification service for token registration / permissions /
-  /// topic subscription. Per the cutover plan we no longer hook FCM messages
-  /// into a sync trigger — `installTriggers` (set up by the bootstrap) covers
-  /// that path. Any FCM data messages that need to surface tasks still flow
-  /// through TaskService.handleFcmMessage as before.
+  /// topic subscription. FCM messages drive the diary reconcile via the native
+  /// sync triggers (`installDiarySyncTriggers`); any FCM data messages that need
+  /// to surface tasks flow through TaskService.handleFcmMessage.
   Future<void> _initializeNotifications() async {
     // Tasks are poll-based and independent of the push transport, so load +
     // sync them regardless of environment (a local web/desktop diary that is
@@ -1200,9 +1110,8 @@ class _AppRootState extends State<AppRoot> {
             debugPrint('[YesterdayReminder] dispose error: $e\n$st'),
       ),
     );
-    _runtime?.dispose();
-    // CUR-1169 I2a: tear down the native outbound sync triggers + HTTP client
-    // before disposing the scope they drive.
+    // Tear down the native outbound sync triggers + HTTP client before
+    // disposing the scope they drive.
     unawaited(
       _diarySyncTriggers?.dispose().catchError(
         (Object e, StackTrace st) =>
@@ -1374,10 +1283,9 @@ class _AppRootState extends State<AppRoot> {
         ),
       );
     }
-    final runtime = _runtime;
     final deviceId = _deviceId;
     final diaryScope = _diaryScope;
-    if (runtime == null || deviceId == null || diaryScope == null) {
+    if (deviceId == null || diaryScope == null) {
       return _buildMaterialApp(
         home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       );
@@ -1440,9 +1348,9 @@ class _AppRootState extends State<AppRoot> {
             // pushed route. `home` is just the HomeScreen.
             home: HomeScreen(
               // A fresh device id after a factory reset re-keys HomeScreen so
-              // its State is rebuilt from scratch against the new runtime.
+              // its State is rebuilt from scratch against the new scope.
               key: ValueKey(deviceId),
-              runtime: runtime,
+              diaryScope: diaryScope,
               deviceId: deviceId,
               enrollmentService: _enrollmentService,
               taskService: _taskService,
