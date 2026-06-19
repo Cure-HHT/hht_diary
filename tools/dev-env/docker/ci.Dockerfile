@@ -8,7 +8,7 @@
 # Split into 5 stages for independent layer caching:
 #   1. ci-system       — Debian, apt, GitHub CLI, Node.js+pnpm, Firebase, Python
 #   2. ci-java-flutter — OpenJDK, Flutter SDK, Android SDK + licenses
-#   3. ci-cloud-tools  — Doppler, gcloud, Cloud SQL Proxy, PostgreSQL client, Squawk
+#   3. ci-cloud-tools  — Doppler, gcloud, Cloud SQL Proxy, PostgreSQL client
 #   4. ci-test-tools   — Gitleaks, Playwright + browsers + system deps
 #   5. ci              — devuser, ownership, Flutter config, git config, healthcheck
 #
@@ -182,14 +182,13 @@ RUN mkdir -p ${ANDROID_HOME}/licenses && \
                "platforms;android-${ANDROID_PLATFORM_VERSION}"
 
 # ==============================================================
-# Stage 3: ci-cloud-tools — Doppler, gcloud, Cloud SQL, PostgreSQL, Squawk
+# Stage 3: ci-cloud-tools — Doppler, gcloud, Cloud SQL, PostgreSQL
 # Changes when: tool version bumps (infrequent)
 # ==============================================================
 FROM ci-java-flutter AS ci-cloud-tools
 
 ARG CLOUD_SQL_PROXY_VERSION=2.14.3
 ARG POSTGRESQL_CLIENT_VERSION=16
-ARG SQUAWK_VERSION=2.41.0
 
 # Doppler CLI (secrets management)
 RUN curl -sLf --retry 3 --tlsv1.2 --proto "=https" 'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | \
@@ -226,11 +225,6 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
     apt-get install -y --no-install-recommends postgresql-client-${POSTGRESQL_CLIENT_VERSION} && \
     psql --version && \
     rm -rf /var/lib/apt/lists/*
-
-# Squawk (PostgreSQL migration linter)
-RUN wget -q https://github.com/sbdchd/squawk/releases/download/v${SQUAWK_VERSION}/squawk-linux-x64 -O /usr/local/bin/squawk && \
-    chmod +x /usr/local/bin/squawk && \
-    squawk --version
 
 # ==============================================================
 # Stage 4: ci-test-tools — Gitleaks, Playwright
@@ -319,5 +313,5 @@ LABEL org.opencontainers.image.source="https://github.com/cure-hht/clinical-diar
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL com.clinical-diary.role="ci"
 LABEL com.clinical-diary.version="2.0.0"
-LABEL com.clinical-diary.tools="flutter,android-sdk,node,python,gcloud,playwright,gitleaks,squawk,psql,pandoc,firebase-cli,lcov,elspais,markdownlint-cli"
+LABEL com.clinical-diary.tools="flutter,android-sdk,node,python,gcloud,playwright,gitleaks,psql,pandoc,firebase-cli,lcov,elspais,markdownlint-cli"
 LABEL com.clinical-diary.requirement="REQ-d00027,REQ-d00059,REQ-d00030"
