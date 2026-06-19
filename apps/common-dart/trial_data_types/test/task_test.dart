@@ -57,4 +57,28 @@ void main() {
       expect(round.questionnaireType, original.questionnaireType);
     });
   });
+
+  group('Task.status', () {
+    // Verifies: DIARY-GUI-participant-task-list/J
+    test('Task.fromFcmData reads status', () {
+      final t = Task.fromFcmData({
+        'questionnaire_instance_id': 'i1',
+        'questionnaire_type': 'qol',
+        'study_event': 'Cycle 1 Day 1',
+        'status': 'finalized',
+      });
+      expect(t.status, 'finalized');
+    });
+
+    test('status round-trips through toJson/fromJson', () {
+      final t = Task.fromJson({
+        'id': 'i1',
+        'task_type': 'questionnaire',
+        'title': 'X',
+        'created_at': '2026-01-01T00:00:00Z',
+        'status': 'ready_to_review',
+      });
+      expect(Task.fromJson(t.toJson()).status, 'ready_to_review');
+    });
+  });
 }
