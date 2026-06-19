@@ -278,6 +278,38 @@ void main() {
         expect(service.taskCount, equals(0));
       });
 
+      test(
+        'carries portal-reported status through sync (characterization)',
+        () async {
+          // Verifies: DIARY-GUI-participant-task-list/J — portal-reported status
+          //   survives the full syncTasks path end-to-end.
+          final client = MockClient((request) async {
+            return http.Response(
+              jsonEncode({
+                'tasks': [
+                  {
+                    'questionnaire_instance_id': 'inst-fin-001',
+                    'questionnaire_type': 'nose_hht',
+                    'status': 'finalized',
+                    'study_event': 'visit_1',
+                    'version': 1,
+                    'sent_at': '2024-01-01T00:00:00Z',
+                  },
+                ],
+                'isDisconnected': false,
+              }),
+              200,
+            );
+          });
+
+          final service = TaskService(httpClient: client);
+          await service.syncTasks(mockEnrollment);
+
+          expect(service.taskCount, equals(1));
+          expect(service.tasks.single.status, equals('finalized'));
+        },
+      );
+
       test('skips eq type tasks (CUR-1050)', () async {
         final client = MockClient((request) async {
           return http.Response(
