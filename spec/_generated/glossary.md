@@ -4,9 +4,9 @@
 
 ## A
 
-**ACT-PAT-001 — Link Participant**
-: The Action a Study Coordinator performs to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status, transitioning the **Participant** to **Pending**.
-*Defined in: DIARY-GUI-link-participant-flow (DIARY)*
+**Account Owner**
+: The person associated with a **User Account**, who activates and uses it.
+*Defined in: DIARY-PRD-user-account-activation-workflow (DIARY)*
 
 **Action**
 : A discrete operation that a user can perform within the System, subject to role-based access control. An Action either changes system state or retrieves protected data.
@@ -26,6 +26,10 @@
   - **Application Biometric Lock** if the **Participant**'s device has no screen lock enabled and the **Participant** has set up the **Application Biometric Lock**.
   - **None** if the **Participant** is in personal use mode and has not set up the **Application Biometric Lock**.
 *Defined in: DIARY-PRD-user-authentication (DIARY)*
+
+**Active Users**
+: The **User Management** tab listing **User Accounts** in Active status.
+*Defined in: DIARY-GUI-user-management-tabs (DIARY)*
 
 **Admin** *(not indexed)*
 : A staff member with privileges to create and manage User Accounts,
@@ -104,6 +108,10 @@ See: REQ-p00022 (Analyst Read-Only Access).
 **Assigned Questionnaire**
 : A Questionnaire initiated by a Study Coordinator from the Sponsor Portal and delivered to the participant via push notification.
 *Defined in: DIARY-PRD-questionnaire-portal-sent-rules (DIARY)*
+
+**Assigned Sites**
+: The **Sites** a **User Account** is authorized to access, scoping the **Participants** and data the user can see.
+*Defined in: DIARY-GUI-user-management-tabs (DIARY)*
 
 **Audit Log**
 : A chronological record of Actions performed in the System, presented to each user according to their Role.
@@ -628,6 +636,10 @@ trial. Diary entries help assess the IMP's efficacy and potential side
 effects.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
+**Inactive Users**
+: The **User Management** tab listing **User Accounts** in Inactive status.
+*Defined in: DIARY-GUI-user-management-tabs (DIARY)*
+
 **Incomplete Record**
 : An **Epistaxis Event** that has been saved but is missing one or more required fields: start time, **Intensity**, or end time.
 *Defined in: DIARY-PRD-epistaxis-capture-standard (DIARY)*
@@ -677,6 +689,10 @@ data collection procedures.
 *Defined in: DIARY-PRD-entry-time-restrictions (DIARY)*
 
 ## L
+
+**Link Participant**
+: The Action a Study Coordinator performs to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status, transitioning the **Participant** to **Pending**.
+*Defined in: DIARY-GUI-link-participant-flow (DIARY)*
 
 **Linking Code**
 : A unique, cryptographically random 10-character code used to securely
@@ -845,6 +861,10 @@ staff assisting the PI. Both have Investigator role access in the
 Portal.
 See: REQ-p00036 (Investigator Site-Scoped Access).
 *Defined in: file:spec/glossary-core.md (DIARY)*
+
+**PII**
+: Personally Identifiable Information — data that identifies an individual, such as a person's name or email address.
+*Defined in: DIARY-PRD-user-account-create (DIARY)*
 
 **PII (Personally Identifiable Information)** *(not indexed)*
 : Information that can identify, contact, or locate a specific
@@ -1122,10 +1142,6 @@ contexts, always prefer specific role names to avoid ambiguity.
 with the system, identified by a unique Email Address and bound to one
 or more Roles.
 *Defined in: file:spec/glossary-core.md (DIARY)*
-
-**User Information Modal**
-: A modal dialog displaying the details and available actions for a selected **User Account**.
-*Defined in: DIARY-GUI-user-management-tabs (DIARY)*
 
 **User Profile Screen**
 : The screen accessible from the **Application Menu** that displays the **Participant**'s study participation status and application settings.

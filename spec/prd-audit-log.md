@@ -86,7 +86,7 @@ A *Study Coordinator*'s investigative workflow centers on individual participant
 
 ### Overview
 
-The **CRA** **Audit Log View** is accessed by selecting a **Site** from the **CRA**'s list of assigned Sites and presents **Study Coordinator** Actions for the selected **Site**. A **Study Coordinator** filter and a **Participant ID** search input enable focused review.
+The **CRA** **Audit Log View** is accessed by selecting a **Site** from the **CRA**'s list of *Assigned Sites* and presents **Study Coordinator** Actions for the selected **Site**. A **Study Coordinator** filter and a **Participant ID** search input enable focused review.
 
 ### Assertions
 

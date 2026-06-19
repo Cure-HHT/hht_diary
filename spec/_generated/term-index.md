@@ -2,7 +2,17 @@
 <!-- Do not edit manually; changes will be overwritten. -->
 # Term Index
 
-## ACT-PAT-001 — Link Participant
+## Account Owner
+
+**DIARY:**
+
+- DIARY-DEV-portal-activation-code-lifecycle:section:0
+- DIARY-DEV-portal-identity-provisioning:section:0
+- DIARY-DEV-portal-identity-provisioning:section:1
+- DIARY-DEV-portal-activation-email-delivery:section:0
+- DIARY-DEV-portal-user-activated-binding:section:1
+- DIARY-DEV-portal-session-lifecycle:section:1
+- DIARY-PRD-user-account-edit:section:1
 
 ## Action
 
@@ -161,7 +171,6 @@
 - DIARY-PRD-user-account-create:section:1
 - DIARY-PRD-user-account-site-assignment:section:1
 - DIARY-PRD-user-account-deactivate:section:0
-- DIARY-PRD-user-account-deactivate:section:1
 - DIARY-PRD-reason-field-constraints:section:0
 - DIARY-PRD-reason-field-constraints:section:1
 - DIARY-GUI-user-account-deactivate:section:0
@@ -199,6 +208,22 @@
 - DIARY-BASE-user-authentication-pin:section:0
 - DIARY-BASE-user-authentication-pin:section:6
 - DIARY-PRD-user-authentication:section:7
+
+## Active Users
+
+**DIARY:**
+
+- DIARY-GUI-user-management-tabs-A
+- DIARY-GUI-user-management-tabs-B
+- DIARY-GUI-user-management-tabs-D
+- DIARY-GUI-user-account-deactivate-A
+- DIARY-GUI-user-account-reactivate-E
+- DIARY-GUI-user-information-modal-I
+- DIARY-GUI-user-account-deactivate:section:0
+- DIARY-GUI-user-account-deactivate:section:3
+- DIARY-GUI-user-account-reactivate:section:0
+- DIARY-GUI-user-account-reactivate:section:3
+- DIARY-GUI-user-information-modal:section:3
 
 ## Administrator
 
@@ -262,7 +287,7 @@
 - DIARY-PRD-user-account-site-assignment:section:1
 - DIARY-PRD-user-account-activation-resend:section:1
 - DIARY-PRD-user-account-edit:section:1
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-management-tabs:section:5
 - DIARY-GUI-user-account-deactivate:section:3
@@ -365,6 +390,14 @@
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:0
 
+## Assigned Sites
+
+**DIARY:**
+
+- DIARY-GUI-user-management-tabs-L
+- DIARY-BASE-system-operator-role:section:0
+- DIARY-GUI-audit-log-cra:section:0
+
 ## Audit Log
 
 **DIARY:**
@@ -453,7 +486,6 @@
 - DIARY-PRD-questionnaire-localization:section:0
 - DIARY-PRD-user-account-create:section:1
 - DIARY-PRD-user-account-deactivate:section:0
-- DIARY-PRD-user-account-deactivate:section:1
 - DIARY-PRD-reason-field-constraints:section:1
 - DIARY-GUI-user-account-reactivate:section:3
 
@@ -676,7 +708,6 @@
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-edit:section:1
 - DIARY-PRD-user-account-deactivate:section:0
-- DIARY-PRD-user-account-deactivate:section:1
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-PRD-reason-field-constraints:section:1
 - DIARY-GUI-user-account-deactivate:section:0
@@ -1063,7 +1094,7 @@
 - DIARY-PRD-system-validation-traceability:section:1
 - DIARY-PRD-sla-root-cause-analysis:section:0
 - DIARY-PRD-sla-regulatory-event-support:section:0
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 
 ## FDA 21 CFR Part 11 (Regulation)
 
@@ -1191,6 +1222,19 @@
 - DIARY-PRD-user-authentication:section:7
 - DIARY-PRD-session-management:section:6
 
+## Inactive Users
+
+**DIARY:**
+
+- DIARY-GUI-user-management-tabs-A
+- DIARY-GUI-user-management-tabs-C
+- DIARY-GUI-user-account-deactivate-E
+- DIARY-GUI-user-account-reactivate-A
+- DIARY-GUI-user-information-modal-J
+- DIARY-GUI-user-account-deactivate:section:3
+- DIARY-GUI-user-account-reactivate:section:0
+- DIARY-GUI-user-account-reactivate:section:3
+
 ## Incomplete Record
 
 **DIARY:**
@@ -1255,6 +1299,12 @@
 - DIARY-PRD-entry-time-restrictions-J
 - DIARY-GUI-entry-overlap-resolution-F
 - DIARY-PRD-entry-time-restrictions:section:4
+
+## Link Participant
+
+**DIARY:**
+
+- DIARY-GUI-link-participant-flow
 
 ## Linking Code
 
@@ -1574,7 +1624,6 @@
 - DIARY-PRD-participant-reconnection
 - DIARY-PRD-participant-reactivate
 - DIARY-GUI-participant-dashboard
-- DIARY-GUI-link-participant-flow
 - DIARY-BASE-audit-trail-E
 - DIARY-BASE-local-data-reset-B
 - DIARY-BASE-questionnaire-coordinator-workflow-A
@@ -2137,6 +2186,13 @@
 - DIARY-PRD-questionnaire-localization:section:0
 - DIARY-PRD-sla-incident-severity:section:0
 
+## PII
+
+**DIARY:**
+
+- DIARY-PRD-evidence-geolocation:section:0
+- DIARY-PRD-evidence-email-identity:section:0
+
 ## PIN
 
 **DIARY:**
@@ -2648,7 +2704,7 @@
 - rem:spec/prd-user-account.md:3
 - DIARY-PRD-user-account-create:section:1
 - DIARY-PRD-user-account-edit:section:1
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-information-modal:section:3
 - DIARY-GUI-administrator-dashboard:section:4
@@ -2712,7 +2768,7 @@
 - DIARY-PRD-session-management-A
 - DIARY-PRD-session-management-C
 - DIARY-PRD-session-management-D
-- DIARY-PRD-session-management-H
+- DIARY-PRD-session-management-G
 - DIARY-PRD-session-management-I
 - DIARY-PRD-session-management-K
 - DIARY-GUI-portal-session-expiry-B
@@ -2758,7 +2814,7 @@
 - DIARY-GUI-questionnaire-session-expiry:section:6
 - DIARY-GUI-role-switching:section:3
 - DIARY-PRD-user-account-edit:section:1
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 
 ## Session Expiry
 
@@ -2796,7 +2852,7 @@
 **DIARY:**
 
 - DIARY-PRD-session-management-C
-- DIARY-PRD-session-management-G
+- DIARY-PRD-session-management-H
 - DIARY-PRD-session-management-I
 - DIARY-GUI-portal-session-expiry-A
 
@@ -2893,7 +2949,7 @@
 - DIARY-PRD-user-account-site-assignment:section:0
 - DIARY-PRD-user-account-site-assignment:section:1
 - DIARY-PRD-user-account-edit:section:1
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 - DIARY-PRD-user-account-reactivate:section:0
 - DIARY-GUI-user-information-modal:section:3
 
@@ -2980,7 +3036,7 @@
 - DIARY-PRD-ancillary-platform-services-L
 - DIARY-PRD-two-factor-authentication-G
 - DIARY-PRD-two-factor-authentication-H
-- DIARY-PRD-session-management-G
+- DIARY-PRD-session-management-H
 - DIARY-PRD-session-management-J
 - DIARY-PRD-questionnaire-system-E
 - DIARY-PRD-questionnaire-sponsor-configuration-A
@@ -3130,7 +3186,7 @@
 - DIARY-PRD-sla-regulatory-event-support:section:0
 - rem:spec/prd-status-registry.md:19
 - rem:spec/prd-user-account.md:3
-- DIARY-PRD-user-account-deactivate:section:1
+- DIARY-PRD-user-account-deactivate:section:0
 - DIARY-GUI-administrator-dashboard:section:4
 
 ## Sponsor Portal
@@ -3536,6 +3592,7 @@
 - DIARY-DEV-portal-seed-config
 - DIARY-DEV-operator-tier-authz
 - DIARY-GUI-user-management-tabs
+- DIARY-GUI-user-information-modal
 - DIARY-DEV-deployment-config-defaults-E
 - DIARY-DEV-portal-active-role-switch-A
 - DIARY-DEV-portal-active-role-switch-B
@@ -3610,10 +3667,13 @@
 - DIARY-GUI-user-management-tabs-I
 - DIARY-GUI-user-management-tabs-J
 - DIARY-GUI-user-management-tabs-K
+- DIARY-GUI-user-management-tabs-M
 - DIARY-GUI-user-management-tabs-N
 - DIARY-GUI-user-account-deactivate-A
 - DIARY-GUI-user-account-deactivate-D
 - DIARY-GUI-user-account-reactivate-D
+- DIARY-GUI-user-information-modal-A
+- DIARY-GUI-user-information-modal-B
 - DIARY-GUI-user-information-modal-I
 - DIARY-GUI-user-information-modal-J
 - DIARY-GUI-user-information-modal-K
@@ -3696,6 +3756,7 @@
 - DIARY-GUI-user-management-tabs:section:5
 - DIARY-GUI-user-account-reactivate:section:0
 - DIARY-GUI-user-account-reactivate:section:3
+- DIARY-GUI-user-information-modal:section:0
 - DIARY-GUI-user-information-modal:section:3
 - DIARY-GUI-administrator-dashboard:section:0
 
@@ -3800,25 +3861,9 @@
 - DIARY-PRD-user-account-activation-workflow:section:6
 - DIARY-PRD-user-account-site-assignment:section:1
 - DIARY-PRD-user-account-activation-resend:section:1
-- DIARY-PRD-user-account-deactivate:section:0
 - DIARY-GUI-user-information-modal:section:0
 - DIARY-GUI-administrator-dashboard:section:0
 - DIARY-GUI-administrator-dashboard:section:4
-
-## User Information Modal
-
-**DIARY:**
-
-- DIARY-GUI-user-information-modal
-- DIARY-GUI-user-management-tabs-M
-- DIARY-GUI-user-information-modal-A
-- DIARY-GUI-user-information-modal-B
-- DIARY-GUI-user-information-modal-I
-- DIARY-GUI-user-information-modal-J
-- DIARY-GUI-user-information-modal-K
-- DIARY-GUI-user-management-tabs:section:5
-- DIARY-GUI-user-information-modal:section:0
-- DIARY-GUI-user-information-modal:section:3
 
 ## User Profile Screen
 

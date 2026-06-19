@@ -298,7 +298,7 @@ Show *Linking Code* is a pseudo-*Action*: it does not change *Participant* state
 This requirement declares the Link *Participant* *Action* (`ACT-PAT-001`) and specifies the dialog flow a *Study Coordinator* follows to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status.
 
 
-ACT-PAT-001 — Link Participant
+Link Participant
 : The Action a Study Coordinator performs to issue a **Mobile Linking Code** for a **Participant** in **Not Connected** status, transitioning the **Participant** to **Pending**.
 
 ### Assertions

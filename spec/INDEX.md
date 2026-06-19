@@ -70,7 +70,7 @@
 | DIARY-PRD-role-definitions                       | Role Definitions                                    | prd-rbac.md                               | 9aa6251c |
 | DIARY-PRD-score-hht-qol                          | HHT-QoL Score Calculation                           | prd-score-calculation.md                  | 67ca87e3 |
 | DIARY-PRD-score-nose-hht                         | NOSE HHT Score Calculation                          | prd-score-calculation.md                  | 634f9daf |
-| DIARY-PRD-session-management                     | Session Management                                  | prd-portal-auth.md                        | c7e0471e |
+| DIARY-PRD-session-management                     | Session Management                                  | prd-portal-auth.md                        | e4c6d237 |
 | DIARY-PRD-sla-chronic-failure-escalation         | Chronic Failure Escalation                          | prd-sla.md                                | 18eb2eed |
 | DIARY-PRD-sla-corrective-preventive              | Corrective and Preventive Action                    | prd-sla.md                                | 168ba70d |
 | DIARY-PRD-sla-customer-notification              | Customer Incident Notification                      | prd-sla.md                                | 93c0d962 |
@@ -117,7 +117,7 @@
 | -------------------------------------------- | ------------------------------------------ | ----------------------------------------- | -------- |
 | DIARY-GUI-accessibility-preferences          | Accessibility and Preferences              | prd-mobile-navigation.md                  | 95c62ef0 |
 | DIARY-GUI-administrator-dashboard            | Administrator Dashboard                    | prd-user-account.md                       | bdabc38a |
-| DIARY-GUI-administrator-settings             | Administrator Settings Interface           | prd-administrator-settings.md             | b3c6cc2f |
+| DIARY-GUI-administrator-settings             | Administrator Settings Interface           | prd-administrator-settings.md             | ea0a3ce6 |
 | DIARY-GUI-audit-log-administrator            | Administrator Audit Log View               | prd-audit-log.md                          | 1f44ba79 |
 | DIARY-GUI-audit-log-common                   | Audit Log View — Common Presentation       | prd-audit-log.md                          | 8187a8a1 |
 | DIARY-GUI-audit-log-cra                      | CRA Audit Log View                         | prd-audit-log.md                          | a5a86d21 |
@@ -147,7 +147,7 @@
 | DIARY-GUI-user-account-reactivate            | Reactivate User Account                    | prd-user-account.md                       | 15f0d2fd |
 | DIARY-GUI-user-authentication                | Diary User Authentication — Interface      | prd-mobile-app.md                         | 86acaf51 |
 | DIARY-GUI-user-information-modal             | User Information Modal                     | prd-user-account.md                       | 378c3dcd |
-| DIARY-GUI-user-management-tabs               | User Management Tabs                       | prd-user-account.md                       | f36341b4 |
+| DIARY-GUI-user-management-tabs               | User Management Tabs                       | prd-user-account.md                       | 763777de |
 | DIARY-GUI-user-profile                       | User Profile Screen                        | prd-mobile-navigation.md                  | c915b967 |
 
 ## OPERATIONS

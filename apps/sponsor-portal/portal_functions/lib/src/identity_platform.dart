@@ -102,7 +102,7 @@ class VerificationResult {
   /// portal_users.tokens_revoked_at in requirePortalAuth to enforce
   /// session termination on permission changes.
   ///
-  /// Implements: DIARY-PRD-session-management/H
+  /// Implements: DIARY-PRD-session-management/G
   final DateTime? authTime;
 
   VerificationResult({
@@ -262,7 +262,7 @@ Future<VerificationResult> verifyIdToken(String idToken) async {
 /// treat a null authTime as "session-revocation enforcement cannot be
 /// applied to this token" and proceed with the other checks unchanged.
 ///
-/// Implements: DIARY-PRD-session-management/H
+/// Implements: DIARY-PRD-session-management/G
 DateTime? _parseAuthTime(Object? raw) {
   if (raw is num) {
     return DateTime.fromMillisecondsSinceEpoch(raw.toInt() * 1000, isUtc: true);
