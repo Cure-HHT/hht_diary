@@ -601,7 +601,6 @@ SELECT pg_size_pretty(pg_database_size('clinical_diary'));
 - [Cloud SQL PostgreSQL](https://cloud.google.com/sql/docs/postgres)
 - [Cloud SQL Auth Proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy)
 - [Terraform google_sql_database_instance](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/sql_database_instance)
-- **Database Schema**: spec/dev-database.md
 - **RLS Policies**: spec/dev-security-RLS.md
 
 ---

@@ -633,7 +633,6 @@ Month 3:
 
 **References**:
 - docs/adr/ADR-006-docker-dev-environments.md
-- spec/dev-environment.md <!-- CUR-350 VERIFY: spec/dev-environment.md deleted in URS-v1; confirm successor (maybe spec/dev-environment-resolution.md) or remove -->
 - tools/dev-env/README.md
 
 **Last Updated**: 2025-10-26

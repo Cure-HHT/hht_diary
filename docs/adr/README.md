@@ -248,4 +248,4 @@ Not every ADR needs formal requirements:
 - [Documenting Architecture Decisions by Michael Nygard](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
 - [ADR GitHub Organization](https://adr.github.io/)
 - **Requirement grammar**: the elspais MCP (`agent_instructions()` / `docs()`)
-- **Requirement traceability**: `../spec/README.md` and `../../CLAUDE.md`
+- **Requirement traceability**: `../../spec/README.md` and `../../CLAUDE.md`

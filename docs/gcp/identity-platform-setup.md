@@ -715,7 +715,7 @@ gcloud identity-platform configs describe \
 - [Firebase Auth for Flutter](https://firebase.flutter.dev/docs/auth/overview)
 - [Custom Claims](https://firebase.google.com/docs/auth/admin/custom-claims)
 - [JWT Verification](https://firebase.google.com/docs/auth/admin/verify-id-tokens)
-- **RBAC Implementation**: spec/prd-security-RBAC.md
+- **RBAC Implementation**: spec/prd-rbac.md
 - **RLS Policies**: spec/dev-security-RLS.md
 
 ---

@@ -318,7 +318,6 @@ Reports are generated during:
 **Related Documentation**:
 - build-reports/README.md: Report structure and usage
 - spec/ops-deployment.md: Build and deployment procedures
-- spec/dev-compliance-practices.md: Compliance validation procedures
 
 ---
 
