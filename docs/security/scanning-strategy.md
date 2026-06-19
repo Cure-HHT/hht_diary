@@ -245,17 +245,17 @@ Running pre-commit gitleaks scan...
 Error: Secret detected in staged files
   File: config/settings.py
   Line: 42
-  Secret: AWS Access Key
+  Secret: cloud-provider access key
 ```
 
 **Resolution**:
 1. Remove secret from file
-2. Store secret in Doppler: `doppler secrets set AWS_ACCESS_KEY`
-3. Update code to read from environment: `os.environ.get('AWS_ACCESS_KEY')`
+2. Store secret in Doppler: `doppler secrets set CLOUD_ACCESS_KEY`
+3. Update code to read from environment: `os.environ.get('CLOUD_ACCESS_KEY')`
 4. Retry commit
 
 **If already pushed**:
-1. Revoke the secret IMMEDIATELY (AWS console, Linear settings, etc.)
+1. Revoke the secret IMMEDIATELY (the provider's console, Linear settings, etc.)
 2. Clean history: `git filter-repo --path config/settings.py --invert-paths`
 3. Force push: `git push --force-with-lease`
 4. Add to `.gitleaks.toml` allowlist with reason

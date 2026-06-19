@@ -80,8 +80,6 @@ Most documentation lives in the root with topic-based prefixes for easy discover
   - Examples: `cicd-setup-guide.md`
 - **architecture-\*** : System architecture (non-ADR implementation details)
   - Examples: `architecture-build-integrated-workflow.md`
-- **database-\*** : Database / event-store operational guides (backup, archival). The event store schema itself is created at runtime by the `event_sourcing` library; there is no in-repo SQL schema.
-  - Examples: `database-backup-setup.md`
 - **compliance-\*** : Compliance audits and verification
   - Examples: `compliance-gcp-verification.md`
 

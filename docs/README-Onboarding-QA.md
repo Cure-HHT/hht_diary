@@ -198,7 +198,7 @@ void main() {
 The CI generates traceability matrices showing requirement-to-test coverage:
 - **Location**: `build-reports/` (generated artifacts)
 - **Workflow**: `build-test.yml` generates per-sponsor and combined matrices
-- **Retention**: 90 days in GitHub Actions, 7 years in S3
+- **Retention**: 90 days in GitHub Actions (long-term 7-year archival for FDA compliance is a gap, not yet implemented)
 
 ## Validation Reports
 

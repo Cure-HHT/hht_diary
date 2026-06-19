@@ -69,7 +69,8 @@ build-reports/
 **Generation and Storage**:
 1. **Local Development**: Reports generated to build-reports/ for debugging, gitignored
 2. **GitHub Actions**: Reports uploaded as workflow artifacts (90-day retention)
-3. **Long-Term Archive**: Reports archived to AWS S3 (7-year retention for FDA compliance)
+
+**Gap**: FDA 21 CFR Part 11 requires a minimum 7-year retention (see Context item 4). Long-term archival of build reports beyond the GitHub Actions artifact window is not yet implemented.
 
 ### Report Categories
 
@@ -105,24 +106,6 @@ Reports are generated during:
 - **Main Branch Builds**: Full test suite, comprehensive traceability
 - **Release Builds**: Complete validation bundle, archival package
 
-### S3 Archival Structure
-
-Long-term archival follows this path structure:
-```
-s3://clinical-diary-build-reports/
-├── core/
-│   └── {git-tag}/
-│       └── {timestamp}/
-│           ├── combined/
-│           ├── callisto/
-│           └── titan/
-└── sponsors/
-    ├── callisto/
-    │   └── {git-tag}/
-    └── titan/
-        └── {git-tag}/
-```
-
 ---
 
 ## Consequences
@@ -131,20 +114,14 @@ s3://clinical-diary-build-reports/
 
 ✅ **Clear Organization**: Centralized location for all build reports, easy to find
 ✅ **Sponsor Isolation**: Each sponsor's reports completely separated
-✅ **FDA Compliance**: 7-year retention in S3 meets regulatory requirements
 ✅ **Git Cleanliness**: Generated reports don't clutter git history
 ✅ **CI/CD Friendly**: Easy integration with GitHub Actions artifact upload
-✅ **Flexible Access**: Recent reports in GitHub, historical in S3
-✅ **Tamper Evidence**: S3 object versioning + SHA-256 checksums
 ✅ **Cross-Sponsor Analysis**: Combined reports enable core platform validation
 ✅ **Template Reuse**: Templates/ provides reference for test infrastructure
 
 ### Negative
 
-⚠️ **Dual Storage**: Reports stored in both GitHub Actions and S3 (mitigated: different retention periods)
-⚠️ **S3 Cost**: Long-term storage costs money (mitigated: Glacier storage class after 90 days)
-⚠️ **Access Control**: Need to manage S3 access permissions (mitigated: IAM policies)
-⚠️ **Backup Complexity**: S3 needs its own backup strategy (mitigated: S3 cross-region replication)
+⚠️ **Artifact Retention Window**: GitHub Actions artifacts retain reports for 90 days; long-term (7-year) archival required for FDA compliance is not yet implemented (gap)
 
 ### Neutral
 
@@ -259,13 +236,11 @@ s3://clinical-diary-build-reports/
 ### Phase 3: CI/CD Integration (In Progress)
 - GitHub Actions workflow to generate reports
 - Artifact upload configuration
-- S3 archival automation
 - Report format standardization
 
-### Phase 4: S3 Archival (Planned)
-- S3 bucket configuration
-- Lifecycle policies (90 days Standard, then Glacier)
-- Cross-region replication
+### Phase 4: Long-Term Archival (Not Yet Implemented)
+- Durable archive store for the FDA 7-year retention requirement
+- Lifecycle / retention policies
 - Access control policies
 
 ### Phase 5: Report Generation Tools (Planned)
@@ -282,18 +257,14 @@ s3://clinical-diary-build-reports/
 
 1. **Tamper Evidence**
    - Each report includes SHA-256 checksum
-   - S3 object versioning enabled
    - Audit trail of who uploaded what when
 
 2. **Retention Policy**
-   - Minimum 7 years in S3
-   - Automated lifecycle management
-   - No manual deletions allowed
+   - Minimum 7-year retention required for FDA compliance
+   - Long-term archival to satisfy this requirement is a gap (not yet implemented); current reports are retained as GitHub Actions artifacts (90-day window)
 
 3. **Access Control**
-   - S3 bucket policies enforce read-only access
-   - IAM roles for CI/CD upload
-   - Audit logging via CloudTrail
+   - GitHub Actions artifacts scoped to repository access controls
 
 4. **Completeness Validation**
    - CI/CD validates all expected reports generated
@@ -314,28 +285,25 @@ s3://clinical-diary-build-reports/
 1. Archive any existing reports in their current locations
 2. Create build-reports/ structure
 3. Update CI/CD pipelines to generate to new location
-4. Configure S3 bucket and archival
-5. Deprecate old report locations
-6. Document new access procedures
+4. Deprecate old report locations
+5. Document new access procedures
 
 ---
 
 ## Success Metrics
 
-- ✅ All reports findable in build-reports/ or S3
-- ✅ FDA audit ready: 7-year retention verified
+- ✅ All reports findable in build-reports/ or as GitHub Actions artifacts
+- ◯ FDA audit ready: 7-year retention (gap — long-term archival not yet implemented)
 - ✅ CI/CD generates reports on every build
 - ✅ Reports include complete traceability data
 - ✅ No git bloat from report files
 - ✅ Developers can generate reports locally when needed
-- ✅ S3 costs under budget (<$50/month estimated)
 
 ---
 
 ## References
 
 - FDA 21 CFR Part 11: https://www.fda.gov/regulatory-information/search-fda-guidance-documents/part-11-electronic-records-electronic-signatures-scope-and-application
-- AWS S3 Documentation: https://docs.aws.amazon.com/s3/
 - GitHub Actions Artifacts: https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts
 
 ---
