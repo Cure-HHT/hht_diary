@@ -36,6 +36,7 @@ import 'package:clinical_diary/services/link_sponsor_settings.dart';
 import 'package:clinical_diary/services/local_data_reset.dart';
 import 'package:clinical_diary/services/notification_service.dart';
 import 'package:clinical_diary/services/push_receiver.dart';
+import 'package:clinical_diary/services/questionnaire_status_sync.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
@@ -470,6 +471,15 @@ class _AppRootState extends State<AppRoot> {
           _localPushController = StreamController<RemoteMessage>.broadcast();
         }
 
+        // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
+        // Reconciles portal-reported task statuses against the device-local
+        // questionnaire_status view after each task sync, idempotently minting
+        // record_questionnaire_finalized for newly-finalized tasks.
+        final qStatusSync = QuestionnaireStatusSync(
+          scope: diaryScope.scope,
+          enableUnlock: false,
+        );
+
         final syncCycle = diaryScope.syncCycle;
         if (syncCycle != null) {
           try {
@@ -512,7 +522,15 @@ class _AppRootState extends State<AppRoot> {
                 // connectivity / FCM-triggered tick so a slow/dropped push
                 // doesn't leave the home screen stale. Gated by the same
                 // disconnected / not-participating short-circuit above.
+                // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
                 await _taskService.syncTasks(_enrollmentService);
+                try {
+                  await qStatusSync.reconcile(_taskService.tasks);
+                } catch (e, stack) {
+                  debugPrint(
+                    '[TaskSync] questionnaire status reconcile failed: $e\n$stack',
+                  );
+                }
               },
             );
           } catch (e, stack) {
