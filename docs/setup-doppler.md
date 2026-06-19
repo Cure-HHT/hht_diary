@@ -17,8 +17,3 @@
 - Rotation is automated and PR-gated.
 - The runtime mechanism is the `doppler-oidc-auth` / `gcp-wif-auth` composite actions in
   **`hht_workflows`**.
-
-The previous local manual-setup guides (`setup-doppler-project.md`, `setup-doppler-new-sponsor.md`,
-`setup-doppler-new-dev.md`, and `security/doppler-google-cloud.md`) described an ad-hoc,
-statically-tokened flow that the OIDC model above replaced. They were retired in CUR-350; see
-git history if you need the old content.

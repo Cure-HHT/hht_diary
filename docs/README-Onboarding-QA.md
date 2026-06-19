@@ -108,14 +108,13 @@ npm test                      # Jest unit tests
 npm run test:integration      # Requires Firebase emulator
 ```
 
-### 3. Database Tests
+### 3. Event-Store Tests
 
-> **Removed in the EVS cutover (2026-06, CUR-1170).** The `database/` directory — including
-> `database/tests/` (`test_audit_trail.sql`, `test_compliance_functions.sql`,
-> `run_all_tests.sh`) — was deleted. There is no in-repo SQL schema or SQL test suite anymore.
-> Under EVS, the audit trail is the hash-chained event log owned by the `event_sourcing`
-> library, and event-store behavior is covered by the EVS server's Dart tests
-> (`apps/sponsor-portal/portal_server_evs`) plus the `event_sourcing` library's own suite.
+The audit trail is the hash-chained event log owned by the `event_sourcing` library.
+Event-store behavior is covered by the EVS server's Dart tests
+(`apps/sponsor-portal/portal_server_evs`) plus the `event_sourcing` library's own suite.
+The event-store schema is created at runtime by the `event_sourcing` library, so there
+is no in-repo SQL schema or SQL test suite to run.
 
 ### 4. Comprehensive Test Suite
 
@@ -165,22 +164,8 @@ QA owns security validation. Our defense-in-depth strategy:
 | **Gitleaks** | Secrets in code | Yes |
 | **Trivy** | Dependency vulnerabilities, IaC issues | No (reports only) |
 | **Flutter Analyze** | Dart static analysis | Yes |
-| ~~**Squawk**~~ | ~~Dangerous PostgreSQL migrations~~ | REMOVED (EVS cutover — no in-repo SQL migrations) |
 
 **Read**: `docs/security/scanning-strategy.md`
-
-### Squawk Rules (Critical for DB Changes) — REMOVED (EVS cutover)
-
-> **Removed in the EVS cutover (2026-06, CUR-1170).** Squawk migration linting no longer runs:
-> the `database/` directory was deleted and the EVS event store creates its own schema at
-> runtime via the `event_sourcing` library, so there are no in-repo SQL migrations to lint.
-> The notes below are retained for historical context only.
-
-Squawk prevented migrations that could cause production issues:
-- Table locks during ALTER TABLE
-- Missing indexes on foreign keys
-- NOT NULL without DEFAULT
-- Unsafe column type changes
 
 ## Requirement Traceability for QA
 
@@ -302,8 +287,7 @@ flutter test --coverage && genhtml coverage/lcov.info -o coverage/html
 # TypeScript tests
 cd apps/daily-diary/clinical_diary/functions && npm test
 
-# (Removed in EVS cutover) The in-repo SQL DB tests (database/tests/run_all_tests.sh)
-# no longer exist; EVS event-store behavior is covered by portal_server_evs Dart tests.
+# EVS event-store behavior is covered by the portal_server_evs Dart tests.
 
 # Full suite
 cd apps/daily-diary/clinical_diary && ./tool/test.sh
@@ -317,9 +301,6 @@ gitleaks detect --source .
 
 # Flutter analysis
 flutter analyze --fatal-infos
-
-# (Removed in EVS cutover) Squawk SQL migration linting no longer applies —
-# there are no in-repo SQL migrations.
 ```
 
 ## Defect Management

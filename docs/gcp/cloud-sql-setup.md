@@ -220,17 +220,16 @@ chmod +x cloud-sql-proxy
 gcloud sql connect $INSTANCE_NAME --user=app_user --database=$DATABASE_NAME
 ```
 
-### Step 8: Deploy Core Schema
+### Step 8: Event-Store Schema
 
-> **Changed in the EVS cutover (2026-06, CUR-1170).** Cloud SQL is still used — it hosts the
-> EVS event store — but it is **no longer loaded from in-repo SQL**. The `database/` directory
-> (schema/triggers/roles/RLS/indexes) was deleted; there is nothing to `psql -f`. Under EVS the
-> `event_sourcing` library's `PostgresBackend` creates and owns the event-store schema at
-> runtime when `portal_server_evs` first connects. No manual schema-deploy step is required.
-> The relational table/RLS details in the following sections describe the retired schema and
-> are kept for historical reference only.
+> Cloud SQL hosts the EVS event store. The `event_sourcing` library's `PostgresBackend`
+> creates and owns the event-store schema at runtime when `portal_server_evs` first
+> connects, so there is no manual schema-deploy step (no `psql -f`).
+>
+> The relational table/RLS details in the following sections are reference material for
+> the raw-Postgres data model and are not part of the EVS event-store schema.
 
-### Expected Core Tables (historical — retired relational schema)
+### Reference: Relational Tables
 
 ```
  table_name

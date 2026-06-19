@@ -75,12 +75,10 @@ See `hht_diary_callisto/deployment/README.md` for the full container layering.
 
 ### What This Repo Does NOT Build
 
-Deployment is owned by sponsor repos. The following workflows were removed
-because they were replaced by the sponsor-repo deployment model:
-
-- `build-portal-server.yml` — replaced by `hht_diary_callisto` build workflows
-- `build-diary-server.yml` — replaced by `hht_diary_callisto` build workflows
-- `deploy-run-service.yml` — replaced by `hht_diary_callisto` deploy workflows
+Server builds and Cloud Run deployments are owned by the sponsor repos. This repo
+builds only the shared base image (`build-sponsor-ci.yml`); sponsor repos pull it,
+overlay their content, compile their servers, and deploy. See
+`hht_diary_callisto/deployment/README.md` for the build/deploy workflows.
 
 ### Terraform
 
@@ -167,8 +165,8 @@ migration set to deploy.
 Health check scripts for deployed services:
 
 ```bash
-# Portal server (event-sourced; diary devices ingest into the portal — there is no
-# separate diary-service post-EVS)
+# Portal server (event-sourced; diary devices ingest into the portal; there is no
+# separate diary service)
 ./apps/sponsor-portal/tool/deployment-doctor.sh --url https://portal-service-XXXX.run.app --verbose
 ```
 

@@ -63,7 +63,7 @@ During a regulatory audit, an FDA inspector may ask questions like:
 | --------- | ------- | ------------------- |
 | Mobile App (Flutter) | Participant diary entry | `apps/daily-diary/clinical_diary/`, `spec/prd-diary-app.md` |
 | Web Portal (Flutter) | Investigator/sponsor/admin interface | `apps/portal/`, `spec/prd-portal.md` |
-| Database (PostgreSQL) | EVS event store + hash-chained audit trail (schema created at runtime by the `event_sourcing` library; the in-repo `database/` SQL was removed in the EVS cutover, CUR-1170) | `apps/sponsor-portal/portal_server_evs`, `spec/dev-database.md` |
+| Database (PostgreSQL) | EVS event store + hash-chained audit trail (schema created at runtime by the `event_sourcing` library) | `apps/sponsor-portal/portal_server_evs`, `spec/dev-database.md` |
 | EDC Integration | Export to sponsor's Electronic Data Capture | `spec/dev-CDISC.md` |
 
 ## Core Architectural Patterns
@@ -82,9 +82,7 @@ This provides a complete, immutable history. You can reconstruct the state at an
 
 ### 2. Data Isolation (per-sponsor VPC + event-sourced permissions)
 
-Data isolation is enforced two ways under the event-sourcing model: each sponsor runs in its own GCP project / VPC (hard tenancy boundary), and within a deployment access is governed by event-sourced permissions evaluated in the application layer — not PostgreSQL row-level security, which was retired with the relational schema in the EVS cutover.
-
-**Read**: `docs/adr/ADR-003-row-level-security.md` (historical — superseded by the EVS cutover).
+Data isolation is enforced two ways: each sponsor runs in its own GCP project / VPC (hard tenancy boundary), and within a deployment access is governed by event-sourced permissions evaluated in the application layer.
 
 ### 3. Multi-Sponsor Architecture
 
@@ -167,8 +165,6 @@ Our CI/CD pipeline runs multiple security scanners:
 - **Gitleaks** - Blocks commits containing secrets
 - **Trivy** - Dependency vulnerability scanning
 - **Flutter Analyze** - Dart static analysis
-
-(Squawk PostgreSQL migration linting was removed in the EVS cutover — there are no in-repo SQL migrations anymore.)
 
 **Read**: `docs/security/scanning-strategy.md`
 

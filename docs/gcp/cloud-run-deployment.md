@@ -1,15 +1,12 @@
 # Cloud Run Deployment Guide
 
-> **⚠️ CUR-350 VERIFY — likely stale (2026-06): predates the EVS cutover (CUR-1170).** This
-> guide describes a two-service topology with a separate `diary-service` Dart backend. After
-> the cutover there is a single event-sourced portal (`portal_server_evs` / "portal-final");
-> diary devices ingest into the portal, so there is no separate `diary-service`. Deployment is
-> driven by CI + Terraform, not the manual `gcloud run deploy diary-service` commands shown
-> below. The diary-service sections and manual deploy steps need a rewrite by the deployment
-> owner — do not rely on them as-is.
+> **⚠️ Out of date — pending rewrite.** The deployed system is a single event-sourced portal
+> (Cloud Run service `portal-service`), deployed via CI + Terraform; diary devices ingest into
+> the portal. The two-service topology, separate `diary-service`, and manual
+> `gcloud run deploy` steps described below do not match the deployed system — do not rely on
+> them as-is.
 
-**Version**: 2.0
-**Status**: Stale — pending EVS rewrite (see banner)
+**Status**: Out of date — pending rewrite
 **Updated**: 2026-03-22
 **Created**: 2025-11-25
 

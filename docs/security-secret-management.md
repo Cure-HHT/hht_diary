@@ -18,7 +18,3 @@ Doppler GitHub OIDC + GCP Workload Identity Federation — no static `DOPPLER_TO
 tokens or JSON keys. Terraform in `hht_admin` (identity) and `hht_sponsor_iac` (sponsor modules)
 manages identity and routing — **never values**; sponsor literals live in each sponsor repo's
 `sponsor.toml` + `<id>.tfvars`; rotation is automated and PR-gated.
-
-The previous detailed local secret guide (Doppler project setup, the per-secret inventory,
-rotation runbooks, and leaked-secret incident response) was retired in CUR-350 as superseded by
-the `hht_admin` architecture above. See git history if you need the old content.

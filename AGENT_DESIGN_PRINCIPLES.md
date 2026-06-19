@@ -120,7 +120,6 @@ The pre-commit hook runs `elspais fix` which auto-stages REQ hash updates and re
 - DO NOT commit secrets (API keys, tokens, passwords, `.env` files).
 - All secrets are managed via Doppler; the harness was started with `doppler run --`.
 - Address `.githooks/pre-commit` Gitleaks failures by removing the secret, not by disabling the hook.
-- Database migrations MUST follow Squawk's safe-PostgreSQL patterns (`CONCURRENTLY` for index creation, `DEFAULT` on new NOT NULL columns); CI blocks the PR otherwise.
 - All audit events are tamper-evident (cryptographic hashing); DO NOT bypass `EventStore` write paths to insert events.
 
 ## Recovery

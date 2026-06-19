@@ -16,7 +16,6 @@
 # - Flutter: https://docs.flutter.dev/release/whats-new
 # - Dart SDK: https://dart.dev/get-dart
 # - Gitleaks: https://github.com/gitleaks/gitleaks/releases
-# - (Squawk removed in EVS cutover, CUR-1170 — no in-repo SQL migrations to lint)
 
 # 2. Check security advisories
 # Visit GitHub security tab for each tool

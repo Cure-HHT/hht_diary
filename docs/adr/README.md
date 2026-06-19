@@ -40,18 +40,18 @@ What other options did we consider and why were they rejected?
 | ADR | Title | Status | Date |
 | --- | --- | --- | --- |
 | [001](./ADR-001-event-sourcing-pattern.md) | Event Sourcing Pattern for Diary Data | Accepted | 2025-10-14 |
-| [002](./ADR-002-jsonb-flexible-schema.md) | JSONB for Flexible Diary Schema | Obsolete (EVS cutover) | 2025-10-14 |
-| [003](./ADR-003-row-level-security.md) | Row-Level Security for Multi-Tenancy | Obsolete (EVS cutover) | 2025-10-14 |
-| [004](./ADR-004-investigator-annotations.md) | Separation of Investigator Annotations | Obsolete (EVS cutover) | 2025-10-14 |
-| [005](./ADR-005-database-migration-strategy.md) | Database Migration Strategy | Obsolete (EVS cutover) | 2025-10-14 |
+| [002](./ADR-002-jsonb-flexible-schema.md) | JSONB for Flexible Diary Schema | Obsolete | 2025-10-14 |
+| [003](./ADR-003-row-level-security.md) | Row-Level Security for Multi-Tenancy | Obsolete | 2025-10-14 |
+| [004](./ADR-004-investigator-annotations.md) | Separation of Investigator Annotations | Obsolete | 2025-10-14 |
+| [005](./ADR-005-database-migration-strategy.md) | Database Migration Strategy | Obsolete | 2025-10-14 |
 | [006](./ADR-006-docker-dev-environments.md) | Docker Dev Environments | Accepted | 2025-10-15 |
 | [007](./ADR-007-multi-sponsor-build-reports.md) | Multi-Sponsor Build Reports | Accepted | 2025-10-16 |
 | [008](./ADR-008-timestamp-attestation.md) | Timestamp Attestation | Accepted | 2025-10-20 |
-| [009](./ADR-009-pulumi-infrastructure-as-code.md) | Pulumi Infrastructure as Code | Obsolete (not adopted; IaC is Terraform) | 2025-12-14 |
+| [009](./ADR-009-pulumi-infrastructure-as-code.md) | Pulumi Infrastructure as Code | Obsolete | 2025-12-14 |
 | [010](./ADR-010-requirements-format-enhancements.md) | Requirements Format Enhancements | Accepted | 2025-11-15 |
 | [011](./ADR-011-event-sourcing-refinements.md) | Event Sourcing Refinements | Accepted | 2026-01-01 |
 | [012](./ADR-012-terminology-standardization.md) | Terminology Standardization | Accepted | 2026-01-25 |
-| [013](./ADR-013-portal-event-sourcing-cutover-iac-decisions.md) | Portal `event_sourcing_datastore` Cutover — DB Administration & IaC Boundary Decisions | Resolved (cutover shipped, CUR-1170) | 2026-04-26 |
+| [013](./ADR-013-portal-event-sourcing-cutover-iac-decisions.md) | Portal `event_sourcing_datastore` Cutover — DB Administration & IaC Boundary Decisions | Obsolete | 2026-04-26 |
 
 ## When to Create an ADR
 

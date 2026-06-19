@@ -62,7 +62,7 @@ This project supports two development approaches:
 - **Git**: Version 2.30+ (`git --version`)
 - **Node.js**: Version 18+ via nvm (`node --version`)
 - **Python**: Version 3.10+ (`python3 --version`)
-- **PostgreSQL Client**: psql 15+ (optional; the legacy local raw-Postgres DB stack was removed in the EVS cutover — see §5)
+- **PostgreSQL Client**: psql 15+ (optional)
 - **unzip**: Required for Flutter SDK updates (`unzip --version`)
 
 **IDE/Editor**:
@@ -619,16 +619,11 @@ node add-subsystem-checklists.js --token=$LINEAR_API_TOKEN
 
 **Local PostgreSQL Testing**:
 
-> **Removed in the EVS cutover (2026-06, CUR-1170).** The legacy local raw-Postgres DB stack
-> no longer exists: the `database/` directory (schema/triggers/RLS/indexes/tests) and the
-> `tools/dev-env/docker-compose.db.yml` / `apps/sponsor-portal/tool/reset_local_db.sh` helpers
-> were all deleted. There is no `database/*.sql` to load and no `psql -f` step to run.
->
-> The platform is now EVS-only: the deployed server is `portal_server_evs`, built on the
-> external `event_sourcing` library, whose `PostgresBackend` creates and owns its event-store
-> schema at runtime. There is no in-repo SQL to apply by hand. For local work, see the EVS
-> server packages (`apps/sponsor-portal/portal_server_evs`) and the hand-written CI in
-> `.github/workflows/` for the authoritative build/test steps.
+> Local development uses the event-sourced stack. The deployed server is `portal_server_evs`,
+> built on the `event_sourcing` library, whose `PostgresBackend` creates and owns its
+> event-store schema at runtime. Bring up Postgres + the portal locally with the local-stack
+> (`./deployment/local-stack/local-stack portal`); see `apps/sponsor-portal/portal_server_evs`
+> and the CI in `.github/workflows/` for the authoritative build/test steps.
 
 ---
 
@@ -940,7 +935,7 @@ git commit
 - **Project README**: `README.md`
 - **Architecture Docs**: `docs/adr/` (Architecture Decision Records)
 - **Requirements**: `spec/` directory
-- **Database Docs**: the EVS event store is created and owned at runtime by the `event_sourcing` library's `PostgresBackend`; there is no in-repo `database/` schema (removed in the EVS cutover, CUR-1170). See `apps/sponsor-portal/portal_server_evs`.
+- **Database Docs**: the EVS event store is created and owned at runtime by the `event_sourcing` library's `PostgresBackend`. See `apps/sponsor-portal/portal_server_evs`.
 - **Linear Integration**: `tools/linear-cli/README.md`
 - **Claude Code Docs**: https://docs.claude.com/en/docs/claude-code/
 
