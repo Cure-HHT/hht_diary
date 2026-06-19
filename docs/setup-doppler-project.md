@@ -288,7 +288,7 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 **3. Run the server:**
 ```bash
-cd apps/sponsor-portal/portal_server
+cd apps/sponsor-portal/portal_server_evs
 doppler run -- dart run bin/server.dart
 ```
 
@@ -327,7 +327,7 @@ After setting secrets, verify the service is configured:
 doppler secrets get EMAIL_SVC_ACCT --project hht-diary-core --config production
 
 # Test locally (uses WIF via your gcloud ADC)
-cd apps/sponsor-portal/portal_server
+cd apps/sponsor-portal/portal_server_evs
 doppler run -- dart run bin/server.dart
 # Then call GET /api/v1/portal/config/features to verify
 ```

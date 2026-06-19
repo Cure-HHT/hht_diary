@@ -41,11 +41,8 @@ This runbook defines procedures for detecting, responding to, and resolving prod
 Run the deployment doctor scripts to get an instant health summary:
 
 ```bash
-# Portal server
+# Portal (event-sourced; diary devices ingest into the portal — no separate diary service)
 ./apps/sponsor-portal/tool/deployment-doctor.sh --verbose
-
-# Diary server
-./apps/daily-diary/tool/deployment-doctor.sh --verbose
 ```
 
 These check health endpoints, version verification, HTTPS, API smoke tests, Cloud Logging signals, and Cloud Run configuration.
@@ -625,7 +622,7 @@ Clinical Diary Security Team
 - [ ] Doppler CLI authenticated (`doppler login`)
 - [ ] GitHub CLI authenticated (`gh auth login`)
 - [ ] Access to GCP Console for the target project
-- [ ] Deployment doctor scripts (`apps/*/tool/deployment-doctor.sh`)
+- [ ] Deployment doctor script (`apps/sponsor-portal/tool/deployment-doctor.sh`)
 - [ ] Linear access for incident tickets
 - [ ] Doppler CLI installed and authenticated
 - [ ] Access to incident call link (Zoom/Google Meet)
