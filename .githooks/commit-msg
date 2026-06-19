@@ -16,7 +16,6 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 
 # Baked-in version defaults (overridden by .github/versions.env if present)
 export GITLEAKS_VERSION="${GITLEAKS_VERSION:-8.30.0}"
-export SQUAWK_VERSION="${SQUAWK_VERSION:-2.35.0}"
 export ELSPAIS_VERSION="${ELSPAIS_VERSION:->=0.57.0}"
 export MARKDOWNLINT_CLI_VERSION="${MARKDOWNLINT_CLI_VERSION:-0.46.0}"
 export RUFF_VERSION="${RUFF_VERSION:-0.14.10}"

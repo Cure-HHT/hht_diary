@@ -32,9 +32,9 @@
 #                   `semver-only`. Standard projects carry `<semver>+N`
 #                   in pubspec.yaml; the hook bumps both. Semver-only
 #                   projects carry only `<semver>` (no `+N`); the build
-#                   identifier is composed downstream — the legacy
-#                   `portal-ui` and the EVS `portal_ui_evs`, whose build
-#                   ids are assigned by callisto's portal-final.Dockerfile
+#                   identifier is composed downstream — the EVS
+#                   `portal_ui_evs`, whose build id is assigned by
+#                   callisto's portal-final.Dockerfile
 #                   (`<semver>+<short_sha>`). NOTE: semver-only verify
 #                   rejects any `+N` in the pubspec — these stay bare.
 #
@@ -49,10 +49,7 @@
 
 PROJECT_DEFS=(
     # Deployable apps
-    "clinical_diary|apps/daily-diary/clinical_diary/pubspec.yaml|apps/daily-diary/clinical_diary/lib/ apps/daily-diary/clinical_diary/assets/|apps/daily-diary/clinical_diary/android/ apps/daily-diary/clinical_diary/ios/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/daily-diary/diary_functions/lib/ apps/common-flutter/eq/lib/ .github/workflows/android-build.yml .github/workflows/ios-build.yml .github/versions.env|standard"
-    "portal-ui|apps/sponsor-portal/portal-ui/pubspec.yaml|apps/sponsor-portal/portal-ui/lib/ apps/sponsor-portal/portal-ui/assets/ apps/sponsor-portal/portal-ui/web/|apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/common-flutter/diary_design_system/lib/ tools/build/|semver-only"
-    "diary_server|apps/daily-diary/diary_server/pubspec.yaml|apps/daily-diary/diary_server/lib/ apps/daily-diary/diary_server/bin/|apps/daily-diary/diary_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ database/ tools/build/|standard"
-    "portal_server|apps/sponsor-portal/portal_server/pubspec.yaml|apps/sponsor-portal/portal_server/lib/ apps/sponsor-portal/portal_server/bin/|apps/sponsor-portal/portal_functions/lib/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ database/ apps/edc/rave-integration/lib/ tools/build/|standard"
+    "clinical_diary|apps/daily-diary/clinical_diary/pubspec.yaml|apps/daily-diary/clinical_diary/lib/ apps/daily-diary/clinical_diary/assets/|apps/daily-diary/clinical_diary/android/ apps/daily-diary/clinical_diary/ios/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/common-flutter/eq/lib/ .github/workflows/android-build.yml .github/workflows/ios-build.yml .github/versions.env|standard"
     # EVS deployables. portal_server_evs is the compiled binary built in core
     # (its +N gates the binary rebuild, see build-sponsor-ci.yml); its own
     # pubspec.yaml is a trigger so event_sourcing/reaction ref bumps force +N.
@@ -65,8 +62,6 @@ PROJECT_DEFS=(
     "portal_ui_evs|apps/sponsor-portal/portal_ui_evs/pubspec.yaml|apps/sponsor-portal/portal_ui_evs/lib/ apps/sponsor-portal/portal_ui_evs/web/ apps/sponsor-portal/portal_ui_evs/assets/|apps/sponsor-portal/portal_ui_evs/pubspec.yaml tools/build/|semver-only"
     # Libraries
     "trial_data_types|apps/common-dart/trial_data_types/pubspec.yaml|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/||standard"
-    "diary_functions|apps/daily-diary/diary_functions/pubspec.yaml|apps/daily-diary/diary_functions/lib/|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/|standard"
-    "portal_functions|apps/sponsor-portal/portal_functions/pubspec.yaml|apps/sponsor-portal/portal_functions/lib/|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/|standard"
     "eq|apps/common-flutter/eq/pubspec.yaml|apps/common-flutter/eq/lib/|apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/|standard"
     "rave-integration|apps/edc/rave-integration/pubspec.yaml|apps/edc/rave-integration/lib/||standard"
 )

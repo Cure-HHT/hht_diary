@@ -7,7 +7,7 @@ This is the HHT Diary adaptation of the principles file. The HHT Diary project i
 ## Core Architecture Principles
 
 - The event log is the source of truth for state changes; DO NOT introduce parallel state stores.
-- The requirement graph (managed by the `elspais` MCP server) is the single source of truth for `REQ-{p|o|d}NNNNN` identifiers and assertion text. DO NOT keep parallel REQ databases.
+- The requirement graph (managed by the `elspais` MCP server) is the single source of truth for `DIARY-{PRD|GUI|OPS|DEV}-{kebab}` requirement identifiers and assertion text. DO NOT keep parallel REQ databases.
 - DO NOT change the shape of `Source`, `StoredEvent`, `StorageBackend`, `EntryTypeDefinition`, or `ProvenanceEntry` without an explicit REQ amendment.
 - DO NOT violate existing encapsulation.
 - DO NOT consult git history for context; rely on the current state of the code and the requirement graph.
@@ -23,16 +23,15 @@ This is the HHT Diary adaptation of the principles file. The HHT Diary project i
 
 ## Testing
 
-- ALWAYS include `// Verifies: REQ-xxx-Y` annotations in test bodies, pointing at specific assertion IDs.
-- Test names SHOULD reference a specific assertion (e.g., `test_REQ_d00141_A_renames_event_store`).
+- ALWAYS include `// Verifies: DIARY-<area>-<name>/<assertion>` annotations in test bodies (e.g. `// Verifies: DIARY-DEV-event-store-rename/A`), pointing at specific assertion labels.
+- Test names SHOULD reference a specific assertion (e.g., `test_DIARY_DEV_event_store_rename_A`).
 - Tests without assertion references will not link to requirements in the traceability graph.
 - ALWAYS use a sub-agent to write tests (CLAUDE.md "Agent Orchestration Pattern").
 - Run `dart test` (or the package's `flutter test`) before committing; use `dart analyze` for static checks. CI also runs `flutter analyze` and blocks the PR on errors.
-- For database changes, run the SQL test suite under `database/tests/` (file pattern `*_test.sql`) — see `database/tests/run_all_tests.sh`.
 
 ## Workflow
 
-- ALWAYS work on a feature branch (`feature/`, `fix/`, or `release/`); never commit to `main` (CLAUDE.md Rule 5).
+- ALWAYS work on a `CUR-NNNN-{kebab-slug}` branch (Linear ticket ref + short kebab; no user prefix, no slashes — e.g. `CUR-1389-runtime-env-profile`); never commit to `main` (CLAUDE.md Rule 5).
 - ALWAYS bump the version in the touched package's `pubspec.yaml` before each commit.
 - PR titles MUST include `[CUR-NNNN]` (CLAUDE.md Rule 1, enforced by CI).
 - Update the touched package's `CHANGELOG.md` if the package has one (check before assuming).
@@ -49,7 +48,7 @@ This is the HHT Diary adaptation of the principles file. The HHT Diary project i
 - Reuse existing modules in `apps/common-dart/`, `apps/common-flutter/`, and `packages/`.
 - New interface layers MUST consume existing APIs directly without intermediate data structures.
 - DO NOT introduce `sponsor_id` plumbing in any backend data layer; sponsor tenancy is enforced by per-sponsor VPC infrastructure.
-- Library code stays generic — DO NOT bake server-product names (`diary-server`, `portal-server`) into library types or constants; use role-based identifiers per the open `Source.hopId` taxonomy (REQ-d00142).
+- Library code stays generic — DO NOT bake server-product names (`diary-server`, `portal-server`) into library types or constants; use role-based identifiers per the open `Source.hopId` taxonomy.
 - Cross-cutting protocols (concurrency, merge, audit) belong in shared libraries, not duplicated in each consumer.
 
 ## Spec Authoring
@@ -58,16 +57,14 @@ This is the HHT Diary adaptation of the principles file. The HHT Diary project i
 
 Before drafting or reviewing any REQ, read:
 
-1. `spec/requirements-spec.md` — the canonical grammar, identity rules, hashing, decomposition, and reference rules for THIS repo's `REQ-{p|o|d}NNNNN` namespace (336 lines; the authoritative formal-requirements spec).
-2. `spec/NFR/style-guide.md` — sponsor-shared authoring style rules: EARS syntax for conditional REQs, glossary term enforcement, assertion independence, assertion clarity (no ambiguous adjectives), notation and formatting (ISO 8601 dates/times, acronym definition, variable placeholders).
-3. `spec/NFR/spec-review-checklist.md` — the peer-review checklist used as the human-in-the-loop gate before a REQ is hashed into the validation suite.
-4. `spec/NFR/glossary-core.md`, `spec/NFR/glossary-precedence.md`, `spec/NFR/glossary-example.md` — the System Glossary plus authoring conventions for marking domain-specific terms (`**term**` for System-Glossary terms, `__term__` for Reference-Document terms).
-5. `spec/NFR/requirements-spec.md` — sponsor-shared formal-requirements spec from the platform repo (complements this repo's `spec/requirements-spec.md`).
-6. `spec/NFR/SDLC-SOP.md`, `spec/NFR/change-control.md`, `spec/NFR/standard-changes.md`, `spec/NFR/risks.md`, `spec/NFR/software-validation-plan.md`, `spec/NFR/validation-package.md` — process / governance docs for the SDLC, change control, and validation packaging.
-7. `spec/AI-AGENT.md` — the AI-agent usage note for requirements authoring (non-negotiable constraints: one-way traceability, no acceptance-criteria sections, atomic assertions, stable assertion labels).
-8. `spec/EXAMPLE-requirement.md` — a one-screen example showing the structural template (heading, level/status/implements line, assertions, rationale, end-marker with hash).
+1. The elspais MCP `agent_instructions()` and `docs()` — the canonical grammar, identity rules, hashing, decomposition, and reference rules for this repo's `DIARY-{PRD|GUI|OPS|DEV}-{kebab}` namespace, plus the AI-agent authoring constraints (one-way traceability, no acceptance-criteria sections, atomic assertions, stable assertion labels). (The legacy `requirements-spec.md` grammar doc is archived under `spec-archive/`.)
+2. `spec/governance/style-guide.md` — sponsor-shared authoring style rules: EARS syntax for conditional REQs, glossary term enforcement, assertion independence, assertion clarity (no ambiguous adjectives), notation and formatting (ISO 8601 dates/times, acronym definition, variable placeholders).
+3. `spec/governance/spec-review-checklist.md` — the peer-review checklist used as the human-in-the-loop gate before a REQ is hashed into the validation suite.
+4. `spec/glossary-core.md`, `spec/governance/glossary-precedence.md`, `spec/governance/glossary-example.md` — the System Glossary plus authoring conventions for marking domain-specific terms (`**term**` for System-Glossary terms, `__term__` for Reference-Document terms).
+5. `spec/governance/SDLC-SOP.md`, `spec/governance/change-control.md`, `spec/governance/standard-changes.md`, `spec/governance/risks.md`, `spec/governance/software-validation-plan.md`, `spec/governance/validation-package.md` — process / governance docs for the SDLC, change control, and validation packaging.
+6. `spec/EXAMPLE-requirement.md` — a one-screen example showing the structural template (heading, level/status/implements line, assertions, rationale, end-marker with hash).
 
-`spec/NFR/` is added to elspais `skip_dirs` and `.markdownlintignore` because (a) its REQs use a `REQ-CAL-*` namespace from the platform repo that does not match this repo's `REQ-{p|o|d}NNNNN` pattern, and (b) the glossary uses `__term__` vs `**term**` as a meaningful distinction that conflicts with `markdownlint`'s MD050 single-strong-style rule. Cite NFR files by file path from dev/ops/prd specs.
+`spec/governance/` is in elspais `skip_dirs` and `.markdownlintignore` because (a) it holds sponsor-shared process/governance and style content (whose embedded `REQ-CAL-*` references belong to the platform repo, not this repo's `DIARY-*` namespace), and (b) its glossary docs use `__term__` vs `**term**` as a meaningful distinction that conflicts with `markdownlint`'s MD050 single-strong-style rule. Cite governance files by file path from dev/ops/prd specs.
 
 ### Drafting rules
 
@@ -75,7 +72,7 @@ Before drafting or reviewing any REQ, read:
 - Use final-state voice in spec files — no "removed / no longer / does NOT require" framing; greenfield has no prior version to contrast with.
 - Frame requirements as vendor-side capability ("the system SHALL provide the capability to...") rather than regulated-entity compliance ("the system SHALL comply with..."). The regulations apply to our customers (sponsors / CROs); our job is to provide the tools and evidence that let them comply.
 - Use "link" or "connect" for participant-device-sponsor association; DO NOT use "enroll" — enrollment is the sponsor's regulated activity, not ours.
-- Apply `spec/NFR/style-guide.md` REQ-CAL-o00001 (EARS): use `When [trigger], the System SHALL ...` for event-driven, `While [state], ...` for state-driven, `If [unwanted event], then ...` for unwanted-behavior, `Where [optional feature], ...` for optional-feature; and the bare `The System SHALL ...` for ubiquitous obligations.
+- Apply `spec/governance/style-guide.md` REQ-CAL-o00001 (EARS): use `When [trigger], the System SHALL ...` for event-driven, `While [state], ...` for state-driven, `If [unwanted event], then ...` for unwanted-behavior, `Where [optional feature], ...` for optional-feature; and the bare `The System SHALL ...` for ubiquitous obligations.
 - Apply REQ-CAL-o00003 (assertion independence): each assertion must be atomic and independently decidable; no semicolons, conjunctions, or "as well as" / "in addition to" introducing a second testable action. (A single predicate over a list — "SHALL NOT contain X, Y, or Z" — is one obligation, not compound.)
 - Apply REQ-CAL-o00004 (assertion clarity): no ambiguous adjectives ("fast", "secure", "user-friendly"); use measurable thresholds. PRD-level assertions SHALL NOT reference programming languages, libraries, frameworks, schemas, or API signatures.
 - Apply REQ-CAL-o00004-D: `SHALL` only inside the `Assertions` section (not in Rationale prose), except inside quoted examples.
@@ -100,7 +97,7 @@ The pre-commit hook runs `elspais fix` which auto-stages REQ hash updates and re
 
 - Implementation MUST comply with specification assertions.
 - When a REQ says "SHALL be at <path>" or "SHALL be named <X>", DO NOT diverge silently — amend the REQ or align the code.
-- Add `// Implements: REQ-d00XXX-A` comments to new/modified source so the traceability graph picks up coverage.
+- Add `// Implements: DIARY-<area>-<name>/A` comments to new/modified source so the traceability graph picks up coverage.
 - Cross-reference implementation against spec assertions before committing.
 
 ## Sub-Agent Usage
@@ -123,7 +120,6 @@ The pre-commit hook runs `elspais fix` which auto-stages REQ hash updates and re
 - DO NOT commit secrets (API keys, tokens, passwords, `.env` files).
 - All secrets are managed via Doppler; the harness was started with `doppler run --`.
 - Address `.githooks/pre-commit` Gitleaks failures by removing the secret, not by disabling the hook.
-- Database migrations MUST follow Squawk's safe-PostgreSQL patterns (`CONCURRENTLY` for index creation, `DEFAULT` on new NOT NULL columns); CI blocks the PR otherwise.
 - All audit events are tamper-evident (cryptographic hashing); DO NOT bypass `EventStore` write paths to insert events.
 
 ## Recovery

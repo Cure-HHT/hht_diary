@@ -11,6 +11,7 @@
 
 import 'dart:async';
 
+import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/config/font_option.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/notifications/epistaxis_reminder_schedule.dart';
@@ -85,35 +86,39 @@ class SettingsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Color Scheme Section
-                    _buildSectionHeader(
-                      context,
-                      AppLocalizations.of(context).colorScheme,
-                      AppLocalizations.of(context).chooseAppearance,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildColorSchemeOption(
-                      context,
-                      icon: Icons.light_mode,
-                      title: AppLocalizations.of(context).lightMode,
-                      subtitle: AppLocalizations.of(
+                    // CUR-1438: hidden for the Callisto UAT build (dark mode is
+                    // not enabled). Logic retained; gated by config so it can be
+                    // re-shown without a rebuild.
+                    if (AppConfig.showUatRestrictedSettings) ...[
+                      _buildSectionHeader(
                         context,
-                      ).lightModeDescription,
-                      isSelected: !prefs.isDarkMode,
-                      onTap: () => _setSetting(context, prefDarkMode, false),
-                    ),
-                    const SizedBox(height: 12),
-                    // Dark mode disabled for alpha release
-                    _buildColorSchemeOption(
-                      context,
-                      icon: Icons.dark_mode,
-                      title: AppLocalizations.of(context).darkMode,
-                      subtitle: 'Coming soon',
-                      isSelected: false,
-                      onTap: null,
-                      isDisabled: true,
-                    ),
-
-                    const SizedBox(height: 32),
+                        AppLocalizations.of(context).colorScheme,
+                        AppLocalizations.of(context).chooseAppearance,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildColorSchemeOption(
+                        context,
+                        icon: Icons.light_mode,
+                        title: AppLocalizations.of(context).lightMode,
+                        subtitle: AppLocalizations.of(
+                          context,
+                        ).lightModeDescription,
+                        isSelected: !prefs.isDarkMode,
+                        onTap: () => _setSetting(context, prefDarkMode, false),
+                      ),
+                      const SizedBox(height: 12),
+                      // Dark mode disabled for alpha release
+                      _buildColorSchemeOption(
+                        context,
+                        icon: Icons.dark_mode,
+                        title: AppLocalizations.of(context).darkMode,
+                        subtitle: 'Coming soon',
+                        isSelected: false,
+                        onTap: null,
+                        isDisabled: true,
+                      ),
+                      const SizedBox(height: 32),
+                    ],
 
                     // Accessibility Section
                     _buildSectionHeader(
@@ -128,16 +133,22 @@ class SettingsScreen extends StatelessWidget {
                       _buildFontSelector(context, prefs),
                     if (_shouldShowFontSelector(uiConfig.availableFonts))
                       const SizedBox(height: 12),
-                    _buildAccessibilityOption(
-                      context,
-                      title: AppLocalizations.of(context).largerTextAndControls,
-                      subtitle: AppLocalizations.of(
+                    // CUR-1438: accessibility is limited to fonts for the
+                    // Callisto UAT build — the "Larger text and controls" toggle
+                    // is hidden (logic retained, config-gated).
+                    if (AppConfig.showUatRestrictedSettings)
+                      _buildAccessibilityOption(
                         context,
-                      ).largerTextDescription,
-                      value: prefs.largerTextAndControls,
-                      onChanged: (value) =>
-                          _setSetting(context, prefLargerText, value),
-                    ),
+                        title: AppLocalizations.of(
+                          context,
+                        ).largerTextAndControls,
+                        subtitle: AppLocalizations.of(
+                          context,
+                        ).largerTextDescription,
+                        value: prefs.largerTextAndControls,
+                        onChanged: (value) =>
+                            _setSetting(context, prefLargerText, value),
+                      ),
                     // Use Animation option — shown only when the sponsor enables
                     // the animation capability.
                     if (uiConfig.useAnimations) ...[
@@ -154,27 +165,32 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ],
 
-                    const SizedBox(height: 32),
-
                     // Language Section
-                    _buildSectionHeader(
-                      context,
-                      AppLocalizations.of(context).language,
-                      AppLocalizations.of(context).languageDescription,
-                    ),
-                    const SizedBox(height: 16),
-                    // Only the languages the sponsor/deployment allow-set permits
-                    // are offered; the participant picks among them.
-                    for (final code in uiConfig.availableLanguages) ...[
-                      _buildLanguageOption(
+                    // CUR-1438: hidden for the Callisto UAT build (translations
+                    // are not yet professionally validated). The language
+                    // preference + selector logic is retained; gated by config
+                    // so it can be re-shown without a rebuild.
+                    if (AppConfig.showUatRestrictedSettings) ...[
+                      const SizedBox(height: 32),
+                      _buildSectionHeader(
                         context,
-                        code: code,
-                        name: _languageNames[code] ?? code,
-                        isSelected: prefs.languageCode == code,
-                        onTap: () =>
-                            _setSetting(context, prefLanguageCode, code),
+                        AppLocalizations.of(context).language,
+                        AppLocalizations.of(context).languageDescription,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
+                      // Only the languages the sponsor/deployment allow-set
+                      // permits are offered; the participant picks among them.
+                      for (final code in uiConfig.availableLanguages) ...[
+                        _buildLanguageOption(
+                          context,
+                          code: code,
+                          name: _languageNames[code] ?? code,
+                          isSelected: prefs.languageCode == code,
+                          onTap: () =>
+                              _setSetting(context, prefLanguageCode, code),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                     ],
 
                     // Nosebleed reminders — personal Ongoing Epistaxis Reminder

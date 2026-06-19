@@ -56,7 +56,6 @@ build_clinical_diary_ci_local() {
     --build-arg "NODE_MAJOR_VERSION=${NODE_MAJOR_VERSION}" \
     --build-arg "FLUTTER_VERSION=${FLUTTER_VERSION}" \
     --build-arg "GITLEAKS_VERSION=${GITLEAKS_VERSION}" \
-    --build-arg "SQUAWK_VERSION=${SQUAWK_VERSION}" \
     --build-arg "ELSPAIS_VERSION=${ELSPAIS_VERSION}" \
     --build-arg "MARKDOWNLINT_CLI_VERSION=${MARKDOWNLINT_CLI_VERSION}" \
     --build-arg "CLOUD_SQL_PROXY_VERSION=${CLOUD_SQL_PROXY_VERSION}" \

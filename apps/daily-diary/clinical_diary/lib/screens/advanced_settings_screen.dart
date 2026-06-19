@@ -26,7 +26,14 @@ import 'package:flutter/material.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 
 class AdvancedSettingsScreen extends StatelessWidget {
-  const AdvancedSettingsScreen({super.key});
+  const AdvancedSettingsScreen({super.key, this.allowEditing});
+
+  /// CUR-1438: whether the clinical-entry-rule controls are user-editable.
+  /// Null (the production default) defers to [AppConfig.allowAdvancedSettingsEditing]
+  /// — false for the Callisto UAT build, so every control renders read-only
+  /// (locked to the deployed study-protocol defaults). Per-key sponsor locks
+  /// still apply on top. Exposed mainly so tests can exercise the editable path.
+  final bool? allowEditing;
 
   void _set(BuildContext context, String key, Object? value) {
     // Fire-and-forget: the settings projection is the source of truth and the
@@ -46,6 +53,11 @@ class AdvancedSettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final rules = ClinicalRulesScope.of(context);
     final theme = Theme.of(context);
+    // CUR-1438: for the Callisto UAT build the Advanced settings stay visible
+    // but are locked to the deployed study-protocol defaults — every control
+    // renders read-only. Per-key sponsor locks (rules.isLocked) still apply on
+    // top, so a key locked by config stays locked even if editing is restored.
+    final forceLock = !(allowEditing ?? AppConfig.allowAdvancedSettingsEditing);
 
     return Scaffold(
       body: SafeArea(
@@ -80,7 +92,9 @@ class AdvancedSettingsScreen extends StatelessWidget {
                         'than the selected age.',
                     currentHours: rules.gate.justificationThreshold?.inHours,
                     presetHours: const [24, 48, 72],
-                    locked: rules.isLocked(justificationThresholdHoursKey),
+                    locked:
+                        forceLock ||
+                        rules.isLocked(justificationThresholdHoursKey),
                     onChanged: (h) =>
                         _set(context, justificationThresholdHoursKey, h),
                   ),
@@ -93,7 +107,7 @@ class AdvancedSettingsScreen extends StatelessWidget {
                         'becomes read-only (no add/edit/delete for that day).',
                     currentHours: rules.gate.lockThreshold?.inHours,
                     presetHours: const [24, 48, 72, 168],
-                    locked: rules.isLocked(lockThresholdHoursKey),
+                    locked: forceLock || rules.isLocked(lockThresholdHoursKey),
                     onChanged: (h) => _set(context, lockThresholdHoursKey, h),
                   ),
                   const Divider(),
@@ -103,12 +117,13 @@ class AdvancedSettingsScreen extends StatelessWidget {
                     subtitle:
                         'Ask to confirm a nosebleed of one minute or less.',
                     value: rules.shortDurationConfirm,
-                    locked: rules.isLocked(shortDurationConfirmKey),
+                    locked:
+                        forceLock || rules.isLocked(shortDurationConfirmKey),
                     onChanged: (v) => _set(context, shortDurationConfirmKey, v),
                   ),
                   // Long-duration confirmation: one control sets both the bool
                   // and the threshold (null = off).
-                  _longDurationTile(context, rules),
+                  _longDurationTile(context, rules, forceLock: forceLock),
                   const Divider(),
                   _sectionHeader(context, 'Recording'),
                   _switchTile(
@@ -116,7 +131,7 @@ class AdvancedSettingsScreen extends StatelessWidget {
                     subtitle:
                         'Review the entry on a summary screen before it is saved.',
                     value: rules.useReviewScreen,
-                    locked: rules.isLocked(useReviewScreenKey),
+                    locked: forceLock || rules.isLocked(useReviewScreenKey),
                     onChanged: (v) => _set(context, useReviewScreenKey, v),
                   ),
                   if (AppConfig.showAllConfigsScreen) ...[
@@ -229,8 +244,13 @@ class AdvancedSettingsScreen extends StatelessWidget {
     return '$hours hours';
   }
 
-  Widget _longDurationTile(BuildContext context, ClinicalRules rules) {
+  Widget _longDurationTile(
+    BuildContext context,
+    ClinicalRules rules, {
+    bool forceLock = false,
+  }) {
     final locked =
+        forceLock ||
         rules.isLocked(longDurationConfirmKey) ||
         rules.isLocked(longDurationThresholdMinutesKey);
     final currentMinutes = rules.longDurationConfirm

@@ -27,13 +27,12 @@ Sponsor-specific deployment, content, and infrastructure live in separate repos.
 ```
 apps/
 ├── daily-diary/
-│   ├── clinical_diary/     Flutter mobile app (iOS + Android)
-│   ├── diary_server/       Dart shelf HTTP server (Cloud Run)
-│   └── diary_functions/    Business logic library
+│   └── clinical_diary/     Flutter mobile app (iOS + Android)
 ├── sponsor-portal/
-│   ├── portal-ui/          Flutter web app
-│   ├── portal_server/      Dart shelf HTTP server (Cloud Run)
-│   └── portal_functions/   Business logic library
+│   ├── portal_ui_evs/      Flutter web app (event-sourced portal)
+│   ├── portal_server_evs/  Dart shelf HTTP server (Cloud Run)
+│   ├── portal_service/     Event-sourced portal domain library
+│   └── portal_identity/    Portal identity/auth library
 ├── common-dart/
 │   ├── otel_common/        Shared OpenTelemetry instrumentation
 │   ├── trial_data_types/   Shared data types
@@ -41,7 +40,6 @@ apps/
 └── edc/
     └── rave-integration/   Medidata RAVE EDC integration
 
-database/                   PostgreSQL schema, triggers, RLS policies, migrations
 infrastructure/terraform/
 ├── modules/                Reusable Terraform modules (shared via hht_sponsor_iac)
 ├── sponsor-envs/           Per-sponsor environment configs (migrating to sponsor repos)
@@ -77,12 +75,10 @@ See `hht_diary_callisto/deployment/README.md` for the full container layering.
 
 ### What This Repo Does NOT Build
 
-Deployment is owned by sponsor repos. The following workflows were removed
-because they were replaced by the sponsor-repo deployment model:
-
-- `build-portal-server.yml` — replaced by `hht_diary_callisto` build workflows
-- `build-diary-server.yml` — replaced by `hht_diary_callisto` build workflows
-- `deploy-run-service.yml` — replaced by `hht_diary_callisto` deploy workflows
+Server builds and Cloud Run deployments are owned by the sponsor repos. This repo
+builds only the shared base image (`build-sponsor-ci.yml`); sponsor repos pull it,
+overlay their content, compile their servers, and deploy. See
+`hht_diary_callisto/deployment/README.md` for the build/deploy workflows.
 
 ### Terraform
 
@@ -130,8 +126,7 @@ See `spec/README.md` for the complete map and `spec/INDEX.md` for the REQ index.
 
 - `docs/adr/` — Architecture Decision Records
 - `docs/gcp/` — GCP setup guides (Cloud SQL, Identity Platform, Cloud Run)
-- `docs/ops-incident-response-runbook.md` — Incident response procedures
-- `docs/ops-deployment-production-tagging-hotfix.md` — Release process
+- `docs/operations/` — Operational runbooks (incident response, release/hotfix, dev-env maintenance)
 
 ---
 
@@ -147,44 +142,32 @@ Configures Git hooks for commit validation, requirement traceability, and secret
 
 ### Local Development
 
-Each app has its own `tool/run_local.sh`:
+Use the local-stack to run the event-sourced portal (it serves the portal UI/API and
+diary device ingest, with Postgres + the Firebase auth emulator) on your machine:
 
 ```bash
-# Portal (DB + Firebase emulator + server + UI)
-cd apps/sponsor-portal
-./tool/run_local.sh
-
-# Diary server
-cd apps/daily-diary
-./tool/run_local.sh
+./deployment/local-stack/local-stack portal
 ```
 
-See `apps/sponsor-portal/README.md` and `apps/daily-diary/clinical_diary/README.md`
-for detailed setup, environment variables, and troubleshooting.
+See `deployment/local-stack/README.md` for the full command reference, and
+`apps/sponsor-portal/README.md` / `apps/daily-diary/clinical_diary/README.md`
+for app-level setup and troubleshooting.
 
-### Database
+### Event store
 
-Located in `database/`:
-
-| File | Purpose |
-| --- | --- |
-| `schema.sql` | Core table definitions |
-| `triggers.sql` | Event store triggers |
-| `roles.sql` | User roles and RLS helper functions |
-| `rls_policies.sql` | Row-level security policies |
-| `migrations/` | Schema migrations |
-| `init.sql` | Master initialization script |
+The portal and diary persist data as hash-chained events via the external
+`event_sourcing` library. Its `PostgresBackend` creates and owns the event-store
+schema in Cloud SQL (Postgres) at runtime — there is no in-repo SQL schema or
+migration set to deploy.
 
 ### Deployment Doctor
 
 Health check scripts for deployed services:
 
 ```bash
-# Portal server
+# Portal server (event-sourced; diary devices ingest into the portal; there is no
+# separate diary service)
 ./apps/sponsor-portal/tool/deployment-doctor.sh --url https://portal-service-XXXX.run.app --verbose
-
-# Diary server
-./apps/daily-diary/tool/deployment-doctor.sh --url https://diary-service-XXXX.run.app --verbose
 ```
 
 Checks: health endpoint, versions, HTTPS, API smoke tests, Cloud Logging signals.

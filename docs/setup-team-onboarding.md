@@ -260,7 +260,7 @@ You have **4 different container environments**:
 | --- | --- | --- | --- |
 | **dev** | Feature development | Flutter, Android SDK, Node, Python | "Developer" |
 | **qa** | Testing, QA automation | Playwright, test frameworks | "QA Automation Bot" |
-| **ops** | Deployment, infrastructure | Terraform, Supabase, Cosign | "DevOps Engineer" |
+| **ops** | Deployment, infrastructure | Terraform, Cosign | "DevOps Engineer" |
 | **mgmt** | Read-only oversight | Git viewing, reports | "Management Viewer" |
 
 ### Switching Roles
@@ -539,10 +539,8 @@ docker compose up -d dev
 
 ### Documentation
 
-**Quick Start**: `tools/dev-env/START_HERE.md`
 **Complete Guide**: `tools/dev-env/README.md`
-**Codespaces Info**: `tools/dev-env/GITHUB_CODESPACES.md`
-**Architecture**: `docs/dev-environment-architecture.md`
+**Architecture**: `docs/setup-dev-environment-architecture.md`
 
 ### Team Support
 
@@ -568,9 +566,6 @@ docker compose up -d dev
    docker compose down
    docker compose up -d dev
    ```
-
-4. **Check platform guide**:
-   See `docs/validation/dev-environment/platform-testing-guide.md`
 
 ---
 
@@ -626,7 +621,7 @@ Use this checklist for your first day:
 - [ ] GitHub organization invitation accepted
 - [ ] Doppler account created (or access granted)
 - [ ] Team communication channel joined (Slack/Discord)
-- [ ] Access to Supabase dashboard (if needed)
+- [ ] Access to GCP Cloud Console (Cloud SQL) (if needed)
 
 ### Environment Setup
 - [ ] Codespace created OR local environment built

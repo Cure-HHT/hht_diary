@@ -17,7 +17,7 @@ LCOV_FILES=()
 rm -rf "$SCRIPT_DIR/coverage"
 mkdir -p "$SCRIPT_DIR/coverage"
 
-for project in portal_functions portal_server portal-ui; do
+for project in portal_server_evs portal_ui_evs; do
     TEST_SCRIPT="$SCRIPT_DIR/$project/tool/test.sh"
     if [ -x "$TEST_SCRIPT" ]; then
         echo ""
@@ -79,7 +79,7 @@ echo "=============================================="
 echo "Sponsor Portal Coverage Summary"
 echo "=============================================="
 
-for project in portal_functions portal_server portal-ui; do
+for project in portal_server_evs portal_ui_evs; do
     CHILD_LCOV="$SCRIPT_DIR/coverage/lcov-${project}.info"
     if [ -f "$CHILD_LCOV" ]; then
         PCT=$(get_coverage_percentage "$CHILD_LCOV")

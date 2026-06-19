@@ -2,10 +2,6 @@
 
 Sponsor integration and build automation tools.
 
-## IMPLEMENTS REQUIREMENTS
-- REQ-d00070: Sponsor integration automation
-- REQ-d00069: Doppler manifest system
-
 ## Scripts
 
 ### integrate-sponsors.sh
@@ -58,7 +54,7 @@ sponsors:
       "git_sha": "a1b2c3d4...",
       "mobile_module": true,
       "portal": true,
-      "region": "eu-west-1"
+      "region": "europe-west9"
     }
   ],
   "timestamp": "2025-01-10T12:34:56Z",
@@ -91,7 +87,6 @@ Verifies sponsor directory structure matches template requirements.
 - ✅ Database schema exists (if portal enabled)
 - ✅ Schema marked as standalone
 - ✅ Infrastructure configuration
-- ✅ AWS region and S3 bucket naming
 
 **Exit Codes:**
 - `0` - Verification passed
@@ -183,7 +178,7 @@ sponsors:
     tag: main
     mobile_module: true
     portal: true
-    region: eu-west-1
+    region: europe-west9
 EOF
 ```
 

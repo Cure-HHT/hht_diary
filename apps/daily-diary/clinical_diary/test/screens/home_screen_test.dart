@@ -330,6 +330,20 @@ void main() {
       },
     );
 
+    // Verifies: DIARY-GUI-main-screen-layout-A — with nothing requiring
+    //   attention (no incomplete records, no overlaps, no tasks) the whole
+    //   Task List section is hidden rather than showing an empty
+    //   "Needs your attention (0)" tile (CUR-1519).
+    testWidgets(
+      'hides the Task List section entirely when there are zero tasks',
+      (tester) async {
+        await pumpScreen(tester);
+
+        expect(find.text('Task List'), findsNothing);
+        expect(find.text('Needs your attention'), findsNothing);
+      },
+    );
+
     testWidgets('renders a driven finalized epistaxis_event in the list', (
       tester,
     ) async {
