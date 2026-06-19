@@ -22,6 +22,8 @@ void main() {
         'apply_sponsor_settings',
         'unlock_sponsor_settings',
         'record_participant_linked',
+        'record_questionnaire_finalized',
+        'record_questionnaire_unlocked',
       ]),
     );
   });
