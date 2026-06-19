@@ -14,32 +14,25 @@
 // views are driven via FakeReaction.emitViewUpdate; writes are asserted via
 // FakeReaction.submittedActions. The kept (non-diary) concerns — disconnection
 // banner, TaskService/FCM — keep their existing stub/mock seams, with a real
-// bootstrapped ClinicalDiaryRuntime supplying the still-required constructor
-// params (wedge check, survey/export paths).
-
-import 'dart:async';
+// bootstrapped native DiaryScopeRuntime supplying the still-required
+// constructor params (wedge check, install-date, incomplete-survey reads).
 
 import 'package:clinical_diary/read/diary_incomplete_projection.dart';
 import 'package:clinical_diary/read/diary_read.dart';
+import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/incomplete_records_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
-import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
-import 'package:clinical_diary/services/triggers.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:diary_design_system/diary_design_system.dart' show AppCard;
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:reaction/reaction.dart' show Authenticated;
 import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
@@ -50,61 +43,22 @@ import '../helpers/mock_enrollment_service.dart';
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
 
-// Silent test seams (mirrors clinical_diary_bootstrap_test.dart).
-class _SilentLifecycleObserver extends WidgetsBindingObserver {}
-
-LifecycleObserverFactory get _silentLifecycleFactory =>
-    (onResumed, onForegroundChange) => _SilentLifecycleObserver();
-
-class _CancelledTimer implements Timer {
-  @override
-  bool get isActive => false;
-  @override
-  int get tick => 0;
-  @override
-  void cancel() {}
-}
-
-PeriodicTimerFactory get _silentTimerFactory =>
-    (duration, onTick) => _CancelledTimer();
-
-ConnectivityStreamFactory get _silentConnectivityFactory =>
-    () => const Stream<List<ConnectivityResult>>.empty();
-
-FcmOnMessageStreamFactory get _silentFcmMessageFactory =>
-    () => const Stream<RemoteMessage>.empty();
-
-FcmOnOpenedStreamFactory get _silentFcmOpenedFactory =>
-    () => const Stream<RemoteMessage>.empty();
-
-const _baseUrl = 'https://diary.example.com/';
 const _deviceId = 'device-test-001';
 const _softwareVersion = 'clinical_diary@0.0.0+test';
-const _userId = 'user-test-001';
 
-Future<ClinicalDiaryRuntime> _bootstrap() async {
+/// Boots the native event_sourcing diary scope over an in-memory Sembast
+/// backend (no outbound destinations -> no SyncCycle). HomeScreen reads its
+/// diary surface through the FakeReaction-backed ReActionScope; this scope only
+/// supplies the wedge check / install-date / incomplete-survey reads.
+Future<DiaryScopeRuntime> _bootstrap() async {
   final db = await newDatabaseFactoryMemory().openDatabase(
     'home-screen-${DateTime.now().microsecondsSinceEpoch}.db',
   );
-  final client = MockClient((req) async {
-    if (req.url.path.endsWith('inbound')) {
-      return http.Response('{"messages":[]}', 200);
-    }
-    return http.Response('', 200);
-  });
-  return bootstrapClinicalDiary(
-    sembastDatabase: db,
-    authToken: () async => 'test-token',
-    resolveBaseUrl: () async => Uri.parse(_baseUrl),
+  return bootstrapDiaryScope(
+    backend: SembastBackend(database: db),
     deviceId: _deviceId,
     softwareVersion: _softwareVersion,
-    userId: _userId,
-    httpClient: client,
-    lifecycleObserverFactory: _silentLifecycleFactory,
-    periodicTimerFactory: _silentTimerFactory,
-    connectivityStreamFactory: _silentConnectivityFactory,
-    fcmOnMessageStreamFactory: _silentFcmMessageFactory,
-    fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
+    localUserId: 'P-test',
   );
 }
 
@@ -124,7 +78,7 @@ void main() {
   });
 
   group('HomeScreen', () {
-    late ClinicalDiaryRuntime runtime;
+    late DiaryScopeRuntime runtime;
     late MockEnrollmentService enrollment;
     late TaskService tasks;
     late FakeReaction fake;
@@ -262,7 +216,7 @@ void main() {
           scope: fake,
           child: wrapWithMaterialApp(
             HomeScreen(
-              runtime: runtime,
+              diaryScope: runtime,
               deviceId: _deviceId,
               enrollmentService: enrollment,
               taskService: tasks,

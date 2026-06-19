@@ -1,15 +1,17 @@
 import 'dart:async';
 
 import 'package:clinical_diary/config/app_config.dart';
-import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
+import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_incomplete_projection.dart';
 import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
 import 'package:clinical_diary/scope/diary_participant_id.dart';
+import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
@@ -21,7 +23,6 @@ import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/service_mode_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/services/branding_asset_cache.dart';
-import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
@@ -42,8 +43,8 @@ import 'package:diary_design_system/diary_design_system.dart'
 import 'package:diary_shared_model/diary_shared_model.dart'
     show EntryGate, entryGateForDate;
 import 'package:eq/eq.dart';
-import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart'
+    show ActionSubmission, EndOfReplay, Snapshot, Update;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
@@ -54,7 +55,7 @@ import 'package:url_launcher/url_launcher.dart';
 /// Main home screen showing recent events and recording button
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
-    required this.runtime,
+    required this.diaryScope,
     required this.deviceId,
     required this.enrollmentService,
     required this.taskService,
@@ -68,16 +69,16 @@ class HomeScreen extends StatefulWidget {
     super.key,
   });
 
-  /// Composed runtime — exposes [ClinicalDiaryRuntime.backend] for the wedge
-  /// banner, [ClinicalDiaryRuntime.entryService] for writes, and
-  /// [ClinicalDiaryRuntime.reader] for diary-shaped queries.
-  final ClinicalDiaryRuntime runtime;
+  /// The native `event_sourcing` diary scope (`diary_es.db`) — the reactive
+  /// composition root. Exposes [DiaryScopeRuntime.syncCycle] for the reconnect
+  /// drain and [DiaryScopeRuntime.bundle] for the destination registry
+  /// (install-date back-nav) and event-store backend.
+  final DiaryScopeRuntime diaryScope;
 
-  /// Wedge check for the NEW event-sourcing store (`diary_es.db`), where the
-  /// native `DiaryServerDestination`'s outbound FIFO lives. The legacy
-  /// [runtime] backend's wedge check does not see that store, so this is OR-ed
-  /// in by the wedge banner. Null in contexts without the new scope (the native
-  /// check is then skipped). See DIARY-DEV-native-outbound-sync/B.
+  /// Wedge check for the native event-sourcing store (`diary_es.db`), where the
+  /// `DiaryServerDestination`'s outbound FIFO lives. Surfaced in the wedge
+  /// banner. Null in contexts without the scope (the check is then skipped).
+  /// See DIARY-DEV-native-outbound-sync/B.
   final Future<bool> Function()? nativeFifoWedged;
 
   /// Builds the on-demand Service Mode [HealthProbeContext]. When non-null the
@@ -182,16 +183,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _refreshWedgeStatus() async {
-    final legacyWedged = await widget.runtime.backend.anyFifoWedged();
-    // The native DiaryServerDestination's outbound FIFO lives in the new
-    // event_sourcing store (diary_es.db), which runtime.backend does not see;
-    // OR it in so a stuck native sync is visible to the participant.
-    // See DIARY-DEV-native-outbound-sync/B.
+    // The DiaryServerDestination's outbound FIFO lives in the native
+    // event_sourcing store (diary_es.db); surface a stuck native sync so it is
+    // visible to the participant. See DIARY-DEV-native-outbound-sync/B.
     final nativeWedged =
         await (widget.nativeFifoWedged?.call() ?? Future<bool>.value(false));
     if (mounted) {
       setState(() {
-        _hasWedgedFifo = legacyWedged || nativeWedged;
+        _hasWedgedFifo = nativeWedged;
         // The wedge check is the last non-diary async to settle on init;
         // once it returns the kept banners can render their resolved state.
         _isLoading = false;
@@ -276,10 +275,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // Refresh site name/phone for the banner contact details
       unawaited(_refreshSiteInfo());
     } else {
-      // CUR-1164: On reconnect, kick the FIFO drain immediately so any events
-      // recorded while the gate was closed ship without waiting up to 15
+      // CUR-1164: On reconnect, kick the native FIFO drain immediately so any
+      // events recorded while the gate was closed ship without waiting up to 15
       // minutes for the next periodic tick.
-      unawaited(widget.runtime.syncCycle());
+      final syncCycle = widget.diaryScope.syncCycle;
+      if (syncCycle != null) unawaited(syncCycle.call());
     }
   }
 
@@ -712,6 +712,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// One-shot read of the native `diary_incomplete` projection: subscribes,
+  /// collects one row per Snapshot until the EndOfReplay marker, then cancels.
+  /// Returns the diary-local incomplete rows as typed [DiaryEntryRow]s.
+  Future<List<DiaryEntryRow>> _readIncompleteRowsOnce() async {
+    final completer = Completer<List<DiaryEntryRow>>();
+    final rows = <DiaryEntryRow>[];
+    late final StreamSubscription<Update<DiaryEntryRow>> sub;
+    sub = widget.diaryScope.scope.viewSource
+        .watch<DiaryEntryRow>(
+          viewName: diaryIncompleteViewName,
+          mapper: DiaryEntryRow.fromViewRow,
+        )
+        .listen(
+          (update) {
+            switch (update) {
+              case Snapshot<DiaryEntryRow>(:final value):
+                if (value != null) rows.add(value);
+              case EndOfReplay<DiaryEntryRow>():
+                if (!completer.isCompleted) completer.complete(rows);
+                unawaited(sub.cancel());
+              default:
+                break;
+            }
+          },
+          onError: (Object e, StackTrace st) {
+            if (!completer.isCompleted) completer.complete(rows);
+          },
+        );
+    return completer.future;
+  }
+
   /// Surfaces an incomplete survey via a modal route on resume / mount.
   ///
   /// Forward-looking: the FCM-prompt handler that creates an in-progress
@@ -720,8 +751,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// regardless so it can light up automatically once checkpoints land.
   Future<void> _maybePushIncompleteSurvey() async {
     if (!mounted) return;
-    final incomplete = await widget.runtime.reader.incompleteEntries();
-    DiaryEntry? survey;
+    // One-shot read of the native diary-local incomplete projection
+    // (`diary_incomplete`). The `watch` stream replays one Snapshot per
+    // incomplete row, then an EndOfReplay marker; collect the rows up to that
+    // marker and cancel — surveys write to the native store, so an in-progress
+    // survey checkpoint surfaces here.
+    final incomplete = await _readIncompleteRowsOnce();
+    DiaryEntryRow? survey;
     for (final entry in incomplete) {
       if (entry.entryType == 'nose_hht_survey' ||
           entry.entryType == 'qol_survey') {
@@ -737,7 +773,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final definition = await _loadQuestionnaireDefinition(qType);
     if (definition == null || !mounted) return;
 
-    final aggregateId = survey.entryId;
+    final aggregateId = survey.aggregateId;
 
     await Navigator.of(context).push(
       PageRouteBuilder<void>(
@@ -1285,14 +1321,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             leadingIcon: Icons.calendar_today_outlined,
             onPressed: () async {
               // CUR-1494: bound calendar back-navigation to 365 days before
-              // app install (DIARY-PRD-diary-start-day/D). The install date is
-              // the legacy-sync destination's start date, stamped at first
-              // launch; a lookup failure falls back to a now-relative floor.
+              // the diary's start day (DIARY-PRD-diary-start-day/D). The start
+              // day is the native DiaryServerDestination's start date — the
+              // trial-start watermark stamped once the portal reports Trial
+              // Start; null until then (and on a lookup failure), which the
+              // calendar treats as a now-relative floor.
               DateTime? installDate;
               try {
-                final schedule = await widget.runtime.destinations.scheduleOf(
-                  LegacySyncDestination.destinationId,
-                );
+                final schedule = await widget.diaryScope.bundle.destinations
+                    .scheduleOf(DiaryServerDestination.destinationId);
                 installDate = schedule.startDate;
               } catch (_) {
                 installDate = null;

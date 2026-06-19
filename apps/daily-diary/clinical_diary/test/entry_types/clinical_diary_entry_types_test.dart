@@ -1,7 +1,7 @@
 // Verifies: REQ-d00115, REQ-d00116, REQ-d00128
 
 import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // Minimal valid questionnaires.json payload used for the data-driven seam test.
@@ -75,51 +75,8 @@ const _fixtureJsonTwo = '''
 ''';
 
 void main() {
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
-
   Future<List<EntryTypeDefinition>> loadWithJson(String jsonString) =>
-      loadClinicalDiaryEntryTypes(jsonLoader: () async => jsonString);
-
-  // ---------------------------------------------------------------------------
-  // Static nosebleed types
-  // ---------------------------------------------------------------------------
-
-  group('static nosebleed entry types', () {
-    late List<EntryTypeDefinition> types;
-
-    setUp(() async {
-      types = await loadWithJson(_fixtureJson);
-    });
-
-    test('epistaxis_event is present with correct shape', () {
-      final t = types.firstWhere((e) => e.id == 'epistaxis_event');
-      expect(t.widgetId, 'epistaxis_form_v1');
-      expect(t.widgetConfig, <String, Object?>{});
-      expect(t.effectiveDatePath, 'startTime');
-      expect(t.registeredVersion, 1);
-      expect(t.name, 'Nosebleed');
-    });
-
-    test('no_epistaxis_event is present with correct shape', () {
-      final t = types.firstWhere((e) => e.id == 'no_epistaxis_event');
-      expect(t.widgetId, 'epistaxis_form_v1');
-      expect(t.widgetConfig, <String, Object?>{'variant': 'no_epistaxis'});
-      expect(t.effectiveDatePath, 'date');
-      expect(t.registeredVersion, 1);
-      expect(t.name, 'No Nosebleeds');
-    });
-
-    test('unknown_day_event is present with correct shape', () {
-      final t = types.firstWhere((e) => e.id == 'unknown_day_event');
-      expect(t.widgetId, 'epistaxis_form_v1');
-      expect(t.widgetConfig, <String, Object?>{'variant': 'unknown_day'});
-      expect(t.effectiveDatePath, 'date');
-      expect(t.registeredVersion, 1);
-      expect(t.name, 'Unknown Day');
-    });
-  });
+      loadSurveyEntryTypes(jsonLoader: () async => jsonString);
 
   // ---------------------------------------------------------------------------
   // Survey entry types — data-driven from JSON
@@ -129,16 +86,13 @@ void main() {
     test('one survey type is produced per questionnaire in the JSON', () async {
       // Two-questionnaire fixture -> exactly 2 survey types
       final types = await loadWithJson(_fixtureJsonTwo);
-      final surveys = types
-          .where((e) => e.widgetId == 'survey_renderer_v1')
-          .toList();
-      expect(surveys.length, 2);
+      expect(types.length, 2);
     });
 
     test('survey id is questionnaire id + _survey suffix', () async {
       final types = await loadWithJson(_fixtureJson);
       final survey = types.firstWhere((e) => e.id == 'test_q_survey');
-      expect(survey.widgetId, 'survey_renderer_v1');
+      expect(survey.id, 'test_q_survey');
     });
 
     test('survey name matches questionnaire name', () async {
@@ -152,33 +106,6 @@ void main() {
       final survey = types.firstWhere((e) => e.id == 'test_q_survey');
       expect(survey.registeredVersion, 1);
     });
-
-    test(
-      'survey effectiveDatePath is null (falls back to client_timestamp)',
-      () async {
-        final types = await loadWithJson(_fixtureJson);
-        final survey = types.firstWhere((e) => e.id == 'test_q_survey');
-        expect(survey.effectiveDatePath, isNull);
-      },
-    );
-
-    test(
-      'widgetConfig carries the full questionnaire structure (has categories key)',
-      () async {
-        final types = await loadWithJson(_fixtureJson);
-        final survey = types.firstWhere((e) => e.id == 'test_q_survey');
-        expect(
-          survey.widgetConfig,
-          containsPair('categories', isA<List<dynamic>>()),
-        );
-      },
-    );
-
-    test('widgetConfig carries questionnaire id', () async {
-      final types = await loadWithJson(_fixtureJson);
-      final survey = types.firstWhere((e) => e.id == 'test_q_survey');
-      expect(survey.widgetConfig['id'], 'test_q');
-    });
   });
 
   // ---------------------------------------------------------------------------
@@ -190,11 +117,8 @@ void main() {
       'single fixture questionnaire produces exactly 1 survey type',
       () async {
         final types = await loadWithJson(_fixtureJson);
-        final surveys = types
-            .where((e) => e.widgetId == 'survey_renderer_v1')
-            .toList();
-        expect(surveys.length, 1);
-        expect(surveys.first.id, 'test_q_survey');
+        expect(types.length, 1);
+        expect(types.first.id, 'test_q_survey');
       },
     );
 
@@ -202,10 +126,7 @@ void main() {
       'two fixture questionnaires produce 2 survey types (no hardcoding)',
       () async {
         final types = await loadWithJson(_fixtureJsonTwo);
-        final surveyIds = types
-            .where((e) => e.widgetId == 'survey_renderer_v1')
-            .map((e) => e.id)
-            .toSet();
+        final surveyIds = types.map((e) => e.id).toSet();
         expect(surveyIds, containsAll(['alpha_q_survey', 'beta_q_survey']));
       },
     );
@@ -216,17 +137,14 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('uniqueness', () {
-    test(
-      'all entry-type ids are unique across nosebleed + survey sets',
-      () async {
-        final types = await loadWithJson(_fixtureJsonTwo);
-        final ids = types.map((e) => e.id).toList();
-        expect(
-          ids.toSet().length,
-          ids.length,
-          reason: 'Duplicate ids found: $ids',
-        );
-      },
-    );
+    test('all survey entry-type ids are unique', () async {
+      final types = await loadWithJson(_fixtureJsonTwo);
+      final ids = types.map((e) => e.id).toList();
+      expect(
+        ids.toSet().length,
+        ids.length,
+        reason: 'Duplicate ids found: $ids',
+      );
+    });
   });
 }

@@ -3,25 +3,18 @@
 //   disallows it; enables it when not-participating + setting true.
 // Verifies: DIARY-BASE-local-data-reset/D — tapping the enabled reset item shows
 //   the confirm dialog and invokes onResetAllData only on confirm.
-import 'dart:async';
-
 import 'package:clinical_diary/read/diary_incomplete_projection.dart';
 import 'package:clinical_diary/read/diary_read.dart';
+import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
-import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
-import 'package:clinical_diary/services/triggers.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -31,60 +24,20 @@ import '../helpers/mock_enrollment_service.dart';
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
 
-class _SilentLifecycleObserver extends WidgetsBindingObserver {}
-
-LifecycleObserverFactory get _silentLifecycleFactory =>
-    (onResumed, onForegroundChange) => _SilentLifecycleObserver();
-
-class _CancelledTimer implements Timer {
-  @override
-  bool get isActive => false;
-  @override
-  int get tick => 0;
-  @override
-  void cancel() {}
-}
-
-PeriodicTimerFactory get _silentTimerFactory =>
-    (duration, onTick) => _CancelledTimer();
-
-ConnectivityStreamFactory get _silentConnectivityFactory =>
-    () => const Stream<List<ConnectivityResult>>.empty();
-
-FcmOnMessageStreamFactory get _silentFcmMessageFactory =>
-    () => const Stream<RemoteMessage>.empty();
-
-FcmOnOpenedStreamFactory get _silentFcmOpenedFactory =>
-    () => const Stream<RemoteMessage>.empty();
-
-const _baseUrl = 'https://diary.example.com/';
 const _deviceId = 'device-test-001';
 const _softwareVersion = 'clinical_diary@0.0.0+test';
-const _userId = 'user-test-001';
 
-Future<ClinicalDiaryRuntime> _bootstrap() async {
+/// Boots the native event_sourcing diary scope over an in-memory Sembast
+/// backend (no outbound destinations -> no SyncCycle).
+Future<DiaryScopeRuntime> _bootstrap() async {
   final db = await newDatabaseFactoryMemory().openDatabase(
     'reset-gate-${DateTime.now().microsecondsSinceEpoch}.db',
   );
-  final client = MockClient((req) async {
-    if (req.url.path.endsWith('inbound')) {
-      return http.Response('{"messages":[]}', 200);
-    }
-    return http.Response('', 200);
-  });
-  return bootstrapClinicalDiary(
-    sembastDatabase: db,
-    authToken: () async => 'test-token',
-    resolveBaseUrl: () async => Uri.parse(_baseUrl),
+  return bootstrapDiaryScope(
+    backend: SembastBackend(database: db),
     deviceId: _deviceId,
     softwareVersion: _softwareVersion,
-    userId: _userId,
-    httpClient: client,
-    lifecycleObserverFactory: _silentLifecycleFactory,
-    periodicTimerFactory: _silentTimerFactory,
-    connectivityStreamFactory: _silentConnectivityFactory,
-    fcmOnMessageStreamFactory: _silentFcmMessageFactory,
-    fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
+    localUserId: 'P-test',
   );
 }
 
@@ -101,7 +54,7 @@ void main() {
   });
 
   group('HomeScreen reset gate', () {
-    late ClinicalDiaryRuntime runtime;
+    late DiaryScopeRuntime runtime;
     late MockEnrollmentService enrollment;
     late TaskService tasks;
     late FakeReaction fake;
@@ -141,7 +94,7 @@ void main() {
           scope: fake,
           child: wrapWithMaterialApp(
             HomeScreen(
-              runtime: runtime,
+              diaryScope: runtime,
               deviceId: _deviceId,
               enrollmentService: enrollment,
               taskService: tasks,
