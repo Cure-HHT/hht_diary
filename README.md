@@ -41,7 +41,6 @@ apps/
 └── edc/
     └── rave-integration/   Medidata RAVE EDC integration
 
-database/                   PostgreSQL schema, triggers, RLS policies, migrations
 infrastructure/terraform/
 ├── modules/                Reusable Terraform modules (shared via hht_sponsor_iac)
 ├── sponsor-envs/           Per-sponsor environment configs (migrating to sponsor repos)
@@ -161,18 +160,12 @@ cd apps/daily-diary
 See `apps/sponsor-portal/README.md` and `apps/daily-diary/clinical_diary/README.md`
 for detailed setup, environment variables, and troubleshooting.
 
-### Database
+### Event store
 
-Located in `database/`:
-
-| File | Purpose |
-| --- | --- |
-| `schema.sql` | Core table definitions |
-| `triggers.sql` | Event store triggers |
-| `roles.sql` | User roles and RLS helper functions |
-| `rls_policies.sql` | Row-level security policies |
-| `migrations/` | Schema migrations |
-| `init.sql` | Master initialization script |
+The portal and diary persist data as hash-chained events via the external
+`event_sourcing` library. Its `PostgresBackend` creates and owns the event-store
+schema in Cloud SQL (Postgres) at runtime — there is no in-repo SQL schema or
+migration set to deploy.
 
 ### Deployment Doctor
 

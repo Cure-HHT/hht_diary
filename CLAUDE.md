@@ -113,11 +113,6 @@ Pre-commit hook enforcement: `.githooks/pre-commit` section 6 checks that `*-des
 │   └── README.md             # Naming conventions & scope definitions
 ├── docs/                      # ADRs and implementation guides
 │   └── adr/                  # Architecture Decision Records
-├── database/                  # PostgreSQL schema
-│   ├── schema.sql            # Core table definitions
-│   ├── triggers.sql          # Event store & audit triggers
-│   ├── rls_policies.sql      # Row-level security
-│   └── migrations/           # Database migrations
 ├── packages/                  # Core Flutter abstractions (shared)
 ├── apps/                      # Flutter app templates
 ├── sponsor/                   # Sponsor-specific implementations

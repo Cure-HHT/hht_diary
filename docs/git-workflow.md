@@ -917,7 +917,6 @@ git rebase origin/main
 
 - **Setup Guide**: `docs/setup-team-onboarding.md`
 - **Architecture Decisions**: `docs/adr/`
-- **Database Guide**: `docs/database-supabase-pre-deployment-audit.md`
 
 ---
 
