@@ -30,6 +30,7 @@ import 'package:clinical_diary/widgets/disconnection_banner.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:diary_design_system/diary_design_system.dart' show AppCard;
 import 'package:diary_shared_model/diary_shared_model.dart';
+import 'package:eq/eq.dart' show QuestionnaireFlowScreen;
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,6 +39,8 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:reaction_widgets_testing/reaction_widgets_testing.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trial_data_types/trial_data_types.dart'
+    show QuestionnaireType, Task, TaskType;
 
 import '../helpers/mock_enrollment_service.dart';
 import '../helpers/test_helpers.dart';
@@ -600,6 +603,175 @@ void main() {
         // The full list: both incomplete items that were consolidated behind
         // the single home-screen row.
         expect(find.text('Incomplete Record'), findsNWidgets(2));
+      },
+    );
+
+    // ---- CUR-1523: questionnaire categorization + re-open + read-only -------
+
+    /// Adds a NOSE HHT questionnaire task whose instance id is [instanceId].
+    Task addQuestionnaireTask(String instanceId) {
+      final task = Task(
+        id: instanceId,
+        taskType: TaskType.questionnaire,
+        title: QuestionnaireType.noseHht.displayName,
+        createdAt: DateTime.now(),
+        targetId: instanceId,
+        questionnaireType: QuestionnaireType.noseHht,
+        status: 'sent',
+      );
+      tasks.addTask(task);
+      return task;
+    }
+
+    /// Mints a `questionnaire_finalized` lifecycle event into the native scope's
+    /// questionnaire_status view (the same path QuestionnaireStatusSync uses), so
+    /// the one-shot read sees [instanceId] as finalized (read-only).
+    ///
+    /// The native scope is backed by a real (Sembast-memory) event store whose
+    /// appends use real async timers; those don't progress under the widget
+    /// test's fake-async clock, so the submit must run in `tester.runAsync`.
+    Future<void> finalizeInstance(
+      WidgetTester tester,
+      String instanceId,
+    ) async {
+      await tester.runAsync(() async {
+        await runtime.scope.actionSubmitter.submit(
+          ActionSubmission(
+            actionName: 'record_questionnaire_finalized',
+            rawInput: {'instance_id': instanceId},
+          ),
+        );
+      });
+    }
+
+    /// The single pushed QuestionnaireFlowScreen, or fails if none/many.
+    QuestionnaireFlowScreen flowScreen(WidgetTester tester) {
+      final matches = find.byType(QuestionnaireFlowScreen);
+      expect(matches, findsOneWidget);
+      return tester.widget<QuestionnaireFlowScreen>(matches);
+    }
+
+    // Verifies: DIARY-GUI-participant-task-list/J — after submission a
+    //   questionnaire task whose instance has a local finalized `<id>_survey`
+    //   row renders a completed visual state and is no longer an actionable item
+    //   inside the "Needs your attention" tile (no removeTask).
+    testWidgets(
+      'a submitted questionnaire task renders completed and is out of '
+      '"Needs your attention"',
+      (tester) async {
+        const instanceId = 'q-submitted-1';
+        addQuestionnaireTask(instanceId);
+        final now = DateTime.now();
+        await pumpScreen(
+          tester,
+          finalized: [
+            surveyRow(
+              DateTime(now.year, now.month, now.day, 9),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
+
+        // The Task List section is present (a completed task still surfaces),
+        // but the submitted task is NOT counted in "Needs your attention".
+        expect(find.text('Task List'), findsOneWidget);
+        // With the only questionnaire task submitted and no other actionable
+        // items, the "Needs your attention" tile is absent (count == 0).
+        expect(find.text('Needs your attention'), findsNothing);
+        // The completed row surfaces as its own "submitted, awaiting review"
+        // affordance, keyed by the instance id.
+        expect(
+          find.byKey(const Key('completed-task-q-submitted-1')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    // Verifies: DIARY-GUI-participant-task-list/K — while a questionnaire task
+    //   is submitted (not finalized) the participant can select it to review and
+    //   edit; the flow opens with the prior answers prefilled and editable.
+    // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/R — re-open a
+    //   submitted survey to the editable Review Screen seeded with prior answers.
+    testWidgets(
+      'selecting a submitted (not finalized) task opens the editable Review '
+      'Screen prefilled with prior answers',
+      (tester) async {
+        const instanceId = 'q-submitted-2';
+        addQuestionnaireTask(instanceId);
+        final now = DateTime.now();
+        await pumpScreen(
+          tester,
+          finalized: [
+            surveyRow(
+              DateTime(now.year, now.month, now.day, 9),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
+
+        await tester.tap(find.byKey(const Key('completed-task-q-submitted-2')));
+        await _settle(tester);
+
+        final flow = flowScreen(tester);
+        expect(flow.isReadOnly, isFalse);
+        expect(flow.initialResponses, isNotNull);
+        expect(flow.initialResponses, isNotEmpty);
+      },
+    );
+
+    // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S — a task whose
+    //   instance is finalized in the questionnaire_status view opens read-only.
+    testWidgets(
+      'selecting a finalized task opens the questionnaire flow read-only',
+      (tester) async {
+        const instanceId = 'q-finalized-1';
+        addQuestionnaireTask(instanceId);
+        await finalizeInstance(tester, instanceId);
+        final now = DateTime.now();
+        await pumpScreen(
+          tester,
+          finalized: [
+            surveyRow(
+              DateTime(now.year, now.month, now.day, 9),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
+
+        await tester.tap(find.byKey(const Key('completed-task-q-finalized-1')));
+        await _settle(tester);
+
+        final flow = flowScreen(tester);
+        expect(flow.isReadOnly, isTrue);
+        expect(flow.initialResponses, isNotEmpty);
+      },
+    );
+
+    // Verifies: DIARY-GUI-participant-task-list/I — the task is removed only when
+    //   `/user/tasks` drops it on finalization; submitting a questionnaire does
+    //   NOT call removeTask, so the task remains in taskService.tasks (it leaves
+    //   "Needs your attention" via categorization, not removal).
+    testWidgets(
+      'submitting a questionnaire does not remove the task from the task list',
+      (tester) async {
+        const instanceId = 'q-pending-1';
+        addQuestionnaireTask(instanceId);
+        await pumpScreen(tester);
+
+        // A pending (not-submitted) task is an actionable item in the tile.
+        expect(find.text('Needs your attention'), findsOneWidget);
+        expect(find.text('NOSE HHT Survey'), findsOneWidget);
+
+        // Open the fresh flow and drive it to completion via onComplete.
+        await tester.tap(find.text('NOSE HHT Survey'));
+        await _settle(tester);
+        final flow = flowScreen(tester);
+        flow.onComplete();
+        await _settle(tester);
+
+        // The task is NOT removed — it leaves "needs attention" via
+        // categorization only once a finalized survey row exists for it.
+        expect(tasks.tasks.map((t) => t.id), contains(instanceId));
       },
     );
   });
