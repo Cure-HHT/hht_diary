@@ -188,7 +188,6 @@ sponsor/*/
 # =====================================
 # Sponsor configuration secrets
 sponsor/*/config/*.env
-sponsor/*/config/supabase.env
 sponsor/*/config/secrets.*
 sponsor/*/config/.env*
 sponsor/*/.env*

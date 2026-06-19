@@ -176,7 +176,7 @@ doppler secrets list
 ### Get Specific Secret
 
 ```bash
-doppler secrets get SUPABASE_PROJECT_ID --plain
+doppler secrets get DB_HOST --plain
 ```
 
 ### Download All Secrets (for debugging)

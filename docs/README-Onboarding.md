@@ -47,7 +47,7 @@ During a regulatory audit, an FDA inspector may ask questions like:
 │         │                    │                    │             │
 │         ▼                    ▼                    │             │
 │  ┌──────────────────────────────────────────┐    │             │
-│  │           Supabase / PostgreSQL          │────┘             │
+│  │           Cloud SQL / PostgreSQL         │────┘             │
 │  │  • Event Store (immutable)               │                  │
 │  │  • Row-Level Security (RLS)              │                  │
 │  │  • Audit Triggers                        │                  │

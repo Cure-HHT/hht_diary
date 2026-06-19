@@ -171,7 +171,7 @@ SQL
 2. **Assess Scope** (< 2 minutes):
    - Check Better Uptime dashboard: Which services are down?
    - Check Sentry dashboard: Are errors spiking?
-   - Check Supabase status page: Is it a platform issue?
+   - Check GCP status page: Is it a platform issue?
 
 3. **Create Incident Ticket** (< 1 minute):
    ```bash
@@ -201,9 +201,11 @@ SQL
       ```bash
       gh run list --workflow=deploy-production.yml --limit 5
       ```
-    - Check Supabase logs:
+    - Check Cloud Logging for recent errors:
       ```bash
-      supabase logs --project-ref [prod-id] --limit 100
+      gcloud logging read \
+        'resource.type="cloud_run_revision" AND resource.labels.service_name="portal-service" AND severity>=ERROR' \
+        --project=$PROJECT_ID --limit=100
       ```
     - Check Sentry for new errors:
         - Go to Sentry dashboard
@@ -223,7 +225,7 @@ SQL
         - Create hotfix branch
         - Implement minimal fix
         - Deploy to production
-    - **Option C: External Issue** (if Supabase or third-party down):
+    - **Option C: External Issue** (if GCP or a third-party is down):
         - Check status page
         - Communicate issue to users
         - Monitor for resolution
@@ -383,8 +385,10 @@ gcloud run services update-traffic portal-service \
     - Preserve evidence:
       ```bash
       # Capture current logs (do not modify)
-      supabase logs --project-ref [prod-id] --limit 1000 > incident-logs-$(date +%s).log
- 
+      gcloud logging read \
+        'resource.type="cloud_run_revision" AND resource.labels.service_name="portal-service"' \
+        --project=$PROJECT_ID --limit=1000 --format=json > incident-logs-$(date +%s).json
+
       # Capture audit trail snapshot
       psql $DATABASE_URL -c "SELECT * FROM audit_trail WHERE created_at > NOW() - INTERVAL '1 hour'" > audit-snapshot.csv
       ```
@@ -392,8 +396,8 @@ gcloud run services update-traffic portal-service \
 2. **Contain Threat** (< 15 minutes):
     - Rotate compromised credentials:
       ```bash
-      # Rotate service keys in Doppler
-      doppler secrets set SUPABASE_SERVICE_KEY="[new-key]" --project clinical-diary --config prd
+      # Rotate the database password (DB_PASSWORD)
+      doppler secrets set DB_PASSWORD="[new-password]" --project clinical-diary --config prd
       ```
     - Disable compromised user accounts:
       ```sql
@@ -412,7 +416,9 @@ gcloud run services update-traffic portal-service \
     - Check Sentry for suspicious errors/activities
     - Review authentication logs:
       ```bash
-      supabase logs --project-ref [prod-id] --filter 'auth'
+      gcloud logging read \
+        'resource.type="cloud_run_revision" AND jsonPayload.message:"Auth"' \
+        --project=$PROJECT_ID --limit=100
       ```
     - Identify scope of breach:
         - What data was accessed?
@@ -512,14 +518,14 @@ gcloud logging read \
       FROM pg_stat_activity
       WHERE state = 'active' AND now() - pg_stat_activity.query_start > interval '5 seconds';
       ```
-    - Check Supabase metrics dashboard for resource usage spikes
+    - Check the Cloud SQL metrics in GCP Cloud Console for resource usage spikes
 
 3. **Mitigate**:
     - Kill slow queries if necessary:
       ```sql
       SELECT pg_terminate_backend([pid]);
       ```
-    - Scale up database if resource-constrained (Supabase dashboard)
+    - Scale up the Cloud SQL instance if resource-constrained (GCP Cloud Console)
     - Enable caching if not already enabled
     - Rate limit expensive endpoints temporarily
 
@@ -736,5 +742,5 @@ The platform uses OpenTelemetry for all three signal types:
 
 | Date | Version | Author | Changes |
 | --- | --- | --- | --- |
-| 2025-01-27 | 1.0 | Claude | Initial runbook (Supabase/Sentry/Better Uptime) |
+| 2025-01-27 | 1.0 | Claude | Initial runbook (legacy hosted-Postgres/Sentry/Better Uptime stack) |
 | 2026-04-08 | 2.0 | Claude | Complete rewrite for GCP/Cloud Run/OTel stack |

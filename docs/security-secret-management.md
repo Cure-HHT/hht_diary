@@ -99,7 +99,7 @@ Each pharmaceutical sponsor has an isolated Doppler project:
 
 **Example**: `hht-diary-callisto`
 - Separate staging and production configs
-- Sponsor-specific Supabase database credentials
+- Sponsor-specific Cloud SQL (PostgreSQL) database credentials
 - Sponsor-specific AWS infrastructure keys
 - Sponsor-specific API keys and integrations
 - No cross-sponsor secret sharing
@@ -114,29 +114,24 @@ Each pharmaceutical sponsor has an isolated Doppler project:
 
 ## Secret Types in This Project
 
-### Supabase Credentials
+### Cloud SQL (PostgreSQL) Credentials
 
-**What they are**: Database connection credentials
+**What they are**: Database connection credentials for the GCP Cloud SQL (PostgreSQL) instance backing the live stack
 
 **Secrets**:
-- `SUPABASE_PROJECT_ID`: Project identifier (e.g., `callisto-portal-prod`)
-- `SUPABASE_ACCESS_TOKEN`: Service role token for API access
-- `SUPABASE_URL`: Database connection URL
+- `DB_HOST`: Cloud SQL instance host
+- `DB_NAME`: Database name
+- `DB_USER`: Database user
+- `DB_PASSWORD`: Database password
 
-**Where stored**:
-- Core project: `hht-diary-core` (dev/staging/production)
-- Sponsor projects: `hht-diary-{sponsor}` (staging/production only)
+> The event-store schema is created and owned at runtime by the `event_sourcing`
+> library's `PostgresBackend` — there is no manual schema deploy step.
 
-**Usage**:
-```bash
-# Local development
-doppler run -- flutter run
+**Where managed**: Database credentials are provisioned and rotated through the
+infrastructure repos (`hht_admin`, `hht_workflows`, `hht_iac_sponsor`) via OIDC/CI.
+They are not set by hand through ad-hoc laptop Doppler operations.
 
-# CI/CD builds
-doppler secrets get SUPABASE_ACCESS_TOKEN --token $DOPPLER_TOKEN_CORE
-```
-
-**Rotation**: Annual or when access is compromised
+**Rotation**: Managed by the infrastructure CI/CD pipeline.
 
 ### Linear API Tokens
 
@@ -347,7 +342,7 @@ doppler run -- flutter run
 doppler secrets list
 
 # Get specific secret
-doppler secrets get SUPABASE_PROJECT_ID --plain
+doppler secrets get DB_HOST --plain
 
 # Download all secrets (for debugging, never commit!)
 doppler secrets download --no-file --format env
@@ -402,14 +397,15 @@ doppler secrets download --no-file --format env
 
 2. **Set sponsor secrets**:
    ```bash
-   # Supabase
-   doppler secrets set SUPABASE_PROJECT_ID="sponsor-portal-staging" \
-     --project hht-diary-sponsor-name --config staging
-
    # AWS
    doppler secrets set SPONSOR_AWS_ACCESS_KEY_ID="AKIA..." \
      --project hht-diary-sponsor-name --config staging
    ```
+
+   > Cloud SQL (PostgreSQL) database credentials (`DB_HOST` / `DB_NAME` /
+   > `DB_USER` / `DB_PASSWORD`) are provisioned per sponsor environment through
+   > the infrastructure repos (`hht_admin`, `hht_workflows`, `hht_iac_sponsor`)
+   > via OIDC/CI, not set by hand here.
 
 3. **Update sponsor manifest** in core project:
    ```bash
@@ -827,8 +823,8 @@ doppler secrets set LINEAR_API_KEY="lin_api_new..." \
 # 1. Change password in database
 ALTER ROLE db_user WITH PASSWORD 'new_secure_password';
 
-# 2. Update Doppler
-doppler secrets set SUPABASE_ACCESS_TOKEN="new_token" \
+# 2. Update the DB_PASSWORD secret
+doppler secrets set DB_PASSWORD="new_secure_password" \
   --project hht-diary-core --config production
 
 # 3. Restart database connections
@@ -1056,10 +1052,10 @@ doppler setup --project hht-diary-core --config dev
 doppler configure get
 
 # Verify running with doppler
-doppler run -- env | grep SUPABASE
+doppler run -- env | grep DB_
 
 # Test secret access
-doppler secrets get SUPABASE_PROJECT_ID --plain
+doppler secrets get DB_HOST --plain
 ```
 
 **"gitleaks: command not found"**
@@ -1104,7 +1100,7 @@ If gitleaks not installed, pre-commit hook warns but doesn't block commits.
 cat .doppler.yaml
 
 # Check environment-specific config
-doppler run --config staging -- echo $SUPABASE_PROJECT_ID
+doppler run --config staging -- echo $DB_HOST
 
 # Manually specify config
 doppler run --config dev -- flutter run

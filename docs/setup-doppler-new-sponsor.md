@@ -27,9 +27,6 @@ This document describes how to add a new pharmaceutical sponsor to the Diary Pla
 | Sponsor name (lowercase) | `titan` | Used in project names, URLs |
 | Sponsor code (3 letters) | `TTN` | Used in identifiers |
 | AWS region | `us-west-2` | Geographic deployment region |
-| Supabase project ID (staging) | `titan-portal-staging` | From Supabase dashboard |
-| Supabase project ID (production) | `titan-portal-prod` | From Supabase dashboard |
-| Supabase access token | `sbp_xxxxxxxxxxxxx` | From Supabase settings |
 | AWS credentials | Access key + secret | For sponsor-specific infrastructure |
 | Has portal? | `true` / `false` | Web portal or direct EDC integration |
 | Has mobile module? | `true` | Usually `true` for all sponsors |
@@ -58,14 +55,12 @@ doppler configs create production --project hht-diary-<sponsor>
 
 ### 3. Set Staging Environment Secrets
 
+> Cloud SQL (PostgreSQL) database credentials (`DB_HOST` / `DB_NAME` /
+> `DB_USER` / `DB_PASSWORD`) for this sponsor's environments are provisioned and
+> rotated through the infrastructure repos (`hht_admin`, `hht_workflows`,
+> `hht_iac_sponsor`) via OIDC/CI — not set by hand here.
+
 ```bash
-# Supabase credentials
-doppler secrets set SUPABASE_PROJECT_ID="<sponsor>-portal-staging" \
-  --project hht-diary-<sponsor> --config staging
-
-doppler secrets set SUPABASE_ACCESS_TOKEN="sbp_xxxxxxxxxxxxx" \
-  --project hht-diary-<sponsor> --config staging
-
 # AWS credentials
 doppler secrets set SPONSOR_AWS_ACCESS_KEY_ID="AKIAXXXXXXXXXXXXX" \
   --project hht-diary-<sponsor> --config staging
@@ -83,10 +78,7 @@ doppler secrets set MOBILE_MODULE_SECRETS='{"api_key": "xxx"}' \
 Repeat step 3 with production values:
 
 ```bash
-doppler secrets set SUPABASE_PROJECT_ID="<sponsor>-portal-prod" \
-  --project hht-diary-<sponsor> --config production
-
-doppler secrets set SUPABASE_ACCESS_TOKEN="sbp_production_token" \
+doppler secrets set SPONSOR_AWS_ACCESS_KEY_ID="AKIAXXXXXXXXXXXXX" \
   --project hht-diary-<sponsor> --config production
 
 # ... repeat for all production secrets
@@ -271,7 +263,7 @@ Test the new sponsor setup:
 
 2. **CI/CD test**: Trigger a GitHub Actions workflow that uses the new sponsor secrets
 
-3. **Database test**: Verify Supabase connection works with provided credentials
+3. **Database test**: Verify the Cloud SQL (PostgreSQL) connection works with the provisioned credentials
 
 4. **Portal test** (if applicable): Access sponsor portal at unique URL
 
@@ -317,7 +309,7 @@ Verify:
 ### Sponsor isolation concerns
 
 Verify sponsor isolation:
-- Separate Supabase project per sponsor
+- Separate GCP project / Cloud SQL instance per sponsor environment
 - Separate Doppler project per sponsor
 - Sponsor manifest correctly isolates configurations
 - No shared credentials across sponsors

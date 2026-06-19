@@ -60,9 +60,12 @@ Each sponsor has an isolated Doppler project containing sponsor-specific secrets
 **Configs**: `staging`, `production`
 
 **Key Secrets**:
-- `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID` - Sponsor's Supabase database credentials
 - `SPONSOR_AWS_ACCESS_KEY_ID`, `SPONSOR_AWS_SECRET_ACCESS_KEY` - Sponsor-specific AWS infrastructure
 - `MOBILE_MODULE_SECRETS` - Sponsor-specific API keys and configuration
+
+> Cloud SQL (PostgreSQL) database credentials (`DB_HOST` / `DB_NAME` / `DB_USER` /
+> `DB_PASSWORD`) are provisioned and rotated through the infrastructure repos
+> (`hht_admin`, `hht_workflows`, `hht_iac_sponsor`) via OIDC/CI, not stored here.
 
 ## Sponsor Manifest Schema
 
@@ -109,7 +112,7 @@ doppler run -- npm start
 
 # View secrets
 doppler secrets list
-doppler secrets get SUPABASE_PROJECT_ID --plain
+doppler secrets get DB_HOST --plain
 ```
 
 ### For DevOps/Admins

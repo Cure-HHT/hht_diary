@@ -49,7 +49,7 @@ The ALCOA+ framework extends traditional ALCOA (Attributable, Legible, Contempor
 #### System Implementation
 
 ✅ **COMPLIANT** - Every data entry includes:
-- User identification via `created_by` (UUID from Supabase Auth) (`database/schema.sql:record_audit.created_by`)
+- User identification via `created_by` (UUID from GCP Identity Platform) (`database/schema.sql:record_audit.created_by`)
 - User role at time of entry (`record_audit.role`)
 - Precise timestamp (`record_audit.server_timestamp`, `record_audit.client_timestamp`)
 - Device information (`record_audit.device_info`) - Device type, OS, app version
@@ -454,7 +454,7 @@ ORDER BY version DESC;
 
 ✅ **COMPLIANT** - Endurance via:
 - **Immutable storage**: Event sourcing prevents deletion
-- **Backup retention**: Automated backups via Supabase (30+ days on Pro tier)
+- **Backup retention**: Automated Cloud SQL (PostgreSQL) backups
 - **Long-term archival**: 7+ year retention for FDA compliance (`database/schema.sql:99`)
 - **Tamper detection**: Ensures data integrity over time
 - **Export capabilities**: Auditors can export data at any time (`auditor_export_log`)
@@ -509,7 +509,7 @@ WHERE is_deleted = true;
 - **Role-based access**: Auditors have read access to all data (`database/rls_policies.sql`)
 - **Export functionality**: CSV, JSON, PDF exports for auditors (`auditor_export_log`)
 - **Query performance**: Indexes optimize audit queries (`database/indexes.sql`)
-- **High availability**: Supabase provides 99.9% uptime SLA
+- **High availability**: GCP Cloud SQL provides a high-availability uptime SLA
 - **Audit trail search**: Full-text search on JSONB data via GIN indexes
 
 #### Verification Procedures
@@ -966,14 +966,13 @@ Signature: ________________  Date: ________________
 
 **Provide to Inspector**:
 1. This GCP Compliance Verification document
-2. Supabase Pre-Deployment Audit (`docs/supabase-pre-deployment-audit.md`)
-3. Database schema documentation (`database/schema.sql`)
-4. RLS policy documentation (`database/rls_policies.sql`)
-5. Requirement traceability matrix (`traceability_matrix.md`)
-6. Sample audit trail exports (anonymized)
-7. ALCOA+ compliance reports (quarterly)
-8. Training records (anonymized)
-9. SOPs (all current versions)
+2. Database schema documentation (`database/schema.sql`)
+3. RLS policy documentation (`database/rls_policies.sql`)
+4. Requirement traceability matrix (`traceability_matrix.md`)
+5. Sample audit trail exports (anonymized)
+6. ALCOA+ compliance reports (quarterly)
+7. Training records (anonymized)
+8. SOPs (all current versions)
 
 ---
 

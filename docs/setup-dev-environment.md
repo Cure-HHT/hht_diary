@@ -106,7 +106,7 @@ First run takes 15-30 minutes (downloads and builds images).
 | --- | --- | --- | --- |
 | Developer | `dev` | Flutter, Android SDK, Node, Python | Build mobile app |
 | QA | `qa` | Playwright, test frameworks | Run automated tests |
-| DevOps | `ops` | Terraform, Supabase CLI, Cosign, Syft | Deploy infrastructure |
+| DevOps | `ops` | Terraform, Cosign, Syft | Deploy infrastructure |
 | Management | `mgmt` | Git (read-only), report viewers | View status |
 
 #### Daily Usage - Method 1: VS Code (Recommended)
@@ -958,7 +958,7 @@ git commit
 ### Docker-Based Development (Recommended)
 
 **New Developer Onboarding**:
-- [ ] Access granted: GitHub, Linear, Supabase, Doppler
+- [ ] Access granted: GitHub, Linear, GCP, Doppler
 - [ ] Docker Desktop installed and running
 - [ ] Repository cloned
 - [ ] Docker environment built (`cd tools/dev-env && ./setup.sh`)
@@ -984,7 +984,7 @@ git commit
 ### Local Development
 
 **New Developer Onboarding**:
-- [ ] Access granted: GitHub, Linear, Supabase, Doppler
+- [ ] Access granted: GitHub, Linear, GCP, Doppler
 - [ ] Repository cloned
 - [ ] Git hooks configured and tested
 - [ ] Node.js (via nvm) installed

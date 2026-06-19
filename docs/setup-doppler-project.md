@@ -120,15 +120,17 @@ doppler configs create production --project hht-diary-callisto
 
 ### 7. Set Callisto Sponsor Secrets
 
+> Cloud SQL (PostgreSQL) database credentials (`DB_HOST` / `DB_NAME` /
+> `DB_USER` / `DB_PASSWORD`) are provisioned and rotated through the
+> infrastructure repos (`hht_admin`, `hht_workflows`, `hht_iac_sponsor`) via
+> OIDC/CI — not set by hand here.
+
 ```bash
 # Production secrets
-doppler secrets set SUPABASE_PROJECT_ID="callisto-portal-prod" --project hht-diary-callisto --config production
-doppler secrets set SUPABASE_ACCESS_TOKEN="sbp_xxxxxxxxxxxxx" --project hht-diary-callisto --config production
 doppler secrets set SPONSOR_AWS_ACCESS_KEY_ID="AKIAXXXXXXXXXXXXX" --project hht-diary-callisto --config production
 doppler secrets set SPONSOR_AWS_SECRET_ACCESS_KEY="xxxxxxxxxxxxxxxx" --project hht-diary-callisto --config production
 
 # Staging secrets (repeat with staging values)
-doppler secrets set SUPABASE_PROJECT_ID="callisto-portal-staging" --project hht-diary-callisto --config staging
 # ... etc
 ```
 

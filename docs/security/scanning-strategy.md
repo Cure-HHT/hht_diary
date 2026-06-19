@@ -222,7 +222,7 @@ CREATE INDEX CONCURRENTLY idx_users_email ON users(email);
 4. Re-run CI/CD
 
 **PostgreSQL-Specific Benefits**:
-- Matches Supabase backend (PostgreSQL 15+)
+- Matches the Cloud SQL (PostgreSQL) backend
 - Understands PostgreSQL locking behavior
 - Knows safe migration patterns for production
 
