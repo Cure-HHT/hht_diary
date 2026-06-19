@@ -127,9 +127,13 @@ Each pharmaceutical sponsor has an isolated Doppler project:
 > The event-store schema is created and owned at runtime by the `event_sourcing`
 > library's `PostgresBackend` — there is no manual schema deploy step.
 
-**Where managed**: Database credentials are provisioned and rotated through the
-infrastructure repos (`hht_admin`, `hht_workflows`, `hht_iac_sponsor`) via OIDC/CI.
-They are not set by hand through ad-hoc laptop Doppler operations.
+**Where managed**: Secret *values* live in Doppler (one source of truth); CI fetches them at
+job time via Doppler GitHub OIDC + GCP Workload Identity Federation (no static `DOPPLER_TOKEN`
+or JSON keys). Terraform in `hht_admin` (identity) and `hht_sponsor_iac` (sponsor modules)
+manages identity and routing — never values — and rotation is automated and PR-gated. Not set
+by hand through ad-hoc laptop Doppler operations. Authoritative spec:
+`hht_admin/spec/ops-secrets-architecture.md` (the `doppler-oidc-auth` / `gcp-wif-auth`
+composite actions live in `hht_workflows`).
 
 **Rotation**: Managed by the infrastructure CI/CD pipeline.
 
@@ -403,9 +407,9 @@ doppler secrets download --no-file --format env
    ```
 
    > Cloud SQL (PostgreSQL) database credentials (`DB_HOST` / `DB_NAME` /
-   > `DB_USER` / `DB_PASSWORD`) are provisioned per sponsor environment through
-   > the infrastructure repos (`hht_admin`, `hht_workflows`, `hht_iac_sponsor`)
-   > via OIDC/CI, not set by hand here.
+   > `DB_USER` / `DB_PASSWORD`) live in Doppler and are wired in via Doppler-OIDC / GCP-WIF
+   > per the cross-org secrets architecture (`hht_admin/spec/ops-secrets-architecture.md`),
+   > not set by hand here.
 
 3. **Update sponsor manifest** in core project:
    ```bash

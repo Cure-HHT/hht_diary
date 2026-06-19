@@ -56,9 +56,9 @@ doppler configs create production --project hht-diary-<sponsor>
 ### 3. Set Staging Environment Secrets
 
 > Cloud SQL (PostgreSQL) database credentials (`DB_HOST` / `DB_NAME` /
-> `DB_USER` / `DB_PASSWORD`) for this sponsor's environments are provisioned and
-> rotated through the infrastructure repos (`hht_admin`, `hht_workflows`,
-> `hht_iac_sponsor`) via OIDC/CI — not set by hand here.
+> `DB_USER` / `DB_PASSWORD`) for this sponsor's environments live in Doppler and are wired
+> in via Doppler-OIDC / GCP-WIF per the cross-org secrets architecture
+> (`hht_admin/spec/ops-secrets-architecture.md`) — not set by hand here.
 
 ```bash
 # AWS credentials

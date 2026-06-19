@@ -64,8 +64,8 @@ Each sponsor has an isolated Doppler project containing sponsor-specific secrets
 - `MOBILE_MODULE_SECRETS` - Sponsor-specific API keys and configuration
 
 > Cloud SQL (PostgreSQL) database credentials (`DB_HOST` / `DB_NAME` / `DB_USER` /
-> `DB_PASSWORD`) are provisioned and rotated through the infrastructure repos
-> (`hht_admin`, `hht_workflows`, `hht_iac_sponsor`) via OIDC/CI, not stored here.
+> `DB_PASSWORD`) live in Doppler and are wired in via Doppler-OIDC / GCP-WIF per the
+> cross-org secrets architecture (`hht_admin/spec/ops-secrets-architecture.md`), not stored here.
 
 ## Sponsor Manifest Schema
 

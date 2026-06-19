@@ -121,9 +121,9 @@ doppler configs create production --project hht-diary-callisto
 ### 7. Set Callisto Sponsor Secrets
 
 > Cloud SQL (PostgreSQL) database credentials (`DB_HOST` / `DB_NAME` /
-> `DB_USER` / `DB_PASSWORD`) are provisioned and rotated through the
-> infrastructure repos (`hht_admin`, `hht_workflows`, `hht_iac_sponsor`) via
-> OIDC/CI — not set by hand here.
+> `DB_USER` / `DB_PASSWORD`) live in Doppler and are wired in via Doppler-OIDC / GCP-WIF
+> per the cross-org secrets architecture (`hht_admin/spec/ops-secrets-architecture.md`)
+> — not set by hand here.
 
 ```bash
 # Production secrets
