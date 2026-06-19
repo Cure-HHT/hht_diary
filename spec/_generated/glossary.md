@@ -1159,6 +1159,10 @@ with the system, identified by a unique Email Address and bound to one
 or more Roles.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
+**User Information Modal**
+: A modal dialog displaying the details and available actions for a selected **User Account**.
+*Defined in: DIARY-GUI-user-information-modal (DIARY)*
+
 **User Profile**
 : The screen in the **Mobile Application** showing the **Participant**'s study participation details and settings.
 *Defined in: DIARY-GUI-user-profile (DIARY)*

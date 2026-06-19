@@ -376,6 +376,9 @@ Reactivation is anchored to the **Inactive Users** tab to mirror the *Deactivati
 
 The **User Information Modal** provides a summary view of a **User Account** and the primary actions available for that account. All account management actions are initiated from this modal.
 
+User Information Modal
+: A modal dialog displaying the details and available actions for a selected **User Account**.
+
 ### Assertions
 
 **Display**

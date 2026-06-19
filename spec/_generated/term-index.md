@@ -3628,7 +3628,6 @@
 - DIARY-DEV-portal-seed-config
 - DIARY-DEV-operator-tier-authz
 - DIARY-GUI-user-management-tabs
-- DIARY-GUI-user-information-modal
 - DIARY-DEV-deployment-config-defaults-E
 - DIARY-DEV-portal-active-role-switch-A
 - DIARY-DEV-portal-active-role-switch-B
@@ -3699,13 +3698,10 @@
 - DIARY-GUI-user-management-tabs-I
 - DIARY-GUI-user-management-tabs-J
 - DIARY-GUI-user-management-tabs-K
-- DIARY-GUI-user-management-tabs-M
 - DIARY-GUI-user-management-tabs-N
 - DIARY-GUI-user-account-deactivate-A
 - DIARY-GUI-user-account-deactivate-D
 - DIARY-GUI-user-account-reactivate-D
-- DIARY-GUI-user-information-modal-A
-- DIARY-GUI-user-information-modal-B
 - DIARY-GUI-user-information-modal-I
 - DIARY-GUI-user-information-modal-J
 - DIARY-GUI-user-information-modal-K
@@ -3786,7 +3782,6 @@
 - DIARY-GUI-user-management-tabs:section:5
 - DIARY-GUI-user-account-reactivate:section:0
 - DIARY-GUI-user-account-reactivate:section:3
-- DIARY-GUI-user-information-modal:section:0
 - DIARY-GUI-user-information-modal:section:3
 - DIARY-GUI-administrator-dashboard:section:0
 
@@ -3894,6 +3889,21 @@
 - DIARY-GUI-user-information-modal:section:0
 - DIARY-GUI-administrator-dashboard:section:0
 - DIARY-GUI-administrator-dashboard:section:4
+
+## User Information Modal
+
+**DIARY:**
+
+- DIARY-GUI-user-information-modal
+- DIARY-GUI-user-management-tabs-M
+- DIARY-GUI-user-information-modal-A
+- DIARY-GUI-user-information-modal-B
+- DIARY-GUI-user-information-modal-I
+- DIARY-GUI-user-information-modal-J
+- DIARY-GUI-user-information-modal-K
+- DIARY-GUI-user-management-tabs:section:5
+- DIARY-GUI-user-information-modal:section:0
+- DIARY-GUI-user-information-modal:section:3
 
 ## User Profile
 
