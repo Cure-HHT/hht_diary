@@ -19,7 +19,7 @@
 This runbook defines procedures for detecting, responding to, and resolving production incidents for the HHT Diary Platform running on GCP Cloud Run.
 
 **Production Stack**:
-- **Compute**: Cloud Run (diary-service, portal-service) in europe-west9
+- **Compute**: Cloud Run (portal-service) in europe-west9
 - **Database**: Cloud SQL PostgreSQL 17 (private VPC)
 - **Auth**: GCP Identity Platform (portal), JWT (diary)
 - **Secrets**: Doppler
@@ -69,11 +69,6 @@ gcloud run revisions list --service=portal-service --region=europe-west9 --proje
 # Recent errors for portal-service (last 1 hour)
 gcloud logging read \
   'resource.type="cloud_run_revision" AND resource.labels.service_name="portal-service" AND severity>=ERROR' \
-  --project=$PROJECT_ID --limit=20 --format='table(timestamp,jsonPayload.message)'
-
-# Recent errors for diary-service
-gcloud logging read \
-  'resource.type="cloud_run_revision" AND resource.labels.service_name="diary-service" AND severity>=ERROR' \
   --project=$PROJECT_ID --limit=20 --format='table(timestamp,jsonPayload.message)'
 
 # Trace-correlated logs (find all logs for a specific trace)

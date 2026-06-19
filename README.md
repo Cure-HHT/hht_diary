@@ -172,11 +172,9 @@ migration set to deploy.
 Health check scripts for deployed services:
 
 ```bash
-# Portal server
+# Portal server (event-sourced; diary devices ingest into the portal — there is no
+# separate diary-service post-EVS)
 ./apps/sponsor-portal/tool/deployment-doctor.sh --url https://portal-service-XXXX.run.app --verbose
-
-# Diary server
-./apps/daily-diary/tool/deployment-doctor.sh --url https://diary-service-XXXX.run.app --verbose
 ```
 
 Checks: health endpoint, versions, HTTPS, API smoke tests, Cloud Logging signals.
