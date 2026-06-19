@@ -733,6 +733,49 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  /// Opens a submitted survey [SurveyEntryView] as a READ-ONLY questionnaire
+  /// flow. Called when the participant taps a survey record in "Your Records"
+  /// (home today/yesterday list) or the Calendar day-view.
+  ///
+  /// Records are always read-only views — EDITING is only available via the
+  /// TASK (submitted-but-not-finalized row). This enforces the records/tasks
+  /// split: tasks = edit path; records = read-only view path.
+  // Implements: DIARY-GUI-participant-task-list/H
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
+  Future<void> _openSurveyRecordReadOnly(SurveyEntryView survey) async {
+    final qTypeString = survey.questionnaireType;
+    QuestionnaireType? qType;
+    try {
+      qType = QuestionnaireType.fromValue(qTypeString);
+    } catch (_) {
+      qType = null;
+    }
+
+    if (qType == null ||
+        (qType != QuestionnaireType.noseHht &&
+            qType != QuestionnaireType.qol)) {
+      // Unsupported type — no read-only view available; do nothing.
+      return;
+    }
+
+    final definition = await _loadQuestionnaireDefinition(qType);
+    if (definition == null || !mounted) return;
+
+    await Navigator.of(context).push(
+      AppPageRoute<void>(
+        builder: (context) => QuestionnaireFlowScreen(
+          definition: definition,
+          instanceId: survey.aggregateId,
+          initialResponses: survey.prefillResponses,
+          isReadOnly: true,
+          onSubmit: (_) async => const SubmitResult(success: false),
+          onComplete: () => Navigator.of(context).pop(),
+          onDefer: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
+  }
+
   /// The device-local finalized `<id>_survey` [SurveyEntryView] for
   /// [aggregateId], or null if the participant has not submitted it yet. Used
   /// both to categorize a task as SUBMITTED and to seed the re-open prefill.
@@ -1355,34 +1398,42 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final l10n = AppLocalizations.of(context);
     final tasks = _isDisconnected ? const <Task>[] : widget.taskService.tasks;
 
-    // CUR-1523: categorize questionnaire tasks by lifecycle. A questionnaire
-    // task is COMPLETED — it leaves "Needs your attention" and renders a
-    // completed visual state instead (task-list/J), but STAYS in the task list
-    // (no removeTask — removal happens only when `/user/tasks` drops it on
-    // portal finalization, task-list/I) — when EITHER:
-    //  - it has a device-local finalized `<id>_survey` row (SUBMITTED); OR
-    //  - it is FINALIZED (a finalized task is completed even with no local
-    //    survey row, e.g. after a diary-reset/reinstall + re-link). Finalized
-    //    is corroborated by the durable `questionnaire_status` projection
-    //    ([_finalizedInstanceIds]) OR the freshly-synced portal status, so the
-    //    gate engages in the same cycle the status arrives. Other tasks remain
-    //    actionable as today.
+    // CUR-1523: categorize questionnaire tasks by lifecycle:
+    //
+    //  FINALIZED (task-list/I): Portal has finalized the submission. The task
+    //    MUST be removed from the Task List entirely (neither attention nor
+    //    completed row). Read-only access lives on the survey RECORD in "Your
+    //    Records" / Calendar day-view. Finalized is detected via EITHER the
+    //    durable on-device `questionnaire_status` projection
+    //    ([_finalizedInstanceIds]) OR the freshly-synced portal status on the
+    //    task (task.status == 'finalized') — whichever signal arrives first.
+    //
+    //  SUBMITTED but NOT finalized (task-list/J): A device-local
+    //    `<id>_survey` row exists for this instance. The task STAYS in the list
+    //    as a completed-state row ("— submitted"), giving the participant access
+    //    to review/edit until the portal finalizes it.
+    //
+    //  PENDING (actionable): Neither submitted nor finalized. Surfaces in
+    //    "Needs your attention".
     final submittedInstanceIds = view.entries
         .whereType<SurveyEntryView>()
         .map((s) => s.aggregateId)
         .toSet();
-    // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
+    // Implements: DIARY-GUI-participant-task-list/I
     bool isFinalizedQuestionnaire(Task t) =>
         _finalizedInstanceIds.contains(t.targetId ?? t.id) ||
         t.status == 'finalized';
-    // Implements: DIARY-GUI-participant-task-list/I+J
-    bool isCompletedQuestionnaire(Task t) =>
+    // Submitted (has local survey row) AND not yet finalized — the "awaiting
+    // review" completed-state category (task-list/J).
+    // Implements: DIARY-GUI-participant-task-list/J
+    bool isSubmittedNotFinalizedQuestionnaire(Task t) =>
         t.taskType == TaskType.questionnaire &&
-        (submittedInstanceIds.contains(t.id) || isFinalizedQuestionnaire(t));
+        submittedInstanceIds.contains(t.id) &&
+        !isFinalizedQuestionnaire(t);
 
     // Actionable items in the "Needs your attention" tile: alerts + tasks that
-    // have NOT been submitted yet. Submitted questionnaire tasks are excluded
-    // here so they don't inflate the attention count (CUR-1519).
+    // are neither submitted nor finalized. Submitted and finalized questionnaire
+    // tasks are both excluded here (CUR-1519).
     final attentionRows = <Widget>[
       if (incompleteCount > 0)
         AppAlertRow.incompleteRecord(
@@ -1400,7 +1451,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           onTap: () => _handleResolveOverlaps(view),
         ),
       for (final task in tasks)
-        if (!isCompletedQuestionnaire(task))
+        if (task.taskType != TaskType.questionnaire ||
+            (!isSubmittedNotFinalizedQuestionnaire(task) &&
+                !isFinalizedQuestionnaire(task)))
           AppAlertRow(
             tone: _toneForTaskType(task.taskType),
             icon: _iconForTaskType(task.taskType),
@@ -1409,14 +1462,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ),
     ];
 
-    // Completed (submitted, awaiting review) questionnaire tasks — a distinct
-    // success-tone row outside the attention tile, still selectable so the
-    // participant can review/edit (task-list/K) or view a finalized submission
-    // read-only (workflow/S).
-    // Implements: DIARY-GUI-participant-task-list/J
+    // Completed (submitted, awaiting portal review) questionnaire tasks — a
+    // distinct success-tone row outside the attention tile, selectable so the
+    // participant can review/edit (task-list/K).
+    // FINALIZED tasks are NOT rendered here — they are removed from the Task
+    // List entirely (task-list/I); read-only access is via the survey record.
+    // Implements: DIARY-GUI-participant-task-list/I+J
     final completedRows = <Widget>[
       for (final task in tasks)
-        if (isCompletedQuestionnaire(task))
+        if (isSubmittedNotFinalizedQuestionnaire(task))
           AppAlertRow(
             key: Key('completed-task-${task.id}'),
             tone: AppAlertRowTone.success,
@@ -1497,7 +1551,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               if (!context.mounted) return;
               await showDialog<void>(
                 context: context,
-                builder: (context) => CalendarScreen(installDate: installDate),
+                builder: (context) => CalendarScreen(
+                  installDate: installDate,
+                  onOpenSurvey: _openSurveyRecordReadOnly,
+                ),
               );
             },
           ),
@@ -1682,10 +1739,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 // "Don't remember" / "No nosebleeds" status is not a tappable
                 // affordance (re-disposition stays available from the
                 // calendar's date-records screen).
+                // Implements: DIARY-GUI-participant-task-list/H
                 onTap: switch (entry) {
                   EpistaxisEntryView() => () => _navigateToEditRecord(entry),
                   DayMarkerView() => null,
-                  SurveyEntryView() => null,
+                  SurveyEntryView() => () => _openSurveyRecordReadOnly(entry),
                 },
                 hasOverlap:
                     entry is EpistaxisEntryView && _hasOverlap(view, entry),
