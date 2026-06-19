@@ -150,6 +150,9 @@ final TableProjectionSpec activationCodesSpec = TableProjectionSpec(
 //   key-wise merge (no spec change needed). `end_event` distinguishes a terminal
 //   Closed (End of Treatment / End of Study) from an after-finalize (Not Sent /
 //   Start-Next-Cycle) row; the card reads it to render the combined Closed badge.
+// Implements: DIARY-GUI-participant-task-list/J — questionnaire_unlocked folds
+//   into the row so the diary sees status='unlocked' and re-presents the task
+//   for re-submission.
 final AggregateProjectionSpec questionnaireInstanceSpec =
     AggregateProjectionSpec(
       viewName: 'questionnaire_instance',
@@ -159,6 +162,7 @@ final AggregateProjectionSpec questionnaireInstanceSpec =
           'questionnaire_assigned',
           'questionnaire_submission_received',
           'questionnaire_finalized',
+          'questionnaire_unlocked',
           'questionnaire_called_back',
         },
       ),

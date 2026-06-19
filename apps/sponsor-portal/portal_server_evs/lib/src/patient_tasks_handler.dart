@@ -12,15 +12,22 @@ import 'package:shelf/shelf.dart';
 import 'patient_token_validator.dart';
 
 /// Map a [questionnaire_instance] row's [entryType] to the task status string
-/// the diary displays. Phase 1 only sees `questionnaire_assigned`; the switch
-/// is intentionally open for future lifecycle entry types.
-// TODO(CUR-1447 Phase 2+): harden the wildcard arm — once the lifecycle events
-//   (delivery_failed / finalized / …) fold into questionnaire_instance, map each
-//   to its real status instead of defaulting every unknown entryType to 'sent'.
+/// the diary uses to categorize tasks.
+///
+/// All non-tombstoned [questionnaire_instance] rows are returned regardless of
+/// lifecycle stage — the diary needs `finalized` to mint its device-observed
+/// event, and `unlocked` to re-present the task for re-submission.
+/// Tombstoned (called-back) instances are absent from the view entirely, so no
+/// explicit skip is needed for them.
+// Implements: DIARY-GUI-participant-task-list/I+J — the diary needs the
+//   submitted/finalized/unlocked status to categorize tasks; finalization
+//   removes the task only after the diary records it.
 String _statusFor(String entryType) {
   return switch (entryType) {
     'questionnaire_assigned' => 'sent',
     'questionnaire_submission_received' => 'ready_to_review',
+    'questionnaire_finalized' => 'finalized',
+    'questionnaire_unlocked' => 'unlocked',
     _ => 'sent',
   };
 }
@@ -75,26 +82,19 @@ Handler patientTasksHandler({required EventStore eventStore}) {
       );
     }
 
-    // Read questionnaire_instance and filter to this participant's active rows.
+    // Read questionnaire_instance and filter to this participant's rows.
     // Implements: DIARY-PRD-questionnaire-system/B
-    // Implements: DIARY-BASE-questionnaire-coordinator-workflow/M — a finalized
-    //   questionnaire is no longer an active task for the participant (the diary
-    //   has already submitted it); rows whose latest entryType is
-    //   'questionnaire_finalized' are skipped. Tombstoned (called-back) instances
-    //   are absent from the view entirely, so no extra filter is needed for them.
-    // Implements: DIARY-BASE-questionnaire-coordinator-workflow/G — a submitted
-    //   questionnaire (latest entryType 'questionnaire_submission_received') has
-    //   already been completed by the participant and is now Ready to Review for
-    //   the coordinator; it is no longer an active task for the participant, so
-    //   it is skipped here too.
+    // Implements: DIARY-GUI-participant-task-list/I+J — ALL non-tombstoned
+    //   instances are returned with their real lifecycle status. The diary needs
+    //   'finalized' to mint its device-observed questionnaire_finalized event,
+    //   and 'unlocked' to re-present the task for re-submission. Tombstoned
+    //   (called-back) instances are absent from the questionnaire_instance view
+    //   entirely, so no explicit skip is needed for them.
     final instanceRows =
         await eventStore.backend.findViewRows('questionnaire_instance');
     final tasks = <Map<String, Object?>>[];
     for (final r in instanceRows) {
       if (r['participant_id'] != payload.userId) continue;
-      // Skip finalized + submitted instances — they are no longer active tasks.
-      if (r['entryType'] == 'questionnaire_finalized') continue;
-      if (r['entryType'] == 'questionnaire_submission_received') continue;
       tasks.add(<String, Object?>{
         'questionnaire_instance_id': r['aggregateId'],
         'questionnaire_type': r['type'],
