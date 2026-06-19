@@ -216,10 +216,13 @@ class EventListItem extends StatelessWidget {
     final theme = Theme.of(context);
     final name = _questionnaireDisplayName(survey.questionnaireType);
     final timeText = DateFormat.jm(locale).format(survey.completedAt);
+    // Lead with the time so it sits at the start of the line, the same position
+    // as the epistaxis row's time — a consistent time location down the day's
+    // records list. The questionnaire name is the row's detail (secondary).
     return ds.EventListItem(
-      leading: name,
+      leading: timeText,
       icon: Icons.assignment_turned_in_outlined,
-      secondary: 'Completed · $timeText',
+      secondary: name,
       tone: ds.EventListItemTone.neutral,
       onTap: onTap,
       trailing: onTap == null
