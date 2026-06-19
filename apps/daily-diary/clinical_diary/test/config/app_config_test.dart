@@ -138,20 +138,6 @@ void main() {
           expect(AppConfig.healthUrl, 'https://test-api.example.com/health');
         });
 
-        test('syncUrl uses /api/v1/user/sync path', () {
-          expect(
-            AppConfig.syncUrl,
-            'https://test-api.example.com/api/v1/user/sync',
-          );
-        });
-
-        test('getRecordsUrl uses /api/v1/user/records path', () {
-          expect(
-            AppConfig.getRecordsUrl,
-            'https://test-api.example.com/api/v1/user/records',
-          );
-        });
-
         test('registerUrl uses /api/v1/auth/register path', () {
           expect(
             AppConfig.registerUrl,

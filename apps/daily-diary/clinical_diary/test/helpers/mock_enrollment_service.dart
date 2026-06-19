@@ -50,14 +50,6 @@ class MockEnrollmentService implements EnrollmentService {
   @override
   Future<String?> getBackendUrl() async => backendUrl;
 
-  @override
-  Future<String?> getSyncUrl() async =>
-      backendUrl != null ? '$backendUrl/api/v1/user/sync' : null;
-
-  @override
-  Future<String?> getRecordsUrl() async =>
-      backendUrl != null ? '$backendUrl/api/v1/user/records' : null;
-
   // REQ-CAL-p00077: Disconnection tracking methods
   @override
   Future<bool> isDisconnected() async => _isDisconnected;
