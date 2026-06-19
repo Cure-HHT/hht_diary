@@ -108,9 +108,7 @@ identity_platform_session_duration = 60
 
 # Additional authorized domains for OAuth (auto-includes project domains)
 identity_platform_authorized_domains = ["portal-qa.callisto.anspar.org"]
-# "diary-qa.callisto.anspar.org", 
-
-portal_server_url = "https://portal-server-421945483876.europe-west9.run.app"
+# "diary-qa.callisto.anspar.org",
 
 # -----------------------------------------------------------------------------
 # Optional: Workforce Identity Federation
