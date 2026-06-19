@@ -45,7 +45,7 @@ import 'package:diary_shared_model/diary_shared_model.dart'
     show EntryGate, entryGateForDate;
 import 'package:eq/eq.dart';
 import 'package:event_sourcing/event_sourcing.dart'
-    show ActionSubmission, EndOfReplay, Snapshot, Update;
+    show ActionSubmission, Delta, EndOfReplay, Snapshot, Tombstone, Update;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
@@ -152,9 +152,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // CUR-1523: instance ids the device has observed as portal-FINALIZED (the
   // `questionnaire_status` read-only set). A finalized questionnaire re-opens
   // read-only (workflow/S); until finalized a submitted questionnaire re-opens
-  // to the editable Review Screen (workflow/R). Refreshed via a one-shot read of
-  // the native `questionnaire_status` view on init / resume / task change.
+  // to the editable Review Screen (workflow/R). Maintained by a LIVE subscription
+  // to the native `questionnaire_status` view, so it reflects a just-minted
+  // `questionnaire_finalized` the instant the post-sync reconcile records it —
+  // a one-shot read would miss its own mint (the reconcile mints AFTER the sync
+  // that triggers the read). It is the durable on-device source of truth, so the
+  // read-only gate is correct offline (no dependency on a fresh /user/tasks sync).
   Set<String> _finalizedInstanceIds = const <String>{};
+  StreamSubscription<Update<QuestionnaireStatusRow>>? _finalizedStatusSub;
 
   @override
   void initState() {
@@ -164,11 +169,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _checkDisconnectionStatus();
     _refreshResetGate();
     _refreshWedgeStatus();
-    _refreshQuestionnaireStatus();
-    // Re-read the finalized set whenever the task list changes (a sync may have
-    // just minted a questionnaire_finalized for a task), so a re-opened task
-    // reflects the latest read-only gate.
-    widget.taskService.addListener(_refreshQuestionnaireStatus);
+    _startFinalizedStatusSubscription();
     // CUR-1164: React immediately when a background sync detects disconnection
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
@@ -192,7 +193,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _refreshWedgeStatus();
       _maybePushIncompleteSurvey();
-      _refreshQuestionnaireStatus();
     }
   }
 
@@ -221,54 +221,70 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.notParticipatingNotifier.removeListener(
       _onNotParticipatingChanged,
     );
-    widget.taskService.removeListener(_refreshQuestionnaireStatus);
+    unawaited(_finalizedStatusSub?.cancel());
     _scrollController.dispose();
     super.dispose();
   }
 
-  /// One-shot read of the native `questionnaire_status` view into the
-  /// device-observed FINALIZED instance-id set, then store it for the
-  /// re-open branch. Mirrors [_readIncompleteRowsOnce] (Completer +
-  /// EndOfReplay cancel; no live subscription).
+  /// Starts a LIVE subscription to the native `questionnaire_status` projection
+  /// and keeps [_finalizedInstanceIds] in lock-step with it. Unlike a one-shot
+  /// read, this reflects a `questionnaire_finalized` the instant it is recorded —
+  /// crucially including the mint the post-sync reconcile appends AFTER the sync
+  /// that would otherwise have driven (and already completed) a one-shot read.
+  ///
+  /// Each emission carries one row. Finalize is terminal for Callisto, but the
+  /// unlock case is handled too (a row that is no longer finalized is dropped).
+  /// The initial replay accumulates silently and publishes once at the
+  /// [EndOfReplay] marker; subsequent live updates publish immediately.
   // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
-  Future<void> _refreshQuestionnaireStatus() async {
-    final finalized = await _readFinalizedInstanceIdsOnce();
-    if (!mounted) return;
-    setState(() => _finalizedInstanceIds = finalized);
-  }
+  void _startFinalizedStatusSubscription() {
+    final finalized = <String>{};
+    var replaying = true;
+    void publish() {
+      if (mounted) setState(() => _finalizedInstanceIds = Set.of(finalized));
+    }
 
-  /// One-shot read of the native `questionnaire_status` projection: subscribes,
-  /// collects the finalized instance ids until the EndOfReplay marker, then
-  /// cancels. Mirrors [_readIncompleteRowsOnce] exactly.
-  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
-  Future<Set<String>> _readFinalizedInstanceIdsOnce() async {
-    final completer = Completer<Set<String>>();
-    final ids = <String>{};
-    late final StreamSubscription<Update<QuestionnaireStatusRow>> sub;
-    sub = widget.diaryScope.scope.viewSource
+    _finalizedStatusSub = widget.diaryScope.scope.viewSource
         .watch<QuestionnaireStatusRow>(
           viewName: questionnaireStatusViewName,
           mapper: QuestionnaireStatusRow.fromViewRow,
         )
         .listen(
           (update) {
+            // Update<T> is sealed: Snapshot (replay rows), Delta/Tombstone (live
+            // changes after EndOfReplay), EndOfReplay (replay-done marker). A
+            // just-minted questionnaire_finalized arrives as a Delta — handling
+            // ONLY Snapshot would silently drop every live finalize.
             switch (update) {
               case Snapshot<QuestionnaireStatusRow>(:final value):
-                if (value != null && value.isFinalized) {
-                  ids.add(value.instanceId);
-                }
+                if (value == null) break;
+                _applyFinalizedRow(finalized, value);
+                if (!replaying) publish();
+              case Delta<QuestionnaireStatusRow>(:final value):
+                _applyFinalizedRow(finalized, value);
+                publish();
+              case Tombstone<QuestionnaireStatusRow>(:final aggregateId):
+                finalized.remove(aggregateId);
+                publish();
               case EndOfReplay<QuestionnaireStatusRow>():
-                if (!completer.isCompleted) completer.complete(ids);
-                unawaited(sub.cancel());
-              default:
-                break;
+                replaying = false;
+                publish();
             }
           },
           onError: (Object e, StackTrace st) {
-            if (!completer.isCompleted) completer.complete(ids);
+            // A read error leaves the last-known finalized set in place.
           },
         );
-    return completer.future;
+  }
+
+  /// Folds one `questionnaire_status` row into [finalized]: a finalized instance
+  /// is in the read-only set; an unfinalized one (future unlock) is dropped.
+  void _applyFinalizedRow(Set<String> finalized, QuestionnaireStatusRow row) {
+    if (row.isFinalized) {
+      finalized.add(row.instanceId);
+    } else {
+      finalized.remove(row.instanceId);
+    }
   }
 
   Future<void> _checkEnrollmentStatus() async {
@@ -687,23 +703,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // participant has already submitted it; carries the prior answers used to
     // seed the Review Screen / read-only view.
     final surveyView = _submittedSurveyFor(view, aggregateId);
-    // The read-only gate engages on EITHER corroborating signal:
-    //  - the durable on-device `questionnaire_status` projection
-    //    ([_finalizedInstanceIds]); OR
-    //  - the freshly-synced portal status on the task itself.
-    // The Task.status term makes the gate engage in the same cycle the
-    // 'finalized' status arrives (independent of mint -> view -> refresh
-    // timing) and also covers a finalized instance that has no local survey
-    // row (e.g. after a diary-reset/reinstall + re-link). The projection stays
-    // the durable record; the status is corroboration, not a replacement.
-    final isFinalized =
-        _finalizedInstanceIds.contains(aggregateId) ||
-        task.status == 'finalized';
 
     await _openQuestionnaireFlow(
       qType: qType,
       aggregateId: aggregateId,
-      isReadOnly: isFinalized,
+      // Read-only iff the device has observed + recorded the portal's
+      // finalization in the durable `questionnaire_status` projection
+      // ([_finalizedInstanceIds], kept live). The projection is the on-device
+      // source of truth, so the gate is correct offline — no dependency on a
+      // fresh /user/tasks sync.
+      isReadOnly: _finalizedInstanceIds.contains(aggregateId),
       submittedSurvey: surveyView,
     );
   }
@@ -784,13 +793,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     // A finalized instance is view-only (workflow/S); a submitted but
     // not-yet-finalized instance opens the editable Review (workflow/R). The
-    // questionnaire_status projection is the durable finalize signal.
-    final isReadOnly = _finalizedInstanceIds.contains(survey.aggregateId);
-
+    // live `questionnaire_status` projection is the durable, offline-correct
+    // finalize signal — identical to opening from the Task.
     await _openQuestionnaireFlow(
       qType: qType,
       aggregateId: survey.aggregateId,
-      isReadOnly: isReadOnly,
+      isReadOnly: _finalizedInstanceIds.contains(survey.aggregateId),
       submittedSurvey: survey,
     );
   }

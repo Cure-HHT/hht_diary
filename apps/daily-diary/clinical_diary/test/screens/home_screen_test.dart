@@ -848,6 +848,47 @@ void main() {
       },
     );
 
+    // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S — the read-only
+    //   gate keys off a LIVE `questionnaire_status` subscription, so a finalize
+    //   recorded AFTER the screen mounts takes effect with no re-read trigger.
+    //   Regression: the post-sync reconcile mints questionnaire_finalized AFTER
+    //   the sync that drove the (one-shot) read, so a one-shot read missed its
+    //   own mint and left the record EDITABLE; the live subscription cannot lag.
+    testWidgets(
+      'a finalize recorded after mount makes the record read-only live '
+      '(no re-read trigger)',
+      (tester) async {
+        const instanceId = 'q-record-live-finalize-1';
+        final now = DateTime.now();
+        // Mount with a SUBMITTED (not finalized) survey record → editable.
+        await pumpScreen(
+          tester,
+          finalized: [
+            surveyRow(
+              DateTime(now.year, now.month, now.day, 9),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
+
+        // Mint the finalize into questionnaire_status AFTER mount — no task
+        // change, no resume; only the live subscription can deliver it. The
+        // append + the view emission run on the real clock (Sembast-memory), so
+        // let them settle under runAsync, then pump the setState the live
+        // listener schedules.
+        await finalizeInstance(tester, instanceId);
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await _settle(tester);
+
+        await tester.tap(find.byKey(const Key('survey-card')));
+        await _settle(tester);
+
+        expect(flowScreen(tester).isReadOnly, isTrue);
+      },
+    );
+
     // Verifies: DIARY-GUI-participant-task-list/I — the task is removed only when
     //   `/user/tasks` drops it on finalization; submitting a questionnaire does
     //   NOT call removeTask, so the task remains in taskService.tasks (it leaves
