@@ -140,7 +140,7 @@ Git hooks enforce this. Your commit will be rejected without a valid requirement
 
 1. **Read prerequisites**: `docs/setup-dev-environment.md` (section "1. Prerequisites")
 2. **Set up dev environment**: `docs/setup-dev-environment.md`
-3. **Configure secrets**: `docs/setup-doppler-new-dev.md`
+3. **Configure secrets**: `docs/setup-doppler.md` (points to the authoritative model in `hht_admin`)
 
 ### Recommended: Dev Container
 

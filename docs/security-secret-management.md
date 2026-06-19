@@ -435,7 +435,7 @@ doppler secrets download --no-file --format env
 
 5. **Add GitHub Actions secrets** and update workflows
 
-See `docs/setup-doppler-new-sponsor.md` for complete step-by-step instructions.
+See `hht_admin/spec/ops-secrets-architecture.md` for the authoritative per-sponsor secrets model (local pointer: `docs/setup-doppler.md`).
 
 ---
 
@@ -1141,11 +1141,8 @@ doppler secrets list --token $DOPPLER_TOKEN_CORE
 
 ### Internal Documentation
 
-- **Doppler Setup Guides**:
-  - `docs/setup-doppler.md` - Overview and quick links
-  - `docs/setup-doppler-project.md` - Project infrastructure setup
-  - `docs/setup-doppler-new-sponsor.md` - Sponsor onboarding
-  - `docs/setup-doppler-new-dev.md` - Developer setup
+- **Secrets architecture (authoritative)**: `hht_admin/spec/ops-secrets-architecture.md` and
+  `hht_admin/spec/ops-secrets-bootstrap.md` (local pointer: `docs/setup-doppler.md`)
 
 - **Security Documentation**:
   - `CLAUDE.md` - Project instructions and requirements

@@ -288,7 +288,7 @@ Remember sponsor isolation:
 
 1. Complete [Developer Onboarding](Onboarding%20-%20Developer.md) setup
 2. Install Flutter: `docs/setup-dev-environment.md` (section "1. Prerequisites")
-3. Configure Doppler: `docs/setup-doppler-new-dev.md`
+3. Configure secrets: `docs/setup-doppler.md` (points to the authoritative model in `hht_admin`)
 
 ### Quick Test Commands
 
