@@ -7,6 +7,7 @@ import 'package:clinical_diary/actions/inbound_system_actions.dart';
 import 'package:clinical_diary/actions/record_day_marker_action.dart';
 import 'package:clinical_diary/actions/record_epistaxis_event_action.dart';
 import 'package:clinical_diary/actions/record_participant_linked_action.dart';
+import 'package:clinical_diary/actions/record_questionnaire_finalized_action.dart';
 import 'package:clinical_diary/actions/settings_actions.dart';
 import 'package:clinical_diary/actions/submit_questionnaire_action.dart';
 import 'package:event_sourcing/event_sourcing.dart';
@@ -26,5 +27,7 @@ ActionRegistry buildDiaryActionRegistry() {
     ..register(const SetUserSettingAction())
     ..register(const ApplySponsorSettingsAction())
     ..register(const UnlockSponsorSettingsAction())
-    ..register(const RecordParticipantLinkedAction());
+    ..register(const RecordParticipantLinkedAction())
+    ..register(const RecordQuestionnaireFinalizedAction())
+    ..register(const RecordQuestionnaireUnlockedAction());
 }
