@@ -341,22 +341,6 @@ class EnrollmentService {
     return enrollment?.backendUrl;
   }
 
-  /// Get the full URL for the sync endpoint.
-  /// Returns null if not linked with a backend URL.
-  Future<String?> getSyncUrl() async {
-    final baseUrl = await getBackendUrl();
-    if (baseUrl == null) return null;
-    return '$baseUrl/api/v1/user/sync';
-  }
-
-  /// Get the full URL for the records endpoint.
-  /// Returns null if not linked with a backend URL.
-  Future<String?> getRecordsUrl() async {
-    final baseUrl = await getBackendUrl();
-    if (baseUrl == null) return null;
-    return '$baseUrl/api/v1/user/records';
-  }
-
   // REQ-CAL-p00077: Disconnection status tracking
 
   /// Check if the participant has been disconnected from the study.

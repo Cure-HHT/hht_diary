@@ -97,8 +97,6 @@ class AppConfig {
       '$apiBase/api/v1/user/enroll'; // Deprecated, returns 410
   static String get linkUrl =>
       '$apiBase/api/v1/user/link'; // Patient linking via sponsor portal codes
-  static String get syncUrl => '$apiBase/api/v1/user/sync';
-  static String get getRecordsUrl => '$apiBase/api/v1/user/records';
 
   // Health check
   static String get healthUrl => '$apiBase/health';
