@@ -130,8 +130,7 @@ See `spec/README.md` for the complete map and `spec/INDEX.md` for the REQ index.
 
 - `docs/adr/` — Architecture Decision Records
 - `docs/gcp/` — GCP setup guides (Cloud SQL, Identity Platform, Cloud Run)
-- `docs/ops-incident-response-runbook.md` — Incident response procedures
-- `docs/ops-deployment-production-tagging-hotfix.md` — Release process
+- `docs/operations/` — Operational runbooks (incident response, release/hotfix, dev-env maintenance)
 
 ---
 

@@ -109,7 +109,7 @@ See [Development Environment Architecture](../../docs/setup-dev-environment-arch
 
 ## Maintenance
 
-See [Dev Environment Maintenance](../../docs/ops-dev-environment-maintenance.md) for maintenance procedures.
+See [Dev Environment Maintenance](../../docs/operations/runbook-dev-environment-maintenance.md) for maintenance procedures.
 
 ## Local PostgreSQL Database
 

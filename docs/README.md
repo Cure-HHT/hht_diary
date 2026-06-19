@@ -95,8 +95,8 @@ Most documentation lives in the root with topic-based prefixes for easy discover
 **Topics**:
 - **setup-\*** : Onboarding, configuration, getting started
   - Examples: `setup-team-onboarding.md`, `setup-doppler-new-dev.md`
-- **ops-\*** : Operations, monitoring, incident response, deployment
-  - Examples: `ops-monitoring-sentry.md`, `ops-incident-response-runbook.md`
+- **operations/** : Operational runbooks live in the `operations/` subdirectory, named `runbook-*`
+  - Examples: `operations/runbook-incident-response.md`, `operations/runbook-deployment-production-tagging-hotfix.md`
 - **cicd-\*** : CI/CD pipelines, automation, validation
   - Examples: `cicd-setup-guide.md`
 - **architecture-\*** : System architecture (non-ADR implementation details)

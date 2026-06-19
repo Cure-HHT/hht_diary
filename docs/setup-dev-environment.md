@@ -258,7 +258,7 @@ GitHub Actions workflows use these same Docker images:
 
 **See**:
 - [Development Environment Architecture](/home/mclew/dev24/diary-worktrees/clean-docs/docs/setup-dev-environment-architecture.md)
-- [Dev Environment Maintenance](/home/mclew/dev24/diary-worktrees/clean-docs/docs/ops-dev-environment-maintenance.md)
+- [Dev Environment Maintenance](./operations/runbook-dev-environment-maintenance.md)
 
 ---
 
