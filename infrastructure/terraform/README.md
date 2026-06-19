@@ -996,10 +996,9 @@ Deploys Cloud Run services with Dart-optimized health checks.
 
 ## Related Documentation
 
-- [Spec: Multi-Sponsor Architecture](../../spec/dev-architecture-multi-sponsor.md)
-- [Spec: Operations Security](../../spec/ops-security.md)
-- [ADR: Infrastructure as Code](../../docs/adr/adr-infrastructure-as-code.md)
-- [Pulumi (Legacy)](../pulumi/README.md)
+- [Operations security guide](../../docs/security-secret-management.md)
+<!-- CUR-350 VERIFY: spec/ops-security.md was referenced here (and in CLAUDE.md + several docs) but is absent from the current spec/ tree; confirm successor or restore. Pulumi/IaC-ADR links removed: Pulumi was not adopted (IaC is Terraform), ADR-009 is obsolete. -->
+
 
 ## Support
 
