@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Smoke tests for the version-bump logic in .githooks/version-utils.sh
 # and the version_mode dispatch added per the CUR-1160 Part B subsumption
-# (semver-only build flow for portal-ui, where callisto's portal-final
+# (semver-only build flow for portal_ui_evs, where callisto's portal-final
 # Dockerfile assigns the build identifier).
 #
 # Usage: ./.githooks/tests/version-bump.test.sh
@@ -135,31 +135,31 @@ else
     FAIL=$((FAIL + schema_failures))
 fi
 
-# portal-ui must be semver-only.
-portal_ui_mode=""
+# portal_ui_evs must be semver-only.
+portal_ui_evs_mode=""
 for project_def in "${PROJECT_DEFS[@]}"; do
     IFS='|' read -r name _ _ _ mode <<< "$project_def"
-    if [ "$name" = "portal-ui" ]; then
-        portal_ui_mode="$mode"
+    if [ "$name" = "portal_ui_evs" ]; then
+        portal_ui_evs_mode="$mode"
         break
     fi
 done
-eq "$portal_ui_mode" "semver-only" "portal-ui is semver-only"
+eq "$portal_ui_evs_mode" "semver-only" "portal_ui_evs is semver-only"
 
 # Every other project must be explicitly standard (no implicit default).
 non_standard_others=()
 for project_def in "${PROJECT_DEFS[@]}"; do
     IFS='|' read -r name _ _ _ mode <<< "$project_def"
-    if [ "$name" != "portal-ui" ] && [ "$mode" != "standard" ]; then
+    if [ "$name" != "portal_ui_evs" ] && [ "$mode" != "standard" ]; then
         non_standard_others+=("$name=$mode")
     fi
 done
 if [ "${#non_standard_others[@]}" -eq 0 ]; then
     PASS=$((PASS + 1))
-    printf '  ok    %-60s -> all standard\n' "non-portal-ui projects are explicitly standard"
+    printf '  ok    %-60s -> all standard\n' "non-portal_ui_evs projects are explicitly standard"
 else
     FAIL=$((FAIL + 1))
-    printf '  FAIL  %-60s offenders: %s\n' "non-portal-ui projects are explicitly standard" "${non_standard_others[*]}"
+    printf '  FAIL  %-60s offenders: %s\n' "non-portal_ui_evs projects are explicitly standard" "${non_standard_others[*]}"
 fi
 
 # ===== End-to-end: combine detection + dispatch =====
@@ -191,21 +191,21 @@ classify_and_bump() {
     return 1
 }
 
-# portal-ui: own-source change bumps semver and emits no +N
-eq "$(classify_and_bump portal-ui 'apps/sponsor-portal/portal-ui/lib/main.dart' '1.0.14' '1.0.14')" \
-    "1.0.15" "portal-ui lib/ change -> 1.0.15 (semver-only)"
+# portal_ui_evs: own-source change bumps semver and emits no +N
+eq "$(classify_and_bump portal_ui_evs 'apps/sponsor-portal/portal_ui_evs/lib/main.dart' '1.0.14' '1.0.14')" \
+    "1.0.15" "portal_ui_evs lib/ change -> 1.0.15 (semver-only)"
 
-# portal-ui: trigger-only cascade does NOT bump
-eq "$(classify_and_bump portal-ui 'apps/common-dart/trial_data_types/lib/x.dart' '1.0.14' '1.0.14')" \
-    "" "portal-ui trial_data_types cascade -> no bump (semver-only)"
+# portal_ui_evs: trigger-only cascade does NOT bump
+eq "$(classify_and_bump portal_ui_evs 'tools/build/deploy.sh' '1.0.14' '1.0.14')" \
+    "" "portal_ui_evs tools/build cascade -> no bump (semver-only)"
 
-# portal-ui: own-source change with inherited +N strips it
-eq "$(classify_and_bump portal-ui 'apps/sponsor-portal/portal-ui/lib/main.dart' '1.0.14+51' '1.0.14')" \
-    "1.0.15" "portal-ui lib/ change strips inherited +51"
+# portal_ui_evs: own-source change with inherited +N strips it
+eq "$(classify_and_bump portal_ui_evs 'apps/sponsor-portal/portal_ui_evs/lib/main.dart' '1.0.14+51' '1.0.14')" \
+    "1.0.15" "portal_ui_evs lib/ change strips inherited +51"
 
-# portal-ui: README change -> no bump (own non-source)
-eq "$(classify_and_bump portal-ui 'apps/sponsor-portal/portal-ui/README.md' '1.0.14' '1.0.14')" \
-    "" "portal-ui README change -> no bump"
+# portal_ui_evs: README change -> no bump (own non-source)
+eq "$(classify_and_bump portal_ui_evs 'apps/sponsor-portal/portal_ui_evs/README.md' '1.0.14' '1.0.14')" \
+    "" "portal_ui_evs README change -> no bump"
 
 # clinical_diary (standard mode): own-source change still bumps semver+build
 eq "$(classify_and_bump clinical_diary 'apps/daily-diary/clinical_diary/lib/foo.dart' '0.1.0+11' '0.1.0+11')" \
@@ -215,9 +215,9 @@ eq "$(classify_and_bump clinical_diary 'apps/daily-diary/clinical_diary/lib/foo.
 eq "$(classify_and_bump clinical_diary 'apps/common-dart/trial_data_types/lib/x.dart' '0.1.0+11' '0.1.0+11')" \
     "0.1.0+12" "clinical_diary cascade -> build-only bump (standard)"
 
-# diary_server (standard mode): bin/ change -> +N applied
-eq "$(classify_and_bump diary_server 'apps/daily-diary/diary_server/bin/server.dart' '0.1.0+11' '0.1.0+11')" \
-    "0.1.1+12" "diary_server bin/ change -> +N applied (standard)"
+# portal_server_evs (standard mode): bin/ change -> +N applied
+eq "$(classify_and_bump portal_server_evs 'apps/sponsor-portal/portal_server_evs/bin/server.dart' '0.1.0+11' '0.1.0+11')" \
+    "0.1.1+12" "portal_server_evs bin/ change -> +N applied (standard)"
 
 # ===== Merge-commit short-circuit (CUR-1249) =====
 #

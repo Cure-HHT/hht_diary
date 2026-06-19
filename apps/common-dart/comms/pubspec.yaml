@@ -10,8 +10,8 @@
 # Repository interface, OutboxWriter — added in Phase 1A.3), and the
 # PayloadGuard PHI checker that all senders must run before dispatch.
 #
-# This package is consumed by sponsor-side servers (portal_functions,
-# diary_functions) and the mobile diary app (envelope client only).
+# This package is consumed by the sponsor-side server (portal_server_evs)
+# and the mobile diary app (envelope client only).
 # It MUST NOT depend on the Flutter SDK.
 
 name: comms

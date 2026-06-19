@@ -27,13 +27,12 @@ Sponsor-specific deployment, content, and infrastructure live in separate repos.
 ```
 apps/
 ├── daily-diary/
-│   ├── clinical_diary/     Flutter mobile app (iOS + Android)
-│   ├── diary_server/       Dart shelf HTTP server (Cloud Run)
-│   └── diary_functions/    Business logic library
+│   └── clinical_diary/     Flutter mobile app (iOS + Android)
 ├── sponsor-portal/
-│   ├── portal-ui/          Flutter web app
-│   ├── portal_server/      Dart shelf HTTP server (Cloud Run)
-│   └── portal_functions/   Business logic library
+│   ├── portal_ui_evs/      Flutter web app (event-sourced portal)
+│   ├── portal_server_evs/  Dart shelf HTTP server (Cloud Run)
+│   ├── portal_service/     Event-sourced portal domain library
+│   └── portal_identity/    Portal identity/auth library
 ├── common-dart/
 │   ├── otel_common/        Shared OpenTelemetry instrumentation
 │   ├── trial_data_types/   Shared data types
@@ -145,20 +144,16 @@ Configures Git hooks for commit validation, requirement traceability, and secret
 
 ### Local Development
 
-Each app has its own `tool/run_local.sh`:
+Use the local-stack to run the event-sourced portal (it serves the portal UI/API and
+diary device ingest, with Postgres + the Firebase auth emulator) on your machine:
 
 ```bash
-# Portal (DB + Firebase emulator + server + UI)
-cd apps/sponsor-portal
-./tool/run_local.sh
-
-# Diary server
-cd apps/daily-diary
-./tool/run_local.sh
+./deployment/local-stack/local-stack portal
 ```
 
-See `apps/sponsor-portal/README.md` and `apps/daily-diary/clinical_diary/README.md`
-for detailed setup, environment variables, and troubleshooting.
+See `deployment/local-stack/README.md` for the full command reference, and
+`apps/sponsor-portal/README.md` / `apps/daily-diary/clinical_diary/README.md`
+for app-level setup and troubleshooting.
 
 ### Event store
 

@@ -38,9 +38,6 @@ COPY --chown=10001:10001 apps/common-dart/comms/pubspec.yaml ./apps/common-dart/
 COPY --chown=10001:10001 apps/common-dart/diary_shared_model/pubspec.yaml ./apps/common-dart/diary_shared_model/pubspec.yaml
 COPY --chown=10001:10001 apps/common-dart/portal_actions/pubspec.yaml ./apps/common-dart/portal_actions/pubspec.yaml
 COPY --chown=10001:10001 apps/edc/rave-integration/pubspec.yaml ./apps/edc/rave-integration/pubspec.yaml
-COPY --chown=10001:10001 apps/sponsor-portal/portal_functions/pubspec.yaml ./apps/sponsor-portal/portal_functions/pubspec.yaml
-COPY --chown=10001:10001 apps/sponsor-portal/portal_server/pubspec.yaml ./apps/sponsor-portal/portal_server/pubspec.yaml
-COPY --chown=10001:10001 apps/sponsor-portal/portal-ui/pubspec.yaml ./apps/sponsor-portal/portal-ui/pubspec.yaml
 COPY --chown=10001:10001 apps/sponsor-portal/portal_identity/pubspec.yaml ./apps/sponsor-portal/portal_identity/pubspec.yaml
 COPY --chown=10001:10001 apps/sponsor-portal/portal_service/pubspec.yaml ./apps/sponsor-portal/portal_service/pubspec.yaml
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server_evs/pubspec.yaml ./apps/sponsor-portal/portal_server_evs/pubspec.yaml
@@ -72,15 +69,6 @@ RUN dart pub get
 WORKDIR /workspace/src/apps/common-dart/portal_actions
 RUN dart pub get
 
-WORKDIR /workspace/src/apps/sponsor-portal/portal_functions
-RUN dart pub get
-
-WORKDIR /workspace/src/apps/sponsor-portal/portal_server
-RUN dart pub get
-
-WORKDIR /workspace/src/apps/sponsor-portal/portal-ui
-RUN flutter pub get
-
 WORKDIR /workspace/src/apps/sponsor-portal/portal_identity
 RUN dart pub get
 
@@ -106,9 +94,6 @@ COPY --chown=10001:10001 apps/common-dart/comms ./apps/common-dart/comms
 COPY --chown=10001:10001 apps/common-dart/diary_shared_model ./apps/common-dart/diary_shared_model
 COPY --chown=10001:10001 apps/common-dart/portal_actions ./apps/common-dart/portal_actions
 COPY --chown=10001:10001 apps/edc/rave-integration ./apps/edc/rave-integration
-COPY --chown=10001:10001 apps/sponsor-portal/portal_functions ./apps/sponsor-portal/portal_functions
-COPY --chown=10001:10001 apps/sponsor-portal/portal_server ./apps/sponsor-portal/portal_server
-COPY --chown=10001:10001 apps/sponsor-portal/portal-ui ./apps/sponsor-portal/portal-ui
 COPY --chown=10001:10001 apps/sponsor-portal/portal_identity ./apps/sponsor-portal/portal_identity
 COPY --chown=10001:10001 apps/sponsor-portal/portal_service ./apps/sponsor-portal/portal_service
 COPY --chown=10001:10001 apps/sponsor-portal/portal_server_evs ./apps/sponsor-portal/portal_server_evs
@@ -128,9 +113,6 @@ RUN set -euo pipefail && \
     test -d apps/common-dart/diary_shared_model && \
     test -d apps/common-dart/portal_actions && \
     test -d apps/edc/rave-integration && \
-    test -d apps/sponsor-portal/portal_functions && \
-    test -d apps/sponsor-portal/portal_server && \
-    test -d apps/sponsor-portal/portal-ui && \
     test -d apps/sponsor-portal/portal_identity && \
     test -d apps/sponsor-portal/portal_service && \
     test -d apps/sponsor-portal/portal_server_evs && \
@@ -138,8 +120,6 @@ RUN set -euo pipefail && \
     test -d apps/common-flutter/diary_design_system && \
     test -d apps/common-flutter/portal_screens && \
     test ! -d sponsor-content && \
-    test ! -f apps/sponsor-portal/portal_server/bin/server && \
-    test ! -d apps/sponsor-portal/portal-ui/build/web && \
     test ! -d apps/sponsor-portal/portal_ui_evs/build/web
 
 WORKDIR /workspace/src

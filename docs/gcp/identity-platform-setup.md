@@ -589,8 +589,8 @@ class UserInfo {
 
 > **Retired in the EVS cutover (2026-06, CUR-1170).** The raw-Postgres RLS-session-variable
 > pattern shown below (setting `app.current_user_*` before each query) belonged to the legacy
-> `portal_functions`/`portal_server` data layer, which is now reference-only and no longer
-> deployed. Under EVS, authorization is event-sourced permissions evaluated in the application
+> `portal_functions`/`portal_server` data layer, which was removed from the repo in the EVS
+> cleanup. Under EVS, authorization is event-sourced permissions evaluated in the application
 > layer over the event log — not PostgreSQL RLS. The example is kept for historical context.
 
 ```dart

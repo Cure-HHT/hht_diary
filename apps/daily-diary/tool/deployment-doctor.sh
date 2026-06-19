@@ -161,41 +161,21 @@ header "3. Version Verification"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-LOCAL_DIARY_SERVER_VER=$(grep '^version:' "$REPO_ROOT/apps/daily-diary/diary_server/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
-LOCAL_DIARY_FUNCTIONS_VER=$(grep '^version:' "$REPO_ROOT/apps/daily-diary/diary_functions/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
 LOCAL_TRIAL_DATA_TYPES_VER=$(grep '^version:' "$REPO_ROOT/apps/common-dart/trial_data_types/pubspec.yaml" 2>/dev/null | sed 's/version: //' || echo "unknown")
 
 info "Local versions (from working tree):"
-info "  diary_server:     $LOCAL_DIARY_SERVER_VER"
-info "  diary_functions:  $LOCAL_DIARY_FUNCTIONS_VER"
 info "  trial_data_types: $LOCAL_TRIAL_DATA_TYPES_VER"
 
 # Compare with deployed versions from /health response
 if [[ "$HEALTH_STATUS" == "200" ]]; then
-  DEPLOYED_DIARY_SERVER=$(echo "$HEALTH_BODY" | jq -r '.versions.diary_server // "unknown"' 2>/dev/null || echo "unknown")
-  DEPLOYED_DIARY_FUNCTIONS=$(echo "$HEALTH_BODY" | jq -r '.versions.diary_functions // "unknown"' 2>/dev/null || echo "unknown")
   DEPLOYED_TRIAL_DATA_TYPES=$(echo "$HEALTH_BODY" | jq -r '.versions.trial_data_types // "unknown"' 2>/dev/null || echo "unknown")
 
   info "Deployed versions (from /health):"
-  info "  diary_server:     $DEPLOYED_DIARY_SERVER"
-  info "  diary_functions:  $DEPLOYED_DIARY_FUNCTIONS"
   info "  trial_data_types: $DEPLOYED_TRIAL_DATA_TYPES"
 
-  if [[ "$DEPLOYED_DIARY_SERVER" == "unknown" ]]; then
+  if [[ "$DEPLOYED_TRIAL_DATA_TYPES" == "unknown" ]]; then
     warn "Server not reporting versions (pre-version-injection build?)"
   else
-    if [[ "$DEPLOYED_DIARY_SERVER" == "$LOCAL_DIARY_SERVER_VER" ]]; then
-      pass "diary_server version matches: $DEPLOYED_DIARY_SERVER"
-    else
-      warn "diary_server version mismatch: deployed=$DEPLOYED_DIARY_SERVER local=$LOCAL_DIARY_SERVER_VER"
-    fi
-
-    if [[ "$DEPLOYED_DIARY_FUNCTIONS" == "$LOCAL_DIARY_FUNCTIONS_VER" ]]; then
-      pass "diary_functions version matches: $DEPLOYED_DIARY_FUNCTIONS"
-    else
-      warn "diary_functions version mismatch: deployed=$DEPLOYED_DIARY_FUNCTIONS local=$LOCAL_DIARY_FUNCTIONS_VER"
-    fi
-
     if [[ "$DEPLOYED_TRIAL_DATA_TYPES" == "$LOCAL_TRIAL_DATA_TYPES_VER" ]]; then
       pass "trial_data_types version matches: $DEPLOYED_TRIAL_DATA_TYPES"
     else
