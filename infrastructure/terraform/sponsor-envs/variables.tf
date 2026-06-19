@@ -214,12 +214,6 @@ variable "github_repo" {
   default     = "hht_diary"
 }
 
-variable "enable_cloud_build_triggers" {
-  description = "[DEPRECATED] Create Cloud Build triggers for CI/CD. Use GitHub Actions instead."
-  type        = bool
-  default     = false
-}
-
 # -----------------------------------------------------------------------------
 # Optional: Cross-Project Gmail SA Impersonation
 # -----------------------------------------------------------------------------
@@ -240,22 +234,6 @@ variable "impersonating_service_account_email" {
   description = "Email of this sponsor's service account that needs Gmail SA impersonation (empty = skip)"
   type        = string
   default     = ""
-}
-
-# -----------------------------------------------------------------------------
-# Optional: Container Images (via Artifact Registry GHCR proxy)
-# -----------------------------------------------------------------------------
-
-variable "diary_server_image" {
-  description = "Container image URL for diary server (via Artifact Registry GHCR proxy)"
-  type        = string
-  default     = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
-}
-
-variable "portal_server_image" {
-  description = "Container image URL for portal server (via Artifact Registry GHCR proxy)"
-  type        = string
-  default     = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
 }
 
 # -----------------------------------------------------------------------------
@@ -325,12 +303,6 @@ variable "identity_platform_session_duration" {
   description = "Session duration in minutes (HIPAA recommends 60 or less)"
   type        = number
   default     = 60
-}
-
-variable "diary_server_url" {
-  description = "A web-service URL for Identity Platform OAuth configuration"
-  type        = string
-  default     = ""
 }
 
 variable "portal_server_url" {
