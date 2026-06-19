@@ -241,6 +241,9 @@ class TaskService extends ChangeNotifier {
         // Only add if not already present locally
         if (!_tasks.any((t) => t.id == instanceId)) {
           try {
+            // Implements: DIARY-GUI-participant-task-list/J — pass the full data
+            // map so the portal-reported status (sent|ready_to_review|finalized|
+            // unlocked) survives the sync path onto the Task model.
             final task = Task.fromFcmData(data);
             newTasks.add(task);
           } catch (e) {
