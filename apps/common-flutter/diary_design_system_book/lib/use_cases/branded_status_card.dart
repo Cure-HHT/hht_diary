@@ -256,7 +256,7 @@ class _SponsorLogo extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(
-          'TERREMOTO',
+          'SPONSOR',
           style: theme.textTheme.titleSmall?.copyWith(
             color: theme.colorScheme.primary,
             fontWeight: FontWeight.w700,
