@@ -37,6 +37,47 @@ String _mintInstanceId() {
   return '${hex(0, 4)}-${hex(4, 6)}-${hex(6, 8)}-${hex(8, 10)}-${hex(10, 16)}';
 }
 
+/// Whether a participant in this lifecycle state may be SENT a questionnaire.
+///
+/// A questionnaire may only be sent to a trial-ACTIVE participant — one whose
+/// trial has been started. The portal UI already enforces this: it offers the
+/// "Manage Questionnaires" surface (the only path to a send) ONLY for a
+/// trial-active participant (`portal_ui_evs` `participant_status.dart`
+/// `primaryActionFor`: `linkedAwaitingStart -> Start Trial`,
+/// `trialActive -> Manage Questionnaires`). This endpoint MUST enforce the same
+/// precondition independently — the UI cannot be the only gate, or a direct API
+/// call can send to a participant who is still inactive (just synced from the
+/// EDC) or "Linked – Awaiting Start".
+///
+/// Trial-active mirrors `effectiveParticipantStatus(entryType, trialStarted:
+/// startedAt != null) == ParticipantStatus.trialActive`: the trial has started
+/// (`started_at` is set on `participant_record`, preserved across a
+/// not-participating -> reactivate -> re-link cycle by the key-wise-merge fold)
+/// AND the participant is currently connected/active — i.e. the latest lifecycle
+/// `entryType` is `participant_trial_started`, or a post-start re-link
+/// (`participant_linking_code_used` / `participant_linked`). A participant who
+/// is disconnected, marked not-participating, pending a re-link, or never
+/// trial-started is NOT sendable.
+///
+/// This is the send-side dual of the Diary Data Synchronization gate:
+/// `DIARY-PRD-questionnaire-system/C` activates synchronization upon Trial Start
+/// and `/D` deactivates it on disconnect / not-participating. A questionnaire
+/// sent while synchronization is inactive (pre-Trial-Start, disconnected, or
+/// not-participating) could never have its response promoted to the Sponsor
+/// portal / Rave EDC, so the send must be gated on the same trial-active window.
+///
+/// Implements: DIARY-PRD-questionnaire-system/C+D
+bool participantTrialActive({String? entryType, String? startedAt}) {
+  if (startedAt == null) return false;
+  return switch (entryType) {
+    'participant_trial_started' ||
+    'participant_linking_code_used' ||
+    'participant_linked' =>
+      true,
+    _ => false,
+  };
+}
+
 /// Core send-orchestration logic, testable without the HTTP/auth wrapper.
 ///
 /// Reads the questionnaire_instance view rows for `(participantId,
@@ -92,6 +133,35 @@ Future<Response> respondToSend(
           : trimmedStudyEvent;
 
   final backend = eventStore.backend;
+
+  // Precondition: only a trial-ACTIVE participant may be sent a questionnaire
+  // (the UI gates this; the endpoint must too — see [participantTrialActive]).
+  // participant_record folds the latest lifecycle entryType + the preserved
+  // started_at; match on participant_id/aggregateId the same way
+  // patient_state_handler does.
+  // Implements: DIARY-PRD-questionnaire-system/C+D
+  final participantRows = await backend.findViewRows('participant_record');
+  Map<String, Object?>? participantRec;
+  for (final r in participantRows) {
+    if (r['participant_id'] == participantId ||
+        r['aggregateId'] == participantId) {
+      participantRec = r;
+      break;
+    }
+  }
+  if (!participantTrialActive(
+    entryType: participantRec?['entryType'] as String?,
+    startedAt: participantRec?['started_at'] as String?,
+  )) {
+    return Response(
+      409,
+      body: jsonEncode(<String, Object?>{
+        'error': 'participant trial is not active; start the participant\'s '
+            'trial before sending a questionnaire',
+      }),
+      headers: const {'Content-Type': 'application/json'},
+    );
+  }
 
   // Read this participant's non-tombstoned instances of this type. Call-back
   // (tombstone) rows are already removed from the view by the projection spec.
