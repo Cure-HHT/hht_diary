@@ -539,10 +539,8 @@ docker compose up -d dev
 
 ### Documentation
 
-**Quick Start**: `tools/dev-env/START_HERE.md`
 **Complete Guide**: `tools/dev-env/README.md`
-**Codespaces Info**: `tools/dev-env/GITHUB_CODESPACES.md`
-**Architecture**: `docs/dev-environment-architecture.md`
+**Architecture**: `docs/setup-dev-environment-architecture.md`
 
 ### Team Support
 

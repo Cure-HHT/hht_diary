@@ -434,6 +434,5 @@ git push
 
 - Build Workflow: `.github/workflows/build-integrated.yml`
 - Tagging Workflow: `.github/workflows/tag-production-candidate.yml`
-- Build Workflow Docs: `docs/build-integrated-workflow.md`
-- Doppler Setup: `docs/doppler-setup.md`
+- Doppler Setup: `docs/setup-doppler.md`
 - Terraform IaC: `infrastructure/terraform/README.md`

@@ -194,7 +194,7 @@ WHERE client_timestamp < prev_timestamp;
 -- Expected result: 0 or very few (only valid backdating)
 ```
 
-**Reference**: `spec/prd-clinical-trials.md:REQ-p00011` (Contemporaneous requirement)
+**Reference**: REQ-p00011 (Contemporaneous requirement)
 
 ---
 
@@ -438,7 +438,7 @@ ORDER BY version DESC;
 -- Expected: Most recent version dominates, older versions present
 ```
 
-**Reference**: `database/migrations/`, `spec/ops-database-migration.md`
+**Reference**: `database/migrations/`
 
 ---
 
@@ -491,7 +491,7 @@ WHERE is_deleted = true;
 -- ORDER BY backup_date DESC;
 ```
 
-**Reference**: `spec/ops-database-setup.md` (Backup procedures), `database/schema.sql:record_audit` (immutable design)
+**Reference**: `database/schema.sql:record_audit` (immutable design)
 
 ---
 
@@ -652,7 +652,7 @@ LIMIT 10;
 -- Expected: Original data still visible, operation shows deletion
 ```
 
-**Reference**: `database/triggers.sql`, `spec/prd-database-event-sourcing.md`
+**Reference**: `database/triggers.sql`
 
 ---
 
@@ -722,7 +722,7 @@ WHERE action_type LIKE '%ACCESS%'
 ORDER BY created_at DESC;
 ```
 
-**Reference**: `database/rls_policies.sql`, `spec/prd-security-RBAC.md`
+**Reference**: `database/rls_policies.sql`, `spec/prd-rbac.md`
 
 ---
 
@@ -964,11 +964,10 @@ Signature: ________________  Date: ________________
 1. This GCP Compliance Verification document
 2. Database schema documentation (`database/schema.sql`)
 3. RLS policy documentation (`database/rls_policies.sql`)
-4. Requirement traceability matrix (`traceability_matrix.md`)
-5. Sample audit trail exports (anonymized)
-6. ALCOA+ compliance reports (quarterly)
-7. Training records (anonymized)
-8. SOPs (all current versions)
+4. Sample audit trail exports (anonymized)
+5. ALCOA+ compliance reports (quarterly)
+6. Training records (anonymized)
+7. SOPs (all current versions)
 
 ---
 
@@ -1009,4 +1008,4 @@ The Clinical Trial Diary system is designed from the ground up to meet Good Clin
 - ALCOA+ Principles (MHRA GXP Data Integrity Guidance)
 - Database Schema: `database/schema.sql`
 - RLS Policies: `database/rls_policies.sql`
-- Requirement Specification: `spec/prd-clinical-trials.md:REQ-p00011`
+- Requirement Specification: REQ-p00011

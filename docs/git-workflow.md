@@ -896,15 +896,9 @@ git rebase origin/main
 
 - **CLAUDE.md**: Project-wide instructions
 - **Branch Protection**: CLAUDE.md "Critical Rules" section
-- **Requirement Format**: `spec/requirements-format.md`
+- **Requirement Grammar**: the elspais MCP (`agent_instructions()` / `docs()`)
 - **Requirement Index**: `spec/INDEX.md` (complete list of all REQ-xxx)
-- **Development Guide**: `spec/dev-requirements-management.md`
 - **ADR Process**: `docs/adr/README.md`
-
-### Tools and Plugins
-
-- **Workflow Plugin**: `tools/anspar-cc-plugins/plugins/workflow/README.md`
-- **Requirement Tracking**: `tools/anspar-cc-plugins/plugins/simple-requirements/TRACKING-WORKFLOW.md`
 
 ### External Resources
 

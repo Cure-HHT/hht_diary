@@ -549,8 +549,6 @@ Claude Code provides built-in monitoring via:
 4. **Verify**: Run requirement validation before committing
 5. **Update ticket**: Claude Code can update Linear ticket status (if configured)
 
-**See**: `tools/linear-cli/README.md` for detailed Linear integration docs
-
 ---
 
 ## 5. Development Tools
@@ -670,7 +668,7 @@ node add-subsystem-checklists.js --token=$LINEAR_API_TOKEN
    gh pr create --title "CUR-XXX: Brief description" --body "..."
    ```
 
-**See**: `CLAUDE.md` for detailed workflow instructions
+**See**: `../CLAUDE.md` for detailed workflow instructions
 
 ---
 
@@ -903,7 +901,6 @@ git commit
 **Tools**:
 - Linear reports: https://linear.app/cure-hht-diary/reports
 - GitHub Insights: Repository > Insights
-- Traceability matrix: `traceability_matrix.md`
 
 ---
 
@@ -936,7 +933,6 @@ git commit
 - **Architecture Docs**: `docs/adr/` (Architecture Decision Records)
 - **Requirements**: `spec/` directory
 - **Database Docs**: the EVS event store is created and owned at runtime by the `event_sourcing` library's `PostgresBackend`. See `apps/sponsor-portal/portal_server_evs`.
-- **Linear Integration**: `tools/linear-cli/README.md`
 - **Claude Code Docs**: https://docs.claude.com/en/docs/claude-code/
 
 ### 9.2 Support Channels

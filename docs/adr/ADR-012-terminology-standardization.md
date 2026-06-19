@@ -12,7 +12,7 @@ The codebase has inconsistent terminology across documentation:
 - "HHT Diary" branding mixed with generic platform references
 - Mixed capitalization ("diary platform" vs "Diary Platform")
 
-The glossary (spec/prd-glossary.md) establishes guidance:
+The glossary (spec/glossary-core.md) establishes guidance:
 - Preferred: "Diary Platform" (the complete product)
 - Avoid: "Clinical Diary Platform" (implies clinical trials are primary use case)
 
@@ -87,9 +87,6 @@ Files updated across:
 - Root-level READMEs
 
 Disease-specific HHT references preserved in:
-- `spec/prd-epistaxis-terminology.md` - HHT-specific terminology
-- `spec/prd-questionnaire-qol.md` - HHT Quality of Life
-- `spec/prd-questionnaire-epistaxis.md` - NOSE-HHT instrument
 - Glossary definitions of HHT-related terms
 
 ---

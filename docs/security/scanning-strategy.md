@@ -67,7 +67,7 @@ This document describes the comprehensive security scanning strategy for the Dia
 
 **Resources**:
 - Gitleaks docs: https://github.com/gitleaks/gitleaks
-- Secret management guide: `docs/security/secret-management.md`
+- Secret management guide: `docs/security-secret-management.md`
 
 ### 2. Trivy (Multi-Layer Vulnerability Scanner)
 
@@ -359,7 +359,6 @@ A:
 - **Configuration**:
   - `.gitleaks.toml`
   - `.github/versions.env`
-- **Compliance**: `spec/prd-security-compliance.md`
 
 ## Change Log
 

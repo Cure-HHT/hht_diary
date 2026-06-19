@@ -61,10 +61,10 @@ During a regulatory audit, an FDA inspector may ask questions like:
 
 | Component | Purpose | Where to Learn More |
 | --------- | ------- | ------------------- |
-| Mobile App (Flutter) | Participant diary entry | `apps/daily-diary/clinical_diary/`, `spec/prd-diary-app.md` |
-| Web Portal (Flutter) | Investigator/sponsor/admin interface | `apps/portal/`, `spec/prd-portal.md` |
-| Database (PostgreSQL) | EVS event store + hash-chained audit trail (schema created at runtime by the `event_sourcing` library) | `apps/sponsor-portal/portal_server_evs`, `spec/dev-database.md` |
-| EDC Integration | Export to sponsor's Electronic Data Capture | `spec/dev-CDISC.md` |
+| Mobile App (Flutter) | Participant diary entry | `apps/daily-diary/clinical_diary/`, `spec/prd-mobile-app.md` |
+| Web Portal (Flutter) | Investigator/sponsor/admin interface | `apps/portal/` |
+| Database (PostgreSQL) | EVS event store + hash-chained audit trail (schema created at runtime by the `event_sourcing` library) | `apps/sponsor-portal/portal_server_evs` |
+| EDC Integration | Export to sponsor's Electronic Data Capture | `apps/sponsor-portal/portal_server_evs` |
 
 ## Core Architectural Patterns
 
@@ -97,7 +97,7 @@ Core code is shared; sponsor-specific code lives in `sponsor/{name}/`.
 
 For audit purposes, we generate cryptographically-signed evidence records that prove data integrity at a point in time.
 
-**Read**: `spec/prd-evidence-records.md`, `spec/dev-evidence-records.md`
+**Read**: `spec/prd-evidence-records.md`
 
 ## Development Workflow
 
@@ -173,11 +173,8 @@ Our CI/CD pipeline runs multiple security scanners:
 In order of priority:
 
 1. `spec/README.md` - How our documentation system works
-2. `spec/prd-system.md` - System overview
-3. `spec/prd-clinical-trials.md` - Domain context (what clinical trials are)
-4. `spec/prd-security.md` - Security requirements
-5. `spec/dev-core-practices.md` - Development standards
-6. `docs/adr/ADR-001-event-sourcing-pattern.md` - Why we use event sourcing
+2. `spec/prd-rbac.md` - Security and role-based access requirements
+3. `docs/adr/ADR-001-event-sourcing-pattern.md` - Why we use event sourcing
 
 ## Glossary Quick Reference
 
@@ -190,7 +187,7 @@ In order of priority:
 | RLS | Row-Level Security - PostgreSQL feature for data isolation |
 | HHT | Hereditary Hemorrhagic Telangiectasia - the disease our first trials focus on |
 
-**Full glossary**: `spec/prd-glossary.md`
+**Full glossary**: `spec/glossary-core.md`
 
 ## Getting Help
 

@@ -37,7 +37,7 @@ The "GUI version" recorded on each response (REQ-p01051-L) identifies the render
 
 ## Response Storage Format
 
-Concrete example of a versioned questionnaire response event (see `dev-data-models-jsonb.md` for the base `EventRecord` structure):
+Concrete example of a versioned questionnaire response event (see `spec/dev-shared-events-catalog.md` for the base `EventRecord` structure):
 
 ```json
 {
@@ -376,5 +376,4 @@ The migration function is part of the locked contract. Changing how v1-to-v2 mig
 - **spec/dev-shared-events-catalog.md**: JSONB schema documentation (base EventRecord structure)
 - **spec/prd-questionnaire-versioning.md**: REQ-p01051 (Versioning Model), REQ-p01052 (Localization)
 - **spec/prd-questionnaire-management.md**: REQ-p01065 (Clinical Questionnaire System)
-- **spec/dev-questionnaire.md**: REQ-d80064 (Version Integrity Enforcement) <!-- CUR-350 VERIFY: spec/dev-questionnaire.md not found; confirm successor -->
 - **spec/prd-device-linking.md**: REQ-d00107 (Response Collection and Storage)

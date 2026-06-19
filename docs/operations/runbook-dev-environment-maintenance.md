@@ -204,5 +204,4 @@ A: Not recommended - it's automated compliance proof. Document reason in ADR if 
 ## See Also
 
 - `.github/workflows/maintenance-check.yml` - Automated enforcement
-- `adr/ADR-006-docker-dev-environments.md` - Architecture decisions
-- `../spec/dev-environment.md` - Requirements <!-- CUR-350 VERIFY: spec/dev-environment.md deleted in URS-v1; confirm successor (maybe spec/dev-environment-resolution.md) or remove -->
+- `../adr/ADR-006-docker-dev-environments.md` - Architecture decisions

@@ -668,34 +668,11 @@ To disable a plugin hook:
 
 ## References
 
-### Plugin Documentation
-
-- **workflow** - Ticket management and traceability
-  - Path: `tools/anspar-cc-plugins/plugins/workflow/README.md`
-  - Enforces: Active ticket requirement, REQ references, secret scanning
-  - Hooks: `pre-commit`, `commit-msg`, `post-commit`
-
-- **simple-requirements** - Requirement validation
-  - Path: `tools/anspar-cc-plugins/plugins/simple-requirements/README.md`
-  - Enforces: Requirement format, uniqueness, parent references
-  - Hooks: `pre-commit-requirement-validation`
-
-- **spec-compliance** - Specification compliance
-  - Path: `tools/anspar-cc-plugins/plugins/spec-compliance/README.md`
-  - Enforces: File naming, audience scope, requirement hierarchy
-  - Hooks: `pre-commit-spec-compliance`
-
-- **traceability-matrix** - Matrix generation
-  - Path: `tools/anspar-cc-plugins/plugins/traceability-matrix/README.md`
-  - Generates: `traceability_matrix.md` and `.html`
-  - Hooks: `pre-commit-traceability-matrix`
-
 ### Other Documentation
 
-- **Project Instructions**: `CLAUDE.md` - Requirement traceability rules
+- **Project Instructions**: `../CLAUDE.md` - Requirement traceability rules
 - **Spec Directory**: `spec/README.md` - How to structure requirements
-- **Requirement Format**: `spec/requirements-format.md` - Requirement syntax
-- **Workflow Plugin**: `tools/anspar-cc-plugins/plugins/workflow/README.md` - Full workflow details
+- **Requirement Grammar**: the elspais MCP (`agent_instructions()` / `docs()`) - requirement syntax
 - **Git Hooks Directory**: `.githooks/README.md` - Original hooks overview
 
 ## Summary
@@ -713,4 +690,4 @@ To enable hooks: `git config core.hooksPath .githooks`
 
 Hooks are non-bypassing in CI/CD, so fix issues locally rather than deferring to CI validation.
 
-For detailed information about any hook, see the plugin documentation in `tools/anspar-cc-plugins/plugins/`.
+For detailed information about any hook, see the scripts in `.githooks/`.
