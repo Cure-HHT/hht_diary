@@ -405,7 +405,7 @@ doppler update
 
 ### Contact Team
 - Ask in team chat for access issues
-- Check `spec/ops-security.md` for security policies
+- Check `docs/security-secret-management.md` for security policies
 - DevOps lead can grant Doppler access
 
 ## Next Steps
@@ -421,4 +421,4 @@ After setup:
 - Doppler CLI Documentation: https://docs.doppler.com/docs/cli
 - Doppler Dashboard: https://dashboard.doppler.com/
 - Project Setup: [setup-doppler-project.md](./setup-doppler-project.md)
-- Security Practices: `spec/ops-security.md`
+- Security Practices: `docs/security-secret-management.md`

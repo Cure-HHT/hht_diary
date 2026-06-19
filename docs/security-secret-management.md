@@ -1148,7 +1148,6 @@ doppler secrets list --token $DOPPLER_TOKEN_CORE
   - `docs/setup-doppler-new-dev.md` - Developer setup
 
 - **Security Documentation**:
-  - `spec/ops-security.md` - Database security architecture
   - `CLAUDE.md` - Project instructions and requirements
 
 - **Requirements**:

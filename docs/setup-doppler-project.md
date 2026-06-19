@@ -380,5 +380,5 @@ After completing project setup:
 - Doppler Documentation: https://docs.doppler.com/
 - GitHub Actions Integration: https://docs.doppler.com/docs/github-actions
 - Sponsor Manifest Schema: `.github/config/sponsor-manifest-schema.yml`
-- Security Best Practices: `spec/ops-security.md`
+- Security Best Practices: `docs/security-secret-management.md`
 - Multi-Sponsor Architecture: sponsor isolation per the multi-sponsor deployment model

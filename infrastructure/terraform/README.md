@@ -992,7 +992,6 @@ Deploys Cloud Run services with Dart-optimized health checks.
 ## Related Documentation
 
 - [Operations security guide](../../docs/security-secret-management.md)
-<!-- CUR-350 VERIFY: spec/ops-security.md was referenced here (and in CLAUDE.md + several docs) but is absent from the current spec/ tree; confirm successor or restore. Pulumi/IaC-ADR links removed: Pulumi was not adopted (IaC is Terraform), ADR-009 is obsolete. -->
 
 
 ## Support

@@ -148,7 +148,7 @@ For step-by-step instructions, see the audience-specific guides:
   - [setup-doppler-new-sponsor.md](./setup-doppler-new-sponsor.md) - Sponsor onboarding
   - [setup-doppler-new-dev.md](./setup-doppler-new-dev.md) - Developer setup
 - **Architecture**: Multi-sponsor system design (sponsor isolation per the multi-sponsor deployment model)
-- **Security**: `spec/ops-security.md` - Security policies and practices
+- **Security**: `docs/security-secret-management.md` - Security policies and practices
 - **Schema**: `.github/config/sponsor-manifest-schema.yml` - Sponsor manifest validation
 
 ### External Resources

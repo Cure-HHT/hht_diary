@@ -349,5 +349,5 @@ To disable a sponsor without deleting data:
 - Developer Setup: [setup-doppler-new-dev.md](./setup-doppler-new-dev.md)
 - Sponsor Manifest Schema: `.github/config/sponsor-manifest-schema.yml`
 - Multi-Sponsor Architecture: sponsor isolation per the multi-sponsor deployment model
-- Security Best Practices: `spec/ops-security.md`
+- Security Best Practices: `docs/security-secret-management.md`
 - Doppler Documentation: https://docs.doppler.com/

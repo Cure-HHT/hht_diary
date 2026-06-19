@@ -76,7 +76,7 @@ This is a multi-sponsor Diary Platform with strict FDA 21 CFR Part 11 compliance
 ### 4. Sponsor Isolation
 - Each sponsor has isolated code in `sponsor/{name}/`
 - NEVER cross-reference sponsors or share (inherit) sponsor-specific code
-- Core functionality goes in `packages/`, `apps/`, `database/`
+- Core functionality goes in `packages/`, `apps/`
 
 ### 5. Branch Protection
 - ALWAYS create a new branch before editing/creating/deleting files if on `main`
@@ -209,7 +209,7 @@ Prefer a specialized agent/skill for multi-step work; run independent calls in p
 - Use environment variables for all secrets
 - Do not use .env files for secrets
 - All secrets managed via Doppler (e.g. you were run with `doppler run -- claude`)
-- Database credentials managed via Doppler (see `spec/ops-security.md`)
+- Database credentials managed via Doppler (see `docs/security-secret-management.md`)
 - All audit events are tamper-evident (cryptographic hashing)
 
 ## Security Scanning
