@@ -514,8 +514,8 @@ gcloud artifacts repositories create ghcr-remote \
 - **Project Structure**: `docs/gcp/project-structure.md`
 - **Cloud SQL Setup**: `docs/gcp/cloud-sql-setup.md`
 - **Identity Platform**: `docs/gcp/identity-platform-setup.md`
-- **Secrets Comparison**: `docs/migration/doppler-vs-secret-manager.md`
-- **Terraform Modules**: `infrastructure/terraform/modules/cloud-run/`
+- **Secrets architecture**: `hht_admin/spec/ops-secrets-architecture.md`
+- **Terraform Modules**: `infrastructure/terraform/modules/`
 
 ---
 
