@@ -2,10 +2,6 @@
 
 Sponsor integration and build automation tools.
 
-## IMPLEMENTS REQUIREMENTS
-- REQ-d00070: Sponsor integration automation
-- REQ-d00069: Doppler manifest system
-
 ## Scripts
 
 ### integrate-sponsors.sh

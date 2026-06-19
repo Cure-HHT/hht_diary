@@ -7,7 +7,7 @@ This is the HHT Diary adaptation of the principles file. The HHT Diary project i
 ## Core Architecture Principles
 
 - The event log is the source of truth for state changes; DO NOT introduce parallel state stores.
-- The requirement graph (managed by the `elspais` MCP server) is the single source of truth for `REQ-{p|o|d}NNNNN` identifiers and assertion text. DO NOT keep parallel REQ databases.
+- The requirement graph (managed by the `elspais` MCP server) is the single source of truth for `DIARY-{PRD|GUI|OPS|DEV}-{kebab}` requirement identifiers and assertion text. DO NOT keep parallel REQ databases.
 - DO NOT change the shape of `Source`, `StoredEvent`, `StorageBackend`, `EntryTypeDefinition`, or `ProvenanceEntry` without an explicit REQ amendment.
 - DO NOT violate existing encapsulation.
 - DO NOT consult git history for context; rely on the current state of the code and the requirement graph.
@@ -23,12 +23,11 @@ This is the HHT Diary adaptation of the principles file. The HHT Diary project i
 
 ## Testing
 
-- ALWAYS include `// Verifies: REQ-xxx-Y` annotations in test bodies, pointing at specific assertion IDs.
-- Test names SHOULD reference a specific assertion (e.g., `test_REQ_d00141_A_renames_event_store`).
+- ALWAYS include `// Verifies: DIARY-<area>-<name>/<assertion>` annotations in test bodies (e.g. `// Verifies: DIARY-DEV-event-store-rename/A`), pointing at specific assertion labels.
+- Test names SHOULD reference a specific assertion (e.g., `test_DIARY_DEV_event_store_rename_A`).
 - Tests without assertion references will not link to requirements in the traceability graph.
 - ALWAYS use a sub-agent to write tests (CLAUDE.md "Agent Orchestration Pattern").
 - Run `dart test` (or the package's `flutter test`) before committing; use `dart analyze` for static checks. CI also runs `flutter analyze` and blocks the PR on errors.
-- For database changes, run the SQL test suite under `database/tests/` (file pattern `*_test.sql`) — see `database/tests/run_all_tests.sh`.
 
 ## Workflow
 
@@ -49,7 +48,7 @@ This is the HHT Diary adaptation of the principles file. The HHT Diary project i
 - Reuse existing modules in `apps/common-dart/`, `apps/common-flutter/`, and `packages/`.
 - New interface layers MUST consume existing APIs directly without intermediate data structures.
 - DO NOT introduce `sponsor_id` plumbing in any backend data layer; sponsor tenancy is enforced by per-sponsor VPC infrastructure.
-- Library code stays generic — DO NOT bake server-product names (`diary-server`, `portal-server`) into library types or constants; use role-based identifiers per the open `Source.hopId` taxonomy (REQ-d00142).
+- Library code stays generic — DO NOT bake server-product names (`diary-server`, `portal-server`) into library types or constants; use role-based identifiers per the open `Source.hopId` taxonomy.
 - Cross-cutting protocols (concurrency, merge, audit) belong in shared libraries, not duplicated in each consumer.
 
 ## Spec Authoring
@@ -100,7 +99,7 @@ The pre-commit hook runs `elspais fix` which auto-stages REQ hash updates and re
 
 - Implementation MUST comply with specification assertions.
 - When a REQ says "SHALL be at <path>" or "SHALL be named <X>", DO NOT diverge silently — amend the REQ or align the code.
-- Add `// Implements: REQ-d00XXX-A` comments to new/modified source so the traceability graph picks up coverage.
+- Add `// Implements: DIARY-<area>-<name>/A` comments to new/modified source so the traceability graph picks up coverage.
 - Cross-reference implementation against spec assertions before committing.
 
 ## Sub-Agent Usage
