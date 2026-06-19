@@ -3,7 +3,7 @@
 **Audience**: DevOps / Project Administrator
 **Frequency**: Once per new sponsor onboarding
 **Prerequisites**:
-- Doppler CLI installed (see [doppler-setup-project.md](./doppler-setup-project.md))
+- Doppler CLI installed (see [setup-doppler-project.md](./setup-doppler-project.md))
 - Admin access to Doppler organization
 - New sponsor's configuration details
 
@@ -316,7 +316,7 @@ Verify:
 
 ### Sponsor isolation concerns
 
-Verify sponsor isolation per `spec/prd-architecture-multi-sponsor.md`:
+Verify sponsor isolation:
 - Separate Supabase project per sponsor
 - Separate Doppler project per sponsor
 - Sponsor manifest correctly isolates configurations
@@ -345,9 +345,9 @@ To disable a sponsor without deleting data:
 
 ## References
 
-- Project Setup: [doppler-setup-project.md](./doppler-setup-project.md)
-- Developer Setup: [doppler-setup-new-dev.md](./doppler-setup-new-dev.md)
+- Project Setup: [setup-doppler-project.md](./setup-doppler-project.md)
+- Developer Setup: [setup-doppler-new-dev.md](./setup-doppler-new-dev.md)
 - Sponsor Manifest Schema: `.github/config/sponsor-manifest-schema.yml`
-- Multi-Sponsor Architecture: `spec/prd-architecture-multi-sponsor.md`
+- Multi-Sponsor Architecture: sponsor isolation per the multi-sponsor deployment model
 - Security Best Practices: `spec/ops-security.md`
 - Doppler Documentation: https://docs.doppler.com/

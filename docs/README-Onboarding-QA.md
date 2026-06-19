@@ -287,7 +287,7 @@ Remember sponsor isolation:
 ### Prerequisites
 
 1. Complete [Developer Onboarding](Onboarding%20-%20Developer.md) setup
-2. Install Flutter: `docs/development-prerequisites.md`
+2. Install Flutter: `docs/setup-dev-environment.md` (section "1. Prerequisites")
 3. Configure Doppler: `docs/setup-doppler-new-dev.md`
 
 ### Quick Test Commands
@@ -344,7 +344,7 @@ For audit purposes, document:
 In priority order for QA/SDET:
 
 1. `spec/README.md` - Documentation structure
-2. `spec/prd-event-sourcing-system.md` - How audit trails work
+2. `docs/event-sourcing-gap-analysis.md` - How audit trails work
 3. `spec/prd-security.md` - Security requirements you'll validate
 4. `spec/dev-compliance-practices.md` - Compliance testing approach
 5. `docs/security/scanning-strategy.md` - Security scanner details

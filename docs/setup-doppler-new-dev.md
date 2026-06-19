@@ -400,8 +400,8 @@ doppler update
 
 ### View Documentation
 - Doppler CLI Docs: https://docs.doppler.com/docs/cli
-- Project Setup Guide: [doppler-setup-project.md](./doppler-setup-project.md)
-- Sponsor Setup Guide: [doppler-setup-new-sponsor.md](./doppler-setup-new-sponsor.md)
+- Project Setup Guide: [setup-doppler-project.md](./setup-doppler-project.md)
+- Sponsor Setup Guide: [setup-doppler-new-sponsor.md](./setup-doppler-new-sponsor.md)
 
 ### Contact Team
 - Ask in team chat for access issues
@@ -412,7 +412,7 @@ doppler update
 
 After setup:
 1. Read project documentation in `spec/README.md`
-2. Review architecture in `spec/prd-architecture-multi-sponsor.md`
+2. Review the multi-sponsor architecture (sponsor isolation deployment model)
 3. Check development practices in `spec/dev-core-practices.md`
 4. Start coding with `doppler run -- flutter run`
 
@@ -420,5 +420,5 @@ After setup:
 
 - Doppler CLI Documentation: https://docs.doppler.com/docs/cli
 - Doppler Dashboard: https://dashboard.doppler.com/
-- Project Setup: [doppler-setup-project.md](./doppler-setup-project.md)
+- Project Setup: [setup-doppler-project.md](./setup-doppler-project.md)
 - Security Practices: `spec/ops-security.md`

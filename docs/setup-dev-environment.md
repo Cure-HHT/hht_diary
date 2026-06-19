@@ -257,7 +257,7 @@ GitHub Actions workflows use these same Docker images:
 - `.github/workflows/build-ghcr-containers.yml` - Image builds
 
 **See**:
-- [Development Environment Architecture](/home/mclew/dev24/diary-worktrees/clean-docs/docs/setup-dev-environment-architecture.md)
+- [Development Environment Architecture](./setup-dev-environment-architecture.md)
 - [Dev Environment Maintenance](./operations/runbook-dev-environment-maintenance.md)
 
 ---

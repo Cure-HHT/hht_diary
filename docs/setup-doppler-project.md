@@ -13,8 +13,8 @@
 This document describes the **one-time setup** of Doppler projects and configurations for the Diary Platform. These steps create the foundational Doppler infrastructure that all developers and sponsors will use.
 
 **After completing this setup**:
-- Developers can use [doppler-setup-new-dev.md](./doppler-setup-new-dev.md) to configure their local environments
-- New sponsors can be added using [doppler-setup-new-sponsor.md](./doppler-setup-new-sponsor.md)
+- Developers can use [setup-doppler-new-dev.md](./setup-doppler-new-dev.md) to configure their local environments
+- New sponsors can be added using [setup-doppler-new-sponsor.md](./setup-doppler-new-sponsor.md)
 
 ## Architecture Overview
 
@@ -25,7 +25,7 @@ The Diary Platform uses a nested Doppler project structure:
 - **hht-diary-{sponsor}**: Per-sponsor secrets (e.g., `hht-diary-callisto`)
   - Configs: `staging`, `production`
 
-This structure supports the multi-sponsor architecture described in `spec/prd-architecture-multi-sponsor.md`.
+This structure supports the multi-sponsor architecture.
 
 ## Initial Setup Steps
 
@@ -371,8 +371,8 @@ doppler me
 
 After completing project setup:
 
-1. **For developers**: Share link to [doppler-setup-new-dev.md](./doppler-setup-new-dev.md)
-2. **For new sponsors**: Follow [doppler-setup-new-sponsor.md](./doppler-setup-new-sponsor.md)
+1. **For developers**: Share link to [setup-doppler-new-dev.md](./setup-doppler-new-dev.md)
+2. **For new sponsors**: Follow [setup-doppler-new-sponsor.md](./setup-doppler-new-sponsor.md)
 3. **Documentation**: Update project documentation with Doppler project names and structure
 
 ## References
@@ -381,4 +381,4 @@ After completing project setup:
 - GitHub Actions Integration: https://docs.doppler.com/docs/github-actions
 - Sponsor Manifest Schema: `.github/config/sponsor-manifest-schema.yml`
 - Security Best Practices: `spec/ops-security.md`
-- Multi-Sponsor Architecture: `spec/prd-architecture-multi-sponsor.md`
+- Multi-Sponsor Architecture: sponsor isolation per the multi-sponsor deployment model

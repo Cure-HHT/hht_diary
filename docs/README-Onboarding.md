@@ -78,7 +78,7 @@ DiaryEntryCreated → DiaryEntryEdited → DiaryEntrySubmitted
 
 This provides a complete, immutable history. You can reconstruct the state at any point in time.
 
-**Read**: `docs/adr/ADR-001-event-sourcing-pattern.md`, `spec/prd-event-sourcing-system.md`
+**Read**: `docs/adr/ADR-001-event-sourcing-pattern.md`, `docs/event-sourcing-gap-analysis.md`
 
 ### 2. Data Isolation (per-sponsor VPC + event-sourced permissions)
 
@@ -94,8 +94,6 @@ The platform serves multiple sponsors (pharmaceutical companies running trials).
 - Separate deployments
 
 Core code is shared; sponsor-specific code lives in `sponsor/{name}/`.
-
-**Read**: `spec/prd-architecture-multi-sponsor.md`, `spec/dev-architecture-multi-sponsor.md`
 
 ### 4. Evidence Records
 
@@ -140,7 +138,7 @@ Git hooks enforce this. Your commit will be rejected without a valid requirement
 
 ### Quick Start
 
-1. **Read prerequisites**: `docs/development-prerequisites.md`
+1. **Read prerequisites**: `docs/setup-dev-environment.md` (section "1. Prerequisites")
 2. **Set up dev environment**: `docs/setup-dev-environment.md`
 3. **Configure secrets**: `docs/setup-doppler-new-dev.md`
 

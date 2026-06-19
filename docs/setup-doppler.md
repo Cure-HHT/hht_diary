@@ -14,17 +14,17 @@ Doppler setup is organized by audience and use case:
 
 | Document | Audience | When to Use |
 | --- | --- | --- |
-| **[doppler-setup-project.md](./doppler-setup-project.md)** | DevOps / Project Admin | **Once per project** - Initial Doppler infrastructure setup |
-| **[doppler-setup-new-sponsor.md](./doppler-setup-new-sponsor.md)** | DevOps / Project Admin | **Each new sponsor** - Onboard pharmaceutical sponsors |
-| **[doppler-setup-new-dev.md](./doppler-setup-new-dev.md)** | Software Developers | **Each new developer** - Configure local development environment |
+| **[setup-doppler-project.md](./setup-doppler-project.md)** | DevOps / Project Admin | **Once per project** - Initial Doppler infrastructure setup |
+| **[setup-doppler-new-sponsor.md](./setup-doppler-new-sponsor.md)** | DevOps / Project Admin | **Each new sponsor** - Onboard pharmaceutical sponsors |
+| **[setup-doppler-new-dev.md](./setup-doppler-new-dev.md)** | Software Developers | **Each new developer** - Configure local development environment |
 
 ## Quick Start
 
 **Are you...**
 
-- 🏗️ **Setting up Doppler for the first time?** → [doppler-setup-project.md](./doppler-setup-project.md)
-- 🏢 **Adding a new pharmaceutical sponsor?** → [doppler-setup-new-sponsor.md](./doppler-setup-new-sponsor.md)
-- 👨‍💻 **A new developer joining the team?** → [doppler-setup-new-dev.md](./doppler-setup-new-dev.md)
+- 🏗️ **Setting up Doppler for the first time?** → [setup-doppler-project.md](./setup-doppler-project.md)
+- 🏢 **Adding a new pharmaceutical sponsor?** → [setup-doppler-new-sponsor.md](./setup-doppler-new-sponsor.md)
+- 👨‍💻 **A new developer joining the team?** → [setup-doppler-new-dev.md](./setup-doppler-new-dev.md)
 
 ## Architecture Overview
 
@@ -35,7 +35,7 @@ The Diary Platform uses Doppler for centralized secrets management with a nested
 - **hht-diary-{sponsor}**: Per-sponsor secrets (e.g., `hht-diary-callisto`)
   - Configs: `staging`, `production`
 
-This structure supports the multi-sponsor architecture described in `spec/prd-architecture-multi-sponsor.md`, ensuring complete sponsor isolation per REQ-p00001.
+This structure supports the multi-sponsor architecture, ensuring complete sponsor isolation per REQ-p00001.
 
 ## Doppler Project Structure
 
@@ -136,18 +136,18 @@ doppler configs list --project <project>
 
 For step-by-step instructions, see the audience-specific guides:
 
-- **[doppler-setup-project.md](./doppler-setup-project.md)** - Initial project infrastructure setup
-- **[doppler-setup-new-sponsor.md](./doppler-setup-new-sponsor.md)** - Adding new sponsors
-- **[doppler-setup-new-dev.md](./doppler-setup-new-dev.md)** - Developer local environment setup
+- **[setup-doppler-project.md](./setup-doppler-project.md)** - Initial project infrastructure setup
+- **[setup-doppler-new-sponsor.md](./setup-doppler-new-sponsor.md)** - Adding new sponsors
+- **[setup-doppler-new-dev.md](./setup-doppler-new-dev.md)** - Developer local environment setup
 
 ## References
 
 ### Internal Documentation
 - **Setup Guides**:
-  - [doppler-setup-project.md](./doppler-setup-project.md) - Project infrastructure setup
-  - [doppler-setup-new-sponsor.md](./doppler-setup-new-sponsor.md) - Sponsor onboarding
-  - [doppler-setup-new-dev.md](./doppler-setup-new-dev.md) - Developer setup
-- **Architecture**: `spec/prd-architecture-multi-sponsor.md` - Multi-sponsor system design
+  - [setup-doppler-project.md](./setup-doppler-project.md) - Project infrastructure setup
+  - [setup-doppler-new-sponsor.md](./setup-doppler-new-sponsor.md) - Sponsor onboarding
+  - [setup-doppler-new-dev.md](./setup-doppler-new-dev.md) - Developer setup
+- **Architecture**: Multi-sponsor system design (sponsor isolation per the multi-sponsor deployment model)
 - **Security**: `spec/ops-security.md` - Security policies and practices
 - **Schema**: `.github/config/sponsor-manifest-schema.yml` - Sponsor manifest validation
 

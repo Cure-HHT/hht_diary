@@ -1200,4 +1200,4 @@ doppler secrets list --token $DOPPLER_TOKEN_CORE
 **Owner**: DevOps / Security Team
 **Review Frequency**: Quarterly or after security incidents
 
-**File Location**: `/home/mclew/dev24/diary-worktrees/clean-docs/docs/security-secret-management.md`
+**File Location**: `docs/security-secret-management.md`
