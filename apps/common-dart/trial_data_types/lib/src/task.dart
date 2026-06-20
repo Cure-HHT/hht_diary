@@ -40,17 +40,23 @@ class Task {
     );
   }
 
-  /// Create a questionnaire task from an FCM data message
+  /// Create a questionnaire task from an FCM data message or a /user/tasks
+  /// sync entry.
+  ///
+  /// `questionnaire_type` may be null for entries whose lifecycle has ended
+  /// (e.g. `status:'recalled'`) — the type is treated as unknown in that case
+  /// and `questionnaireType` is left null rather than throwing.
   // Implements: REQ-CAL-p00081/A — questionnaire task created from push notification
   factory Task.fromFcmData(Map<String, dynamic> data) {
-    final questionnaireType = QuestionnaireType.fromValue(
-      data['questionnaire_type'] as String,
-    );
+    final rawType = data['questionnaire_type'] as String?;
+    final questionnaireType = rawType != null
+        ? QuestionnaireType.fromValue(rawType)
+        : null;
     final studyEvent = data['study_event'] as String?;
     return Task(
       id: data['questionnaire_instance_id'] as String,
       taskType: TaskType.questionnaire,
-      title: questionnaireType.displayName,
+      title: questionnaireType?.displayName ?? 'Questionnaire',
       createdAt: DateTime.now(),
       // CUR-856: Surface the cycle label ("Cycle 2 Day 1") on the task card
       // by populating the existing subtitle slot when no other subtitle is

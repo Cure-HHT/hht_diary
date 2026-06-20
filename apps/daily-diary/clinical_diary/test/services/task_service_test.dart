@@ -396,6 +396,37 @@ void main() {
         },
       );
 
+      test(
+        // Verifies: DIARY-DEV-inbound-event-on-receipt/B (recalled status carried into the Task model)
+        'a recalled task with null questionnaire_type is parsed without crashing',
+        () async {
+          final client = MockClient((request) async {
+            return http.Response(
+              jsonEncode({
+                'tasks': [
+                  {
+                    'questionnaire_instance_id': 'QI-9',
+                    'questionnaire_type': null,
+                    'status': 'recalled',
+                    'study_event': 'Cycle 4 Day 1',
+                  },
+                ],
+                'isDisconnected': false,
+              }),
+              200,
+            );
+          });
+
+          final service = TaskService(httpClient: client);
+          await service.syncTasks(mockEnrollment);
+
+          expect(service.taskCount, equals(1));
+          expect(service.tasks.single.id, equals('QI-9'));
+          expect(service.tasks.single.status, equals('recalled'));
+          expect(service.tasks.single.questionnaireType, isNull);
+        },
+      );
+
       test('skips eq type tasks (CUR-1050)', () async {
         final client = MockClient((request) async {
           return http.Response(
