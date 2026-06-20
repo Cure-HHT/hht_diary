@@ -40,7 +40,7 @@
 | DIARY-PRD-notification-historical-gap            | Historical Gap Reminder                             | prd-mobile-notifications.md               | 67c5f4d9 |
 | DIARY-PRD-notification-incomplete-record-lock    | Incomplete Record Lock Warning Notification         | prd-mobile-notifications.md               | 33c1d5d9 |
 | DIARY-PRD-notification-ongoing-epistaxis         | Ongoing Epistaxis Event Reminder                    | prd-mobile-notifications.md               | 65bce7fa |
-| DIARY-PRD-notification-portal-sent-questionnaire | Assigned Questionnaire Notification                 | prd-mobile-notifications.md               | 238b9aa8 |
+| DIARY-PRD-notification-portal-sent-questionnaire | Assigned Questionnaire Notification                 | prd-mobile-notifications.md               | 8ac9c438 |
 | DIARY-PRD-notification-yesterday-entry           | Yesterday Entry Reminder Notification               | prd-mobile-notifications.md               | 43b40b3d |
 | DIARY-PRD-participant-disconnection              | Participant Disconnection Workflow                  | prd-participant.md                        | d449c26a |
 | DIARY-PRD-participant-link-new                   | Link New Participant Workflow                       | prd-participant.md                        | 551290b7 |

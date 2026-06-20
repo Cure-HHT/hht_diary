@@ -383,7 +383,6 @@
 - DIARY-PRD-notification-portal-sent-questionnaire-A
 - DIARY-PRD-notification-portal-sent-questionnaire-B
 - DIARY-PRD-notification-portal-sent-questionnaire-C
-- DIARY-PRD-notification-portal-sent-questionnaire-D
 - DIARY-PRD-questionnaire-portal-sent-rules-A
 - DIARY-PRD-questionnaire-portal-sent-rules-F
 - DIARY-PRD-questionnaire-portal-sent-rules-G
@@ -2373,6 +2372,7 @@
 - DIARY-GUI-participant-task-list-H
 - DIARY-GUI-participant-task-list-I
 - DIARY-GUI-participant-task-list-K
+- DIARY-PRD-notification-portal-sent-questionnaire-D
 - DIARY-PRD-questionnaire-system-A
 - DIARY-PRD-questionnaire-system-B
 - DIARY-PRD-questionnaire-system-F
@@ -2447,6 +2447,7 @@
 - DIARY-BASE-questionnaire-cycle-tracking:section:4
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:1
+- DIARY-DEV-inbound-event-on-receipt:section:1
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/prd-common-ui.md:7
@@ -3376,7 +3377,6 @@
 - DIARY-GUI-audit-log-cra-D
 - DIARY-PRD-help-resources-A
 - DIARY-GUI-participant-task-list-A
-- DIARY-PRD-notification-portal-sent-questionnaire-D
 - DIARY-PRD-linking-code-lifecycle-A
 - DIARY-PRD-participant-link-new-A
 - DIARY-PRD-participant-link-new-B
