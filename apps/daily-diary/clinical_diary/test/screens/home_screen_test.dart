@@ -1036,5 +1036,47 @@ void main() {
         );
       },
     );
+
+    // Verifies: DIARY-DEV-inbound-event-on-receipt/C — a recall row that is
+    //   ALREADY present in the questionnaire_recall view BEFORE the home screen
+    //   mounts (so it arrives only as a replay-phase Snapshot, never a Delta)
+    //   still results in the acknowledgement dialog being shown after the screen
+    //   loads. This is the FDA-critical re-prompt path: an unacknowledged recall
+    //   must surface again on every relaunch until the participant dismisses it.
+    testWidgets(
+      'a recall row already in the view at mount (replay-phase Snapshot) '
+      'shows the dialog after the screen loads',
+      (tester) async {
+        // Mint the recall BEFORE pumping the HomeScreen, so the row exists in
+        // the native questionnaire_recall view during the subscription's replay
+        // phase and arrives as a Snapshot (not a Delta).
+        await seedRecall(
+          tester,
+          instanceId: 'QI-replay-1',
+          studyEvent: 'Baseline',
+        );
+        // Allow the recall to be committed to the store before the screen
+        // subscribes.
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+
+        // Now mount the screen — the recall row is already in the view.
+        await pumpScreen(tester);
+        // Give the replay drain (EndOfReplay -> Future<void>(() async { ... }))
+        // enough time to surface the dialog.
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await _settle(tester);
+
+        // The acknowledgement dialog must appear despite arriving as a replay
+        // Snapshot (not a live Delta).
+        expect(
+          find.text('This questionnaire has been recalled by your study team'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }

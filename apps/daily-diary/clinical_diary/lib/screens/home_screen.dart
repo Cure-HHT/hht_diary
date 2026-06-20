@@ -171,6 +171,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   StreamSubscription<Update<QuestionnaireRecallRow>>? _recallSub;
   final Set<String> _handledRecalls = <String>{};
 
+  // Recall rows that arrived during the initial replay phase (before
+  // EndOfReplay). Surfaced sequentially on EndOfReplay so no dialog is missed
+  // even when the row pre-existed at app launch.
+  final List<QuestionnaireRecallRow> _pendingReplayRecalls =
+      <QuestionnaireRecallRow>[];
+
   /// Suppression hook for a later task: when a questionnaire is open in the
   /// flow screen, set this to the open instance's id so the home screen skips
   /// the recall dialog for that instance (the flow screen owns it instead).
@@ -311,14 +317,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// "Questionnaire recalled" acknowledgement dialog, then tombstones the row via
   /// [acknowledgeRecall] so it self-clears from the view.
   ///
-  /// Rows that arrive during the initial replay are shown immediately (post-replay
-  /// Snapshot), just like live Deltas — the participant must acknowledge every
-  /// unhandled recall. Rows for instances already handled in this mount
-  /// ([_handledRecalls]) and for the instance currently open in the flow screen
-  /// ([_instanceOpenInFlow]) are skipped.
+  /// Rows that arrive during the initial replay phase (Snapshots before
+  /// [EndOfReplay]) are COLLECTED into [_pendingReplayRecalls] and surfaced
+  /// sequentially on [EndOfReplay]. This guarantees that an unacknowledged recall
+  /// row already present at app launch — which arrives only as a replay Snapshot
+  /// and never as a subsequent Delta — still prompts the participant. Live Deltas
+  /// (recalls that arrive after replay) surface immediately. Rows for instances
+  /// already handled in this mount ([_handledRecalls]) and for the instance
+  /// currently open in the flow screen ([_instanceOpenInFlow]) are skipped.
   // Implements: DIARY-DEV-inbound-event-on-receipt/C
   void _startRecallSubscription() {
-    var replaying = true;
     _recallSub = widget.diaryScope.scope.viewSource
         .watch<QuestionnaireRecallRow>(
           viewName: questionnaireRecallViewName,
@@ -327,11 +335,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         .listen((update) {
           switch (update) {
             case Snapshot<QuestionnaireRecallRow>(:final value):
-              if (value != null && !replaying) _maybeShowRecall(value);
+              // Collect replay-phase rows; they will be surfaced on EndOfReplay.
+              if (value != null) _pendingReplayRecalls.add(value);
             case Delta<QuestionnaireRecallRow>(:final value):
               _maybeShowRecall(value);
             case EndOfReplay<QuestionnaireRecallRow>():
-              replaying = false;
+              // Drain replay-phase rows sequentially so dialogs don't stack.
+              final pending = List<QuestionnaireRecallRow>.of(
+                _pendingReplayRecalls,
+              );
+              _pendingReplayRecalls.clear();
+              Future<void>(() async {
+                for (final row in pending) {
+                  await _maybeShowRecall(row);
+                }
+              });
             case Tombstone<QuestionnaireRecallRow>():
               break;
           }
