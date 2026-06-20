@@ -1,6 +1,8 @@
 // Verifies: DIARY-DEV-inbound-event-on-receipt/C — acknowledgeRecall emits
 //   the ack event (outbound), the local recall-view tombstone, and (when a
-//   local survey exists) the portal-withdrawn survey tombstone.
+//   local survey exists) the portal-withdrawn survey tombstone. When the
+//   survey tombstone dispatch is denied, acknowledgeRecall still completes
+//   (ack + clear intact) and emits a durable diagnostic event.
 // Verifies: DIARY-DEV-outgoing-intent-correlation/D — the outbound ack carries
 //   instance_id + participant_id so the portal can correlate back to the
 //   recall-notice aggregate.
@@ -11,7 +13,30 @@ import 'package:clinical_diary/services/recall_acknowledger.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reaction/reaction.dart'
+    show ActionSubmitter, LocalScope, LocalViewSource;
 import 'package:sembast/sembast_memory.dart';
+
+// ---------------------------------------------------------------------------
+// Test helper: an ActionSubmitter that delegates to a real submitter for
+// every action EXCEPT 'delete_entry', which it returns as denied.
+// ---------------------------------------------------------------------------
+class _DeleteEntryDenyingSubmitter implements ActionSubmitter {
+  _DeleteEntryDenyingSubmitter(this._real);
+  final ActionSubmitter _real;
+
+  @override
+  Future<DispatchResult<Object?>> submit(ActionSubmission submission) {
+    if (submission.actionName == 'delete_entry') {
+      return Future.value(
+        const DispatchResult<Object?>.authorizationDenied(
+          Permission('diary.delete_entry'),
+        ),
+      );
+    }
+    return _real.submit(submission);
+  }
+}
 
 /// Boot a fresh in-memory diary scope for the test.
 Future<DiaryScopeRuntime> _boot({
@@ -186,6 +211,105 @@ void main() {
       ),
       isFalse,
       reason: 'expected no DiaryEntry tombstone when no local survey exists',
+    );
+
+    await rt.dispose();
+  });
+
+  // --------------------------------------------------------------------------
+  // Case 3: delete_entry DENIED — ack + recall-clear still emitted, and a
+  // durable diagnostic event is recorded (ALCOA+ gap closed).
+  // --------------------------------------------------------------------------
+  test('acknowledgeRecall still completes and records a diagnostic event when '
+      'delete_entry is denied', () async {
+    // Boot a real scope so actions and event store are wired up.
+    final rt = await _boot(extraEntryTypes: [_surveyType('qol')]);
+
+    // Seed a device-local recall row for QI3.
+    await rt.scope.actionSubmitter.submit(
+      const ActionSubmission(
+        actionName: 'record_questionnaire_recalled',
+        rawInput: {'instance_id': 'QI3', 'study_event': 'Screening'},
+      ),
+    );
+
+    // Seed a submitted local survey so delete_entry will be attempted.
+    await rt.scope.actionSubmitter.submit(
+      ActionSubmission(
+        actionName: 'submit_questionnaire',
+        rawInput: _submitRaw(instanceId: 'QI3'),
+      ),
+    );
+
+    // Build a replacement scope whose submitter denies delete_entry.
+    final denyingScope = LocalScope(
+      authSession: rt.authSession,
+      actionSubmitter: _DeleteEntryDenyingSubmitter(rt.scope.actionSubmitter),
+      viewSource: LocalViewSource(eventStore: rt.bundle.eventStore),
+      permissionSource: rt.permissionSource,
+    );
+    final interceptedRt = DiaryScopeRuntime(
+      scope: denyingScope,
+      bundle: rt.bundle,
+      authSession: rt.authSession,
+      permissionSource: rt.permissionSource,
+    );
+
+    // Act — must NOT throw even though delete_entry is denied.
+    await acknowledgeRecall(interceptedRt, 'QI3');
+
+    final all = await rt.bundle.eventStore.backend.readEventsReverse().toList();
+
+    // 1. Ack event still emitted.
+    expect(
+      all.any(
+        (e) =>
+            e.entryType == 'questionnaire_recall_acked' &&
+            e.eventType == 'finalized' &&
+            (e.data['instance_id'] as String?) == 'QI3',
+      ),
+      isTrue,
+      reason:
+          'expected questionnaire_recall_acked / finalized even on denied delete',
+    );
+
+    // 2. Recall tombstone still emitted.
+    expect(
+      all.any(
+        (e) =>
+            e.aggregateType == questionnaireRecallLocalAggregateType &&
+            e.aggregateId == 'QI3' &&
+            e.eventType == 'tombstone',
+      ),
+      isTrue,
+      reason:
+          'expected questionnaire_recall_local tombstone even on denied delete',
+    );
+
+    // 3. No survey tombstone (delete_entry was denied).
+    expect(
+      all.any(
+        (e) =>
+            e.aggregateType == diaryEntryAggregateType &&
+            e.aggregateId == 'QI3' &&
+            e.eventType == 'tombstone',
+      ),
+      isFalse,
+      reason: 'expected no DiaryEntry tombstone when delete_entry denied',
+    );
+
+    // 4. Durable diagnostic event recorded (ALCOA+ observable failure).
+    expect(
+      all.any(
+        (e) =>
+            e.entryType == 'recall_survey_tombstone_failed' &&
+            e.aggregateId == 'QI3' &&
+            (e.data['instance_id'] as String?) == 'QI3',
+      ),
+      isTrue,
+      reason:
+          'expected recall_survey_tombstone_failed diagnostic event when '
+          'delete_entry is denied',
     );
 
     await rt.dispose();

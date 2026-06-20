@@ -55,7 +55,7 @@ class RecallReactor {
     }
     final participantId = assigned.data['participant_id'] as String?;
     if (participantId == null) return;
-    final studyEvent = assigned.data['study_event'];
+    final studyEvent = assigned.data['study_event'] as String?;
 
     final recallAggId = '$participantId:recall:$instanceId';
 

@@ -210,6 +210,9 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     // On a true event: await the host's onRecalled callback (which shows the
     // dialog + persists the ack), then call onComplete to exit the flow.
     // The eq package shows no dialog — the host owns all user-facing ack UI.
+    // Note: a recall deliberately races and WINS over an in-flight submit;
+    // if the submit completes concurrently its DispatchResult is discarded —
+    // this is intentional (the portal-side recall supersedes any local answer).
     // Implements: DIARY-DEV-inbound-event-on-receipt/C
     _recallSub = widget.recallSignal?.listen((recalled) async {
       if (!recalled || !mounted) return;

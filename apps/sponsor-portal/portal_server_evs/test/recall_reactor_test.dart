@@ -60,6 +60,11 @@ void main() {
     expect(notices.single.data['participant_id'], 'P1');
     expect(notices.single.data['study_event'], 'Cycle 4 Day 1');
     expect(notices.single.data['flow_token'], 'QST000009');
+    expect(notices.single.data['instance_id'], 'QI1');
+    expect(
+      notices.single.data['recalled_at'],
+      DateTime.utc(2026, 6, 20).toIso8601String(),
+    );
 
     // Idempotent: re-processing the same called_back emits no second notice.
     await reactor.handleCalledBack(calledBack);

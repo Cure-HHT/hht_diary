@@ -862,51 +862,56 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final recallCtrl = StreamController<bool>();
     _recallSignalCtrl = recallCtrl;
 
-    await Navigator.of(context).push(
-      AppPageRoute<void>(
-        builder: (context) => QuestionnaireFlowScreen(
-          definition: definition,
-          instanceId: aggregateId,
-          // Prior answers seed the Review Screen (review/edit) or the read-only
-          // view; null for a never-submitted instance (fresh flow).
-          initialResponses: submittedSurvey?.prefillResponses,
-          isReadOnly: isReadOnly,
-          onSubmit: (submission) async {
-            try {
-              await _recordSurveySubmission(submission: submission);
-              return const SubmitResult(success: true);
-            } catch (e) {
-              return SubmitResult(success: false, error: e.toString());
-            }
-          },
-          // CUR-1523: do NOT remove the task on completion. A submitted task
-          // stays in the list (leaving "Needs your attention" via
-          // categorization) and is removed only when `/user/tasks` drops it on
-          // finalization (task-list/I).
-          onComplete: () => Navigator.of(context).pop(),
-          onDefer: () => Navigator.of(context).pop(),
-          // CUR-1522: per-instance recall signal + host-side ack handler.
-          // When the recall view delivers a row for this instance while the
-          // flow is open, _maybeShowRecall emits true on recallCtrl; the flow
-          // then awaits onRecalled (dialog + ack) and calls onComplete to exit.
-          // The home's general subscription is suppressed for this instance via
-          // _instanceOpenInFlow so no double-dialog occurs.
-          // Implements: DIARY-DEV-inbound-event-on-receipt/C
-          recallSignal: recallCtrl.stream,
-          onRecalled: () async {
-            // Mark handled so that if the tombstone arrives before the flow
-            // pops the home subscription doesn't re-prompt.
-            _handledRecalls.add(aggregateId);
-            await _showRecallDialogAndAck(aggregateId);
-          },
+    try {
+      await Navigator.of(context).push(
+        AppPageRoute<void>(
+          builder: (context) => QuestionnaireFlowScreen(
+            definition: definition,
+            instanceId: aggregateId,
+            // Prior answers seed the Review Screen (review/edit) or the read-only
+            // view; null for a never-submitted instance (fresh flow).
+            initialResponses: submittedSurvey?.prefillResponses,
+            isReadOnly: isReadOnly,
+            onSubmit: (submission) async {
+              try {
+                await _recordSurveySubmission(submission: submission);
+                return const SubmitResult(success: true);
+              } catch (e) {
+                return SubmitResult(success: false, error: e.toString());
+              }
+            },
+            // CUR-1523: do NOT remove the task on completion. A submitted task
+            // stays in the list (leaving "Needs your attention" via
+            // categorization) and is removed only when `/user/tasks` drops it on
+            // finalization (task-list/I).
+            onComplete: () => Navigator.of(context).pop(),
+            onDefer: () => Navigator.of(context).pop(),
+            // CUR-1522: per-instance recall signal + host-side ack handler.
+            // When the recall view delivers a row for this instance while the
+            // flow is open, _maybeShowRecall emits true on recallCtrl; the flow
+            // then awaits onRecalled (dialog + ack) and calls onComplete to exit.
+            // The home's general subscription is suppressed for this instance via
+            // _instanceOpenInFlow so no double-dialog occurs.
+            // Implements: DIARY-DEV-inbound-event-on-receipt/C
+            recallSignal: recallCtrl.stream,
+            onRecalled: () async {
+              // Mark handled so that if the tombstone arrives before the flow
+              // pops the home subscription doesn't re-prompt.
+              _handledRecalls.add(aggregateId);
+              await _showRecallDialogAndAck(aggregateId);
+            },
+          ),
         ),
-      ),
-    );
-
-    // Flow has returned — clear the suppression and close the signal stream.
-    _instanceOpenInFlow = null;
-    _recallSignalCtrl = null;
-    unawaited(recallCtrl.close());
+      );
+    } finally {
+      // Clear the per-instance suppression and close the signal stream whether
+      // the route returns normally or throws. Without this, a thrown route
+      // would permanently suppress recalls for this instance and leak the
+      // StreamController.
+      _instanceOpenInFlow = null;
+      _recallSignalCtrl = null;
+      unawaited(recallCtrl.close());
+    }
   }
 
   /// Opens the questionnaire for a submitted survey [SurveyEntryView] from a

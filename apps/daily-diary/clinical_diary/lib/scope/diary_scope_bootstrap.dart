@@ -104,6 +104,17 @@ Future<DiaryScopeRuntime> bootstrapDiaryScope({
       registeredVersion: 1,
       name: 'Questionnaire Recalled',
     ),
+    // Implements: DIARY-DEV-inbound-event-on-receipt/C — diagnostic event
+    //   emitted when the survey tombstone (delete_entry) dispatch fails after
+    //   the ack and local-recall-clear have already been persisted. Recorded
+    //   directly via eventStore.append (not via an Action) so it is durable
+    //   in release builds (debugPrint is silenced there).
+    const EntryTypeDefinition(
+      id: 'recall_survey_tombstone_failed',
+      registeredVersion: 1,
+      name: 'Recall Survey Tombstone Failed',
+      isMaterialized: false,
+    ),
     // Note: `questionnaire_recall_acked` is already included via
     // `diaryOriginatedEventTypes` (diary_originated_events.dart), so it does
     // not need a separate registration here.

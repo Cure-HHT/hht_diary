@@ -91,11 +91,7 @@ Future<void> acknowledgeRecall(DiaryScopeRuntime rt, String instanceId) async {
   //    in the diary entries view to discover the entryType.
   final surveyEntryType = await _resolveSurveyEntryType(rt, instanceId);
   if (surveyEntryType != null) {
-    // Ignore failures here: if delete_entry rejects (e.g. lock-threshold
-    // guard), the ack and clear have already been persisted. The portal
-    // knows the recall was acknowledged; the stale local survey row is a
-    // cosmetic concern only.
-    await rt.scope.actionSubmitter.submit(
+    final deleteResult = await rt.scope.actionSubmitter.submit(
       ActionSubmission(
         actionName: 'delete_entry',
         rawInput: <String, Object?>{
@@ -105,6 +101,29 @@ Future<void> acknowledgeRecall(DiaryScopeRuntime rt, String instanceId) async {
         },
       ),
     );
+    if (deleteResult is! DispatchSuccess<Object?>) {
+      // The ack (step 1) and recall-view clear (step 2) have already been
+      // persisted and are authoritative: the portal knows the recall was
+      // acknowledged. The survey tombstone is best-effort — if delete_entry
+      // is denied (e.g. lock-threshold guard or missing grant), the stale
+      // local survey row is a cosmetic concern. However, the failure MUST be
+      // observable for ALCOA+ compliance; emit a durable diagnostic event in
+      // the local event store so it is surfaced on the next outbound sync and
+      // visible in device diagnostics. debugPrint is silenced in release
+      // builds and is therefore NOT used here.
+      // Implements: DIARY-DEV-inbound-event-on-receipt/C
+      await rt.bundle.eventStore.append(
+        entryType: 'recall_survey_tombstone_failed',
+        aggregateType: 'recall_survey_tombstone_failed',
+        aggregateId: instanceId,
+        eventType: 'recall_survey_tombstone_failed',
+        data: <String, Object?>{
+          'instance_id': instanceId,
+          'dispatch_result': deleteResult.toString(),
+        },
+        initiator: const AutomationInitiator(service: 'recall-acknowledger'),
+      );
+    }
   }
 }
 
