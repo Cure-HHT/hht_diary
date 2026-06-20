@@ -29,12 +29,13 @@ Future<DiaryScopeRuntime> _boot() async {
   );
 }
 
-Task _task(String id, {required String status}) => Task(
+Task _task(String id, {required String status, String? studyEvent}) => Task(
   id: id,
   taskType: TaskType.questionnaire,
   title: 'Test Questionnaire',
   createdAt: DateTime(2025, 10, 16),
   status: status,
+  studyEvent: studyEvent,
 );
 
 /// Count `questionnaire_finalized` events for a given aggregate id by reading
@@ -175,6 +176,25 @@ void main() {
       final count = await _finalizedEventCount(rt, 'dup-i1');
       expect(count, 1);
 
+      await rt.dispose();
+    },
+  );
+
+  // Verifies: DIARY-DEV-inbound-event-on-receipt/B (poll-observed recall recorded once)
+  test(
+    'reconcile mints record_questionnaire_recalled once for a recalled task',
+    () async {
+      final rt = await _boot();
+      final sync = QuestionnaireStatusSync(scope: rt.scope);
+      await sync.reconcile([_task('i9', status: 'recalled')]);
+      await sync.reconcile([_task('i9', status: 'recalled')]);
+      final events = await rt.bundle.eventStore.backend.findEventsForAggregate(
+        'i9',
+      );
+      expect(
+        events.where((e) => e.entryType == 'questionnaire_recalled'),
+        hasLength(1),
+      );
       await rt.dispose();
     },
   );

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clinical_diary/read/questionnaire_recall_projection.dart';
 import 'package:clinical_diary/read/questionnaire_status_projection.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:reaction/reaction.dart';
@@ -11,7 +12,7 @@ import 'package:trial_data_types/trial_data_types.dart';
 /// The REST `/user/tasks` endpoint is a STATE POLL, not an event stream. Each
 /// time the diary receives a synced task list it calls [reconcile] to ensure
 /// exactly one lifecycle event is appended per instance transition — reading
-/// the `questionnaire_status` view first to skip instances already recorded.
+/// the local views first to skip instances already recorded.
 ///
 /// Produces:
 /// - `record_questionnaire_finalized` for each task with `status == 'finalized'`
@@ -19,6 +20,8 @@ import 'package:trial_data_types/trial_data_types.dart';
 /// - `record_questionnaire_unlocked` for each task with `status == 'unlocked'`
 ///   not already reflected (only when [enableUnlock] is `true`; defaults to
 ///   `false` for Callisto).
+/// - `record_questionnaire_recalled` for each task with `status == 'recalled'`
+///   not already reflected in the `questionnaire_recall` view.
 class QuestionnaireStatusSync {
   QuestionnaireStatusSync({
     required LocalScope scope,
@@ -71,6 +74,33 @@ class QuestionnaireStatusSync {
         );
     await completer.future;
 
+    // One-shot read of the questionnaire_recall view: same pattern as above.
+    final alreadyRecalled = <String>{};
+    final recallCompleter = Completer<void>();
+    late final StreamSubscription<Update<QuestionnaireRecallRow>> recallSub;
+    recallSub = _scope.viewSource
+        .watch<QuestionnaireRecallRow>(
+          viewName: questionnaireRecallViewName,
+          mapper: QuestionnaireRecallRow.fromViewRow,
+        )
+        .listen(
+          (update) {
+            switch (update) {
+              case Snapshot<QuestionnaireRecallRow>(:final value):
+                if (value != null) alreadyRecalled.add(value.instanceId);
+              case EndOfReplay<QuestionnaireRecallRow>():
+                if (!recallCompleter.isCompleted) recallCompleter.complete();
+                unawaited(recallSub.cancel());
+              default:
+                break;
+            }
+          },
+          onError: (Object e, StackTrace st) {
+            if (!recallCompleter.isCompleted) recallCompleter.complete();
+          },
+        );
+    await recallCompleter.future;
+
     // Dispatch lifecycle actions for instances not yet recorded.
     for (final task in tasks) {
       if (task.status == 'finalized' && !alreadyFinalized.contains(task.id)) {
@@ -93,6 +123,16 @@ class QuestionnaireStatusSync {
           ),
         );
         alreadyUnlocked.add(task.id);
+      }
+      // Implements: DIARY-DEV-inbound-event-on-receipt/B
+      if (task.status == 'recalled' && !alreadyRecalled.contains(task.id)) {
+        await _scope.actionSubmitter.submit(
+          ActionSubmission(
+            actionName: 'record_questionnaire_recalled',
+            rawInput: {'instance_id': task.id, 'study_event': task.studyEvent},
+          ),
+        );
+        alreadyRecalled.add(task.id);
       }
     }
   }
