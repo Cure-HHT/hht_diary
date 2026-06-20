@@ -104,6 +104,9 @@ Future<DiaryScopeRuntime> bootstrapDiaryScope({
       registeredVersion: 1,
       name: 'Questionnaire Recalled',
     ),
+    // Note: `questionnaire_recall_acked` is already included via
+    // `diaryOriginatedEventTypes` (diary_originated_events.dart), so it does
+    // not need a separate registration here.
   ];
   // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S — register the
   //   questionnaire_status projection so device-observed lifecycle events are
