@@ -135,6 +135,7 @@
 - DIARY-DEV-portal-settings-store:section:0
 - DIARY-DEV-portal-settings-store:section:1
 - DIARY-DEV-view-action-permissions:section:0
+- rem:spec/ops-ci-validation.md:224
 - DIARY-GUI-administrator-settings:section:0
 - DIARY-GUI-administrator-settings:section:3
 - DIARY-GUI-audit-log-common:section:6
@@ -459,6 +460,7 @@
 - DIARY-DEV-portal-second-factor-toggle-D
 - DIARY-DEV-audit-log-read-A
 - DIARY-DEV-audit-log-read-B
+- DIARY-OPS-branch-protection-E
 - DIARY-PRD-ancillary-platform-services-D
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-system-validation-traceability-E
@@ -474,6 +476,8 @@
 - DIARY-DEV-audit-log-read:section:1
 - DIARY-DEV-operator-tier-authz:section:1
 - DIARY-DEV-shared-events-catalog:section:0
+- DIARY-OPS-pr-compliance-checks:section:0
+- DIARY-OPS-branch-protection:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-PRD-entry-time-restrictions:section:4
 - DIARY-GUI-epistaxis-delete:section:3
@@ -663,6 +667,9 @@
 - DIARY-DEV-schema-version-check-A
 - DIARY-DEV-schema-version-check-B
 - DIARY-DEV-schema-version-check-C
+- DIARY-OPS-change-appropriate-ci-A
+- DIARY-OPS-code-quality-gate-C
+- DIARY-OPS-automated-test-execution-B
 - DIARY-PRD-data-backup-and-archival-A
 - DIARY-PRD-data-backup-and-archival-C
 - DIARY-PRD-questionnaire-versioning-C
@@ -673,6 +680,7 @@
 - DIARY-PRD-sla-disaster-recovery-C
 - DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-schema-version-check:section:0
+- DIARY-OPS-automated-test-execution:section:0
 - DIARY-PRD-questionnaire-versioning:section:0
 - DIARY-GUI-dev-admin-rave-sync-card:section:0
 
@@ -843,6 +851,7 @@
 - rem:spec/glossary-core.md:724
 - rem:spec/glossary-core.md:750
 - DIARY-OPS-single-promotable-artifact:section:1
+- rem:spec/ops-ci-validation.md:9
 - DIARY-PRD-configuration-precedence:section:1
 - rem:spec/prd-diary-entry-rules.md:1
 - rem:spec/prd-diary-entry-rules.md:3
@@ -3020,6 +3029,9 @@
 - DIARY-DEV-sponsor-branding-source-A
 - DIARY-DEV-sponsor-branding-source-C
 - DIARY-DEV-sponsor-branding-source-E
+- DIARY-OPS-cross-repo-cascading-ci-A
+- DIARY-OPS-cross-repo-cascading-ci-B
+- DIARY-OPS-cross-repo-cascading-ci-D
 - DIARY-OPS-fcm-project-routing-A
 - DIARY-OPS-fcm-project-routing-D
 - DIARY-PRD-administrator-settings-F
@@ -3138,6 +3150,10 @@
 - rem:spec/glossary-core.md:741
 - rem:spec/glossary-core.md:743
 - rem:spec/glossary-core.md:750
+- rem:spec/ops-ci-validation.md:9
+- DIARY-OPS-traceability-validation:section:0
+- DIARY-OPS-cross-repo-cascading-ci:section:0
+- rem:spec/ops-ci-validation.md:224
 - rem:spec/prd-administrator-settings.md:3
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
