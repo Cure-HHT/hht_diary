@@ -26,6 +26,7 @@ import 'local_push_ws_handler.dart';
 import 'local_socket_push_channel.dart';
 import 'login_routes.dart';
 import 'notification_dispatch_reactor.dart';
+import 'recall_reactor.dart';
 import 'otp_store.dart';
 import 'password_reset_code_store.dart';
 import 'password_reset_routes.dart';
@@ -536,6 +537,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
           channel: pushChannel,
         )..start())
       : null;
+  // Enriches questionnaire_called_back -> questionnaire_recall_notice so that
+  // both the participant-facing recall projection and the push intent have a
+  // participant_id + study_event. Always started (not gated on push mode).
+  // Implements: DIARY-DEV-outgoing-intent-correlation/A+C
+  final recallReactor = RecallReactor(
+    eventStore: eventStore,
+    backend: backend,
+  )..start();
 
   // viewScopeRegistry enables per-subscription row-level narrowing: a site-bound
   // Study Coordinator's participant_record subscription is restricted to the
@@ -955,6 +964,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     await userTierReactor.stop();
     await questionnaireSubmissionReactor.stop();
     await notificationDispatchReactor?.stop();
+    await recallReactor.stop();
     fcmChannel?.dispose();
     await handlers.dispose();
     await eventStore.close();
