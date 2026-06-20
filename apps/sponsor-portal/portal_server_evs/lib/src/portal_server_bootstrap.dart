@@ -315,18 +315,31 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // 6. Dispatcher (registers all portal actions). The sponsor linking-code
   //    prefix is read here at boot and injected, keeping portal_actions
   //    dart:io-free (see generateLinkingCode).
+  // Read authMode early so it's available for both the fail-fast check and
+  // section 7 below.
+  // Implements: DIARY-DEV-portal-session-token/A+B
+  // Implements: DIARY-DEV-portal-session-lifecycle/A
+  final authMode = Platform.environment['PORTAL_AUTH_MODE'] ?? 'dev';
+  // Per-sponsor HMAC key for linking-code check chars (verified offline by the
+  // neutral discovery service). Threaded into generation always; required only
+  // in production (session auth), mirroring PORTAL_SESSION_SIGNING_KEY so dev/
+  // test boots that don't set it still work.
+  // Implements: DIARY-DEV-linking-code-lifecycle/E
+  final sponsorDiscoveryKey = env['SPONSOR_DISCOVERY_KEY'] ?? '';
+  if (authMode == 'session' && sponsorDiscoveryKey.isEmpty) {
+    throw StateError(
+        'SPONSOR_DISCOVERY_KEY is required when PORTAL_AUTH_MODE=session');
+  }
   final dispatcher = await buildPortalDispatcher(
       eventStore: eventStore,
       roleGrantsYaml: roleGrantsYaml,
       idempotency: idempotency,
-      linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX');
+      linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
+      sponsorDiscoveryKey: sponsorDiscoveryKey);
 
   // 7. Validator selection — default is dev so the existing admin-1/sc-1
   //    workflow is unchanged. Set PORTAL_AUTH_MODE=session + PORTAL_SESSION_SIGNING_KEY
   //    to enable production session-token authentication.
-  // Implements: DIARY-DEV-portal-session-token/A+B
-  // Implements: DIARY-DEV-portal-session-lifecycle/A
-  final authMode = Platform.environment['PORTAL_AUTH_MODE'] ?? 'dev';
   final signingKey = Platform.environment['PORTAL_SESSION_SIGNING_KEY'] ?? '';
   final sessionStore = SessionStore();
   // Implements: DIARY-DEV-portal-session-config/A — seed the two session-config
@@ -451,6 +464,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     eventStore: eventStore,
     backend: backend,
     linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
+    sponsorDiscoveryKey: sponsorDiscoveryKey,
   )..start();
 
   // 7f. User tier reactor — keeps user_tier_index correct by emitting

@@ -41,12 +41,16 @@ class ReconnectParticipantAction
   ReconnectParticipantAction({
     required this.flowTokenMinter,
     this.linkingPrefix = 'XX',
+    this.sponsorDiscoveryKey = '',
   });
   final FlowTokenMinter flowTokenMinter;
 
   /// Sponsor prefix for generated codes; injected at server boot from
   /// SPONSOR_LINKING_PREFIX (default 'XX').
   final String linkingPrefix;
+
+  /// Per-sponsor HMAC key for check chars; injected from SPONSOR_DISCOVERY_KEY.
+  final String sponsorDiscoveryKey;
 
   @override
   String get name => 'ACT-PAT-004';
@@ -108,7 +112,10 @@ class ReconnectParticipantAction
     ActionContext ctx,
   ) async {
     final flowToken = flowTokenMinter.next(stream: 'PAT');
-    final code = generateLinkingCode(prefix: linkingPrefix);
+    final code = generateLinkingCode(
+      prefix: linkingPrefix,
+      sponsorKey: sponsorDiscoveryKey,
+    );
     final expiresAt = ctx.requestStartedAt
         .toUtc()
         .add(const Duration(hours: 72))

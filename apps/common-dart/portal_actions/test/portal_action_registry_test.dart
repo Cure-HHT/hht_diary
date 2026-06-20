@@ -1,4 +1,5 @@
 // Verifies: DIARY-PRD-action-inventory/A  (every inventory action is registered)
+// Verifies: DIARY-DEV-linking-code-lifecycle/E  (check chars match keyed HMAC)
 import 'package:portal_actions/portal_actions.dart';
 import 'package:test/test.dart';
 
@@ -47,5 +48,45 @@ void main() {
         expect(catalog, contains(p), reason: '${a.name} perm ${p.name}');
       }
     }
+  });
+
+  // Verifies: DIARY-DEV-linking-code-lifecycle/E — generateLinkingCode threaded
+  //   through the registry uses the injected sponsorDiscoveryKey so the last 2
+  //   chars of the code equal checkCharsFor(code.substring(0, 8), key).
+  test(
+    'generateLinkingCode with injected sponsorDiscoveryKey produces correct check chars',
+    () {
+      const key = 'test-sponsor-key-abc123';
+      // Use the generator directly — the registry wires the same key into its
+      // Actions; the unit under test here is the key-threading contract.
+      final code = generateLinkingCode(prefix: 'XX', sponsorKey: key);
+      expect(code.length, 10);
+      final body = code.substring(0, 8);
+      final checkChars = code.substring(8);
+      expect(
+        checkChars,
+        checkCharsFor(body, key),
+        reason: 'last 2 chars must be HMAC check chars for the injected key',
+      );
+    },
+  );
+
+  test('registry wires sponsorDiscoveryKey into LinkParticipantAction', () {
+    const key = 'wiring-test-key-xyz';
+    // Verify the registry accepts and stores the key without error.
+    // The Action-level check-char correctness is covered by the generator test above.
+    final registry = buildPortalActionRegistry(sponsorDiscoveryKey: key);
+    final linkAction =
+        registry.all.firstWhere((a) => a.name == 'ACT-PAT-001')
+            as LinkParticipantAction;
+    expect(linkAction.sponsorDiscoveryKey, key);
+    final reconnectAction =
+        registry.all.firstWhere((a) => a.name == 'ACT-PAT-004')
+            as ReconnectParticipantAction;
+    expect(reconnectAction.sponsorDiscoveryKey, key);
+    final reactivateAction =
+        registry.all.firstWhere((a) => a.name == 'ACT-PAT-006')
+            as ReactivateParticipantAction;
+    expect(reactivateAction.sponsorDiscoveryKey, key);
   });
 }

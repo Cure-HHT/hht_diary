@@ -38,11 +38,17 @@ const Duration linkingCodeTtl = Duration(hours: 72);
 /// device with this trial site. Emits `participant_linking_code_issued`.
 class LinkParticipantAction
     extends Action<LinkParticipantInput, LinkParticipantResult> {
-  LinkParticipantAction({this.linkingPrefix = 'XX'});
+  LinkParticipantAction({
+    this.linkingPrefix = 'XX',
+    this.sponsorDiscoveryKey = '',
+  });
 
   /// Sponsor prefix for generated codes; injected at server boot from
   /// SPONSOR_LINKING_PREFIX (default 'XX').
   final String linkingPrefix;
+
+  /// Per-sponsor HMAC key for check chars; injected from SPONSOR_DISCOVERY_KEY.
+  final String sponsorDiscoveryKey;
 
   @override
   String get name => 'ACT-PAT-001';
@@ -103,7 +109,10 @@ class LinkParticipantAction
     LinkParticipantInput input,
     ActionContext ctx,
   ) async {
-    final code = generateLinkingCode(prefix: linkingPrefix);
+    final code = generateLinkingCode(
+      prefix: linkingPrefix,
+      sponsorKey: sponsorDiscoveryKey,
+    );
     final expiresAt = ctx.requestStartedAt
         .toUtc()
         .add(linkingCodeTtl)
