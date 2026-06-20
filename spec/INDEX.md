@@ -179,7 +179,7 @@
 | DIARY-DEV-device-health-checks               | On-Demand Device Health Checks                        | dev-mobile-event-sourcing.md       | 8d3827d5 |
 | DIARY-DEV-evs-stack-adoption                 | Diary Adopts the Event-Sourcing Stack                 | dev-mobile-event-sourcing.md       | 663897f8 |
 | DIARY-DEV-inbound-event-on-receipt           | Inbound Receipt Emits an Event                        | dev-mobile-event-sourcing.md       | 9143d6c4 |
-| DIARY-DEV-linking-code-lifecycle             | Linking-Code Lifecycle and Uniqueness                 | dev-linking-code-lifecycle.md      | e817982d |
+| DIARY-DEV-linking-code-lifecycle             | Linking-Code Lifecycle and Uniqueness                 | dev-linking-code-lifecycle.md      | 213bfdd0 |
 | DIARY-DEV-local-participant-authorization    | On-Device Authorization Permits the Local Participant | dev-mobile-event-sourcing.md       | 5b6674c2 |
 | DIARY-DEV-native-outbound-sync               | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md       | ebaa5551 |
 | DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | 8b310ffe |
@@ -223,6 +223,7 @@
 | DIARY-DEV-sponsor-branding-assets            | Durable on-device branding assets                     | dev-sponsor-branding.md            | 5689e3e7 |
 | DIARY-DEV-sponsor-branding-source            | Event-sourced sponsor branding source                 | dev-sponsor-branding.md            | f3651a26 |
 | DIARY-DEV-sponsor-config-source              | Sponsor Configuration Parameter Source                | dev-portal-settings.md             | 336be2a6 |
+| DIARY-DEV-sponsor-discovery                  | Neutral Sponsor-Portal Discovery                      | dev-sponsor-discovery.md           | 86e0936c |
 | DIARY-DEV-state-in-event-log                 | Qualifying App State Lives in the Event Log           | dev-mobile-event-sourcing.md       | d6fb9049 |
 | DIARY-DEV-user-account-projection            | User account projection                               | dev-portal-service.md              | ae8627b4 |
 | DIARY-DEV-view-action-permissions            | Read-model subscriptions gate on Action permissions   | dev-view-action-permissions.md     | c3069fa4 |
