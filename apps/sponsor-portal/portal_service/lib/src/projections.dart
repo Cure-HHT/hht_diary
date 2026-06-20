@@ -169,6 +169,27 @@ final AggregateProjectionSpec questionnaireInstanceSpec =
       tombstoneEventTypes: const {'questionnaire_called_back'},
     );
 
+// Implements: DIARY-DEV-outgoing-intent-correlation/B
+//   Participant-facing recall backstop: one row per (participant, instance),
+//   inserted by RecallReactor's questionnaire_recall_notice, removed by the
+//   device ack (eventType 'finalized' on the same recall aggregate).
+final TableProjectionSpec questionnaireRecallNoticeSpec = TableProjectionSpec(
+  viewName: 'questionnaire_recall_notice',
+  interest: const SubscriptionFilter(
+    aggregateTypes: {'questionnaire_recall_notice'},
+    eventTypes: {'questionnaire_recall_notice', 'finalized'},
+  ),
+  insertEventTypes: const {'questionnaire_recall_notice'},
+  removeEventTypes: const {'finalized'},
+  rowKey: const AggregateIdKey(),
+  rowData: const SelectedFields([
+    'participant_id',
+    'instance_id',
+    'study_event',
+    'recalled_at',
+  ]),
+);
+
 // Implements: DIARY-DEV-user-account-projection/A+B — users_index materializes per-user
 //   identity + an explicit account status from the portal_user lifecycle events. Status is
 //   carried on status-transition events and preserved across non-status events (key-wise
