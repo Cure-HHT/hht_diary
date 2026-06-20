@@ -170,6 +170,12 @@ build_images() {
     --tag  "$pfinal" \
     "$sponsor_repo"
 
+  log "[discovery] building discovery:local"
+  docker build \
+    --file "$core/deployment/docker/discovery.Dockerfile" \
+    --tag  "discovery:local" \
+    "$core"
+
   log "all :local images built for sponsor=$sponsor"
 }
 
