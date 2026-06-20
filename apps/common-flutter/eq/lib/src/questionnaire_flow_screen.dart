@@ -6,6 +6,8 @@
 //   REQ-p01073: Session Management
 //   REQ-d00113: Deleted Questionnaire Submission Handling
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
@@ -54,6 +56,8 @@ class QuestionnaireFlowScreen extends StatefulWidget {
     this.onCheckpoint,
     this.initialResponses,
     this.isReadOnly = false,
+    this.recallSignal,
+    this.onRecalled,
     super.key,
   });
 
@@ -97,6 +101,22 @@ class QuestionnaireFlowScreen extends StatefulWidget {
   /// participant can never re-fill/re-submit a finalized questionnaire.
   final bool isReadOnly;
 
+  /// CUR-1522: Optional stream that emits `true` when the portal has recalled
+  /// THIS open instance. The host (home screen) owns the view subscription and
+  /// passes a pre-filtered stream so the `eq` package stays dependency-free.
+  ///
+  /// On a `true` event the flow invokes [onRecalled] (if supplied) and then
+  /// calls [onComplete] to exit. No dialog is shown inside the `eq` package —
+  /// the host is responsible for any user-facing acknowledgement.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  final Stream<bool>? recallSignal;
+
+  /// CUR-1522: Async callback invoked when [recallSignal] fires `true`. The
+  /// host shows the recall acknowledgement dialog (and persists the ack event)
+  /// before this future resolves. When null the flow exits silently.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  final Future<void> Function()? onRecalled;
+
   @override
   State<QuestionnaireFlowScreen> createState() =>
       _QuestionnaireFlowScreenState();
@@ -115,6 +135,9 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
   final Map<String, QuestionResponse> _responses = {};
 
   late final List<QuestionDefinition> _allQuestions;
+
+  // CUR-1522: subscription to the host-supplied per-instance recall signal.
+  StreamSubscription<bool>? _recallSub;
 
   @override
   void initState() {
@@ -182,10 +205,22 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
           : _FlowState.questions;
       _sessionStartTime = DateTime.now();
     }
+
+    // CUR-1522: subscribe to the host-supplied per-instance recall signal.
+    // On a true event: await the host's onRecalled callback (which shows the
+    // dialog + persists the ack), then call onComplete to exit the flow.
+    // The eq package shows no dialog — the host owns all user-facing ack UI.
+    // Implements: DIARY-DEV-inbound-event-on-receipt/C
+    _recallSub = widget.recallSignal?.listen((recalled) async {
+      if (!recalled || !mounted) return;
+      await widget.onRecalled?.call();
+      if (mounted) widget.onComplete();
+    });
   }
 
   @override
   void dispose() {
+    unawaited(_recallSub?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

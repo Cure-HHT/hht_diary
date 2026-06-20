@@ -177,11 +177,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final List<QuestionnaireRecallRow> _pendingReplayRecalls =
       <QuestionnaireRecallRow>[];
 
-  /// Suppression hook for a later task: when a questionnaire is open in the
-  /// flow screen, set this to the open instance's id so the home screen skips
-  /// the recall dialog for that instance (the flow screen owns it instead).
-  /// Always null in this task — the home handles every recall.
+  /// CUR-1522: when a questionnaire is open in the flow screen, set this to
+  /// the open instance's id so the home screen's general recall subscription
+  /// skips the recall dialog for that instance (the flow screen owns it via
+  /// its recallSignal / onRecalled callback instead). Cleared when the
+  /// flow route returns.
   String? _instanceOpenInFlow;
+
+  /// CUR-1522: StreamController that drives the recallSignal passed to the
+  /// currently-open QuestionnaireFlowScreen. Created when a flow is pushed;
+  /// closed and nulled when the flow route returns. The home's recall
+  /// subscription emits `true` on this controller when a recall row for the
+  /// open instance arrives.
+  StreamController<bool>? _recallSignalCtrl;
 
   @override
   void initState() {
@@ -246,6 +254,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
     unawaited(_finalizedStatusSub?.cancel());
     unawaited(_recallSub?.cancel());
+    unawaited(_recallSignalCtrl?.close());
     _scrollController.dispose();
     super.dispose();
   }
@@ -357,23 +366,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   /// Shows the recall acknowledgement dialog for [row] unless the instance has
-  /// already been handled in this mount or is open in the flow screen.
+  /// already been handled in this mount or is currently open in the flow screen
+  /// (in which case the flow's onRecalled callback handles it instead).
   ///
   /// After the participant dismisses the dialog, tombstones the recall row via
   /// [acknowledgeRecall] so the `questionnaire_recall` view self-clears and the
   /// subscription no longer delivers it.
+  ///
+  /// When a recall arrives for the instance that is currently open in the flow
+  /// (_instanceOpenInFlow matches), it is forwarded via _recallSignalCtrl
+  /// so the flow screen can react mid-cycle via its recallSignal param.
   // Implements: DIARY-DEV-inbound-event-on-receipt/C
   Future<void> _maybeShowRecall(QuestionnaireRecallRow row) async {
     if (!mounted) return;
     if (_handledRecalls.contains(row.instanceId)) return;
-    if (row.instanceId == _instanceOpenInFlow) return;
+    if (row.instanceId == _instanceOpenInFlow) {
+      // The flow screen owns this instance's recall dialog via its callback.
+      // Forward the signal so the flow can interrupt itself mid-cycle.
+      _recallSignalCtrl?.add(true);
+      return;
+    }
     _handledRecalls.add(row.instanceId);
+    await _showRecallDialogAndAck(row.instanceId);
+  }
+
+  /// Core recall dialog + ack: shows the one-button acknowledgement dialog and
+  /// then tombstones the recall row. Factored out so both the general
+  /// subscription path (_maybeShowRecall) and the flow's onRecalled
+  /// callback (_openQuestionnaireFlow) can share it.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  Future<void> _showRecallDialogAndAck(String instanceId) async {
+    if (!mounted) return;
     await AppDialog.acknowledgment(
       context: context,
       title: 'Questionnaire recalled',
       message: 'This questionnaire has been recalled by your study team',
     );
-    await acknowledgeRecall(widget.diaryScope, row.instanceId);
+    await acknowledgeRecall(widget.diaryScope, instanceId);
   }
 
   Future<void> _checkEnrollmentStatus() async {
@@ -825,6 +854,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final definition = await _loadQuestionnaireDefinition(qType);
     if (definition == null || !mounted) return;
 
+    // CUR-1522: Suppress the home screen's general recall dialog for this
+    // instance while the flow is open. The flow screen owns the recall
+    // notification for its open instance via recallSignal + onRecalled.
+    // Implements: DIARY-DEV-inbound-event-on-receipt/C
+    _instanceOpenInFlow = aggregateId;
+    final recallCtrl = StreamController<bool>();
+    _recallSignalCtrl = recallCtrl;
+
     await Navigator.of(context).push(
       AppPageRoute<void>(
         builder: (context) => QuestionnaireFlowScreen(
@@ -848,9 +885,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           // finalization (task-list/I).
           onComplete: () => Navigator.of(context).pop(),
           onDefer: () => Navigator.of(context).pop(),
+          // CUR-1522: per-instance recall signal + host-side ack handler.
+          // When the recall view delivers a row for this instance while the
+          // flow is open, _maybeShowRecall emits true on recallCtrl; the flow
+          // then awaits onRecalled (dialog + ack) and calls onComplete to exit.
+          // The home's general subscription is suppressed for this instance via
+          // _instanceOpenInFlow so no double-dialog occurs.
+          // Implements: DIARY-DEV-inbound-event-on-receipt/C
+          recallSignal: recallCtrl.stream,
+          onRecalled: () async {
+            // Mark handled so that if the tombstone arrives before the flow
+            // pops the home subscription doesn't re-prompt.
+            _handledRecalls.add(aggregateId);
+            await _showRecallDialogAndAck(aggregateId);
+          },
         ),
       ),
     );
+
+    // Flow has returned — clear the suppression and close the signal stream.
+    _instanceOpenInFlow = null;
+    _recallSignalCtrl = null;
+    unawaited(recallCtrl.close());
   }
 
   /// Opens the questionnaire for a submitted survey [SurveyEntryView] from a
