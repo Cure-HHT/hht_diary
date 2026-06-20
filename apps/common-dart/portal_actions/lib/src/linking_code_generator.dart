@@ -1,20 +1,33 @@
+import 'dart:convert';
 import 'dart:math';
 
-// Implements: DIARY-DEV-linking-code-lifecycle/A — server-side linking-code
-//   generation: 2-char sponsor prefix + 8 chars from the non-ambiguous charset.
-//   Mirrors legacy portal_functions generateParticipantLinkingCode.
-const linkingCodeCharset =
-    'ABCDEFGHJKLMNPQRTUVWXY346789'; // excludes I,1,O,0,S,5,Z,2
+import 'package:crypto/crypto.dart';
 
-/// Generate a linking code: [prefix] + 8 random chars from [linkingCodeCharset].
-///
-/// The sponsor [prefix] is injected by the caller (threaded from server boot,
-/// where SPONSOR_LINKING_PREFIX is read) so this package stays free of dart:io.
-String generateLinkingCode({required String prefix}) {
+// Implements: DIARY-DEV-linking-code-lifecycle/A — server-side linking-code
+//   generation: 2-char sponsor prefix + 6 random + 2 keyed-MAC check chars.
+const linkingCodeCharset =
+    'ABCDEFGHJKLMNPQRTUVWXY346789'; // 28 symbols; excludes I,1,O,0,S,5,Z,2
+
+/// The two HMAC check characters for an 8-char `prefix+random` [input], keyed by
+/// the per-sponsor [sponsorKey]. The deterministic core the discovery service
+/// (Go) mirrors byte-for-byte; pinned by contract/linking-code-mac-vectors.json.
+// Implements: DIARY-DEV-linking-code-lifecycle/E
+String checkCharsFor(String input, String sponsorKey) {
+  final mac = Hmac(sha256, utf8.encode(sponsorKey)).convert(utf8.encode(input));
+  final b = mac.bytes;
+  return linkingCodeCharset[b[0] % 28] + linkingCodeCharset[b[1] % 28];
+}
+
+/// Generate a linking code: [prefix] + 6 random chars + 2 keyed-MAC check chars.
+/// [prefix] and [sponsorKey] are injected by the caller (threaded from server
+/// boot) so this package stays dart:io-free.
+// Implements: DIARY-DEV-linking-code-lifecycle/A+E
+String generateLinkingCode({required String prefix, String sponsorKey = ''}) {
   final random = Random.secure();
   final body = List.generate(
-    8,
+    6,
     (_) => linkingCodeCharset[random.nextInt(linkingCodeCharset.length)],
   ).join();
-  return '$prefix$body';
+  final input = '$prefix$body';
+  return '$input${checkCharsFor(input, sponsorKey)}';
 }
