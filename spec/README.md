@@ -105,6 +105,16 @@ Sibling repos in the Cure-HHT org:
 
 When citing a foreign-repo REQ, use the foreign repo's convention. Link sibling repos via `elspais associate <path>`.
 
+### Where operational (OPS) requirements live: public-CI / private-CD routing
+
+Operational requirements are routed to a repo by **what they govern and whether that thing is sponsor-confidential**, not by the OPS letter alone. Three homes:
+
+- **Public CI** — validation of already-public core source and workflows (change detection, traceability, secret/vulnerability scanning, static analysis, testing, branch protection, cross-repo cascading validation). Authored here in `hht_diary` (`spec/ops-ci-validation.md`). Publishing how the core is validated exposes nothing secret and is a positive for an auditor.
+- **Private CD** — sponsor deployment governance (environment promotion gates dev/qa/uat/prod, sponsor sign-off, release archive, rollback, image promotion). Authored in the private sponsor-infrastructure repo as a per-sponsor **template**, copied into each sponsor repo at creation and thereafter sponsor-owned (sponsors may tailor their own deployment obligations). Not authored here.
+- **Organization infrastructure** — cross-repo identity (the GitHub App issuing short-lived installation tokens; no standing PATs), the shared composite-action / reusable-workflow library, and the five-repo trust topology. Authored as `HHT-OPS-*` in `hht_admin`.
+
+**Governing principle — public describes *how*, never *which*.** Public spec and code describe how *Sponsors* relate to the platform — the mechanisms, concepts, and contracts — and contain **zero** *Sponsor* instances. Every *Sponsor* instance (codename, *Linking Code* prefix, *Sponsor Portal* hostname, routing key) lives in private config or Doppler behind the neutral discovery service, resolved at runtime. A requirement that would have to name or enumerate *Sponsors* belongs in a private repo.
+
 ### Federation convention (asymmetric `.elspais.local.toml`)
 
 **Only the sponsor overlay repo declares `.elspais.local.toml` (pointing at hht_diary).** hht_diary does NOT declare a sponsor associate. The reverse — both sides declaring each other — produces an elspais "Associate X declares its own associates" error because of the nested-associates restriction.
