@@ -103,6 +103,20 @@ Handler patientTasksHandler({required EventStore eventStore}) {
       });
     }
 
+    // Implements: DIARY-DEV-outgoing-intent-correlation/B
+    // Merge participant-facing recall notices as tasks with status 'recalled'.
+    final recallRows =
+        await eventStore.backend.findViewRows('questionnaire_recall_notice');
+    for (final r in recallRows) {
+      if (r['participant_id'] != payload.userId) continue;
+      tasks.add(<String, Object?>{
+        'questionnaire_instance_id': r['instance_id'],
+        'questionnaire_type': null,
+        'status': 'recalled',
+        'study_event': r['study_event'],
+      });
+    }
+
     return Response.ok(
       jsonEncode(<String, Object?>{
         'tasks': tasks,

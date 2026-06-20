@@ -314,6 +314,33 @@ void main() {
     expect(tasks.single['status'], 'unlocked');
   });
 
+  // Verifies: DIARY-DEV-outgoing-intent-correlation/B (polling backstop surfaces the recall)
+  test('recall notice surfaces as a task with status recalled', () async {
+    final store = await _openStore('tasks-recall.db');
+    await _seedTrialStarted(store, participantId: 'P-1');
+    final token = createPatientJwt(authCode: 'ac', userId: 'P-1');
+    await store.append(
+      entryType: 'questionnaire_recall_notice',
+      aggregateType: 'questionnaire_recall_notice',
+      aggregateId: 'P-1:recall:QI-9',
+      eventType: 'questionnaire_recall_notice',
+      data: <String, Object?>{
+        'participant_id': 'P-1',
+        'instance_id': 'QI-9',
+        'study_event': 'Cycle 4 Day 1',
+        'recalled_at': '2026-06-20T00:00:00Z',
+      },
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+    final handler = patientTasksHandler(eventStore: store);
+    final res = await handler(_get(auth: 'Bearer $token'));
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    final tasks = (body['tasks'] as List).cast<Map<String, Object?>>();
+    final recalled = tasks.where((t) => t['status'] == 'recalled').toList();
+    expect(recalled.single['questionnaire_instance_id'], 'QI-9');
+    await store.close();
+  });
+
   test('disconnected participant still receives tasks; is_disconnected == true',
       () async {
     final store = await _openStore('tasks-disconnected');
