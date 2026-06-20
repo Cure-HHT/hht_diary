@@ -67,4 +67,12 @@ const List<SharedEventType> diaryOriginatedEventTypes = <SharedEventType>[
       name: 'Setting Applied',
     ),
   ),
+  SharedEventType(
+    origin: EventOrigin.mobile,
+    definition: EntryTypeDefinition(
+      id: 'questionnaire_recall_acked',
+      registeredVersion: 1,
+      name: 'Questionnaire Recall Acknowledged',
+    ),
+  ),
 ];

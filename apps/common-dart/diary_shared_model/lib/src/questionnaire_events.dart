@@ -74,4 +74,12 @@ const List<SharedEventType> questionnaireEventTypes = <SharedEventType>[
       name: 'Questionnaire End Event Set',
     ),
   ),
+  SharedEventType(
+    origin: EventOrigin.portal,
+    definition: EntryTypeDefinition(
+      id: 'questionnaire_recall_notice',
+      registeredVersion: 1,
+      name: 'Questionnaire Recall Notice',
+    ),
+  ),
 ];
