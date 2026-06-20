@@ -10,6 +10,7 @@ import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
+import 'package:clinical_diary/read/questionnaire_recall_projection.dart';
 import 'package:clinical_diary/read/questionnaire_status_projection.dart';
 import 'package:clinical_diary/scope/diary_participant_id.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
@@ -25,6 +26,7 @@ import 'package:clinical_diary/screens/service_mode_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/services/branding_asset_cache.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/recall_acknowledger.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
@@ -161,6 +163,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Set<String> _finalizedInstanceIds = const <String>{};
   StreamSubscription<Update<QuestionnaireStatusRow>>? _finalizedStatusSub;
 
+  // CUR-1522: Live subscription to the device-local questionnaire_recall view.
+  // A row appears when the poll reconcile records a portal recall notice; the
+  // home screen shows an acknowledgement dialog and tombstones the row via
+  // acknowledgeRecall. Instances already handled in this mount are tracked in
+  // [_handledRecalls] so the dialog fires at most once per instance per mount.
+  StreamSubscription<Update<QuestionnaireRecallRow>>? _recallSub;
+  final Set<String> _handledRecalls = <String>{};
+
+  /// Suppression hook for a later task: when a questionnaire is open in the
+  /// flow screen, set this to the open instance's id so the home screen skips
+  /// the recall dialog for that instance (the flow screen owns it instead).
+  /// Always null in this task — the home handles every recall.
+  String? _instanceOpenInFlow;
+
   @override
   void initState() {
     super.initState();
@@ -170,6 +186,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _refreshResetGate();
     _refreshWedgeStatus();
     _startFinalizedStatusSubscription();
+    _startRecallSubscription();
     // CUR-1164: React immediately when a background sync detects disconnection
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
@@ -222,6 +239,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _onNotParticipatingChanged,
     );
     unawaited(_finalizedStatusSub?.cancel());
+    unawaited(_recallSub?.cancel());
     _scrollController.dispose();
     super.dispose();
   }
@@ -285,6 +303,59 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     } else {
       finalized.remove(row.instanceId);
     }
+  }
+
+  /// Starts a LIVE subscription to the native `questionnaire_recall` projection.
+  /// Each row represents an instance that the portal has recalled and the device
+  /// has not yet acknowledged. On each live row the home screen shows a one-button
+  /// "Questionnaire recalled" acknowledgement dialog, then tombstones the row via
+  /// [acknowledgeRecall] so it self-clears from the view.
+  ///
+  /// Rows that arrive during the initial replay are shown immediately (post-replay
+  /// Snapshot), just like live Deltas — the participant must acknowledge every
+  /// unhandled recall. Rows for instances already handled in this mount
+  /// ([_handledRecalls]) and for the instance currently open in the flow screen
+  /// ([_instanceOpenInFlow]) are skipped.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  void _startRecallSubscription() {
+    var replaying = true;
+    _recallSub = widget.diaryScope.scope.viewSource
+        .watch<QuestionnaireRecallRow>(
+          viewName: questionnaireRecallViewName,
+          mapper: QuestionnaireRecallRow.fromViewRow,
+        )
+        .listen((update) {
+          switch (update) {
+            case Snapshot<QuestionnaireRecallRow>(:final value):
+              if (value != null && !replaying) _maybeShowRecall(value);
+            case Delta<QuestionnaireRecallRow>(:final value):
+              _maybeShowRecall(value);
+            case EndOfReplay<QuestionnaireRecallRow>():
+              replaying = false;
+            case Tombstone<QuestionnaireRecallRow>():
+              break;
+          }
+        });
+  }
+
+  /// Shows the recall acknowledgement dialog for [row] unless the instance has
+  /// already been handled in this mount or is open in the flow screen.
+  ///
+  /// After the participant dismisses the dialog, tombstones the recall row via
+  /// [acknowledgeRecall] so the `questionnaire_recall` view self-clears and the
+  /// subscription no longer delivers it.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  Future<void> _maybeShowRecall(QuestionnaireRecallRow row) async {
+    if (!mounted) return;
+    if (_handledRecalls.contains(row.instanceId)) return;
+    if (row.instanceId == _instanceOpenInFlow) return;
+    _handledRecalls.add(row.instanceId);
+    await AppDialog.acknowledgment(
+      context: context,
+      title: 'Questionnaire recalled',
+      message: 'This questionnaire has been recalled by your study team',
+    );
+    await acknowledgeRecall(widget.diaryScope, row.instanceId);
   }
 
   Future<void> _checkEnrollmentStatus() async {

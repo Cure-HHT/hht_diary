@@ -967,5 +967,74 @@ void main() {
         expect(find.byType(QuestionnaireFlowScreen), findsNothing);
       },
     );
+
+    // ---- CUR-1522: questionnaire recall reactive notification ----------------
+
+    /// Mints a `questionnaire_recalled` event into the native scope's
+    /// questionnaire_recall view (via the `record_questionnaire_recalled` action),
+    /// so the home screen's live subscription receives the row.
+    ///
+    /// The native scope is backed by a real (Sembast-memory) event store; must
+    /// run inside [tester.runAsync].
+    Future<void> seedRecall(
+      WidgetTester tester, {
+      required String instanceId,
+      String? studyEvent,
+    }) async {
+      await tester.runAsync(() async {
+        await runtime.scope.actionSubmitter.submit(
+          ActionSubmission(
+            actionName: 'record_questionnaire_recalled',
+            rawInput: <String, Object?>{
+              'instance_id': instanceId,
+              'study_event': studyEvent,
+            },
+          ),
+        );
+      });
+    }
+
+    // Verifies: DIARY-DEV-inbound-event-on-receipt/C — a recall row in the
+    //   native questionnaire_recall view causes the home screen to show the
+    //   "Questionnaire recalled" acknowledgement dialog with the expected message.
+    testWidgets(
+      'recall view row shows the "Questionnaire recalled" dialog on the home '
+      'screen',
+      (tester) async {
+        await pumpScreen(tester);
+
+        // Mint the recall into the native scope's questionnaire_recall view.
+        // The subscription in home_screen fires a Delta; the dialog appears.
+        await seedRecall(
+          tester,
+          instanceId: 'QI-9',
+          studyEvent: 'Cycle 4 Day 1',
+        );
+        // Allow the real Sembast timer + viewSource emission to propagate.
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await _settle(tester);
+
+        // The acknowledgement dialog message must be visible.
+        expect(
+          find.text('This questionnaire has been recalled by your study team'),
+          findsOneWidget,
+        );
+        // Dismiss by tapping OK — this triggers acknowledgeRecall internally.
+        await tester.tap(find.text('OK'));
+        // Let acknowledgeRecall's real async writes (ack + clear) complete.
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await _settle(tester);
+
+        // The dialog must be gone after dismissal.
+        expect(
+          find.text('This questionnaire has been recalled by your study team'),
+          findsNothing,
+        );
+      },
+    );
   });
 }
