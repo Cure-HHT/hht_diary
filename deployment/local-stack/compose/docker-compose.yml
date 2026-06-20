@@ -324,6 +324,7 @@ services:
     image: discovery:local
     environment:
       PORT: "8086"
+      # localhost:8080 is the HOST diary-client's address (diary runs on the host, not in the container network; discovery returns this URL for the client to connect to directly)
       DISCOVERY_MAP: '{"XX":"http://localhost:8080"}'
       DISCOVERY_KEY_XX: "local-stack-discovery-key-not-secret"
     ports:

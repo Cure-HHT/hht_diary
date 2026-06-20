@@ -50,13 +50,13 @@ func (r *resolver) verify(code string) bool {
 	if len(code) != 10 {
 		return false
 	}
-	prefix := code[:2]
-	key, ok := r.keys[prefix]
+	key, ok := r.keys[code[:2]]
 	if !ok {
-		return false
+		key = "\x00" // constant fallback: unknown prefix still costs one HMAC (uniform timing)
 	}
 	want := checkCharsFor(code[:8], key)
-	return subtle.ConstantTimeCompare([]byte(want), []byte(code[8:])) == 1
+	match := subtle.ConstantTimeCompare([]byte(want), []byte(code[8:])) == 1
+	return ok && match
 }
 
 func clientIP(req *http.Request) string {

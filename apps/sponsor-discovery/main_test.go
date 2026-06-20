@@ -46,3 +46,23 @@ func TestUnknownPrefixAndBadCheckAreIdentical(t *testing.T) {
 		t.Errorf("negatives differ: %q vs %q", unknown.Body.String(), badcheck.Body.String())
 	}
 }
+
+// Verifies: HHT-OPS-sponsor-discovery/C (rate limit)
+func TestRateLimitReturns429(t *testing.T) {
+	r := &resolver{
+		hosts:   map[string]string{"CA": "https://callisto.example"},
+		keys:    map[string]string{"CA": "k"},
+		limiter: newRateLimiter(1),
+	}
+	do := func() int {
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/resolve?code=ZZAAAAAAAA", nil))
+		return rec.Code
+	}
+	if c := do(); c != 404 {
+		t.Fatalf("first request: want 404 got %d", c)
+	}
+	if c := do(); c != 429 {
+		t.Fatalf("second request (same IP): want 429 got %d", c)
+	}
+}
