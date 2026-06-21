@@ -1166,34 +1166,46 @@ void main() {
     //   "Questionnaire recalled" dialog (the participant never saw it, so the
     //   message would be confusing). The recall must still be silently
     //   acknowledged so the portal recall row self-cleans.
-    testWidgets(
-      'never-delivered recall (no local survey) is silently acked without '
-      'showing the dialog',
-      (tester) async {
-        // No local survey row for the instance — never delivered to this device.
-        await pumpScreen(tester);
+    testWidgets('never-delivered recall (no local survey) is silently acked without '
+        'showing the dialog', (tester) async {
+      // No local survey row for the instance — never delivered to this device.
+      await pumpScreen(tester);
 
-        // Mint the recall for an instance with NO local survey.
-        await seedRecall(
-          tester,
-          instanceId: 'QI-never-delivered',
-          studyEvent: 'Cycle 1 Day 1',
-        );
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 100)),
-        );
-        await _settle(tester);
+      // Mint the recall for an instance with NO local survey.
+      await seedRecall(
+        tester,
+        instanceId: 'QI-never-delivered',
+        studyEvent: 'Cycle 1 Day 1',
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await _settle(tester);
 
-        // Dialog MUST NOT appear — participant never saw this questionnaire.
-        expect(
-          find.text('This questionnaire has been recalled by your study team'),
-          findsNothing,
-          reason:
-              'never-delivered recall must not surface a dialog '
-              'that would confuse the participant',
-        );
-      },
-    );
+      // Dialog MUST NOT appear — participant never saw this questionnaire.
+      expect(
+        find.text('This questionnaire has been recalled by your study team'),
+        findsNothing,
+        reason:
+            'never-delivered recall must not surface a dialog '
+            'that would confuse the participant',
+      );
+
+      // Assert the silent ack actually ran: a questionnaire_recall_acked
+      // event must be in the native event store after the recall was processed.
+      final ackEvent = await tester.runAsync(() async {
+        final events = await runtime.bundle.eventStore.backend.findAllEvents();
+        return events
+            .where((e) => e.entryType == 'questionnaire_recall_acked')
+            .firstOrNull;
+      });
+      expect(
+        ackEvent,
+        isNotNull,
+        reason:
+            'silent ack must emit a questionnaire_recall_acked event to the native store',
+      );
+    });
 
     // Verifies: DIARY-DEV-inbound-event-on-receipt/C — when a recall row
     //   arrives for an instance the participant DID engage with (a local

@@ -423,7 +423,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final rows = await widget.diaryScope.bundle.eventStore.backend.findViewRows(
       diaryEntriesViewName,
     );
-    return rows.any((row) => row['aggregateId'] == instanceId);
+    return rows.any(
+      (row) =>
+          row['aggregateId'] == instanceId &&
+          ((row['entryType'] as String?) ?? '').endsWith('_survey'),
+    );
   }
 
   /// Core recall dialog + ack: shows the one-button acknowledgement dialog and
