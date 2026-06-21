@@ -299,8 +299,8 @@ services:
       # FCM. Override with PUSH_MODE=fcm to exercise the real FCM path.
       # Implements: DIARY-DEV-pluggable-push-transport/B
       PUSH_MODE: "${PUSH_MODE:-local}"
-      # CUR-1531: sponsor discovery — prefix and shared HMAC key so the portal
-      # can issue and verify linking codes via the discovery service.
+      # CUR-1531: diary-portal-resolver — prefix and shared HMAC key so the portal
+      # can issue and verify linking codes via the resolver service.
       SPONSOR_LINKING_PREFIX: "XX"
       SPONSOR_RESOLVER_KEY: "local-stack-discovery-key-not-secret"
       # OTel: export OTLP/gRPC plaintext to the local collector. The dartastic
