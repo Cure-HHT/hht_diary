@@ -679,6 +679,33 @@ void main() {
       return tester.widget<QuestionnaireFlowScreen>(matches);
     }
 
+    // Verifies: DIARY-DEV-inbound-event-on-receipt/C — a recalled questionnaire
+    //   is surfaced via the recall dialog / silent ack, NOT as an actionable
+    //   task. A status:recalled task must never render in the Task List during
+    //   the window before the portal self-cleans and the poll drops it.
+    testWidgets(
+      'a status:recalled questionnaire task is excluded from the Task List',
+      (tester) async {
+        tasks.addTask(
+          Task(
+            id: 'q-recalled-1',
+            taskType: TaskType.questionnaire,
+            title: 'Questionnaire',
+            createdAt: DateTime.now(),
+            targetId: 'q-recalled-1',
+            status: 'recalled',
+          ),
+        );
+        await pumpScreen(tester);
+
+        // The recalled task is the only task → the whole Task List section is
+        // hidden (count == 0) and the task never appears as an attention item.
+        expect(find.text('Task List'), findsNothing);
+        expect(find.text('Needs your attention'), findsNothing);
+        expect(find.text('Questionnaire'), findsNothing);
+      },
+    );
+
     // Verifies: DIARY-GUI-participant-task-list/J — after submission a
     //   questionnaire task whose instance has a local finalized `<id>_survey`
     //   row renders a completed visual state and is no longer an actionable item

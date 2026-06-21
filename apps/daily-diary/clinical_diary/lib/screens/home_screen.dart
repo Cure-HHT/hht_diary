@@ -1613,7 +1613,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     int overlapCount,
   ) {
     final l10n = AppLocalizations.of(context);
-    final tasks = _isDisconnected ? const <Task>[] : widget.taskService.tasks;
+    // A recalled questionnaire is surfaced to the participant via the recall
+    // dialog (or silently acknowledged when never delivered) — it is NOT an
+    // actionable task. Exclude status:recalled from the Task List so it never
+    // renders as a tappable "Needs your attention" item during the window
+    // before the device acknowledges, the portal self-cleans, and the next
+    // /user/tasks poll drops it.
+    // Implements: DIARY-DEV-inbound-event-on-receipt/C
+    final tasks = _isDisconnected
+        ? const <Task>[]
+        : widget.taskService.tasks
+              .where((t) => t.status != 'recalled')
+              .toList();
 
     // CUR-1523: categorize questionnaire tasks by lifecycle:
     //
