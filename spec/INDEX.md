@@ -204,7 +204,7 @@
 | DIARY-DEV-portal-reset-code-lifecycle        | Password reset code lifecycle                         | dev-portal-password-reset.md       | 8bc6a227 |
 | DIARY-DEV-portal-reset-password-update       | Password reset credential update                      | dev-portal-password-reset.md       | 4972e2a5 |
 | DIARY-DEV-portal-reset-session-termination   | Password reset session termination                    | dev-portal-password-reset.md       | 7805b6aa |
-| DIARY-DEV-portal-resolver                    | Neutral Diary-Portal Resolution                       | dev-portal-resolver.md             |          |
+| DIARY-DEV-portal-resolver                    | Neutral Diary-Portal Resolution                       | dev-portal-resolver.md             | 6b973bcf |
 | DIARY-DEV-portal-second-factor-toggle        | Conditional second factor                             | dev-portal-login.md                | d4b853aa |
 | DIARY-DEV-portal-seed-config                 | Config-driven user-role seed                          | dev-portal-service.md              | 89ccad9f |
 | DIARY-DEV-portal-session-config              | Portal session configuration sourcing                 | dev-portal-login.md                | e0054d77 |
