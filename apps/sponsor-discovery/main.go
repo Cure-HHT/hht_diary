@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -28,11 +29,17 @@ func (r *resolver) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	if req.URL.Path != "/v1/resolve" {
-		http.NotFound(w, req)
+		// Write JSON directly — http.NotFound would clobber the Content-Type to
+		// text/plain, breaking JSON-decoding callers.
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"error":"not_found"}`))
 		return
 	}
 	if !r.limiter.allow(clientIP(req)) {
-		http.Error(w, `{"error":"rate_limited"}`, http.StatusTooManyRequests)
+		// Write JSON directly — http.Error would clobber the Content-Type to
+		// text/plain even though the body is JSON.
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"error":"rate_limited"}`))
 		return
 	}
 	code := strings.ToUpper(strings.TrimSpace(req.URL.Query().Get("code")))
@@ -63,7 +70,13 @@ func clientIP(req *http.Request) string {
 	if xff := req.Header.Get("X-Forwarded-For"); xff != "" {
 		return strings.TrimSpace(strings.Split(xff, ",")[0])
 	}
-	host, _, _ := strings.Cut(req.RemoteAddr, ":")
+	// net.SplitHostPort handles both "host:port" and bracketed IPv6
+	// "[2001:db8::1]:1234"; a bare strings split would truncate IPv6 to "[2001"
+	// and collapse many clients into one rate-limit bucket.
+	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		return req.RemoteAddr
+	}
 	return host
 }
 

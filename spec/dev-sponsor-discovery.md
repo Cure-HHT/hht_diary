@@ -7,7 +7,7 @@
 
 ## Assertions
 
-A. The *Diary* app SHALL resolve the *Sponsor Portal* hostname for an entered *Linking Code* by querying a single compiled-in neutral discovery endpoint, and SHALL direct the subsequent link request to the returned hostname.
+A. The *Diary* app SHALL resolve the *Sponsor Portal* hostname for an entered *Linking Code* by querying its neutral discovery endpoint, and SHALL direct the subsequent link request to the returned hostname.
 
 B. The *Diary* app SHALL hold no static *Sponsor*-prefix-to-hostname mapping; the only sponsor-routing input compiled into the public build is the per-environment neutral discovery endpoint.
 
@@ -19,4 +19,4 @@ D. The *Diary* app SHALL resolve its discovery endpoint per environment from the
 
 The public *Diary* app must resolve a *Participant*'s *Sponsor Portal* from the entered *Linking Code* without compiling in any *Sponsor* instance, so the public build holds zero *Sponsor* routing data and de-branding can complete. The discovery endpoint is the only sponsor-routing input baked into the build; all *Sponsor* literals (prefix-to-hostname map, per-sponsor keys) remain private, injected at runtime into the org-operated discovery service. Treating all non-success discovery outcomes as a single generic user-facing condition prevents enumeration of valid prefixes or sponsors. An unreachable discovery service is a transient infrastructure failure and must be surfaced as a retryable condition rather than conflated with an invalid code.
 
-*End* *Neutral Sponsor-Portal Discovery* | **Hash**: 86e0936c
+*End* *Neutral Sponsor-Portal Discovery* | **Hash**: 6b973bcf

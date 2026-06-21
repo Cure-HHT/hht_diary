@@ -66,3 +66,19 @@ func TestRateLimitReturns429(t *testing.T) {
 		t.Fatalf("second request (same IP): want 429 got %d", c)
 	}
 }
+
+// Verifies: HHT-OPS-sponsor-discovery/C — rate-limit keying must not collapse
+// IPv6 clients into one bucket (clientIP must parse bracketed IPv6).
+func TestClientIPHandlesIPv6AndIPv4(t *testing.T) {
+	cases := []struct{ remote, want string }{
+		{"192.0.2.1:1234", "192.0.2.1"},
+		{"[2001:db8::1]:1234", "2001:db8::1"},
+	}
+	for _, tc := range cases {
+		req := httptest.NewRequest(http.MethodGet, "/v1/resolve", nil)
+		req.RemoteAddr = tc.remote
+		if got := clientIP(req); got != tc.want {
+			t.Errorf("clientIP(%q) = %q, want %q", tc.remote, got, tc.want)
+		}
+	}
+}

@@ -223,7 +223,7 @@
 | DIARY-DEV-sponsor-branding-assets            | Durable on-device branding assets                     | dev-sponsor-branding.md            | 5689e3e7 |
 | DIARY-DEV-sponsor-branding-source            | Event-sourced sponsor branding source                 | dev-sponsor-branding.md            | f3651a26 |
 | DIARY-DEV-sponsor-config-source              | Sponsor Configuration Parameter Source                | dev-portal-settings.md             | 336be2a6 |
-| DIARY-DEV-sponsor-discovery                  | Neutral Sponsor-Portal Discovery                      | dev-sponsor-discovery.md           | 86e0936c |
+| DIARY-DEV-sponsor-discovery                  | Neutral Sponsor-Portal Discovery                      | dev-sponsor-discovery.md           | 6b973bcf |
 | DIARY-DEV-state-in-event-log                 | Qualifying App State Lives in the Event Log           | dev-mobile-event-sourcing.md       | d6fb9049 |
 | DIARY-DEV-user-account-projection            | User account projection                               | dev-portal-service.md              | ae8627b4 |
 | DIARY-DEV-view-action-permissions            | Read-model subscriptions gate on Action permissions   | dev-view-action-permissions.md     | c3069fa4 |
