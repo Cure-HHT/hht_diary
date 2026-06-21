@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// Verifies: HHT-OPS-sponsor-discovery/A+B
+// Verifies: HHT-OPS-portal-resolver/A+B
 func newTestResolver() *resolver {
 	return &resolver{
 		hosts:   map[string]string{"CA": "https://callisto.example"},
@@ -47,7 +47,7 @@ func TestUnknownPrefixAndBadCheckAreIdentical(t *testing.T) {
 	}
 }
 
-// Verifies: HHT-OPS-sponsor-discovery/C (rate limit)
+// Verifies: HHT-OPS-portal-resolver/C (rate limit)
 func TestRateLimitReturns429(t *testing.T) {
 	r := &resolver{
 		hosts:   map[string]string{"CA": "https://callisto.example"},
@@ -67,7 +67,7 @@ func TestRateLimitReturns429(t *testing.T) {
 	}
 }
 
-// Verifies: HHT-OPS-sponsor-discovery/C — rate-limit keying must not collapse
+// Verifies: HHT-OPS-portal-resolver/C — rate-limit keying must not collapse
 // IPv6 clients into one bucket (clientIP must parse bracketed IPv6).
 func TestClientIPHandlesIPv6AndIPv4(t *testing.T) {
 	cases := []struct{ remote, want string }{

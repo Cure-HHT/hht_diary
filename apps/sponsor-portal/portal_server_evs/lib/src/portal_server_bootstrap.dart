@@ -321,21 +321,21 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // Implements: DIARY-DEV-portal-session-lifecycle/A
   final authMode = Platform.environment['PORTAL_AUTH_MODE'] ?? 'dev';
   // Per-sponsor HMAC key for linking-code check chars (verified offline by the
-  // neutral discovery service). Threaded into generation always; required only
+  // neutral resolver service). Threaded into generation always; required only
   // in production (session auth), mirroring PORTAL_SESSION_SIGNING_KEY so dev/
   // test boots that don't set it still work.
   // Implements: DIARY-DEV-linking-code-lifecycle/E
-  final sponsorDiscoveryKey = env['SPONSOR_DISCOVERY_KEY'] ?? '';
-  if (authMode == 'session' && sponsorDiscoveryKey.isEmpty) {
+  final sponsorResolverKey = env['SPONSOR_RESOLVER_KEY'] ?? '';
+  if (authMode == 'session' && sponsorResolverKey.isEmpty) {
     throw StateError(
-        'SPONSOR_DISCOVERY_KEY is required when PORTAL_AUTH_MODE=session');
+        'SPONSOR_RESOLVER_KEY is required when PORTAL_AUTH_MODE=session');
   }
   final dispatcher = await buildPortalDispatcher(
       eventStore: eventStore,
       roleGrantsYaml: roleGrantsYaml,
       idempotency: idempotency,
       linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
-      sponsorDiscoveryKey: sponsorDiscoveryKey);
+      sponsorResolverKey: sponsorResolverKey);
 
   // 7. Validator selection — default is dev so the existing admin-1/sc-1
   //    workflow is unchanged. Set PORTAL_AUTH_MODE=session + PORTAL_SESSION_SIGNING_KEY
@@ -464,7 +464,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     eventStore: eventStore,
     backend: backend,
     linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
-    sponsorDiscoveryKey: sponsorDiscoveryKey,
+    sponsorResolverKey: sponsorResolverKey,
   )..start();
 
   // 7f. User tier reactor — keeps user_tier_index correct by emitting

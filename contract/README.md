@@ -1,7 +1,7 @@
 # Cross-Language Contract: Linking Code Check Characters
 
 `linking-code-mac-vectors.json` pins the check-char algorithm shared between the
-Dart issuer (`portal_actions`) and the Go verifier (discovery service).
+Dart issuer (`portal_actions`) and the Go verifier (diary-portal-resolver service).
 
 ## What the vectors prove
 

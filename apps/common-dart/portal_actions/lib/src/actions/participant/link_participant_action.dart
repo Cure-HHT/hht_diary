@@ -40,15 +40,15 @@ class LinkParticipantAction
     extends Action<LinkParticipantInput, LinkParticipantResult> {
   LinkParticipantAction({
     this.linkingPrefix = 'XX',
-    this.sponsorDiscoveryKey = '',
+    this.sponsorResolverKey = '',
   });
 
   /// Sponsor prefix for generated codes; injected at server boot from
   /// SPONSOR_LINKING_PREFIX (default 'XX').
   final String linkingPrefix;
 
-  /// Per-sponsor HMAC key for check chars; injected from SPONSOR_DISCOVERY_KEY.
-  final String sponsorDiscoveryKey;
+  /// Per-sponsor HMAC key for check chars; injected from SPONSOR_RESOLVER_KEY.
+  final String sponsorResolverKey;
 
   @override
   String get name => 'ACT-PAT-001';
@@ -111,7 +111,7 @@ class LinkParticipantAction
   ) async {
     final code = generateLinkingCode(
       prefix: linkingPrefix,
-      sponsorKey: sponsorDiscoveryKey,
+      sponsorKey: sponsorResolverKey,
     );
     final expiresAt = ctx.requestStartedAt
         .toUtc()

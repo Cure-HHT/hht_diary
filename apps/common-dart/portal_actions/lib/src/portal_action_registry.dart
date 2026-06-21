@@ -38,7 +38,7 @@ import 'flow_token_minter.dart';
 ActionRegistry buildPortalActionRegistry({
   FlowTokenMinter? flowTokenMinter,
   String linkingPrefix = 'XX',
-  String sponsorDiscoveryKey = '',
+  String sponsorResolverKey = '',
 }) {
   final minter = flowTokenMinter ?? SerialFlowTokenMinter();
   final registry = ActionRegistry()
@@ -46,7 +46,7 @@ ActionRegistry buildPortalActionRegistry({
     ..register(
       LinkParticipantAction(
         linkingPrefix: linkingPrefix,
-        sponsorDiscoveryKey: sponsorDiscoveryKey,
+        sponsorResolverKey: sponsorResolverKey,
       ),
     )
     ..register(StartTrialAction(flowTokenMinter: minter))
@@ -55,7 +55,7 @@ ActionRegistry buildPortalActionRegistry({
       ReconnectParticipantAction(
         flowTokenMinter: minter,
         linkingPrefix: linkingPrefix,
-        sponsorDiscoveryKey: sponsorDiscoveryKey,
+        sponsorResolverKey: sponsorResolverKey,
       ),
     )
     ..register(MarkNotParticipatingAction(flowTokenMinter: minter))
@@ -63,7 +63,7 @@ ActionRegistry buildPortalActionRegistry({
       ReactivateParticipantAction(
         flowTokenMinter: minter,
         linkingPrefix: linkingPrefix,
-        sponsorDiscoveryKey: sponsorDiscoveryKey,
+        sponsorResolverKey: sponsorResolverKey,
       ),
     )
     ..register(ViewParticipantAction())

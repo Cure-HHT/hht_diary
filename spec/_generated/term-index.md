@@ -738,6 +738,7 @@
 
 - DIARY-DEV-evs-stack-adoption
 - DIARY-DEV-participant-state-poll
+- DIARY-DEV-portal-resolver
 - DIARY-PRD-mobile-application
 - DIARY-BASE-audit-trail-E
 - DIARY-BASE-local-data-reset-A
@@ -762,6 +763,10 @@
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
+- DIARY-DEV-portal-resolver-A
+- DIARY-DEV-portal-resolver-B
+- DIARY-DEV-portal-resolver-C
+- DIARY-DEV-portal-resolver-D
 - DIARY-DEV-participant-status-projection-B
 - DIARY-DEV-role-permissions-seed-C
 - DIARY-DEV-sponsor-config-source-D
@@ -770,10 +775,6 @@
 - DIARY-DEV-sponsor-branding-assets-B
 - DIARY-DEV-sponsor-branding-assets-C
 - DIARY-DEV-sponsor-branding-assets-D
-- DIARY-DEV-sponsor-discovery-A
-- DIARY-DEV-sponsor-discovery-B
-- DIARY-DEV-sponsor-discovery-C
-- DIARY-DEV-sponsor-discovery-D
 - DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-audit-log-study-coordinator-A
 - DIARY-GUI-audit-log-cra-A
@@ -836,6 +837,7 @@
 - DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-DEV-pluggable-push-transport:section:1
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
@@ -849,7 +851,6 @@
 - DIARY-DEV-sponsor-branding-source:section:0
 - DIARY-DEV-sponsor-branding-assets:section:0
 - DIARY-DEV-sponsor-branding-assets:section:1
-- DIARY-DEV-sponsor-discovery:section:1
 - DIARY-DEV-view-action-permissions:section:0
 - rem:spec/glossary-core.md:15
 - rem:spec/glossary-core.md:23
@@ -1339,8 +1340,8 @@
 - DIARY-DEV-linking-code-lifecycle-A
 - DIARY-DEV-linking-code-lifecycle-E
 - DIARY-DEV-participant-link-issuance-A
+- DIARY-DEV-portal-resolver-A
 - DIARY-DEV-shared-events-catalog-D
-- DIARY-DEV-sponsor-discovery-A
 - DIARY-PRD-linking-code-entry-errors-D
 - DIARY-GUI-mobile-navigation-F
 - DIARY-GUI-user-profile-C
@@ -1350,8 +1351,8 @@
 - DIARY-GUI-show-linking-code-A
 - DIARY-GUI-show-linking-code-C
 - DIARY-DEV-linking-code-lifecycle:section:0
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-DEV-shared-events-catalog:section:0
-- DIARY-DEV-sponsor-discovery:section:1
 - DIARY-PRD-linking-code-entry-errors:section:0
 - DIARY-GUI-join-study-screen:section:1
 - DIARY-GUI-linking-confirmation:section:0
@@ -1944,6 +1945,7 @@
 - DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-DEV-portal-activation-code-lifecycle:section:1
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-portal-reaction-server:section:1
@@ -1952,7 +1954,6 @@
 - DIARY-DEV-operator-tier-authz:section:0
 - DIARY-DEV-relink-device-gate:section:0
 - DIARY-DEV-shared-events-catalog:section:0
-- DIARY-DEV-sponsor-discovery:section:1
 - DIARY-DEV-view-action-permissions:section:0
 - rem:spec/glossary-core.md:724
 - DIARY-GUI-audit-log-study-coordinator:section:0
@@ -2597,6 +2598,7 @@
 **DIARY:**
 
 - DIARY-DEV-runtime-environment-resolution
+- DIARY-DEV-portal-resolver
 - DIARY-PRD-entry-overlap-resolution
 - DIARY-GUI-entry-overlap-resolution
 - DIARY-DEV-deployment-config-defaults-A
@@ -3017,7 +3019,6 @@
 
 - DIARY-DEV-sponsor-config-source
 - DIARY-DEV-sponsor-branding-source
-- DIARY-DEV-sponsor-discovery
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
 - DIARY-BASE-local-data-reset-C
@@ -3033,6 +3034,7 @@
 - DIARY-DEV-deployment-config-defaults-F
 - DIARY-DEV-linking-code-lifecycle-A
 - DIARY-DEV-linking-code-lifecycle-E
+- DIARY-DEV-portal-resolver-B
 - DIARY-DEV-portal-seed-config-B
 - DIARY-DEV-role-permissions-seed-A
 - DIARY-DEV-sponsor-config-source-A
@@ -3040,7 +3042,6 @@
 - DIARY-DEV-sponsor-branding-source-A
 - DIARY-DEV-sponsor-branding-source-C
 - DIARY-DEV-sponsor-branding-source-E
-- DIARY-DEV-sponsor-discovery-B
 - DIARY-OPS-cross-repo-cascading-ci-A
 - DIARY-OPS-cross-repo-cascading-ci-B
 - DIARY-OPS-cross-repo-cascading-ci-D
@@ -3146,6 +3147,7 @@
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-portal-session-config:section:1
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-role-permissions-seed:section:0
@@ -3157,8 +3159,6 @@
 - DIARY-DEV-sponsor-branding-source:section:0
 - DIARY-DEV-sponsor-branding-assets:section:0
 - DIARY-DEV-sponsor-branding-assets:section:1
-- DIARY-DEV-sponsor-discovery:section:0
-- DIARY-DEV-sponsor-discovery:section:1
 - DIARY-DEV-view-action-permissions:section:0
 - rem:spec/glossary-core.md:724
 - rem:spec/glossary-core.md:741
@@ -3268,7 +3268,7 @@
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-A
-- DIARY-DEV-sponsor-discovery-A
+- DIARY-DEV-portal-resolver-A
 - DIARY-PRD-administrator-settings-A
 - DIARY-BASE-portal-transport-status-A
 - DIARY-BASE-portal-stale-client-reload-A
@@ -3303,7 +3303,7 @@
 - DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-pluggable-push-transport:section:0
-- DIARY-DEV-sponsor-discovery:section:1
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-BASE-portal-transport-status:section:0
 - DIARY-BASE-portal-stale-client-reload:section:0
@@ -3671,6 +3671,7 @@
 - DIARY-DEV-portal-active-role-switch-C
 - DIARY-DEV-portal-reset-code-lifecycle-C
 - DIARY-DEV-portal-reset-session-termination-A
+- DIARY-DEV-portal-resolver-C
 - DIARY-DEV-user-account-projection-A
 - DIARY-DEV-user-account-projection-C
 - DIARY-DEV-portal-seed-config-A
@@ -3679,7 +3680,6 @@
 - DIARY-DEV-operator-tier-authz-C
 - DIARY-DEV-operator-tier-authz-F
 - DIARY-DEV-portal-test-account-provisioning-A
-- DIARY-DEV-sponsor-discovery-C
 - DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-audit-log-common-A
 - DIARY-GUI-audit-log-common-C
@@ -3760,6 +3760,7 @@
 - DIARY-DEV-portal-reset-password-update:section:0
 - DIARY-DEV-portal-reset-password-update:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
@@ -3770,7 +3771,6 @@
 - DIARY-DEV-portal-test-account-provisioning:section:0
 - DIARY-DEV-portal-test-account-provisioning:section:1
 - DIARY-DEV-sponsor-config-source:section:1
-- DIARY-DEV-sponsor-discovery:section:1
 - rem:spec/glossary-core.md:724
 - rem:spec/glossary-core.md:750
 - rem:spec/prd-audit-log.md:3

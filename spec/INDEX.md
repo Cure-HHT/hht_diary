@@ -204,6 +204,7 @@
 | DIARY-DEV-portal-reset-code-lifecycle        | Password reset code lifecycle                         | dev-portal-password-reset.md       | 8bc6a227 |
 | DIARY-DEV-portal-reset-password-update       | Password reset credential update                      | dev-portal-password-reset.md       | 4972e2a5 |
 | DIARY-DEV-portal-reset-session-termination   | Password reset session termination                    | dev-portal-password-reset.md       | 7805b6aa |
+| DIARY-DEV-portal-resolver                    | Neutral Diary-Portal Resolution                       | dev-portal-resolver.md             |          |
 | DIARY-DEV-portal-second-factor-toggle        | Conditional second factor                             | dev-portal-login.md                | d4b853aa |
 | DIARY-DEV-portal-seed-config                 | Config-driven user-role seed                          | dev-portal-service.md              | 89ccad9f |
 | DIARY-DEV-portal-session-config              | Portal session configuration sourcing                 | dev-portal-login.md                | e0054d77 |
@@ -223,7 +224,6 @@
 | DIARY-DEV-sponsor-branding-assets            | Durable on-device branding assets                     | dev-sponsor-branding.md            | 5689e3e7 |
 | DIARY-DEV-sponsor-branding-source            | Event-sourced sponsor branding source                 | dev-sponsor-branding.md            | f3651a26 |
 | DIARY-DEV-sponsor-config-source              | Sponsor Configuration Parameter Source                | dev-portal-settings.md             | 336be2a6 |
-| DIARY-DEV-sponsor-discovery                  | Neutral Sponsor-Portal Discovery                      | dev-sponsor-discovery.md           | 6b973bcf |
 | DIARY-DEV-state-in-event-log                 | Qualifying App State Lives in the Event Log           | dev-mobile-event-sourcing.md       | d6fb9049 |
 | DIARY-DEV-user-account-projection            | User account projection                               | dev-portal-service.md              | ae8627b4 |
 | DIARY-DEV-view-action-permissions            | Read-model subscriptions gate on Action permissions   | dev-view-action-permissions.md     | c3069fa4 |

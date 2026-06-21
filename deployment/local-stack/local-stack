@@ -443,7 +443,7 @@ cmd_reset_emulator() {
 # server. The diary client's `local` flavor defaults apiBase to :8084, so we
 # override it to the stack's published port via DIARY_API_BASE.
 DIARY_PORTAL_URL="http://localhost:8080"
-DISCOVERY_URL="http://localhost:8086"
+RESOLVER_URL="http://localhost:8086"
 
 # Launch the clinical_diary Flutter web app pointed at this stack's EVS portal.
 # Requires the stack to be up (we curl the portal's /health). The runtime env is
@@ -504,7 +504,7 @@ cmd_diary() {
     doppler run --config dev -- \
       flutter run -d chrome \
         --dart-define=DIARY_API_BASE="${DIARY_PORTAL_URL}" \
-        --dart-define=DISCOVERY_BASE="${DISCOVERY_URL}" "$@" )
+        --dart-define=RESOLVER_BASE="${RESOLVER_URL}" "$@" )
 }
 
 # Launch the clinical_diary Linux desktop build pointed at this stack.
@@ -601,7 +601,7 @@ cmd_diary_desktop() {
     doppler run --config dev -- \
       flutter run -d linux \
         --dart-define=DIARY_API_BASE="${DIARY_PORTAL_URL}" \
-        --dart-define=DISCOVERY_BASE="${DISCOVERY_URL}" "$@" )
+        --dart-define=RESOLVER_BASE="${RESOLVER_URL}" "$@" )
 }
 
 # Wipe the Linux desktop diary client's locally-persisted state.

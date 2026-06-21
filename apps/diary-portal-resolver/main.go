@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// Implements: HHT-OPS-sponsor-discovery/A+B+C — resolve a linking-code prefix to
+// Implements: HHT-OPS-portal-resolver/A+B+C — resolve a linking-code prefix to
 // a portal hostname, verifying the 2 check chars offline; uniform negative;
 // rate-limited; reads its map+keys from the environment (Doppler in cloud,
 // compose locally), never the sponsor VPC.
@@ -106,16 +106,16 @@ func (l *rateLimiter) allow(ip string) bool {
 
 func loadResolver() *resolver {
 	hosts := map[string]string{}
-	if raw := os.Getenv("DISCOVERY_MAP"); raw != "" {
+	if raw := os.Getenv("RESOLVER_MAP"); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &hosts); err != nil {
-			log.Fatalf("DISCOVERY_MAP invalid JSON: %v", err)
+			log.Fatalf("RESOLVER_MAP invalid JSON: %v", err)
 		}
 	}
 	keys := map[string]string{}
 	for prefix := range hosts {
-		k := os.Getenv("DISCOVERY_KEY_" + prefix)
+		k := os.Getenv("RESOLVER_KEY_" + prefix)
 		if k == "" {
-			log.Fatalf("missing DISCOVERY_KEY_%s", prefix)
+			log.Fatalf("missing RESOLVER_KEY_%s", prefix)
 		}
 		keys[prefix] = k
 	}
@@ -127,6 +127,6 @@ func main() {
 	if port == "" {
 		port = "8086"
 	}
-	log.Printf("sponsor-discovery listening on :%s", port)
+	log.Printf("diary-portal-resolver listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, loadResolver()))
 }

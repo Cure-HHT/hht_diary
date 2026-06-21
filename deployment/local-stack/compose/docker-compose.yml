@@ -302,7 +302,7 @@ services:
       # CUR-1531: sponsor discovery — prefix and shared HMAC key so the portal
       # can issue and verify linking codes via the discovery service.
       SPONSOR_LINKING_PREFIX: "XX"
-      SPONSOR_DISCOVERY_KEY: "local-stack-discovery-key-not-secret"
+      SPONSOR_RESOLVER_KEY: "local-stack-discovery-key-not-secret"
       # OTel: export OTLP/gRPC plaintext to the local collector. The dartastic
       # SDK defaults to TLS when OTEL_EXPORTER_OTLP_INSECURE is absent — it
       # does not infer insecure mode from the http:// scheme — so we must
@@ -318,15 +318,15 @@ services:
     networks:
       - stack
 
-  discovery:
-    # CUR-1531: sponsor-discovery service — maps sponsor prefix XX to the
+  diary-portal-resolver:
+    # CUR-1531: diary-portal-resolver service — maps sponsor prefix XX to the
     # local portal so the diary's /v1/resolve path works on the local-stack.
-    image: discovery:local
+    image: diary-portal-resolver:local
     environment:
       PORT: "8086"
-      # localhost:8080 is the HOST diary-client's address (diary runs on the host, not in the container network; discovery returns this URL for the client to connect to directly)
-      DISCOVERY_MAP: '{"XX":"http://localhost:8080"}'
-      DISCOVERY_KEY_XX: "local-stack-discovery-key-not-secret"
+      # localhost:8080 is the HOST diary-client's address (diary runs on the host, not in the container network; resolver returns this URL for the client to connect to directly)
+      RESOLVER_MAP: '{"XX":"http://localhost:8080"}'
+      RESOLVER_KEY_XX: "local-stack-discovery-key-not-secret"
     ports:
       - "8086:8086"
     networks:

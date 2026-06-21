@@ -51,10 +51,10 @@ void main() {
   });
 
   // Verifies: DIARY-DEV-linking-code-lifecycle/E — generateLinkingCode threaded
-  //   through the registry uses the injected sponsorDiscoveryKey so the last 2
+  //   through the registry uses the injected sponsorResolverKey so the last 2
   //   chars of the code equal checkCharsFor(code.substring(0, 8), key).
   test(
-    'generateLinkingCode with injected sponsorDiscoveryKey produces correct check chars',
+    'generateLinkingCode with injected sponsorResolverKey produces correct check chars',
     () {
       const key = 'test-sponsor-key-abc123';
       // Use the generator directly — the registry wires the same key into its
@@ -71,22 +71,22 @@ void main() {
     },
   );
 
-  test('registry wires sponsorDiscoveryKey into LinkParticipantAction', () {
+  test('registry wires sponsorResolverKey into LinkParticipantAction', () {
     const key = 'wiring-test-key-xyz';
     // Verify the registry accepts and stores the key without error.
     // The Action-level check-char correctness is covered by the generator test above.
-    final registry = buildPortalActionRegistry(sponsorDiscoveryKey: key);
+    final registry = buildPortalActionRegistry(sponsorResolverKey: key);
     final linkAction =
         registry.all.firstWhere((a) => a.name == 'ACT-PAT-001')
             as LinkParticipantAction;
-    expect(linkAction.sponsorDiscoveryKey, key);
+    expect(linkAction.sponsorResolverKey, key);
     final reconnectAction =
         registry.all.firstWhere((a) => a.name == 'ACT-PAT-004')
             as ReconnectParticipantAction;
-    expect(reconnectAction.sponsorDiscoveryKey, key);
+    expect(reconnectAction.sponsorResolverKey, key);
     final reactivateAction =
         registry.all.firstWhere((a) => a.name == 'ACT-PAT-006')
             as ReactivateParticipantAction;
-    expect(reactivateAction.sponsorDiscoveryKey, key);
+    expect(reactivateAction.sponsorResolverKey, key);
   });
 }
