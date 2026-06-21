@@ -53,6 +53,10 @@ const _softwareVersion = 'clinical_diary@0.0.0+test';
 /// backend (no outbound destinations -> no SyncCycle). HomeScreen reads its
 /// diary surface through the FakeReaction-backed ReActionScope; this scope only
 /// supplies the wedge check / install-date / incomplete-survey reads.
+///
+/// `nose_hht_survey` is registered as an extra entry type so tests can seed
+/// a submitted survey into the native store via `seedNativeSurvey`, which
+/// `_hasLocalSurveyRow` queries to determine whether the participant engaged.
 Future<DiaryScopeRuntime> _bootstrap() async {
   final db = await newDatabaseFactoryMemory().openDatabase(
     'home-screen-${DateTime.now().microsecondsSinceEpoch}.db',
@@ -62,6 +66,13 @@ Future<DiaryScopeRuntime> _bootstrap() async {
     deviceId: _deviceId,
     softwareVersion: _softwareVersion,
     localUserId: 'P-test',
+    extraEntryTypes: const [
+      EntryTypeDefinition(
+        id: 'nose_hht_survey',
+        registeredVersion: 1,
+        name: 'nose_hht',
+      ),
+    ],
   );
 }
 
@@ -994,20 +1005,73 @@ void main() {
       });
     }
 
+    /// Writes a submitted `nose_hht_survey` entry for [instanceId] to the
+    /// NATIVE event store (the Sembast-memory backend backing [runtime]).
+    ///
+    /// [_hasLocalSurveyRow] queries this store, so seeding here makes the
+    /// home screen treat the instance as "participant had engaged" and show
+    /// the recall dialog rather than silently acking.
+    ///
+    /// Must run inside [tester.runAsync] because the Sembast write is async.
+    Future<void> seedNativeSurvey(
+      WidgetTester tester, {
+      required String instanceId,
+    }) async {
+      await tester.runAsync(() async {
+        await runtime.scope.actionSubmitter.submit(
+          ActionSubmission(
+            actionName: 'submit_questionnaire',
+            rawInput: <String, Object?>{
+              'instance_id': instanceId,
+              'questionnaire_type': 'nose_hht',
+              'schema_version': '1.0.0',
+              'content_version': '1.0.0',
+              'gui_version': '1.0.0',
+              'completed_at': '2026-06-20T08:30:00.000Z',
+              'responses': <String, Object?>{
+                'q1': <String, Object?>{
+                  'value': 1,
+                  'display_label': 'Yes',
+                  'normalized_label': '1',
+                },
+              },
+            },
+          ),
+        );
+      });
+    }
+
     // Verifies: DIARY-DEV-inbound-event-on-receipt/C — a recall row in the
     //   native questionnaire_recall view causes the home screen to show the
-    //   "Questionnaire recalled" acknowledgement dialog with the expected message.
+    //   "Questionnaire recalled" acknowledgement dialog with the expected
+    //   message, when the participant had previously engaged with the
+    //   questionnaire (a local survey row exists).
     testWidgets(
       'recall view row shows the "Questionnaire recalled" dialog on the home '
-      'screen',
+      'screen (participant had engaged)',
       (tester) async {
-        await pumpScreen(tester);
+        const instanceId = 'QI-9';
+        // Seed a native survey row so _hasLocalSurveyRow returns true and
+        // the dialog is not suppressed. The FakeReaction survey row drives
+        // the visual display.
+        await seedNativeSurvey(tester, instanceId: instanceId);
+        final now = DateTime.now();
+        await pumpScreen(
+          tester,
+          finalized: [
+            surveyRow(
+              DateTime(now.year, now.month, now.day, 9),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
 
         // Mint the recall into the native scope's questionnaire_recall view.
-        // The subscription in home_screen fires a Delta; the dialog appears.
+        // The subscription in home_screen fires a Delta; the dialog appears
+        // because a local survey row exists for this instance.
         await seedRecall(
           tester,
-          instanceId: 'QI-9',
+          instanceId: instanceId,
           studyEvent: 'Cycle 4 Day 1',
         );
         // Allow the real Sembast timer + viewSource emission to propagate.
@@ -1041,28 +1105,45 @@ void main() {
     //   ALREADY present in the questionnaire_recall view BEFORE the home screen
     //   mounts (so it arrives only as a replay-phase Snapshot, never a Delta)
     //   still results in the acknowledgement dialog being shown after the screen
-    //   loads. This is the FDA-critical re-prompt path: an unacknowledged recall
-    //   must surface again on every relaunch until the participant dismisses it.
+    //   loads, provided the participant had previously engaged with the
+    //   questionnaire (a local survey row exists). This is the FDA-critical
+    //   re-prompt path: an unacknowledged recall must surface again on every
+    //   relaunch until the participant dismisses it.
     testWidgets(
       'a recall row already in the view at mount (replay-phase Snapshot) '
-      'shows the dialog after the screen loads',
+      'shows the dialog after the screen loads (participant had engaged)',
       (tester) async {
+        const instanceId = 'QI-replay-1';
         // Mint the recall BEFORE pumping the HomeScreen, so the row exists in
         // the native questionnaire_recall view during the subscription's replay
         // phase and arrives as a Snapshot (not a Delta).
         await seedRecall(
           tester,
-          instanceId: 'QI-replay-1',
+          instanceId: instanceId,
           studyEvent: 'Baseline',
         );
-        // Allow the recall to be committed to the store before the screen
-        // subscribes.
+        // Seed a native survey row BEFORE mount so _hasLocalSurveyRow returns
+        // true when the replay drain calls _maybeShowRecall.
+        await seedNativeSurvey(tester, instanceId: instanceId);
+        // Allow the recall + survey to be committed to the store before the
+        // screen subscribes.
         await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 50)),
         );
 
-        // Now mount the screen — the recall row is already in the view.
-        await pumpScreen(tester);
+        // Now mount the screen. The FakeReaction survey row drives the visual
+        // display; the native survey row (seeded above) is what _hasLocalSurveyRow
+        // queries to allow the dialog.
+        final now = DateTime.now();
+        await pumpScreen(
+          tester,
+          finalized: [
+            surveyRow(
+              DateTime(now.year, now.month, now.day, 9),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
         // Give the replay drain (EndOfReplay -> Future<void>(() async { ... }))
         // enough time to surface the dialog.
         await tester.runAsync(
@@ -1075,6 +1156,87 @@ void main() {
         expect(
           find.text('This questionnaire has been recalled by your study team'),
           findsOneWidget,
+        );
+      },
+    );
+
+    // Verifies: DIARY-DEV-inbound-event-on-receipt/C — when a recall row
+    //   arrives for an instance the participant NEVER received on this device
+    //   (no local survey row exists), the home screen must NOT show the
+    //   "Questionnaire recalled" dialog (the participant never saw it, so the
+    //   message would be confusing). The recall must still be silently
+    //   acknowledged so the portal recall row self-cleans.
+    testWidgets(
+      'never-delivered recall (no local survey) is silently acked without '
+      'showing the dialog',
+      (tester) async {
+        // No local survey row for the instance — never delivered to this device.
+        await pumpScreen(tester);
+
+        // Mint the recall for an instance with NO local survey.
+        await seedRecall(
+          tester,
+          instanceId: 'QI-never-delivered',
+          studyEvent: 'Cycle 1 Day 1',
+        );
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await _settle(tester);
+
+        // Dialog MUST NOT appear — participant never saw this questionnaire.
+        expect(
+          find.text('This questionnaire has been recalled by your study team'),
+          findsNothing,
+          reason:
+              'never-delivered recall must not surface a dialog '
+              'that would confuse the participant',
+        );
+      },
+    );
+
+    // Verifies: DIARY-DEV-inbound-event-on-receipt/C — when a recall row
+    //   arrives for an instance the participant DID engage with (a local
+    //   `<id>_survey` row exists), the home screen MUST show the "Questionnaire
+    //   recalled" dialog so the participant is informed and can acknowledge.
+    //   This is the existing behavior; the test guards regression.
+    testWidgets(
+      'delivered-and-engaged recall (local survey present) shows the dialog',
+      (tester) async {
+        const instanceId = 'QI-engaged';
+        // Seed a native survey row so _hasLocalSurveyRow returns true.
+        // The FakeReaction survey row drives the visual display.
+        await seedNativeSurvey(tester, instanceId: instanceId);
+        final now = DateTime.now();
+        await pumpScreen(
+          tester,
+          finalized: [
+            surveyRow(
+              DateTime(now.year, now.month, now.day, 9),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
+
+        // Mint the recall for an instance WITH a local survey (in native store).
+        await seedRecall(
+          tester,
+          instanceId: instanceId,
+          studyEvent: 'Cycle 2 Day 1',
+        );
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await _settle(tester);
+
+        // Dialog MUST appear — participant already engaged with this
+        // questionnaire and needs to be informed.
+        expect(
+          find.text('This questionnaire has been recalled by your study team'),
+          findsOneWidget,
+          reason:
+              'participant engaged with this questionnaire; '
+              'the recall dialog must be shown',
         );
       },
     );

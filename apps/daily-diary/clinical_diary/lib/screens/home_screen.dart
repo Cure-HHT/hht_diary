@@ -44,7 +44,7 @@ import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:diary_design_system/diary_design_system.dart'
     hide EventListItem;
 import 'package:diary_shared_model/diary_shared_model.dart'
-    show EntryGate, entryGateForDate;
+    show EntryGate, diaryEntriesViewName, entryGateForDate;
 import 'package:eq/eq.dart';
 import 'package:event_sourcing/event_sourcing.dart'
     show ActionSubmission, Delta, EndOfReplay, Snapshot, Tombstone, Update;
@@ -376,6 +376,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// When a recall arrives for the instance that is currently open in the flow
   /// (_instanceOpenInFlow matches), it is forwarded via _recallSignalCtrl
   /// so the flow screen can react mid-cycle via its recallSignal param.
+  ///
+  /// If the participant never received or engaged with this questionnaire on
+  /// this device (no device-local survey row exists), the dialog is suppressed
+  /// and the recall is silently acknowledged. Showing a "recalled" message for
+  /// a questionnaire the participant never saw is confusing; the portal recall
+  /// row still self-cleans via the silent ack.
   // Implements: DIARY-DEV-inbound-event-on-receipt/C
   Future<void> _maybeShowRecall(QuestionnaireRecallRow row) async {
     if (!mounted) return;
@@ -387,7 +393,37 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
     _handledRecalls.add(row.instanceId);
-    await _showRecallDialogAndAck(row.instanceId);
+    // Branch on whether the participant ever engaged with this questionnaire
+    // on this device. A device-local survey row exists iff the participant
+    // opened and submitted the questionnaire; if no row exists the
+    // questionnaire was recalled before it was ever delivered / opened here.
+    // Query the native event store directly (not the reactive DiaryView) so
+    // the check is authoritative regardless of when in the build cycle this
+    // recall fires (e.g. replay-phase drain before DiaryViewBuilder delivers
+    // its first emission).
+    final localSurveyExists = await _hasLocalSurveyRow(row.instanceId);
+    if (localSurveyExists) {
+      // Participant engaged: show the dialog so they are informed.
+      await _showRecallDialogAndAck(row.instanceId);
+    } else {
+      // Never delivered / never engaged: silently ack — no participant dialog.
+      await acknowledgeRecall(widget.diaryScope, row.instanceId);
+    }
+  }
+
+  /// Returns true iff the native `diary_entries` view holds a local survey row
+  /// for [instanceId] — meaning the participant submitted the questionnaire on
+  /// this device before the recall arrived. Survey rows have aggregateId ==
+  /// instanceId and an entryType of the form `<type>_survey`.
+  ///
+  /// Queries the StorageBackend directly (not the reactive DiaryView) so the
+  /// check is authoritative before DiaryViewBuilder delivers its first emission.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  Future<bool> _hasLocalSurveyRow(String instanceId) async {
+    final rows = await widget.diaryScope.bundle.eventStore.backend.findViewRows(
+      diaryEntriesViewName,
+    );
+    return rows.any((row) => row['aggregateId'] == instanceId);
   }
 
   /// Core recall dialog + ack: shows the one-button acknowledgement dialog and
