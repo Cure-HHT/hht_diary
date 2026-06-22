@@ -146,7 +146,7 @@
 | DIARY-GUI-user-account-deactivate            | Deactivate User Account                    | prd-user-account.md                       | bb9d75f2 |
 | DIARY-GUI-user-account-reactivate            | Reactivate User Account                    | prd-user-account.md                       | 15f0d2fd |
 | DIARY-GUI-user-authentication                | Diary User Authentication — Interface      | prd-mobile-app.md                         | 86acaf51 |
-| DIARY-GUI-user-information-modal             | User Information Modal                     | prd-user-account.md                       | 378c3dcd |
+| DIARY-GUI-user-information-modal             | User Information Modal                     | prd-user-account.md                       | 843f9afb |
 | DIARY-GUI-user-management-tabs               | User Management Tabs                       | prd-user-account.md                       | 763777de |
 | DIARY-GUI-user-profile                       | User Profile Screen                        | prd-mobile-navigation.md                  | c915b967 |
 
