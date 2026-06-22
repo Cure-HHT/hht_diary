@@ -51,18 +51,27 @@ String signInErrorForLoginStatus(int statusCode) =>
 
 sealed class LoginNext {
   const LoginNext();
-  const factory LoginNext.session(String token) = LoginNextSession;
+  const factory LoginNext.session(String token, {String? displayName}) =
+      LoginNextSession;
   const factory LoginNext.otp(String maskedEmail) = LoginNextOtp;
 }
 
 final class LoginNextSession extends LoginNext {
   final String token;
-  const LoginNextSession(this.token);
+
+  /// The user's human name from the login response, used to greet them by
+  /// name on the role-selection screen. Null when the server didn't supply
+  /// one (the client then falls back to the email).
+  // Implements: DIARY-GUI-role-switching/H
+  final String? displayName;
+  const LoginNextSession(this.token, {this.displayName});
   @override
   bool operator ==(Object other) =>
-      other is LoginNextSession && other.token == token;
+      other is LoginNextSession &&
+      other.token == token &&
+      other.displayName == displayName;
   @override
-  int get hashCode => token.hashCode;
+  int get hashCode => Object.hash(token, displayName);
 }
 
 final class LoginNextOtp extends LoginNext {
@@ -80,6 +89,8 @@ final class LoginNextOtp extends LoginNext {
 // Implements: DIARY-DEV-portal-second-factor-toggle/C
 LoginNext loginNextStep(Map<String, Object?> body) {
   final token = body['sessionToken'];
-  if (token is String && token.isNotEmpty) return LoginNext.session(token);
+  if (token is String && token.isNotEmpty) {
+    return LoginNext.session(token, displayName: body['displayName'] as String?);
+  }
   return LoginNext.otp((body['maskedEmail'] as String?) ?? '');
 }

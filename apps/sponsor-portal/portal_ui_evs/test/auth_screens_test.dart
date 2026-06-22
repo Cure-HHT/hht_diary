@@ -3,12 +3,16 @@
 // Verifies: DIARY-GUI-password-forgot-workflow/B+D+K+P+Q — forgot-password
 //   gating + enumeration-safe confirmation, and reset min-length / mismatch.
 // Verifies: DIARY-GUI-role-switching/A+B+C+D — multi-role selection step.
+// Verifies: DIARY-GUI-role-switching/H — login response threads the display
+//   name onto the session callback (welcome-by-name).
+// Verifies: DIARY-GUI-role-switching/I — each role card renders a distinct icon.
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuthException;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -88,7 +92,7 @@ void main() {
           LoginScreen(
             serverUrl: url,
             authClient: _FakeAuth(),
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {'sessionToken': 't'}),
           ),
         ),
@@ -107,7 +111,7 @@ void main() {
           LoginScreen(
             serverUrl: url,
             authClient: _FakeAuth(),
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {'sessionToken': 't'}),
           ),
         ),
@@ -126,7 +130,7 @@ void main() {
           LoginScreen(
             serverUrl: url,
             authClient: _FakeAuth(completer: gate),
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {'sessionToken': 't'}),
           ),
         ),
@@ -156,7 +160,7 @@ void main() {
           LoginScreen(
             serverUrl: url,
             authClient: _FakeAuth(),
-            onSession: (t) => got = t,
+            onSession: (t, {displayName}) => got = t,
             httpClient: _json(200, {'sessionToken': 'sess-9'}),
           ),
         ),
@@ -172,13 +176,45 @@ void main() {
       expect(got, 'sess-9');
     });
 
+    // Verifies: DIARY-GUI-role-switching/H
+    testWidgets('login response threads the display name to onSession', (
+      tester,
+    ) async {
+      String? gotName;
+      var called = false;
+      await tester.pumpWidget(
+        _host(
+          LoginScreen(
+            serverUrl: url,
+            authClient: _FakeAuth(),
+            onSession: (_, {displayName}) {
+              called = true;
+              gotName = displayName;
+            },
+            httpClient: _json(200, {
+              'sessionToken': 'sess-9',
+              'displayName': 'Elvira Koliadina',
+            }),
+          ),
+        ),
+      );
+      await tester.enterText(find.byType(TextFormField).at(0), 'a@b.org');
+      await tester.enterText(find.byType(TextFormField).at(1), 'pw');
+      await tester.pump();
+      await tester.tap(find.text('Sign In'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(called, isTrue);
+      expect(gotName, 'Elvira Koliadina');
+    });
+
     testWidgets('no token routes to the OTP screen', (tester) async {
       await tester.pumpWidget(
         _host(
           LoginScreen(
             serverUrl: url,
             authClient: _FakeAuth(),
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {'maskedEmail': 'a***@b.org'}),
           ),
         ),
@@ -200,7 +236,7 @@ void main() {
           LoginScreen(
             serverUrl: url,
             authClient: _FakeAuth(),
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {'maskedEmail': 'a***@b.org'}),
           ),
         ),
@@ -232,7 +268,7 @@ void main() {
           LoginScreen(
             serverUrl: url,
             authClient: _FakeAuth(throwError: true),
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(401, null),
           ),
         ),
@@ -255,7 +291,7 @@ void main() {
             authClient: _FakeAuth(
               error: FirebaseAuthException(code: 'network-request-failed'),
             ),
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {'sessionToken': 'tok'}),
           ),
         ),
@@ -322,7 +358,7 @@ void main() {
             serverUrl: url,
             idToken: 'idtok',
             maskedEmail: 'a***@b.org',
-            onSession: (t) => got = t,
+            onSession: (t, {displayName}) => got = t,
             httpClient: _json(200, {'sessionToken': 'sess-otp'}),
           ),
         ),
@@ -345,7 +381,7 @@ void main() {
             serverUrl: url,
             idToken: 'idtok',
             maskedEmail: 'a***@b.org',
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {
               'ok': true,
             }, on: (r) => paths.add(r.url.path)),
@@ -367,7 +403,7 @@ void main() {
             serverUrl: url,
             idToken: 'idtok',
             maskedEmail: 'a***@b.org',
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(401, null),
           ),
         ),
@@ -478,6 +514,67 @@ void main() {
       await tester.pumpAndSettle();
       expect(chosen, 'CRA');
     });
+
+    // Verifies: DIARY-GUI-role-switching/I — every offered role card renders a
+    //   distinct glyph; regression for the blank Study Coordinator icon
+    //   (CUR-1526): the three Figma-designed roles each render an SVG icon.
+    testWidgets('each role card renders its Figma SVG icon', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          RoleSelectionScreen(
+            userName: 'Dr. Emily Parker',
+            roles: const {'Administrator', 'CRA', 'StudyCoordinator'},
+            activeRole: 'Administrator',
+            onRoleSelected: (_) async {},
+            onBackToLogin: () {},
+          ),
+        ),
+      );
+      // One SvgPicture per designed role — in particular Study Coordinator is
+      // no longer a blank placeholder.
+      expect(find.byType(SvgPicture), findsNWidgets(3));
+    });
+
+    // Verifies: DIARY-GUI-role-switching/I — a role with no Figma asset still
+    //   gets a visible (MaterialIcons) glyph rather than a blank tile.
+    testWidgets('a role without a Figma asset falls back to a material icon', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          RoleSelectionScreen(
+            userName: 'Sys Op',
+            roles: const {'SystemOperator', 'Administrator'},
+            activeRole: 'SystemOperator',
+            onRoleSelected: (_) async {},
+            onBackToLogin: () {},
+          ),
+        ),
+      );
+      // Administrator -> SVG; SystemOperator -> Material settings icon.
+      expect(find.byType(SvgPicture), findsOneWidget);
+      expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+    });
+
+    // Verifies: DIARY-GUI-role-switching/H — the screen greets with whatever
+    //   resolved name the shell passes; the email is the fallback when no
+    //   display name was available.
+    testWidgets('welcome line shows the account identifier as a fallback', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          RoleSelectionScreen(
+            userName: 'elyakolyadina48@gmail.com',
+            roles: const {'Administrator', 'StudyCoordinator'},
+            activeRole: 'Administrator',
+            onRoleSelected: (_) async {},
+            onBackToLogin: () {},
+          ),
+        ),
+      );
+      expect(find.text('Welcome, elyakolyadina48@gmail.com'), findsOneWidget);
+    });
   });
 
   group('LoginScreen — version footer + input hygiene', () {
@@ -489,7 +586,7 @@ void main() {
           LoginScreen(
             serverUrl: url,
             authClient: _FakeAuth(),
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {'sessionToken': 't'}),
             appVersion: '1.4.13+local-abc123',
           ),
@@ -504,7 +601,7 @@ void main() {
           LoginScreen(
             serverUrl: url,
             authClient: _FakeAuth(),
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {'sessionToken': 't'}),
           ),
         ),
@@ -520,7 +617,7 @@ void main() {
           LoginScreen(
             serverUrl: url,
             authClient: auth,
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {'sessionToken': 't'}),
           ),
         ),
@@ -548,7 +645,7 @@ void main() {
             serverUrl: url,
             idToken: 'idtok',
             maskedEmail: 'e***@r***.local',
-            onSession: (_) {},
+            onSession: (_, {displayName}) {},
             httpClient: _json(200, {'sessionToken': 't'}),
           ),
         ),

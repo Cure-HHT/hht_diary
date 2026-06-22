@@ -1,5 +1,6 @@
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:portal_screens/portal_screens.dart';
 
 import 'auth_scaffold.dart';
@@ -60,6 +61,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     );
     return AuthScaffold(
       semanticId: 'role-selection-screen',
+      // userName is the user's display name when the login response carried
+      // one, else their account identifier (the email) — resolved by the app
+      // shell (see PortalEvsApp._authenticatedHome).
+      // Implements: DIARY-GUI-role-switching/H
       title: 'Welcome, ${widget.userName}',
       subtitle: 'Select a role to continue',
       banner: AppBanner(
@@ -95,25 +100,41 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 /// Product copy + icon per role, keyed by the backend system name. Display
 /// name + tone come from the [PortalRole] catalog (single source); the
 /// description and glyph are role-selection-specific presentation.
-({String description, IconData icon}) _roleMeta(String systemName) {
+///
+/// [iconAsset] points at an SVG exported from the Sponsor Portal Figma
+/// (`assets/icons/role/`); roles the Figma does not yet specify (SystemOperator
+/// and the unknown-role fallback) render [fallbackIcon] from MaterialIcons.
+/// Either way every role gets a distinct, visible glyph.
+// Implements: DIARY-GUI-role-switching/I
+({String description, String? iconAsset, IconData fallbackIcon}) _roleMeta(
+  String systemName,
+) {
   return switch (systemName) {
     'Administrator' => (
       description: 'User management and portal administration',
-      icon: Icons.shield_outlined,
+      iconAsset: 'assets/icons/role/administrator.svg',
+      fallbackIcon: Icons.shield_outlined,
     ),
     'CRA' => (
       description: 'Audit trails and compliance review',
-      icon: Icons.fact_check_outlined,
+      iconAsset: 'assets/icons/role/cra.svg',
+      fallbackIcon: Icons.fact_check_outlined,
     ),
     'StudyCoordinator' => (
       description: 'Participant management and questionnaire workflows',
-      icon: Icons.groups_outlined,
+      iconAsset: 'assets/icons/role/study_coordinator.svg',
+      fallbackIcon: Icons.groups_outlined,
     ),
     'SystemOperator' => (
       description: 'System-level lifecycle and operations',
-      icon: Icons.settings_outlined,
+      iconAsset: null,
+      fallbackIcon: Icons.settings_outlined,
     ),
-    _ => (description: 'Portal access', icon: Icons.badge_outlined),
+    _ => (
+      description: 'Portal access',
+      iconAsset: null,
+      fallbackIcon: Icons.badge_outlined,
+    ),
   };
 }
 
@@ -187,11 +208,23 @@ class _RoleCard extends StatelessWidget {
                 Container(
                   width: 40,
                   height: 40,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: tileBg,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(meta.icon, size: 20, color: accent),
+                  // Implements: DIARY-GUI-role-switching/I
+                  child: meta.iconAsset != null
+                      ? SvgPicture.asset(
+                          meta.iconAsset!,
+                          width: 20,
+                          height: 20,
+                          colorFilter: ColorFilter.mode(
+                            accent,
+                            BlendMode.srcIn,
+                          ),
+                        )
+                      : Icon(meta.fallbackIcon, size: 20, color: accent),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
