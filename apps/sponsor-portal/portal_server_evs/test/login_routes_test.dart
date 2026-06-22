@@ -115,6 +115,42 @@ void main() {
         hasLength(1));
   });
 
+  // Verifies: DIARY-GUI-role-switching/H — the session response carries the
+  //   user's human name (from users_index) so the role-selection screen greets
+  //   them by name; absent name omits the field (client falls back to email).
+  test('POST /login/verify-otp returns displayName from the users_index row',
+      () async {
+    await store.append(
+      entryType: 'user_profile_changed',
+      aggregateType: 'portal_user',
+      aggregateId: 'jane@site.org',
+      eventType: 'user_profile_changed',
+      data: const {'name': 'Jane Coordinator'},
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+    await handler()(Request('POST', Uri.parse('http://x/login'),
+        body: jsonEncode({'idToken': 'any'})));
+    final r = await handler()(Request(
+        'POST', Uri.parse('http://x/login/verify-otp'),
+        body: jsonEncode({'idToken': 'any', 'code': '123456'})));
+    expect(r.statusCode, 200);
+    final body = jsonDecode(await r.readAsString()) as Map<String, Object?>;
+    expect(body['displayName'], 'Jane Coordinator');
+  });
+
+  // Verifies: DIARY-GUI-role-switching/H — no name on file -> no displayName key.
+  test('POST /login/verify-otp omits displayName when the row has no name',
+      () async {
+    await handler()(Request('POST', Uri.parse('http://x/login'),
+        body: jsonEncode({'idToken': 'any'})));
+    final r = await handler()(Request(
+        'POST', Uri.parse('http://x/login/verify-otp'),
+        body: jsonEncode({'idToken': 'any', 'code': '123456'})));
+    expect(r.statusCode, 200);
+    final body = jsonDecode(await r.readAsString()) as Map<String, Object?>;
+    expect(body.containsKey('displayName'), isFalse);
+  });
+
   test('POST /login/verify-otp with bad code -> 401, no session', () async {
     await handler()(Request('POST', Uri.parse('http://x/login'),
         body: jsonEncode({'idToken': 'any'})));

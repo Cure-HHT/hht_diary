@@ -24,7 +24,12 @@ class LoginScreen extends StatefulWidget {
   });
   final String serverUrl;
   final FirebaseAuthClient authClient;
-  final void Function(String sessionToken) onSession;
+
+  /// Called when a session is established. [displayName] is the user's human
+  /// name when the server supplied one — used to greet them by name on the
+  /// role-selection screen; null falls back to the email.
+  // Implements: DIARY-GUI-role-switching/H
+  final void Function(String sessionToken, {String? displayName}) onSession;
   final http.Client? httpClient;
 
   /// Optional non-error notice shown above the form — e.g. "Session ended —
@@ -92,8 +97,8 @@ class _LoginScreenState extends State<LoginScreen> {
       final body = jsonDecode(r.body) as Map<String, Object?>;
       if (!mounted) return;
       switch (loginNextStep(body)) {
-        case LoginNextSession(:final token):
-          widget.onSession(token);
+        case LoginNextSession(:final token, :final displayName):
+          widget.onSession(token, displayName: displayName);
         case LoginNextOtp(:final maskedEmail):
           // Clear the in-flight state before navigating so that returning from
           // the OTP screen ("Back to Login") lands on a usable, re-submittable

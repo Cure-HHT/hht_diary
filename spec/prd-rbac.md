@@ -159,8 +159,16 @@ F. When the active *Role* changes, the interface SHALL load the default landing 
 
 G. The **Role Selector** SHALL NOT present a confirmation step before switching roles.
 
+**Selection screen**
+
+H. After login, a *User* assigned two or more roles SHALL be presented a role-selection screen whose welcome message greets the *User* by their display name; when no display name is available the interface SHALL fall back to the *User*'s account identifier.
+
+I. The role-selection screen SHALL display a distinct, role-specific icon for each *Role* offered.
+
 ### Rationale
 
 Users assigned multiple roles need an unobtrusive, always-visible affordance to confirm and change which *Role* is currently active, since the active *Role* determines visible data and available actions throughout the portal. Hiding the selector from single-*Role* users keeps the header uncluttered for the common case. Omitting a confirmation step keeps *Role* switching fast for users who switch many times per *Session*; the underlying *Audit Log* already records *Role* context for every *Action* so the cost of an accidental switch is bounded.
 
-*End* *Role Switching — Interface Behavior* | **Hash**: f820206c
+The post-login selection screen is the multi-role *User*'s first surface, so greeting them by name (rather than by the email the *Session* principal carries) confirms the right account at a glance and reads as deliberate product rather than an unfinished placeholder; the email fallback keeps the greeting robust when no name is on hand. Distinct per-*Role* icons let the *User* tell the offered roles apart by shape, not just label, which matters on a dense card list.
+
+*End* *Role Switching — Interface Behavior* | **Hash**: ed5e5023

@@ -154,6 +154,14 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// Null when not authenticated.
   String? _identityCredential;
 
+  /// The authenticated user's human name, supplied by the login response so the
+  /// role-selection screen can greet them by name rather than by email (the
+  /// session principal carries only the email). Null when the server supplied
+  /// no name or the session was restored without a fresh login — the welcome
+  /// line then falls back to the email. Reset on disconnect.
+  // Implements: DIARY-GUI-role-switching/H
+  String? _displayName;
+
   /// The client soft-timer mirroring the server idle window. Non-null only in
   /// session-auth mode while Authenticated.
   SessionTimeoutController? _timeoutController;
@@ -312,13 +320,15 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// Session auth login: called by [LoginScreen] when the user authenticates
   /// with Firebase. Stores the session token so [_HomeShell] can pass it to
   /// [RoleSelector].
-  void _onSession(String token) {
+  void _onSession(String token, {String? displayName}) {
     // Sign-in on a stale bundle completes; staleness surfaces via the
     // banner only (a reload here would discard this very login).
     // Implements: DIARY-BASE-portal-stale-client-reload/B
     unawaited(_checkServerVersion());
     setState(() {
       _identityCredential = token;
+      // Implements: DIARY-GUI-role-switching/H
+      _displayName = displayName;
       _roleConfirmed = false;
     });
     _scope.authSession.setCredential(token);
@@ -366,6 +376,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     }
     setState(() {
       _identityCredential = null;
+      _displayName = null;
       _roleConfirmed = false;
     });
     _scope.authSession.setCredential(null);
@@ -495,8 +506,13 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     if (principal is UserPrincipal &&
         roleSelectorVisible(principal.roles) &&
         !_roleConfirmed) {
+      // Greet by name when the login response supplied one; otherwise fall
+      // back to the account identifier (the email the principal carries).
+      // Implements: DIARY-GUI-role-switching/H
       return RoleSelectionScreen(
-        userName: principal.userId,
+        userName: (_displayName?.trim().isNotEmpty ?? false)
+            ? _displayName!.trim()
+            : principal.userId,
         roles: principal.roles,
         activeRole: principal.activeRole,
         onRoleSelected: (role) async {
