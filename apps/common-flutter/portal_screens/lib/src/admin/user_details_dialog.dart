@@ -70,7 +70,9 @@ class UserDetailsDialog extends StatelessWidget {
 
     return AppDialog(
       size: AppDialogSize.small,
-      title: 'User Details',
+      // Figma title is "User Information" (the dialog summarizes one user).
+      // Implements: DIARY-GUI-user-information-modal/N
+      title: 'User Information',
       subtitle: 'View and manage user details, roles, and assigned sites.',
       semanticId: 'user-details-dialog',
       body: Column(
@@ -232,17 +234,6 @@ class _ActionRow extends StatelessWidget {
         ? theme.colorScheme.error
         : theme.colorScheme.primary;
 
-    final icon = disabled
-        ? Icons.check
-        : switch (action) {
-            UserRowAction.edit => Icons.edit_outlined,
-            UserRowAction.resendInvite => Icons.send_outlined,
-            UserRowAction.deactivate => Icons.block_outlined,
-            UserRowAction.reactivate => Icons.refresh,
-            UserRowAction.unlock => Icons.lock_open_outlined,
-            UserRowAction.viewDetails => Icons.visibility_outlined,
-          };
-
     final label = disabled ? 'Invite Sent' : userRowActionLabel(action);
 
     return Material(
@@ -260,7 +251,7 @@ class _ActionRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(icon, size: 16, color: color),
+              _actionIcon(action, disabled: disabled, color: color),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -275,6 +266,43 @@ class _ActionRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Leading glyph for an action row. The Figma-designed Resend Invite and
+/// Deactivate glyphs render from bundled PNGs (exported from the Sponsor Portal
+/// Figma) — raster assets are immune to the MaterialIcons web font subsetting
+/// that blanked the Deactivate ban icon (CUR-1525); the remaining actions use
+/// MaterialIcons. Each PNG is a transparent alpha-mask glyph, recolored to the
+/// row's accent via [BlendMode.srcIn] so the icon matches its label.
+// Implements: DIARY-GUI-user-information-modal/O
+Widget _actionIcon(
+  UserRowAction action, {
+  required bool disabled,
+  required Color color,
+}) {
+  if (disabled) return Icon(Icons.check, size: 16, color: color);
+  // The PNG is a transparent alpha-mask glyph; `color` + srcIn paints it the
+  // row's accent. Widget tests don't initialise the package asset bundle and a
+  // production cache miss should degrade to a Material glyph, not a stack trace
+  // — so each asset falls back to its closest MaterialIcon via errorBuilder.
+  Widget png(String name, IconData fallback) => Image.asset(
+    'assets/icons/$name.png',
+    package: 'portal_screens',
+    width: 16,
+    height: 16,
+    color: color,
+    colorBlendMode: BlendMode.srcIn,
+    errorBuilder: (context, _, _) => Icon(fallback, size: 16, color: color),
+  );
+  return switch (action) {
+    UserRowAction.resendInvite => png('resend_invite', Icons.send),
+    UserRowAction.deactivate => png('deactivate', Icons.block),
+    UserRowAction.edit => Icon(Icons.edit_outlined, size: 16, color: color),
+    UserRowAction.reactivate => Icon(Icons.refresh, size: 16, color: color),
+    UserRowAction.unlock => Icon(Icons.lock_open_outlined, size: 16, color: color),
+    UserRowAction.viewDetails =>
+      Icon(Icons.visibility_outlined, size: 16, color: color),
+  };
 }
 
 StatusBadgeKind _badgeKindFor(UserStatusView s) => switch (s) {

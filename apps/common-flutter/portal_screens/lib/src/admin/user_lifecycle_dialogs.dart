@@ -1,8 +1,8 @@
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 
-/// "← User Details" back-link rendered above a flow dialog's title when
-/// the dialog was launched from the User Details modal. Pops the dialog
+/// "← User Information" back-link rendered above a flow dialog's title when
+/// the dialog was launched from the User Information modal. Pops the dialog
 /// and invokes [onBack] (the wiring layer reopens the details modal).
 class UserFlowBackLink extends StatelessWidget {
   const UserFlowBackLink({
@@ -27,7 +27,7 @@ class UserFlowBackLink extends StatelessWidget {
               }
             : null,
         child: Text(
-          '← User Details',
+          '← User Information',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             decoration: TextDecoration.underline,

@@ -115,6 +115,34 @@ void main() {
       expect(find.text('Resend Invite'), findsNothing);
       expect(find.text('Invite Sent'), findsOneWidget);
     });
+
+    // Verifies: DIARY-GUI-user-information-modal/N — Figma title is
+    //   "User Information".
+    // Verifies: DIARY-GUI-user-information-modal/O — each action carries a
+    //   visible icon; Resend Invite + Deactivate render their bundled Figma
+    //   PNG glyphs (regression for the blank Deactivate ban icon, CUR-1525).
+    testWidgets('titled "User Information"; Resend + Deactivate show their '
+        'Figma PNG icons', (tester) async {
+      await _pumpDialog(
+        tester,
+        UserDetailsDialog(
+          user: MockData.jenniferMartinezPending,
+          sites: _sites,
+          actions: const [
+            UserRowAction.edit,
+            UserRowAction.resendInvite,
+            UserRowAction.deactivate,
+          ],
+        ),
+      );
+      expect(find.text('User Information'), findsOneWidget);
+      expect(find.text('User Details'), findsNothing);
+      expect(find.text('Edit User'), findsOneWidget);
+      expect(find.text('Deactivate User'), findsOneWidget);
+      // Resend Invite + Deactivate render bundled PNG glyphs (Image.asset);
+      // Edit keeps its MaterialIcons pencil. No action row is left iconless.
+      expect(find.byType(Image), findsNWidgets(2));
+    });
   });
 
   group('splitDisplayName', () {
@@ -375,9 +403,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('0/100'), findsOneWidget);
-      expect(find.text('← User Details'), findsOneWidget);
+      expect(find.text('← User Information'), findsOneWidget);
 
-      await tester.tap(find.text('← User Details'));
+      await tester.tap(find.text('← User Information'));
       await tester.pump(const Duration(milliseconds: 100));
       expect(wentBack, isTrue);
       expect(find.byType(DeactivateUserDialog), findsNothing);
