@@ -1,0 +1,22 @@
+[
+  {
+    "input": "CARANDOM",
+    "keyUtf8": "test-sponsor-key-not-secret",
+    "check": "A4"
+  },
+  {
+    "input": "CAAAAAAA",
+    "keyUtf8": "test-sponsor-key-not-secret",
+    "check": "AK"
+  },
+  {
+    "input": "OR346789",
+    "keyUtf8": "another-key",
+    "check": "AL"
+  },
+  {
+    "input": "XXABCDEF",
+    "keyUtf8": "local-stack-discovery-key-not-secret",
+    "check": "7X"
+  }
+]

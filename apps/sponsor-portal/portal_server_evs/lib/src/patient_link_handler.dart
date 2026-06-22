@@ -273,6 +273,7 @@ Handler patientLinkHandler({
         'siteNumber': outcome.siteNumber,
         'studyParticipantId': participantId,
         'sitePhoneNumber': null,
+        'sponsorId': sid,
         'sponsor_settings': sponsorSettings,
       }),
       headers: const {'Content-Type': 'application/json'},

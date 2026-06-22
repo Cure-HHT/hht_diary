@@ -739,6 +739,7 @@
 
 - DIARY-DEV-evs-stack-adoption
 - DIARY-DEV-participant-state-poll
+- DIARY-DEV-portal-resolver
 - DIARY-PRD-mobile-application
 - DIARY-BASE-audit-trail-E
 - DIARY-BASE-local-data-reset-A
@@ -763,6 +764,10 @@
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
+- DIARY-DEV-portal-resolver-A
+- DIARY-DEV-portal-resolver-B
+- DIARY-DEV-portal-resolver-C
+- DIARY-DEV-portal-resolver-D
 - DIARY-DEV-participant-status-projection-B
 - DIARY-DEV-role-permissions-seed-C
 - DIARY-DEV-sponsor-config-source-D
@@ -833,6 +838,7 @@
 - DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-DEV-pluggable-push-transport:section:1
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
@@ -1333,7 +1339,9 @@
 - DIARY-PRD-linking-code-lifecycle
 - DIARY-GUI-show-linking-code
 - DIARY-DEV-linking-code-lifecycle-A
+- DIARY-DEV-linking-code-lifecycle-E
 - DIARY-DEV-participant-link-issuance-A
+- DIARY-DEV-portal-resolver-A
 - DIARY-DEV-shared-events-catalog-D
 - DIARY-PRD-linking-code-entry-errors-D
 - DIARY-GUI-mobile-navigation-F
@@ -1344,6 +1352,7 @@
 - DIARY-GUI-show-linking-code-A
 - DIARY-GUI-show-linking-code-C
 - DIARY-DEV-linking-code-lifecycle:section:0
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-DEV-shared-events-catalog:section:0
 - DIARY-PRD-linking-code-entry-errors:section:0
 - DIARY-GUI-join-study-screen:section:1
@@ -1937,6 +1946,7 @@
 - DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-DEV-portal-activation-code-lifecycle:section:1
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-portal-reaction-server:section:1
@@ -2589,6 +2599,7 @@
 **DIARY:**
 
 - DIARY-DEV-runtime-environment-resolution
+- DIARY-DEV-portal-resolver
 - DIARY-PRD-entry-overlap-resolution
 - DIARY-GUI-entry-overlap-resolution
 - DIARY-DEV-deployment-config-defaults-A
@@ -3025,6 +3036,8 @@
 - DIARY-DEV-deployment-config-defaults-D
 - DIARY-DEV-deployment-config-defaults-F
 - DIARY-DEV-linking-code-lifecycle-A
+- DIARY-DEV-linking-code-lifecycle-E
+- DIARY-DEV-portal-resolver-B
 - DIARY-DEV-portal-seed-config-B
 - DIARY-DEV-role-permissions-seed-A
 - DIARY-DEV-sponsor-config-source-A
@@ -3137,6 +3150,7 @@
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-portal-session-config:section:1
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-role-permissions-seed:section:0
@@ -3257,6 +3271,7 @@
 - DIARY-DEV-node-sync-topology-B
 - DIARY-DEV-node-sync-topology-C
 - DIARY-DEV-outgoing-intent-correlation-A
+- DIARY-DEV-portal-resolver-A
 - DIARY-PRD-administrator-settings-A
 - DIARY-BASE-portal-transport-status-A
 - DIARY-BASE-portal-stale-client-reload-A
@@ -3291,6 +3306,7 @@
 - DIARY-DEV-node-sync-topology:section:2
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-pluggable-push-transport:section:0
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-BASE-portal-transport-status:section:0
 - DIARY-BASE-portal-stale-client-reload:section:0
@@ -3658,6 +3674,7 @@
 - DIARY-DEV-portal-active-role-switch-C
 - DIARY-DEV-portal-reset-code-lifecycle-C
 - DIARY-DEV-portal-reset-session-termination-A
+- DIARY-DEV-portal-resolver-C
 - DIARY-DEV-user-account-projection-A
 - DIARY-DEV-user-account-projection-C
 - DIARY-DEV-portal-seed-config-A
@@ -3748,6 +3765,7 @@
 - DIARY-DEV-portal-reset-password-update:section:0
 - DIARY-DEV-portal-reset-password-update:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
+- DIARY-DEV-portal-resolver:section:1
 - DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1

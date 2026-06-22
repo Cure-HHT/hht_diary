@@ -77,6 +77,12 @@ regexes = [
     '''^EXAMPLE_API_KEY_VALUE$''',
     '''^EXAMPLE_SECRET_VALUE$''',
     '''^example@fake\.email$''',
+
+    # Test-fixture HMAC keys for the linking-code check-char tests (CUR-1531).
+    # These are throwaway constants in *_test.dart that feed checkCharsFor/
+    # generateLinkingCode; not real secrets. The full-history CI scan would
+    # otherwise flag `test-sponsor-key-abc123` (generic-api-key, entropy ~3.85).
+    '''test-sponsor-key-[A-Za-z0-9-]+''',
 ]
 
 # =====================================================
