@@ -3,6 +3,12 @@
 // The native clinical outbound destination ships only entries at or after a
 // start watermark. The watermark must be the LATER of Trial Start and the
 // device link time.
+//
+// INTERIM gate: flooring at the link time keeps pre-link data local because
+// pre-trial reference-data collection is not yet supported. CUR-1536 (Support
+// sync of pre-trial data to Sponsor) replaces this floor with a
+// device<->participant binding that lets pre-link entries be attributed and
+// synced; revisit this file together with that work.
 
 /// The effective start watermark for the native clinical outbound destination:
 /// the later of [trialStartedAt] and [linkedAt].
