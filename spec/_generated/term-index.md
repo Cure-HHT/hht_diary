@@ -112,6 +112,7 @@
 - DIARY-GUI-user-information-modal-I
 - DIARY-GUI-user-information-modal-J
 - DIARY-GUI-user-information-modal-K
+- DIARY-GUI-user-information-modal-O
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-BASE-audit-trail:section:1
 - DIARY-BASE-ops-action-inventory:section:0
@@ -3731,6 +3732,7 @@
 - DIARY-GUI-user-information-modal-K
 - DIARY-GUI-user-information-modal-L
 - DIARY-GUI-user-information-modal-M
+- DIARY-GUI-user-information-modal-N
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-E
 - rem:spec/base-user-authentication-pin.md:1
@@ -3928,6 +3930,8 @@
 - DIARY-GUI-user-information-modal-I
 - DIARY-GUI-user-information-modal-J
 - DIARY-GUI-user-information-modal-K
+- DIARY-GUI-user-information-modal-N
+- DIARY-GUI-user-information-modal-O
 - DIARY-GUI-user-management-tabs:section:5
 - DIARY-GUI-user-information-modal:section:0
 - DIARY-GUI-user-information-modal:section:3
