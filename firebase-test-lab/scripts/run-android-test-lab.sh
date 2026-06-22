@@ -2,6 +2,7 @@
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00043: Automated Deployment Pipeline
 set -euo pipefail
+unset CLOUDSDK_CORE_PROJECT  # prevent auth step env override
 
 PROJECT_ID="${GCP_PROJECT_ID:-cure-hht-qa}"
 FLAVOR="${FLAVOR:-qa}"
