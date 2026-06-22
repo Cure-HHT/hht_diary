@@ -22,7 +22,7 @@ if [[ ! -f "$TEST_TARGET" ]]; then
 fi
 
 command -v flutter >/dev/null 2>&1 || { echo "ERROR: flutter is not installed" >&2; exit 1; }
-command -v yq >/dev/null 2>&1 || { echo "ERROR: yq is required" >&2; exit 1; }
+command -v yq     >/dev/null 2>&1 || { echo "ERROR: yq is required"           >&2; exit 1; }
 
 VARIANT="${FLAVOR^}Debug"
 ABS_TEST_TARGET="$APP_DIR/$TEST_TARGET"
@@ -38,11 +38,22 @@ source "$APP_DIR/tool/_write_env_pointer.sh" "$FLAVOR"
 flutter --version
 flutter pub get
 
+# ---------------------------------------------------------------------------
+# FIREBASE TEST LAB FIX: add --dart-define=APP_FLAVOR
+#
+# Without this flag, String.fromEnvironment('APP_FLAVOR') returns '' inside
+# the compiled Dart code. The app's environment-resolution logic then cannot
+# select the correct Firebase project / backend, causing the instrumentation
+# runner to stall indefinitely during app initialisation (observed as "1 test
+# started, 0 tests completed, matrix timeout").
+# ---------------------------------------------------------------------------
+
 # Build the app using the integration-test entrypoint. Flutter's Android
 # integration_test bridge is then packaged into the separate androidTest APK.
 flutter build apk \
   --debug \
   --flavor "$FLAVOR" \
+  --dart-define=APP_FLAVOR="$FLAVOR" \
   --target "$TEST_TARGET"
 
 pushd android >/dev/null
@@ -50,6 +61,7 @@ pushd android >/dev/null
   ":app:assemble${VARIANT}AndroidTest" \
   ":app:assemble${VARIANT}" \
   -Ptarget="$ABS_TEST_TARGET" \
+  -PFLUTTER_DART_DEFINE="APP_FLAVOR=$FLAVOR" \
   --stacktrace
 popd >/dev/null
 
@@ -67,7 +79,7 @@ if [[ -z "$TEST_APK" || ! -f "$TEST_APK" ]]; then
   exit 1
 fi
 
-cp "$APP_APK" "$ABS_OUTPUT_DIR/app-${FLAVOR}-debug.apk"
+cp "$APP_APK"  "$ABS_OUTPUT_DIR/app-${FLAVOR}-debug.apk"
 cp "$TEST_APK" "$ABS_OUTPUT_DIR/app-${FLAVOR}-debug-androidTest.apk"
 
 APP_OUT="$ABS_OUTPUT_DIR/app-${FLAVOR}-debug.apk"
@@ -79,7 +91,7 @@ METADATA="$ABS_OUTPUT_DIR/build-metadata.txt"
   echo "test_target=$TEST_TARGET"
   echo "app_apk=$APP_OUT"
   echo "test_apk=$TEST_OUT"
-  echo "app_sha256=$(shasum -a 256 "$APP_OUT" | awk '{print $1}')"
+  echo "app_sha256=$(shasum -a 256 "$APP_OUT"  | awk '{print $1}')"
   echo "test_sha256=$(shasum -a 256 "$TEST_OUT" | awk '{print $1}')"
   echo "git_sha=${GITHUB_SHA:-$(git rev-parse HEAD 2>/dev/null || echo unknown)}"
   echo "built_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"

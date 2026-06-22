@@ -18,6 +18,29 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+// ---------------------------------------------------------------------------
+// FIREBASE TEST LAB FIX: resolve strict-version constraint conflicts
+//
+// The Flutter Gradle plugin and Google Services plugin each add
+// `strictly` version constraints on the following test libraries at older
+// versions (e.g. junit:4.12, androidx.test:runner:1.2.0). When our
+// androidTest dependencies declare newer versions, Gradle rejects the
+// resolution and fails at :app:checkQaDebugAndroidTestAarMetadata.
+//
+// `force(...)` overrides any `strictly` constraint for that coordinate so
+// Gradle always resolves to the single version we declare below. This
+// affects only the androidTest runtime classpath; release/debug classpaths
+// do not include these artifacts at all.
+// ---------------------------------------------------------------------------
+configurations.all {
+    resolutionStrategy {
+        force("junit:junit:4.13.2")
+        force("androidx.test:runner:1.7.0")
+        force("androidx.test:rules:1.7.0")
+        force("androidx.test.espresso:espresso-core:3.7.0")
+    }
+}
+
 android {
     namespace = "org.curehht.clinical_diary"
     compileSdk = flutter.compileSdkVersion
@@ -78,6 +101,7 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 
     // Flutter integration_test bridge used by Firebase Test Lab instrumentation.
+    // Versions here must match the force() constraints above.
     androidTestImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test:rules:1.7.0")

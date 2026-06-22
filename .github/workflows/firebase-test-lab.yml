@@ -213,7 +213,13 @@ jobs:
   ios:
     name: iOS XCTest
     if: inputs.platform == 'ios' || inputs.platform == 'both'
-    runs-on: macos-26
+    # -------------------------------------------------------------------------
+    # FIREBASE TEST LAB FIX: changed from macos-26 (invalid/nonexistent label)
+    # to macos-15 (Sequoia, Xcode 16.x).
+    # Valid GitHub-hosted macOS labels: macos-13, macos-14, macos-15 (and *-xlarge).
+    # Use macos-14 if you need Xcode 15.x (required for iOS < 16 simulators).
+    # -------------------------------------------------------------------------
+    runs-on: macos-15
     timeout-minutes: 120
 
     steps:
