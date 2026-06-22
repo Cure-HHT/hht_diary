@@ -33,6 +33,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+// dart format off
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -707,3 +708,4 @@ void main() {
     await _screenshot(binding, tester, 'func004_navigation');
   });
 }
+// dart format on
