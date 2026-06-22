@@ -1952,4 +1952,26 @@
   "Tags": [],
   "Fingerprint": "6b424799db2114910e1cb746d4ec27a809a596cd:spec/ops-deployment.md:generic-api-key:776"
  }
+,
+ {
+  "RuleID": "generic-api-key",
+  "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+  "StartLine": 59,
+  "EndLine": 59,
+  "StartColumn": 14,
+  "EndColumn": 44,
+  "Match": "key = 'REDACTED'",
+  "Secret": "REDACTED",
+  "File": "apps/common-dart/portal_actions/test/portal_action_registry_test.dart",
+  "SymlinkFile": "",
+  "Commit": "c843a382219f2efed183a0b6989336a5293f4585",
+  "Link": "https://github.com/Cure-HHT/hht_diary/blob/c843a382219f2efed183a0b6989336a5293f4585/apps/common-dart/portal_actions/test/portal_action_registry_test.dart#L59",
+  "Entropy": 3.8492239,
+  "Author": "Michael Lewis",
+  "Email": "michael@anspar.org",
+  "Date": "2026-06-20T17:56:30Z",
+  "Message": "[CUR-1531] portal: issue check-char codes from SPONSOR_DISCOVERY_KEY; return sponsorId on /link",
+  "Tags": [],
+  "Fingerprint": "c843a382219f2efed183a0b6989336a5293f4585:apps/common-dart/portal_actions/test/portal_action_registry_test.dart:generic-api-key:59"
+ }
 ]
