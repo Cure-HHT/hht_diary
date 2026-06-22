@@ -49,7 +49,7 @@ jobs:
         # Implements: (operational visibility — post-merge silent failures surface to Slack)
         # Pinned to hht_workflows main 2026-05-22 (same SHA used across hht_diary).
         continue-on-error: true
-        uses: Cure-HHT/hht_workflows/.github/actions/slack-notify@738dc754b9484b56c489bfdab9b31eec8562cdb1
+        uses: Cure-HHT/hht_workflows/.github/actions/slack-notify@5d6d80d66d8dcf4509c7ce38f5b16bbe4cadf6c7
         with:
           event: main-failure
           slack-token: ${{ secrets.SLACK_APP_OATH_TOKEN }}
