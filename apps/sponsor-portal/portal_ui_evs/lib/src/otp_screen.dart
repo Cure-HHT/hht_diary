@@ -21,7 +21,12 @@ class OtpScreen extends StatefulWidget {
   final String serverUrl;
   final String idToken;
   final String maskedEmail;
-  final void Function(String sessionToken) onSession;
+
+  /// Called when OTP verification establishes a session. [displayName] is the
+  /// user's human name when the server supplied one (greets them by name on
+  /// the role-selection screen); null falls back to the email.
+  // Implements: DIARY-GUI-role-switching/H
+  final void Function(String sessionToken, {String? displayName}) onSession;
   final http.Client? httpClient;
 
   @override
@@ -63,10 +68,9 @@ class _OtpScreenState extends State<OtpScreen> {
         body: jsonEncode({'idToken': widget.idToken, 'code': _code.text}),
       );
       if (r.statusCode == 200) {
-        final token =
-            (jsonDecode(r.body) as Map<String, Object?>)['sessionToken']
-                as String;
-        widget.onSession(token);
+        final body = jsonDecode(r.body) as Map<String, Object?>;
+        final token = body['sessionToken'] as String;
+        widget.onSession(token, displayName: body['displayName'] as String?);
         return;
       }
       setState(() {

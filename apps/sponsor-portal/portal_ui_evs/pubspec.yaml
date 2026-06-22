@@ -23,6 +23,10 @@ dependencies:
       path: event_sourcing
   firebase_core: ^4.3.0
   firebase_auth: ^6.1.3
+  # Renders the role-selection card icons from SVGs exported from the Sponsor
+  # Portal Figma (assets/icons/role/). Vector assets are immune to the
+  # MaterialIcons font subsetting that can blank a glyph on a web release build.
+  flutter_svg: ^2.0.10
   http: ^1.2.0
   meta: ^1.16.0
   # Web-only interop (service-worker eviction, location.reload, sessionStorage)
@@ -57,3 +61,7 @@ flutter:
   # assets and buildAppTheme(AppFontFamily.inter) wires the M3 type scale
   # to it. CanvasKit no longer 404s the default Roboto because the type
   # scale never asks for Roboto in the first place.
+  assets:
+    # Role-card glyphs for the post-login role-selection screen, exported from
+    # the Sponsor Portal Figma and recolored per role tone at render time.
+    - assets/icons/role/

@@ -52,8 +52,14 @@ Router buildLoginRouter({
     return null;
   }
 
+  // [displayName] is the user's human name from the users_index row, returned
+  // alongside the token so the client can greet the user by name on the
+  // post-login role-selection screen without a follow-up authed lookup (the
+  // session principal carries only the email). Omitted when blank so the client
+  // falls back to the email.
   // Implements: DIARY-DEV-portal-second-factor-toggle/A+D
-  Future<Response> startSession(String email) async {
+  // Implements: DIARY-GUI-role-switching/H
+  Future<Response> startSession(String email, {String? displayName}) async {
     final scopeRows = await backend.findViewRows('user_role_scopes');
     final roles = <String>{
       for (final r in scopeRows)
@@ -74,7 +80,11 @@ Router buildLoginRouter({
     );
     final token = mintSessionToken(
         sid: sid, userId: email, signingKey: signingKey, now: now());
-    return _json({'sessionToken': token});
+    final name = displayName?.trim();
+    return _json({
+      'sessionToken': token,
+      if (name != null && name.isNotEmpty) 'displayName': name,
+    });
   }
 
   router.get('/config/identity', (Request req) => _json(identityConfig));
@@ -126,7 +136,7 @@ Router buildLoginRouter({
         data: <String, Object?>{'skipped_at': now().toUtc().toIso8601String()},
         initiator: const AnonymousInitiator(ipAddress: null),
       );
-      return startSession(email);
+      return startSession(email, displayName: user['name'] as String?);
     }
 
     final String code;
@@ -198,7 +208,7 @@ Router buildLoginRouter({
       initiator: const AnonymousInitiator(ipAddress: null),
     );
 
-    return startSession(email);
+    return startSession(email, displayName: user['name'] as String?);
   });
 
   return router;

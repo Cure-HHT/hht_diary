@@ -166,7 +166,7 @@
 - DIARY-PRD-action-inventory:section:0
 - DIARY-PRD-action-inventory:section:1
 - DIARY-PRD-action-inventory:section:2
-- DIARY-GUI-role-switching:section:3
+- DIARY-GUI-role-switching:section:4
 - DIARY-PRD-sla-corrective-preventive:section:0
 - DIARY-PRD-sla-regulatory-event-support:section:0
 - DIARY-PRD-user-account-create:section:1
@@ -418,7 +418,7 @@
 - DIARY-GUI-audit-log-administrator:section:1
 - DIARY-PRD-platform-operations-monitoring:section:0
 - DIARY-PRD-action-inventory:section:1
-- DIARY-GUI-role-switching:section:3
+- DIARY-GUI-role-switching:section:4
 - DIARY-PRD-reason-field-constraints:section:1
 - DIARY-GUI-administrator-dashboard:section:0
 - DIARY-GUI-administrator-dashboard:section:4
@@ -2690,6 +2690,8 @@
 - DIARY-GUI-role-switching-D
 - DIARY-GUI-role-switching-E
 - DIARY-GUI-role-switching-F
+- DIARY-GUI-role-switching-H
+- DIARY-GUI-role-switching-I
 - DIARY-PRD-user-account-create-A
 - DIARY-PRD-user-account-create-C
 - DIARY-PRD-user-account-edit-B
@@ -2744,7 +2746,7 @@
 - DIARY-PRD-role-definitions:section:0
 - DIARY-PRD-role-definitions:section:1
 - DIARY-GUI-role-switching:section:0
-- DIARY-GUI-role-switching:section:3
+- DIARY-GUI-role-switching:section:4
 - DIARY-PRD-score-hht-qol:section:0
 - rem:spec/prd-status-registry.md:9
 - rem:spec/prd-user-account.md:3
@@ -2861,7 +2863,7 @@
 - DIARY-GUI-questionnaire-session-expiry:section:0
 - DIARY-GUI-questionnaire-session-expiry:section:5
 - DIARY-GUI-questionnaire-session-expiry:section:6
-- DIARY-GUI-role-switching:section:3
+- DIARY-GUI-role-switching:section:4
 - DIARY-PRD-user-account-edit:section:1
 - DIARY-PRD-user-account-deactivate:section:0
 
@@ -3705,6 +3707,7 @@
 - DIARY-GUI-role-switching-C
 - DIARY-GUI-role-switching-D
 - DIARY-GUI-role-switching-E
+- DIARY-GUI-role-switching-H
 - DIARY-PRD-user-account-create-C
 - DIARY-PRD-user-account-activation-workflow-A
 - DIARY-PRD-user-account-activation-workflow-C
@@ -3790,6 +3793,7 @@
 - DIARY-PRD-questionnaire-versioning:section:0
 - DIARY-GUI-rave-sync-paused-banner:section:0
 - DIARY-PRD-action-inventory:section:1
+- DIARY-GUI-role-switching:section:4
 - rem:spec/prd-status-registry.md:5
 - rem:spec/prd-status-registry.md:7
 - rem:spec/prd-status-registry.md:9

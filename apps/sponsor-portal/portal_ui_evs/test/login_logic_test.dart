@@ -50,6 +50,22 @@ void main() {
     );
   });
 
+  // Verifies: DIARY-GUI-role-switching/H — the login response's display name is
+  //   carried onto the session step so the role-selection screen can greet by
+  //   name; absent name leaves it null (client falls back to the email).
+  test('loginNextStep: carries the display name onto the session step', () {
+    expect(
+      loginNextStep({'sessionToken': 'abc', 'displayName': 'Elvira Koliadina'}),
+      const LoginNext.session('abc', displayName: 'Elvira Koliadina'),
+    );
+  });
+  test('loginNextStep: session step has a null name when none is supplied', () {
+    expect(
+      loginNextStep({'sessionToken': 'abc'}),
+      const LoginNext.session('abc', displayName: null),
+    );
+  });
+
   test('signInErrorForAuthCode: transport and rate-limit codes do not '
       'blame the credentials', () {
     expect(

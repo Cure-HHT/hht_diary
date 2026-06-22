@@ -140,7 +140,7 @@
 | DIARY-GUI-questionnaire-portal-sent-workflow | Assigned Questionnaire Workflow            | prd-questionnaire-participant-workflow.md | ca0d5613 |
 | DIARY-GUI-questionnaire-session-expiry       | Questionnaire Session Expiry               | prd-questionnaire-participant-workflow.md | 02879dd5 |
 | DIARY-GUI-rave-sync-paused-banner            | Sites and Participants Pages Paused Banner | prd-rave-sync.md                          | 75bc47b3 |
-| DIARY-GUI-role-switching                     | Role Switching — Interface Behavior        | prd-rbac.md                               | f820206c |
+| DIARY-GUI-role-switching                     | Role Switching — Interface Behavior        | prd-rbac.md                               | ed5e5023 |
 | DIARY-GUI-service-mode-entry                 | Service Mode Entry and Presentation        | prd-mobile-app.md                         | 0b05472a |
 | DIARY-GUI-show-linking-code                  | Show Linking Code                          | prd-participant.md                        | 30285056 |
 | DIARY-GUI-user-account-deactivate            | Deactivate User Account                    | prd-user-account.md                       | bb9d75f2 |
