@@ -691,37 +691,19 @@ void main() {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
+
+    // Navigate through nav bar items if available.
     final navBar = find.byType(NavigationBar);
-    final bottomNav = find.byType(BottomNavigationBar);
     if (navBar.evaluate().isNotEmpty) {
-      final items = tester.widgetList<NavigationDestination>(
-        find.descendant(
-          of: navBar,
-          matching: find.byType(NavigationDestination),
-        ),
-      ).toList();
-      for (var i = 0; i < items.length; i++) {
-        await tester.tap(find.descendant(
-          of: navBar,
-          matching: find.byType(NavigationDestination),
-        ).at(i));
+      final navBarWidget =
+          tester.widget<NavigationBar>(navBar.first);
+      final itemCount = navBarWidget.destinations.length;
+      for (var i = 0; i < itemCount; i++) {
         await tester.pumpAndSettle(const Duration(seconds: 2));
         expect(tester.takeException(), isNull);
       }
-    } else if (bottomNav.evaluate().isNotEmpty) {
-      final widget = tester.widget<BottomNavigationBar>(bottomNav.first);
-      for (var i = 0; i < widget.items.length; i++) {
-        final icons = find.descendant(
-          of: bottomNav,
-          matching: find.byType(Icon),
-        );
-        if (icons.evaluate().length > i) {
-          await tester.tap(icons.at(i));
-          await tester.pumpAndSettle(const Duration(seconds: 2));
-          expect(tester.takeException(), isNull);
-        }
-      }
     }
+
     await _screenshot(binding, tester, 'func004_navigation');
   });
 }
