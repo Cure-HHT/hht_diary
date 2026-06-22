@@ -376,6 +376,7 @@ Reactivation is anchored to the **Inactive Users** tab to mirror the *Deactivati
 
 The **User Information Modal** provides a summary view of a **User Account** and the primary actions available for that account. All account management actions are initiated from this modal.
 
+
 User Information Modal
 : A modal dialog displaying the details and available actions for a selected **User Account**.
 
@@ -411,9 +412,13 @@ L. When the *User* selects **Close**, the interface SHALL dismiss the modal with
 
 M. When the *User* selects **Edit User**, the interface SHALL open the edit workflow for that **User Account**.
 
+N. The **User Information Modal** SHALL display the heading "*User* Information".
+
+O. The **User Information Modal** SHALL display a distinct icon alongside each *Action* it presents.
+
 ### Rationale
 
-The **User Information Modal** is the per-account hub: every lifecycle *Action* (edit, deactivate, reactivate) launches from here, and every account-related question (who, what *Role*, which Sites) is answered here. Scoping the *Site* list by *Role* addresses the multi-*Role* case directly — a *User* holding both *Study Coordinator* and CRA roles on overlapping but distinct *Site* sets is shown the correct subset for whichever *Role* context the *Administrator* is reasoning about. Surfacing **Sites** by *Role* rather than as a flat union prevents the inverse error in which an *Administrator* believes a *User* has *Study Coordinator* access at a *Site* that they actually have only as a CRA. Suppressing **Deactivate User** on the current *User*'s own account mirrors the PRD-level self-*Deactivation* prohibition and the GUI-level *Active Users* tab rule, so the unavailable state is consistent across every surface a self-*Deactivation* attempt could originate from.
+The **User Information Modal** is the per-account hub: every lifecycle *Action* (edit, deactivate, reactivate) launches from here, and every account-related question (who, what *Role*, which Sites) is answered here. Scoping the *Site* list by *Role* addresses the multi-*Role* case directly — a *User* holding both *Study Coordinator* and CRA roles on overlapping but distinct *Site* sets is shown the correct subset for whichever *Role* context the *Administrator* is reasoning about. Surfacing **Sites** by *Role* rather than as a flat union prevents the inverse error in which an *Administrator* believes a *User* has *Study Coordinator* access at a *Site* that they actually have only as a CRA. Suppressing **Deactivate User** on the current *User*'s own account mirrors the PRD-level self-*Deactivation* prohibition and the GUI-level *Active Users* tab rule, so the unavailable state is consistent across every surface a self-*Deactivation* attempt could originate from. The modal's heading and a distinct icon per *Action* are fixed so the surface reads as deliberate product: a mistitled modal or a label-only *Action* (one glyph rendering, its neighbor blank) reads as unfinished or broken, and the icons let an *Administrator* distinguish a benign edit from a destructive *Deactivation* at a glance.
 
 *End* *User Information Modal* | **Hash**: 843f9afb
 
