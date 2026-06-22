@@ -109,7 +109,7 @@ void main() {
   // SMK -- Smoke / launch gate
   // -------------------------------------------------------------------------
 
-  testWidgets('smk001LaunchesInteractiveScreen', (tester) async {
+  testWidgets('smk001LaunchesInteractiveScreen', (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     expect(find.byType(MaterialApp), findsOneWidget);
@@ -119,7 +119,9 @@ void main() {
     await _screenshot(binding, tester, 'smk001_home');
   });
 
-  testWidgets('smk003ReachesDashboardOrEnrollmentEntryPoint', (tester) async {
+  testWidgets(
+    'smk003ReachesDashboardOrEnrollmentEntryPoint',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     expect(find.byType(HomeScreen), findsOneWidget);
@@ -132,7 +134,9 @@ void main() {
   // A11Y -- Accessibility
   // -------------------------------------------------------------------------
 
-  testWidgets('a11y001CoreControlsExposeSemanticLabels', (tester) async {
+  testWidgets(
+    'a11y001CoreControlsExposeSemanticLabels',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
@@ -161,7 +165,9 @@ void main() {
     await _screenshot(binding, tester, 'a11y001_semantics');
   });
 
-  testWidgets('a11y002VisualScalingTwoHundredPercent', (tester) async {
+  testWidgets(
+    'a11y002VisualScalingTwoHundredPercent',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.binding.setSurfaceSize(const Size(1080, 1920));
@@ -175,7 +181,7 @@ void main() {
 
   testWidgets(
     'a11y003SpecializedFontSupportRenderingStability',
-    (tester) async {
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
@@ -185,7 +191,7 @@ void main() {
     await _screenshot(binding, tester, 'a11y003_fonts');
   });
 
-  testWidgets('a11y004SemanticLabelXmlAudit', (tester) async {
+  testWidgets('a11y004SemanticLabelXmlAudit', (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
@@ -218,7 +224,9 @@ void main() {
   // PERF -- Performance / UI-thread
   // -------------------------------------------------------------------------
 
-  testWidgets('perf003RapidCoreNavigationDoesNotCrash', (tester) async {
+  testWidgets(
+    'perf003RapidCoreNavigationDoesNotCrash',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
@@ -235,7 +243,9 @@ void main() {
   // DF-FLOW -- Diary flow functional
   // -------------------------------------------------------------------------
 
-  testWidgets('dfFlow001003CoreWizardEntryAndRecordSave', (tester) async {
+  testWidgets(
+    'dfFlow001003CoreWizardEntryAndRecordSave',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -249,7 +259,7 @@ void main() {
     await _screenshot(binding, tester, 'dfFlow001003_wizard_entry');
   });
 
-  testWidgets('dfFlow004CalendarHeatmapPath', (tester) async {
+  testWidgets('dfFlow004CalendarHeatmapPath', (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -271,7 +281,9 @@ void main() {
   // DF-LIFE -- Lifecycle / stability
   // -------------------------------------------------------------------------
 
-  testWidgets('dfLife001BackgroundResumeStatePersistence', (tester) async {
+  testWidgets(
+    'dfLife001BackgroundResumeStatePersistence',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -286,7 +298,9 @@ void main() {
     await _screenshot(binding, tester, 'dfLife001_bg_resume');
   });
 
-  testWidgets('dfLife003NavigationAndUiThreadStress', (tester) async {
+  testWidgets(
+    'dfLife003NavigationAndUiThreadStress',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
@@ -308,7 +322,9 @@ void main() {
   // DF-ST -- Stress
   // -------------------------------------------------------------------------
 
-  testWidgets('dfSt001MassEntryStressThreeRecords', (tester) async {
+  testWidgets(
+    'dfSt001MassEntryStressThreeRecords',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -335,7 +351,9 @@ void main() {
   // DF-UI -- UI audit
   // -------------------------------------------------------------------------
 
-  testWidgets('dfUi002FontScalingAuditDashboardAndProfile', (tester) async {
+  testWidgets(
+    'dfUi002FontScalingAuditDashboardAndProfile',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
@@ -353,7 +371,9 @@ void main() {
   // DF-TIME -- Time / calendar constraints
   // -------------------------------------------------------------------------
 
-  testWidgets('dfTime005FutureDateBlockVerification', (tester) async {
+  testWidgets(
+    'dfTime005FutureDateBlockVerification',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -371,7 +391,9 @@ void main() {
   // LIFE -- Process lifecycle
   // -------------------------------------------------------------------------
 
-  testWidgets('life004ProcessDeathRecoveryMidWizardD011', (tester) async {
+  testWidgets(
+    'life004ProcessDeathRecoveryMidWizardD011',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -393,7 +415,7 @@ void main() {
     await _screenshot(binding, tester, 'life004_process_death');
   });
 
-  testWidgets('life005DatabaseCorruptionRecovery', (tester) async {
+  testWidgets('life005DatabaseCorruptionRecovery', (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     expect(
@@ -406,7 +428,9 @@ void main() {
     await _screenshot(binding, tester, 'life005_db_recovery');
   });
 
-  testWidgets('life006InterruptedIntentAtomicSave', (tester) async {
+  testWidgets(
+    'life006InterruptedIntentAtomicSave',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
@@ -432,7 +456,9 @@ void main() {
   // NET -- Network resilience
   // -------------------------------------------------------------------------
 
-  testWidgets('net001SilentOfflineModeLocalFirstStability', (tester) async {
+  testWidgets(
+    'net001SilentOfflineModeLocalFirstStability',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pumpAndSettle(const Duration(seconds: 2));
@@ -442,7 +468,9 @@ void main() {
     await _screenshot(binding, tester, 'net001_offline');
   });
 
-  testWidgets('net002OfflinePersistenceOnRelaunchD006', (tester) async {
+  testWidgets(
+    'net002OfflinePersistenceOnRelaunchD006',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -460,7 +488,9 @@ void main() {
     await _screenshot(binding, tester, 'net002_offline_persist');
   });
 
-  testWidgets('net003HandshakeFcmAuditDoesNotLeakOrCrash', (tester) async {
+  testWidgets(
+    'net003HandshakeFcmAuditDoesNotLeakOrCrash',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 5));
@@ -471,7 +501,9 @@ void main() {
     await _screenshot(binding, tester, 'net003_fcm_audit');
   });
 
-  testWidgets('net004FlakyNetworkSimulationHighLatency', (tester) async {
+  testWidgets(
+    'net004FlakyNetworkSimulationHighLatency',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     for (var i = 0; i < 10; i++) {
@@ -488,7 +520,7 @@ void main() {
   // SEC -- Security / PHI
   // -------------------------------------------------------------------------
 
-  testWidgets('sec001PiiPhiLogLeakageScan', (tester) async {
+  testWidgets('sec001PiiPhiLogLeakageScan', (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -506,7 +538,9 @@ void main() {
     await _screenshot(binding, tester, 'sec001_phi_scan');
   });
 
-  testWidgets('sec002PhiShieldScreenshotBlockTaskSwitcher', (tester) async {
+  testWidgets(
+    'sec002PhiShieldScreenshotBlockTaskSwitcher',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -524,7 +558,9 @@ void main() {
     await _screenshot(binding, tester, 'sec002_phi_shield');
   });
 
-  testWidgets('sec003IdentityRefreshDataResetStability', (tester) async {
+  testWidgets(
+    'sec003IdentityRefreshDataResetStability',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 3));
@@ -538,7 +574,7 @@ void main() {
   // ENV -- Environment (timezone / locale)
   // -------------------------------------------------------------------------
 
-  testWidgets('env001TimezoneResiliencePdtToBst', (tester) async {
+  testWidgets('env001TimezoneResiliencePdtToBst', (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -548,7 +584,9 @@ void main() {
     await _screenshot(binding, tester, 'env001_timezone');
   });
 
-  testWidgets('env002MidnightBoundaryRolloverStability', (tester) async {
+  testWidgets(
+    'env002MidnightBoundaryRolloverStability',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -560,7 +598,7 @@ void main() {
     await _screenshot(binding, tester, 'env002_midnight');
   });
 
-  testWidgets('env003LocaleLanguageSwapping', (tester) async {
+  testWidgets('env003LocaleLanguageSwapping', (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -582,7 +620,7 @@ void main() {
 
   testWidgets(
     'func001LaunchReachesEntryPointUnderEightSeconds',
-    (tester) async {
+    (WidgetTester tester) async {
     final stopwatch = Stopwatch()..start();
     app.main();
     await _pumpUntil(
@@ -598,7 +636,9 @@ void main() {
     await _screenshot(binding, tester, 'func001_launch_time');
   });
 
-  testWidgets('func002MultiStepWizardRegressionEndToEnd', (tester) async {
+  testWidgets(
+    'func002MultiStepWizardRegressionEndToEnd',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -623,7 +663,7 @@ void main() {
 
   testWidgets(
     'func003ValidationMessageIntegrityBoundaryValues',
-    (tester) async {
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
@@ -645,7 +685,9 @@ void main() {
     await _screenshot(binding, tester, 'func003_validation');
   });
 
-  testWidgets('func004NavigationPathfindingMajorModules', (tester) async {
+  testWidgets(
+    'func004NavigationPathfindingMajorModules',
+    (WidgetTester tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
