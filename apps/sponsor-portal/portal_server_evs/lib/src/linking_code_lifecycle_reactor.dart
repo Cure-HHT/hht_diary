@@ -21,11 +21,13 @@ class LinkingCodeLifecycleReactor {
     required this.eventStore,
     required this.backend,
     this.linkingPrefix = 'XX',
+    this.sponsorResolverKey = '',
   });
 
   final EventStore eventStore;
   final StorageBackend backend;
   final String linkingPrefix;
+  final String sponsorResolverKey;
 
   StreamSubscription<Update<StoredEvent>>? _sub;
 
@@ -132,7 +134,10 @@ class LinkingCodeLifecycleReactor {
     };
     String candidate;
     do {
-      candidate = generateLinkingCode(prefix: linkingPrefix);
+      candidate = generateLinkingCode(
+        prefix: linkingPrefix,
+        sponsorKey: sponsorResolverKey,
+      );
     } while (existing.contains(candidate));
     return candidate;
   }

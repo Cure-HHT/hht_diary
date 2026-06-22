@@ -17,6 +17,7 @@ Future<ActionDispatcher> buildPortalDispatcher({
   required String roleGrantsYaml,
   IdempotencyStore? idempotency,
   String linkingPrefix = 'XX',
+  String sponsorResolverKey = '',
 }) async {
   final bootstrap = await buildPortalAuthorizationPolicy(
     eventStore: eventStore,
@@ -35,7 +36,10 @@ Future<ActionDispatcher> buildPortalDispatcher({
   }
 
   return ActionDispatcher(
-    registry: buildPortalActionRegistry(linkingPrefix: linkingPrefix),
+    registry: buildPortalActionRegistry(
+      linkingPrefix: linkingPrefix,
+      sponsorResolverKey: sponsorResolverKey,
+    ),
     authorization: policy,
     events: eventStore,
     idempotency: idempotency ?? InMemoryIdempotencyStore(),

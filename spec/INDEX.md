@@ -179,7 +179,7 @@
 | DIARY-DEV-device-health-checks               | On-Demand Device Health Checks                        | dev-mobile-event-sourcing.md       | 8d3827d5 |
 | DIARY-DEV-evs-stack-adoption                 | Diary Adopts the Event-Sourcing Stack                 | dev-mobile-event-sourcing.md       | 663897f8 |
 | DIARY-DEV-inbound-event-on-receipt           | Inbound Receipt Emits an Event                        | dev-mobile-event-sourcing.md       | 9143d6c4 |
-| DIARY-DEV-linking-code-lifecycle             | Linking-Code Lifecycle and Uniqueness                 | dev-linking-code-lifecycle.md      | e817982d |
+| DIARY-DEV-linking-code-lifecycle             | Linking-Code Lifecycle and Uniqueness                 | dev-linking-code-lifecycle.md      | 213bfdd0 |
 | DIARY-DEV-local-participant-authorization    | On-Device Authorization Permits the Local Participant | dev-mobile-event-sourcing.md       | 5b6674c2 |
 | DIARY-DEV-native-outbound-sync               | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md       | ebaa5551 |
 | DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | 8b310ffe |
@@ -204,6 +204,7 @@
 | DIARY-DEV-portal-reset-code-lifecycle        | Password reset code lifecycle                         | dev-portal-password-reset.md       | 8bc6a227 |
 | DIARY-DEV-portal-reset-password-update       | Password reset credential update                      | dev-portal-password-reset.md       | 4972e2a5 |
 | DIARY-DEV-portal-reset-session-termination   | Password reset session termination                    | dev-portal-password-reset.md       | 7805b6aa |
+| DIARY-DEV-portal-resolver                    | Neutral Diary-Portal Resolution                       | dev-portal-resolver.md             | 6b973bcf |
 | DIARY-DEV-portal-second-factor-toggle        | Conditional second factor                             | dev-portal-login.md                | d4b853aa |
 | DIARY-DEV-portal-seed-config                 | Config-driven user-role seed                          | dev-portal-service.md              | 89ccad9f |
 | DIARY-DEV-portal-session-config              | Portal session configuration sourcing                 | dev-portal-login.md                | e0054d77 |
