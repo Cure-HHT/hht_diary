@@ -11,5 +11,6 @@ RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /out/diary-portal-resolver .
 # faster Cloud Run cold start (scale-to-zero, min-instances=0).
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/diary-portal-resolver /app/diary-portal-resolver
+USER nonroot:nonroot
 EXPOSE 8086
 ENTRYPOINT ["/app/diary-portal-resolver"]
