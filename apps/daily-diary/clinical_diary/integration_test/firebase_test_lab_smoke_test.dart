@@ -142,12 +142,13 @@ void main() {
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
 
-    final SemanticsNode root =
+    final root =
+        // ignore: deprecated_member_use
         tester.binding.pipelineOwner.semanticsOwner!.rootSemanticsNode!;
-    int labelCount = 0;
+    var labelCount = 0;
     void walk(SemanticsNode node) {
       if ((node.label.isNotEmpty || node.tooltip.isNotEmpty) &&
-          !node.hasFlag(SemanticsFlag.isHidden)) {
+          !node.flagsCollection.contains(SemanticsFlag.isHidden)) {
         labelCount++;
       }
       node.visitChildren((child) {
@@ -197,9 +198,10 @@ void main() {
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
 
-    final SemanticsNode root =
+    final root =
+        // ignore: deprecated_member_use
         tester.binding.pipelineOwner.semanticsOwner!.rootSemanticsNode!;
-    final List<String> badLabels = [];
+    final badLabels = <String>[];
     void walk(SemanticsNode node) {
       for (final label in [node.label, node.hint, node.tooltip]) {
         if (label.contains('<') && label.contains('>')) {
@@ -696,9 +698,8 @@ void main() {
     // Navigate through nav bar items if available.
     final navBar = find.byType(NavigationBar);
     if (navBar.evaluate().isNotEmpty) {
-      final navBarWidget =
-          tester.widget<NavigationBar>(navBar.first);
-      final itemCount = navBarWidget.destinations.length;
+      final itemCount =
+          tester.widget<NavigationBar>(navBar.first).destinations.length;
       for (var i = 0; i < itemCount; i++) {
         await tester.pumpAndSettle(const Duration(seconds: 2));
         expect(tester.takeException(), isNull);
