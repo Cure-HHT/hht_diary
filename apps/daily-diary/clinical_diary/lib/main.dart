@@ -27,6 +27,7 @@ import 'package:clinical_diary/notifications/yesterday_reminder_schedule.dart';
 import 'package:clinical_diary/notifications/yesterday_reminder_service.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/scope/diary_sync_triggers.dart';
+import 'package:clinical_diary/scope/outbound_watermark.dart';
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/services/branding_asset_cache.dart';
@@ -758,9 +759,23 @@ class _AppRootState extends State<AppRoot> {
       )?.toUtc();
       if (watermark == null) return;
 
+      // Floor the watermark at the device link time so entries recorded BEFORE
+      // linking — keyed by the device-local identity, not the participantId —
+      // are never enqueued for the portal. Such a `<deviceUuid>:<date>` aggregate
+      // id cannot pass the ingest edge's `{participantId}:` ownership check; a
+      // permanent 403 would wedge the FIFO and halt all sync. Trial Start can
+      // precede the link (the coordinator may Start Trial before the device
+      // links), so the trial-start watermark alone is not a safe floor.
+      // Implements: DIARY-DEV-native-outbound-sync/C
+      final linkedAt = await _participantLinkedAt(diaryScope);
+      final effectiveStart = effectiveClinicalStartWatermark(
+        trialStartedAt: watermark,
+        linkedAt: linkedAt,
+      );
+
       await diaryScope.bundle.destinations.setStartDate(
         DiaryServerDestination.destinationId,
-        watermark,
+        effectiveStart,
         initiator: const esd.AutomationInitiator(
           service: 'trial-start-watermark',
         ),
@@ -805,6 +820,22 @@ class _AppRootState extends State<AppRoot> {
     } catch (e, stack) {
       debugPrint('[Reconcile] record participant_linked failed: $e\n$stack');
     }
+  }
+
+  /// The device link time — the `participant_linked` event timestamp (UTC) — or
+  /// null if not yet linked / not recorded. Used to floor the outbound watermark
+  /// so pre-link entries never ship (see [effectiveClinicalStartWatermark]).
+  Future<DateTime?> _participantLinkedAt(DiaryScopeRuntime diaryScope) async {
+    final pid = _adoptedSyncIdentity;
+    if (pid == null || pid.isEmpty) return null;
+    final events = await diaryScope.bundle.eventStore.backend
+        .findEventsForAggregate(pid);
+    for (final e in events) {
+      if (e.entryType == 'participant_linked') {
+        return e.clientTimestamp.toUtc();
+      }
+    }
+    return null;
   }
 
   /// Prints clean-shutdown instructions to stdout on local-flavor desktop boot,
