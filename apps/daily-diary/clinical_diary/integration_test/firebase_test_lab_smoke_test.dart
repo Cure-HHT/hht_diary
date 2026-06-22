@@ -173,7 +173,9 @@ void main() {
     await _screenshot(binding, tester, 'a11y002_2x_scale');
   });
 
-  testWidgets('a11y003SpecializedFontSupportRenderingStability', (tester) async {
+  testWidgets(
+    'a11y003SpecializedFontSupportRenderingStability',
+    (tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
@@ -578,7 +580,9 @@ void main() {
   // FUNC -- Functional regression
   // -------------------------------------------------------------------------
 
-  testWidgets('func001LaunchReachesEntryPointUnderEightSeconds', (tester) async {
+  testWidgets(
+    'func001LaunchReachesEntryPointUnderEightSeconds',
+    (tester) async {
     final stopwatch = Stopwatch()..start();
     app.main();
     await _pumpUntil(
@@ -612,11 +616,14 @@ void main() {
       }
     }
     expect(tester.takeException(), isNull,
-        reason: 'Multi-step wizard must not crash during end-to-end traversal.');
+        reason:
+            'Multi-step wizard must not crash during end-to-end traversal.');
     await _screenshot(binding, tester, 'func002_wizard_e2e');
   });
 
-  testWidgets('func003ValidationMessageIntegrityBoundaryValues', (tester) async {
+  testWidgets(
+    'func003ValidationMessageIntegrityBoundaryValues',
+    (tester) async {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
