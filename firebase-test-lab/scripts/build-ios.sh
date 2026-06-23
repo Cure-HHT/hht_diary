@@ -77,6 +77,7 @@ flutter build ios "$TEST_TARGET" --release --no-codesign
 
 pushd "$IOS_DIR" >/dev/null
 bundle exec pod install
+mkdir -p "$OUTPUT_ABS"
 xcodebuild build-for-testing \
   -workspace Runner.xcworkspace \
   -scheme Runner \
