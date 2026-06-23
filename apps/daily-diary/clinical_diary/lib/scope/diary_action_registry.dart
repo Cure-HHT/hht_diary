@@ -2,6 +2,7 @@
 //   every diary write-intent dispatched through the core ActionDispatcher.
 import 'package:clinical_diary/actions/acknowledge_recall_action.dart';
 import 'package:clinical_diary/actions/checkpoint_epistaxis_event_action.dart';
+import 'package:clinical_diary/actions/checkpoint_questionnaire_action.dart';
 import 'package:clinical_diary/actions/clear_questionnaire_recall_action.dart';
 import 'package:clinical_diary/actions/delete_entry_action.dart';
 import 'package:clinical_diary/actions/edit_epistaxis_event_action.dart';
@@ -25,6 +26,7 @@ ActionRegistry buildDiaryActionRegistry() {
     ..register(const CheckpointEpistaxisEventAction())
     ..register(const DeleteEntryAction())
     ..register(const SubmitQuestionnaireAction())
+    ..register(const CheckpointQuestionnaireAction())
     ..register(const RecordFcmMessageReceivedAction())
     ..register(const RegisterFcmTokenAction())
     ..register(const SetUserSettingAction())

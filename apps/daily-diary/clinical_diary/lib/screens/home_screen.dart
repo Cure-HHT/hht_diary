@@ -5,7 +5,6 @@ import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
-import 'package:clinical_diary/read/diary_incomplete_projection.dart';
 import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
@@ -211,19 +210,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.notParticipatingNotifier.addListener(
       _onNotParticipatingChanged,
     );
-    // Forward-looking: surface incomplete surveys via a modal route. The
-    // FCM-prompt handler that creates the checkpoint is out of scope for this
-    // ticket, but the routing exists so it can land later without screen edits.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _maybePushIncompleteSurvey();
-    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshWedgeStatus();
-      _maybePushIncompleteSurvey();
     }
   }
 
@@ -920,6 +912,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 return SubmitResult(success: false, error: e.toString());
               }
             },
+            // CUR-1522: persist a diary-local draft after every answer so
+            // progress survives leaving the flow / killing the app. Stays local
+            // (a `checkpoint` event, never synced) until the eventual submission.
+            // Implements: DIARY-PRD-questionnaire-portal-sent-rules/H
+            onCheckpoint: (partial) =>
+                unawaited(_checkpointSurvey(submission: partial)),
             // CUR-1523: do NOT remove the task on completion. A submitted task
             // stays in the list (leaving "Needs your attention" via
             // categorization) and is removed only when `/user/tasks` drops it on
@@ -993,12 +991,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// The device-local finalized `<id>_survey` [SurveyEntryView] for
-  /// [aggregateId], or null if the participant has not submitted it yet. Used
-  /// both to categorize a task as SUBMITTED and to seed the re-open prefill.
+  /// The device-local `<id>_survey` [SurveyEntryView] for [aggregateId] whose
+  /// answers seed the flow on re-open, or null when none exists. Prefers a
+  /// finalized submission (from the canonical view); falls back to an
+  /// in-progress `checkpoint` draft (from the diary-local incomplete view) so a
+  /// partially-answered questionnaire resumes where the participant left off
+  /// (CUR-1522). prefillResponses works for either — a checkpoint carries the
+  /// same QuestionnaireSubmissionPayload shape, just incomplete.
   // Implements: DIARY-GUI-participant-task-list/K
+  // Implements: DIARY-GUI-questionnaire-session-expiry/G
   SurveyEntryView? _submittedSurveyFor(DiaryView view, String aggregateId) {
     for (final entry in view.entries.whereType<SurveyEntryView>()) {
+      if (entry.aggregateId == aggregateId) return entry;
+    }
+    for (final entry in view.incompleteEntries.whereType<SurveyEntryView>()) {
       if (entry.aggregateId == aggregateId) return entry;
     }
     return null;
@@ -1076,92 +1082,47 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// One-shot read of the native `diary_incomplete` projection: subscribes,
-  /// collects one row per Snapshot until the EndOfReplay marker, then cancels.
-  /// Returns the diary-local incomplete rows as typed [DiaryEntryRow]s.
-  Future<List<DiaryEntryRow>> _readIncompleteRowsOnce() async {
-    final completer = Completer<List<DiaryEntryRow>>();
-    final rows = <DiaryEntryRow>[];
-    late final StreamSubscription<Update<DiaryEntryRow>> sub;
-    sub = widget.diaryScope.scope.viewSource
-        .watch<DiaryEntryRow>(
-          viewName: diaryIncompleteViewName,
-          mapper: DiaryEntryRow.fromViewRow,
-        )
-        .listen(
-          (update) {
-            switch (update) {
-              case Snapshot<DiaryEntryRow>(:final value):
-                if (value != null) rows.add(value);
-              case EndOfReplay<DiaryEntryRow>():
-                if (!completer.isCompleted) completer.complete(rows);
-                unawaited(sub.cancel());
-              default:
-                break;
-            }
-          },
-          onError: (Object e, StackTrace st) {
-            if (!completer.isCompleted) completer.complete(rows);
-          },
-        );
-    return completer.future;
-  }
-
-  /// Surfaces an incomplete survey via a modal route on resume / mount.
-  ///
-  /// Forward-looking: the FCM-prompt handler that creates an in-progress
-  /// survey checkpoint is OUT OF SCOPE for this ticket. So in normal
-  /// operation `incomplete` will be empty. The modal route is wired up
-  /// regardless so it can light up automatically once checkpoints land.
-  Future<void> _maybePushIncompleteSurvey() async {
-    if (!mounted) return;
-    // One-shot read of the native diary-local incomplete projection
-    // (`diary_incomplete`). The `watch` stream replays one Snapshot per
-    // incomplete row, then an EndOfReplay marker; collect the rows up to that
-    // marker and cancel — surveys write to the native store, so an in-progress
-    // survey checkpoint surfaces here.
-    final incomplete = await _readIncompleteRowsOnce();
-    DiaryEntryRow? survey;
-    for (final entry in incomplete) {
-      if (entry.entryType == 'nose_hht_survey' ||
-          entry.entryType == 'qol_survey') {
-        survey = entry;
-        break;
-      }
-    }
-    if (survey == null || !mounted) return;
-
-    final qType = survey.entryType == 'nose_hht_survey'
-        ? QuestionnaireType.noseHht
-        : QuestionnaireType.qol;
-    final definition = await _loadQuestionnaireDefinition(qType);
-    if (definition == null || !mounted) return;
-
-    final aggregateId = survey.aggregateId;
-
-    await Navigator.of(context).push(
-      PageRouteBuilder<void>(
-        opaque: true,
-        barrierDismissible: false,
-        pageBuilder: (context, animation, secondaryAnimation) => PopScope(
-          canPop: false,
-          child: QuestionnaireFlowScreen(
-            definition: definition,
-            instanceId: aggregateId,
-            onSubmit: (submission) async {
-              try {
-                await _recordSurveySubmission(submission: submission);
-                return const SubmitResult(success: true);
-              } catch (e) {
-                return SubmitResult(success: false, error: e.toString());
-              }
-            },
-            onComplete: () => Navigator.of(context).pop(),
-          ),
-        ),
+  /// Persists an in-progress questionnaire as a diary-LOCAL `checkpoint`
+  /// `<id>_survey` event via the `checkpoint_questionnaire` action, so answers
+  /// survive leaving the flow / killing the app and resume on re-open. Mirrors
+  /// [_recordSurveySubmission] but emits a `checkpoint` (never synced to the
+  /// portal) instead of a `finalized` submission. Dispatched after every answer
+  /// via [QuestionnaireFlowScreen.onCheckpoint].
+  // Implements: DIARY-PRD-questionnaire-portal-sent-rules/H
+  // Implements: DIARY-DEV-action-write-path/A
+  Future<void> _checkpointSurvey({
+    required QuestionnaireSubmission submission,
+  }) async {
+    final responses = <String, Object?>{
+      for (final r in submission.responses)
+        r.questionId: <String, Object?>{
+          'value': r.value,
+          'display_label': r.displayLabel,
+          'normalized_label': r.normalizedLabel,
+        },
+    };
+    await ReActionScope.of(context).actionSubmitter.submit(
+      ActionSubmission(
+        actionName: 'checkpoint_questionnaire',
+        rawInput: <String, Object?>{
+          'instance_id': submission.instanceId,
+          'questionnaire_type': submission.questionnaireType,
+          'schema_version': submission.version,
+          'content_version': submission.version,
+          'gui_version': submission.version,
+          'completed_at': submission.completedAt.toIso8601String(),
+          'responses': responses,
+        },
       ),
     );
   }
+
+  // An in-progress questionnaire draft is NOT force-surfaced via a modal. Per
+  // DIARY-PRD-questionnaire-portal-sent-rules/K the participant may exit a
+  // questionnaire freely; the unfinished instance stays an actionable task in
+  // the Task List, and re-opening that task resumes the draft (seeded via
+  // [_submittedSurveyFor], DIARY-GUI-questionnaire-session-expiry/G). A forced
+  // non-dismissible resume modal would contradict the exit-freely rule.
 
   // Implements: DIARY-DEV-reactive-read-path/A
   // Implements: DIARY-PRD-incomplete-entry-preservation/B

@@ -16,6 +16,7 @@ void main() {
         'checkpoint_epistaxis_event',
         'delete_entry',
         'submit_questionnaire',
+        'checkpoint_questionnaire',
         'record_fcm_message_received',
         'register_fcm_token',
         'set_user_setting',

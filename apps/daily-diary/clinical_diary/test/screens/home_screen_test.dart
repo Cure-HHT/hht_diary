@@ -41,6 +41,8 @@ import 'package:sembast/sembast_memory.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trial_data_types/trial_data_types.dart'
     show QuestionnaireType, Task, TaskType;
+import 'package:trial_data_types/trial_data_types.dart' as tdt
+    show QuestionnaireSubmission, QuestionResponse;
 
 import '../helpers/mock_enrollment_service.dart';
 import '../helpers/test_helpers.dart';
@@ -952,6 +954,90 @@ void main() {
         // The task is NOT removed — it leaves "needs attention" via
         // categorization only once a finalized survey row exists for it.
         expect(tasks.tasks.map((t) => t.id), contains(instanceId));
+      },
+    );
+
+    // Verifies: DIARY-PRD-questionnaire-portal-sent-rules/H — answering a
+    //   question in an open questionnaire flow preserves the in-progress answers
+    //   locally (a diary-local `checkpoint_questionnaire`) without committing a
+    //   Submission, so leaving the flow no longer loses them (CUR-1522
+    //   progress-loss bug). The per-answer onCheckpoint callback must be wired
+    //   (it was null before).
+    testWidgets(
+      'answering a question dispatches checkpoint_questionnaire (progress saved)',
+      (tester) async {
+        const instanceId = 'q-checkpoint-1';
+        addQuestionnaireTask(instanceId);
+        await pumpScreen(tester);
+
+        await tester.tap(find.text('NOSE HHT Survey'));
+        await _settle(tester);
+        final flow = flowScreen(tester);
+
+        // The per-answer checkpoint callback must be wired (was null → drafts
+        // were discarded the moment the flow was left).
+        expect(flow.onCheckpoint, isNotNull);
+
+        // Simulate the flow auto-saving a partial (1-of-N) submission after an
+        // answer.
+        flow.onCheckpoint!(
+          tdt.QuestionnaireSubmission(
+            instanceId: instanceId,
+            questionnaireType: 'nose_hht',
+            version: 'v1',
+            responses: const [
+              tdt.QuestionResponse(
+                questionId: 'q1',
+                value: 2,
+                displayLabel: 'Moderate',
+                normalizedLabel: '2',
+              ),
+            ],
+            completedAt: DateTime.now(),
+          ),
+        );
+        await _settle(tester);
+
+        final s = submissionFor('checkpoint_questionnaire');
+        expect(s.rawInput['instance_id'], instanceId);
+        expect(s.rawInput['questionnaire_type'], 'nose_hht');
+        final responses = s.rawInput['responses']! as Map<String, Object?>;
+        expect(responses.keys, ['q1']);
+        expect((responses['q1']! as Map)['value'], 2);
+      },
+    );
+
+    // Verifies: DIARY-GUI-questionnaire-session-expiry/G — returning to a
+    //   questionnaire whose instance has only an in-progress `checkpoint` draft
+    //   (no finalized submission) restores the participant with their saved
+    //   partial answers intact, so they resume rather than starting over.
+    // Verifies: DIARY-PRD-questionnaire-session-timeout/G
+    testWidgets(
+      'opening a task with a checkpoint draft seeds the flow with saved answers',
+      (tester) async {
+        const instanceId = 'q-resume-1';
+        addQuestionnaireTask(instanceId);
+        final now = DateTime.now();
+        await pumpScreen(
+          tester,
+          // A checkpoint draft lives in the diary-LOCAL incomplete view, never
+          // the finalized canonical view.
+          incomplete: [
+            surveyRow(
+              DateTime(now.year, now.month, now.day, 9),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
+
+        // The task is still actionable (no finalized submission yet).
+        await tester.tap(find.text('NOSE HHT Survey'));
+        await _settle(tester);
+
+        final flow = flowScreen(tester);
+        expect(flow.isReadOnly, isFalse);
+        expect(flow.initialResponses, isNotNull);
+        expect(flow.initialResponses, isNotEmpty);
       },
     );
 
