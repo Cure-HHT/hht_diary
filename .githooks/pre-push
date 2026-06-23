@@ -587,8 +587,7 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
         elif verify_short_circuit_ok "$HEAD_SHA"; then
             printf '%b\n' "${BLUE}Version gate: unchanged since last check, skipping${NC}"
         else
-            run_version_gate "$REPO_ROOT"
-            GATE_RC=$?
+            run_version_gate "$REPO_ROOT" && GATE_RC=0 || GATE_RC=$?
             if [ "$GATE_RC" -eq 1 ]; then
                 printf '%b\n' "${RED}Versions were under-bumped vs origin/main and have been corrected${NC}"
                 printf '%b\n' "${RED}in a new commit. Run 'git push' again to push the corrected commit.${NC}"

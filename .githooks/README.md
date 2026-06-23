@@ -89,7 +89,7 @@ The following scripts are sourced by the hooks — do not delete or rename them:
 
 | File | Purpose |
 | ---- | ------- |
-| `version-utils.sh` | `is_merge_commit_in_progress`, `verify_version_bumped_for`, `compute_new_version_for`, `main_version_for` |
+| `version-utils.sh` | `is_merge_commit_in_progress`, `verify_version_bumped_for`, `compute_new_version_for` |
 | `project-defs.sh` | `PROJECT_DEFS` array mapping Dart/Flutter package names to pubspec paths, code dirs, trigger paths, and version mode |
 | `fetch-cache.sh` | `ensure_main_fresh`, `main_version_for` (SHA-keyed cache) — TTL-limited `git fetch origin main` |
 | `version-gate.sh` | `run_version_gate`, `verify_short_circuit_ok`, `record_verify_pass` — rebase-proof bump verifier |
@@ -109,7 +109,7 @@ during a single session:
 
 | Tunable | Default | Effect |
 | ------- | ------- | ------ |
-| `HHT_MAIN_FETCH_TTL` | `300` (seconds) | Seconds before the cache is considered stale |
+| `HHT_MAIN_FETCH_TTL` | `90` (seconds) | Seconds before the cache is considered stale |
 | `HHT_MAIN_FETCH_FORCE=1` | off | Forces a fresh fetch regardless of TTL |
 
 To manually force a cache refresh:
