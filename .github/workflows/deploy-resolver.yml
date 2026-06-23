@@ -74,11 +74,13 @@ jobs:
         name: Resolve image ref + registry host
         run: |
           set -euo pipefail
-          AR="${{ vars.RESOLVER_AR_REPO }}"          # e.g. europe-west1-docker.pkg.dev/<proj>/diary-portal-resolver
+          AR="${{ vars.RESOLVER_AR_REPO }}"          # host/PROJECT/REPOSITORY (ends at the repo, no image name)
           HOST="${AR%%/*}"                           # europe-west1-docker.pkg.dev
           SHA="${GITHUB_SHA::12}"
-          echo "host=$HOST"                  >> "$GITHUB_OUTPUT"
-          echo "image=${AR}:${SHA}"          >> "$GITHUB_OUTPUT"
+          # AR image path is host/PROJECT/REPOSITORY/IMAGE:TAG — append the image name
+          # (diary-portal-resolver) after the repository, matching resolver-service.tf.
+          echo "host=$HOST"                               >> "$GITHUB_OUTPUT"
+          echo "image=${AR}/diary-portal-resolver:${SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker "${{ steps.meta.outputs.host }}" --quiet
