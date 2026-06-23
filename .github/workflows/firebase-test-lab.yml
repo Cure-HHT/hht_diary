@@ -37,12 +37,12 @@ on:
         description: "Optional iOS device specs, one per line. Blank uses Test Lab default."
         required: false
         type: string
-        default: "model=iphone14pro,version=16.6,locale=en_US,orientation=portrait"
+        default: "model=iphone16pro,version=18.3,locale=en_US,orientation=portrait"
       ios_xcode_version:
         description: "Optional Firebase-supported Xcode version. Blank uses Test Lab default."
         required: false
         type: string
-        default: "26.2"
+        default: "16.4"
 
 permissions:
   contents: read
