@@ -76,7 +76,7 @@ dependencies:
   timezone: ^0.10.1
   timezone_button_dropdown: ^1.0.2
   web: ^1.1.0 # For web-specific cache clearing in version updates
-  connectivity_plus: 7.1.0
+  connectivity_plus: 7.0.0
   async: ^2.11.0
   # Local-stack push transport (AppEnv.local): the LocalSocketPushReceiver rides
   # the portal /api/v1/user/push WS. See lib/services/push_receiver.dart.
