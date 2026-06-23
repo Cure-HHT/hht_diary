@@ -32,11 +32,6 @@ set -e
 # and Flutter/Dart to fail config discovery or report wrong versions.
 unset GIT_DIR GIT_WORK_TREE
 
-# =====================================================
-# anspar-wf plugin path (installed via pip)
-# =====================================================
-ANSPAR_PLUGINS="${ANSPAR_WF_PLUGINS:-$HOME/anspar-wf/plugins/plugins}"
-
 # Portable version comparison: returns 0 (true) if $1 < $2
 _ver_lt() {
     local IFS=.
@@ -480,32 +475,6 @@ else
         VALIDATION_FAILED=true
     fi
     echo ""
-fi
-
-# =====================================================
-# 6. Auto-Discover and Execute Plugin Pre-Push Hooks
-# =====================================================
-
-PLUGIN_DIR="$ANSPAR_PLUGINS"
-
-if [ -d "$PLUGIN_DIR" ]; then
-    # Find all plugin pre-push hooks
-    PLUGIN_HOOKS=$(find "$PLUGIN_DIR" -type f -path "*/hooks/pre-push" 2>/dev/null | sort)
-
-    if [ -n "$PLUGIN_HOOKS" ]; then
-        while IFS= read -r hook; do
-            PLUGIN_NAME=$(echo "$hook" | sed 's|.*/plugins/\([^/]*\)/.*|\1|')
-
-            # Execute the hook if it's executable
-            if [ -x "$hook" ]; then
-                printf '%b\n' "${BLUE}Running plugin hook: $PLUGIN_NAME${NC}"
-                if ! "$hook"; then
-                    VALIDATION_FAILED=true
-                    printf '%b\n' "${RED}Plugin hook failed: $PLUGIN_NAME${NC}"
-                fi
-            fi
-        done <<< "$PLUGIN_HOOKS"
-    fi
 fi
 
 # =====================================================
