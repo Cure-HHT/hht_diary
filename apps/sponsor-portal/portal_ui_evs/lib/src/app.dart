@@ -734,6 +734,10 @@ class _HomeShellState extends State<_HomeShell> {
     'Audit Log' => AuditLogScreenBinding(
       identityCredential: widget.identityCredential ?? '',
       serverUrl: _serverUrl,
+      // Administrator audit tab: scope to Administrator actions (view=admin),
+      // excluding system/automation events. Search is kept.
+      // Implements: DIARY-DEV-audit-log-read/A
+      adminActionsOnly: true,
     ),
     _ => const SizedBox.shrink(),
   };

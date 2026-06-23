@@ -651,16 +651,33 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // Optional site filter (the Sites page drill-in): site events match by
     // aggregate, participant events join through participant_site_index.
     final siteFilter = (params['site'] ?? '').trim();
+    // `view=admin` (the Administrator audit tab) scopes the log to Administrator
+    // actions (ACT-USR-*/ACT-ADM-*), excluding system/automation events.
+    // Omitted by the Sites drill-in, which needs site/participant events.
+    // Same spec-gap anchoring as the q/site filters: scoping the read is
+    // anchored to DIARY-DEV-audit-log-read rather than minting a new REQ.
+    // Implements: DIARY-DEV-audit-log-read/A
+    final adminView = params['view'] == 'admin';
+
+    // Resolve email -> display name once per request from users_index, so the
+    // log can show names (actor + affected account) instead of emails.
+    // Implements: DIARY-GUI-audit-log-common/A
+    final nameByEmail = <String, String>{
+      for (final r in await backend.findViewRows('users_index'))
+        if ((r['aggregateId'] ?? r['email']) is String && r['name'] is String)
+          (r['aggregateId'] ?? r['email'])! as String: r['name']! as String,
+    };
 
     final rows = <Map<String, Object?>>[];
     final int total;
-    if (query.isEmpty && siteFilter.isEmpty) {
+    final filtering = adminView || query.isNotEmpty || siteFilter.isNotEmpty;
+    if (!filtering) {
       // The sequence counter is the store's contiguous local append counter,
       // so it doubles as the log size without scanning the log.
       total = await backend.readSequenceCounter();
       await for (final e
           in backend.readEventsReverse().skip(offset).take(limit)) {
-        rows.add(auditRowJson(e));
+        rows.add(auditRowJson(e, nameByEmail: nameByEmail));
       }
     } else {
       // A filtered total requires a full reverse scan (the stream keyset-
@@ -677,13 +694,16 @@ Future<PortalServerBoot> bootstrapPortalServer({
                   row['participant_id']! as String: row['site_id']! as String,
             };
       bool matches(StoredEvent e) =>
+          (!adminView || auditEventIsAdminAction(e)) &&
           (query.isEmpty || auditEventMatchesQuery(e, query)) &&
           (siteFilter.isEmpty ||
               auditEventMatchesSite(e, siteFilter, participantSite));
       var matched = 0;
       await for (final e in backend.readEventsReverse()) {
         if (!matches(e)) continue;
-        if (matched >= offset && rows.length < limit) rows.add(auditRowJson(e));
+        if (matched >= offset && rows.length < limit) {
+          rows.add(auditRowJson(e, nameByEmail: nameByEmail));
+        }
         matched++;
       }
       total = matched;

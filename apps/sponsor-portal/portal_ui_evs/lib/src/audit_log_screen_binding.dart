@@ -27,6 +27,7 @@ class AuditLogScreenBinding extends StatefulWidget {
     required this.serverUrl,
     this.httpClient,
     this.siteId,
+    this.adminActionsOnly = false,
     this.title,
     this.subtitle,
     this.onBack,
@@ -47,6 +48,13 @@ class AuditLogScreenBinding extends StatefulWidget {
   /// the log to that site (site events + the site's participants' events)
   /// — the Sites page drill-in. Search and paging compose with it.
   final String? siteId;
+
+  /// The Administrator audit tab: scope the log to Administrator actions —
+  /// the fetch carries `view=admin`, so the server excludes system/automation
+  /// events (sessions, OTP, EDC sync). False for the Sites drill-in, which
+  /// shows site/participant activity. Search and paging compose with it.
+  // Implements: DIARY-DEV-audit-log-read/A
+  final bool adminActionsOnly;
 
   /// Optional header overrides for the scoped instance; null keeps the
   /// top-level Audit Logs defaults.
@@ -133,6 +141,8 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
           'offset': '${(_page - 1) * _pageSize}',
           if (q.isNotEmpty) 'q': q,
           if (site.isNotEmpty) 'site': site,
+          // Implements: DIARY-DEV-audit-log-read/A
+          if (widget.adminActionsOnly) 'view': 'admin',
         },
       );
       final resp = await _http.get(
@@ -229,40 +239,29 @@ AuditEntryView _toEntryView(Map<String, Object?> row) {
   final tsString = row['timestamp']?.toString() ?? '';
   final timestamp = DateTime.tryParse(tsString)?.toUtc() ?? DateTime.utc(1970);
 
-  // Initiator. Only user-kind initiators have a human actor name; for
-  // automation / anonymous the screen renders "Automation" + blank role
-  // (see audit_log_row.dart's _UserCell branch).
+  // Initiator. Only user-kind initiators have a human actor name; the User
+  // cell shows the server-resolved display name (else the email), and
+  // renders "Automation" for non-user initiators (blank actorName).
   final initiator = row['initiator'];
-  String actorName = '';
-  String actorRole = '';
-  if (initiator is Map) {
-    final kind = initiator['kind'];
-    final label = initiator['label']?.toString() ?? '';
-    if (kind == 'user') {
-      actorName = label;
-      // The raw row carries the actor's role under various keys
-      // depending on the entry type; cheapest reliable source is the
-      // request's authorization claim, surfaced as `actor_role` when
-      // the server records it. Falls back blank if absent — the User
-      // cell collapses the role line gracefully.
-      actorRole = row['actor_role']?.toString() ?? '';
-    }
-  }
-
-  // Activity label. The server-side audit row doesn't currently carry
-  // a pre-rendered prose summary, so we synthesize one here from the
-  // existing humanizer helpers. The expanded panel renders its own
-  // headline + metadata from `raw`, so this label only needs to give
-  // the collapsed row a recognisable summary.
-  final entryType = (row['entry_type'] as String?) ?? '';
-  final activity = humanizeEntryType(entryType);
+  final initiatorMap =
+      initiator is Map ? initiator.cast<String, Object?>() : null;
+  final actorName = auditActorName(initiatorMap);
+  final actorEmail = auditActorEmail(initiatorMap);
+  // The actor's role at the time of the action — surfaced as `actor_role`
+  // when the server records it; blank otherwise (the User cell collapses
+  // the role line gracefully).
+  final actorRole =
+      actorName.isEmpty ? '' : (row['actor_role']?.toString() ?? '');
 
   return AuditEntryView(
     id: (row['event_id'] as String?) ?? (row['aggregateId'] as String?) ?? '?',
     timestamp: timestamp,
     actorName: actorName,
     actorRole: actorRole,
-    activityLabel: activity,
+    actorEmail: actorEmail,
+    // Activity column: the Action-Inventory name plus the affected account's
+    // email (the user the action was performed on).
+    activityLabel: auditActivityLabel(row),
     raw: row,
   );
 }

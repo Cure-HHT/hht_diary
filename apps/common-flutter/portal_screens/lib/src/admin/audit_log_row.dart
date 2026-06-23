@@ -200,7 +200,13 @@ class _UserCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final isAutomation = entry.actorName.isEmpty;
     final displayName = isAutomation ? 'Automation' : entry.actorName;
-    final displayRole = isAutomation ? '' : entry.actorRole;
+    // Email subtitle under the name. Hidden for automation, and when it would
+    // merely duplicate the name (no display name resolved, so the name line is
+    // already the email).
+    final displayEmail =
+        (isAutomation || entry.actorEmail == entry.actorName)
+            ? ''
+            : entry.actorEmail;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,9 +222,9 @@ class _UserCell extends StatelessWidget {
             color: theme.colorScheme.onSurface,
           ),
         ),
-        if (displayRole.isNotEmpty)
+        if (displayEmail.isNotEmpty)
           Text(
-            displayRole,
+            displayEmail,
             style: TextStyle(
               fontWeight: FontWeight.w400,
               fontSize: 12,
