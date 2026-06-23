@@ -41,7 +41,8 @@ import 'package:sembast/sembast_memory.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:trial_data_types/trial_data_types.dart'
     show QuestionnaireType, Task, TaskType;
-import 'package:trial_data_types/trial_data_types.dart' as tdt
+import 'package:trial_data_types/trial_data_types.dart'
+    as tdt
     show QuestionnaireSubmission, QuestionResponse;
 
 import '../helpers/mock_enrollment_service.dart';
@@ -385,7 +386,11 @@ void main() {
         await pumpScreen(
           tester,
           incomplete: [
-            surveyRow(today, aggregateId: 'q-draft-1', questionnaireType: 'nose_hht'),
+            surveyRow(
+              today,
+              aggregateId: 'q-draft-1',
+              questionnaireType: 'nose_hht',
+            ),
           ],
         );
 

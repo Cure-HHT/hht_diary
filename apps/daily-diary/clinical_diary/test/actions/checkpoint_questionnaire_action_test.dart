@@ -55,19 +55,22 @@ void main() {
     },
   );
 
-  test('carries the partial responses + version refs + echoed flowToken', () async {
-    final draft = (await action.execute(
-      action.parseInput(_partialPortalRaw()),
-      _ctx(),
-    )).events.single;
-    expect(draft.data['schema_version'], 's1');
-    expect(draft.data['content_version'], 'c2');
-    expect(draft.data['gui_version'], 'g3');
-    expect(draft.data['flowToken'], 'flow-abc'); // echoed (P5)
-    final responses = draft.data['responses']! as Map<String, Object?>;
-    expect(responses.keys, ['q1']);
-    expect((responses['q1']! as Map)['value'], 3);
-  });
+  test(
+    'carries the partial responses + version refs + echoed flowToken',
+    () async {
+      final draft = (await action.execute(
+        action.parseInput(_partialPortalRaw()),
+        _ctx(),
+      )).events.single;
+      expect(draft.data['schema_version'], 's1');
+      expect(draft.data['content_version'], 'c2');
+      expect(draft.data['gui_version'], 'g3');
+      expect(draft.data['flowToken'], 'flow-abc'); // echoed (P5)
+      final responses = draft.data['responses']! as Map<String, Object?>;
+      expect(responses.keys, ['q1']);
+      expect((responses['q1']! as Map)['value'], 3);
+    },
+  );
 
   test('diary-initiated survey: diary-minted instance, no flowToken', () async {
     final input = action.parseInput(const {

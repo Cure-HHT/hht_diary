@@ -1340,8 +1340,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // diary_incomplete projection but resume via the Task List, not here — and
     // _handleIncompleteRecordsClick edits epistaxis only, so counting a survey
     // draft would show a reminder whose click does nothing (CUR-1522).
-    final incompleteCount =
-        view.incompleteEntries.whereType<EpistaxisEntryView>().length;
+    final incompleteCount = view.incompleteEntries
+        .whereType<EpistaxisEntryView>()
+        .length;
     final overlapCount = overlapPairs(view).length;
     // Sponsor branding is displayed only while ACTIVELY participating: on
     // not-participating the app stops applying this sponsor-specific rule.
