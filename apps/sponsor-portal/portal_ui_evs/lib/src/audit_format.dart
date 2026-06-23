@@ -58,6 +58,29 @@ String auditActorName(Map<String, Object?>? initiator) {
   return (initiator['label'] as String?) ?? '';
 }
 
+// Implements: DIARY-GUI-audit-log-common/A — the actor's email (the initiator
+//   `label`), shown under the name in the User column. Empty for non-user
+//   (automation/anonymous) initiators.
+String auditActorEmail(Map<String, Object?>? initiator) {
+  if (initiator == null) return '';
+  if (initiator['kind'] != 'user') return '';
+  return (initiator['label'] as String?)?.trim() ?? '';
+}
+
+// Implements: DIARY-GUI-audit-log-common/D — the Activity-column label: the
+//   Action-Inventory name plus the affected account it was performed on, by
+//   email (the portal_user aggregate id). E.g. "Reactivate User Account —
+//   squeeb+sc@gmail.com". Falls back to just the action name when the event
+//   has no portal_user target.
+String auditActivityLabel(Map<String, Object?> row) {
+  final action = auditActionName(row);
+  if (row['aggregate_type'] == 'portal_user') {
+    final email = (row['aggregate_id'] as String?)?.trim();
+    if (email != null && email.isNotEmpty) return '$action — $email';
+  }
+  return action;
+}
+
 // Implements: DIARY-GUI-audit-log-common/F — renders the Action name shown in the Action
 //   column (human-readable form of the entry-type id).
 String humanizeEntryType(String entryType) {

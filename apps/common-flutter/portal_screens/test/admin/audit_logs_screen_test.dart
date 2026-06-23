@@ -251,42 +251,4 @@ void main() {
       handle.dispose();
     });
   });
-
-  group('AuditLogsScreen — columns + admin presentation (CUR-1527)', () {
-    final entry = AuditEntryView(
-      id: 'evt-1',
-      timestamp: DateTime.utc(2026, 6, 19, 17, 57),
-      actorName: 'Elvira Koliadina',
-      actorRole: 'Administrator',
-      activityLabel: 'Reactivate User Account',
-      details: 'Mike Lewis — Reason: "Administrative error"',
-      raw: const {'entry_type': 'user_reactivated', 'event_id': 'evt-1'},
-    );
-
-    // Verifies: DIARY-GUI-audit-log-common/A — columns are Timestamp, Action,
-    //   User, Details (the old "Activity" header is gone).
-    testWidgets('headers are Timestamp / Action / User / Details', (
-      tester,
-    ) async {
-      await _pump(tester, entries: [entry], totalCount: 1);
-      expect(find.text('Timestamp'), findsOneWidget);
-      expect(find.text('Action'), findsOneWidget);
-      expect(find.text('User'), findsOneWidget);
-      expect(find.text('Details'), findsOneWidget);
-      expect(find.text('Activity'), findsNothing);
-    });
-
-    // Verifies: DIARY-GUI-audit-log-common/A+C+D+F — the row shows the actor
-    //   name (not an email), the Action-Inventory action, and the Details
-    //   summary with the free-text reason.
-    testWidgets('row shows name, action and details', (tester) async {
-      await _pump(tester, entries: [entry], totalCount: 1);
-      expect(find.text('Elvira Koliadina'), findsOneWidget);
-      expect(find.text('Reactivate User Account'), findsOneWidget);
-      expect(
-        find.text('Mike Lewis — Reason: "Administrative error"'),
-        findsOneWidget,
-      );
-    });
-  });
 }

@@ -243,9 +243,10 @@ AuditEntryView _toEntryView(Map<String, Object?> row) {
   // cell shows the server-resolved display name (else the email), and
   // renders "Automation" for non-user initiators (blank actorName).
   final initiator = row['initiator'];
-  final actorName = auditActorName(
-    initiator is Map ? initiator.cast<String, Object?>() : null,
-  );
+  final initiatorMap =
+      initiator is Map ? initiator.cast<String, Object?>() : null;
+  final actorName = auditActorName(initiatorMap);
+  final actorEmail = auditActorEmail(initiatorMap);
   // The actor's role at the time of the action — surfaced as `actor_role`
   // when the server records it; blank otherwise (the User cell collapses
   // the role line gracefully).
@@ -257,10 +258,10 @@ AuditEntryView _toEntryView(Map<String, Object?> row) {
     timestamp: timestamp,
     actorName: actorName,
     actorRole: actorRole,
-    // Action column: the Action-Inventory name (server `action_name`), else a
-    // humanized entry-type fallback. Details column: affected record + reason.
-    activityLabel: auditActionName(row),
-    details: detailsSummary(row),
+    actorEmail: actorEmail,
+    // Activity column: the Action-Inventory name plus the affected account's
+    // email (the user the action was performed on).
+    activityLabel: auditActivityLabel(row),
     raw: row,
   );
 }

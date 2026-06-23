@@ -25,15 +25,16 @@ class AuditEntryView {
   /// row. Empty string for non-user initiators.
   final String actorRole;
 
+  /// Actor's email address. Rendered as the small subtitle under [actorName]
+  /// in the row so the cell shows the person's name on top and their email
+  /// below. Empty string for non-user initiators, or when it would merely
+  /// duplicate [actorName] (no display name was resolved).
+  final String actorEmail;
+
   /// One-line activity description, pre-rendered for the row. Examples:
   /// "Created user account for Dr. Emily Parker",
   /// "Activation email sent to Jennifer Martinez".
   final String activityLabel;
-
-  /// Human-readable summary for the Details column: the affected record (by
-  /// name where known) plus any free-text reason the Action carried. Empty
-  /// when there's nothing to summarize. Per DIARY-GUI-audit-log-common/C+D.
-  final String details;
 
   /// The full audit JSON record, retained for the row's expanded "details"
   /// view. Kept as an opaque map because the expanded panel currently
@@ -47,7 +48,7 @@ class AuditEntryView {
     required this.actorName,
     required this.actorRole,
     required this.activityLabel,
-    this.details = '',
+    this.actorEmail = '',
     required this.raw,
   });
 
@@ -59,20 +60,26 @@ class AuditEntryView {
           timestamp == other.timestamp &&
           actorName == other.actorName &&
           actorRole == other.actorRole &&
+          actorEmail == other.actorEmail &&
           activityLabel == other.activityLabel &&
-          details == other.details &&
           mapEquals(raw, other.raw);
 
   /// Hashes scalar fields only; the raw payload is excluded because it's
   /// effectively keyed by [id] anyway and recursive map hashing is wasted
   /// work on every row.
   @override
-  int get hashCode =>
-      Object.hash(id, timestamp, actorName, actorRole, activityLabel, details);
+  int get hashCode => Object.hash(
+        id,
+        timestamp,
+        actorName,
+        actorRole,
+        actorEmail,
+        activityLabel,
+      );
 
   @override
   String toString() =>
       'AuditEntryView(id: $id, timestamp: $timestamp, '
       'actorName: $actorName, actorRole: $actorRole, '
-      'activityLabel: $activityLabel, details: $details)';
+      'actorEmail: $actorEmail, activityLabel: $activityLabel)';
 }

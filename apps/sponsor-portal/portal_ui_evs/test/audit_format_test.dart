@@ -64,6 +64,30 @@ void main() {
     );
   });
 
+  // Verifies: DIARY-GUI-audit-log-common/D — Activity label appends the affected
+  //   account's email (the portal_user aggregate id), else just the action name.
+  test('auditActivityLabel: appends the affected account email', () {
+    expect(
+      auditActivityLabel({
+        'action_name': 'Reactivate User Account',
+        'entry_type': 'user_reactivated',
+        'aggregate_type': 'portal_user',
+        'aggregate_id': 'squeeb+sc@gmail.com',
+      }),
+      'Reactivate User Account — squeeb+sc@gmail.com',
+    );
+    // Non-portal_user target: just the action name.
+    expect(
+      auditActivityLabel({
+        'action_name': 'Site Synced From EDC',
+        'entry_type': 'site_synced_from_edc',
+        'aggregate_type': 'site',
+        'aggregate_id': 'site-1',
+      }),
+      'Site Synced From EDC',
+    );
+  });
+
   // Verifies: DIARY-GUI-audit-log-common/A — User column shows the resolved
   //   display name (else email); empty for non-user initiators.
   test('auditActorName: name, then email, then empty for non-user', () {
@@ -74,6 +98,18 @@ void main() {
     expect(auditActorName({'kind': 'user', 'label': 'e@x.com'}), 'e@x.com');
     expect(auditActorName({'kind': 'automation', 'label': 'edc_sync'}), '');
     expect(auditActorName(null), '');
+  });
+
+  // Verifies: DIARY-GUI-audit-log-common/A — the email shown under the name in
+  //   the User column: the initiator label for users, empty for non-users.
+  test('auditActorEmail: label for users, empty for non-user', () {
+    expect(
+      auditActorEmail({'kind': 'user', 'label': 'e@x.com', 'name': 'Elvira K'}),
+      'e@x.com',
+    );
+    expect(auditActorEmail({'kind': 'user', 'label': 'e@x.com'}), 'e@x.com');
+    expect(auditActorEmail({'kind': 'automation', 'label': 'edc_sync'}), '');
+    expect(auditActorEmail(null), '');
   });
 
   group('parseAuditRows', () {

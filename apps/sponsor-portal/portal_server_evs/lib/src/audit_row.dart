@@ -42,15 +42,23 @@ String? adminActionName(String entryType, String eventType) =>
 
 /// Whether [e] is an Administrator action (vs a system/automation event), used
 /// to scope the Administrator Audit Log (`GET /audit?view=admin`) to the
-/// Administrator's own actions — events whose entry type maps to an
-/// Action-Inventory name. System/automation events (sessions, OTP, EDC sync)
-/// have no mapping and are excluded.
+/// Administrator's own actions: a **user-initiated** event ([UserInitiator])
+/// whose entry type maps to an Action-Inventory name.
+///
+/// Requiring a [UserInitiator] is what keeps automation/anonymous events out of
+/// the Administrator view even when they share a `user_*` entry type that maps
+/// to an Action-Inventory name — e.g. the activation code an account-create
+/// flow auto-issues (`user_activation_code_issued`), or the session-revoke
+/// side-effect of a deactivation. Those are automation-initiated and would
+/// otherwise render as "Automation" rows. Pure system events (sessions, OTP,
+/// EDC sync) are already excluded because they have no mapping at all.
 ///
 /// Same spec-gap anchoring as [auditEventMatchesQuery] / [auditEventMatchesSite]:
 /// server-side scoping of the read is anchored to DIARY-DEV-audit-log-read
 /// rather than minting a new REQ.
 // Implements: DIARY-DEV-audit-log-read/A
 bool auditEventIsAdminAction(StoredEvent e) =>
+    e.initiator is UserInitiator &&
     adminActionName(e.entryType, e.eventType) != null;
 
 /// Maps a [StoredEvent] to a JSON-serialisable audit-trail row capturing

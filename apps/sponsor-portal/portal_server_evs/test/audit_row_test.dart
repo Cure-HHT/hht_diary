@@ -100,8 +100,9 @@ void main() {
       }
     });
 
-    test('auditEventIsAdminAction tracks adminActionName nullability', () {
-      StoredEvent ev(String entryType) => StoredEvent.synthetic(
+    test('auditEventIsAdminAction: user-initiated admin actions only', () {
+      StoredEvent ev(String entryType, Initiator initiator) =>
+          StoredEvent.synthetic(
             eventId: 'e',
             aggregateId: 'a',
             aggregateType: 'portal_user',
@@ -110,12 +111,32 @@ void main() {
             sequenceNumber: 1,
             data: const {},
             metadata: const {},
-            initiator: const UserInitiator('admin-1'),
+            initiator: initiator,
             clientTimestamp: DateTime.utc(2026),
             eventHash: 'h',
           );
-      expect(auditEventIsAdminAction(ev('user_reactivated')), isTrue);
-      expect(auditEventIsAdminAction(ev('session_started')), isFalse);
+      const admin = UserInitiator('admin-1');
+      // Admin-initiated admin action: included.
+      expect(auditEventIsAdminAction(ev('user_reactivated', admin)), isTrue);
+      // Non-admin-action entry type: excluded regardless of initiator.
+      expect(auditEventIsAdminAction(ev('session_started', admin)), isFalse);
+      // Admin-action entry type but automation-initiated (e.g. the activation
+      // code an account-create flow auto-issues): excluded — the Admin view
+      // shows the Administrator's own actions only, not "Automation" rows.
+      expect(
+        auditEventIsAdminAction(
+          ev('user_activation_code_issued',
+              const AutomationInitiator(service: 'sys')),
+        ),
+        isFalse,
+      );
+      // Anonymous-initiated: excluded.
+      expect(
+        auditEventIsAdminAction(
+          ev('user_reactivated', const AnonymousInitiator(ipAddress: null)),
+        ),
+        isFalse,
+      );
     });
   });
 

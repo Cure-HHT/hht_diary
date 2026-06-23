@@ -6,9 +6,8 @@ import '../models/audit_entry_view.dart';
 
 /// One expandable row in the [AuditLogsScreen] table.
 ///
-/// **Collapsed:** Timestamp / Action / User (name + role) / Details / a
-/// More-details chevron — a single tappable row. **Expanded:** the same row
-/// with the chevron rotated
+/// **Collapsed:** Timestamp / User (name + role) / Activity / chevron — a
+/// single tappable row. **Expanded:** the same row with the chevron rotated
 /// to face down, and a tinted panel below containing a headline, a
 /// metadata line, and the raw audit JSON pretty-printed. The expansion
 /// panel is left-indented past the Timestamp column so the time axis
@@ -26,10 +25,10 @@ class AuditLogRow extends StatefulWidget {
 
   final AuditEntryView entry;
 
-  /// Pixel widths for the fixed columns (Timestamp, Action, User, chevron;
-  /// Details is the flex slot). Mirrors what the column-header row uses so
-  /// cell content and header labels line up vertically. Passed in (rather
-  /// than computed here) because the screen owns the layout decision.
+  /// Pixel widths for the four columns: Timestamp, User, Activity,
+  /// chevron. Mirrors what the column-header row uses so cell content
+  /// and header labels line up vertically. Passed in (rather than
+  /// computed here) because the screen owns the layout decision.
   final AuditColumnWidths columnWidths;
 
   @override
@@ -82,22 +81,19 @@ class _AuditLogRowState extends State<AuditLogRow> {
   }
 }
 
-/// Pixel widths for the fixed columns, shared between the header row and
-/// every body row so the layouts line up. Column order (per
-/// DIARY-GUI-audit-log-common/A): Timestamp, Action, User, Details, then the
-/// More-details expander. The Details column is a flex slot — its width is
-/// whatever the table has left after the fixed columns claim theirs.
+/// Pixel widths for the four columns, shared between the header row and
+/// every body row so the layouts line up. The Activity column is a flex
+/// slot — its width is whatever the table has left after the fixed
+/// columns claim theirs.
 @immutable
 class AuditColumnWidths {
   const AuditColumnWidths({
     required this.timestamp,
-    required this.action,
     required this.user,
     required this.chevron,
   });
 
   final double timestamp;
-  final double action;
   final double user;
   final double chevron;
 }
@@ -122,17 +118,6 @@ class _CollapsedRow extends StatelessWidget {
     // row read as a single rhythm down the card.
     final cellPad = EdgeInsets.symmetric(horizontal: 24, vertical: 16);
 
-    // Inter Regular 14 / 20 / -0.15. Timestamp uses the muted tone; Action
-    // and Details use onSurface.
-    const baseStyle = TextStyle(
-      fontWeight: FontWeight.w400,
-      fontSize: 14,
-      height: 20 / 14,
-      letterSpacing: -0.15,
-    );
-
-    // Column order per DIARY-GUI-audit-log-common/A: Timestamp, Action, User,
-    // Details, then the More-details expander.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -140,23 +125,17 @@ class _CollapsedRow extends StatelessWidget {
           width: columnWidths.timestamp,
           child: Padding(
             padding: cellPad,
-            // The Figma timestamp is #4A5565; onSurfaceVariant (#54636A) is
-            // the closest theme tone.
             child: Text(
               _formatTimestamp(entry.timestamp),
-              style: baseStyle.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ),
-        ),
-        SizedBox(
-          width: columnWidths.action,
-          child: Padding(
-            padding: cellPad,
-            child: Text(
-              entry.activityLabel.isEmpty ? '—' : entry.activityLabel,
-              style: baseStyle.copyWith(
-                fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onSurface,
+              // Inter Regular 14 / 20 / -0.15 / Dark Grey
+              // (onSurfaceVariant). The Figma timestamp is #4A5565; the
+              // theme's onSurfaceVariant (#54636A) is the closest tone.
+              style: TextStyle(
+                fontWeight: FontWeight.w400,
+                fontSize: 14,
+                height: 20 / 14,
+                letterSpacing: -0.15,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -172,26 +151,33 @@ class _CollapsedRow extends StatelessWidget {
           child: Padding(
             padding: cellPad,
             child: Text(
-              entry.details.isEmpty ? '—' : entry.details,
-              style: baseStyle.copyWith(color: theme.colorScheme.onSurface),
+              entry.activityLabel.isEmpty ? '—' : entry.activityLabel,
+              style: TextStyle(
+                fontWeight: FontWeight.w400,
+                fontSize: 14,
+                height: 20 / 14,
+                letterSpacing: -0.15,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ),
         ),
         SizedBox(
           width: columnWidths.chevron,
+          // No Align wrapper: with the column wide enough (128) the
+          // default top-left placement of the cell-padded child seats
+          // the chevron at column_left + 24, which is the same offset
+          // UsersScreen's kebab glyph uses (see users_screen.dart). That
+          // way the right-edge column reads as a single vertical line
+          // when you switch tabs.
           child: Padding(
             padding: cellPad,
-            // The expander IS the spec's "More details" affordance
-            // (DIARY-GUI-audit-log-common/H): it opens the full entry as raw
-            // text below the row. Primary tone so it reads as the row's
-            // affordance, not muted chrome.
-            child: Tooltip(
-              message: 'More details',
-              child: Icon(
-                expanded ? Icons.keyboard_arrow_down : Icons.chevron_right,
-                size: 20,
-                color: theme.colorScheme.primary,
-              ),
+            child: Icon(
+              expanded ? Icons.keyboard_arrow_down : Icons.chevron_right,
+              size: 20,
+              // Primary tone so the expander reads as the row's
+              // affordance, not as muted chrome — matches Figma.
+              color: theme.colorScheme.primary,
             ),
           ),
         ),
@@ -214,7 +200,13 @@ class _UserCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final isAutomation = entry.actorName.isEmpty;
     final displayName = isAutomation ? 'Automation' : entry.actorName;
-    final displayRole = isAutomation ? '' : entry.actorRole;
+    // Email subtitle under the name. Hidden for automation, and when it would
+    // merely duplicate the name (no display name resolved, so the name line is
+    // already the email).
+    final displayEmail =
+        (isAutomation || entry.actorEmail == entry.actorName)
+            ? ''
+            : entry.actorEmail;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,9 +222,9 @@ class _UserCell extends StatelessWidget {
             color: theme.colorScheme.onSurface,
           ),
         ),
-        if (displayRole.isNotEmpty)
+        if (displayEmail.isNotEmpty)
           Text(
-            displayRole,
+            displayEmail,
             style: TextStyle(
               fontWeight: FontWeight.w400,
               fontSize: 12,
