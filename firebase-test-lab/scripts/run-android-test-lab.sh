@@ -11,7 +11,24 @@ APP_APK="${APP_APK:?APP_APK is required}"
 TEST_APK="${TEST_APK:?TEST_APK is required}"
 RESULTS_DIR="${RESULTS_DIR:?RESULTS_DIR is required}"
 EVIDENCE_DIR="${EVIDENCE_DIR:-build/firebase-test-lab/android/evidence}"
-DEVICE_SPECS="${ANDROID_DEVICES:-}"
+# Default device matrix (coverage catalogue 2026-05-20).
+# One spec per line: model=<id>,version=<api>,locale=en,orientation=portrait
+# Override at runtime via the android_devices workflow_dispatch input.
+DEFAULT_DEVICE_SPECS=$(printf '%s\n' \
+  'model=shiba,version=34,locale=en,orientation=portrait' \
+  'model=cheetah,version=33,locale=en,orientation=portrait' \
+  'model=redfin,version=30,locale=en,orientation=portrait' \
+  'model=r0q,version=33,locale=en,orientation=portrait' \
+  'model=o1s,version=31,locale=en,orientation=portrait' \
+  'model=a32,version=30,locale=en,orientation=portrait' \
+  'model=MotoG100,version=30,locale=en,orientation=portrait' \
+  'model=OnePlus8T,version=31,locale=en,orientation=portrait' \
+  'model=MediumPhone.arm,version=30,locale=en,orientation=portrait' \
+  'model=LargeFormFactor.arm,version=33,locale=en,orientation=portrait' \
+  'model=SmallPhone.arm,version=28,locale=en,orientation=portrait' \
+  'model=redfin,version=28,locale=en,orientation=portrait' \
+)
+DEVICE_SPECS="${ANDROID_DEVICES:-${DEFAULT_DEVICE_SPECS}}"
 USE_ORCHESTRATOR="${USE_ORCHESTRATOR:-false}"
 RESULTS_BUCKET="${FIREBASE_RESULTS_BUCKET:-}"
 
