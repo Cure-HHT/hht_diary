@@ -536,17 +536,26 @@ class _RecordingScreenState extends State<RecordingScreen> {
             ? null
             : _firstOverlapConflict();
         if (conflict != null) {
-          unawaited(
-            Navigator.push(
-              context,
-              AppPageRoute<void>(
-                builder: (_) => OverlapCompareScreen(
-                  leftId: conflict.aggregateId,
-                  rightId: savedId,
-                ),
+          // Await the Resolution Screen so we can adopt whatever entry SURVIVED
+          // the participant's choice. Keep New leaves `savedId`; Keep Existing
+          // and Merge tombstone `savedId` and keep/merge into the pre-existing
+          // entry. If we stayed pointed at the tombstoned `savedId`, the next
+          // Confirm-Record save would `edit_epistaxis_event` it — resurrecting
+          // it and re-creating the overlap, looping the participant back to the
+          // Resolution Screen (CUR-1548). Re-pointing at the survivor keeps the
+          // Confirm step on live data and its save on a live aggregate.
+          final survivor = await Navigator.push<EpistaxisEntryView?>(
+            context,
+            AppPageRoute<EpistaxisEntryView?>(
+              builder: (_) => OverlapCompareScreen(
+                leftId: conflict.aggregateId,
+                rightId: savedId,
               ),
             ),
           );
+          if (mounted && survivor != null && survivor.aggregateId != savedId) {
+            _adoptResolvedSurvivor(survivor);
+          }
         } else {
           Navigator.pop(context, savedId);
         }
@@ -557,6 +566,28 @@ class _RecordingScreenState extends State<RecordingScreen> {
         setState(() => _isSaving = false);
       }
     }
+  }
+
+  /// Re-points the Confirm Record step at the entry that survived overlap
+  /// resolution (Keep Existing / Merge tombstone the just-saved entry and keep
+  /// or merge into the pre-existing one). Pulling the surviving entry's stored
+  /// values into the screen fields means the final review shows the resulting
+  /// data and the confirming save edits a LIVE aggregate — never the tombstoned
+  /// new entry — so the participant lands on Confirm Record and can return to
+  /// the Main Screen without re-triggering the conflict (CUR-1548).
+  // Implements: DIARY-GUI-entry-overlap-resolution/A
+  // Implements: DIARY-PRD-entry-overlap-resolution/D
+  void _adoptResolvedSurvivor(EpistaxisEntryView survivor) {
+    setState(() {
+      _aggregateId = survivor.aggregateId;
+      _isComplete = survivor.isComplete;
+      _startDateTime = survivor.startTime;
+      _endDateTime = survivor.endTime;
+      _intensity = _toWidgetIntensity(survivor.intensity);
+      _startTimeTimezone = survivor.startTimeZone;
+      _endTimeTimezone = survivor.endTimeZone;
+      _currentStep = RecordingStep.complete;
+    });
   }
 
   void _goToStep(RecordingStep step) {

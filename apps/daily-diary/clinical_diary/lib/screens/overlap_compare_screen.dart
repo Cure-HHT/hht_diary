@@ -62,7 +62,15 @@ class _OverlapCompareScreenState extends State<OverlapCompareScreen> {
     return null;
   }
 
-  void _popResolved() {
+  /// Auto-pops back to the caller once the pair is resolved, returning the
+  /// SURVIVING entry so the caller (the recording screen's Confirm Record step)
+  /// can re-point itself at live data. Keep New leaves the new entry (`right`);
+  /// Keep Existing / Merge tombstone the new entry and leave the pre-existing
+  /// one (`left`, merged into the union on a Merge). Returning the survivor lets
+  /// the Confirm step edit a LIVE aggregate instead of the just-tombstoned new
+  /// entry — editing the tombstoned id would resurrect it and re-open the
+  /// overlap, looping the participant back here (CUR-1548).
+  void _popResolved(EpistaxisEntryView? survivor) {
     if (_popped) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -73,7 +81,7 @@ class _OverlapCompareScreenState extends State<OverlapCompareScreen> {
       // route has been dismissed and this screen is current again).
       if (ModalRoute.of(context)?.isCurrent != true) return;
       _popped = true;
-      Navigator.of(context).maybePop();
+      Navigator.of(context).maybePop(survivor);
     });
   }
 
@@ -165,10 +173,13 @@ class _OverlapCompareScreenState extends State<OverlapCompareScreen> {
                     //  - we previously saw the pair -> it is now resolved (a
                     //    row was tombstoned by pick/merge, or an edit removed
                     //    the overlap) -> auto-pop back to wherever we came
-                    //    from;
+                    //    from, handing back the survivor;
                     //  - we have never seen the pair yet -> the view is still
                     //    bootstrapping -> show nothing and wait.
-                    if (_everSawBothEntries) _popResolved();
+                    // Prefer the new entry (`right`) when it survives (Keep New,
+                    // or an Edit that removed the overlap with both intact); the
+                    // pre-existing one (`left`, merged on a Merge) otherwise.
+                    if (_everSawBothEntries) _popResolved(right ?? left);
                     return const SizedBox.shrink();
                   }
                   // Monotonic latch: once true it never resets. Set here in

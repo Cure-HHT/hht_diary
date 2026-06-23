@@ -811,16 +811,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final pairs = overlapPairs(view);
     if (pairs.isEmpty) return;
     final first = pairs.first;
+    // The screen pops with the surviving entry (consumed by the recording-flow
+    // caller); the home surface ignores it and re-derives the banner reactively
+    // from the next DiaryView emission. The route is typed to match the pop
+    // result so popping a non-null survivor stays type-safe.
     await Navigator.of(context).push(
-      AppPageRoute<void>(
+      AppPageRoute<EpistaxisEntryView?>(
         builder: (context) => OverlapCompareScreen(
           leftId: first.preExisting.aggregateId,
           rightId: first.justTouched.aggregateId,
         ),
       ),
     );
-    // Nothing to do after the screen pops — the home surface re-derives the
-    // banner reactively from the next DiaryView emission.
   }
 
   Future<void> _navigateToEditRecord(EpistaxisEntryView entry) async {
