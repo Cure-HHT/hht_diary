@@ -1,7 +1,6 @@
 // Verifies: DIARY-GUI-entry-overlap-resolution/A+B+C+D
 import 'dart:async';
 
-import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/screens/overlap_compare_screen.dart';
 import 'package:diary_design_system/diary_design_system.dart';
@@ -128,17 +127,14 @@ void main() {
     expect(deletes.single.rawInput['changeReason'], 'duplicate');
   });
 
+  // Immediate (home banner) mode — the default. Merge writes the union onto the
+  // pre-existing entry (`older`, verbatim boundary timestamps) and tombstones the
+  // new one (`newer`) right here, then reactively auto-pops.
   testWidgets('merge edits left to the union span and deletes right', (
     tester,
   ) async {
     await pump(tester);
     await tester.tap(find.byKey(const Key('overlap-merge')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('overlap-merge-confirm')));
-    // Both edit + delete are submitted synchronously during the tap (onConfirm
-    // is a sync void callback). pumpAndSettle lets the sheet's close animation
-    // finish; the extra pump() is a final drain.
-    await tester.pumpAndSettle();
     await tester.pump();
 
     final edits = fake.submittedActions.where(
@@ -156,14 +152,157 @@ void main() {
     expect(deletes.single.rawInput['aggregateId'], 'newer');
     expect(deletes.single.rawInput['changeReason'], 'duplicate');
 
-    // The edit MUST precede the delete: the design's safety argument (if the
-    // delete fails the pair re-surfaces, no data loss) depends on left already
-    // spanning the union before right is tombstoned.
+    // The edit MUST precede the delete: if the delete fails the pair re-surfaces
+    // (no data loss) only because `older` already spans the union.
     final order = fake.submittedActions.map((a) => a.actionName).toList();
     expect(
       order.indexOf('edit_epistaxis_event'),
       lessThan(order.indexOf('delete_entry')),
     );
+  });
+
+  // Deferred (recording flow) mode — `deferApplication: true`. A pick or merge
+  // must write NOTHING and instead pop the choice immediately, so the recording
+  // flow applies it atomically on confirm and Back stays reversible.
+  testWidgets('deferred mode pops the choice and writes nothing', (
+    tester,
+  ) async {
+    OverlapResolutionResult? result;
+    await tester.pumpWidget(
+      ReActionScope(
+        scope: fake,
+        child: wrapWithMaterialApp(
+          Builder(
+            builder: (host) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    result = await Navigator.of(host)
+                        .push<OverlapResolutionResult>(
+                          MaterialPageRoute<OverlapResolutionResult>(
+                            builder: (_) => const OverlapCompareScreen(
+                              leftId: 'older',
+                              rightId: 'newer',
+                              deferApplication: true,
+                            ),
+                          ),
+                        );
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    seed([
+      // older: 13:00-14:00 dripping. newer: 13:30-13:45 gushing.
+      _row(
+        'older',
+        '2025-10-15T13:00:00.000Z',
+        '2025-10-15T14:00:00.000Z',
+        NosebleedIntensity.dripping,
+        updatedAt: '2025-10-15T14:00:00.000Z',
+      ),
+      _row(
+        'newer',
+        '2025-10-15T13:30:00.000Z',
+        '2025-10-15T13:45:00.000Z',
+        NosebleedIntensity.gushing,
+        updatedAt: '2025-10-15T15:00:00.000Z',
+      ),
+    ]);
+    await tester.pumpAndSettle();
+
+    // Merge -> pops immediately with the union pre-fill; no view update needed.
+    await tester.tap(find.byKey(const Key('overlap-merge')));
+    await tester.pumpAndSettle();
+
+    // Nothing was written — the recording flow applies it on confirm.
+    expect(fake.submittedActions, isEmpty);
+
+    expect(find.text('open'), findsOneWidget);
+    expect(result?.action, OverlapResolution.merge);
+    // Survivor kept = pre-existing (`older`); loser to discard = the new entry.
+    expect(result?.survivor?.aggregateId, 'older');
+    expect(result?.loserId, 'newer');
+    final prefill = result?.mergedPrefill;
+    expect(prefill, isNotNull);
+    // Union span: earlier start (13:00) to later end (14:00) = 60 minutes.
+    expect(prefill!.endTime!.difference(prefill.startTime).inMinutes, 60);
+    // Higher (more severe) of dripping / gushing.
+    expect(prefill.intensity, NosebleedIntensity.gushing);
+  });
+
+  // Deferred mode: a Keep Existing pick pops the choice (survivor + loser) with
+  // no write.
+  testWidgets('deferred Keep Existing returns survivor + loser, no write', (
+    tester,
+  ) async {
+    OverlapResolutionResult? result;
+    await tester.pumpWidget(
+      ReActionScope(
+        scope: fake,
+        child: wrapWithMaterialApp(
+          Builder(
+            builder: (host) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    result = await Navigator.of(host)
+                        .push<OverlapResolutionResult>(
+                          MaterialPageRoute<OverlapResolutionResult>(
+                            builder: (_) => const OverlapCompareScreen(
+                              leftId: 'older',
+                              rightId: 'newer',
+                              deferApplication: true,
+                            ),
+                          ),
+                        );
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    seed([
+      _row(
+        'older',
+        '2025-10-15T13:00:00.000Z',
+        '2025-10-15T14:00:00.000Z',
+        NosebleedIntensity.dripping,
+        updatedAt: '2025-10-15T14:00:00.000Z',
+      ),
+      _row(
+        'newer',
+        '2025-10-15T13:30:00.000Z',
+        '2025-10-15T13:45:00.000Z',
+        NosebleedIntensity.gushing,
+        updatedAt: '2025-10-15T15:00:00.000Z',
+      ),
+    ]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('overlap-pick-left')));
+    await tester.pumpAndSettle();
+
+    expect(fake.submittedActions, isEmpty);
+    expect(result?.action, OverlapResolution.keepExisting);
+    expect(result?.survivor?.aggregateId, 'older');
+    expect(result?.loserId, 'newer');
+    expect(result?.mergedPrefill, isNull);
   });
 
   testWidgets('auto-pops back once a row disappears (overlap resolved)', (
@@ -240,7 +379,7 @@ void main() {
   testWidgets('auto-pop returns the surviving entry (existing kept/merged)', (
     tester,
   ) async {
-    EpistaxisEntryView? survivor;
+    OverlapResolutionResult? result;
     await tester.pumpWidget(
       ReActionScope(
         scope: fake,
@@ -250,9 +389,9 @@ void main() {
               body: Center(
                 child: ElevatedButton(
                   onPressed: () async {
-                    survivor = await Navigator.of(host)
-                        .push<EpistaxisEntryView?>(
-                          MaterialPageRoute<EpistaxisEntryView?>(
+                    result = await Navigator.of(host)
+                        .push<OverlapResolutionResult>(
+                          MaterialPageRoute<OverlapResolutionResult>(
                             builder: (_) => const OverlapCompareScreen(
                               leftId: 'older',
                               rightId: 'newer',
@@ -299,8 +438,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('open'), findsOneWidget);
-    expect(survivor, isNotNull);
-    expect(survivor!.aggregateId, 'older');
+    expect(result?.survivor, isNotNull);
+    expect(result!.survivor!.aggregateId, 'older');
   });
 
   // CUR-1548: Keep New tombstones the pre-existing (`older`) entry, so the
@@ -310,7 +449,7 @@ void main() {
   testWidgets('auto-pop returns the surviving entry (new kept)', (
     tester,
   ) async {
-    EpistaxisEntryView? survivor;
+    OverlapResolutionResult? result;
     await tester.pumpWidget(
       ReActionScope(
         scope: fake,
@@ -320,9 +459,9 @@ void main() {
               body: Center(
                 child: ElevatedButton(
                   onPressed: () async {
-                    survivor = await Navigator.of(host)
-                        .push<EpistaxisEntryView?>(
-                          MaterialPageRoute<EpistaxisEntryView?>(
+                    result = await Navigator.of(host)
+                        .push<OverlapResolutionResult>(
+                          MaterialPageRoute<OverlapResolutionResult>(
                             builder: (_) => const OverlapCompareScreen(
                               leftId: 'older',
                               rightId: 'newer',
@@ -369,8 +508,79 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('open'), findsOneWidget);
-    expect(survivor, isNotNull);
-    expect(survivor!.aggregateId, 'newer');
+    expect(result?.survivor, isNotNull);
+    expect(result!.survivor!.aggregateId, 'newer');
+  });
+
+  // CUR-1548 follow-up: tapping Keep Existing must tag the auto-pop result with
+  // OverlapResolution.keepExisting so the recording flow knows the survivor is
+  // final + unchanged and can return STRAIGHT to the Main Screen (no redundant
+  // Confirm Record save).
+  testWidgets('Keep Existing tags the result action as keepExisting', (
+    tester,
+  ) async {
+    OverlapResolutionResult? result;
+    await tester.pumpWidget(
+      ReActionScope(
+        scope: fake,
+        child: wrapWithMaterialApp(
+          Builder(
+            builder: (host) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    result = await Navigator.of(host)
+                        .push<OverlapResolutionResult>(
+                          MaterialPageRoute<OverlapResolutionResult>(
+                            builder: (_) => const OverlapCompareScreen(
+                              leftId: 'older',
+                              rightId: 'newer',
+                            ),
+                          ),
+                        );
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    seed([
+      _row(
+        'older',
+        '2025-10-15T13:00:00.000Z',
+        '2025-10-15T14:00:00.000Z',
+        NosebleedIntensity.dripping,
+        updatedAt: '2025-10-15T14:00:00.000Z',
+      ),
+      _row(
+        'newer',
+        '2025-10-15T13:30:00.000Z',
+        '2025-10-15T13:45:00.000Z',
+        NosebleedIntensity.gushing,
+        updatedAt: '2025-10-15T15:00:00.000Z',
+      ),
+    ]);
+    await tester.pumpAndSettle();
+
+    // Keep Existing keeps `older`, tombstones `newer` (sets the resolution).
+    await tester.tap(find.byKey(const Key('overlap-pick-left')));
+    await tester.pump();
+    fake.emitViewUpdate<DiaryEntryRow>(
+      diaryEntriesViewName,
+      const Tombstone<DiaryEntryRow>(aggregateId: 'newer', sequence: 1),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('open'), findsOneWidget);
+    expect(result?.action, OverlapResolution.keepExisting);
+    expect(result?.survivor?.aggregateId, 'older');
   });
 
   testWidgets(

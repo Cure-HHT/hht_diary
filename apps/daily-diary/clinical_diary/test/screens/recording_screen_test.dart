@@ -891,14 +891,15 @@ void main() {
       },
     );
 
-    // CUR-1548: resolving via Keep Existing (or Merge) tombstones the just-saved
-    // new entry. The Confirm Record step must re-point itself at the SURVIVING
-    // (pre-existing) entry — if it kept editing the tombstoned new id, the save
-    // would resurrect it and re-open the overlap, looping the participant back
-    // to the Resolution Screen. This drives the full flow and asserts a second
-    // confirm exits to the host (Main Screen proxy) instead of re-routing.
+    // CUR-1548: Keep Existing tombstones the just-saved new entry and keeps the
+    // pre-existing one. Like all three choices, it must land on the Confirm
+    // Record step re-pointed at the SURVIVING (pre-existing) entry — if it kept
+    // editing the tombstoned new id, the save would resurrect it and re-open the
+    // overlap, looping the participant back to the Resolution Screen. The single
+    // post-resolution confirm then edits the survivor and exits to the host
+    // (Main Screen proxy) — one review, one confirm.
     testWidgets(
-      'Keep Existing lands on Confirm Record and a second confirm does not loop',
+      'Keep Existing lands on Confirm Record and one confirm edits the survivor',
       (tester) async {
         final now = DateTime.now();
         final pre = buildEpistaxisView(
@@ -961,10 +962,12 @@ void main() {
         await tester.pumpAndSettle();
 
         // The Resolution Screen auto-popped — the participant is back on the
-        // Confirm Record step rather than trapped on the compare view.
+        // Confirm Record step (re-pointed at the survivor), not trapped on the
+        // compare view and not popped out to the host yet.
         expect(find.byType(OverlapCompareScreen), findsNothing);
+        expect(find.byType(RecordingScreen), findsOneWidget);
 
-        // Confirming now edits the SURVIVING (pre-existing) aggregate — the
+        // Confirming once edits the SURVIVING (pre-existing) aggregate — the
         // proof the screen re-pointed itself. The pre-fix behavior kept editing
         // the just-tombstoned new entry ('minted-aggregate-id'), which
         // resurrected it and re-opened the overlap → the loop.
@@ -999,6 +1002,233 @@ void main() {
           ),
           isEmpty,
         );
+      },
+    );
+
+    // CUR-1548 follow-up: Merge follows the SAME flow — it tombstones the new
+    // entry and lands on the Confirm Record step pre-filled with the union span
+    // (earlier start, later end, higher severity). The single confirm then
+    // writes the merged record onto the surviving (pre-existing) aggregate.
+    testWidgets(
+      'Merge lands on Confirm Record pre-filled with the union and saves once',
+      (tester) async {
+        final now = DateTime.now();
+        final pre = buildEpistaxisView(
+          aggregateId: 'agg-merge-pre',
+          startTime: DateTime(now.year, now.month, now.day - 1, 10),
+          endTime: DateTime(now.year, now.month, now.day - 1, 14),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        final newRow = buildEpistaxisView(
+          aggregateId: 'minted-aggregate-id',
+          startTime: DateTime(now.year, now.month, now.day - 1, 11),
+          endTime: DateTime(now.year, now.month, now.day - 1, 12),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.gushing,
+        );
+        final editing = buildEpistaxisView(
+          aggregateId: 'agg-merge-self',
+          startTime: DateTime(now.year, now.month, now.day - 1, 11),
+          endTime: DateTime(now.year, now.month, now.day - 1, 12),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.gushing,
+        );
+
+        await pumpRecordingFromHost(tester, editing: editing);
+        seedDiaryEntries([pre, newRow]);
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+          warnIfMissed: false,
+        );
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.byType(OverlapCompareScreen), findsOneWidget);
+
+        seedDiaryEntries([pre, newRow]);
+        await tester.pumpAndSettle();
+
+        // Merge -> tombstones the new entry, captures the union pre-fill.
+        await tester.tap(find.byKey(const Key('overlap-merge')));
+        await tester.pump();
+        fake.emitViewUpdate<DiaryEntryRow>(
+          diaryEntriesViewName,
+          const Tombstone<DiaryEntryRow>(
+            aggregateId: 'minted-aggregate-id',
+            sequence: 1,
+          ),
+        );
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pumpAndSettle();
+
+        // Lands on the Confirm Record step (not a second merge-review screen).
+        expect(find.byType(OverlapCompareScreen), findsNothing);
+        expect(find.byType(RecordingScreen), findsOneWidget);
+
+        // One confirm writes the merged record onto the surviving aggregate.
+        await tester.tap(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+          warnIfMissed: false,
+        );
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        final mergeEdits = fake.submittedActions.where(
+          (a) =>
+              a.actionName == 'edit_epistaxis_event' &&
+              a.rawInput['aggregateId'] == 'agg-merge-pre',
+        );
+        expect(
+          mergeEdits,
+          hasLength(1),
+          reason: 'the single confirm must edit the surviving aggregate',
+        );
+        // The union spans the earlier start (10:00) to the later end (14:00).
+        final saved = mergeEdits.single.rawInput;
+        final savedStart = DateTime.parse(saved['startTime']! as String);
+        final savedEnd = DateTime.parse(saved['endTime']! as String);
+        expect(savedEnd.difference(savedStart).inHours, 4);
+        // The tombstoned new entry is never edited (never resurrected).
+        expect(
+          fake.submittedActions.where(
+            (a) =>
+                a.actionName == 'edit_epistaxis_event' &&
+                a.rawInput['aggregateId'] == 'minted-aggregate-id',
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    // CUR-1548 follow-up: because the resolution is DEFERRED (nothing is written
+    // until the participant confirms), pressing Back on the Confirm Record step
+    // re-opens the Resolution Screen with BOTH entries intact and NOTHING
+    // changed — no delete, no resolution edit. The only write is the original
+    // finalize that created the overlap.
+    testWidgets(
+      'Back on Confirm Record re-opens the Resolution Screen, nothing changed',
+      (tester) async {
+        final now = DateTime.now();
+        final pre = buildEpistaxisView(
+          aggregateId: 'agg-back-pre',
+          startTime: DateTime(now.year, now.month, now.day - 1, 10),
+          endTime: DateTime(now.year, now.month, now.day - 1, 14),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        final newRow = buildEpistaxisView(
+          aggregateId: 'minted-aggregate-id',
+          startTime: DateTime(now.year, now.month, now.day - 1, 11),
+          endTime: DateTime(now.year, now.month, now.day - 1, 12),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.gushing,
+        );
+        final editing = buildEpistaxisView(
+          aggregateId: 'agg-back-self',
+          startTime: DateTime(now.year, now.month, now.day - 1, 11),
+          endTime: DateTime(now.year, now.month, now.day - 1, 12),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.gushing,
+        );
+
+        await pumpRecordingFromHost(tester, editing: editing);
+        seedDiaryEntries([pre, newRow]);
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+          warnIfMissed: false,
+        );
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.byType(OverlapCompareScreen), findsOneWidget);
+
+        seedDiaryEntries([pre, newRow]);
+        await tester.pumpAndSettle();
+
+        // Keep Existing -> lands on Confirm Record (deferred; nothing written).
+        await tester.tap(find.byKey(const Key('overlap-pick-left')));
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pumpAndSettle();
+        expect(find.byType(OverlapCompareScreen), findsNothing);
+        expect(find.byType(RecordingScreen), findsOneWidget);
+
+        final beforeBack = fake.submittedActions.length;
+
+        // Back -> re-opens the Resolution Screen with both entries intact.
+        seedDiaryEntries([pre, newRow]);
+        await tester.tap(find.text('Home'));
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pumpAndSettle();
+        seedDiaryEntries([pre, newRow]);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(OverlapCompareScreen), findsOneWidget);
+        // Nothing was written by the choice or the back-out: no deletes, and the
+        // submitted-action count is unchanged since landing on Confirm Record.
+        expect(
+          fake.submittedActions.where((a) => a.actionName == 'delete_entry'),
+          isEmpty,
+        );
+        expect(fake.submittedActions.length, beforeBack);
+      },
+    );
+
+    // CUR-1548 follow-up: Cancel/Back on the Resolution Screen returns to the
+    // recording EDIT flow (the start-time step), NOT the Confirm Record review —
+    // so Back steps OUT toward editing instead of bouncing back to confirmation.
+    testWidgets(
+      'Back on the Resolution Screen returns to the recording edit flow',
+      (tester) async {
+        final pre = buildEpistaxisView(
+          aggregateId: 'agg-cancel-pre',
+          startTime: DateTime(2026, 5, 31, 13),
+          endTime: DateTime(2026, 5, 31, 14),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        // The just-saved new entry (the fake mints 'minted-aggregate-id'),
+        // overlapping `pre`, so the compare screen renders the live pair.
+        final newRow = buildEpistaxisView(
+          aggregateId: 'minted-aggregate-id',
+          startTime: DateTime(2026, 5, 31, 13, 30),
+          endTime: DateTime(2026, 5, 31, 13, 45),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.gushing,
+        );
+        final editing = overlapPair('agg-cancel-self', startMinute: 30);
+
+        await pumpRecordingFromHost(tester, editing: editing);
+        seedDiaryEntries([pre, newRow]);
+        await tester.pumpAndSettle();
+
+        // Finalize -> routes to the Resolution Screen.
+        await tester.tap(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+          warnIfMissed: false,
+        );
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.byType(OverlapCompareScreen), findsOneWidget);
+
+        seedDiaryEntries([pre, newRow]);
+        await tester.pumpAndSettle();
+
+        // Cancel on the Resolution Screen.
+        await tester.tap(find.text('Cancel'));
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pumpAndSettle();
+
+        // Back on the recording EDIT flow (start-time step), not Confirm Record.
+        expect(find.byType(OverlapCompareScreen), findsNothing);
+        expect(find.byType(RecordingScreen), findsOneWidget);
+        expect(find.text('Set Start Time'), findsOneWidget);
       },
     );
   });
