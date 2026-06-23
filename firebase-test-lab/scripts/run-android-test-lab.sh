@@ -20,9 +20,9 @@ DEFAULT_DEVICE_SPECS=$(printf '%s\n' \
   'model=redfin,version=30,locale=en,orientation=portrait' \
   'model=r0q,version=33,locale=en,orientation=portrait' \
   'model=g0q,version=31,locale=en,orientation=portrait' \
-  'model=a32,version=30,locale=en,orientation=portrait' \
-  'model=MotoG100,version=30,locale=en,orientation=portrait' \
-  'model=OnePlus8T,version=31,locale=en,orientation=portrait' \
+  'model=oriole,version=31,locale=en,orientation=portrait' \
+  'model=bluejay,version=32,locale=en,orientation=portrait' \
+  'model=bramble,version=30,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=30,locale=en,orientation=portrait' \
   'model=LargeFormFactor.arm,version=33,locale=en,orientation=portrait' \
   'model=SmallPhone.arm,version=28,locale=en,orientation=portrait' \
