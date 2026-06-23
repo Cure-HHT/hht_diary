@@ -109,15 +109,13 @@ class AuditLogsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Same column widths used by the header row and every body row so
-    // the cells stay vertically aligned. Activity is the only flex
-    // column — it consumes the remainder.
-    // Chevron column width = 128 to match UsersScreen's actions column,
-    // so the chevron glyph and the user-row kebab glyph land at the same
-    // x-offset from the table's right edge — keeps the visual rhythm
-    // consistent across the two admin tabs.
+    // the cells stay vertically aligned. Per DIARY-GUI-audit-log-common/A
+    // the columns are Timestamp, Action, User, Details (+ a More-details
+    // expander). Details is the flex column — it consumes the remainder.
     const columnWidths = AuditColumnWidths(
-      timestamp: 240,
-      user: 240,
+      timestamp: 200,
+      action: 220,
+      user: 220,
       chevron: 64,
     );
 
@@ -403,6 +401,9 @@ class _HeaderRow extends StatelessWidget {
       letterSpacing: -0.15,
       color: theme.colorScheme.onSurfaceVariant,
     );
+    // Column order per DIARY-GUI-audit-log-common/A: Timestamp, Action, User,
+    // Details. Details is the flex column; the trailing slot is the
+    // More-details expander.
     return Row(
       children: [
         SizedBox(
@@ -410,6 +411,13 @@ class _HeaderRow extends StatelessWidget {
           child: Padding(
             padding: cellPad,
             child: Text('Timestamp', style: labelStyle),
+          ),
+        ),
+        SizedBox(
+          width: columnWidths.action,
+          child: Padding(
+            padding: cellPad,
+            child: Text('Action', style: labelStyle),
           ),
         ),
         SizedBox(
@@ -422,7 +430,7 @@ class _HeaderRow extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: cellPad,
-            child: Text('Activity', style: labelStyle),
+            child: Text('Details', style: labelStyle),
           ),
         ),
         SizedBox(

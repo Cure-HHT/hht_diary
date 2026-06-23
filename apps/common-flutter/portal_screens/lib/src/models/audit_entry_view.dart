@@ -30,6 +30,11 @@ class AuditEntryView {
   /// "Activation email sent to Jennifer Martinez".
   final String activityLabel;
 
+  /// Human-readable summary for the Details column: the affected record (by
+  /// name where known) plus any free-text reason the Action carried. Empty
+  /// when there's nothing to summarize. Per DIARY-GUI-audit-log-common/C+D.
+  final String details;
+
   /// The full audit JSON record, retained for the row's expanded "details"
   /// view. Kept as an opaque map because the expanded panel currently
   /// renders it via `JsonEncoder.withIndent` — no need to model every
@@ -42,6 +47,7 @@ class AuditEntryView {
     required this.actorName,
     required this.actorRole,
     required this.activityLabel,
+    this.details = '',
     required this.raw,
   });
 
@@ -54,6 +60,7 @@ class AuditEntryView {
           actorName == other.actorName &&
           actorRole == other.actorRole &&
           activityLabel == other.activityLabel &&
+          details == other.details &&
           mapEquals(raw, other.raw);
 
   /// Hashes scalar fields only; the raw payload is excluded because it's
@@ -61,11 +68,11 @@ class AuditEntryView {
   /// work on every row.
   @override
   int get hashCode =>
-      Object.hash(id, timestamp, actorName, actorRole, activityLabel);
+      Object.hash(id, timestamp, actorName, actorRole, activityLabel, details);
 
   @override
   String toString() =>
       'AuditEntryView(id: $id, timestamp: $timestamp, '
       'actorName: $actorName, actorRole: $actorRole, '
-      'activityLabel: $activityLabel)';
+      'activityLabel: $activityLabel, details: $details)';
 }
