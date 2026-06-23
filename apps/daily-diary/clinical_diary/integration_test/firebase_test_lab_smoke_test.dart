@@ -307,7 +307,6 @@ void main() {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 1));
-    final wb = WidgetsBinding.instance;
     for (var i = 0; i < 5; i++) {
       WidgetsBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await tester.pump(const Duration(milliseconds: 100));
