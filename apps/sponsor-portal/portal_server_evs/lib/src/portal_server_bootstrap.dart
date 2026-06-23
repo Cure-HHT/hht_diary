@@ -320,7 +320,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // section 7 below.
   // Implements: DIARY-DEV-portal-session-token/A+B
   // Implements: DIARY-DEV-portal-session-lifecycle/A
-  final authMode = Platform.environment['PORTAL_AUTH_MODE'] ?? 'dev';
+  final authMode = env['PORTAL_AUTH_MODE'] ?? 'dev';
   // Per-sponsor HMAC key for linking-code check chars (verified offline by the
   // neutral resolver service). Threaded into generation always; required only
   // in production (session auth), mirroring PORTAL_SESSION_SIGNING_KEY so dev/
@@ -331,11 +331,28 @@ Future<PortalServerBoot> bootstrapPortalServer({
     throw StateError(
         'SPONSOR_RESOLVER_KEY is required when PORTAL_AUTH_MODE=session');
   }
+  // The sponsor's 2-char linking-code prefix. Required in production (session
+  // auth): a missing value silently falling back to a placeholder mints
+  // linking codes the mobile diary's SponsorRegistry cannot resolve, so fail
+  // fast at boot (serve nothing, wait for a reboot with proper config) rather
+  // than come up misconfigured. Dev/test keep a placeholder default, mirroring
+  // SPONSOR_RESOLVER_KEY above.
+  // Implements: DIARY-DEV-linking-code-lifecycle/E
+  final configuredLinkingPrefix = env['SPONSOR_LINKING_PREFIX'];
+  if (authMode == 'session' &&
+      (configuredLinkingPrefix == null || configuredLinkingPrefix.isEmpty)) {
+    throw StateError(
+        'SPONSOR_LINKING_PREFIX is required when PORTAL_AUTH_MODE=session');
+  }
+  final linkingPrefix =
+      (configuredLinkingPrefix == null || configuredLinkingPrefix.isEmpty)
+          ? 'XX'
+          : configuredLinkingPrefix;
   final dispatcher = await buildPortalDispatcher(
       eventStore: eventStore,
       roleGrantsYaml: roleGrantsYaml,
       idempotency: idempotency,
-      linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
+      linkingPrefix: linkingPrefix,
       sponsorResolverKey: sponsorResolverKey);
 
   // 7. Validator selection — default is dev so the existing admin-1/sc-1
@@ -464,7 +481,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final linkingCodeReactor = LinkingCodeLifecycleReactor(
     eventStore: eventStore,
     backend: backend,
-    linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
+    linkingPrefix: linkingPrefix,
     sponsorResolverKey: sponsorResolverKey,
   )..start();
 
