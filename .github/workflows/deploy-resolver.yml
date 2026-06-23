@@ -1,0 +1,126 @@
+# Deploy the neutral diary-portal-resolver service to Cloud Run.
+#
+# Builds the distroless image from this repo's Go source, pushes it to the
+# resolver project's Artifact Registry, and rolls a new Cloud Run revision per
+# selected environment. Authentication is keyless via the org github-pool WIF
+# binding to `resolver-deploy-sa` (provisioned in hht_admin/resolver/); the repo
+# variables consumed below (RESOLVER_*) are published into this repo by that
+# same Terraform module.
+#
+# Manual (workflow_dispatch) only — deploys are deliberately not auto-triggered
+# on merge, to keep the public diary's release cadence decoupled from the
+# resolver's (see the CUR-1531 two-PR rollout).
+#
+# Implements: HHT-OPS-portal-resolver/F
+name: Deploy resolver
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment(s) to deploy
+        type: choice
+        options:
+          - dev
+          - qa
+          - uat
+          - all
+        default: dev
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-resolver-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  WIF_PROVIDER: projects/${{ vars.CUREHHT_ADMIN_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+
+jobs:
+  # Expand the chosen environment into a JSON array the deploy matrix fans out on.
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      envs: ${{ steps.pick.outputs.envs }}
+    steps:
+      - id: pick
+        run: |
+          if [ "${{ github.event.inputs.environment }}" = "all" ]; then
+            echo 'envs=["dev","qa","uat"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'envs=["${{ github.event.inputs.environment }}"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  # Build + push once: the image is environment-agnostic (per-env config is
+  # injected from Secret Manager at runtime, never baked in).
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ vars.RESOLVER_DEPLOY_SA_EMAIL }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - id: meta
+        name: Resolve image ref + registry host
+        run: |
+          set -euo pipefail
+          AR="${{ vars.RESOLVER_AR_REPO }}"          # e.g. europe-west1-docker.pkg.dev/<proj>/diary-portal-resolver
+          HOST="${AR%%/*}"                           # europe-west1-docker.pkg.dev
+          SHA="${GITHUB_SHA::12}"
+          echo "host=$HOST"                  >> "$GITHUB_OUTPUT"
+          echo "image=${AR}:${SHA}"          >> "$GITHUB_OUTPUT"
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${{ steps.meta.outputs.host }}" --quiet
+
+      - name: Build and push image
+        run: |
+          set -euo pipefail
+          IMAGE="${{ steps.meta.outputs.image }}"
+          docker build \
+            -f deployment/docker/diary-portal-resolver.Dockerfile \
+            -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "Pushed $IMAGE"
+
+  # Roll a new revision per environment. `gcloud run deploy` on the existing
+  # (Terraform-created) service swaps only the image, preserving the secret env
+  # bindings, runtime SA, scaling, and invoker IAM set by hht_admin/resolver/.
+  deploy:
+    needs: [setup, build]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: ${{ fromJSON(needs.setup.outputs.envs) }}
+    steps:
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ vars.RESOLVER_DEPLOY_SA_EMAIL }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy resolver-${{ matrix.env }}
+        run: |
+          set -euo pipefail
+          AR="${{ vars.RESOLVER_AR_REPO }}"
+          HOST="${AR%%/*}"
+          REGION="${HOST%-docker.pkg.dev}"           # europe-west1
+          gcloud run deploy "resolver-${{ matrix.env }}" \
+            --image "${{ needs.build.outputs.image }}" \
+            --region "$REGION" \
+            --project "${{ vars.RESOLVER_PROJECT_ID }}" \
+            --quiet
+          echo "Deployed resolver-${{ matrix.env }} -> ${{ needs.build.outputs.image }}"
