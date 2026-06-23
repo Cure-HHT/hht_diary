@@ -890,5 +890,116 @@ void main() {
         );
       },
     );
+
+    // CUR-1548: resolving via Keep Existing (or Merge) tombstones the just-saved
+    // new entry. The Confirm Record step must re-point itself at the SURVIVING
+    // (pre-existing) entry — if it kept editing the tombstoned new id, the save
+    // would resurrect it and re-open the overlap, looping the participant back
+    // to the Resolution Screen. This drives the full flow and asserts a second
+    // confirm exits to the host (Main Screen proxy) instead of re-routing.
+    testWidgets(
+      'Keep Existing lands on Confirm Record and a second confirm does not loop',
+      (tester) async {
+        final now = DateTime.now();
+        final pre = buildEpistaxisView(
+          aggregateId: 'agg-keep-pre',
+          startTime: DateTime(now.year, now.month, now.day - 1, 10),
+          endTime: DateTime(now.year, now.month, now.day - 1, 14),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.dripping,
+        );
+        // The just-saved new entry. The fake returns 'minted-aggregate-id' as
+        // the dispatched id, so seed the new row under that id (overlapping
+        // `pre`) for the compare screen to render the live pair.
+        final newRow = buildEpistaxisView(
+          aggregateId: 'minted-aggregate-id',
+          startTime: DateTime(now.year, now.month, now.day - 1, 11),
+          endTime: DateTime(now.year, now.month, now.day - 1, 12),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.gushing,
+        );
+        // The complete entry being finalized (its range sits inside `pre`).
+        final editing = buildEpistaxisView(
+          aggregateId: 'agg-keep-self',
+          startTime: DateTime(now.year, now.month, now.day - 1, 11),
+          endTime: DateTime(now.year, now.month, now.day - 1, 12),
+          endTimeZone: 'UTC',
+          intensity: NosebleedIntensity.gushing,
+        );
+
+        await pumpRecordingFromHost(tester, editing: editing);
+        seedDiaryEntries([pre, newRow]);
+        await tester.pumpAndSettle();
+
+        // Finalize -> routes to the Resolution Screen.
+        await tester.tap(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+          warnIfMissed: false,
+        );
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.byType(OverlapCompareScreen), findsOneWidget);
+
+        // The compare screen subscribes to the diary view only after it is
+        // pushed, so re-emit the seed for its DiaryViewBuilder to render the
+        // live pair (the recording screen got the earlier emission).
+        seedDiaryEntries([pre, newRow]);
+        await tester.pumpAndSettle();
+
+        // Keep Existing -> tombstones the new ('minted-aggregate-id') entry.
+        await tester.tap(find.byKey(const Key('overlap-pick-left')));
+        await tester.pump();
+        fake.emitViewUpdate<DiaryEntryRow>(
+          diaryEntriesViewName,
+          const Tombstone<DiaryEntryRow>(
+            aggregateId: 'minted-aggregate-id',
+            sequence: 1,
+          ),
+        );
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pumpAndSettle();
+
+        // The Resolution Screen auto-popped — the participant is back on the
+        // Confirm Record step rather than trapped on the compare view.
+        expect(find.byType(OverlapCompareScreen), findsNothing);
+
+        // Confirming now edits the SURVIVING (pre-existing) aggregate — the
+        // proof the screen re-pointed itself. The pre-fix behavior kept editing
+        // the just-tombstoned new entry ('minted-aggregate-id'), which
+        // resurrected it and re-opened the overlap → the loop.
+        await tester.tap(
+          find.widgetWithText(FilledButton, 'Save Changes'),
+          warnIfMissed: false,
+        );
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        // (Note: the test fake mints a constant id for every dispatch, so it
+        // cannot model `edit_epistaxis_event` returning the edited aggregate's
+        // own id — we therefore assert on the SUBMITTED target, not on a
+        // non-looping re-push, which is a fake-only artifact.)
+        final survivorEdits = fake.submittedActions.where(
+          (a) =>
+              a.actionName == 'edit_epistaxis_event' &&
+              a.rawInput['aggregateId'] == 'agg-keep-pre',
+        );
+        expect(
+          survivorEdits,
+          hasLength(1),
+          reason: 'the confirming save must edit the adopted survivor',
+        );
+        // The tombstoned new entry is never edited (never resurrected).
+        expect(
+          fake.submittedActions.where(
+            (a) =>
+                a.actionName == 'edit_epistaxis_event' &&
+                a.rawInput['aggregateId'] == 'minted-aggregate-id',
+          ),
+          isEmpty,
+        );
+      },
+    );
   });
 }
