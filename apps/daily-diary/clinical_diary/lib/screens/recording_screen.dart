@@ -87,6 +87,26 @@ class RecordingScreen extends StatefulWidget {
 // CUR-408: Removed notes step from recording flow
 enum RecordingStep { startTime, intensity, endTime, complete }
 
+/// A resolution the participant chose on the Resolution Screen but has not yet
+/// confirmed. The choice is held — NOT written — so the Confirm Record step can
+/// apply it atomically on the single confirming save (edit the survivor + delete
+/// the [loserId]), and Back can re-open the Resolution Screen ([leftId]/[rightId]
+/// both still exist) with nothing changed (CUR-1548 follow-up).
+class _PendingResolution {
+  const _PendingResolution({
+    required this.leftId,
+    required this.rightId,
+    required this.loserId,
+  });
+
+  /// The original pair, re-pushed to the compare screen when Back re-opens it.
+  final String leftId;
+  final String rightId;
+
+  /// The entry to tombstone when the resolution is confirmed.
+  final String loserId;
+}
+
 class _RecordingScreenState extends State<RecordingScreen> {
   // The aggregate id of the entry being edited/resumed; null for a brand-new
   // entry until the first save mints one (and stores it back here).
@@ -126,6 +146,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
   // didChangeDependencies.
   ClinicalRules _rules = const ClinicalRules();
   bool _initialStepSet = false;
+
+  // A chosen-but-unconfirmed overlap resolution. While set, the Confirm Record
+  // step is reviewing the result; the single confirming save applies it (edit
+  // survivor + delete loser) and Back re-opens the Resolution Screen.
+  _PendingResolution? _pendingResolution;
 
   @override
   void initState() {
@@ -521,44 +546,40 @@ class _RecordingScreenState extends State<RecordingScreen> {
       }
       final savedId = newId;
       _aggregateId = savedId;
-      if (mounted) {
-        // If this finalize created/left an overlap, go STRAIGHT to the
-        // side-by-side Resolution Screen. We PUSH it on top of this recording
-        // screen (rather than replacing it) so that:
-        //   - Cancel/Back on the Resolution Screen returns here, NOT to the Main
-        //     Screen (DIARY-GUI-entry-overlap-resolution/M, CUR-1518 Issue 4);
-        //   - once the conflict is resolved the compare screen auto-pops back to
-        //     this screen's Confirm Record step for a final review + save.
-        // When we were ourselves opened from the overlap flow (an Edit on the
-        // compare screen) just pop back — that compare screen re-derives and
-        // re-renders or auto-pops.
-        final conflict = widget.fromOverlapResolution
-            ? null
-            : _firstOverlapConflict();
-        if (conflict != null) {
-          // Await the Resolution Screen so we can adopt whatever entry SURVIVED
-          // the participant's choice. Keep New leaves `savedId`; Keep Existing
-          // and Merge tombstone `savedId` and keep/merge into the pre-existing
-          // entry. If we stayed pointed at the tombstoned `savedId`, the next
-          // Confirm-Record save would `edit_epistaxis_event` it — resurrecting
-          // it and re-creating the overlap, looping the participant back to the
-          // Resolution Screen (CUR-1548). Re-pointing at the survivor keeps the
-          // Confirm step on live data and its save on a live aggregate.
-          final survivor = await Navigator.push<EpistaxisEntryView?>(
-            context,
-            AppPageRoute<EpistaxisEntryView?>(
-              builder: (_) => OverlapCompareScreen(
-                leftId: conflict.aggregateId,
-                rightId: savedId,
-              ),
-            ),
-          );
-          if (mounted && survivor != null && survivor.aggregateId != savedId) {
-            _adoptResolvedSurvivor(survivor);
-          }
-        } else {
-          Navigator.pop(context, savedId);
-        }
+      if (!mounted) return newId;
+
+      // CONFIRMING a chosen overlap resolution: the edit just submitted wrote the
+      // survivor's reviewed/merged data; now apply the other half atomically by
+      // tombstoning the discarded entry. Nothing was written until this single
+      // confirm, so the resolution stayed reversible up to here (Back re-opened
+      // the Resolution Screen). The overlap is resolved by this pair of actions,
+      // so skip the conflict re-check (it would still see the not-yet-deleted
+      // loser and loop the participant back — CUR-1548).
+      final pending = _pendingResolution;
+      if (pending != null) {
+        await _submitAction('delete_entry', <String, Object?>{
+          'aggregateId': pending.loserId,
+          'entryType': 'epistaxis_event',
+          'changeReason': 'duplicate',
+        });
+        _pendingResolution = null;
+        if (mounted) Navigator.pop(context, savedId);
+        return newId;
+      }
+
+      // Normal finalize: if this created/left an overlap, go STRAIGHT to the
+      // side-by-side Resolution Screen, PUSHED on top of this recording screen
+      // so Cancel/Back returns here, not to the Main Screen
+      // (DIARY-GUI-entry-overlap-resolution/M, CUR-1518 Issue 4). When we were
+      // ourselves opened from the overlap flow (an Edit on the compare screen)
+      // just pop back — that compare screen re-derives or auto-pops.
+      final conflict = widget.fromOverlapResolution
+          ? null
+          : _firstOverlapConflict();
+      if (conflict != null) {
+        await _resolveOverlap(conflict.aggregateId, savedId);
+      } else {
+        Navigator.pop(context, savedId);
       }
       return newId;
     } finally {
@@ -568,24 +589,92 @@ class _RecordingScreenState extends State<RecordingScreen> {
     }
   }
 
-  /// Re-points the Confirm Record step at the entry that survived overlap
-  /// resolution (Keep Existing / Merge tombstone the just-saved entry and keep
-  /// or merge into the pre-existing one). Pulling the surviving entry's stored
-  /// values into the screen fields means the final review shows the resulting
-  /// data and the confirming save edits a LIVE aggregate — never the tombstoned
-  /// new entry — so the participant lands on Confirm Record and can return to
-  /// the Main Screen without re-triggering the conflict (CUR-1548).
-  // Implements: DIARY-GUI-entry-overlap-resolution/A
+  /// Opens the side-by-side Resolution Screen for the overlapping pair and, on
+  /// the participant's choice, re-points the Confirm Record step at the SURVIVING
+  /// entry. Every choice routes through this one Confirm Record step so the
+  /// participant reviews + confirms exactly once, identically for all three
+  /// options (DIARY-GUI-entry-overlap-resolution/J+K+M):
+  ///   - Keep New: the new entry survives — adopting it runs the identical
+  ///     render path as the other two.
+  ///   - Keep Existing: the pre-existing entry survives.
+  ///   - Merge: the pre-existing entry survives, pre-filled with the union span.
+  ///
+  /// The screen DEFERS all writes (`deferApplication`) and hands back the loser
+  /// id; we hold it in [_pendingResolution] and apply it on the confirming save.
+  /// Until then both entries still exist, so Back ([_handleExit]) re-opens this
+  /// screen with nothing changed. Also reused by the Back path to re-open.
+  Future<void> _resolveOverlap(String leftId, String rightId) async {
+    final result = await Navigator.push<OverlapResolutionResult>(
+      context,
+      AppPageRoute<OverlapResolutionResult>(
+        builder: (_) => OverlapCompareScreen(
+          leftId: leftId,
+          rightId: rightId,
+          deferApplication: true,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    final survivor = result?.survivor;
+    // Cancel/Back on the Resolution Screen returns null. Land on the recording
+    // EDIT flow (the start/intensity/end steps), NOT the Confirm Record review —
+    // so Back steps OUT of resolution toward editing instead of bouncing back to
+    // the confirmation screen. Drop any pending choice; the overlap is still
+    // unresolved, so the next back-out re-routes into resolution (CUR-1518's
+    // "resolve or delete before leaving" still holds).
+    if (survivor == null) {
+      setState(() {
+        _pendingResolution = null;
+        _currentStep = RecordingStep.startTime;
+      });
+      return;
+    }
+    _adoptResolvedSurvivor(survivor, merged: result?.mergedPrefill);
+    final loserId = result?.loserId;
+    setState(() {
+      _pendingResolution = loserId == null
+          // Reactive (Edit-removed) resolution: nothing left to discard.
+          ? null
+          : _PendingResolution(
+              leftId: leftId,
+              rightId: rightId,
+              loserId: loserId,
+            );
+    });
+  }
+
+  /// Re-points the Confirm Record step at the entry the participant chose to
+  /// keep. Pulling its values into the screen fields means the final review
+  /// shows the resulting data and the confirming save edits that LIVE aggregate.
+  ///
+  /// For Keep New / Keep Existing the fields come from the survivor's stored data
+  /// (an unchanged review). For Merge, [merged] overrides them with the union
+  /// span + max severity, so the single confirming save writes the merged record
+  /// onto the surviving aggregate. No write happens here — the discard of the
+  /// other entry is held in [_pendingResolution] and applied on confirm.
+  // Implements: DIARY-GUI-entry-overlap-resolution/A+J+K
   // Implements: DIARY-PRD-entry-overlap-resolution/D
-  void _adoptResolvedSurvivor(EpistaxisEntryView survivor) {
+  void _adoptResolvedSurvivor(
+    EpistaxisEntryView survivor, {
+    OverlapMergePrefill? merged,
+  }) {
     setState(() {
       _aggregateId = survivor.aggregateId;
-      _isComplete = survivor.isComplete;
-      _startDateTime = survivor.startTime;
-      _endDateTime = survivor.endTime;
-      _intensity = _toWidgetIntensity(survivor.intensity);
-      _startTimeTimezone = survivor.startTimeZone;
-      _endTimeTimezone = survivor.endTimeZone;
+      if (merged != null) {
+        _isComplete = merged.endTime != null;
+        _startDateTime = merged.startTime;
+        _endDateTime = merged.endTime;
+        _intensity = _toWidgetIntensity(merged.intensity);
+        _startTimeTimezone = merged.startTimeZone;
+        _endTimeTimezone = merged.endTimeZone;
+      } else {
+        _isComplete = survivor.isComplete;
+        _startDateTime = survivor.startTime;
+        _endDateTime = survivor.endTime;
+        _intensity = _toWidgetIntensity(survivor.intensity);
+        _startTimeTimezone = survivor.startTimeZone;
+        _endTimeTimezone = survivor.endTimeZone;
+      }
       _currentStep = RecordingStep.complete;
     });
   }
@@ -751,6 +840,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
     // A locked date is read-only; never auto-save on back-out.
     if (_isLocked) {
       return true;
+    }
+
+    // A chosen-but-unconfirmed overlap resolution: Back re-opens the Resolution
+    // Screen with BOTH entries intact (nothing was written yet), so the
+    // participant can pick again. Do NOT auto-save and do NOT pop to the Main
+    // Screen (DIARY-GUI-entry-overlap-resolution/M).
+    final pending = _pendingResolution;
+    if (pending != null) {
+      await _resolveOverlap(pending.leftId, pending.rightId);
+      return false;
     }
 
     // CUR-1518 Issue 4 (DIARY-GUI-entry-overlap-resolution/M): once an end time
