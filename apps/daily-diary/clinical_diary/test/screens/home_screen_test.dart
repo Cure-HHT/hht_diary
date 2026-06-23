@@ -371,6 +371,28 @@ void main() {
       },
     );
 
+    // Verifies: DIARY-PRD-questionnaire-portal-sent-rules/H — a questionnaire
+    //   `checkpoint` draft lives in the same diary_incomplete projection as
+    //   nosebleed checkpoints, but it is NOT a clinical "incomplete record": it
+    //   resumes via the Task List, not the incomplete-records reminder (whose
+    //   click path edits epistaxis only). So a survey-only incomplete must not
+    //   inflate the "incomplete records" count (CUR-1522 regression guard).
+    testWidgets(
+      'a questionnaire checkpoint draft does NOT count as an incomplete record',
+      (tester) async {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day, 10);
+        await pumpScreen(
+          tester,
+          incomplete: [
+            surveyRow(today, aggregateId: 'q-draft-1', questionnaireType: 'nose_hht'),
+          ],
+        );
+
+        expect(find.textContaining('incomplete record'), findsNothing);
+      },
+    );
+
     testWidgets(
       'tap "No" on yesterday banner submits record_no_epistaxis_day',
       (tester) async {

@@ -1335,7 +1335,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // Implements: DIARY-DEV-reactive-read-path/A
   Widget _buildScaffold(BuildContext context, DiaryView view) {
-    final incompleteCount = view.incompleteEntries.length;
+    // Only unfinished CLINICAL (epistaxis) records count toward the
+    // "incomplete records" reminder. Questionnaire `checkpoint` drafts share the
+    // diary_incomplete projection but resume via the Task List, not here — and
+    // _handleIncompleteRecordsClick edits epistaxis only, so counting a survey
+    // draft would show a reminder whose click does nothing (CUR-1522).
+    final incompleteCount =
+        view.incompleteEntries.whereType<EpistaxisEntryView>().length;
     final overlapCount = overlapPairs(view).length;
     // Sponsor branding is displayed only while ACTIVELY participating: on
     // not-participating the app stops applying this sponsor-specific rule.
