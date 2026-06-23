@@ -148,7 +148,8 @@ void main() {
     var labelCount = 0;
     void walk(SemanticsNode node) {
       if ((node.label.isNotEmpty || node.tooltip.isNotEmpty) &&
-          !node.flagsCollection.contains(SemanticsFlag.isHidden)) {
+          // ignore: deprecated_member_use
+          !node.hasFlag(SemanticsFlag.isHidden)) {
         labelCount++;
       }
       node.visitChildren((child) {
@@ -290,10 +291,9 @@ void main() {
     app.main();
     await _waitForHome(tester);
     await tester.pump(const Duration(seconds: 2));
-    final wb = WidgetsBinding.instance;
-    wb.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    WidgetsBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pump(const Duration(milliseconds: 500));
-    wb.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    WidgetsBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump(const Duration(seconds: 2));
     expect(find.byType(HomeScreen), findsOneWidget,
         reason: 'HomeScreen must still be present after background/resume.');
@@ -309,9 +309,9 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     final wb = WidgetsBinding.instance;
     for (var i = 0; i < 5; i++) {
-      wb.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      WidgetsBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await tester.pump(const Duration(milliseconds: 100));
-      wb.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      WidgetsBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump(const Duration(milliseconds: 100));
     }
     await tester.pumpAndSettle(const Duration(seconds: 2));
