@@ -211,6 +211,37 @@ void main() {
     });
   });
 
+  // Verifies: DIARY-DEV-audit-log-read/A — view=admin scopes the log
+  //   to Administrator actions: every returned row carries an Action-Inventory
+  //   action_name, and the automation probe events (user_tier_changed) are
+  //   excluded.
+  group('view=admin scopes to Administrator actions', () {
+    test('every row has an action_name; automation events are excluded',
+        () async {
+      final body = await getAudit('?view=admin&limit=1000');
+      for (final r in body['rows'] as List) {
+        final row = r as Map;
+        expect(row['action_name'], isNotNull,
+            reason: 'admin-view rows must be Action-Inventory actions');
+        expect(row['entry_type'], isNot('user_tier_changed'),
+            reason: 'automation probe events must be filtered out');
+      }
+      // The automation probe sequences must not appear in the admin view.
+      final adminSeqs = sequencesOf(body).toSet();
+      final probe = await getAudit('?q=paging-probe&limit=1000');
+      final probeSeqs = sequencesOf(probe).toSet();
+      expect(probeSeqs, isNotEmpty);
+      expect(adminSeqs.intersection(probeSeqs), isEmpty);
+    });
+
+    test('total reflects the filtered set, never more than the whole log',
+        () async {
+      final admin = await getAudit('?view=admin&limit=1000');
+      final all = await getAudit('?limit=1000');
+      expect((admin['total']! as int) <= (all['total']! as int), isTrue);
+    });
+  });
+
   test('paging params do not bypass the permission gate', () async {
     final resp = await boot.router(
       Request(

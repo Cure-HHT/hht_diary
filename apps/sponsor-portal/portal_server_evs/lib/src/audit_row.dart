@@ -10,18 +10,86 @@ const String auditViewPermission = 'portal.audit.view';
 bool auditAccessAllowed(Iterable<String> permissionNames) =>
     permissionNames.contains(auditViewPermission);
 
+/// Resolves an audit event to the *Administrator* **Action** name shown in the
+/// Action column, per the Action Inventory (ACT-USR-* / ACT-ADM-*). Returns
+/// null for any event that is NOT an Administrator action — system/automation
+/// events (sessions, OTP, EDC sync, the owner's own activation, the
+/// session-revoke side-effect of a deactivation). The Administrator Audit Log
+/// shows ONLY events with a non-null name here (see [auditEventIsAdminAction]).
+///
+/// `user_role_scope` covers role AND site assignment/revocation (they share the
+/// aggregate + event type and are distinguished only by payload), so it maps to
+/// a name that is honest for both rather than asserting one.
+// Implements: DIARY-GUI-audit-log-common/F
+String? adminActionName(String entryType, String eventType) =>
+    switch (entryType) {
+      'user_created' => 'Create User Account', // ACT-USR-001
+      'user_profile_changed' => 'Edit User Account', // ACT-USR-002
+      'user_email_change_requested' => 'Edit User Account', // ACT-USR-002
+      'user_deactivated' => 'Deactivate User Account', // ACT-USR-003
+      'user_reactivated' => 'Reactivate User Account', // ACT-USR-004
+      'user_account_unlocked' => 'Unlock User Account', // ACT-USR-005
+      'user_activation_code_issued' => 'Resend Activation Email', // ACT-USR-006
+      'user_deleted' => 'Delete Pending User Account', // ACT-USR-009
+      'user_role_scope' => switch (eventType) {
+          'role_assigned' => 'Assign Role or Site to User Account', // ACT-USR-007/008
+          'role_unassigned' =>
+            'Revoke Role or Site from User Account', // ACT-USR-010/011
+          _ => null,
+        },
+      _ => null,
+    };
+
+/// Whether [e] is an Administrator action (vs a system/automation event), used
+/// to scope the Administrator Audit Log (`GET /audit?view=admin`) to the
+/// Administrator's own actions: a **user-initiated** event ([UserInitiator])
+/// whose entry type maps to an Action-Inventory name.
+///
+/// Requiring a [UserInitiator] is what keeps automation/anonymous events out of
+/// the Administrator view even when they share a `user_*` entry type that maps
+/// to an Action-Inventory name — e.g. the activation code an account-create
+/// flow auto-issues (`user_activation_code_issued`), or the session-revoke
+/// side-effect of a deactivation. Those are automation-initiated and would
+/// otherwise render as "Automation" rows. Pure system events (sessions, OTP,
+/// EDC sync) are already excluded because they have no mapping at all.
+///
+/// Same spec-gap anchoring as [auditEventMatchesQuery] / [auditEventMatchesSite]:
+/// server-side scoping of the read is anchored to DIARY-DEV-audit-log-read
+/// rather than minting a new REQ.
+// Implements: DIARY-DEV-audit-log-read/A
+bool auditEventIsAdminAction(StoredEvent e) =>
+    e.initiator is UserInitiator &&
+    adminActionName(e.entryType, e.eventType) != null;
+
 /// Maps a [StoredEvent] to a JSON-serialisable audit-trail row capturing
 /// who (initiator), what (entry/event/aggregate), when (timestamp), and the
 /// details (payload + change reason).
-Map<String, Object?> auditRowJson(StoredEvent e) => <String, Object?>{
+///
+/// [nameByEmail] resolves a user's email (the initiator/aggregate identifier)
+/// to their display name from `users_index`; the handler builds it once per
+/// request. It populates the actor's `name` and, when the aggregate is a
+/// `portal_user`, the affected account's `target_name` — so the Audit Log can
+/// show names instead of emails (DIARY-GUI-audit-log-common/A).
+/// `action_name` is the Action-Inventory name for the Action column (null for
+/// non-admin events).
+// Implements: DIARY-GUI-audit-log-common/A+F
+Map<String, Object?> auditRowJson(
+  StoredEvent e, {
+  Map<String, String> nameByEmail = const <String, String>{},
+}) =>
+    <String, Object?>{
       'event_id': e.eventId,
       'sequence': e.sequenceNumber,
       'timestamp': e.clientTimestamp.toUtc().toIso8601String(),
       'entry_type': e.entryType,
       'event_type': e.eventType,
+      'action_name': adminActionName(e.entryType, e.eventType),
       'aggregate_type': e.aggregateType,
       'aggregate_id': e.aggregateId,
-      'initiator': _initiatorJson(e.initiator),
+      if (e.aggregateType == 'portal_user' &&
+          nameByEmail[e.aggregateId] != null)
+        'target_name': nameByEmail[e.aggregateId],
+      'initiator': _initiatorJson(e.initiator, nameByEmail),
       'flow_token': e.flowToken,
       'change_reason': e.metadata['change_reason'],
       'data': e.data,
@@ -68,8 +136,18 @@ bool auditEventMatchesSite(
       _ => false,
     };
 
-Map<String, Object?> _initiatorJson(Initiator i) => switch (i) {
-      UserInitiator(:final userId) => {'kind': 'user', 'label': userId},
+Map<String, Object?> _initiatorJson(
+  Initiator i,
+  Map<String, String> nameByEmail,
+) =>
+    switch (i) {
+      // `label` keeps the email (stable identifier + search key); `name` is the
+      // human display name when known, so the User column can show the name.
+      UserInitiator(:final userId) => {
+          'kind': 'user',
+          'label': userId,
+          if (nameByEmail[userId] != null) 'name': nameByEmail[userId],
+        },
       AutomationInitiator(:final service) => {
           'kind': 'automation',
           'label': service,

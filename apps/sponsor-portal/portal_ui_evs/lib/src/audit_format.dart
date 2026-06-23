@@ -37,6 +37,50 @@ const Map<String, String> _entryTypeLabels = <String, String>{
   'participant_synced_from_edc': 'Participant Synced From EDC',
 };
 
+// Implements: DIARY-GUI-audit-log-common/F — the Action-column name. Prefers the
+//   server-resolved Action-Inventory name (`action_name`, e.g. "Reactivate User
+//   Account"); falls back to humanizing the raw entry-type id for any event the
+//   server didn't map (e.g. site/participant events in the Sites drill-in).
+String auditActionName(Map<String, Object?> row) {
+  final name = (row['action_name'] as String?)?.trim();
+  if (name != null && name.isNotEmpty) return name;
+  return humanizeEntryType((row['entry_type'] as String?) ?? '');
+}
+
+// Implements: DIARY-GUI-audit-log-common/A — the User-column value: the actor's
+//   display name when the server resolved one, else the email; empty for
+//   non-user (automation/anonymous) initiators so the row renders "Automation".
+String auditActorName(Map<String, Object?>? initiator) {
+  if (initiator == null) return '';
+  if (initiator['kind'] != 'user') return '';
+  final name = (initiator['name'] as String?)?.trim();
+  if (name != null && name.isNotEmpty) return name;
+  return (initiator['label'] as String?) ?? '';
+}
+
+// Implements: DIARY-GUI-audit-log-common/A — the actor's email (the initiator
+//   `label`), shown under the name in the User column. Empty for non-user
+//   (automation/anonymous) initiators.
+String auditActorEmail(Map<String, Object?>? initiator) {
+  if (initiator == null) return '';
+  if (initiator['kind'] != 'user') return '';
+  return (initiator['label'] as String?)?.trim() ?? '';
+}
+
+// Implements: DIARY-GUI-audit-log-common/D — the Activity-column label: the
+//   Action-Inventory name plus the affected account it was performed on, by
+//   email (the portal_user aggregate id). E.g. "Reactivate User Account —
+//   squeeb+sc@gmail.com". Falls back to just the action name when the event
+//   has no portal_user target.
+String auditActivityLabel(Map<String, Object?> row) {
+  final action = auditActionName(row);
+  if (row['aggregate_type'] == 'portal_user') {
+    final email = (row['aggregate_id'] as String?)?.trim();
+    if (email != null && email.isNotEmpty) return '$action — $email';
+  }
+  return action;
+}
+
 // Implements: DIARY-GUI-audit-log-common/F — renders the Action name shown in the Action
 //   column (human-readable form of the entry-type id).
 String humanizeEntryType(String entryType) {
@@ -63,12 +107,16 @@ String initiatorLabel(Map<String, Object?>? initiator) {
   };
 }
 
-// Implements: DIARY-GUI-audit-log-common/D — produces the Details column's human-readable
-//   summary of the Action (affected record plus any change reason / free-text parameter).
+// Implements: DIARY-GUI-audit-log-common/C+D — the Details column's human-readable
+//   summary: the affected record (by display name when the server resolved one,
+//   else the raw id) plus any free-text reason the Action carried.
 String detailsSummary(Map<String, Object?> row) {
-  final t = (row['aggregate_type'] as String?) ?? '?';
+  // Affected account by name when known (target_name); otherwise the aggregate
+  // id (an email for portal_user, the site/participant id otherwise).
+  final target = (row['target_name'] as String?)?.trim();
   final id = (row['aggregate_id'] as String?) ?? '?';
-  final reason = row['change_reason'] as String?;
-  final base = '$t $id';
-  return (reason == null || reason.isEmpty) ? base : '$base — $reason';
+  final subject = (target != null && target.isNotEmpty) ? target : id;
+  final reason = (row['change_reason'] as String?)?.trim();
+  if (reason == null || reason.isEmpty) return subject;
+  return '$subject — Reason: "$reason"';
 }

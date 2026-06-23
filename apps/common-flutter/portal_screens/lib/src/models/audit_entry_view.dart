@@ -25,6 +25,12 @@ class AuditEntryView {
   /// row. Empty string for non-user initiators.
   final String actorRole;
 
+  /// Actor's email address. Rendered as the small subtitle under [actorName]
+  /// in the row so the cell shows the person's name on top and their email
+  /// below. Empty string for non-user initiators, or when it would merely
+  /// duplicate [actorName] (no display name was resolved).
+  final String actorEmail;
+
   /// One-line activity description, pre-rendered for the row. Examples:
   /// "Created user account for Dr. Emily Parker",
   /// "Activation email sent to Jennifer Martinez".
@@ -42,6 +48,7 @@ class AuditEntryView {
     required this.actorName,
     required this.actorRole,
     required this.activityLabel,
+    this.actorEmail = '',
     required this.raw,
   });
 
@@ -53,6 +60,7 @@ class AuditEntryView {
           timestamp == other.timestamp &&
           actorName == other.actorName &&
           actorRole == other.actorRole &&
+          actorEmail == other.actorEmail &&
           activityLabel == other.activityLabel &&
           mapEquals(raw, other.raw);
 
@@ -60,12 +68,18 @@ class AuditEntryView {
   /// effectively keyed by [id] anyway and recursive map hashing is wasted
   /// work on every row.
   @override
-  int get hashCode =>
-      Object.hash(id, timestamp, actorName, actorRole, activityLabel);
+  int get hashCode => Object.hash(
+        id,
+        timestamp,
+        actorName,
+        actorRole,
+        actorEmail,
+        activityLabel,
+      );
 
   @override
   String toString() =>
       'AuditEntryView(id: $id, timestamp: $timestamp, '
       'actorName: $actorName, actorRole: $actorRole, '
-      'activityLabel: $activityLabel)';
+      'actorEmail: $actorEmail, activityLabel: $activityLabel)';
 }

@@ -32,6 +32,8 @@ void main() {
       expect(row['timestamp'], '2026-01-02T03:04:05.000Z');
       expect(row['event_id'], 'evt-1');
       expect(row['sequence'], 7);
+      // Verifies: DIARY-GUI-audit-log-common/F — the Action-Inventory name.
+      expect(row['action_name'], 'Create User Account');
     });
 
     test('maps an automation-initiated event', () {
@@ -47,6 +49,94 @@ void main() {
       );
       final initiator = row['initiator']! as Map<String, Object?>;
       expect(initiator['kind'], 'anonymous');
+    });
+
+    // Verifies: DIARY-GUI-audit-log-common/A — display names resolved from the
+    //   nameByEmail map populate the actor (initiator.name) and the affected
+    //   account (target_name); an absent entry leaves names off.
+    test('resolves actor + target display names from nameByEmail', () {
+      final row = auditRowJson(
+        _event(const UserInitiator('admin-1')),
+        nameByEmail: const {
+          'admin-1': 'Elvira Koliadina',
+          'u@x.com': 'Mike Lewis',
+        },
+      );
+      expect(row['initiator'],
+          {'kind': 'user', 'label': 'admin-1', 'name': 'Elvira Koliadina'});
+      expect(row['target_name'], 'Mike Lewis');
+    });
+
+    test('omits names when nameByEmail has no entry', () {
+      final row = auditRowJson(_event(const UserInitiator('admin-1')));
+      expect((row['initiator']! as Map).containsKey('name'), isFalse);
+      expect(row.containsKey('target_name'), isFalse);
+    });
+  });
+
+  group('adminActionName / auditEventIsAdminAction', () {
+    // Verifies: DIARY-GUI-audit-log-common/F + DIARY-DEV-audit-log-read/A
+    test('maps Administrator action entry types to Action-Inventory names', () {
+      expect(adminActionName('user_created', 'finalized'), 'Create User Account');
+      expect(adminActionName('user_profile_changed', 'x'), 'Edit User Account');
+      expect(adminActionName('user_deactivated', 'x'), 'Deactivate User Account');
+      expect(adminActionName('user_reactivated', 'x'), 'Reactivate User Account');
+      expect(adminActionName('user_activation_code_issued', 'x'),
+          'Resend Activation Email');
+      expect(adminActionName('user_role_scope', 'role_assigned'),
+          'Assign Role or Site to User Account');
+    });
+
+    test('returns null for system/automation events (excluded from admin log)',
+        () {
+      for (final et in const [
+        'session_started',
+        'session_terminated',
+        'user_activated',
+        'user_sessions_revoked',
+        'edc_sync_succeeded',
+      ]) {
+        expect(adminActionName(et, 'x'), isNull, reason: et);
+      }
+    });
+
+    test('auditEventIsAdminAction: user-initiated admin actions only', () {
+      StoredEvent ev(String entryType, Initiator initiator) =>
+          StoredEvent.synthetic(
+            eventId: 'e',
+            aggregateId: 'a',
+            aggregateType: 'portal_user',
+            entryType: entryType,
+            eventType: 'x',
+            sequenceNumber: 1,
+            data: const {},
+            metadata: const {},
+            initiator: initiator,
+            clientTimestamp: DateTime.utc(2026),
+            eventHash: 'h',
+          );
+      const admin = UserInitiator('admin-1');
+      // Admin-initiated admin action: included.
+      expect(auditEventIsAdminAction(ev('user_reactivated', admin)), isTrue);
+      // Non-admin-action entry type: excluded regardless of initiator.
+      expect(auditEventIsAdminAction(ev('session_started', admin)), isFalse);
+      // Admin-action entry type but automation-initiated (e.g. the activation
+      // code an account-create flow auto-issues): excluded — the Admin view
+      // shows the Administrator's own actions only, not "Automation" rows.
+      expect(
+        auditEventIsAdminAction(
+          ev('user_activation_code_issued',
+              const AutomationInitiator(service: 'sys')),
+        ),
+        isFalse,
+      );
+      // Anonymous-initiated: excluded.
+      expect(
+        auditEventIsAdminAction(
+          ev('user_reactivated', const AnonymousInitiator(ipAddress: null)),
+        ),
+        isFalse,
+      );
     });
   });
 
