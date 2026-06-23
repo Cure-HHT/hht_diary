@@ -22,10 +22,10 @@ DEFAULT_DEVICE_SPECS=$(printf '%s\n' \
   'model=g0q,version=31,locale=en,orientation=portrait' \
   'model=redfin,version=31,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=32,locale=en,orientation=portrait' \
-  'model=LargeFormFactor.arm,version=30,locale=en,orientation=portrait' \
+  'model=MediumPhone.arm,version=31,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=30,locale=en,orientation=portrait' \
-  'model=LargeFormFactor.arm,version=33,locale=en,orientation=portrait' \
-  'model=SmallPhone.arm,version=28,locale=en,orientation=portrait' \
+  'model=MediumPhone.arm,version=33,locale=en,orientation=portrait' \
+  'model=MediumPhone.arm,version=28,locale=en,orientation=portrait' \
   'model=redfin,version=28,locale=en,orientation=portrait' \
 )
 DEVICE_SPECS="${ANDROID_DEVICES:-${DEFAULT_DEVICE_SPECS}}"
