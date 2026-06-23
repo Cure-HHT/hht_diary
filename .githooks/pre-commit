@@ -576,6 +576,11 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
 
     # Load shared project definitions (version-utils.sh sourced above)
     source "$HOOK_DIR/project-defs.sh"
+    source "$HOOK_DIR/fetch-cache.sh"
+
+    # Refresh origin/main (TTL-cached) so the bump compares against real main,
+    # not a stale local ref. Shared cache means the imminent push won't re-fetch.
+    ensure_main_fresh
 
     # `git diff --cached` during a merge returns every file being merged
     # in, not just files the developer authored — so without this gate
@@ -595,8 +600,12 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
     REPO_ROOT=$(git rev-parse --show-toplevel)
 
     # Combine staged files + branch history for trigger matching
-    BUMP_BASE_BRANCH="origin/main"
-    if ! git rev-parse --verify "$BUMP_BASE_BRANCH" &>/dev/null; then
+    # Prefer the SHA fetch-cache just resolved; fall back to a local ref.
+    if [ -n "${MAIN_SHA:-}" ]; then
+        BUMP_BASE_BRANCH="$MAIN_SHA"
+    elif git rev-parse --verify "origin/main" &>/dev/null; then
+        BUMP_BASE_BRANCH="origin/main"
+    else
         BUMP_BASE_BRANCH="main"
     fi
 
@@ -642,8 +651,8 @@ if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
             if [ "$any_trigger" = true ]; then
                 current=$(grep '^version:' "$FULL_PUBSPEC" | sed 's/version: //')
 
-                # Get the version from origin/main for comparison
-                main_version=$(git show "$BUMP_BASE_BRANCH:$pubspec" 2>/dev/null | grep '^version:' | sed 's/version: //' || true)
+                # Get the version from origin/main for comparison (cached)
+                main_version=$(main_version_for "$pubspec")
 
                 # Skip if already properly bumped for this change type
                 if verify_version_bumped_for "$version_mode" "$current" "${main_version:-0}" "$code_changed"; then
