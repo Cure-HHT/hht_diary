@@ -147,24 +147,199 @@ prescan_command = ""
 reference_keyword = "Verifies"
 reference_patterns = []
 
-[scanning.result]
-# Test result scanning intentionally disabled — the URS-1 branch is
-# spec-and-render work; no test runs are part of this PR cadence. CI
-# generates per-package test artifacts under their own build/ trees,
-# not in a single build-reports/ collection. Re-enable (and point at
-# the artifacts) once a unified test-results pipeline exists; tracked
-# alongside CUR-1359.
-directories = []
-file_patterns = []
-skip_files = []
-skip_dirs = []
-run_meta_file = ""
+# Dart test targets (CUR-1533): flutter test --machine + lcov ingestion for
+# all testable Dart packages in this repo. apps/diary-portal-resolver (Go)
+# is deferred to CUR-1542 and intentionally excluded here.
 
-[scanning.coverage]
-directories = ["."]
-file_patterns = []
-skip_files = []
-skip_dirs = []
+[[scanning.test.targets]]
+name = "apps/common-dart/canonical_json_jcs"
+cwd = "apps/common-dart/canonical_json_jcs"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-dart/comms"
+cwd = "apps/common-dart/comms"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-dart/diary_shared_model"
+cwd = "apps/common-dart/diary_shared_model"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-dart/event_sourcing_datastore"
+cwd = "apps/common-dart/event_sourcing_datastore"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-dart/event_sourcing_datastore/example"
+cwd = "apps/common-dart/event_sourcing_datastore/example"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-dart/otel_common"
+cwd = "apps/common-dart/otel_common"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-dart/portal_actions"
+cwd = "apps/common-dart/portal_actions"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-dart/provenance"
+cwd = "apps/common-dart/provenance"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-dart/shared_functions"
+cwd = "apps/common-dart/shared_functions"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-dart/trial_data_types"
+cwd = "apps/common-dart/trial_data_types"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-flutter/diary_design_system"
+cwd = "apps/common-flutter/diary_design_system"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-flutter/eq"
+cwd = "apps/common-flutter/eq"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/common-flutter/portal_screens"
+cwd = "apps/common-flutter/portal_screens"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/daily-diary/clinical_diary"
+cwd = "apps/daily-diary/clinical_diary"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/edc/rave-integration"
+cwd = "apps/edc/rave-integration"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/sponsor-portal/portal_identity"
+cwd = "apps/sponsor-portal/portal_identity"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/sponsor-portal/portal_server_evs"
+cwd = "apps/sponsor-portal/portal_server_evs"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/sponsor-portal/portal_service"
+cwd = "apps/sponsor-portal/portal_service"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
+
+[[scanning.test.targets]]
+name = "apps/sponsor-portal/portal_ui_evs"
+cwd = "apps/sponsor-portal/portal_ui_evs"
+command = "flutter test --machine --coverage"
+reporter = "flutter-machine"
+coverage = "coverage/lcov.info"
+results = "coverage/machine.jsonl"
+match = "precise"
+credit_coverage = "verified"
 
 [scanning.journey]
 directories = ["spec"]

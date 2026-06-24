@@ -91,7 +91,8 @@ jobs:
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
             cd /workspace/src/apps/sponsor-portal/portal_ui_evs
-            flutter test --coverage
+            mkdir -p coverage
+            flutter test --machine --coverage > coverage/machine.jsonl
           "
 
       - name: Restore workspace ownership
@@ -104,6 +105,15 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
             "cat /workspace/src/apps/sponsor-portal/portal_ui_evs/coverage/lcov.info" \
             > $GITHUB_WORKSPACE/portal-ui-evs-lcov.info || true
+
+      - name: Ingest portal_ui_evs results into elspais
+        if: always()
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src
+            elspais checks --tests --lenient
+          "
 
       - name: Upload portal_ui_evs coverage to Codecov
         uses: codecov/codecov-action@v6

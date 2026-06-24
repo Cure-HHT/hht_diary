@@ -236,7 +236,7 @@ ARG GITLEAKS_VERSION=8.29.0
 # Canonical pin: .github/versions.env (ELSPAIS_VERSION). Image builds pass it as
 # a build-arg which overrides this default; keep this fallback current so an
 # ad-hoc build without the build-arg still gets the pinned version.
-ARG ELSPAIS_VERSION=0.117.32
+ARG ELSPAIS_VERSION=0.117.81
 ARG MARKDOWNLINT_CLI_VERSION=0.46.0
 
 # Gitleaks (secret scanning)
