@@ -141,21 +141,26 @@ class _PortalDashboardState extends State<PortalDashboard> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(48, 24, 48, 0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: DashboardTabs(
-                tabs: [for (final d in widget.destinations) d._asTab],
-                // With an override showing, no tab is the active surface;
-                // a key that matches no tab renders every pill inactive.
-                activeKey: widget.bodyOverride == null
-                    ? _activeKey
-                    : '__override__',
-                onTap: _select,
+          // A lone destination needs no selector: hide the pill strip and give
+          // its body the full height. The strip still shows while a chrome
+          // override (e.g. Study Settings) is up, so tapping the single pill
+          // remains the way back to the tab.
+          if (widget.destinations.length > 1 || widget.bodyOverride != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(48, 24, 48, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: DashboardTabs(
+                  tabs: [for (final d in widget.destinations) d._asTab],
+                  // With an override showing, no tab is the active surface;
+                  // a key that matches no tab renders every pill inactive.
+                  activeKey: widget.bodyOverride == null
+                      ? _activeKey
+                      : '__override__',
+                  onTap: _select,
+                ),
               ),
             ),
-          ),
           Expanded(child: widget.bodyOverride ?? active.body(context)),
         ],
       ),
