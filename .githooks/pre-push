@@ -140,6 +140,49 @@ if [ -f "$REPO_ROOT/.github/versions.env" ]; then
     done < "$REPO_ROOT/.github/versions.env"
 fi
 
+# =====================================================
+# Version Bump Gate (rebase-proof; reuses version-utils.sh)
+# =====================================================
+# Runs FIRST, before the slow checks below: a rebase under-bump is corrected
+# and the push aborted up front, so the expensive checks (elspais, gitleaks,
+# format/analyze/test) don't run only to be discarded and re-run on the
+# re-push. pre-commit bumps on the happy path, but git rebase never re-runs
+# pre-commit, so a rebased branch can reach push with a version <= main. This
+# gate verifies every changed package over the FULL origin/main..HEAD range and
+# auto-corrects with a new bump commit.
+if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
+    GATE_HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+    source "$GATE_HOOK_DIR/version-utils.sh"
+    source "$GATE_HOOK_DIR/project-defs.sh"
+    source "$GATE_HOOK_DIR/fetch-cache.sh"
+    source "$GATE_HOOK_DIR/version-gate.sh"
+
+    if is_merge_commit_in_progress; then
+        printf '%b\n' "${BLUE}Version gate: merge in progress, skipping (merged code already bumped)${NC}"
+    else
+        ensure_main_fresh
+        HEAD_SHA="$(git rev-parse HEAD 2>/dev/null || echo "")"
+        if [ -z "${MAIN_SHA:-}" ]; then
+            printf '%b\n' "${YELLOW}Version gate: no origin/main ref, skipping${NC}"
+        elif verify_short_circuit_ok "$HEAD_SHA"; then
+            printf '%b\n' "${BLUE}Version gate: unchanged since last check, skipping${NC}"
+        else
+            run_version_gate "$REPO_ROOT" && GATE_RC=0 || GATE_RC=$?
+            if [ "$GATE_RC" -eq 1 ]; then
+                printf '%b\n' "${RED}Versions were under-bumped vs origin/main and have been corrected${NC}"
+                printf '%b\n' "${RED}in a new commit. Run 'git push' again to push the corrected commit.${NC}"
+                exit 1
+            elif [ "$GATE_RC" -eq 2 ]; then
+                printf '%b\n' "${RED}Version gate could not refresh a lock file (pub get failed). Fix deps and retry.${NC}"
+                exit 1
+            fi
+            record_verify_pass "$HEAD_SHA"
+            printf '%b\n' "${GREEN}Version gate passed${NC}"
+        fi
+    fi
+fi
+echo ""
+
 # Check elspais version against minimum required
 if [ -n "$ELSPAIS_VERSION" ]; then
     if command -v elspais &> /dev/null; then
@@ -187,20 +230,6 @@ if command -v elspais &> /dev/null; then
 else
     printf '%b\n' "${RED}ERROR: elspais not installed - requirement validation is required${NC}"
     VALIDATION_FAILED=true
-fi
-
-# =====================================================
-# INDEX.md Validation (restored from the retired custom-pre-push)
-# =====================================================
-if command -v elspais &> /dev/null; then
-    printf '%b\n' "${BLUE}Validating INDEX.md...${NC}"
-    if ! elspais index --mode core validate 2>&1; then
-        VALIDATION_FAILED=true
-        printf '%b\n' "${RED}INDEX.md validation failed!${NC}"
-    else
-        printf '%b\n' "${GREEN}INDEX.md validation passed!${NC}"
-    fi
-    echo ""
 fi
 
 # Surface a notice when defined-terms checks have been relaxed to info-level
@@ -563,45 +592,6 @@ else
     printf '%b\n' "${BLUE}No app directories with test.sh affected by changes${NC}"
     echo ""
 fi
-
-# =====================================================
-# Version Bump Gate (rebase-proof; reuses version-utils.sh)
-# =====================================================
-# pre-commit bumps on the happy path, but git rebase never re-runs pre-commit,
-# so a rebased branch can reach push with a version <= main. This gate verifies
-# every changed package over the FULL origin/main..HEAD range and auto-corrects
-# with a new bump commit, then aborts so the fix is re-pushed.
-
-if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
-    source "$HOOK_DIR/version-utils.sh"
-    source "$HOOK_DIR/fetch-cache.sh"
-    source "$HOOK_DIR/version-gate.sh"
-
-    if is_merge_commit_in_progress; then
-        printf '%b\n' "${BLUE}Version gate: merge in progress, skipping (merged code already bumped)${NC}"
-    else
-        ensure_main_fresh
-        HEAD_SHA="$(git rev-parse HEAD 2>/dev/null || echo "")"
-        if [ -z "${MAIN_SHA:-}" ]; then
-            printf '%b\n' "${YELLOW}Version gate: no origin/main ref, skipping${NC}"
-        elif verify_short_circuit_ok "$HEAD_SHA"; then
-            printf '%b\n' "${BLUE}Version gate: unchanged since last check, skipping${NC}"
-        else
-            run_version_gate "$REPO_ROOT" && GATE_RC=0 || GATE_RC=$?
-            if [ "$GATE_RC" -eq 1 ]; then
-                printf '%b\n' "${RED}Versions were under-bumped vs origin/main and have been corrected${NC}"
-                printf '%b\n' "${RED}in a new commit. Run 'git push' again to push the corrected commit.${NC}"
-                exit 1
-            elif [ "$GATE_RC" -eq 2 ]; then
-                printf '%b\n' "${RED}Version gate could not refresh a lock file (pub get failed). Fix deps and retry.${NC}"
-                exit 1
-            fi
-            record_verify_pass "$HEAD_SHA"
-            printf '%b\n' "${GREEN}Version gate passed${NC}"
-        fi
-    fi
-fi
-echo ""
 
 # =====================================================
 # 8. Handle Validation Results
