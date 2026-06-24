@@ -29,6 +29,9 @@ ensure_main_fresh() {
     [ "${HHT_MAIN_FETCH_FORCE:-}" = "1" ] && force=1
 
     local ttl="${HHT_MAIN_FETCH_TTL:-90}"
+    # Normalize a non-integer TTL back to the default so the numeric -lt below
+    # can't emit "integer expression expected".
+    [[ "$ttl" =~ ^[0-9]+$ ]] || ttl=90
     local dir; dir="$(_fc_cache_dir)"
     local meta="$dir/hht-main-cache"
     local now; now="$(_fc_now)"

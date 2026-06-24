@@ -61,12 +61,14 @@ Runs before every `git push`. Blocking behavior is PR-aware:
 - Branch **with** open PR: validation failures **block** the push.
 - Branch **without** PR: validation failures show warnings only (push allowed).
 
-**Checks performed:**
+**Checks performed** (the version gate runs first, before the slower checks, so
+a rebase under-bump is corrected and the push aborted up front):
 
-1. **elspais checks** — `elspais checks --spec --code --terms` (REQ format, links,
-   term usage). Version gate enforced: hook fails fast if installed elspais is
-   older than `ELSPAIS_VERSION` in `.github/versions.env`.
-2. **INDEX.md validation** — `elspais index --mode core validate`
+1. **Version gate** — verifies every changed package has a build-number bump
+   vs `origin/main`; auto-commits a correction and aborts so the fix is re-pushed
+2. **elspais checks** — `elspais checks --spec --code --terms` (REQ format, links,
+   term usage; INDEX accuracy). Version pin enforced: the hook fails fast if the
+   installed elspais is older than `ELSPAIS_VERSION` in `.github/versions.env`.
 3. **Markdown linting** — runs `markdownlint` on changed `.md` files
 4. **Secret detection** — runs `gitleaks` on commits being pushed
 5. **Dart dependency resolution** — `flutter pub get` / `dart pub get` per app
@@ -74,8 +76,6 @@ Runs before every `git push`. Blocking behavior is PR-aware:
 7. **Dart static analysis** — `dart analyze --fatal-infos`
 8. **Test suites** — runs `tool/test.sh -u` for apps whose source or dependency
    trigger paths have changes (unit tests only)
-9. **Version gate** — verifies every changed package has a build-number bump
-   vs `origin/main`; auto-commits a correction and aborts so the fix is re-pushed
 
 **Bypass (NOT RECOMMENDED for PR branches):**
 
@@ -91,14 +91,13 @@ The following scripts are sourced by the hooks — do not delete or rename them:
 | ---- | ------- |
 | `version-utils.sh` | `is_merge_commit_in_progress`, `verify_version_bumped_for`, `compute_new_version_for` |
 | `project-defs.sh` | `PROJECT_DEFS` array mapping Dart/Flutter package names to pubspec paths, code dirs, trigger paths, and version mode |
-| `fetch-cache.sh` | `ensure_main_fresh`, `main_version_for` (SHA-keyed cache) — TTL-limited `git fetch origin main` |
-| `version-gate.sh` | `run_version_gate`, `verify_short_circuit_ok`, `record_verify_pass` — rebase-proof bump verifier |
+| `fetch-cache.sh` | `ensure_main_fresh`, `main_version_for` (SHA-keyed cache), `verify_short_circuit_ok`, `record_verify_pass` — TTL-limited `git fetch origin main` + verify short-circuit state |
+| `version-gate.sh` | `run_version_gate` — rebase-proof bump verifier/auto-corrector |
 
-## Opt-Outs (SKIP_* variables)
+## Opt-Outs
 
-| Variable | Effect |
-| -------- | ------ |
-| `SKIP_DART_FORMAT=1` | Skip dart format check in pre-commit (not recommended) |
+| Mechanism | Effect |
+| --------- | ------ |
 | `git commit --no-verify` | Bypass all pre-commit and commit-msg checks |
 | `git push --no-verify` | Bypass all pre-push checks |
 
