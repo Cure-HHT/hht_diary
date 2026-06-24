@@ -149,13 +149,62 @@ void main() {
   });
 
   test(
-      'questionnaire_finalized instance is NOT returned in active tasks '
-      '(finalized drops from /user/tasks list)', () async {
-    // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/M — once a
-    //   questionnaire is finalized it is no longer an active task for the
-    //   participant; the handler skips rows whose entryType is
-    //   'questionnaire_finalized'.
-    final store = await _openStore('tasks-finalized-drops');
+      'questionnaire_submission_received instance IS returned with '
+      'status=ready_to_review (diary needs to see it for categorization)',
+      () async {
+    // Verifies: DIARY-GUI-participant-task-list/I — the diary needs
+    //   ready_to_review status to categorize the task; the handler must include
+    //   it, not skip it.
+    final store = await _openStore('tasks-submitted-ready-to-review');
+    addTearDown(store.close);
+    await _seedTrialStarted(store);
+
+    await store.append(
+      entryType: 'questionnaire_assigned',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-SUB',
+      eventType: 'questionnaire_assigned',
+      data: const <String, Object?>{
+        'participant_id': 'P-1',
+        'type': 'nose_hht',
+        'study_event': 'Cycle 1 Day 1',
+      },
+      initiator: const UserInitiator('coordinator-1'),
+    );
+
+    // Participant submitted: the reactor's dedicated event folds into the row.
+    await store.append(
+      entryType: 'questionnaire_submission_received',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-SUB',
+      eventType: 'questionnaire_submission_received',
+      data: const <String, Object?>{
+        'completed_at': '2026-02-02T00:00:00.000Z',
+        'questionnaire_type': 'nose_hht',
+      },
+      initiator: const AutomationInitiator(service: 'questionnaire-submission'),
+    );
+
+    final token = createPatientJwt(authCode: 'ac', userId: 'P-1');
+    final handler = patientTasksHandler(eventStore: store);
+
+    final res = await handler(_get(auth: 'Bearer $token'));
+    expect(res.statusCode, 200);
+
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    final tasks = (body['tasks'] as List).cast<Map<String, dynamic>>();
+    expect(tasks, hasLength(1));
+    expect(tasks.single['questionnaire_instance_id'], 'QI-SUB');
+    expect(tasks.single['status'], 'ready_to_review');
+  });
+
+  test(
+      'finalized questionnaire_instance IS returned with status=finalized '
+      '(diary mints device-observed event on seeing this status)', () async {
+    // Verifies: DIARY-GUI-participant-task-list/I+J — the diary needs the
+    //   finalized status to mint the device-observed questionnaire_finalized
+    //   event; the handler must include it, not skip it.
+    final store = await _openStore('tasks-finalized-surfaced');
     addTearDown(store.close);
     await _seedTrialStarted(store);
 
@@ -193,25 +242,26 @@ void main() {
     expect(res.statusCode, 200);
 
     final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
-    // The finalized instance must NOT appear in the active task list.
-    expect(body['tasks'], isEmpty);
+    final tasks = (body['tasks'] as List).cast<Map<String, dynamic>>();
+    expect(tasks, hasLength(1));
+    expect(tasks.single['questionnaire_instance_id'], 'QI-DONE');
+    expect(tasks.single['status'], 'finalized');
   });
 
   test(
-      'questionnaire_submission_received instance is NOT returned in active '
-      'tasks (submitted -> Ready to Review, drops from /user/tasks)', () async {
-    // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/G — once the
-    //   participant has submitted (entryType 'questionnaire_submission_received',
-    //   status Ready to Review for the coordinator) it is no longer an active
-    //   task for the participant; the handler skips it.
-    final store = await _openStore('tasks-submitted-drops');
+      'unlocked questionnaire_instance IS returned with status=unlocked '
+      '(diary needs to re-present the task for re-submission)', () async {
+    // Verifies: DIARY-GUI-participant-task-list/J — the diary needs the
+    //   unlocked status to re-present the task for re-submission.
+    final store = await _openStore('tasks-unlocked-surfaced');
     addTearDown(store.close);
     await _seedTrialStarted(store);
 
+    // Assign → finalize → unlock lifecycle.
     await store.append(
       entryType: 'questionnaire_assigned',
       aggregateType: 'questionnaire_instance',
-      aggregateId: 'QI-SUB',
+      aggregateId: 'QI-UNL',
       eventType: 'questionnaire_assigned',
       data: const <String, Object?>{
         'participant_id': 'P-1',
@@ -220,18 +270,35 @@ void main() {
       },
       initiator: const UserInitiator('coordinator-1'),
     );
-
-    // Participant submitted: the reactor's dedicated event folds into the row.
     await store.append(
       entryType: 'questionnaire_submission_received',
       aggregateType: 'questionnaire_instance',
-      aggregateId: 'QI-SUB',
+      aggregateId: 'QI-UNL',
       eventType: 'questionnaire_submission_received',
       data: const <String, Object?>{
         'completed_at': '2026-02-02T00:00:00.000Z',
         'questionnaire_type': 'nose_hht',
       },
       initiator: const AutomationInitiator(service: 'questionnaire-submission'),
+    );
+    await store.append(
+      entryType: 'questionnaire_finalized',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-UNL',
+      eventType: 'questionnaire_finalized',
+      data: const <String, Object?>{'participant_id': 'P-1'},
+      initiator: const UserInitiator('coordinator-1'),
+    );
+    await store.append(
+      entryType: 'questionnaire_unlocked',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-UNL',
+      eventType: 'questionnaire_unlocked',
+      data: const <String, Object?>{
+        'participant_id': 'P-1',
+        'reason': 'data entry error',
+      },
+      initiator: const UserInitiator('coordinator-1'),
     );
 
     final token = createPatientJwt(authCode: 'ac', userId: 'P-1');
@@ -241,8 +308,37 @@ void main() {
     expect(res.statusCode, 200);
 
     final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
-    // The submitted instance must NOT appear in the active task list.
-    expect(body['tasks'], isEmpty);
+    final tasks = (body['tasks'] as List).cast<Map<String, dynamic>>();
+    expect(tasks, hasLength(1));
+    expect(tasks.single['questionnaire_instance_id'], 'QI-UNL');
+    expect(tasks.single['status'], 'unlocked');
+  });
+
+  // Verifies: DIARY-DEV-outgoing-intent-correlation/B (polling backstop surfaces the recall)
+  test('recall notice surfaces as a task with status recalled', () async {
+    final store = await _openStore('tasks-recall.db');
+    await _seedTrialStarted(store, participantId: 'P-1');
+    final token = createPatientJwt(authCode: 'ac', userId: 'P-1');
+    await store.append(
+      entryType: 'questionnaire_recall_notice',
+      aggregateType: 'questionnaire_recall_notice',
+      aggregateId: 'P-1:recall:QI-9',
+      eventType: 'questionnaire_recall_notice',
+      data: <String, Object?>{
+        'participant_id': 'P-1',
+        'instance_id': 'QI-9',
+        'study_event': 'Cycle 4 Day 1',
+        'recalled_at': '2026-06-20T00:00:00Z',
+      },
+      initiator: const AutomationInitiator(service: 'test'),
+    );
+    final handler = patientTasksHandler(eventStore: store);
+    final res = await handler(_get(auth: 'Bearer $token'));
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    final tasks = (body['tasks'] as List).cast<Map<String, Object?>>();
+    final recalled = tasks.where((t) => t['status'] == 'recalled').toList();
+    expect(recalled.single['questionnaire_instance_id'], 'QI-9');
+    await store.close();
   });
 
   test('disconnected participant still receives tasks; is_disconnected == true',

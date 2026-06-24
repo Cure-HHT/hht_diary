@@ -171,4 +171,29 @@ void main() {
     // No success event recorded for a thrown dispatch.
     expect(await eventsOfType('notification_sent'), isEmpty);
   });
+
+  // Verifies: DIARY-DEV-outgoing-intent-correlation/B (recall delivered via existing push path, silent)
+  test('questionnaire_recall_notice sends a silent push carrying flow token',
+      () async {
+    await registerToken('P1', 'android', 'TOK1');
+    await reactor.handleIntent(
+      StoredEvent.synthetic(
+        eventId: 'syn-rn1',
+        aggregateId: 'P1:recall:QI1',
+        aggregateType: 'questionnaire_recall_notice',
+        entryType: 'questionnaire_recall_notice',
+        eventType: 'questionnaire_recall_notice',
+        flowToken: 'QST000009',
+        data: <String, dynamic>{'participant_id': 'P1', 'instance_id': 'QI1'},
+        initiator: const AutomationInitiator(service: 'test'),
+        clientTimestamp: t0,
+        eventHash: 'h',
+      ),
+    );
+    expect(channel.sent, hasLength(1));
+    expect(channel.sent.single.message.userVisible, isFalse);
+    expect(channel.sent.single.message.data['type'],
+        'questionnaire_recall_notice');
+    expect(channel.sent.single.message.data['flowToken'], 'QST000009');
+  });
 }

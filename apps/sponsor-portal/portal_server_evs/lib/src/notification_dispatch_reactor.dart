@@ -46,6 +46,7 @@ class NotificationDispatchReactor {
     'participant_marked_not_participating': _Intent(userVisible: false),
     'participant_reconnected': _Intent(userVisible: false),
     'participant_reactivated': _Intent(userVisible: false),
+    'questionnaire_recall_notice': _Intent(userVisible: false),
   };
 
   StreamSubscription<Update<StoredEvent>>? _sub;

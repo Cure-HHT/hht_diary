@@ -44,15 +44,22 @@ class SystemEventsDestination extends CanonicalIngestDestination {
 
   /// Selects finalized + tombstone events on the system aggregates. Today that
   /// is the FCM aggregates (`FcmToken` token registration/refresh,
-  /// `InboundMessage` push receipts); additional system aggregate types (link /
-  /// sync / lifecycle) JOIN this set as those flows migrate to native ingest.
+  /// `InboundMessage` push receipts) and the recall-notice aggregate
+  /// (`questionnaire_recall_notice` ack events); additional system aggregate
+  /// types (link / sync / lifecycle) JOIN this set as those flows migrate to
+  /// native ingest.
   ///
   /// Device actions emit `eventType: 'finalized'` (the semantic name lives in
-  /// `entryType`, e.g. `fcm_token_registered`), so the event-type gate selects
-  /// `finalized` + `tombstone`, matching the portal token projection's axis.
+  /// `entryType`, e.g. `fcm_token_registered`, `questionnaire_recall_acked`),
+  /// so the event-type gate selects `finalized` + `tombstone`, matching the
+  /// portal projections' axis.
   @override
   SubscriptionFilter get filter => const SubscriptionFilter(
-    aggregateTypes: {'FcmToken', 'InboundMessage'},
+    aggregateTypes: {
+      'FcmToken',
+      'InboundMessage',
+      'questionnaire_recall_notice',
+    },
     eventTypes: {'finalized', 'tombstone'},
   );
 

@@ -4,11 +4,15 @@
 //   submission finalized through the NATIVE submit_questionnaire action lands a
 //   `<id>_survey` DiaryEntry event that matches DiaryServerDestination's filter
 //   (so it ships through the same native destination as nosebleed records).
+// Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S — dispatch
+//   record_questionnaire_finalized for an instance, then read questionnaire_status;
+//   the row for that instance must be present with isFinalized == true.
 //
 // Full round-trip through the REAL LocalScope: submit an Action via the scope's
 // actionSubmitter -> it dispatches -> appends -> projection -> read it back via
 // the scope's viewSource. Proves the composition root is wired correctly.
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
+import 'package:clinical_diary/read/questionnaire_status_projection.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
@@ -161,6 +165,42 @@ void main() {
       authToken: () async => null,
     );
     expect(destination.filter.matches(survey), isTrue);
+
+    await rt.dispose();
+  });
+
+  // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/S
+  test('record_questionnaire_finalized round-trips through the scope and '
+      'questionnaire_status view reflects isFinalized', () async {
+    final rt = await _boot();
+
+    // Dispatch the diary-local mint action.
+    final result = await rt.scope.actionSubmitter.submit(
+      const ActionSubmission(
+        actionName: 'record_questionnaire_finalized',
+        rawInput: {'instance_id': 'inst-q-1'},
+      ),
+    );
+    expect(result, isA<DispatchSuccess<Object?>>());
+
+    // Read the questionnaire_status view and check the row.
+    final rows = <QuestionnaireStatusRow>[];
+    final sub = rt.scope.viewSource
+        .watch<QuestionnaireStatusRow>(
+          viewName: questionnaireStatusViewName,
+          mapper: QuestionnaireStatusRow.fromViewRow,
+        )
+        .listen((u) {
+          if (u is Snapshot<QuestionnaireStatusRow>) {
+            final v = u.value;
+            if (v != null) rows.add(v);
+          }
+        });
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    await sub.cancel();
+
+    final row = rows.singleWhere((r) => r.instanceId == 'inst-q-1');
+    expect(row.isFinalized, isTrue);
 
     await rt.dispose();
   });

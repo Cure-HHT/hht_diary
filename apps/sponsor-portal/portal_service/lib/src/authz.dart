@@ -136,7 +136,10 @@ Future<EventStore> openPortalEventStore({
     ..register(diaryEntriesProjection)
     // Implements: DIARY-PRD-questionnaire-system/B — questionnaire_instance projects
     //   Completion Status per instance (Phase 1: folds questionnaire_assigned).
-    ..register(questionnaireInstanceSpec);
+    ..register(questionnaireInstanceSpec)
+    // Implements: DIARY-DEV-outgoing-intent-correlation/B — recall notices
+    //   durably queryable per (participant, instance); removed on device ack.
+    ..register(questionnaireRecallNoticeSpec);
 
   final bundle = await bootstrapEventStore(
     backend: backend,

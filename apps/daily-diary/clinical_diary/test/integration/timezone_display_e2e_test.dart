@@ -41,28 +41,20 @@
 //    test/widgets/time_picker_dial_test.dart group 'maxDateTime parameter
 //    (CUR-447)'.
 
-import 'dart:async';
-
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/screens/date_records_screen.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
-import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
-import 'package:clinical_diary/services/triggers.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/timezone_picker.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -71,66 +63,9 @@ import '../helpers/mock_enrollment_service.dart';
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
 
-// ---------------------------------------------------------------------------
-// Silent test seams (matches clinical_diary_bootstrap_test.dart).
-// ---------------------------------------------------------------------------
-
-class _SilentLifecycleObserver extends WidgetsBindingObserver {}
-
-LifecycleObserverFactory get _silentLifecycleFactory =>
-    (onResumed, onForegroundChange) => _SilentLifecycleObserver();
-
-class _CancelledTimer implements Timer {
-  @override
-  bool get isActive => false;
-  @override
-  int get tick => 0;
-  @override
-  void cancel() {}
-}
-
-PeriodicTimerFactory get _silentTimerFactory =>
-    (duration, onTick) => _CancelledTimer();
-
-ConnectivityStreamFactory get _silentConnectivityFactory =>
-    () => const Stream<List<ConnectivityResult>>.empty();
-
-FcmOnMessageStreamFactory get _silentFcmMessageFactory =>
-    () => const Stream<RemoteMessage>.empty();
-
-FcmOnOpenedStreamFactory get _silentFcmOpenedFactory =>
-    () => const Stream<RemoteMessage>.empty();
-
-const _baseUrl = 'https://diary.example.com/';
 const _deviceId = 'tz-int-device-001';
 const _softwareVersion = 'clinical_diary@0.0.0+integration';
 const _userId = 'tz-int-user-001';
-
-Future<ClinicalDiaryRuntime> _bootstrap() async {
-  final db = await newDatabaseFactoryMemory().openDatabase(
-    'tz-display-${DateTime.now().microsecondsSinceEpoch}.db',
-  );
-  final client = MockClient((req) async {
-    if (req.url.path.endsWith('inbound')) {
-      return http.Response('{"messages":[]}', 200);
-    }
-    return http.Response('', 200);
-  });
-  return bootstrapClinicalDiary(
-    sembastDatabase: db,
-    authToken: () async => 'integration-token',
-    resolveBaseUrl: () async => Uri.parse(_baseUrl),
-    deviceId: _deviceId,
-    softwareVersion: _softwareVersion,
-    userId: _userId,
-    httpClient: client,
-    lifecycleObserverFactory: _silentLifecycleFactory,
-    periodicTimerFactory: _silentTimerFactory,
-    connectivityStreamFactory: _silentConnectivityFactory,
-    fcmOnMessageStreamFactory: _silentFcmMessageFactory,
-    fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
-  );
-}
 
 Future<void> _settle(WidgetTester tester) async {
   for (var i = 0; i < 30; i++) {
@@ -199,7 +134,6 @@ void main() {
   });
 
   group('Timezone display E2E', () {
-    late ClinicalDiaryRuntime runtime;
     late DiaryScopeRuntime diaryScope;
     late MockEnrollmentService enrollment;
     late TaskService tasks;
@@ -208,7 +142,6 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       enrollment = MockEnrollmentService();
       tasks = TaskService();
-      runtime = await _bootstrap();
       final scopeDb = await newDatabaseFactoryMemory().openDatabase(
         'tz-scope-${DateTime.now().microsecondsSinceEpoch}.db',
       );
@@ -222,7 +155,6 @@ void main() {
 
     tearDown(() async {
       await diaryScope.dispose();
-      await runtime.dispose();
       tasks.dispose();
     });
 
@@ -276,7 +208,7 @@ void main() {
           scope: diaryScope.scope,
           child: wrapWithMaterialApp(
             HomeScreen(
-              runtime: runtime,
+              diaryScope: diaryScope,
               deviceId: _deviceId,
               enrollmentService: enrollment,
               taskService: tasks,
@@ -317,6 +249,7 @@ void main() {
             onAddEvent: () {},
             onEditEvent: (_) {},
             onRedispositionMarker: (_) {},
+            onOpenSurvey: (_) {},
           ),
         ),
       );

@@ -26,6 +26,7 @@ import 'local_push_ws_handler.dart';
 import 'local_socket_push_channel.dart';
 import 'login_routes.dart';
 import 'notification_dispatch_reactor.dart';
+import 'recall_reactor.dart';
 import 'otp_store.dart';
 import 'password_reset_code_store.dart';
 import 'password_reset_routes.dart';
@@ -319,7 +320,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   // section 7 below.
   // Implements: DIARY-DEV-portal-session-token/A+B
   // Implements: DIARY-DEV-portal-session-lifecycle/A
-  final authMode = Platform.environment['PORTAL_AUTH_MODE'] ?? 'dev';
+  final authMode = env['PORTAL_AUTH_MODE'] ?? 'dev';
   // Per-sponsor HMAC key for linking-code check chars (verified offline by the
   // neutral resolver service). Threaded into generation always; required only
   // in production (session auth), mirroring PORTAL_SESSION_SIGNING_KEY so dev/
@@ -330,11 +331,28 @@ Future<PortalServerBoot> bootstrapPortalServer({
     throw StateError(
         'SPONSOR_RESOLVER_KEY is required when PORTAL_AUTH_MODE=session');
   }
+  // The sponsor's 2-char linking-code prefix. Required in production (session
+  // auth): a missing value silently falling back to a placeholder mints
+  // linking codes the mobile diary's SponsorRegistry cannot resolve, so fail
+  // fast at boot (serve nothing, wait for a reboot with proper config) rather
+  // than come up misconfigured. Dev/test keep a placeholder default, mirroring
+  // SPONSOR_RESOLVER_KEY above.
+  // Implements: DIARY-DEV-linking-code-lifecycle/E
+  final configuredLinkingPrefix = env['SPONSOR_LINKING_PREFIX'];
+  if (authMode == 'session' &&
+      (configuredLinkingPrefix == null || configuredLinkingPrefix.isEmpty)) {
+    throw StateError(
+        'SPONSOR_LINKING_PREFIX is required when PORTAL_AUTH_MODE=session');
+  }
+  final linkingPrefix =
+      (configuredLinkingPrefix == null || configuredLinkingPrefix.isEmpty)
+          ? 'XX'
+          : configuredLinkingPrefix;
   final dispatcher = await buildPortalDispatcher(
       eventStore: eventStore,
       roleGrantsYaml: roleGrantsYaml,
       idempotency: idempotency,
-      linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
+      linkingPrefix: linkingPrefix,
       sponsorResolverKey: sponsorResolverKey);
 
   // 7. Validator selection — default is dev so the existing admin-1/sc-1
@@ -463,7 +481,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
   final linkingCodeReactor = LinkingCodeLifecycleReactor(
     eventStore: eventStore,
     backend: backend,
-    linkingPrefix: env['SPONSOR_LINKING_PREFIX'] ?? 'XX',
+    linkingPrefix: linkingPrefix,
     sponsorResolverKey: sponsorResolverKey,
   )..start();
 
@@ -536,6 +554,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
           channel: pushChannel,
         )..start())
       : null;
+  // Enriches questionnaire_called_back -> questionnaire_recall_notice so that
+  // both the participant-facing recall projection and the push intent have a
+  // participant_id + study_event. Always started (not gated on push mode).
+  // Implements: DIARY-DEV-outgoing-intent-correlation/A+C
+  final recallReactor = RecallReactor(
+    eventStore: eventStore,
+    backend: backend,
+  )..start();
 
   // viewScopeRegistry enables per-subscription row-level narrowing: a site-bound
   // Study Coordinator's participant_record subscription is restricted to the
@@ -955,6 +981,7 @@ Future<PortalServerBoot> bootstrapPortalServer({
     await userTierReactor.stop();
     await questionnaireSubmissionReactor.stop();
     await notificationDispatchReactor?.stop();
+    await recallReactor.stop();
     fcmChannel?.dispose();
     await handlers.dispose();
     await eventStore.close();

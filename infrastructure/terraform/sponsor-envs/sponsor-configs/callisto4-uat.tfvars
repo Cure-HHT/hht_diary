@@ -84,8 +84,8 @@ github_repo = "hht_diary"
 enable_cloud_build_triggers = false
 
 # Container Images (via Artifact Registry GHCR proxy in admin project)
-diary_server_image  = "europe-west9-docker.pkg.uat/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
-portal_server_image = "europe-west9-docker.pkg.uat/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
+diary_server_image  = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-diary-server:latest"
+portal_server_image = "europe-west9-docker.pkg.dev/cure-hht-admin/ghcr-remote/cure-hht/clinical-diary-portal-server:latest"
 
 # Disable public access due to organization policy restrictions
 allow_public_access = true

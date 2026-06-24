@@ -3,6 +3,8 @@
 //   REQ-p01071: QoL Questionnaire UI
 //   REQ-p01073: Session Management
 
+import 'dart:async';
+
 import 'package:eq/eq.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -521,5 +523,49 @@ void main() {
 
     expect(find.text('Review Your Answers'), findsOneWidget);
     expect(find.text('Server error'), findsOneWidget);
+  });
+
+  // Verifies: DIARY-DEV-inbound-event-on-receipt/C (mid-cycle interrupt)
+  testWidgets('an active flow is interrupted when its recall signal fires', (
+    tester,
+  ) async {
+    setUpTestScreen(tester);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final ctrl = StreamController<bool>();
+    var onRecalledCalled = false;
+    var completed = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: QuestionnaireFlowScreen(
+          definition: qolDef,
+          instanceId: 'QI-9',
+          onSubmit: (_) async => const SubmitResult(success: true),
+          onComplete: () => completed = true,
+          recallSignal: ctrl.stream,
+          onRecalled: () async {
+            onRecalledCalled = true;
+          },
+        ),
+      ),
+    );
+
+    // Advance past readiness into the flow.
+    await tester.tap(find.text("I'm ready"));
+    await tester.pumpAndSettle();
+
+    // Fire the recall signal.
+    ctrl.add(true);
+    await tester.pumpAndSettle();
+
+    // onRecalled should have been invoked AND the flow should have called onComplete.
+    expect(onRecalledCalled, isTrue);
+    expect(completed, isTrue);
+
+    await ctrl.close();
   });
 }

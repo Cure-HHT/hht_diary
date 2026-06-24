@@ -86,22 +86,9 @@ class AppConfig {
     return EnvProfile.current.apiBase;
   }
 
-  // API Endpoints - paths match diary_server routes.dart
-  // Auth routes
-  static String get registerUrl => '$apiBase/api/v1/auth/register';
-  static String get loginUrl => '$apiBase/api/v1/auth/login';
-  static String get changePasswordUrl => '$apiBase/api/v1/auth/change-password';
-
-  // User routes
-  static String get enrollUrl =>
-      '$apiBase/api/v1/user/enroll'; // Deprecated, returns 410
+  // API Endpoints
   static String get linkUrl =>
-      '$apiBase/api/v1/user/link'; // Patient linking via sponsor portal codes
-  static String get syncUrl => '$apiBase/api/v1/user/sync';
-  static String get getRecordsUrl => '$apiBase/api/v1/user/records';
-
-  // Health check
-  static String get healthUrl => '$apiBase/health';
+      '$apiBase/api/v1/user/link'; // Participant linking via sponsor portal codes
 
   // ============================================================
   // App Metadata

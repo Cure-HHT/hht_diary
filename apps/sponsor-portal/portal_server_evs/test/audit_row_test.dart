@@ -77,10 +77,13 @@ void main() {
   group('adminActionName / auditEventIsAdminAction', () {
     // Verifies: DIARY-GUI-audit-log-common/F + DIARY-DEV-audit-log-read/A
     test('maps Administrator action entry types to Action-Inventory names', () {
-      expect(adminActionName('user_created', 'finalized'), 'Create User Account');
+      expect(
+          adminActionName('user_created', 'finalized'), 'Create User Account');
       expect(adminActionName('user_profile_changed', 'x'), 'Edit User Account');
-      expect(adminActionName('user_deactivated', 'x'), 'Deactivate User Account');
-      expect(adminActionName('user_reactivated', 'x'), 'Reactivate User Account');
+      expect(
+          adminActionName('user_deactivated', 'x'), 'Deactivate User Account');
+      expect(
+          adminActionName('user_reactivated', 'x'), 'Reactivate User Account');
       expect(adminActionName('user_activation_code_issued', 'x'),
           'Resend Activation Email');
       expect(adminActionName('user_role_scope', 'role_assigned'),

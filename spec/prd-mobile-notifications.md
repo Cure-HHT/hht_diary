@@ -251,17 +251,17 @@ B. When the **Mobile Application** is offline at the time an **Assigned Question
 
 C. The System SHALL NOT deliver a **Push Notification** for an **Assigned Questionnaire** that has already been submitted by the **Participant**.
 
-D. The System SHALL NOT deliver a **Push Notification** for an **Assigned Questionnaire** that has been called back by the **Study Coordinator**.
+D. The System SHALL NOT deliver the **new-questionnaire awareness Push Notification** for a **Portal-Sent Questionnaire** that has been called back before that awareness notification is delivered.
 
 ### Rationale
 
-The push notification is the *Participant*'s awareness signal that a new **Assigned Questionnaire** is waiting; without it, the *Participant* would discover the *Questionnaire* only when they happen to open the app, which can extend the response window beyond what the **Study Coordinator** intended. Trigger-on-delivery (rather than trigger-on-send-from-portal) is the correct boundary because delivery is what actually puts the *Questionnaire* on the *Participant*'s device; sending from the portal to an offline device is a *Sponsor*-side *Action* that has no *Participant*-side effect yet. Offline-deferred delivery follows the cross-cutting notification template — the OS deferred-delivery mechanism is sufficient for the nudge purpose. *Submission* and call-back suppression closes the two cases where the notification would be misleading: a *Questionnaire* already submitted no longer needs the *Participant*'s attention, and a called-back *Questionnaire* is no longer assigned to them and a notification would invite wasted effort on an inactive *Questionnaire*.
+The push notification is the *Participant*'s awareness signal that a new **Assigned Questionnaire** is waiting; without it, the *Participant* would discover the *Questionnaire* only when they happen to open the app, which can extend the response window beyond what the **Study Coordinator** intended. Trigger-on-delivery (rather than trigger-on-send-from-portal) is the correct boundary because delivery is what actually puts the *Questionnaire* on the *Participant*'s device; sending from the portal to an offline device is a *Sponsor*-side *Action* that has no *Participant*-side effect yet. Offline-deferred delivery follows the cross-cutting notification template — the OS deferred-delivery mechanism is sufficient for the nudge purpose. *Submission* suppression (assertion C) covers the case where the notification would arrive after the *Participant* has already acted. Call-back suppression (assertion D) closes the race where a *Study Coordinator* sends a *Questionnaire* while the device is offline — the awareness push is queued for deferred delivery — and then calls it back before the device reconnects; the now-stale awareness nudge is suppressed so the *Participant* is not directed to a *Questionnaire* that is no longer assigned to them.
 
 ### Screen reference
 
 See: ![Assigned *Questionnaire* Notification](./images/notification-assigned-questionnaire.png)
 
-*End* *Assigned Questionnaire Notification* | **Hash**: 238b9aa8
+*End* *Assigned Questionnaire Notification* | **Hash**: 8ac9c438
 
 ## DIARY-PRD-notification-yesterday-entry: Yesterday Entry Reminder Notification
 

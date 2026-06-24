@@ -2,8 +2,9 @@
 //   REQ-d00004: Local-First Data Entry Implementation
 //   REQ-p00008: Mobile App Diary Entry
 //
-// Phase 12.9 (CUR-1169): Restored from the legacy integration_test/ tree
-// against the new event_sourcing_datastore-backed runtime.
+// CUR-1169 / CUR-1522: HomeScreen end-to-end coverage on the native
+// event_sourcing diary scope (the sole runtime after the legacy diary-client
+// sync runtime was removed).
 //
 // The original 2729-line integration test bundled a long catalogue of
 // scenarios — most of which now live in narrower, faster suites:
@@ -35,33 +36,25 @@
 //  4. The LogoMenu opens, navigates to the Licenses page, and the legacy
 //     "Check for updates" affordance is gone (CUR-990).
 //
-// All scenarios drive a real ClinicalDiaryRuntime against an in-memory
+// All scenarios drive a real DiaryScopeRuntime against an in-memory
 // Sembast backend (no MockClient HTTP path is exercised — the home screen
 // itself doesn't issue HTTP, the destinations layer does, and that's
 // covered by cutover_flow_test.dart).
 
-import 'dart:async';
-
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/license_screen.dart';
-import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
-import 'package:clinical_diary/services/triggers.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -70,67 +63,9 @@ import '../helpers/mock_enrollment_service.dart';
 import '../helpers/test_helpers.dart';
 import '../test_helpers/flavor_setup.dart';
 
-// ---------------------------------------------------------------------------
-// Silent test seams (mirrors clinical_diary_bootstrap_test.dart and
-// home_screen_test.dart).
-// ---------------------------------------------------------------------------
-
-class _SilentLifecycleObserver extends WidgetsBindingObserver {}
-
-LifecycleObserverFactory get _silentLifecycleFactory =>
-    (onResumed, onForegroundChange) => _SilentLifecycleObserver();
-
-class _CancelledTimer implements Timer {
-  @override
-  bool get isActive => false;
-  @override
-  int get tick => 0;
-  @override
-  void cancel() {}
-}
-
-PeriodicTimerFactory get _silentTimerFactory =>
-    (duration, onTick) => _CancelledTimer();
-
-ConnectivityStreamFactory get _silentConnectivityFactory =>
-    () => const Stream<List<ConnectivityResult>>.empty();
-
-FcmOnMessageStreamFactory get _silentFcmMessageFactory =>
-    () => const Stream<RemoteMessage>.empty();
-
-FcmOnOpenedStreamFactory get _silentFcmOpenedFactory =>
-    () => const Stream<RemoteMessage>.empty();
-
-const _baseUrl = 'https://diary.example.com/';
 const _deviceId = 'home-int-device-001';
 const _softwareVersion = 'clinical_diary@0.0.0+integration';
 const _userId = 'home-int-user-001';
-
-Future<ClinicalDiaryRuntime> _bootstrap() async {
-  final db = await newDatabaseFactoryMemory().openDatabase(
-    'home-screen-int-${DateTime.now().microsecondsSinceEpoch}.db',
-  );
-  final client = MockClient((req) async {
-    if (req.url.path.endsWith('inbound')) {
-      return http.Response('{"messages":[]}', 200);
-    }
-    return http.Response('', 200);
-  });
-  return bootstrapClinicalDiary(
-    sembastDatabase: db,
-    authToken: () async => 'integration-token',
-    resolveBaseUrl: () async => Uri.parse(_baseUrl),
-    deviceId: _deviceId,
-    softwareVersion: _softwareVersion,
-    userId: _userId,
-    httpClient: client,
-    lifecycleObserverFactory: _silentLifecycleFactory,
-    periodicTimerFactory: _silentTimerFactory,
-    connectivityStreamFactory: _silentConnectivityFactory,
-    fcmOnMessageStreamFactory: _silentFcmMessageFactory,
-    fcmOnOpenedStreamFactory: _silentFcmOpenedFactory,
-  );
-}
 
 /// Bounded pumps. Avoids pumpAndSettle infinite-loop on widgets with
 /// indefinite animators (Scrollbar, FlashHighlight) while still letting
@@ -149,7 +84,6 @@ void main() {
   });
 
   group('HomeScreen Integration', () {
-    late ClinicalDiaryRuntime runtime;
     late DiaryScopeRuntime diaryScope;
     late MockEnrollmentService enrollment;
     late TaskService tasks;
@@ -162,10 +96,9 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       enrollment = MockEnrollmentService();
       tasks = TaskService();
-      runtime = await _bootstrap();
-      // The migrated diary surface reads/writes through the new reactive
-      // composition root. Build a real in-memory diary scope and seed it via
-      // its action submitter so the DiaryViewBuilder surfaces entries live.
+      // The diary surface reads/writes through the native reactive composition
+      // root. Build a real in-memory diary scope and seed it via its action
+      // submitter so the DiaryViewBuilder surfaces entries live.
       final scopeDb = await newDatabaseFactoryMemory().openDatabase(
         'home-int-scope-${DateTime.now().microsecondsSinceEpoch}.db',
       );
@@ -179,7 +112,6 @@ void main() {
 
     tearDown(() async {
       await diaryScope.dispose();
-      await runtime.dispose();
       tasks.dispose();
       TimezoneConverter.testDeviceOffsetMinutes = null;
       TimezoneService.instance.testTimezoneOverride = null;
@@ -198,7 +130,7 @@ void main() {
           scope: diaryScope.scope,
           child: wrapWithMaterialApp(
             HomeScreen(
-              runtime: runtime,
+              diaryScope: diaryScope,
               deviceId: _deviceId,
               enrollmentService: enrollment,
               taskService: tasks,

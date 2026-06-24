@@ -6,6 +6,8 @@
 //   REQ-p01073: Session Management
 //   REQ-d00113: Deleted Questionnaire Submission Handling
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
@@ -54,6 +56,8 @@ class QuestionnaireFlowScreen extends StatefulWidget {
     this.onCheckpoint,
     this.initialResponses,
     this.isReadOnly = false,
+    this.recallSignal,
+    this.onRecalled,
     super.key,
   });
 
@@ -88,9 +92,30 @@ class QuestionnaireFlowScreen extends StatefulWidget {
   /// CUR-1292: when true the flow opens directly on the review screen
   /// in view-only mode — no Submit button, no per-item edit affordances.
   /// Used to surface the answers of a portal-finalized submission so
-  /// the participant can verify what was sent. Requires [initialResponses]
-  /// to be supplied; otherwise there's nothing to view.
+  /// the participant can verify what was sent.
+  ///
+  /// CUR-1523: read-only is enforced regardless of whether
+  /// [initialResponses] is supplied. A finalized questionnaire with no
+  /// device-local copy still opens the immutable "Submitted Answers" surface
+  /// (questions shown as "Not answered") rather than the editable flow, so a
+  /// participant can never re-fill/re-submit a finalized questionnaire.
   final bool isReadOnly;
+
+  /// CUR-1522: Optional stream that emits `true` when the portal has recalled
+  /// THIS open instance. The host (home screen) owns the view subscription and
+  /// passes a pre-filtered stream so the `eq` package stays dependency-free.
+  ///
+  /// On a `true` event the flow invokes [onRecalled] (if supplied) and then
+  /// calls [onComplete] to exit. No dialog is shown inside the `eq` package —
+  /// the host is responsible for any user-facing acknowledgement.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  final Stream<bool>? recallSignal;
+
+  /// CUR-1522: Async callback invoked when [recallSignal] fires `true`. The
+  /// host shows the recall acknowledgement dialog (and persists the ack event)
+  /// before this future resolves. When null the flow exits silently.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  final Future<void> Function()? onRecalled;
 
   @override
   State<QuestionnaireFlowScreen> createState() =>
@@ -111,11 +136,35 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
 
   late final List<QuestionDefinition> _allQuestions;
 
+  // CUR-1522: subscription to the host-supplied per-instance recall signal.
+  StreamSubscription<bool>? _recallSub;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _allQuestions = widget.definition.allQuestions;
+
+    // CUR-1523: a read-only flow ALWAYS opens on the (view-only) review
+    // screen — even with no seed. A portal-finalized questionnaire that has no
+    // device-local copy (e.g. after a diary-reset/reinstall + re-link) must
+    // render its immutable "Submitted Answers" surface, never the editable
+    // flow. Honoring isReadOnly only when a seed is present would let a
+    // participant re-fill and re-submit a finalized questionnaire.
+    if (widget.isReadOnly) {
+      final seed = widget.initialResponses;
+      if (seed != null) {
+        final knownIds = {for (final q in _allQuestions) q.id};
+        for (final response in seed) {
+          if (knownIds.contains(response.questionId)) {
+            _responses[response.questionId] = response;
+          }
+        }
+      }
+      _state = _FlowState.review;
+      _sessionStartTime = DateTime.now();
+      return;
+    }
 
     final seed = widget.initialResponses;
     if (seed != null && seed.isNotEmpty) {
@@ -131,10 +180,9 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
       final allAnswered = _allQuestions.every(
         (q) => _responses.containsKey(q.id),
       );
-      // Read-only view always lands on the review screen (the
-      // "Submitted Answers" surface). isReadOnly is only valid with a
-      // seed; the flow has nothing else to display in that mode.
-      if (widget.isReadOnly || allAnswered) {
+      // (Read-only is handled above and returns early; here the flow is
+      // always editable.) Land on review when every question is answered.
+      if (allAnswered) {
         _state = _FlowState.review;
       } else {
         var lastAnsweredIndex = -1;
@@ -157,10 +205,25 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
           : _FlowState.questions;
       _sessionStartTime = DateTime.now();
     }
+
+    // CUR-1522: subscribe to the host-supplied per-instance recall signal.
+    // On a true event: await the host's onRecalled callback (which shows the
+    // dialog + persists the ack), then call onComplete to exit the flow.
+    // The eq package shows no dialog — the host owns all user-facing ack UI.
+    // Note: a recall deliberately races and WINS over an in-flight submit;
+    // if the submit completes concurrently its DispatchResult is discarded —
+    // this is intentional (the portal-side recall supersedes any local answer).
+    // Implements: DIARY-DEV-inbound-event-on-receipt/C
+    _recallSub = widget.recallSignal?.listen((recalled) async {
+      if (!recalled || !mounted) return;
+      await widget.onRecalled?.call();
+      if (mounted) widget.onComplete();
+    });
   }
 
   @override
   void dispose() {
+    unawaited(_recallSub?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

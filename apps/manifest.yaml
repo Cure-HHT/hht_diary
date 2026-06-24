@@ -148,37 +148,6 @@ apps:
       services: []
       analysis_options: true
 
-  - name: event_sourcing_datastore
-    path: apps/common-dart/event_sourcing_datastore
-    sdk_type: flutter
-    dart_sdk: "^3.10.7"
-    version: 0.3.0+4
-
-    depends_on:
-      - canonical_json_jcs          # path: ../canonical_json_jcs
-      - provenance                  # path: ../provenance
-
-    # Not yet wired to a dedicated workflow; analyze/test intent only. Ships a
-    # tool/test.sh and test/ suite but no CI job invokes them in this repo.
-    ci:
-      trigger_paths:
-        - apps/common-dart/event_sourcing_datastore/**
-        - apps/common-dart/canonical_json_jcs/**
-        - apps/common-dart/provenance/**
-      format: true
-      analyze:
-        tool: flutter
-        fatal_infos: true
-      test:
-        unit: true
-        integration: false
-        runner: flutter
-        test_script: tool/test.sh
-      coverage:
-        enabled: false
-      services: []
-      analysis_options: true
-
   - name: grpc_health
     path: apps/common-dart/grpc_health
     sdk_type: dart
@@ -411,7 +380,6 @@ apps:
     version: 0.8.11
 
     depends_on:
-      - event_sourcing_datastore    # path: ../../common-dart/event_sourcing_datastore
       - diary_shared_model          # path: ../../common-dart/diary_shared_model
       - trial_data_types            # path: ../../common-dart/trial_data_types
       - eq                          # path: ../../common-flutter/eq
@@ -623,14 +591,13 @@ apps:
 # the sponsor-ci source image), checked only transitively or not at all. Their
 # `ci:` blocks record analyze/test INTENT, not an existing pipeline:
 #   common-dart:   canonical_json_jcs, comms, diary_shared_model,
-#                  event_sourcing_datastore, grpc_health, otel_common,
+#                  grpc_health, otel_common,
 #                  portal_actions, provenance, shared_functions
 #   common-flutter: diary_design_system, eq
 #   sponsor-portal: portal_identity, portal_service
 #
 # Local path-dependency edges (child -> deps), for topological build order:
 #   canonical_json_jcs   -> (none)        provenance -> (none)
-#   event_sourcing_datastore -> canonical_json_jcs, provenance
 #   diary_shared_model   -> (none)
 #   portal_actions       -> diary_shared_model
 #   eq                   -> trial_data_types
@@ -640,7 +607,7 @@ apps:
 #   portal_server_evs    -> portal_identity, portal_service, portal_actions,
 #                           rave_integration, diary_shared_model
 #   portal_ui_evs        -> (none)
-#   clinical_diary       -> event_sourcing_datastore, diary_shared_model,
+#   clinical_diary       -> diary_shared_model,
 #                           trial_data_types, eq, diary_design_system
 #
 # A CI matrix job can topologically sort `depends_on` to produce build order.

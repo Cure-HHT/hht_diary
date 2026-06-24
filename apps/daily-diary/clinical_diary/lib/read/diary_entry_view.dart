@@ -4,6 +4,7 @@
 //   timezone, intensity icons) stays in the widgets; this exposes typed data only.
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
+import 'package:trial_data_types/trial_data_types.dart' as tdt;
 
 sealed class DiaryEntryView {
   const DiaryEntryView(this.row, {required this.isComplete});
@@ -90,6 +91,27 @@ class SurveyEntryView extends DiaryEntryView {
 
   /// Number of answered questions in the submission.
   int get responseCount => _payload.responses.length;
+
+  /// Bridges the stored shared-model responses to the questionnaire flow's
+  /// [tdt.QuestionResponse] form so a re-opened submitted survey can seed the
+  /// Review Screen with its prior answers.
+  ///
+  /// The shared-model [QuestionResponse.value] is `Object?`; for HHT
+  /// questionnaires the schema guarantees an `int` (0–4 scale), so the cast is
+  /// safe — a non-conforming row is a bug in the event log, not a recoverable
+  /// condition. Labels fall back to `''` when absent (free-text / numeric
+  /// answers may carry no display or normalized label).
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/R
+  List<tdt.QuestionResponse> get prefillResponses => _payload.responses.entries
+      .map(
+        (e) => tdt.QuestionResponse(
+          questionId: e.key,
+          value: e.value.value as int,
+          displayLabel: e.value.displayLabel ?? '',
+          normalizedLabel: e.value.normalizedLabel ?? '',
+        ),
+      )
+      .toList(growable: false);
 }
 
 class DayMarkerView extends DiaryEntryView {

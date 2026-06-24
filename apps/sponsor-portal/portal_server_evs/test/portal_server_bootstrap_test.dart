@@ -22,6 +22,30 @@ ActionContext _ctx(Principal p) => ActionContext(
     );
 
 void main() {
+  // Verifies: DIARY-DEV-linking-code-lifecycle/E — a session-auth (deployed)
+  //   portal MUST be configured with its sponsor linking-code prefix. Booting
+  //   without it would silently mint placeholder-prefixed codes the mobile
+  //   diary's SponsorRegistry cannot resolve, so the portal fails fast at boot
+  //   (serves nothing) rather than come up misconfigured. Mirrors the
+  //   SPONSOR_RESOLVER_KEY session requirement.
+  test('session boot without SPONSOR_LINKING_PREFIX fails fast', () async {
+    final db =
+        await newDatabaseFactoryMemory().openDatabase('linking-prefix-req.db');
+    await expectLater(
+      bootstrapPortalServer(
+        backend: SembastBackend(database: db),
+        raveClient: DevSeedRaveClient(),
+        environment: const <String, String>{
+          'PORTAL_AUTH_MODE': 'session',
+          // Pass the earlier session gate so we reach the prefix check.
+          'SPONSOR_RESOLVER_KEY': 'resolver-k',
+        },
+      ),
+      throwsA(isA<StateError>().having(
+          (e) => e.message, 'message', contains('SPONSOR_LINKING_PREFIX'))),
+    );
+  });
+
   test(
       'boot seeds admin + coordinator; admin assigns site (enforced), '
       'coordinator denied', () async {

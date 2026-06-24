@@ -186,7 +186,10 @@ void main() {
             // forever under pumpAndSettle.
             home: AppPreferencesScope(
               preferences: const UserPreferences(useAnimation: false),
-              child: CalendarScreen(installDate: installDate),
+              child: CalendarScreen(
+                onOpenSurvey: (_) {},
+                installDate: installDate,
+              ),
             ),
           ),
         ),

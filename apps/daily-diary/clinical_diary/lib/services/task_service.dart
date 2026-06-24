@@ -227,6 +227,12 @@ class TaskService extends ChangeNotifier {
       // Build set of server task IDs for efficient lookup
       final serverTaskIds = <String>{};
       final newTasks = <Task>[];
+      // True replace-and-merge: a status change on an already-present task must
+      // be reflected on the in-memory model. Task equality keys on `id` only, so
+      // an in-place rebuild is needed for the portal-reported `status` (and any
+      // other field) to actually update — comparing the freshly built Task to
+      // the local one detects whether the merge changed anything.
+      var statusChanged = false;
 
       for (final taskJson in serverTasks) {
         final data = taskJson as Map<String, dynamic>;
@@ -238,14 +244,23 @@ class TaskService extends ChangeNotifier {
 
         serverTaskIds.add(instanceId);
 
-        // Only add if not already present locally
-        if (!_tasks.any((t) => t.id == instanceId)) {
-          try {
-            final task = Task.fromFcmData(data);
-            newTasks.add(task);
-          } catch (e) {
-            debugPrint('[TaskService] Failed to create task from sync: $e');
+        try {
+          // Implements: DIARY-GUI-participant-task-list/J — rebuild from the full
+          // data map so the portal-reported status (sent|ready_to_review|
+          // finalized|unlocked) survives the sync path onto the Task model, even
+          // when the instance is ALREADY present locally (portal finalization
+          // keeps the instance in /user/tasks). Replace-and-merge: replace the
+          // existing element when the status changed; otherwise add new.
+          final rebuilt = Task.fromFcmData(data);
+          final existingIndex = _tasks.indexWhere((t) => t.id == instanceId);
+          if (existingIndex < 0) {
+            newTasks.add(rebuilt);
+          } else if (_tasks[existingIndex].status != rebuilt.status) {
+            _tasks[existingIndex] = rebuilt;
+            statusChanged = true;
           }
+        } catch (e) {
+          debugPrint('[TaskService] Failed to create task from sync: $e');
         }
       }
 
@@ -262,10 +277,11 @@ class TaskService extends ChangeNotifier {
       _tasks.addAll(newTasks);
 
       final removed = removedCount - afterRemove;
-      if (newTasks.isNotEmpty || removed > 0) {
+      if (newTasks.isNotEmpty || removed > 0 || statusChanged) {
         debugPrint(
           '[TaskService] Sync: +${newTasks.length} added, '
-          '-$removed removed, ${_tasks.length} total',
+          '-$removed removed, '
+          '${statusChanged ? 'status updated, ' : ''}${_tasks.length} total',
         );
         notifyListeners();
         unawaited(_saveTasks());

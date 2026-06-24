@@ -127,49 +127,10 @@ void main() {
           AppConfig.testApiBaseOverride = 'https://test-api.example.com';
         });
 
-        test('enrollUrl uses /api/v1/user/enroll path', () {
+        test('linkUrl uses /api/v1/user/link path', () {
           expect(
-            AppConfig.enrollUrl,
-            'https://test-api.example.com/api/v1/user/enroll',
-          );
-        });
-
-        test('healthUrl appends /health to apiBase', () {
-          expect(AppConfig.healthUrl, 'https://test-api.example.com/health');
-        });
-
-        test('syncUrl uses /api/v1/user/sync path', () {
-          expect(
-            AppConfig.syncUrl,
-            'https://test-api.example.com/api/v1/user/sync',
-          );
-        });
-
-        test('getRecordsUrl uses /api/v1/user/records path', () {
-          expect(
-            AppConfig.getRecordsUrl,
-            'https://test-api.example.com/api/v1/user/records',
-          );
-        });
-
-        test('registerUrl uses /api/v1/auth/register path', () {
-          expect(
-            AppConfig.registerUrl,
-            'https://test-api.example.com/api/v1/auth/register',
-          );
-        });
-
-        test('loginUrl uses /api/v1/auth/login path', () {
-          expect(
-            AppConfig.loginUrl,
-            'https://test-api.example.com/api/v1/auth/login',
-          );
-        });
-
-        test('changePasswordUrl uses /api/v1/auth/change-password path', () {
-          expect(
-            AppConfig.changePasswordUrl,
-            'https://test-api.example.com/api/v1/auth/change-password',
+            AppConfig.linkUrl,
+            'https://test-api.example.com/api/v1/user/link',
           );
         });
       });

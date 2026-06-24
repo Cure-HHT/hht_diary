@@ -150,6 +150,9 @@ final TableProjectionSpec activationCodesSpec = TableProjectionSpec(
 //   key-wise merge (no spec change needed). `end_event` distinguishes a terminal
 //   Closed (End of Treatment / End of Study) from an after-finalize (Not Sent /
 //   Start-Next-Cycle) row; the card reads it to render the combined Closed badge.
+// Implements: DIARY-GUI-participant-task-list/J — questionnaire_unlocked folds
+//   into the row so the diary sees status='unlocked' and re-presents the task
+//   for re-submission.
 final AggregateProjectionSpec questionnaireInstanceSpec =
     AggregateProjectionSpec(
       viewName: 'questionnaire_instance',
@@ -159,11 +162,33 @@ final AggregateProjectionSpec questionnaireInstanceSpec =
           'questionnaire_assigned',
           'questionnaire_submission_received',
           'questionnaire_finalized',
+          'questionnaire_unlocked',
           'questionnaire_called_back',
         },
       ),
       tombstoneEventTypes: const {'questionnaire_called_back'},
     );
+
+// Implements: DIARY-DEV-outgoing-intent-correlation/B
+//   Participant-facing recall backstop: one row per (participant, instance),
+//   inserted by RecallReactor's questionnaire_recall_notice, removed by the
+//   device ack (eventType 'finalized' on the same recall aggregate).
+final TableProjectionSpec questionnaireRecallNoticeSpec = TableProjectionSpec(
+  viewName: 'questionnaire_recall_notice',
+  interest: const SubscriptionFilter(
+    aggregateTypes: {'questionnaire_recall_notice'},
+    eventTypes: {'questionnaire_recall_notice', 'finalized'},
+  ),
+  insertEventTypes: const {'questionnaire_recall_notice'},
+  removeEventTypes: const {'finalized'},
+  rowKey: const AggregateIdKey(),
+  rowData: const SelectedFields([
+    'participant_id',
+    'instance_id',
+    'study_event',
+    'recalled_at',
+  ]),
+);
 
 // Implements: DIARY-DEV-user-account-projection/A+B — users_index materializes per-user
 //   identity + an explicit account status from the portal_user lifecycle events. Status is

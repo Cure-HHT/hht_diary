@@ -22,8 +22,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
+import 'package:event_sourcing/event_sourcing.dart'
+    show AutomationInitiator, DestinationRegistry, StorageBackend;
 import 'package:flutter/foundation.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -31,13 +32,15 @@ import 'package:shelf_router/shelf_router.dart';
 
 class DebugBridge {
   DebugBridge({
-    required this.runtime,
+    required this.scope,
     this.onTaskSync,
     this.host = '127.0.0.1',
     this.port = 9876,
   });
 
-  final ClinicalDiaryRuntime runtime;
+  /// The native `event_sourcing` diary scope. The bridge inspects its
+  /// destination registry + event-store backend and fires its `SyncCycle`.
+  final DiaryScopeRuntime scope;
 
   /// Invoked by `POST /debug/task-sync`. Closure should call into the
   /// app's TaskService.syncTasks(enrollmentService) so the test loop
@@ -48,6 +51,12 @@ class DebugBridge {
   final String host;
   final int port;
   HttpServer? _server;
+
+  /// The native scope's destination registry.
+  DestinationRegistry get _destinations => scope.bundle.destinations;
+
+  /// The native scope's event-store storage backend.
+  StorageBackend get _backend => scope.bundle.eventStore.backend;
 
   Future<void> start() async {
     if (_server != null) return;
@@ -83,12 +92,12 @@ class DebugBridge {
   // ---------------------------------------------------------------------------
 
   Future<Response> _state(Request _) async {
-    final destinations = runtime.destinations.all();
+    final destinations = _destinations.all();
     final perDest = <Map<String, Object?>>[];
     for (final d in destinations) {
-      final schedule = await runtime.destinations.scheduleOf(d.id);
-      final cursor = await runtime.backend.readFillCursor(d.id);
-      final fifo = await runtime.backend.listFifoEntries(d.id);
+      final schedule = await _destinations.scheduleOf(d.id);
+      final cursor = await _backend.readFillCursor(d.id);
+      final fifo = await _backend.listFifoEntries(d.id);
       perDest.add(<String, Object?>{
         'id': d.id,
         'wireFormat': d.wireFormat,
@@ -105,37 +114,37 @@ class DebugBridge {
       });
     }
     return _json(<String, Object?>{
-      'sequenceCounter': await runtime.backend.readSequenceCounter(),
-      'anyFifoWedged': await runtime.backend.anyFifoWedged(),
+      'sequenceCounter': await _backend.readSequenceCounter(),
+      'anyFifoWedged': await _backend.hasFifoWedged(),
       'destinations': perDest,
     });
   }
 
   Response _destinationsList(Request _) => _json(<String, Object?>{
-    'ids': runtime.destinations.all().map((d) => d.id).toList(),
+    'ids': _destinations.all().map((d) => d.id).toList(),
   });
 
   Future<Response> _schedule(Request req) async {
     final destId = req.params['destId']!;
-    if (runtime.destinations.byId(destId) == null) return _notFound(destId);
-    final schedule = await runtime.destinations.scheduleOf(destId);
+    if (_destinations.byId(destId) == null) return _notFound(destId);
+    final schedule = await _destinations.scheduleOf(destId);
     return _json(schedule.toJson());
   }
 
   Future<Response> _cursor(Request req) async {
     final destId = req.params['destId']!;
-    if (runtime.destinations.byId(destId) == null) return _notFound(destId);
+    if (_destinations.byId(destId) == null) return _notFound(destId);
     return _json(<String, Object?>{
       'destId': destId,
-      'cursor': await runtime.backend.readFillCursor(destId),
+      'cursor': await _backend.readFillCursor(destId),
     });
   }
 
   Future<Response> _fifo(Request req) async {
     final destId = req.params['destId']!;
-    if (runtime.destinations.byId(destId) == null) return _notFound(destId);
+    if (_destinations.byId(destId) == null) return _notFound(destId);
     final limit = int.tryParse(req.url.queryParameters['limit'] ?? '');
-    var entries = await runtime.backend.listFifoEntries(destId);
+    var entries = await _backend.listFifoEntries(destId);
     if (limit != null && entries.length > limit) {
       // Keep the newest `limit` rows (tail) — most useful for diagnosis.
       entries = entries.sublist(entries.length - limit);
@@ -150,7 +159,7 @@ class DebugBridge {
   Future<Response> _events(Request req) async {
     final limit = int.tryParse(req.url.queryParameters['limit'] ?? '');
     final since = int.tryParse(req.url.queryParameters['since'] ?? '');
-    final events = await runtime.backend.findAllEvents(
+    final events = await _backend.findAllEvents(
       afterSequence: since,
       limit: limit,
     );
@@ -162,7 +171,7 @@ class DebugBridge {
 
   Future<Response> _aggregate(Request req) async {
     final aggId = req.params['aggId']!;
-    final events = await runtime.backend.findEventsForAggregate(aggId);
+    final events = await _backend.findEventsForAggregate(aggId);
     return _json(<String, Object?>{
       'aggregateId': aggId,
       'count': events.length,
@@ -171,7 +180,17 @@ class DebugBridge {
   }
 
   Future<Response> _sync(Request _) async {
-    await runtime.syncCycle();
+    final syncCycle = scope.syncCycle;
+    if (syncCycle == null) {
+      return Response(
+        503,
+        body: jsonEncode(<String, Object?>{
+          'error': 'diary scope has no outbound SyncCycle (no destinations)',
+        }),
+        headers: const {'content-type': 'application/json'},
+      );
+    }
+    await syncCycle.call();
     return _json(<String, Object?>{'ok': true});
   }
 
@@ -193,12 +212,12 @@ class DebugBridge {
   Future<Response> _tombstoneAndRefill(Request req) async {
     final destId = req.params['destId']!;
     final rowId = req.params['rowId']!;
-    if (runtime.destinations.byId(destId) == null) return _notFound(destId);
+    if (_destinations.byId(destId) == null) return _notFound(destId);
     // tombstoneAndRefill throws ArgumentError when the target row is
     // not the current FIFO head; let that propagate to shelf's default
     // 500 handler — the stack identifies the precondition violation
     // and this is a diagnostic surface, not a hardened HTTP API.
-    final result = await runtime.destinations.tombstoneAndRefill(
+    final result = await _destinations.tombstoneAndRefill(
       destId,
       rowId,
       initiator: const AutomationInitiator(service: 'debug-bridge'),

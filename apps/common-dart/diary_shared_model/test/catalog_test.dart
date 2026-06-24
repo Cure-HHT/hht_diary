@@ -44,6 +44,7 @@ void main() {
       'questionnaire_unlocked',
       'questionnaire_called_back',
       'questionnaire_end_event_set',
+      'questionnaire_recall_notice',
     });
     expect(
       ids,
@@ -66,8 +67,8 @@ void main() {
       final ids = sharedEventCatalog.map((t) => t.id).toList();
       expect(
         ids.length,
-        28,
-      ); // 10 participant + 8 questionnaire + 3 notification/fcm + 7 diary-originated
+        30,
+      ); // 10 participant + 9 questionnaire + 3 notification/fcm + 8 diary-originated
       expect(ids.toSet().length, ids.length, reason: 'duplicate entry-type id');
     },
   );
@@ -108,6 +109,7 @@ void main() {
       'fcm_token_registered',
       'fcm_message_received',
       'setting_applied',
+      'questionnaire_recall_acked',
     });
     for (final t in diaryOriginatedEventTypes) {
       expect(t.origin, EventOrigin.mobile);
@@ -124,4 +126,14 @@ void main() {
       );
     }
   });
+
+  test(
+    'catalog includes questionnaire_recall_notice (portal) and _acked (mobile)',
+    () {
+      // Verifies: DIARY-DEV-shared-events-catalog (catalog admits the recall round-trip events)
+      final byId = {for (final e in sharedEventCatalog) e.id: e};
+      expect(byId['questionnaire_recall_notice']?.origin, EventOrigin.portal);
+      expect(byId['questionnaire_recall_acked']?.origin, EventOrigin.mobile);
+    },
+  );
 }

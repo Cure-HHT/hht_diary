@@ -1,5 +1,7 @@
 // Verifies: DIARY-DEV-reactive-read-path/B
 
+import 'package:clinical_diary/read/diary_entry_view.dart';
+import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/event_list_item.dart';
@@ -286,6 +288,49 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+    });
+
+    group('Survey event card', () {
+      SurveyEntryView buildSurveyView(DateTime completedAt) {
+        final payload = QuestionnaireSubmissionPayload(
+          instanceId: 'inst-1',
+          questionnaireType: 'nose_hht',
+          schemaVersion: 's1',
+          contentVersion: 'c1',
+          guiVersion: 'g1',
+          completedAt: completedAt.toIso8601String(),
+          responses: const {'q1': QuestionResponse(value: 1)},
+        );
+        return SurveyEntryView(
+          DiaryEntryRow(
+            aggregateId: 'inst-1',
+            entryType: 'nose_hht_survey',
+            data: payload.toJson(),
+          ),
+          isComplete: true,
+        );
+      }
+
+      // The survey row leads with the completion time — the same start-of-line
+      // position as the epistaxis row — so the time sits in a consistent
+      // location down the day's records. The questionnaire name is the row's
+      // secondary detail (matching the design-system convention: leading is a
+      // timestamp, secondary is descriptive text).
+      testWidgets(
+        'leads with the completion time; questionnaire name is the secondary',
+        (tester) async {
+          final view = buildSurveyView(DateTime(2024, 1, 15, 13, 55));
+
+          await tester.pumpWidget(wrapWithScaffold(EventListItem(view: view)));
+          await tester.pumpAndSettle();
+
+          final item = tester.widget<ds.EventListItem>(
+            find.byType(ds.EventListItem),
+          );
+          expect(item.leading, '1:55 PM');
+          expect(item.secondary, 'NOSE HHT Survey');
+        },
+      );
     });
 
     group('No Nosebleeds event card', () {

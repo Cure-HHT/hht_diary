@@ -10,6 +10,9 @@ import 'package:intl/intl.dart';
 /// [EpistaxisEntryView] / [DayMarkerView]) from the live diary view. Epistaxis
 /// entries are edited via [onEditEvent]; tapping a day-marker re-dispositions
 /// the day via [onRedispositionMarker] (open the 3-choice picker).
+///
+/// Survey records are always available as a read-only view via [onOpenSurvey],
+/// even on locked days (locking forbids EDITING, not READ-ONLY viewing).
 // Implements: DIARY-DEV-reactive-read-path/A
 // Implements: DIARY-GUI-epistaxis-record/A
 class DateRecordsScreen extends StatelessWidget {
@@ -19,6 +22,7 @@ class DateRecordsScreen extends StatelessWidget {
     required this.onAddEvent,
     required this.onEditEvent,
     required this.onRedispositionMarker,
+    required this.onOpenSurvey,
     this.locked = false,
     super.key,
   });
@@ -31,6 +35,11 @@ class DateRecordsScreen extends StatelessWidget {
   /// Tapping a [DayMarkerView] row re-dispositions the day (open the 3-choice
   /// day-disposition picker seeded with that marker).
   final void Function(DayMarkerView) onRedispositionMarker;
+
+  /// Opens a [SurveyEntryView] in a read-only questionnaire flow. Available on
+  /// both locked and unlocked days — locking forbids EDITING only.
+  // Implements: DIARY-GUI-participant-task-list/H
+  final void Function(SurveyEntryView) onOpenSurvey;
 
   /// When true the day is past the lock threshold: read-only. No add, edit, or
   /// re-disposition of any kind (nosebleed OR markers). The day-level lock is
@@ -199,18 +208,18 @@ class DateRecordsScreen extends StatelessWidget {
         final entry = sortedEntries[index];
         return EventListItem(
           view: entry,
-          // Locked day: rows are non-tappable (view-only — no edit/re-disposition).
-          // Otherwise epistaxis rows open the recording screen to edit; day-marker
-          // rows open the 3-choice picker to re-disposition the day.
+          // Locked day: epistaxis and day-marker rows are non-tappable (no
+          // edit/re-disposition). Survey records are ALWAYS tappable as
+          // read-only views — locking forbids EDITING only.
           // Implements: DIARY-PRD-day-disposition/B
-          onTap: locked
-              ? null
-              : switch (entry) {
-                  EpistaxisEntryView() => () => onEditEvent(entry),
-                  DayMarkerView() => () => onRedispositionMarker(entry),
-                  // A completed survey is read-only (no edit/re-disposition).
-                  SurveyEntryView() => null,
-                },
+          // Implements: DIARY-GUI-participant-task-list/H
+          onTap: switch (entry) {
+            // Survey records open read-only on both locked and unlocked days.
+            SurveyEntryView() => () => onOpenSurvey(entry),
+            EpistaxisEntryView() => locked ? null : () => onEditEvent(entry),
+            DayMarkerView() =>
+              locked ? null : () => onRedispositionMarker(entry),
+          },
           hasOverlap: _hasOverlap(entry),
         );
       },

@@ -1,12 +1,13 @@
 import 'package:clinical_diary/read/diary_incomplete_projection.dart';
+import 'package:clinical_diary/read/questionnaire_recall_projection.dart';
+import 'package:clinical_diary/read/questionnaire_status_projection.dart';
 import 'package:clinical_diary/scope/diary_action_registry.dart';
 import 'package:clinical_diary/scope/local_participant_authorization_policy.dart';
 import 'package:diary_shared_model/diary_shared_model.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:reaction/reaction.dart';
 
-/// Holder for the new reactive composition root, built alongside (not replacing)
-/// the old ClinicalDiaryRuntime during the transition.
+/// Holder for the diary's reactive composition root.
 class DiaryScopeRuntime {
   DiaryScopeRuntime({
     required this.scope,
@@ -81,15 +82,54 @@ Future<DiaryScopeRuntime> bootstrapDiaryScope({
   List<EntryTypeDefinition> extraEntryTypes = const [],
   List<Destination> outboundDestinations = const [],
 }) async {
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S — register the
+  //   shared questionnaire lifecycle entry types so the diary store accepts
+  //   appends of questionnaire_finalized / questionnaire_unlocked (diary is a
+  //   second emitter; per-event provenance records the real origin).
+  // Implements: DIARY-DEV-inbound-event-on-receipt/B — register the
+  //   device-local questionnaire_recalled entry type so the store accepts
+  //   appends from record_questionnaire_recalled.
   final entryTypes = <EntryTypeDefinition>[
     for (final t in diaryOriginatedEventTypes) t.definition,
     _actionDenialEntryType,
     ...extraEntryTypes,
+    for (final t in questionnaireEventTypes.where(
+      (t) =>
+          t.definition.id == 'questionnaire_finalized' ||
+          t.definition.id == 'questionnaire_unlocked',
+    ))
+      t.definition,
+    const EntryTypeDefinition(
+      id: 'questionnaire_recalled',
+      registeredVersion: 1,
+      name: 'Questionnaire Recalled',
+    ),
+    // Implements: DIARY-DEV-inbound-event-on-receipt/C — diagnostic event
+    //   emitted when the survey tombstone (delete_entry) dispatch fails after
+    //   the ack and local-recall-clear have already been persisted. Recorded
+    //   directly via eventStore.append (not via an Action) so it is durable
+    //   in release builds (debugPrint is silenced there).
+    const EntryTypeDefinition(
+      id: 'recall_survey_tombstone_failed',
+      registeredVersion: 1,
+      name: 'Recall Survey Tombstone Failed',
+      isMaterialized: false,
+    ),
+    // Note: `questionnaire_recall_acked` is already included via
+    // `diaryOriginatedEventTypes` (diary_originated_events.dart), so it does
+    // not need a separate registration here.
   ];
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S — register the
+  //   questionnaire_status projection so device-observed lifecycle events are
+  //   materialized into the questionnaire_status view.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/B — register the
+  //   questionnaire_recall projection so recall rows are queryable.
   final projections = ProjectionRegistry()
     ..register(diaryEntriesProjection)
     ..register(settingsProjection)
-    ..register(diaryIncompleteProjection);
+    ..register(diaryIncompleteProjection)
+    ..register(questionnaireStatusProjection)
+    ..register(questionnaireRecallProjection);
 
   final source = Source(
     hopId: 'mobile-device',

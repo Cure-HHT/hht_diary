@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:clinical_diary/config/app_config.dart';
-import 'package:clinical_diary/destinations/legacy_sync_destination.dart';
+import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
@@ -9,7 +9,10 @@ import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/read/diary_view.dart';
 import 'package:clinical_diary/read/diary_view_builder.dart';
+import 'package:clinical_diary/read/questionnaire_recall_projection.dart';
+import 'package:clinical_diary/read/questionnaire_status_projection.dart';
 import 'package:clinical_diary/scope/diary_participant_id.dart';
+import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/screens/calendar_screen.dart';
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
@@ -21,8 +24,8 @@ import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:clinical_diary/screens/service_mode_screen.dart';
 import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/services/branding_asset_cache.dart';
-import 'package:clinical_diary/services/clinical_diary_bootstrap.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
+import 'package:clinical_diary/services/recall_acknowledger.dart';
 import 'package:clinical_diary/services/sponsor_branding_service.dart';
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
@@ -40,10 +43,10 @@ import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:diary_design_system/diary_design_system.dart'
     hide EventListItem;
 import 'package:diary_shared_model/diary_shared_model.dart'
-    show EntryGate, entryGateForDate;
+    show EntryGate, diaryEntriesViewName, entryGateForDate;
 import 'package:eq/eq.dart';
-import 'package:event_sourcing/event_sourcing.dart' show ActionSubmission;
-import 'package:event_sourcing_datastore/event_sourcing_datastore.dart';
+import 'package:event_sourcing/event_sourcing.dart'
+    show ActionSubmission, Delta, EndOfReplay, Snapshot, Tombstone, Update;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
@@ -54,7 +57,7 @@ import 'package:url_launcher/url_launcher.dart';
 /// Main home screen showing recent events and recording button
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
-    required this.runtime,
+    required this.diaryScope,
     required this.deviceId,
     required this.enrollmentService,
     required this.taskService,
@@ -68,16 +71,16 @@ class HomeScreen extends StatefulWidget {
     super.key,
   });
 
-  /// Composed runtime — exposes [ClinicalDiaryRuntime.backend] for the wedge
-  /// banner, [ClinicalDiaryRuntime.entryService] for writes, and
-  /// [ClinicalDiaryRuntime.reader] for diary-shaped queries.
-  final ClinicalDiaryRuntime runtime;
+  /// The native `event_sourcing` diary scope (`diary_es.db`) — the reactive
+  /// composition root. Exposes [DiaryScopeRuntime.syncCycle] for the reconnect
+  /// drain and [DiaryScopeRuntime.bundle] for the destination registry
+  /// (install-date back-nav) and event-store backend.
+  final DiaryScopeRuntime diaryScope;
 
-  /// Wedge check for the NEW event-sourcing store (`diary_es.db`), where the
-  /// native `DiaryServerDestination`'s outbound FIFO lives. The legacy
-  /// [runtime] backend's wedge check does not see that store, so this is OR-ed
-  /// in by the wedge banner. Null in contexts without the new scope (the native
-  /// check is then skipped). See DIARY-DEV-native-outbound-sync/B.
+  /// Wedge check for the native event-sourcing store (`diary_es.db`), where the
+  /// `DiaryServerDestination`'s outbound FIFO lives. Surfaced in the wedge
+  /// banner. Null in contexts without the scope (the check is then skipped).
+  /// See DIARY-DEV-native-outbound-sync/B.
   final Future<bool> Function()? nativeFifoWedged;
 
   /// Builds the on-demand Service Mode [HealthProbeContext]. When non-null the
@@ -147,6 +150,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String? _flashRecordId;
   final ScrollController _scrollController = ScrollController();
 
+  // CUR-1523: instance ids the device has observed as portal-FINALIZED (the
+  // `questionnaire_status` read-only set). A finalized questionnaire re-opens
+  // read-only (workflow/S); until finalized a submitted questionnaire re-opens
+  // to the editable Review Screen (workflow/R). Maintained by a LIVE subscription
+  // to the native `questionnaire_status` view, so it reflects a just-minted
+  // `questionnaire_finalized` the instant the post-sync reconcile records it —
+  // a one-shot read would miss its own mint (the reconcile mints AFTER the sync
+  // that triggers the read). It is the durable on-device source of truth, so the
+  // read-only gate is correct offline (no dependency on a fresh /user/tasks sync).
+  Set<String> _finalizedInstanceIds = const <String>{};
+  StreamSubscription<Update<QuestionnaireStatusRow>>? _finalizedStatusSub;
+
+  // CUR-1522: Live subscription to the device-local questionnaire_recall view.
+  // A row appears when the poll reconcile records a portal recall notice; the
+  // home screen shows an acknowledgement dialog and tombstones the row via
+  // acknowledgeRecall. Instances already handled in this mount are tracked in
+  // [_handledRecalls] so the dialog fires at most once per instance per mount.
+  StreamSubscription<Update<QuestionnaireRecallRow>>? _recallSub;
+  final Set<String> _handledRecalls = <String>{};
+
+  // Recall rows that arrived during the initial replay phase (before
+  // EndOfReplay). Surfaced sequentially on EndOfReplay so no dialog is missed
+  // even when the row pre-existed at app launch.
+  final List<QuestionnaireRecallRow> _pendingReplayRecalls =
+      <QuestionnaireRecallRow>[];
+
+  /// CUR-1522: when a questionnaire is open in the flow screen, set this to
+  /// the open instance's id so the home screen's general recall subscription
+  /// skips the recall dialog for that instance (the flow screen owns it via
+  /// its recallSignal / onRecalled callback instead). Cleared when the
+  /// flow route returns.
+  String? _instanceOpenInFlow;
+
+  /// CUR-1522: StreamController that drives the recallSignal passed to the
+  /// currently-open QuestionnaireFlowScreen. Created when a flow is pushed;
+  /// closed and nulled when the flow route returns. The home's recall
+  /// subscription emits `true` on this controller when a recall row for the
+  /// open instance arrives.
+  StreamController<bool>? _recallSignalCtrl;
+
   @override
   void initState() {
     super.initState();
@@ -155,6 +198,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _checkDisconnectionStatus();
     _refreshResetGate();
     _refreshWedgeStatus();
+    _startFinalizedStatusSubscription();
+    _startRecallSubscription();
     // CUR-1164: React immediately when a background sync detects disconnection
     widget.enrollmentService.disconnectedNotifier.addListener(
       _onDisconnectionChanged,
@@ -165,33 +210,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.notParticipatingNotifier.addListener(
       _onNotParticipatingChanged,
     );
-    // Forward-looking: surface incomplete surveys via a modal route. The
-    // FCM-prompt handler that creates the checkpoint is out of scope for this
-    // ticket, but the routing exists so it can land later without screen edits.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _maybePushIncompleteSurvey();
-    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _refreshWedgeStatus();
-      _maybePushIncompleteSurvey();
     }
   }
 
   Future<void> _refreshWedgeStatus() async {
-    final legacyWedged = await widget.runtime.backend.anyFifoWedged();
-    // The native DiaryServerDestination's outbound FIFO lives in the new
-    // event_sourcing store (diary_es.db), which runtime.backend does not see;
-    // OR it in so a stuck native sync is visible to the participant.
-    // See DIARY-DEV-native-outbound-sync/B.
+    // The DiaryServerDestination's outbound FIFO lives in the native
+    // event_sourcing store (diary_es.db); surface a stuck native sync so it is
+    // visible to the participant. See DIARY-DEV-native-outbound-sync/B.
     final nativeWedged =
         await (widget.nativeFifoWedged?.call() ?? Future<bool>.value(false));
     if (mounted) {
       setState(() {
-        _hasWedgedFifo = legacyWedged || nativeWedged;
+        _hasWedgedFifo = nativeWedged;
         // The wedge check is the last non-diary async to settle on init;
         // once it returns the kept banners can render their resolved state.
         _isLoading = false;
@@ -208,8 +244,197 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     widget.enrollmentService.notParticipatingNotifier.removeListener(
       _onNotParticipatingChanged,
     );
+    unawaited(_finalizedStatusSub?.cancel());
+    unawaited(_recallSub?.cancel());
+    unawaited(_recallSignalCtrl?.close());
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Starts a LIVE subscription to the native `questionnaire_status` projection
+  /// and keeps [_finalizedInstanceIds] in lock-step with it. Unlike a one-shot
+  /// read, this reflects a `questionnaire_finalized` the instant it is recorded —
+  /// crucially including the mint the post-sync reconcile appends AFTER the sync
+  /// that would otherwise have driven (and already completed) a one-shot read.
+  ///
+  /// Each emission carries one row. Finalize is terminal for Callisto, but the
+  /// unlock case is handled too (a row that is no longer finalized is dropped).
+  /// The initial replay accumulates silently and publishes once at the
+  /// [EndOfReplay] marker; subsequent live updates publish immediately.
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/S
+  void _startFinalizedStatusSubscription() {
+    final finalized = <String>{};
+    var replaying = true;
+    void publish() {
+      if (mounted) setState(() => _finalizedInstanceIds = Set.of(finalized));
+    }
+
+    _finalizedStatusSub = widget.diaryScope.scope.viewSource
+        .watch<QuestionnaireStatusRow>(
+          viewName: questionnaireStatusViewName,
+          mapper: QuestionnaireStatusRow.fromViewRow,
+        )
+        .listen(
+          (update) {
+            // Update<T> is sealed: Snapshot (replay rows), Delta/Tombstone (live
+            // changes after EndOfReplay), EndOfReplay (replay-done marker). A
+            // just-minted questionnaire_finalized arrives as a Delta — handling
+            // ONLY Snapshot would silently drop every live finalize.
+            switch (update) {
+              case Snapshot<QuestionnaireStatusRow>(:final value):
+                if (value == null) break;
+                _applyFinalizedRow(finalized, value);
+                if (!replaying) publish();
+              case Delta<QuestionnaireStatusRow>(:final value):
+                _applyFinalizedRow(finalized, value);
+                publish();
+              case Tombstone<QuestionnaireStatusRow>(:final aggregateId):
+                finalized.remove(aggregateId);
+                publish();
+              case EndOfReplay<QuestionnaireStatusRow>():
+                replaying = false;
+                publish();
+            }
+          },
+          onError: (Object e, StackTrace st) {
+            // A read error leaves the last-known finalized set in place.
+          },
+        );
+  }
+
+  /// Folds one `questionnaire_status` row into [finalized]: a finalized instance
+  /// is in the read-only set; an unfinalized one (future unlock) is dropped.
+  void _applyFinalizedRow(Set<String> finalized, QuestionnaireStatusRow row) {
+    if (row.isFinalized) {
+      finalized.add(row.instanceId);
+    } else {
+      finalized.remove(row.instanceId);
+    }
+  }
+
+  /// Starts a LIVE subscription to the native `questionnaire_recall` projection.
+  /// Each row represents an instance that the portal has recalled and the device
+  /// has not yet acknowledged. On each live row the home screen shows a one-button
+  /// "Questionnaire recalled" acknowledgement dialog, then tombstones the row via
+  /// [acknowledgeRecall] so it self-clears from the view.
+  ///
+  /// Rows that arrive during the initial replay phase (Snapshots before
+  /// [EndOfReplay]) are COLLECTED into [_pendingReplayRecalls] and surfaced
+  /// sequentially on [EndOfReplay]. This guarantees that an unacknowledged recall
+  /// row already present at app launch — which arrives only as a replay Snapshot
+  /// and never as a subsequent Delta — still prompts the participant. Live Deltas
+  /// (recalls that arrive after replay) surface immediately. Rows for instances
+  /// already handled in this mount ([_handledRecalls]) and for the instance
+  /// currently open in the flow screen ([_instanceOpenInFlow]) are skipped.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  void _startRecallSubscription() {
+    _recallSub = widget.diaryScope.scope.viewSource
+        .watch<QuestionnaireRecallRow>(
+          viewName: questionnaireRecallViewName,
+          mapper: QuestionnaireRecallRow.fromViewRow,
+        )
+        .listen((update) {
+          switch (update) {
+            case Snapshot<QuestionnaireRecallRow>(:final value):
+              // Collect replay-phase rows; they will be surfaced on EndOfReplay.
+              if (value != null) _pendingReplayRecalls.add(value);
+            case Delta<QuestionnaireRecallRow>(:final value):
+              _maybeShowRecall(value);
+            case EndOfReplay<QuestionnaireRecallRow>():
+              // Drain replay-phase rows sequentially so dialogs don't stack.
+              final pending = List<QuestionnaireRecallRow>.of(
+                _pendingReplayRecalls,
+              );
+              _pendingReplayRecalls.clear();
+              Future<void>(() async {
+                for (final row in pending) {
+                  await _maybeShowRecall(row);
+                }
+              });
+            case Tombstone<QuestionnaireRecallRow>():
+              break;
+          }
+        });
+  }
+
+  /// Shows the recall acknowledgement dialog for [row] unless the instance has
+  /// already been handled in this mount or is currently open in the flow screen
+  /// (in which case the flow's onRecalled callback handles it instead).
+  ///
+  /// After the participant dismisses the dialog, tombstones the recall row via
+  /// [acknowledgeRecall] so the `questionnaire_recall` view self-clears and the
+  /// subscription no longer delivers it.
+  ///
+  /// When a recall arrives for the instance that is currently open in the flow
+  /// (_instanceOpenInFlow matches), it is forwarded via _recallSignalCtrl
+  /// so the flow screen can react mid-cycle via its recallSignal param.
+  ///
+  /// If the participant never received or engaged with this questionnaire on
+  /// this device (no device-local survey row exists), the dialog is suppressed
+  /// and the recall is silently acknowledged. Showing a "recalled" message for
+  /// a questionnaire the participant never saw is confusing; the portal recall
+  /// row still self-cleans via the silent ack.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  Future<void> _maybeShowRecall(QuestionnaireRecallRow row) async {
+    if (!mounted) return;
+    if (_handledRecalls.contains(row.instanceId)) return;
+    if (row.instanceId == _instanceOpenInFlow) {
+      // The flow screen owns this instance's recall dialog via its callback.
+      // Forward the signal so the flow can interrupt itself mid-cycle.
+      _recallSignalCtrl?.add(true);
+      return;
+    }
+    _handledRecalls.add(row.instanceId);
+    // Branch on whether the participant ever engaged with this questionnaire
+    // on this device. A device-local survey row exists iff the participant
+    // opened and submitted the questionnaire; if no row exists the
+    // questionnaire was recalled before it was ever delivered / opened here.
+    // Query the native event store directly (not the reactive DiaryView) so
+    // the check is authoritative regardless of when in the build cycle this
+    // recall fires (e.g. replay-phase drain before DiaryViewBuilder delivers
+    // its first emission).
+    final localSurveyExists = await _hasLocalSurveyRow(row.instanceId);
+    if (localSurveyExists) {
+      // Participant engaged: show the dialog so they are informed.
+      await _showRecallDialogAndAck(row.instanceId);
+    } else {
+      // Never delivered / never engaged: silently ack — no participant dialog.
+      await acknowledgeRecall(widget.diaryScope, row.instanceId);
+    }
+  }
+
+  /// Returns true iff the native `diary_entries` view holds a local survey row
+  /// for [instanceId] — meaning the participant submitted the questionnaire on
+  /// this device before the recall arrived. Survey rows have aggregateId ==
+  /// instanceId and an entryType of the form `<type>_survey`.
+  ///
+  /// Queries the StorageBackend directly (not the reactive DiaryView) so the
+  /// check is authoritative before DiaryViewBuilder delivers its first emission.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  Future<bool> _hasLocalSurveyRow(String instanceId) async {
+    final rows = await widget.diaryScope.bundle.eventStore.backend.findViewRows(
+      diaryEntriesViewName,
+    );
+    return rows.any(
+      (row) =>
+          row['aggregateId'] == instanceId &&
+          ((row['entryType'] as String?) ?? '').endsWith('_survey'),
+    );
+  }
+
+  /// Core recall dialog + ack: shows the one-button acknowledgement dialog and
+  /// then tombstones the recall row. Factored out so both the general
+  /// subscription path (_maybeShowRecall) and the flow's onRecalled
+  /// callback (_openQuestionnaireFlow) can share it.
+  // Implements: DIARY-DEV-inbound-event-on-receipt/C
+  Future<void> _showRecallDialogAndAck(String instanceId) async {
+    if (!mounted) return;
+    await AppDialog.acknowledgment(
+      context: context,
+      title: 'Questionnaire recalled',
+      message: 'This questionnaire has been recalled by your study team',
+    );
+    await acknowledgeRecall(widget.diaryScope, instanceId);
   }
 
   Future<void> _checkEnrollmentStatus() async {
@@ -276,10 +501,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       // Refresh site name/phone for the banner contact details
       unawaited(_refreshSiteInfo());
     } else {
-      // CUR-1164: On reconnect, kick the FIFO drain immediately so any events
-      // recorded while the gate was closed ship without waiting up to 15
+      // CUR-1164: On reconnect, kick the native FIFO drain immediately so any
+      // events recorded while the gate was closed ship without waiting up to 15
       // minutes for the next periodic tick.
-      unawaited(widget.runtime.syncCycle());
+      final syncCycle = widget.diaryScope.syncCycle;
+      if (syncCycle != null) unawaited(syncCycle.call());
     }
   }
 
@@ -594,7 +820,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // packages/trial_data_types/assets/data/questionnaires.json asset (the same
   // source loadClinicalDiaryEntryTypes uses to build EntryTypeDefinitions).
   // Submission writes a finalized survey event via EntryService.record.
-  Future<void> _navigateToQuestionnaire(Task task) async {
+  //
+  // CUR-1523: the destination depends on the questionnaire's lifecycle state.
+  // [view] supplies the device-local finalized `<id>_survey` rows (the SUBMITTED
+  // set + the prior answers for prefill); [_finalizedInstanceIds] is the
+  // portal-finalized read-only set. A finalized instance opens read-only
+  // (workflow/S); a submitted-but-not-finalized instance opens the editable
+  // Review Screen seeded with prior answers (workflow/R + task-list/K); a
+  // never-submitted instance opens the fresh flow.
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/R+S
+  // Implements: DIARY-GUI-participant-task-list/K
+  Future<void> _navigateToQuestionnaire(Task task, DiaryView view) async {
     final qType = task.questionnaireType;
 
     // Only NOSE HHT and QoL have full implementations
@@ -611,33 +847,167 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return;
     }
 
+    final aggregateId = task.targetId ?? task.id;
+
+    // The device-local finalized `<id>_survey` row for this instance, if the
+    // participant has already submitted it; carries the prior answers used to
+    // seed the Review Screen / read-only view.
+    final surveyView = _submittedSurveyFor(view, aggregateId);
+
+    await _openQuestionnaireFlow(
+      qType: qType,
+      aggregateId: aggregateId,
+      // Read-only iff the device has observed + recorded the portal's
+      // finalization in the durable `questionnaire_status` projection
+      // ([_finalizedInstanceIds], kept live). The projection is the on-device
+      // source of truth, so the gate is correct offline — no dependency on a
+      // fresh /user/tasks sync.
+      isReadOnly: _finalizedInstanceIds.contains(aggregateId),
+      submittedSurvey: surveyView,
+    );
+  }
+
+  /// Pushes the [QuestionnaireFlowScreen] for an instance. The single
+  /// flow-construction path shared by opening from a Task
+  /// ([_navigateToQuestionnaire]) and from a record ([_openSurveyRecord]): the
+  /// two callers differ only in how they derive [aggregateId], [qType],
+  /// [isReadOnly], and the prior-answers [submittedSurvey] from their input.
+  ///
+  /// [isReadOnly] true → view-only finalized questionnaire (workflow/S);
+  /// false → editable Review Screen seeded from [submittedSurvey] (workflow/R),
+  /// or the fresh flow when [submittedSurvey] is null (never submitted).
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/R+S
+  Future<void> _openQuestionnaireFlow({
+    required QuestionnaireType qType,
+    required String aggregateId,
+    required bool isReadOnly,
+    required SurveyEntryView? submittedSurvey,
+  }) async {
     final definition = await _loadQuestionnaireDefinition(qType);
     if (definition == null || !mounted) return;
 
-    final aggregateId = task.targetId ?? task.id;
+    // CUR-1522: Suppress the home screen's general recall dialog for this
+    // instance while the flow is open. The flow screen owns the recall
+    // notification for its open instance via recallSignal + onRecalled.
+    // Implements: DIARY-DEV-inbound-event-on-receipt/C
+    _instanceOpenInFlow = aggregateId;
+    final recallCtrl = StreamController<bool>();
+    _recallSignalCtrl = recallCtrl;
 
-    await Navigator.of(context).push(
-      AppPageRoute<void>(
-        builder: (context) => QuestionnaireFlowScreen(
-          definition: definition,
-          instanceId: aggregateId,
-          onSubmit: (submission) async {
-            try {
-              await _recordSurveySubmission(submission: submission);
-              return const SubmitResult(success: true);
-            } catch (e) {
-              return SubmitResult(success: false, error: e.toString());
-            }
-          },
-          onComplete: () {
-            // REQ-CAL-p00081-E: Remove task after completion
-            widget.taskService.removeTask(task.id);
-            Navigator.of(context).pop();
-          },
-          onDefer: () => Navigator.of(context).pop(),
+    try {
+      await Navigator.of(context).push(
+        AppPageRoute<void>(
+          builder: (context) => QuestionnaireFlowScreen(
+            definition: definition,
+            instanceId: aggregateId,
+            // Prior answers seed the Review Screen (review/edit) or the read-only
+            // view; null for a never-submitted instance (fresh flow).
+            initialResponses: submittedSurvey?.prefillResponses,
+            isReadOnly: isReadOnly,
+            onSubmit: (submission) async {
+              try {
+                await _recordSurveySubmission(submission: submission);
+                return const SubmitResult(success: true);
+              } catch (e) {
+                return SubmitResult(success: false, error: e.toString());
+              }
+            },
+            // CUR-1522: persist a diary-local draft after every answer so
+            // progress survives leaving the flow / killing the app. Stays local
+            // (a `checkpoint` event, never synced) until the eventual submission.
+            // Implements: DIARY-PRD-questionnaire-portal-sent-rules/H
+            onCheckpoint: (partial) =>
+                unawaited(_checkpointSurvey(submission: partial)),
+            // CUR-1523: do NOT remove the task on completion. A submitted task
+            // stays in the list (leaving "Needs your attention" via
+            // categorization) and is removed only when `/user/tasks` drops it on
+            // finalization (task-list/I).
+            onComplete: () => Navigator.of(context).pop(),
+            onDefer: () => Navigator.of(context).pop(),
+            // CUR-1522: per-instance recall signal + host-side ack handler.
+            // When the recall view delivers a row for this instance while the
+            // flow is open, _maybeShowRecall emits true on recallCtrl; the flow
+            // then awaits onRecalled (dialog + ack) and calls onComplete to exit.
+            // The home's general subscription is suppressed for this instance via
+            // _instanceOpenInFlow so no double-dialog occurs.
+            // Implements: DIARY-DEV-inbound-event-on-receipt/C
+            recallSignal: recallCtrl.stream,
+            onRecalled: () async {
+              // Mark handled so that if the tombstone arrives before the flow
+              // pops the home subscription doesn't re-prompt.
+              _handledRecalls.add(aggregateId);
+              await _showRecallDialogAndAck(aggregateId);
+            },
+          ),
         ),
-      ),
+      );
+    } finally {
+      // Clear the per-instance suppression and close the signal stream whether
+      // the route returns normally or throws. Without this, a thrown route
+      // would permanently suppress recalls for this instance and leak the
+      // StreamController.
+      _instanceOpenInFlow = null;
+      _recallSignalCtrl = null;
+      unawaited(recallCtrl.close());
+    }
+  }
+
+  /// Opens the questionnaire for a submitted survey [SurveyEntryView] from a
+  /// record (the home "Your Records" today/yesterday list or the Calendar
+  /// day-view).
+  ///
+  /// The open reflects the instance's STATE, not where it was opened from —
+  /// exactly as opening it from its Task does: a finalized instance
+  /// ([_finalizedInstanceIds]) opens read-only (workflow/S); a submitted but
+  /// not-yet-finalized instance opens the editable Review Screen seeded with the
+  /// prior answers, re-submittable until finalization (workflow/R + rules/N).
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/R+S
+  // Implements: DIARY-GUI-participant-task-list/H
+  Future<void> _openSurveyRecord(SurveyEntryView survey) async {
+    final qTypeString = survey.questionnaireType;
+    QuestionnaireType? qType;
+    try {
+      qType = QuestionnaireType.fromValue(qTypeString);
+    } catch (_) {
+      qType = null;
+    }
+
+    if (qType == null ||
+        (qType != QuestionnaireType.noseHht &&
+            qType != QuestionnaireType.qol)) {
+      // Unsupported type — no flow available; do nothing.
+      return;
+    }
+
+    // A finalized instance is view-only (workflow/S); a submitted but
+    // not-yet-finalized instance opens the editable Review (workflow/R). The
+    // live `questionnaire_status` projection is the durable, offline-correct
+    // finalize signal — identical to opening from the Task.
+    await _openQuestionnaireFlow(
+      qType: qType,
+      aggregateId: survey.aggregateId,
+      isReadOnly: _finalizedInstanceIds.contains(survey.aggregateId),
+      submittedSurvey: survey,
     );
+  }
+
+  /// The device-local `<id>_survey` [SurveyEntryView] for [aggregateId] whose
+  /// answers seed the flow on re-open, or null when none exists. Prefers a
+  /// finalized submission (from the canonical view); falls back to an
+  /// in-progress `checkpoint` draft (from the diary-local incomplete view) so a
+  /// partially-answered questionnaire resumes where the participant left off
+  /// (CUR-1522). prefillResponses works for either — a checkpoint carries the
+  /// same QuestionnaireSubmissionPayload shape, just incomplete.
+  // Implements: DIARY-GUI-participant-task-list/K
+  // Implements: DIARY-GUI-questionnaire-session-expiry/G
+  SurveyEntryView? _submittedSurveyFor(DiaryView view, String aggregateId) {
+    for (final entry in view.entries.whereType<SurveyEntryView>()) {
+      if (entry.aggregateId == aggregateId) return entry;
+    }
+    for (final entry in view.incompleteEntries.whereType<SurveyEntryView>()) {
+      if (entry.aggregateId == aggregateId) return entry;
+    }
+    return null;
   }
 
   /// Cached questionnaire definitions, lazy-loaded once from the bundled asset.
@@ -712,56 +1082,47 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// Surfaces an incomplete survey via a modal route on resume / mount.
-  ///
-  /// Forward-looking: the FCM-prompt handler that creates an in-progress
-  /// survey checkpoint is OUT OF SCOPE for this ticket. So in normal
-  /// operation `incomplete` will be empty. The modal route is wired up
-  /// regardless so it can light up automatically once checkpoints land.
-  Future<void> _maybePushIncompleteSurvey() async {
-    if (!mounted) return;
-    final incomplete = await widget.runtime.reader.incompleteEntries();
-    DiaryEntry? survey;
-    for (final entry in incomplete) {
-      if (entry.entryType == 'nose_hht_survey' ||
-          entry.entryType == 'qol_survey') {
-        survey = entry;
-        break;
-      }
-    }
-    if (survey == null || !mounted) return;
-
-    final qType = survey.entryType == 'nose_hht_survey'
-        ? QuestionnaireType.noseHht
-        : QuestionnaireType.qol;
-    final definition = await _loadQuestionnaireDefinition(qType);
-    if (definition == null || !mounted) return;
-
-    final aggregateId = survey.entryId;
-
-    await Navigator.of(context).push(
-      PageRouteBuilder<void>(
-        opaque: true,
-        barrierDismissible: false,
-        pageBuilder: (context, animation, secondaryAnimation) => PopScope(
-          canPop: false,
-          child: QuestionnaireFlowScreen(
-            definition: definition,
-            instanceId: aggregateId,
-            onSubmit: (submission) async {
-              try {
-                await _recordSurveySubmission(submission: submission);
-                return const SubmitResult(success: true);
-              } catch (e) {
-                return SubmitResult(success: false, error: e.toString());
-              }
-            },
-            onComplete: () => Navigator.of(context).pop(),
-          ),
-        ),
+  /// Persists an in-progress questionnaire as a diary-LOCAL `checkpoint`
+  /// `<id>_survey` event via the `checkpoint_questionnaire` action, so answers
+  /// survive leaving the flow / killing the app and resume on re-open. Mirrors
+  /// [_recordSurveySubmission] but emits a `checkpoint` (never synced to the
+  /// portal) instead of a `finalized` submission. Dispatched after every answer
+  /// via [QuestionnaireFlowScreen.onCheckpoint].
+  // Implements: DIARY-PRD-questionnaire-portal-sent-rules/H
+  // Implements: DIARY-DEV-action-write-path/A
+  Future<void> _checkpointSurvey({
+    required QuestionnaireSubmission submission,
+  }) async {
+    final responses = <String, Object?>{
+      for (final r in submission.responses)
+        r.questionId: <String, Object?>{
+          'value': r.value,
+          'display_label': r.displayLabel,
+          'normalized_label': r.normalizedLabel,
+        },
+    };
+    await ReActionScope.of(context).actionSubmitter.submit(
+      ActionSubmission(
+        actionName: 'checkpoint_questionnaire',
+        rawInput: <String, Object?>{
+          'instance_id': submission.instanceId,
+          'questionnaire_type': submission.questionnaireType,
+          'schema_version': submission.version,
+          'content_version': submission.version,
+          'gui_version': submission.version,
+          'completed_at': submission.completedAt.toIso8601String(),
+          'responses': responses,
+        },
       ),
     );
   }
+
+  // An in-progress questionnaire draft is NOT force-surfaced via a modal. Per
+  // DIARY-PRD-questionnaire-portal-sent-rules/K the participant may exit a
+  // questionnaire freely; the unfinished instance stays an actionable task in
+  // the Task List, and re-opening that task resumes the draft (seeded via
+  // [_submittedSurveyFor], DIARY-GUI-questionnaire-session-expiry/G). A forced
+  // non-dismissible resume modal would contradict the exit-freely rule.
 
   // Implements: DIARY-DEV-reactive-read-path/A
   // Implements: DIARY-PRD-incomplete-entry-preservation/B
@@ -974,7 +1335,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   // Implements: DIARY-DEV-reactive-read-path/A
   Widget _buildScaffold(BuildContext context, DiaryView view) {
-    final incompleteCount = view.incompleteEntries.length;
+    // Only unfinished CLINICAL (epistaxis) records count toward the
+    // "incomplete records" reminder. Questionnaire `checkpoint` drafts share the
+    // diary_incomplete projection but resume via the Task List, not here — and
+    // _handleIncompleteRecordsClick edits epistaxis only, so counting a survey
+    // draft would show a reminder whose click does nothing (CUR-1522).
+    final incompleteCount = view.incompleteEntries
+        .whereType<EpistaxisEntryView>()
+        .length;
     final overlapCount = overlapPairs(view).length;
     // Sponsor branding is displayed only while ACTIVELY participating: on
     // not-participating the app stops applying this sponsor-specific rule.
@@ -1213,8 +1581,56 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     int overlapCount,
   ) {
     final l10n = AppLocalizations.of(context);
-    final tasks = _isDisconnected ? const <Task>[] : widget.taskService.tasks;
-    final rows = <Widget>[
+    // A recalled questionnaire is surfaced to the participant via the recall
+    // dialog (or silently acknowledged when never delivered) — it is NOT an
+    // actionable task. Exclude status:recalled from the Task List so it never
+    // renders as a tappable "Needs your attention" item during the window
+    // before the device acknowledges, the portal self-cleans, and the next
+    // /user/tasks poll drops it.
+    // Implements: DIARY-DEV-inbound-event-on-receipt/C
+    final tasks = _isDisconnected
+        ? const <Task>[]
+        : widget.taskService.tasks
+              .where((t) => t.status != 'recalled')
+              .toList();
+
+    // CUR-1523: categorize questionnaire tasks by lifecycle:
+    //
+    //  FINALIZED (task-list/I): Portal has finalized the submission. The task
+    //    MUST be removed from the Task List entirely (neither attention nor
+    //    completed row). Read-only access lives on the survey RECORD in "Your
+    //    Records" / Calendar day-view. Finalized is detected via EITHER the
+    //    durable on-device `questionnaire_status` projection
+    //    ([_finalizedInstanceIds]) OR the freshly-synced portal status on the
+    //    task (task.status == 'finalized') — whichever signal arrives first.
+    //
+    //  SUBMITTED but NOT finalized (task-list/J): A device-local
+    //    `<id>_survey` row exists for this instance. The task STAYS in the list
+    //    as a completed-state row ("— submitted"), giving the participant access
+    //    to review/edit until the portal finalizes it.
+    //
+    //  PENDING (actionable): Neither submitted nor finalized. Surfaces in
+    //    "Needs your attention".
+    final submittedInstanceIds = view.entries
+        .whereType<SurveyEntryView>()
+        .map((s) => s.aggregateId)
+        .toSet();
+    // Implements: DIARY-GUI-participant-task-list/I
+    bool isFinalizedQuestionnaire(Task t) =>
+        _finalizedInstanceIds.contains(t.targetId ?? t.id) ||
+        t.status == 'finalized';
+    // Submitted (has local survey row) AND not yet finalized — the "awaiting
+    // review" completed-state category (task-list/J).
+    // Implements: DIARY-GUI-participant-task-list/J
+    bool isSubmittedNotFinalizedQuestionnaire(Task t) =>
+        t.taskType == TaskType.questionnaire &&
+        submittedInstanceIds.contains(t.id) &&
+        !isFinalizedQuestionnaire(t);
+
+    // Actionable items in the "Needs your attention" tile: alerts + tasks that
+    // are neither submitted nor finalized. Submitted and finalized questionnaire
+    // tasks are both excluded here (CUR-1519).
+    final attentionRows = <Widget>[
       if (incompleteCount > 0)
         AppAlertRow.incompleteRecord(
           count: incompleteCount,
@@ -1231,17 +1647,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           onTap: () => _handleResolveOverlaps(view),
         ),
       for (final task in tasks)
-        AppAlertRow(
-          tone: _toneForTaskType(task.taskType),
-          icon: _iconForTaskType(task.taskType),
-          label: task.title,
-          onTap: () => _navigateToQuestionnaire(task),
-        ),
+        if (task.taskType != TaskType.questionnaire ||
+            (!isSubmittedNotFinalizedQuestionnaire(task) &&
+                !isFinalizedQuestionnaire(task)))
+          AppAlertRow(
+            tone: _toneForTaskType(task.taskType),
+            icon: _iconForTaskType(task.taskType),
+            label: task.title,
+            onTap: () => _navigateToQuestionnaire(task, view),
+          ),
     ];
-    final count = rows.length;
-    // Nothing to surface: hide the entire section rather than showing an
-    // empty "Needs your attention (0)" tile (CUR-1519).
-    if (count == 0) {
+
+    // Completed (submitted, awaiting portal review) questionnaire tasks — a
+    // distinct success-tone row outside the attention tile, selectable so the
+    // participant can review/edit (task-list/K).
+    // FINALIZED tasks are NOT rendered here — they are removed from the Task
+    // List entirely (task-list/I); read-only access is via the survey record.
+    // Implements: DIARY-GUI-participant-task-list/I+J
+    final completedRows = <Widget>[
+      for (final task in tasks)
+        if (isSubmittedNotFinalizedQuestionnaire(task))
+          AppAlertRow(
+            key: Key('completed-task-${task.id}'),
+            tone: AppAlertRowTone.success,
+            icon: Icons.check_circle_outline,
+            // TODO(i18n): localize.
+            label: '${task.title} — submitted',
+            onTap: () => _navigateToQuestionnaire(task, view),
+          ),
+    ];
+
+    final attentionCount = attentionRows.length;
+    // Nothing to surface at all (no attention items AND no completed tasks):
+    // hide the entire section rather than showing an empty tile (CUR-1519).
+    if (attentionCount == 0 && completedRows.isEmpty) {
       return const SizedBox.shrink();
     }
     return Column(
@@ -1249,12 +1688,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       children: [
         AppSectionHeader(title: l10n.taskList),
         const SizedBox(height: 12),
-        AppExpansionTile(
-          title: l10n.needsYourAttention,
-          count: count,
-          initiallyExpanded: count > 0,
-          children: rows,
-        ),
+        // The "Needs your attention" tile renders only when there is at least
+        // one actionable item; with only completed tasks left it is absent so
+        // it never shows a "(0)" count (CUR-1519).
+        if (attentionCount > 0) ...[
+          AppExpansionTile(
+            title: l10n.needsYourAttention,
+            count: attentionCount,
+            initiallyExpanded: true,
+            children: attentionRows,
+          ),
+          if (completedRows.isNotEmpty) const SizedBox(height: 12),
+        ],
+        ...completedRows,
       ],
     );
   }
@@ -1285,14 +1731,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             leadingIcon: Icons.calendar_today_outlined,
             onPressed: () async {
               // CUR-1494: bound calendar back-navigation to 365 days before
-              // app install (DIARY-PRD-diary-start-day/D). The install date is
-              // the legacy-sync destination's start date, stamped at first
-              // launch; a lookup failure falls back to a now-relative floor.
+              // the diary's start day (DIARY-PRD-diary-start-day/D). The start
+              // day is the native DiaryServerDestination's start date — the
+              // trial-start watermark stamped once the portal reports Trial
+              // Start; null until then (and on a lookup failure), which the
+              // calendar treats as a now-relative floor.
               DateTime? installDate;
               try {
-                final schedule = await widget.runtime.destinations.scheduleOf(
-                  LegacySyncDestination.destinationId,
-                );
+                final schedule = await widget.diaryScope.bundle.destinations
+                    .scheduleOf(DiaryServerDestination.destinationId);
                 installDate = schedule.startDate;
               } catch (_) {
                 installDate = null;
@@ -1300,7 +1747,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               if (!context.mounted) return;
               await showDialog<void>(
                 context: context,
-                builder: (context) => CalendarScreen(installDate: installDate),
+                builder: (context) => CalendarScreen(
+                  installDate: installDate,
+                  onOpenSurvey: _openSurveyRecord,
+                ),
               );
             },
           ),
@@ -1485,10 +1935,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 // "Don't remember" / "No nosebleeds" status is not a tappable
                 // affordance (re-disposition stays available from the
                 // calendar's date-records screen).
+                // Implements: DIARY-GUI-participant-task-list/H
                 onTap: switch (entry) {
                   EpistaxisEntryView() => () => _navigateToEditRecord(entry),
                   DayMarkerView() => null,
-                  SurveyEntryView() => null,
+                  SurveyEntryView() => () => _openSurveyRecord(entry),
                 },
                 hasOverlap:
                     entry is EpistaxisEntryView && _hasOverlap(view, entry),
