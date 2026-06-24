@@ -858,6 +858,7 @@
 - rem:spec/glossary-core.md:750
 - DIARY-OPS-single-promotable-artifact:section:1
 - rem:spec/ops-ci-validation.md:9
+- DIARY-OPS-build-deploy-primitives:section:0
 - DIARY-PRD-configuration-precedence:section:1
 - rem:spec/prd-diary-entry-rules.md:1
 - rem:spec/prd-diary-entry-rules.md:3
@@ -3023,6 +3024,7 @@
 
 - DIARY-DEV-sponsor-config-source
 - DIARY-DEV-sponsor-branding-source
+- DIARY-OPS-neutral-baseline-branch
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
 - DIARY-BASE-local-data-reset-C
@@ -3051,6 +3053,9 @@
 - DIARY-OPS-cross-repo-cascading-ci-D
 - DIARY-OPS-fcm-project-routing-A
 - DIARY-OPS-fcm-project-routing-D
+- DIARY-OPS-build-deploy-primitives-A
+- DIARY-OPS-environment-as-deployment-A
+- DIARY-OPS-neutral-baseline-branch-A
 - DIARY-PRD-administrator-settings-F
 - DIARY-PRD-administrator-settings-G
 - DIARY-GUI-administrator-settings-E
@@ -3172,6 +3177,8 @@
 - DIARY-OPS-traceability-validation:section:0
 - DIARY-OPS-cross-repo-cascading-ci:section:0
 - rem:spec/ops-ci-validation.md:224
+- DIARY-OPS-hotfix-source-recovery:section:0
+- DIARY-OPS-neutral-baseline-branch:section:0
 - rem:spec/prd-administrator-settings.md:3
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-PRD-administrator-settings:section:5
