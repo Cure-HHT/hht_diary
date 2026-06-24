@@ -135,6 +135,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
   RecordingStep _currentStep = RecordingStep.startTime;
   bool _isSaving = false;
 
+  // Latch: true once the participant has reached the Confirm Record (complete)
+  // step. The overlap warning banner is informational during the initial
+  // start→end pass, but on the Confirm Record screen — and when a summary chip
+  // is tapped to edit a step from there — it stays hidden so the review/confirm
+  // flow stays clean.
+  bool _hasReachedConfirm = false;
+
   // CUR-464: Flash intensity field when user tries to set end time without it.
   bool _flashIntensity = false;
 
@@ -939,6 +946,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final overlappingEvents = _overlappingEvents(view);
     final l10n = AppLocalizations.of(context);
 
+    // Latch the confirm-reached flag (idempotent; no rebuild). Once set it
+    // suppresses the overlap banner for the rest of this screen's life.
+    if (_currentStep == RecordingStep.complete) _hasReachedConfirm = true;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -1023,14 +1034,17 @@ class _RecordingScreenState extends State<RecordingScreen> {
               // non-blocking so the participant keeps recording
               // (DIARY-GUI-entry-overlap-resolution/A+B). Resolution is triggered
               // automatically when the end time confirms the overlap, not from
-              // this banner.
-              if (overlappingEvents.isNotEmpty)
+              // this banner. Once the Confirm Record step is reached it stays
+              // hidden (via _hasReachedConfirm) — including when a summary chip
+              // is tapped to edit a step from there — so review stays clean.
+              if (overlappingEvents.isNotEmpty && !_hasReachedConfirm)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: OverlapWarning(overlappingEntries: overlappingEvents),
                 ),
 
-              if (overlappingEvents.isNotEmpty) const SizedBox(height: 16),
+              if (overlappingEvents.isNotEmpty && !_hasReachedConfirm)
+                const SizedBox(height: 16),
 
               // Main content area. On a locked date the editing controls are
               // inert (read-only); the summary bar still navigates between the
@@ -1348,24 +1362,21 @@ class _RecordingScreenState extends State<RecordingScreen> {
         ? (isExistingComplete ? l10n.saveChanges : l10n.completeRecord)
         : l10n.finished;
 
-    final durationMinutes = _durationMinutes();
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          Text(
-            isEditing && !isExistingComplete
-                ? l10n.completeRecord
-                : isEditing
-                ? l10n.editRecord
-                : l10n.recordComplete,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
+          if (isEditing && !isExistingComplete) ...[
+            Text(
+              l10n.completeRecord,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
 
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
+          ],
 
           Text(
             isEditing && !isExistingComplete
@@ -1377,23 +1388,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
               ).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
-
-          if (durationMinutes != null) ...[
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                l10n.durationMinutes(durationMinutes),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-          ],
-
-          const Spacer(),
+          const SizedBox(height: 20,),
 
           AppButton(
             size: AppButtonSize.large,
@@ -1401,6 +1396,19 @@ class _RecordingScreenState extends State<RecordingScreen> {
             label: buttonText,
             loading: _isSaving,
             onPressed: _isSaving ? null : _saveRecord,
+          ),
+
+          const SizedBox(height: 12),
+
+          // Cancel returns to the previous (end time) step without saving.
+          AppButton(
+            size: AppButtonSize.large,
+            fullWidth: true,
+            variant: AppButtonVariant.secondary,
+            label: l10n.cancel,
+            onPressed: _isSaving
+                ? null
+                : () => _goToStep(RecordingStep.endTime),
           ),
         ],
       ),
