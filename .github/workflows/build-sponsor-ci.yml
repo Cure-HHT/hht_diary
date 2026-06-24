@@ -36,6 +36,11 @@ on:
         description: 'Optional version to tag (example: v1.2.3)'
         required: false
         default: ''
+      source_ref:
+        description: "Informational: the ref being hotfix-built (e.g. baseline/2026-06). The actual build uses the dispatched ref."
+        type: string
+        required: false
+        default: ""
 
 env:
   REGISTRY: ghcr.io
@@ -112,7 +117,9 @@ jobs:
           fi
 
           VERSION="${RAW_TAG#v}"
-          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${VERSION}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
+          # Always include an immutable sha-<short> tag so hotfix builds are addressable by digest,
+          # independent of any version-change gate (DIARY-OPS-hotfix-source-recovery/A).
+          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${VERSION}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}, ${REGISTRY}/${IMAGE_PREFIX}:sha-${SHORT_SHA}"
 
           if [ "$IS_MAIN_PUSH" = "true" ]; then
             TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:main-latest"
@@ -138,6 +145,8 @@ jobs:
             type=raw,value=main-latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
+      # Implements: DIARY-OPS-build-deploy-primitives/A  (single source SHA -> single image, no env identity)
+      # Implements: DIARY-OPS-hotfix-source-recovery/A+B (build is exactly the dispatched ref; no main merge)
       - name: Build and push sponsor-ci image
         id: build
         uses: docker/build-push-action@v5
