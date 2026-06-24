@@ -1388,7 +1388,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
               ).colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
-          const SizedBox(height: 20,),
+          const SizedBox(height: 20),
 
           AppButton(
             size: AppButtonSize.large,
