@@ -253,10 +253,24 @@ jobs:
       # On skip, main-latest already points at the current binary (untouched),
       # and we intentionally do NOT mint a <short_sha> tag for this commit —
       # the sha tag only exists for commits that actually produced a binary.
+      #
+      # DISPATCH OVERRIDE: on workflow_dispatch (hotfix path) we ALWAYS force
+      # needs_build=true regardless of the version comparison. The sponsor
+      # hotfix-deploy.yml requires a portal-server image digest built from the
+      # exact dispatched ref; without a build on dispatch the binary would never
+      # be pushed and the hotfix would be unbuildable.
+      # Implements: DIARY-OPS-hotfix-source-recovery/A
       - name: Gate - rebuild only if portal_server_evs version changed
         id: gate
         run: |
           set -euo pipefail
+          # Hotfix dispatches must always rebuild from the dispatched ref so that
+          # a commit-addressable :sha-<short> tag is minted for portal-server.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "needs_build=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=portal-server gate::workflow_dispatch detected - forcing rebuild to mint addressable tag for hotfix deploy."
+            exit 0
+          fi
           SRC=$(grep '^version:' apps/sponsor-portal/portal_server_evs/pubspec.yaml | sed 's/version: //')
           echo "source    portal_server_evs=$SRC"
           PUB=""
@@ -295,6 +309,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:${{ needs.build-sponsor-ci.outputs.short_sha }}
+            ${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:sha-${{ needs.build-sponsor-ci.outputs.short_sha }}
             ${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest
           build-args: |
             SPONSOR_CI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}

@@ -18,7 +18,7 @@ assert "creates baseline/2026-06" "git -C '$TMP' rev-parse --verify baseline/202
 assert "branch points at source sha" "[ \"\$(git -C '$TMP' rev-parse baseline/2026-06)\" = \"$SHA\" ]"
 
 # 2. Rejects a sponsor-like version token.
-( cd "$TMP" && bash "$SCRIPT" callisto-2026-06 "$SHA" ) >/dev/null 2>&1
+( cd "$TMP" && bash "$SCRIPT" acme-2026-06 "$SHA" ) >/dev/null 2>&1
 assert "rejects sponsor token in version" "[ \$? -ne 0 ]"
 
 # 3. Rejects a malformed version.

@@ -6,23 +6,43 @@ an expedited approval gate wraps the deploy step in Phase 2.
 
 ## Preconditions
 
-- The target env's per-env source pointer exists in the sponsor repo
-  (`deployment/deployed-source/<env>.json`) and records the core source SHA + image
+- The target env's per-env source pointer exists in the sponsor repo at
+  `deployment/deployed-source/<env>.json` and records the core source SHA + image
   digests currently deployed.
 - A `baseline/<version>` branch exists in core at (or covering) that source SHA. If
   not, cut one: `tools/release/cut-baseline.sh <version> <recovered-sha> --push`.
 
 ## Steps
 
-1. **Recover source.** Read the core SHA from the sponsor pointer:
-   `deployment/scripts/source-pointer.sh get <env> core_source_sha`.
+1. **Recover source.** Read the core SHA from the sponsor repo's source pointer:
+   `deployment/scripts/source-pointer.sh get <env> core_source_sha`
+   (run this script from the sponsor repo).
 2. **Branch + fix (core).** From `baseline/<version>`, create
    `CUR-XXXX-hotfix-<slug>`, commit the targeted fix ONLY (no `main` commits).
-3. **Build core image.** Dispatch `build-sponsor-ci.yml` on the hotfix branch
-   (`source_ref` = the branch). It publishes `sponsor-ci:sha-<short>` (immutable).
-4. **Build + deploy (sponsor).** Run the sponsor `hotfix-deploy.yml` with the target
-   env + the `sponsor-ci` digest. It builds `portal-final`, deploys to the env's GCP
-   project via `deploy-cloud-run-service-callisto.yml`, and bumps the pointer.
+3. **Build core images.** Dispatch `build-sponsor-ci.yml` on the hotfix branch
+   (`source_ref` = the branch). It runs two phases:
+   - **Phase A** publishes `sponsor-ci:sha-<short>` (the immutable source+deps image).
+   - **Phase B** builds and pushes the portal-server binary, also tagged
+     `portal-server:sha-<short>` and `portal-server:<short>`.
+
+   After the workflow completes, capture **both** image digests from the run
+   summary or from the workflow step outputs:
+   - `sponsor-ci` digest (Phase A "Build and push sponsor-ci image" step output)
+   - `portal-server` digest (Phase B "Build and push portal-server" step output)
+4. **Build + deploy (sponsor).** In the sponsor repo, run `hotfix-deploy.yml` with
+   all five required inputs:
+
+   | Input | Value |
+   |---|---|
+   | `target-env` | The environment to update (e.g. `dev`, `qa`, `uat`) |
+   | `core-source-sha` | Full SHA of the core hotfix commit |
+   | `core-source-ref` | The hotfix branch name (e.g. `CUR-XXXX-hotfix-<slug>`) |
+   | `sponsor-ci-image` | `ghcr.io/cure-hht/sponsor-ci@sha256:<phase-A-digest>` |
+   | `portal-server-image` | `ghcr.io/cure-hht/portal-server@sha256:<phase-B-digest>` |
+
+   The sponsor workflow builds `portal-final`, deploys to the env's GCP project
+   via the sponsor's Cloud Run deploy workflow, and bumps the source pointer at
+   `deployment/deployed-source/<env>.json` in the sponsor repo.
 5. **Forward-port.** Run `tools/release/forward-port-notice.sh <fix-sha>
    baseline/<version> --linear` to record the obligation (it prints the exact
    cherry-pick commands and files a Linear ticket). Then YOU do the cherry-picks in a
@@ -35,3 +55,6 @@ an expedited approval gate wraps the deploy step in Phase 2.
   portal/backend only.
 - Phase 1 has no approval gate — deploy is operator-invoked. Do not skip the
   forward-port (Constraint C3).
+- All paths under `deployment/` referenced above (source pointer, scripts,
+  `hotfix-deploy.yml`) live in the **sponsor repo**, not in the core `hht_diary`
+  repo.
