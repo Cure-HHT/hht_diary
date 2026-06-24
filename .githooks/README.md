@@ -1,233 +1,168 @@
-# Git Hooks for Requirement Traceability
+# Git Hooks
 
 ## Overview
 
-This directory contains Git hooks that orchestrate validation plugins from the Claude Code marketplace.
-
-The main pre-commit hook delegates to specialized plugins for modular, maintainable validation:
-
-**Plugins (in `tools/claude-marketplace/`)**:
-1. **traceability-matrix** - Auto-regenerates requirement traceability matrices
-2. **requirement-validation** - Validates requirement format and links
-3. **spec-compliance** - Enforces spec/ directory compliance rules
+This directory contains Git hooks that enforce code quality, requirement
+traceability, and version discipline before commits and pushes. The hooks are
+checked into the repo and owned by it — no external hook-generator is involved.
 
 ## Installation
-
-To enable these hooks, run:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
 This tells Git to use hooks from `.githooks/` instead of the default `.git/hooks/`.
+Run `tools/setup-repo.sh` to set this up automatically alongside other dev tooling.
 
-## Available Hooks
+## Hook Files
 
-### custom-pre-push
+### `pre-commit`
 
-**Purpose**: Extended pre-push validations sourced by the anspar-wf generated pre-push hook.
+Runs before every `git commit`.
 
-**What it does**:
+**Checks performed:**
 
-1. **INDEX.md Validation**: Runs `elspais index --mode core validate`
-2. **Unset GIT_DIR/GIT_WORK_TREE**: Fixes Flutter version detection in hook context
-3. **Dart Dependency Resolution**: Runs `dart pub get` / `flutter pub get` across nested apps
-4. **Dart Format Check**: Validates formatting in all `apps/` projects
-5. **Dart Static Analysis**: Runs `dart analyze --fatal-infos` in all `apps/` projects
-6. **Per-App Test Discovery**: Runs `tool/test.sh` for each app directory with changes
-7. **Auto-Bump Clinical Diary Version**: Bumps patch version when source files change
-
-**Opt-Out**:
-
-Set the `SKIP_CUSTOM_PREPUSH` environment variable to skip all custom checks:
-
-```bash
-# Skip custom pre-push checks for this push
-SKIP_CUSTOM_PREPUSH=1 git push
-
-# Or export for the session
-export SKIP_CUSTOM_PREPUSH=1
-git push
-
-# Re-enable by unsetting
-unset SKIP_CUSTOM_PREPUSH
-```
-
-When skipped, a notice is printed confirming the checks were bypassed.
-
----
-
-### pre-push
-
-**Purpose**: Runs validation scripts before push with PR-aware blocking.
-
-**What it does**:
-
-1. **PR Detection**: Uses `gh` CLI to check if the current branch has an open PR
-2. **Requirement Validation**:
-   - Runs `elspais checks` (requirement format, links, hashes, INDEX.md accuracy)
-3. **Markdown Linting**: Runs `markdownlint` on changed `.md` files
-4. **Secret Detection**: Runs `gitleaks` to detect accidentally committed secrets
-5. **Plugin Hooks**: Auto-discovers and runs pre-push hooks from installed plugins
-6. **Test Suites**: Runs `./tool/test.sh` for each affected app directory
-   - Detects which `apps/*/` directories have changes
-   - Runs the app's `tool/test.sh` script if it exists
-   - This convention allows each app to define its own test strategy
-
-**Blocking Behavior**:
-
-- **Branch WITH open PR**: Validation failures **BLOCK** the push
-- **Branch WITHOUT PR**: Validation failures show **warnings only** (push allowed)
-
-**Rationale**: PR branches must pass validation because they represent code ready for review. Regular feature branches can push with warnings to allow work-in-progress commits.
-
-**When it runs**: Automatically before every `git push`
-
-**How to bypass** (NOT RECOMMENDED for PR branches):
-
-```bash
-git push --no-verify
-```
-
-**Requirements**:
-
-- `elspais` CLI for requirement validation (primary). Minimum version is pinned in `.github/versions.env` (`ELSPAIS_VERSION`); the hook fails fast on older installs. Install/upgrade with one of:
-  - `pip install --upgrade elspais`
-  - `pipx upgrade elspais`
-  - `brew tap anspar-org/anspar && brew upgrade elspais`
-- `gh` CLI for PR detection: <https://cli.github.com/>
-- `jq` for JSON parsing (used with gh CLI)
-- `markdownlint` for markdown linting: `npm install -g markdownlint-cli`
-- `gitleaks` for secret detection (REQUIRED): <https://github.com/gitleaks/gitleaks#installing>
-
----
-
-### pre-commit
-
-**Purpose**: Orchestrates validation by calling marketplace plugins and built-in code quality checks.
-
-**What it does**:
-
-1. **Branch Protection**: Blocks direct commits to main/master
-2. **Plugin Hooks**: Auto-discovers and runs pre-commit hooks from installed plugins
-3. **Dart Code Quality** - If `.dart` files changed in `apps/`:
-   - Runs `dart format .` (auto-formats and re-stages files)
+1. **Branch protection** — blocks direct commits to `main`/`master`.
+2. **Dart code quality** — if `.dart` files changed in `apps/`:
+   - Runs `dart format` (auto-formats and re-stages)
    - Runs `dart analyze --fatal-infos` (blocks on any issues)
-4. **TypeScript Code Quality** - If `.ts`/`.tsx` files changed in `apps/`:
+3. **TypeScript code quality** — if `.ts`/`.tsx` files changed in `apps/`:
    - Runs `npm run lint` (ESLint) for each affected project
-   - Blocks commit if lint errors found
-5. **Markdown linting** (markdownlint) - If `.md` files changed
-6. **Traceability Matrix Regeneration** (plugin):
-   - Automatically regenerates `traceability_matrix.md` and `traceability_matrix.html`
-   - Stages updated matrices for commit
-   - Only runs when spec/ files change
-7. **Requirement Validation** (plugin):
-   - Validates requirement format (REQ-{p|o|d}NNNNN)
-   - Checks requirement ID uniqueness
-   - Verifies "Implements" references exist
-   - Detects orphaned requirements
-8. **Spec Compliance Validation** (plugin):
-   - Validates file naming conventions
-   - Enforces audience scope rules (PRD/Ops/Dev)
-   - Detects code in PRD files
-   - Validates requirement format
+4. **Markdown linting** — if `.md` files changed, runs `markdownlint`
+5. **Phase design spec check** — validates `docs/superpowers/specs/*-design.md`
+   contains `## Requirements` and at least one REQ reference; stubs must include
+   a "Requirements: deferred" line or REQ reference.
+6. **Auto-bump build numbers** — increments `+N` in `pubspec.yaml` for Dart/Flutter
+   projects with source changes; stages bumped files as part of the commit.
 
-**When it runs**: Automatically before every `git commit`
-
-**How to bypass** (NOT RECOMMENDED):
+**Bypass (NOT RECOMMENDED):**
 
 ```bash
 git commit --no-verify
 ```
 
-Only bypass if you're:
+### `commit-msg`
 
-- Working on draft requirements
-- Making emergency hotfixes (fix requirements immediately after)
-- Temporarily broken state (fix before pushing)
+Enforces that every commit message starts with `[CUR-NNN]`.
 
-**Requirements**:
+Exempt: merge commits, revert commits, fixup/squash commits.
 
-- `dart` CLI for Dart formatting/analysis
-- Node.js/npm for TypeScript linting
-- `markdownlint` for markdown linting (optional): `npm install -g markdownlint-cli`
+**Bypass (NOT RECOMMENDED):**
+
+```bash
+git commit --no-verify
+```
+
+### `pre-push`
+
+Runs before every `git push`. Blocking behavior is PR-aware:
+
+- Branch **with** open PR: validation failures **block** the push.
+- Branch **without** PR: validation failures show warnings only (push allowed).
+
+**Checks performed** (the version gate runs first, before the slower checks, so
+a rebase under-bump is corrected and the push aborted up front):
+
+1. **Version gate** — verifies every changed package has a build-number bump
+   vs `origin/main`; auto-commits a correction and aborts so the fix is re-pushed
+2. **elspais checks** — `elspais checks --spec --code --terms` (REQ format, links,
+   term usage; INDEX accuracy). Version pin enforced: the hook fails fast if the
+   installed elspais is older than `ELSPAIS_VERSION` in `.github/versions.env`.
+3. **Markdown linting** — runs `markdownlint` on changed `.md` files
+4. **Secret detection** — runs `gitleaks` on commits being pushed
+5. **Dart dependency resolution** — `flutter pub get` / `dart pub get` per app
+6. **Dart format check** — `dart format --output=none --set-exit-if-changed`
+7. **Dart static analysis** — `dart analyze --fatal-infos`
+8. **Test suites** — runs `tool/test.sh -u` for apps whose source or dependency
+   trigger paths have changes (unit tests only)
+
+**Bypass (NOT RECOMMENDED for PR branches):**
+
+```bash
+git push --no-verify
+```
+
+## Shared Helpers
+
+The following scripts are sourced by the hooks — do not delete or rename them:
+
+| File | Purpose |
+| ---- | ------- |
+| `version-utils.sh` | `is_merge_commit_in_progress`, `verify_version_bumped_for`, `compute_new_version_for` |
+| `project-defs.sh` | `PROJECT_DEFS` array mapping Dart/Flutter package names to pubspec paths, code dirs, trigger paths, and version mode |
+| `fetch-cache.sh` | `ensure_main_fresh`, `main_version_for` (SHA-keyed cache), `verify_short_circuit_ok`, `record_verify_pass` — TTL-limited `git fetch origin main` + verify short-circuit state |
+| `version-gate.sh` | `run_version_gate` — rebase-proof bump verifier/auto-corrector |
+
+## Opt-Outs
+
+| Mechanism | Effect |
+| --------- | ------ |
+| `git commit --no-verify` | Bypass all pre-commit and commit-msg checks |
+| `git push --no-verify` | Bypass all pre-push checks |
+
+## Fetch-Cache Tunables
+
+`fetch-cache.sh` caches `git fetch origin main` to avoid repeated network calls
+during a single session:
+
+| Tunable | Default | Effect |
+| ------- | ------- | ------ |
+| `HHT_MAIN_FETCH_TTL` | `90` (seconds) | Seconds before the cache is considered stale |
+| `HHT_MAIN_FETCH_FORCE=1` | off | Forces a fresh fetch regardless of TTL |
+
+To manually force a cache refresh:
+
+```bash
+.githooks/fetch-cache.sh --force
+```
 
 ## Troubleshooting
 
 ### Hook not running
 
-Make sure you've configured the hooks path:
 ```bash
 git config --get core.hooksPath
 # Should output: .githooks
 ```
 
 If not set:
+
 ```bash
 git config core.hooksPath .githooks
 ```
 
-### Plugin not found warnings
+### elspais version error
 
-If you see "WARNING: Plugin not found", verify plugins are installed:
+The pre-commit and pre-push hooks check `ELSPAIS_VERSION` from
+`.github/versions.env`. If your installed version is older:
 
 ```bash
-# Check plugins exist
-ls -l tools/claude-marketplace/
-
-# Make plugins executable
-chmod +x tools/claude-marketplace/*/hooks/*
+pip install --upgrade elspais
+# or: pipx upgrade elspais
+# or: brew upgrade elspais  (if installed via brew)
 ```
 
-### Validation errors
+### Version gate auto-corrects and aborts
 
-Plugins call validation scripts via elspais. If validation fails:
+The pre-push version gate may detect that a rebase dropped the version bump,
+create a correction commit, and abort the push with:
 
-1. Read the error message carefully
-2. See `spec/requirements-format.md` for format rules
-3. Run validation manually to see full output:
-   ```bash
-   elspais validate
-   elspais index validate
-   ```
+> Versions were under-bumped vs origin/main and have been corrected in a new
+> commit. Run 'git push' again to push the corrected commit.
 
-### Pre-push blocking unexpectedly
-
-If pre-push is blocking your push and you don't think there's a PR:
-
-1. Check PR status manually:
-   ```bash
-   gh pr view --json state,url
-   ```
-
-2. If gh CLI can't authenticate:
-   ```bash
-   gh auth login
-   ```
-
-3. If you need to push work-in-progress to a PR branch:
-   ```bash
-   git push --no-verify  # Use with caution!
-   ```
+Simply re-run `git push`.
 
 ### Permission denied
 
 Make sure hooks are executable:
+
 ```bash
-chmod +x .githooks/pre-commit
-chmod +x .githooks/pre-push
-chmod +x tools/claude-marketplace/*/hooks/*
+chmod +x .githooks/pre-commit .githooks/commit-msg .githooks/pre-push
 ```
-
-### Plugin-specific issues
-
-See plugin documentation for detailed troubleshooting:
-- `tools/claude-marketplace/spec-compliance/README.md`
-- `tools/claude-marketplace/requirement-validation/README.md`
-- `tools/claude-marketplace/traceability-matrix/README.md`
 
 ## Related Documentation
 
-- **Marketplace Overview**: `tools/claude-marketplace/README.md`
-- **Requirement format**: `spec/requirements-format.md`
+- **Requirement format**: `spec/README.md`, `spec/INDEX.md`
 - **Project instructions**: `CLAUDE.md`
+- **Version pinning**: `.github/versions.env`

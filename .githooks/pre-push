@@ -32,11 +32,6 @@ set -e
 # and Flutter/Dart to fail config discovery or report wrong versions.
 unset GIT_DIR GIT_WORK_TREE
 
-# =====================================================
-# anspar-wf plugin path (installed via pip)
-# =====================================================
-ANSPAR_PLUGINS="${ANSPAR_WF_PLUGINS:-$HOME/anspar-wf/plugins/plugins}"
-
 # Portable version comparison: returns 0 (true) if $1 < $2
 _ver_lt() {
     local IFS=.
@@ -144,6 +139,49 @@ if [ -f "$REPO_ROOT/.github/versions.env" ]; then
         export "${key}=${value}"
     done < "$REPO_ROOT/.github/versions.env"
 fi
+
+# =====================================================
+# Version Bump Gate (rebase-proof; reuses version-utils.sh)
+# =====================================================
+# Runs FIRST, before the slow checks below: a rebase under-bump is corrected
+# and the push aborted up front, so the expensive checks (elspais, gitleaks,
+# format/analyze/test) don't run only to be discarded and re-run on the
+# re-push. pre-commit bumps on the happy path, but git rebase never re-runs
+# pre-commit, so a rebased branch can reach push with a version <= main. This
+# gate verifies every changed package over the FULL origin/main..HEAD range and
+# auto-corrects with a new bump commit.
+if [ "$CURRENT_BRANCH" != "main" ] && [ "$CURRENT_BRANCH" != "master" ]; then
+    GATE_HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+    source "$GATE_HOOK_DIR/version-utils.sh"
+    source "$GATE_HOOK_DIR/project-defs.sh"
+    source "$GATE_HOOK_DIR/fetch-cache.sh"
+    source "$GATE_HOOK_DIR/version-gate.sh"
+
+    if is_merge_commit_in_progress; then
+        printf '%b\n' "${BLUE}Version gate: merge in progress, skipping (merged code already bumped)${NC}"
+    else
+        ensure_main_fresh
+        HEAD_SHA="$(git rev-parse HEAD 2>/dev/null || echo "")"
+        if [ -z "${MAIN_SHA:-}" ]; then
+            printf '%b\n' "${YELLOW}Version gate: no origin/main ref, skipping${NC}"
+        elif verify_short_circuit_ok "$HEAD_SHA"; then
+            printf '%b\n' "${BLUE}Version gate: unchanged since last check, skipping${NC}"
+        else
+            run_version_gate "$REPO_ROOT" && GATE_RC=0 || GATE_RC=$?
+            if [ "$GATE_RC" -eq 1 ]; then
+                printf '%b\n' "${RED}Versions were under-bumped vs origin/main and have been corrected${NC}"
+                printf '%b\n' "${RED}in a new commit. Run 'git push' again to push the corrected commit.${NC}"
+                exit 1
+            elif [ "$GATE_RC" -eq 2 ]; then
+                printf '%b\n' "${RED}Version gate could not refresh a lock file (pub get failed). Fix deps and retry.${NC}"
+                exit 1
+            fi
+            record_verify_pass "$HEAD_SHA"
+            printf '%b\n' "${GREEN}Version gate passed${NC}"
+        fi
+    fi
+fi
+echo ""
 
 # Check elspais version against minimum required
 if [ -n "$ELSPAIS_VERSION" ]; then
@@ -466,32 +504,6 @@ else
         VALIDATION_FAILED=true
     fi
     echo ""
-fi
-
-# =====================================================
-# 6. Auto-Discover and Execute Plugin Pre-Push Hooks
-# =====================================================
-
-PLUGIN_DIR="$ANSPAR_PLUGINS"
-
-if [ -d "$PLUGIN_DIR" ]; then
-    # Find all plugin pre-push hooks
-    PLUGIN_HOOKS=$(find "$PLUGIN_DIR" -type f -path "*/hooks/pre-push" 2>/dev/null | sort)
-
-    if [ -n "$PLUGIN_HOOKS" ]; then
-        while IFS= read -r hook; do
-            PLUGIN_NAME=$(echo "$hook" | sed 's|.*/plugins/\([^/]*\)/.*|\1|')
-
-            # Execute the hook if it's executable
-            if [ -x "$hook" ]; then
-                printf '%b\n' "${BLUE}Running plugin hook: $PLUGIN_NAME${NC}"
-                if ! "$hook"; then
-                    VALIDATION_FAILED=true
-                    printf '%b\n' "${RED}Plugin hook failed: $PLUGIN_NAME${NC}"
-                fi
-            fi
-        done <<< "$PLUGIN_HOOKS"
-    fi
 fi
 
 # =====================================================
