@@ -579,11 +579,12 @@ void main() {
           rules: const ClinicalRules(useReviewScreen: true),
         );
 
-        // Seed the overlapping finalized row; the inline warning still shows as
-        // a non-blocking heads-up.
+        // Seed the overlapping finalized row. This existing complete entry opens
+        // directly on the Confirm Record step (useReviewScreen), where the
+        // overlap banner stays hidden so the review screen is clean.
         seedDiaryEntries([other]);
         await tester.pumpAndSettle();
-        expect(find.text('Overlapping Events Detected'), findsOneWidget);
+        expect(find.text('Overlapping Events Detected'), findsNothing);
 
         // An explicit "Save Changes" is NO LONGER blocked — it submits.
         await tester.tap(
@@ -755,7 +756,10 @@ void main() {
         await pumpRecordingFromHost(tester, editing: editing);
         seedDiaryEntries([other]);
         await tester.pumpAndSettle();
-        expect(find.text('Overlapping Events Detected'), findsOneWidget);
+        // This complete entry opens on the Confirm Record step, where the
+        // overlap banner is hidden; routing on exit is still driven by the
+        // confirmed overlap, not the banner.
+        expect(find.text('Overlapping Events Detected'), findsNothing);
 
         // Attempt to leave to the Main Screen.
         await tester.tap(find.text('Home'));
