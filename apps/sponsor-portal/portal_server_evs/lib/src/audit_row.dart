@@ -32,7 +32,8 @@ String? adminActionName(String entryType, String eventType) =>
       'user_activation_code_issued' => 'Resend Activation Email', // ACT-USR-006
       'user_deleted' => 'Delete Pending User Account', // ACT-USR-009
       'user_role_scope' => switch (eventType) {
-          'role_assigned' => 'Assign Role or Site to User Account', // ACT-USR-007/008
+          'role_assigned' =>
+            'Assign Role or Site to User Account', // ACT-USR-007/008
           'role_unassigned' =>
             'Revoke Role or Site from User Account', // ACT-USR-010/011
           _ => null,
