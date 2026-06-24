@@ -17,6 +17,7 @@ RESULTS_BUCKET="${FIREBASE_RESULTS_BUCKET:-}"
 mkdir -p "$EVIDENCE_DIR"
 [[ -f "$XCTEST_ZIP" ]] || { echo "ERROR: XCTest ZIP not found: $XCTEST_ZIP" >&2; exit 1; }
 
+gcloud config set project "$PROJECT_ID"
 ACTIVE_PROJECT="$(gcloud config get-value project 2>/dev/null)"
 if [[ "$ACTIVE_PROJECT" != "$PROJECT_ID" ]]; then
   echo "ERROR: active gcloud project '$ACTIVE_PROJECT' does not match '$PROJECT_ID'" >&2
