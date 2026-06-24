@@ -23,13 +23,13 @@ A hotfix not forward-ported regresses on the next normal build
 Do this in a fresh worktree (keeps your current checkout untouched):
 
   # onto main
-  git worktree add ../fp-${SHORT}-main main
-  git -C ../fp-${SHORT}-main cherry-pick -x ${FIX}
+  git worktree add "../fp-${SHORT}-main" main
+  git -C "../fp-${SHORT}-main" cherry-pick -x "${FIX}"
   # ...resolve conflicts if any, then push a branch and open a PR
 
   # onto ${BASELINE}
-  git worktree add ../fp-${SHORT}-baseline ${BASELINE}
-  git -C ../fp-${SHORT}-baseline cherry-pick -x ${FIX}
+  git worktree add "../fp-${SHORT}-baseline" "${BASELINE}"
+  git -C "../fp-${SHORT}-baseline" cherry-pick -x "${FIX}"
   # ...resolve conflicts if any, then push a branch and open a PR
 
 Open the two as SEPARATE PRs.

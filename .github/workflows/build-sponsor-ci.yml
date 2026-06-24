@@ -61,6 +61,7 @@ jobs:
       image_digest: ${{ steps.build.outputs.digest }}
       version: ${{ steps.parse.outputs.version }}
       short_sha: ${{ steps.parse.outputs.short_sha }}
+      is_main_push: ${{ steps.parse.outputs.is_main_push }}
 
     steps:
       - name: Free up disk space
@@ -113,6 +114,13 @@ jobs:
             RAW_TAG="${GITHUB_REF#refs/tags/}"
           else
             RAW_TAG="${SHORT_SHA}"
+          fi
+
+          # `main-latest` is the floating pointer for the main line ONLY. Publish it
+          # solely on a real push to main — never on a tag build or a hotfix
+          # workflow_dispatch (which builds from a baseline branch and would
+          # otherwise overwrite main's image).
+          if [ "${{ github.event_name }}" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
             IS_MAIN_PUSH=true
           fi
 
@@ -131,6 +139,7 @@ jobs:
 
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "is_main_push=${IS_MAIN_PUSH}" >> "$GITHUB_OUTPUT"
           echo "tags<<EOF" >> "$GITHUB_OUTPUT"
           printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
@@ -299,6 +308,24 @@ jobs:
           VER=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | sed 's/version: //')
           echo "diary_app_version=${VER:-unknown}" >> "$GITHUB_OUTPUT"
 
+      - name: Compute portal-server tags
+        id: pstags
+        if: steps.gate.outputs.needs_build == 'true'
+        run: |
+          set -euo pipefail
+          SHORT="${{ needs.build-sponsor-ci.outputs.short_sha }}"
+          {
+            echo "tags<<EOF"
+            echo "${REGISTRY}/${PORTAL_IMAGE}:${SHORT}"
+            echo "${REGISTRY}/${PORTAL_IMAGE}:sha-${SHORT}"
+            # main-latest only on a real push to main — never on a hotfix dispatch,
+            # which would otherwise overwrite main's portal-server image.
+            if [ "${{ needs.build-sponsor-ci.outputs.is_main_push }}" = "true" ]; then
+              echo "${REGISTRY}/${PORTAL_IMAGE}:main-latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and push portal-server
         if: steps.gate.outputs.needs_build == 'true'
         uses: docker/build-push-action@v5
@@ -307,10 +334,7 @@ jobs:
           file: deployment/docker/portal-server-binary.Dockerfile
           platforms: linux/amd64
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:${{ needs.build-sponsor-ci.outputs.short_sha }}
-            ${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:sha-${{ needs.build-sponsor-ci.outputs.short_sha }}
-            ${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest
+          tags: ${{ steps.pstags.outputs.tags }}
           build-args: |
             SPONSOR_CI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}
             SERVER_COMMIT=${{ needs.build-sponsor-ci.outputs.short_sha }}

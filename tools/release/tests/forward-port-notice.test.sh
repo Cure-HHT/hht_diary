@@ -24,7 +24,11 @@ BEFORE_STATUS="$(G status --porcelain)"
 OUT="$( cd "$TMP" && bash "$SCRIPT" "$FIX" baseline/2026-06 )"
 
 # 1. Notice names both targets and the fix sha in cherry-pick commands.
-assert "mentions cherry-pick onto main"     "printf '%s' \"\$OUT\" | grep -q 'cherry-pick -x ${FIX}' && printf '%s' \"\$OUT\" | grep -q 'main'"
+# Assert the cherry-pick verb and the fix SHA independently so the test is
+# robust to the SHA being quoted in the printed command.
+assert "mentions cherry-pick"               "printf '%s' \"\$OUT\" | grep -q 'cherry-pick -x'"
+assert "names the fix sha"                  "printf '%s' \"\$OUT\" | grep -q '${FIX}'"
+assert "mentions main target"               "printf '%s' \"\$OUT\" | grep -q 'main'"
 assert "mentions baseline target"           "printf '%s' \"\$OUT\" | grep -q 'baseline/2026-06'"
 assert "suggests a worktree"                "printf '%s' \"\$OUT\" | grep -qi 'worktree'"
 assert "shows the fix subject"              "printf '%s' \"\$OUT\" | grep -q 'hotfix: thing'"

@@ -58,7 +58,8 @@ images are absent, the workflow fails immediately with a message to run
    baseline/<version> --linear` to record the obligation (it prints the exact
    cherry-pick commands and files a Linear ticket). Then YOU do the cherry-picks in a
    fresh worktree and open the two SEPARATE PRs (onto `main` and onto the baseline).
-   The script never cherry-picks for you. Definition-of-done (Constraint C3).
+   The script never cherry-picks for you. Definition-of-done
+   (`DIARY-OPS-hotfix-source-recovery/C`).
 
 ### Manual / break-glass path
 
@@ -94,7 +95,7 @@ from the workflow step outputs:
 - Resolver + mobile are global artifacts; this runbook covers the per-sponsor
   portal/backend only.
 - Phase 1 has no approval gate — deploy is operator-invoked. Do not skip the
-  forward-port (Constraint C3).
+  forward-port (`DIARY-OPS-hotfix-source-recovery/C`).
 - All paths under `deployment/` referenced above (source pointer, scripts,
   `hotfix-deploy.yml`) live in the **sponsor repo**, not in the core `hht_diary`
   repo.
