@@ -221,12 +221,13 @@ jobs:
             echo "## Verified-Coverage Traceability Matrix"
             echo ""
             if [ -f "$MATRIX" ]; then
-              SUMMARY_LINE=$(grep -n "## Summary" "$MATRIX" | head -1 | cut -d: -f1)
-              if [ -n "$SUMMARY_LINE" ]; then
-                tail -n +"$SUMMARY_LINE" "$MATRIX" | head -40
-              else
-                echo "Matrix generated — see artifacts for full detail."
-              fi
+              # Show only the compact Summary-by-Level block. The full
+              # per-requirement table is hundreds of rows — it lives in the
+              # build-reports artifact, not the comment (avoids the misleading
+              # "first N rows" truncation that read as an arbitrary subset).
+              awk '/^## Summary by Level/{p=1} /^# Traceability Matrix/{p=0} p' "$MATRIX"
+              REQ_COUNT=$(grep -cE '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX")
+              echo "_Full per-requirement matrix (${REQ_COUNT} requirements) is in the build-reports artifact (link below)._"
             else
               echo "Matrix could not be generated this run — see job logs."
             fi
@@ -242,7 +243,7 @@ jobs:
               awk -F'\t' '$1!="TOTAL"{print}' "$COV" | sort | \
                 awk -F'\t' '{printf "| %s | %s%% | %d | %d |\n", $1, $2, $3, $4}'
               echo ""
-              echo "_REQ-attributed verified/tested coverage above reads 0/0 while REQs are Draft; this line coverage is REQ-independent._"
+              echo "_Line coverage is measured independently of requirement status._"
             fi
             echo ""
             echo "[Full matrix in artifacts](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})"
