@@ -65,3 +65,5 @@ flutter:
     # Role-card glyphs for the post-login role-selection screen, exported from
     # the Sponsor Portal Figma and recolored per role tone at render time.
     - assets/icons/role/
+    - assets/icons/questionnaire/
+    - assets/icons/curehht_logo.png

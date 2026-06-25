@@ -49,19 +49,19 @@ class ActivationCodeDisplay extends StatelessWidget {
           const SizedBox(height: 4),
         ],
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest,
+            // Figma: pale slate code field (#F7FAFB) with a hairline border —
+            // NOT surfaceContainerHighest, which resolves to a medium grey.
+            color: colorScheme.surfaceContainerLow,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: colorScheme.outline.withValues(alpha: 0.5),
-            ),
+            border: Border.all(color: colorScheme.outlineVariant),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               SelectableText(
-                code,
+                _formatCode(code),
                 style: TextStyle(
                   fontFamily: 'monospace',
                   fontSize: fontSize ?? 16,
@@ -103,6 +103,20 @@ class ActivationCodeDisplay extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  /// Groups a linking code into two dash-separated halves for display
+  /// (Figma: "KJWF8-ALS57"). Codes are a fixed 10 chars (2 prefix + 6 random +
+  /// 2 check), so the dash lands at the midpoint. Codes that already contain a
+  /// separator, or non-code placeholders like "(none)", are returned as-is.
+  /// The clipboard copy always uses the raw, un-dashed [code].
+  static String _formatCode(String code) {
+    if (code.contains('-') || code.contains(' ')) return code;
+    if (code.length < 6 || !RegExp(r'^[A-Za-z0-9]+$').hasMatch(code)) {
+      return code;
+    }
+    final mid = code.length ~/ 2;
+    return '${code.substring(0, mid)}-${code.substring(mid)}';
   }
 
   /// Formats an ISO-8601 [expiresAt] as a short local date-time, falling back

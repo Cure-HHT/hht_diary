@@ -103,8 +103,8 @@ class ColorTokens {
   // Status — for patient/cycle state badges. NOT overridable.
   // Each maps to the Figma severity color of the same semantic.
   // ---------------------------------------------------------------------------
-  static const Color statusActive = approved;
-  static const Color statusAttention = pending;
-  static const Color statusAtRisk = critical;
+  static const Color statusActive = Color(0xFF16613F); // Figma: Approved Dark (status text + dot)
+  static const Color statusAttention = Color(0xFFB9790A); // Figma: Pending Dark
+  static const Color statusAtRisk = Color(0xFFA52A31); // Figma: Critical Dark
   static const Color statusNoData = grey;
 }

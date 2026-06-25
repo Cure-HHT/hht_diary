@@ -43,6 +43,7 @@ class ParticipantRecordRow {
     required this.status,
     this.linkingCode,
     this.expiresAtRaw,
+    this.usedAtRaw,
   });
 
   final String id;
@@ -50,6 +51,11 @@ class ParticipantRecordRow {
   final ParticipantStatus status;
   final String? linkingCode;
   final String? expiresAtRaw;
+
+  /// ISO-8601 timestamp the code was redeemed (folded from
+  /// `participant_linking_code_used`). Drives the "Used on …" line in the
+  /// reference-only Mobile Linking Code dialog.
+  final String? usedAtRaw;
 
   static ParticipantRecordRow fromRow(Map<String, Object?> row) =>
       ParticipantRecordRow(
@@ -67,6 +73,7 @@ class ParticipantRecordRow {
         ),
         linkingCode: row['linking_code'] as String?,
         expiresAtRaw: row['expires_at'] as String?,
+        usedAtRaw: row['used_at'] as String?,
       );
 
   /// True when the active code's expiry has passed (Pending only — a used
@@ -294,6 +301,16 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
       isLoading: isLoading,
       onPrimaryAction: (row) => _onPrimary(byId[row.id]!, row),
       onMenuAction: (row, action) => _onMenu(byId[row.id]!, action),
+      // Tapping a row whose participant has linked their Mobile Application
+      // (Linked / Awaiting Start or Trial Active) opens the Mobile Linking
+      // Code dialog in its reference-only state (Figma image 7).
+      onRowTap: (row) {
+        final record = byId[row.id]!;
+        if (record.status == ParticipantStatus.connected ||
+            record.status == ParticipantStatus.trialActive) {
+          _showCodeDialog(record);
+        }
+      },
     );
   }
 
@@ -397,6 +414,7 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
         participantId: record.id,
         code: record.linkingCode,
         expiresAtRaw: record.expiresAtRaw,
+        usedAtRaw: record.usedAtRaw,
         used: used,
         now: _now,
       ),
@@ -533,7 +551,7 @@ class LinkParticipantDialog extends StatelessWidget {
             return AppDialog(
               size: AppDialogSize.small,
               title: 'Link Participant',
-              dismissible: false,
+              dismissible: true,
               semanticId: 'link-participant-dialog-$participantId',
               body: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -682,13 +700,29 @@ class _MobileLinkingCodeDialog extends StatelessWidget {
           ],
         ],
       ),
-      actions: [
-        AppButton(
-          label: 'OK',
-          onPressed: () => Navigator.of(context).pop(),
-          semanticId: 'linking-code-ok-$participantId',
-        ),
-      ],
+      // Figma: the reference-only (used) state shows a single OK; the active
+      // code state shows Cancel + Confirm.
+      actions: muted
+          ? [
+              AppButton(
+                label: 'OK',
+                onPressed: () => Navigator.of(context).pop(),
+                semanticId: 'linking-code-confirm-$participantId',
+              ),
+            ]
+          : [
+              AppButton(
+                variant: AppButtonVariant.secondary,
+                label: 'Cancel',
+                onPressed: () => Navigator.of(context).pop(),
+                semanticId: 'linking-code-cancel-$participantId',
+              ),
+              AppButton(
+                label: 'Confirm',
+                onPressed: () => Navigator.of(context).pop(),
+                semanticId: 'linking-code-confirm-$participantId',
+              ),
+            ],
     );
   }
 }
@@ -700,6 +734,7 @@ Future<void> showLinkingCodeDialog({
   required String participantId,
   required String? code,
   required String? expiresAtRaw,
+  String? usedAtRaw,
   required bool used,
   required DateTime now,
 }) {
@@ -710,13 +745,26 @@ Future<void> showLinkingCodeDialog({
       code: code ?? '(none)',
       muted: used,
       subtitle: used
-          ? 'Reference only. This code was already used and cannot be used '
-                'to establish a new connection.'
+          ? 'Reference only.${usedOnLabel(usedAtRaw)} This code cannot be '
+                'used to establish a new connection.'
           : 'Share this code with the participant to connect their Mobile '
                 'Application.',
       footer: used ? '' : expiresInLabel(expiresAtRaw, now),
     ),
   );
+}
+
+/// " Used on 20/4/2026 at 12:54." (Figma reference-only Mobile Linking Code
+/// dialog) — a leading space so it slots between the "Reference only." and
+/// "This code cannot…" sentences. Empty when no redemption timestamp exists.
+String usedOnLabel(String? usedAtRaw) {
+  final t = usedAtRaw == null ? null : DateTime.tryParse(usedAtRaw);
+  if (t == null) return '';
+  final local = t.toLocal();
+  final time =
+      '${local.hour.toString().padLeft(2, '0')}:'
+      '${local.minute.toString().padLeft(2, '0')}';
+  return ' Used on ${local.day}/${local.month}/${local.year} at $time.';
 }
 
 /// Generic lifecycle confirm + dispatch dialog (Disconnect / Reconnect /

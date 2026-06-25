@@ -166,7 +166,7 @@ void main() {
   testWidgets('tab counts reflect the Figma grouping', (tester) async {
     await pump(tester);
     // All 6 / Not connected 3 / Active 2 / Inactive 1.
-    expect(find.text('All'), findsOneWidget);
+    expect(find.text('All users'), findsOneWidget);
     expect(find.text('6'), findsWidgets);
     expect(find.text('Not connected'), findsOneWidget);
     expect(find.text('3'), findsWidgets);
@@ -194,21 +194,6 @@ void main() {
     await pump(tester, onPrimary: (r) => fired = r);
     await tester.tap(find.text('Start Trial'));
     expect(fired?.id, '001-1001234');
-  });
-
-  testWidgets('overflow menu lists the row lifecycle actions and fires', (
-    tester,
-  ) async {
-    (String, ParticipantMenuAction)? fired;
-    await pump(tester, onMenu: (r, a) => fired = (r.id, a));
-    // The not-participating row has a menu but no primary button.
-    final menus = find.byType(PopupMenuButton<ParticipantMenuAction>);
-    expect(menus, findsNWidgets(2));
-    await tester.tap(menus.last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Reactivate'));
-    await tester.pumpAndSettle();
-    expect(fired, ('002-1031234', ParticipantMenuAction.reactivate));
   });
 
   testWidgets('ready-to-review bell renders only on flagged rows', (

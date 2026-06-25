@@ -29,7 +29,9 @@ void main() {
       ),
     );
 
-    expect(find.text('ABCD1234'), findsOneWidget);
+    // Displayed in dash-grouped halves (Figma "KJWF8-ALS57"); the copy
+    // button still copies the raw, un-dashed code.
+    expect(find.text('ABCD-1234'), findsOneWidget);
     expect(find.text('Linking code'), findsOneWidget);
     expect(find.byIcon(Icons.copy_outlined), findsOneWidget);
   });
@@ -132,8 +134,9 @@ void main() {
     await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
 
-    // The SERVER code is surfaced (Figma: Mobile Linking Code dialog).
-    expect(find.text('CASERVER1'), findsOneWidget);
+    // The SERVER code is surfaced (Figma: Mobile Linking Code dialog),
+    // displayed in dash-grouped halves.
+    expect(find.text('CASE-RVER1'), findsOneWidget);
     expect(find.byIcon(Icons.copy_outlined), findsOneWidget);
     expect(find.textContaining('Expire'), findsWidgets);
 
@@ -173,7 +176,7 @@ void main() {
     await tester.tap(find.text('Confirm'));
     await tester.pumpAndSettle();
 
-    expect(find.text('CACACHED1'), findsOneWidget);
+    expect(find.text('CACA-CHED1'), findsOneWidget);
 
     await fake.dispose();
   });

@@ -10,7 +10,6 @@ roles:
   - SystemOperator
 grants:
   StudyCoordinator:
-    - portal.admin.view_settings
     - portal.participant.link
     - portal.participant.start_trial
     - portal.participant.disconnect

@@ -8,8 +8,8 @@ import 'package:flutter/foundation.dart';
 enum ParticipantRowStatus {
   notConnected('Not Connected'),
   codePending('Code Pending'),
-  expired('Expired'),
-  linkedAwaitingStart('Linked - Awaiting Start'),
+  expired('Code Expired'),
+  linkedAwaitingStart('Linked / Awaiting Start'),
   trialActive('Trial Active'),
   disconnected('Disconnected'),
   notParticipating('Not Participating'),
@@ -47,7 +47,7 @@ enum ParticipantMenuAction {
 
 /// Status filter tabs above the participants table (Figma order).
 enum ParticipantStatusFilter {
-  all('all', 'All'),
+  all('all', 'All users'),
   notConnected('not-connected', 'Not connected'),
   active('active', 'Active'),
   inactive('inactive', 'Inactive');

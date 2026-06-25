@@ -893,7 +893,11 @@ class _HomeShellState extends State<_HomeShell> {
         onHelp: _showVersionsDialog,
         // Same sponsor-served logo the auth cards use (CUR-1483 Figma:
         // logo sits left of the title block).
-        logo: const SponsorBrandMark(maxHeight: 40),
+        // Figma: hard-coded CureHHT brand mark on the top header.
+        logo: Image.asset(
+          'assets/icons/curehht_logo.png',
+          height: 40,
+        ),
         // Opens the read-only Study Settings page over the active tab.
         // Visible only to roles holding the ACT-ADM-001 read permission
         // (Administrator + SystemOperator per the sponsor matrix); the
@@ -905,6 +909,26 @@ class _HomeShellState extends State<_HomeShell> {
                 false)
             ? () => setState(() => _showSettings = true)
             : null,
+      ),
+      footer: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+
+          children: [
+            Text(
+              'Sponsored by',
+              style: TextStyle(
+                fontWeight: FontWeight.w400,
+                fontSize: 14,
+                color: const Color(0xFFA4B9C2), // Figma: Grey
+              ),
+            ),
+            const SizedBox(width: 8),
+            const SponsorBrandMark(maxHeight: 50),
+          ],
+        ),
       ),
       // Study Settings isn't a tab: it overlays the body while the strip
       // shows no active pill; any tab tap below dismisses it.

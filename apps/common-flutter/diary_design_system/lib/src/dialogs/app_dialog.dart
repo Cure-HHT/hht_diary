@@ -70,9 +70,16 @@ class AppDialog extends StatelessWidget {
   final Widget body;
   final List<Widget> actions;
 
-  /// When true, the dialog renders a close (X) button in the top-right
-  /// corner that pops the route with `null`. The barrier-dismiss behavior is
-  /// controlled separately by the caller's `showDialog(barrierDismissible:)`.
+  /// Optional override for the whole dialog surface (Figma: the Manage
+  /// Questionnaires modal is a soft grey panel that its white question cards
+  /// sit on). Null (default) keeps `colorScheme.surface` so every existing
+  /// dialog is unchanged.
+  final Color? backgroundColor;
+
+  /// Retained for API compatibility. Per the Figma UI Kit every dialog
+  /// pattern now renders the top-right close (X) button unconditionally, so
+  /// this flag no longer hides it. Barrier-dismiss behavior is still
+  /// controlled by the caller's `showDialog(barrierDismissible:)`.
   final bool dismissible;
 
   /// Test-harness locator. When set, wraps the dialog in a
@@ -91,12 +98,13 @@ class AppDialog extends StatelessWidget {
     this.actions = const [],
     this.dismissible = true,
     this.semanticId,
+    this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final borderRadius = BorderRadius.circular(RadiusTokens.lg);
+    final borderRadius = BorderRadius.circular(RadiusTokens.md); // Figma: dialog corner radius 8
 
     final dialog = Dialog(
       // Transparent so Material doesn't paint its own surface-tint /
@@ -113,8 +121,9 @@ class AppDialog extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: size.width),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
+            color: backgroundColor ?? theme.colorScheme.surface,
             borderRadius: borderRadius,
+            border: Border.all(color: theme.colorScheme.outlineVariant), // Figma: 1px hairline border
             // Figma drop shadow: x=5, y=10, blur=20, spread=-3, color
             // #364153 at 10% alpha. Single-layer (no ambient stack).
             boxShadow: const [
@@ -137,12 +146,16 @@ class AppDialog extends StatelessWidget {
                   title: title,
                   subtitle: subtitle,
                   breadcrumb: breadcrumb,
-                  dismissible: dismissible,
                 ),
                 Flexible(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: SpacingTokens.xxl,
+                    // Bottom inset gives the Figma gap between body and the
+                    // footer divider; horizontal inset matches header/footer.
+                    padding: EdgeInsets.fromLTRB(
+                      SpacingTokens.xxl,
+                      0,
+                      SpacingTokens.xxl,
+                      SpacingTokens.xxl,
                     ),
                     child: body,
                   ),
@@ -427,14 +440,12 @@ class _Header extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget? breadcrumb;
-  final bool dismissible;
 
   const _Header({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.breadcrumb,
-    required this.dismissible,
   });
 
   @override
@@ -478,12 +489,16 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          if (dismissible)
-            IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: 'Close',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
+          // Figma: every dialog pattern carries a light close (X) affordance
+          // in the top-right that pops the route with null.
+          IconButton(
+            icon: const Icon(Icons.close),
+            iconSize: 20,
+            color: theme.colorScheme.onSurfaceVariant,
+            tooltip: 'Close',
+            visualDensity: VisualDensity.compact,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ],
       ),
     );
@@ -496,22 +511,37 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        SpacingTokens.xxl,
-        SpacingTokens.lg,
-        SpacingTokens.xxl,
-        SpacingTokens.xxl,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          for (var i = 0; i < actions.length; i++) ...[
-            if (i > 0) SizedBox(width: SpacingTokens.md),
-            actions[i],
-          ],
-        ],
-      ),
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Figma: hairline divider separating the body from the actions row,
+        // inset to the dialog's horizontal content padding.
+        Divider(
+          height: 1,
+          thickness: 1,
+          indent: SpacingTokens.xxl,
+          endIndent: SpacingTokens.xxl,
+          color: theme.colorScheme.outlineVariant,
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            SpacingTokens.xxl,
+            SpacingTokens.lg,
+            SpacingTokens.xxl,
+            SpacingTokens.xxl,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              for (var i = 0; i < actions.length; i++) ...[
+                if (i > 0) SizedBox(width: SpacingTokens.md),
+                actions[i],
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
