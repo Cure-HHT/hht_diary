@@ -303,11 +303,6 @@ if [ "$ELSPAIS_RELEVANT_CHANGED" = "true" ]; then
     exit "$elspais_exit"
   fi
 
-  # Generate traceability matrix for PR comment and artifact upload
-  mkdir -p build-reports/combined/traceability
-  elspais summary trace --format markdown \
-    -o build-reports/combined/traceability/traceability_matrix.md
-
   echo "Requirement validation (readiness) passed"
 else
   echo "Skipped - no changes under elspais scan paths [Passed]"
