@@ -48,10 +48,20 @@ flutter pub get
 # started, 0 tests completed, matrix timeout").
 # ---------------------------------------------------------------------------
 
-# The Gradle invocation below assembles both the app APK and the androidTest
-# APK in a single build pass. The --dart-define=APP_FLAVOR flag is propagated
-# via -PFLUTTER_DART_DEFINE so String.fromEnvironment('APP_FLAVOR') resolves
-# correctly inside the compiled Dart code (see FIREBASE TEST LAB FIX above).
+# Build the app using the integration-test entrypoint. Flutter's Android
+# integration_test bridge is then packaged into the separate androidTest APK.
+# This step also generates the Gradle wrapper (gradlew), which is gitignored
+# and required by the Gradle invocation below.
+flutter build apk \
+  --debug \
+  --flavor "$FLAVOR" \
+  --dart-define=APP_FLAVOR="$FLAVOR" \
+  --target "$TEST_TARGET"
+
+# The Gradle invocation below assembles the androidTest APK. The
+# --dart-define=APP_FLAVOR flag is propagated via -PFLUTTER_DART_DEFINE so
+# String.fromEnvironment('APP_FLAVOR') resolves correctly inside the compiled
+# Dart code (see FIREBASE TEST LAB FIX above).
 pushd android >/dev/null
 ./gradlew \
   ":app:assemble${VARIANT}AndroidTest" \
