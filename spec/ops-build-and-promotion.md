@@ -39,10 +39,10 @@ C. The deploy workflow SHALL migrate all traffic to the new revision only after 
 
 D. When a verification check fails, the deploy workflow SHALL terminate the run with the prior revision still receiving all traffic.
 
-E. The deploy workflow SHALL reject any image reference that is not an immutable digest of the form `<host>/<repo>/<image>@sha256:<64-hex>`.
+E. The deploy workflow SHALL reject any image reference that is not pinned to an immutable content digest (an `@sha256:` digest), accepting digest-pinned references only and rejecting mutable tags.
 
 ## Rationale
 
 A container platform's default startup probe confirms only that the container accepts connections on its port, so a revision that starts but is functionally broken — for example one whose runtime secret injection failed, returning an error on login while a shallow health endpoint still returns success — can receive all traffic before any functional check runs. Publishing the revision with no traffic, verifying it at its tagged address, and shifting traffic only after verification passes closes that window without a reactive revert: traffic never reaches an unverified revision, so a failed verification leaves the prior revision serving. Reverting a revision is therefore an ordinary redeploy of the prior immutable image through the same gate; recovery of the underlying datastore is a separate concern owned by the platform's data backup and archival requirement.
 
-*End* *Canary Traffic-Gating for Deploys* | **Hash**: 4dc9524d
+*End* *Canary Traffic-Gating for Deploys* | **Hash**: e510bb08
