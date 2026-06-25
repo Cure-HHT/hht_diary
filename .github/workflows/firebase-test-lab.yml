@@ -1,4 +1,4 @@
-# IMPLEMENTS REQUIREMENTS:
+# IMsnap installPLEMENTS REQUIREMENTS:
 #   REQ-d00006: Mobile App Build and Release Process
 #   REQ-o00043: Automated Deployment Pipeline
 name: Firebase Test Lab
@@ -104,10 +104,7 @@ jobs:
       # back to a hard-coded legacy allowlist and skips manifest validation.
       - name: Install yq
         run: |
-          YQ_VERSION="4.44.3"
-          wget -qO /usr/local/bin/yq \\
-            "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64"
-          chmod +x /usr/local/bin/yq
+          sudo snap install yq
           yq --version
 
       - name: Build application and instrumentation APKs
