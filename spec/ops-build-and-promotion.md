@@ -24,3 +24,25 @@ The platform validates artifacts. A single promoted artifact gives one traceable
 - **R4 — prod binary contains gated dev/dangerous code paths.** Mitigation: runtime gate (`DIARY-DEV-runtime-environment-resolution` assertion D), validated once; reaching disabled affordances requires tampering; a tampered client can do nothing the server does not authorize.
 
 *End* *Single Promotable Artifact* | **Hash**: cbc3c5c0
+
+# DIARY-OPS-deploy-traffic-gating: Canary Traffic-Gating for Deploys
+
+**Level**: OPS | **Status**: Draft | **Implements**: -
+
+## Assertions
+
+A. The deploy workflow SHALL publish each new revision with no live traffic and a revision tag, so the revision is reachable for verification while the prior revision continues to serve all traffic.
+
+B. The deploy workflow SHALL run its post-deploy verification checks against the no-traffic tagged revision before any traffic is shifted to it.
+
+C. The deploy workflow SHALL migrate all traffic to the new revision only after every verification check passes.
+
+D. When a verification check fails, the deploy workflow SHALL terminate the run with the prior revision still receiving all traffic.
+
+E. The deploy workflow SHALL reject any image reference that is not pinned to an immutable content digest (an `@sha256:` digest), accepting digest-pinned references only and rejecting mutable tags.
+
+## Rationale
+
+A container platform's default startup probe confirms only that the container accepts connections on its port, so a revision that starts but is functionally broken — for example one whose runtime secret injection failed, returning an error on login while a shallow health endpoint still returns success — can receive all traffic before any functional check runs. Publishing the revision with no traffic, verifying it at its tagged address, and shifting traffic only after verification passes closes that window without a reactive revert: traffic never reaches an unverified revision, so a failed verification leaves the prior revision serving. Reverting a revision is therefore an ordinary redeploy of the prior immutable image through the same gate; recovery of the underlying datastore is a separate concern owned by the platform's data backup and archival requirement.
+
+*End* *Canary Traffic-Gating for Deploys* | **Hash**: e510bb08
