@@ -27,8 +27,9 @@ import 'package:flutter/widgets.dart';
 // connectivity and FCM streams are replaced with empty streams so the widget
 // tree can reach quiescence for pumpAndSettle. Defaults to false, so production
 // behavior is unchanged.
-const bool _kDisableLiveStreams =
-        bool.fromEnvironment('DIARY_DISABLE_LIVE_STREAMS');
+const bool _kDisableLiveStreams = bool.fromEnvironment(
+  'DIARY_DISABLE_LIVE_STREAMS',
+);
 
 // ---------------------------------------------------------------------------
 // Test-seam typedefs (not part of the public API).
@@ -80,15 +81,13 @@ Stream<List<ConnectivityResult>> _defaultConnectivityStream() =>
         ? const Stream<List<ConnectivityResult>>.empty()
         : Connectivity().onConnectivityChanged;
 
-Stream<RemoteMessage> _defaultFcmOnMessageStream() =>
-    _kDisableLiveStreams
-        ? const Stream<RemoteMessage>.empty()
-        : FirebaseMessaging.onMessage;
+Stream<RemoteMessage> _defaultFcmOnMessageStream() => _kDisableLiveStreams
+    ? const Stream<RemoteMessage>.empty()
+    : FirebaseMessaging.onMessage;
 
-Stream<RemoteMessage> _defaultFcmOnOpenedStream() =>
-    _kDisableLiveStreams
-        ? const Stream<RemoteMessage>.empty()
-        : FirebaseMessaging.onMessageOpenedApp;
+Stream<RemoteMessage> _defaultFcmOnOpenedStream() => _kDisableLiveStreams
+    ? const Stream<RemoteMessage>.empty()
+    : FirebaseMessaging.onMessageOpenedApp;
 
 // ---------------------------------------------------------------------------
 // Public surface
