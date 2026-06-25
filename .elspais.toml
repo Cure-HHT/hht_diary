@@ -352,12 +352,19 @@ no_assertions_severity = "warning"
 no_traceability_severity = "warning"
 
 [rules.format.status_roles]
-active = ["Active"]
+# `Draft` is treated as an active (creditable) status while the spec tree is
+# in its URS-v1 build-out phase: essentially every requirement is still Draft,
+# so excluding Draft from coverage would render the traceability matrix and the
+# tested/verified metrics permanently 0/0. Including it makes the coverage
+# numbers meaningful now; the numbers tighten as Draft REQs are promoted to
+# Active. (Trade-off: references to Draft REQs are no longer flagged as
+# provisional. CUR-1556.)
+active = ["Active", "Draft"]
 # `Legacy` marks REQs retained from the pre-URS spec tree (migrated on
 # 2026-05-15) that have not yet been reconciled with the URS-v1
 # authoritative content. Lifecycle: Legacy -> Draft (when reconciliation
 # starts) -> Active.
-provisional = ["Draft", "Proposed", "Legacy"]
+provisional = ["Proposed", "Legacy"]
 aspirational = ["Roadmap", "Future", "Idea"]
 retired = ["Deprecated", "Superseded", "Rejected"]
 
