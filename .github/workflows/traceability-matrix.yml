@@ -243,6 +243,15 @@ jobs:
             fi
             if [ -f "$MATRIX" ]; then
               REQ_COUNT=$(grep -cE '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX")
+              # Status histogram of the requirements in scope (count + % of total).
+              # Generic over statuses: Active appears here automatically once any
+              # real requirement is promoted out of Draft.
+              STATUS_LINE=$(grep -E '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX" \
+                | awk -F'|' '{gsub(/ /,"",$5); print $5}' | sort | uniq -c | sort -rn \
+                | awk -v t="$REQ_COUNT" '{printf "%s%s %d (%d%%)", (NR>1?", ":""), $2, $1, (100*$1/t)}')
+              echo ""
+              echo "Requirement status: ${STATUS_LINE} (total ${REQ_COUNT})"
+              echo ""
               echo "_Per-requirement matrix (${REQ_COUNT} requirements) is in the build-reports artifact (link below)._"
             else
               echo "Matrix could not be generated this run — see job logs."
