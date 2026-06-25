@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:jose/jose.dart';
+import 'package:meta/meta.dart';
 
 /// Google's public key URL for ID token verification
 const _googleCertsUrl =
@@ -115,11 +116,13 @@ class VerificationResult {
 /// or error message on failure.
 Future<VerificationResult> verifyIdToken(
   String idToken, {
-  bool? useEmulator,
+  @visibleForTesting bool? useEmulator,
 }) async {
   // Default to the ambient env check; tests pass useEmulator explicitly to
   // exercise the emulator branch hermetically (Platform.environment cannot be
   // mutated at runtime). Production call sites omit it and behave as before.
+  // @visibleForTesting enforces that: a non-test caller passing useEmulator
+  // trips invalid_use_of_visible_for_testing_member (fatal in CI analyze).
   final emulator = useEmulator ?? _useEmulator;
   final emulatorHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'];
   print('[AUTH] verifyIdToken called');
