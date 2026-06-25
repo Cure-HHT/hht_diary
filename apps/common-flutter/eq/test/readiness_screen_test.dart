@@ -15,7 +15,7 @@ void main() {
       ),
     );
 
-    expect(find.text('NOSE HHT'), findsOneWidget);
+    expect(find.text('NOSE HHT Survey'), findsOneWidget);
   });
 
   testWidgets('shows estimated time', (tester) async {
