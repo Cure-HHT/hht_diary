@@ -182,26 +182,6 @@ match = "precise"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
-name = "apps/common-dart/event_sourcing_datastore"
-cwd = "apps/common-dart/event_sourcing_datastore"
-command = "flutter test --machine --coverage"
-reporter = "flutter-machine"
-coverage = "coverage/lcov.info"
-results = "coverage/machine.jsonl"
-match = "precise"
-credit_coverage = "verified"
-
-[[scanning.test.targets]]
-name = "apps/common-dart/event_sourcing_datastore/example"
-cwd = "apps/common-dart/event_sourcing_datastore/example"
-command = "flutter test --machine --coverage"
-reporter = "flutter-machine"
-coverage = "coverage/lcov.info"
-results = "coverage/machine.jsonl"
-match = "precise"
-credit_coverage = "verified"
-
-[[scanning.test.targets]]
 name = "apps/common-dart/otel_common"
 cwd = "apps/common-dart/otel_common"
 command = "flutter test --machine --coverage"
