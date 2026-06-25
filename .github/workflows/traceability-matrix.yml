@@ -91,8 +91,8 @@ jobs:
               cd /workspace/src
               elspais checks --run-tests --tests
             "
-            echo \$? > /workspace/src/.elspais-tests-exit
-            echo \"elspais checks --run-tests --tests exit: \$(cat /workspace/src/.elspais-tests-exit)\"
+            echo $? > /workspace/src/.elspais-tests-exit
+            echo "elspais checks --run-tests --tests exit: $(cat /workspace/src/.elspais-tests-exit)"
           '
 
       # Implements: DIARY-OPS-traceability-validation/B
