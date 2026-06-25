@@ -1,4 +1,4 @@
-# IMsnap installPLEMENTS REQUIREMENTS:
+# IMPLEMENTS REQUIREMENTS:
 #   REQ-d00006: Mobile App Build and Release Process
 #   REQ-o00043: Automated Deployment Pipeline
 name: Firebase Test Lab
