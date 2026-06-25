@@ -19,6 +19,17 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 
+// IMPLEMENTS REQUIREMENTS:
+// REQ-d00006: Mobile App Build and Release Process
+// REQ-o00043: Automated Deployment Pipeline
+//
+// When true (set via --dart-define in integration_test builds), the live
+// connectivity and FCM streams are replaced with empty streams so the widget
+// tree can reach quiescence for pumpAndSettle. Defaults to false, so production
+// behavior is unchanged.
+const bool _kDisableLiveStreams =
+        bool.fromEnvironment('DIARY_DISABLE_LIVE_STREAMS');
+
 // ---------------------------------------------------------------------------
 // Test-seam typedefs (not part of the public API).
 // ---------------------------------------------------------------------------
@@ -65,13 +76,19 @@ Timer _defaultPeriodicTimerFactory(Duration interval, VoidCallback onTick) =>
     Timer.periodic(interval, (_) => onTick());
 
 Stream<List<ConnectivityResult>> _defaultConnectivityStream() =>
-    Connectivity().onConnectivityChanged;
+    _kDisableLiveStreams
+        ? const Stream<List<ConnectivityResult>>.empty()
+        : Connectivity().onConnectivityChanged;
 
 Stream<RemoteMessage> _defaultFcmOnMessageStream() =>
-    FirebaseMessaging.onMessage;
+    _kDisableLiveStreams
+        ? const Stream<RemoteMessage>.empty()
+        : FirebaseMessaging.onMessage;
 
 Stream<RemoteMessage> _defaultFcmOnOpenedStream() =>
-    FirebaseMessaging.onMessageOpenedApp;
+    _kDisableLiveStreams
+        ? const Stream<RemoteMessage>.empty()
+        : FirebaseMessaging.onMessageOpenedApp;
 
 // ---------------------------------------------------------------------------
 // Public surface
