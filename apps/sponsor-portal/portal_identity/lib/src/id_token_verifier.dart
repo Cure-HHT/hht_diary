@@ -113,17 +113,24 @@ class VerificationResult {
 ///
 /// Returns [VerificationResult] with uid and email on success,
 /// or error message on failure.
-Future<VerificationResult> verifyIdToken(String idToken) async {
+Future<VerificationResult> verifyIdToken(
+  String idToken, {
+  bool? useEmulator,
+}) async {
+  // Default to the ambient env check; tests pass useEmulator explicitly to
+  // exercise the emulator branch hermetically (Platform.environment cannot be
+  // mutated at runtime). Production call sites omit it and behave as before.
+  final emulator = useEmulator ?? _useEmulator;
   final emulatorHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'];
   print('[AUTH] verifyIdToken called');
   print('[AUTH] FIREBASE_AUTH_EMULATOR_HOST = $emulatorHost');
-  print('[AUTH] _useEmulator = $_useEmulator');
+  print('[AUTH] emulator = $emulator');
   print(
     '[AUTH] Token prefix: ${idToken.substring(0, idToken.length > 50 ? 50 : idToken.length)}...',
   );
 
   // For Firebase emulator, use simplified verification
-  if (_useEmulator) {
+  if (emulator) {
     print('[AUTH] Using emulator verification');
     return _verifyEmulatorToken(idToken);
   }
