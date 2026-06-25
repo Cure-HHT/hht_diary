@@ -78,8 +78,8 @@ Timer _defaultPeriodicTimerFactory(Duration interval, VoidCallback onTick) =>
 
 Stream<List<ConnectivityResult>> _defaultConnectivityStream() =>
     _kDisableLiveStreams
-        ? const Stream<List<ConnectivityResult>>.empty()
-        : Connectivity().onConnectivityChanged;
+    ? const Stream<List<ConnectivityResult>>.empty()
+    : Connectivity().onConnectivityChanged;
 
 Stream<RemoteMessage> _defaultFcmOnMessageStream() => _kDisableLiveStreams
     ? const Stream<RemoteMessage>.empty()
