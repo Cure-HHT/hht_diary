@@ -22,7 +22,7 @@ on:
         description: "Per-device Test Lab timeout"
         required: true
         type: string
-        default: "15m"
+        default: "30m"
       use_orchestrator:
         description: "Use Android Test Orchestrator"
         required: true
@@ -98,6 +98,17 @@ jobs:
             yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
             yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmake;${ANDROID_CMAKE_VERSION}"
           fi
+
+      # yq is required by _write_env_pointer.sh to validate the selected
+      # flavor against flavorizr.yaml. Without it the helper silently falls
+      # back to a hard-coded legacy allowlist and skips manifest validation.
+      - name: Install yq
+        run: |
+          YQ_VERSION="4.44.3"
+          wget -qO /usr/local/bin/yq \\
+            "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64"
+          chmod +x /usr/local/bin/yq
+          yq --version
 
       - name: Build application and instrumentation APKs
         run: |
