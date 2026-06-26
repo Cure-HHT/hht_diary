@@ -3,7 +3,7 @@ description: "Clinical Diary App - REQ-d00006: Mobile App Build and Release Proc
 publish_to: "none"
 
 
-version: 0.9.79+163
+version: 0.9.80+164
 
 environment:
   sdk: ^3.10.7

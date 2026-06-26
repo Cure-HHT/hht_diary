@@ -64,6 +64,22 @@ flutter pub get
 # ---------------------------------------------------------------------------
 DIARY_SYNC_PERIODIC_SECONDS=86400
 
+# ---------------------------------------------------------------------------
+# FIREBASE TEST LAB FIX: add --dart-define=DIARY_DISABLE_LIVE_STREAMS
+#
+# The app installs live connectivity and FCM onMessage/onMessageOpenedApp
+# stream subscriptions during bootstrap (see diary_sync_triggers.dart). Under
+# integration_test these never-completing streams keep the widget tree from
+# reaching quiescence, so tester.pumpAndSettle() blocks forever and the matrix
+# runs to its 30m per-device timeout. This is most visible on the lifecycle
+# tests that re-bootstrap on resume (confirmed via Firebase Test Lab logcat:
+# tests progress past the timer-fix point, then go silent on a *Resume*/Fab
+# lifecycle test). The DIARY_DISABLE_LIVE_STREAMS override makes the app
+# substitute empty streams for the duration of the test run; production builds
+# leave it false, so behaviour is unchanged.
+# ---------------------------------------------------------------------------
+DIARY_DISABLE_LIVE_STREAMS=true
+
 # Build the app using the integration-test entrypoint. Flutter's Android
 # integration_test bridge is then packaged into the separate androidTest APK.
 # This step also generates the Gradle wrapper (gradlew), which is gitignored
@@ -73,6 +89,7 @@ flutter build apk \
   --flavor "$FLAVOR" \
   --dart-define=APP_FLAVOR="$FLAVOR" \
   --dart-define=DIARY_SYNC_PERIODIC_SECONDS="$DIARY_SYNC_PERIODIC_SECONDS" \
+  --dart-define=DIARY_DISABLE_LIVE_STREAMS="$DIARY_DISABLE_LIVE_STREAMS" \
   --target "$TEST_TARGET"
 
 # The Gradle invocation below assembles the androidTest APK. The
@@ -84,7 +101,7 @@ pushd android >/dev/null
   ":app:assemble${VARIANT}AndroidTest" \
   ":app:assemble${VARIANT}" \
   -Ptarget="$ABS_TEST_TARGET" \
-  -PFLUTTER_DART_DEFINE="APP_FLAVOR=$FLAVOR,DIARY_SYNC_PERIODIC_SECONDS=$DIARY_SYNC_PERIODIC_SECONDS" \
+  -PFLUTTER_DART_DEFINE="APP_FLAVOR=$FLAVOR,DIARY_SYNC_PERIODIC_SECONDS=$DIARY_SYNC_PERIODIC_SECONDS,DIARY_DISABLE_LIVE_STREAMS=$DIARY_DISABLE_LIVE_STREAMS" \
   --stacktrace
 popd >/dev/null
 
