@@ -4,7 +4,7 @@ The platform-level validation rules that apply to every *Diary* entry comprise t
 
 ## DIARY-PRD-entry-time-restrictions: Time-Based Entry Restrictions
 
-**Level**: PRD | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Active | **Implements**: -
 
 ### Overview
 
@@ -57,6 +57,10 @@ M. The **Lock Threshold** SHALL apply only to event dates on or after the ***Tri
 ### Rationale
 
 The two-tier model exists because two distinct integrity concerns argue for two distinct boundaries. Recall accuracy degrades gradually after an event, so for some window after the event date the data is still useful but the *Participant* should explicitly acknowledge they are entering it late (this is the **Justification Threshold** — a soft boundary that captures a categorical reason on the record). Beyond a longer window, the data is no longer clinically reliable regardless of justification, so the platform makes it impossible to modify (the **Lock Threshold** — a hard boundary that disables create/edit/delete). Predefined-list justifications (rather than free-text) match the analyzability goal: the *Audit Trail* aggregates over a controlled vocabulary of reasons rather than over unbounded prose. Deletion within the justification window does not require justification because the *Participant* is removing data they reported, not modifying it; the *Audit Trail* still captures the deletion event and its own reason via the standard delete flow. The `Lock >= Justification` invariant ensures the two tiers compose correctly (a Justification-required state always precedes a Lock state for the same date). The "only after ***Trial** Start* date" qualifier on the **Lock Threshold** means pre-*Trial* historical entries (covered by the **Diary Start Day**) are not subject to the lock, since those entries are explicitly retrospective and the lock semantics don't apply.
+
+### Changelog
+
+- 2026-06-25 | 7edebe14 | - | Michael Lewis (michael@anspar.org) | First approved version
 
 *End* *Time-Based Entry Restrictions* | **Hash**: 7edebe14
 
@@ -114,7 +118,7 @@ Duration outliers are a common data-entry-error signal: a typo or wrong-timezone
 
 ## DIARY-PRD-entry-overlap-resolution: Overlapping Event Detection and Resolution
 
-**Level**: PRD | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Active | **Implements**: -
 
 ### Overview
 
@@ -182,11 +186,15 @@ Two nosebleeds cannot physically *Overlap*; allowing overlapping records into th
 
 See: ![Resolve Conflict — *Resolution* Screen](./images/screen-resolve-conflict-resolution.png)
 
+### Changelog
+
+- 2026-06-25 | 1069b1e5 | - | Michael Lewis (michael@anspar.org) | First approved version
+
 *End* *Overlapping Event Detection and Resolution* | **Hash**: 1069b1e5
 
 ## DIARY-GUI-entry-overlap-resolution: Overlapping Event Resolution Flow
 
-**Level**: GUI | **Status**: Draft | **Implements**: -
+**Level**: GUI | **Status**: Active | **Implements**: -
 **Refines**: DIARY-PRD-entry-overlap-resolution
 
 ### Overview
@@ -249,5 +257,9 @@ The early warning on start-time is a non-blocking signal: the *Participant* sees
 ### Screen reference
 
 See: ![Resolve Conflict — *Resolution* Screen](./images/screen-resolve-conflict-resolution.png)
+
+### Changelog
+
+- 2026-06-25 | 7bee74de | - | Michael Lewis (michael@anspar.org) | First approved version
 
 *End* *Overlapping Event Resolution Flow* | **Hash**: 7bee74de

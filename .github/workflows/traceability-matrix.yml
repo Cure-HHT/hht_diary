@@ -109,6 +109,10 @@ jobs:
             mkdir -p build-reports/combined/traceability
             elspais summary trace --format markdown \
               -o build-reports/combined/traceability/traceability_matrix.md
+            # Per-requirement gap lists (untested/failing/...) for the
+            # Active-requirement coverage section in the comment.
+            elspais gaps --format json \
+              -o build-reports/combined/traceability/gaps.json
           '
 
       # REQ-independent line coverage: elspais surfaces no aggregate, so compute
@@ -221,26 +225,33 @@ jobs:
         run: |
           MATRIX=build-reports/combined/traceability/traceability_matrix.md
           CHECKS=build-reports/combined/traceability/checks-tests.txt
+          GAPS=build-reports/combined/traceability/gaps.json
+          # Per-Active-requirement coverage table (requirement-level). Files are
+          # bind-mounted, so readable on the host after the ownership restore.
+          : > /tmp/active-cov.md
+          if [ -f "$MATRIX" ] && [ -f "$GAPS" ]; then
+            python3 .github/scripts/active-coverage.py "$MATRIX" "$GAPS" > /tmp/active-cov.md || : > /tmp/active-cov.md
+          fi
           {
             echo "$MARKER"
             echo "## Verified-Coverage Traceability Matrix"
             echo ""
-            # REQ-level coverage from `elspais checks --tests` (Draft counts as
-            # an active status per .elspais.toml, so these numbers are real).
-            # This summary IS the comment; the full per-requirement table is
-            # hundreds of rows and lives in the build-reports artifact only.
+            # Requirement-level coverage from `elspais checks --tests` (Draft counts
+            # as active per .elspais.toml). Reported per requirement, not per
+            # assertion: the references credit requirements, so that is the natural
+            # unit. The full per-requirement table is artifact-only.
             if [ -f "$CHECKS" ]; then
               tested=$(grep -oE 'Tested: [0-9]+/[0-9]+ REQs \([0-9]+%\)' "$CHECKS" | head -1 | sed 's/Tested: //')
               verified=$(grep -oE 'Verified: [0-9]+/[0-9]+ REQs \([0-9]+%\)' "$CHECKS" | head -1 | sed 's/Verified: //')
-              echo "### Requirement coverage (REQ-level; Legacy excluded)"
+              echo "### Requirement coverage (Legacy excluded)"
               echo ""
-              echo "| Dimension | REQs |"
-              echo "|-----------|------|"
+              echo "| Dimension | Requirements |"
+              echo "|-----------|--------------|"
               echo "| Tested | ${tested:-n/a} |"
               echo "| Verified | ${verified:-n/a} |"
               echo ""
-              echo "_Includes hierarchical (indirect) credit. Per-assertion direct credit is lower; see artifact._"
             fi
+            [ -s /tmp/active-cov.md ] && { cat /tmp/active-cov.md; echo ""; }
             if [ -f "$MATRIX" ]; then
               REQ_COUNT=$(grep -cE '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX")
               # Status histogram of the requirements in scope (count + % of total).
