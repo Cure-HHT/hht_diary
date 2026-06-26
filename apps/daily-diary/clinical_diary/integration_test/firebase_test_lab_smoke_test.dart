@@ -183,6 +183,18 @@ void main() {
         findsOneWidget,
         reason: 'Start-time step must offer the Set Start Time action.',
       );
+      // The start-time dial initialises to NOW. The TimePickerDial rejects any
+      // adjustment that would push the selected time into the future, so we move
+      // the START backwards (-15) to create headroom: this lets the end time be
+      // nudged forward later while still staying at or before the present moment.
+      expect(
+        find.text('-15'),
+        findsOneWidget,
+        reason: 'Start-time dial must offer the -15 minute adjuster.',
+      );
+      await tester.tap(find.text('-15'));
+      mark('07a moved start time -15');
+      await tester.pump(const Duration(seconds: 1));
       await tester.tap(find.text('Set Start Time'));
       mark('08 tapped Set Start Time');
       await tester.pump(const Duration(seconds: 2));
@@ -201,22 +213,22 @@ void main() {
       mark('12 pumped after intensity (endTime step)');
 
       // 4. The Participant sets the time the nosebleed stopped and saves.
-      // The end-time dial initialises to the SAME instant as the start time
-      // (recording_screen.dart end-step initialTime falls back to the start
-      // time when no end time is set yet). With the default ClinicalRules
+      // The end-time dial initialises to the SAME instant as the (now moved
+      // back) start time. With the default ClinicalRules
       // (shortDurationConfirm:false, useReviewScreen:false) an end time equal
-      // to the start is rejected by _handleEndTimeConfirm, and there is NO
-      // separate "Finished" review step -- confirming a VALID (>0) duration
-      // saves the record and returns straight to the Main Screen. So we bump
-      // the dial +15 via the dial's adjuster to clear the same-minute guard,
-      // then confirm; success is the app navigating back to the Main Screen.
+      // to the start is rejected by _handleEndTimeConfirm, and an end time in
+      // the future is also rejected -- so we nudge the end +5 minutes. Because
+      // the start was moved -15, end lands ~10 minutes BEFORE now: a valid,
+      // non-zero, non-future duration. There is NO separate "Finished" review
+      // step in this configuration -- confirming a valid duration saves the
+      // record and returns straight to the Main Screen.
       expect(
-        find.text('+15'),
+        find.text('+5'),
         findsOneWidget,
-        reason: 'End-time dial must offer the +15 minute adjuster.',
+        reason: 'End-time dial must offer the +5 minute adjuster.',
       );
-      await tester.tap(find.text('+15'));
-      mark('13a bumped end time +15');
+      await tester.tap(find.text('+5'));
+      mark('13a bumped end time +5 (stays at/under now, after start)');
       await tester.pump(const Duration(seconds: 1));
       expect(
         find.text('Set End Time'),
