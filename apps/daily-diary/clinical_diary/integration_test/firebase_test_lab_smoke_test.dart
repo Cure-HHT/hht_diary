@@ -38,7 +38,6 @@ import 'package:clinical_diary/main.dart' as app;
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 // dart format off
