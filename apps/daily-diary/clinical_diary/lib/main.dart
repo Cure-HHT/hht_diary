@@ -90,7 +90,7 @@ const int _kSyncPeriodicSeconds = int.fromEnvironment(
 // reach quiescence for pumpAndSettle. Defaults to false, so production
 // behavior is unchanged. Mirrors _kDisableLiveStreams in diary_sync_triggers.
 const bool _kDisableLiveStreams = bool.fromEnvironment(
-    'DIARY_DISABLE_LIVE_STREAMS',
+  'DIARY_DISABLE_LIVE_STREAMS',
 );
 
 void main() async {
