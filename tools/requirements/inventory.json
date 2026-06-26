@@ -1,0 +1,2144 @@
+{
+  "_about": "CUR-1451 legacy-annotation sweep work-list. Each key is a legacy URS id cited in code/CI. status=resolved means the URS-v1 mapping gives a target; disposition is filled by the Phase-1 passes (port|rewrite|parent-cite|drop|cross-repo). Regenerate with tools/requirements/build_inventory.py; hand-edits to disposition/notes/target are preserved-by-rerun ONLY if you merge \u2014 rerun overwrites, so make dispositions in a separate sidecar once Phase 1 starts.",
+  "summary": {
+    "unique_legacy_ids": 106,
+    "header_block_files": 227,
+    "by_level": {
+      "OPS": 24,
+      "DEV": 44,
+      "PRD": 37,
+      "GUI": 1
+    },
+    "by_status": {
+      "unresolved": 91,
+      "resolved": 15
+    },
+    "live_req_count": 205
+  },
+  "header_block_files": [
+    ".devcontainer/check-prerequisites.sh",
+    ".githooks/project-defs.sh",
+    ".githooks/tests/validate-pr-portability.test.sh",
+    ".githooks/version-utils.sh",
+    ".github/actions/start-ci-container/action.yml",
+    ".github/config/sponsor-manifest-schema.yml",
+    ".github/config/sponsors.yml",
+    ".github/dependabot.yml",
+    ".github/scripts/validate-pr.sh",
+    ".github/workflows/alert-workflow-changes.yml",
+    ".github/workflows/android-build.yml",
+    ".github/workflows/build-ghcr-containers.yml",
+    ".github/workflows/ci-gate.yml",
+    ".github/workflows/clinical_diary-ci.yml",
+    ".github/workflows/firebase-test-lab.yml",
+    ".github/workflows/ios-build.yml",
+    ".github/workflows/maintenance-check.yml",
+    ".github/workflows/pr-health.yml",
+    ".github/workflows/qa-automation.yml",
+    ".github/workflows/sponsor-portal-ci.yml",
+    ".github/workflows/terraform-validate.yml",
+    ".github/workflows/test-gcp-auth.yml",
+    ".github/workflows/trial_data_types-ci.yml",
+    "apps/common-dart/comms/lib/comms.dart",
+    "apps/common-dart/comms/lib/src/channel.dart",
+    "apps/common-dart/comms/lib/src/channels/fcm/adc_client.dart",
+    "apps/common-dart/comms/lib/src/channels/fcm/fcm_channel.dart",
+    "apps/common-dart/comms/lib/src/channels/fcm/fcm_message.dart",
+    "apps/common-dart/comms/lib/src/compliance/payload_guard.dart",
+    "apps/common-dart/comms/lib/src/dispatch_result.dart",
+    "apps/common-dart/comms/lib/src/notifications/client/envelope_fetcher.dart",
+    "apps/common-dart/comms/lib/src/notifications/envelope.dart",
+    "apps/common-dart/comms/lib/src/notifications/envelope_status.dart",
+    "apps/common-dart/comms/lib/src/notifications/notification_type.dart",
+    "apps/common-dart/comms/lib/src/notifications/outbox_writer.dart",
+    "apps/common-dart/comms/lib/src/notifications/repository.dart",
+    "apps/common-dart/comms/lib/src/notifications/server/envelope_fetch_handler.dart",
+    "apps/common-dart/comms/lib/src/notifications/server/envelope_since_handler.dart",
+    "apps/common-dart/comms/pubspec.yaml",
+    "apps/common-dart/dart-base-container/Dockerfile",
+    "apps/common-dart/dart-base-container/cloudbuild.yaml",
+    "apps/common-dart/flutter-base-container/Dockerfile",
+    "apps/common-dart/grpc_health/bin/server.dart",
+    "apps/common-dart/grpc_health/lib/health.pb.dart",
+    "apps/common-dart/grpc_health/lib/health.pbgrpc.dart",
+    "apps/common-dart/grpc_health/pubspec.yaml",
+    "apps/common-dart/otel_common/lib/otel_common.dart",
+    "apps/common-dart/otel_common/lib/src/db_tracing.dart",
+    "apps/common-dart/otel_common/lib/src/error_reporting.dart",
+    "apps/common-dart/otel_common/lib/src/init.dart",
+    "apps/common-dart/otel_common/lib/src/logging.dart",
+    "apps/common-dart/otel_common/lib/src/middleware.dart",
+    "apps/common-dart/otel_common/pubspec.yaml",
+    "apps/common-dart/otel_common/test/db_tracing_integration_test.dart",
+    "apps/common-dart/otel_common/test/db_tracing_test.dart",
+    "apps/common-dart/otel_common/test/error_reporting_integration_test.dart",
+    "apps/common-dart/otel_common/test/error_reporting_test.dart",
+    "apps/common-dart/otel_common/test/helpers/otel_test_helpers.dart",
+    "apps/common-dart/otel_common/test/logging_integration_test.dart",
+    "apps/common-dart/otel_common/test/metrics_test.dart",
+    "apps/common-dart/otel_common/test/middleware_integration_test.dart",
+    "apps/common-dart/shared_functions/lib/shared_functions.dart",
+    "apps/common-dart/shared_functions/lib/src/sponsor_branding.dart",
+    "apps/common-dart/shared_functions/pubspec.yaml",
+    "apps/common-dart/shared_functions/test/sponsor_branding_test.dart",
+    "apps/common-dart/trial_data_types/lib/src/end_event.dart",
+    "apps/common-dart/trial_data_types/lib/src/question_category.dart",
+    "apps/common-dart/trial_data_types/lib/src/question_definition.dart",
+    "apps/common-dart/trial_data_types/lib/src/question_response.dart",
+    "apps/common-dart/trial_data_types/lib/src/questionnaire_definition.dart",
+    "apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart",
+    "apps/common-dart/trial_data_types/lib/src/questionnaire_status.dart",
+    "apps/common-dart/trial_data_types/lib/src/questionnaire_type.dart",
+    "apps/common-dart/trial_data_types/lib/src/response_scale_option.dart",
+    "apps/common-dart/trial_data_types/lib/src/session_config.dart",
+    "apps/common-dart/trial_data_types/lib/src/study_event.dart",
+    "apps/common-dart/trial_data_types/lib/src/task_type.dart",
+    "apps/common-dart/trial_data_types/lib/src/text_segment.dart",
+    "apps/common-dart/trial_data_types/lib/trial_data_types.dart",
+    "apps/common-dart/trial_data_types/test/end_event_test.dart",
+    "apps/common-dart/trial_data_types/test/questionnaire_definition_test.dart",
+    "apps/common-dart/trial_data_types/test/study_event_test.dart",
+    "apps/common-flutter/diary_design_system/lib/src/environment_banner.dart",
+    "apps/common-flutter/eq/lib/eq.dart",
+    "apps/common-flutter/eq/lib/src/confirmation_screen.dart",
+    "apps/common-flutter/eq/lib/src/preamble_screen.dart",
+    "apps/common-flutter/eq/lib/src/question_screen.dart",
+    "apps/common-flutter/eq/lib/src/questionnaire_flow_screen.dart",
+    "apps/common-flutter/eq/lib/src/readiness_screen.dart",
+    "apps/common-flutter/eq/lib/src/review_screen.dart",
+    "apps/common-flutter/eq/lib/src/widgets/category_header.dart",
+    "apps/common-flutter/eq/lib/src/widgets/question_progress_bar.dart",
+    "apps/common-flutter/eq/lib/src/widgets/response_scale_selector.dart",
+    "apps/common-flutter/eq/lib/src/widgets/rich_text_question.dart",
+    "apps/common-flutter/eq/test/preamble_screen_test.dart",
+    "apps/common-flutter/eq/test/question_screen_test.dart",
+    "apps/common-flutter/eq/test/questionnaire_flow_screen_test.dart",
+    "apps/common-flutter/eq/test/readiness_screen_test.dart",
+    "apps/common-flutter/eq/test/review_screen_test.dart",
+    "apps/common-flutter/eq/test/widgets/response_scale_selector_test.dart",
+    "apps/common-flutter/eq/test/widgets/rich_text_question_test.dart",
+    "apps/daily-diary/clinical_diary/flavorizr.yaml",
+    "apps/daily-diary/clinical_diary/integration_test/firebase_test_lab_smoke_test.dart",
+    "apps/daily-diary/clinical_diary/lib/l10n/app_localizations.dart",
+    "apps/daily-diary/clinical_diary/lib/main.dart",
+    "apps/daily-diary/clinical_diary/lib/models/user_enrollment.dart",
+    "apps/daily-diary/clinical_diary/lib/scope/diary_sync_triggers.dart",
+    "apps/daily-diary/clinical_diary/lib/screens/clinical_trial_enrollment_screen.dart",
+    "apps/daily-diary/clinical_diary/lib/screens/clinical_trial_privacy_policy_screen.dart",
+    "apps/daily-diary/clinical_diary/lib/screens/profile_screen.dart",
+    "apps/daily-diary/clinical_diary/lib/screens/questionnaire_placeholder_screen.dart",
+    "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart",
+    "apps/daily-diary/clinical_diary/lib/services/notification_service.dart",
+    "apps/daily-diary/clinical_diary/lib/services/task_service.dart",
+    "apps/daily-diary/clinical_diary/lib/services/timezone_service.dart",
+    "apps/daily-diary/clinical_diary/lib/theme/app_theme.dart",
+    "apps/daily-diary/clinical_diary/lib/utils/app_page_route.dart",
+    "apps/daily-diary/clinical_diary/lib/utils/app_version.dart",
+    "apps/daily-diary/clinical_diary/lib/utils/date_time_formatter.dart",
+    "apps/daily-diary/clinical_diary/lib/utils/timezone_converter.dart",
+    "apps/daily-diary/clinical_diary/lib/utils/web_update_helper.dart",
+    "apps/daily-diary/clinical_diary/lib/utils/web_update_helper_stub.dart",
+    "apps/daily-diary/clinical_diary/lib/utils/web_update_helper_web.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/compact_date_picker.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/date_header.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/delete_confirmation_dialog.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/duration_confirmation_dialog.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/enrollment_success_dialog.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/flash_highlight.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/inline_time_picker.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/intensity_row.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/logo_menu.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/notes_input.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/old_entry_justification_dialog.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/responsive_web_frame.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/task_list_widget.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/time_picker_dial.dart",
+    "apps/daily-diary/clinical_diary/lib/widgets/timezone_picker.dart",
+    "apps/daily-diary/clinical_diary/test/integration/home_screen_integration_test.dart",
+    "apps/daily-diary/clinical_diary/test/integration/timezone_display_e2e_test.dart",
+    "apps/daily-diary/clinical_diary/test/models/user_enrollment_test.dart",
+    "apps/daily-diary/clinical_diary/test/screens/clinical_trial_enrollment_screen_test.dart",
+    "apps/daily-diary/clinical_diary/test/screens/cross_day_time_validation_test.dart",
+    "apps/daily-diary/clinical_diary/test/services/enrollment_service_test.dart",
+    "apps/daily-diary/clinical_diary/test/services/task_service_test.dart",
+    "apps/daily-diary/clinical_diary/test/theme/app_theme_test.dart",
+    "apps/daily-diary/clinical_diary/test/utils/date_time_formatter_test.dart",
+    "apps/daily-diary/clinical_diary/test/utils/timezone_converter_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/date_header_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/delete_confirmation_dialog_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/duration_confirmation_dialog_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/enrollment_success_dialog_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/flash_highlight_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/inline_time_picker_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/intensity_picker_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/intensity_row_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/logo_menu_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/notes_input_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/old_entry_justification_dialog_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/time_picker_dial_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/timezone_picker_test.dart",
+    "apps/daily-diary/clinical_diary/test/widgets/yesterday_banner_test.dart",
+    "apps/daily-diary/clinical_diary/tool/config/create-workflow-identiy-provider-firebase-github.sh",
+    "apps/daily-diary/clinical_diary/tool/test.sh",
+    "apps/daily-diary/clinical_diary/widgetbook/main.dart",
+    "apps/edc/rave-integration/tool/test.sh",
+    "apps/sponsor-portal/tool/deployment-doctor.sh",
+    "apps/sponsor-portal/tool/testNotification.sh",
+    "deployment/reference-sponsor/deployment/scripts/start.sh",
+    "firebase-test-lab/scripts/build-android.sh",
+    "firebase-test-lab/scripts/build-ios.sh",
+    "firebase-test-lab/scripts/run-android-test-lab.sh",
+    "firebase-test-lab/scripts/run-ios-test-lab.sh",
+    "infrastructure/docker/email-job/send-email.sh",
+    "infrastructure/terraform/bootstrap/main.tf",
+    "infrastructure/terraform/bootstrap/variables.tf",
+    "infrastructure/terraform/cost-control/main.py",
+    "infrastructure/terraform/modules/artifact-registry/main.tf",
+    "infrastructure/terraform/modules/audit-logs/main.tf",
+    "infrastructure/terraform/modules/billing-alert-funk/main.tf",
+    "infrastructure/terraform/modules/billing-alert-funk/src/main.py",
+    "infrastructure/terraform/modules/billing-alert-funk/variables.tf",
+    "infrastructure/terraform/modules/billing-budget/main.tf",
+    "infrastructure/terraform/modules/billing-stop-funk/main.tf",
+    "infrastructure/terraform/modules/billing-stop-funk/src/main.py",
+    "infrastructure/terraform/modules/billing-stop-funk/variables.tf",
+    "infrastructure/terraform/modules/cicd-service-account/main.tf",
+    "infrastructure/terraform/modules/cloud-build/main.tf",
+    "infrastructure/terraform/modules/cloud-run/main.tf",
+    "infrastructure/terraform/modules/cloud-sql/main.tf",
+    "infrastructure/terraform/modules/cloud-sql/variables.tf",
+    "infrastructure/terraform/modules/gcp-project/main.tf",
+    "infrastructure/terraform/modules/identity-platform/main.tf",
+    "infrastructure/terraform/modules/monitoring-alerts/main.tf",
+    "infrastructure/terraform/modules/regional-load-balancer/main.tf",
+    "infrastructure/terraform/modules/regional-load-balancer/outputs.tf",
+    "infrastructure/terraform/modules/regional-load-balancer/variables.tf",
+    "infrastructure/terraform/modules/storage-buckets/main.tf",
+    "infrastructure/terraform/modules/svc-accts/main.tf",
+    "infrastructure/terraform/modules/svc-accts/outputs.tf",
+    "infrastructure/terraform/modules/svc-accts/variables.tf",
+    "infrastructure/terraform/modules/vpc-network/main.tf",
+    "infrastructure/terraform/modules/workforce-identity/main.tf",
+    "infrastructure/terraform/scripts/bootstrap-sponsor.sh",
+    "infrastructure/terraform/scripts/common.sh",
+    "infrastructure/terraform/scripts/deploy-environment.sh",
+    "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh",
+    "infrastructure/terraform/scripts/verify-audit-compliance.sh",
+    "infrastructure/terraform/sponsor-envs/main.tf",
+    "infrastructure/terraform/sponsor-envs/variables.tf",
+    "tools/cost-control/main.py",
+    "tools/dev-env/docker-compose.ci.yml",
+    "tools/dev-env/docker-compose.firebase.yml",
+    "tools/dev-env/docker-compose.local.yml",
+    "tools/dev-env/docker-compose.otel.yml",
+    "tools/dev-env/docker-compose.yml",
+    "tools/dev-env/docker/audit.Dockerfile",
+    "tools/dev-env/docker/ci.Dockerfile",
+    "tools/dev-env/docker/devops.Dockerfile",
+    "tools/dev-env/docker/qa-runner.sh",
+    "tools/dev-env/setup.sh",
+    "tools/dev-env/test-local-registry.sh",
+    "tools/dev-env/validate-environment.sh",
+    "tools/dev-env/validate-warnings.sh",
+    "tools/setup-repo.sh"
+  ],
+  "ids": {
+    "GUI-p00076": {
+      "level": "GUI",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/l10n/app_localizations.dart",
+        "apps/daily-diary/clinical_diary/test/screens/profile_screen_test.dart"
+      ],
+      "status": "resolved",
+      "target": "DIARY-GUI-participation-status-badge",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-CAL-d00012": {
+      "level": "DEV",
+      "repo": "hht_diary_callisto",
+      "ref_files": 2,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart",
+        "apps/daily-diary/clinical_diary/test/screens/home_screen_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00001": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 3,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/l10n/app_localizations.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/old_entry_justification_dialog.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/old_entry_justification_dialog_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00002": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 3,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/l10n/app_localizations.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/duration_confirmation_dialog.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/duration_confirmation_dialog_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00003": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 3,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/l10n/app_localizations.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/duration_confirmation_dialog.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/duration_confirmation_dialog_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00007": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 1,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart"
+      ],
+      "status": "resolved",
+      "target": "CAL-PRD-questionnaire-score-display-prohibition",
+      "target_live": false,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-CAL-p00020": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 6,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/models/user_enrollment.dart",
+        "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart",
+        "apps/daily-diary/clinical_diary/test/screens/profile_screen_test.dart",
+        "apps/daily-diary/clinical_diary/test/services/enrollment_service_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart"
+      ],
+      "status": "resolved",
+      "target": "CAL-PRD-participant-disconnection-reason-options",
+      "target_live": false,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-CAL-p00023": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 10,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart",
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_status.dart",
+        "apps/common-dart/trial_data_types/lib/trial_data_types.dart",
+        "apps/daily-diary/clinical_diary/lib/main.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/questionnaire_placeholder_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/services/notification_service.dart",
+        "apps/daily-diary/clinical_diary/lib/services/task_service.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/task_list_widget.dart",
+        "apps/daily-diary/clinical_diary/test/services/task_service_test.dart",
+        "apps/sponsor-portal/tool/testNotification.sh"
+      ],
+      "status": "resolved",
+      "target": "CAL-PRD-nose-hht-qol-workflow",
+      "target_live": false,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-CAL-p00047": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 5,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_definition.dart",
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart",
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_type.dart",
+        "apps/common-dart/trial_data_types/lib/trial_data_types.dart",
+        "apps/common-dart/trial_data_types/test/questionnaire_definition_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00049": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 2,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/models/user_enrollment.dart",
+        "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00065": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 5,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/l10n/app_localizations.dart",
+        "apps/daily-diary/clinical_diary/lib/models/user_enrollment.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00066": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 1,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00073": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 1,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00076": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 5,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/l10n/app_localizations.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/profile_screen.dart",
+        "apps/daily-diary/clinical_diary/test/screens/profile_screen_test.dart",
+        "apps/daily-diary/clinical_diary/widgetbook/main.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00077": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 8,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/l10n/app_localizations.dart",
+        "apps/daily-diary/clinical_diary/lib/models/user_enrollment.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart",
+        "apps/daily-diary/clinical_diary/test/helpers/mock_enrollment_service.dart",
+        "apps/daily-diary/clinical_diary/test/services/enrollment_service_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00080": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 7,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/end_event.dart",
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart",
+        "apps/common-dart/trial_data_types/lib/src/study_event.dart",
+        "apps/common-dart/trial_data_types/lib/src/task.dart",
+        "apps/common-dart/trial_data_types/test/end_event_test.dart",
+        "apps/common-dart/trial_data_types/test/study_event_test.dart",
+        "apps/common-dart/trial_data_types/test/task_test.dart"
+      ],
+      "status": "resolved",
+      "target": "CAL-PRD-questionnaire-cycle-tracking",
+      "target_live": false,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-CAL-p00081": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 9,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/task.dart",
+        "apps/common-dart/trial_data_types/lib/src/task_type.dart",
+        "apps/common-dart/trial_data_types/lib/trial_data_types.dart",
+        "apps/common-dart/trial_data_types/test/task_test.dart",
+        "apps/daily-diary/clinical_diary/lib/main.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/questionnaire_placeholder_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/services/task_service.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/task_list_widget.dart",
+        "apps/daily-diary/clinical_diary/test/services/task_service_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-CAL-p00082": {
+      "level": "PRD",
+      "repo": "hht_diary_callisto",
+      "ref_files": 4,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/main.dart",
+        "apps/daily-diary/clinical_diary/lib/notifications/local_notification_scheduler.dart",
+        "apps/daily-diary/clinical_diary/lib/services/notification_service.dart",
+        "apps/sponsor-portal/tool/testNotification.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00001": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00003": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00004": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 30,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/l10n/app_localizations.dart",
+        "apps/daily-diary/clinical_diary/lib/main.dart",
+        "apps/daily-diary/clinical_diary/lib/services/timezone_service.dart",
+        "apps/daily-diary/clinical_diary/lib/theme/app_theme.dart",
+        "apps/daily-diary/clinical_diary/lib/utils/date_time_formatter.dart",
+        "apps/daily-diary/clinical_diary/lib/utils/timezone_converter.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/compact_date_picker.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/date_header.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/delete_confirmation_dialog.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/flash_highlight.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/inline_time_picker.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/intensity_row.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/notes_input.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/timezone_picker.dart",
+        "apps/daily-diary/clinical_diary/test/integration/home_screen_integration_test.dart",
+        "apps/daily-diary/clinical_diary/test/screens/cross_day_time_validation_test.dart",
+        "apps/daily-diary/clinical_diary/test/theme/app_theme_test.dart",
+        "apps/daily-diary/clinical_diary/test/utils/date_time_formatter_test.dart",
+        "apps/daily-diary/clinical_diary/test/utils/timezone_converter_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/date_header_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/delete_confirmation_dialog_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/flash_highlight_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/inline_time_picker_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/intensity_picker_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/intensity_row_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/notes_input_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/time_picker_dial_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/timezone_picker_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/yesterday_banner_test.dart",
+        "apps/daily-diary/clinical_diary/tool/test.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00005": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 13,
+      "files": [
+        "apps/common-flutter/diary_design_system/lib/src/environment_banner.dart",
+        "apps/daily-diary/clinical_diary/flavorizr.yaml",
+        "apps/daily-diary/clinical_diary/lib/main.dart",
+        "apps/daily-diary/clinical_diary/lib/models/user_enrollment.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/clinical_trial_enrollment_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/profile_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart",
+        "apps/daily-diary/clinical_diary/lib/utils/app_page_route.dart",
+        "apps/daily-diary/clinical_diary/test/models/user_enrollment_test.dart",
+        "apps/daily-diary/clinical_diary/test/screens/clinical_trial_enrollment_screen_test.dart",
+        "apps/daily-diary/clinical_diary/test/services/enrollment_service_test.dart",
+        "apps/daily-diary/clinical_diary/tool/test.sh",
+        "apps/edc/rave-integration/tool/test.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00006": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 16,
+      "files": [
+        ".githooks/version-utils.sh",
+        ".github/workflows/android-build.yml",
+        ".github/workflows/firebase-test-lab.yml",
+        ".github/workflows/ios-build.yml",
+        "apps/daily-diary/clinical_diary/integration_test/firebase_test_lab_smoke_test.dart",
+        "apps/daily-diary/clinical_diary/lib/main.dart",
+        "apps/daily-diary/clinical_diary/lib/scope/diary_sync_triggers.dart",
+        "apps/daily-diary/clinical_diary/lib/utils/app_version.dart",
+        "apps/daily-diary/clinical_diary/lib/utils/web_update_helper.dart",
+        "apps/daily-diary/clinical_diary/lib/utils/web_update_helper_stub.dart",
+        "apps/daily-diary/clinical_diary/lib/utils/web_update_helper_web.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/logo_menu.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/responsive_web_frame.dart",
+        "apps/daily-diary/clinical_diary/pubspec.yaml",
+        "firebase-test-lab/scripts/build-android.sh",
+        "firebase-test-lab/scripts/build-ios.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00009": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf",
+        "infrastructure/terraform/modules/svc-accts/main.tf",
+        "infrastructure/terraform/modules/svc-accts/variables.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00010": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00014": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".github/scripts/validate-pr.sh",
+        ".github/workflows/pr-health.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00018": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".githooks/project-defs.sh",
+        ".github/workflows/pr-health.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00027": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 11,
+      "files": [
+        ".devcontainer/check-prerequisites.sh",
+        ".github/workflows/build-ghcr-containers.yml",
+        "tools/dev-env/docker-compose.ci.yml",
+        "tools/dev-env/docker-compose.local.yml",
+        "tools/dev-env/docker-compose.yml",
+        "tools/dev-env/docker/audit.Dockerfile",
+        "tools/dev-env/docker/ci.Dockerfile",
+        "tools/dev-env/docker/devops.Dockerfile",
+        "tools/dev-env/setup.sh",
+        "tools/dev-env/test-local-registry.sh",
+        "tools/dev-env/validate-environment.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00028": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 4,
+      "files": [
+        ".github/workflows/qa-automation.yml",
+        "tools/dev-env/docker-compose.yml",
+        "tools/dev-env/docker/qa-runner.sh",
+        "tools/dev-env/validate-environment.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00029": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "tools/dev-env/setup.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00030": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 12,
+      "files": [
+        ".github/actions/start-ci-container/action.yml",
+        ".github/workflows/build-ghcr-containers.yml",
+        ".github/workflows/clinical_diary-ci.yml",
+        ".github/workflows/pr-health.yml",
+        ".github/workflows/qa-automation.yml",
+        ".github/workflows/trial_data_types-ci.yml",
+        "infrastructure/terraform/bootstrap/main.tf",
+        "tools/dev-env/docker-compose.ci.yml",
+        "tools/dev-env/docker-compose.local.yml",
+        "tools/dev-env/docker-compose.yml",
+        "tools/dev-env/docker/ci.Dockerfile",
+        "tools/dev-env/test-local-registry.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00031": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 4,
+      "files": [
+        ".github/workflows/qa-automation.yml",
+        "infrastructure/terraform/sponsor-envs/main.tf",
+        "tools/dev-env/docker-compose.firebase.yml",
+        "tools/dev-env/docker/qa-runner.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00032": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "tools/dev-env/validate-warnings.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00033": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 5,
+      "files": [
+        ".github/workflows/build-ghcr-containers.yml",
+        ".github/workflows/qa-automation.yml",
+        "infrastructure/terraform/bootstrap/main.tf",
+        "tools/dev-env/docker/qa-runner.sh",
+        "tools/dev-env/validate-environment.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00035": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 4,
+      "files": [
+        ".github/workflows/build-ghcr-containers.yml",
+        "infrastructure/terraform/bootstrap/main.tf",
+        "infrastructure/terraform/modules/cloud-run/main.tf",
+        "infrastructure/terraform/modules/svc-accts/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00036": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "tools/dev-env/docker-compose.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00053": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".github/dependabot.yml",
+        "tools/setup-repo.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00055": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00057": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        ".githooks/version-utils.sh",
+        ".github/scripts/validate-pr.sh",
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00058": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".devcontainer/check-prerequisites.sh",
+        "deployment/reference-sponsor/deployment/scripts/start.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00059": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 4,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf",
+        "tools/dev-env/docker/audit.Dockerfile",
+        "tools/dev-env/docker/ci.Dockerfile",
+        "tools/dev-env/docker/devops.Dockerfile"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00062": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00069": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".github/config/sponsor-manifest-schema.yml",
+        ".github/config/sponsors.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00070": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        ".github/config/sponsors.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00078": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00083": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "deployment/reference-sponsor/deployment/docker/portal-final.Dockerfile"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00090": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00102": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 4,
+      "files": [
+        "apps/common-dart/shared_functions/lib/shared_functions.dart",
+        "apps/common-dart/shared_functions/lib/src/sponsor_branding.dart",
+        "apps/common-dart/shared_functions/pubspec.yaml",
+        "apps/common-dart/shared_functions/test/sponsor_branding_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00113": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "apps/common-flutter/eq/lib/src/questionnaire_flow_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/services/task_service.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00115": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 9,
+      "files": [
+        "apps/common-dart/provenance/lib/provenance.dart",
+        "apps/common-dart/provenance/lib/src/append_hop.dart",
+        "apps/common-dart/provenance/lib/src/batch_context.dart",
+        "apps/common-dart/provenance/lib/src/provenance_entry.dart",
+        "apps/common-dart/provenance/pubspec.yaml",
+        "apps/common-dart/provenance/test/append_hop_test.dart",
+        "apps/common-dart/provenance/test/provenance_entry_test.dart",
+        "apps/daily-diary/clinical_diary/lib/entry_types/clinical_diary_entry_types.dart",
+        "apps/daily-diary/clinical_diary/test/entry_types/clinical_diary_entry_types_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00116": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/entry_types/clinical_diary_entry_types.dart",
+        "apps/daily-diary/clinical_diary/test/entry_types/clinical_diary_entry_types_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00128": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/entry_types/clinical_diary_entry_types.dart",
+        "apps/daily-diary/clinical_diary/test/entry_types/clinical_diary_entry_types_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00165": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/entry_types/clinical_diary_entry_types.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00167": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "apps/common-dart/comms/lib/src/notifications/outbox_writer.dart",
+        "apps/common-dart/comms/pubspec.yaml",
+        "apps/sponsor-portal/portal_identity/lib/src/id_token_verifier.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00168": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "apps/common-dart/comms/lib/src/compliance/payload_guard.dart",
+        "apps/common-dart/comms/lib/src/notifications/outbox_writer.dart",
+        "apps/common-dart/comms/pubspec.yaml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00169": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 4,
+      "files": [
+        "apps/common-dart/comms/lib/src/notifications/outbox_writer.dart",
+        "apps/common-dart/comms/lib/src/notifications/server/envelope_fetch_handler.dart",
+        "apps/common-dart/comms/pubspec.yaml",
+        "apps/common-dart/comms/test/notifications/server/envelope_since_handler_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00170": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "apps/common-dart/comms/pubspec.yaml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00193": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 9,
+      "files": [
+        "apps/common-dart/comms/lib/comms.dart",
+        "apps/common-dart/comms/lib/src/channel.dart",
+        "apps/common-dart/comms/lib/src/channels/fcm/adc_client.dart",
+        "apps/common-dart/comms/lib/src/channels/fcm/fcm_channel.dart",
+        "apps/common-dart/comms/lib/src/channels/fcm/fcm_message.dart",
+        "apps/common-dart/comms/lib/src/dispatch_result.dart",
+        "apps/common-dart/comms/test/channels/fcm/adc_client_test.dart",
+        "apps/common-dart/comms/test/channels/fcm/fcm_channel_test.dart",
+        "apps/common-dart/comms/test/notifications/outbox_writer_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00194": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 7,
+      "files": [
+        "apps/common-dart/comms/lib/comms.dart",
+        "apps/common-dart/comms/lib/src/channels/fcm/fcm_channel.dart",
+        "apps/common-dart/comms/lib/src/channels/fcm/fcm_message.dart",
+        "apps/common-dart/comms/lib/src/notifications/envelope.dart",
+        "apps/common-dart/comms/test/channels/fcm/fcm_channel_test.dart",
+        "apps/common-dart/comms/test/compliance/payload_guard_test.dart",
+        "apps/common-dart/comms/test/notifications/outbox_writer_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00195": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 11,
+      "files": [
+        "apps/common-dart/comms/lib/comms.dart",
+        "apps/common-dart/comms/lib/src/notifications/client/envelope_fetcher.dart",
+        "apps/common-dart/comms/lib/src/notifications/envelope.dart",
+        "apps/common-dart/comms/lib/src/notifications/envelope_status.dart",
+        "apps/common-dart/comms/lib/src/notifications/notification_type.dart",
+        "apps/common-dart/comms/lib/src/notifications/repository.dart",
+        "apps/common-dart/comms/lib/src/notifications/server/envelope_since_handler.dart",
+        "apps/common-dart/comms/test/notifications/client/envelope_fetcher_test.dart",
+        "apps/common-dart/comms/test/notifications/envelope_test.dart",
+        "apps/common-dart/comms/test/notifications/outbox_writer_test.dart",
+        "apps/common-dart/comms/test/notifications/server/envelope_fetch_handler_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-d00196": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 5,
+      "files": [
+        "apps/common-dart/comms/lib/comms.dart",
+        "apps/common-dart/comms/lib/src/channels/fcm/fcm_channel.dart",
+        "apps/common-dart/comms/lib/src/channels/fcm/fcm_message.dart",
+        "apps/common-dart/comms/lib/src/notifications/envelope.dart",
+        "apps/common-dart/comms/test/channels/fcm/fcm_channel_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00001": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 7,
+      "files": [
+        "infrastructure/terraform/modules/billing-alert-funk/main.tf",
+        "infrastructure/terraform/modules/billing-alert-funk/src/main.py",
+        "infrastructure/terraform/modules/billing-alert-funk/variables.tf",
+        "infrastructure/terraform/modules/billing-stop-funk/main.tf",
+        "infrastructure/terraform/modules/billing-stop-funk/src/main.py",
+        "infrastructure/terraform/modules/billing-stop-funk/variables.tf",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00002": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "deployment/reference-sponsor/deployment/scripts/start.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00006": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/modules/identity-platform/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00008": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "infrastructure/terraform/modules/cloud-sql/main.tf",
+        "infrastructure/terraform/modules/cloud-sql/variables.tf",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00013": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        ".github/workflows/alert-workflow-changes.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00017": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".githooks/version-utils.sh",
+        ".github/workflows/pr-health.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00041": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "infrastructure/docker/email-job/send-email.sh",
+        "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00042": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".github/workflows/terraform-validate.yml",
+        "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00043": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 14,
+      "files": [
+        ".githooks/project-defs.sh",
+        ".github/workflows/android-build.yml",
+        ".github/workflows/firebase-test-lab.yml",
+        ".github/workflows/ios-build.yml",
+        ".github/workflows/terraform-validate.yml",
+        ".github/workflows/test-gcp-auth.yml",
+        "apps/daily-diary/clinical_diary/integration_test/firebase_test_lab_smoke_test.dart",
+        "apps/daily-diary/clinical_diary/lib/scope/diary_sync_triggers.dart",
+        "apps/daily-diary/clinical_diary/tool/config/create-workflow-identiy-provider-firebase-github.sh",
+        "firebase-test-lab/scripts/build-android.sh",
+        "firebase-test-lab/scripts/build-ios.sh",
+        "firebase-test-lab/scripts/run-android-test-lab.sh",
+        "firebase-test-lab/scripts/run-ios-test-lab.sh",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00044": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".github/workflows/test-gcp-auth.yml",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00045": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 6,
+      "files": [
+        "apps/common-dart/otel_common/lib/otel_common.dart",
+        "apps/common-dart/otel_common/lib/src/error_reporting.dart",
+        "apps/common-dart/otel_common/lib/src/logging.dart",
+        "apps/common-dart/otel_common/pubspec.yaml",
+        "apps/common-dart/otel_common/test/error_reporting_integration_test.dart",
+        "apps/common-dart/otel_common/test/logging_integration_test.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00046": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "apps/sponsor-portal/tool/deployment-doctor.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00047": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 9,
+      "files": [
+        "apps/common-dart/otel_common/lib/otel_common.dart",
+        "apps/common-dart/otel_common/lib/src/db_tracing.dart",
+        "apps/common-dart/otel_common/lib/src/init.dart",
+        "apps/common-dart/otel_common/lib/src/middleware.dart",
+        "apps/common-dart/otel_common/pubspec.yaml",
+        "apps/common-dart/otel_common/test/helpers/otel_test_helpers.dart",
+        "apps/common-dart/otel_common/test/metrics_test.dart",
+        "apps/sponsor-portal/tool/deployment-doctor.sh",
+        "tools/dev-env/docker-compose.otel.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00048": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/docker/email-job/send-email.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00051": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        ".github/workflows/terraform-validate.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00052": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 6,
+      "files": [
+        ".githooks/version-utils.sh",
+        ".github/dependabot.yml",
+        ".github/scripts/validate-pr.sh",
+        ".github/workflows/ci-gate.yml",
+        ".github/workflows/maintenance-check.yml",
+        ".github/workflows/pr-health.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00053": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        ".github/workflows/alert-workflow-changes.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00056": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 41,
+      "files": [
+        "apps/common-dart/dart-base-container/Dockerfile",
+        "apps/common-dart/dart-base-container/cloudbuild.yaml",
+        "apps/common-dart/flutter-base-container/Dockerfile",
+        "apps/common-dart/grpc_health/bin/server.dart",
+        "apps/common-dart/grpc_health/lib/health.pb.dart",
+        "apps/common-dart/grpc_health/lib/health.pbgrpc.dart",
+        "apps/common-dart/grpc_health/pubspec.yaml",
+        "deployment/reference-sponsor/deployment/scripts/start.sh",
+        "infrastructure/terraform/bootstrap/main.tf",
+        "infrastructure/terraform/bootstrap/variables.tf",
+        "infrastructure/terraform/cost-control/main.py",
+        "infrastructure/terraform/modules/artifact-registry/main.tf",
+        "infrastructure/terraform/modules/audit-logs/main.tf",
+        "infrastructure/terraform/modules/billing-alert-funk/main.tf",
+        "infrastructure/terraform/modules/billing-alert-funk/variables.tf",
+        "infrastructure/terraform/modules/billing-budget/main.tf",
+        "infrastructure/terraform/modules/billing-stop-funk/main.tf",
+        "infrastructure/terraform/modules/billing-stop-funk/variables.tf",
+        "infrastructure/terraform/modules/cicd-service-account/main.tf",
+        "infrastructure/terraform/modules/cloud-build/main.tf",
+        "infrastructure/terraform/modules/cloud-run/main.tf",
+        "infrastructure/terraform/modules/cloud-sql/main.tf",
+        "infrastructure/terraform/modules/gcp-project/main.tf",
+        "infrastructure/terraform/modules/identity-platform/main.tf",
+        "infrastructure/terraform/modules/monitoring-alerts/main.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/main.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/outputs.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/variables.tf",
+        "infrastructure/terraform/modules/storage-buckets/main.tf",
+        "infrastructure/terraform/modules/svc-accts/main.tf",
+        "infrastructure/terraform/modules/svc-accts/outputs.tf",
+        "infrastructure/terraform/modules/svc-accts/variables.tf",
+        "infrastructure/terraform/modules/vpc-network/main.tf",
+        "infrastructure/terraform/modules/workforce-identity/main.tf",
+        "infrastructure/terraform/scripts/bootstrap-sponsor.sh",
+        "infrastructure/terraform/scripts/common.sh",
+        "infrastructure/terraform/scripts/deploy-environment.sh",
+        "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh",
+        "infrastructure/terraform/sponsor-envs/main.tf",
+        "infrastructure/terraform/sponsor-envs/variables.tf",
+        "tools/cost-control/main.py"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00078": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        ".github/scripts/validate-pr.sh",
+        ".github/workflows/ci-gate.yml",
+        ".github/workflows/pr-health.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00079": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".github/scripts/validate-pr.sh",
+        ".github/workflows/pr-health.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00080": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        ".github/workflows/pr-health.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00081": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 5,
+      "files": [
+        ".github/scripts/validate-pr.sh",
+        ".github/workflows/clinical_diary-ci.yml",
+        ".github/workflows/pr-health.yml",
+        ".github/workflows/qa-automation.yml",
+        ".github/workflows/sponsor-portal-ci.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00082": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".github/workflows/clinical_diary-ci.yml",
+        ".github/workflows/sponsor-portal-ci.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-o00083": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        ".github/workflows/qa-automation.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p00002": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "infrastructure/terraform/modules/identity-platform/main.tf",
+        "infrastructure/terraform/modules/svc-accts/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p00006": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "apps/common-dart/trial_data_types/pubspec.yaml",
+        "apps/daily-diary/clinical_diary/lib/main.dart"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-mobile-offline-first",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-p00008": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 25,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/main.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/enrollment_success_dialog.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/logo_menu.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/responsive_web_frame.dart",
+        "apps/daily-diary/clinical_diary/test/integration/home_screen_integration_test.dart",
+        "apps/daily-diary/clinical_diary/test/integration/timezone_display_e2e_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/enrollment_success_dialog_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/logo_menu_test.dart",
+        "apps/edc/rave-integration/tool/test.sh",
+        "infrastructure/terraform/bootstrap/main.tf",
+        "infrastructure/terraform/bootstrap/variables.tf",
+        "infrastructure/terraform/modules/cicd-service-account/main.tf",
+        "infrastructure/terraform/modules/gcp-project/main.tf",
+        "infrastructure/terraform/modules/identity-platform/main.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/main.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/outputs.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/variables.tf",
+        "infrastructure/terraform/modules/vpc-network/main.tf",
+        "infrastructure/terraform/modules/workforce-identity/main.tf",
+        "infrastructure/terraform/scripts/bootstrap-sponsor.sh",
+        "infrastructure/terraform/scripts/common.sh",
+        "infrastructure/terraform/scripts/deploy-environment.sh",
+        "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh",
+        "infrastructure/terraform/sponsor-envs/main.tf",
+        "infrastructure/terraform/sponsor-envs/variables.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p00009": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "deployment/reference-sponsor/deployment/docker/portal-final.Dockerfile"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p00020": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        ".github/workflows/alert-workflow-changes.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p00042": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 7,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf",
+        "infrastructure/terraform/modules/audit-logs/main.tf",
+        "infrastructure/terraform/modules/cloud-sql/main.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/main.tf",
+        "infrastructure/terraform/scripts/bootstrap-sponsor.sh",
+        "infrastructure/terraform/scripts/verify-audit-compliance.sh",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-epistaxis-capture-standard",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-p00045": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 5,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/l10n/app_localizations.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/clinical_trial_enrollment_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/clinical_trial_privacy_policy_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/profile_screen.dart",
+        "apps/daily-diary/clinical_diary/test/screens/profile_screen_test.dart"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-privacy-policy",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-p00047": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "infrastructure/terraform/modules/cloud-sql/main.tf",
+        "infrastructure/terraform/modules/cloud-sql/variables.tf",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p00049": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/services/notification_service.dart",
+        "infrastructure/docker/email-job/send-email.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p01018": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 4,
+      "files": [
+        ".github/workflows/pr-health.yml",
+        ".github/workflows/qa-automation.yml",
+        "apps/common-dart/dart-base-container/Dockerfile",
+        "apps/common-dart/flutter-base-container/Dockerfile"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p01064": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_status.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p01065": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 5,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_type.dart",
+        "apps/common-dart/trial_data_types/lib/trial_data_types.dart",
+        "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart",
+        "apps/daily-diary/clinical_diary/test/screens/profile_screen_test.dart",
+        "apps/daily-diary/clinical_diary/test/services/enrollment_service_test.dart"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-questionnaire-system",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-p01066": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/widgets/time_picker_dial.dart",
+        "apps/daily-diary/clinical_diary/test/integration/timezone_display_e2e_test.dart"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-questionnaire-daily-epistaxis",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-p01067": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 13,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/question_category.dart",
+        "apps/common-dart/trial_data_types/lib/src/question_definition.dart",
+        "apps/common-dart/trial_data_types/lib/src/question_response.dart",
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_definition.dart",
+        "apps/common-dart/trial_data_types/lib/src/response_scale_option.dart",
+        "apps/common-dart/trial_data_types/lib/trial_data_types.dart",
+        "apps/common-dart/trial_data_types/test/questionnaire_definition_test.dart",
+        "apps/common-flutter/eq/lib/eq.dart",
+        "apps/common-flutter/eq/lib/src/question_screen.dart",
+        "apps/common-flutter/eq/lib/src/questionnaire_flow_screen.dart",
+        "apps/common-flutter/eq/lib/src/review_screen.dart",
+        "apps/common-flutter/eq/test/review_screen_test.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-questionnaire-nose-hht",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-p01068": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 13,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/question_category.dart",
+        "apps/common-dart/trial_data_types/lib/src/question_definition.dart",
+        "apps/common-dart/trial_data_types/lib/src/question_response.dart",
+        "apps/common-dart/trial_data_types/lib/src/questionnaire_definition.dart",
+        "apps/common-dart/trial_data_types/lib/src/response_scale_option.dart",
+        "apps/common-dart/trial_data_types/lib/src/text_segment.dart",
+        "apps/common-dart/trial_data_types/lib/trial_data_types.dart",
+        "apps/common-dart/trial_data_types/test/questionnaire_definition_test.dart",
+        "apps/common-flutter/eq/lib/eq.dart",
+        "apps/common-flutter/eq/lib/src/question_screen.dart",
+        "apps/common-flutter/eq/lib/src/questionnaire_flow_screen.dart",
+        "apps/common-flutter/eq/lib/src/review_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-questionnaire-hht-qol",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-p01069": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/widgets/nosebleed_intensity.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/time_picker_dial.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p01070": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 14,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/question_definition.dart",
+        "apps/common-flutter/eq/lib/eq.dart",
+        "apps/common-flutter/eq/lib/src/confirmation_screen.dart",
+        "apps/common-flutter/eq/lib/src/preamble_screen.dart",
+        "apps/common-flutter/eq/lib/src/question_screen.dart",
+        "apps/common-flutter/eq/lib/src/questionnaire_flow_screen.dart",
+        "apps/common-flutter/eq/lib/src/widgets/category_header.dart",
+        "apps/common-flutter/eq/lib/src/widgets/question_progress_bar.dart",
+        "apps/common-flutter/eq/lib/src/widgets/response_scale_selector.dart",
+        "apps/common-flutter/eq/test/preamble_screen_test.dart",
+        "apps/common-flutter/eq/test/question_screen_test.dart",
+        "apps/common-flutter/eq/test/questionnaire_flow_screen_test.dart",
+        "apps/common-flutter/eq/test/widgets/response_scale_selector_test.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p01071": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 13,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/question_definition.dart",
+        "apps/common-dart/trial_data_types/lib/src/text_segment.dart",
+        "apps/common-flutter/eq/lib/eq.dart",
+        "apps/common-flutter/eq/lib/src/confirmation_screen.dart",
+        "apps/common-flutter/eq/lib/src/preamble_screen.dart",
+        "apps/common-flutter/eq/lib/src/question_screen.dart",
+        "apps/common-flutter/eq/lib/src/questionnaire_flow_screen.dart",
+        "apps/common-flutter/eq/lib/src/widgets/question_progress_bar.dart",
+        "apps/common-flutter/eq/lib/src/widgets/response_scale_selector.dart",
+        "apps/common-flutter/eq/lib/src/widgets/rich_text_question.dart",
+        "apps/common-flutter/eq/test/questionnaire_flow_screen_test.dart",
+        "apps/common-flutter/eq/test/widgets/rich_text_question_test.dart",
+        "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": null,
+      "source": "none",
+      "notes": ""
+    },
+    "REQ-p01073": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 6,
+      "files": [
+        "apps/common-dart/trial_data_types/lib/src/session_config.dart",
+        "apps/common-flutter/eq/lib/eq.dart",
+        "apps/common-flutter/eq/lib/src/questionnaire_flow_screen.dart",
+        "apps/common-flutter/eq/lib/src/readiness_screen.dart",
+        "apps/common-flutter/eq/test/questionnaire_flow_screen_test.dart",
+        "apps/common-flutter/eq/test/readiness_screen_test.dart"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-questionnaire-session-timeout",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-p05004": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 6,
+      "files": [
+        ".github/scripts/validate-pr.sh",
+        "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart",
+        "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart",
+        "apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart",
+        "apps/daily-diary/clinical_diary/test/services/enrollment_service_test.dart",
+        "apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-notification-disconnection",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    },
+    "REQ-p70007": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 4,
+      "files": [
+        "apps/daily-diary/clinical_diary/lib/models/user_enrollment.dart",
+        "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart",
+        "apps/daily-diary/clinical_diary/test/screens/clinical_trial_enrollment_screen_test.dart",
+        "apps/daily-diary/clinical_diary/test/services/enrollment_service_test.dart"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-linking-code-lifecycle",
+      "target_live": true,
+      "disposition": null,
+      "source": "mapping",
+      "notes": ""
+    }
+  }
+}
