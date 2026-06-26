@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # IMPLEMENTS REQUIREMENTS:
-#   REQ-o00043: Automated Deployment Pipeline
+# REQ-o00043: Automated Deployment Pipeline
 set -euo pipefail
-unset CLOUDSDK_CORE_PROJECT  # prevent auth step env override
+unset CLOUDSDK_CORE_PROJECT # prevent auth step env override
 
 PROJECT_ID="${GCP_PROJECT_ID:-cure-hht-qa}"
 FLAVOR="${FLAVOR:-qa}"
@@ -16,18 +16,23 @@ EVIDENCE_DIR="${EVIDENCE_DIR:-build/firebase-test-lab/android/evidence}"
 # One spec per line: model=<id>,version=<api>,locale=en,orientation=portrait
 # Override at runtime via the android_devices workflow_dispatch input.
 DEFAULT_DEVICE_SPECS=$(printf '%s\n' \
-  'model=shiba,version=34,locale=en,orientation=portrait' \
-  'model=cheetah,version=33,locale=en,orientation=portrait' \
-  'model=redfin,version=30,locale=en,orientation=portrait' \
-  'model=MediumPhone.arm,version=32,locale=en,orientation=portrait' \
-  'model=MediumPhone.arm,version=31,locale=en,orientation=portrait' \
-  'model=MediumPhone.arm,version=30,locale=en,orientation=portrait' \
-  'model=MediumPhone.arm,version=33,locale=en,orientation=portrait' \
-  'model=MediumPhone.arm,version=28,locale=en,orientation=portrait' \
+'model=shiba,version=34,locale=en,orientation=portrait' \
+'model=cheetah,version=33,locale=en,orientation=portrait' \
+'model=redfin,version=30,locale=en,orientation=portrait' \
+'model=MediumPhone.arm,version=32,locale=en,orientation=portrait' \
+'model=MediumPhone.arm,version=31,locale=en,orientation=portrait' \
+'model=MediumPhone.arm,version=30,locale=en,orientation=portrait' \
+'model=MediumPhone.arm,version=33,locale=en,orientation=portrait' \
+'model=MediumPhone.arm,version=28,locale=en,orientation=portrait' \
 )
 DEVICE_SPECS="${ANDROID_DEVICES:-${DEFAULT_DEVICE_SPECS}}"
 USE_ORCHESTRATOR="${USE_ORCHESTRATOR:-false}"
 RESULTS_BUCKET="${FIREBASE_RESULTS_BUCKET:-}"
+
+# Directory on the device where the AndroidX Test Storage Service writes
+# per-test screenshots. It is pulled into the Test Lab results tree so the
+# snapshots land in the evidence artifact alongside the recorded video.
+SCREENSHOT_DIR="/sdcard/Android/data/com.google.android.apps.common.testing.services/files/test_data/screenshots"
 
 mkdir -p "$EVIDENCE_DIR"
 
@@ -49,6 +54,13 @@ cmd=(
   --timeout="$TIMEOUT"
   --results-dir="$RESULTS_DIR"
   --client-details="matrixLabel=hht-${FLAVOR}-${GITHUB_RUN_ID:-local}-${GITHUB_SHA:-unknown}"
+  # Video evidence (recorded by default; kept explicit for clarity).
+  --record-video
+  # Snapshot evidence: enable the AndroidX Test Storage Service so the
+  # instrumentation runner captures per-test screenshots, and pull the
+  # screenshot directory back into the Test Lab results tree.
+  --environment-variables=clearPackageData=true,useTestStorageService=true
+  --directories-to-pull="$SCREENSHOT_DIR"
 )
 
 if [[ -n "$RESULTS_BUCKET" ]]; then
