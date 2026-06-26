@@ -149,126 +149,117 @@ void main() {
       void mark(String step) =>
           debugPrint('DIARY-JNY-DIAG >>> $step');
 
-      try {
-        mark('00 app.main() about to start');
-        app.main();
-        mark('01 app.main() returned, waiting for home');
-        await _waitForHome(tester);
-        mark('02 home reached');
-        await tester.pump(const Duration(seconds: 1));
-        mark('03 settled on Main Screen');
+      mark('00 app.main() about to start');
+      app.main();
+      mark('01 app.main() returned, waiting for home');
+      await _waitForHome(tester);
+      mark('02 home reached');
+      await tester.pump(const Duration(seconds: 1));
+      mark('03 settled on Main Screen');
 
-        // Starting point: Main Screen must show the Record Nosebleed action.
-        expect(
-          find.text('Record Nosebleed'),
-          findsOneWidget,
-          reason: 'Main Screen must offer the Record Nosebleed action.',
-        );
-        mark('04 Record Nosebleed visible');
+      // Starting point: Main Screen must show the Record Nosebleed action.
+      expect(
+        find.text('Record Nosebleed'),
+        findsOneWidget,
+        reason: 'Main Screen must offer the Record Nosebleed action.',
+      );
+      mark('04 Record Nosebleed visible');
 
-        // 1. The Participant taps Record Nosebleed.
-        await tester.tap(find.text('Record Nosebleed'));
-        mark('05 tapped Record Nosebleed');
-        await tester.pump(const Duration(seconds: 3));
-        mark('06 pumped after tap');
-        expect(
-          find.byType(RecordingScreen),
-          findsOneWidget,
-          reason: 'RecordingScreen must open after Record Nosebleed.',
-        );
-        mark('07 RecordingScreen open (startTime step)');
+      // 1. The Participant taps Record Nosebleed.
+      await tester.tap(find.text('Record Nosebleed'));
+      mark('05 tapped Record Nosebleed');
+      await tester.pump(const Duration(seconds: 3));
+      mark('06 pumped after tap');
+      expect(
+        find.byType(RecordingScreen),
+        findsOneWidget,
+        reason: 'RecordingScreen must open after Record Nosebleed.',
+      );
+      mark('07 RecordingScreen open (startTime step)');
 
-        // 2. The Participant sets the time the nosebleed started and continues.
-        expect(
-          find.text('Set Start Time'),
-          findsOneWidget,
-          reason: 'Start-time step must offer the Set Start Time action.',
-        );
-        await tester.tap(find.text('Set Start Time'));
-        mark('08 tapped Set Start Time');
-        await tester.pump(const Duration(seconds: 2));
-        mark('09 pumped after Set Start Time');
+      // 2. The Participant sets the time the nosebleed started and continues.
+      expect(
+        find.text('Set Start Time'),
+        findsOneWidget,
+        reason: 'Start-time step must offer the Set Start Time action.',
+      );
+      await tester.tap(find.text('Set Start Time'));
+      mark('08 tapped Set Start Time');
+      await tester.pump(const Duration(seconds: 2));
+      mark('09 pumped after Set Start Time');
 
-        // 3. The Participant chooses how heavy the bleed was.
-        expect(
-          find.text('Dripping'),
-          findsOneWidget,
-          reason: 'Intensity options must appear after the start time.',
-        );
-        mark('10 intensity options visible');
-        await tester.tap(find.text('Dripping'));
-        mark('11 tapped Dripping intensity');
-        await tester.pump(const Duration(seconds: 2));
-        mark('12 pumped after intensity (endTime step)');
+      // 3. The Participant chooses how heavy the bleed was.
+      expect(
+        find.text('Dripping'),
+        findsOneWidget,
+        reason: 'Intensity options must appear after the start time.',
+      );
+      mark('10 intensity options visible');
+      await tester.tap(find.text('Dripping'));
+      mark('11 tapped Dripping intensity');
+      await tester.pump(const Duration(seconds: 2));
+      mark('12 pumped after intensity (endTime step)');
 
-        // 4. The Participant sets the time the nosebleed stopped and saves.
-        // The end-time dial initialises to the SAME instant as the start time
-        // (recording_screen.dart end-step initialTime falls back to the start
-        // time when no end time is set yet). Confirming an end time equal to or
-        // before the start time is rejected by _handleEndTimeConfirm (it shows a
-        // SnackBar and stays on the end-time step), so the complete step never
-        // renders. Advance the dial past the start time first via the dial's
-        // +15 minute adjuster, then confirm.
-        expect(
-          find.text('+15'),
-          findsOneWidget,
-          reason: 'End-time dial must offer the +15 minute adjuster.',
-        );
-        await tester.tap(find.text('+15'));
-        mark('13a bumped end time +15');
-        await tester.pump(const Duration(seconds: 1));
-        expect(
-          find.text('Set End Time'),
-          findsOneWidget,
-          reason: 'End-time step must offer the Set End Time action.',
-        );
-        await tester.tap(find.text('Set End Time'));
-        mark('13 tapped Set End Time');
-        await tester.pump(const Duration(seconds: 2));
-        mark('14 pumped after Set End Time (complete step)');
+      // 4. The Participant sets the time the nosebleed stopped and saves.
+      // The end-time dial initialises to the SAME instant as the start time
+      // (recording_screen.dart end-step initialTime falls back to the start
+      // time when no end time is set yet). With the default ClinicalRules
+      // (shortDurationConfirm:false, useReviewScreen:false) an end time equal
+      // to the start is rejected by _handleEndTimeConfirm, and there is NO
+      // separate "Finished" review step -- confirming a VALID (>0) duration
+      // saves the record and returns straight to the Main Screen. So we bump
+      // the dial +15 via the dial's adjuster to clear the same-minute guard,
+      // then confirm; success is the app navigating back to the Main Screen.
+      expect(
+        find.text('+15'),
+        findsOneWidget,
+        reason: 'End-time dial must offer the +15 minute adjuster.',
+      );
+      await tester.tap(find.text('+15'));
+      mark('13a bumped end time +15');
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        find.text('Set End Time'),
+        findsOneWidget,
+        reason: 'End-time step must offer the Set End Time action.',
+      );
+      await tester.tap(find.text('Set End Time'));
+      mark('13 tapped Set End Time');
+      await tester.pump(const Duration(seconds: 2));
+      mark('14 pumped after Set End Time');
 
-        expect(
-          find.text('Finished'),
-          findsOneWidget,
-          reason: 'Complete step must offer the Finished (save) action.',
-        );
-        await tester.tap(find.text('Finished'));
-        mark('15 tapped Finished (save)');
-        await tester.pump(const Duration(seconds: 3));
-        mark('16 pumped after save');
+      // 5. With useReviewScreen:false the record saves immediately and the app
+      //    returns to the Main Screen (no "Finished" review step exists in this
+      //    configuration). Wait for the Main Screen to come back, then assert
+      //    the new event is reflected under Your Records.
+      await _pumpUntil(
+        tester,
+        () => find.byType(HomeScreen).evaluate().isNotEmpty,
+        description: 'return to Main Screen after saving the event',
+        timeout: const Duration(seconds: 30),
+      );
+      mark('15 back on Main Screen after save');
+      expect(
+        find.byType(HomeScreen),
+        findsOneWidget,
+        reason: 'App must return to the Main Screen after saving.',
+      );
+      mark('16 HomeScreen confirmed');
+      expect(
+        find.text('Your Records'),
+        findsOneWidget,
+        reason: 'Your Records section must be present on the Main Screen.',
+      );
+      mark('17 Your Records visible');
 
-        // 5. The Application returns to the Main Screen with the new event under
-        //    the current day in Your Records.
-        expect(
-          find.byType(HomeScreen),
-          findsOneWidget,
-          reason: 'App must return to the Main Screen after saving.',
-        );
-        mark('17 back on Main Screen');
-        expect(
-          find.text('Your Records'),
-          findsOneWidget,
-          reason: 'Your Records section must be present on the Main Screen.',
-        );
-        mark('18 Your Records visible');
-
-        expect(
-          tester.takeException(),
-          isNull,
-          reason: 'Recording an epistaxis event must not throw.',
-        );
-        mark('19 journey complete, no exceptions');
-        await _screenshot(binding, tester, 'jny_epistaxis_recording_saved');
-        mark('20 screenshot taken, DONE');
-      } catch (e, s) {
-        // FAIL-FAST: surface the failure immediately in the logcat instead of
-        // letting an uncaught assertion stall the harness. Rethrow so the test
-        // still reports as failed; the testWidgets timeout below caps any
-        // residual stall well under the 30m FTL device cap.
-        mark('FAIL at last marker above: $e');
-        debugPrint('DIARY-JNY-DIAG >>> FAIL stack: $s');
-        rethrow;
-      }
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Recording an epistaxis event must not throw.',
+      );
+      mark('18 journey complete, no exceptions');
+      await _screenshot(binding, tester, 'jny_epistaxis_recording_saved');
+      mark('19 screenshot taken, DONE');
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
