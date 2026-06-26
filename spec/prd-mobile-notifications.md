@@ -80,6 +80,7 @@ The **Task List** surfaces the two categories of follow-up the platform must kee
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
@@ -196,6 +197,7 @@ The badge consolidates "where do I stand with this study" into a single visual t
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
@@ -235,6 +237,7 @@ The **Lock Threshold** produces an irreversible state — once exceeded, the **I
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
@@ -270,6 +273,7 @@ See: ![Assigned *Questionnaire* Notification](./images/notification-assigned-que
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
@@ -315,6 +319,7 @@ See: ![Yesterday Entry Reminder Notification](./images/notification-yesterday-en
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
@@ -370,6 +375,7 @@ See: ![Ongoing *Epistaxis Event* Reminder](./images/notification-ongoing-epistax
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 

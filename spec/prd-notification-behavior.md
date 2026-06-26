@@ -1,6 +1,6 @@
 # DIARY-PRD-notification-behavior: Notification Behavior
 
-**Level**: PRD | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Implements**: - | **Template**
 
 ## Overview
 

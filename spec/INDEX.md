@@ -6,6 +6,8 @@
 
 ## PRODUCT
 
+### Cure-HHT Diary Platform/spec
+
 | ID                                               | Title                                               | File                                      | Hash     |
 | ------------------------------------------------ | --------------------------------------------------- | ----------------------------------------- | -------- |
 | DIARY-PRD-action-inventory                       | Action Inventory                                    | prd-rbac.md                               | 5d130d8e |
@@ -91,6 +93,18 @@
 | DIARY-PRD-user-account-reactivate                | Reactivate User Account                             | prd-user-account.md                       | eb83c7e5 |
 | DIARY-PRD-user-account-site-assignment           | Site Assignment                                     | prd-user-account.md                       | 3aa95698 |
 | DIARY-PRD-user-authentication                    | Diary User Authentication                           | prd-mobile-app.md                         | 6e2db0c7 |
+
+### Cure-HHT Diary Platform
+
+| ID                                                                                | Title                    | File | Hash     |
+| --------------------------------------------------------------------------------- | ------------------------ | ---- | -------- |
+| DIARY-DEV-deployment-config-defaults::DIARY-PRD-configuration-precedence          | Configuration Precedence |      | f5372beb |
+| DIARY-PRD-notification-disconnection::DIARY-PRD-notification-behavior             | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-notification-historical-gap::DIARY-PRD-notification-behavior            | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-notification-incomplete-record-lock::DIARY-PRD-notification-behavior    | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-notification-ongoing-epistaxis::DIARY-PRD-notification-behavior         | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-notification-portal-sent-questionnaire::DIARY-PRD-notification-behavior | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-notification-yesterday-entry::DIARY-PRD-notification-behavior           | Notification Behavior    |      | 8f7b4f54 |
 
 ## BASE (SPONSOR-EXCLUDABLE)
 
