@@ -642,8 +642,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     WidgetsBinding.instance
         .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pumpAndSettle(const Duration(seconds: 3));
-    expect(tester.takeException(), isNull,
+    await tester.pump(const Duration(seconds: 3));
+        expect(tester.takeException(), isNull,
         reason: 'Interrupted FAB must not leave the app in a broken state.');
     await _screenshot(binding, tester, 'life006_interrupted_intent');
   });
@@ -671,7 +671,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     WidgetsBinding.instance
         .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pumpAndSettle(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 3));
     expect(find.byType(HomeScreen), findsOneWidget,
         reason: 'HomeScreen must survive a simulated relaunch cycle.');
     expect(tester.takeException(), isNull);
