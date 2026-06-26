@@ -183,7 +183,7 @@ Future<DiarySyncTriggerHandles> installDiarySyncTriggers({
   // event queue perpetually non-idle, so pumpAndSettle never settles. Skipping
   // it mirrors the connectivity/FCM stream gating above. Production behavior is
   // unchanged (the define defaults to false).
-  final Timer? timer = _kDisableLiveStreams
+  final timer = _kDisableLiveStreams
       ? null
       : resolvedTimerFactory(periodicInterval, () {
           if (inForeground) {
