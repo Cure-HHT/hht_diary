@@ -1,7 +1,7 @@
 // IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//   REQ-CAL-p00082: Participant Alert Delivery
-//   REQ-p00049: Ancillary Platform Services (push notifications)
+// REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
+// REQ-CAL-p00082: Participant Alert Delivery
+// REQ-p00049: Ancillary Platform Services (push notifications)
 //
 // FCM notification service for receiving push notifications on mobile.
 // Handles token management, permission requests, and message routing.
@@ -10,6 +10,14 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+
+/// FTL/integration-test gate: when DIARY_DISABLE_LIVE_STREAMS is set, the app
+/// substitutes empty streams and must also skip the live FCM token/network
+/// calls (getToken / getInitialMessage) that never settle on Test Lab
+/// emulators and hang pumpAndSettle until the per-device timeout. Production
+/// builds never pass the define, so behaviour is unchanged.
+const bool _kDisableLiveStreams =
+    bool.fromEnvironment('DIARY_DISABLE_LIVE_STREAMS');
 
 /// Top-level background message handler (must be a top-level function).
 /// Called when the app is in the background or terminated.
@@ -55,6 +63,16 @@ class MobileNotificationService {
   ///
   /// Call this after Firebase.initializeApp() in main.dart.
   Future<void> initialize() async {
+    // FTL/integration-test guard: the FCM token + getInitialMessage calls
+    // below never settle on Test Lab emulators (getToken throws IOException,
+    // getInitialMessage stalls), which blocks pumpAndSettle and rides the
+    // device to its 30m timeout. When DIARY_DISABLE_LIVE_STREAMS is set, skip
+    // FCM init entirely. Production builds never pass the define.
+    if (_kDisableLiveStreams) {
+      debugPrint('[FCM] DIARY_DISABLE_LIVE_STREAMS set - skipping FCM init');
+      return;
+    }
+
     _messaging = FirebaseMessaging.instance;
 
     // Set up background handler (must be done before any other FCM calls)
