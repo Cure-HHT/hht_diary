@@ -1,6 +1,7 @@
 # DIARY-PRD-help-resources: Help and Resources
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-diary-application
 
 ## Overview
 

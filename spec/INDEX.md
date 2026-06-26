@@ -96,10 +96,17 @@
 
 | ID                                             | Title                                                         | File                              | Hash     |
 | ---------------------------------------------- | ------------------------------------------------------------- | --------------------------------- | -------- |
+| DIARY-BASE-access-control-identity             | Access Control and Identity                                   | base-access-control-identity.md   | af73cdd0 |
 | DIARY-BASE-audit-trail                         | Audit Trail Foundation                                        | base-audit-trail.md               | 1f28ed43 |
+| DIARY-BASE-clinical-questionnaires             | Clinical Questionnaire System                                 | base-clinical-questionnaires.md   | 621cfd03 |
+| DIARY-BASE-compliance-data-integrity           | Compliance and Data Integrity                                 | base-compliance-data-integrity.md | 55aa1c6c |
+| DIARY-BASE-compliant-diary-platform            | Clinical-Trial-Compliant Diary Platform                       | base-compliant-diary-platform.md  | 744352c1 |
 | DIARY-BASE-local-data-reset                    | Local Data Reset to First-Launch State                        | base-local-data-reset.md          | 824fef24 |
+| DIARY-BASE-mobile-diary-application            | Participant Mobile Diary Application                          | base-mobile-diary-application.md  | b9f3f527 |
+| DIARY-BASE-mobile-notifications                | Mobile Notifications and Reminders                            | base-mobile-notifications.md      | ad5a0d36 |
 | DIARY-BASE-not-participating-notice            | Not-Participating Notice                                      | prd-mobile-notifications.md       | fb82706f |
 | DIARY-BASE-ops-action-inventory                | Operations Action Inventory                                   | base-ops-action-inventory.md      | a1baca2c |
+| DIARY-BASE-participant-lifecycle               | Participant Lifecycle                                         | base-participant-lifecycle.md     | 28004eef |
 | DIARY-BASE-portal-stale-client-reload          | Portal Stale-Client Reload Prompt                             | prd-common-ui.md                  | b099c1fa |
 | DIARY-BASE-portal-transport-status             | Portal Transport Status Banner                                | prd-common-ui.md                  | 20c55120 |
 | DIARY-BASE-questionnaire-coordinator-workflow  | Coordinator Questionnaire Workflow                            | base-questionnaire-coordinator.md | 40cba10f |
@@ -107,6 +114,7 @@
 | DIARY-BASE-questionnaire-finalization          | Questionnaire Finalization Workflow                           | base-questionnaire-coordinator.md | 1c17145b |
 | DIARY-BASE-questionnaire-lock-after-submission | Lock-After-Submission and Unlock                              | base-questionnaire-coordinator.md | a4f69437 |
 | DIARY-BASE-questionnaire-manage-modal          | Manage Questionnaires Modal                                   | base-questionnaire-coordinator.md | 27cf8328 |
+| DIARY-BASE-sponsor-portal                      | Sponsor Portal                                                | base-sponsor-portal.md            | 21494b63 |
 | DIARY-BASE-sponsor-requested-settings          | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md          | a8de6e0a |
 | DIARY-BASE-system-operator-role                | System Operator Role                                          | base-system-operator-role.md      | b876db52 |
 | DIARY-BASE-user-authentication-pin             | Diary User Authentication — In-Application PIN Mechanism      | base-user-authentication-pin.md   | 1119836b |

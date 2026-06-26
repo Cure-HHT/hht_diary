@@ -5,6 +5,7 @@ Data-provenance commitments establishing the **when**, **how**, and **who** of c
 ## DIARY-PRD-evidence-timestamp-attestation: Third-Party Timestamp Attestation Capability
 
 **Level**: PRD | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-BASE-compliance-data-integrity
 
 > **TODO (URS-Phase-3 reconciliation):** Original Refines target REQ-p01085 (Compliance Systems) is in URS-replaced prd-clinical-trials.md. Re-parent to the URS-derived compliance REQ when that lands.
 

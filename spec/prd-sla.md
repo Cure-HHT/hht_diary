@@ -144,6 +144,7 @@ T. The system SHALL trigger escalation when approaching response or *Resolution*
 ## DIARY-PRD-sla-disaster-recovery: Disaster Recovery Objectives
 
 **Level**: PRD | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-BASE-compliance-data-integrity
 
 ### Rationale
 

@@ -5,6 +5,7 @@ This section defines the *Role* model used across the solution: the inventory of
 ## DIARY-PRD-rbac-customizable: Customizable Role-Based Access Control
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-access-control-identity
 
 ### Overview
 

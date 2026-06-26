@@ -5,6 +5,7 @@ The *Participant*-facing workflow over **Assigned Questionnaires** comprises the
 ## DIARY-PRD-questionnaire-portal-sent-rules: Assigned Questionnaire Rules
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-clinical-questionnaires
 
 ### Overview
 

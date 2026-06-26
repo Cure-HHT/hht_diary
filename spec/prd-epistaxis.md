@@ -5,6 +5,7 @@ The daily eDiary data-capture flow for **Epistaxis Events** comprises the platfo
 ## DIARY-PRD-epistaxis-capture-standard: HHT Epistaxis Data Capture Standard
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-diary-application
 
 ### Overview
 

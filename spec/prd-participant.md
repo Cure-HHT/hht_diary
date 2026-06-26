@@ -5,6 +5,7 @@ The **Participant** lifecycle in the **Sponsor Portal** is governed by linking-c
 ## DIARY-PRD-linking-code-lifecycle: Linking Code Lifecycle Management
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-participant-lifecycle
 
 ### Overview
 
@@ -54,6 +55,7 @@ The **Mobile Linking Code** is the bridge between two systems that otherwise do 
 ## DIARY-PRD-participant-registration: Participant Registration
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-participant-lifecycle
 
 ### Overview
 
@@ -78,6 +80,7 @@ B. When a **Participant** record is added to the **Sponsor Portal**, the System 
 ## DIARY-PRD-participant-link-new: Link New Participant Workflow
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-participant-lifecycle
 
 ### Overview
 
@@ -100,6 +103,7 @@ The first-link workflow has two halves separated by a human-physical handoff: th
 ## DIARY-PRD-participant-disconnection: Participant Disconnection Workflow
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-participant-lifecycle
 
 ### Overview
 
@@ -130,6 +134,7 @@ Disconnection sits between linking (the **Participant** is in *Trial*) and mark-
 ## DIARY-PRD-participant-reconnection: Participant Reconnection Workflow
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-participant-lifecycle
 
 ### Overview
 
@@ -158,6 +163,7 @@ Reconnection re-uses the link-code mechanism deliberately: the same unguessable,
 ## DIARY-PRD-participant-mark-not-participating: Mark as Not Participating
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-participant-lifecycle
 
 ### Overview
 
@@ -182,6 +188,7 @@ Mark-as-not-participating is the off-*Trial* state: the **Participant** has eith
 ## DIARY-PRD-participant-reactivate: Reactivate Participant
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-participant-lifecycle
 
 ### Overview
 

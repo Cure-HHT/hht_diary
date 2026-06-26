@@ -79,6 +79,7 @@ The **Task List** surfaces the two categories of follow-up the platform must kee
 ## DIARY-PRD-notification-disconnection: Disconnection Notification
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
 
 ### Overview
 
@@ -194,6 +195,7 @@ The badge consolidates "where do I stand with this study" into a single visual t
 ## DIARY-PRD-notification-incomplete-record-lock: Incomplete Record Lock Warning Notification
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
 
 ### Overview
 
@@ -232,6 +234,7 @@ The **Lock Threshold** produces an irreversible state — once exceeded, the **I
 ## DIARY-PRD-notification-portal-sent-questionnaire: Assigned Questionnaire Notification
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
 
 ### Overview
 
@@ -266,6 +269,7 @@ See: ![Assigned *Questionnaire* Notification](./images/notification-assigned-que
 ## DIARY-PRD-notification-yesterday-entry: Yesterday Entry Reminder Notification
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
 
 ### Overview
 
@@ -310,6 +314,7 @@ See: ![Yesterday Entry Reminder Notification](./images/notification-yesterday-en
 ## DIARY-PRD-notification-ongoing-epistaxis: Ongoing Epistaxis Event Reminder
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
 
 ### Overview
 
@@ -364,6 +369,7 @@ See: ![Ongoing *Epistaxis Event* Reminder](./images/notification-ongoing-epistax
 ## DIARY-PRD-notification-historical-gap: Historical Gap Reminder
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
 
 ### Overview
 

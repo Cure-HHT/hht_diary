@@ -5,6 +5,7 @@ The *Sponsor* Portal supports the full **User Account** lifecycle: creation, act
 ## DIARY-PRD-user-account-create: Create User Account
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Overview
 
@@ -225,6 +226,7 @@ Reactivation is the inverse of *Deactivation* and serves the case where a previo
 ## DIARY-PRD-reason-field-constraints: Reason Field Constraints
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Overview
 

@@ -7,6 +7,7 @@ The URS v1.0 §5.3 (*Questionnaire* Management) will refine and supersede portio
 ## DIARY-PRD-questionnaire-versioning: Questionnaire Versioning Model
 
 **Level**: PRD | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-BASE-clinical-questionnaires
 
 ### Rationale
 

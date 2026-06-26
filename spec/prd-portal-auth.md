@@ -5,6 +5,7 @@
 ## DIARY-PRD-password-requirements: Password Requirements
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-access-control-identity
 
 Password
 : A secret string of characters used to authenticate a user's identity when accessing the **System**.
@@ -35,6 +36,7 @@ The composition rules (length, character classes) and the common-*Password* reje
 ## DIARY-PRD-two-factor-authentication: Two-Factor Authentication
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-access-control-identity
 
 ### Overview
 
@@ -83,6 +85,7 @@ The single *Password* is no longer a sufficient credential for clinical *Trial* 
 ## DIARY-PRD-password-forgot: Forgot Password
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-access-control-identity
 
 ### Overview
 
@@ -194,6 +197,7 @@ The four-screen structure mirrors the four states the workflow can reach: reques
 ## DIARY-PRD-session-management: Session Management
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-access-control-identity
 
 ### Overview
 

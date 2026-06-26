@@ -5,6 +5,7 @@ The platform-level validation rules that apply to every *Diary* entry comprise t
 ## DIARY-PRD-entry-time-restrictions: Time-Based Entry Restrictions
 
 **Level**: PRD | **Status**: Active | **Implements**: -
+**Refines**: DIARY-BASE-mobile-diary-application
 
 ### Overview
 
@@ -67,6 +68,7 @@ The two-tier model exists because two distinct integrity concerns argue for two 
 ## DIARY-PRD-entry-duration-check: Duration Reasonableness Check
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-diary-application
 
 ### Overview
 
@@ -119,6 +121,7 @@ Duration outliers are a common data-entry-error signal: a typo or wrong-timezone
 ## DIARY-PRD-entry-overlap-resolution: Overlapping Event Detection and Resolution
 
 **Level**: PRD | **Status**: Active | **Implements**: -
+**Refines**: DIARY-BASE-mobile-diary-application
 
 ### Overview
 
