@@ -16,8 +16,9 @@ import 'package:flutter/foundation.dart';
 /// calls (getToken / getInitialMessage) that never settle on Test Lab
 /// emulators and hang pumpAndSettle until the per-device timeout. Production
 /// builds never pass the define, so behaviour is unchanged.
-const bool _kDisableLiveStreams =
-    bool.fromEnvironment('DIARY_DISABLE_LIVE_STREAMS');
+const bool _kDisableLiveStreams = bool.fromEnvironment(
+  'DIARY_DISABLE_LIVE_STREAMS',
+);
 
 /// Top-level background message handler (must be a top-level function).
 /// Called when the app is in the background or terminated.
