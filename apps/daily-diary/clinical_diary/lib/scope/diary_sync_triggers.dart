@@ -5,9 +5,9 @@
 // the remaining foreground trigger sources, mirroring the legacy
 // `installTriggers`:
 //
-//   - app-resume      (WidgetsBindingObserver -> AppLifecycleState.resumed)
-//   - connectivity    (no-connectivity -> connected transition)
-//   - periodic timer  (foreground only)
+// - app-resume (WidgetsBindingObserver -> AppLifecycleState.resumed)
+// - connectivity (no-connectivity -> connected transition)
+// - periodic timer (foreground only)
 //
 // Each trigger routes into the same [onTrigger] callback (typically
 // `DiaryScopeRuntime.syncCycle.call`). Triggers are serialized so overlapping
@@ -178,11 +178,18 @@ Future<DiarySyncTriggerHandles> installDiarySyncTriggers({
   WidgetsBinding.instance.addObserver(observer);
 
   // ---- B. Periodic timer (foreground only) ----
-  final timer = resolvedTimerFactory(periodicInterval, () {
-    if (inForeground) {
-      fireTrigger();
-    }
-  });
+  // Gated under _kDisableLiveStreams so integration_test builds can reach
+  // quiescence for pumpAndSettle. A live Timer.periodic keeps the binding's
+  // event queue perpetually non-idle, so pumpAndSettle never settles. Skipping
+  // it mirrors the connectivity/FCM stream gating above. Production behavior is
+  // unchanged (the define defaults to false).
+  final Timer? timer = _kDisableLiveStreams
+      ? null
+      : resolvedTimerFactory(periodicInterval, () {
+          if (inForeground) {
+            fireTrigger();
+          }
+        });
 
   // ---- C. Connectivity (no-connectivity -> connected transition) ----
   List<ConnectivityResult>? previousConnectivity;
@@ -220,7 +227,7 @@ Future<DiarySyncTriggerHandles> installDiarySyncTriggers({
   Future<void> doDispose() async {
     disposed = true;
     WidgetsBinding.instance.removeObserver(observer);
-    timer.cancel();
+    timer?.cancel();
     await connectivitySub.cancel();
     await fcmMessageSub.cancel();
     await fcmOpenedSub.cancel();
