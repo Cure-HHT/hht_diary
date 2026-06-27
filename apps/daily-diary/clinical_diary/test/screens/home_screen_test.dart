@@ -301,7 +301,7 @@ void main() {
       },
     );
 
-    // Verifies: DIARY-GUI-main-screen-layout-A — with nothing requiring
+    // Verifies: DIARY-GUI-main-screen-layout/A — with nothing requiring
     //   attention (no incomplete records, no overlaps, no tasks) the whole
     //   Task List section is hidden rather than showing an empty
     //   "Needs your attention (0)" tile (CUR-1519).
@@ -580,7 +580,7 @@ void main() {
       expect(find.textContaining('needs resolving'), findsOneWidget);
     });
 
-    // Verifies: DIARY-GUI-main-screen-layout-A — when more than one important
+    // Verifies: DIARY-GUI-main-screen-layout/A — when more than one important
     //   item is active, the disconnection notice keeps its bespoke inline
     //   banner while every actionable item is consolidated as a row inside the
     //   single "Needs your attention" tile (so the alert area stays bounded
@@ -607,7 +607,7 @@ void main() {
       },
     );
 
-    // Verifies: DIARY-GUI-main-screen-layout-A — the consolidated
+    // Verifies: DIARY-GUI-main-screen-layout/A — the consolidated
     //   incomplete-records row in the "Needs your attention" tile opens the
     //   Incomplete Records page listing every incomplete item (the overflow
     //   destination that replaced the legacy Important page).

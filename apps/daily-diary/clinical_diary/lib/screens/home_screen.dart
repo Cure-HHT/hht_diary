@@ -1473,7 +1473,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ..._buildTopBanners(context),
-          // Implements: DIARY-GUI-main-screen-layout-A.
+          // Implements: DIARY-GUI-main-screen-layout/A.
           // Capped to ~38% of the available height so a busy "Needs your
           // attention" tile (many alerts/tasks) can't starve the events
           // area below — its inner scroll handles the overflow.
@@ -1578,7 +1578,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// When there is nothing requiring attention (count == 0) the whole
   /// section — heading and tile — collapses to nothing rather than showing
   /// an empty "Needs your attention (0)" tile (CUR-1519).
-  // Implements: DIARY-GUI-main-screen-layout-A — the Task List zone renders
+  // Implements: DIARY-GUI-main-screen-layout/A — the Task List zone renders
   //   only when tasks are active; with zero items the zone is absent.
   Widget _buildTaskListSection(
     BuildContext context,
