@@ -246,12 +246,12 @@
         "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart",
         "apps/daily-diary/clinical_diary/test/screens/home_screen_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-PRD-day-disposition",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): A: Don't-Remember marker (only cf. comments)."
     },
     "REQ-CAL-p00001": {
       "level": "PRD",
@@ -262,12 +262,12 @@
         "apps/daily-diary/clinical_diary/lib/widgets/old_entry_justification_dialog.dart",
         "apps/daily-diary/clinical_diary/test/widgets/old_entry_justification_dialog_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-PRD-entry-time-restrictions",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): A(+C,D): old-entry justification dialog."
     },
     "REQ-CAL-p00002": {
       "level": "PRD",
@@ -278,12 +278,12 @@
         "apps/daily-diary/clinical_diary/lib/widgets/duration_confirmation_dialog.dart",
         "apps/daily-diary/clinical_diary/test/widgets/duration_confirmation_dialog_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-PRD-entry-duration-check",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): A: duration-confirmation dialog (short)."
     },
     "REQ-CAL-p00003": {
       "level": "PRD",
@@ -294,12 +294,12 @@
         "apps/daily-diary/clinical_diary/lib/widgets/duration_confirmation_dialog.dart",
         "apps/daily-diary/clinical_diary/test/widgets/duration_confirmation_dialog_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-PRD-entry-duration-check",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): A: duration-confirmation dialog (long; same widget)."
     },
     "REQ-CAL-p00007": {
       "level": "PRD",
@@ -309,11 +309,11 @@
         "apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart"
       ],
       "status": "resolved",
-      "target": "CAL-PRD-questionnaire-score-display-prohibition",
-      "target_live": false,
+      "target": "DIARY-PRD-questionnaire-score-calculation",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "mapping",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): score field home (display-prohibition is sponsor overlay)."
     },
     "REQ-CAL-p00020": {
       "level": "PRD",
@@ -328,11 +328,11 @@
         "apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart"
       ],
       "status": "resolved",
-      "target": "CAL-PRD-participant-disconnection-reason-options",
-      "target_live": false,
+      "target": "DIARY-PRD-participant-disconnection",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "mapping",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): disconnection banner/enrollment."
     },
     "REQ-CAL-p00023": {
       "level": "PRD",
@@ -351,11 +351,11 @@
         "apps/sponsor-portal/tool/testNotification.sh"
       ],
       "status": "resolved",
-      "target": "CAL-PRD-nose-hht-qol-workflow",
-      "target_live": false,
+      "target": "DIARY-PRD-questionnaire-portal-sent-rules",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "mapping",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): H(+submission-control): assigned-questionnaire workflow/status lifecycle."
     },
     "REQ-CAL-p00047": {
       "level": "PRD",
@@ -368,12 +368,12 @@
         "apps/common-dart/trial_data_types/lib/trial_data_types.dart",
         "apps/common-dart/trial_data_types/test/questionnaire_definition_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-PRD-questionnaire-system",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): A: hard-coded questionnaire definitions (individual coded component)."
     },
     "REQ-CAL-p00049": {
       "level": "PRD",
@@ -383,12 +383,12 @@
         "apps/daily-diary/clinical_diary/lib/models/user_enrollment.dart",
         "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-PRD-linking-code-lifecycle",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): mobile linking state."
     },
     "REQ-CAL-p00065": {
       "level": "PRD",
@@ -401,12 +401,12 @@
         "apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart",
         "apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-PRD-participant-reactivate",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): reactivation/contact-info."
     },
     "REQ-CAL-p00066": {
       "level": "PRD",
@@ -415,12 +415,12 @@
       "files": [
         "apps/common-dart/trial_data_types/lib/src/questionnaire_instance.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-PRD-reason-field-constraints",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): deletion reason max-len constraint."
     },
     "REQ-CAL-p00073": {
       "level": "PRD",
@@ -429,12 +429,12 @@
       "files": [
         "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-BASE-participant-lifecycle",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): participant status (status-registry has no annotatable id)."
     },
     "REQ-CAL-p00076": {
       "level": "PRD",
@@ -447,12 +447,12 @@
         "apps/daily-diary/clinical_diary/test/screens/profile_screen_test.dart",
         "apps/daily-diary/clinical_diary/widgetbook/main.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-GUI-participation-status-badge",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): participation status badge."
     },
     "REQ-CAL-p00077": {
       "level": "PRD",
@@ -468,12 +468,12 @@
         "apps/daily-diary/clinical_diary/test/services/enrollment_service_test.dart",
         "apps/daily-diary/clinical_diary/test/widgets/disconnection_banner_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-PRD-notification-disconnection",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): disconnection notification."
     },
     "REQ-CAL-p00080": {
       "level": "PRD",
@@ -489,11 +489,11 @@
         "apps/common-dart/trial_data_types/test/task_test.dart"
       ],
       "status": "resolved",
-      "target": "CAL-PRD-questionnaire-cycle-tracking",
-      "target_live": false,
+      "target": "DIARY-BASE-questionnaire-cycle-tracking",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "mapping",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): A(+D,F): study-event/cycle label + terminal event."
     },
     "REQ-CAL-p00081": {
       "level": "PRD",
@@ -510,12 +510,12 @@
         "apps/daily-diary/clinical_diary/lib/widgets/task_list_widget.dart",
         "apps/daily-diary/clinical_diary/test/services/task_service_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-GUI-participant-task-list",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): A+C+D: task identity/priority/navigation."
     },
     "REQ-CAL-p00082": {
       "level": "PRD",
@@ -527,12 +527,12 @@
         "apps/daily-diary/clinical_diary/lib/services/notification_service.dart",
         "apps/sponsor-portal/tool/testNotification.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
+      "status": "resolved",
+      "target": "DIARY-BASE-mobile-notifications",
+      "target_live": true,
       "disposition": "re-anchor",
-      "source": "none",
-      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
+      "source": "manual",
+      "notes": "RE-ANCHOR (shared-code CAL smell -> generic DIARY): A: FCM+local delivery (tap-routing -> DIARY-PRD-notification-behavior/A)."
     },
     "REQ-d00001": {
       "level": "DEV",
