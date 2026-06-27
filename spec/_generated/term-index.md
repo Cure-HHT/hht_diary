@@ -1673,6 +1673,7 @@
 - DIARY-BASE-questionnaires:section:0
 - DIARY-BASE-user-authentication-pin:section:0
 - DIARY-BASE-user-authentication-pin:section:6
+- DIARY-DEV-push-payload-phi-safety:section:0
 - rem:spec/glossary-core.md:724
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-mobile-app.md:1
@@ -1896,6 +1897,7 @@
 - DIARY-DEV-rave-edc-ingest-A
 - DIARY-DEV-participant-status-projection-A
 - DIARY-DEV-participant-status-projection-B
+- DIARY-DEV-push-payload-phi-safety-A
 - DIARY-DEV-relink-device-gate-A
 - DIARY-DEV-relink-device-gate-B
 - DIARY-DEV-relink-device-gate-C
@@ -2607,6 +2609,7 @@
 - DIARY-BASE-questionnaires-A
 - DIARY-BASE-questionnaires-B
 - DIARY-DEV-outgoing-intent-correlation-A
+- DIARY-DEV-push-payload-phi-safety-A
 - DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-H

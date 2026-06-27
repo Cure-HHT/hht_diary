@@ -247,6 +247,7 @@
 | DIARY-DEV-portal-settings-store              | Event-sourced portal configuration                    | dev-portal-settings.md             | 3ae46122 |
 | DIARY-DEV-portal-test-account-provisioning   | Dev/test seed-account self-provisioning               | dev-portal-settings.md             | 05b08471 |
 | DIARY-DEV-portal-user-activated-binding      | User-activated binding                                | dev-portal-activation.md           | 25fda53b |
+| DIARY-DEV-push-payload-phi-safety            | PHI-Safe Push Payloads                                | dev-push-payload-phi-safety.md     | 03063ec0 |
 | DIARY-DEV-rave-auth-failure-classification   | Rave Authentication Failure Classification            | prd-rave-sync.md                   | f2732c70 |
 | DIARY-DEV-rave-edc-ingest                    | RAVE/EDC Ingest as Edge Events                        | dev-portal-service.md              | e93b0ede |
 | DIARY-DEV-reactive-read-path                 | Screens Read via Reactive Subscriptions               | dev-mobile-event-sourcing.md       | f37501bb |

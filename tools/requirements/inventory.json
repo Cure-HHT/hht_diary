@@ -4,16 +4,16 @@
     "unique_legacy_ids": 106,
     "header_block_files": 227,
     "by_level": {
-      "DEV": 44,
       "OPS": 24,
+      "DEV": 44,
       "PRD": 37,
       "GUI": 1
     },
     "by_status": {
-      "unresolved": 81,
-      "resolved": 25
+      "resolved": 69,
+      "unresolved": 37
     },
-    "live_req_count": 213
+    "live_req_count": 214
   },
   "header_block_files": [
     ".devcontainer/check-prerequisites.sh",
@@ -566,9 +566,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "terraform/bootstrap sponsor GCP/env provisioning = IaC; belongs hht_sponsor_iac/HHT-OPS-*. App-side env fail-fast would be DIARY-DEV-runtime-environment-resolution."
     },
     "REQ-d00003": {
       "level": "DEV",
@@ -580,9 +580,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Per-sponsor Identity Platform provisioning in terraform = infra (hht_sponsor_iac/hht_admin)."
     },
     "REQ-d00004": {
       "level": "DEV",
@@ -620,12 +620,12 @@
         "apps/daily-diary/clinical_diary/test/widgets/yesterday_banner_test.dart",
         "apps/daily-diary/clinical_diary/tool/test.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-mobile-offline-first",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+B+C(+E): local-first diary entry (~31 cites). Pure-UI widgets could alt-cite DIARY-GUI-epistaxis-record/calendar-day-view."
     },
     "REQ-d00005": {
       "level": "DEV",
@@ -646,12 +646,12 @@
         "apps/daily-diary/clinical_diary/tool/test.sh",
         "apps/edc/rave-integration/tool/test.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-mobile-application",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "A: single shared binary via runtime config. environment_banner->DIARY-DEV-runtime-environment-resolution/C; enrollment_* legacy (superseded by participant linking)."
     },
     "REQ-d00006": {
       "level": "DEV",
@@ -675,12 +675,12 @@
         "firebase-test-lab/scripts/build-android.sh",
         "firebase-test-lab/scripts/build-ios.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-single-promotable-artifact",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "A+C single mobile artifact + store release. app_version/web_update->DIARY-DEV-schema-version-check or DIARY-BASE-portal-stale-client-reload."
     },
     "REQ-d00009": {
       "level": "DEV",
@@ -694,9 +694,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "GCP IAM for SA impersonation (svc-accts+bootstrap) = deployment infra, NOT portal RBAC. hht_sponsor_iac/HHT-OPS-identity-over-keys."
     },
     "REQ-d00010": {
       "level": "DEV",
@@ -708,9 +708,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Encryption-at-rest = GCP/IaC concern (hht_admin/hht_sponsor_iac); no public-core req."
     },
     "REQ-d00014": {
       "level": "DEV",
@@ -720,12 +720,12 @@
         ".github/scripts/validate-pr.sh",
         ".github/workflows/pr-health.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-traceability-validation",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+B elspais validation in CI; also pr-compliance-checks/C."
     },
     "REQ-d00018": {
       "level": "DEV",
@@ -735,12 +735,12 @@
         ".githooks/project-defs.sh",
         ".github/workflows/pr-health.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-change-appropriate-ci",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "A: project-defs.sh change-area detection; pr-health aggregate->/E. No standalone git-hook req."
     },
     "REQ-d00027": {
       "level": "DEV",
@@ -762,9 +762,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Validated role-based dev-container concept absent from current spec. Surviving CI base image has no req (see rewrite-candidate note)."
     },
     "REQ-d00028": {
       "level": "DEV",
@@ -779,9 +779,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Deprecated stub; code reuses number for dev-env role separation, unspecced."
     },
     "REQ-d00029": {
       "level": "DEV",
@@ -793,9 +793,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Deprecated stub; code=dev-env cross-platform support, unspecced."
     },
     "REQ-d00030": {
       "level": "DEV",
@@ -815,12 +815,12 @@
         "tools/dev-env/docker/ci.Dockerfile",
         "tools/dev-env/test-local-registry.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-change-appropriate-ci",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "CI-pipeline cites->ci-validation; dev-env container-parity + bootstrap tf are unspecced/cross-repo."
     },
     "REQ-d00031": {
       "level": "DEV",
@@ -832,12 +832,12 @@
         "tools/dev-env/docker-compose.firebase.yml",
         "tools/dev-env/docker/qa-runner.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-automated-test-execution",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "qa-automation/qa-runner->automated-test-execution; emulator compose=dev-env(drop); sponsor-envs tf->cross-repo."
     },
     "REQ-d00032": {
       "level": "DEV",
@@ -849,9 +849,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "validate-warnings.sh dev-env tooling, unspecced."
     },
     "REQ-d00033": {
       "level": "DEV",
@@ -867,9 +867,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "IQ/OQ/PQ env-validation-doc concept removed from greenfield; cites are dev-env/build infra (NOT requirement-traceability)."
     },
     "REQ-d00035": {
       "level": "DEV",
@@ -884,9 +884,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "cloud-run least-privilege identity + Gmail DWD + container build = deployment IaC; container-build may->HHT-OPS-composite-action-library (hht_workflows)."
     },
     "REQ-d00036": {
       "level": "DEV",
@@ -898,9 +898,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "dev-env named-volume concept unspecced."
     },
     "REQ-d00053": {
       "level": "DEV",
@@ -913,9 +913,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "setup-repo.sh/dependabot dev tooling, unspecced."
     },
     "REQ-d00055": {
       "level": "DEV",
@@ -927,9 +927,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "bootstrap tf env/role separation = deployment infra (hht_sponsor_iac/HHT-OPS-*)."
     },
     "REQ-d00057": {
       "level": "DEV",
@@ -940,12 +940,12 @@
         ".github/scripts/validate-pr.sh",
         "infrastructure/terraform/bootstrap/main.tf"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-change-appropriate-ci",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "validate-pr/version-utils build steps->ci-validation (version bump also->single-promotable-artifact); bootstrap tf->cross-repo."
     },
     "REQ-d00058": {
       "level": "DEV",
@@ -958,9 +958,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Doppler secret management = org-infra (Doppler OIDC in hht_admin); no public-core req."
     },
     "REQ-d00059": {
       "level": "DEV",
@@ -975,9 +975,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "dev-env IQ toolchain comment in bootstrap tf; not carried into URS-v1."
     },
     "REQ-d00062": {
       "level": "DEV",
@@ -989,9 +989,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "IQ/OQ/PQ dev-env validation concept dropped in migration."
     },
     "REQ-d00069": {
       "level": "DEV",
@@ -1004,9 +1004,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Orphan id (no archive def); sponsor-manifest concept unmodeled in current spec. Cite is a forbidden file-header block."
     },
     "REQ-d00070": {
       "level": "DEV",
@@ -1018,9 +1018,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Orphan id, no archive def, no current target (sponsor-manifest)."
     },
     "REQ-d00078": {
       "level": "DEV",
@@ -1029,12 +1029,12 @@
       "files": [
         "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-DEV-linking-code-lifecycle",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "C(E): linking-code redemption/validation. FLAG stale: legacy SHA-256 hash-lookup superseded by HMAC check-char model."
     },
     "REQ-d00083": {
       "level": "DEV",
@@ -1046,9 +1046,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Zero code cites."
     },
     "REQ-d00090": {
       "level": "DEV",
@@ -1060,9 +1060,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Dev-env Installation Qualification protocol concept absent from current spec."
     },
     "REQ-d00102": {
       "level": "DEV",
@@ -1074,12 +1074,12 @@
         "apps/common-dart/shared_functions/pubspec.yaml",
         "apps/common-dart/shared_functions/test/sponsor_branding_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-DEV-sponsor-branding-source",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A: sponsor-branding rendering; event-sourced source + durable on-device assets (also DIARY-DEV-sponsor-branding-assets)."
     },
     "REQ-d00113": {
       "level": "DEV",
@@ -1089,12 +1089,12 @@
         "apps/common-flutter/eq/lib/src/questionnaire_flow_screen.dart",
         "apps/daily-diary/clinical_diary/lib/services/task_service.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-BASE-questionnaire-coordinator-workflow",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "Recall tombstones instance->task withdrawn; inbound tombstone emits event (DIARY-DEV-inbound-event-on-receipt/B), entry is_deleted but stays in history."
     },
     "REQ-d00115": {
       "level": "DEV",
@@ -1111,12 +1111,12 @@
         "apps/daily-diary/clinical_diary/lib/entry_types/clinical_diary_entry_types.dart",
         "apps/daily-diary/clinical_diary/test/entry_types/clinical_diary_entry_types_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "EVS-PRD-provenance",
+      "target_live": false,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "A+B+C: apps/common-dart/provenance IS the EVS provenance lib (schema+append+roundtrip owned by event_sourcing). Incidental diary header cite -> DIARY-DEV-shared-events-catalog."
     },
     "REQ-d00116": {
       "level": "DEV",
@@ -1126,12 +1126,12 @@
         "apps/daily-diary/clinical_diary/lib/entry_types/clinical_diary_entry_types.dart",
         "apps/daily-diary/clinical_diary/test/entry_types/clinical_diary_entry_types_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-DEV-shared-events-catalog",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A: diary declares its entry-type set (snake_case id + registered version); EntryTypeDefinition fields are app-level not EVS."
     },
     "REQ-d00128": {
       "level": "DEV",
@@ -1141,12 +1141,12 @@
         "apps/daily-diary/clinical_diary/lib/entry_types/clinical_diary_entry_types.dart",
         "apps/daily-diary/clinical_diary/test/entry_types/clinical_diary_entry_types_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "EVS-PRD-destinations",
+      "target_live": false,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "C+D: FIFO queueing/batch delivery = event_sourcing lib behavior. Diary-file mention collapses to DIARY-DEV-shared-events-catalog."
     },
     "REQ-d00165": {
       "level": "DEV",
@@ -1155,12 +1155,12 @@
       "files": [
         "apps/daily-diary/clinical_diary/lib/entry_types/clinical_diary_entry_types.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-DEV-shared-events-catalog",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "C: non-materializing audit entry type recording inbound-poll failure as a distinct FIFO event."
     },
     "REQ-d00167": {
       "level": "DEV",
@@ -1171,12 +1171,12 @@
         "apps/common-dart/comms/pubspec.yaml",
         "apps/sponsor-portal/portal_identity/lib/src/id_token_verifier.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-DEV-pluggable-push-transport",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "SPLIT (legacy-id collision): comms cites -> DIARY-DEV-pluggable-push-transport/A + DIARY-OPS-fcm-project-routing; id_token_verifier cites -> DIARY-DEV-portal-login-identity-verification/A."
     },
     "REQ-d00168": {
       "level": "DEV",
@@ -1187,12 +1187,12 @@
         "apps/common-dart/comms/lib/src/notifications/outbox_writer.dart",
         "apps/common-dart/comms/pubspec.yaml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-DEV-push-payload-phi-safety",
+      "target_live": true,
+      "disposition": "rewrite",
+      "source": "manual",
+      "notes": "NEW req (PayloadGuard): opaque-id-only push payload; guard before egress AND persistence; test-only bypass. Refines DIARY-BASE-compliance-data-integrity; site in spec/dev-pluggable-push-transport.md. ~10 cites."
     },
     "REQ-d00169": {
       "level": "DEV",
@@ -1204,12 +1204,12 @@
         "apps/common-dart/comms/pubspec.yaml",
         "apps/common-dart/comms/test/notifications/server/envelope_since_handler_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-DEV-inbound-event-on-receipt",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "A: FCM-primary/polling-backup receive; polling endpoint is impl detail."
     },
     "REQ-d00170": {
       "level": "DEV",
@@ -1218,12 +1218,12 @@
       "files": [
         "apps/common-dart/comms/pubspec.yaml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-notification-behavior",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+B+C: tap->Main Screen, no in-notification actions, offline delivery."
     },
     "REQ-d00193": {
       "level": "DEV",
@@ -1240,12 +1240,12 @@
         "apps/common-dart/comms/test/channels/fcm/fcm_channel_test.dart",
         "apps/common-dart/comms/test/notifications/outbox_writer_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-DEV-pluggable-push-transport",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A: FCM transport as one push-seam adapter; cure-hht-admin routing -> DIARY-OPS-fcm-project-routing."
     },
     "REQ-d00194": {
       "level": "DEV",
@@ -1260,12 +1260,12 @@
         "apps/common-dart/comms/test/compliance/payload_guard_test.dart",
         "apps/common-dart/comms/test/notifications/outbox_writer_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-DEV-push-payload-phi-safety",
+      "target_live": true,
+      "disposition": "rewrite",
+      "source": "manual",
+      "notes": "v2 duplicate of d00168 \u2014 same PayloadGuard invariant. ~13 cites."
     },
     "REQ-d00195": {
       "level": "DEV",
@@ -1284,12 +1284,12 @@
         "apps/common-dart/comms/test/notifications/outbox_writer_test.dart",
         "apps/common-dart/comms/test/notifications/server/envelope_fetch_handler_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-DEV-inbound-event-on-receipt",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "A: v2 duplicate of d00169; Envelope wire-format + polling backup."
     },
     "REQ-d00196": {
       "level": "DEV",
@@ -1302,12 +1302,12 @@
         "apps/common-dart/comms/lib/src/notifications/envelope.dart",
         "apps/common-dart/comms/test/channels/fcm/fcm_channel_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-notification-behavior",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+B: v2 duplicate of d00170; userVisible/APNS display split is impl detail."
     },
     "REQ-o00001": {
       "level": "OPS",
@@ -1325,9 +1325,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Overloaded + archive mismatch: project/sponsor isolation -> private sponsor_iac CD; 4 billing-alert cites -> DIARY-PRD-platform-operations-monitoring/C. Split at annotation. Refactor-volatile."
     },
     "REQ-o00002": {
       "level": "OPS",
@@ -1336,12 +1336,12 @@
       "files": [
         "deployment/reference-sponsor/deployment/scripts/start.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-environment-as-deployment",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A: reference-sponsor start.sh derives env at runtime."
     },
     "REQ-o00006": {
       "level": "OPS",
@@ -1350,12 +1350,12 @@
       "files": [
         "infrastructure/terraform/modules/identity-platform/main.tf"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-two-factor-authentication",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+G: identity-platform MFA for staff. Co-cited REQ-p00002 is PRD parent."
     },
     "REQ-o00008": {
       "level": "OPS",
@@ -1366,12 +1366,12 @@
         "infrastructure/terraform/modules/cloud-sql/variables.tf",
         "infrastructure/terraform/sponsor-envs/main.tf"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-data-backup-and-archival",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+B+C+D: cloud-sql backups/retention/PITR. Co-cited REQ-p00047."
     },
     "REQ-o00013": {
       "level": "OPS",
@@ -1380,12 +1380,12 @@
       "files": [
         ".github/workflows/alert-workflow-changes.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-traceability-validation",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A. Cited in alert-workflow-changes.yml; detective-control aspect closer to pr-compliance-checks/F."
     },
     "REQ-o00017": {
       "level": "OPS",
@@ -1395,12 +1395,12 @@
         ".githooks/version-utils.sh",
         ".github/workflows/pr-health.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-pr-compliance-checks",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+B (commit-msg). pre-commit version-utils req-validation -> system-validation-traceability/L+M."
     },
     "REQ-o00041": {
       "level": "OPS",
@@ -1413,9 +1413,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Terraform/Cloud Run provisioning = private sponsor_iac CD. Refactor-volatile; no public-core home by design."
     },
     "REQ-o00042": {
       "level": "OPS",
@@ -1425,12 +1425,12 @@
         ".github/workflows/terraform-validate.yml",
         "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-branch-protection",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "terraform-validate enforces review+audit before IaC merge; also system-validation-traceability/E+K. Provisioning home is private CD."
     },
     "REQ-o00043": {
       "level": "OPS",
@@ -1452,12 +1452,12 @@
         "firebase-test-lab/scripts/run-ios-test-lab.sh",
         "infrastructure/terraform/sponsor-envs/main.tf"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-build-deploy-primitives",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A,B build/deploy workflows + FTL; mobile-build subset -> single-promotable-artifact/C. FIX mis-annotation: diary_sync_triggers.dart cite is sync not deploy -> re-point/drop."
     },
     "REQ-o00044": {
       "level": "OPS",
@@ -1467,12 +1467,12 @@
         ".github/workflows/test-gcp-auth.yml",
         "infrastructure/terraform/sponsor-envs/main.tf"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "HHT-OPS-identity-over-keys",
+      "target_live": false,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Archive mismatch: code = GCP Workload Identity Federation (WIF), not DB migration. Org identity -> hht_admin; confirm exact HHT-OPS id/assertions."
     },
     "REQ-o00045": {
       "level": "OPS",
@@ -1486,12 +1486,12 @@
         "apps/common-dart/otel_common/test/error_reporting_integration_test.dart",
         "apps/common-dart/otel_common/test/logging_integration_test.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-platform-operations-monitoring",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "A+D error reporting (otel_common). PII-scrub aspect -> DIARY-BASE-compliance-data-integrity. REFACTOR-VOLATILE (Observability rebuild) \u2014 defer detailed OPS req."
     },
     "REQ-o00046": {
       "level": "OPS",
@@ -1500,12 +1500,12 @@
       "files": [
         "apps/sponsor-portal/tool/deployment-doctor.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-platform-operations-monitoring",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "G+O uptime check (deployment-doctor). REFACTOR-VOLATILE."
     },
     "REQ-o00047": {
       "level": "OPS",
@@ -1522,12 +1522,12 @@
         "apps/sponsor-portal/tool/deployment-doctor.sh",
         "tools/dev-env/docker-compose.otel.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-platform-operations-monitoring",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "B otel tracing/metrics/middleware (22 cites). REFACTOR-VOLATILE \u2014 defer detailed OPS req."
     },
     "REQ-o00048": {
       "level": "OPS",
@@ -1536,12 +1536,12 @@
       "files": [
         "infrastructure/docker/email-job/send-email.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-platform-operations-monitoring",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "I+P audit-log delivery logging (alt DIARY-BASE-audit-trail). REFACTOR-VOLATILE."
     },
     "REQ-o00051": {
       "level": "OPS",
@@ -1550,12 +1550,12 @@
       "files": [
         ".github/workflows/terraform-validate.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-system-validation-traceability",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "E+K terraform-validate change-control via audit trail."
     },
     "REQ-o00052": {
       "level": "OPS",
@@ -1569,12 +1569,12 @@
         ".github/workflows/maintenance-check.yml",
         ".github/workflows/pr-health.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-traceability-validation",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "validate-pr.sh+pr-health+ci-gate; also pr-compliance-checks. FIX: dependabot.yml cite is loose -> security-scanning/B or drop."
     },
     "REQ-o00053": {
       "level": "OPS",
@@ -1583,12 +1583,12 @@
       "files": [
         ".github/workflows/alert-workflow-changes.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-branch-protection",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A-E 1:1 concept match."
     },
     "REQ-o00056": {
       "level": "OPS",
@@ -1640,9 +1640,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "MAJOR archive mismatch: archive=SLO, all 40 cites=IaC/Cloud-Run container infra -> private sponsor_iac CD. grpc_health subset -> DIARY-OPS-deploy-traffic-gating/B. Refactor-volatile."
     },
     "REQ-o00078": {
       "level": "OPS",
@@ -1653,12 +1653,12 @@
         ".github/workflows/ci-gate.yml",
         ".github/workflows/pr-health.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-change-appropriate-ci",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A-E identical title."
     },
     "REQ-o00079": {
       "level": "OPS",
@@ -1668,12 +1668,12 @@
         ".github/scripts/validate-pr.sh",
         ".github/workflows/pr-health.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-pr-compliance-checks",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+B+F incl post-merge detective control."
     },
     "REQ-o00080": {
       "level": "OPS",
@@ -1682,12 +1682,12 @@
       "files": [
         ".github/workflows/pr-health.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-security-scanning",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A-E sub-letters map 1:1."
     },
     "REQ-o00081": {
       "level": "OPS",
@@ -1700,12 +1700,12 @@
         ".github/workflows/qa-automation.yml",
         ".github/workflows/sponsor-portal-ci.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-code-quality-gate",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A-E analyze/format/migration-lint."
     },
     "REQ-o00082": {
       "level": "OPS",
@@ -1715,12 +1715,12 @@
         ".github/workflows/clinical_diary-ci.yml",
         ".github/workflows/sponsor-portal-ci.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-automated-test-execution",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+F portal/diary CI test steps."
     },
     "REQ-o00083": {
       "level": "OPS",
@@ -1729,12 +1729,12 @@
       "files": [
         ".github/workflows/qa-automation.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-automated-test-execution",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A,F ci-tests job; promotion-gate semantics authored in private CD."
     },
     "REQ-p00002": {
       "level": "PRD",
