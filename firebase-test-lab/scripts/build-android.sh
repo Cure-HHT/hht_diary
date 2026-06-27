@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00006: Mobile App Build and Release Process
-#   REQ-o00043: Automated Deployment Pipeline
 set -euo pipefail
 
 FLAVOR="${1:-qa}"
@@ -84,6 +81,7 @@ DIARY_DISABLE_LIVE_STREAMS=true
 # integration_test bridge is then packaged into the separate androidTest APK.
 # This step also generates the Gradle wrapper (gradlew), which is gitignored
 # and required by the Gradle invocation below.
+# Implements: DIARY-OPS-single-promotable-artifact/C
 flutter build apk \
   --debug \
   --flavor "$FLAVOR" \
