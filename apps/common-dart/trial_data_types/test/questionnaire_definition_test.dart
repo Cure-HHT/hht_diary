@@ -1,13 +1,11 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-//   REQ-CAL-p00047: Hard-Coded Questionnaires
-
 import 'dart:io';
 
 import 'package:test/test.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
+// Verifies: DIARY-PRD-questionnaire-system/A — hard-coded questionnaire definitions
+// Verifies: DIARY-PRD-questionnaire-nose-hht/A — NOSE HHT content
+// Verifies: DIARY-PRD-questionnaire-hht-qol/A — HHT-QoL content
 void main() {
   late List<QuestionnaireDefinition> definitions;
 

@@ -1,14 +1,11 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00080: Questionnaire Study Event Association (Assertion F)
-//
 // Typed enum for the terminal study-event types that permanently close
 // a questionnaire type for a participant once finalized.
 
 /// Terminal study-event type set during questionnaire finalization.
 ///
 /// When an Investigator finalizes a questionnaire as an end event, no further
-/// questionnaires of that type can be sent to the participant
-/// (REQ-CAL-p00080 Assertion F/G).
+/// questionnaires of that type can be sent to the participant.
+// Implements: DIARY-BASE-questionnaire-cycle-tracking/F — terminal end-event type
 enum EndEvent {
   /// Participant has reached End of Treatment
   endOfTreatment('end_of_treatment', 'End of Treatment'),

@@ -1,11 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Participant Task System
-//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//   REQ-CAL-p00047: Hard-Coded Questionnaires
-//   REQ-p01065: Clinical Questionnaire System
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-
 /// Common data types for trial data shared between client and server.
 library;
 

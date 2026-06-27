@@ -1,8 +1,8 @@
-// Verifies: REQ-CAL-p00081 (task model), REQ-CAL-p00080 (study_event round-trip)
-
 import 'package:test/test.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
+// Verifies: DIARY-GUI-participant-task-list/A+C+D — task model
+// Verifies: DIARY-BASE-questionnaire-cycle-tracking/A — study_event round-trip
 void main() {
   group('Task.fromFcmData', () {
     test('parses study_event into subtitle when no explicit subtitle', () {
