@@ -1618,11 +1618,11 @@
 - DIARY-PRD-mobile-application
 - DIARY-GUI-mobile-navigation
 - DIARY-BASE-access-control-identity-B
-- DIARY-BASE-clinical-questionnaires-B
 - DIARY-BASE-mobile-diary-application-A
 - DIARY-BASE-mobile-diary-application-B
 - DIARY-BASE-mobile-notifications-A
 - DIARY-BASE-questionnaire-coordinator-workflow-B
+- DIARY-BASE-questionnaires-B
 - DIARY-BASE-user-authentication-pin-D
 - DIARY-BASE-user-authentication-pin-F
 - DIARY-DEV-runtime-environment-resolution-A
@@ -1668,9 +1668,9 @@
 - DIARY-PRD-notification-historical-gap::DIARY-PRD-notification-behavior-A
 - DIARY-PRD-notification-historical-gap::DIARY-PRD-notification-behavior-C
 - DIARY-BASE-access-control-identity:section:0
-- DIARY-BASE-clinical-questionnaires:section:0
 - DIARY-BASE-mobile-diary-application:section:0
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
+- DIARY-BASE-questionnaires:section:0
 - DIARY-BASE-user-authentication-pin:section:0
 - DIARY-BASE-user-authentication-pin:section:6
 - rem:spec/glossary-core.md:724
@@ -2112,7 +2112,6 @@
 - DIARY-PRD-notification-historical-gap::DIARY-PRD-notification-behavior-A
 - DIARY-BASE-access-control-identity:section:0
 - DIARY-BASE-audit-trail:section:1
-- DIARY-BASE-clinical-questionnaires:section:0
 - DIARY-BASE-local-data-reset:section:0
 - DIARY-BASE-local-data-reset:section:1
 - DIARY-BASE-mobile-diary-application:section:0
@@ -2129,6 +2128,7 @@
 - DIARY-BASE-questionnaire-cycle-tracking:section:4
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:1
+- DIARY-BASE-questionnaires:section:0
 - DIARY-BASE-sponsor-portal:section:0
 - DIARY-BASE-sponsor-portal:section:1
 - DIARY-BASE-sponsor-requested-settings:section:0
@@ -2552,7 +2552,6 @@
 
 **DIARY:**
 
-- DIARY-BASE-clinical-questionnaires
 - DIARY-BASE-questionnaire-coordinator-workflow
 - DIARY-BASE-questionnaire-finalization
 - DIARY-BASE-questionnaire-cycle-tracking
@@ -2568,8 +2567,6 @@
 - DIARY-PRD-questionnaire-localization
 - DIARY-PRD-questionnaire-sponsor-eligibility
 - DIARY-PRD-questionnaire-score-calculation
-- DIARY-BASE-clinical-questionnaires-A
-- DIARY-BASE-clinical-questionnaires-B
 - DIARY-BASE-questionnaire-coordinator-workflow-A
 - DIARY-BASE-questionnaire-coordinator-workflow-B
 - DIARY-BASE-questionnaire-coordinator-workflow-D
@@ -2607,6 +2604,8 @@
 - DIARY-BASE-questionnaire-lock-after-submission-C
 - DIARY-BASE-questionnaire-lock-after-submission-D
 - DIARY-BASE-questionnaire-lock-after-submission-E
+- DIARY-BASE-questionnaires-A
+- DIARY-BASE-questionnaires-B
 - DIARY-DEV-outgoing-intent-correlation-A
 - DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-participant-task-list-A
@@ -2677,8 +2676,6 @@
 - DIARY-PRD-questionnaire-score-calculation-B
 - DIARY-PRD-score-hht-qol-A
 - DIARY-PRD-score-nose-hht-A
-- DIARY-BASE-clinical-questionnaires:section:0
-- DIARY-BASE-clinical-questionnaires:section:1
 - rem:spec/base-questionnaire-coordinator.md:1
 - rem:spec/base-questionnaire-coordinator.md:3
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
@@ -2690,6 +2687,8 @@
 - DIARY-BASE-questionnaire-cycle-tracking:section:4
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:1
+- DIARY-BASE-questionnaires:section:0
+- DIARY-BASE-questionnaires:section:1
 - DIARY-DEV-inbound-event-on-receipt:section:1
 - DIARY-DEV-participant-ingest:section:1
 - DIARY-DEV-shared-events-catalog:section:0
@@ -3907,9 +3906,9 @@
 - DIARY-PRD-questionnaire-sponsor-eligibility-B
 - DIARY-PRD-questionnaire-sponsor-eligibility-C
 - DIARY-PRD-sla-service-availability-J
-- DIARY-BASE-clinical-questionnaires:section:1
 - DIARY-BASE-compliant-diary-platform:section:1
 - DIARY-BASE-local-data-reset:section:0
+- DIARY-BASE-questionnaires:section:1
 - DIARY-DEV-state-in-event-log:section:0
 - DIARY-DEV-native-outbound-sync:section:0
 - DIARY-DEV-native-outbound-sync:section:1

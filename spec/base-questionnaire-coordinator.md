@@ -1,7 +1,7 @@
 # *Questionnaire* Coordinator Workflow (BASE)
 
 Core, study-neutral coordinator workflow for issuing, recalling, and finalizing
-clinical *Questionnaires* from the *Sponsor Portal*. These requirements are
+*Questionnaires* from the *Sponsor Portal*. These requirements are
 authored at the BASE level because they are real, traceable product behavior that
 a *Sponsor* may opt to exclude from its own requirements documentation set: a
 deployment selects which capabilities (*Cycle* tracking, starting-*Cycle* selection,
@@ -17,7 +17,7 @@ the *Questionnaire Status* section of `spec/prd-status-registry.md`
 
 ### Overview
 
-A *Study Coordinator* administers a clinical *Questionnaire* to a *Participant* by
+A *Study Coordinator* administers a *Questionnaire* to a *Participant* by
 sending it to the *Participant*'s *Mobile Application*, optionally per protocol
 *Cycle*. This requirement governs the per-*Questionnaire* workflow from send,
 through *Participant* completion and coordinator review, to *Finalization*. It is
@@ -55,7 +55,7 @@ H. The System SHALL allow a *Study Coordinator* to review submitted **Questionna
 
 I. The System SHALL allow a *Study Coordinator* to finalize a **Questionnaire** with **Ready to Review** or **Delivery Failed** status.
 
-J. Upon *Finalization*, the System SHALL lock the answers, calculate the **Questionnaire** score, and transmit the answers to the configured clinical-data destination.
+J. Upon *Finalization*, the System SHALL lock the answers, calculate the **Questionnaire** score, and transmit the answers to the configured data destination.
 
 K. When the *Finalization* operation fails, the System SHALL automatically retry the operation in the background, and the **Questionnaire** SHALL remain in **Ready to Review** status throughout.
 
@@ -65,21 +65,21 @@ M. Upon successful *Finalization* with a non-terminal **Cycle** value, the Syste
 
 ### Rationale
 
-The send / edit / submit / review / finalize sequence mirrors the clinical
+The send / edit / submit / review / finalize sequence mirrors the
 workflow: the *Participant* fills out the instrument (with unlimited edits before
 their answers are locked), the *Study Coordinator* reviews the submitted answers,
 and the Coordinator finalizes only after review. *Finalization* is the locking
-event — it transmits to the clinical-data destination, calculates the score, and
+event — it transmits to the data destination, calculates the score, and
 freezes the answers, after which call-back is no longer available. The
 retry-on-failure pattern with a coordinator-facing message is operationally
-important because clinical-data connectivity can be transient, and a failure
+important because data connectivity can be transient, and a failure
 during *Finalization* should not block the workflow. Returning a card to
 **Not Sent** on successful non-terminal *Finalization* signals that the next
 **Cycle** can be initiated. Recalling a sent **Questionnaire** tombstones the
 active instance so the *Participant*'s task is withdrawn and the **Cycle** can be
 re-sent.
 
-*End* *Coordinator Questionnaire Workflow* | **Hash**: 40cba10f
+*End* *Coordinator Questionnaire Workflow* | **Hash**: 584e86b9
 
 ## DIARY-BASE-questionnaire-manage-modal: Manage Questionnaires Modal
 
@@ -147,7 +147,7 @@ O. The **Troubleshooting Popover** SHALL dismiss when the *Study Coordinator* cl
 ### Rationale
 
 The **Manage Questionnaires** surface is the per-*Participant* control surface for
-the clinical *Questionnaire* workflow, and its card-per-type layout matches the
+the *Questionnaire* workflow, and its card-per-type layout matches the
 *Study Coordinator*'s mental model ("what is the state of each enabled
 *Questionnaire Type* for this *Participant*?") rather than a flat list of every
 *Questionnaire* ever sent. The status-driven *Action* table collapses the workflow's
@@ -195,7 +195,7 @@ G. When the *Study Coordinator* cancels the **Terminal Cycle Warning Dialog**, t
 ### Rationale
 
 *Finalization* is the *Action* that locks a *Questionnaire*'s answers and commits
-its score to the clinical-data destination, and the **Finalization Dialog**
+its score to the data destination, and the **Finalization Dialog**
 captures the two pieces of information that must be set at lock time: the **Cycle**
 value being finalized and the Coordinator's confirmation. Presenting the
 **Current Cycle N Day 1** plus the two terminal options covers every legitimate
@@ -266,7 +266,7 @@ K. When starting-*Cycle* selection is disabled, the System SHALL assign **Cycle 
 
 ### Rationale
 
-The **Cycle** value is the protocol coordinate that lets the clinical-data
+The **Cycle** value is the protocol coordinate that lets the data
 destination and downstream analyses know which treatment *Cycle* a given
 **Questionnaire** answer corresponds to. Two **Questionnaires** of the same
 **Questionnaire Type** sharing a **Cycle** value would break that coordinate, so

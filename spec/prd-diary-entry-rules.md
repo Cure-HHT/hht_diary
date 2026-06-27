@@ -125,7 +125,7 @@ Duration outliers are a common data-entry-error signal: a typo or wrong-timezone
 
 ### Overview
 
-Nosebleed events cannot physically *Overlap* — a *Participant* cannot have two simultaneous, independent nosebleeds. When a new record's time range intersects with an existing record, the system must detect the conflict and guide the *Participant* through *Resolution* before the record is committed. This ensures data integrity and prevents logically impossible entries from reaching the clinical dataset.
+Nosebleed events cannot physically *Overlap* — a *Participant* cannot have two simultaneous, independent nosebleeds. When a new record's time range intersects with an existing record, the system must detect the conflict and guide the *Participant* through *Resolution* before the record is committed. This ensures data integrity and prevents logically impossible entries from reaching the dataset.
 
 
 Overlap

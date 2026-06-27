@@ -32,7 +32,7 @@
 | DIARY-PRD-evidence-timestamp-attestation         | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md                   | eaee31ad |
 | DIARY-PRD-evidence-timestamp-verification        | Timestamp Verification Interface                    | prd-evidence-records.md                   | 50774a45 |
 | DIARY-PRD-help-resources                         | Help and Resources                                  | prd-help-resources.md                     | caeb1334 |
-| DIARY-PRD-incomplete-entry-preservation          | Incomplete Entry Preservation                       | prd-epistaxis.md                          | d8cd5a0c |
+| DIARY-PRD-incomplete-entry-preservation          | Incomplete Entry Preservation                       | prd-epistaxis.md                          | 85ecdc0f |
 | DIARY-PRD-linking-code-entry-errors              | Linking Code Entry Error Handling                   | prd-device-linking.md                     | dc87b4cf |
 | DIARY-PRD-linking-code-lifecycle                 | Linking Code Lifecycle Management                   | prd-participant.md                        | 6143a7c2 |
 | DIARY-PRD-mobile-application                     | Diary Mobile Application                            | prd-mobile-app.md                         | aa9928f9 |
@@ -54,7 +54,7 @@
 | DIARY-PRD-password-requirements                  | Password Requirements                               | prd-portal-auth.md                        | e31a37b2 |
 | DIARY-PRD-platform-operations-monitoring         | Platform Operations and Monitoring                  | prd-platform-operations.md                | ccc8da44 |
 | DIARY-PRD-privacy-policy                         | Clinical Trial Privacy Policy                       | prd-mobile-app.md                         | 0296fa8c |
-| DIARY-PRD-questionnaire-change-control           | Questionnaire Change Control                        | prd-questionnaire-management.md           | 71e0a7a5 |
+| DIARY-PRD-questionnaire-change-control           | Questionnaire Change Control                        | prd-questionnaire-management.md           | b8f507d9 |
 | DIARY-PRD-questionnaire-daily-epistaxis          | Daily Epistaxis Record Questionnaire                | prd-questionnaire-overview.md             | f248d7d8 |
 | DIARY-PRD-questionnaire-hht-qol                  | HHT-QoL Questionnaire                               | prd-questionnaire-overview.md             | e45af717 |
 | DIARY-PRD-questionnaire-localization             | Questionnaire Localization and Translation Tracking | prd-questionnaire-versioning.md           | 21f3e967 |
@@ -64,8 +64,8 @@
 | DIARY-PRD-questionnaire-session-timeout          | Questionnaire Session Timeout                       | prd-questionnaire-participant-workflow.md | 4e7f3306 |
 | DIARY-PRD-questionnaire-sponsor-configuration    | Sponsor Questionnaire Configuration                 | prd-questionnaire-management.md           | 1dab5997 |
 | DIARY-PRD-questionnaire-sponsor-eligibility      | Sponsor Questionnaire Eligibility Configuration     | prd-questionnaire-versioning.md           | 2872607b |
-| DIARY-PRD-questionnaire-submission-control       | Clinical Data Submission Control                    | prd-questionnaire-management.md           | 7642d0e2 |
-| DIARY-PRD-questionnaire-system                   | Clinical Questionnaire System                       | prd-questionnaire-management.md           | 5d99cd12 |
+| DIARY-PRD-questionnaire-submission-control       | Data Submission Control                             | prd-questionnaire-management.md           | 7642d0e2 |
+| DIARY-PRD-questionnaire-system                   | Questionnaire System                                | prd-questionnaire-management.md           | 5d99cd12 |
 | DIARY-PRD-questionnaire-versioning               | Questionnaire Versioning Model                      | prd-questionnaire-versioning.md           | cba3b718 |
 | DIARY-PRD-rbac-customizable                      | Customizable Role-Based Access Control              | prd-rbac.md                               | 24d64ddf |
 | DIARY-PRD-reason-field-constraints               | Reason Field Constraints                            | prd-user-account.md                       | b7b8a786 |
@@ -112,22 +112,22 @@
 | ---------------------------------------------- | ------------------------------------------------------------- | --------------------------------- | -------- |
 | DIARY-BASE-access-control-identity             | Access Control and Identity                                   | base-access-control-identity.md   | af73cdd0 |
 | DIARY-BASE-audit-trail                         | Audit Trail Foundation                                        | base-audit-trail.md               | 1f28ed43 |
-| DIARY-BASE-clinical-questionnaires             | Clinical Questionnaire System                                 | base-clinical-questionnaires.md   | 621cfd03 |
-| DIARY-BASE-compliance-data-integrity           | Compliance and Data Integrity                                 | base-compliance-data-integrity.md | 55aa1c6c |
-| DIARY-BASE-compliant-diary-platform            | Clinical-Trial-Compliant Diary Platform                       | base-compliant-diary-platform.md  | 744352c1 |
+| DIARY-BASE-compliance-data-integrity           | Compliance and Data Integrity                                 | base-compliance-data-integrity.md | 71d5664c |
+| DIARY-BASE-compliant-diary-platform            | Clinical-Trial-Compliant Diary Platform                       | base-compliant-diary-platform.md  | f13645f9 |
 | DIARY-BASE-local-data-reset                    | Local Data Reset to First-Launch State                        | base-local-data-reset.md          | 824fef24 |
-| DIARY-BASE-mobile-diary-application            | Participant Mobile Diary Application                          | base-mobile-diary-application.md  | b9f3f527 |
-| DIARY-BASE-mobile-notifications                | Mobile Notifications and Reminders                            | base-mobile-notifications.md      | ad5a0d36 |
+| DIARY-BASE-mobile-diary-application            | Participant Mobile Diary Application                          | base-mobile-diary-application.md  | a4ac9b0b |
+| DIARY-BASE-mobile-notifications                | Mobile Notifications and Reminders                            | base-mobile-notifications.md      | 819bc517 |
 | DIARY-BASE-not-participating-notice            | Not-Participating Notice                                      | prd-mobile-notifications.md       | fb82706f |
 | DIARY-BASE-ops-action-inventory                | Operations Action Inventory                                   | base-ops-action-inventory.md      | a1baca2c |
 | DIARY-BASE-participant-lifecycle               | Participant Lifecycle                                         | base-participant-lifecycle.md     | 28004eef |
 | DIARY-BASE-portal-stale-client-reload          | Portal Stale-Client Reload Prompt                             | prd-common-ui.md                  | b099c1fa |
 | DIARY-BASE-portal-transport-status             | Portal Transport Status Banner                                | prd-common-ui.md                  | 20c55120 |
-| DIARY-BASE-questionnaire-coordinator-workflow  | Coordinator Questionnaire Workflow                            | base-questionnaire-coordinator.md | 40cba10f |
+| DIARY-BASE-questionnaire-coordinator-workflow  | Coordinator Questionnaire Workflow                            | base-questionnaire-coordinator.md | 584e86b9 |
 | DIARY-BASE-questionnaire-cycle-tracking        | Questionnaire Cycle Tracking                                  | base-questionnaire-coordinator.md | 6dcb965e |
 | DIARY-BASE-questionnaire-finalization          | Questionnaire Finalization Workflow                           | base-questionnaire-coordinator.md | 1c17145b |
 | DIARY-BASE-questionnaire-lock-after-submission | Lock-After-Submission and Unlock                              | base-questionnaire-coordinator.md | a4f69437 |
 | DIARY-BASE-questionnaire-manage-modal          | Manage Questionnaires Modal                                   | base-questionnaire-coordinator.md | 27cf8328 |
+| DIARY-BASE-questionnaires                      | Questionnaires                                                | base-questionnaires.md            | 1c3f421a |
 | DIARY-BASE-sponsor-portal                      | Sponsor Portal                                                | base-sponsor-portal.md            | 21494b63 |
 | DIARY-BASE-sponsor-requested-settings          | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md          | a8de6e0a |
 | DIARY-BASE-system-operator-role                | System Operator Role                                          | base-system-operator-role.md      | b876db52 |
@@ -209,10 +209,10 @@
 | DIARY-DEV-linking-code-lifecycle             | Linking-Code Lifecycle and Uniqueness                 | dev-linking-code-lifecycle.md      | 213bfdd0 |
 | DIARY-DEV-local-participant-authorization    | On-Device Authorization Permits the Local Participant | dev-mobile-event-sourcing.md       | 5b6674c2 |
 | DIARY-DEV-native-outbound-sync               | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md       | ebaa5551 |
-| DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | 8b310ffe |
+| DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | 13644d9a |
 | DIARY-DEV-operator-tier-authz                | Operator-Tier Authorization for User Management       | dev-portal-service.md              | cda9a051 |
 | DIARY-DEV-outgoing-intent-correlation        | Outgoing Intent and Flow Correlation                  | dev-outgoing-intent-correlation.md | 108441a8 |
-| DIARY-DEV-participant-ingest                 | Participant Clinical-Record Ingest Edge               | dev-participant-ingest.md          | ba96a497 |
+| DIARY-DEV-participant-ingest                 | Participant Record Ingest Edge                        | dev-participant-ingest.md          | ba96a497 |
 | DIARY-DEV-participant-link-issuance          | Participant Link Endpoint                             | dev-participant-link-issuance.md   | 9e23e55d |
 | DIARY-DEV-participant-site-index             | Participant-Site Index Materializer                   | dev-portal-service.md              | 76e68990 |
 | DIARY-DEV-participant-state-poll             | Diary Lifecycle Propagation via State Poll            | dev-mobile-event-sourcing.md       | 0a04e639 |

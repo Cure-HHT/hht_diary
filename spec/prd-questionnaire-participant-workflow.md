@@ -5,7 +5,7 @@ The *Participant*-facing workflow over **Assigned Questionnaires** comprises the
 ## DIARY-PRD-questionnaire-portal-sent-rules: Assigned Questionnaire Rules
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-BASE-clinical-questionnaires
+**Refines**: DIARY-BASE-questionnaires
 
 ### Overview
 
@@ -220,7 +220,7 @@ J. Each *Questionnaire* definition SHALL support configuration of the threshold 
 
 ### Rationale
 
-Some clinical questionnaires (e.g. the *NOSE HHT*, the *HHT-QoL*) require contemporaneous answering — a *Participant*'s frame of reference shifts measurably if they pause for hours between questions, and the resulting answers no longer reflect a single moment of self-report. A configurable **Session Timeout** lets each *Questionnaire* enforce a "complete this in one sitting" constraint without baking a single duration into the platform. Discarding in-progress answers on expiry rather than retaining them is what gives the timeout its clinical meaning: the next attempt starts fresh from the **Preamble**, with a *Participant* frame of reference that the *Sponsor* can interpret. The opt-out (no **Session Timeout** configured) covers the case where in-progress preservation is fine (e.g. an ad-hoc *Questionnaire* with no contemporaneous requirement). The two notifications — Warning before expiry, Expiry on the event — give the *Participant* a chance to return before answers are discarded (Warning) and clear feedback when answers have already been discarded (Expiry).
+Some questionnaires (e.g. the *NOSE HHT*, the *HHT-QoL*) require contemporaneous answering — a *Participant*'s frame of reference shifts measurably if they pause for hours between questions, and the resulting answers no longer reflect a single moment of self-report. A configurable **Session Timeout** lets each *Questionnaire* enforce a "complete this in one sitting" constraint without baking a single duration into the platform. Discarding in-progress answers on expiry rather than retaining them is what gives the timeout its clinical meaning: the next attempt starts fresh from the **Preamble**, with a *Participant* frame of reference that the *Sponsor* can interpret. The opt-out (no **Session Timeout** configured) covers the case where in-progress preservation is fine (e.g. an ad-hoc *Questionnaire* with no contemporaneous requirement). The two notifications — Warning before expiry, Expiry on the event — give the *Participant* a chance to return before answers are discarded (Warning) and clear feedback when answers have already been discarded (Expiry).
 
 ### Screen reference
 

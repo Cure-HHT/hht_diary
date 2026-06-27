@@ -1,6 +1,6 @@
 # Evidence Records
 
-Data-provenance commitments establishing the **when**, **how**, and **who** of clinical *Trial* *Diary* entries through third-party timestamp attestation, device fingerprinting, *Patient* authentication, and identity verification. These obligations are *Sponsor*-visible (PRD-level audience) and provide the cryptographic basis for regulatory defensibility of long-retention clinical records.
+Data-provenance commitments establishing the **when**, **how**, and **who** of clinical *Trial* *Diary* entries through third-party timestamp attestation, device fingerprinting, *Patient* authentication, and identity verification. These obligations are *Sponsor*-visible (PRD-level audience) and provide the cryptographic basis for regulatory defensibility of long-retention records.
 
 ## DIARY-PRD-evidence-timestamp-attestation: Third-Party Timestamp Attestation Capability
 

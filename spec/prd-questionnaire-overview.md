@@ -1,11 +1,11 @@
 # Questionnaires Overview
 
-The platform implements three clinical questionnaires: the **Daily Epistaxis Record** (the daily eDiary instrument), the **NOSE HHT** survey, and the **HHT-QoL** survey. Each requirement binds the instrument to its validated source document and to the computer-readable data file that is the single implementation reference.
+The platform implements three questionnaires: the **Daily Epistaxis Record** (the daily eDiary instrument), the **NOSE HHT** survey, and the **HHT-QoL** survey. Each requirement binds the instrument to its validated source document and to the computer-readable data file that is the single implementation reference.
 
 ## DIARY-PRD-questionnaire-daily-epistaxis: Daily Epistaxis Record Questionnaire
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-BASE-clinical-questionnaires
+**Refines**: DIARY-BASE-questionnaires
 
 ### Overview
 
@@ -13,7 +13,7 @@ Daily epistaxis tracking is the core data collection activity in HHT clinical tr
 
 
 Daily Epistaxis Record
-: The primary nosebleed tracking instrument used in the HHT Clinical Diary, derived from Clark et al. (2018) with modifications.
+: The primary nosebleed tracking instrument used in the HHT Diary, derived from Clark et al. (2018) with modifications.
 
 Epistaxis Event
 : A single nosebleed occurrence recorded by the participant with timing, duration, and intensity data.
@@ -30,14 +30,14 @@ D. The instrument content, field definitions, and validation rules SHALL be impl
 
 ### Rationale
 
-The **Daily Epistaxis Record** is the primary instrument the *Diary* platform exists to capture; every other surface (*Calendar*, *Day View*, recording flow, notifications, score calculations) is in service of getting reliable instances of this record into the clinical dataset. Binding the requirement to the Clark et al. (2018) source instrument anchors the *Diary* content to a validated reference so the platform's implementation can be audited against an external definition rather than re-derived locally. Any modification to the source is required to carry its own documented justification because clinical instruments derive their interpretive validity from the published version; undocumented deviations would break the chain back to the validated source and undermine the dataset's regulatory standing. The single computer-readable data file is the implementation reference — the same artifact the application loads and the specification references — which prevents drift between what the spec says and what the application runs.
+The **Daily Epistaxis Record** is the primary instrument the *Diary* platform exists to capture; every other surface (*Calendar*, *Day View*, recording flow, notifications, score calculations) is in service of getting reliable instances of this record into the dataset. Binding the requirement to the Clark et al. (2018) source instrument anchors the *Diary* content to a validated reference so the platform's implementation can be audited against an external definition rather than re-derived locally. Any modification to the source is required to carry its own documented justification because clinical instruments derive their interpretive validity from the published version; undocumented deviations would break the chain back to the validated source and undermine the dataset's regulatory standing. The single computer-readable data file is the implementation reference — the same artifact the application loads and the specification references — which prevents drift between what the spec says and what the application runs.
 
 *End* *Daily Epistaxis Record Questionnaire* | **Hash**: f248d7d8
 
 ## DIARY-PRD-questionnaire-nose-hht: NOSE HHT Questionnaire
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-BASE-clinical-questionnaires
+**Refines**: DIARY-BASE-questionnaires
 
 ### Overview
 
@@ -73,7 +73,7 @@ The **NOSE HHT** is a validated clinical instrument; its interpretive validity d
 ## DIARY-PRD-questionnaire-hht-qol: HHT-QoL Questionnaire
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-BASE-clinical-questionnaires
+**Refines**: DIARY-BASE-questionnaires
 
 ### Overview
 

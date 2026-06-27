@@ -15,6 +15,6 @@ B. Access control SHALL be governed by a customizable *Role* model applied consi
 
 ## Rationale
 
-Authentication and authorization are the gate in front of all clinical data, so they belong to compliance rather than to any one feature, and they must fail closed: absence of established authority denies access rather than allowing it. Stating the *Role* model as a single customizable foundation — reused via templates across surfaces — keeps the access rules consistent and lets a contract be written once and satisfied everywhere it applies.
+Authentication and authorization are the gate in front of all data, so they belong to compliance rather than to any one feature, and they must fail closed: absence of established authority denies access rather than allowing it. Stating the *Role* model as a single customizable foundation — reused via templates across surfaces — keeps the access rules consistent and lets a contract be written once and satisfied everywhere it applies.
 
 *End* *Access Control and Identity* | **Hash**: af73cdd0

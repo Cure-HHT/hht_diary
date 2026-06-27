@@ -180,7 +180,7 @@ D. The System SHALL treat marker-to-**Epistaxis Event** conversion as one-way; o
 
 ### Rationale
 
-The recording-time rule that a *Participant* records one **Daily Status** per day answers "what may be entered"; this requirement governs the *derived* day summary the *Calendar* and home views present — collapsing a day's events and markers into one disposition so the *Participant* sees a coherent "what happened that day" at a glance. A marker and a real nosebleed cannot both stand as the day's summary, so recording a nosebleed on a marker-only day converts the day by replacing the marker, while additional nosebleeds simply accumulate. Conversion is one-way because a marker is a lightweight assertion about a day whereas a recorded **Epistaxis Event** is captured clinical data; once captured, it is edited or deleted explicitly, never silently overwritten by a re-disposition tap.
+The recording-time rule that a *Participant* records one **Daily Status** per day answers "what may be entered"; this requirement governs the *derived* day summary the *Calendar* and home views present — collapsing a day's events and markers into one disposition so the *Participant* sees a coherent "what happened that day" at a glance. A marker and a real nosebleed cannot both stand as the day's summary, so recording a nosebleed on a marker-only day converts the day by replacing the marker, while additional nosebleeds simply accumulate. Conversion is one-way because a marker is a lightweight assertion about a day whereas a recorded **Epistaxis Event** is captured data; once captured, it is edited or deleted explicitly, never silently overwritten by a re-disposition tap.
 
 *End* *Calendar Day Disposition* | **Hash**: bd38485a
 
@@ -191,7 +191,7 @@ The recording-time rule that a *Participant* records one **Daily Status** per da
 
 ### Overview
 
-A *Participant* interrupted partway through recording must not lose what they entered, and an unfinished entry must not masquerade as a finished clinical record. The *Diary* auto-preserves a partial entry as a resumable draft, surfaces it as an incomplete-entry reminder, and promotes it to a finalized entry only on explicit completion. Drafts are *Diary*-local until finalized.
+A *Participant* interrupted partway through recording must not lose what they entered, and an unfinished entry must not masquerade as a finished record. The *Diary* auto-preserves a partial entry as a resumable draft, surfaces it as an incomplete-entry reminder, and promotes it to a finalized entry only on explicit completion. Drafts are *Diary*-local until finalized.
 
 ### Assertions
 
@@ -201,10 +201,10 @@ B. The System SHALL surface preserved drafts to the *Participant* as incomplete-
 
 C. When a *Participant* completes a draft, the System SHALL promote it to a finalized entry on the same record, and the draft SHALL no longer appear as incomplete.
 
-D. The System SHALL keep preserved drafts *Diary*-local — excluded from the shared canonical entry view and not synchronized as canonical clinical data until finalized.
+D. The System SHALL keep preserved drafts *Diary*-local — excluded from the shared canonical entry view and not synchronized as canonical data until finalized.
 
 ### Rationale
 
-Recording can be interrupted — a phone call, a closed app, a low battery — and a *Participant* who loses a half-entered nosebleed is unlikely to re-enter it accurately, costing dataset completeness; auto-preserving the partial entry as a draft, without an interrupting prompt, keeps the path frictionless. The draft surfaces as an incomplete-entry reminder so the *Participant* is nudged to finish rather than forgetting it exists. Promoting on the same record (rather than creating a second entry) keeps the event lineage intact. Holding drafts *Diary*-local until finalized is the integrity boundary: an unfinished record never enters the shared canonical view or syncs as clinical data, so "in progress" can never be mistaken for "reported".
+Recording can be interrupted — a phone call, a closed app, a low battery — and a *Participant* who loses a half-entered nosebleed is unlikely to re-enter it accurately, costing dataset completeness; auto-preserving the partial entry as a draft, without an interrupting prompt, keeps the path frictionless. The draft surfaces as an incomplete-entry reminder so the *Participant* is nudged to finish rather than forgetting it exists. Promoting on the same record (rather than creating a second entry) keeps the event lineage intact. Holding drafts *Diary*-local until finalized is the integrity boundary: an unfinished record never enters the shared canonical view or syncs as data, so "in progress" can never be mistaken for "reported".
 
-*End* *Incomplete Entry Preservation* | **Hash**: d8cd5a0c
+*End* *Incomplete Entry Preservation* | **Hash**: 85ecdc0f
