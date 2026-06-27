@@ -1,44 +1,22 @@
 {
   "_about": "CUR-1451 legacy-annotation sweep work-list. Each key is a legacy URS id cited in code/CI. status=resolved means the URS-v1 mapping gives a target; disposition is filled by the Phase-1 passes (port|rewrite|parent-cite|drop|cross-repo). Regenerate with tools/requirements/build_inventory.py; hand-edits to disposition/notes/target are preserved-by-rerun ONLY if you merge \u2014 rerun overwrites, so make dispositions in a separate sidecar once Phase 1 starts.",
   "summary": {
-    "unique_legacy_ids": 106,
-    "header_block_files": 227,
+    "unique_legacy_ids": 90,
+    "header_block_files": 205,
     "by_level": {
-      "OPS": 24,
-      "DEV": 44,
-      "PRD": 37,
+      "OPS": 13,
+      "DEV": 40,
+      "PRD": 36,
       "GUI": 1
     },
     "by_status": {
-      "resolved": 69,
-      "unresolved": 37
+      "resolved": 55,
+      "unresolved": 35
     },
     "live_req_count": 214
   },
   "header_block_files": [
     ".devcontainer/check-prerequisites.sh",
-    ".githooks/project-defs.sh",
-    ".githooks/tests/validate-pr-portability.test.sh",
-    ".githooks/version-utils.sh",
-    ".github/actions/start-ci-container/action.yml",
-    ".github/config/sponsor-manifest-schema.yml",
-    ".github/config/sponsors.yml",
-    ".github/dependabot.yml",
-    ".github/scripts/validate-pr.sh",
-    ".github/workflows/alert-workflow-changes.yml",
-    ".github/workflows/android-build.yml",
-    ".github/workflows/build-ghcr-containers.yml",
-    ".github/workflows/ci-gate.yml",
-    ".github/workflows/clinical_diary-ci.yml",
-    ".github/workflows/firebase-test-lab.yml",
-    ".github/workflows/ios-build.yml",
-    ".github/workflows/maintenance-check.yml",
-    ".github/workflows/pr-health.yml",
-    ".github/workflows/qa-automation.yml",
-    ".github/workflows/sponsor-portal-ci.yml",
-    ".github/workflows/terraform-validate.yml",
-    ".github/workflows/test-gcp-auth.yml",
-    ".github/workflows/trial_data_types-ci.yml",
     "apps/common-dart/comms/lib/comms.dart",
     "apps/common-dart/comms/lib/src/channel.dart",
     "apps/common-dart/comms/lib/src/channels/fcm/adc_client.dart",
@@ -658,12 +636,8 @@
     "REQ-d00006": {
       "level": "DEV",
       "repo": "hht_diary",
-      "ref_files": 16,
+      "ref_files": 12,
       "files": [
-        ".githooks/version-utils.sh",
-        ".github/workflows/android-build.yml",
-        ".github/workflows/firebase-test-lab.yml",
-        ".github/workflows/ios-build.yml",
         "apps/daily-diary/clinical_diary/integration_test/firebase_test_lab_smoke_test.dart",
         "apps/daily-diary/clinical_diary/lib/main.dart",
         "apps/daily-diary/clinical_diary/lib/scope/diary_sync_triggers.dart",
@@ -716,43 +690,12 @@
       "notes": "Encryption-at-rest = GCP/IaC concern (hht_admin/hht_sponsor_iac); no public-core req.",
       "deferred": true
     },
-    "REQ-d00014": {
-      "level": "DEV",
-      "repo": "hht_diary",
-      "ref_files": 2,
-      "files": [
-        ".github/scripts/validate-pr.sh",
-        ".github/workflows/pr-health.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-traceability-validation",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "A+B elspais validation in CI; also pr-compliance-checks/C."
-    },
-    "REQ-d00018": {
-      "level": "DEV",
-      "repo": "hht_diary",
-      "ref_files": 2,
-      "files": [
-        ".githooks/project-defs.sh",
-        ".github/workflows/pr-health.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-change-appropriate-ci",
-      "target_live": true,
-      "disposition": "parent-cite",
-      "source": "manual",
-      "notes": "A: project-defs.sh change-area detection; pr-health aggregate->/E. No standalone git-hook req."
-    },
     "REQ-d00027": {
       "level": "DEV",
       "repo": "hht_diary",
-      "ref_files": 11,
+      "ref_files": 10,
       "files": [
         ".devcontainer/check-prerequisites.sh",
-        ".github/workflows/build-ghcr-containers.yml",
         "tools/dev-env/docker-compose.ci.yml",
         "tools/dev-env/docker-compose.local.yml",
         "tools/dev-env/docker-compose.yml",
@@ -773,9 +716,8 @@
     "REQ-d00028": {
       "level": "DEV",
       "repo": "hht_diary",
-      "ref_files": 4,
+      "ref_files": 3,
       "files": [
-        ".github/workflows/qa-automation.yml",
         "tools/dev-env/docker-compose.yml",
         "tools/dev-env/docker/qa-runner.sh",
         "tools/dev-env/validate-environment.sh"
@@ -804,14 +746,8 @@
     "REQ-d00030": {
       "level": "DEV",
       "repo": "hht_diary",
-      "ref_files": 12,
+      "ref_files": 6,
       "files": [
-        ".github/actions/start-ci-container/action.yml",
-        ".github/workflows/build-ghcr-containers.yml",
-        ".github/workflows/clinical_diary-ci.yml",
-        ".github/workflows/pr-health.yml",
-        ".github/workflows/qa-automation.yml",
-        ".github/workflows/trial_data_types-ci.yml",
         "infrastructure/terraform/bootstrap/main.tf",
         "tools/dev-env/docker-compose.ci.yml",
         "tools/dev-env/docker-compose.local.yml",
@@ -829,9 +765,8 @@
     "REQ-d00031": {
       "level": "DEV",
       "repo": "hht_diary",
-      "ref_files": 4,
+      "ref_files": 3,
       "files": [
-        ".github/workflows/qa-automation.yml",
         "infrastructure/terraform/sponsor-envs/main.tf",
         "tools/dev-env/docker-compose.firebase.yml",
         "tools/dev-env/docker/qa-runner.sh"
@@ -860,10 +795,8 @@
     "REQ-d00033": {
       "level": "DEV",
       "repo": "hht_diary",
-      "ref_files": 5,
+      "ref_files": 3,
       "files": [
-        ".github/workflows/build-ghcr-containers.yml",
-        ".github/workflows/qa-automation.yml",
         "infrastructure/terraform/bootstrap/main.tf",
         "tools/dev-env/docker/qa-runner.sh",
         "tools/dev-env/validate-environment.sh"
@@ -910,9 +843,8 @@
     "REQ-d00053": {
       "level": "DEV",
       "repo": "hht_diary",
-      "ref_files": 2,
+      "ref_files": 1,
       "files": [
-        ".github/dependabot.yml",
         "tools/setup-repo.sh"
       ],
       "status": "unresolved",
@@ -940,10 +872,8 @@
     "REQ-d00057": {
       "level": "DEV",
       "repo": "hht_diary",
-      "ref_files": 3,
+      "ref_files": 1,
       "files": [
-        ".githooks/version-utils.sh",
-        ".github/scripts/validate-pr.sh",
         "infrastructure/terraform/bootstrap/main.tf"
       ],
       "status": "resolved",
@@ -999,35 +929,6 @@
       "disposition": "drop",
       "source": "manual",
       "notes": "IQ/OQ/PQ dev-env validation concept dropped in migration."
-    },
-    "REQ-d00069": {
-      "level": "DEV",
-      "repo": "hht_diary",
-      "ref_files": 2,
-      "files": [
-        ".github/config/sponsor-manifest-schema.yml",
-        ".github/config/sponsors.yml"
-      ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": "drop",
-      "source": "manual",
-      "notes": "Orphan id (no archive def); sponsor-manifest concept unmodeled in current spec. Cite is a forbidden file-header block."
-    },
-    "REQ-d00070": {
-      "level": "DEV",
-      "repo": "hht_diary",
-      "ref_files": 1,
-      "files": [
-        ".github/config/sponsors.yml"
-      ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": "drop",
-      "source": "manual",
-      "notes": "Orphan id, no archive def, no current target (sponsor-manifest)."
     },
     "REQ-d00078": {
       "level": "DEV",
@@ -1381,35 +1282,6 @@
       "source": "manual",
       "notes": "A+B+C+D: cloud-sql backups/retention/PITR. Co-cited REQ-p00047."
     },
-    "REQ-o00013": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 1,
-      "files": [
-        ".github/workflows/alert-workflow-changes.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-traceability-validation",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "A. Cited in alert-workflow-changes.yml; detective-control aspect closer to pr-compliance-checks/F."
-    },
-    "REQ-o00017": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 2,
-      "files": [
-        ".githooks/version-utils.sh",
-        ".github/workflows/pr-health.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-pr-compliance-checks",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "A+B (commit-msg). pre-commit version-utils req-validation -> system-validation-traceability/L+M."
-    },
     "REQ-o00041": {
       "level": "OPS",
       "repo": "hht_diary",
@@ -1429,9 +1301,8 @@
     "REQ-o00042": {
       "level": "OPS",
       "repo": "hht_diary",
-      "ref_files": 2,
+      "ref_files": 1,
       "files": [
-        ".github/workflows/terraform-validate.yml",
         "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh"
       ],
       "status": "resolved",
@@ -1444,14 +1315,8 @@
     "REQ-o00043": {
       "level": "OPS",
       "repo": "hht_diary",
-      "ref_files": 14,
+      "ref_files": 8,
       "files": [
-        ".githooks/project-defs.sh",
-        ".github/workflows/android-build.yml",
-        ".github/workflows/firebase-test-lab.yml",
-        ".github/workflows/ios-build.yml",
-        ".github/workflows/terraform-validate.yml",
-        ".github/workflows/test-gcp-auth.yml",
         "apps/daily-diary/clinical_diary/integration_test/firebase_test_lab_smoke_test.dart",
         "apps/daily-diary/clinical_diary/lib/scope/diary_sync_triggers.dart",
         "apps/daily-diary/clinical_diary/tool/config/create-workflow-identiy-provider-firebase-github.sh",
@@ -1553,53 +1418,6 @@
       "source": "manual",
       "notes": "I+P audit-log delivery logging (alt DIARY-BASE-audit-trail). REFACTOR-VOLATILE."
     },
-    "REQ-o00051": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 1,
-      "files": [
-        ".github/workflows/terraform-validate.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-PRD-system-validation-traceability",
-      "target_live": true,
-      "disposition": "parent-cite",
-      "source": "manual",
-      "notes": "E+K terraform-validate change-control via audit trail."
-    },
-    "REQ-o00052": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 6,
-      "files": [
-        ".githooks/version-utils.sh",
-        ".github/dependabot.yml",
-        ".github/scripts/validate-pr.sh",
-        ".github/workflows/ci-gate.yml",
-        ".github/workflows/maintenance-check.yml",
-        ".github/workflows/pr-health.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-traceability-validation",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "validate-pr.sh+pr-health+ci-gate; also pr-compliance-checks. FIX: dependabot.yml cite is loose -> security-scanning/B or drop."
-    },
-    "REQ-o00053": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 1,
-      "files": [
-        ".github/workflows/alert-workflow-changes.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-branch-protection",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "A-E 1:1 concept match."
-    },
     "REQ-o00056": {
       "level": "OPS",
       "repo": "hht_diary",
@@ -1654,98 +1472,6 @@
       "source": "manual",
       "notes": "MAJOR archive mismatch: archive=SLO, all 40 cites=IaC/Cloud-Run container infra -> private sponsor_iac CD. grpc_health subset -> DIARY-OPS-deploy-traffic-gating/B. Refactor-volatile.",
       "deferred": true
-    },
-    "REQ-o00078": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 3,
-      "files": [
-        ".github/scripts/validate-pr.sh",
-        ".github/workflows/ci-gate.yml",
-        ".github/workflows/pr-health.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-change-appropriate-ci",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "A-E identical title."
-    },
-    "REQ-o00079": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 2,
-      "files": [
-        ".github/scripts/validate-pr.sh",
-        ".github/workflows/pr-health.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-pr-compliance-checks",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "A+B+F incl post-merge detective control."
-    },
-    "REQ-o00080": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 1,
-      "files": [
-        ".github/workflows/pr-health.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-security-scanning",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "A-E sub-letters map 1:1."
-    },
-    "REQ-o00081": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 5,
-      "files": [
-        ".github/scripts/validate-pr.sh",
-        ".github/workflows/clinical_diary-ci.yml",
-        ".github/workflows/pr-health.yml",
-        ".github/workflows/qa-automation.yml",
-        ".github/workflows/sponsor-portal-ci.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-code-quality-gate",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "A-E analyze/format/migration-lint."
-    },
-    "REQ-o00082": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 2,
-      "files": [
-        ".github/workflows/clinical_diary-ci.yml",
-        ".github/workflows/sponsor-portal-ci.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-automated-test-execution",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "A+F portal/diary CI test steps."
-    },
-    "REQ-o00083": {
-      "level": "OPS",
-      "repo": "hht_diary",
-      "ref_files": 1,
-      "files": [
-        ".github/workflows/qa-automation.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-OPS-automated-test-execution",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "A,F ci-tests job; promotion-gate semantics authored in private CD."
     },
     "REQ-p00002": {
       "level": "PRD",
@@ -1829,20 +1555,6 @@
       "source": "manual",
       "notes": "Zero code citations; concept survives as DIARY-BASE-sponsor-portal but no annotation references this id."
     },
-    "REQ-p00020": {
-      "level": "PRD",
-      "repo": "hht_diary",
-      "ref_files": 1,
-      "files": [
-        ".github/workflows/alert-workflow-changes.yml"
-      ],
-      "status": "resolved",
-      "target": "DIARY-PRD-system-validation-traceability",
-      "target_live": true,
-      "disposition": "port",
-      "source": "manual",
-      "notes": "Cited by alert-workflow-changes.yml. Behavioral alt: DIARY-OPS-pr-compliance-checks/F (detective control). Same file also carries REQ-o00053/REQ-o00013 (OPS batch)."
-    },
     "REQ-p00042": {
       "level": "PRD",
       "repo": "hht_diary",
@@ -1915,10 +1627,8 @@
     "REQ-p01018": {
       "level": "PRD",
       "repo": "hht_diary",
-      "ref_files": 4,
+      "ref_files": 2,
       "files": [
-        ".github/workflows/pr-health.yml",
-        ".github/workflows/qa-automation.yml",
         "apps/common-dart/dart-base-container/Dockerfile",
         "apps/common-dart/flutter-base-container/Dockerfile"
       ],
@@ -2118,9 +1828,8 @@
     "REQ-p05004": {
       "level": "PRD",
       "repo": "hht_diary",
-      "ref_files": 6,
+      "ref_files": 5,
       "files": [
-        ".github/scripts/validate-pr.sh",
         "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart",
         "apps/daily-diary/clinical_diary/lib/services/enrollment_service.dart",
         "apps/daily-diary/clinical_diary/lib/widgets/disconnection_banner.dart",

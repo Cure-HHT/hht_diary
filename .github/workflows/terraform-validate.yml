@@ -1,9 +1,4 @@
 ---
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00042: Infrastructure Change Control
-#   REQ-o00043: Automated Deployment Pipeline
-#   REQ-o00051: Change Control and Audit Trail
-#
 # Terraform Plan on PR + Auto-Apply on Merge
 #
 # PR: Runs `terraform plan` for any changed Terraform directory.
@@ -137,6 +132,7 @@ jobs:
           TF_VAR_DOPPLER_TOKEN: ${{ secrets.TF_VAR_DOPPLER_TOKEN }}
           TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
 
+      # Implements: DIARY-PRD-system-validation-traceability/E+K
       - name: Build Terraform plan comment body
         id: tf-plan-comment-body
         if: always() && github.event_name == 'pull_request'
@@ -188,6 +184,7 @@ jobs:
           marker: '<!-- pr-comment-upsert:terraform-plan -->'
           body: ${{ steps.tf-plan-comment-body.outputs.body }}
 
+      # Verifies: DIARY-OPS-branch-protection/C
       - name: 'Fail on plan error'
         if: steps.plan.outputs.exitcode != '0'
         env:
@@ -251,6 +248,7 @@ jobs:
             -backend-config="bucket=cure-hht-terraform-state" \
             -backend-config="prefix=sponsor-envs/callisto4-dev"
 
+      # Implements: DIARY-OPS-build-deploy-primitives/B
       - name: 'Terraform Apply (callisto4-dev)'
         id: apply
         working-directory: infrastructure/terraform/sponsor-envs
@@ -370,6 +368,7 @@ jobs:
           TF_VAR_BILLING_ACCOUNT_PROD: ${{ vars.BILLING_ACCOUNT_PROD }}
           TF_VAR_SLACK_INCIDENT_WEBHOOK_URL: ${{ secrets.SLACK_INCIDENT_WEBHOOK_URL }}
 
+      # Implements: DIARY-OPS-build-deploy-primitives/B
       - name: 'Terraform Apply'
         if: inputs.action == 'apply'
         working-directory: infrastructure/terraform/sponsor-envs

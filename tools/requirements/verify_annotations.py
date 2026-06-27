@@ -102,12 +102,20 @@ def iter_text_files():
         if not path.is_file():
             continue
         rel = path.relative_to(REPO)
-        if is_excluded(rel) or not in_scope(rel):
+        if is_excluded(rel):
             continue
         try:
-            yield rel, path.read_text(encoding="utf-8")
+            text = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
             continue
+        # In scope by extension/name, or an extensionless shell script (git
+        # hooks like .githooks/commit-msg have a shebang but no suffix).
+        if not in_scope(rel) and not (
+            not rel.suffix and text.startswith("#!") and
+            ("sh" in text.splitlines()[0])
+        ):
+            continue
+        yield rel, text
 
 
 def load_assertions() -> dict[str, set[str]]:

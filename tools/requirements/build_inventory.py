@@ -81,11 +81,18 @@ def iter_text_files():
         if not path.is_file():
             continue
         rel = path.relative_to(REPO)
-        if is_excluded(rel) or not in_scope(rel):
+        if is_excluded(rel):
             continue
         try:
             text = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
+            continue
+        # In scope by extension/name, or an extensionless shell script (e.g. a
+        # git hook with a shebang but no suffix).
+        if not in_scope(rel) and not (
+            not rel.suffix and text.startswith("#!") and
+            ("sh" in text.splitlines()[0])
+        ):
             continue
         yield rel, text
 
