@@ -21,6 +21,7 @@ Exit 0 = clean, 1 = violations.
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -31,6 +32,19 @@ EXCLUDE_DIRS = {
     ".git", "spec", "spec-archive", "docs",
     ".dart_tool", "build", ".fvm", "node_modules", ".gradle",
     "tools/requirements",
+}
+
+# CUR-1451 decision (b): infrastructure / IaC / dev-container trees are deferred
+# to the infra-move ticket and left OUT of this PR's verifier scope. Their legacy
+# ids remain tracked in inventory.json (disposition=cross-repo, deferred=true) for
+# that ticket to consume. build_inventory.py still scans these (full record); only
+# the verifier skips them.
+DEFERRED_DIRS = {
+    "infrastructure", "deployment", ".devcontainer",
+    "tools/dev-env", "tools/cost-control",
+    "apps/common-dart/grpc_health",
+    "apps/common-dart/dart-base-container",
+    "apps/common-dart/flutter-base-container",
 }
 
 # Code + CI + IaC only (see build_inventory.py for rationale).
@@ -60,12 +74,27 @@ REF_RE = re.compile(
 )
 
 
+_SKIP_DIRS = EXCLUDE_DIRS | DEFERRED_DIRS
+
+
 def is_excluded(rel: Path) -> bool:
     parts = rel.parts
     for i in range(len(parts)):
-        if parts[i] in EXCLUDE_DIRS or "/".join(parts[: i + 1]) in EXCLUDE_DIRS:
+        if parts[i] in _SKIP_DIRS or "/".join(parts[: i + 1]) in _SKIP_DIRS:
             return True
     return False
+
+
+def load_deferred_ids() -> set[str]:
+    """Legacy ids deferred to the infra-move ticket (allowed to remain in scope)."""
+    inv = REPO / "tools" / "requirements" / "inventory.json"
+    if not inv.exists():
+        return set()
+    try:
+        data = json.loads(inv.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return set()
+    return {k for k, v in data.get("ids", {}).items() if v.get("deferred")}
 
 
 def iter_text_files():
@@ -113,6 +142,7 @@ def load_assertions() -> dict[str, set[str]]:
 def main() -> int:
     reqs = load_assertions()
     live = set(reqs)
+    deferred = load_deferred_ids()
 
     legacy_hits: dict[str, int] = {}
     header_hits: list[str] = []
@@ -120,7 +150,8 @@ def main() -> int:
 
     for rel, text in iter_text_files():
         relstr = str(rel)
-        n = len(LEGACY_RE.findall(text))
+        # Deferred infra ids (CUR-1451 decision (b)) are allowed to remain.
+        n = sum(1 for m in LEGACY_RE.finditer(text) if m.group(0) not in deferred)
         if n:
             legacy_hits[relstr] = n
         if HEADER_RE.search(text):

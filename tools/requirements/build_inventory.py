@@ -134,7 +134,7 @@ def load_prior_dispositions() -> dict[str, dict]:
     except (json.JSONDecodeError, OSError):
         return prior
     for legacy, entry in data.get("ids", {}).items():
-        prior[legacy] = {k: entry.get(k) for k in ("disposition", "notes")}
+        prior[legacy] = {k: entry.get(k) for k in ("disposition", "notes", "deferred")}
         # A manually-set target (not from the mapping doc) is also human work.
         if entry.get("source") == "manual":
             prior[legacy]["target"] = entry.get("target")
