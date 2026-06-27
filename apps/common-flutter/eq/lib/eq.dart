@@ -1,10 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-//   REQ-p01070: NOSE HHT Questionnaire UI
-//   REQ-p01071: QoL Questionnaire UI
-//   REQ-p01073: Session Management
-
 /// Questionnaire UI widgets for the clinical diary app.
 library;
 

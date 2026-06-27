@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-
 import 'package:flutter/material.dart';
 
 /// A corner-ribbon overlay that displays the current environment
@@ -22,6 +19,7 @@ import 'package:flutter/material.dart';
 ///   child: MaterialApp(...),
 /// )
 /// ```
+// Implements: DIARY-DEV-runtime-environment-resolution/C
 class EnvironmentBanner extends StatelessWidget {
   const EnvironmentBanner({
     required this.child,

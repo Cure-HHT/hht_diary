@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01070: NOSE HHT Questionnaire UI
-
 import 'package:eq/eq.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +5,7 @@ import 'package:trial_data_types/trial_data_types.dart';
 
 import '../test_helpers.dart';
 
+// Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/H+I
 void main() {
   const options = [
     ResponseScaleOption(value: 0, label: 'No problem'),

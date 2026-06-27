@@ -1,11 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-//   REQ-p01070: NOSE HHT Questionnaire UI
-//   REQ-p01071: QoL Questionnaire UI
-//   REQ-p01073: Session Management
-//   REQ-d00113: Deleted Questionnaire Submission Handling
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -45,7 +37,8 @@ class SubmitResult {
 /// Manages the state machine:
 /// readiness → preamble → questions → review → submitting → confirmation
 ///
-/// Per REQ-p01073: tracks session start time and handles timeout.
+/// Tracks session start time and handles timeout.
+// Implements: DIARY-GUI-questionnaire-portal-sent-workflow/I+K+S
 class QuestionnaireFlowScreen extends StatefulWidget {
   const QuestionnaireFlowScreen({
     required this.definition,
@@ -235,6 +228,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     }
   }
 
+  // Implements: DIARY-PRD-questionnaire-session-timeout/A+B+C+D
   void _checkSessionTimeout() {
     final timeout = widget.definition.sessionConfig?.sessionTimeoutMinutes;
     if (timeout == null || _sessionStartTime == null) return;
@@ -261,6 +255,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     }
   }
 
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/C
   void _handleReady() {
     setState(() {
       _sessionStartTime = DateTime.now();
@@ -272,6 +267,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     });
   }
 
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/B
   void _handleDefer() {
     if (widget.onDefer != null) {
       widget.onDefer!();
@@ -315,6 +311,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     );
   }
 
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/I+P
   void _handleNext() {
     setState(() {
       // CUR-1119: If editing from review screen, return directly to review
@@ -337,6 +334,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     });
   }
 
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/M
   void _handleEditQuestion(int index) {
     setState(() {
       _questionIndex = index;
@@ -345,6 +343,7 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     });
   }
 
+  // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/N+Q
   Future<void> _handleSubmit() async {
     setState(() {
       _isSubmitting = true;
@@ -369,7 +368,8 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
         _state = _FlowState.confirmation;
       });
     } else if (result.isDeleted) {
-      // REQ-d00113: Questionnaire was deleted while participant was completing it
+      // Questionnaire was withdrawn while participant was completing it
+      // Implements: DIARY-BASE-questionnaire-coordinator-workflow/D
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
