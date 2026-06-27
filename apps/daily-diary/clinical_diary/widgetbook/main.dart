@@ -1,8 +1,5 @@
 // Widgetbook for Clinical Diary App
 // Run with: flutter run -t widgetbook/main.dart
-//
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00076: Participation Status Badge
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/profile_screen.dart';
@@ -14,6 +11,7 @@ void main() {
   runApp(const WidgetbookApp());
 }
 
+// Implements: DIARY-GUI-participation-status-badge
 class WidgetbookApp extends StatelessWidget {
   const WidgetbookApp({super.key});
 

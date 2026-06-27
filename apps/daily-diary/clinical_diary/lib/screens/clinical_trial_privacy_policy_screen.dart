@@ -1,11 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00045: Clinical Trial Privacy Policy
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// Placeholder screen for the Clinical Trial Privacy Policy.
 /// Final policy content TBD — displays a "coming soon" message for now.
+// Implements: DIARY-PRD-privacy-policy
 class ClinicalTrialPrivacyPolicyScreen extends StatelessWidget {
   const ClinicalTrialPrivacyPolicyScreen({super.key});
 

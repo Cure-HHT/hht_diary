@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//
 // CUR-447: Test for cross-day time validation bug
 // Scenario: Start time yesterday 3PM, end time today 3AM should be valid
 // Bug: Validation incorrectly shows "End time must be after start time"
@@ -14,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  // Verifies: DIARY-PRD-mobile-offline-first/A+B+C
   group('CUR-447: Cross-day time validation - InlineTimePicker unit tests', () {
     /// Helper to wrap widget with localization support
     Widget wrapWithApp(Widget child) {

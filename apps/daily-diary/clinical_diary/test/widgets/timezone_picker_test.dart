@@ -1,11 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-mobile-offline-first/A+B+C
   group('showTimezonePicker Widget', () {
     testWidgets('displays dialog with title', (tester) async {
       await tester.pumpWidget(

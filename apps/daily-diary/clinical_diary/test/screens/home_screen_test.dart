@@ -453,7 +453,7 @@ void main() {
     // CUR-1491: a recorded "don't remember" (unknown_day_event) marker on
     // yesterday must surface as its own status row — NOT fall through to the
     // bare "No records" empty state. "nothing recorded" and "acknowledged
-    // uncertainty" are different clinical states (cf. REQ-CAL-d00012).
+    // uncertainty" are different clinical states (cf. DIARY-PRD-day-disposition/A).
     testWidgets(
       'a finalized "don\'t remember" marker on yesterday shows the unknown '
       'status row, not "No records"',

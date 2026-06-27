@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-//   REQ-p00045: Clinical Trial Privacy Policy
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/clinical_trial_privacy_policy_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
@@ -17,6 +13,8 @@ import 'package:flutter/services.dart';
 /// `Join the Study` design (file qWMfvnr455NSByXqsDcok7, node 427-4237)
 /// and is built on the shared diary_design_system (AppCodeInput,
 /// AppConsentRow, AppButton).
+// Implements: DIARY-PRD-mobile-application/A
+// Implements: DIARY-PRD-privacy-policy
 class ClinicalTrialEnrollmentScreen extends StatefulWidget {
   const ClinicalTrialEnrollmentScreen({
     required this.enrollmentService,

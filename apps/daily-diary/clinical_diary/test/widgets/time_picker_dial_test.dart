@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/services/timezone_service.dart';
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:clinical_diary/widgets/time_picker_dial.dart';
@@ -9,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers/test_helpers.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-mobile-offline-first/A+B+C
   group('TimePickerDial', () {
     group('future time prevention', () {
       testWidgets(

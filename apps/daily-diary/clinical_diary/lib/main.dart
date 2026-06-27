@@ -1,12 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-//   REQ-p00006: Offline-First Data Entry
-//   REQ-d00006: Mobile App Build and Release Process
-//   REQ-p00008: Single App Architecture
-//   REQ-CAL-p00081: Participant Task System
-//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Directory, Platform, pid;
@@ -93,6 +84,9 @@ const bool _kDisableLiveStreams = bool.fromEnvironment(
   'DIARY_DISABLE_LIVE_STREAMS',
 );
 
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
+// Implements: DIARY-PRD-mobile-application/A+B
+// Implements: DIARY-OPS-single-promotable-artifact/A+C
 void main() async {
   // Security (CUR-1169): silence debugPrint in release builds. Flutter's
   // debugPrint is NOT stripped from release; it forwards to the platform log
@@ -960,13 +954,15 @@ class _AppRootState extends State<AppRoot> {
   /// topic subscription. FCM messages drive the diary reconcile via the native
   /// sync triggers (`installDiarySyncTriggers`); any FCM data messages that need
   /// to surface tasks flow through TaskService.handleFcmMessage.
+  // Implements: DIARY-GUI-participant-task-list/A+C+D
+  // Implements: DIARY-PRD-questionnaire-portal-sent-rules
   Future<void> _initializeNotifications() async {
     // Tasks are poll-based and independent of the push transport, so load +
     // sync them regardless of environment (a local web/desktop diary that is
     // already linked must still restore + refresh its task list).
     // Load persisted tasks from storage
     await _taskService.loadTasks();
-    // REQ-CAL-p00081: Poll for tasks on app start (FCM fallback)
+    // Poll for tasks on app start (FCM fallback)
     unawaited(_taskService.syncTasks(_enrollmentService));
 
     // CUR-1436/CUR-1447: a `questionnaire_assigned` FCM nudge carries only
@@ -1053,8 +1049,8 @@ class _AppRootState extends State<AppRoot> {
   /// token per participant+platform. Until linked there is no participant id, so
   /// the registration is deferred and re-run at the link transition.
   ///
-  /// REQ-CAL-p00082: Participant Alert Delivery
   // Implements: DIARY-DEV-inbound-event-on-receipt/A
+  // Implements: DIARY-BASE-mobile-notifications/A
   Future<void> _registerFcmToken(String token) async {
     final participantId = await _enrollmentService.getUserId();
     if (participantId == null || participantId.isEmpty) {
@@ -1121,8 +1117,8 @@ class _AppRootState extends State<AppRoot> {
   /// Called after the user successfully links to a study.
   /// Registers the cached FCM token with the diary server now that
   /// the JWT and backend URL are available.
-  ///
-  /// REQ-CAL-p00082: Participant Alert Delivery
+  // Implements: DIARY-BASE-mobile-notifications/A
+  // Implements: DIARY-GUI-participant-task-list/A+C+D
   void _onPostEnrollment() {
     final token = _notificationService?.currentToken;
     if (token != null) {
@@ -1137,7 +1133,7 @@ class _AppRootState extends State<AppRoot> {
     if (diaryScope != null) {
       unawaited(_reconcileDiaryScope(diaryScope));
     }
-    // REQ-CAL-p00081: Discover tasks immediately after linking
+    // Discover tasks immediately after linking
     unawaited(_taskService.syncTasks(_enrollmentService));
   }
 

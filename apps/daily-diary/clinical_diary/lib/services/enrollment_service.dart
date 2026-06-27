@@ -1,18 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-//   REQ-p70007: Linking Code Lifecycle Management
-//   REQ-d00078: Linking Code Validation
-//   REQ-CAL-p00049: Mobile Linking Codes
-//   REQ-CAL-p00073: Participant Status Definitions
-//   REQ-CAL-p00020: Participant Disconnection Workflow
-//   REQ-CAL-p00077: Disconnection Notification
-//   REQ-p05004: Disconnection Notification (persistent banner)
-//   REQ-p01065: Deactivate sync on disconnect (Assertion D)
-//
-// Implements: DIARY-DEV-state-in-event-log/B — the session JWT and the stable
-//   install id (app_uuid) are kept in flutter_secure_storage and are never
-//   written to the event log.
-
 import 'dart:convert';
 
 import 'package:clinical_diary/config/sponsor_registry.dart';
@@ -25,6 +10,10 @@ import 'package:uuid/uuid.dart';
 
 /// Service for handling participant linking with 10-character codes
 /// Uses HTTP calls to server functions for linking
+// Implements: DIARY-BASE-participant-lifecycle
+// Implements: DIARY-DEV-state-in-event-log/B — the session JWT and the stable
+//   install id (app_uuid) are kept in flutter_secure_storage and are never
+//   written to the event log.
 class EnrollmentService {
   EnrollmentService({
     FlutterSecureStorage? secureStorage,
@@ -90,8 +79,12 @@ class EnrollmentService {
   /// The 2-letter prefix of the code determines which sponsor's diary-server to call.
   /// For example, code "CAXXXXXXXX" uses Callisto's backend (prefix "CA").
   ///
-  /// REQ-p70007: Linking codes are single-use and expire after 72 hours
-  /// REQ-d00078: Code is validated via SHA-256 hash lookup
+  /// Linking codes are single-use and expire after 72 hours.
+  /// FLAG: this legacy SHA-256 hash-lookup validation is superseded by the
+  /// HMAC check-char model — see DIARY-DEV-linking-code-lifecycle.
+  // Implements: DIARY-PRD-mobile-application/A
+  // Implements: DIARY-PRD-linking-code-lifecycle
+  // Implements: DIARY-DEV-linking-code-lifecycle/C
   Future<UserEnrollment> enroll(String code) async {
     try {
       // CUR-1055: Client-side duplicate enrollment check.
@@ -144,7 +137,7 @@ class EnrollmentService {
         await _secureStorage.write(key: _appUuidKey, value: appUuid);
       }
 
-      // Call the link function via HTTP (REQ-p70007)
+      // Call the link function via HTTP
       // No JWT required - the linking code IS the authentication
       // Server will create user and return JWT
       final response = await _httpClient.post(
@@ -341,9 +334,11 @@ class EnrollmentService {
     return enrollment?.backendUrl;
   }
 
-  // REQ-CAL-p00077: Disconnection status tracking
+  // Disconnection status tracking
 
   /// Check if the participant has been disconnected from the study.
+  // Implements: DIARY-PRD-participant-disconnection
+  // Implements: DIARY-PRD-notification-disconnection
   Future<bool> isDisconnected() async {
     final prefs = await _getPrefs();
     return prefs.getBool(_disconnectedKey) ?? false;
@@ -369,9 +364,10 @@ class EnrollmentService {
         prefs.getBool(_notParticipatingKey) ?? false;
   }
 
-  // CUR-1165: Not participating state tracking (REQ-p01065-D)
+  // CUR-1165: Not participating state tracking
 
   /// Check if the participant has been marked as not participating by the sponsor
+  // Implements: DIARY-PRD-questionnaire-system
   Future<bool> isNotParticipating() async {
     final prefs = await _getPrefs();
     return prefs.getBool(_notParticipatingKey) ?? false;

@@ -1,10 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// Notes input widget for recording additional information
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class NotesInput extends StatefulWidget {
   const NotesInput({
     required this.notes,

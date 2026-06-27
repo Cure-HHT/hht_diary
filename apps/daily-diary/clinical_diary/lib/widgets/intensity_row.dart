@@ -1,12 +1,10 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/widgets/nosebleed_intensity.dart';
 import 'package:flutter/material.dart';
 
 /// Compact intensity selector displayed as a single row of tappable icons
 /// Icons are at least 40x40 (preferably 60x60+) and fill available horizontal space
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class IntensityRow extends StatelessWidget {
   const IntensityRow({
     required this.onSelect,

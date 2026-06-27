@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
-//   REQ-p01066-L: Store timestamps with participant's wall-clock time and timezone offset
-//
 // Phase 12.9 (CUR-1169): Restored from the legacy integration_test/ tree.
 // The original 1960-line test bound itself to the legacy ClinicalDiaryApp
 // boot path (Datastore.initialize) and drove time-picker dials end-to-end
@@ -37,7 +33,7 @@
 //    test/screens/recording_screen_test.dart and
 //    test/screens/simple_recording_screen_test.dart, which exercise the
 //    "back press auto-saves a partial" path against the new EntryService.
-//  - REQ-p01066-K TimePickerDial seconds & maxDateTime: covered by
+//  - TimePickerDial seconds & maxDateTime: covered by
 //    test/widgets/time_picker_dial_test.dart group 'maxDateTime parameter
 //    (CUR-447)'.
 
@@ -133,6 +129,8 @@ void main() {
     TimezoneService.instance.testTimezoneOverride = null;
   });
 
+  // Verifies: DIARY-PRD-mobile-application/A+B
+  // Verifies: DIARY-PRD-questionnaire-daily-epistaxis
   group('Timezone display E2E', () {
     late DiaryScopeRuntime diaryScope;
     late MockEnrollmentService enrollment;

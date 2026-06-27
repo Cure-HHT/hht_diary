@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/widgets/date_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers/test_helpers.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-mobile-offline-first/A+B+C
   group('DateHeader', () {
     testWidgets('displays formatted date', (tester) async {
       final testDate = DateTime(2024, 1, 15); // Monday, January 15

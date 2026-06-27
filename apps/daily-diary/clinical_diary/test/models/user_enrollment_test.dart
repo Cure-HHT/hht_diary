@@ -1,10 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-mobile-application/A
   group('UserEnrollment', () {
     final testEnrolledAt = DateTime(2024, 1, 15, 10, 30);
 

@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-//   REQ-p70007: Linking Code Lifecycle Management
-
 import 'package:clinical_diary/screens/clinical_trial_enrollment_screen.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:diary_design_system/diary_design_system.dart';
@@ -19,6 +15,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpTestFlavor();
 
+  // Verifies: DIARY-PRD-mobile-application/A
+  // Verifies: DIARY-PRD-linking-code-lifecycle
   group('ClinicalTrialEnrollmentScreen', () {
     late EnrollmentService enrollmentService;
     late MockSecureStorage mockStorage;
@@ -26,7 +24,7 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       mockStorage = MockSecureStorage();
-      // Pre-set auth JWT token - required for linking (REQ-p70007)
+      // Pre-set auth JWT token - required for linking
       mockStorage.data['auth_jwt'] = 'test-jwt-token';
       mockStorage.data['auth_username'] = 'test-user-id';
     });

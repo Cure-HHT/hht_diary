@@ -105,7 +105,7 @@ This document compares the Flutter implementation of the Diary mobile app agains
 
 **Flutter Status**: No questionnaire functionality exists.
 
-**Relevant Requirements**: REQ-p00008 (if applicable)
+**Relevant Requirements**: DIARY-PRD-mobile-application (if applicable)
 
 ---
 
@@ -382,9 +382,9 @@ This document compares the Flutter implementation of the Diary mobile app agains
 ### Requirement Traceability
 
 When implementing missing features, reference:
-- **REQ-p00008**: If questionnaires relate to data collection requirements
-- **REQ-d00004**: Local-First Data Entry Implementation
-- **REQ-d00005**: User Profile Screen Implementation
+- **DIARY-PRD-mobile-application**: If questionnaires relate to data collection requirements
+- **DIARY-PRD-mobile-offline-first**: Local-first diary data entry
+- **DIARY-PRD-mobile-application**: Single shared binary via runtime sponsor config
 
 ### Testing Requirements
 

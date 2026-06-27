@@ -1,11 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
-
 import 'package:clinical_diary/widgets/enrollment_success_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-mobile-application/A+B
   group('EnrollmentSuccessDialog', () {
     testWidgets('displays processing state initially', (tester) async {
       await tester.pumpWidget(
