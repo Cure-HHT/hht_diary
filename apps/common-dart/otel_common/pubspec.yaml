@@ -3,10 +3,6 @@ description: Shared OpenTelemetry instrumentation for HHT Diary platform servers
 version: 0.0.1
 publish_to: none
 
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00047: Performance Monitoring — OpenTelemetry integration
-#   REQ-o00045: Error tracking
-
 environment:
   sdk: ^3.10.7
 

@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047F: End-to-end distributed tracing (log-trace correlation)
-//   REQ-o00045: Error tracking with structured logging
-
 import 'dart:convert';
 import 'dart:io';
 
@@ -17,6 +13,7 @@ import 'package:logging/logging.dart';
 ///
 /// Cloud Logging uses `logging.googleapis.com/trace` and
 /// `logging.googleapis.com/spanId` to link log entries to traces.
+// Implements: DIARY-PRD-platform-operations-monitoring/A+D
 void configureTracedLogging({Level level = Level.INFO, String? gcpProjectId}) {
   Logger.root.level = level;
 
@@ -37,6 +34,7 @@ void configureTracedLogging({Level level = Level.INFO, String? gcpProjectId}) {
 /// Write a structured log entry with trace correlation.
 ///
 /// Use this for ad-hoc logging outside the [Logger] framework.
+// Implements: DIARY-PRD-platform-operations-monitoring/A+D
 void logWithTrace(
   String severity,
   String message, {

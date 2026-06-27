@@ -1,12 +1,12 @@
 import 'package:provenance/provenance.dart';
 import 'package:test/test.dart';
 
-/// Verifies REQ-d00115-C, REQ-d00115-D, REQ-d00115-E, REQ-d00115-F.
+/// Verifies EVS-PRD-provenance.
 void main() {
   group('ProvenanceEntry', () {
-    // Verifies: REQ-d00115-C — carries all five fields with correct types.
+    // Verifies: EVS-PRD-provenance/A — carries all five fields with correct types.
     test(
-      'REQ-d00115-C: construct with all required fields; getters round-trip',
+      'EVS-PRD-provenance: construct with all required fields; getters round-trip',
       () {
         final receivedAt = DateTime.utc(2026, 4, 21, 10, 30, 0);
         final entry = ProvenanceEntry(
@@ -24,9 +24,9 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00115-F — transform_version non-null when supplied.
+    // Verifies: EVS-PRD-provenance/A — transform_version non-null when supplied.
     test(
-      'REQ-d00115-F: construct with transformVersion; getter returns value',
+      'EVS-PRD-provenance: construct with transformVersion; getter returns value',
       () {
         final entry = ProvenanceEntry(
           hop: 'portal-server',
@@ -40,9 +40,9 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00115-C — toJson serializes all fields in snake_case.
+    // Verifies: EVS-PRD-provenance/C — toJson serializes all fields in snake_case.
     test(
-      'REQ-d00115-C: toJson emits snake_case keys including null transform_version',
+      'EVS-PRD-provenance: toJson emits snake_case keys including null transform_version',
       () {
         final entry = ProvenanceEntry(
           hop: 'mobile-device',
@@ -61,8 +61,8 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00115-F — toJson emits non-null transform_version.
-    test('REQ-d00115-F: toJson emits non-null transform_version when set', () {
+    // Verifies: EVS-PRD-provenance/C — toJson emits non-null transform_version.
+    test('EVS-PRD-provenance: toJson emits non-null transform_version when set', () {
       final entry = ProvenanceEntry(
         hop: 'portal-server',
         receivedAt: DateTime.utc(2026, 4, 21, 11, 0, 0),
@@ -74,8 +74,8 @@ void main() {
       expect(entry.toJson()['transform_version'], 'fhir-r4-v1');
     });
 
-    // Verifies: REQ-d00115-C — round-trip preserves every field.
-    test('REQ-d00115-C: toJson/fromJson round-trip preserves all fields', () {
+    // Verifies: EVS-PRD-provenance/C — round-trip preserves every field.
+    test('EVS-PRD-provenance: toJson/fromJson round-trip preserves all fields', () {
       final original = ProvenanceEntry(
         hop: 'diary-server',
         receivedAt: DateTime.utc(2026, 4, 21, 12, 15, 30, 500),
@@ -89,8 +89,8 @@ void main() {
       expect(roundTripped, equals(original));
     });
 
-    // Verifies: REQ-d00115-F — round-trip preserves null transform_version.
-    test('REQ-d00115-F: round-trip preserves null transform_version', () {
+    // Verifies: EVS-PRD-provenance/C — round-trip preserves null transform_version.
+    test('EVS-PRD-provenance: round-trip preserves null transform_version', () {
       final original = ProvenanceEntry(
         hop: 'mobile-device',
         receivedAt: DateTime.utc(2026, 4, 21, 10, 0, 0),
@@ -104,9 +104,9 @@ void main() {
       expect(roundTripped, equals(original));
     });
 
-    // Verifies: REQ-d00115-C — received_at is ISO 8601 with offset preserved.
+    // Verifies: EVS-PRD-provenance/C — received_at is ISO 8601 with offset preserved.
     test(
-      'REQ-d00115-C: received_at serializes with timezone offset (Z for UTC)',
+      'EVS-PRD-provenance: received_at serializes with timezone offset (Z for UTC)',
       () {
         final entry = ProvenanceEntry(
           hop: 'mobile-device',
@@ -121,7 +121,7 @@ void main() {
       },
     );
 
-    group('fromJson validation (REQ-d00115-C)', () {
+    group('fromJson validation (EVS-PRD-provenance)', () {
       final validJson = {
         'hop': 'mobile-device',
         'received_at': '2026-04-21T10:30:00.000Z',
@@ -130,40 +130,40 @@ void main() {
         'transform_version': null,
       };
 
-      // Verifies: REQ-d00115-C — missing hop is rejected.
-      test('REQ-d00115-C: missing hop throws FormatException', () {
+      // Verifies: EVS-PRD-provenance/C — missing hop is rejected.
+      test('EVS-PRD-provenance: missing hop throws FormatException', () {
         final bad = Map<String, Object?>.of(validJson)..remove('hop');
         expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
       });
 
-      // Verifies: REQ-d00115-C — missing received_at is rejected.
-      test('REQ-d00115-C: missing received_at throws FormatException', () {
+      // Verifies: EVS-PRD-provenance/C — missing received_at is rejected.
+      test('EVS-PRD-provenance: missing received_at throws FormatException', () {
         final bad = Map<String, Object?>.of(validJson)..remove('received_at');
         expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
       });
 
-      // Verifies: REQ-d00115-C — missing identifier is rejected.
-      test('REQ-d00115-C: missing identifier throws FormatException', () {
+      // Verifies: EVS-PRD-provenance/C — missing identifier is rejected.
+      test('EVS-PRD-provenance: missing identifier throws FormatException', () {
         final bad = Map<String, Object?>.of(validJson)..remove('identifier');
         expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
       });
 
-      // Verifies: REQ-d00115-C — missing software_version is rejected.
-      test('REQ-d00115-C: missing software_version throws FormatException', () {
+      // Verifies: EVS-PRD-provenance/C — missing software_version is rejected.
+      test('EVS-PRD-provenance: missing software_version throws FormatException', () {
         final bad = Map<String, Object?>.of(validJson)
           ..remove('software_version');
         expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
       });
 
-      // Verifies: REQ-d00115-C — wrong-type field is rejected.
-      test('REQ-d00115-C: non-string hop throws FormatException', () {
+      // Verifies: EVS-PRD-provenance/C — wrong-type field is rejected.
+      test('EVS-PRD-provenance: non-string hop throws FormatException', () {
         final bad = Map<String, Object?>.of(validJson)..['hop'] = 42;
         expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
       });
 
-      // Verifies: REQ-d00115-F — wrong-type transform_version is rejected.
+      // Verifies: EVS-PRD-provenance/C — wrong-type transform_version is rejected.
       test(
-        'REQ-d00115-F: non-string transform_version throws FormatException',
+        'EVS-PRD-provenance: non-string transform_version throws FormatException',
         () {
           final bad = Map<String, Object?>.of(validJson)
             ..['transform_version'] = 12;
@@ -171,26 +171,26 @@ void main() {
         },
       );
 
-      // Verifies: REQ-d00115-C — missing transform_version defaults to null.
-      test('REQ-d00115-C: absent transform_version key is treated as null', () {
+      // Verifies: EVS-PRD-provenance/C — missing transform_version defaults to null.
+      test('EVS-PRD-provenance: absent transform_version key is treated as null', () {
         final bad = Map<String, Object?>.of(validJson)
           ..remove('transform_version');
         final entry = ProvenanceEntry.fromJson(bad);
         expect(entry.transformVersion, isNull);
       });
 
-      // Verifies: REQ-d00115-C — malformed received_at rejected.
-      test('REQ-d00115-C: malformed received_at throws FormatException', () {
+      // Verifies: EVS-PRD-provenance/C — malformed received_at rejected.
+      test('EVS-PRD-provenance: malformed received_at throws FormatException', () {
         final bad = Map<String, Object?>.of(validJson)
           ..['received_at'] = 'not-a-date';
         expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
       });
 
-      // Verifies: REQ-d00115-C — offsetless ISO 8601 rejected. Dart's
+      // Verifies: EVS-PRD-provenance/C — offsetless ISO 8601 rejected. Dart's
       // DateTime.parse would silently accept this as local time, silently
       // breaking the ALCOA+ Contemporaneous guarantee in an audit chain.
       test(
-        'REQ-d00115-C: offsetless received_at (no Z, no +/-HH:MM) throws FormatException',
+        'EVS-PRD-provenance: offsetless received_at (no Z, no +/-HH:MM) throws FormatException',
         () {
           final bad = Map<String, Object?>.of(validJson)
             ..['received_at'] = '2026-04-21T10:30:00';
@@ -198,17 +198,17 @@ void main() {
         },
       );
 
-      // Verifies: REQ-d00115-C — explicit colon-separated positive offset.
-      test('REQ-d00115-C: received_at with +HH:MM offset is accepted', () {
+      // Verifies: EVS-PRD-provenance/C — explicit colon-separated positive offset.
+      test('EVS-PRD-provenance: received_at with +HH:MM offset is accepted', () {
         final input = Map<String, Object?>.of(validJson)
           ..['received_at'] = '2026-04-21T10:30:00+05:30';
         final entry = ProvenanceEntry.fromJson(input);
         expect(entry.receivedAt.isUtc, isTrue);
       });
 
-      // Verifies: REQ-d00115-C — colonless compact negative offset.
+      // Verifies: EVS-PRD-provenance/C — colonless compact negative offset.
       test(
-        'REQ-d00115-C: received_at with -HHMM (no colon) offset is accepted',
+        'EVS-PRD-provenance: received_at with -HHMM (no colon) offset is accepted',
         () {
           final input = Map<String, Object?>.of(validJson)
             ..['received_at'] = '2026-04-21T10:30:00-0430';
@@ -218,10 +218,10 @@ void main() {
       );
     });
 
-    group('identity shapes (REQ-d00115-D, REQ-d00115-E)', () {
-      // Verifies: REQ-d00115-D — mobile device uses a device UUID identifier.
+    group('identity shapes (EVS-PRD-provenance)', () {
+      // Verifies: EVS-PRD-provenance/A — mobile device uses a device UUID identifier.
       test(
-        'REQ-d00115-D: accepts a mobile-device hop with a device UUID identifier',
+        'EVS-PRD-provenance: accepts a mobile-device hop with a device UUID identifier',
         () {
           final entry = ProvenanceEntry(
             hop: 'mobile-device',
@@ -236,9 +236,9 @@ void main() {
         },
       );
 
-      // Verifies: REQ-d00115-D — server hop uses a server instance identifier.
+      // Verifies: EVS-PRD-provenance/A — server hop uses a server instance identifier.
       test(
-        'REQ-d00115-D: accepts a server hop with a server instance identifier',
+        'EVS-PRD-provenance: accepts a server hop with a server instance identifier',
         () {
           final entry = ProvenanceEntry(
             hop: 'diary-server',
@@ -250,9 +250,9 @@ void main() {
         },
       );
 
-      // Verifies: REQ-d00115-E — software_version format is preserved verbatim.
+      // Verifies: EVS-PRD-provenance/A — software_version format is preserved verbatim.
       test(
-        'REQ-d00115-E: software_version round-trips package@semver+build verbatim',
+        'EVS-PRD-provenance: software_version round-trips package@semver+build verbatim',
         () {
           const target = 'clinical_diary@1.2.3+45';
           final entry = ProvenanceEntry(
@@ -268,9 +268,9 @@ void main() {
     });
 
     group('value equality', () {
-      // Verifies: REQ-d00115-C — two entries with identical fields are equal.
+      // Verifies: EVS-PRD-provenance/A — two entries with identical fields are equal.
       test(
-        'REQ-d00115-C: equal fields produce equal entries and equal hashCodes',
+        'EVS-PRD-provenance: equal fields produce equal entries and equal hashCodes',
         () {
           final a = ProvenanceEntry(
             hop: 'mobile-device',
@@ -290,8 +290,8 @@ void main() {
         },
       );
 
-      // Verifies: REQ-d00115-C — any field difference breaks equality.
-      test('REQ-d00115-C: any field differing breaks equality', () {
+      // Verifies: EVS-PRD-provenance/A — any field difference breaks equality.
+      test('EVS-PRD-provenance: any field differing breaks equality', () {
         final base = ProvenanceEntry(
           hop: 'mobile-device',
           receivedAt: DateTime.utc(2026, 4, 21, 10, 0, 0),
@@ -329,7 +329,7 @@ void main() {
     });
   });
 
-  group('ProvenanceEntry ingest fields (REQ-d00115-G+H+I+J)', () {
+  group('ProvenanceEntry ingest fields (EVS-PRD-provenance)', () {
     test('defaults to null for all four ingest fields', () {
       final entry = ProvenanceEntry(
         hop: 'mobile-device',
@@ -404,10 +404,10 @@ void main() {
     });
   });
 
-  group('ProvenanceEntry origin_sequence_number (REQ-d00115-K)', () {
-    // Verifies: REQ-d00115-K — null on originator entries (default).
+  group('ProvenanceEntry origin_sequence_number (EVS-PRD-provenance)', () {
+    // Verifies: EVS-PRD-provenance/A — null on originator entries (default).
     test(
-      'REQ-d00115-K: originSequenceNumber defaults to null on originator entries',
+      'EVS-PRD-provenance: originSequenceNumber defaults to null on originator entries',
       () {
         final entry = ProvenanceEntry(
           hop: 'mobile-device',
@@ -419,9 +419,9 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00115-K — non-null on receiver-hop entries; round-trips.
+    // Verifies: EVS-PRD-provenance/C — non-null on receiver-hop entries; round-trips.
     test(
-      'REQ-d00115-K: non-null originSequenceNumber round-trips through JSON',
+      'EVS-PRD-provenance: non-null originSequenceNumber round-trips through JSON',
       () {
         final entry = ProvenanceEntry(
           hop: 'diary-server',
@@ -441,8 +441,8 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00115-K — JSON omits the key when value is null.
-    test('REQ-d00115-K: toJson omits origin_sequence_number when null', () {
+    // Verifies: EVS-PRD-provenance/C — JSON omits the key when value is null.
+    test('EVS-PRD-provenance: toJson omits origin_sequence_number when null', () {
       final entry = ProvenanceEntry(
         hop: 'mobile-device',
         receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
@@ -453,8 +453,8 @@ void main() {
       expect(json.containsKey('origin_sequence_number'), isFalse);
     });
 
-    // Verifies: REQ-d00115-K — fromJson treats absent key as null.
-    test('REQ-d00115-K: absent origin_sequence_number key decodes to null', () {
+    // Verifies: EVS-PRD-provenance/C — fromJson treats absent key as null.
+    test('EVS-PRD-provenance: absent origin_sequence_number key decodes to null', () {
       final input = <String, Object?>{
         'hop': 'mobile-device',
         'received_at': '2026-04-24T12:00:00Z',
@@ -466,9 +466,9 @@ void main() {
       expect(entry.originSequenceNumber, isNull);
     });
 
-    // Verifies: REQ-d00115-K — non-int origin_sequence_number is rejected.
+    // Verifies: EVS-PRD-provenance/C — non-int origin_sequence_number is rejected.
     test(
-      'REQ-d00115-K: non-int origin_sequence_number throws FormatException',
+      'EVS-PRD-provenance: non-int origin_sequence_number throws FormatException',
       () {
         final bad = <String, Object?>{
           'hop': 'diary-server',
@@ -482,9 +482,9 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00115-K — equality and hashCode include the new field.
+    // Verifies: EVS-PRD-provenance/A — equality and hashCode include the new field.
     test(
-      'REQ-d00115-K: equality and hashCode include originSequenceNumber',
+      'EVS-PRD-provenance: equality and hashCode include originSequenceNumber',
       () {
         final a = ProvenanceEntry(
           hop: 'h',
@@ -505,8 +505,8 @@ void main() {
       },
     );
 
-    // Verifies: REQ-d00115-K — toString includes the new field for diagnostics.
-    test('REQ-d00115-K: toString includes originSequenceNumber', () {
+    // Verifies: EVS-PRD-provenance/A — toString includes the new field for diagnostics.
+    test('EVS-PRD-provenance: toString includes originSequenceNumber', () {
       final entry = ProvenanceEntry(
         hop: 'diary-server',
         receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),

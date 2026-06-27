@@ -1,12 +1,3 @@
-// VERIFIES REQUIREMENTS:
-//   REQ-d00193: FCM Dispatch via cure-hht-admin Project
-//     B — POST to /v1/projects/<projectId>/messages:send
-//     C — 200 maps to success with messageId
-//     D — 404 / UNREGISTERED maps to unregisteredToken
-//     F — APNS payload split by user-visibility
-//     G — non-200, non-404 maps to failure
-//   REQ-d00194-D: PayloadGuard runs before network egress
-
 import 'dart:convert';
 
 import 'package:comms/comms.dart';
@@ -19,6 +10,8 @@ import 'package:test/test.dart';
 AdcClient _testAdc(http.Client client) =>
     AdcClient(authFactory: () async => client);
 
+// Verifies: DIARY-DEV-pluggable-push-transport/A — FCM send, response mapping, APNS split
+// Verifies: DIARY-DEV-push-payload-phi-safety/A+B — PayloadGuard runs before network egress
 void main() {
   setUp(() {
     PayloadGuard.testOnlyDisable = false;
@@ -247,7 +240,7 @@ void main() {
       );
     });
 
-    group('APNS payload split (REQ-d00193-F / REQ-d00196)', () {
+    group('APNS payload split (DIARY-DEV-pluggable-push-transport / DIARY-PRD-notification-behavior)', () {
       test(
         'userVisible=true sends priority=10 with no content-available',
         () async {

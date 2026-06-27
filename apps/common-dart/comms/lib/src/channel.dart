@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00193: FCM Dispatch via cure-hht-admin Project
-//
 // Universal transport contract. Each communication channel (FCM today;
 // email and Slack in Phase 3) implements [Channel] with a
 // channel-specific [ChannelMessage] subtype. Consumers depend on the
@@ -17,6 +14,7 @@ abstract class ChannelMessage {
 
 /// Synchronous-looking dispatch contract. Implementations may be async;
 /// callers always await the [DispatchResult].
+// Implements: DIARY-DEV-pluggable-push-transport/A — pluggable transport contract
 abstract class Channel<T extends ChannelMessage> {
   /// Stable identifier used in metric tags and logs (e.g. `'fcm'`).
   String get name;

@@ -1,11 +1,7 @@
-// VERIFIES REQUIREMENTS:
-//   REQ-d00194-E: minimum PHI pattern coverage
-//   REQ-d00194-G: rejection raises an exception
-//   REQ-d00194-H: bypass permitted only via test-only flag
-
 import 'package:comms/comms.dart';
 import 'package:test/test.dart';
 
+// Verifies: DIARY-DEV-push-payload-phi-safety/A+B+C+D — pattern coverage, rejection, fail-closed, test-only bypass
 void main() {
   group('PayloadGuard.assertSafeText', () {
     setUp(() {
@@ -14,7 +10,7 @@ void main() {
       PayloadGuard.commonNamePatterns = <RegExp>[];
     });
 
-    group('subject_key pattern (REQ-d00194-E)', () {
+    group('subject_key pattern (DIARY-DEV-push-payload-phi-safety)', () {
       test('rejects strict 3-3-3 SubjectKey', () {
         expect(
           () => PayloadGuard.assertSafeText(
@@ -66,7 +62,7 @@ void main() {
       });
     });
 
-    group('email pattern (REQ-d00194-E)', () {
+    group('email pattern (DIARY-DEV-push-payload-phi-safety)', () {
       test('rejects an email address', () {
         expect(
           () => PayloadGuard.assertSafeText(
@@ -94,7 +90,7 @@ void main() {
       });
     });
 
-    group('common_name patterns (REQ-d00194-E)', () {
+    group('common_name patterns (DIARY-DEV-push-payload-phi-safety)', () {
       test('rejects a configured coordinator name', () {
         PayloadGuard.commonNamePatterns = <RegExp>[
           RegExp(r'\bDr\.\s+Watson\b', caseSensitive: false),
@@ -148,7 +144,7 @@ void main() {
     });
 
     test(
-      'throws PhiLeakException — not a generic Exception (REQ-d00194-G)',
+      'throws PhiLeakException — not a generic Exception (DIARY-DEV-push-payload-phi-safety)',
       () {
         // Type discrimination matters: callers catch PhiLeakException to
         // log severity ERROR; a generic catch would swallow other errors.
@@ -165,7 +161,7 @@ void main() {
       },
     );
 
-    group('testOnlyDisable bypass (REQ-d00194-H)', () {
+    group('testOnlyDisable bypass (DIARY-DEV-push-payload-phi-safety)', () {
       test('flag bypasses the check in non-release mode', () {
         PayloadGuard.testOnlyDisable = true;
         expect(

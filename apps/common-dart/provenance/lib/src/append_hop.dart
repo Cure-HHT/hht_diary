@@ -8,7 +8,7 @@ import 'package:provenance/src/provenance_entry.dart';
 ///
 /// Each hop that receives an event calls `appendHop` exactly once to record
 /// its receipt.
-// Implements: REQ-d00115-A+B — append exactly one entry per hop; never mutate
+// Implements: EVS-PRD-provenance/B — append exactly one entry per hop; never mutate
 // prior entries. Returning an unmodifiable list preserves the invariant
 // downstream: even buggy callers cannot retroactively alter the chain.
 List<ProvenanceEntry> appendHop(

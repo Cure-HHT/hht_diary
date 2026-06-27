@@ -1,7 +1,3 @@
-// VERIFIES REQUIREMENTS:
-//   REQ-d00195: GET /notifications/{id} returns the envelope and
-//               idempotently stamps delivered_at on first read
-
 import 'dart:convert';
 
 import 'package:comms/comms.dart';
@@ -44,6 +40,7 @@ Envelope _seed(
   return envelope;
 }
 
+// Verifies: DIARY-DEV-inbound-event-on-receipt/A — fetch by id stamps delivered on first read
 void main() {
   group('envelopeFetchHandler', () {
     test('200 returns the envelope JSON', () async {

@@ -1,10 +1,7 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047G: Database query tracing
-//   REQ-o00045Q: PII/PHI scrubbing in trace data
-
 import 'package:otel_common/otel_common.dart';
 import 'package:test/test.dart';
 
+// Verifies: DIARY-PRD-platform-operations-monitoring/B
 void main() {
   group('sanitizeSql', () {
     test('replaces single-quoted string literals', () {

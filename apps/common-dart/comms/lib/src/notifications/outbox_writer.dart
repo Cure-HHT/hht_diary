@@ -1,12 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00167: FCM Dispatch via cure-hht-admin Project
-//     (writer is the single egress site; UNREGISTERED triggers token
-//      deactivation via the onUnregistered callback)
-//   REQ-d00168: PHI-Safe FCM Payload (envelope title/body/payload
-//               are guard-checked before insert)
-//   REQ-d00169: Mobile Notifications Polling (writer transitions
-//               envelope state machine pending → sent / failed)
-//
 // Persist-then-dispatch helper. One method, one sequence:
 //
 //   1. PayloadGuard (envelope-level — title, body, serialized payload)
@@ -30,6 +21,9 @@ import 'package:comms/src/notifications/repository.dart';
 /// Coordinator between the persisted envelope, the FCM transport, and
 /// the optional dead-token callback. One instance per (repo, channel)
 /// pair — typically wired at server startup.
+// Implements: DIARY-DEV-pluggable-push-transport/A — single egress site; UNREGISTERED triggers token deactivation
+// Implements: DIARY-DEV-push-payload-phi-safety/B — guard runs before persistence
+// Implements: DIARY-DEV-inbound-event-on-receipt/A — transitions envelope state machine
 class OutboxWriter {
   OutboxWriter({
     required this.repo,
