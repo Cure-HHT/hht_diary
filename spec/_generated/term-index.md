@@ -3808,6 +3808,13 @@
 - DIARY-GUI-questionnaire-portal-sent-workflow-Q
 - DIARY-PRD-sla-data-recovery-M
 - DIARY-PRD-reason-field-constraints-A
+- DIARY-BASE-questionnaire-manage-modal::DIARY-PRD-reason-field-constraints-A
+- DIARY-PRD-participant-reconnection::DIARY-PRD-reason-field-constraints-A
+- DIARY-PRD-participant-reactivate::DIARY-PRD-reason-field-constraints-A
+- DIARY-PRD-user-account-deactivate::DIARY-PRD-reason-field-constraints-A
+- DIARY-PRD-user-account-reactivate::DIARY-PRD-reason-field-constraints-A
+- DIARY-GUI-user-account-deactivate::DIARY-PRD-reason-field-constraints-A
+- DIARY-GUI-user-account-reactivate::DIARY-PRD-reason-field-constraints-A
 - rem:spec/base-questionnaire-coordinator.md:3
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:1

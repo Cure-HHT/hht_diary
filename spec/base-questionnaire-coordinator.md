@@ -85,6 +85,7 @@ re-sent.
 
 **Level**: BASE | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-questionnaire-coordinator-workflow
+**Satisfies**: DIARY-PRD-reason-field-constraints
 
 The **Questionnaire Card** and **Select Starting Cycle Dialog** terms used
 below are defined by the deploying study's requirement set (each *Sponsor*

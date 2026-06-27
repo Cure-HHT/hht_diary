@@ -4,16 +4,16 @@
     "unique_legacy_ids": 106,
     "header_block_files": 227,
     "by_level": {
-      "OPS": 24,
       "DEV": 44,
+      "OPS": 24,
       "PRD": 37,
       "GUI": 1
     },
     "by_status": {
-      "unresolved": 91,
-      "resolved": 15
+      "unresolved": 81,
+      "resolved": 25
     },
-    "live_req_count": 205
+    "live_req_count": 213
   },
   "header_block_files": [
     ".devcontainer/check-prerequisites.sh",
@@ -256,9 +256,9 @@
       "status": "resolved",
       "target": "DIARY-GUI-participation-status-badge",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     },
     "REQ-CAL-d00012": {
       "level": "DEV",
@@ -271,9 +271,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00001": {
       "level": "PRD",
@@ -287,9 +287,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00002": {
       "level": "PRD",
@@ -303,9 +303,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00003": {
       "level": "PRD",
@@ -319,9 +319,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00007": {
       "level": "PRD",
@@ -333,9 +333,9 @@
       "status": "resolved",
       "target": "CAL-PRD-questionnaire-score-display-prohibition",
       "target_live": false,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "mapping",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00020": {
       "level": "PRD",
@@ -352,9 +352,9 @@
       "status": "resolved",
       "target": "CAL-PRD-participant-disconnection-reason-options",
       "target_live": false,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "mapping",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00023": {
       "level": "PRD",
@@ -375,9 +375,9 @@
       "status": "resolved",
       "target": "CAL-PRD-nose-hht-qol-workflow",
       "target_live": false,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "mapping",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00047": {
       "level": "PRD",
@@ -393,9 +393,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00049": {
       "level": "PRD",
@@ -408,9 +408,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00065": {
       "level": "PRD",
@@ -426,9 +426,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00066": {
       "level": "PRD",
@@ -440,9 +440,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00073": {
       "level": "PRD",
@@ -454,9 +454,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00076": {
       "level": "PRD",
@@ -472,9 +472,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00077": {
       "level": "PRD",
@@ -493,9 +493,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00080": {
       "level": "PRD",
@@ -513,9 +513,9 @@
       "status": "resolved",
       "target": "CAL-PRD-questionnaire-cycle-tracking",
       "target_live": false,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "mapping",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00081": {
       "level": "PRD",
@@ -535,9 +535,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-CAL-p00082": {
       "level": "PRD",
@@ -552,9 +552,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
+      "disposition": "re-anchor",
       "source": "none",
-      "notes": ""
+      "notes": "Shared/core hht_diary code cites a sponsor CAL req (isolation smell). Re-anchor the code citation to a generic DIARY-* id IN THIS SWEEP: prefer an existing DIARY req; author DIARY-BASE for a new internal-product root (hesitant on new PRD). The CAL overlay req, if needed, stays in callisto and Satisfies the generic DIARY/template."
     },
     "REQ-d00001": {
       "level": "DEV",
@@ -1744,12 +1744,12 @@
         "infrastructure/terraform/modules/identity-platform/main.tf",
         "infrastructure/terraform/modules/svc-accts/main.tf"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-two-factor-authentication",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A: portal MFA enforced in identity-platform terraform."
     },
     "REQ-p00006": {
       "level": "PRD",
@@ -1762,9 +1762,9 @@
       "status": "resolved",
       "target": "DIARY-PRD-mobile-offline-first",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     },
     "REQ-p00008": {
       "level": "PRD",
@@ -1797,12 +1797,12 @@
         "infrastructure/terraform/sponsor-envs/main.tf",
         "infrastructure/terraform/sponsor-envs/variables.tf"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-mobile-application",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "SPLIT per-file: mobile/Flutter cites -> DIARY-PRD-mobile-application/A+B; infra multi-sponsor cites -> DIARY-BASE-compliant-diary-platform/B (isolation). README:113 keeps deployment governance out of this repo, so cite the apex isolation invariant, not a deploy req."
     },
     "REQ-p00009": {
       "level": "PRD",
@@ -1814,9 +1814,9 @@
       "status": "unresolved",
       "target": null,
       "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Zero code citations; concept survives as DIARY-BASE-sponsor-portal but no annotation references this id."
     },
     "REQ-p00020": {
       "level": "PRD",
@@ -1825,12 +1825,12 @@
       "files": [
         ".github/workflows/alert-workflow-changes.yml"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-system-validation-traceability",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "Cited by alert-workflow-changes.yml. Behavioral alt: DIARY-OPS-pr-compliance-checks/F (detective control). Same file also carries REQ-o00053/REQ-o00013 (OPS batch)."
     },
     "REQ-p00042": {
       "level": "PRD",
@@ -1848,9 +1848,9 @@
       "status": "resolved",
       "target": "DIARY-PRD-epistaxis-capture-standard",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     },
     "REQ-p00045": {
       "level": "PRD",
@@ -1866,9 +1866,9 @@
       "status": "resolved",
       "target": "DIARY-PRD-privacy-policy",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     },
     "REQ-p00047": {
       "level": "PRD",
@@ -1879,12 +1879,12 @@
         "infrastructure/terraform/modules/cloud-sql/variables.tf",
         "infrastructure/terraform/sponsor-envs/main.tf"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-data-backup-and-archival",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+C+F: automated backups / PITR / per-sponsor isolation; cloud-sql terraform already cites (A,C,F)."
     },
     "REQ-p00049": {
       "level": "PRD",
@@ -1894,12 +1894,12 @@
         "apps/daily-diary/clinical_diary/lib/services/notification_service.dart",
         "infrastructure/docker/email-job/send-email.sh"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-PRD-ancillary-platform-services",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A=push (notification_service.dart); C+D=email+audit (send-email.sh)."
     },
     "REQ-p01018": {
       "level": "PRD",
@@ -1911,12 +1911,12 @@
         "apps/common-dart/dart-base-container/Dockerfile",
         "apps/common-dart/flutter-base-container/Dockerfile"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-OPS-security-scanning",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "Collapses to OPS CI: pr-health Trivy/SARIF -> DIARY-OPS-security-scanning/B+C+D; qa-automation analyze+SQL lint -> DIARY-OPS-code-quality-gate/A+C. Archive title 'Security Audit and Compliance' (no surviving PRD)."
     },
     "REQ-p01064": {
       "level": "PRD",
@@ -1925,12 +1925,12 @@
       "files": [
         "apps/common-dart/trial_data_types/lib/src/questionnaire_status.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-BASE-questionnaire-coordinator-workflow",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "G+I+J+M: questionnaire_status enum = review->finalize lifecycle. Source file also has a forbidden IMPLEMENTS header + REQ-CAL-p00023 (cross-repo)."
     },
     "REQ-p01065": {
       "level": "PRD",
@@ -1946,9 +1946,9 @@
       "status": "resolved",
       "target": "DIARY-PRD-questionnaire-system",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     },
     "REQ-p01066": {
       "level": "PRD",
@@ -1961,9 +1961,9 @@
       "status": "resolved",
       "target": "DIARY-PRD-questionnaire-daily-epistaxis",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     },
     "REQ-p01067": {
       "level": "PRD",
@@ -1987,9 +1987,9 @@
       "status": "resolved",
       "target": "DIARY-PRD-questionnaire-nose-hht",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     },
     "REQ-p01068": {
       "level": "PRD",
@@ -2013,9 +2013,9 @@
       "status": "resolved",
       "target": "DIARY-PRD-questionnaire-hht-qol",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     },
     "REQ-p01069": {
       "level": "PRD",
@@ -2025,12 +2025,12 @@
         "apps/daily-diary/clinical_diary/lib/widgets/nosebleed_intensity.dart",
         "apps/daily-diary/clinical_diary/lib/widgets/time_picker_dial.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-GUI-epistaxis-record",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "E+J time pickers (time_picker_dial.dart); G intensity grid (nosebleed_intensity.dart)."
     },
     "REQ-p01070": {
       "level": "PRD",
@@ -2052,12 +2052,12 @@
         "apps/common-flutter/eq/test/widgets/response_scale_selector_test.dart",
         "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-GUI-questionnaire-portal-sent-workflow",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "SPLIT per-file: generic eq engine widgets -> DIARY-GUI-questionnaire-portal-sent-workflow/A-N; NOSE category content -> DIARY-PRD-questionnaire-nose-hht/E."
     },
     "REQ-p01071": {
       "level": "PRD",
@@ -2078,12 +2078,12 @@
         "apps/common-flutter/eq/test/widgets/rich_text_question_test.dart",
         "apps/daily-diary/clinical_diary/lib/screens/home_screen.dart"
       ],
-      "status": "unresolved",
-      "target": null,
-      "target_live": null,
-      "disposition": null,
-      "source": "none",
-      "notes": ""
+      "status": "resolved",
+      "target": "DIARY-GUI-questionnaire-portal-sent-workflow",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "SPLIT per-file: generic eq engine -> DIARY-GUI-questionnaire-portal-sent-workflow/A-N; QoL rich-text emphasis -> DIARY-PRD-questionnaire-hht-qol/E."
     },
     "REQ-p01073": {
       "level": "PRD",
@@ -2100,9 +2100,9 @@
       "status": "resolved",
       "target": "DIARY-PRD-questionnaire-session-timeout",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     },
     "REQ-p05004": {
       "level": "PRD",
@@ -2119,9 +2119,9 @@
       "status": "resolved",
       "target": "DIARY-PRD-notification-disconnection",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     },
     "REQ-p70007": {
       "level": "PRD",
@@ -2136,9 +2136,9 @@
       "status": "resolved",
       "target": "DIARY-PRD-linking-code-lifecycle",
       "target_live": true,
-      "disposition": null,
+      "disposition": "port",
       "source": "mapping",
-      "notes": ""
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
     }
   }
 }

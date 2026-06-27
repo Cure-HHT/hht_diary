@@ -178,6 +178,7 @@ G. When an **Administrator** initiates an **Email Address** change, the **System
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-create
+**Satisfies**: DIARY-PRD-reason-field-constraints
 
 Deactivation
 : The action of revoking a **User Account**'s ability to access the system without permanently removing the account or its associated data. A deactivated account retains all historical data and **Audit Trail** but cannot be used to log in or maintain active sessions.
@@ -206,6 +207,7 @@ F. When an **Administrator** deactivates a **User Account**, the **System** SHAL
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-deactivate
+**Satisfies**: DIARY-PRD-reason-field-constraints
 
 ### Assertions
 
@@ -225,8 +227,7 @@ Reactivation is the inverse of *Deactivation* and serves the case where a previo
 
 ## DIARY-PRD-reason-field-constraints: Reason Field Constraints
 
-**Level**: PRD | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-BASE-sponsor-portal
+**Level**: PRD | **Status**: Draft | **Implements**: - | **Template**
 
 ### Overview
 
@@ -311,6 +312,7 @@ Active and inactive accounts are operationally distinct surfaces: actions availa
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-deactivate
+**Satisfies**: DIARY-PRD-reason-field-constraints
 
 ### Overview
 
@@ -342,6 +344,7 @@ The *Deactivation* surface is anchored to the **Active Users** tab because that 
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-user-account-reactivate
+**Satisfies**: DIARY-PRD-reason-field-constraints
 
 ### Overview
 

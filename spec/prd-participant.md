@@ -135,6 +135,7 @@ Disconnection sits between linking (the **Participant** is in *Trial*) and mark-
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-participant-lifecycle
+**Satisfies**: DIARY-PRD-reason-field-constraints
 
 ### Overview
 
@@ -189,6 +190,7 @@ Mark-as-not-participating is the off-*Trial* state: the **Participant** has eith
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-participant-lifecycle
+**Satisfies**: DIARY-PRD-reason-field-constraints
 
 ### Overview
 
