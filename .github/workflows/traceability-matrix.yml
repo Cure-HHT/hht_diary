@@ -16,6 +16,7 @@ on:
       - "database/**"
       - ".elspais.toml"
       - ".github/workflows/traceability-matrix.yml"
+      - ".github/scripts/**"
       - ".github/versions.env"
       - "tools/dev-env/docker/**"
       - "tools/dev-env/docker-compose.yml"
@@ -253,13 +254,15 @@ jobs:
             fi
             [ -s /tmp/active-cov.md ] && { cat /tmp/active-cov.md; echo ""; }
             if [ -f "$MATRIX" ]; then
-              REQ_COUNT=$(grep -cE '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX")
+              # grep -c exits 1 on zero matches; under `set -eo pipefail` that
+              # would abort the comment builder, so keep both greps non-fatal.
+              REQ_COUNT=$(grep -cE '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX" || true)
               # Status histogram of the requirements in scope (count + % of total).
               # Generic over statuses: Active appears here automatically once any
               # real requirement is promoted out of Draft.
               STATUS_LINE=$(grep -E '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX" \
                 | awk -F'|' '{gsub(/ /,"",$5); print $5}' | sort | uniq -c | sort -rn \
-                | awk -v t="$REQ_COUNT" '{printf "%s%s %d (%d%%)", (NR>1?", ":""), $2, $1, (100*$1/t)}')
+                | awk -v t="$REQ_COUNT" '{printf "%s%s %d (%d%%)", (NR>1?", ":""), $2, $1, (100*$1/t)}' || true)
               echo ""
               echo "Requirement status: ${STATUS_LINE} (total ${REQ_COUNT})"
               echo ""

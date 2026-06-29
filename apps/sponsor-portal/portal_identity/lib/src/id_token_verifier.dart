@@ -128,9 +128,9 @@ Future<VerificationResult> verifyIdToken(
   print('[AUTH] verifyIdToken called');
   print('[AUTH] FIREBASE_AUTH_EMULATOR_HOST = $emulatorHost');
   print('[AUTH] emulator = $emulator');
-  print(
-    '[AUTH] Token prefix: ${idToken.substring(0, idToken.length > 50 ? 50 : idToken.length)}...',
-  );
+  // Log only non-secret metadata — never any portion of the token itself,
+  // which would leak authentication material into CI / aggregated logs.
+  print('[AUTH] Token length: ${idToken.length}');
 
   // For Firebase emulator, use simplified verification
   if (emulator) {
