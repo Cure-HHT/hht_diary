@@ -96,7 +96,9 @@ class SponsorRegistry {
   /// each deployment serves one sponsor, so apiBase is that sponsor's backend.
   static String getBackendUrlForCode(String code) {
     final prefix = extractPrefix(code);
-    final sponsor = getByPrefix(prefix);
+    // Validate the prefix is a registered sponsor (throws if unknown);
+    // the backend itself is the active single-tenant apiBase.
+    getByPrefix(prefix);
 
     return AppConfig.apiBase;
   }
