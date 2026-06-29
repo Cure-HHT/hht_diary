@@ -159,14 +159,77 @@ Future<EventStore> openPortalEventStore({
 /// authorization policy. Returns `PolicyReady` on a clean seed (the returned
 /// policy reads grants + scope coverage from the event log) or `PolicyFailSafe`
 /// (deny-everything) carrying the validation errors.
+///
+/// The YAML is treated as the authoritative source of role→permission grants.
+/// `bootstrapActionPermissions` appends `permission_granted` events for pairs
+/// the YAML adds but the projection lacks; this function additionally applies
+/// the *drift* — `permission_revoked` events for grants present in the
+/// `role_permission_grants` projection that the YAML no longer declares — so a
+/// permission removed from the YAML actually disappears on the next boot.
+///
+/// This is safe today because no Portal Action grants role→permission pairs at
+/// runtime: the only writer of those grants is this seed, so the drift is
+/// exactly "what the YAML dropped since last boot". If/when runtime
+/// role-permission editing is introduced, this full-reconcile would clobber
+/// those runtime grants and the reconcile strategy must be revisited
+/// (DIARY-DEV-role-permissions-seed).
+// Implements: DIARY-DEV-role-permissions-seed/A — YAML is authoritative: boot
+//   grants what the YAML adds and revokes the drift it dropped.
 Future<AuthorizationBootstrapResult> buildPortalAuthorizationPolicy({
   required EventStore eventStore,
   required String roleGrantsYaml,
-}) {
-  return bootstrapActionPermissions(
+}) async {
+  final result = await bootstrapActionPermissions(
     eventStore: eventStore,
     declaredPermissions: buildPortalActionRegistry().allDeclaredPermissions,
     scopeClassRegistry: buildPortalScopeRegistry(),
     yamlSource: roleGrantsYaml,
   );
+  // Only reconcile when the seed itself applied. On PolicyFailSafe the seed was
+  // rejected (validation error) and never touched the log — there is nothing to
+  // reconcile against, and revoking here would act on a stale, unvalidated YAML.
+  if (result is PolicyReady) {
+    await _revokePermissionDrift(
+      eventStore: eventStore,
+      roleGrantsYaml: roleGrantsYaml,
+    );
+  }
+  return result;
+}
+
+/// Revoke every grant in the `role_permission_grants` projection that the
+/// current [roleGrantsYaml] does not declare. Idempotent: a revoked grant
+/// leaves the projection, so a subsequent boot with the same YAML finds no
+/// drift and emits nothing.
+// Implements: DIARY-DEV-role-permissions-seed/A — applies the computed drift
+//   (view-minus-seed) as permission_revoked events.
+Future<void> _revokePermissionDrift({
+  required EventStore eventStore,
+  required String roleGrantsYaml,
+}) async {
+  final seed = YamlSeedLoader().loadFromString(roleGrantsYaml);
+  final inSeed = <String>{
+    for (final entry in seed.grants.entries)
+      for (final permission in entry.value) '${entry.key}:$permission',
+  };
+
+  final rows = await eventStore.backend.findViewRows('role_permission_grants');
+  for (final row in rows) {
+    final role = row['role'] as String;
+    final permissionName = row['permissionName'] as String;
+    if (inSeed.contains('$role:$permissionName')) continue;
+    await eventStore.append(
+      entryType: 'role_permission_grant',
+      aggregateType: 'role_permission_grant',
+      aggregateId: '$role:$permissionName',
+      eventType: 'permission_revoked',
+      data: PermissionRevokedPayload(
+        role: role,
+        permissionName: permissionName,
+      ).toJson(),
+      initiator: const AutomationInitiator(
+        service: 'portal_permissions_seed_drift',
+      ),
+    );
+  }
 }
