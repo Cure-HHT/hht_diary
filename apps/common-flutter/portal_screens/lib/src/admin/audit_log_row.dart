@@ -203,10 +203,9 @@ class _UserCell extends StatelessWidget {
     // Email subtitle under the name. Hidden for automation, and when it would
     // merely duplicate the name (no display name resolved, so the name line is
     // already the email).
-    final displayEmail =
-        (isAutomation || entry.actorEmail == entry.actorName)
-            ? ''
-            : entry.actorEmail;
+    final displayEmail = (isAutomation || entry.actorEmail == entry.actorName)
+        ? ''
+        : entry.actorEmail;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

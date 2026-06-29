@@ -104,7 +104,9 @@ class AppDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final borderRadius = BorderRadius.circular(RadiusTokens.md); // Figma: dialog corner radius 8
+    final borderRadius = BorderRadius.circular(
+      RadiusTokens.md,
+    ); // Figma: dialog corner radius 8
 
     final dialog = Dialog(
       // Transparent so Material doesn't paint its own surface-tint /
@@ -123,7 +125,9 @@ class AppDialog extends StatelessWidget {
           decoration: BoxDecoration(
             color: backgroundColor ?? theme.colorScheme.surface,
             borderRadius: borderRadius,
-            border: Border.all(color: theme.colorScheme.outlineVariant), // Figma: 1px hairline border
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant,
+            ), // Figma: 1px hairline border
             // Figma drop shadow: x=5, y=10, blur=20, spread=-3, color
             // #364153 at 10% alpha. Single-layer (no ambient stack).
             boxShadow: const [

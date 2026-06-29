@@ -894,10 +894,7 @@ class _HomeShellState extends State<_HomeShell> {
         // Same sponsor-served logo the auth cards use (CUR-1483 Figma:
         // logo sits left of the title block).
         // Figma: hard-coded CureHHT brand mark on the top header.
-        logo: Image.asset(
-          'assets/icons/curehht_logo.png',
-          height: 40,
-        ),
+        logo: Image.asset('assets/icons/curehht_logo.png', height: 40),
         // Opens the read-only Study Settings page over the active tab.
         // Visible only to roles holding the ACT-ADM-001 read permission
         // (Administrator + SystemOperator per the sponsor matrix); the

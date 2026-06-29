@@ -342,10 +342,7 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
   /// Builds the per-status action list (Figma) — reusing the existing
   /// lifecycle handlers — and shows the "Participant Actions" sheet. A status
   /// with no actions (unknown) opens nothing.
-  void _openActionsDialog(
-    ParticipantRecordRow record,
-    ParticipantRowView row,
-  ) {
+  void _openActionsDialog(ParticipantRecordRow record, ParticipantRowView row) {
     final actions = _dialogActionsFor(record, row.status);
     if (actions.isEmpty) return;
     unawaited(

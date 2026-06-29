@@ -243,15 +243,17 @@ AuditEntryView _toEntryView(Map<String, Object?> row) {
   // cell shows the server-resolved display name (else the email), and
   // renders "Automation" for non-user initiators (blank actorName).
   final initiator = row['initiator'];
-  final initiatorMap =
-      initiator is Map ? initiator.cast<String, Object?>() : null;
+  final initiatorMap = initiator is Map
+      ? initiator.cast<String, Object?>()
+      : null;
   final actorName = auditActorName(initiatorMap);
   final actorEmail = auditActorEmail(initiatorMap);
   // The actor's role at the time of the action — surfaced as `actor_role`
   // when the server records it; blank otherwise (the User cell collapses
   // the role line gracefully).
-  final actorRole =
-      actorName.isEmpty ? '' : (row['actor_role']?.toString() ?? '');
+  final actorRole = actorName.isEmpty
+      ? ''
+      : (row['actor_role']?.toString() ?? '');
 
   return AuditEntryView(
     id: (row['event_id'] as String?) ?? (row['aggregateId'] as String?) ?? '?',

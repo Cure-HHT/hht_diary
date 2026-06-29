@@ -230,7 +230,9 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: Theme.of(ctx).extension<AppSemanticColors>()!.statusActive,
+                  color: Theme.of(
+                    ctx,
+                  ).extension<AppSemanticColors>()!.statusActive,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -279,10 +281,8 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
           'The next step for this participant; more lifecycle actions '
           'are in the row menu.',
         ),
-        cellBuilder: (ctx, p) => _ActionCell(
-          row: p,
-          onPrimaryAction: widget.onPrimaryAction,
-        ),
+        cellBuilder: (ctx, p) =>
+            _ActionCell(row: p, onPrimaryAction: widget.onPrimaryAction),
       ),
     ];
   }
@@ -364,10 +364,7 @@ class _MySites extends StatelessWidget {
 /// The Action column: one status-driven button + the overflow lifecycle
 /// menu (rendered only when the row has menu actions).
 class _ActionCell extends StatelessWidget {
-  const _ActionCell({
-    required this.row,
-    required this.onPrimaryAction,
-  });
+  const _ActionCell({required this.row, required this.onPrimaryAction});
 
   final ParticipantRowView row;
   final void Function(ParticipantRowView) onPrimaryAction;
