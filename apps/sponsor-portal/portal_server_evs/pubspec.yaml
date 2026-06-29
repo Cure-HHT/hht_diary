@@ -1,6 +1,6 @@
 name: portal_server_evs
 description: "Event-sourced portal server (reaction HTTP/WS shell over portal_service). Beta rebuild of portal_server."
-version: 0.5.15+22
+version: 0.5.15+23
 publish_to: none
 
 environment:
