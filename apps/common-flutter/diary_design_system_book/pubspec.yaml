@@ -21,22 +21,22 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      ref: main
       path: event_sourcing
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      ref: main
       path: reaction
   reaction_widgets:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      ref: main
       path: reaction_widgets
   reaction_widgets_testing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: 4c2904f3daecf722a2d04fd788b4182caf2f074a
+      ref: main
       path: reaction_widgets_testing
 
 dev_dependencies:
