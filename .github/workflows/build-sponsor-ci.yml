@@ -36,6 +36,11 @@ on:
         description: 'Optional version to tag (example: v1.2.3)'
         required: false
         default: ''
+      source_ref:
+        description: "Informational: the ref being hotfix-built (e.g. baseline/2026-06). The actual build uses the dispatched ref."
+        type: string
+        required: false
+        default: ""
 
 env:
   REGISTRY: ghcr.io
@@ -56,6 +61,7 @@ jobs:
       image_digest: ${{ steps.build.outputs.digest }}
       version: ${{ steps.parse.outputs.version }}
       short_sha: ${{ steps.parse.outputs.short_sha }}
+      is_main_push: ${{ steps.parse.outputs.is_main_push }}
 
     steps:
       - name: Free up disk space
@@ -108,11 +114,20 @@ jobs:
             RAW_TAG="${GITHUB_REF#refs/tags/}"
           else
             RAW_TAG="${SHORT_SHA}"
+          fi
+
+          # `main-latest` is the floating pointer for the main line ONLY. Publish it
+          # solely on a real push to main — never on a tag build or a hotfix
+          # workflow_dispatch (which builds from a baseline branch and would
+          # otherwise overwrite main's image).
+          if [ "${{ github.event_name }}" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
             IS_MAIN_PUSH=true
           fi
 
           VERSION="${RAW_TAG#v}"
-          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${VERSION}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}"
+          # Always include an immutable sha-<short> tag so hotfix builds are addressable by digest,
+          # independent of any version-change gate (DIARY-OPS-hotfix-source-recovery/A).
+          TAGS="${REGISTRY}/${IMAGE_PREFIX}:${VERSION}, ${REGISTRY}/${IMAGE_PREFIX}:${SHORT_SHA}, ${REGISTRY}/${IMAGE_PREFIX}:sha-${SHORT_SHA}"
 
           if [ "$IS_MAIN_PUSH" = "true" ]; then
             TAGS="${TAGS}, ${REGISTRY}/${IMAGE_PREFIX}:main-latest"
@@ -124,6 +139,7 @@ jobs:
 
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "is_main_push=${IS_MAIN_PUSH}" >> "$GITHUB_OUTPUT"
           echo "tags<<EOF" >> "$GITHUB_OUTPUT"
           printf "%s\n" "$TAGS" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
@@ -138,6 +154,8 @@ jobs:
             type=raw,value=main-latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
+      # Implements: DIARY-OPS-build-deploy-primitives/A  (single source SHA -> single image, no env identity)
+      # Implements: DIARY-OPS-hotfix-source-recovery/A+B (build is exactly the dispatched ref; no main merge)
       - name: Build and push sponsor-ci image
         id: build
         uses: docker/build-push-action@v5
@@ -244,10 +262,24 @@ jobs:
       # On skip, main-latest already points at the current binary (untouched),
       # and we intentionally do NOT mint a <short_sha> tag for this commit —
       # the sha tag only exists for commits that actually produced a binary.
+      #
+      # DISPATCH OVERRIDE: on workflow_dispatch (hotfix path) we ALWAYS force
+      # needs_build=true regardless of the version comparison. The sponsor
+      # hotfix-deploy.yml requires a portal-server image digest built from the
+      # exact dispatched ref; without a build on dispatch the binary would never
+      # be pushed and the hotfix would be unbuildable.
+      # Implements: DIARY-OPS-hotfix-source-recovery/A
       - name: Gate - rebuild only if portal_server_evs version changed
         id: gate
         run: |
           set -euo pipefail
+          # Hotfix dispatches must always rebuild from the dispatched ref so that
+          # a commit-addressable :sha-<short> tag is minted for portal-server.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "needs_build=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=portal-server gate::workflow_dispatch detected - forcing rebuild to mint addressable tag for hotfix deploy."
+            exit 0
+          fi
           SRC=$(grep '^version:' apps/sponsor-portal/portal_server_evs/pubspec.yaml | sed 's/version: //')
           echo "source    portal_server_evs=$SRC"
           PUB=""
@@ -276,6 +308,24 @@ jobs:
           VER=$(grep '^version:' apps/daily-diary/clinical_diary/pubspec.yaml | sed 's/version: //')
           echo "diary_app_version=${VER:-unknown}" >> "$GITHUB_OUTPUT"
 
+      - name: Compute portal-server tags
+        id: pstags
+        if: steps.gate.outputs.needs_build == 'true'
+        run: |
+          set -euo pipefail
+          SHORT="${{ needs.build-sponsor-ci.outputs.short_sha }}"
+          {
+            echo "tags<<EOF"
+            echo "${REGISTRY}/${PORTAL_IMAGE}:${SHORT}"
+            echo "${REGISTRY}/${PORTAL_IMAGE}:sha-${SHORT}"
+            # main-latest only on a real push to main — never on a hotfix dispatch,
+            # which would otherwise overwrite main's portal-server image.
+            if [ "${{ needs.build-sponsor-ci.outputs.is_main_push }}" = "true" ]; then
+              echo "${REGISTRY}/${PORTAL_IMAGE}:main-latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and push portal-server
         if: steps.gate.outputs.needs_build == 'true'
         uses: docker/build-push-action@v5
@@ -284,9 +334,7 @@ jobs:
           file: deployment/docker/portal-server-binary.Dockerfile
           platforms: linux/amd64
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:${{ needs.build-sponsor-ci.outputs.short_sha }}
-            ${{ env.REGISTRY }}/${{ env.PORTAL_IMAGE }}:main-latest
+          tags: ${{ steps.pstags.outputs.tags }}
           build-args: |
             SPONSOR_CI_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}@${{ needs.build-sponsor-ci.outputs.image_digest }}
             SERVER_COMMIT=${{ needs.build-sponsor-ci.outputs.short_sha }}

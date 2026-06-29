@@ -236,7 +236,7 @@ jobs:
 
       - name: Upsert Validation Summary comment
         if: failure() && steps.validation-summary-body.outputs.skip != 'true'
-        uses: Cure-HHT/hht_workflows/.github/actions/pr-comment-upsert@5f6797b6cbd6434e251539c959e418e2b4bb1b18  # hht_workflows main 2026-05-22
+        uses: Cure-HHT/hht_workflows/.github/actions/pr-comment-upsert@d61abe4d9f51bfaa9c7ed08e3104519778f4e2c9  # v1.1.0
         with:
           marker: '<!-- pr-comment-upsert:validation-summary -->'
           body: ${{ steps.validation-summary-body.outputs.body }}

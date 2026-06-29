@@ -85,6 +85,14 @@ const int _kSyncPeriodicSeconds = int.fromEnvironment(
   defaultValue: 60,
 );
 
+// When true (set via --dart-define in integration_test builds), skip the
+// firebase_messaging init in _initializeNotifications so the widget tree can
+// reach quiescence for pumpAndSettle. Defaults to false, so production
+// behavior is unchanged. Mirrors _kDisableLiveStreams in diary_sync_triggers.
+const bool _kDisableLiveStreams = bool.fromEnvironment(
+  'DIARY_DISABLE_LIVE_STREAMS',
+);
+
 void main() async {
   // Security (CUR-1169): silence debugPrint in release builds. Flutter's
   // debugPrint is NOT stripped from release; it forwards to the platform log
@@ -975,7 +983,7 @@ class _AppRootState extends State<AppRoot> {
     // _initializeRuntime). Skip ONLY the firebase_messaging init.
     // Implements: DIARY-DEV-pluggable-push-transport/D
     final profile = await EnvProfile.load();
-    if (profile.env == AppEnv.local) {
+    if (profile.env == AppEnv.local || _kDisableLiveStreams) {
       debugPrint(
         '[local] AppEnv.local — skipping FCM init; push rides the '
         'local-push WS',

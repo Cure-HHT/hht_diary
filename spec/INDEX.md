@@ -152,22 +152,27 @@
 
 ## OPERATIONS
 
-| ID                                   | Title                                          | File                       | Hash     |
-| ------------------------------------ | ---------------------------------------------- | -------------------------- | -------- |
-| DIARY-OPS-automated-test-execution   | Automated Test Execution                       | ops-ci-validation.md       | a12471d2 |
-| DIARY-OPS-branch-protection          | Branch Protection Enforcement                  | ops-ci-validation.md       | d3c5b956 |
-| DIARY-OPS-change-appropriate-ci      | Change-Appropriate CI Validation               | ops-ci-validation.md       | 088fec3f |
-| DIARY-OPS-code-quality-gate          | Code Quality and Static Analysis               | ops-ci-validation.md       | 5c760687 |
-| DIARY-OPS-cross-repo-cascading-ci    | Cross-Repository Cascading Validation          | ops-ci-validation.md       | 3c81277d |
-| DIARY-OPS-fcm-project-routing        | FCM Project Routing                            | ops-push-notifications.md  | b650c1cb |
-| DIARY-OPS-pr-compliance-checks       | Pull-Request Compliance Checks                 | ops-ci-validation.md       | f941e940 |
-| DIARY-OPS-rave-alert-notification    | Rave Lockout Operator Alerting                 | prd-rave-sync.md           | 0925f7b5 |
-| DIARY-OPS-rave-sync-cooldown         | Rave Sync Cooldown After Auth Failure          | prd-rave-sync.md           | 2d1cf77c |
-| DIARY-OPS-rave-sync-hard-lockout     | Rave Sync Hard Lockout After Repeated Failures | prd-rave-sync.md           | 5c2f7d7c |
-| DIARY-OPS-rave-unwedge-authz         | Rave Unwedge Endpoint Authorization            | prd-rave-sync.md           | 7c99b2b8 |
-| DIARY-OPS-security-scanning          | Secret and Vulnerability Scanning              | ops-ci-validation.md       | 6a9c6588 |
-| DIARY-OPS-single-promotable-artifact | Single Promotable Artifact                     | ops-build-and-promotion.md | cbc3c5c0 |
-| DIARY-OPS-traceability-validation    | Traceability Validation and Matrix Generation  | ops-ci-validation.md       | 31ff8627 |
+| ID                                   | Title                                             | File                       | Hash     |
+| ------------------------------------ | ------------------------------------------------- | -------------------------- | -------- |
+| DIARY-OPS-automated-test-execution   | Automated Test Execution                          | ops-ci-validation.md       | a12471d2 |
+| DIARY-OPS-branch-protection          | Branch Protection Enforcement                     | ops-ci-validation.md       | d3c5b956 |
+| DIARY-OPS-build-deploy-primitives    | Build and deploy are orthogonal operations        | ops-release-and-hotfix.md  | 1946fd49 |
+| DIARY-OPS-change-appropriate-ci      | Change-Appropriate CI Validation                  | ops-ci-validation.md       | 088fec3f |
+| DIARY-OPS-code-quality-gate          | Code Quality and Static Analysis                  | ops-ci-validation.md       | 5c760687 |
+| DIARY-OPS-cross-repo-cascading-ci    | Cross-Repository Cascading Validation             | ops-ci-validation.md       | 3c81277d |
+| DIARY-OPS-deploy-traffic-gating      | Canary Traffic-Gating for Deploys                 | ops-build-and-promotion.md | e510bb08 |
+| DIARY-OPS-environment-as-deployment  | An environment is a deployment target             | ops-release-and-hotfix.md  | 5339fe94 |
+| DIARY-OPS-fcm-project-routing        | FCM Project Routing                               | ops-push-notifications.md  | b650c1cb |
+| DIARY-OPS-hotfix-source-recovery     | A hotfix builds from the recovered per-env source | ops-release-and-hotfix.md  | 6bc656c0 |
+| DIARY-OPS-neutral-baseline-branch    | Sponsor-neutral, version-keyed baseline branches  | ops-release-and-hotfix.md  | 26c7247f |
+| DIARY-OPS-pr-compliance-checks       | Pull-Request Compliance Checks                    | ops-ci-validation.md       | f941e940 |
+| DIARY-OPS-rave-alert-notification    | Rave Lockout Operator Alerting                    | prd-rave-sync.md           | 0925f7b5 |
+| DIARY-OPS-rave-sync-cooldown         | Rave Sync Cooldown After Auth Failure             | prd-rave-sync.md           | 2d1cf77c |
+| DIARY-OPS-rave-sync-hard-lockout     | Rave Sync Hard Lockout After Repeated Failures    | prd-rave-sync.md           | 5c2f7d7c |
+| DIARY-OPS-rave-unwedge-authz         | Rave Unwedge Endpoint Authorization               | prd-rave-sync.md           | 7c99b2b8 |
+| DIARY-OPS-security-scanning          | Secret and Vulnerability Scanning                 | ops-ci-validation.md       | 6a9c6588 |
+| DIARY-OPS-single-promotable-artifact | Single Promotable Artifact                        | ops-build-and-promotion.md | cbc3c5c0 |
+| DIARY-OPS-traceability-validation    | Traceability Validation and Matrix Generation     | ops-ci-validation.md       | 31ff8627 |
 
 ## DEVELOPMENT
 

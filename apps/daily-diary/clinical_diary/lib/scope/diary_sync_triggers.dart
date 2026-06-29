@@ -5,9 +5,9 @@
 // the remaining foreground trigger sources, mirroring the legacy
 // `installTriggers`:
 //
-//   - app-resume      (WidgetsBindingObserver -> AppLifecycleState.resumed)
-//   - connectivity    (no-connectivity -> connected transition)
-//   - periodic timer  (foreground only)
+// - app-resume (WidgetsBindingObserver -> AppLifecycleState.resumed)
+// - connectivity (no-connectivity -> connected transition)
+// - periodic timer (foreground only)
 //
 // Each trigger routes into the same [onTrigger] callback (typically
 // `DiaryScopeRuntime.syncCycle.call`). Triggers are serialized so overlapping
@@ -18,6 +18,18 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
+
+// IMPLEMENTS REQUIREMENTS:
+// REQ-d00006: Mobile App Build and Release Process
+// REQ-o00043: Automated Deployment Pipeline
+//
+// When true (set via --dart-define in integration_test builds), the live
+// connectivity and FCM streams are replaced with empty streams so the widget
+// tree can reach quiescence for pumpAndSettle. Defaults to false, so production
+// behavior is unchanged.
+const bool _kDisableLiveStreams = bool.fromEnvironment(
+  'DIARY_DISABLE_LIVE_STREAMS',
+);
 
 // ---------------------------------------------------------------------------
 // Test-seam typedefs (not part of the public API).
@@ -65,13 +77,17 @@ Timer _defaultPeriodicTimerFactory(Duration interval, VoidCallback onTick) =>
     Timer.periodic(interval, (_) => onTick());
 
 Stream<List<ConnectivityResult>> _defaultConnectivityStream() =>
-    Connectivity().onConnectivityChanged;
+    _kDisableLiveStreams
+    ? const Stream<List<ConnectivityResult>>.empty()
+    : Connectivity().onConnectivityChanged;
 
-Stream<RemoteMessage> _defaultFcmOnMessageStream() =>
-    FirebaseMessaging.onMessage;
+Stream<RemoteMessage> _defaultFcmOnMessageStream() => _kDisableLiveStreams
+    ? const Stream<RemoteMessage>.empty()
+    : FirebaseMessaging.onMessage;
 
-Stream<RemoteMessage> _defaultFcmOnOpenedStream() =>
-    FirebaseMessaging.onMessageOpenedApp;
+Stream<RemoteMessage> _defaultFcmOnOpenedStream() => _kDisableLiveStreams
+    ? const Stream<RemoteMessage>.empty()
+    : FirebaseMessaging.onMessageOpenedApp;
 
 // ---------------------------------------------------------------------------
 // Public surface
@@ -162,11 +178,18 @@ Future<DiarySyncTriggerHandles> installDiarySyncTriggers({
   WidgetsBinding.instance.addObserver(observer);
 
   // ---- B. Periodic timer (foreground only) ----
-  final timer = resolvedTimerFactory(periodicInterval, () {
-    if (inForeground) {
-      fireTrigger();
-    }
-  });
+  // Gated under _kDisableLiveStreams so integration_test builds can reach
+  // quiescence for pumpAndSettle. A live Timer.periodic keeps the binding's
+  // event queue perpetually non-idle, so pumpAndSettle never settles. Skipping
+  // it mirrors the connectivity/FCM stream gating above. Production behavior is
+  // unchanged (the define defaults to false).
+  final timer = _kDisableLiveStreams
+      ? null
+      : resolvedTimerFactory(periodicInterval, () {
+          if (inForeground) {
+            fireTrigger();
+          }
+        });
 
   // ---- C. Connectivity (no-connectivity -> connected transition) ----
   List<ConnectivityResult>? previousConnectivity;
@@ -204,7 +227,7 @@ Future<DiarySyncTriggerHandles> installDiarySyncTriggers({
   Future<void> doDispose() async {
     disposed = true;
     WidgetsBinding.instance.removeObserver(observer);
-    timer.cancel();
+    timer?.cancel();
     await connectivitySub.cancel();
     await fcmMessageSub.cancel();
     await fcmOpenedSub.cancel();

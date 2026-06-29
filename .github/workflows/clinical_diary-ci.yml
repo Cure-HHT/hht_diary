@@ -102,6 +102,31 @@ jobs:
             '
           "
 
+      # Capture flutter --machine JSON so elspais can credit `verified`.
+      - name: Capture machine test results for elspais
+        if: always()
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src/apps/daily-diary/clinical_diary
+            mkdir -p coverage
+            dbus-run-session -- bash -c '
+              echo \"test\" | gnome-keyring-daemon --unlock
+              xvfb-run -a flutter test --machine --coverage > coverage/machine.jsonl
+            ' || true
+          "
+
+      # Ingest this app's results + coverage into the elspais graph.
+      - name: Ingest test results into elspais
+        if: always()
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
+            cd /workspace/src
+            elspais --version
+            elspais checks --tests --lenient
+          "
+
       # ---------------------------------------------------------------
       # Extract coverage from container for codecov upload
       # ---------------------------------------------------------------

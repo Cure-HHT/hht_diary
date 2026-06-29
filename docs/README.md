@@ -75,7 +75,7 @@ Most documentation lives in the root with topic-based prefixes for easy discover
 - **setup-\*** : Onboarding, configuration, getting started
   - Examples: `setup-team-onboarding.md`, `setup-dev-environment.md`
 - **operations/** : Operational runbooks live in the `operations/` subdirectory, named `runbook-*`
-  - Examples: `operations/runbook-incident-response.md`, `operations/runbook-deployment-production-tagging-hotfix.md`
+  - Examples: `operations/runbook-incident-response.md`, `operations/runbook-hotfix.md`
 - **setup-\*-architecture** : System architecture (non-ADR implementation details)
   - Examples: `setup-dev-environment-architecture.md`
 - **compliance-\*** : Compliance audits and verification
