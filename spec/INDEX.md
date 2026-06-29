@@ -160,6 +160,7 @@
 | DIARY-OPS-change-appropriate-ci      | Change-Appropriate CI Validation                  | ops-ci-validation.md       | 088fec3f |
 | DIARY-OPS-code-quality-gate          | Code Quality and Static Analysis                  | ops-ci-validation.md       | 5c760687 |
 | DIARY-OPS-cross-repo-cascading-ci    | Cross-Repository Cascading Validation             | ops-ci-validation.md       | 3c81277d |
+| DIARY-OPS-deploy-traffic-gating      | Canary Traffic-Gating for Deploys                 | ops-build-and-promotion.md | e510bb08 |
 | DIARY-OPS-environment-as-deployment  | An environment is a deployment target             | ops-release-and-hotfix.md  | 5339fe94 |
 | DIARY-OPS-fcm-project-routing        | FCM Project Routing                               | ops-push-notifications.md  | b650c1cb |
 | DIARY-OPS-hotfix-source-recovery     | A hotfix builds from the recovered per-env source | ops-release-and-hotfix.md  | 6bc656c0 |

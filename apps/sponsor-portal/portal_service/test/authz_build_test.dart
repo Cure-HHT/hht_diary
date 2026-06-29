@@ -78,4 +78,80 @@ grants:
     );
     expect(dispatcher, isA<ActionDispatcher>());
   });
+
+  // Verifies: DIARY-DEV-role-permissions-seed/A — a permission dropped from the
+  //   YAML between boots is revoked (drift applied), while still-declared grants
+  //   survive.
+  test(
+    'buildPortalAuthorizationPolicy revokes drift when the YAML drops a grant',
+    () async {
+      final db = await databaseFactoryMemory.openDatabase('authz-drift.db');
+      final eventStore = await openPortalEventStore(
+        backend: SembastBackend(database: db),
+      );
+
+      Future<Set<String>> grantPairs() async {
+        final rows = await eventStore.backend.findViewRows(
+          'role_permission_grants',
+        );
+        return {for (final r in rows) '${r['role']}:${r['permissionName']}'};
+      }
+
+      const yamlV1 = '''
+roles:
+  - StudyCoordinator
+grants:
+  StudyCoordinator:
+    - portal.participant.view
+    - portal.audit.view
+''';
+      final r1 = await buildPortalAuthorizationPolicy(
+        eventStore: eventStore,
+        roleGrantsYaml: yamlV1,
+      );
+      expect(r1.isReady, isTrue, reason: 'v1 errors: ${r1.errors}');
+      expect(await grantPairs(), <String>{
+        'StudyCoordinator:portal.participant.view',
+        'StudyCoordinator:portal.audit.view',
+      });
+
+      // v2 drops portal.audit.view.
+      const yamlV2 = '''
+roles:
+  - StudyCoordinator
+grants:
+  StudyCoordinator:
+    - portal.participant.view
+''';
+      final r2 = await buildPortalAuthorizationPolicy(
+        eventStore: eventStore,
+        roleGrantsYaml: yamlV2,
+      );
+      expect(r2.isReady, isTrue, reason: 'v2 errors: ${r2.errors}');
+      expect(await grantPairs(), <String>{
+        'StudyCoordinator:portal.participant.view',
+      });
+    },
+  );
+
+  // Verifies: DIARY-DEV-role-permissions-seed/A — re-running the same YAML emits
+  //   no further grant/revoke events (drift reconcile is idempotent).
+  test('buildPortalAuthorizationPolicy drift reconcile is idempotent', () async {
+    final db = await databaseFactoryMemory.openDatabase('authz-drift-idem.db');
+    final eventStore = await openPortalEventStore(
+      backend: SembastBackend(database: db),
+    );
+    final yaml = referenceRoleGrantsYaml();
+    await buildPortalAuthorizationPolicy(
+      eventStore: eventStore,
+      roleGrantsYaml: yaml,
+    );
+    final before = (await eventStore.backend.findAllEvents(limit: 5000)).length;
+    await buildPortalAuthorizationPolicy(
+      eventStore: eventStore,
+      roleGrantsYaml: yaml,
+    );
+    final after = (await eventStore.backend.findAllEvents(limit: 5000)).length;
+    expect(after, before);
+  });
 }

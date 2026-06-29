@@ -11,22 +11,19 @@ APP_APK="${APP_APK:?APP_APK is required}"
 TEST_APK="${TEST_APK:?TEST_APK is required}"
 RESULTS_DIR="${RESULTS_DIR:?RESULTS_DIR is required}"
 EVIDENCE_DIR="${EVIDENCE_DIR:-build/firebase-test-lab/android/evidence}"
-# Default device matrix (coverage catalogue 2026-05-20).
+# Default device matrix (validated 2026-06-25; incompatible combos removed).
+# Removed: r0q/33, g0q/31, redfin/31, redfin/28 (FTL skipped these in run #35).
 # One spec per line: model=<id>,version=<api>,locale=en,orientation=portrait
 # Override at runtime via the android_devices workflow_dispatch input.
 DEFAULT_DEVICE_SPECS=$(printf '%s\n' \
   'model=shiba,version=34,locale=en,orientation=portrait' \
   'model=cheetah,version=33,locale=en,orientation=portrait' \
   'model=redfin,version=30,locale=en,orientation=portrait' \
-  'model=r0q,version=33,locale=en,orientation=portrait' \
-  'model=g0q,version=31,locale=en,orientation=portrait' \
-  'model=redfin,version=31,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=32,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=31,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=30,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=33,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=28,locale=en,orientation=portrait' \
-  'model=redfin,version=28,locale=en,orientation=portrait' \
 )
 DEVICE_SPECS="${ANDROID_DEVICES:-${DEFAULT_DEVICE_SPECS}}"
 USE_ORCHESTRATOR="${USE_ORCHESTRATOR:-false}"

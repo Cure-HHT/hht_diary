@@ -48,20 +48,60 @@ flutter pub get
 # started, 0 tests completed, matrix timeout").
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# FIREBASE TEST LAB FIX: add --dart-define=DIARY_SYNC_PERIODIC_SECONDS
+#
+# The app installs a live Timer.periodic sync poll (default 60s) during
+# bootstrap. Under integration_test, this perpetually-pending timer prevents
+# tester.pumpAndSettle() from ever reaching widget-tree quiescence, so a
+# pumpAndSettle eventually blocks forever and the matrix runs to its 30m
+# per-device timeout (confirmed via Firebase Test Lab logcat: tests progress,
+# then the Flutter process goes silent at a non-deterministic test and is
+# killed at the cap). The DIARY_SYNC_PERIODIC_SECONDS override is exposed by
+# the app for exactly this purpose; stretching the poll to ~24h removes the
+# never-settling timer for the duration of the test run without disabling the
+# feature in production.
+# ---------------------------------------------------------------------------
+DIARY_SYNC_PERIODIC_SECONDS=86400
+
+# ---------------------------------------------------------------------------
+# FIREBASE TEST LAB FIX: add --dart-define=DIARY_DISABLE_LIVE_STREAMS
+#
+# The app installs live connectivity and FCM onMessage/onMessageOpenedApp
+# stream subscriptions during bootstrap (see diary_sync_triggers.dart). Under
+# integration_test these never-completing streams keep the widget tree from
+# reaching quiescence, so tester.pumpAndSettle() blocks forever and the matrix
+# runs to its 30m per-device timeout. This is most visible on the lifecycle
+# tests that re-bootstrap on resume (confirmed via Firebase Test Lab logcat:
+# tests progress past the timer-fix point, then go silent on a *Resume*/Fab
+# lifecycle test). The DIARY_DISABLE_LIVE_STREAMS override makes the app
+# substitute empty streams for the duration of the test run; production builds
+# leave it false, so behaviour is unchanged.
+# ---------------------------------------------------------------------------
+DIARY_DISABLE_LIVE_STREAMS=true
+
 # Build the app using the integration-test entrypoint. Flutter's Android
 # integration_test bridge is then packaged into the separate androidTest APK.
+# This step also generates the Gradle wrapper (gradlew), which is gitignored
+# and required by the Gradle invocation below.
 flutter build apk \
   --debug \
   --flavor "$FLAVOR" \
   --dart-define=APP_FLAVOR="$FLAVOR" \
+  --dart-define=DIARY_SYNC_PERIODIC_SECONDS="$DIARY_SYNC_PERIODIC_SECONDS" \
+  --dart-define=DIARY_DISABLE_LIVE_STREAMS="$DIARY_DISABLE_LIVE_STREAMS" \
   --target "$TEST_TARGET"
 
+# The Gradle invocation below assembles the androidTest APK. The
+# --dart-define=APP_FLAVOR flag is propagated via -PFLUTTER_DART_DEFINE so
+# String.fromEnvironment('APP_FLAVOR') resolves correctly inside the compiled
+# Dart code (see FIREBASE TEST LAB FIX above).
 pushd android >/dev/null
 ./gradlew \
   ":app:assemble${VARIANT}AndroidTest" \
   ":app:assemble${VARIANT}" \
   -Ptarget="$ABS_TEST_TARGET" \
-  -PFLUTTER_DART_DEFINE="APP_FLAVOR=$FLAVOR" \
+  -PFLUTTER_DART_DEFINE="APP_FLAVOR=$FLAVOR,DIARY_SYNC_PERIODIC_SECONDS=$DIARY_SYNC_PERIODIC_SECONDS,DIARY_DISABLE_LIVE_STREAMS=$DIARY_DISABLE_LIVE_STREAMS" \
   --stacktrace
 popd >/dev/null
 
@@ -79,7 +119,7 @@ if [[ -z "$TEST_APK" || ! -f "$TEST_APK" ]]; then
   exit 1
 fi
 
-cp "$APP_APK"  "$ABS_OUTPUT_DIR/app-${FLAVOR}-debug.apk"
+cp "$APP_APK" "$ABS_OUTPUT_DIR/app-${FLAVOR}-debug.apk"
 cp "$TEST_APK" "$ABS_OUTPUT_DIR/app-${FLAVOR}-debug-androidTest.apk"
 
 APP_OUT="$ABS_OUTPUT_DIR/app-${FLAVOR}-debug.apk"
@@ -91,7 +131,7 @@ METADATA="$ABS_OUTPUT_DIR/build-metadata.txt"
   echo "test_target=$TEST_TARGET"
   echo "app_apk=$APP_OUT"
   echo "test_apk=$TEST_OUT"
-  echo "app_sha256=$(shasum -a 256 "$APP_OUT"  | awk '{print $1}')"
+  echo "app_sha256=$(shasum -a 256 "$APP_OUT" | awk '{print $1}')"
   echo "test_sha256=$(shasum -a 256 "$TEST_OUT" | awk '{print $1}')"
   echo "git_sha=${GITHUB_SHA:-$(git rev-parse HEAD 2>/dev/null || echo unknown)}"
   echo "built_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
