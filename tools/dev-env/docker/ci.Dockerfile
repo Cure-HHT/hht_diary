@@ -233,10 +233,11 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
 FROM ci-cloud-tools AS ci-test-tools
 
 ARG GITLEAKS_VERSION=8.29.0
-# Canonical pin: .github/versions.env (ELSPAIS_VERSION). Image builds pass it as
-# a build-arg which overrides this default; keep this fallback current so an
-# ad-hoc build without the build-arg still gets the pinned version.
-ARG ELSPAIS_VERSION=0.117.81
+# Sole pin: .github/versions.env (ELSPAIS_VERSION). Image builds pass it as a
+# build-arg (build-images.sh and build-ghcr-containers.yml both source
+# versions.env). No default — an ad-hoc build without the build-arg fails loud
+# at the RUN below rather than baking in a stale version.
+ARG ELSPAIS_VERSION
 ARG MARKDOWNLINT_CLI_VERSION=0.46.0
 
 # Gitleaks (secret scanning)
@@ -246,7 +247,8 @@ RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_V
     gitleaks version
 
 # elspais (requirement validation and traceability)
-RUN pip3 install --no-cache-dir --break-system-packages "elspais==${ELSPAIS_VERSION}" && \
+RUN : "${ELSPAIS_VERSION:?ELSPAIS_VERSION build-arg required — see .github/versions.env}" && \
+    pip3 install --no-cache-dir --break-system-packages "elspais==${ELSPAIS_VERSION}" && \
     elspais version
 
 # markdownlint-cli (documentation linting)

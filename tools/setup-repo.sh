@@ -100,9 +100,9 @@ setup_python_tools() {
     fi
 
     # elspais - requirement validation and traceability
-    # Canonical pin: .github/versions.env (sourced above into ELSPAIS_VERSION);
-    # the literal is only a fallback when that file is missing — keep it current.
-    install_pip_package "elspais" "${ELSPAIS_VERSION:-0.117.81}"
+    # Sole pin: .github/versions.env (sourced above into ELSPAIS_VERSION). No
+    # fallback literal — fail loud rather than silently install a stale version.
+    install_pip_package "elspais" "${ELSPAIS_VERSION:?ELSPAIS_VERSION not set — source .github/versions.env}"
 }
 
 # ============================================================

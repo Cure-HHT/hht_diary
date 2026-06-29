@@ -171,7 +171,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -181,7 +181,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -191,7 +191,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -201,7 +201,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -211,7 +211,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -221,7 +221,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -231,7 +231,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -241,7 +241,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -251,7 +251,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -261,7 +261,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -271,7 +271,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -281,7 +281,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -291,7 +291,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -301,7 +301,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -311,7 +311,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -321,7 +321,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
@@ -331,7 +331,7 @@ command = "flutter test --machine --coverage --file-reporter=json:coverage/machi
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [scanning.journey]
