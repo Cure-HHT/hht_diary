@@ -62,6 +62,14 @@ else
   cmd+=(--no-use-orchestrator)
 fi
 
+# Re-run any test case that fails, up to FLAKY_TEST_ATTEMPTS extra times.
+# Firebase Test Lab reruns only the failed cases and reports the run as
+# passing if a retry succeeds (helps absorb occasional device flakiness).
+FLAKY_TEST_ATTEMPTS="${FLAKY_TEST_ATTEMPTS:-1}"
+if [[ "$FLAKY_TEST_ATTEMPTS" -gt 0 ]]; then
+  cmd+=(--num-flaky-test-attempts="$FLAKY_TEST_ATTEMPTS")
+fi
+
 while IFS= read -r spec; do
   spec="${spec%$'\r'}"
   [[ -z "${spec//[[:space:]]/}" ]] && continue
