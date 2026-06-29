@@ -1590,5 +1590,130 @@ void main() {
       },
       timeout: const Timeout(Duration(minutes: 4)),
     );
+
+  // dfUiResponsiveLayoutBounds - UI AUDIT (Tier 2 stability).
+  //
+  // IMPLEMENTS REQUIREMENTS:
+  //   DIARY-GUI-main-screen-layout
+  //   DIARY-GUI-mobile-navigation
+  //
+  // Why: defensive coverage against responsive-layout regressions. The
+  // Main Screen builds its content with LayoutBuilder + Expanded/Flexible
+  // inside a SafeArea (no top-level scroll view), so a height-sensitive
+  // layout mistake can overflow on shorter/taller aspect ratios. This
+  // test renders the Main Screen across a range of surface sizes (from a
+  // compact 720p phone up to a 4K tablet) and fails if any RenderFlex
+  // overflows or the primary action is pushed outside the screen bounds.
+  //
+  // What this CAN assert on-device: framework layout-overflow errors and
+  // that a key widget stays within the logical screen rect after a resize.
+  //
+  // What this CANNOT assert on-device (documented, not tested): physical
+  // display cutouts (notch / punch-hole) and collisions with the Android
+  // system navigation bar. Firebase Test Lab does not expose deterministic
+  // control over device insets / SafeArea geometry, so those are out of
+  // scope here and must be verified by manual / screenshot review.
+  //
+  // DIAGNOSTIC INSTRUMENTATION: every step emits a 'DIARY-JNY-DIAG' marker.
+  testWidgets(
+    'dfUiResponsiveLayoutBounds',
+    (tester) async {
+      void mark(String step) =>
+          debugPrint('DIARY-JNY-DIAG >>> $step');
+
+      mark('00 app.main() about to start');
+      app.main();
+      mark('01 app.main() returned, waiting for home');
+      await _waitForHome(tester);
+      mark('02 home reached');
+      await tester.pump(const Duration(seconds: 1));
+      mark('03 settled on Main Screen');
+
+      // The primary action anchors the Main Screen across every size.
+      expect(
+        find.text('Record Nosebleed'),
+        findsOneWidget,
+        reason: 'Main Screen must offer the Record Nosebleed action.',
+      );
+      mark('04 baseline Main Screen renders with Record Nosebleed');
+
+      // Representative logical sizes (width x height) paired with a device
+      // pixel ratio. Spans short/compact through tall 20:9 to large tablet,
+      // exercising the screen-density and aspect-ratio range the layout must
+      // survive. Sizes are in logical pixels; physicalSize = logical * dpr.
+      const sizes = <(double, double, double)>[
+        (360.0, 640.0, 2.0), // compact phone, 720p-class, 9:16
+        (411.0, 731.0, 2.625), // common 1080p phone
+        (412.0, 915.0, 2.625), // tall 20:9 phone (e.g. Pixel-class)
+        (360.0, 800.0, 3.0), // narrow + tall, high density
+        (800.0, 1280.0, 1.5), // small tablet, portrait
+        (1280.0, 800.0, 1.5), // small tablet, landscape
+        (1080.0, 2160.0, 1.0), // very tall, low dpr (4K-class portrait)
+      ];
+
+      final originalSize = tester.view.physicalSize;
+      final originalDpr = tester.view.devicePixelRatio;
+      mark('05 captured original view metrics');
+
+      try {
+        var index = 0;
+        for (final spec in sizes) {
+          final logicalWidth = spec.$1;
+          final logicalHeight = spec.$2;
+          final dpr = spec.$3;
+          final label =
+              '${logicalWidth.toInt()}x${logicalHeight.toInt()}@${dpr}x';
+
+          tester.view.devicePixelRatio = dpr;
+          tester.view.physicalSize =
+              Size(logicalWidth * dpr, logicalHeight * dpr);
+          await tester.pumpAndSettle(const Duration(milliseconds: 300));
+          mark('06.$index resized to $label');
+
+          // A RenderFlex overflow (element drawn off-screen / fixed height
+          // overrunning available space) is reported as a thrown exception
+          // during layout; takeException() surfaces it deterministically.
+          expect(
+            tester.takeException(),
+            isNull,
+            reason: 'Main Screen must lay out without overflow at $label.',
+          );
+          mark('07.$index no layout overflow at $label');
+
+          // The primary action must remain present and fully within the
+          // logical screen rect (top-left origin, logical size).
+          final anchor = find.text('Record Nosebleed');
+          expect(
+            anchor,
+            findsOneWidget,
+            reason: 'Record Nosebleed must stay rendered at $label.',
+          );
+          final rect = tester.getRect(anchor);
+          final screen = Offset.zero & tester.view.physicalSize / dpr;
+          expect(
+            screen.contains(rect.topLeft) &&
+                screen.contains(rect.bottomRight - const Offset(1, 1)),
+            isTrue,
+            reason:
+                'Record Nosebleed must stay within screen bounds at $label '
+                '(rect=$rect, screen=$screen).',
+          );
+          mark('08.$index Record Nosebleed within bounds at $label');
+          index++;
+        }
+      } finally {
+        // Always restore the original view metrics for following tests.
+        tester.view.physicalSize = originalSize;
+        tester.view.devicePixelRatio = originalDpr;
+        await tester.pumpAndSettle(const Duration(milliseconds: 300));
+        mark('09 restored original view metrics');
+      }
+
+      mark('10 all sizes passed overflow + bounds checks');
+      await _screenshot(binding, tester, 'dfui_responsive_layout_bounds');
+      mark('11 screenshot taken, DONE');
+    },
+    timeout: const Timeout(Duration(minutes: 4)),
+  );
 }
 // dart format on
