@@ -20,6 +20,7 @@ class ParticipantsScreen extends StatefulWidget {
     required this.isLoading,
     required this.onPrimaryAction,
     required this.onMenuAction,
+    this.onRowTap,
     this.pageSize = 8,
   });
 
@@ -40,6 +41,11 @@ class ParticipantsScreen extends StatefulWidget {
   /// An overflow-menu lifecycle action was chosen.
   final void Function(ParticipantRowView row, ParticipantMenuAction action)
   onMenuAction;
+
+  /// A table row was tapped. The wiring layer decides what (if anything) a
+  /// tap does per status — e.g. a linked participant opens the Mobile Linking
+  /// Code dialog. Null disables row taps entirely.
+  final void Function(ParticipantRowView row)? onRowTap;
 
   /// Rows per page (Figma default 8).
   final int pageSize;
@@ -113,7 +119,7 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Overview of participants at your sites.',
+              'Overview of participants at your sites',
               style: TextStyle(
                 fontWeight: FontWeight.w400,
                 fontSize: 14,
@@ -129,6 +135,7 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
               rows: _pageSlice(filtered),
               isLoading: widget.isLoading,
               rowKey: (p) => ValueKey<String>(p.id),
+              onRowTap: widget.onRowTap,
               searchField: SizedBox(
                 width: 360,
                 child: AppTextField.search(
@@ -209,10 +216,25 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
         cellBuilder: (ctx, p) => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              p.id,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+            Flexible(
+              child: Text(
+                p.id,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+              ),
             ),
+            if (p.status == ParticipantRowStatus.trialActive) ...[
+              const SizedBox(width: 8),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx).extension<AppSemanticColors>()!.statusActive,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
             if (p.hasReadyToReview) ...[
               const SizedBox(width: 6),
               Tooltip(
@@ -260,7 +282,6 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
         cellBuilder: (ctx, p) => _ActionCell(
           row: p,
           onPrimaryAction: widget.onPrimaryAction,
-          onMenuAction: widget.onMenuAction,
         ),
       ),
     ];
@@ -346,12 +367,10 @@ class _ActionCell extends StatelessWidget {
   const _ActionCell({
     required this.row,
     required this.onPrimaryAction,
-    required this.onMenuAction,
   });
 
   final ParticipantRowView row;
   final void Function(ParticipantRowView) onPrimaryAction;
-  final void Function(ParticipantRowView, ParticipantMenuAction) onMenuAction;
 
   @override
   Widget build(BuildContext context) {
@@ -369,21 +388,6 @@ class _ActionCell extends StatelessWidget {
             onPressed: () => onPrimaryAction(row),
             semanticId: 'participant-${row.id}-action',
           ),
-        if (row.menuActions.isNotEmpty) ...[
-          const SizedBox(width: 4),
-          Semantics(
-            identifier: 'participant-${row.id}-menu',
-            child: PopupMenuButton<ParticipantMenuAction>(
-              tooltip: 'More actions',
-              icon: const Icon(Icons.more_horiz, size: 18),
-              onSelected: (a) => onMenuAction(row, a),
-              itemBuilder: (_) => [
-                for (final a in row.menuActions)
-                  PopupMenuItem(value: a, child: Text(a.label)),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }

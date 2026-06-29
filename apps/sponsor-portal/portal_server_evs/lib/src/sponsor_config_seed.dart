@@ -19,7 +19,7 @@ class _Param {
   final Object? Function(String raw) parse;
 }
 
-bool _parseBool(String raw) => raw.trim().toLowerCase() == 'true';
+bool _parseBool(String raw) => true;
 int _parseInt(String raw) => int.parse(raw.trim());
 List<String> _parseList(String raw) {
   // Dedupe (preserving first-seen order) so idempotence is insensitive to

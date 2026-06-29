@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # semver-only: bare version, no +N. The build id (+<sponsor_short_sha>) is
 # stamped at image-build time by callisto's portal-final.Dockerfile.
-version: 1.4.20
+version: 1.4.21
 
 environment:
   sdk: ^3.10.7
@@ -19,7 +19,7 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: af9670325717f33ae6bddae355241346902acb00
+      ref: 742e8275fe932369c76e5ac4c41bd6285a2afa1d
       path: event_sourcing
   firebase_core: ^4.3.0
   firebase_auth: ^6.1.3
@@ -36,12 +36,12 @@ dependencies:
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: af9670325717f33ae6bddae355241346902acb00
+      ref: 742e8275fe932369c76e5ac4c41bd6285a2afa1d
       path: reaction
   reaction_widgets:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: af9670325717f33ae6bddae355241346902acb00
+      ref: 742e8275fe932369c76e5ac4c41bd6285a2afa1d
       path: reaction_widgets
 
 dev_dependencies:
@@ -50,7 +50,7 @@ dev_dependencies:
   reaction_widgets_testing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: af9670325717f33ae6bddae355241346902acb00
+      ref: 742e8275fe932369c76e5ac4c41bd6285a2afa1d
       path: reaction_widgets_testing
   flutter_lints: ^5.0.0
   fake_async: ^1.3.1
@@ -65,3 +65,9 @@ flutter:
     # Role-card glyphs for the post-login role-selection screen, exported from
     # the Sponsor Portal Figma and recolored per role tone at render time.
     - assets/icons/role/
+    - assets/icons/questionnaire/
+    # Per-status action glyphs for the row-tap "Participant Actions" sheet,
+    # exported from the Sponsor Portal Figma and tinted (primary / critical)
+    # at render time.
+    - assets/icons/participant/
+    - assets/icons/curehht_logo.png

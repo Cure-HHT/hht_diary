@@ -38,7 +38,9 @@ void main() {
       expect(find.text('Action'), findsOneWidget);
     });
 
-    testWidgets('renders a close button when dismissible', (tester) async {
+    testWidgets('renders the close button (Figma: always present)', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: buildAppTheme(font: AppFontFamily.inter),
@@ -54,7 +56,11 @@ void main() {
       expect(find.byIcon(Icons.close), findsOneWidget);
     });
 
-    testWidgets('hides the close button when not dismissible', (tester) async {
+    testWidgets('still renders the close button when dismissible is false', (
+      tester,
+    ) async {
+      // Per the Figma UI Kit the close (X) affordance is unconditional; the
+      // `dismissible` flag is retained for API compatibility only.
       await tester.pumpWidget(
         MaterialApp(
           theme: buildAppTheme(font: AppFontFamily.inter),
@@ -67,7 +73,7 @@ void main() {
           ),
         ),
       );
-      expect(find.byIcon(Icons.close), findsNothing);
+      expect(find.byIcon(Icons.close), findsOneWidget);
     });
 
     testWidgets('semanticId emits a Semantics identifier on the dialog root', (

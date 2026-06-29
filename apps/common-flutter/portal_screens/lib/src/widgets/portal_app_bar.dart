@@ -1,6 +1,7 @@
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 
+import '../models/portal_role.dart';
 import 'role_pill.dart';
 
 /// Reusable portal-wide top header.
@@ -49,7 +50,7 @@ class PortalAppBar extends StatelessWidget implements PreferredSizeWidget {
          'passive label instead.',
        );
 
-  /// Brand title (e.g. "Clinical Trial Portal"). Sponsor-driven —
+  /// Brand title (e.g. "Sponsor Portal"). Sponsor-driven —
   /// callers pass whatever the branding service yields.
   final String title;
 
@@ -356,7 +357,93 @@ class _RoleCluster extends StatelessWidget {
 
   bool get _isMultiRole => availableRoles.length > 1;
 
+  /// Human label for a role row in the menu. The active role prefers the
+  /// sponsor-mapped [displayName] (when the wiring layer supplied one);
+  /// every other role resolves through the [PortalRole] catalog, falling
+  /// back to the raw system string so an unknown role is still legible.
+  String _labelFor(String role) {
+    if (role == systemRole && displayName != null) return displayName!;
+    return PortalRole.fromSystemName(role)?.canonicalDisplayName ?? role;
+  }
+
+  /// One role row, styled to the Figma dropdown (node 833:2046): the role
+  /// name left-aligned, and on the active row a trailing "Primary" tag +
+  /// blue check pinned to the right edge.
+  PopupMenuItem<String> _roleItem(BuildContext context, String role) {
+    final theme = Theme.of(context);
+    final isActive = role == systemRole;
+    return PopupMenuItem<String>(
+      value: role,
+      // Figma row is ~36px tall (19.5 line-height + 8px top/bottom pad) —
+      // tighter than Material's default 48px interactive minimum.
+      height: 36,
+      padding: EdgeInsets.zero,
+      // Domain-keyed handle per option — the menu item's own node carries
+      // the button role, so the identifier needs its own (container) node
+      // or the web flattener merges it away.
+      child: Semantics(
+        identifier: 'role-option-$role',
+        container: true,
+        explicitChildNodes: true,
+        selected: isActive,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  _labelFor(role),
+                  overflow: TextOverflow.ellipsis,
+                  // Inter Medium 13 / 19.5. Active = Black (#04161E),
+                  // others = Dark Grey (#54636A).
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                    height: 19.5 / 13,
+                    letterSpacing: -0.0762,
+                    color: isActive
+                        ? theme.colorScheme.onSurface
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              if (isActive)
+                Padding(
+                  padding: const EdgeInsets.only(left: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Primary',
+                        // Inter Regular 11 / 16.5, Grey (#A4B9C2 — outline).
+                        style: TextStyle(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 11,
+                          height: 16.5 / 11,
+                          letterSpacing: 0.0645,
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.check,
+                        size: 14,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _openMenu(BuildContext context) async {
+    final theme = Theme.of(context);
     // Anchor the menu under the pill, sized to the available roles.
     // Material's showMenu uses RelativeRect from the global overlay, so
     // we translate the pill's global rect into that space.
@@ -373,27 +460,24 @@ class _RoleCluster extends StatelessWidget {
     );
     final picked = await showMenu<String>(
       context: context,
+      // Figma card: white surface, 1px Light Gray (#ECEEF0) hairline,
+      // 8px radius, soft drop shadow. surfaceTint off so M3 doesn't tint
+      // the white toward primary at this elevation.
+      color: theme.colorScheme.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 3,
+      shadowColor: Colors.black.withValues(alpha: 0.12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+      ),
       position: RelativeRect.fromLTRB(
         topLeft.dx,
         topLeft.dy,
         overlay.size.width - bottomRight.dx,
         overlay.size.height - bottomRight.dy,
       ),
-      items: [
-        for (final role in availableRoles)
-          PopupMenuItem<String>(
-            value: role,
-            // Domain-keyed handle per option — the menu item's own node
-            // carries the button role, so the identifier needs its own
-            // (container) node or the web flattener merges it away.
-            child: Semantics(
-              identifier: 'role-option-$role',
-              container: true,
-              explicitChildNodes: true,
-              child: Text(role == systemRole ? '$role  ✓' : role),
-            ),
-          ),
-      ],
+      items: [for (final role in availableRoles) _roleItem(context, role)],
     );
     if (picked != null && picked != systemRole) {
       onRoleSelected!.call(picked);

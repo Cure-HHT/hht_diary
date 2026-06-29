@@ -16,7 +16,7 @@ class EmailConfig {
   final bool enabled;
   final bool consoleMode;
 
-  static const senderName = 'Clinical Trial Portal';
+  static const senderName = 'Sponsor Portal';
 
   factory EmailConfig.fromEnvironment() => EmailConfig(
         gmailServiceAccountEmail: Platform.environment['EMAIL_SVC_ACCT'],

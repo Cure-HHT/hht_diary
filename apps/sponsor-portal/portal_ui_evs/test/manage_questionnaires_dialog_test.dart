@@ -109,12 +109,12 @@ void main() {
 
       expect(find.text('NOSE HHT'), findsOneWidget); // assertion D (type name)
       expect(find.text('Not Sent'), findsOneWidget); // status
-      expect(find.text('Send Now'), findsOneWidget);
+      expect(find.text('Send'), findsOneWidget); // Figma: "Send"
       expect(find.byTooltip('Call Back'), findsNothing);
       expect(find.text('Start Next Cycle'), findsNothing);
       expect(find.text('Finalize'), findsNothing);
 
-      await tester.tap(find.text('Send Now'));
+      await tester.tap(find.text('Send'));
       expect(cb.sends, <String>['nose_hht']);
     });
 
@@ -137,7 +137,7 @@ void main() {
       expect(find.textContaining('Current:'), findsOneWidget);
       expect(find.textContaining('Cycle 1 Day 1'), findsOneWidget);
       expect(find.byTooltip('Call Back'), findsOneWidget);
-      expect(find.text('Send Now'), findsNothing);
+      expect(find.text('Send'), findsNothing);
       expect(find.text('Start Next Cycle'), findsNothing);
 
       await tester.tap(find.byTooltip('Call Back'));
@@ -161,10 +161,11 @@ void main() {
         );
 
         expect(find.text('Not Sent'), findsOneWidget);
-        expect(find.textContaining('Finalized Cycle'), findsOneWidget);
-        expect(find.text('Next Cycle'), findsOneWidget);
+        // Figma after-finalize body: "Last: <cycle>".
+        expect(find.textContaining('Last:'), findsOneWidget);
+        expect(find.textContaining('Cycle 2 Day 1'), findsOneWidget);
         expect(find.text('Start Next Cycle'), findsOneWidget);
-        expect(find.text('Send Now'), findsNothing);
+        expect(find.text('Send'), findsNothing);
         expect(find.byTooltip('Call Back'), findsNothing);
 
         await tester.tap(find.text('Start Next Cycle'));
@@ -228,8 +229,8 @@ void main() {
         ],
       );
 
-      // Combined badge (assertion E).
-      expect(find.text('Closed · End of Study'), findsOneWidget);
+      // Combined badge (assertion E) — Figma sentence-case noun.
+      expect(find.text('Closed · End of study'), findsOneWidget);
       // No actions are offered on a terminally-closed card.
       expect(find.text('Finalize'), findsNothing);
       expect(find.byTooltip('Call Back'), findsNothing);
@@ -302,9 +303,9 @@ void main() {
         }
 
         // The NOSE HHT card (which has the sent instance) offers Call Back; the
-        // never-sent HHT-QoL card offers Send Now.
+        // never-sent HHT-QoL card offers Send.
         expect(find.byTooltip('Call Back'), findsOneWidget);
-        expect(find.text('Send Now'), findsOneWidget);
+        expect(find.text('Send'), findsOneWidget);
 
         // Assertion C: the close action dismisses the dialog with no change.
         await tester.tap(find.byTooltip('Close'));
@@ -387,22 +388,22 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        // Tap the first Send Now (the never-sent NOSE HHT card).
-        expect(find.text('Send Now'), findsWidgets);
-        await tester.tap(find.text('Send Now').first);
+        // Tap the first Send (the never-sent NOSE HHT card).
+        expect(find.text('Send'), findsWidgets);
+        await tester.tap(find.text('Send').first);
         await tester.pumpAndSettle();
 
         // The 422 routed to the Select Starting Cycle dialog.
         expect(find.text('Select Starting Cycle'), findsOneWidget);
 
         // Choose Cycle 3 from the dropdown.
-        await tester.tap(find.byType(DropdownButtonFormField<int>));
+        await tester.tap(find.byType(AppDropdown<int>));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Cycle 3 Day 1').last);
         await tester.pumpAndSettle();
 
-        // Confirm and Send -> re-POST with the explicit studyEvent.
-        await tester.tap(find.text('Confirm and Send'));
+        // Confirm -> re-POST with the explicit studyEvent.
+        await tester.tap(find.text('Confirm'));
         await tester.pumpAndSettle();
 
         // Two POSTs landed: the first without studyEvent (got 422), the second
@@ -541,7 +542,7 @@ void main() {
       expect(find.text('Cycle 2 Day 1'), findsOneWidget);
 
       // The dropdown offers the current cycle + both terminal options (B).
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.tap(find.byType(AppDropdown<String>));
       await tester.pumpAndSettle();
       expect(find.text('End of Treatment'), findsWidgets);
       expect(find.text('End of Study'), findsWidgets);
@@ -575,19 +576,21 @@ void main() {
       final fake = await pumpFinalize(tester);
 
       // Select End of Treatment.
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.tap(find.byType(AppDropdown<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('End of Treatment').last);
       await tester.pumpAndSettle();
 
-      // Finalize -> the Terminal Cycle Warning opens (no dispatch yet).
+      // Finalize -> the Terminal Cycle Warning opens (no dispatch yet). Its
+      // confirm verb "End treatment" is unique to the warning (the dialog
+      // title and the dropdown trigger both read "End of Treatment").
       await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
       await tester.pumpAndSettle();
-      expect(find.text('Permanently Close Questionnaire?'), findsOneWidget);
+      expect(find.text('End treatment'), findsOneWidget);
       expect(fake.submittedActions, isEmpty);
 
       // Confirm the warning -> dispatch {endEvent}.
-      await tester.tap(find.text('Close as End of Treatment'));
+      await tester.tap(find.text('End treatment'));
       await tester.pumpAndSettle();
 
       expect(fake.submittedActions.length, 1);
@@ -605,14 +608,14 @@ void main() {
       (tester) async {
         final fake = await pumpFinalize(tester);
 
-        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.tap(find.byType(AppDropdown<String>));
         await tester.pumpAndSettle();
         await tester.tap(find.text('End of Study').last);
         await tester.pumpAndSettle();
 
         await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
         await tester.pumpAndSettle();
-        expect(find.text('Permanently Close Questionnaire?'), findsOneWidget);
+        expect(find.text('End study'), findsOneWidget);
 
         // Cancel the warning (the topmost Cancel; the Finalization Dialog
         // behind it also has a Cancel).
@@ -620,7 +623,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Back on the Finalization Dialog, nothing dispatched (G).
-        expect(find.text('Permanently Close Questionnaire?'), findsNothing);
+        expect(find.text('End study'), findsNothing);
         expect(find.text('Confirm'), findsWidgets);
         expect(fake.submittedActions, isEmpty);
 
@@ -647,7 +650,7 @@ void main() {
         final fake = await pumpFinalize(tester, currentStudyEvent: null);
 
         // No cycle option; default selection is a terminal (End of Treatment).
-        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.tap(find.byType(AppDropdown<String>));
         await tester.pumpAndSettle();
         expect(find.text('End of Treatment'), findsWidgets);
         expect(find.text('End of Study'), findsWidgets);
