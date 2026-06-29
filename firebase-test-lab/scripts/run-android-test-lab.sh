@@ -26,7 +26,7 @@ DEFAULT_DEVICE_SPECS=$(printf '%s\n' \
   'model=MediumPhone.arm,version=28,locale=en,orientation=portrait' \
 )
 DEVICE_SPECS="${ANDROID_DEVICES:-${DEFAULT_DEVICE_SPECS}}"
-USE_ORCHESTRATOR="${USE_ORCHESTRATOR:-false}"
+USE_ORCHESTRATOR="${USE_ORCHESTRATOR:-true}"
 RESULTS_BUCKET="${FIREBASE_RESULTS_BUCKET:-}"
 
 mkdir -p "$EVIDENCE_DIR"
