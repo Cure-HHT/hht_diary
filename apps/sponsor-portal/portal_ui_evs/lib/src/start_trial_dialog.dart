@@ -118,7 +118,7 @@ class StartTrialDialog extends StatelessWidget {
             return AppDialog(
               size: AppDialogSize.small,
               title: 'Start Trial',
-              dismissible: false,
+              dismissible: true,
               semanticId: 'start-trial-dialog-$participantId',
               body: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -158,7 +158,6 @@ class StartTrialDialog extends StatelessWidget {
                 ),
                 AppButton(
                   label: 'Send EQ',
-                  leadingIcon: Icons.send_outlined,
                   loading: busy,
                   onPressed: busy ? null : submit,
                   semanticId: 'send-eq-confirm-$participantId',

@@ -68,7 +68,7 @@ class _PreviewHome extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             PortalAppBar(
-              title: 'Clinical Trial Portal',
+              title: 'Sponsor Portal',
               subtitle: 'Administrator Dashboard',
               horizontalPadding: 96,
               userName: 'Dr. Emily Parker',
@@ -93,7 +93,7 @@ class _PreviewHome extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             PortalAppBar(
-              title: 'Clinical Trial Portal',
+              title: 'Sponsor Portal',
               subtitle: 'Site Study Coordinator Dashboard',
               userName: 'Dr. Sarah Johnson',
               activeRole: 'StudyCoordinator',
@@ -111,7 +111,7 @@ class _PreviewHome extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             PortalAppBar(
-              title: 'Clinical Trial Portal',
+              title: 'Sponsor Portal',
               subtitle: 'CRA Dashboard',
               userName: 'Jennifer Martinez',
               activeRole: 'CRA',
@@ -132,7 +132,7 @@ class _PreviewHome extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             PortalAppBar(
-              title: 'Clinical Trial Portal',
+              title: 'Sponsor Portal',
               subtitle: 'NewBetaRole Dashboard',
               userName: 'Beta Tester',
               activeRole: 'NewBetaRole',
@@ -163,7 +163,7 @@ class _PreviewHome extends StatelessWidget {
               height: 960,
               child: PortalDashboard(
                 appBar: PortalAppBar(
-                  title: 'Clinical Trial Portal',
+                  title: 'Sponsor Portal',
                   subtitle: 'Administrator Dashboard',
                   userName: 'Dr. Emily Parker',
                   activeRole: 'Administrator',

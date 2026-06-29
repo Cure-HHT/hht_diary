@@ -52,6 +52,7 @@ class PortalDashboard extends StatefulWidget {
     this.initialKey,
     this.onDestinationChanged,
     this.bodyOverride,
+    this.footer,
   }) : assert(
          destinations.length > 0,
          'PortalDashboard needs at least one destination',
@@ -81,6 +82,10 @@ class PortalDashboard extends StatefulWidget {
   /// aren't tabs (e.g. the app bar's Settings page). Tab taps still fire
   /// [onDestinationChanged]; the owner clears the override in response.
   final Widget? bodyOverride;
+
+  /// Optional footer pinned at the bottom of every page (Figma: 'Sponsored
+  /// by' strip).
+  final Widget? footer;
 
   @override
   State<PortalDashboard> createState() => _PortalDashboardState();
@@ -141,22 +146,36 @@ class _PortalDashboardState extends State<PortalDashboard> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(48, 24, 48, 0),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: DashboardTabs(
-                tabs: [for (final d in widget.destinations) d._asTab],
-                // With an override showing, no tab is the active surface;
-                // a key that matches no tab renders every pill inactive.
-                activeKey: widget.bodyOverride == null
-                    ? _activeKey
-                    : '__override__',
-                onTap: _select,
-              ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // A lone destination needs no selector: hide the pill strip and give
+                // its body the full height. The strip still shows while a chrome
+                // override (e.g. Study Settings) is up, so tapping the single pill
+                // remains the way back to the tab.
+                if (widget.destinations.length > 1 ||
+                    widget.bodyOverride != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(48, 24, 48, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: DashboardTabs(
+                        tabs: [for (final d in widget.destinations) d._asTab],
+                        // With an override showing, no tab is the active surface;
+                        // a key that matches no tab renders every pill inactive.
+                        activeKey: widget.bodyOverride == null
+                            ? _activeKey
+                            : '__override__',
+                        onTap: _select,
+                      ),
+                    ),
+                  ),
+                Expanded(child: widget.bodyOverride ?? active.body(context)),
+              ],
             ),
           ),
-          Expanded(child: widget.bodyOverride ?? active.body(context)),
+          if (widget.footer != null) widget.footer!,
         ],
       ),
     );

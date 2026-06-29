@@ -367,6 +367,15 @@ class _AppRootState extends State<AppRoot> {
           client: ingestClient,
           resolveIngestUrl: resolveIngestUrl,
           authToken: _enrollmentService.getJwtToken,
+          // Local dev: ship a lone survey/diary entry IMMEDIATELY on the
+          // post-append trigger instead of holding it for the 2-minute
+          // coalescing window (kDiaryBatchWindow). The hold is why a submission
+          // only reached the portal after backgrounding/foregrounding the app
+          // (the app-resume trigger fired after the window elapsed). Production
+          // keeps the window to coalesce same-session entries into one POST.
+          maxAccumulateTime: EnvProfile.current.env == AppEnv.local
+              ? Duration.zero
+              : kDiaryBatchWindow,
         );
         // Second outbound queue: ships system/FCM aggregates (FcmToken token
         // registration + InboundMessage receipts) to the SAME ingest endpoint.

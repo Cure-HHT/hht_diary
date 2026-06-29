@@ -146,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return AuthScaffold(
       semanticId: 'login-screen',
-      title: 'Clinical Trial Portal',
+      title: 'Sponsor Portal',
       subtitle: 'Sign in to access your dashboard',
       banner: _error != null
           ? AppBanner(

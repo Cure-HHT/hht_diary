@@ -31,7 +31,7 @@ void main() {
       await _pumpBar(
         tester,
         PortalAppBar(
-          title: 'Clinical Trial Portal',
+          title: 'Sponsor Portal',
           subtitle: 'Administrator Dashboard',
           userName: 'Dr. Emily Parker',
           activeRole: 'Administrator',
@@ -42,7 +42,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Clinical Trial Portal'), findsOneWidget);
+      expect(find.text('Sponsor Portal'), findsOneWidget);
       expect(find.text('Administrator Dashboard'), findsOneWidget);
       expect(find.text('Administrator'), findsOneWidget);
       expect(find.text('Dr. Emily Parker'), findsOneWidget);
@@ -55,7 +55,7 @@ void main() {
       await _pumpBar(
         tester,
         PortalAppBar(
-          title: 'Clinical Trial Portal',
+          title: 'Sponsor Portal',
           subtitle: 'Administrator Dashboard',
           userName: 'Dr. Emily Parker',
           activeRole: 'Administrator',
@@ -68,13 +68,46 @@ void main() {
       expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
     });
 
+    testWidgets(
+      'role dropdown lists roles by display name, tags active as "Primary" '
+      'with a check',
+      (tester) async {
+        String? picked;
+        await _pumpBar(
+          tester,
+          PortalAppBar(
+            title: 'Sponsor Portal',
+            subtitle: 'Administrator Dashboard',
+            userName: 'Dr. Emily Parker',
+            activeRole: 'Administrator',
+            availableRoles: const ['Administrator', 'StudyCoordinator'],
+            onRoleSelected: (r) => picked = r,
+            onLogout: () {},
+          ),
+        );
+
+        await tester.tap(find.bySemanticsIdentifier('appbar-role-switcher'));
+        await tester.pumpAndSettle();
+
+        // System name "StudyCoordinator" renders as its catalog display name.
+        expect(find.text('Study Coordinator'), findsOneWidget);
+        // Active role carries the "Primary" tag + check; inactive does not.
+        expect(find.text('Primary'), findsOneWidget);
+        expect(find.byIcon(Icons.check), findsOneWidget);
+
+        await tester.tap(find.text('Study Coordinator'));
+        await tester.pumpAndSettle();
+        expect(picked, 'StudyCoordinator');
+      },
+    );
+
     testWidgets('help icon renders only when onHelp is non-null', (
       tester,
     ) async {
       await _pumpBar(
         tester,
         PortalAppBar(
-          title: 'Clinical Trial Portal',
+          title: 'Sponsor Portal',
           subtitle: 'Administrator Dashboard',
           userName: 'Dr. Emily Parker',
           activeRole: 'Administrator',
@@ -92,7 +125,7 @@ void main() {
       await _pumpBar(
         tester,
         PortalAppBar(
-          title: 'Clinical Trial Portal',
+          title: 'Sponsor Portal',
           subtitle: 'Administrator Dashboard',
           userName: 'Dr. Emily Parker',
           activeRole: 'Administrator',
@@ -112,7 +145,7 @@ void main() {
       await _pumpBar(
         tester,
         PortalAppBar(
-          title: 'Clinical Trial Portal',
+          title: 'Sponsor Portal',
           subtitle: 'CRA Dashboard',
           userName: 'Jennifer Martinez',
           activeRole: 'CRA',
@@ -133,7 +166,7 @@ void main() {
       await _pumpBar(
         tester,
         PortalAppBar(
-          title: 'Clinical Trial Portal',
+          title: 'Sponsor Portal',
           subtitle: 'Study Coordinator Dashboard',
           userName: 'Dr. Sarah Johnson',
           activeRole: 'StudyCoordinator',
@@ -152,7 +185,7 @@ void main() {
         await _pumpBar(
           tester,
           PortalAppBar(
-            title: 'Clinical Trial Portal',
+            title: 'Sponsor Portal',
             subtitle: 'Site Study Coordinator Dashboard',
             userName: 'Dr. Sarah Johnson',
             activeRole: 'StudyCoordinator',
@@ -168,7 +201,7 @@ void main() {
 
   group('PortalAppBar — CUR-1483 header shape', () {
     PortalAppBar bar({Widget? logo, VoidCallback? onSettings}) => PortalAppBar(
-      title: 'Clinical Trial Portal',
+      title: 'Sponsor Portal',
       subtitle: 'Administrator Dashboard',
       userName: 'Dr. Emily Parker',
       activeRole: 'Administrator',
@@ -191,7 +224,7 @@ void main() {
       expect(find.byKey(logoKey), findsOneWidget);
       expect(
         tester.getTopLeft(find.byKey(logoKey)).dx,
-        lessThan(tester.getTopLeft(find.text('Clinical Trial Portal')).dx),
+        lessThan(tester.getTopLeft(find.text('Sponsor Portal')).dx),
         reason: 'logo sits left of the title block',
       );
     });
@@ -232,7 +265,7 @@ void main() {
     test('multi-role mode requires onRoleSelected', () {
       expect(
         () => PortalAppBar(
-          title: 'Clinical Trial Portal',
+          title: 'Sponsor Portal',
           subtitle: 'Administrator Dashboard',
           userName: 'Dr. Emily Parker',
           activeRole: 'Administrator',

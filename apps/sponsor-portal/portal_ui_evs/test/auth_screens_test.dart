@@ -251,7 +251,7 @@ void main() {
       // Back to Login: the form must not be stuck in the loading/disabled state.
       await tester.tap(find.text('Back to Login'));
       await tester.pumpAndSettle();
-      expect(find.text('Clinical Trial Portal'), findsOneWidget);
+      expect(find.text('Sponsor Portal'), findsOneWidget);
       expect(_primaryEnabled(tester, 'Sign In'), isTrue);
       expect(
         find.descendant(

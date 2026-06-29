@@ -22,6 +22,7 @@ import 'package:event_sourcing/event_sourcing.dart';
 // ignore: unnecessary_import
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide ViewBuilder;
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
@@ -42,17 +43,95 @@ const String _kFinalizeAction =
 const String _kEndOfTreatment = 'end_of_treatment';
 const String _kEndOfStudy = 'end_of_study';
 
-/// Friendly label for a terminal `endEvent` sentinel, used both in the
-/// Finalization dropdown options and the Closed combined badge (assertion E).
+/// Friendly label for a terminal `endEvent` sentinel, used in the Finalization
+/// dropdown options and the Terminal Cycle Warning title (Figma: title-case
+/// "End of Treatment" / "End of Study").
 String _endEventLabel(String endEvent) => switch (endEvent) {
   _kEndOfTreatment => 'End of Treatment',
   _kEndOfStudy => 'End of Study',
   _ => endEvent,
 };
 
+/// Sentence-case variant of [_endEventLabel] for the Closed combined badge
+/// (Figma: "Closed · End of treatment" — note the lower-case noun, assertion E).
+String _endEventLabelSentence(String endEvent) => switch (endEvent) {
+  _kEndOfTreatment => 'End of treatment',
+  _kEndOfStudy => 'End of study',
+  _ => endEvent,
+};
+
+/// The short verb-phrase for the Terminal Cycle Warning's confirm button
+/// (Figma: "End treatment" / "End study").
+String _endEventVerb(String endEvent) => switch (endEvent) {
+  _kEndOfTreatment => 'End treatment',
+  _kEndOfStudy => 'End study',
+  _ => endEvent,
+};
+
+/// Resolves a questionnaire type id (e.g. `'nose_hht'`) to its display name
+/// (e.g. `'NOSE HHT'`) for the sub-dialog copy. Falls back to the id if the
+/// type is not in the enabled list.
+String _typeDisplayName(String typeId) {
+  for (final t in kEnabledQuestionnaireTypes) {
+    if (t.id == typeId) return t.displayName;
+  }
+  return typeId;
+}
+
 /// The selectable starting-cycle range for the Select Starting Cycle dialog —
 /// `Cycle 1`..`Cycle 12` (a const range; assertion I).
 const int _kMaxStartingCycle = 12;
+
+/// A questionnaire-flow glyph exported from the Figma UI pack
+/// (`assets/icons/questionnaire/<name>.svg`), tinted to [color]. The SVGs paint
+/// with `currentColor`, so a `srcIn` colour filter recolours the stroke.
+Widget _qGlyph(String name, Color color, {double? size}) => SvgPicture.asset(
+  'assets/icons/questionnaire/$name.svg',
+  width: size,
+  height: size,
+  colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+);
+
+/// The info callout used in the Select Starting Cycle and Finalize dialogs
+/// (Figma): a Primary-Light-Soft (#E8F3F7) panel, 6px radius, with the calendar
+/// glyph and Primary (#165C7D) copy. [spans] carry the rich text (emphasise the
+/// cycle with a `w600` span).
+class _QInfoBanner extends StatelessWidget {
+  const _QInfoBanner({required this.spans});
+
+  final List<InlineSpan> spans;
+
+  @override
+  Widget build(BuildContext context) {
+    const primary = Color(0xFF165C7D);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F3F7),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: <Widget>[
+          _qGlyph('calendar', primary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 20 / 14,
+                  fontWeight: FontWeight.w400,
+                  color: primary,
+                ),
+                children: spans,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// Reactive Manage Questionnaires modal for a single participant.
 ///
@@ -115,6 +194,9 @@ class ManageQuestionnairesDialog extends StatelessWidget {
       title: 'Manage Questionnaires',
       subtitle: 'Participant ID: $participantId',
       semanticId: 'qst-modal-$participantId',
+      // Figma: the whole modal is a soft grey panel (Primary Bg #F7FAFB) so
+      // the white question cards read as distinct boxes.
+      backgroundColor: const Color(0xFFF7FAFB),
       body: SizedBox(
         width: 520,
         child: PermissionGate(
@@ -156,6 +238,7 @@ class ManageQuestionnairesDialog extends StatelessWidget {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
+                  const SizedBox(height: 8),
                   for (final type in kEnabledQuestionnaireTypes)
                     _QuestionnaireCard(
                       participantId: participantId,
@@ -278,8 +361,10 @@ class ManageQuestionnairesDialog extends StatelessWidget {
   }) async {
     final cycle = await showDialog<int>(
       context: context,
-      builder: (ctx) =>
-          _SelectStartingCycleDialog(participantId: participantId),
+      builder: (ctx) => _SelectStartingCycleDialog(
+        participantId: participantId,
+        typeDisplayName: _typeDisplayName(questionnaireType),
+      ),
     );
     if (cycle == null) return; // Cancel — no change (assertion L)
     if (!context.mounted) return;
@@ -320,6 +405,7 @@ class ManageQuestionnairesDialog extends StatelessWidget {
       participantId: participantId,
       siteId: siteId,
       instanceId: current.instanceId,
+      typeDisplayName: _typeDisplayName(current.type),
     ),
   );
 
@@ -340,6 +426,7 @@ class ManageQuestionnairesDialog extends StatelessWidget {
       siteId: siteId,
       instanceId: current.instanceId,
       currentStudyEvent: current.studyEvent,
+      typeDisplayName: _typeDisplayName(current.type),
     ),
   );
 
@@ -395,89 +482,162 @@ class _QuestionnaireCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final state = resolveCardState(rowsForType);
-    // The ready-to-review card carries the Figma's soft warm tint so the
-    // reviewable questionnaire reads at a glance.
-    final ready = state.status == QuestionnaireInstanceStatus.readyToReview;
+    // Figma: every card is a white bordered panel with the same 12px radius
+    // sitting on the dialog's soft grey body; status tint lives only in the
+    // pill, not the card background. The card colour is an explicit white (not
+    // colorScheme.surface) so it stays distinct from the grey panel.
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: ready ? const Color(0xFFFFFBEB) : theme.colorScheme.surface,
-        border: Border.all(
-          color: ready
-              ? const Color(0xFFFDE68A)
-              : theme.colorScheme.outlineVariant,
-        ),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        // Figma: a hairline Light-Gray (#ECEEF0) stroke, not a heavy border.
+        border: Border.all(color: const Color(0xFFECEEF0)),
+        borderRadius: BorderRadius.circular(8),
       ),
       padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          // Leading questionnaire icon chip (Figma).
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFFDBEAFE),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.description_outlined,
-              size: 22,
-              color: Color(0xFF2563EB),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  type.displayName,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Cycle info paired inline with the status chip it
-                // describes (assertion D).
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: <Widget>[
-                    _CycleInfo(state: state),
-                    _StatusBadge(state: state),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Action cluster, top-right (Figma): the per-status buttons,
-          // with Call Back as the trash affordance.
-          Wrap(
-            spacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: <Widget>[
-              for (final action in state.actions)
-                _ActionButton(
-                  participantId: participantId,
-                  siteId: siteId,
-                  typeId: type.id,
-                  action: action,
-                  state: state,
-                  onSendNow: onSendNow,
-                  onStartNextCycle: onStartNextCycle,
-                  onCallBack: onCallBack,
-                  onFinalize: onFinalize,
-                ),
-            ],
-          ),
-        ],
-      ),
+      child: _content(context, theme, state),
     );
   }
+
+  /// Never-sent cards are a single row (title + "Not Sent" pill + Send);
+  /// every other status is a header row over a hairline divider over a body
+  /// row carrying the cycle line and its status pill (Figma).
+  Widget _content(
+    BuildContext context,
+    ThemeData theme,
+    QuestionnaireCardState state,
+  ) {
+    // Figma: Inter Semi Bold 18 / line-height 28, Black (#04161E).
+    final title = Text(
+      type.displayName,
+      style: theme.textTheme.titleMedium?.copyWith(
+        fontSize: 18,
+        height: 28 / 18,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF04161E),
+      ),
+    );
+
+    // Never sent: one row — title, inline "Not Sent" pill, Send button.
+    final neverSent =
+        state.status == QuestionnaireInstanceStatus.notSent &&
+        state.finalizedStudyEvent == null;
+    if (neverSent) {
+      return Row(
+        children: <Widget>[
+          title,
+          const SizedBox(width: 12),
+          _StatusBadge(state: state),
+          const Spacer(),
+          for (final action in state.actions) _actionButton(action, state),
+        ],
+      );
+    }
+
+    // Closed terminal carries the combined "Closed · …" pill inline in the
+    // header (Figma); the other states keep their pill in the body row.
+    final isClosed = state.status == QuestionnaireInstanceStatus.closed;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            title,
+            if (isClosed) ...<Widget>[
+              const SizedBox(width: 12),
+              _StatusBadge(state: state),
+            ],
+            const Spacer(),
+            for (final action in state.actions) ...<Widget>[
+              _actionButton(action, state),
+              const SizedBox(width: 4),
+            ],
+          ],
+        ),
+        const SizedBox(height: 12),
+        Divider(
+          height: 1,
+          thickness: 1,
+          color: theme.colorScheme.outlineVariant,
+        ),
+        const SizedBox(height: 12),
+        _body(theme, state, isClosed),
+      ],
+    );
+  }
+
+  /// The body under the divider: the cycle line (and its status pill for
+  /// non-terminal states; a no-further-sends note for a terminal Closed).
+  Widget _body(ThemeData theme, QuestionnaireCardState state, bool isClosed) {
+    // Figma: label Inter Regular 14 / cycle Inter Semi Bold 14, both Dark Grey
+    // (#54636A) — the cycle is weighted, not recoloured.
+    final muted = theme.textTheme.bodyMedium?.copyWith(
+      fontSize: 14,
+      color: const Color(0xFF54636A),
+    );
+    final emph = muted?.copyWith(fontWeight: FontWeight.w600);
+
+    if (isClosed) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (state.finalizedStudyEvent != null)
+            Text.rich(
+              TextSpan(
+                text: 'Last: ',
+                style: muted,
+                children: <InlineSpan>[
+                  TextSpan(text: state.finalizedStudyEvent, style: emph),
+                ],
+              ),
+            ),
+          const SizedBox(height: 4),
+          Text(
+            'No further questionnaires of this type can be sent.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Sent / Ready to Review -> "Current: <cycle>"; after-finalize -> "Last:".
+    final isCurrent = state.currentStudyEvent != null;
+    final cycle = state.currentStudyEvent ?? state.finalizedStudyEvent;
+    return Row(
+      children: <Widget>[
+        if (cycle != null)
+          Flexible(
+            child: Text.rich(
+              TextSpan(
+                text: isCurrent ? 'Current: ' : 'Last: ',
+                style: muted,
+                children: <InlineSpan>[TextSpan(text: cycle, style: emph)],
+              ),
+            ),
+          ),
+        const SizedBox(width: 8),
+        _StatusBadge(state: state),
+      ],
+    );
+  }
+
+  Widget _actionButton(
+    QuestionnaireCardAction action,
+    QuestionnaireCardState state,
+  ) => _ActionButton(
+    participantId: participantId,
+    siteId: siteId,
+    typeId: type.id,
+    action: action,
+    state: state,
+    onSendNow: onSendNow,
+    onStartNextCycle: onStartNextCycle,
+    onCallBack: onCallBack,
+    onFinalize: onFinalize,
+  );
 }
 
 /// The status chip for a card. For a genuine terminal Closed the matrix calls
@@ -494,109 +654,48 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final endEvent = state.endEvent;
     final label =
         state.status == QuestionnaireInstanceStatus.closed && endEvent != null
-        ? 'Closed · ${_endEventLabel(endEvent)}'
+        ? 'Closed · ${_endEventLabelSentence(endEvent)}'
         : state.status.label;
-    // Per-status pill tints (Figma): Sent soft blue, Ready to Review warm
-    // outline, Not Sent / Closed neutral.
-    final (Color bg, Color fg, Color border) = switch (state.status) {
+    // Per-status pill colours, lifted exactly from the Figma badges:
+    //  Sent           bg Primary Light Soft #E8F3F7 / fg Primary    #165C7D
+    //  Ready to Review bg Pending Bg        #FFF5DE / fg Pending Dk  #B9790A
+    //  Not Sent        bg Light Gray        #ECEEF0 / fg Dark Grey   #54636A
+    //  Closed          bg Light Gray        #ECEEF0 / fg Grey        #A4B9C2
+    final (Color bg, Color fg) = switch (state.status) {
       QuestionnaireInstanceStatus.sent => (
-        const Color(0xFFEFF6FF),
-        const Color(0xFF1D4ED8),
-        const Color(0xFFBFDBFE),
+        const Color(0xFFE8F3F7),
+        const Color(0xFF165C7D),
       ),
       QuestionnaireInstanceStatus.readyToReview => (
-        const Color(0xFFFFFBEB),
-        const Color(0xFFD97706),
-        const Color(0xFFFBBF24),
+        const Color(0xFFFFF5DE),
+        const Color(0xFFB9790A),
       ),
       QuestionnaireInstanceStatus.closed => (
-        const Color(0xFF0E7490),
-        Colors.white,
-        const Color(0xFF0E7490),
+        const Color(0xFFECEEF0),
+        const Color(0xFFA4B9C2),
       ),
-      _ => (
-        theme.colorScheme.surface,
-        theme.colorScheme.onSurfaceVariant,
-        theme.colorScheme.outlineVariant,
-      ),
+      _ => (const Color(0xFFECEEF0), const Color(0xFF54636A)),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      // Figma: 8.5 / 2.5 px insets, 6px radius, no visible stroke.
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
-        border: Border.all(color: border),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(6),
       ),
+      // Figma: Inter Medium 12 / line-height 16.
       child: Text(
         label,
-        style: theme.textTheme.bodySmall?.copyWith(
+        style: const TextStyle(
           fontWeight: FontWeight.w500,
-          color: fg,
-        ),
+          fontSize: 12,
+          height: 16 / 12,
+        ).copyWith(color: fg),
       ),
     );
-  }
-}
-
-/// Renders the Cycle field(s) appropriate to the card's status, paired inline
-/// with the cycle they describe (assertion D):
-///  * Sent / Ready to Review -> `Current Cycle: <studyEvent>`.
-///  * Not Sent after-finalize -> `Finalized Cycle: <studyEvent>` + `Next Cycle`.
-///  * Not Sent (never sent) -> nothing.
-class _CycleInfo extends StatelessWidget {
-  const _CycleInfo({required this.state});
-
-  final QuestionnaireCardState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
-    final emph = theme.textTheme.bodySmall?.copyWith(
-      fontWeight: FontWeight.bold,
-    );
-
-    // Current cycle (Sent / Ready to Review) — Figma: "Current: Cycle N Day 1".
-    if (state.currentStudyEvent != null) {
-      return Text.rich(
-        TextSpan(
-          text: 'Current: ',
-          style: muted,
-          children: <InlineSpan>[
-            TextSpan(text: state.currentStudyEvent, style: emph),
-          ],
-        ),
-      );
-    }
-
-    // Finalized Cycle + Next Cycle (Not Sent after-finalize).
-    if (state.finalizedStudyEvent != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text.rich(
-            TextSpan(
-              text: 'Finalized Cycle: ',
-              style: muted,
-              children: <InlineSpan>[
-                TextSpan(text: state.finalizedStudyEvent, style: emph),
-              ],
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text('Next Cycle', style: muted),
-        ],
-      );
-    }
-
-    // Never sent -> no cycle fields.
-    return const SizedBox.shrink();
   }
 }
 
@@ -628,6 +727,7 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     // The Delivery-Failed troubleshooting popover (assertions N/O) is deferred.
     // TODO(later): wire the Delivery-Failed troubleshooting popover (info icon).
     final VoidCallback? onPressed;
@@ -655,32 +755,33 @@ class _ActionButton extends StatelessWidget {
     // pattern); container + explicitChildNodes keep it from being merged away
     // by the button's own button semantics.
     //
-    // Call Back renders as the Figma's trash affordance (tooltip carries the
-    // action name); Finalize as the green check button; Send Now / Start Next
-    // Cycle as kit primary buttons.
+    // Call Back renders as the Figma's red trash affordance (tooltip carries
+    // the action name); Send / Finalize / Start Next Cycle are kit primary
+    // buttons with their Figma leading glyph.
     final Widget button = switch (action) {
       QuestionnaireCardAction.callBack => IconButton(
         onPressed: onPressed,
         tooltip: action.label,
-        icon: const Icon(
-          Icons.delete_outline,
-          size: 20,
-          color: Color(0xFFDC2626),
-        ),
+        // Figma trash glyph, Critical red (#CB333B = colorScheme.error).
+        icon: _qGlyph('call_back', theme.colorScheme.error, size: 16),
         visualDensity: VisualDensity.compact,
       ),
-      QuestionnaireCardAction.finalize => FilledButton.icon(
+      QuestionnaireCardAction.finalize => AppButton(
+        size: AppButtonSize.medium,
+        label: 'Finalize',
+        leadingWidget: _qGlyph('finalize', Colors.white),
         onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF16A34A),
-          foregroundColor: Colors.white,
-        ),
-        icon: const Icon(Icons.check_circle_outline, size: 18),
-        label: Text(action.label),
       ),
-      _ => AppButton(
-        label: action.label,
-        leadingIcon: Icons.send_outlined,
+      QuestionnaireCardAction.sendNow => AppButton(
+        size: AppButtonSize.medium,
+        label: 'Send',
+        leadingWidget: _qGlyph('send', Colors.white),
+        onPressed: onPressed,
+      ),
+      QuestionnaireCardAction.startNextCycle => AppButton(
+        size: AppButtonSize.medium,
+        label: 'Start Next Cycle',
+        leadingWidget: _qGlyph('start_next_cycle', Colors.white),
         onPressed: onPressed,
       ),
     };
@@ -714,9 +815,16 @@ class _ActionButton extends StatelessWidget {
 ///
 /// Implements: DIARY-BASE-questionnaire-manage-modal/I+J+K+L
 class _SelectStartingCycleDialog extends StatefulWidget {
-  const _SelectStartingCycleDialog({required this.participantId});
+  const _SelectStartingCycleDialog({
+    required this.participantId,
+    required this.typeDisplayName,
+  });
 
   final String participantId;
+
+  /// The questionnaire type's display name (e.g. `'NOSE HHT'`), woven into the
+  /// dialog copy (Figma).
+  final String typeDisplayName;
 
   @override
   State<_SelectStartingCycleDialog> createState() =>
@@ -733,31 +841,39 @@ class _SelectStartingCycleDialogState
       size: AppDialogSize.small,
       title: 'Select Starting Cycle',
       subtitle:
-          'Choose which cycle this questionnaire belongs to for participant '
-          '${widget.participantId}.',
+          'Choose which cycle this ${widget.typeDisplayName} questionnaire '
+          'belongs to for participant ${widget.participantId}.',
       dismissible: false,
       semanticId: 'qst-cycle-dialog-${widget.participantId}',
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const AppBanner(
-            severity: AppBannerSeverity.info,
-            message:
-                "Select Cycle 1 Day 1 if this is the participant's first "
-                'cycle, or a later cycle if the participant started on '
-                'paper diaries.',
+          const _QInfoBanner(
+            spans: <InlineSpan>[
+              TextSpan(text: 'Select '),
+              TextSpan(
+                text: 'Cycle 1 Day 1',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              TextSpan(
+                text:
+                    " if this is the participant's first cycle, or a later "
+                    'cycle if the participant started on paper diaries.',
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           // Assertion I: a cycle dropdown over the const Cycle 1..12 range.
-          DropdownButtonFormField<int>(
-            initialValue: _cycle,
-            decoration: const InputDecoration(labelText: 'Starting Cycle'),
-            items: <DropdownMenuItem<int>>[
+          AppDropdown<int>(
+            label: 'Starting Cycle',
+            value: _cycle,
+            items: <AppDropdownItem<int>>[
               for (var n = 1; n <= _kMaxStartingCycle; n++)
-                DropdownMenuItem<int>(value: n, child: Text('Cycle $n Day 1')),
+                AppDropdownItem<int>(value: n, label: 'Cycle $n Day 1'),
             ],
             onChanged: (v) => setState(() => _cycle = v ?? _cycle),
+            semanticId: 'qst-cycle-select-${widget.participantId}',
           ),
         ],
       ),
@@ -771,7 +887,7 @@ class _SelectStartingCycleDialogState
         // Assertions J/K: Confirm pops the chosen cycle -> re-POST with
         // studyEvent.
         AppButton(
-          label: 'Confirm and Send',
+          label: 'Confirm',
           onPressed: () => Navigator.of(context).pop(_cycle),
           semanticId: 'qst-cycle-confirm-${widget.participantId}',
         ),
@@ -830,14 +946,49 @@ class _CallBackDialog extends StatefulWidget {
     required this.participantId,
     required this.siteId,
     required this.instanceId,
+    required this.typeDisplayName,
   });
 
   final String participantId;
   final String siteId;
   final String instanceId;
 
+  /// The questionnaire type's display name, woven into the dialog copy (Figma).
+  final String typeDisplayName;
+
   @override
   State<_CallBackDialog> createState() => _CallBackDialogState();
+}
+
+/// The "← Manage Questionnaires" back-link rendered above a sub-dialog title
+/// (Figma). Tapping it pops the sub-dialog, returning to the modal with no
+/// change — the same no-op outcome as Cancel.
+class _ManageQuestionnairesBreadcrumb extends StatelessWidget {
+  const _ManageQuestionnairesBreadcrumb();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    return InkWell(
+      onTap: () => Navigator.of(context).maybePop(),
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(Icons.arrow_back, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              'Manage Questionnaires',
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _CallBackDialogState extends State<_CallBackDialog> {
@@ -891,7 +1042,9 @@ class _CallBackDialogState extends State<_CallBackDialog> {
     };
     return AppDialog(
       size: AppDialogSize.small,
+      breadcrumb: const _ManageQuestionnairesBreadcrumb(),
       title: 'Call Back Questionnaire',
+      subtitle: 'Participant ID: ${widget.participantId}',
       dismissible: false,
       semanticId: 'qst-callback-dialog-${widget.participantId}',
       body: Column(
@@ -899,22 +1052,23 @@ class _CallBackDialogState extends State<_CallBackDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            'Retract this questionnaire from participant '
-            '${widget.participantId}. A reason is required.',
+            'Calling back the ${widget.typeDisplayName} Questionnaire will set '
+            'its status to Not Sent.',
             style: theme.textTheme.bodyMedium,
           ),
-          const SizedBox(height: 12),
-          // Assertion F: a required free-text reason.
-          TextField(
+          const SizedBox(height: 16),
+          // Assertion F: a required free-text reason, capped at 100 chars with
+          // the Figma "0/100" counter.
+          AppTextField(
             controller: _reason,
+            label: 'Reason for call back',
+            required: true,
+            hintText: 'Enter reason for calling back this Questionnaire...',
             autofocus: true,
-            minLines: 2,
+            minLines: 3,
             maxLines: 4,
+            maxLength: 100,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              labelText: 'Reason',
-              border: OutlineInputBorder(),
-            ),
           ),
           if (message != null) ...<Widget>[
             const SizedBox(height: 12),
@@ -930,7 +1084,6 @@ class _CallBackDialogState extends State<_CallBackDialog> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         AppButton(
-          variant: AppButtonVariant.destructive,
           label: 'Confirm',
           // Disabled until a non-empty reason is entered (assertion F).
           onPressed: reasonEmpty ? null : submit,
@@ -1033,6 +1186,7 @@ class _FinalizationDialog extends StatefulWidget {
     required this.siteId,
     required this.instanceId,
     required this.currentStudyEvent,
+    required this.typeDisplayName,
   });
 
   final String participantId;
@@ -1043,6 +1197,9 @@ class _FinalizationDialog extends StatefulWidget {
   /// dropdown option's label/value. Null when cycle tracking is off / no cycle
   /// is recorded — the dropdown then offers only the two terminal options.
   final String? currentStudyEvent;
+
+  /// The questionnaire type's display name, woven into the dialog copy (Figma).
+  final String typeDisplayName;
 
   @override
   State<_FinalizationDialog> createState() => _FinalizationDialogState();
@@ -1112,20 +1269,17 @@ class _FinalizationDialogState extends State<_FinalizationDialog> {
 
   /// Builds the dropdown items: the current cycle (when present) plus the two
   /// terminal options (assertion B).
-  List<DropdownMenuItem<String>> _items() => <DropdownMenuItem<String>>[
+  List<AppDropdownItem<String>> _items() => <AppDropdownItem<String>>[
     if (widget.currentStudyEvent != null)
-      DropdownMenuItem<String>(
-        value: widget.currentStudyEvent,
-        child: Text(widget.currentStudyEvent!),
+      AppDropdownItem<String>(
+        value: widget.currentStudyEvent!,
+        label: widget.currentStudyEvent!,
       ),
-    const DropdownMenuItem<String>(
+    const AppDropdownItem<String>(
       value: _kEndOfTreatment,
-      child: Text('End of Treatment'),
+      label: 'End of Treatment',
     ),
-    const DropdownMenuItem<String>(
-      value: _kEndOfStudy,
-      child: Text('End of Study'),
-    ),
+    const AppDropdownItem<String>(value: _kEndOfStudy, label: 'End of Study'),
   ];
 
   /// Maps a dropdown value key back to a [_FinalizeChoice].
@@ -1145,6 +1299,7 @@ class _FinalizationDialogState extends State<_FinalizationDialog> {
         builder: (_) => _TerminalCycleWarningDialog(
           participantId: widget.participantId,
           endEvent: choice.endEvent,
+          typeDisplayName: widget.typeDisplayName,
         ),
       );
       // Cancel -> return to this dialog unchanged, no dispatch (assertion G).
@@ -1169,9 +1324,13 @@ class _FinalizationDialogState extends State<_FinalizationDialog> {
       _CycleChoice(:final studyEvent) => studyEvent,
       _TerminalChoice(:final endEvent) => _endEventLabel(endEvent),
     };
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
     return AppDialog(
       size: AppDialogSize.small,
-      title: 'Finalize Questionnaire?',
+      breadcrumb: const _ManageQuestionnairesBreadcrumb(),
+      title: 'Finalize Questionnaire',
       subtitle: 'Participant ID: ${widget.participantId}',
       dismissible: false,
       semanticId: 'qst-finalize-dialog-${widget.participantId}',
@@ -1180,27 +1339,32 @@ class _FinalizationDialogState extends State<_FinalizationDialog> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Text(
-            'Are you sure you want to finalize this Questionnaire?',
+            'Are you sure you want to finalize the ${widget.typeDisplayName} '
+            'Questionnaire?',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
           // Assertions A/B: a Cycle dropdown over the current cycle + the two
           // terminal options.
-          DropdownButtonFormField<String>(
-            initialValue: _selectedKey,
-            decoration: const InputDecoration(labelText: 'Cycle'),
+          AppDropdown<String>(
+            label: 'Starting Cycle',
+            value: _selectedKey,
             items: _items(),
             onChanged: (v) {
               if (v == null) return;
               setState(() => _choice = _choiceFor(v));
             },
+            semanticId: 'qst-finalize-cycle-${widget.participantId}',
           ),
-          const SizedBox(height: 12),
-          AppBanner(
-            severity: AppBannerSeverity.info,
-            message:
-                'This questionnaire will be finalized as: '
-                '$selectionLabel',
+          const SizedBox(height: 16),
+          _QInfoBanner(
+            spans: <InlineSpan>[
+              const TextSpan(text: 'This questionnaire will be finalized as: '),
+              TextSpan(
+                text: selectionLabel,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Text(
@@ -1210,22 +1374,15 @@ class _FinalizationDialogState extends State<_FinalizationDialog> {
               color: theme.colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Finalize this Questionnaire\n'
-            'Calculate the score and send it to EDC\n'
-            'Lock all Participant responses permanently',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
+          const SizedBox(height: 8),
+          _bullet(theme, muted, 'Finalize this Questionnaire'),
+          _bullet(theme, muted, 'Calculate the score and send it to EDC'),
+          _bullet(theme, muted, 'Lock all Participant responses permanently'),
           const SizedBox(height: 8),
           Text(
             'After finalization, the Participant cannot edit or update '
             'their answers in the Daily Diary app.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: muted,
           ),
           if (message != null) ...<Widget>[
             const SizedBox(height: 12),
@@ -1240,24 +1397,29 @@ class _FinalizationDialogState extends State<_FinalizationDialog> {
           label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
         ),
-        // Assertion C: the Finalize Questionnaire button (Figma: green).
-        Semantics(
-          identifier: 'qst-finalize-confirm-${widget.participantId}',
-          button: true,
-          container: true,
-          explicitChildNodes: true,
-          child: FilledButton(
-            onPressed: () => _onFinalize(submit),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF16A34A),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Confirm'),
-          ),
+        // Assertion C: the Finalize confirm button (Figma: primary).
+        AppButton(
+          label: 'Confirm',
+          onPressed: () => _onFinalize(submit),
+          semanticId: 'qst-finalize-confirm-${widget.participantId}',
         ),
       ],
     );
   }
+
+  /// One bulleted effect line in the Finalize dialog (Figma: "Effects of this
+  /// action" list).
+  Widget _bullet(ThemeData theme, TextStyle? style, String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('•', style: style),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: style)),
+      ],
+    ),
+  );
 
   Widget _busy(ThemeData theme) => const AppDialog(
     size: AppDialogSize.small,
@@ -1280,24 +1442,67 @@ class _TerminalCycleWarningDialog extends StatelessWidget {
   const _TerminalCycleWarningDialog({
     required this.participantId,
     required this.endEvent,
+    required this.typeDisplayName,
   });
 
   final String participantId;
   final String endEvent;
 
+  /// The questionnaire type's display name, woven into the warning copy (Figma).
+  final String typeDisplayName;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final label = _endEventLabel(endEvent);
+    const amber = Color(0xFFB9790A); // Pending Dark
+    final regular = const TextStyle(
+      fontSize: 14,
+      height: 20 / 14,
+      fontWeight: FontWeight.w400,
+      color: amber,
+    );
+    final bold = regular.copyWith(fontWeight: FontWeight.w600);
     return AppDialog(
-      size: AppDialogSize.medium,
-      icon: Icon(Icons.warning_amber, color: theme.colorScheme.error),
-      title: 'Permanently Close Questionnaire?',
+      size: AppDialogSize.small,
+      // Figma: the dialog is titled by the chosen terminal event itself.
+      title: _endEventLabel(endEvent),
       dismissible: false,
-      body: Text(
-        'Finalizing as "$label" will permanently close this questionnaire for '
-        'participant $participantId. No further cycles of this questionnaire '
-        'can be sent. This cannot be undone.',
+      semanticId: 'qst-terminal-warning-$participantId',
+      // Figma: a Pending-Bg (#FFF5DE) panel, 10px radius, carrying the
+      // triangle-alert glyph and the warning copy in Pending Dark (#B9790A),
+      // with the questionnaire type + patient id emphasised.
+      body: Container(
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF5DE),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            _qGlyph('triangle_alert', amber, size: 36),
+            const SizedBox(width: 17),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  style: regular,
+                  children: <InlineSpan>[
+                    TextSpan(
+                      text:
+                          'This action will permanently close this '
+                          'questionnaire type for this patient. ',
+                      style: bold,
+                    ),
+                    const TextSpan(text: "You won't be able to send"),
+                    TextSpan(text: ' $typeDisplayName', style: bold),
+                    const TextSpan(text: ' questionnaires to patient '),
+                    TextSpan(text: participantId, style: bold),
+                    const TextSpan(text: '. Are you sure?'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
       actions: <Widget>[
         // Assertion G: Cancel pops false -> return to the Finalization Dialog
@@ -1308,8 +1513,7 @@ class _TerminalCycleWarningDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(false),
         ),
         AppButton(
-          variant: AppButtonVariant.destructive,
-          label: 'Close as $label',
+          label: _endEventVerb(endEvent),
           onPressed: () => Navigator.of(context).pop(true),
           semanticId: 'qst-terminal-warning-confirm-$participantId',
         ),
@@ -1369,12 +1573,14 @@ class FinalizationDialogHarness extends StatelessWidget {
     required this.siteId,
     required this.instanceId,
     this.currentStudyEvent,
+    this.typeDisplayName = 'NOSE HHT',
   });
 
   final String participantId;
   final String siteId;
   final String instanceId;
   final String? currentStudyEvent;
+  final String typeDisplayName;
 
   @override
   Widget build(BuildContext context) => _FinalizationDialog(
@@ -1382,6 +1588,7 @@ class FinalizationDialogHarness extends StatelessWidget {
     siteId: siteId,
     instanceId: instanceId,
     currentStudyEvent: currentStudyEvent,
+    typeDisplayName: typeDisplayName,
   );
 }
 
@@ -1395,16 +1602,19 @@ class CallBackDialogHarness extends StatelessWidget {
     required this.participantId,
     required this.siteId,
     required this.instanceId,
+    this.typeDisplayName = 'NOSE HHT',
   });
 
   final String participantId;
   final String siteId;
   final String instanceId;
+  final String typeDisplayName;
 
   @override
   Widget build(BuildContext context) => _CallBackDialog(
     participantId: participantId,
     siteId: siteId,
     instanceId: instanceId,
+    typeDisplayName: typeDisplayName,
   );
 }

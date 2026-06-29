@@ -315,6 +315,12 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       _roleConfirmed = false;
     });
     _scope.authSession.setCredential(identity);
+    // Re-auth the WS under the new identity. A logout leaves the previous
+    // user's socket open until its idle-close grace; logging straight back in
+    // as a DIFFERENT user would otherwise subscribe on that stale-principal
+    // socket and be denied (view_permission_denied). reconnect() is a no-op
+    // when no socket is open (fresh load), so this is safe on first login too.
+    unawaited(_scope.reconnect());
   }
 
   /// Session auth login: called by [LoginScreen] when the user authenticates
@@ -332,27 +338,40 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       _roleConfirmed = false;
     });
     _scope.authSession.setCredential(token);
+    // Re-auth the WS under the new identity — see [_onConnect]. Without this, a
+    // logout→login as a different user can subscribe on the previous user's
+    // still-open socket and be denied (view_permission_denied).
+    unawaited(_scope.reconnect());
   }
 
-  /// Switches the active role by encoding a per-request credential claim
-  /// (`credential|role`) and reconnecting the WS under the new role.
+  /// Switches the active role by encoding a per-request claim into the
+  /// credential (`credential|role`) and re-establishing the authorization
+  /// context — both the read-side snapshot AND the live WS data scope — under
+  /// it. Works in dev mode (credential = bare userId) and session mode
+  /// (credential = session token).
   ///
-  /// Works in both dev mode (credential = bare userId) and session mode
-  /// (credential = session token). [setCredential] fires GET /me
-  /// synchronously, updating the Principal so the header and client gating
-  /// reflect the new role immediately. [_scope.reconnect()] re-authenticates
-  /// the WS and re-issues all live subscribes under the new role without
-  /// triggering a logout or NotAuthenticated flicker.
+  /// Three ordered steps, each load-bearing:
+  ///
+  /// 1. [setCredential] swaps the credential the client sends and fires GET /me,
+  ///    updating the [Principal] so the header reflects the new active role.
+  /// 2. [PermissionSource.refresh] re-reads `/permissions/snapshot` under the
+  ///    new claim and emits it IN PLACE (no transient `null`), so the nav tabs
+  ///    and every `PermissionGate` re-gate WITHOUT a "not-loaded" flash. Being
+  ///    an AWAITED authenticated HTTP round-trip, it also refreshes the server
+  ///    idle window — so the reconnect below re-auths against a freshly-touched,
+  ///    live session and can't race the idle check into a spurious 4001 close
+  ///    (the original bug: GET /me fired unawaited and reconnect raced ahead).
+  /// 3. [reconnect] re-auths the WS under the new role so live view
+  ///    subscriptions (e.g. participants) re-scope to the new role's row-level
+  ///    access. Without it the socket keeps the previous role's principal and
+  ///    the server denies / over-filters the new role's data.
   ///
   // Implements: DIARY-GUI-role-switching/E+F
   Future<void> _onRoleSelected(String role) async {
     final credential = _identityCredential;
     if (credential == null) return;
-    // The active role is a per-request claim carried in the credential.
-    // setCredential refreshes the Principal (header + client gating) via
-    // GET /me; reconnect() re-gates the live WS view subscriptions under
-    // the new role. No logout, no flicker — AuthStatus stays Authenticated.
     _scope.authSession.setCredential('$credential|$role');
+    await _scope.permissionSource.refresh();
     await _scope.reconnect();
   }
 
@@ -609,7 +628,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       scope: _scope,
       child: MaterialApp(
         navigatorKey: _navigatorKey,
-        title: 'Portal EVS Skeleton',
+        title: 'Cure HHT Study Portal',
         // CUR-1450: adopt the diary_design_system brand (Carina blue +
         // Inter typography). Sites / Participants / RAVE Sync re-theme
         // passively; their layouts stay until they get their own redesign
@@ -857,7 +876,7 @@ class _HomeShellState extends State<_HomeShell> {
 
     return PortalDashboard(
       appBar: PortalAppBar(
-        title: 'Clinical Trial Portal',
+        title: 'Sponsor Portal',
         // Subtitle follows the active role's dashboard label so the
         // header reads "Administrator Dashboard" / "CRA Dashboard" / etc.
         subtitle: '$activeRole Dashboard',
@@ -874,7 +893,11 @@ class _HomeShellState extends State<_HomeShell> {
         onHelp: _showVersionsDialog,
         // Same sponsor-served logo the auth cards use (CUR-1483 Figma:
         // logo sits left of the title block).
-        logo: const SponsorBrandMark(maxHeight: 40),
+        // Figma: hard-coded CureHHT brand mark on the top header.
+        logo: Image.asset(
+          'assets/icons/curehht_logo.png',
+          height: 40,
+        ),
         // Opens the read-only Study Settings page over the active tab.
         // Visible only to roles holding the ACT-ADM-001 read permission
         // (Administrator + SystemOperator per the sponsor matrix); the
@@ -886,6 +909,26 @@ class _HomeShellState extends State<_HomeShell> {
                 false)
             ? () => setState(() => _showSettings = true)
             : null,
+      ),
+      footer: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+
+          children: [
+            Text(
+              'Sponsored by',
+              style: TextStyle(
+                fontWeight: FontWeight.w400,
+                fontSize: 14,
+                color: const Color(0xFFA4B9C2), // Figma: Grey
+              ),
+            ),
+            const SizedBox(width: 8),
+            const SponsorBrandMark(maxHeight: 50),
+          ],
+        ),
       ),
       // Study Settings isn't a tab: it overlays the body while the strip
       // shows no active pill; any tab tap below dismisses it.
