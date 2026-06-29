@@ -220,7 +220,11 @@ printf '%b\n' "${BLUE}Running requirement validation...${NC}"
 echo ""
 
 if command -v elspais &> /dev/null; then
-    if ! OUTPUT=$(elspais checks --spec --code --terms 2>&1); then
+    # --lenient: warning-severity checks (e.g. code.no_traceability, configured
+    # as "warning" in .elspais.toml) inform but do not fail the exit code. As of
+    # elspais 0.118.16 warnings affect the exit code by default, so the flag is
+    # required to preserve the repo's intended non-blocking severity policy.
+    if ! OUTPUT=$(elspais checks --spec --code --terms --lenient 2>&1); then
         VALIDATION_FAILED=true
         VALIDATION_OUTPUT+="$OUTPUT"
         echo "$OUTPUT"
