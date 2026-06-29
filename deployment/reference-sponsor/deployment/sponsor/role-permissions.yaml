@@ -25,7 +25,6 @@ grants:
     - portal.questionnaire.view_status
     - portal.diary.view_entries
   CRA:
-    - portal.admin.view_settings
     - portal.site.view
   Administrator:
     - portal.user.create

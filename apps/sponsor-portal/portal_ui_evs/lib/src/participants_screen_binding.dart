@@ -12,6 +12,7 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 
 import 'activation_code_display.dart';
 import 'manage_questionnaires_dialog.dart';
+import 'participant_actions_dialog.dart';
 import 'participant_status.dart';
 import 'site_visibility.dart';
 import 'start_trial_dialog.dart';
@@ -32,7 +33,36 @@ const String _kMarkNotParticipatingAction =
     'ACT-PAT-005'; // {siteId, participantId, reason}
 const String _kReactivateAction =
     'ACT-PAT-006'; // {siteId, participantId, reason}
-const String _kPlaceholderReason = 'portal action';
+
+/// How a lifecycle action collects its mandatory reason. The format is
+/// Sponsor-configurable (DIARY-PRD-participant-disconnection/C); these are the
+/// default presentations the Figma confirm dialogs show — a predefined
+/// dropdown for disconnect / mark-not-participating, a free-text field for
+/// reconnect / reactivate.
+enum _ReasonInput { none, dropdown, freeText }
+
+/// Default predefined disconnection reasons (Sponsor-overridable controlled
+/// vocabulary).
+const List<String> _kDisconnectReasons = <String>[
+  'Device fault',
+  'Connectivity issue',
+  'Lost or replaced device',
+  'Temporary withdrawal',
+  'Other',
+];
+
+/// Default predefined mark-as-not-participating reasons (Sponsor-overridable).
+const List<String> _kNotParticipatingReasons = <String>[
+  'Completed trial',
+  'Withdrew consent',
+  'Lost to follow-up',
+  'Screen failure / ineligible',
+  'Other',
+];
+
+/// Free-text reason cap (DIARY-PRD-reason-field-constraints): 100 characters,
+/// whitespace-only submissions rejected.
+const int _kReasonMaxLength = 100;
 
 /// Internal joined row: the participant_record fields the view model and
 /// the dialogs need.
@@ -301,17 +331,105 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
       isLoading: isLoading,
       onPrimaryAction: (row) => _onPrimary(byId[row.id]!, row),
       onMenuAction: (row, action) => _onMenu(byId[row.id]!, action),
-      // Tapping a row whose participant has linked their Mobile Application
-      // (Linked / Awaiting Start or Trial Active) opens the Mobile Linking
-      // Code dialog in its reference-only state (Figma image 7).
-      onRowTap: (row) {
-        final record = byId[row.id]!;
-        if (record.status == ParticipantStatus.connected ||
-            record.status == ParticipantStatus.trialActive) {
-          _showCodeDialog(record);
-        }
-      },
+      // Tapping a row opens the per-status "Participant Actions" sheet
+      // (Figma: Participant Management / ParticipantActionsDialog), which
+      // surfaces the lifecycle actions that formerly lived in the row's
+      // overflow menu.
+      onRowTap: (row) => _openActionsDialog(byId[row.id]!, row),
     );
+  }
+
+  /// Builds the per-status action list (Figma) — reusing the existing
+  /// lifecycle handlers — and shows the "Participant Actions" sheet. A status
+  /// with no actions (unknown) opens nothing.
+  void _openActionsDialog(
+    ParticipantRecordRow record,
+    ParticipantRowView row,
+  ) {
+    final actions = _dialogActionsFor(record, row.status);
+    if (actions.isEmpty) return;
+    unawaited(
+      ParticipantActionsDialog.show(
+        context: context,
+        participantId: record.id,
+        actions: actions,
+      ),
+    );
+  }
+
+  /// The ordered action cards for a row status (Figma:
+  /// ParticipantActionsDialog variants). Every linked-or-later state leads
+  /// with the code action; lifecycle transitions follow. Each card routes to
+  /// the same handler the removed overflow menu used.
+  List<ParticipantActionItem> _dialogActionsFor(
+    ParticipantRecordRow record,
+    ParticipantRowStatus status,
+  ) {
+    ParticipantActionItem generateCode() => ParticipantActionItem(
+      label: 'Generate Linking Code',
+      iconAsset: 'assets/icons/participant/link.svg',
+      onSelected: () => unawaited(
+        LinkParticipantDialog.show(
+          context: context,
+          participantId: record.id,
+          siteId: record.siteId,
+        ),
+      ),
+    );
+    ParticipantActionItem regenerateCode() => ParticipantActionItem(
+      label: 'Regenerate Code',
+      iconAsset: 'assets/icons/participant/refresh.svg',
+      onSelected: () => unawaited(
+        LinkParticipantDialog.show(
+          context: context,
+          participantId: record.id,
+          siteId: record.siteId,
+        ),
+      ),
+    );
+    final showCode = ParticipantActionItem(
+      label: 'Show Linking Code',
+      iconAsset: 'assets/icons/participant/eye.svg',
+      onSelected: () => _showCodeDialog(record),
+    );
+    final disconnect = ParticipantActionItem(
+      label: 'Disconnect Participant',
+      iconAsset: 'assets/icons/participant/disconnect.svg',
+      destructive: true,
+      onSelected: () => _onMenu(record, ParticipantMenuAction.disconnect),
+    );
+    final reconnect = ParticipantActionItem(
+      label: 'Reconnect Participant',
+      iconAsset: 'assets/icons/participant/link.svg',
+      onSelected: () => _onMenu(record, ParticipantMenuAction.reconnect),
+    );
+    final markNotParticipating = ParticipantActionItem(
+      label: 'Mark as Not Participating',
+      iconAsset: 'assets/icons/participant/user_x.svg',
+      destructive: true,
+      onSelected: () =>
+          _onMenu(record, ParticipantMenuAction.markNotParticipating),
+    );
+    final reactivate = ParticipantActionItem(
+      label: 'Reactivate Participant',
+      iconAsset: 'assets/icons/participant/reactivate.svg',
+      onSelected: () => _onMenu(record, ParticipantMenuAction.reactivate),
+    );
+
+    return switch (status) {
+      ParticipantRowStatus.notConnected => [generateCode()],
+      ParticipantRowStatus.codePending => [showCode],
+      ParticipantRowStatus.expired => [regenerateCode(), showCode],
+      ParticipantRowStatus.linkedAwaitingStart => [showCode, disconnect],
+      ParticipantRowStatus.trialActive => [showCode, disconnect],
+      ParticipantRowStatus.disconnected => [
+        showCode,
+        reconnect,
+        markNotParticipating,
+      ],
+      ParticipantRowStatus.notParticipating => [showCode, reactivate],
+      ParticipantRowStatus.unknown => const <ParticipantActionItem>[],
+    };
   }
 
   void _onPrimary(ParticipantRecordRow record, ParticipantRowView row) {
@@ -359,11 +477,20 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
           record,
           actionName: _kDisconnectAction,
           title: 'Disconnect Participant',
-          body:
-              'The participant\'s device will stop syncing diary entries '
-              'until they are reconnected with a new linking code.',
-          confirmLabel: 'Disconnect',
-          withReason: true,
+          effects: const [
+            "Stop data synchronization between the Participant's Mobile "
+                'Application and the Sponsor Portal',
+            "Continue applying sponsor-specific rules to the Participant's "
+                'Mobile Application',
+            'Preserve all Participant data and history',
+          ],
+          reversalNote:
+              'This action can be reversed by reconnecting the Participant.',
+          confirmLabel: 'Confirm',
+          confirmDestructive: true,
+          reasonInput: _ReasonInput.dropdown,
+          reasonLabel: 'Reason for disconnection',
+          reasonOptions: _kDisconnectReasons,
         );
       case ParticipantMenuAction.reconnect:
         _confirmLifecycle(
@@ -371,22 +498,31 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
           actionName: _kReconnectAction,
           title: 'Reconnect Participant',
           body:
-              'A new linking code will be generated for the participant to '
-              're-connect their Mobile Application. The code will expire '
-              'after 72 hours.',
-          confirmLabel: 'Reconnect',
+              'Confirming will generate a new Linking Code. The Participant '
+              'must enter the new Linking Code to restore the connection. Any '
+              'previously issued Linking Code will be invalidated.',
+          confirmLabel: 'Confirm',
+          reasonInput: _ReasonInput.freeText,
+          reasonLabel: 'Reason for reconnection',
+          reasonHint: 'Enter reason for reconnecting this Participant...',
           showsCodeOnSuccess: true,
         );
       case ParticipantMenuAction.markNotParticipating:
         _confirmLifecycle(
           record,
           actionName: _kMarkNotParticipatingAction,
-          title: 'Mark Not Participating',
-          body:
-              'The participant will be marked as not participating and their '
-              'device link released. They can be reactivated later.',
-          confirmLabel: 'Mark Not Participating',
-          withReason: true,
+          title: 'Mark Participant as Not Participating',
+          effects: const [
+            'Stop applying sponsor-specific rules to the Mobile Application',
+            'Preserve all Participant data and history',
+          ],
+          reversalNote:
+              'This action can be reversed by reactivating the Participant.',
+          confirmLabel: 'Confirm',
+          confirmDestructive: true,
+          reasonInput: _ReasonInput.dropdown,
+          reasonLabel: 'Reason for marking as not participating',
+          reasonOptions: _kNotParticipatingReasons,
         );
       case ParticipantMenuAction.reactivate:
         _confirmLifecycle(
@@ -394,11 +530,13 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
           actionName: _kReactivateAction,
           title: 'Reactivate Participant',
           body:
-              'A new linking code will be generated for the participant to '
-              're-connect their Mobile Application. The code will expire '
-              'after 72 hours.',
-          confirmLabel: 'Reactivate',
-          withReason: true,
+              'Confirming will generate a new Linking Code. The Participant '
+              'must enter the new Linking Code to restore the connection. Any '
+              'previously issued Linking Code will be invalidated.',
+          confirmLabel: 'Confirm',
+          reasonInput: _ReasonInput.freeText,
+          reasonLabel: 'Reason for reactivation',
+          reasonHint: 'Enter reason for reactivating this Participant...',
           showsCodeOnSuccess: true,
         );
     }
@@ -425,9 +563,15 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
     ParticipantRecordRow record, {
     required String actionName,
     required String title,
-    required String body,
+    String body = '',
+    List<String> effects = const <String>[],
+    String? reversalNote,
     required String confirmLabel,
-    bool withReason = false,
+    bool confirmDestructive = false,
+    _ReasonInput reasonInput = _ReasonInput.none,
+    String? reasonLabel,
+    String? reasonHint,
+    List<String> reasonOptions = const <String>[],
     bool showsCodeOnSuccess = false,
   }) {
     unawaited(
@@ -437,14 +581,20 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
         builder: (_) => _LifecycleActionDialog(
           participantId: record.id,
           actionName: actionName,
-          rawInput: <String, Object?>{
+          baseInput: <String, Object?>{
             'siteId': record.siteId,
             'participantId': record.id,
-            if (withReason) 'reason': _kPlaceholderReason,
           },
           title: title,
           body: body,
+          effects: effects,
+          reversalNote: reversalNote,
           confirmLabel: confirmLabel,
+          confirmDestructive: confirmDestructive,
+          reasonInput: reasonInput,
+          reasonLabel: reasonLabel,
+          reasonHint: reasonHint,
+          reasonOptions: reasonOptions,
           showsCodeOnSuccess: showsCodeOnSuccess,
         ),
       ),
@@ -768,33 +918,100 @@ String usedOnLabel(String? usedAtRaw) {
 }
 
 /// Generic lifecycle confirm + dispatch dialog (Disconnect / Reconnect /
-/// Mark Not Participating / Reactivate). The issuing actions surface the
-/// regenerated code on success.
-class _LifecycleActionDialog extends StatelessWidget {
+/// Mark Not Participating / Reactivate). Captures the mandatory reason — a
+/// predefined dropdown or a free-text field per [reasonInput] — and blocks
+/// Confirm until it is supplied. The issuing actions surface the regenerated
+/// code on success.
+///
+/// Implements: DIARY-PRD-participant-disconnection/B+C
+/// Implements: DIARY-PRD-participant-reconnection/B+C
+/// Implements: DIARY-PRD-participant-mark-not-participating/B+C
+/// Implements: DIARY-PRD-participant-reactivate/B
+class _LifecycleActionDialog extends StatefulWidget {
   const _LifecycleActionDialog({
     required this.participantId,
     required this.actionName,
-    required this.rawInput,
+    required this.baseInput,
     required this.title,
     required this.body,
+    required this.effects,
+    required this.reversalNote,
     required this.confirmLabel,
+    required this.confirmDestructive,
+    required this.reasonInput,
+    required this.reasonLabel,
+    required this.reasonHint,
+    required this.reasonOptions,
     required this.showsCodeOnSuccess,
   });
 
   final String participantId;
   final String actionName;
-  final Map<String, Object?> rawInput;
-  final String title;
+
+  /// Identity-only input ({siteId, participantId}); the collected reason is
+  /// folded in at submit time.
+  final Map<String, Object?> baseInput;
+
+  /// Single-paragraph body (reconnect / reactivate). Ignored when [effects]
+  /// is non-empty.
   final String body;
+
+  /// "Effects of this action:" bullet list (disconnect / mark not
+  /// participating) — Figma confirm dialogs.
+  final List<String> effects;
+
+  /// Trailing reversal note shown under the [effects] list, e.g. "This action
+  /// can be reversed by reconnecting the Participant."
+  final String? reversalNote;
+  final String title;
   final String confirmLabel;
+
+  /// Renders the Confirm button in the Critical palette (disconnect / mark).
+  final bool confirmDestructive;
+  final _ReasonInput reasonInput;
+  final String? reasonLabel;
+  final String? reasonHint;
+  final List<String> reasonOptions;
   final bool showsCodeOnSuccess;
+
+  @override
+  State<_LifecycleActionDialog> createState() => _LifecycleActionDialogState();
+}
+
+class _LifecycleActionDialogState extends State<_LifecycleActionDialog> {
+  /// Dropdown selection (predefined-list reason).
+  String? _selectedReason;
+
+  /// Free-text reason (raw, untrimmed for the live char counter).
+  String _typedReason = '';
+
+  /// The reason to dispatch — trimmed; empty when none is required/provided.
+  String get _reason => switch (widget.reasonInput) {
+    _ReasonInput.dropdown => _selectedReason ?? '',
+    _ReasonInput.freeText => _typedReason.trim(),
+    _ReasonInput.none => '',
+  };
+
+  /// Confirm is enabled only once a non-empty reason is provided (whitespace-
+  /// only free text is rejected — DIARY-PRD-reason-field-constraints).
+  bool get _reasonSatisfied =>
+      widget.reasonInput == _ReasonInput.none || _reason.isNotEmpty;
+
+  Map<String, Object?> _submissionInput() => <String, Object?>{
+    ...widget.baseInput,
+    if (widget.reasonInput != _ReasonInput.none) 'reason': _reason,
+  };
 
   @override
   Widget build(BuildContext context) {
     return ActionBuilder(
-      semanticIdentifier: 'lifecycle-outcome-$participantId',
-      submissionFactory: () =>
-          ActionSubmission(actionName: actionName, rawInput: rawInput),
+      semanticIdentifier: 'lifecycle-outcome-${widget.participantId}',
+      // Read at submit time (ActionBuilder calls this per submit()), so the
+      // reason reflects the user's final selection/entry.
+      submissionFactory: () => ActionSubmission(
+        actionName: widget.actionName,
+        rawInput: _submissionInput(),
+      ),
       builder: (context, state, submit) {
         switch (state) {
           case Success():
@@ -805,9 +1022,9 @@ class _LifecycleActionDialog extends StatelessWidget {
               _ => null,
             };
             final code = data is Map ? data['linkingCode'] as String? : null;
-            if (showsCodeOnSuccess && code != null) {
+            if (widget.showsCodeOnSuccess && code != null) {
               return _MobileLinkingCodeDialog(
-                participantId: participantId,
+                participantId: widget.participantId,
                 code: code,
                 subtitle:
                     'The linking code has been generated successfully. Share '
@@ -820,7 +1037,7 @@ class _LifecycleActionDialog extends StatelessWidget {
             }
             return AppDialog(
               size: AppDialogSize.small,
-              title: title,
+              title: widget.title,
               dismissible: false,
               body: const Text("Done. The participant's status has updated."),
               actions: [
@@ -836,16 +1053,26 @@ class _LifecycleActionDialog extends StatelessWidget {
             final busy = state is Submitting;
             return AppDialog(
               size: AppDialogSize.small,
-              title: title,
+              title: widget.title,
               dismissible: false,
-              semanticId: 'lifecycle-dialog-$participantId',
+              semanticId: 'lifecycle-dialog-${widget.participantId}',
               body: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ParticipantIdLine(participantId: participantId),
+                  _ParticipantIdLine(participantId: widget.participantId),
                   const SizedBox(height: 16),
-                  Text(body),
+                  if (widget.effects.isNotEmpty)
+                    _EffectsSection(
+                      effects: widget.effects,
+                      reversalNote: widget.reversalNote,
+                    )
+                  else if (widget.body.isNotEmpty)
+                    Text(widget.body),
+                  if (widget.reasonInput != _ReasonInput.none) ...[
+                    const SizedBox(height: 16),
+                    _reasonField(enabled: !busy),
+                  ],
                 ],
               ),
               actions: [
@@ -855,9 +1082,12 @@ class _LifecycleActionDialog extends StatelessWidget {
                   onPressed: busy ? null : () => Navigator.of(context).pop(),
                 ),
                 AppButton(
-                  label: confirmLabel,
+                  variant: widget.confirmDestructive
+                      ? AppButtonVariant.destructive
+                      : AppButtonVariant.primary,
+                  label: widget.confirmLabel,
                   loading: busy,
-                  onPressed: busy ? null : submit,
+                  onPressed: (busy || !_reasonSatisfied) ? null : submit,
                 ),
               ],
             );
@@ -865,4 +1095,106 @@ class _LifecycleActionDialog extends StatelessWidget {
       },
     );
   }
+
+  /// The reason capture control — a predefined-list dropdown (disconnect /
+  /// mark not participating) or a 100-char free-text field (reconnect /
+  /// reactivate), matching the Figma confirm dialogs.
+  Widget _reasonField({required bool enabled}) => switch (widget.reasonInput) {
+    _ReasonInput.dropdown => AppDropdown<String>(
+      label: widget.reasonLabel,
+      required: true,
+      hintText: 'Select a reason',
+      enabled: enabled,
+      value: _selectedReason,
+      semanticId: 'lifecycle-reason-${widget.participantId}',
+      items: [
+        for (final r in widget.reasonOptions)
+          AppDropdownItem<String>(value: r, label: r),
+      ],
+      onChanged: (v) => setState(() => _selectedReason = v),
+    ),
+    _ReasonInput.freeText => AppTextField(
+      label: widget.reasonLabel,
+      hintText: widget.reasonHint,
+      required: true,
+      enabled: enabled,
+      maxLength: _kReasonMaxLength,
+      minLines: 2,
+      maxLines: 4,
+      semanticId: 'lifecycle-reason-${widget.participantId}',
+      onChanged: (v) => setState(() => _typedReason = v),
+    ),
+    _ReasonInput.none => const SizedBox.shrink(),
+  };
+}
+
+/// "Effects of this action:" heading + disc-bullet list + optional reversal
+/// note (Figma: the Disconnect / Mark Not Participating confirm dialogs).
+class _EffectsSection extends StatelessWidget {
+  const _EffectsSection({required this.effects, required this.reversalNote});
+
+  final List<String> effects;
+  final String? reversalNote;
+
+  // Figma confirm-dialog body greys.
+  static const Color _heading = Color(0xFF364153);
+  static const Color _bodyText = Color(0xFF4A5565);
+
+  @override
+  Widget build(BuildContext context) {
+    const headingStyle = TextStyle(
+      fontWeight: FontWeight.w500,
+      fontSize: 14,
+      height: 20 / 14,
+      letterSpacing: -0.15,
+      color: _heading,
+    );
+    const bulletStyle = TextStyle(
+      fontWeight: FontWeight.w400,
+      fontSize: 14,
+      height: 20 / 14,
+      letterSpacing: -0.15,
+      color: _bodyText,
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Effects of this action:', style: headingStyle),
+        const SizedBox(height: 8),
+        for (final e in effects)
+          Padding(
+            padding: EdgeInsets.only(top: e == effects.first ? 0 : 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(left: 5, right: 9, top: 8),
+                  child: _Disc(color: _bodyText),
+                ),
+                Expanded(child: Text(e, style: bulletStyle)),
+              ],
+            ),
+          ),
+        if (reversalNote != null) ...[
+          const SizedBox(height: 16),
+          Text(reversalNote!, style: bulletStyle),
+        ],
+      ],
+    );
+  }
+}
+
+/// A small list-disc bullet marker.
+class _Disc extends StatelessWidget {
+  const _Disc({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 4,
+    height: 4,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
 }

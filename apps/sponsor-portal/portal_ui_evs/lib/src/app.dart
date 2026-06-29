@@ -628,7 +628,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
       scope: _scope,
       child: MaterialApp(
         navigatorKey: _navigatorKey,
-        title: 'Portal EVS Skeleton',
+        title: 'Cure HHT Study Portal',
         // CUR-1450: adopt the diary_design_system brand (Carina blue +
         // Inter typography). Sites / Participants / RAVE Sync re-theme
         // passively; their layouts stay until they get their own redesign
@@ -876,7 +876,7 @@ class _HomeShellState extends State<_HomeShell> {
 
     return PortalDashboard(
       appBar: PortalAppBar(
-        title: 'Clinical Trial Portal',
+        title: 'Sponsor Portal',
         // Subtitle follows the active role's dashboard label so the
         // header reads "Administrator Dashboard" / "CRA Dashboard" / etc.
         subtitle: '$activeRole Dashboard',

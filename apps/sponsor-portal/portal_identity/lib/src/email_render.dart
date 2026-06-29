@@ -11,9 +11,9 @@ RenderedEmail buildActivationEmail({
   required String recipientEmail,
   required String activationUrl,
 }) {
-  const subject = 'Activate your Clinical Trial Portal account';
+  const subject = 'Activate your Sponsor Portal account';
   final text = '''
-Welcome to the Clinical Trial Portal.
+Welcome to the Sponsor Portal.
 
 Activate your account and set your password using the link below
 (valid for a limited time, single use):
@@ -23,7 +23,7 @@ $activationUrl
 If you did not expect this email, contact your Administrator.
 ''';
   final html = '''
-<p>Welcome to the Clinical Trial Portal.</p>
+<p>Welcome to the Sponsor Portal.</p>
 <p>Activate your account and set your password using the link below
 (valid for a limited time, single use):</p>
 <p><a href="$activationUrl">$activationUrl</a></p>
@@ -37,7 +37,7 @@ RenderedEmail buildOtpEmail({
   required String recipientEmail,
   required String code,
 }) {
-  const subject = 'Your Clinical Trial Portal verification code';
+  const subject = 'Your Sponsor Portal verification code';
   final text = '''
 Your one-time verification code is:
 
@@ -60,9 +60,9 @@ RenderedEmail buildPasswordResetEmail({
   required String recipientEmail,
   required String resetUrl,
 }) {
-  const subject = 'Reset your Clinical Trial Portal password';
+  const subject = 'Reset your Sponsor Portal password';
   final text = '''
-We received a request to reset your Clinical Trial Portal password.
+We received a request to reset your Sponsor Portal password.
 
 Set a new password using the link below (valid for 24 hours, single use):
 
@@ -71,7 +71,7 @@ $resetUrl
 If you did not request this, you can ignore this email — your password is unchanged.
 ''';
   final html = '''
-<p>We received a request to reset your Clinical Trial Portal password.</p>
+<p>We received a request to reset your Sponsor Portal password.</p>
 <p>Set a new password using the link below (valid for 24 hours, single use):</p>
 <p><a href="$resetUrl">$resetUrl</a></p>
 <p>If you did not request this, you can ignore this email — your password is unchanged.</p>

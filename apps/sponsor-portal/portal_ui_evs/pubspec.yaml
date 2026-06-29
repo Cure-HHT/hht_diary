@@ -66,4 +66,8 @@ flutter:
     # the Sponsor Portal Figma and recolored per role tone at render time.
     - assets/icons/role/
     - assets/icons/questionnaire/
+    # Per-status action glyphs for the row-tap "Participant Actions" sheet,
+    # exported from the Sponsor Portal Figma and tinted (primary / critical)
+    # at render time.
+    - assets/icons/participant/
     - assets/icons/curehht_logo.png

@@ -97,12 +97,7 @@ class SponsorRegistry {
   static String getBackendUrlForCode(String code) {
     final prefix = extractPrefix(code);
     final sponsor = getByPrefix(prefix);
-    if (sponsor == null) {
-      throw SponsorRegistryException(
-        'Unknown sponsor prefix: $prefix. '
-        'Please check your linking code or contact support.',
-      );
-    }
+
     return AppConfig.apiBase;
   }
 

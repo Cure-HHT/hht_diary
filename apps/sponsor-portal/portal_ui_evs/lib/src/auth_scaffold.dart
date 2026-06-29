@@ -26,7 +26,7 @@ class AuthScaffold extends StatelessWidget {
     this.semanticId,
   });
 
-  /// Bold heading inside the card (e.g. "Clinical Trial Portal",
+  /// Bold heading inside the card (e.g. "Sponsor Portal",
   /// "Forgot your password?").
   final String title;
 

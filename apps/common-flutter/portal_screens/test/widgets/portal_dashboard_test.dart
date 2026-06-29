@@ -23,7 +23,7 @@ Future<void> _pumpDashboard(WidgetTester tester, Widget dashboard) async {
 }
 
 PortalAppBar _stubAppBar() => PortalAppBar(
-  title: 'Clinical Trial Portal',
+  title: 'Sponsor Portal',
   subtitle: 'Administrator Dashboard',
   userName: 'Dr. Emily Parker',
   activeRole: 'Administrator',
@@ -62,7 +62,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Clinical Trial Portal'), findsOneWidget);
+      expect(find.text('Sponsor Portal'), findsOneWidget);
       expect(find.text('Users'), findsOneWidget); // tab label
       expect(find.text('users-body'), findsOneWidget); // active body
       expect(find.text('audit-body'), findsNothing);
