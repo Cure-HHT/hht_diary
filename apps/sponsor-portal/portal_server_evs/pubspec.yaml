@@ -1,6 +1,6 @@
 name: portal_server_evs
 description: "Event-sourced portal server (reaction HTTP/WS shell over portal_service). Beta rebuild of portal_server."
-version: 0.5.14+21
+version: 0.5.15+22
 publish_to: none
 
 environment:
@@ -15,7 +15,7 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: main
+      ref: 4216b34c2fd69df6de14468e4c0eacd16749b241
       path: event_sourcing
   portal_identity:
     path: ../portal_identity
@@ -28,7 +28,7 @@ dependencies:
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: main
+      ref: 4216b34c2fd69df6de14468e4c0eacd16749b241
       path: reaction
   sembast: ^3.0.0
   shelf: ^1.4.0
