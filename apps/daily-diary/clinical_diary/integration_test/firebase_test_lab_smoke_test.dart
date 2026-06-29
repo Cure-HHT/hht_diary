@@ -5,38 +5,39 @@
 // On-device smoke and regression coverage for Firebase Test Lab.
 // Tests are grouped into two tiers:
 //
-//   Tier 1 — FUNCTIONAL: asserts causal downstream state after every
-//   interaction. Each test name describes a behaviour the app must
-//   exhibit; there is a widget-finder assertion that can ONLY pass when
-//   that behaviour occurred (not just "no exception thrown").
+// Tier 1 — FUNCTIONAL: asserts causal downstream state after every
+// interaction. Each test name describes a behaviour the app must
+// exhibit; there is a widget-finder assertion that can ONLY pass when
+// that behaviour occurred (not just "no exception thrown").
 //
-//   Tier 2 — STABILITY: crash/resilience guards. takeException() + a
-//   known widget type suffice because "it didn't crash" is the full
-//   contract. Category names (net, env, life, sec) are appropriate here.
+// Tier 2 — STABILITY: crash/resilience guards. takeException() + a
+// known widget type suffice because "it didn't crash" is the full
+// contract. Category names (net, env, life, sec) are appropriate here.
 //
 // All tests use the real app bootstrap (app.main()) on real Android/iOS
 // devices -- no mocks, no sembast_memory, no HTTP stubs.
 //
 // Naming convention:
-//   smk  - smoke / launch gate
-//   a11y - accessibility
-//   perf - performance
-//   dfFlow - diary-flow functional
-//   dfLife - lifecycle / stability
-//   dfSt - stress
-//   dfUi - UI audit
-//   dfTime - time / calendar constraint
-//   net  - network resilience
-//   sec  - security / PHI
-//   life - process lifecycle
-//   env  - environment (timezone / locale)
-//   func - functional regression
+// smk - smoke / launch gate
+// a11y - accessibility
+// perf - performance
+// dfFlow - diary-flow functional
+// dfLife - lifecycle / stability
+// dfSt - stress
+// dfUi - UI audit
+// dfTime - time / calendar constraint
+// net - network resilience
+// sec - security / PHI
+// life - process lifecycle
+// env - environment (timezone / locale)
+// func - functional regression
 
 import 'dart:io';
 
 import 'package:clinical_diary/main.dart' as app;
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
+import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -117,19 +118,19 @@ void main() {
   // DIARY-JNY-epistaxis-recording: Record an epistaxis event
   //
   // Requirements: DIARY-PRD-epistaxis-capture-standard,
-  //   DIARY-GUI-epistaxis-record, DIARY-GUI-main-screen-layout,
-  //   DIARY-PRD-day-disposition, DIARY-PRD-mobile-offline-first,
-  //   CAL-PRD-trial-start-workflow
+  // DIARY-GUI-epistaxis-record, DIARY-GUI-main-screen-layout,
+  // DIARY-PRD-day-disposition, DIARY-PRD-mobile-offline-first,
+  // CAL-PRD-trial-start-workflow
   //
-  // Who: User/Participant.  Starting point: the Main Screen is open.
+  // Who: User/Participant. Starting point: the Main Screen is open.
   //
   // Journey:
-  //   1. The Participant taps Record Nosebleed.
-  //   2. Sets the time the nosebleed started and continues.
-  //   3. Chooses how heavy the bleed was from the intensity options.
-  //   4. Sets the time the nosebleed stopped and saves the entry.
-  //   5. The Application returns to the Main Screen, where the new event
-  //      appears under the current day in Your Records.
+  // 1. The Participant taps Record Nosebleed.
+  // 2. Sets the time the nosebleed started and continues.
+  // 3. Chooses how heavy the bleed was from the intensity options.
+  // 4. Sets the time the nosebleed stopped and saves the entry.
+  // 5. The Application returns to the Main Screen, where the new event
+  //    appears under the current day in Your Records.
   //
   // Outcome: the epistaxis event is saved to the diary. In personal-use
   // mode the data stays on the device; for a linked Participant whose trial
@@ -138,7 +139,7 @@ void main() {
   //
   // DIAGNOSTIC INSTRUMENTATION: every step emits a 'DIARY-JNY-DIAG' marker
   // via debugPrint so the Firebase Test Lab logcat reveals the exact step
-  // reached if the test stalls.  This is the only active test in this run;
+  // reached if the test stalls. This is the only active test in this run;
   // all other smoke/regression tests are intentionally omitted on this
   // diagnostic branch so the suite completes quickly.
   // =========================================================================
@@ -240,9 +241,9 @@ void main() {
       mark('14 pumped after Set End Time');
 
       // 5. With useReviewScreen:false the record saves immediately and the app
-      //    returns to the Main Screen (no "Finished" review step exists in this
-      //    configuration). Wait for the Main Screen to come back, then assert
-      //    the new event is reflected under Your Records.
+      // returns to the Main Screen (no "Finished" review step exists in this
+      // configuration). Wait for the Main Screen to come back, then assert
+      // the new event is reflected under Your Records.
       await _pumpUntil(
         tester,
         () => find.byType(HomeScreen).evaluate().isNotEmpty,
@@ -271,6 +272,144 @@ void main() {
       mark('18 journey complete, no exceptions');
       await _screenshot(binding, tester, 'jny_epistaxis_recording_saved');
       mark('19 screenshot taken, DONE');
+    },
+    timeout: const Timeout(Duration(minutes: 4)),
+  );
+
+  // =========================================================================
+  // DIARY-JNY-confirm-yesterday-status: Confirm yesterday's status
+  //
+  // Requirements: DIARY-GUI-main-screen-layout,
+  // DIARY-PRD-epistaxis-capture-standard,
+  // DIARY-PRD-notification-yesterday-entry,
+  // CAL-PRD-notification-yesterday-entry-configuration,
+  // DIARY-GUI-epistaxis-record
+  //
+  // Who: User/Participant.
+  //
+  // Starting point: the Main Screen shows the Yesterday Confirmation Prompt
+  // about the previous day (the same prompt surfaced by tapping the yesterday
+  // reminder notification). The prompt only appears when no Daily Status has
+  // been recorded for yesterday and yesterday is not locked.
+  //
+  // Journey:
+  // 1. The Participant sees the prompt asking whether they had a nosebleed
+  //    yesterday ("Did you have nosebleeds?").
+  // 2. The prompt offers Yes / No / Don't remember. The Participant answers
+  //    No nosebleed (could also choose Don't remember, or Yes to enter the
+  //    recording flow for that date).
+  // 3. The Application records the response for the previous day and clears
+  //    the prompt.
+  //
+  // Outcome: the previous day has a recorded status, keeping the diary
+  // complete; the Yesterday Confirmation Prompt is removed from the Main
+  // Screen and the app stays on the Main Screen under Your Records.
+  //
+  // DIAGNOSTIC INSTRUMENTATION: every step emits a 'DIARY-JNY-DIAG' marker via
+  // debugPrint so the Firebase Test Lab logcat reveals the exact step reached
+  // if the test stalls.
+  // =========================================================================
+  testWidgets(
+    'jnyConfirmYesterdayStatus',
+    (tester) async {
+      void mark(String step) =>
+          debugPrint('DIARY-JNY-DIAG >>> $step');
+
+      mark('00 app.main() about to start');
+      app.main();
+      mark('01 app.main() returned, waiting for home');
+      await _waitForHome(tester);
+      mark('02 home reached');
+      await tester.pump(const Duration(seconds: 1));
+      mark('03 settled on Main Screen');
+
+      // Starting point: the Yesterday Confirmation Prompt is shown for the
+      // previous day. This prompt only appears when yesterday has no recorded
+      // Daily Status -- the expected clean state on a fresh Test Lab device.
+      expect(
+        find.byType(YesterdayBanner),
+        findsOneWidget,
+        reason: 'Main Screen must show the Yesterday Confirmation Prompt '
+            'when yesterday has no recorded status.',
+      );
+      mark('04 YesterdayBanner present');
+
+      // 1. The Participant sees the prompt asking about yesterday.
+      expect(
+        find.text('Did you have nosebleeds?'),
+        findsOneWidget,
+        reason: 'Prompt must ask whether the Participant had nosebleeds '
+            'yesterday.',
+      );
+      mark('05 prompt question visible');
+
+      // 2. The prompt presents three response options: Yes, No, Don't remember.
+      expect(
+        find.descendant(
+          of: find.byType(YesterdayBanner),
+          matching: find.text('No'),
+        ),
+        findsOneWidget,
+        reason: 'Prompt must offer the No (no nosebleeds) option.',
+      );
+      expect(
+        find.descendant(
+          of: find.byType(YesterdayBanner),
+          matching: find.text("Don't remember"),
+        ),
+        findsOneWidget,
+        reason: "Prompt must offer the Don't remember option.",
+      );
+      mark('06 No and Dont remember options visible');
+
+      // 3. The Participant answers No nosebleed for the previous day.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(YesterdayBanner),
+          matching: find.text('No'),
+        ),
+      );
+      mark('07 tapped No nosebleeds');
+      await tester.pump(const Duration(seconds: 3));
+      mark('08 pumped after answering No');
+
+      // 4. The Application records the response for the previous day and
+      //    clears the prompt -- the app stays on the Main Screen and the
+      //    Yesterday Confirmation Prompt is removed.
+      await _pumpUntil(
+        tester,
+        () => find.byType(YesterdayBanner).evaluate().isEmpty,
+        description: 'Yesterday Confirmation Prompt to clear after answering',
+        timeout: const Duration(seconds: 30),
+      );
+      mark('09 prompt cleared');
+      expect(
+        find.byType(YesterdayBanner),
+        findsNothing,
+        reason: 'Prompt must be removed once yesterday has a recorded status.',
+      );
+      mark('10 YesterdayBanner gone');
+      expect(
+        find.byType(HomeScreen),
+        findsOneWidget,
+        reason: 'App must remain on the Main Screen after answering.',
+      );
+      mark('11 still on Main Screen');
+      expect(
+        find.text('Your Records'),
+        findsOneWidget,
+        reason: 'Your Records section must be present on the Main Screen.',
+      );
+      mark('12 Your Records visible');
+
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: "Confirming yesterday's status must not throw.",
+      );
+      mark('13 journey complete, no exceptions');
+      await _screenshot(binding, tester, 'jny_confirm_yesterday_status');
+      mark('14 screenshot taken, DONE');
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
