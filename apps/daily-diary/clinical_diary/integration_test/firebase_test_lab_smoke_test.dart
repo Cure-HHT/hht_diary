@@ -37,6 +37,7 @@ import 'dart:io';
 import 'package:clinical_diary/main.dart' as app;
 import 'package:clinical_diary/screens/home_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
+import 'package:clinical_diary/widgets/back_to_home_row.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -410,6 +411,225 @@ void main() {
       mark('13 journey complete, no exceptions');
       await _screenshot(binding, tester, 'jny_confirm_yesterday_status');
       mark('14 screenshot taken, DONE');
+    },
+    timeout: const Timeout(Duration(minutes: 4)),
+  );
+
+  // =========================================================================
+  // DIARY-JNY-incomplete-record-lifecycle: Incomplete record — how it's
+  // created, the reminders, and finishing it
+  //
+  // Requirements: DIARY-PRD-incomplete-entry-preservation,
+  // DIARY-GUI-participant-task-list, DIARY-GUI-main-screen-layout,
+  // DIARY-PRD-notification-ongoing-epistaxis,
+  // CAL-PRD-notification-ongoing-epistaxis-configuration,
+  // DIARY-PRD-notification-incomplete-record-lock,
+  // CAL-PRD-notification-incomplete-record-lock-configuration,
+  // DIARY-PRD-entry-time-restrictions, DIARY-GUI-epistaxis-delete
+  //
+  // Who: a Participant who started recording an epistaxis event but didn't
+  // finish it.
+  //
+  // Journey (the on-device, deterministic portions of the lifecycle):
+  // 1. The Participant starts recording a nosebleed and notes when it started
+  //    but not when it stopped, then leaves the recording flow before the
+  //    event is complete (Back, no end time). The Application saves what they
+  //    entered as a draft automatically -- WITHOUT asking them to confirm
+  //    (DIARY-PRD-incomplete-entry-preservation).
+  // 2. The unfinished entry appears on the Main Screen in the "Needs your
+  //    attention" panel as an incomplete record, visible every time they open
+  //    the app (DIARY-GUI-participant-task-list, DIARY-GUI-main-screen-layout).
+  // 3. The Participant opens the incomplete record from the "Needs your
+  //    attention" panel and resolves it by deleting it, choosing a reason
+  //    (DIARY-GUI-epistaxis-delete). The same entry point also allows
+  //    supplying the missing end time to complete it.
+  // 4. Once deleted the entry is removed and the task clears; the reminder
+  //    sequence (ongoing-epistaxis nudges + the pre-lock final warning,
+  //    DIARY-PRD-notification-ongoing-epistaxis /
+  //    DIARY-PRD-notification-incomplete-record-lock) therefore stops.
+  //
+  // NOTE: the reminder cadence and the pre-lock warning are time-based OS
+  // notifications fired by background schedulers over hours/days; like the
+  // other journeys in this suite, this test asserts the UI-observable causal
+  // state (draft preserved -> surfaced as a task -> resolved) rather than the
+  // scheduler timing, which is covered by unit/widget tests.
+  //
+  // Outcome: no partial recording is lost, the entry is surfaced for the
+  // Participant to act on, and it is resolved into a removed entry; the task
+  // clears from "Needs your attention".
+  //
+  // DIAGNOSTIC INSTRUMENTATION: every step emits a 'DIARY-JNY-DIAG' marker via
+  // debugPrint so the Firebase Test Lab logcat reveals the exact step reached
+  // if the test stalls.
+  // =========================================================================
+  testWidgets(
+    'jnyIncompleteRecordLifecycle',
+    (tester) async {
+      void mark(String step) =>
+          debugPrint('DIARY-JNY-DIAG >>> $step');
+
+      mark('00 app.main() about to start');
+      app.main();
+      mark('01 app.main() returned, waiting for home');
+      await _waitForHome(tester);
+      mark('02 home reached');
+      await tester.pump(const Duration(seconds: 1));
+      mark('03 settled on Main Screen');
+
+      // 1. Start recording a nosebleed: open the flow and set ONLY the start
+      //    time (leaving the end time unset), then leave before completing.
+      expect(
+        find.text('Record Nosebleed'),
+        findsOneWidget,
+        reason: 'Main Screen must offer the Record Nosebleed action.',
+      );
+      await tester.tap(find.text('Record Nosebleed'));
+      mark('04 tapped Record Nosebleed');
+      await tester.pump(const Duration(seconds: 3));
+      expect(
+        find.byType(RecordingScreen),
+        findsOneWidget,
+        reason: 'RecordingScreen must open after Record Nosebleed.',
+      );
+      mark('05 RecordingScreen open (startTime step)');
+
+      // Move the start time back 15 minutes (stay at/under now), then confirm
+      // the start. This advances past the start step WITHOUT setting an end
+      // time, so the entry is a genuine partial record.
+      expect(
+        find.text('-15'),
+        findsOneWidget,
+        reason: 'Start-time dial must offer the -15 minute adjuster.',
+      );
+      await tester.tap(find.text('-15'));
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        find.text('Set Start Time'),
+        findsOneWidget,
+        reason: 'Start-time step must offer the Set Start Time action.',
+      );
+      await tester.tap(find.text('Set Start Time'));
+      mark('06 set start time (end left unset -> partial)');
+      await tester.pump(const Duration(seconds: 2));
+
+      // Leave the recording flow before the event is complete via the
+      // "< Home" back affordance. The Application auto-saves the partial
+      // entry as a checkpoint draft (no confirmation prompt) and returns to
+      // the Main Screen. Implements: DIARY-PRD-incomplete-entry-preservation.
+      expect(
+        find.byType(BackToHomeRow),
+        findsOneWidget,
+        reason: 'Recording flow must offer the back-to-home affordance.',
+      );
+      await tester.tap(find.byType(BackToHomeRow));
+      mark('07 tapped back (< Home) mid-recording');
+
+      // 2. The draft is preserved and surfaces on the Main Screen in the
+      //    "Needs your attention" panel as an incomplete record.
+      await _pumpUntil(
+        tester,
+        () =>
+            find.byType(HomeScreen).evaluate().isNotEmpty &&
+            find.text('1 incomplete record').evaluate().isNotEmpty,
+        description: 'return to Main Screen with the incomplete-record alert',
+        timeout: const Duration(seconds: 30),
+      );
+      mark('08 back on Main Screen, incomplete alert present');
+      expect(
+        find.byType(HomeScreen),
+        findsOneWidget,
+        reason: 'App must return to the Main Screen after backing out.',
+      );
+      expect(
+        find.text('Needs your attention'),
+        findsOneWidget,
+        reason: 'Task List must show the "Needs your attention" panel.',
+      );
+      expect(
+        find.text('1 incomplete record'),
+        findsOneWidget,
+        reason:
+            'The unfinished entry must surface as an incomplete record so it '
+            'is visible every time the app is opened.',
+      );
+      mark('09 incomplete record visible in Needs your attention');
+
+      // 3. Open the incomplete record from the "Needs your attention" panel.
+      //    A single incomplete entry jumps straight back into the recording
+      //    screen to resume/resolve it.
+      await tester.tap(find.text('1 incomplete record'));
+      mark('10 tapped the incomplete record');
+      await tester.pump(const Duration(seconds: 3));
+      expect(
+        find.byType(RecordingScreen),
+        findsOneWidget,
+        reason: 'Opening the incomplete record must reopen the recording flow.',
+      );
+      mark('11 RecordingScreen reopened on the draft');
+
+      // Resolve by DELETING it (choosing a reason). Tapping the delete action
+      // opens the delete-confirmation dialog, which requires a reason.
+      // Implements: DIARY-GUI-epistaxis-delete.
+      expect(
+        find.byTooltip('Delete record'),
+        findsOneWidget,
+        reason: 'Recording flow must offer the delete action for a draft.',
+      );
+      await tester.tap(find.byTooltip('Delete record'));
+      mark('12 tapped delete');
+      await tester.pump(const Duration(seconds: 2));
+      expect(
+        find.text('Delete Record'),
+        findsOneWidget,
+        reason: 'Delete must require confirmation with a reason.',
+      );
+      expect(
+        find.text('Entered by mistake'),
+        findsOneWidget,
+        reason: 'Delete dialog must offer a reason to choose.',
+      );
+      mark('13 delete dialog visible with reasons');
+
+      // Choose a reason, then confirm the deletion.
+      await tester.tap(find.text('Entered by mistake'));
+      mark('14 selected delete reason');
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      mark('15 confirmed delete');
+      await tester.pump(const Duration(seconds: 3));
+
+      // 4. The entry is removed and the task clears: back on the Main Screen
+      //    the incomplete-record alert is gone (so the reminder sequence,
+      //    which is reset by interaction and ends once resolved, stops).
+      await _pumpUntil(
+        tester,
+        () =>
+            find.byType(HomeScreen).evaluate().isNotEmpty &&
+            find.text('1 incomplete record').evaluate().isEmpty,
+        description: 'incomplete-record alert to clear after deletion',
+        timeout: const Duration(seconds: 30),
+      );
+      mark('16 back on Main Screen, alert cleared');
+      expect(
+        find.byType(HomeScreen),
+        findsOneWidget,
+        reason: 'App must return to the Main Screen after deleting.',
+      );
+      expect(
+        find.text('1 incomplete record'),
+        findsNothing,
+        reason: 'The incomplete record must be gone once it is deleted.',
+      );
+      mark('17 incomplete record removed');
+
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'The incomplete-record lifecycle must not throw.',
+      );
+      mark('18 journey complete, no exceptions');
+      await _screenshot(binding, tester, 'jny_incomplete_record_lifecycle');
+      mark('19 screenshot taken, DONE');
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
