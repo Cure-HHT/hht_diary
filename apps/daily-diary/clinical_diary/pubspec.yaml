@@ -20,17 +20,17 @@ dependencies:
   event_sourcing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: main
+      ref: 742e8275fe932369c76e5ac4c41bd6285a2afa1d
       path: event_sourcing
   reaction:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: main
+      ref: 742e8275fe932369c76e5ac4c41bd6285a2afa1d
       path: reaction
   reaction_widgets:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: main
+      ref: 742e8275fe932369c76e5ac4c41bd6285a2afa1d
       path: reaction_widgets
   # In-tree path dep (consolidated onto this branch; single linear branch).
   diary_shared_model:
@@ -90,7 +90,7 @@ dev_dependencies:
   reaction_widgets_testing:
     git:
       url: https://github.com/Cure-HHT/event_sourcing.git
-      ref: main
+      ref: 742e8275fe932369c76e5ac4c41bd6285a2afa1d
       path: reaction_widgets_testing
   flutter_lints: ^6.0.0
   fake_cloud_firestore: ^4.0.0
