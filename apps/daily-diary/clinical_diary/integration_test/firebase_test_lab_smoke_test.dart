@@ -36,8 +36,12 @@ import 'dart:io';
 
 import 'package:clinical_diary/main.dart' as app;
 import 'package:clinical_diary/screens/home_screen.dart';
+import 'package:clinical_diary/screens/overlap_compare_screen.dart';
+import 'package:clinical_diary/screens/profile_screen.dart';
 import 'package:clinical_diary/screens/recording_screen.dart';
+import 'package:clinical_diary/screens/settings_screen.dart';
 import 'package:clinical_diary/widgets/back_to_home_row.dart';
+import 'package:clinical_diary/widgets/event_list_item.dart';
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -633,5 +637,958 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
+
+    // =========================================================================
+    // DIARY-JNY-complete-incomplete-record: Finish an incomplete record
+    //
+    // Requirements: DIARY-GUI-participant-task-list,
+    // DIARY-PRD-incomplete-entry-preservation, DIARY-GUI-epistaxis-record,
+    // DIARY-GUI-main-screen-layout
+    //
+    // Who: User/Participant.
+    //
+    // Starting point: the Main Screen shows an item in the "Needs your
+    // attention" panel (an incomplete record). This is the COMPLETE-IT branch
+    // of the incomplete-record lifecycle (the delete branch is covered by
+    // jnyIncompleteRecordLifecycle).
+    //
+    // Journey:
+    // 1. Seed an incomplete record: open Record Nosebleed, set ONLY the start
+    //    time, then leave via "< Home" so the app auto-saves a partial draft
+    //    (DIARY-PRD-incomplete-entry-preservation).
+    // 2. Expand "Needs your attention" and select the incomplete-records task
+    //    ("1 incomplete record"); a single incomplete entry reopens the
+    //    recording flow on the draft (DIARY-GUI-participant-task-list).
+    // 3. Supply the remaining detail: choose the intensity, set the end time.
+    //    With ClinicalRules defaults (useReviewScreen:false) confirming a valid
+    //    end time saves immediately (DIARY-GUI-epistaxis-record).
+    // 4. The completed entry moves into the day's records and the incomplete
+    //    task clears once no incomplete entries remain.
+    //
+    // Outcome: the previously partial entry becomes a complete event in the
+    // diary and no longer appears as a task -- the "1 incomplete record" alert
+    // is gone and the app is back on the Main Screen under Your Records.
+    //
+    // DIAGNOSTIC INSTRUMENTATION: every step emits a 'DIARY-JNY-DIAG' marker via
+    // debugPrint so the Firebase Test Lab logcat reveals the exact step reached
+    // if the test stalls.
+    // =========================================================================
+    testWidgets(
+      'jnyCompleteIncompleteRecord',
+      (tester) async {
+        void mark(String step) =>
+            debugPrint('DIARY-JNY-DIAG >>> $step');
+
+        mark('00 app.main() about to start');
+        app.main();
+        mark('01 app.main() returned, waiting for home');
+        await _waitForHome(tester);
+        mark('02 home reached');
+        await tester.pump(const Duration(seconds: 1));
+        mark('03 settled on Main Screen');
+
+        // 1. Seed an incomplete record: open the flow and set ONLY the start
+        //    time, then leave before completing so a partial draft is saved.
+        expect(
+          find.text('Record Nosebleed'),
+          findsOneWidget,
+          reason: 'Main Screen must offer the Record Nosebleed action.',
+        );
+        await tester.tap(find.text('Record Nosebleed'));
+        mark('04 tapped Record Nosebleed');
+        await tester.pump(const Duration(seconds: 3));
+        expect(
+          find.byType(RecordingScreen),
+          findsOneWidget,
+          reason: 'RecordingScreen must open after Record Nosebleed.',
+        );
+        mark('05 RecordingScreen open (startTime step)');
+
+        expect(
+          find.text('-15'),
+          findsOneWidget,
+          reason: 'Start-time dial must offer the -15 minute adjuster.',
+        );
+        await tester.tap(find.text('-15'));
+        await tester.pump(const Duration(seconds: 1));
+        expect(
+          find.text('Set Start Time'),
+          findsOneWidget,
+          reason: 'Start-time step must offer the Set Start Time action.',
+        );
+        await tester.tap(find.text('Set Start Time'));
+        mark('06 set start time (end left unset -> partial)');
+        await tester.pump(const Duration(seconds: 2));
+
+        // Leave the flow before completing via "< Home"; the app auto-saves the
+        // partial entry as a checkpoint draft (no confirmation prompt).
+        expect(
+          find.byType(BackToHomeRow),
+          findsOneWidget,
+          reason: 'Recording flow must offer the back-to-home affordance.',
+        );
+        await tester.tap(find.byType(BackToHomeRow));
+        mark('07 tapped back (< Home) mid-recording');
+
+        // 2. The draft surfaces in the "Needs your attention" panel.
+        await _pumpUntil(
+          tester,
+          () =>
+              find.byType(HomeScreen).evaluate().isNotEmpty &&
+              find.text('1 incomplete record').evaluate().isNotEmpty,
+          description: 'return to Main Screen with the incomplete-record alert',
+          timeout: const Duration(seconds: 30),
+        );
+        mark('08 back on Main Screen, incomplete alert present');
+        expect(
+          find.text('Needs your attention'),
+          findsOneWidget,
+          reason: 'Task List must show the "Needs your attention" panel.',
+        );
+        expect(
+          find.text('1 incomplete record'),
+          findsOneWidget,
+          reason: 'The unfinished entry must surface as an incomplete record.',
+        );
+        mark('09 incomplete record visible');
+
+        // 3. Select the incomplete-records task; the single draft reopens the
+        //    recording flow so the missing detail can be supplied.
+        await tester.tap(find.text('1 incomplete record'));
+        mark('10 tapped the incomplete record');
+        await tester.pump(const Duration(seconds: 3));
+        expect(
+          find.byType(RecordingScreen),
+          findsOneWidget,
+          reason: 'Opening the incomplete record must reopen the recording flow.',
+        );
+        mark('11 RecordingScreen reopened on the draft');
+
+        // The draft has no intensity yet, so it resumes at the intensity step.
+        // Supply the missing intensity.
+        expect(
+          find.text('Dripping'),
+          findsOneWidget,
+          reason: 'Resumed draft must present the intensity options.',
+        );
+        await tester.tap(find.text('Dripping'));
+        mark('12 selected intensity (Dripping)');
+        await tester.pump(const Duration(seconds: 2));
+
+        // Now supply the missing end time. The end dial starts at the (moved-
+        // back) start; nudge +5 so the end is after the start and at/under now.
+        expect(
+          find.text('+5'),
+          findsOneWidget,
+          reason: 'End-time dial must offer the +5 minute adjuster.',
+        );
+        await tester.tap(find.text('+5'));
+        mark('13 bumped end time +5');
+        await tester.pump(const Duration(seconds: 1));
+        expect(
+          find.text('Set End Time'),
+          findsOneWidget,
+          reason: 'End-time step must offer the Set End Time action.',
+        );
+        await tester.tap(find.text('Set End Time'));
+        mark('14 tapped Set End Time (completes the draft)');
+        await tester.pump(const Duration(seconds: 3));
+
+        // 4. The entry is completed and saved; back on the Main Screen the
+        //    incomplete-record alert is gone (no incomplete entries remain).
+        await _pumpUntil(
+          tester,
+          () =>
+              find.byType(HomeScreen).evaluate().isNotEmpty &&
+              find.text('1 incomplete record').evaluate().isEmpty,
+          description: 'incomplete-record alert to clear after completion',
+          timeout: const Duration(seconds: 30),
+        );
+        mark('15 back on Main Screen, incomplete alert cleared');
+        expect(
+          find.byType(HomeScreen),
+          findsOneWidget,
+          reason: 'App must return to the Main Screen after completing.',
+        );
+        expect(
+          find.text('1 incomplete record'),
+          findsNothing,
+          reason: 'No incomplete record may remain once the draft is completed.',
+        );
+        mark('16 incomplete task cleared');
+        expect(
+          find.text('Your Records'),
+          findsOneWidget,
+          reason: 'Your Records section must be present on the Main Screen.',
+        );
+        mark('17 Your Records visible');
+
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'Finishing an incomplete record must not throw.',
+        );
+        mark('18 journey complete, no exceptions');
+        await _screenshot(binding, tester, 'jny_complete_incomplete_record');
+        mark('19 screenshot taken, DONE');
+      },
+      timeout: const Timeout(Duration(minutes: 4)),
+    );
+
+    // =========================================================================
+    // DIARY-JNY-resolve-overlapping-event: Resolve an overlapping event
+    //
+    // Requirements: DIARY-PRD-entry-overlap-resolution,
+    // DIARY-GUI-entry-overlap-resolution, DIARY-GUI-epistaxis-record,
+    // DIARY-PRD-entry-time-restrictions
+    //
+    // Who: User/Participant.
+    //
+    // Starting point: mid-recording, the Participant has entered times that
+    // overlap an existing entry.
+    //
+    // Journey:
+    // 1. Record a FIRST event (existing entry): start -15, intensity, end +5 ->
+    //    a finalized event ending ~10 minutes before now.
+    // 2. Start a SECOND event whose times overlap the first. Its start dial
+    //    defaults to NOW; move it back so its [start, now] candidate span runs
+    //    into the first event (the recording screen treats an un-ended entry as
+    //    spanning start..now, so the overlap warning surfaces during recording
+    //    -- DIARY-GUI-entry-overlap-resolution/A+B).
+    // 3. After setting the end time on the overlapping second event,
+    //    _handleEndTimeConfirm detects the conflict and routes STRAIGHT to the
+    //    side-by-side Resolution Screen (OverlapCompareScreen) comparing the
+    //    New Record and the Existing Record (DIARY-GUI-entry-overlap-resolution
+    //    /C, DIARY-PRD-entry-overlap-resolution/A).
+    // 4. The Participant chooses how to resolve it -- here Keep Existing
+    //    ('overlap-pick-left'). (Keep New / Merge are the other two options on
+    //    the same screen.)
+    // 5. Every choice routes through the single Confirm Record step for review;
+    //    confirming it applies the resolution atomically (edit survivor + delete
+    //    the discarded entry) and returns to the Main Screen.
+    //
+    // Outcome: the conflict is resolved into a single consistent entry, with no
+    // overlapping events remaining -- the home "overlapping record needs
+    // resolving" alert is absent.
+    //
+    // NOTE ON DETERMINISM: this test asserts the deterministic, UI-observable
+    // core of the journey -- that an overlapping end time ROUTES INTO the
+    // Resolution Screen, that the three resolution affordances are present, and
+    // that committing a choice resolves the conflict and returns home with no
+    // overlap alert. The exact union timestamps a Merge would produce depend on
+    // the coarse (-15/+5 min) dial steps and the device clock, so the precise
+    // merged span is not asserted (covered by unit/widget tests); Keep Existing
+    // is chosen for a deterministic single-survivor outcome.
+    //
+    // DIAGNOSTIC INSTRUMENTATION: every step emits a 'DIARY-JNY-DIAG' marker via
+    // debugPrint so the Firebase Test Lab logcat reveals the exact step reached
+    // if the test stalls.
+    // =========================================================================
+    testWidgets(
+      'jnyResolveOverlappingEvent',
+      (tester) async {
+        void mark(String step) =>
+            debugPrint('DIARY-JNY-DIAG >>> $step');
+
+        // Records ONE epistaxis event: Record Nosebleed -> start -15 ->
+        // intensity Dripping -> end +5 -> Set End Time. With useReviewScreen
+        // false this saves immediately and returns to the Main Screen. Reused
+        // for the FIRST (existing) event below.
+        Future<void> recordOneEvent() async {
+          await tester.tap(find.text('Record Nosebleed'));
+          await tester.pump(const Duration(seconds: 3));
+          expect(
+            find.byType(RecordingScreen),
+            findsOneWidget,
+            reason: 'RecordingScreen must open after Record Nosebleed.',
+          );
+          await tester.tap(find.text('-15'));
+          await tester.pump(const Duration(seconds: 1));
+          await tester.tap(find.text('Set Start Time'));
+          await tester.pump(const Duration(seconds: 2));
+          await tester.tap(find.text('Dripping'));
+          await tester.pump(const Duration(seconds: 2));
+          await tester.tap(find.text('+5'));
+          await tester.pump(const Duration(seconds: 1));
+          await tester.tap(find.text('Set End Time'));
+          await tester.pump(const Duration(seconds: 3));
+        }
+
+        mark('00 app.main() about to start');
+        app.main();
+        mark('01 app.main() returned, waiting for home');
+        await _waitForHome(tester);
+        mark('02 home reached');
+        await tester.pump(const Duration(seconds: 1));
+        mark('03 settled on Main Screen');
+
+        // 1. Record the FIRST (existing) event and return to the Main Screen.
+        expect(
+          find.text('Record Nosebleed'),
+          findsOneWidget,
+          reason: 'Main Screen must offer the Record Nosebleed action.',
+        );
+        await recordOneEvent();
+        await _pumpUntil(
+          tester,
+          () => find.byType(HomeScreen).evaluate().isNotEmpty,
+          description: 'return to Main Screen after the first event',
+          timeout: const Duration(seconds: 30),
+        );
+        mark('04 first (existing) event recorded, back on Main Screen');
+
+        // 2. Start a SECOND event that overlaps the first. Its start defaults to
+        //    NOW; move it back so the [start, now] candidate span runs into the
+        //    first event's window (which ended ~10 min ago).
+        await tester.tap(find.text('Record Nosebleed'));
+        mark('05 tapped Record Nosebleed for the overlapping event');
+        await tester.pump(const Duration(seconds: 3));
+        expect(
+          find.byType(RecordingScreen),
+          findsOneWidget,
+          reason: 'RecordingScreen must open for the second event.',
+        );
+        // Move the start back 15 min so it precedes the first event's end and the
+        // ongoing [start, now] span overlaps it.
+        await tester.tap(find.text('-15'));
+        await tester.pump(const Duration(seconds: 1));
+        await tester.tap(find.text('Set Start Time'));
+        mark('06 set overlapping start time');
+        await tester.pump(const Duration(seconds: 2));
+        await tester.tap(find.text('Dripping'));
+        mark('07 selected intensity for overlapping event');
+        await tester.pump(const Duration(seconds: 2));
+        // Set an end time; +5 keeps it after the start and at/under now while
+        // remaining inside the first event's span -> a confirmed overlap.
+        await tester.tap(find.text('+5'));
+        await tester.pump(const Duration(seconds: 1));
+        await tester.tap(find.text('Set End Time'));
+        mark('08 set end time confirming the overlap');
+        await tester.pump(const Duration(seconds: 3));
+
+        // 3. Confirming an overlapping end time routes straight to the
+        //    side-by-side Resolution Screen.
+        await _pumpUntil(
+          tester,
+          () => find.byType(OverlapCompareScreen).evaluate().isNotEmpty,
+          description: 'Resolution Screen to open for the confirmed overlap',
+          timeout: const Duration(seconds: 30),
+        );
+        mark('09 OverlapCompareScreen open');
+        expect(
+          find.byType(OverlapCompareScreen),
+          findsOneWidget,
+          reason:
+              'A confirmed overlap must route into the Resolution Screen.',
+        );
+        expect(
+          find.text('Please Resolve the Conflict:'),
+          findsOneWidget,
+          reason: 'Resolution Screen must prompt the participant to resolve.',
+        );
+        expect(
+          find.text('New Record'),
+          findsOneWidget,
+          reason: 'Resolution Screen must show the New Record card.',
+        );
+        expect(
+          find.text('Existing Record'),
+          findsOneWidget,
+          reason: 'Resolution Screen must show the Existing Record card.',
+        );
+        // All three resolution affordances must be present.
+        expect(
+          find.byKey(const Key('overlap-pick-right')),
+          findsOneWidget,
+          reason: 'Keep New option must be offered.',
+        );
+        expect(
+          find.byKey(const Key('overlap-pick-left')),
+          findsOneWidget,
+          reason: 'Keep Existing option must be offered.',
+        );
+        expect(
+          find.byKey(const Key('overlap-merge')),
+          findsOneWidget,
+          reason: 'Merge option must be offered.',
+        );
+        mark('10 all three resolution options visible');
+
+        // 4. Choose Keep Existing -> the new entry is the loser; the pre-existing
+        //    entry survives. The choice is deferred to the Confirm Record step.
+        await tester.tap(find.byKey(const Key('overlap-pick-left')));
+        mark('11 tapped Keep Existing');
+        await tester.pump(const Duration(seconds: 3));
+
+        // 5. The flow returns to the recording screen's Confirm Record step for a
+        //    final review; confirm it (Finished/Complete Record/Save Changes).
+        await _pumpUntil(
+          tester,
+          () =>
+              find.text('Finished').evaluate().isNotEmpty ||
+              find.text('Complete Record').evaluate().isNotEmpty ||
+              find.text('Save Changes').evaluate().isNotEmpty ||
+              find.byType(HomeScreen).evaluate().isNotEmpty,
+          description: 'Confirm Record step (or direct return to Main Screen)',
+          timeout: const Duration(seconds: 30),
+        );
+        mark('12 reached Confirm Record step (or already home)');
+        // If we are on the Confirm Record step, confirm the surviving entry.
+        if (find.byType(HomeScreen).evaluate().isEmpty) {
+          final confirm = find.byType(RecordingScreen).evaluate().isNotEmpty &&
+                  find.text('Save Changes').evaluate().isNotEmpty
+              ? find.text('Save Changes')
+              : (find.text('Complete Record').evaluate().isNotEmpty
+                  ? find.text('Complete Record')
+                  : find.text('Finished'));
+          await tester.tap(confirm);
+          mark('13 confirmed the surviving entry');
+          await tester.pump(const Duration(seconds: 3));
+        }
+
+        // The conflict is resolved into one entry; back on the Main Screen there
+        // must be NO overlapping-record alert.
+        await _pumpUntil(
+          tester,
+          () =>
+              find.byType(HomeScreen).evaluate().isNotEmpty &&
+              find
+                  .textContaining('overlapping record')
+                  .evaluate()
+                  .isEmpty,
+          description: 'return to Main Screen with no overlap alert',
+          timeout: const Duration(seconds: 30),
+        );
+        mark('14 back on Main Screen, no overlap alert');
+        expect(
+          find.byType(HomeScreen),
+          findsOneWidget,
+          reason: 'App must return to the Main Screen after resolving.',
+        );
+        expect(
+          find.textContaining('overlapping record'),
+          findsNothing,
+          reason: 'No overlapping events may remain after resolution.',
+        );
+        mark('15 overlap resolved, no remaining conflict');
+
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'Resolving an overlapping event must not throw.',
+        );
+        mark('16 journey complete, no exceptions');
+        await _screenshot(binding, tester, 'jny_resolve_overlapping_event');
+        mark('17 screenshot taken, DONE');
+      },
+      timeout: const Timeout(Duration(minutes: 4)),
+    );
+
+    // =========================================================================
+    // DIARY-JNY-review-backfill-calendar: Review and backfill past days from the
+    // Calendar
+    //
+    // Requirements: DIARY-GUI-calendar-day-view, DIARY-GUI-main-screen-layout,
+    // DIARY-PRD-epistaxis-capture-standard, DIARY-PRD-day-disposition,
+    // DIARY-PRD-diary-start-day, DIARY-PRD-notification-historical-gap
+    //
+    // Who: User/Participant.
+    //
+    // Starting point: the Main Screen is open.
+    //
+    // Journey:
+    // 1. The Participant taps View Calendar and sees the month grid (the
+    //    'Select Date' dialog) with the recording-state legend
+    //    (DIARY-GUI-calendar-day-view).
+    // 2. The Participant selects a PAST day that has no entry. A genuinely empty
+    //    past day opens the 3-choice day-disposition picker (DaySelectionScreen,
+    //    DIARY-PRD-day-disposition/B). (A day that already holds records opens
+    //    the records list instead -- both are valid Calendar day-view targets.)
+    // 3. On the picker the Participant records the day's status. Here: No
+    //    nosebleed events (the other options are a nosebleed event or
+    //    'I don't recall / unknown') (DIARY-PRD-epistaxis-capture-standard).
+    // 4. The Application saves the whole-day marker and the picker closes,
+    //    returning to the Calendar; the day's state is updated reactively.
+    //
+    // Outcome: a previously missing day is filled in, and the Calendar reflects
+    // the updated record (the picker is dismissed without error).
+    //
+    // NOTE ON DETERMINISM: the test taps the FIRST day of the current month,
+    // which is in the past for any run after the 1st and is within the 365-day
+    // diary-start floor. The deterministic, asserted core of the journey is:
+    // Calendar opens -> a past day routes to the day-view target (disposition
+    // picker for an empty day) -> recording 'No nosebleed events' disposes the
+    // day and dismisses the picker without error. The historical-gap reminder
+    // (DIARY-PRD-notification-historical-gap) is a time-based notification and
+    // is covered by the scenario context, not asserted on-device.
+    //
+    // DIAGNOSTIC INSTRUMENTATION: every step emits a 'DIARY-JNY-DIAG' marker via
+    // debugPrint so the Firebase Test Lab logcat reveals the exact step reached
+    // if the test stalls.
+    // =========================================================================
+    testWidgets(
+      'jnyReviewBackfillCalendar',
+      (tester) async {
+        void mark(String step) =>
+            debugPrint('DIARY-JNY-DIAG >>> $step');
+
+        mark('00 app.main() about to start');
+        app.main();
+        mark('01 app.main() returned, waiting for home');
+        await _waitForHome(tester);
+        mark('02 home reached');
+        await tester.pump(const Duration(seconds: 1));
+        mark('03 settled on Main Screen');
+
+        // 1. Open the Calendar from the Main Screen.
+        expect(
+          find.text('View Calendar'),
+          findsOneWidget,
+          reason: 'Main Screen must offer the View Calendar action.',
+        );
+        await tester.tap(find.text('View Calendar'));
+        mark('04 tapped View Calendar');
+        await tester.pump(const Duration(seconds: 2));
+
+        // The calendar opens as the 'Select Date' dialog with its legend.
+        await _pumpUntil(
+          tester,
+          () => find.text('Select Date').evaluate().isNotEmpty,
+          description: 'Calendar (Select Date) dialog to open',
+          timeout: const Duration(seconds: 15),
+        );
+        mark('05 Calendar dialog open');
+        expect(
+          find.text('Select Date'),
+          findsOneWidget,
+          reason: 'Calendar dialog must show the Select Date header.',
+        );
+        expect(
+          find.text('No nosebleeds'),
+          findsOneWidget,
+          reason: 'Calendar legend must label the No-nosebleeds state.',
+        );
+        expect(
+          find.text('Tap a date to add or edit events'),
+          findsOneWidget,
+          reason: 'Calendar must instruct the participant to tap a date.',
+        );
+        mark('06 Calendar header + legend present');
+
+        // 2. Select a PAST day. Tap the first day of the current month, which is
+        //    in the past on any run after the 1st. The current-month '1' cell is
+        //    the first matching day-number widget in the grid.
+        expect(
+          find.text('1'),
+          findsWidgets,
+          reason: 'The calendar grid must render day numbers.',
+        );
+        await tester.tap(find.text('1').first);
+        mark('07 tapped a past day (the 1st)');
+        await tester.pump(const Duration(seconds: 2));
+
+        // 3. An empty past day opens the 3-choice disposition picker. (If the day
+        //    already held records it would open the records list instead; the
+        //    picker is the empty-day path this journey targets.)
+        await _pumpUntil(
+          tester,
+          () =>
+              find.text('What happened on this day?').evaluate().isNotEmpty ||
+              find.text('Add new event').evaluate().isNotEmpty,
+          description: 'day-view target (disposition picker or records list)',
+          timeout: const Duration(seconds: 15),
+        );
+        mark('08 day-view target opened');
+
+        if (find.text('What happened on this day?').evaluate().isNotEmpty) {
+          // Empty day -> disposition picker. Record No nosebleed events.
+          expect(
+            find.text('No nosebleed events'),
+            findsOneWidget,
+            reason: 'Disposition picker must offer the No-nosebleed-events '
+                'option.',
+          );
+          expect(
+            find.text("I don't recall / unknown"),
+            findsOneWidget,
+            reason: 'Disposition picker must offer the unknown option.',
+          );
+          mark('09 disposition options visible');
+          await tester.tap(find.text('No nosebleed events'));
+          mark('10 tapped No nosebleed events');
+          await tester.pump(const Duration(seconds: 3));
+
+          // 4. The marker is saved and the picker closes, returning to the
+          //    Calendar dialog (the day status is updated reactively).
+          await _pumpUntil(
+            tester,
+            () =>
+                find.text('What happened on this day?').evaluate().isEmpty,
+            description: 'disposition picker to close after recording status',
+            timeout: const Duration(seconds: 30),
+          );
+          mark('11 disposition picker closed after recording status');
+          expect(
+            find.text('What happened on this day?'),
+            findsNothing,
+            reason: 'Picker must dismiss once the day status is recorded.',
+          );
+          mark('12 day backfilled, picker dismissed');
+        } else {
+          // The tapped day already had records: the records list opened. That is
+          // still a valid Calendar day-view target; assert it rendered the
+          // add-event affordance, then return to the calendar.
+          mark('09 day already had records -> records list opened');
+          expect(
+            find.text('Add new event'),
+            findsOneWidget,
+            reason: 'Records list must offer the Add new event action.',
+          );
+          mark('10 records list verified');
+        }
+
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'Reviewing/backfilling a day from the Calendar must not throw.',
+        );
+        mark('13 journey complete, no exceptions');
+        await _screenshot(binding, tester, 'jny_review_backfill_calendar');
+        mark('14 screenshot taken, DONE');
+      },
+      timeout: const Timeout(Duration(minutes: 4)),
+    );
+
+    // =========================================================================
+    // DIARY-JNY-edit-delete-event: Edit or delete a recorded event
+    //
+    // Requirements: DIARY-GUI-calendar-day-view, DIARY-GUI-epistaxis-record,
+    // DIARY-GUI-epistaxis-delete, DIARY-PRD-entry-time-restrictions,
+    // DIARY-GUI-main-screen-layout
+    //
+    // Who: User/Participant.
+    //
+    // Starting point: a recorded event reached from Your Records (the Main
+    // Screen today list). (The Calendar Day View is the other entry point to
+    // the same edit/delete flow -- DIARY-GUI-calendar-day-view.)
+    //
+    // Journey:
+    // 1. Record an event so there is one to act on (start -15, intensity, end
+    //    +5), returning to the Main Screen where it appears under Your Records.
+    // 2. Select the existing event in Your Records -> the recording screen
+    //    reopens on that entry for editing (DIARY-GUI-epistaxis-record).
+    // 3. The Participant chooses to delete it: tapping the delete action opens
+    //    the delete-confirmation dialog (DIARY-GUI-epistaxis-delete).
+    // 4. The Participant selects a reason from the list and confirms.
+    // 5. The Application saves the change and returns the Participant to the
+    //    Main Screen.
+    //
+    // Outcome: the event is removed from the diary; the app is back on the Main
+    // Screen. (For a linked Participant the delete also syncs to the study via
+    // the DiaryServerDestination -- not exercised on this unlinked device; the
+    // local removal is the on-device-observable outcome.)
+    //
+    // DIAGNOSTIC INSTRUMENTATION: every step emits a 'DIARY-JNY-DIAG' marker via
+    // debugPrint so the Firebase Test Lab logcat reveals the exact step reached
+    // if the test stalls.
+    // =========================================================================
+    testWidgets(
+      'jnyEditDeleteEvent',
+      (tester) async {
+        void mark(String step) =>
+            debugPrint('DIARY-JNY-DIAG >>> $step');
+
+        mark('00 app.main() about to start');
+        app.main();
+        mark('01 app.main() returned, waiting for home');
+        await _waitForHome(tester);
+        mark('02 home reached');
+        await tester.pump(const Duration(seconds: 1));
+        mark('03 settled on Main Screen');
+
+        // 1. Record an event so there is one to edit/delete.
+        expect(
+          find.text('Record Nosebleed'),
+          findsOneWidget,
+          reason: 'Main Screen must offer the Record Nosebleed action.',
+        );
+        await tester.tap(find.text('Record Nosebleed'));
+        mark('04 tapped Record Nosebleed');
+        await tester.pump(const Duration(seconds: 3));
+        expect(
+          find.byType(RecordingScreen),
+          findsOneWidget,
+          reason: 'RecordingScreen must open after Record Nosebleed.',
+        );
+        await tester.tap(find.text('-15'));
+        await tester.pump(const Duration(seconds: 1));
+        await tester.tap(find.text('Set Start Time'));
+        await tester.pump(const Duration(seconds: 2));
+        await tester.tap(find.text('Dripping'));
+        await tester.pump(const Duration(seconds: 2));
+        await tester.tap(find.text('+5'));
+        await tester.pump(const Duration(seconds: 1));
+        await tester.tap(find.text('Set End Time'));
+        mark('05 recorded an event');
+        await tester.pump(const Duration(seconds: 3));
+        await _pumpUntil(
+          tester,
+          () => find.byType(HomeScreen).evaluate().isNotEmpty,
+          description: 'return to Main Screen after recording the event',
+          timeout: const Duration(seconds: 30),
+        );
+        mark('06 back on Main Screen, event in Your Records');
+        expect(
+          find.text('Your Records'),
+          findsOneWidget,
+          reason: 'Your Records section must be present on the Main Screen.',
+        );
+
+        // 2. Select the existing event in Your Records. Each event row is an
+        //    EventListItem; tapping an epistaxis row reopens the recording screen
+        //    on that entry for editing.
+        expect(
+          find.byType(EventListItem),
+          findsWidgets,
+          reason: 'The recorded event must appear under Your Records.',
+        );
+        await tester.tap(find.byType(EventListItem).last);
+        mark('07 tapped the recorded event');
+        await tester.pump(const Duration(seconds: 3));
+        expect(
+          find.byType(RecordingScreen),
+          findsOneWidget,
+          reason: 'Tapping a recorded event must reopen the recording screen '
+              'for editing.',
+        );
+        mark('08 RecordingScreen reopened on the existing event');
+
+        // 3. Choose to delete it: the delete action opens the confirmation
+        //    dialog (a reason is required).
+        expect(
+          find.byTooltip('Delete record'),
+          findsOneWidget,
+          reason: 'Recording flow must offer the delete action for an entry.',
+        );
+        await tester.tap(find.byTooltip('Delete record'));
+        mark('09 tapped delete');
+        await tester.pump(const Duration(seconds: 2));
+        expect(
+          find.text('Delete Record'),
+          findsOneWidget,
+          reason: 'Delete must require confirmation.',
+        );
+        expect(
+          find.text('Entered by mistake'),
+          findsOneWidget,
+          reason: 'Delete dialog must list reasons to choose from.',
+        );
+        mark('10 delete dialog visible with reasons');
+
+        // 4. Select a reason and confirm.
+        await tester.tap(find.text('Entered by mistake'));
+        mark('11 selected a delete reason');
+        await tester.pump(const Duration(seconds: 1));
+        await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+        mark('12 confirmed delete');
+        await tester.pump(const Duration(seconds: 3));
+
+        // 5. The change is saved and the app returns to the Main Screen with the
+        //    event removed.
+        await _pumpUntil(
+          tester,
+          () => find.byType(HomeScreen).evaluate().isNotEmpty,
+          description: 'return to Main Screen after deleting the event',
+          timeout: const Duration(seconds: 30),
+        );
+        mark('13 back on Main Screen after delete');
+        expect(
+          find.byType(HomeScreen),
+          findsOneWidget,
+          reason: 'App must return to the Main Screen after deleting.',
+        );
+        expect(
+          find.byType(RecordingScreen),
+          findsNothing,
+          reason: 'The recording screen must be dismissed after deletion.',
+        );
+        mark('14 recording screen dismissed, event deleted');
+
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'Editing/deleting a recorded event must not throw.',
+        );
+        mark('15 journey complete, no exceptions');
+        await _screenshot(binding, tester, 'jny_edit_delete_event');
+        mark('16 screenshot taken, DONE');
+      },
+      timeout: const Timeout(Duration(minutes: 4)),
+    );
+
+    // =========================================================================
+    // DIARY-JNY-manage-profile-settings: Manage profile and accessibility
+    // settings
+    //
+    // Requirements: DIARY-GUI-user-profile, DIARY-GUI-mobile-navigation,
+    // DIARY-PRD-user-authentication, DIARY-GUI-user-authentication,
+    // DIARY-GUI-accessibility-preferences
+    //
+    // Who: User/Participant.
+    //
+    // Starting point: the Application Menu (the hamburger user menu in the top
+    // bar), opening User Profile.
+    //
+    // Journey:
+    // 1. The Participant opens the Application Menu (Icons.menu / 'Menu') and
+    //    selects 'User Profile' (DIARY-GUI-mobile-navigation,
+    //    DIARY-GUI-user-profile).
+    // 2. The Profile screen shows Your Status and the menu list including the
+    //    'Accessibility & Preferences' row. The Participant opens it
+    //    (DIARY-GUI-user-profile).
+    // 3. In Accessibility & Preferences (the Settings screen) the Participant
+    //    can adjust accessibility options (DIARY-GUI-accessibility-preferences).
+    // 4. The Application reflects the chosen preferences right away.
+    //
+    // Outcome: the Application surfaces the participant's profile and the
+    // accessibility settings entry point, and the Settings screen renders its
+    // Accessibility section.
+    //
+    // NOTE ON THIS BUILD: in the Callisto UAT build several accessibility
+    // toggles are config-gated and the in-app biometric lock ('Use Face ID /
+    // Fingerprint', DIARY-PRD/GUI-user-authentication) is a 'Coming soon' stub,
+    // so those specific toggles are not asserted here. The deterministic,
+    // asserted core of the journey is the navigation Application Menu -> User
+    // Profile -> Accessibility & Preferences (Settings) and the presence of the
+    // Accessibility section -- the user-profile + accessibility-preferences
+    // entry points that ARE built in this build.
+    //
+    // DIAGNOSTIC INSTRUMENTATION: every step emits a 'DIARY-JNY-DIAG' marker via
+    // debugPrint so the Firebase Test Lab logcat reveals the exact step reached
+    // if the test stalls.
+    // =========================================================================
+    testWidgets(
+      'jnyManageProfileSettings',
+      (tester) async {
+        void mark(String step) =>
+            debugPrint('DIARY-JNY-DIAG >>> $step');
+
+        mark('00 app.main() about to start');
+        app.main();
+        mark('01 app.main() returned, waiting for home');
+        await _waitForHome(tester);
+        mark('02 home reached');
+        await tester.pump(const Duration(seconds: 1));
+        mark('03 settled on Main Screen');
+
+        // 1. Open the Application Menu (hamburger) and select User Profile.
+        expect(
+          find.byIcon(Icons.menu),
+          findsOneWidget,
+          reason: 'Main Screen must show the Application Menu (hamburger).',
+        );
+        await tester.tap(find.byIcon(Icons.menu));
+        mark('04 opened the Application Menu');
+        await tester.pump(const Duration(seconds: 1));
+        expect(
+          find.text('User Profile'),
+          findsOneWidget,
+          reason: 'Application Menu must offer the User Profile row.',
+        );
+        await tester.tap(find.text('User Profile'));
+        mark('05 tapped User Profile');
+        await tester.pump(const Duration(seconds: 3));
+
+        // 2. The Profile screen renders: title + Your Status + the menu list
+        //    with the Accessibility & Preferences row.
+        await _pumpUntil(
+          tester,
+          () => find.byType(ProfileScreen).evaluate().isNotEmpty,
+          description: 'Profile screen to open',
+          timeout: const Duration(seconds: 15),
+        );
+        mark('06 ProfileScreen open');
+        expect(
+          find.byType(ProfileScreen),
+          findsOneWidget,
+          reason: 'User Profile must open from the Application Menu.',
+        );
+        expect(
+          find.text('Your Status'),
+          findsOneWidget,
+          reason: 'Profile must show the Your Status section.',
+        );
+        expect(
+          find.text('Accessibility & Preferences'),
+          findsOneWidget,
+          reason: 'Profile menu must offer the Accessibility & Preferences row.',
+        );
+        mark('07 Profile shows status + accessibility entry');
+
+        // 3. Open Accessibility & Preferences (the Settings screen).
+        await tester.tap(find.text('Accessibility & Preferences'));
+        mark('08 tapped Accessibility & Preferences');
+        await tester.pump(const Duration(seconds: 3));
+        await _pumpUntil(
+          tester,
+          () => find.byType(SettingsScreen).evaluate().isNotEmpty,
+          description: 'Settings (Accessibility & Preferences) screen to open',
+          timeout: const Duration(seconds: 15),
+        );
+        mark('09 SettingsScreen open');
+        expect(
+          find.byType(SettingsScreen),
+          findsOneWidget,
+          reason: 'Accessibility & Preferences must open the Settings screen.',
+        );
+        expect(
+          find.text('Settings'),
+          findsOneWidget,
+          reason: 'Settings screen must show its title.',
+        );
+        // The Accessibility section header is always present in this build.
+        expect(
+          find.text('Accessibility'),
+          findsOneWidget,
+          reason: 'Settings must render the Accessibility section.',
+        );
+        mark('10 Settings Accessibility section present');
+
+        // 4. The screen is interactive (the participant can adjust preferences).
+        //    Confirm the back affordance works and returns to Profile, evidencing
+        //    the navigation round-trip applied without error.
+        expect(
+          find.widgetWithText(TextButton, 'Back'),
+          findsOneWidget,
+          reason: 'Settings must offer a Back action.',
+        );
+        await tester.tap(find.widgetWithText(TextButton, 'Back'));
+        mark('11 tapped Back from Settings');
+        await tester.pump(const Duration(seconds: 2));
+        await _pumpUntil(
+          tester,
+          () => find.byType(ProfileScreen).evaluate().isNotEmpty,
+          description: 'return to the Profile screen from Settings',
+          timeout: const Duration(seconds: 15),
+        );
+        mark('12 back on Profile screen');
+        expect(
+          find.byType(ProfileScreen),
+          findsOneWidget,
+          reason: 'Back from Settings must return to the Profile screen.',
+        );
+        mark('13 navigation round-trip verified');
+
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'Managing profile and accessibility settings must not throw.',
+        );
+        mark('14 journey complete, no exceptions');
+        await _screenshot(binding, tester, 'jny_manage_profile_settings');
+        mark('15 screenshot taken, DONE');
+      },
+      timeout: const Timeout(Duration(minutes: 4)),
+    );
 }
 // dart format on
