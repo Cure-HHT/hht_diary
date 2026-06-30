@@ -1963,7 +1963,12 @@ void main() {
         final end = find.text('Set End Time');
         if (end.evaluate().isNotEmpty) {
           await tester.tap(end.first);
-          await _pumpUntil(tester, () => find.byType(HomeScreen).evaluate().isNotEmpty);
+          await _pumpUntil(
+            tester,
+            () => find.byType(HomeScreen).evaluate().isNotEmpty,
+            description: 'return to Main Screen',
+            timeout: const Duration(seconds: 30),
+          );
         }
         mark('06 record finalized');
         expect(tester.takeException(), isNull);
@@ -1999,7 +2004,12 @@ void main() {
         if (end.evaluate().isNotEmpty) {
           await tester.tap(end.first, warnIfMissed: false);
           await tester.tap(end.first, warnIfMissed: false);
-          await _pumpUntil(tester, () => find.byType(HomeScreen).evaluate().isNotEmpty);
+          await _pumpUntil(
+            tester,
+            () => find.byType(HomeScreen).evaluate().isNotEmpty,
+            description: 'return to Main Screen',
+            timeout: const Duration(seconds: 30),
+          );
         }
         mark('07 double-tap finalized');
         expect(tester.takeException(), isNull);
