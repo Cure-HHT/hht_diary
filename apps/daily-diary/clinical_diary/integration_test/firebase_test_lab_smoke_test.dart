@@ -5,12 +5,12 @@
 // On-device smoke and regression coverage for Firebase Test Lab.
 // Tests are grouped into two tiers:
 //
-// Tier 1 â FUNCTIONAL: asserts causal downstream state after every
+// Tier 1 — FUNCTIONAL: asserts causal downstream state after every
 // interaction. Each test name describes a behaviour the app must
 // exhibit; there is a widget-finder assertion that can ONLY pass when
 // that behaviour occurred (not just "no exception thrown").
 //
-// Tier 2 â STABILITY: crash/resilience guards. takeException() + a
+// Tier 2 — STABILITY: crash/resilience guards. takeException() + a
 // known widget type suffice because "it didn't crash" is the full
 // contract. Category names (net, env, life, sec) are appropriate here.
 //
@@ -421,7 +421,7 @@ void main() {
   );
 
   // =========================================================================
-  // DIARY-JNY-incomplete-record-lifecycle: Incomplete record â how it's
+  // DIARY-JNY-incomplete-record-lifecycle: Incomplete record — how it's
   // created, the reminders, and finishing it
   //
   // Requirements: DIARY-PRD-incomplete-entry-preservation,
