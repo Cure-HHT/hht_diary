@@ -31,6 +31,7 @@
 // life - process lifecycle
 // env - environment (timezone / locale)
 // func - functional regression
+// dv - device resilience (overlap/landscape, delete-cancel)
 
 import 'dart:io';
 
@@ -1823,26 +1824,90 @@ void main() {
       void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
       mark('dvOverlapControlsLandscape 00 boot');
       app.main();
+      await tester.pump();
       await tester.pump(const Duration(seconds: 1));
-      await tester.pump(const Duration(seconds: 3));
       await _waitForHome(tester);
       mark('dvOverlapControlsLandscape 01 home ready');
+
+      // step-1 Record a first complete nosebleed event.
+      await tester.tap(find.text('Record Nosebleed'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-15'));
+      await tester.pump();
+      await tester.tap(find.text('Set Start Time'));
+      await tester.pump();
+      await tester.tap(find.text('Dripping'));
+      await tester.pump();
+      await tester.tap(find.text('+5'));
+      await tester.pump();
+      await tester.tap(find.text('Set End Time'));
+      await tester.pump();
+      await _pumpUntil(
+        tester,
+        () => find.byType(HomeScreen).evaluate().isNotEmpty,
+        description: 'return to Main Screen after the first event',
+        timeout: const Duration(seconds: 30),
+      );
+      mark('dvOverlapControlsLandscape 02 first event recorded');
+
+      // step-2 Record a second event over the same window to force an overlap.
+      await tester.tap(find.text('Record Nosebleed'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-15'));
+      await tester.pump();
+      await tester.tap(find.text('Set Start Time'));
+      await tester.pump();
+      await tester.tap(find.text('Dripping'));
+      await tester.pump();
+      await tester.tap(find.text('+5'));
+      await tester.pump();
+      await tester.tap(find.text('Set End Time'));
+      await tester.pump();
+      await _pumpUntil(
+        tester,
+        () => find.byType(OverlapCompareScreen).evaluate().isNotEmpty,
+        description: 'OverlapCompareScreen opens for the confirmed overlap',
+        timeout: const Duration(seconds: 30),
+      );
+      mark('dvOverlapControlsLandscape 03 overlap screen open');
+
+      // step-3 Rotate to landscape and confirm all three resolution controls stay hittable.
       final originalSize = tester.view.physicalSize;
-      final originalDpr = tester.view.devicePixelRatio;
-      final port = tester.view.physicalSize;
-      tester.view.physicalSize = Size(port.height, port.width);
-      await tester.pumpAndSettle(const Duration(milliseconds: 300));
-      mark('04 landscape');
-      final overlap = find.byType(OverlapCompareScreen);
-      if (overlap.evaluate().isNotEmpty) {
-        expect(find.byKey(const Key('overlap-merge')), findsWidgets);
-        expect(find.byKey(const Key('overlap-pick-left')), findsWidgets);
-        expect(find.byKey(const Key('overlap-pick-right')), findsWidgets);
-      }
-      expect(tester.takeException(), isNull, reason: 'overlap landscape overflow');
-      tester.view.physicalSize = originalSize;
-      tester.view.devicePixelRatio = originalDpr;
+      final originalRatio = tester.view.devicePixelRatio;
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(2400, 1080);
+      await tester.pumpAndSettle();
+      mark('dvOverlapControlsLandscape 04 landscape applied');
+
+      expect(
+        find.byType(OverlapCompareScreen),
+        findsOneWidget,
+        reason: 'Overlap resolution must survive a landscape rotation.',
+      );
+      expect(
+        find.byKey(const Key('overlap-pick-right')),
+        findsWidgets,
+        reason: 'Keep New control must remain visible in landscape.',
+      );
+      expect(
+        find.byKey(const Key('overlap-pick-left')),
+        findsWidgets,
+        reason: 'Keep Existing control must remain visible in landscape.',
+      );
+      expect(
+        find.byKey(const Key('overlap-merge')),
+        findsWidgets,
+        reason: 'Merge control must remain visible in landscape.',
+      );
+      mark('dvOverlapControlsLandscape 05 all three controls present in landscape');
+
+      // step-4 Resolve the overlap so the run ends cleanly, then restore the view.
+      await tester.tap(find.byKey(const Key('overlap-pick-left')));
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      tester.view.physicalSize = originalSize;
+      tester.view.devicePixelRatio = originalRatio;
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      expect(tester.takeException(), isNull);
       mark('dvOverlapControlsLandscape done');
     }, timeout: const Timeout(Duration(minutes: 4)));
 
@@ -1988,21 +2053,109 @@ void main() {
       void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
       mark('dvDeleteCancelConsistency 00 boot');
       app.main();
+      await tester.pump();
       await tester.pump(const Duration(seconds: 1));
-      await tester.pump(const Duration(seconds: 3));
       await _waitForHome(tester);
       mark('dvDeleteCancelConsistency 01 home ready');
-      final del = find.byTooltip('Delete record');
-      if (del.evaluate().isNotEmpty) {
-        await tester.tap(del.first);
-        await tester.pumpAndSettle(const Duration(milliseconds: 400));
-        final back = find.widgetWithIcon(TextButton, Icons.arrow_back);
-        if (back.evaluate().isNotEmpty) {
-          await tester.tap(back.first);
-          await tester.pumpAndSettle(const Duration(milliseconds: 400));
-        }
-      }
-      mark('09 delete path exercised');
+
+      // step-1 Record one complete event so there is a saved entry to act on.
+      await tester.tap(find.text('Record Nosebleed'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('-15'));
+      await tester.pump();
+      await tester.tap(find.text('Set Start Time'));
+      await tester.pump();
+      await tester.tap(find.text('Dripping'));
+      await tester.pump();
+      await tester.tap(find.text('+5'));
+      await tester.pump();
+      await tester.tap(find.text('Set End Time'));
+      await tester.pump();
+      await _pumpUntil(
+        tester,
+        () => find.byType(HomeScreen).evaluate().isNotEmpty,
+        description: 'return to Main Screen after recording the event',
+        timeout: const Duration(seconds: 30),
+      );
+      mark('dvDeleteCancelConsistency 02 event recorded, on Main Screen');
+
+      // step-2 Confirm the saved event is listed under Your Records.
+      expect(
+        find.byType(EventListItem),
+        findsWidgets,
+        reason: 'The recorded event must appear under Your Records.',
+      );
+      final beforeCount = find.byType(EventListItem).evaluate().length;
+      mark('dvDeleteCancelConsistency 03 event present, count=$beforeCount');
+
+      // step-3 Open the saved event and invoke delete to raise the Reason Dialog.
+      await tester.tap(find.byType(EventListItem).last);
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(RecordingScreen),
+        findsOneWidget,
+        reason: 'Tapping a recorded event must reopen the recording screen.',
+      );
+      await tester.tap(find.byTooltip('Delete record'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Delete Record'),
+        findsWidgets,
+        reason: 'Delete must raise the Reason Dialog before proceeding.',
+      );
+      mark('dvDeleteCancelConsistency 04 reason dialog visible');
+
+      // step-4 Cancel the Reason Dialog (Validates G): the event must remain unchanged.
+      await tester.tap(find.byType(TextButton).last);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Delete Record'),
+        findsNothing,
+        reason: 'Cancelling the Reason Dialog must dismiss it.',
+      );
+      mark('dvDeleteCancelConsistency 05 dialog cancelled');
+      await _pumpUntil(
+        tester,
+        () => find.byType(HomeScreen).evaluate().isNotEmpty,
+        description: 'return to Main Screen after cancelling delete',
+        timeout: const Duration(seconds: 30),
+      );
+      expect(
+        find.byType(EventListItem),
+        findsWidgets,
+        reason: 'A cancelled delete must leave the event unchanged.',
+      );
+      final afterCancelCount = find.byType(EventListItem).evaluate().length;
+      expect(
+        afterCancelCount,
+        beforeCount,
+        reason: 'Cancelling delete must not change the number of saved events.',
+      );
+      mark('dvDeleteCancelConsistency 06 event survived cancel, count=$afterCancelCount');
+
+      // step-5 Reopen the event and confirm the delete (Validates F): event is removed.
+      await tester.tap(find.byType(EventListItem).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Delete record'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Entered by mistake'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+      mark('dvDeleteCancelConsistency 07 delete confirmed');
+      await _pumpUntil(
+        tester,
+        () => find.byType(HomeScreen).evaluate().isNotEmpty,
+        description: 'return to Main Screen after confirming delete',
+        timeout: const Duration(seconds: 30),
+      );
+      expect(
+        find.byType(RecordingScreen),
+        findsNothing,
+        reason: 'The recording screen must be dismissed after deletion.',
+      );
+      mark('dvDeleteCancelConsistency 08 event deleted, back home');
+
       expect(tester.takeException(), isNull);
       await _waitForHome(tester);
       expect(find.byType(HomeScreen), findsWidgets);
