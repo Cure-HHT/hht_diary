@@ -45,6 +45,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Cache the Dart/Flutter pub cache across runs so the bootstrap pub-get
+      # doesn't re-download every target's deps each time. Keyed by all
+      # pubspec.lock files (pub resolution is deterministic from the locks).
+      # Lives at the repo root under .ci-pub-cache, which is bind-mounted into
+      # the container at /workspace/src/.ci-pub-cache (the only host-visible path
+      # the container has, so actions/cache can save it). elspais scans only
+      # src/apps/packages, so .ci-pub-cache is never scanned. Scoped to THIS
+      # workflow — it does not touch the shared CI compose used by 5 other jobs.
+      - name: Restore pub cache
+        uses: actions/cache@v4
+        with:
+          path: .ci-pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+      - name: Make pub cache writable by the container user
+        run: mkdir -p .ci-pub-cache && chmod -R 0777 .ci-pub-cache
+
       - name: Start CI container
         uses: ./.github/actions/start-ci-container
         with:
@@ -54,7 +72,8 @@ jobs:
       - name: Bootstrap target dependencies
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c '
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PUB_CACHE=/workspace/src/.ci-pub-cache ci bash -c '
             set -e
             for t in \
               apps/common-dart/canonical_json_jcs \
@@ -84,7 +103,8 @@ jobs:
       - name: Run all test targets through elspais
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c '
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PUB_CACHE=/workspace/src/.ci-pub-cache ci bash -c '
             cd /workspace/src
             mkdir -p build-reports/combined/traceability
             set +e
