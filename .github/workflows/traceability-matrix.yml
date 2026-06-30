@@ -110,10 +110,21 @@ jobs:
             mkdir -p build-reports/combined/traceability
             elspais summary trace --format markdown \
               -o build-reports/combined/traceability/traceability_matrix.md
-            # Per-requirement gap lists (untested/failing/...) for the
-            # Active-requirement coverage section in the comment.
+            # Machine-readable matrix: per-requirement, assertion-level
+            # tested/verified fractions + Status. Drives the comment headline
+            # (Active focus) and is the parseable download artifact.
+            elspais trace --format json \
+              -o build-reports/combined/traceability/traceability.json
+            # Per-requirement gap lists (uncovered/failing/...) for the
+            # Active-requirement worklist in the comment.
             elspais gaps --format json \
               -o build-reports/combined/traceability/gaps.json
+            # Self-contained interactive viewer (static HTML). Generated AFTER
+            # the --run-tests pass above so the verified dimension is embedded;
+            # a reviewer downloads + opens it offline, no test re-run, no local
+            # elspais. ~360 KB; GitHub zips the artifact for transport.
+            elspais viewer --static \
+              -o build-reports/combined/traceability/viewer.html
           '
 
       # REQ-independent line coverage: elspais surfaces no aggregate, so compute
@@ -224,69 +235,23 @@ jobs:
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          MATRIX=build-reports/combined/traceability/traceability_matrix.md
-          CHECKS=build-reports/combined/traceability/checks-tests.txt
-          GAPS=build-reports/combined/traceability/gaps.json
-          # Per-Active-requirement coverage table (requirement-level). Files are
-          # bind-mounted, so readable on the host after the ownership restore.
-          : > /tmp/active-cov.md
-          if [ -f "$MATRIX" ] && [ -f "$GAPS" ]; then
-            python3 .github/scripts/active-coverage.py "$MATRIX" "$GAPS" > /tmp/active-cov.md || : > /tmp/active-cov.md
+          # The comment is the SUMMARY: strict Status:Active focus headline +
+          # collapsible detail. The full per-requirement matrix is artifact-only
+          # (traceability_matrix.md + traceability.json + viewer.html). All inputs
+          # are bind-mounted, so readable on the host after the ownership restore.
+          TRACE_DIR=build-reports/combined/traceability
+          if ! python3 .github/scripts/traceability_comment.py \
+                --marker "$MARKER" \
+                --trace "$TRACE_DIR/traceability.json" \
+                --gaps "$TRACE_DIR/gaps.json" \
+                --coverage-tsv build-reports/combined/coverage/per-package.tsv \
+                --checks "$TRACE_DIR/checks-tests.txt" \
+                --run-url "${SERVER_URL}/${REPO}/actions/runs/${RUN_ID}" \
+                > /tmp/matrix-comment.md; then
+            echo "::warning::traceability comment render failed; posting fallback"
+            printf '%s\n## Verified-Coverage Traceability Matrix\n\nMatrix render failed this run — see job logs and the build-reports artifact.\n' \
+              "$MARKER" > /tmp/matrix-comment.md
           fi
-          {
-            echo "$MARKER"
-            echo "## Verified-Coverage Traceability Matrix"
-            echo ""
-            # Requirement-level coverage from `elspais checks --tests` (Draft counts
-            # as active per .elspais.toml). Reported per requirement, not per
-            # assertion: the references credit requirements, so that is the natural
-            # unit. The full per-requirement table is artifact-only.
-            if [ -f "$CHECKS" ]; then
-              tested=$(grep -oE 'Tested: [0-9]+/[0-9]+ REQs \([0-9]+%\)' "$CHECKS" | head -1 | sed 's/Tested: //')
-              verified=$(grep -oE 'Verified: [0-9]+/[0-9]+ REQs \([0-9]+%\)' "$CHECKS" | head -1 | sed 's/Verified: //')
-              echo "### Requirement coverage (Legacy excluded)"
-              echo ""
-              echo "| Dimension | Requirements |"
-              echo "|-----------|--------------|"
-              echo "| Tested | ${tested:-n/a} |"
-              echo "| Verified | ${verified:-n/a} |"
-              echo ""
-            fi
-            [ -s /tmp/active-cov.md ] && { cat /tmp/active-cov.md; echo ""; }
-            if [ -f "$MATRIX" ]; then
-              # grep -c exits 1 on zero matches; under `set -eo pipefail` that
-              # would abort the comment builder, so keep both greps non-fatal.
-              REQ_COUNT=$(grep -cE '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX" || true)
-              # Status histogram of the requirements in scope (count + % of total).
-              # Generic over statuses: Active appears here automatically once any
-              # real requirement is promoted out of Draft.
-              STATUS_LINE=$(grep -E '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX" \
-                | awk -F'|' '{gsub(/ /,"",$5); print $5}' | sort | uniq -c | sort -rn \
-                | awk -v t="$REQ_COUNT" '{printf "%s%s %d (%d%%)", (NR>1?", ":""), $2, $1, (100*$1/t)}' || true)
-              echo ""
-              echo "Requirement status: ${STATUS_LINE} (total ${REQ_COUNT})"
-              echo ""
-              echo "_Per-requirement matrix (${REQ_COUNT} requirements) is in the build-reports artifact (link below)._"
-            else
-              echo "Matrix could not be generated this run — see job logs."
-            fi
-            echo ""
-            COV=build-reports/combined/coverage/per-package.tsv
-            if [ -f "$COV" ]; then
-              echo "## Code Coverage (lcov, line)"
-              echo ""
-              awk -F'\t' '$1=="TOTAL"{printf "**Overall: %s%% (%d of %d lines)**\n", $2, $3, $4}' "$COV"
-              echo ""
-              echo "| Package | Line % | Hit | Found |"
-              echo "|---------|-------:|----:|------:|"
-              awk -F'\t' '$1!="TOTAL"{print}' "$COV" | sort | \
-                awk -F'\t' '{printf "| %s | %s%% | %d | %d |\n", $1, $2, $3, $4}'
-              echo ""
-              echo "_Line coverage is measured independently of requirement status._"
-            fi
-            echo ""
-            echo "[Full matrix in artifacts](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})"
-          } > /tmp/matrix-comment.md
           {
             echo "body<<MATRIX_COMMENT_EOF"
             cat /tmp/matrix-comment.md
