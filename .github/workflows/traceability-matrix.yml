@@ -122,9 +122,13 @@ jobs:
             # Self-contained interactive viewer (static HTML). Generated AFTER
             # the --run-tests pass above so the verified dimension is embedded;
             # a reviewer downloads + opens it offline, no test re-run, no local
-            # elspais. ~360 KB; GitHub zips the artifact for transport.
+            # elspais. ~360 KB; GitHub zips the artifact for transport. Needs the
+            # elspais[trace-view] extra (ci.Dockerfile); non-fatal so a viewer
+            # issue never blocks the matrix render or the PR comment.
             elspais viewer --static \
-              -o build-reports/combined/traceability/viewer.html
+              -o build-reports/combined/traceability/viewer.html \
+              || { echo "::warning::elspais viewer --static failed (needs elspais[trace-view]); skipping viewer.html"; \
+                   rm -f build-reports/combined/traceability/viewer.html; }
           '
 
       # REQ-independent line coverage: elspais surfaces no aggregate, so compute
