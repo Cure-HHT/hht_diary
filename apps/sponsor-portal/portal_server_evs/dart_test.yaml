@@ -1,0 +1,9 @@
+# portal_server_evs e2e tests stand up an in-memory server (event store,
+# reactors, in-process singletons) and are not parallel-safe: running the full
+# test/ directory concurrently lets state from one e2e bleed into another
+# (e.g. ingest_idempotency_e2e expecting a row another suite's store never
+# received). The previous CI ran only 5 e2e files in isolation, which hid this;
+# the centralized traceability run (CUR-1556) executes the whole directory via
+# `flutter test --machine`, so the suite must run serially to be deterministic.
+# A deeper per-test state-isolation pass could lift this later.
+concurrency: 1

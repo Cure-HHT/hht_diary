@@ -11,6 +11,7 @@ dependencies:
   googleapis: ^15.0.0
   googleapis_auth: ^2.0.0
   jose: ^0.3.4
+  meta: ^1.16.0
 
 dev_dependencies:
   test: ^1.25.0

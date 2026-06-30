@@ -35,7 +35,7 @@ void main() {
           'server_commit=abc1234',
           'diary_app=0.9.56+134',
           'portal_ui_version=1.4.1+def5678',
-          'portal_deployment=callisto+9abcdef',
+          'portal_deployment=reference+9abcdef',
           '', // tolerate blank lines
         ].join('\n'));
 
@@ -51,7 +51,7 @@ void main() {
       expect(v['server_commit'], 'abc1234');
       expect(v['diary_app'], '0.9.56+134');
       expect(v['portal_ui_version'], '1.4.1+def5678');
-      expect(v['portal_deployment'], 'callisto+9abcdef');
+      expect(v['portal_deployment'], 'reference+9abcdef');
       expect(v['deploy'], '47');
       expect(v['deploy_commit'], 'fed4321');
     });

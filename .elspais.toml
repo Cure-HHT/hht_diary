@@ -150,195 +150,188 @@ reference_patterns = []
 # Dart test targets (CUR-1533): flutter test --machine + lcov ingestion for
 # all testable Dart packages in this repo. apps/diary-portal-resolver (Go)
 # is deferred to CUR-1542 and intentionally excluded here.
+#
+# CUR-1556: `--file-reporter=json:coverage/machine.jsonl` makes each command
+# actually write the machine JSON that `results` points at. `flutter-machine`
+# is a stdout-channel reporter, so `elspais checks --run-tests` ingests results
+# transiently from captured stdout; the CI matrix worked because `summary trace`
+# ran against the same live daemon session. But commands that do NOT run the
+# tests (`elspais viewer`, `trace`, `graph` standalone) have no captured stdout
+# and fall back to globbing `results` -- which nothing produced, so `verified`
+# showed 0. The additive file sink (stdout still carries the JSON, so capture
+# and exit codes are unaffected) persists results to coverage/ (gitignored,
+# alongside lcov.info) so the verified dimension survives outside a `--run-tests`
+# run. `[rules.hierarchy] allow_structural_orphans` (below) already tolerates the
+# test_id-less RESULT nodes this surfaces.
 
 [[scanning.test.targets]]
 name = "apps/common-dart/canonical_json_jcs"
 cwd = "apps/common-dart/canonical_json_jcs"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/common-dart/comms"
 cwd = "apps/common-dart/comms"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/common-dart/diary_shared_model"
 cwd = "apps/common-dart/diary_shared_model"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
-credit_coverage = "verified"
-
-[[scanning.test.targets]]
-name = "apps/common-dart/event_sourcing_datastore"
-cwd = "apps/common-dart/event_sourcing_datastore"
-command = "flutter test --machine --coverage"
-reporter = "flutter-machine"
-coverage = "coverage/lcov.info"
-results = "coverage/machine.jsonl"
-match = "precise"
-credit_coverage = "verified"
-
-[[scanning.test.targets]]
-name = "apps/common-dart/event_sourcing_datastore/example"
-cwd = "apps/common-dart/event_sourcing_datastore/example"
-command = "flutter test --machine --coverage"
-reporter = "flutter-machine"
-coverage = "coverage/lcov.info"
-results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/common-dart/otel_common"
 cwd = "apps/common-dart/otel_common"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/common-dart/portal_actions"
 cwd = "apps/common-dart/portal_actions"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/common-dart/provenance"
 cwd = "apps/common-dart/provenance"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/common-dart/shared_functions"
 cwd = "apps/common-dart/shared_functions"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/common-dart/trial_data_types"
 cwd = "apps/common-dart/trial_data_types"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/common-flutter/diary_design_system"
 cwd = "apps/common-flutter/diary_design_system"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/common-flutter/eq"
 cwd = "apps/common-flutter/eq"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/common-flutter/portal_screens"
 cwd = "apps/common-flutter/portal_screens"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/daily-diary/clinical_diary"
 cwd = "apps/daily-diary/clinical_diary"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/edc/rave-integration"
 cwd = "apps/edc/rave-integration"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/sponsor-portal/portal_identity"
 cwd = "apps/sponsor-portal/portal_identity"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/sponsor-portal/portal_server_evs"
 cwd = "apps/sponsor-portal/portal_server_evs"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/sponsor-portal/portal_service"
 cwd = "apps/sponsor-portal/portal_service"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [[scanning.test.targets]]
 name = "apps/sponsor-portal/portal_ui_evs"
 cwd = "apps/sponsor-portal/portal_ui_evs"
-command = "flutter test --machine --coverage"
+command = "flutter test --machine --coverage --file-reporter=json:coverage/machine.jsonl"
 reporter = "flutter-machine"
 coverage = "coverage/lcov.info"
 results = "coverage/machine.jsonl"
-match = "precise"
+match = "source"
 credit_coverage = "verified"
 
 [scanning.journey]
@@ -372,12 +365,19 @@ no_assertions_severity = "warning"
 no_traceability_severity = "warning"
 
 [rules.format.status_roles]
-active = ["Active"]
+# `Draft` is treated as an active (creditable) status while the spec tree is
+# in its URS-v1 build-out phase: essentially every requirement is still Draft,
+# so excluding Draft from coverage would render the traceability matrix and the
+# tested/verified metrics permanently 0/0. Including it makes the coverage
+# numbers meaningful now; the numbers tighten as Draft REQs are promoted to
+# Active. (Trade-off: references to Draft REQs are no longer flagged as
+# provisional. CUR-1556.)
+active = ["Active", "Draft"]
 # `Legacy` marks REQs retained from the pre-URS spec tree (migrated on
 # 2026-05-15) that have not yet been reconciled with the URS-v1
 # authoritative content. Lifecycle: Legacy -> Draft (when reconciliation
 # starts) -> Active.
-provisional = ["Draft", "Proposed", "Legacy"]
+provisional = ["Proposed", "Legacy"]
 aspirational = ["Roadmap", "Future", "Idea"]
 retired = ["Deprecated", "Superseded", "Rejected"]
 

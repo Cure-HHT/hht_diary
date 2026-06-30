@@ -39,7 +39,10 @@ void main() {
     );
     // No resolved name -> the aggregate id (email) is the subject.
     expect(
-      detailsSummary({'aggregate_type': 'portal_user', 'aggregate_id': 'u@x.com'}),
+      detailsSummary({
+        'aggregate_type': 'portal_user',
+        'aggregate_id': 'u@x.com',
+      }),
       'u@x.com',
     );
     expect(

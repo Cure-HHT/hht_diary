@@ -1,0 +1,363 @@
+name: Traceability Matrix
+
+# Standalone, isolated job (CUR-1556): runs every Dart/Flutter test target once
+# through `elspais checks --run-tests` and ALWAYS posts the verified-coverage
+# traceability matrix. Decoupled from pr-health's success() so an unrelated gate
+# failure can never hide the matrix.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "tools/**"
+      - "spec/**"
+      - "database/**"
+      - ".elspais.toml"
+      - ".github/workflows/traceability-matrix.yml"
+      - ".github/scripts/**"
+      - ".github/versions.env"
+      - "tools/dev-env/docker/**"
+      - "tools/dev-env/docker-compose.yml"
+      - ".github/workflows/build-ghcr-containers.yml"
+      - ".github/actions/start-ci-container/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+  actions: read # Required for gh run watch in start-ci-container
+  pull-requests: write # Required to upsert the matrix comment
+
+jobs:
+  matrix:
+    name: Verified-Coverage Traceability Matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Start CI container
+        uses: ./.github/actions/start-ci-container
+        with:
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Bootstrap deps for every target — elspais --run-tests does not pub get.
+      - name: Bootstrap target dependencies
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c '
+            set -e
+            for t in \
+              apps/common-dart/canonical_json_jcs \
+              apps/common-dart/comms \
+              apps/common-dart/diary_shared_model \
+              apps/common-dart/otel_common \
+              apps/common-dart/portal_actions \
+              apps/common-dart/provenance \
+              apps/common-dart/shared_functions \
+              apps/common-dart/trial_data_types \
+              apps/common-flutter/diary_design_system \
+              apps/common-flutter/eq \
+              apps/common-flutter/portal_screens \
+              apps/daily-diary/clinical_diary \
+              apps/edc/rave-integration \
+              apps/sponsor-portal/portal_identity \
+              apps/sponsor-portal/portal_server_evs \
+              apps/sponsor-portal/portal_service \
+              apps/sponsor-portal/portal_ui_evs; do
+              echo "::group::pub get $t"
+              (cd "/workspace/src/$t" && flutter pub get)
+              echo "::endgroup::"
+            done
+          '
+
+      # Implements: DIARY-OPS-automated-test-execution/C
+      - name: Run all test targets through elspais
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c '
+            cd /workspace/src
+            mkdir -p build-reports/combined/traceability
+            set +e
+            # Tee the checks output so the comment step can read the REQ-level
+            # tested/verified numbers; PIPESTATUS[0] is the elspais exit (the
+            # gate signal), not tee.
+            xvfb-run -a dbus-run-session -- bash -c "
+              echo \"test\" | gnome-keyring-daemon --unlock
+              cd /workspace/src
+              elspais checks --run-tests --tests
+            " 2>&1 | tee build-reports/combined/traceability/checks-tests.txt
+            echo ${PIPESTATUS[0]} > /workspace/src/.elspais-tests-exit
+            echo "elspais checks --run-tests --tests exit: $(cat /workspace/src/.elspais-tests-exit)"
+          '
+
+      # Implements: DIARY-OPS-traceability-validation/B
+      - name: Render traceability matrix
+        if: always()
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c '
+            cd /workspace/src
+            mkdir -p build-reports/combined/traceability
+            elspais summary trace --format markdown \
+              -o build-reports/combined/traceability/traceability_matrix.md
+            # Per-requirement gap lists (untested/failing/...) for the
+            # Active-requirement coverage section in the comment.
+            elspais gaps --format json \
+              -o build-reports/combined/traceability/gaps.json
+          '
+
+      # REQ-independent line coverage: elspais surfaces no aggregate, so compute
+      # it from the lcov.info files the run produced. Sum hit/found numerically
+      # (NOT lcov -a) to avoid SF:lib/... path collisions across packages.
+      - name: Aggregate code coverage (lcov)
+        if: always()
+        working-directory: tools/dev-env
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c '
+            cd /workspace/src
+            mkdir -p build-reports/combined/coverage
+            : > build-reports/combined/coverage/per-package.tsv
+            tot_h=0; tot_f=0
+            for t in \
+              apps/common-dart/canonical_json_jcs \
+              apps/common-dart/comms \
+              apps/common-dart/diary_shared_model \
+              apps/common-dart/otel_common \
+              apps/common-dart/portal_actions \
+              apps/common-dart/provenance \
+              apps/common-dart/shared_functions \
+              apps/common-dart/trial_data_types \
+              apps/common-flutter/diary_design_system \
+              apps/common-flutter/eq \
+              apps/common-flutter/portal_screens \
+              apps/daily-diary/clinical_diary \
+              apps/edc/rave-integration \
+              apps/sponsor-portal/portal_identity \
+              apps/sponsor-portal/portal_server_evs \
+              apps/sponsor-portal/portal_service \
+              apps/sponsor-portal/portal_ui_evs; do
+              f="$t/coverage/lcov.info"
+              [ -f "$f" ] || continue
+              nums=$(lcov --summary "$f" 2>/dev/null | sed -nE "s/.*lines[.]+: [0-9.]+% \(([0-9]+) of ([0-9]+) lines\).*/\1 \2/p")
+              [ -z "$nums" ] && continue
+              h=${nums% *}; fnd=${nums#* }
+              pct=$(awk -v a="$h" -v b="$fnd" "BEGIN{printf \"%.1f\", (b>0)?100*a/b:0}")
+              printf "%s\t%s\t%s\t%s\n" "$t" "$pct" "$h" "$fnd" >> build-reports/combined/coverage/per-package.tsv
+              tot_h=$((tot_h+h)); tot_f=$((tot_f+fnd))
+            done
+            awk -v a="$tot_h" -v b="$tot_f" "BEGIN{printf \"TOTAL\t%.1f\t%d\t%d\n\", (b>0)?100*a/b:0, a, b}" >> build-reports/combined/coverage/per-package.tsv
+            echo "--- coverage tsv ---"; cat build-reports/combined/coverage/per-package.tsv
+          '
+
+      - name: Restore workspace ownership
+        if: always()
+        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
+
+      # The repo is bind-mounted into the container (volumes: ../../:/workspace/src),
+      # so after the ownership restore the matrix, coverage tsv, per-target lcov,
+      # and .elspais-tests-exit are already on the host. Copy lcov into per-flag
+      # names for the Codecov artifact handoff to the codecov job.
+      - name: Stage per-target coverage for Codecov artifact
+        if: always()
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/cov"
+          for entry in \
+            "apps/common-dart/canonical_json_jcs:canonical_json_jcs" \
+            "apps/common-dart/comms:comms" \
+            "apps/common-dart/diary_shared_model:diary_shared_model" \
+            "apps/common-dart/otel_common:otel_common" \
+            "apps/common-dart/portal_actions:portal_actions" \
+            "apps/common-dart/provenance:provenance" \
+            "apps/common-dart/shared_functions:shared_functions" \
+            "apps/common-dart/trial_data_types:trial_data_types" \
+            "apps/common-flutter/diary_design_system:diary_design_system" \
+            "apps/common-flutter/eq:eq" \
+            "apps/common-flutter/portal_screens:portal_screens" \
+            "apps/daily-diary/clinical_diary:clinical_diary" \
+            "apps/edc/rave-integration:rave_integration" \
+            "apps/sponsor-portal/portal_identity:portal_identity" \
+            "apps/sponsor-portal/portal_server_evs:portal_server_evs" \
+            "apps/sponsor-portal/portal_service:portal_service" \
+            "apps/sponsor-portal/portal_ui_evs:portal-ui-evs"; do
+            path=${entry%:*}; flag=${entry#*:}
+            src="$GITHUB_WORKSPACE/$path/coverage/lcov.info"
+            [ -f "$src" ] && cp "$src" "$GITHUB_WORKSPACE/cov/$flag.info" || true
+          done
+          # Guarantee the gate file exists even if the run step never wrote it.
+          [ -f "$GITHUB_WORKSPACE/.elspais-tests-exit" ] || echo "1" > "$GITHUB_WORKSPACE/.elspais-tests-exit"
+
+      # Implements: DIARY-OPS-traceability-validation/D
+      - name: Upload traceability matrix artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-reports-${{ github.sha }}
+          path: build-reports/
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Upload per-target coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: traceability-coverage-${{ github.sha }}
+          path: cov/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Build matrix comment body
+        id: body
+        if: always()
+        env:
+          MARKER: "<!-- pr-comment-upsert:traceability-matrix -->"
+          SERVER_URL: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          MATRIX=build-reports/combined/traceability/traceability_matrix.md
+          CHECKS=build-reports/combined/traceability/checks-tests.txt
+          GAPS=build-reports/combined/traceability/gaps.json
+          # Per-Active-requirement coverage table (requirement-level). Files are
+          # bind-mounted, so readable on the host after the ownership restore.
+          : > /tmp/active-cov.md
+          if [ -f "$MATRIX" ] && [ -f "$GAPS" ]; then
+            python3 .github/scripts/active-coverage.py "$MATRIX" "$GAPS" > /tmp/active-cov.md || : > /tmp/active-cov.md
+          fi
+          {
+            echo "$MARKER"
+            echo "## Verified-Coverage Traceability Matrix"
+            echo ""
+            # Requirement-level coverage from `elspais checks --tests` (Draft counts
+            # as active per .elspais.toml). Reported per requirement, not per
+            # assertion: the references credit requirements, so that is the natural
+            # unit. The full per-requirement table is artifact-only.
+            if [ -f "$CHECKS" ]; then
+              tested=$(grep -oE 'Tested: [0-9]+/[0-9]+ REQs \([0-9]+%\)' "$CHECKS" | head -1 | sed 's/Tested: //')
+              verified=$(grep -oE 'Verified: [0-9]+/[0-9]+ REQs \([0-9]+%\)' "$CHECKS" | head -1 | sed 's/Verified: //')
+              echo "### Requirement coverage (Legacy excluded)"
+              echo ""
+              echo "| Dimension | Requirements |"
+              echo "|-----------|--------------|"
+              echo "| Tested | ${tested:-n/a} |"
+              echo "| Verified | ${verified:-n/a} |"
+              echo ""
+            fi
+            [ -s /tmp/active-cov.md ] && { cat /tmp/active-cov.md; echo ""; }
+            if [ -f "$MATRIX" ]; then
+              # grep -c exits 1 on zero matches; under `set -eo pipefail` that
+              # would abort the comment builder, so keep both greps non-fatal.
+              REQ_COUNT=$(grep -cE '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX" || true)
+              # Status histogram of the requirements in scope (count + % of total).
+              # Generic over statuses: Active appears here automatically once any
+              # real requirement is promoted out of Draft.
+              STATUS_LINE=$(grep -E '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX" \
+                | awk -F'|' '{gsub(/ /,"",$5); print $5}' | sort | uniq -c | sort -rn \
+                | awk -v t="$REQ_COUNT" '{printf "%s%s %d (%d%%)", (NR>1?", ":""), $2, $1, (100*$1/t)}' || true)
+              echo ""
+              echo "Requirement status: ${STATUS_LINE} (total ${REQ_COUNT})"
+              echo ""
+              echo "_Per-requirement matrix (${REQ_COUNT} requirements) is in the build-reports artifact (link below)._"
+            else
+              echo "Matrix could not be generated this run — see job logs."
+            fi
+            echo ""
+            COV=build-reports/combined/coverage/per-package.tsv
+            if [ -f "$COV" ]; then
+              echo "## Code Coverage (lcov, line)"
+              echo ""
+              awk -F'\t' '$1=="TOTAL"{printf "**Overall: %s%% (%d of %d lines)**\n", $2, $3, $4}' "$COV"
+              echo ""
+              echo "| Package | Line % | Hit | Found |"
+              echo "|---------|-------:|----:|------:|"
+              awk -F'\t' '$1!="TOTAL"{print}' "$COV" | sort | \
+                awk -F'\t' '{printf "| %s | %s%% | %d | %d |\n", $1, $2, $3, $4}'
+              echo ""
+              echo "_Line coverage is measured independently of requirement status._"
+            fi
+            echo ""
+            echo "[Full matrix in artifacts](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})"
+          } > /tmp/matrix-comment.md
+          {
+            echo "body<<MATRIX_COMMENT_EOF"
+            cat /tmp/matrix-comment.md
+            echo "MATRIX_COMMENT_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Implements: DIARY-OPS-traceability-validation/C
+      - name: Upsert matrix comment
+        if: always() && github.event_name == 'pull_request'
+        uses: Cure-HHT/hht_workflows/.github/actions/pr-comment-upsert@5f6797b6cbd6434e251539c959e418e2b4bb1b18 # hht_workflows main 2026-05-22
+        with:
+          marker: "<!-- pr-comment-upsert:traceability-matrix -->"
+          body: ${{ steps.body.outputs.body }}
+
+      # Implements: DIARY-OPS-automated-test-execution/F
+      - name: Gate on test results
+        if: always()
+        run: |
+          code=$(cat "$GITHUB_WORKSPACE/.elspais-tests-exit" 2>/dev/null || echo 1)
+          echo "elspais --run-tests --tests exit code: $code"
+          if [ "$code" != "0" ]; then
+            echo "::error::One or more test targets failed. Matrix was still posted above."
+            exit 1
+          fi
+
+      - name: Cleanup
+        if: always()
+        working-directory: tools/dev-env
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v
+
+  # Implements: DIARY-OPS-automated-test-execution/D
+  codecov:
+    name: Codecov upload (${{ matrix.flag }})
+    needs: matrix
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        flag:
+          - canonical_json_jcs
+          - comms
+          - diary_shared_model
+          - otel_common
+          - portal_actions
+          - provenance
+          - shared_functions
+          - trial_data_types
+          - diary_design_system
+          - eq
+          - portal_screens
+          - clinical_diary
+          - rave_integration
+          - portal_identity
+          - portal_server_evs
+          - portal_service
+          - portal-ui-evs
+    steps:
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: traceability-coverage-${{ github.sha }}
+          path: cov
+        continue-on-error: true
+
+      - name: Upload to Codecov
+        if: hashFiles(format('cov/{0}.info', matrix.flag)) != ''
+        uses: codecov/codecov-action@v6
+        with:
+          files: cov/${{ matrix.flag }}.info
+          flags: ${{ matrix.flag }}
+          name: ${{ matrix.flag }}-coverage
+          fail_ci_if_error: false

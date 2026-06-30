@@ -23,7 +23,7 @@ void main() {
       'email_verified': true,
       'exp': secs(future),
     });
-    final r = await verifyIdToken(token);
+    final r = await verifyIdToken(token, useEmulator: true);
     expect(r.isValid, isTrue);
     expect(r.uid, 'uid-123');
     expect(r.email, 'jane@site.org');
@@ -32,7 +32,7 @@ void main() {
   // Verifies: DIARY-DEV-portal-login-identity-verification/B
   test('expired emulator token -> not valid, error set', () async {
     final token = _fakeToken({'sub': 'uid-123', 'exp': secs(past)});
-    final r = await verifyIdToken(token);
+    final r = await verifyIdToken(token, useEmulator: true);
     expect(r.isValid, isFalse);
     expect(r.error, isNotNull);
   });
@@ -40,7 +40,7 @@ void main() {
   // Verifies: DIARY-DEV-portal-login-identity-verification/B
   test('token with no subject -> not valid', () async {
     final token = _fakeToken({'exp': secs(future)}); // no 'sub'
-    final r = await verifyIdToken(token);
+    final r = await verifyIdToken(token, useEmulator: true);
     expect(r.isValid, isFalse);
   });
 
@@ -53,7 +53,7 @@ void main() {
         'second_factor_identifier': 'factor-1',
       },
     });
-    final r = await verifyIdToken(token);
+    final r = await verifyIdToken(token, useEmulator: true);
     expect(r.mfaInfo?.isEnrolled, isTrue);
     expect(r.mfaInfo?.method, 'totp');
   });

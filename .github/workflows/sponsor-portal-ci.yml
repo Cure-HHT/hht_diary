@@ -69,59 +69,6 @@ jobs:
             flutter analyze
           "
 
-      # portal_server_evs link/ingest e2e: the full link-loop + relink/reconnect/
-      # reactivate, idempotent redelivery, and diverse diary event types, driven
-      # over the REAL /actions + /link + /ingest routers against an in-memory
-      # store (hermetic — no Postgres, no Firebase emulator).
-      - name: Run portal_server_evs link/ingest e2e tests
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal_server_evs
-            dart test \
-              test/link_then_ingest_e2e_test.dart \
-              test/relink_loops_e2e_test.dart \
-              test/ingest_idempotency_e2e_test.dart \
-              test/diary_event_types_e2e_test.dart \
-              test/trial_start_state_e2e_test.dart
-          "
-
-      - name: Run portal_ui_evs tests with coverage
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/sponsor-portal/portal_ui_evs
-            mkdir -p coverage
-            flutter test --machine --coverage > coverage/machine.jsonl
-          "
-
-      - name: Restore workspace ownership
-        if: always()
-        run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
-
-      - name: Copy coverage from container
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c \
-            "cat /workspace/src/apps/sponsor-portal/portal_ui_evs/coverage/lcov.info" \
-            > $GITHUB_WORKSPACE/portal-ui-evs-lcov.info || true
-
-      - name: Ingest portal_ui_evs results into elspais
-        if: always()
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src
-            elspais checks --tests --lenient
-          "
-
-      - name: Upload portal_ui_evs coverage to Codecov
-        uses: codecov/codecov-action@v6
-        with:
-          files: portal-ui-evs-lcov.info
-          flags: portal-ui-evs
-          fail_ci_if_error: false
-
       - name: Cleanup
         if: always()
         working-directory: tools/dev-env

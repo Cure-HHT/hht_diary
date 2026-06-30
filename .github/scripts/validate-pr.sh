@@ -288,7 +288,11 @@ if [ "$ELSPAIS_RELEVANT_CHANGED" = "true" ]; then
   # deactivates `set -e` for the elspais call so we can run the
   # annotation pass before re-asserting the exit code.
   elspais_exit=0
-  if elspais_output=$(elspais checks --spec --code --terms 2>&1); then
+  # --lenient: warning-severity checks (e.g. code.no_traceability, configured
+  # as "warning" in .elspais.toml) inform but do not fail the exit code. As of
+  # elspais 0.118.16 warnings affect the exit code by default, so the flag is
+  # required to preserve the repo's intended non-blocking severity policy.
+  if elspais_output=$(elspais checks --spec --code --terms --lenient 2>&1); then
     elspais_exit=0
   else
     elspais_exit=$?
@@ -302,11 +306,6 @@ if [ "$ELSPAIS_RELEVANT_CHANGED" = "true" ]; then
   if [ "$elspais_exit" -ne 0 ]; then
     exit "$elspais_exit"
   fi
-
-  # Generate traceability matrix for PR comment and artifact upload
-  mkdir -p build-reports/combined/traceability
-  elspais summary trace --format markdown \
-    -o build-reports/combined/traceability/traceability_matrix.md
 
   echo "Requirement validation (readiness) passed"
 else

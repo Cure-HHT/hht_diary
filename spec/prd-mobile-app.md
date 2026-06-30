@@ -72,7 +72,7 @@ E. For linked **Participants**, the System SHALL automatically synchronize unsyn
 
 ## DIARY-PRD-diary-start-day: Diary Start Day Definition
 
-**Level**: PRD | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Active | **Implements**: -
 
 ### Overview
 
@@ -105,6 +105,10 @@ I. The **System** SHALL display each *Calendar* day between the **Diary Start Da
 ### Rationale
 
 The **Diary Start Day** is the single boundary the **Mobile Application** uses to distinguish "no entry expected" from "missing entry" — every day from the **Diary Start Day** to today is part of the *Diary* period and therefore a candidate for the missing-day display in the *Calendar*. Automatic backward expansion (set to the earliest entry, can move backward but never forward) reflects two operational realities: participants discover the need to backfill historical events incrementally rather than declaring a start date up front, and once a date is recognized as part of the *Diary* period, the visible gaps on dates within it are evidence the audit and *Sponsor* reporting rely on — collapsing those gaps by moving the start day forward when the earliest entry is deleted would silently erase that evidence. The 365-day floor below installation date caps the historical window at a clinically meaningful range while leaving room for retrospective capture early in a *Trial*. Future-date rejection is a contemporaneous-data integrity floor. The non-sync rule for pre-*Trial* dates keeps the **Sponsor Portal** dataset bounded to the *Trial* period regardless of how far back the personal *Diary* extends.
+
+### Changelog
+
+- 2026-06-25 | b0c35e38 | - | Michael Lewis (michael@anspar.org) | First approved version
 
 *End* *Diary Start Day Definition* | **Hash**: b0c35e38
 

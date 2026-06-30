@@ -299,9 +299,16 @@ Widget _actionIcon(
     UserRowAction.deactivate => png('deactivate', Icons.block),
     UserRowAction.edit => Icon(Icons.edit_outlined, size: 16, color: color),
     UserRowAction.reactivate => Icon(Icons.refresh, size: 16, color: color),
-    UserRowAction.unlock => Icon(Icons.lock_open_outlined, size: 16, color: color),
-    UserRowAction.viewDetails =>
-      Icon(Icons.visibility_outlined, size: 16, color: color),
+    UserRowAction.unlock => Icon(
+      Icons.lock_open_outlined,
+      size: 16,
+      color: color,
+    ),
+    UserRowAction.viewDetails => Icon(
+      Icons.visibility_outlined,
+      size: 16,
+      color: color,
+    ),
   };
 }
 

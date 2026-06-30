@@ -67,15 +67,6 @@ jobs:
             dart analyze --fatal-infos
           "
 
-      - name: Run tests
-        working-directory: tools/dev-env
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c "
-            cd /workspace/src/apps/common-dart/trial_data_types
-            chmod +x tool/test.sh
-            ./tool/test.sh
-          "
-
       - name: Cleanup
         if: always()
         working-directory: tools/dev-env

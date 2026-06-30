@@ -136,22 +136,31 @@ grants:
 
   // Verifies: DIARY-DEV-role-permissions-seed/A — re-running the same YAML emits
   //   no further grant/revoke events (drift reconcile is idempotent).
-  test('buildPortalAuthorizationPolicy drift reconcile is idempotent', () async {
-    final db = await databaseFactoryMemory.openDatabase('authz-drift-idem.db');
-    final eventStore = await openPortalEventStore(
-      backend: SembastBackend(database: db),
-    );
-    final yaml = referenceRoleGrantsYaml();
-    await buildPortalAuthorizationPolicy(
-      eventStore: eventStore,
-      roleGrantsYaml: yaml,
-    );
-    final before = (await eventStore.backend.findAllEvents(limit: 5000)).length;
-    await buildPortalAuthorizationPolicy(
-      eventStore: eventStore,
-      roleGrantsYaml: yaml,
-    );
-    final after = (await eventStore.backend.findAllEvents(limit: 5000)).length;
-    expect(after, before);
-  });
+  test(
+    'buildPortalAuthorizationPolicy drift reconcile is idempotent',
+    () async {
+      final db = await databaseFactoryMemory.openDatabase(
+        'authz-drift-idem.db',
+      );
+      final eventStore = await openPortalEventStore(
+        backend: SembastBackend(database: db),
+      );
+      final yaml = referenceRoleGrantsYaml();
+      await buildPortalAuthorizationPolicy(
+        eventStore: eventStore,
+        roleGrantsYaml: yaml,
+      );
+      final before = (await eventStore.backend.findAllEvents(
+        limit: 5000,
+      )).length;
+      await buildPortalAuthorizationPolicy(
+        eventStore: eventStore,
+        roleGrantsYaml: yaml,
+      );
+      final after = (await eventStore.backend.findAllEvents(
+        limit: 5000,
+      )).length;
+      expect(after, before);
+    },
+  );
 }

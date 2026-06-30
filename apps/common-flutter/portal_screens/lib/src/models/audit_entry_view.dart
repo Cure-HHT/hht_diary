@@ -69,13 +69,13 @@ class AuditEntryView {
   /// work on every row.
   @override
   int get hashCode => Object.hash(
-        id,
-        timestamp,
-        actorName,
-        actorRole,
-        actorEmail,
-        activityLabel,
-      );
+    id,
+    timestamp,
+    actorName,
+    actorRole,
+    actorEmail,
+    activityLabel,
+  );
 
   @override
   String toString() =>

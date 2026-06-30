@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:jose/jose.dart';
+import 'package:meta/meta.dart';
 
 /// Google's public key URL for ID token verification
 const _googleCertsUrl =
@@ -113,17 +114,26 @@ class VerificationResult {
 ///
 /// Returns [VerificationResult] with uid and email on success,
 /// or error message on failure.
-Future<VerificationResult> verifyIdToken(String idToken) async {
+Future<VerificationResult> verifyIdToken(
+  String idToken, {
+  @visibleForTesting bool? useEmulator,
+}) async {
+  // Default to the ambient env check; tests pass useEmulator explicitly to
+  // exercise the emulator branch hermetically (Platform.environment cannot be
+  // mutated at runtime). Production call sites omit it and behave as before.
+  // @visibleForTesting enforces that: a non-test caller passing useEmulator
+  // trips invalid_use_of_visible_for_testing_member (fatal in CI analyze).
+  final emulator = useEmulator ?? _useEmulator;
   final emulatorHost = Platform.environment['FIREBASE_AUTH_EMULATOR_HOST'];
   print('[AUTH] verifyIdToken called');
   print('[AUTH] FIREBASE_AUTH_EMULATOR_HOST = $emulatorHost');
-  print('[AUTH] _useEmulator = $_useEmulator');
-  print(
-    '[AUTH] Token prefix: ${idToken.substring(0, idToken.length > 50 ? 50 : idToken.length)}...',
-  );
+  print('[AUTH] emulator = $emulator');
+  // Log only non-secret metadata — never any portion of the token itself,
+  // which would leak authentication material into CI / aggregated logs.
+  print('[AUTH] Token length: ${idToken.length}');
 
   // For Firebase emulator, use simplified verification
-  if (_useEmulator) {
+  if (emulator) {
     print('[AUTH] Using emulator verification');
     return _verifyEmulatorToken(idToken);
   }

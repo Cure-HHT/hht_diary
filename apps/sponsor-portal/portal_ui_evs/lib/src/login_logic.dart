@@ -90,7 +90,10 @@ final class LoginNextOtp extends LoginNext {
 LoginNext loginNextStep(Map<String, Object?> body) {
   final token = body['sessionToken'];
   if (token is String && token.isNotEmpty) {
-    return LoginNext.session(token, displayName: body['displayName'] as String?);
+    return LoginNext.session(
+      token,
+      displayName: body['displayName'] as String?,
+    );
   }
   return LoginNext.otp((body['maskedEmail'] as String?) ?? '');
 }

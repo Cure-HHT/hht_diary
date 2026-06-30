@@ -267,53 +267,6 @@ jobs:
           retention-days: 90
           if-no-files-found: ignore  # Not all PRs generate traceability reports
 
-      - name: Build Requirements Validation comment body
-        id: req-validation-body
-        if: success() && env.ELSPAIS_RELEVANT_CHANGED == 'true'
-        env:
-          MARKER: '<!-- pr-comment-upsert:pr-health -->'
-          SERVER_URL: ${{ github.server_url }}
-          REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          MATRIX=build-reports/combined/traceability/traceability_matrix.md
-          {
-            echo "$MARKER"
-            echo "## Requirements Validation Passed"
-            echo ""
-            echo "All requirements have been validated successfully."
-            echo ""
-            if [ -f "$MATRIX" ]; then
-              SUMMARY_LINE=$(grep -n "## Summary" "$MATRIX" | head -1 | cut -d: -f1)
-              if [ -n "$SUMMARY_LINE" ]; then
-                echo "### Combined Traceability Summary"
-                echo ""
-                tail -n +"$SUMMARY_LINE" "$MATRIX" | head -20
-              else
-                echo "### Traceability Matrix Generated"
-                echo ""
-                echo "See artifacts for full traceability details."
-              fi
-            else
-              echo "Could not read traceability matrix summary."
-            fi
-            echo ""
-            echo ""
-            echo "[View full traceability matrix in artifacts](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})"
-          } > /tmp/req-validation-comment.md
-          {
-            echo "body<<REQ_VALIDATION_COMMENT_EOF"
-            cat /tmp/req-validation-comment.md
-            echo "REQ_VALIDATION_COMMENT_EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Upsert Requirements Validation comment
-        if: success() && env.ELSPAIS_RELEVANT_CHANGED == 'true'
-        uses: Cure-HHT/hht_workflows/.github/actions/pr-comment-upsert@d61abe4d9f51bfaa9c7ed08e3104519778f4e2c9  # v1.1.0
-        with:
-          marker: '<!-- pr-comment-upsert:pr-health -->'
-          body: ${{ steps.req-validation-body.outputs.body }}
-
       - name: Cleanup
         if: always()
         working-directory: tools/dev-env

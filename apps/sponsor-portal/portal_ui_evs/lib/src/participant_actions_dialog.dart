@@ -61,8 +61,10 @@ class ParticipantActionsDialog extends StatelessWidget {
     required List<ParticipantActionItem> actions,
   }) => showDialog<void>(
     context: context,
-    builder: (_) =>
-        ParticipantActionsDialog(participantId: participantId, actions: actions),
+    builder: (_) => ParticipantActionsDialog(
+      participantId: participantId,
+      actions: actions,
+    ),
   );
 
   @override

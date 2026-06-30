@@ -10,6 +10,7 @@ roles:
   - SystemOperator
 grants:
   StudyCoordinator:
+    - portal.admin.view_settings
     - portal.participant.link
     - portal.participant.start_trial
     - portal.participant.disconnect
@@ -21,12 +22,20 @@ grants:
     - portal.questionnaire.call_back
     - portal.questionnaire.finalize
     - portal.questionnaire.unlock
+    - portal.site.view
     - portal.audit.view
     - portal.questionnaire.view_status
+    - portal.rave.view_sync
     - portal.diary.view_entries
   CRA:
+    - portal.admin.view_settings
+    - portal.participant.view
     - portal.site.view
+    - portal.audit.view
+    - portal.questionnaire.view_status
+    - portal.rave.view_sync
   Administrator:
+    - portal.site.view
     - portal.user.create
     - portal.user.create_admin
     - portal.user.edit
@@ -36,10 +45,13 @@ grants:
     - portal.user.resend_activation
     - portal.user.assign_role
     - portal.user.grant_role
+    - portal.user.assign_site
     - portal.user.revoke_role
+    - portal.user.revoke_site
     - portal.user.delete_pending
     - portal.audit.view
     - portal.admin.view_settings
+    - portal.rave.view_sync
     - portal.user.view_accounts
   SystemOperator:
     - portal.admin.view_settings
