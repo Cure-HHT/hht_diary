@@ -232,3 +232,35 @@
 | DIARY-DEV-state-in-event-log                 | Qualifying App State Lives in the Event Log           | dev-mobile-event-sourcing.md       | d6fb9049 |
 | DIARY-DEV-user-account-projection            | User account projection                               | dev-portal-service.md              | ae8627b4 |
 | DIARY-DEV-view-action-permissions            | Read-model subscriptions gate on Action permissions   | dev-view-action-permissions.md     | c3069fa4 |
+
+## User Journeys
+
+| ID           | Title                                           | Actor                                                                    | File                                 |
+| ------------ | ----------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------ |
+| JNY-AUDIT-01 | View the Administrator Audit Log                | Jordan Avery, a Sponsor Portal Administrator                             | audit-log-journeys.md                |
+| JNY-AUDIT-02 | View the Study Coordinator Audit Log            | Dr. Sarah Mitchell, a Study Coordinator                                  | audit-log-journeys.md                |
+| JNY-AUDIT-03 | Monitor a Site via the CRA Audit Log            | Tom Becker, a Clinical Research Associate (CRA)                          | audit-log-journeys.md                |
+| JNY-AUTH-01  | Accept Activation Invite & Set Initial Password | Jordan Avery, a newly created Sponsor Portal Administrator               | authentication-journeys.md           |
+| JNY-AUTH-02  | Log In With Two-Factor Authentication           | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md           |
+| JNY-AUTH-03  | Reset a Forgotten Password                      | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md           |
+| JNY-AUTH-04  | Switch Active Role                              | Jordan Avery, an Administrator who also holds the Study Coordinator role | authentication-journeys.md           |
+| JNY-AUTH-05  | Log Out                                         | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md           |
+| JNY-PART-01  | Link a New Participant                          | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
+| JNY-PART-02  | Show or Share a Participant's Linking Code      | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
+| JNY-PART-03  | Start a Participant's Trial                     | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
+| JNY-PART-04  | Disconnect a Participant                        | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
+| JNY-PART-05  | Reconnect a Participant                         | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
+| JNY-PART-06  | Mark a Participant as Not Participating         | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
+| JNY-PART-07  | Reactivate a Participant                        | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
+| JNY-PART-08  | Browse and Search Participants                  | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
+| JNY-QNR-01   | Send a Questionnaire                            | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md |
+| JNY-QNR-02   | Call Back a Sent Questionnaire                  | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md |
+| JNY-QNR-03   | Finalize a Submitted Questionnaire              | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md |
+| JNY-QNR-04   | Unlock a Finalized Questionnaire                | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md |
+| JNY-SET-01   | View Administrator Settings                     | Jordan Avery, a Sponsor Portal Administrator                             | administrator-settings-journeys.md   |
+| JNY-USER-01  | Create a New User Account                       | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
+| JNY-USER-02  | Edit a User's Roles and Sites                   | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
+| JNY-USER-03  | Deactivate a User Account                       | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
+| JNY-USER-04  | Reactivate a Deactivated User Account           | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
+| JNY-USER-05  | Resend an Activation Email                      | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
+| JNY-USER-06  | Browse and Search User Accounts                 | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
