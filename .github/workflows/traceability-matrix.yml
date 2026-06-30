@@ -125,17 +125,20 @@ jobs:
         if: always()
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c '
+          # Force the pinned elspais (+trace-view extra) at render time. The
+          # ci.Dockerfile installs it, but the image build has repeatedly served
+          # a STALE Docker cache layer (build step #22 reported CACHED even when
+          # the Dockerfile line changed), leaving the container on an older
+          # elspais without the extra. Reading the pin from versions.env (the
+          # SOLE source) and installing it here makes the render independent of
+          # the image-cache state; it is a fast no-op once the image is current.
+          EV=$(grep -E "^ELSPAIS_VERSION=" ../../.github/versions.env | cut -d= -f2 | tr -d "[:space:]")
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e EV="$EV" ci bash -c '
             cd /workspace/src
             mkdir -p build-reports/combined/traceability
-            # Ensure the trace-view extra (HTMLGenerator deps for `viewer --static`)
-            # is present. The ci.Dockerfile installs elspais[trace-view], but that
-            # layer can be a STALE Docker cache hit that installed bare elspais
-            # (observed: build step #22 reported CACHED even after the line changed).
-            # Pin to the INSTALLED version so this only adds the missing extra deps
-            # (never an upgrade); idempotent + fast no-op once the image is correct.
-            EV=$(elspais --version 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
-            [ -n "$EV" ] && pip3 install --no-cache-dir --break-system-packages "elspais[trace-view]==$EV" >/dev/null 2>&1 || true
+            pip3 install --no-cache-dir --break-system-packages "elspais[trace-view]==${EV}" >/dev/null 2>&1 || true
+            echo "render elspais: $(elspais --version 2>/dev/null | head -1)"
             elspais summary trace --format markdown \
               -o build-reports/combined/traceability/traceability_matrix.md
             # Machine-readable matrix: per-requirement, assertion-level
