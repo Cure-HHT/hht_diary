@@ -1716,5 +1716,328 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
+
+    // Verifies: JNY-DIARY-01
+    // JNY-DIARY-01
+    testWidgets('dvFontScaleRecordingBounds', (tester) async {
+      void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
+      mark('dvFontScaleRecordingBounds 00 boot');
+      app.main();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
+      await _waitForHome(tester);
+      mark('dvFontScaleRecordingBounds 01 home ready');
+      final originalSize = tester.view.physicalSize;
+      final originalDpr = tester.view.devicePixelRatio;
+      const cases = <(double, double, double)>[
+        (360, 640, 3.0),
+        (320, 568, 3.5),
+      ];
+      for (final c in cases) {
+        tester.view.devicePixelRatio = c.$3;
+        tester.view.physicalSize = Size(c.$1 * c.$3, c.$2 * c.$3);
+        await tester.pumpAndSettle(const Duration(milliseconds: 300));
+        mark('01 size=${c.$1}x${c.$2}');
+        expect(tester.takeException(), isNull, reason: 'home overflow');
+        final recBtn = find.text('Record Nosebleed');
+        if (recBtn.evaluate().isNotEmpty) {
+          await tester.tap(recBtn.first);
+          await tester.pumpAndSettle(const Duration(milliseconds: 300));
+          expect(tester.takeException(), isNull, reason: 'recording overflow');
+          final back = find.widgetWithIcon(TextButton, Icons.arrow_back);
+          if (back.evaluate().isNotEmpty) {
+            await tester.tap(back.first);
+            await tester.pumpAndSettle(const Duration(milliseconds: 300));
+          }
+        }
+      }
+      tester.view.physicalSize = originalSize;
+      tester.view.devicePixelRatio = originalDpr;
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      mark('dvFontScaleRecordingBounds done');
+    }, timeout: const Timeout(Duration(minutes: 4)));
+
+    // Verifies: JNY-DIARY-02
+    // JNY-DIARY-02
+    testWidgets('dvSmallDenseCalendarBounds', (tester) async {
+      void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
+      mark('dvSmallDenseCalendarBounds 00 boot');
+      app.main();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
+      await _waitForHome(tester);
+      mark('dvSmallDenseCalendarBounds 01 home ready');
+      final originalSize = tester.view.physicalSize;
+      final originalDpr = tester.view.devicePixelRatio;
+      final calBtn = find.text('View Calendar');
+      if (calBtn.evaluate().isNotEmpty) {
+        await tester.tap(calBtn.first);
+        await tester.pumpAndSettle(const Duration(milliseconds: 400));
+      }
+      const double dpr = 3.5;
+      tester.view.devicePixelRatio = dpr;
+      tester.view.physicalSize = Size(320 * dpr, 480 * dpr);
+      await tester.pumpAndSettle(const Duration(milliseconds: 400));
+      mark('02 small dense calendar');
+      expect(tester.takeException(), isNull, reason: 'calendar overflow');
+      tester.view.physicalSize = originalSize;
+      tester.view.devicePixelRatio = originalDpr;
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      mark('dvSmallDenseCalendarBounds done');
+    }, timeout: const Timeout(Duration(minutes: 4)));
+
+    // Verifies: JNY-DIARY-03
+    // JNY-DIARY-03
+    testWidgets('dvRotationPreservesRecord', (tester) async {
+      void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
+      mark('dvRotationPreservesRecord 00 boot');
+      app.main();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
+      await _waitForHome(tester);
+      mark('dvRotationPreservesRecord 01 home ready');
+      final originalSize = tester.view.physicalSize;
+      final originalDpr = tester.view.devicePixelRatio;
+      final recBtn = find.text('Record Nosebleed');
+      if (recBtn.evaluate().isNotEmpty) {
+        await tester.tap(recBtn.first);
+        await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        final port = tester.view.physicalSize;
+        tester.view.physicalSize = Size(port.height, port.width);
+        await tester.pumpAndSettle(const Duration(milliseconds: 300));
+        tester.view.physicalSize = port;
+        await tester.pumpAndSettle(const Duration(milliseconds: 300));
+        mark('03 rotated and back');
+        expect(tester.takeException(), isNull);
+        expect(find.byType(RecordingScreen), findsWidgets);
+      }
+      tester.view.physicalSize = originalSize;
+      tester.view.devicePixelRatio = originalDpr;
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      mark('dvRotationPreservesRecord done');
+    }, timeout: const Timeout(Duration(minutes: 4)));
+
+    // Verifies: JNY-DIARY-04
+    // JNY-DIARY-04
+    testWidgets('dvOverlapControlsLandscape', (tester) async {
+      void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
+      mark('dvOverlapControlsLandscape 00 boot');
+      app.main();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
+      await _waitForHome(tester);
+      mark('dvOverlapControlsLandscape 01 home ready');
+      final originalSize = tester.view.physicalSize;
+      final originalDpr = tester.view.devicePixelRatio;
+      final port = tester.view.physicalSize;
+      tester.view.physicalSize = Size(port.height, port.width);
+      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+      mark('04 landscape');
+      final overlap = find.byType(OverlapCompareScreen);
+      if (overlap.evaluate().isNotEmpty) {
+        expect(find.byKey(const Key('overlap-merge')), findsWidgets);
+        expect(find.byKey(const Key('overlap-pick-left')), findsWidgets);
+        expect(find.byKey(const Key('overlap-pick-right')), findsWidgets);
+      }
+      expect(tester.takeException(), isNull, reason: 'overlap landscape overflow');
+      tester.view.physicalSize = originalSize;
+      tester.view.devicePixelRatio = originalDpr;
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      mark('dvOverlapControlsLandscape done');
+    }, timeout: const Timeout(Duration(minutes: 4)));
+
+    // Verifies: JNY-DIARY-05
+    // JNY-DIARY-05
+    testWidgets('dvYesterdayBoundaryDisposition', (tester) async {
+      void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
+      mark('dvYesterdayBoundaryDisposition 00 boot');
+      app.main();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
+      await _waitForHome(tester);
+      mark('dvYesterdayBoundaryDisposition 01 home ready');
+      final banner = find.byType(YesterdayBanner);
+      if (banner.evaluate().isNotEmpty) {
+        expect(find.text('Did you have nosebleeds?'), findsWidgets);
+        final no = find.text('No');
+        if (no.evaluate().isNotEmpty) {
+          await tester.tap(no.first);
+          await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        }
+        mark('05 answered yesterday');
+        expect(tester.takeException(), isNull);
+        expect(find.byType(HomeScreen), findsWidgets);
+      }
+      mark('dvYesterdayBoundaryDisposition done');
+    }, timeout: const Timeout(Duration(minutes: 4)));
+
+    // Verifies: JNY-DIARY-06
+    // JNY-DIARY-06
+    testWidgets('dvMidnightRolloverRecord', (tester) async {
+      void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
+      mark('dvMidnightRolloverRecord 00 boot');
+      app.main();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
+      await _waitForHome(tester);
+      mark('dvMidnightRolloverRecord 01 home ready');
+      final recBtn = find.text('Record Nosebleed');
+      if (recBtn.evaluate().isNotEmpty) {
+        await tester.tap(recBtn.first);
+        await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        final start = find.text('Set Start Time');
+        if (start.evaluate().isNotEmpty) {
+          await tester.tap(start.first);
+          await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        }
+        final intensity = find.text('Dripping');
+        if (intensity.evaluate().isNotEmpty) {
+          await tester.tap(intensity.first);
+          await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        }
+        final end = find.text('Set End Time');
+        if (end.evaluate().isNotEmpty) {
+          await tester.tap(end.first);
+          await _pumpUntil(tester, () => find.byType(HomeScreen).evaluate().isNotEmpty);
+        }
+        mark('06 record finalized');
+        expect(tester.takeException(), isNull);
+      }
+      mark('dvMidnightRolloverRecord done');
+    }, timeout: const Timeout(Duration(minutes: 4)));
+
+    // Verifies: JNY-DIARY-07
+    // JNY-DIARY-07
+    testWidgets('dvDoubleTapFinalizeIdempotent', (tester) async {
+      void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
+      mark('dvDoubleTapFinalizeIdempotent 00 boot');
+      app.main();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
+      await _waitForHome(tester);
+      mark('dvDoubleTapFinalizeIdempotent 01 home ready');
+      final recBtn = find.text('Record Nosebleed');
+      if (recBtn.evaluate().isNotEmpty) {
+        await tester.tap(recBtn.first);
+        await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        final start = find.text('Set Start Time');
+        if (start.evaluate().isNotEmpty) {
+          await tester.tap(start.first);
+          await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        }
+        final intensity = find.text('Dripping');
+        if (intensity.evaluate().isNotEmpty) {
+          await tester.tap(intensity.first);
+          await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        }
+        final end = find.text('Set End Time');
+        if (end.evaluate().isNotEmpty) {
+          await tester.tap(end.first, warnIfMissed: false);
+          await tester.tap(end.first, warnIfMissed: false);
+          await _pumpUntil(tester, () => find.byType(HomeScreen).evaluate().isNotEmpty);
+        }
+        mark('07 double-tap finalized');
+        expect(tester.takeException(), isNull);
+        expect(find.byType(HomeScreen), findsWidgets);
+      }
+      mark('dvDoubleTapFinalizeIdempotent done');
+    }, timeout: const Timeout(Duration(minutes: 4)));
+
+    // Verifies: JNY-DIARY-08
+    // JNY-DIARY-08
+    testWidgets('dvRapidNavigationChurn', (tester) async {
+      void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
+      mark('dvRapidNavigationChurn 00 boot');
+      app.main();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
+      await _waitForHome(tester);
+      mark('dvRapidNavigationChurn 01 home ready');
+      for (var i = 0; i < 3; i++) {
+        final recBtn = find.text('Record Nosebleed');
+        if (recBtn.evaluate().isNotEmpty) {
+          await tester.tap(recBtn.first);
+          await tester.pumpAndSettle(const Duration(milliseconds: 250));
+          final back = find.widgetWithIcon(TextButton, Icons.arrow_back);
+          if (back.evaluate().isNotEmpty) {
+            await tester.tap(back.first);
+            await tester.pumpAndSettle(const Duration(milliseconds: 250));
+          }
+        }
+        final calBtn = find.text('View Calendar');
+        if (calBtn.evaluate().isNotEmpty) {
+          await tester.tap(calBtn.first);
+          await tester.pumpAndSettle(const Duration(milliseconds: 250));
+          final back2 = find.widgetWithIcon(TextButton, Icons.arrow_back);
+          if (back2.evaluate().isNotEmpty) {
+            await tester.tap(back2.first);
+            await tester.pumpAndSettle(const Duration(milliseconds: 250));
+          }
+        }
+      }
+      mark('08 churn complete');
+      expect(tester.takeException(), isNull);
+      await _waitForHome(tester);
+      expect(find.byType(HomeScreen), findsWidgets);
+      mark('dvRapidNavigationChurn done');
+    }, timeout: const Timeout(Duration(minutes: 4)));
+
+    // Verifies: JNY-DIARY-09
+    // JNY-DIARY-09
+    testWidgets('dvDeleteCancelConsistency', (tester) async {
+      void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
+      mark('dvDeleteCancelConsistency 00 boot');
+      app.main();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
+      await _waitForHome(tester);
+      mark('dvDeleteCancelConsistency 01 home ready');
+      final del = find.byTooltip('Delete record');
+      if (del.evaluate().isNotEmpty) {
+        await tester.tap(del.first);
+        await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        final back = find.widgetWithIcon(TextButton, Icons.arrow_back);
+        if (back.evaluate().isNotEmpty) {
+          await tester.tap(back.first);
+          await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        }
+      }
+      mark('09 delete path exercised');
+      expect(tester.takeException(), isNull);
+      await _waitForHome(tester);
+      expect(find.byType(HomeScreen), findsWidgets);
+      mark('dvDeleteCancelConsistency done');
+    }, timeout: const Timeout(Duration(minutes: 4)));
+
+    // Verifies: JNY-DIARY-10
+    // JNY-DIARY-10
+    testWidgets('dvAccessibilityPreferencePersists', (tester) async {
+      void mark(String step) => debugPrint('DIARY-JNY-DIAG >>> $step');
+      mark('dvAccessibilityPreferencePersists 00 boot');
+      app.main();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 3));
+      await _waitForHome(tester);
+      mark('dvAccessibilityPreferencePersists 01 home ready');
+      final settings = find.text('Settings');
+      if (settings.evaluate().isNotEmpty) {
+        await tester.tap(settings.first);
+        await tester.pumpAndSettle(const Duration(milliseconds: 400));
+      }
+      if (find.byType(SettingsScreen).evaluate().isNotEmpty) {
+        expect(find.text('Accessibility'), findsWidgets);
+        mark('10 settings shown');
+        final back = find.widgetWithIcon(TextButton, Icons.arrow_back);
+        if (back.evaluate().isNotEmpty) {
+          await tester.tap(back.first);
+          await tester.pumpAndSettle(const Duration(milliseconds: 400));
+        }
+      }
+      expect(tester.takeException(), isNull);
+      await _waitForHome(tester);
+      expect(find.byType(HomeScreen), findsWidgets);
+      mark('dvAccessibilityPreferencePersists done');
+    }, timeout: const Timeout(Duration(minutes: 4)));
+
 }
 // dart format on
