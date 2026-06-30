@@ -1165,8 +1165,9 @@ void main() {
         );
         expect(
           find.text('No nosebleeds'),
-          findsOneWidget,
-          reason: 'Calendar legend must label the No-nosebleeds state.',
+          findsWidgets,
+          reason: 'Calendar legend must label the No-nosebleeds state '
+              '(the same label also appears in the day-status summary).',
         );
         expect(
           find.text('Tap a date to add or edit events'),
@@ -1558,11 +1559,11 @@ void main() {
         //    Confirm the back affordance works and returns to Profile, evidencing
         //    the navigation round-trip applied without error.
         expect(
-          find.widgetWithText(TextButton, 'Back'),
+          find.widgetWithIcon(TextButton, Icons.arrow_back),
           findsOneWidget,
           reason: 'Settings must offer a Back action.',
         );
-        await tester.tap(find.widgetWithText(TextButton, 'Back'));
+        await tester.tap(find.widgetWithIcon(TextButton, Icons.arrow_back));
         mark('11 tapped Back from Settings');
         await tester.pump(const Duration(seconds: 2));
         await _pumpUntil(
