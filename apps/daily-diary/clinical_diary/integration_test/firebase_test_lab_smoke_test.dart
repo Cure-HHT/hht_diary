@@ -91,6 +91,19 @@ Future<void> _waitForHome(WidgetTester tester) async {
   );
 }
 
+/// Open the just-recorded epistaxis event by tapping each EventListItem until
+/// the RecordingScreen reopens. Robust to pre-existing list state (day-marker
+/// rows are EventListItem.empty with a null onTap, per CUR-1491, so a
+/// position-based .last/.first can land on a non-tappable row).
+Future<void> _openRecordedEvent(WidgetTester tester) async {
+  final count = find.byType(EventListItem).evaluate().length;
+  for (var i = 0; i < count; i++) {
+    await tester.tap(find.byType(EventListItem).at(i), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    if (find.byType(RecordingScreen).evaluate().isNotEmpty) return;
+  }
+}
+
 /// Take a named Test Lab screenshot (Android requires surface conversion).
 Future<void> _screenshot(
   IntegrationTestWidgetsFlutterBinding binding,
@@ -1177,15 +1190,19 @@ void main() {
         );
         mark('06 Calendar header + legend present');
 
-        // 2. Select a PAST day. Tap the first day of the current month, which is
-        //    in the past on any run after the 1st. The current-month '1' cell is
-        //    the first matching day-number widget in the grid.
+        // 2. Select a PAST day. Compute yesterday and tap its day-number cell.
+        //    Yesterday is never a future date and is well within the 365-day
+        //    floor, so calendar_screen.onDaySelected accepts it (CUR-407,
+        //    CUR-1494) and opens the day view. (find.text('1') was ambiguous
+        //    and failed on/near the 1st of the month.)
+        final yesterday = DateTime.now().subtract(const Duration(days: 1));
+        final yesterdayLabel = '${yesterday.day}';
         expect(
-          find.text('1'),
+          find.text(yesterdayLabel),
           findsWidgets,
           reason: 'The calendar grid must render day numbers.',
         );
-        await tester.tap(find.text('1').first);
+        await tester.tap(find.text(yesterdayLabel).first);
         mark('07 tapped a past day (the 1st)');
         await tester.pump(const Duration(seconds: 2));
 
@@ -1560,11 +1577,11 @@ void main() {
         //    Confirm the back affordance works and returns to Profile, evidencing
         //    the navigation round-trip applied without error.
         expect(
-          find.widgetWithIcon(TextButton, Icons.arrow_back),
+          find.widgetWithText(TextButton, 'Back'),
           findsOneWidget,
           reason: 'Settings must offer a Back action.',
         );
-        await tester.tap(find.widgetWithIcon(TextButton, Icons.arrow_back));
+        await tester.tap(find.widgetWithText(TextButton, 'Back'));
         mark('11 tapped Back from Settings');
         await tester.pump(const Duration(seconds: 2));
         await _pumpUntil(
@@ -2053,7 +2070,7 @@ void main() {
         if (recBtn.evaluate().isNotEmpty) {
           await tester.tap(recBtn.first);
           await tester.pumpAndSettle(const Duration(milliseconds: 250));
-          final back = find.widgetWithIcon(TextButton, Icons.arrow_back);
+          final back = find.text('< Home');
           if (back.evaluate().isNotEmpty) {
             await tester.tap(back.first);
             await tester.pumpAndSettle(const Duration(milliseconds: 250));
@@ -2063,7 +2080,7 @@ void main() {
         if (calBtn.evaluate().isNotEmpty) {
           await tester.tap(calBtn.first);
           await tester.pumpAndSettle(const Duration(milliseconds: 250));
-          final back2 = find.widgetWithIcon(TextButton, Icons.arrow_back);
+          final back2 = find.widgetWithIcon(IconButton, Icons.close);
           if (back2.evaluate().isNotEmpty) {
             await tester.tap(back2.first);
             await tester.pumpAndSettle(const Duration(milliseconds: 250));
@@ -2119,7 +2136,7 @@ void main() {
       mark('dvDeleteCancelConsistency 03 event present, count=$beforeCount');
 
       // step-3 Open the saved event and invoke delete to raise the Reason Dialog.
-      await tester.tap(find.byType(EventListItem).last);
+      await _openRecordedEvent(tester);
       await tester.pumpAndSettle();
       expect(
         find.byType(RecordingScreen),
@@ -2164,7 +2181,7 @@ void main() {
       mark('dvDeleteCancelConsistency 06 event survived cancel, count=$afterCancelCount');
 
       // step-5 Reopen the event and confirm the delete (Validates F): event is removed.
-      await tester.tap(find.byType(EventListItem).last);
+      await _openRecordedEvent(tester);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Delete record'));
       await tester.pumpAndSettle();
