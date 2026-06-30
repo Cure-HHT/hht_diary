@@ -137,14 +137,14 @@ check_in("repo rollup official", "8/178 REQs (4%)", body)
 check_in("status pipeline", "Active 4", body)
 check_in("artifact link", "https://example/run/1", body)
 check_in("viewer link", "https://cure-hht.github.io/hht_diary/pr-801/viewer.html", body)
-check_in("viewer link label", "Open the interactive matrix viewer", body)
+check_in("viewer link label", "Open the traceability matrix viewer", body)
 
 # viewer_url omitted -> no viewer link, artifact link still present
 body_noviewer = tc.render(
     marker="<!-- m -->", nodes=NODES, gaps=GAPS, coverage_rows=[], coverage_total=None,
     checks_tested=None, checks_verified=None, run_url="https://example/run/9",
 )
-check_not_in("no viewer link when url absent", "interactive matrix viewer", body_noviewer)
+check_not_in("no viewer link when url absent", "traceability matrix viewer", body_noviewer)
 check_in("artifact link still present", "https://example/run/9", body_noviewer)
 
 # --- render with ZERO active (graceful degrade) -----------------------------

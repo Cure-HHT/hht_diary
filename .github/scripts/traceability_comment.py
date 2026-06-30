@@ -258,7 +258,7 @@ def render(marker, nodes, gaps, coverage_rows, coverage_total,
     if viewer_url:
         # Published to Pages by the publish-viewer job; may take ~1 min to go
         # live after this comment posts. Renders in any browser, incl. mobile.
-        links.append(f"[Open the interactive matrix viewer]({viewer_url})")
+        links.append(f"[Open the traceability matrix viewer]({viewer_url})")
     links.append(f"[full matrix + `trace.json` in artifacts]({run_url})")
     L.append(" · ".join(links))
     return "\n".join(L)

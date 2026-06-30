@@ -147,16 +147,20 @@ jobs:
             # Active-requirement worklist in the comment.
             elspais gaps --format json \
               -o build-reports/combined/traceability/gaps.json
-            # Self-contained interactive viewer (static HTML). Generated AFTER
-            # the --run-tests pass above so the verified dimension is embedded;
-            # a reviewer downloads + opens it offline, no test re-run, no local
-            # elspais. ~360 KB; GitHub zips the artifact for transport. Needs the
-            # elspais[trace-view] extra (ci.Dockerfile); non-fatal so a viewer
-            # issue never blocks the matrix render or the PR comment.
-            elspais viewer --static \
-              -o build-reports/combined/traceability/viewer.html \
-              || { echo "::warning::elspais viewer --static failed (needs elspais[trace-view]); skipping viewer.html"; \
-                   rm -f build-reports/combined/traceability/viewer.html; }
+            # Static HTML viewer published to Pages (viewable in any browser
+            # incl. mobile). Generated AFTER the --run-tests pass so the verified
+            # dimension is embedded. Prefer the interactive tree (viewer
+            # --static); fall back to the static matrix (trace --format html) if
+            # the interactive generator hits the elspais 0.118.16 TreeRow
+            # /is_unsaved bug (reproduces only in the CI daemon, not locally).
+            # Both need the trace-view extra (ensured above). Non-fatal: a viewer
+            # failure never blocks the matrix render or the PR comment.
+            VH=build-reports/combined/traceability/viewer.html
+            if ! elspais viewer --static -o "$VH" 2>/tmp/viewer.err; then
+              echo "::warning::viewer --static failed ($(tail -1 /tmp/viewer.err 2>/dev/null)); falling back to trace --format html"
+              elspais trace --format html -o "$VH" \
+                || { echo "::warning::trace --format html also failed; skipping viewer.html"; rm -f "$VH"; }
+            fi
           '
 
       # REQ-independent line coverage: elspais surfaces no aggregate, so compute
