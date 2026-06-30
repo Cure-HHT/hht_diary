@@ -166,7 +166,7 @@ def _status_histogram(nodes):
 
 def render(marker, nodes, gaps, coverage_rows, coverage_total,
            checks_tested, checks_verified, run_url,
-           checks_indirect=None, checks_passed=None):
+           checks_indirect=None, checks_passed=None, viewer_url=None):
     gaps = gaps or {}
     # Active focus tracks assertion-level DIRECT traceability (each assertion
     # carries a `// Verifies: REQ/A` annotation proven by a passing test — the
@@ -253,10 +253,14 @@ def render(marker, nodes, gaps, coverage_rows, coverage_total,
             L.append(f"| {path} | {pct}% | {hit} | {found} |")
         L.extend(["</details>", ""])
 
-    # --- Footer: downloadable artifacts --------------------------------------
-    L.append(
-        f"[Full matrix · static viewer (`viewer.html`) · `trace.json` in artifacts]({run_url})"
-    )
+    # --- Footer: interactive viewer (GitHub Pages) + downloadable artifacts --
+    links = []
+    if viewer_url:
+        # Published to Pages by the publish-viewer job; may take ~1 min to go
+        # live after this comment posts. Renders in any browser, incl. mobile.
+        links.append(f"[Open the interactive matrix viewer]({viewer_url})")
+    links.append(f"[full matrix + `trace.json` in artifacts]({run_url})")
+    L.append(" · ".join(links))
     return "\n".join(L)
 
 
@@ -330,6 +334,7 @@ def main(argv=None):
     ap.add_argument("--coverage-tsv")
     ap.add_argument("--checks")
     ap.add_argument("--run-url", default="")
+    ap.add_argument("--viewer-url", default="")
     args = ap.parse_args(argv)
 
     nodes = _load_json(args.trace, [])
@@ -351,6 +356,7 @@ def main(argv=None):
         checks_indirect=checks["indirect"],
         checks_passed=checks["passed"],
         run_url=args.run_url,
+        viewer_url=args.viewer_url or None,
     ) + "\n")
     return 0
 

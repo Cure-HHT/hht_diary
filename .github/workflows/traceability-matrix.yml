@@ -238,12 +238,20 @@ jobs:
           SERVER_URL: ${{ github.server_url }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           # The comment is the SUMMARY: strict Status:Active focus headline +
           # collapsible detail. The full per-requirement matrix is artifact-only
           # (traceability_matrix.md + traceability.json + viewer.html). All inputs
           # are bind-mounted, so readable on the host after the ownership restore.
           TRACE_DIR=build-reports/combined/traceability
+          # Deterministic GitHub Pages URL for this PR's viewer (published by the
+          # publish-viewer job below). owner must be lower-cased for the *.github.io host.
+          VIEWER_URL=""
+          if [ -n "$PR_NUMBER" ]; then
+            OWNER_LC=$(printf '%s' "${REPO%%/*}" | tr '[:upper:]' '[:lower:]')
+            VIEWER_URL="https://${OWNER_LC}.github.io/${REPO#*/}/pr-${PR_NUMBER}/viewer.html"
+          fi
           if ! python3 .github/scripts/traceability_comment.py \
                 --marker "$MARKER" \
                 --trace "$TRACE_DIR/traceability.json" \
@@ -251,6 +259,7 @@ jobs:
                 --coverage-tsv build-reports/combined/coverage/per-package.tsv \
                 --checks "$TRACE_DIR/checks-tests.txt" \
                 --run-url "${SERVER_URL}/${REPO}/actions/runs/${RUN_ID}" \
+                --viewer-url "$VIEWER_URL" \
                 > /tmp/matrix-comment.md; then
             echo "::warning::traceability comment render failed; posting fallback"
             printf '%s\n## Verified-Coverage Traceability Matrix\n\nMatrix render failed this run — see job logs and the build-reports artifact.\n' \
@@ -330,3 +339,68 @@ jobs:
           flags: ${{ matrix.flag }}
           name: ${{ matrix.flag }}-coverage
           fail_ci_if_error: false
+
+  # Publish this PR's static viewer to the gh-pages branch (Pages source) so it
+  # is viewable at https://<owner>.github.io/<repo>/pr-<n>/viewer.html — a real
+  # URL that opens in any browser incl. the GitHub mobile app (Actions artifacts
+  # are zip-only and unviewable on mobile). Isolated from the matrix job (which
+  # runs PR test code): this job only copies a file, so contents:write is low-risk.
+  # Skipped for forks (their GITHUB_TOKEN is read-only).
+  publish-viewer:
+    name: Publish traceability viewer to Pages
+    needs: matrix
+    if: >-
+      always() && github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Serialize all gh-pages writes (this job across PRs + the cleanup workflow)
+    # so concurrent publishes don't clobber each other.
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Download build-reports
+        uses: actions/download-artifact@v4
+        with:
+          name: build-reports-${{ github.sha }}
+          path: _dl
+        continue-on-error: true
+
+      - name: Publish per-PR viewer
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.sha }}
+        run: |
+          VIEWER=$(find _dl -name viewer.html | head -1)
+          if [ -z "$VIEWER" ]; then
+            echo "::warning::no viewer.html in build-reports artifact; skipping Pages publish"
+            exit 0
+          fi
+          dest="pr-${PR}"
+          mkdir -p "$dest"
+          cp "$VIEWER" "$dest/viewer.html"
+          TJ=$(find _dl -name traceability.json | head -1)
+          [ -n "$TJ" ] && cp "$TJ" "$dest/traceability.json" || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          if git diff --cached --quiet; then
+            echo "viewer unchanged; nothing to publish"
+            exit 0
+          fi
+          git commit -m "traceability viewer for PR #${PR} (${SHA})"
+          # Retry: another PR's publish may have advanced gh-pages between fetch and push.
+          for i in 1 2 3; do
+            if git push origin gh-pages; then exit 0; fi
+            git pull --rebase origin gh-pages || true
+          done
+          echo "::warning::could not push viewer to gh-pages after 3 attempts"
+          exit 0
