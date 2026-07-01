@@ -35,6 +35,7 @@ QuestionnaireInstance _inst({
   String? studyEvent,
   String participantId = 'P-1',
   String? endEvent,
+  DateTime? finalizedAt,
 }) => QuestionnaireInstance(
   instanceId: instanceId,
   participantId: participantId,
@@ -42,6 +43,7 @@ QuestionnaireInstance _inst({
   studyEvent: studyEvent,
   status: status,
   endEvent: endEvent,
+  finalizedAt: finalizedAt,
 );
 
 /// Pumps a single [_QuestionnaireCard] (via the test harness) for one type over
@@ -146,8 +148,11 @@ void main() {
     });
 
     testWidgets(
-      'finalized card shows Start Next Cycle only + Finalized Cycle',
+      'finalized card shows Start Next Cycle + Last (with finalized date) + Next',
       (tester) async {
+        // Verifies: REQ-CAL-p00023/T — after finalization the "Last:" line
+        //   shows the finalization date and time, and a "Next: Cycle N+1 Day 1"
+        //   line appears with a Not Sent status.
         final cb = await _pumpCard(
           tester,
           type: noseHht,
@@ -156,14 +161,21 @@ void main() {
               instanceId: 'inst-1',
               status: QuestionnaireInstanceStatus.closed,
               studyEvent: 'Cycle 2 Day 1',
+              // 2024-10-13 17:00 local -> "Oct 13, 2024, 5:00 PM".
+              finalizedAt: DateTime(2024, 10, 13, 17),
             ),
           ],
         );
 
         expect(find.text('Not Sent'), findsOneWidget);
-        // Figma after-finalize body: "Last: <cycle>".
+        // Figma after-finalize body: "Last: <cycle> • <finalized date/time>".
         expect(find.textContaining('Last:'), findsOneWidget);
         expect(find.textContaining('Cycle 2 Day 1'), findsOneWidget);
+        // Assertion T: the finalization date and time are shown.
+        expect(find.textContaining('Oct 13, 2024, 5:00 PM'), findsOneWidget);
+        // The "Next: Cycle 3 Day 1" line (Figma).
+        expect(find.textContaining('Next:'), findsOneWidget);
+        expect(find.textContaining('Cycle 3 Day 1'), findsOneWidget);
         expect(find.text('Start Next Cycle'), findsOneWidget);
         expect(find.text('Send'), findsNothing);
         expect(find.byTooltip('Call Back'), findsNothing);

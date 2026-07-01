@@ -68,6 +68,35 @@ String _endEventVerb(String endEvent) => switch (endEvent) {
   _ => endEvent,
 };
 
+/// Formats a finalization timestamp for the "Last:" line as e.g.
+/// `'Oct 13, 2024, 5:00 PM'` (Figma "Last Completed" stamp). Rendered in local
+/// time on a 12-hour clock — no `intl` dependency in this package, so the
+/// format is hand-rolled (mirrors `usedOnLabel` in participants_screen_binding).
+///
+/// Implements: REQ-CAL-p00023/T
+String _formatFinalizedAt(DateTime t) {
+  const months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final local = t.toLocal();
+  final period = local.hour < 12 ? 'AM' : 'PM';
+  final hour12 = local.hour % 12 == 0 ? 12 : local.hour % 12;
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '${months[local.month - 1]} ${local.day}, ${local.year}, '
+      '$hour12:$minute $period';
+}
+
 /// Resolves a questionnaire type id (e.g. `'nose_hht'`) to its display name
 /// (e.g. `'NOSE HHT'`) for the sub-dialog copy. Falls back to the id if the
 /// type is not in the enabled list.
@@ -577,6 +606,13 @@ class _QuestionnaireCard extends StatelessWidget {
     );
     final emph = muted?.copyWith(fontWeight: FontWeight.w600);
 
+    // The formatted finalization stamp for the "Last:" line, when the row
+    // carries one (after-finalize / Closed only).
+    // Implements: REQ-CAL-p00023/T
+    final finalizedLabel = state.finalizedAt == null
+        ? null
+        : _formatFinalizedAt(state.finalizedAt!);
+
     if (isClosed) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,6 +624,9 @@ class _QuestionnaireCard extends StatelessWidget {
                 style: muted,
                 children: <InlineSpan>[
                   TextSpan(text: state.finalizedStudyEvent, style: emph),
+                  // Implements: REQ-CAL-p00023/T — the finalization date/time.
+                  if (finalizedLabel != null)
+                    TextSpan(text: '  •  $finalizedLabel', style: muted),
                 ],
               ),
             ),
@@ -603,23 +642,78 @@ class _QuestionnaireCard extends StatelessWidget {
       );
     }
 
-    // Sent / Ready to Review -> "Current: <cycle>"; after-finalize -> "Last:".
+    // Sent / Ready to Review -> a single "Current: <cycle>" row with the pill.
     final isCurrent = state.currentStudyEvent != null;
-    final cycle = state.currentStudyEvent ?? state.finalizedStudyEvent;
-    return Row(
-      children: <Widget>[
-        if (cycle != null)
+    if (isCurrent) {
+      return Row(
+        children: <Widget>[
           Flexible(
             child: Text.rich(
               TextSpan(
-                text: isCurrent ? 'Current: ' : 'Last: ',
+                text: 'Current: ',
                 style: muted,
-                children: <InlineSpan>[TextSpan(text: cycle, style: emph)],
+                children: <InlineSpan>[
+                  TextSpan(text: state.currentStudyEvent, style: emph),
+                ],
               ),
             ),
           ),
-        const SizedBox(width: 8),
-        _StatusBadge(state: state),
+          const SizedBox(width: 8),
+          _StatusBadge(state: state),
+        ],
+      );
+    }
+
+    // After-finalize: "Last: <cycle> • <finalized date>" over a
+    // "Next: Cycle N+1 Day 1" line carrying the Not-Sent pill (Figma). The
+    // pill renders exactly once — on the Next line when a next cycle is known,
+    // else inline with Last.
+    // Implements: REQ-CAL-p00023/T
+    final cycle = state.finalizedStudyEvent;
+    final next = state.nextStudyEvent;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            if (cycle != null)
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    text: 'Last: ',
+                    style: muted,
+                    children: <InlineSpan>[
+                      TextSpan(text: cycle, style: emph),
+                      if (finalizedLabel != null)
+                        TextSpan(text: '  •  $finalizedLabel', style: muted),
+                    ],
+                  ),
+                ),
+              ),
+            if (next == null) ...<Widget>[
+              const SizedBox(width: 8),
+              _StatusBadge(state: state),
+            ],
+          ],
+        ),
+        if (next != null) ...<Widget>[
+          const SizedBox(height: 8),
+          Row(
+            children: <Widget>[
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    text: 'Next: ',
+                    style: muted,
+                    children: <InlineSpan>[TextSpan(text: next, style: emph)],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _StatusBadge(state: state),
+            ],
+          ),
+        ],
       ],
     );
   }
