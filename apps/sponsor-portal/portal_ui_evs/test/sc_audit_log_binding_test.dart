@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:portal_screens/portal_screens.dart';
 import 'package:portal_ui_evs/src/sc_audit_log_binding.dart';
 import 'package:reaction/reaction.dart';
 import 'package:reaction_widgets/reaction_widgets.dart';
@@ -23,6 +24,18 @@ Map<String, Object?> _participantRow(int seq) => <String, Object?>{
   'aggregate_id': 'P-$seq',
   'participant_id': 'P-$seq',
   'initiator': <String, Object?>{'kind': 'user', 'label': 'sc@reference.local'},
+};
+
+/// A system/automation-initiated row (initiator kind != 'user'); the client
+/// filter must drop it.
+Map<String, Object?> _automationRow(int seq) => <String, Object?>{
+  'event_id': 'auto-$seq',
+  'timestamp': '2024-10-07T07:31:00.000Z',
+  'entry_type': 'participant_synced_from_edc',
+  'aggregate_type': 'participant',
+  'aggregate_id': 'AUTO-$seq',
+  'participant_id': 'AUTO-$seq',
+  'initiator': <String, Object?>{'kind': 'automation', 'label': 'edc-sync'},
 };
 
 MockClient _auditServer(
@@ -43,7 +56,10 @@ MockClient _auditServer(
   );
 });
 
-FakeReaction _authedWith(Set<String> perms) => FakeReaction(
+FakeReaction _authedWith(
+  Set<String> perms, {
+  List<ScopeAssignment> scopeAssignments = const <ScopeAssignment>[],
+}) => FakeReaction(
   initialAuthStatus: Authenticated(
     principal: Principal.user(
       userId: 'sc@reference.local',
@@ -54,7 +70,7 @@ FakeReaction _authedWith(Set<String> perms) => FakeReaction(
   initialPermission: EffectiveAuthorization(
     activeRole: 'StudyCoordinator',
     rolePermissions: {for (final p in perms) Permission(p)},
-    scopeAssignments: const <ScopeAssignment>[],
+    scopeAssignments: scopeAssignments,
   ),
 );
 
@@ -117,6 +133,61 @@ void main() {
     expect(find.text('Participant ID'), findsOneWidget);
     expect(find.text('P-1'), findsOneWidget);
     expect(find.text('P-2'), findsOneWidget);
+  });
+
+  // Verifies: DIARY-GUI-audit-log-study-coordinator/A — the defensive client
+  //   filter drops any non-user (automation/system) row even if the server
+  //   scope widens; only human-user rows render.
+  testWidgets('filters out automation/system rows', (tester) async {
+    final requests = <http.Request>[];
+    await _pump(
+      tester,
+      client: _auditServer(
+        requests,
+        rows: [_participantRow(1), _automationRow(9)],
+      ),
+      fake: _authedWith(const {'portal.audit.view'}),
+    );
+
+    // The user row renders; the automation row does not.
+    expect(find.text('P-1'), findsOneWidget);
+    expect(find.text('AUTO-9'), findsNothing);
+  });
+
+  // Verifies: DIARY-GUI-audit-log-study-coordinator/A — the My Sites bar
+  //   renders the Coordinator's assigned sites above the table when the viewer
+  //   holds portal.site.view.
+  testWidgets('renders the My Sites bar from the sites view', (tester) async {
+    final requests = <http.Request>[];
+    final fake = _authedWith(
+      const {'portal.audit.view', 'portal.site.view'},
+      scopeAssignments: const [
+        ScopeAssignment(scope: ValueWildcardScope(class_: 'site')),
+      ],
+    );
+    await _pump(tester, client: _auditServer(requests), fake: fake);
+
+    fake.emitViewUpdate<SiteRowView>(
+      'sites_index',
+      const Snapshot<SiteRowView>(
+        value: SiteRowView(
+          id: 's1',
+          name: 'Memorial Hospital',
+          number: '001',
+          active: true,
+        ),
+        sequence: 1,
+      ),
+    );
+    fake.emitViewUpdate<SiteRowView>(
+      'sites_index',
+      const EndOfReplay<SiteRowView>(sequence: 1),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('My Sites'), findsOneWidget);
+    expect(find.text('001 - Memorial Hospital'), findsOneWidget);
   });
 
   testWidgets('blocks (and does not fetch) without the audit permission', (

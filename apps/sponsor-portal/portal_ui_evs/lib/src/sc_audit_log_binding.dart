@@ -1,5 +1,7 @@
+import 'dart:async';
+
 import 'package:event_sourcing/event_sourcing.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ViewBuilder;
 import 'package:http/http.dart' as http;
 import 'package:portal_screens/portal_screens.dart';
 import 'package:reaction/reaction.dart';
@@ -7,6 +9,7 @@ import 'package:reaction_widgets/reaction_widgets.dart';
 
 import 'audit_format.dart';
 import 'questionnaire_types.dart';
+import 'site_visibility.dart';
 
 /// Reactive wrapper for the Study Coordinator Audit Log View — the "Audit Log"
 /// nav section when the active role is Study Coordinator. Fetches the
@@ -49,12 +52,18 @@ class _ScAuditLogBindingState extends State<ScAuditLogBinding> {
   String? _error;
   List<AuditEntryView> _entries = const <AuditEntryView>[];
 
+  /// The viewer's effective authorization — the source of the site-scope
+  /// assignments that narrow the "My Sites" strip to the Coordinator's sites.
+  StreamSubscription<EffectiveAuthorization?>? _authSub;
+  EffectiveAuthorization? _auth;
+
   http.Client? _ownedClient;
   http.Client get _http =>
       widget.httpClient ?? (_ownedClient ??= http.Client());
 
   @override
   void dispose() {
+    unawaited(_authSub?.cancel());
     _ownedClient?.close();
     super.dispose();
   }
@@ -62,6 +71,14 @@ class _ScAuditLogBindingState extends State<ScAuditLogBinding> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_authSub == null) {
+      final scope = ReActionScope.of(context);
+      _auth = scope.permissionSource.current;
+      _authSub = scope.permissionSource.stream.listen((auth) {
+        if (!mounted) return;
+        setState(() => _auth = auth);
+      });
+    }
     if (!_started) {
       _started = true;
       _fetch();
@@ -109,8 +126,15 @@ class _ScAuditLogBindingState extends State<ScAuditLogBinding> {
       }
       final page = parseAuditPage(resp.body);
       setState(() {
+        // Defensive client filter: only human-user–initiated rows render.
+        // `view=mine` already excludes automation server-side; this guarantees
+        // no system/automation row ever surfaces even if the server scope
+        // widens. A row is included only when its `initiator` is a Map whose
+        // `kind` is 'user' (a missing/non-Map/non-user initiator is skipped).
+        // Implements: DIARY-GUI-audit-log-study-coordinator/A
         _entries = <AuditEntryView>[
-          for (final row in page.rows) _toEntryView(row),
+          for (final row in page.rows)
+            if (_isUserInitiated(row)) _toEntryView(row),
         ];
         _loading = false;
       });
@@ -129,14 +153,67 @@ class _ScAuditLogBindingState extends State<ScAuditLogBinding> {
     fallback: const Center(
       child: Text("You don't have permission to view the audit log."),
     ),
-    child: ScAuditLogScreen(
-      entries: _entries,
-      isLoading: _loading,
-      errorMessage: _error,
-      onRefresh: _fetch,
+    // My Sites strip: separately gated on portal.site.view (like the
+    // Participants screen). A viewer without it still gets the audit table,
+    // just no My Sites bar.
+    // Implements: DIARY-GUI-audit-log-study-coordinator/A
+    child: PermissionGate(
+      permission: _viewSitePermission,
+      fallback: _screen(const <String>[]),
+      child: ViewBuilder<SiteRowView>(
+        viewName: 'sites_index',
+        mapper: _siteFromRow,
+        aggregateIdOf: (s) => s.id,
+        builder: (context, siteState) {
+          final sites = switch (siteState) {
+            Loading<SiteRowView>() => const <SiteRowView>[],
+            Ready<SiteRowView>(:final rows) => rows,
+            Stale<SiteRowView>(:final lastRows) => lastRows,
+          };
+          // Narrow to the Coordinator's assigned sites (same rule as the
+          // Sites page), formatted "001 - Memorial Hospital".
+          final mySites = visibleSiteRows(
+            sites: sites,
+            scopeAssignments: _auth?.scopeAssignments ?? const [],
+          );
+          final chips = <String>[
+            for (final s
+                in [...mySites]..sort((a, b) => a.number.compareTo(b.number)))
+              '${s.number} - ${s.name}',
+          ];
+          return _screen(chips);
+        },
+      ),
     ),
   );
+
+  Widget _screen(List<String> siteChips) => ScAuditLogScreen(
+    entries: _entries,
+    isLoading: _loading,
+    errorMessage: _error,
+    onRefresh: _fetch,
+    siteChips: siteChips,
+  );
 }
+
+/// Permission gating the "My Sites" strip (the Coordinator's assigned sites).
+const String _viewSitePermission = 'portal.site.view';
+
+/// True when the row was initiated by a human user (its `initiator` is a Map
+/// whose `kind` is 'user'). Automation/system/anonymous rows return false.
+bool _isUserInitiated(Map<String, Object?> row) {
+  final initiator = row['initiator'];
+  return initiator is Map && initiator['kind'] == 'user';
+}
+
+/// Maps a raw `sites_index` row to a [SiteRowView] (mirrors the Participants
+/// binding's site mapper).
+SiteRowView _siteFromRow(Map<String, Object?> r) => SiteRowView(
+  id: (r['site_id'] as String?) ?? '?',
+  name: (r['site_name'] as String?) ?? '?',
+  number: (r['site_number'] as String?) ?? '?',
+  active: (r['is_active'] as bool?) ?? true,
+);
 
 /// Maps a raw `/audit` row to the screen's [AuditEntryView].
 AuditEntryView _toEntryView(Map<String, Object?> row) {

@@ -24,8 +24,9 @@ class ScAuditLogScreen extends StatefulWidget {
     super.key,
     required this.entries,
     required this.isLoading,
-    this.title = 'Audit Log',
-    this.subtitle = 'Your participant and questionnaire activity.',
+    this.title = 'Audit Logs',
+    this.subtitle = 'View system activity and changes.',
+    this.siteChips = const <String>[],
     this.errorMessage,
     this.onRefresh,
     this.onRowTap,
@@ -37,6 +38,10 @@ class ScAuditLogScreen extends StatefulWidget {
 
   /// Header subtitle.
   final String subtitle;
+
+  /// Pre-formatted "001 - Memorial Hospital" labels for the "My Sites" strip
+  /// (the Coordinator's assigned sites, resolved upstream). Empty hides it.
+  final List<String> siteChips;
 
   /// Full set of the Coordinator's own activity, reverse-chronological.
   final List<AuditEntryView> entries;
@@ -122,6 +127,13 @@ class _ScAuditLogScreenState extends State<ScAuditLogScreen> {
           children: [
             _Header(title: widget.title, subtitle: widget.subtitle),
             const SizedBox(height: 24),
+            // My Sites strip: the Coordinator's assigned sites (Figma), shown
+            // above the table. Resolved upstream; hidden when empty.
+            // Implements: DIARY-GUI-audit-log-study-coordinator/A
+            if (widget.siteChips.isNotEmpty) ...[
+              _MySites(chips: widget.siteChips),
+              const SizedBox(height: 24),
+            ],
             AppDataTable<AuditEntryView>(
               semanticId: 'sc-audit-table',
               rows: pageRows,
@@ -399,6 +411,70 @@ class _Header extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// "My Sites" strip: passive labels of the Coordinator's assigned sites.
+/// (Mirrors the Participants screen's My Sites bar so the two render
+/// identically.)
+class _MySites extends StatelessWidget {
+  const _MySites({required this.chips});
+
+  final List<String> chips;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'My Sites',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              height: 20 / 14,
+              letterSpacing: -0.15,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final chip in chips)
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: theme.colorScheme.primary),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  child: Text(
+                    chip,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      height: 18 / 13,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -52,6 +52,7 @@ Future<void> _pump(
   WidgetTester tester, {
   List<AuditEntryView> entries = const [],
   bool isLoading = false,
+  List<String> siteChips = const [],
 }) async {
   await tester.binding.setSurfaceSize(const Size(1600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -59,7 +60,11 @@ Future<void> _pump(
     MaterialApp(
       theme: buildAppTheme(font: AppFontFamily.inter),
       home: Scaffold(
-        body: ScAuditLogScreen(entries: entries, isLoading: isLoading),
+        body: ScAuditLogScreen(
+          entries: entries,
+          isLoading: isLoading,
+          siteChips: siteChips,
+        ),
       ),
     ),
   );
@@ -158,5 +163,33 @@ void main() {
   testWidgets('empty entries renders the no-activity copy', (tester) async {
     await _pump(tester, entries: const <AuditEntryView>[]);
     expect(find.text('No activity recorded yet.'), findsOneWidget);
+  });
+
+  // Verifies: DIARY-GUI-audit-log-study-coordinator/A — the header matches the
+  //   Figma "Audit Logs" page (title + subtitle).
+  testWidgets('renders the Figma title and subtitle', (tester) async {
+    await _pump(tester, entries: _entries);
+    expect(find.text('Audit Logs'), findsOneWidget);
+    expect(find.text('View system activity and changes.'), findsOneWidget);
+  });
+
+  // Verifies: DIARY-GUI-audit-log-study-coordinator/A — the My Sites strip
+  //   renders the Coordinator's assigned-site chips above the table.
+  testWidgets('renders the My Sites bar from siteChips', (tester) async {
+    await _pump(
+      tester,
+      entries: _entries,
+      siteChips: const ['001 - Memorial Hospital', '002 - City Clinic'],
+    );
+    expect(find.text('My Sites'), findsOneWidget);
+    expect(find.text('001 - Memorial Hospital'), findsOneWidget);
+    expect(find.text('002 - City Clinic'), findsOneWidget);
+  });
+
+  testWidgets('hides the My Sites bar when there are no site chips', (
+    tester,
+  ) async {
+    await _pump(tester, entries: _entries);
+    expect(find.text('My Sites'), findsNothing);
   });
 }
