@@ -21,15 +21,19 @@ class AuditLogRow extends StatefulWidget {
     super.key,
     required this.entry,
     required this.columnWidths,
+    this.showParticipantId = false,
   });
 
   final AuditEntryView entry;
 
-  /// Pixel widths for the four columns: Timestamp, User, Activity,
-  /// chevron. Mirrors what the column-header row uses so cell content
-  /// and header labels line up vertically. Passed in (rather than
+  /// Pixel widths for the columns. Mirrors what the column-header row uses so
+  /// cell content and header labels line up vertically. Passed in (rather than
   /// computed here) because the screen owns the layout decision.
   final AuditColumnWidths columnWidths;
+
+  /// Whether to render the Participant ID column (Study Coordinator view).
+  // Implements: DIARY-GUI-audit-log-study-coordinator/A
+  final bool showParticipantId;
 
   @override
   State<AuditLogRow> createState() => _AuditLogRowState();
@@ -62,6 +66,7 @@ class _AuditLogRowState extends State<AuditLogRow> {
               entry: widget.entry,
               columnWidths: widget.columnWidths,
               expanded: _expanded,
+              showParticipantId: widget.showParticipantId,
             ),
           ),
         ),
@@ -91,11 +96,16 @@ class AuditColumnWidths {
     required this.timestamp,
     required this.user,
     required this.chevron,
+    this.participant = 200,
   });
 
   final double timestamp;
   final double user;
   final double chevron;
+
+  /// Width of the optional Participant ID column (Study Coordinator view).
+  /// Only consulted when the screen renders that column.
+  final double participant;
 }
 
 class _CollapsedRow extends StatelessWidget {
@@ -103,11 +113,13 @@ class _CollapsedRow extends StatelessWidget {
     required this.entry,
     required this.columnWidths,
     required this.expanded,
+    required this.showParticipantId,
   });
 
   final AuditEntryView entry;
   final AuditColumnWidths columnWidths;
   final bool expanded;
+  final bool showParticipantId;
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +159,25 @@ class _CollapsedRow extends StatelessWidget {
             child: _UserCell(entry: entry, theme: theme),
           ),
         ),
+        // Participant ID column — Study Coordinator view only.
+        // Implements: DIARY-GUI-audit-log-study-coordinator/A
+        if (showParticipantId)
+          SizedBox(
+            width: columnWidths.participant,
+            child: Padding(
+              padding: cellPad,
+              child: Text(
+                entry.participantId.isEmpty ? '—' : entry.participantId,
+                style: TextStyle(
+                  fontWeight: FontWeight.w400,
+                  fontSize: 14,
+                  height: 20 / 14,
+                  letterSpacing: -0.15,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ),
         Expanded(
           child: Padding(
             padding: cellPad,

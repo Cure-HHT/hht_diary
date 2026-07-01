@@ -28,6 +28,7 @@ class AuditLogScreenBinding extends StatefulWidget {
     this.httpClient,
     this.siteId,
     this.adminActionsOnly = false,
+    this.studyCoordinatorView = false,
     this.title,
     this.subtitle,
     this.onBack,
@@ -55,6 +56,13 @@ class AuditLogScreenBinding extends StatefulWidget {
   /// shows site/participant activity. Search and paging compose with it.
   // Implements: DIARY-DEV-audit-log-read/A
   final bool adminActionsOnly;
+
+  /// The Study Coordinator audit view: scope the log to the Coordinator's OWN
+  /// participant/questionnaire actions (the fetch carries `view=mine`), render
+  /// the Participant ID column, and route the search box to a Participant ID
+  /// filter (`participant=`) rather than the generic email/action `q`.
+  // Implements: DIARY-GUI-audit-log-study-coordinator/A+B
+  final bool studyCoordinatorView;
 
   /// Optional header overrides for the scoped instance; null keeps the
   /// top-level Audit Logs defaults.
@@ -139,10 +147,18 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
         queryParameters: <String, String>{
           'limit': '$_pageSize',
           'offset': '${(_page - 1) * _pageSize}',
-          if (q.isNotEmpty) 'q': q,
+          // The Study Coordinator view routes the search box to the
+          // Participant ID filter; every other view routes it to the generic
+          // email/action query.
+          // Implements: DIARY-GUI-audit-log-study-coordinator/B
+          if (q.isNotEmpty)
+            (widget.studyCoordinatorView ? 'participant' : 'q'): q,
           if (site.isNotEmpty) 'site': site,
           // Implements: DIARY-DEV-audit-log-read/A
           if (widget.adminActionsOnly) 'view': 'admin',
+          // The Study Coordinator's own-actions scope.
+          // Implements: DIARY-DEV-audit-log-read/A
+          if (widget.studyCoordinatorView) 'view': 'mine',
         },
       );
       final resp = await _http.get(
@@ -224,6 +240,14 @@ class _AuditLogScreenBindingState extends State<AuditLogScreenBinding> {
       subtitle: widget.subtitle ?? 'View system activity and changes.',
       onBack: widget.onBack,
       backLabel: widget.backLabel ?? 'Back to Sites',
+      // Implements: DIARY-GUI-audit-log-study-coordinator/A+B
+      showParticipantId: widget.studyCoordinatorView,
+      searchHint: widget.studyCoordinatorView
+          ? 'Search by Participant ID'
+          : 'Search by email or action',
+      searchSemanticId: widget.studyCoordinatorView
+          ? 'audit-participant-search'
+          : 'audit-search',
     ),
   );
 }
@@ -264,6 +288,9 @@ AuditEntryView _toEntryView(Map<String, Object?> row) {
     // Activity column: the Action-Inventory name plus the affected account's
     // email (the user the action was performed on).
     activityLabel: auditActivityLabel(row),
+    // Participant ID column (Study Coordinator view); empty for rows with no
+    // participant association.
+    participantId: auditParticipantId(row),
     raw: row,
   );
 }

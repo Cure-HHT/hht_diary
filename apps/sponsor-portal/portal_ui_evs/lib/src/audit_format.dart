@@ -58,6 +58,12 @@ String auditActorName(Map<String, Object?>? initiator) {
   return (initiator['label'] as String?) ?? '';
 }
 
+// Implements: DIARY-GUI-audit-log-study-coordinator/A — the Participant ID cell
+//   value: the server-stamped `participant_id` for participant/questionnaire
+//   rows; empty string when the row has no participant association.
+String auditParticipantId(Map<String, Object?> row) =>
+    (row['participant_id'] as String?)?.trim() ?? '';
+
 // Implements: DIARY-GUI-audit-log-common/A — the actor's email (the initiator
 //   `label`), shown under the name in the User column. Empty for non-user
 //   (automation/anonymous) initiators.

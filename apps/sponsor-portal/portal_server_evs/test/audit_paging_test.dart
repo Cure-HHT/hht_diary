@@ -37,6 +37,40 @@ void main() {
         initiator: const AutomationInitiator(service: 'paging-probe'),
       );
     }
+    // view=mine marker events: the authenticated principal's (admin-1's) OWN
+    // participant actions (the `view=mine` scope), plus a PEER user's
+    // participant action that view=mine must exclude (separation of duties).
+    // admin-1 is the bearer getAudit uses, so principal.id == 'admin-1'.
+    // Full linking-code payload so the linking-codes projection folds cleanly.
+    Map<String, Object?> linkData(String pid) => <String, Object?>{
+          'linking_code': 'CODE-$pid',
+          'participant_id': pid,
+          'site_id': 'site-1',
+          'generated_by': 'admin-1',
+          'expires_at': '2026-12-31T00:00:00.000Z',
+          'purpose': 'link',
+          'status': 'active',
+          'mobile_linking_status': 'linking_in_progress',
+        };
+    for (final pid in const ['DEV-001-001', 'DEV-001-002']) {
+      await boot.eventStore.append(
+        entryType: 'participant_linking_code_issued',
+        aggregateType: 'participant',
+        aggregateId: pid,
+        eventType: 'participant_linking_code_issued',
+        data: linkData(pid),
+        initiator: const UserInitiator('admin-1'),
+      );
+    }
+    await boot.eventStore.append(
+      entryType: 'participant_linking_code_issued',
+      aggregateType: 'participant',
+      aggregateId: 'DEV-001-003',
+      eventType: 'participant_linking_code_issued',
+      data: linkData('DEV-001-003'),
+      initiator: const UserInitiator('peer-sc'),
+    );
+
     final events = await boot.eventStore.backend.readEventsReverse().toList();
     storeSize = events.length;
     allSequences = events.map((e) => e.sequenceNumber).toSet();
@@ -239,6 +273,46 @@ void main() {
       final admin = await getAudit('?view=admin&limit=1000');
       final all = await getAudit('?limit=1000');
       expect((admin['total']! as int) <= (all['total']! as int), isTrue);
+    });
+  });
+
+  // Verifies: DIARY-DEV-audit-log-read/A — view=mine scopes the log to the
+  //   principal's OWN participant/questionnaire actions (separation of duties),
+  //   and every returned row carries a participant_id for the Participant ID
+  //   column (DIARY-GUI-audit-log-study-coordinator/A).
+  group('view=mine scopes to the principal\'s own participant activity', () {
+    test('returns only the principal\'s participant/questionnaire actions',
+        () async {
+      final body = await getAudit('?view=mine&limit=1000');
+      final rows = (body['rows'] as List).cast<Map<String, Object?>>();
+      expect(rows, isNotEmpty);
+      expect(body['total'], rows.length);
+      for (final row in rows) {
+        // Own actions only: initiator is the authenticated principal.
+        expect((row['initiator'] as Map)['label'], 'admin-1');
+        // Scoped to participant/questionnaire/site aggregates...
+        expect(
+          row['aggregate_type'],
+          anyOf('participant', 'questionnaire_instance', 'site'),
+        );
+        // ...and every participant/questionnaire row carries a participant_id.
+        if (row['aggregate_type'] != 'site') {
+          expect(row['participant_id'], isNotNull);
+        }
+      }
+      // The two admin-1 markers are present; the peer-sc marker is excluded.
+      final ids = {for (final r in rows) r['aggregate_id']};
+      expect(ids, containsAll(<String>['DEV-001-001', 'DEV-001-002']));
+      expect(ids.contains('DEV-001-003'), isFalse,
+          reason: 'a peer user\'s action must not appear in view=mine');
+    });
+
+    test('participant filter narrows view=mine by participant id', () async {
+      final body =
+          await getAudit('?view=mine&participant=DEV-001-001&limit=1000');
+      final rows = (body['rows'] as List).cast<Map<String, Object?>>();
+      expect(rows, hasLength(1));
+      expect(rows.single['participant_id'], 'DEV-001-001');
     });
   });
 

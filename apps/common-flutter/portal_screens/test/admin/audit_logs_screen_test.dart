@@ -26,6 +26,8 @@ Future<void> _pump(
   ValueChanged<int>? onPageChanged,
   ValueChanged<int>? onPageSizeChanged,
   ValueChanged<String>? onSearchChanged,
+  bool showParticipantId = false,
+  String searchHint = 'Search by email or action',
 }) async {
   tester.view.physicalSize = const Size(1600, 1000);
   tester.view.devicePixelRatio = 1.0;
@@ -49,6 +51,8 @@ Future<void> _pump(
           onPageChanged: onPageChanged ?? (_) {},
           onPageSizeChanged: onPageSizeChanged ?? (_) {},
           onSearchChanged: onSearchChanged ?? (_) {},
+          showParticipantId: showParticipantId,
+          searchHint: searchHint,
         ),
       ),
     ),
@@ -249,6 +253,73 @@ void main() {
         findsOneWidget,
       );
       handle.dispose();
+    });
+  });
+
+  // Verifies: DIARY-GUI-audit-log-study-coordinator/A+B — the Study Coordinator
+  //   view adds a Participant ID column and a Participant ID search input.
+  group('AuditLogsScreen — Study Coordinator (Participant ID)', () {
+    AuditEntryView scEntry(String id, String participantId) => AuditEntryView(
+          id: id,
+          timestamp: DateTime.utc(2026, 6, 9, 12),
+          actorName: 'Sam Coordinator',
+          actorRole: 'StudyCoordinator',
+          actorEmail: 'sc@x.com',
+          activityLabel: 'Link Participant',
+          participantId: participantId,
+          raw: <String, dynamic>{
+            'event_id': id,
+            'entry_type': 'participant_linking_code_issued',
+            'aggregate_type': 'participant',
+            'aggregate_id': participantId,
+            'participant_id': participantId,
+            'initiator': const {'kind': 'user', 'label': 'sc@x.com'},
+          },
+        );
+
+    testWidgets(
+        'renders the Participant ID column header + per-row value when enabled',
+        (tester) async {
+      await _pump(
+        tester,
+        entries: [scEntry('e-1', 'P-101'), scEntry('e-2', 'P-202')],
+        totalCount: 2,
+        showParticipantId: true,
+      );
+      expect(find.text('Participant ID'), findsOneWidget);
+      expect(find.text('P-101'), findsOneWidget);
+      expect(find.text('P-202'), findsOneWidget);
+    });
+
+    testWidgets('omits the Participant ID column by default (admin view)', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        entries: [scEntry('e-1', 'P-101')],
+        totalCount: 1,
+      );
+      expect(find.text('Participant ID'), findsNothing);
+      expect(find.text('P-101'), findsNothing);
+    });
+
+    testWidgets('Participant ID search field reports typed text', (
+      tester,
+    ) async {
+      final queries = <String>[];
+      await _pump(
+        tester,
+        entries: [scEntry('e-1', 'P-101')],
+        totalCount: 1,
+        showParticipantId: true,
+        searchHint: 'Search by Participant ID',
+        onSearchChanged: queries.add,
+      );
+      expect(find.text('Search by Participant ID'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'P-101');
+      // AppTextField.search debounces onChanged by 300ms.
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(queries, ['P-101']);
     });
   });
 }
