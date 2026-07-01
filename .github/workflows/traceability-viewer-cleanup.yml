@@ -1,0 +1,46 @@
+# Removes a PR's published traceability viewer (pr-<n>/) from the gh-pages
+# branch when the PR closes, so per-PR previews don't accumulate. Runs from the
+# base branch (main), so it governs PRs closed after this lands on main.
+name: Cleanup traceability viewer
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: Remove closed PR's viewer from gh-pages
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    # Shared with the publish-viewer job so gh-pages writes never race.
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Remove pr-<n> viewer
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ ! -d "pr-${PR}" ]; then
+            echo "no pr-${PR}/ on gh-pages; nothing to clean"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -r "pr-${PR}"
+          git commit -m "cleanup traceability viewer for closed PR #${PR}"
+          for i in 1 2 3; do
+            if git push origin gh-pages; then exit 0; fi
+            git pull --rebase origin gh-pages || true
+          done
+          echo "::warning::could not push cleanup after 3 attempts"
+          exit 0

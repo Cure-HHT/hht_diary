@@ -247,8 +247,10 @@ RUN wget -q https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_V
     gitleaks version
 
 # elspais (requirement validation and traceability)
+# [trace-view] extra pulls the HTMLGenerator deps that `elspais viewer --static`
+# needs to render the self-contained interactive matrix uploaded as a CI artifact.
 RUN : "${ELSPAIS_VERSION:?ELSPAIS_VERSION build-arg required — see .github/versions.env}" && \
-    pip3 install --no-cache-dir --break-system-packages "elspais==${ELSPAIS_VERSION}" && \
+    pip3 install --no-cache-dir --break-system-packages "elspais[trace-view]==${ELSPAIS_VERSION}" && \
     elspais version
 
 # markdownlint-cli (documentation linting)
