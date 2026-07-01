@@ -144,7 +144,7 @@ void main() {
     test(
       'after-finalize surfaces finalizedAt + next cycle (assertion T)',
       () {
-        // Verifies: REQ-CAL-p00023/T — the after-finalize card state carries the
+        // Verifies: DIARY-BASE-questionnaire-finalization/D — the after-finalize card state carries the
         //   finalization timestamp and the next cycle to send.
         final finalizedAt = DateTime(2024, 10, 13, 17);
         final s = resolveCardState(<QuestionnaireInstance>[
@@ -166,7 +166,7 @@ void main() {
     test(
       'terminal Closed surfaces finalizedAt but no next cycle (assertion T)',
       () {
-        // Verifies: REQ-CAL-p00023/T — a terminal close still records the
+        // Verifies: DIARY-BASE-questionnaire-finalization/D — a terminal close still records the
         //   finalization time; there is no next cycle to send.
         final finalizedAt = DateTime(2024, 10, 13, 17);
         final s = resolveCardState(<QuestionnaireInstance>[
@@ -186,7 +186,7 @@ void main() {
     );
 
     test('nextCycleStudyEvent increments a parseable cycle, else null', () {
-      // Verifies: REQ-CAL-p00023/T — the next-cycle helper.
+      // Verifies: DIARY-BASE-questionnaire-finalization/D — the next-cycle helper.
       expect(nextCycleStudyEvent('Cycle 1 Day 1'), 'Cycle 2 Day 1');
       expect(nextCycleStudyEvent('Cycle 11 Day 1'), 'Cycle 12 Day 1');
       expect(nextCycleStudyEvent(null), isNull);
