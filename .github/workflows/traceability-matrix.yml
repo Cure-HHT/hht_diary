@@ -54,7 +54,7 @@ jobs:
       # src/apps/packages, so .ci-pub-cache is never scanned. Scoped to THIS
       # workflow — it does not touch the shared CI compose used by 5 other jobs.
       - name: Restore pub cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .ci-pub-cache
           key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}

@@ -85,7 +85,7 @@ jobs:
           cache: true
 
       - name: Cache pub dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.pub-cache
           key: firebase-test-lab-pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.lock') }}
@@ -252,7 +252,7 @@ jobs:
           cache: true
 
       - name: Cache pub dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.pub-cache
           key: firebase-test-lab-pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.lock') }}
