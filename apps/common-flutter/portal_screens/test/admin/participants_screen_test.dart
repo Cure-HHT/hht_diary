@@ -202,4 +202,48 @@ void main() {
     await pump(tester);
     expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
   });
+
+  // Verifies: REQ-CAL-p00023/O — the ready-to-review indicator is the bell and
+  // ONLY appears when a questionnaire is ready for review. A Trial Active row
+  // that is not flagged must show no indicator (regression: the old code drew
+  // an unconditional green dot next to every Trial Active participant id).
+  testWidgets('Trial Active row without ready-to-review shows no indicator', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      participants: const [
+        ParticipantRowView(
+          id: '001-2000001',
+          siteName: 'Memorial Hospital',
+          status: ParticipantRowStatus.trialActive,
+          hasReadyToReview: false,
+          menuActions: [ParticipantMenuAction.disconnect],
+        ),
+      ],
+    );
+    // Row is present...
+    expect(find.text('001-2000001'), findsOneWidget);
+    expect(find.text('Trial Active'), findsOneWidget);
+    // ...but carries no ready-to-review bell.
+    expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
+  });
+
+  testWidgets('Trial Active row with ready-to-review shows the bell', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      participants: const [
+        ParticipantRowView(
+          id: '001-2000002',
+          siteName: 'Memorial Hospital',
+          status: ParticipantRowStatus.trialActive,
+          hasReadyToReview: true,
+          menuActions: [ParticipantMenuAction.disconnect],
+        ),
+      ],
+    );
+    expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+  });
 }
