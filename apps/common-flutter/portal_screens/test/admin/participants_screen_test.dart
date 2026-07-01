@@ -196,17 +196,21 @@ void main() {
     expect(fired?.id, '001-1001234');
   });
 
-  testWidgets('ready-to-review bell renders only on flagged rows', (
+  testWidgets('ready-to-review green dot renders only on flagged rows', (
     tester,
   ) async {
     await pump(tester);
-    expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+    // Exactly one fixture row (001-1002567) is flagged ready-to-review.
+    expect(
+      find.byKey(const ValueKey('participant-001-1002567-review-indicator')),
+      findsOneWidget,
+    );
   });
 
-  // Verifies: REQ-CAL-p00023/O — the ready-to-review indicator is the bell and
-  // ONLY appears when a questionnaire is ready for review. A Trial Active row
-  // that is not flagged must show no indicator (regression: the old code drew
-  // an unconditional green dot next to every Trial Active participant id).
+  // Verifies: REQ-CAL-p00023/O — the ready-to-review indicator is a green dot
+  // that ONLY appears when a questionnaire is ready for review. A Trial Active
+  // row that is not flagged must show no indicator (regression: the old code
+  // drew an unconditional green dot next to every Trial Active participant id).
   testWidgets('Trial Active row without ready-to-review shows no indicator', (
     tester,
   ) async {
@@ -225,11 +229,14 @@ void main() {
     // Row is present...
     expect(find.text('001-2000001'), findsOneWidget);
     expect(find.text('Trial Active'), findsOneWidget);
-    // ...but carries no ready-to-review bell.
-    expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
+    // ...but carries no ready-to-review dot.
+    expect(
+      find.byKey(const ValueKey('participant-001-2000001-review-indicator')),
+      findsNothing,
+    );
   });
 
-  testWidgets('Trial Active row with ready-to-review shows the bell', (
+  testWidgets('Trial Active row with ready-to-review shows the green dot', (
     tester,
   ) async {
     await pump(
@@ -244,6 +251,9 @@ void main() {
         ),
       ],
     );
-    expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('participant-001-2000002-review-indicator')),
+      findsOneWidget,
+    );
   });
 }
