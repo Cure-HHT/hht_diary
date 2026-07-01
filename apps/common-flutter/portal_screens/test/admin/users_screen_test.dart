@@ -109,6 +109,15 @@ void main() {
   });
 
   group('UsersScreen — search', () {
+    // Verifies: DIARY-GUI-user-management-tabs/H
+    testWidgets('search input hint reads "Search by name or email"', (
+      tester,
+    ) async {
+      await _pump(tester, users: MockData.users);
+      expect(find.text('Search by name or email'), findsOneWidget);
+    });
+
+    // Verifies: DIARY-GUI-user-management-tabs/H+I
     testWidgets('email substring filter narrows the visible rows', (
       tester,
     ) async {
@@ -119,6 +128,33 @@ void main() {
       await tester.pump();
       expect(find.text('sjohnson@clinicaltrial.com'), findsOneWidget);
       expect(find.text('sjohnson-old@clinicaltrial.com'), findsOneWidget);
+      expect(find.text('admin@clinicaltrial.com'), findsNothing);
+    });
+
+    // Verifies: DIARY-GUI-user-management-tabs/H+I
+    testWidgets('full-name substring filter matches on the name column', (
+      tester,
+    ) async {
+      // "emily" appears in the display name "Dr. Emily Parker" but NOT in
+      // the email "eparker@clinicaltrial.com" — so a match here proves the
+      // predicate searches the full name, not just the email.
+      await _pump(tester, users: MockData.users);
+      await tester.enterText(find.byType(TextFormField), 'emily');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump();
+      expect(find.text('eparker@clinicaltrial.com'), findsOneWidget);
+      expect(find.text('admin@clinicaltrial.com'), findsNothing);
+    });
+
+    // Verifies: DIARY-GUI-user-management-tabs/H+I
+    testWidgets('name search is case-insensitive', (tester) async {
+      // "EMILY" upper-cased still matches "Dr. Emily Parker" (and never the
+      // "eparker" email), proving the name match folds case.
+      await _pump(tester, users: MockData.users);
+      await tester.enterText(find.byType(TextFormField), 'EMILY');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump();
+      expect(find.text('eparker@clinicaltrial.com'), findsOneWidget);
       expect(find.text('admin@clinicaltrial.com'), findsNothing);
     });
 
