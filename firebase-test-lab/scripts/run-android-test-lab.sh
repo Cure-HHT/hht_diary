@@ -11,15 +11,32 @@ APP_APK="${APP_APK:?APP_APK is required}"
 TEST_APK="${TEST_APK:?TEST_APK is required}"
 RESULTS_DIR="${RESULTS_DIR:?RESULTS_DIR is required}"
 EVIDENCE_DIR="${EVIDENCE_DIR:-build/firebase-test-lab/android/evidence}"
-# Default device matrix (validated 2026-06-25; incompatible combos removed).
-# Removed: r0q/33, g0q/31, redfin/31, redfin/28 (FTL skipped these in run #35).
+# Default device matrix: 12 coverage tiers (Google/Samsung/Motorola/OnePlus/Oppo
+# + virtual profiles), grounded in the FTL model catalog (gcloud models list,
+# 2026-07-01). Model+version pairs verified against supported combos; earlier
+# incompatible combos (r0q/33, g0q/31, redfin/31, redfin/28) remain excluded.
 # One spec per line: model=<id>,version=<api>,locale=en,orientation=portrait
 # Override at runtime via the android_devices workflow_dispatch input.
 DEFAULT_DEVICE_SPECS=$(printf '%s\n' \
-  'model=shiba,version=34,locale=en,orientation=portrait' \
+  'model=shiba,version=35,locale=en,orientation=portrait' \
+  'model=tokay,version=35,locale=en,orientation=portrait' \
+  'model=panther,version=33,locale=en,orientation=portrait' \
   'model=cheetah,version=33,locale=en,orientation=portrait' \
   'model=redfin,version=30,locale=en,orientation=portrait' \
-  'model=MediumPhone.arm,version=32,locale=en,orientation=portrait' \
+  'model=oriole,version=33,locale=en,orientation=portrait' \
+  'model=dm1q,version=35,locale=en,orientation=portrait' \
+  'model=e1q,version=34,locale=en,orientation=portrait' \
+  'model=pa1q,version=36,locale=en,orientation=portrait' \
+  'model=o1q,version=34,locale=en,orientation=portrait' \
+  'model=r0q,version=34,locale=en,orientation=portrait' \
+  'model=a54x,version=34,locale=en,orientation=portrait' \
+  'model=a35x,version=35,locale=en,orientation=portrait' \
+  'model=cancunf,version=34,locale=en,orientation=portrait' \
+  'model=dubai,version=34,locale=en,orientation=portrait' \
+  'model=CPH2449,version=34,locale=en,orientation=portrait' \
+  'model=OP573DL1,version=34,locale=en,orientation=portrait' \
+  'model=e3q,version=34,locale=en,orientation=portrait' \
+  'model=a10,version=29,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=31,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=30,locale=en,orientation=portrait' \
   'model=MediumPhone.arm,version=33,locale=en,orientation=portrait' \
