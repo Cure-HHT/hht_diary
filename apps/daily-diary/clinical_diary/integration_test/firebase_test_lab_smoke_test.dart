@@ -54,6 +54,12 @@ import 'package:integration_test/integration_test.dart';
 // ---------------------------------------------------------------------------
 
 /// Polls until [condition] is true or [timeout] elapses.
+///
+/// Pumps a frame, then yields to the real event loop via
+/// [WidgetTester.runAsync] so genuine async work (sembast writes, navigation
+/// pops) can complete before the condition is re-checked. Pumping alone
+/// advances the fake clock without letting real futures resolve, which made
+/// datastore-gated navigation appear to "never return to the Main Screen".
 Future<void> _pumpUntil(
   WidgetTester tester,
   bool Function() condition, {
@@ -64,6 +70,9 @@ Future<void> _pumpUntil(
   final deadline = DateTime.now().add(timeout);
   while (DateTime.now().isBefore(deadline)) {
     await tester.pump(interval);
+    if (condition()) return;
+    await tester.runAsync(() => Future<void>.delayed(interval));
+    await tester.pump();
     if (condition()) return;
   }
   fail('Timed out waiting for $description');
@@ -100,6 +109,10 @@ Future<void> _openRecordedEvent(WidgetTester tester) async {
   for (var i = 0; i < count; i++) {
     await tester.tap(find.byType(EventListItem).at(i), warnIfMissed: false);
     await tester.pumpAndSettle();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 250)),
+    );
+    await tester.pump();
     if (find.byType(RecordingScreen).evaluate().isNotEmpty) return;
   }
 }
