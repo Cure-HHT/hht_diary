@@ -48,8 +48,8 @@
     "verified": "0/13 (0%)",
     "uat_coverage": "0/13 (0%)",
     "uat_verified": "0/13 (0%)",
-    "code_tested": "0/110 (0%)",
-    "lcov_tested": "lcov 87%"
+    "code_tested": "0/113 (0%)",
+    "lcov_tested": "lcov 88%"
   },
   {
     "id": "DIARY-BASE-questionnaire-manage-modal",
@@ -61,8 +61,8 @@
     "verified": "0/15 (0%)",
     "uat_coverage": "0/15 (0%)",
     "uat_verified": "0/15 (0%)",
-    "code_tested": "0/289 (0%)",
-    "lcov_tested": "lcov 82%"
+    "code_tested": "0/322 (0%)",
+    "lcov_tested": "lcov 83%"
   },
   {
     "id": "DIARY-BASE-questionnaire-finalization",
@@ -74,7 +74,7 @@
     "verified": "0/7 (0%)",
     "uat_coverage": "0/7 (0%)",
     "uat_verified": "0/7 (0%)",
-    "code_tested": "0/322 (0%)",
+    "code_tested": "0/325 (0%)",
     "lcov_tested": "lcov 93%"
   },
   {
@@ -322,7 +322,7 @@
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
     "code_tested": "0/186 (0%)",
-    "lcov_tested": "lcov 93%"
+    "lcov_tested": "lcov 92%"
   },
   {
     "id": "DIARY-DEV-participant-ingest",
@@ -620,8 +620,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/440 (0%)",
-    "lcov_tested": "lcov 24%"
+    "code_tested": "0/215 (0%)",
+    "lcov_tested": "lcov 57%"
   },
   {
     "id": "DIARY-DEV-user-account-projection",
@@ -646,7 +646,7 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/138 (0%)",
+    "code_tested": "0/137 (0%)",
     "lcov_tested": "lcov 93%"
   },
   {
@@ -1062,8 +1062,8 @@
     "verified": "0/8 (0%)",
     "uat_coverage": "5.4/8 (67%)",
     "uat_verified": "0/8 (0%)",
-    "code_tested": "0/108 (0%)",
-    "lcov_tested": "lcov 97%"
+    "code_tested": "0/227 (0%)",
+    "lcov_tested": "lcov 91%"
   },
   {
     "id": "DIARY-GUI-audit-log-study-coordinator",
@@ -1075,8 +1075,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "2/2 (100%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "n/a",
-    "lcov_tested": "n/a"
+    "code_tested": "0/245 (0%)",
+    "lcov_tested": "lcov 86%"
   },
   {
     "id": "DIARY-GUI-audit-log-cra",
@@ -1738,8 +1738,8 @@
     "verified": "0/8 (0%)",
     "uat_coverage": "3/8 (38%)",
     "uat_verified": "0/8 (0%)",
-    "code_tested": "n/a",
-    "lcov_tested": "n/a"
+    "code_tested": "0/228 (0%)",
+    "lcov_tested": "lcov 43%"
   },
   {
     "id": "DIARY-PRD-participant-registration",
@@ -1842,8 +1842,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "3/3 (100%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "n/a",
-    "lcov_tested": "n/a"
+    "code_tested": "0/228 (0%)",
+    "lcov_tested": "lcov 43%"
   },
   {
     "id": "DIARY-GUI-link-participant-flow",
@@ -1972,7 +1972,7 @@
     "verified": "0/6 (0%)",
     "uat_coverage": "2/6 (33%)",
     "uat_verified": "0/6 (0%)",
-    "code_tested": "0/167 (0%)",
+    "code_tested": "0/169 (0%)",
     "lcov_tested": "lcov 86%"
   },
   {
