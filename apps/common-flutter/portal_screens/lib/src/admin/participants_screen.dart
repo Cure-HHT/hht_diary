@@ -393,12 +393,16 @@ class _ActionCell extends StatelessWidget {
       a == ParticipantPrimaryAction.showLinkingCode ||
       a == ParticipantPrimaryAction.manageQuestionnaires;
 
+  // Implements: CAL-GUI-participant-dashboard-configuration/F — Reconnect and
+  // Reactivate primary-Action buttons for Disconnected / Not Participating rows.
   static IconData _iconFor(ParticipantPrimaryAction a) => switch (a) {
     ParticipantPrimaryAction.linkParticipant => Icons.link,
     ParticipantPrimaryAction.showLinkingCode => Icons.visibility_outlined,
     ParticipantPrimaryAction.regenerateCode => Icons.refresh,
     ParticipantPrimaryAction.startTrial => Icons.send_outlined,
     ParticipantPrimaryAction.manageQuestionnaires => Icons.description_outlined,
+    ParticipantPrimaryAction.reconnect => Icons.refresh,
+    ParticipantPrimaryAction.reactivate => Icons.drive_file_move_outline,
     ParticipantPrimaryAction.none => Icons.circle,
   };
 }

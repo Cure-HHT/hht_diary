@@ -73,6 +73,7 @@ void main() {
   }
 
   group('primaryActionFor', () {
+    // Verifies: CAL-GUI-participant-dashboard-configuration/F
     test('maps every status to its Figma action', () {
       expect(
         primaryActionFor(ParticipantRowStatus.notConnected),
@@ -96,10 +97,14 @@ void main() {
       );
       expect(
         primaryActionFor(ParticipantRowStatus.disconnected),
-        ParticipantPrimaryAction.none,
+        ParticipantPrimaryAction.reconnect,
       );
       expect(
         primaryActionFor(ParticipantRowStatus.notParticipating),
+        ParticipantPrimaryAction.reactivate,
+      );
+      expect(
+        primaryActionFor(ParticipantRowStatus.unknown),
         ParticipantPrimaryAction.none,
       );
     });
@@ -201,5 +206,52 @@ void main() {
   ) async {
     await pump(tester);
     expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+  });
+
+  // Verifies: CAL-GUI-participant-dashboard-configuration/F
+  testWidgets(
+    'Disconnected renders Reconnect and Not Participating renders Reactivate',
+    (tester) async {
+      const inactiveRows = <ParticipantRowView>[
+        ParticipantRowView(
+          id: '003-1040001',
+          siteName: 'Memorial Hospital',
+          status: ParticipantRowStatus.disconnected,
+          menuActions: [ParticipantMenuAction.reconnect],
+        ),
+        ParticipantRowView(
+          id: '003-1040002',
+          siteName: 'Memorial Hospital',
+          status: ParticipantRowStatus.notParticipating,
+          menuActions: [ParticipantMenuAction.reactivate],
+        ),
+      ];
+      await pump(tester, participants: inactiveRows);
+      // Inactive tab holds Disconnected + Not Participating rows.
+      await tester.tap(find.text('Inactive'));
+      await tester.pump();
+      expect(find.text('Reconnect'), findsOneWidget);
+      expect(find.text('Reactivate'), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsOneWidget);
+      expect(find.byIcon(Icons.drive_file_move_outline), findsOneWidget);
+    },
+  );
+
+  // Verifies: CAL-GUI-participant-dashboard-configuration/F
+  testWidgets('primary Reconnect action fires with the row', (tester) async {
+    ParticipantRowView? fired;
+    const inactiveRows = <ParticipantRowView>[
+      ParticipantRowView(
+        id: '003-1040001',
+        siteName: 'Memorial Hospital',
+        status: ParticipantRowStatus.disconnected,
+        menuActions: [ParticipantMenuAction.reconnect],
+      ),
+    ];
+    await pump(tester, participants: inactiveRows, onPrimary: (r) => fired = r);
+    await tester.tap(find.text('Inactive'));
+    await tester.pump();
+    await tester.tap(find.text('Reconnect'));
+    expect(fired?.id, '003-1040001');
   });
 }

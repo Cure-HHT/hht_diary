@@ -429,6 +429,8 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
     };
   }
 
+  // Implements: CAL-GUI-participant-dashboard-configuration/F — primary-Action
+  // taps, including Reconnect / Reactivate for Disconnected / Not Participating.
   void _onPrimary(ParticipantRecordRow record, ParticipantRowView row) {
     switch (primaryActionFor(row.status)) {
       case ParticipantPrimaryAction.linkParticipant ||
@@ -460,6 +462,12 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
             identityCredential: widget.identityCredential,
           ),
         );
+      case ParticipantPrimaryAction.reconnect:
+        // Same lifecycle flow as the overflow-menu Reconnect action.
+        _onMenu(record, ParticipantMenuAction.reconnect);
+      case ParticipantPrimaryAction.reactivate:
+        // Same lifecycle flow as the overflow-menu Reactivate action.
+        _onMenu(record, ParticipantMenuAction.reactivate);
       case ParticipantPrimaryAction.none:
         break;
     }
