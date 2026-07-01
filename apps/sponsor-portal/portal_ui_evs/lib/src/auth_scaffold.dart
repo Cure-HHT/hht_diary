@@ -165,14 +165,11 @@ class SponsorBrandMark extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = _logoUrl();
     if (url == null) return const _FallbackBrandMark();
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight),
-      child: Image.network(
-        url,
-        fit: BoxFit.contain,
-        semanticLabel: 'Sponsor logo',
-        errorBuilder: (_, __, ___) => const _FallbackBrandMark(),
-      ),
+    return Image.network(
+      url,
+      height: maxHeight,
+      semanticLabel: 'Sponsor logo',
+      errorBuilder: (_, __, ___) => const _FallbackBrandMark(),
     );
   }
 }
@@ -184,6 +181,6 @@ class _FallbackBrandMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Icon(Icons.local_hospital, size: 48, color: cs.primary);
+    return Icon(Icons.local_hospital, size: 30, color: cs.primary);
   }
 }
