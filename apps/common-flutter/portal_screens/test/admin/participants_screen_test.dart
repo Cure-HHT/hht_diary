@@ -3,6 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portal_screens/portal_screens.dart';
 
+/// Finds an [Image.asset] whose asset path ends with [assetEnding] (e.g.
+/// 'reconnect.png'), regardless of the `packages/<pkg>/` prefix.
+Finder _findAssetImage(String assetEnding) => find.byWidgetPredicate(
+  (w) =>
+      w is Image &&
+      w.image is AssetImage &&
+      (w.image as AssetImage).assetName.endsWith(assetEnding),
+);
+
 void main() {
   const rows = <ParticipantRowView>[
     ParticipantRowView(
@@ -232,8 +241,10 @@ void main() {
       await tester.pump();
       expect(find.text('Reconnect'), findsOneWidget);
       expect(find.text('Reactivate'), findsOneWidget);
-      expect(find.byIcon(Icons.refresh), findsOneWidget);
-      expect(find.byIcon(Icons.drive_file_move_outline), findsOneWidget);
+      // The buttons use the Figma-exported PNG glyphs (assets/icons/) via a
+      // leadingWidget, not a Material icon.
+      expect(_findAssetImage('reconnect.png'), findsOneWidget);
+      expect(_findAssetImage('reactivate.png'), findsOneWidget);
     },
   );
 
