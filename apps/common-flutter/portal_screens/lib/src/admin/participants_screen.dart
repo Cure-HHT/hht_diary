@@ -366,33 +366,65 @@ class _ActionCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = primaryActionFor(row.status);
+    if (primary == ParticipantPrimaryAction.none) return const SizedBox.shrink();
+    // Reconnect / Reactivate use the Figma-exported PNG glyphs
+    // (assets/icons/reconnect.png, reactivate.png) rather than a Material icon,
+    // to match the Figma button spec. Others keep their Material leadingIcon.
+    final asset = _assetFor(primary);
+    final leadingWidget = asset == null
+        ? null
+        : Image.asset(
+            'assets/icons/$asset.png',
+            package: 'portal_screens',
+            width: 16,
+            height: 16,
+            errorBuilder: (context, _, _) => Icon(_iconFor(primary), size: 16),
+          );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (primary != ParticipantPrimaryAction.none)
-          AppButton(
-            label: primary.label,
-            variant: _isOutline(primary)
-                ? AppButtonVariant.secondary
-                : AppButtonVariant.primary,
-            leadingIcon: _iconFor(primary),
-            onPressed: () => onPrimaryAction(row),
-            semanticId: 'participant-${row.id}-action',
-          ),
+        AppButton(
+          label: primary.label,
+          variant: _isOutline(primary)
+              ? AppButtonVariant.secondary
+              : AppButtonVariant.primary,
+          leadingIcon: leadingWidget == null ? _iconFor(primary) : null,
+          leadingWidget: leadingWidget,
+          onPressed: () => onPrimaryAction(row),
+          semanticId: 'participant-${row.id}-action',
+        ),
       ],
     );
   }
 
+  // Reconnect / Reactivate render as outline (secondary) buttons per the Figma
+  // spec (white bg, grey border + text), alongside the other management actions.
+  // Implements: CAL-GUI-participant-dashboard-configuration/F
   static bool _isOutline(ParticipantPrimaryAction a) =>
       a == ParticipantPrimaryAction.showLinkingCode ||
-      a == ParticipantPrimaryAction.manageQuestionnaires;
+      a == ParticipantPrimaryAction.manageQuestionnaires ||
+      a == ParticipantPrimaryAction.reconnect ||
+      a == ParticipantPrimaryAction.reactivate;
 
+  /// Figma-exported PNG glyph name (under assets/icons/) for actions whose icon
+  /// is not a Material glyph; null means use [_iconFor].
+  // Implements: CAL-GUI-participant-dashboard-configuration/F
+  static String? _assetFor(ParticipantPrimaryAction a) => switch (a) {
+    ParticipantPrimaryAction.reconnect => 'reconnect',
+    ParticipantPrimaryAction.reactivate => 'reactivate',
+    _ => null,
+  };
+
+  // Implements: CAL-GUI-participant-dashboard-configuration/F — Reconnect and
+  // Reactivate primary-Action buttons for Disconnected / Not Participating rows.
   static IconData _iconFor(ParticipantPrimaryAction a) => switch (a) {
     ParticipantPrimaryAction.linkParticipant => Icons.link,
     ParticipantPrimaryAction.showLinkingCode => Icons.visibility_outlined,
     ParticipantPrimaryAction.regenerateCode => Icons.refresh,
     ParticipantPrimaryAction.startTrial => Icons.send_outlined,
     ParticipantPrimaryAction.manageQuestionnaires => Icons.description_outlined,
+    ParticipantPrimaryAction.reconnect => Icons.refresh,
+    ParticipantPrimaryAction.reactivate => Icons.drive_file_move_outline,
     ParticipantPrimaryAction.none => Icons.circle,
   };
 }

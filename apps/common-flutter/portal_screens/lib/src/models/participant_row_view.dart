@@ -27,6 +27,8 @@ enum ParticipantPrimaryAction {
   regenerateCode('Regenerate Code'),
   startTrial('Start Trial'),
   manageQuestionnaires('Manage Questionnaires'),
+  reconnect('Reconnect'),
+  reactivate('Reactivate'),
   none('');
 
   const ParticipantPrimaryAction(this.label);
@@ -95,6 +97,9 @@ class ParticipantRowView {
 
 /// The Action-column affordance for a row status. Single source for the
 /// status -> primary-button mapping (Figma's Action column).
+// Implements: CAL-GUI-participant-dashboard-configuration/F — the per-status
+// primary-Action column (Disconnected -> Reconnect, Not Participating ->
+// Reactivate).
 ParticipantPrimaryAction primaryActionFor(
   ParticipantRowStatus status,
 ) => switch (status) {
@@ -105,8 +110,8 @@ ParticipantPrimaryAction primaryActionFor(
     ParticipantPrimaryAction.startTrial,
   ParticipantRowStatus.trialActive =>
     ParticipantPrimaryAction.manageQuestionnaires,
-  ParticipantRowStatus.disconnected ||
-  ParticipantRowStatus.notParticipating ||
+  ParticipantRowStatus.disconnected => ParticipantPrimaryAction.reconnect,
+  ParticipantRowStatus.notParticipating => ParticipantPrimaryAction.reactivate,
   ParticipantRowStatus.unknown => ParticipantPrimaryAction.none,
 };
 
