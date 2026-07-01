@@ -276,4 +276,65 @@ void main() {
       handle.dispose();
     });
   });
+
+  group('UsersScreen — row action menu', () {
+    // No REQ assertion covers the kebab popover's open/close arbitration;
+    // this guards the CUR-1595 fix — opening one row's menu must close any
+    // other, so only one popover is ever visible at a time.
+    testWidgets('opening a second row menu closes the first', (tester) async {
+      // A popover opens just below its kebab and can overlap the
+      // immediately-adjacent row, so the two rows under test are kept
+      // non-adjacent (sorted by email: a, m, z) and each menu carries a
+      // single item — this keeps row Z's kebab clear of row A's popover so
+      // the second tap reliably reaches it.
+      const rowA = PortalUserView(
+        email: 'a-user@clinicaltrial.com',
+        name: 'A User',
+        status: UserStatusView.active,
+        assignments: [],
+      );
+      const rowMid = PortalUserView(
+        email: 'm-user@clinicaltrial.com',
+        name: 'M User',
+        status: UserStatusView.active,
+        assignments: [],
+      );
+      const rowZ = PortalUserView(
+        email: 'z-user@clinicaltrial.com',
+        name: 'Z User',
+        status: UserStatusView.active,
+        assignments: [],
+      );
+      final handle = tester.ensureSemantics();
+      // No capability flags → each row menu shows only "View Details".
+      await _pump(
+        tester,
+        users: const [rowA, rowMid, rowZ],
+        rowActions: UserRowActionsConfig(onAction: (_, _) {}),
+      );
+
+      // Open row A's menu — its single item (View Details) is visible.
+      await tester.tap(
+        find.bySemanticsIdentifier('user-actions-${rowA.email}'),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        find.bySemanticsIdentifier('user-action-viewDetails'),
+        findsOneWidget,
+      );
+
+      // Open row Z's menu — row A's popover must close, leaving exactly one
+      // open menu (not two stacked popovers). Two open menus would surface
+      // two 'user-action-viewDetails' nodes.
+      await tester.tap(
+        find.bySemanticsIdentifier('user-actions-${rowZ.email}'),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        find.bySemanticsIdentifier('user-action-viewDetails'),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+  });
 }

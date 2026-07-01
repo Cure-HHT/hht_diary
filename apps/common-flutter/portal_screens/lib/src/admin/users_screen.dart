@@ -80,6 +80,32 @@ class _UsersScreenState extends State<UsersScreen> {
   int _page = 1;
   late int _pageSize = widget.pageSize;
 
+  // Single source of truth for the row kebab popovers. Each row owns its
+  // own MenuController, but only one menu may be open at a time — opening
+  // a second row's menu must close the first (two independent MenuAnchors
+  // do not dismiss each other, so without this coordination their
+  // popovers stack). No REQ assertion covers this popover behavior; it's
+  // a pure presentation-layer interaction fix (CUR-1595).
+  MenuController? _openRowMenu;
+
+  /// Closes any previously-open row menu and records [controller] as the
+  /// one now open. Purely imperative overlay bookkeeping — no rebuild is
+  /// needed (MenuAnchor manages its own popover visibility).
+  void _handleRowMenuOpened(MenuController controller) {
+    final previous = _openRowMenu;
+    if (previous != null && !identical(previous, controller) && previous.isOpen) {
+      previous.close();
+    }
+    _openRowMenu = controller;
+  }
+
+  /// Clears the "currently open" reference when the row that closed is the
+  /// one we were tracking (an item tap, an outside tap, or our own
+  /// coordinator-driven close all route here).
+  void _handleRowMenuClosed(MenuController controller) {
+    if (identical(_openRowMenu, controller)) _openRowMenu = null;
+  }
+
   @override
   void didUpdateWidget(covariant UsersScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -314,7 +340,12 @@ class _UsersScreenState extends State<UsersScreen> {
               ),
             );
           }
-          return UserRowMenu(user: u, config: config);
+          return UserRowMenu(
+            user: u,
+            config: config,
+            onMenuOpened: _handleRowMenuOpened,
+            onMenuClosed: _handleRowMenuClosed,
+          );
         },
       ),
     ];
