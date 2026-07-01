@@ -58,6 +58,7 @@ fi
 
 if [[ "$USE_ORCHESTRATOR" == "true" ]]; then
   cmd+=(--use-orchestrator)
+  cmd+=(--environment-variables clearPackageData=true)
 else
   cmd+=(--no-use-orchestrator)
 fi
