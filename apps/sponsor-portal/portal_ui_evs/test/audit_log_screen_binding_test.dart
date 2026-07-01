@@ -31,20 +31,6 @@ Map<String, Object?> _row(int seq) => <String, Object?>{
   },
 };
 
-/// A Study-Coordinator-shaped participant row, carrying a participant_id so
-/// the Participant ID column has a value to render.
-Map<String, Object?> _participantRow(int seq) => <String, Object?>{
-  'event_id': 'evt-$seq',
-  'sequence': seq,
-  'timestamp': '2026-06-09T12:00:00.000Z',
-  'entry_type': 'participant_linking_code_issued',
-  'event_type': 'participant_linking_code_issued',
-  'aggregate_type': 'participant',
-  'aggregate_id': 'P-$seq',
-  'participant_id': 'P-$seq',
-  'initiator': <String, Object?>{'kind': 'user', 'label': 'sc@reference.local'},
-};
-
 /// Fake /audit server: 204 unfiltered events (3 when a `q` is present,
 /// unless overridden via [filteredTotal]), reverse-chronological, sliced
 /// per limit/offset like the real handler.
@@ -53,9 +39,7 @@ MockClient _auditServer(
   int total = 204,
   int Function()? filteredTotal,
   Set<int> failOnRequest = const {},
-  Map<String, Object?> Function(int seq)? rowBuilder,
 }) {
-  final buildRow = rowBuilder ?? _row;
   return MockClient((request) async {
     requests.add(request);
     if (failOnRequest.contains(requests.length)) {
@@ -64,13 +48,11 @@ MockClient _auditServer(
     final params = request.url.queryParameters;
     final limit = int.parse(params['limit']!);
     final offset = int.parse(params['offset']!);
-    // Either filter param collapses the fake match set (mirrors the real
-    // server's `q` / `participant` filters shrinking the total).
-    final filtered = (params['q'] ?? params['participant'] ?? '').isNotEmpty;
-    final effectiveTotal = !filtered ? total : (filteredTotal ?? () => 3)();
+    final q = params['q'] ?? '';
+    final effectiveTotal = q.isEmpty ? total : (filteredTotal ?? () => 3)();
     final top = effectiveTotal - offset;
     final rows = <Map<String, Object?>>[
-      for (var s = top; s > top - limit && s >= 1; s--) buildRow(s),
+      for (var s = top; s > top - limit && s >= 1; s--) _row(s),
     ];
     return http.Response(
       jsonEncode(<String, Object?>{
@@ -100,26 +82,10 @@ FakeReaction _authedAdmin() => FakeReaction(
   ),
 );
 
-FakeReaction _authedCoordinator() => FakeReaction(
-  initialAuthStatus: Authenticated(
-    principal: Principal.user(
-      userId: 'sc@reference.local',
-      roles: const {'StudyCoordinator'},
-      activeRole: 'StudyCoordinator',
-    ),
-  ),
-  initialPermission: EffectiveAuthorization(
-    activeRole: 'StudyCoordinator',
-    rolePermissions: {Permission('portal.audit.view')},
-    scopeAssignments: const <ScopeAssignment>[],
-  ),
-);
-
 Future<void> _pumpBinding(
   WidgetTester tester, {
   required http.Client client,
   FakeReaction? fake,
-  bool studyCoordinatorView = false,
 }) async {
   tester.view.physicalSize = const Size(1600, 1000);
   tester.view.devicePixelRatio = 1.0;
@@ -140,7 +106,6 @@ Future<void> _pumpBinding(
             identityCredential: 'cred-123',
             serverUrl: 'http://portal.test',
             httpClient: client,
-            studyCoordinatorView: studyCoordinatorView,
           ),
         ),
       ),
@@ -286,65 +251,5 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('Viewing 1-3 of 3'), findsOneWidget);
-  });
-
-  // Verifies: DIARY-GUI-audit-log-study-coordinator/A+B — the Study Coordinator
-  //   binding scopes to the coordinator's own actions (view=mine), renders the
-  //   Participant ID column, and routes the search box to the participant
-  //   filter (participant=), NOT the generic q.
-  group('study coordinator view', () {
-    testWidgets('initial fetch requests view=mine (own actions)', (
-      tester,
-    ) async {
-      final requests = <http.Request>[];
-      await _pumpBinding(
-        tester,
-        client: _auditServer(requests, rowBuilder: _participantRow),
-        fake: _authedCoordinator(),
-        studyCoordinatorView: true,
-      );
-
-      expect(requests.single.url.queryParameters['view'], 'mine');
-      expect(
-        requests.single.headers['Authorization'],
-        'Bearer cred-123|StudyCoordinator',
-      );
-    });
-
-    testWidgets('renders the Participant ID column with row values', (
-      tester,
-    ) async {
-      final requests = <http.Request>[];
-      await _pumpBinding(
-        tester,
-        client: _auditServer(requests, rowBuilder: _participantRow),
-        fake: _authedCoordinator(),
-        studyCoordinatorView: true,
-      );
-
-      expect(find.text('Participant ID'), findsOneWidget);
-      // Newest-first: rows P-204 .. P-197 on page 1 (pageSize 8).
-      expect(find.text('P-204'), findsOneWidget);
-    });
-
-    testWidgets('search routes to the participant filter, not q', (
-      tester,
-    ) async {
-      final requests = <http.Request>[];
-      await _pumpBinding(
-        tester,
-        client: _auditServer(requests, rowBuilder: _participantRow),
-        fake: _authedCoordinator(),
-        studyCoordinatorView: true,
-      );
-
-      await tester.enterText(find.byType(TextField), 'P-204');
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pump(const Duration(milliseconds: 50));
-
-      expect(requests.last.url.queryParameters['participant'], 'P-204');
-      expect(requests.last.url.queryParameters.containsKey('q'), isFalse);
-      expect(requests.last.url.queryParameters['view'], 'mine');
-    });
   });
 }

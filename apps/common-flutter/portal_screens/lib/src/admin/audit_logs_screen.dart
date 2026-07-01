@@ -45,9 +45,6 @@ class AuditLogsScreen extends StatelessWidget {
     this.subtitle = 'View system activity and changes.',
     this.onBack,
     this.backLabel = 'Back to Sites',
-    this.showParticipantId = false,
-    this.searchHint = 'Search by email or action',
-    this.searchSemanticId = 'audit-search',
   });
 
   /// The current page of audit entries, in reverse-chronological
@@ -109,20 +106,6 @@ class AuditLogsScreen extends StatelessWidget {
   /// Label for the [onBack] link.
   final String backLabel;
 
-  /// Renders the Participant ID column (in addition to the common columns)
-  /// — the Study Coordinator Audit Log View.
-  // Implements: DIARY-GUI-audit-log-study-coordinator/A
-  final bool showParticipantId;
-
-  /// Hint text for the search field. The Study Coordinator view overrides it
-  /// to "Search by Participant ID" (the search filters by Participant ID).
-  // Implements: DIARY-GUI-audit-log-study-coordinator/B
-  final String searchHint;
-
-  /// Semantic id for the search field, so a Participant-ID search can be
-  /// addressed distinctly from the generic email/action search in tests.
-  final String searchSemanticId;
-
   @override
   Widget build(BuildContext context) {
     // Same column widths used by the header row and every body row so
@@ -136,7 +119,6 @@ class AuditLogsScreen extends StatelessWidget {
       timestamp: 240,
       user: 240,
       chevron: 64,
-      participant: 200,
     );
 
     return SingleChildScrollView(
@@ -164,9 +146,6 @@ class AuditLogsScreen extends StatelessWidget {
             totalCount: totalCount,
             onPageChanged: onPageChanged,
             onPageSizeChanged: onPageSizeChanged,
-            showParticipantId: showParticipantId,
-            searchHint: searchHint,
-            searchSemanticId: searchSemanticId,
           ),
         ],
       ),
@@ -297,9 +276,6 @@ class _AuditTable extends StatelessWidget {
     required this.totalCount,
     required this.onPageChanged,
     required this.onPageSizeChanged,
-    required this.showParticipantId,
-    required this.searchHint,
-    required this.searchSemanticId,
   });
 
   final List<AuditEntryView> rows;
@@ -314,9 +290,6 @@ class _AuditTable extends StatelessWidget {
   final int totalCount;
   final ValueChanged<int> onPageChanged;
   final ValueChanged<int> onPageSizeChanged;
-  final bool showParticipantId;
-  final String searchHint;
-  final String searchSemanticId;
 
   @override
   Widget build(BuildContext context) {
@@ -340,13 +313,8 @@ class _AuditTable extends StatelessWidget {
             totalCount: totalCount,
             onPageChanged: onPageChanged,
             onPageSizeChanged: onPageSizeChanged,
-            searchHint: searchHint,
-            searchSemanticId: searchSemanticId,
           ),
-          _HeaderRow(
-            columnWidths: columnWidths,
-            showParticipantId: showParticipantId,
-          ),
+          _HeaderRow(columnWidths: columnWidths),
           _Divider(theme: theme),
           _Body(
             rows: rows,
@@ -356,7 +324,6 @@ class _AuditTable extends StatelessWidget {
             search: search,
             columnWidths: columnWidths,
             theme: theme,
-            showParticipantId: showParticipantId,
           ),
         ],
       ),
@@ -373,8 +340,6 @@ class _TopRow extends StatelessWidget {
     required this.totalCount,
     required this.onPageChanged,
     required this.onPageSizeChanged,
-    required this.searchHint,
-    required this.searchSemanticId,
   });
 
   final String search;
@@ -384,8 +349,6 @@ class _TopRow extends StatelessWidget {
   final int totalCount;
   final ValueChanged<int> onPageChanged;
   final ValueChanged<int> onPageSizeChanged;
-  final String searchHint;
-  final String searchSemanticId;
 
   @override
   Widget build(BuildContext context) {
@@ -398,11 +361,10 @@ class _TopRow extends StatelessWidget {
             child: SizedBox(
               width: 360,
               child: AppTextField.search(
-                semanticId: searchSemanticId,
-                // Server-side search over the ENTIRE audit log — the generic
-                // email/action search, or the Study Coordinator view's
-                // Participant ID search.
-                hintText: searchHint,
+                semanticId: 'audit-search',
+                // Server-side search over the ENTIRE audit log (initiator
+                // email / action name), not just the loaded page.
+                hintText: 'Search by email or action',
                 onChanged: onSearchChanged,
               ),
             ),
@@ -424,13 +386,9 @@ class _TopRow extends StatelessWidget {
 }
 
 class _HeaderRow extends StatelessWidget {
-  const _HeaderRow({
-    required this.columnWidths,
-    required this.showParticipantId,
-  });
+  const _HeaderRow({required this.columnWidths});
 
   final AuditColumnWidths columnWidths;
-  final bool showParticipantId;
 
   @override
   Widget build(BuildContext context) {
@@ -461,16 +419,6 @@ class _HeaderRow extends StatelessWidget {
             child: Text('User', style: labelStyle),
           ),
         ),
-        // Participant ID column header — Study Coordinator view only.
-        // Implements: DIARY-GUI-audit-log-study-coordinator/A
-        if (showParticipantId)
-          SizedBox(
-            width: columnWidths.participant,
-            child: Padding(
-              padding: cellPad,
-              child: Text('Participant ID', style: labelStyle),
-            ),
-          ),
         Expanded(
           child: Padding(
             padding: cellPad,
@@ -495,7 +443,6 @@ class _Body extends StatelessWidget {
     required this.search,
     required this.columnWidths,
     required this.theme,
-    required this.showParticipantId,
   });
 
   final List<AuditEntryView> rows;
@@ -505,7 +452,6 @@ class _Body extends StatelessWidget {
   final String search;
   final AuditColumnWidths columnWidths;
   final ThemeData theme;
-  final bool showParticipantId;
 
   @override
   Widget build(BuildContext context) {
@@ -525,11 +471,7 @@ class _Body extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (var i = 0; i < rows.length; i++) ...[
-          AuditLogRow(
-            entry: rows[i],
-            columnWidths: columnWidths,
-            showParticipantId: showParticipantId,
-          ),
+          AuditLogRow(entry: rows[i], columnWidths: columnWidths),
           if (i < rows.length - 1) _Divider(theme: theme),
         ],
       ],
