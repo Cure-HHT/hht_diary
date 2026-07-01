@@ -27,6 +27,21 @@ void main() {
     activeRole: 'StudyCoordinator',
   );
 
+  // The recall tombstone is applied by an async reactor (RecallReactor), so the
+  // dispatcher returns before the projected view/tasks settle. Poll until the
+  // condition holds instead of reading once immediately (fixes a CI flake).
+  Future<void> eventually(
+    Future<bool> Function() condition, {
+    required String reason,
+  }) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (DateTime.now().isBefore(deadline)) {
+      if (await condition()) return;
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    fail('Timed out waiting for: $reason');
+  }
+
   test(
       'Call Back (ACT-QST-002) over the generic dispatcher tombstones the '
       'instance: gone from questionnaire_instance view and from /user/tasks',
@@ -133,15 +148,21 @@ void main() {
     );
     expect(callBack, isA<DispatchSuccess>());
 
-    // 4) The questionnaire_instance row is tombstoned — gone from the view.
-    final afterRows =
-        await boot.eventStore.backend.findViewRows('questionnaire_instance');
-    final afterMine =
-        afterRows.where((r) => r['aggregateId'] == instanceId).toList();
-    expect(afterMine, isEmpty);
+    // 4) The questionnaire_instance row is tombstoned — gone from the view
+    //    (applied by the async RecallReactor, so poll until it settles).
+    await eventually(
+      () async {
+        final rows = await boot.eventStore.backend
+            .findViewRows('questionnaire_instance');
+        return rows.where((r) => r['aggregateId'] == instanceId).isEmpty;
+      },
+      reason: 'questionnaire_instance row to be tombstoned after Call Back',
+    );
 
     // 5) The participant's /user/tasks no longer returns the questionnaire.
-    final tasksAfter = await readTasks();
-    expect(tasksAfter, isEmpty);
+    await eventually(
+      () async => (await readTasks()).isEmpty,
+      reason: '/user/tasks to drop the recalled questionnaire',
+    );
   });
 }
