@@ -133,6 +133,18 @@ void main() {
 
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+    // Under FTL/Orchestrator all testWidgets share one app process and one
+    // on-disk diary_es.db, so recorded events accumulate across cases. Reset
+    // the app's datastore after each test via the @visibleForTesting seam so
+    // every test starts from the clean first-launch state the suite assumes.
+    tearDown(() async {
+      final reset = app.AppRoot.debugResetForTest;
+      if (reset != null) {
+        await reset();
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      }
+    });
+
   // =========================================================================
   // DIARY-JNY-epistaxis-recording: Record an epistaxis event
   //
@@ -1576,12 +1588,13 @@ void main() {
         // 4. The screen is interactive (the participant can adjust preferences).
         //    Confirm the back affordance works and returns to Profile, evidencing
         //    the navigation round-trip applied without error.
+        final settingsBack = find.widgetWithIcon(TextButton, Icons.arrow_back);
         expect(
-          find.widgetWithText(TextButton, 'Back'),
-          findsOneWidget,
+          settingsBack,
+          findsWidgets,
           reason: 'Settings must offer a Back action.',
         );
-        await tester.tap(find.widgetWithText(TextButton, 'Back'));
+        await tester.tap(settingsBack.first);
         mark('11 tapped Back from Settings');
         await tester.pump(const Duration(seconds: 2));
         await _pumpUntil(
