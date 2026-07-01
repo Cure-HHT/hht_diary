@@ -129,6 +129,9 @@ skip_files = ["README.md", "requirements-spec.md", "EXAMPLE-requirement.md", "IN
 # appendices, cover) consumed by the URS PDF generator; these are not
 # REQs and shouldn't be parsed by elspais's spec scanner.
 # regulations/, roadmap/, and the legacy NFR/ entry are also skipped.
+# NOTE: do NOT skip user-journeys/ here. Journey files (# JNY-... blocks) are
+# discovered through this spec scan and classified JOURNEY by content; adding
+# them to skip_dirs removes them from the graph entirely.
 skip_dirs = ["_generated", "roadmap", "regulations", "NFR", "governance", "URS-manifest"]
 
 [scanning.code]
