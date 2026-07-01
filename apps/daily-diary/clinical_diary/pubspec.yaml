@@ -3,7 +3,7 @@ description: "Clinical Diary App"
 publish_to: "none"
 
 
-version: 0.9.83+168
+version: 0.9.83+169
 
 environment:
   sdk: ^3.10.7
