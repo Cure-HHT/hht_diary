@@ -3,6 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portal_screens/portal_screens.dart';
 
+/// Finds an [Image.asset] whose asset path ends with [assetEnding] (e.g.
+/// 'reconnect.png'), regardless of the `packages/<pkg>/` prefix.
+Finder _findAssetImage(String assetEnding) => find.byWidgetPredicate(
+  (w) =>
+      w is Image &&
+      w.image is AssetImage &&
+      (w.image as AssetImage).assetName.endsWith(assetEnding),
+);
+
 void main() {
   const rows = <ParticipantRowView>[
     ParticipantRowView(
@@ -73,6 +82,7 @@ void main() {
   }
 
   group('primaryActionFor', () {
+    // Verifies: CAL-GUI-participant-dashboard-configuration/F
     test('maps every status to its Figma action', () {
       expect(
         primaryActionFor(ParticipantRowStatus.notConnected),
@@ -96,10 +106,14 @@ void main() {
       );
       expect(
         primaryActionFor(ParticipantRowStatus.disconnected),
-        ParticipantPrimaryAction.none,
+        ParticipantPrimaryAction.reconnect,
       );
       expect(
         primaryActionFor(ParticipantRowStatus.notParticipating),
+        ParticipantPrimaryAction.reactivate,
+      );
+      expect(
+        primaryActionFor(ParticipantRowStatus.unknown),
         ParticipantPrimaryAction.none,
       );
     });
@@ -196,10 +210,113 @@ void main() {
     expect(fired?.id, '001-1001234');
   });
 
-  testWidgets('ready-to-review bell renders only on flagged rows', (
+  testWidgets('ready-to-review green dot renders only on flagged rows', (
     tester,
   ) async {
     await pump(tester);
-    expect(find.byIcon(Icons.notifications_active_outlined), findsOneWidget);
+    // Exactly one fixture row (001-1002567) is flagged ready-to-review.
+    expect(
+      find.byKey(const ValueKey('participant-001-1002567-review-indicator')),
+      findsOneWidget,
+    );
+  });
+
+  // Verifies: REQ-CAL-p00023/O — the ready-to-review indicator is a green dot
+  // that ONLY appears when a questionnaire is ready for review. A Trial Active
+  // row that is not flagged must show no indicator (regression: the old code
+  // drew an unconditional green dot next to every Trial Active participant id).
+  testWidgets('Trial Active row without ready-to-review shows no indicator', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      participants: const [
+        ParticipantRowView(
+          id: '001-2000001',
+          siteName: 'Memorial Hospital',
+          status: ParticipantRowStatus.trialActive,
+          hasReadyToReview: false,
+          menuActions: [ParticipantMenuAction.disconnect],
+        ),
+      ],
+    );
+    // Row is present...
+    expect(find.text('001-2000001'), findsOneWidget);
+    expect(find.text('Trial Active'), findsOneWidget);
+    // ...but carries no ready-to-review dot.
+    expect(
+      find.byKey(const ValueKey('participant-001-2000001-review-indicator')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('Trial Active row with ready-to-review shows the green dot', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      participants: const [
+        ParticipantRowView(
+          id: '001-2000002',
+          siteName: 'Memorial Hospital',
+          status: ParticipantRowStatus.trialActive,
+          hasReadyToReview: true,
+          menuActions: [ParticipantMenuAction.disconnect],
+        ),
+      ],
+    );
+    expect(
+      find.byKey(const ValueKey('participant-001-2000002-review-indicator')),
+      findsOneWidget,
+    );
+  });
+
+  // Verifies: CAL-GUI-participant-dashboard-configuration/F
+  testWidgets(
+    'Disconnected renders Reconnect and Not Participating renders Reactivate',
+    (tester) async {
+      const inactiveRows = <ParticipantRowView>[
+        ParticipantRowView(
+          id: '003-1040001',
+          siteName: 'Memorial Hospital',
+          status: ParticipantRowStatus.disconnected,
+          menuActions: [ParticipantMenuAction.reconnect],
+        ),
+        ParticipantRowView(
+          id: '003-1040002',
+          siteName: 'Memorial Hospital',
+          status: ParticipantRowStatus.notParticipating,
+          menuActions: [ParticipantMenuAction.reactivate],
+        ),
+      ];
+      await pump(tester, participants: inactiveRows);
+      // Inactive tab holds Disconnected + Not Participating rows.
+      await tester.tap(find.text('Inactive'));
+      await tester.pump();
+      expect(find.text('Reconnect'), findsOneWidget);
+      expect(find.text('Reactivate'), findsOneWidget);
+      // The buttons use the Figma-exported PNG glyphs (assets/icons/) via a
+      // leadingWidget, not a Material icon.
+      expect(_findAssetImage('reconnect.png'), findsOneWidget);
+      expect(_findAssetImage('reactivate.png'), findsOneWidget);
+    },
+  );
+
+  // Verifies: CAL-GUI-participant-dashboard-configuration/F
+  testWidgets('primary Reconnect action fires with the row', (tester) async {
+    ParticipantRowView? fired;
+    const inactiveRows = <ParticipantRowView>[
+      ParticipantRowView(
+        id: '003-1040001',
+        siteName: 'Memorial Hospital',
+        status: ParticipantRowStatus.disconnected,
+        menuActions: [ParticipantMenuAction.reconnect],
+      ),
+    ];
+    await pump(tester, participants: inactiveRows, onPrimary: (r) => fired = r);
+    await tester.tap(find.text('Inactive'));
+    await tester.pump();
+    await tester.tap(find.text('Reconnect'));
+    expect(fired?.id, '003-1040001');
   });
 }

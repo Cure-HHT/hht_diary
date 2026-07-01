@@ -62,6 +62,32 @@ bool auditEventIsAdminAction(StoredEvent e) =>
     e.initiator is UserInitiator &&
     adminActionName(e.entryType, e.eventType) != null;
 
+/// Resolves the **Participant ID** an audit event pertains to, for the
+/// Participant ID column in the *Study Coordinator* / *CRA* Audit Log Views.
+///
+/// - `participant` aggregate: the aggregate id IS the participant id.
+/// - `questionnaire_instance` aggregate: the event's own `participant_id`
+///   payload when it carries one (the send event does), else the
+///   [participantByInstance] join (the `questionnaire_instance` view maps an
+///   instance id -> participant id) so call-back / finalize / unlock events —
+///   which key on the instance id and don't repeat the participant — still
+///   resolve.
+///
+/// Returns null for any other aggregate (users, sessions, rave_sync, ...),
+/// which have no participant association.
+// Implements: DIARY-GUI-audit-log-study-coordinator/A
+String? auditRowParticipantId(
+  StoredEvent e, [
+  Map<String, String> participantByInstance = const <String, String>{},
+]) =>
+    switch (e.aggregateType) {
+      'participant' => e.aggregateId,
+      'questionnaire_instance' =>
+        (e.data['participant_id'] as String?) ??
+            participantByInstance[e.aggregateId],
+      _ => null,
+    };
+
 /// Maps a [StoredEvent] to a JSON-serialisable audit-trail row capturing
 /// who (initiator), what (entry/event/aggregate), when (timestamp), and the
 /// details (payload + change reason).
@@ -73,10 +99,17 @@ bool auditEventIsAdminAction(StoredEvent e) =>
 /// show names instead of emails (DIARY-GUI-audit-log-common/A).
 /// `action_name` is the Action-Inventory name for the Action column (null for
 /// non-admin events).
+///
+/// [participantByInstance] (questionnaire instance id -> participant id,
+/// resolved once per request) lets the row carry a `participant_id` for
+/// participant & questionnaire events, backing the Participant ID column of
+/// the *Study Coordinator* view. Absent for aggregates with no participant.
 // Implements: DIARY-GUI-audit-log-common/A+F
+// Implements: DIARY-GUI-audit-log-study-coordinator/A
 Map<String, Object?> auditRowJson(
   StoredEvent e, {
   Map<String, String> nameByEmail = const <String, String>{},
+  Map<String, String> participantByInstance = const <String, String>{},
 }) =>
     <String, Object?>{
       'event_id': e.eventId,
@@ -87,6 +120,8 @@ Map<String, Object?> auditRowJson(
       'action_name': adminActionName(e.entryType, e.eventType),
       'aggregate_type': e.aggregateType,
       'aggregate_id': e.aggregateId,
+      if (auditRowParticipantId(e, participantByInstance) case final String pid)
+        'participant_id': pid,
       if (e.aggregateType == 'portal_user' &&
           nameByEmail[e.aggregateId] != null)
         'target_name': nameByEmail[e.aggregateId],
@@ -136,6 +171,39 @@ bool auditEventMatchesSite(
       'participant' => participantSite[e.aggregateId] == siteId,
       _ => false,
     };
+
+/// Own-activity predicate backing `GET /audit?view=mine` — the *Study
+/// Coordinator* Audit Log View, which presents the Coordinator's OWN Actions.
+/// A user-initiated event whose initiator is [userId], over the participant /
+/// questionnaire / site aggregates a Coordinator acts on (so the row carries a
+/// Participant ID and peers' / automation events stay out).
+///
+/// This enforces the separation-of-duties scope from the Overview/Rationale of
+/// DIARY-GUI-audit-log-study-coordinator (which has no dedicated lettered
+/// assertion for it): a Coordinator sees only their own audit trail. Like the
+/// admin/site/query scoping, the server-side read scope is anchored to
+/// DIARY-DEV-audit-log-read rather than minting a new REQ.
+// Implements: DIARY-DEV-audit-log-read/A
+bool auditEventIsOwnActivity(StoredEvent e, String userId) =>
+    e.initiator is UserInitiator &&
+    (e.initiator as UserInitiator).userId == userId &&
+    const {'participant', 'questionnaire_instance', 'site'}
+        .contains(e.aggregateType);
+
+/// Participant filter backing `GET /audit`'s `participant` param — the
+/// Participant ID search input of the *Study Coordinator* view. Case-
+/// insensitive substring match on the row's participant id (see
+/// [auditRowParticipantId]); events with no participant never match.
+// Implements: DIARY-GUI-audit-log-study-coordinator/B
+bool auditEventMatchesParticipant(
+  StoredEvent e,
+  String participantQuery,
+  Map<String, String> participantByInstance,
+) {
+  final pid = auditRowParticipantId(e, participantByInstance);
+  if (pid == null) return false;
+  return pid.toLowerCase().contains(participantQuery.toLowerCase());
+}
 
 Map<String, Object?> _initiatorJson(
   Initiator i,

@@ -31,7 +31,7 @@ import 'package:event_sourcing/event_sourcing.dart';
 /// flush); a second matching entry arriving inside the window flushes the pair
 /// at once (multi-event batches are never held — see [Destination.maxAccumulateTime]).
 /// Tune here — a non-secret static policy constant, not env-delivered.
-const Duration kDiaryBatchWindow = Duration(minutes: 2);
+const Duration kDiaryBatchWindow = Duration(seconds: 10);
 
 /// Outbound [Destination] that ships finalized + tombstone `DiaryEntry`
 /// events to the diary server as canonical `esd/batch@1` batches.

@@ -36,6 +36,8 @@ class QuestionnaireCardState {
     this.currentInstanceId,
     this.currentStudyEvent,
     this.finalizedStudyEvent,
+    this.finalizedAt,
+    this.nextStudyEvent,
     this.endEvent,
   });
 
@@ -52,6 +54,22 @@ class QuestionnaireCardState {
   /// The most-recent finalized study event (Finalized Cycle), shown in the
   /// after-finalize (Not Sent) and Closed rows.
   final String? finalizedStudyEvent;
+
+  /// When the most-recent finalize was folded (the `updatedAt` stamp of the
+  /// [finalizedStudyEvent] row). Rendered next to the "Last:" cycle in the
+  /// after-finalize / Closed body so the coordinator sees the finalization
+  /// date and time. Null when no finalized row exists.
+  ///
+  /// Implements: REQ-CAL-p00023/T
+  final DateTime? finalizedAt;
+
+  /// The next cycle's study event after an after-finalize (e.g.
+  /// `'Cycle 2 Day 1'` when [finalizedStudyEvent] is `'Cycle 1 Day 1'`). Shown
+  /// as the "Next: …" line with a Not-Sent badge on the after-finalize card.
+  /// Null for a terminal Closed row or when the finalized cycle is unparseable.
+  ///
+  /// Implements: REQ-CAL-p00023/T
+  final String? nextStudyEvent;
 
   /// The terminal close marker on a Closed card (`'end_of_treatment'` /
   /// `'end_of_study'`), surfaced so the card can render the combined
@@ -70,6 +88,17 @@ int? _parseCycleNumber(String? studyEvent) {
   final match = RegExp(r'^Cycle ([1-9]\d*) Day 1$').firstMatch(studyEvent);
   if (match == null) return null;
   return int.parse(match.group(1)!);
+}
+
+/// The next cycle's canonical study-event string after finalizing [studyEvent]
+/// (e.g. `'Cycle 1 Day 1'` -> `'Cycle 2 Day 1'`). Returns null when the input
+/// carries no parseable `Cycle N Day 1`, so callers can guard the "Next: …"
+/// line. Exposed for the after-finalize card and unit tests.
+///
+/// Implements: REQ-CAL-p00023/T
+String? nextCycleStudyEvent(String? studyEvent) {
+  final n = _parseCycleNumber(studyEvent);
+  return n == null ? null : 'Cycle ${n + 1} Day 1';
 }
 
 /// Resolves the [QuestionnaireCardState] for ONE (participant, type) from its
@@ -159,6 +188,8 @@ QuestionnaireCardState resolveCardState(
       return QuestionnaireCardState(
         status: QuestionnaireInstanceStatus.closed,
         finalizedStudyEvent: t.studyEvent,
+        // Implements: REQ-CAL-p00023/T — surface the terminal finalize time.
+        finalizedAt: t.finalizedAt,
         endEvent: t.endEvent,
         actions: const <QuestionnaireCardAction>[],
       );
@@ -166,6 +197,10 @@ QuestionnaireCardState resolveCardState(
     return QuestionnaireCardState(
       status: QuestionnaireInstanceStatus.notSent,
       finalizedStudyEvent: latest.studyEvent,
+      // Implements: REQ-CAL-p00023/T — the finalization date/time and the
+      //   next cycle to send, shown on the after-finalize card.
+      finalizedAt: latest.finalizedAt,
+      nextStudyEvent: nextCycleStudyEvent(latest.studyEvent),
       actions: const <QuestionnaireCardAction>[
         QuestionnaireCardAction.startNextCycle,
       ],
