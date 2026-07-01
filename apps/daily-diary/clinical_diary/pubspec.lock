@@ -141,8 +141,8 @@ packages:
     dependency: transitive
     description:
       path: canonical_json_jcs
-      ref: af9670325717f33ae6bddae355241346902acb00
-      resolved-ref: af9670325717f33ae6bddae355241346902acb00
+      ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
+      resolved-ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
       url: "https://github.com/Cure-HHT/event_sourcing.git"
     source: git
     version: "0.1.0"
@@ -386,8 +386,8 @@ packages:
     dependency: "direct main"
     description:
       path: event_sourcing
-      ref: af9670325717f33ae6bddae355241346902acb00
-      resolved-ref: af9670325717f33ae6bddae355241346902acb00
+      ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
+      resolved-ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
       url: "https://github.com/Cure-HHT/event_sourcing.git"
     source: git
     version: "0.3.0+4"
@@ -1150,8 +1150,8 @@ packages:
     dependency: transitive
     description:
       path: provenance
-      ref: af9670325717f33ae6bddae355241346902acb00
-      resolved-ref: af9670325717f33ae6bddae355241346902acb00
+      ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
+      resolved-ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
       url: "https://github.com/Cure-HHT/event_sourcing.git"
     source: git
     version: "0.1.0"
@@ -1175,8 +1175,8 @@ packages:
     dependency: "direct main"
     description:
       path: reaction
-      ref: af9670325717f33ae6bddae355241346902acb00
-      resolved-ref: af9670325717f33ae6bddae355241346902acb00
+      ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
+      resolved-ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
       url: "https://github.com/Cure-HHT/event_sourcing.git"
     source: git
     version: "0.1.0-dev"
@@ -1184,8 +1184,8 @@ packages:
     dependency: "direct main"
     description:
       path: reaction_widgets
-      ref: af9670325717f33ae6bddae355241346902acb00
-      resolved-ref: af9670325717f33ae6bddae355241346902acb00
+      ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
+      resolved-ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
       url: "https://github.com/Cure-HHT/event_sourcing.git"
     source: git
     version: "0.1.0-dev"
@@ -1193,8 +1193,8 @@ packages:
     dependency: "direct dev"
     description:
       path: reaction_widgets_testing
-      ref: af9670325717f33ae6bddae355241346902acb00
-      resolved-ref: af9670325717f33ae6bddae355241346902acb00
+      ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
+      resolved-ref: "742e8275fe932369c76e5ac4c41bd6285a2afa1d"
       url: "https://github.com/Cure-HHT/event_sourcing.git"
     source: git
     version: "0.1.0-dev"
