@@ -271,16 +271,34 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
   /// the flaky-local-login root cause (flutterfire #9528). The login appears
   /// only on `sessionReady`; a genuine init failure surfaces an explicit error
   /// rather than a prod-pointed login.
+  ///
+  /// On a production (non-emulator) session deployment the bootstrap also
+  /// rehydrates a persisted Firebase *User* into a fresh portal session token
+  /// (`POST /login` with the restored ID token). When restore yields a token we
+  /// consume it via [_onSession] BEFORE flipping `_sessionAuth = true`, so the
+  /// loader stays up during the await and the app lands on the dashboard on a
+  /// hard reload with no login flash. A missing/rejected session falls through
+  /// to the login screen exactly as before.
   // Implements: DIARY-DEV-portal-emulator-bootstrap/A+B+C
   Future<void> _resolveAuthMode() async {
-    final outcome = await resolveAuthBootstrap(
+    final authClient = RealFirebaseAuthClient();
+    final result = await resolveAuthBootstrap(
       fetchConfig: () => fetchIdentityConfig(_serverUrl),
       initFirebase: initFirebaseWithConfig,
       clearAuthDb: widget.web.clearFirebaseAuthDb,
+      readPersistedIdToken: authClient.awaitPersistedIdToken,
+      exchangeSession: _exchangeIdTokenForSession,
     );
     if (!mounted) return;
+    // Consume a restored session BEFORE flipping `_sessionAuth` so build() keeps
+    // showing the loading scaffold (no login flash) until Authenticated arrives.
+    // Implements: DIARY-DEV-portal-emulator-bootstrap/B
+    final restored = result.restoredSessionToken;
+    if (restored != null) {
+      _onSession(restored, displayName: result.restoredDisplayName);
+    }
     setState(() {
-      switch (outcome) {
+      switch (result.outcome) {
         case AuthBootstrapOutcome.dev:
           _sessionAuth = false;
         case AuthBootstrapOutcome.sessionReady:
@@ -289,6 +307,27 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
           _authInitFailed = true;
       }
     });
+  }
+
+  /// Exchanges a persisted Firebase ID token at `POST /login` for a portal
+  /// session, mirroring the login screen's exchange. Returns the decoded login
+  /// response body, or null on a non-200 / transport failure (restore then
+  /// falls through to the login screen). Used only by the boot-time restore.
+  // Implements: DIARY-DEV-portal-emulator-bootstrap/B
+  Future<Map<String, Object?>?> _exchangeIdTokenForSession(
+    String idToken,
+  ) async {
+    try {
+      final r = await http.post(
+        Uri.parse('$_serverUrl/login'),
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({'idToken': idToken}),
+      );
+      if (r.statusCode != 200) return null;
+      return jsonDecode(r.body) as Map<String, Object?>;
+    } catch (_) {
+      return null;
+    }
   }
 
   @override

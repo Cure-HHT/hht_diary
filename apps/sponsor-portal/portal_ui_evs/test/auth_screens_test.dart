@@ -43,6 +43,9 @@ class _FakeAuth implements FirebaseAuthClient {
     if (throwError) return Future<String>.error(StateError('bad creds'));
     return Future<String>.value('idtok');
   }
+
+  @override
+  Future<String?> awaitPersistedIdToken() async => null;
 }
 
 class _RecordingAuth implements FirebaseAuthClient {
@@ -55,6 +58,9 @@ class _RecordingAuth implements FirebaseAuthClient {
     lastEmail = email;
     return Future<String>.value('idtok');
   }
+
+  @override
+  Future<String?> awaitPersistedIdToken() async => null;
 }
 
 http.Client _json(
