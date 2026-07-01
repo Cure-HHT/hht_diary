@@ -1609,7 +1609,7 @@
     "uat_coverage": "0/14 (0%)",
     "uat_verified": "0/14 (0%)",
     "code_tested": "0/453 (0%)",
-    "lcov_tested": "lcov 90%"
+    "lcov_tested": "lcov 88%"
   },
   {
     "id": "DIARY-PRD-notification-disconnection",
