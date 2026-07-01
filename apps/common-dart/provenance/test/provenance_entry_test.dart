@@ -62,32 +62,38 @@ void main() {
     );
 
     // Verifies: EVS-PRD-provenance/C — toJson emits non-null transform_version.
-    test('EVS-PRD-provenance: toJson emits non-null transform_version when set', () {
-      final entry = ProvenanceEntry(
-        hop: 'portal-server',
-        receivedAt: DateTime.utc(2026, 4, 21, 11, 0, 0),
-        identifier: 'portal-instance-7',
-        softwareVersion: 'portal-functions@0.5.0',
-        transformVersion: 'fhir-r4-v1',
-      );
+    test(
+      'EVS-PRD-provenance: toJson emits non-null transform_version when set',
+      () {
+        final entry = ProvenanceEntry(
+          hop: 'portal-server',
+          receivedAt: DateTime.utc(2026, 4, 21, 11, 0, 0),
+          identifier: 'portal-instance-7',
+          softwareVersion: 'portal-functions@0.5.0',
+          transformVersion: 'fhir-r4-v1',
+        );
 
-      expect(entry.toJson()['transform_version'], 'fhir-r4-v1');
-    });
+        expect(entry.toJson()['transform_version'], 'fhir-r4-v1');
+      },
+    );
 
     // Verifies: EVS-PRD-provenance/C — round-trip preserves every field.
-    test('EVS-PRD-provenance: toJson/fromJson round-trip preserves all fields', () {
-      final original = ProvenanceEntry(
-        hop: 'diary-server',
-        receivedAt: DateTime.utc(2026, 4, 21, 12, 15, 30, 500),
-        identifier: 'diary-instance-42',
-        softwareVersion: 'diary_functions@0.8.2+101',
-        transformVersion: 'v2',
-      );
+    test(
+      'EVS-PRD-provenance: toJson/fromJson round-trip preserves all fields',
+      () {
+        final original = ProvenanceEntry(
+          hop: 'diary-server',
+          receivedAt: DateTime.utc(2026, 4, 21, 12, 15, 30, 500),
+          identifier: 'diary-instance-42',
+          softwareVersion: 'diary_functions@0.8.2+101',
+          transformVersion: 'v2',
+        );
 
-      final roundTripped = ProvenanceEntry.fromJson(original.toJson());
+        final roundTripped = ProvenanceEntry.fromJson(original.toJson());
 
-      expect(roundTripped, equals(original));
-    });
+        expect(roundTripped, equals(original));
+      },
+    );
 
     // Verifies: EVS-PRD-provenance/C — round-trip preserves null transform_version.
     test('EVS-PRD-provenance: round-trip preserves null transform_version', () {
@@ -137,10 +143,13 @@ void main() {
       });
 
       // Verifies: EVS-PRD-provenance/C — missing received_at is rejected.
-      test('EVS-PRD-provenance: missing received_at throws FormatException', () {
-        final bad = Map<String, Object?>.of(validJson)..remove('received_at');
-        expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
-      });
+      test(
+        'EVS-PRD-provenance: missing received_at throws FormatException',
+        () {
+          final bad = Map<String, Object?>.of(validJson)..remove('received_at');
+          expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
+        },
+      );
 
       // Verifies: EVS-PRD-provenance/C — missing identifier is rejected.
       test('EVS-PRD-provenance: missing identifier throws FormatException', () {
@@ -149,11 +158,14 @@ void main() {
       });
 
       // Verifies: EVS-PRD-provenance/C — missing software_version is rejected.
-      test('EVS-PRD-provenance: missing software_version throws FormatException', () {
-        final bad = Map<String, Object?>.of(validJson)
-          ..remove('software_version');
-        expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
-      });
+      test(
+        'EVS-PRD-provenance: missing software_version throws FormatException',
+        () {
+          final bad = Map<String, Object?>.of(validJson)
+            ..remove('software_version');
+          expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
+        },
+      );
 
       // Verifies: EVS-PRD-provenance/C — wrong-type field is rejected.
       test('EVS-PRD-provenance: non-string hop throws FormatException', () {
@@ -172,19 +184,25 @@ void main() {
       );
 
       // Verifies: EVS-PRD-provenance/C — missing transform_version defaults to null.
-      test('EVS-PRD-provenance: absent transform_version key is treated as null', () {
-        final bad = Map<String, Object?>.of(validJson)
-          ..remove('transform_version');
-        final entry = ProvenanceEntry.fromJson(bad);
-        expect(entry.transformVersion, isNull);
-      });
+      test(
+        'EVS-PRD-provenance: absent transform_version key is treated as null',
+        () {
+          final bad = Map<String, Object?>.of(validJson)
+            ..remove('transform_version');
+          final entry = ProvenanceEntry.fromJson(bad);
+          expect(entry.transformVersion, isNull);
+        },
+      );
 
       // Verifies: EVS-PRD-provenance/C — malformed received_at rejected.
-      test('EVS-PRD-provenance: malformed received_at throws FormatException', () {
-        final bad = Map<String, Object?>.of(validJson)
-          ..['received_at'] = 'not-a-date';
-        expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
-      });
+      test(
+        'EVS-PRD-provenance: malformed received_at throws FormatException',
+        () {
+          final bad = Map<String, Object?>.of(validJson)
+            ..['received_at'] = 'not-a-date';
+          expect(() => ProvenanceEntry.fromJson(bad), throwsFormatException);
+        },
+      );
 
       // Verifies: EVS-PRD-provenance/C — offsetless ISO 8601 rejected. Dart's
       // DateTime.parse would silently accept this as local time, silently
@@ -199,12 +217,15 @@ void main() {
       );
 
       // Verifies: EVS-PRD-provenance/C — explicit colon-separated positive offset.
-      test('EVS-PRD-provenance: received_at with +HH:MM offset is accepted', () {
-        final input = Map<String, Object?>.of(validJson)
-          ..['received_at'] = '2026-04-21T10:30:00+05:30';
-        final entry = ProvenanceEntry.fromJson(input);
-        expect(entry.receivedAt.isUtc, isTrue);
-      });
+      test(
+        'EVS-PRD-provenance: received_at with +HH:MM offset is accepted',
+        () {
+          final input = Map<String, Object?>.of(validJson)
+            ..['received_at'] = '2026-04-21T10:30:00+05:30';
+          final entry = ProvenanceEntry.fromJson(input);
+          expect(entry.receivedAt.isUtc, isTrue);
+        },
+      );
 
       // Verifies: EVS-PRD-provenance/C — colonless compact negative offset.
       test(
@@ -442,29 +463,35 @@ void main() {
     );
 
     // Verifies: EVS-PRD-provenance/C — JSON omits the key when value is null.
-    test('EVS-PRD-provenance: toJson omits origin_sequence_number when null', () {
-      final entry = ProvenanceEntry(
-        hop: 'mobile-device',
-        receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
-        identifier: 'device-abc',
-        softwareVersion: 'daily_diary@1.0.0',
-      );
-      final json = entry.toJson();
-      expect(json.containsKey('origin_sequence_number'), isFalse);
-    });
+    test(
+      'EVS-PRD-provenance: toJson omits origin_sequence_number when null',
+      () {
+        final entry = ProvenanceEntry(
+          hop: 'mobile-device',
+          receivedAt: DateTime.parse('2026-04-24T12:00:00Z'),
+          identifier: 'device-abc',
+          softwareVersion: 'daily_diary@1.0.0',
+        );
+        final json = entry.toJson();
+        expect(json.containsKey('origin_sequence_number'), isFalse);
+      },
+    );
 
     // Verifies: EVS-PRD-provenance/C — fromJson treats absent key as null.
-    test('EVS-PRD-provenance: absent origin_sequence_number key decodes to null', () {
-      final input = <String, Object?>{
-        'hop': 'mobile-device',
-        'received_at': '2026-04-24T12:00:00Z',
-        'identifier': 'device-abc',
-        'software_version': 'daily_diary@1.0.0',
-        'transform_version': null,
-      };
-      final entry = ProvenanceEntry.fromJson(input);
-      expect(entry.originSequenceNumber, isNull);
-    });
+    test(
+      'EVS-PRD-provenance: absent origin_sequence_number key decodes to null',
+      () {
+        final input = <String, Object?>{
+          'hop': 'mobile-device',
+          'received_at': '2026-04-24T12:00:00Z',
+          'identifier': 'device-abc',
+          'software_version': 'daily_diary@1.0.0',
+          'transform_version': null,
+        };
+        final entry = ProvenanceEntry.fromJson(input);
+        expect(entry.originSequenceNumber, isNull);
+      },
+    );
 
     // Verifies: EVS-PRD-provenance/C — non-int origin_sequence_number is rejected.
     test(

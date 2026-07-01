@@ -275,21 +275,20 @@ void main() {
       });
 
       // Verifies: DIARY-PRD-privacy-policy
-      testWidgets(
-        'shows Application Privacy Policy menu row when active',
-        (tester) async {
-          await tester.pumpWidget(
-            buildProfileScreen(
-              isEnrolledInTrial: true,
-              isDisconnected: false,
-              enrollmentStatus: 'active',
-            ),
-          );
-          await tester.pumpAndSettle();
+      testWidgets('shows Application Privacy Policy menu row when active', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildProfileScreen(
+            isEnrolledInTrial: true,
+            isDisconnected: false,
+            enrollmentStatus: 'active',
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          expect(find.text('Application Privacy Policy'), findsOneWidget);
-        },
-      );
+        expect(find.text('Application Privacy Policy'), findsOneWidget);
+      });
 
       // CUR-1495: the Application Privacy Policy row launches the external URL.
       test('Application Privacy Policy URL is the CureHHT app policy', () {

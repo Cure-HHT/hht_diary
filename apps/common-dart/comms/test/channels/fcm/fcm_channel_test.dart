@@ -240,83 +240,86 @@ void main() {
       );
     });
 
-    group('APNS payload split (DIARY-DEV-pluggable-push-transport / DIARY-PRD-notification-behavior)', () {
-      test(
-        'userVisible=true sends priority=10 with no content-available',
-        () async {
-          late Map<String, dynamic> sentMessage;
-          final channel = FcmChannel(
-            projectId: 'cure-hht-admin',
-            adcClient: _testAdc(
-              MockClient((request) async {
-                final body = jsonDecode(request.body) as Map<String, dynamic>;
-                sentMessage = body['message'] as Map<String, dynamic>;
-                return http.Response(jsonEncode({'name': 'msg-1'}), 200);
-              }),
-            ),
-          );
+    group(
+      'APNS payload split (DIARY-DEV-pluggable-push-transport / DIARY-PRD-notification-behavior)',
+      () {
+        test(
+          'userVisible=true sends priority=10 with no content-available',
+          () async {
+            late Map<String, dynamic> sentMessage;
+            final channel = FcmChannel(
+              projectId: 'cure-hht-admin',
+              adcClient: _testAdc(
+                MockClient((request) async {
+                  final body = jsonDecode(request.body) as Map<String, dynamic>;
+                  sentMessage = body['message'] as Map<String, dynamic>;
+                  return http.Response(jsonEncode({'name': 'msg-1'}), 200);
+                }),
+              ),
+            );
 
-          await channel.dispatch(
-            const FcmMessage(
-              fcmToken: 'tok-1',
-              data: {'type': 'questionnaire_finalized'},
-              userVisible: true,
-              notificationTitle: 'Questionnaire Finalized',
-              notificationBody: 'Your questionnaire is locked.',
-            ),
-          );
+            await channel.dispatch(
+              const FcmMessage(
+                fcmToken: 'tok-1',
+                data: {'type': 'questionnaire_finalized'},
+                userVisible: true,
+                notificationTitle: 'Questionnaire Finalized',
+                notificationBody: 'Your questionnaire is locked.',
+              ),
+            );
 
-          final apns = sentMessage['apns'] as Map<String, dynamic>;
-          expect(
-            apns['headers'],
-            equals({'apns-priority': '10', 'apns-push-type': 'alert'}),
-            reason:
-                'apns-push-type=alert required on iOS 13+ for user-visible push',
-          );
-          expect(apns.containsKey('payload'), isFalse);
-          // notification block present (system tray).
-          expect(sentMessage.containsKey('notification'), isTrue);
-        },
-      );
+            final apns = sentMessage['apns'] as Map<String, dynamic>;
+            expect(
+              apns['headers'],
+              equals({'apns-priority': '10', 'apns-push-type': 'alert'}),
+              reason:
+                  'apns-push-type=alert required on iOS 13+ for user-visible push',
+            );
+            expect(apns.containsKey('payload'), isFalse);
+            // notification block present (system tray).
+            expect(sentMessage.containsKey('notification'), isTrue);
+          },
+        );
 
-      test(
-        'userVisible=false sends priority=5 with content-available=1',
-        () async {
-          late Map<String, dynamic> sentMessage;
-          final channel = FcmChannel(
-            projectId: 'cure-hht-admin',
-            adcClient: _testAdc(
-              MockClient((request) async {
-                final body = jsonDecode(request.body) as Map<String, dynamic>;
-                sentMessage = body['message'] as Map<String, dynamic>;
-                return http.Response(jsonEncode({'name': 'msg-1'}), 200);
-              }),
-            ),
-          );
+        test(
+          'userVisible=false sends priority=5 with content-available=1',
+          () async {
+            late Map<String, dynamic> sentMessage;
+            final channel = FcmChannel(
+              projectId: 'cure-hht-admin',
+              adcClient: _testAdc(
+                MockClient((request) async {
+                  final body = jsonDecode(request.body) as Map<String, dynamic>;
+                  sentMessage = body['message'] as Map<String, dynamic>;
+                  return http.Response(jsonEncode({'name': 'msg-1'}), 200);
+                }),
+              ),
+            );
 
-          await channel.dispatch(
-            const FcmMessage(
-              fcmToken: 'tok-1',
-              data: {'type': 'questionnaire_deleted'},
-              userVisible: false,
-            ),
-          );
+            await channel.dispatch(
+              const FcmMessage(
+                fcmToken: 'tok-1',
+                data: {'type': 'questionnaire_deleted'},
+                userVisible: false,
+              ),
+            );
 
-          final apns = sentMessage['apns'] as Map<String, dynamic>;
-          expect(
-            apns['headers'],
-            equals({'apns-priority': '5', 'apns-push-type': 'background'}),
-            reason:
-                'apns-push-type=background required on iOS 13+ — without it '
-                'APNs silently drops the message even though FCM returns 200',
-          );
-          final apnsPayload = apns['payload'] as Map<String, dynamic>;
-          final aps = apnsPayload['aps'] as Map<String, dynamic>;
-          expect(aps['content-available'], equals(1));
-          expect(sentMessage.containsKey('notification'), isFalse);
-        },
-      );
-    });
+            final apns = sentMessage['apns'] as Map<String, dynamic>;
+            expect(
+              apns['headers'],
+              equals({'apns-priority': '5', 'apns-push-type': 'background'}),
+              reason:
+                  'apns-push-type=background required on iOS 13+ — without it '
+                  'APNs silently drops the message even though FCM returns 200',
+            );
+            final apnsPayload = apns['payload'] as Map<String, dynamic>;
+            final aps = apnsPayload['aps'] as Map<String, dynamic>;
+            expect(aps['content-available'], equals(1));
+            expect(sentMessage.containsKey('notification'), isFalse);
+          },
+        );
+      },
+    );
 
     // Verifies: DIARY-DEV-pluggable-push-transport/A — FcmChannel is the FCM
     //   adapter of the neutral PushChannel.send seam; the routingToken becomes
