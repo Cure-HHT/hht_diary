@@ -224,31 +224,25 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
               ),
             ),
-            if (p.status == ParticipantRowStatus.trialActive) ...[
-              const SizedBox(width: 8),
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    ctx,
-                  ).extension<AppSemanticColors>()!.statusActive,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
+            // Implements: REQ-CAL-p00023/O — the "ready to review" indicator is
+            // a green dot shown only when a questionnaire is ready for review;
+            // it is NOT an unconditional marker for every Trial Active row.
             if (p.hasReadyToReview) ...[
               const SizedBox(width: 6),
               Tooltip(
                 message: 'Questionnaire ready to review',
                 child: Semantics(
-                  identifier: 'participant-${p.id}-review-bell',
-                  child: Icon(
-                    Icons.notifications_active_outlined,
-                    size: 16,
-                    color: Theme.of(
-                      ctx,
-                    ).extension<AppSemanticColors>()!.statusAttention,
+                  identifier: 'participant-${p.id}-review-indicator',
+                  child: Container(
+                    key: ValueKey('participant-${p.id}-review-indicator'),
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        ctx,
+                      ).extension<AppSemanticColors>()!.statusActive,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
               ),
