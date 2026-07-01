@@ -117,6 +117,24 @@ Future<void> _screenshot(
   await binding.takeScreenshot(name);
 }
 
+/// Resets the app's on-disk datastore between tests using the
+/// @visibleForTesting seam. Runs INSIDE a test body (has a [tester]) so it can
+/// settle the widget tree before AND after the reset: this guarantees no
+/// outstanding EventStore aggregate stream callbacks fire against the closed
+/// sembast database after the test's zone has completed.
+Future<void> _resetAppState(WidgetTester tester) async {
+  final reset = app.AppRoot.debugResetForTest;
+  if (reset == null) return;
+  // Settle any in-flight frames/subscriptions before tearing down the store.
+  await tester.pumpAndSettle();
+  await reset();
+  // Let the freshly re-initialised runtime settle, then drain any pending
+  // microtasks/timers so post-completion callbacks cannot touch a closed DB.
+  await tester.pumpAndSettle();
+  await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+  await tester.pumpAndSettle();
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -137,13 +155,6 @@ void main() {
     // on-disk diary_es.db, so recorded events accumulate across cases. Reset
     // the app's datastore after each test via the @visibleForTesting seam so
     // every test starts from the clean first-launch state the suite assumes.
-    tearDown(() async {
-      final reset = app.AppRoot.debugResetForTest;
-      if (reset != null) {
-        await reset();
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-      }
-    });
 
   // =========================================================================
   // DIARY-JNY-epistaxis-recording: Record an epistaxis event
@@ -303,6 +314,7 @@ void main() {
       mark('18 journey complete, no exceptions');
       await _screenshot(binding, tester, 'jny_epistaxis_recording_saved');
       mark('19 screenshot taken, DONE');
+      await _resetAppState(tester);
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
@@ -441,6 +453,7 @@ void main() {
       mark('13 journey complete, no exceptions');
       await _screenshot(binding, tester, 'jny_confirm_yesterday_status');
       mark('14 screenshot taken, DONE');
+      await _resetAppState(tester);
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
@@ -660,6 +673,7 @@ void main() {
       mark('18 journey complete, no exceptions');
       await _screenshot(binding, tester, 'jny_incomplete_record_lifecycle');
       mark('19 screenshot taken, DONE');
+      await _resetAppState(tester);
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
@@ -857,7 +871,8 @@ void main() {
         mark('18 journey complete, no exceptions');
         await _screenshot(binding, tester, 'jny_complete_incomplete_record');
         mark('19 screenshot taken, DONE');
-      },
+        await _resetAppState(tester);
+    },
       timeout: const Timeout(Duration(minutes: 4)),
     );
 
@@ -1106,7 +1121,8 @@ void main() {
         mark('16 journey complete, no exceptions');
         await _screenshot(binding, tester, 'jny_resolve_overlapping_event');
         mark('17 screenshot taken, DONE');
-      },
+        await _resetAppState(tester);
+    },
       timeout: const Timeout(Duration(minutes: 4)),
     );
 
@@ -1286,7 +1302,8 @@ void main() {
         mark('13 journey complete, no exceptions');
         await _screenshot(binding, tester, 'jny_review_backfill_calendar');
         mark('14 screenshot taken, DONE');
-      },
+        await _resetAppState(tester);
+    },
       timeout: const Timeout(Duration(minutes: 4)),
     );
 
@@ -1453,7 +1470,8 @@ void main() {
         mark('15 journey complete, no exceptions');
         await _screenshot(binding, tester, 'jny_edit_delete_event');
         mark('16 screenshot taken, DONE');
-      },
+        await _resetAppState(tester);
+    },
       timeout: const Timeout(Duration(minutes: 4)),
     );
 
@@ -1619,7 +1637,8 @@ void main() {
         mark('14 journey complete, no exceptions');
         await _screenshot(binding, tester, 'jny_manage_profile_settings');
         mark('15 screenshot taken, DONE');
-      },
+        await _resetAppState(tester);
+    },
       timeout: const Timeout(Duration(minutes: 4)),
     );
 
@@ -1744,6 +1763,7 @@ void main() {
       mark('10 all sizes passed overflow + bounds checks');
       await _screenshot(binding, tester, 'dfui_responsive_layout_bounds');
       mark('11 screenshot taken, DONE');
+      await _resetAppState(tester);
     },
     timeout: const Timeout(Duration(minutes: 4)),
   );
@@ -1786,6 +1806,7 @@ void main() {
       tester.view.devicePixelRatio = originalDpr;
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
       mark('dvFontScaleRecordingBounds done');
+      await _resetAppState(tester);
     }, timeout: const Timeout(Duration(minutes: 4)));
 
     // Verifies: JNY-DIARY-02
@@ -1815,6 +1836,7 @@ void main() {
       tester.view.devicePixelRatio = originalDpr;
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
       mark('dvSmallDenseCalendarBounds done');
+      await _resetAppState(tester);
     }, timeout: const Timeout(Duration(minutes: 4)));
 
     // Verifies: JNY-DIARY-03
@@ -1846,6 +1868,7 @@ void main() {
       tester.view.devicePixelRatio = originalDpr;
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
       mark('dvRotationPreservesRecord done');
+      await _resetAppState(tester);
     }, timeout: const Timeout(Duration(minutes: 4)));
 
     // Verifies: JNY-DIARY-04
@@ -1939,6 +1962,7 @@ void main() {
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
       expect(tester.takeException(), isNull);
       mark('dvOverlapControlsLandscape done');
+      await _resetAppState(tester);
     }, timeout: const Timeout(Duration(minutes: 4)));
 
     // Verifies: JNY-DIARY-05
@@ -1964,6 +1988,7 @@ void main() {
         expect(find.byType(HomeScreen), findsWidgets);
       }
       mark('dvYesterdayBoundaryDisposition done');
+      await _resetAppState(tester);
     }, timeout: const Timeout(Duration(minutes: 4)));
 
     // Verifies: JNY-DIARY-06
@@ -2014,6 +2039,7 @@ void main() {
         expect(tester.takeException(), isNull);
       }
       mark('dvMidnightRolloverRecord done');
+      await _resetAppState(tester);
     }, timeout: const Timeout(Duration(minutes: 4)));
 
     // Verifies: JNY-DIARY-07
@@ -2066,6 +2092,7 @@ void main() {
         expect(find.byType(HomeScreen), findsWidgets);
       }
       mark('dvDoubleTapFinalizeIdempotent done');
+      await _resetAppState(tester);
     }, timeout: const Timeout(Duration(minutes: 4)));
 
     // Verifies: JNY-DIARY-08
@@ -2105,6 +2132,7 @@ void main() {
       await _waitForHome(tester);
       expect(find.byType(HomeScreen), findsWidgets);
       mark('dvRapidNavigationChurn done');
+      await _resetAppState(tester);
     }, timeout: const Timeout(Duration(minutes: 4)));
 
     // Verifies: JNY-DIARY-09
@@ -2220,6 +2248,7 @@ void main() {
       await _waitForHome(tester);
       expect(find.byType(HomeScreen), findsWidgets);
       mark('dvDeleteCancelConsistency done');
+      await _resetAppState(tester);
     }, timeout: const Timeout(Duration(minutes: 4)));
 
     // Verifies: JNY-DIARY-10
@@ -2250,6 +2279,7 @@ void main() {
       await _waitForHome(tester);
       expect(find.byType(HomeScreen), findsWidgets);
       mark('dvAccessibilityPreferencePersists done');
+      await _resetAppState(tester);
     }, timeout: const Timeout(Duration(minutes: 4)));
 
 }
