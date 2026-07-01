@@ -430,6 +430,7 @@ The **User Information Modal** is the per-account hub: every lifecycle *Action* 
 ## DIARY-GUI-administrator-dashboard: Administrator Dashboard
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Overview
 

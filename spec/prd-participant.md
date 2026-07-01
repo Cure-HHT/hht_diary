@@ -215,6 +215,7 @@ Reactivation is the inverse of mark-as-not-participating: the **Participant** is
 ## DIARY-GUI-participant-dashboard: Participant Dashboard
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-participant-lifecycle
 
 ### Overview
 

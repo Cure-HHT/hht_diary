@@ -2,7 +2,7 @@
   "_about": "CUR-1451 legacy-annotation sweep work-list. Each key is a legacy URS id cited in code/CI. status=resolved means the URS-v1 mapping gives a target; disposition is filled by the Phase-1 passes (port|rewrite|parent-cite|drop|cross-repo). Regenerate with tools/requirements/build_inventory.py; hand-edits to disposition/notes/target are preserved-by-rerun ONLY if you merge \u2014 rerun overwrites, so make dispositions in a separate sidecar once Phase 1 starts.",
   "summary": {
     "unique_legacy_ids": 38,
-    "header_block_files": 61,
+    "header_block_files": 60,
     "by_level": {
       "OPS": 11,
       "DEV": 20,
@@ -16,7 +16,6 @@
   },
   "header_block_files": [
     ".devcontainer/check-prerequisites.sh",
-    ".githooks/pre-push",
     "apps/common-dart/dart-base-container/Dockerfile",
     "apps/common-dart/dart-base-container/cloudbuild.yaml",
     "apps/common-dart/flutter-base-container/Dockerfile",
