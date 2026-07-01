@@ -36,6 +36,11 @@ class AuditEntryView {
   /// "Activation email sent to Jennifer Martinez".
   final String activityLabel;
 
+  /// The Participant ID this entry pertains to, for the Participant ID column
+  /// in the Study Coordinator Audit Log View. Empty string when the entry has
+  /// no participant association (e.g. user-account or system events).
+  final String participantId;
+
   /// The full audit JSON record, retained for the row's expanded "details"
   /// view. Kept as an opaque map because the expanded panel currently
   /// renders it via `JsonEncoder.withIndent` — no need to model every
@@ -49,6 +54,7 @@ class AuditEntryView {
     required this.actorRole,
     required this.activityLabel,
     this.actorEmail = '',
+    this.participantId = '',
     required this.raw,
   });
 
@@ -62,6 +68,7 @@ class AuditEntryView {
           actorRole == other.actorRole &&
           actorEmail == other.actorEmail &&
           activityLabel == other.activityLabel &&
+          participantId == other.participantId &&
           mapEquals(raw, other.raw);
 
   /// Hashes scalar fields only; the raw payload is excluded because it's
@@ -75,11 +82,13 @@ class AuditEntryView {
     actorRole,
     actorEmail,
     activityLabel,
+    participantId,
   );
 
   @override
   String toString() =>
       'AuditEntryView(id: $id, timestamp: $timestamp, '
       'actorName: $actorName, actorRole: $actorRole, '
-      'actorEmail: $actorEmail, activityLabel: $activityLabel)';
+      'actorEmail: $actorEmail, activityLabel: $activityLabel, '
+      'participantId: $participantId)';
 }

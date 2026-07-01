@@ -3,8 +3,11 @@
 //
 // End-to-end at the dispatcher/projection level: a Call Back (ACT-QST-002)
 // dispatched over the same generic path that POST /actions uses tombstones the
-// questionnaire_instance row, so the instance disappears from the
-// questionnaire_instance view AND from the participant's /user/tasks list.
+// questionnaire_instance row, so the assigned instance disappears from the
+// questionnaire_instance view. On the participant's /user/tasks list the
+// assigned ('sent') task is replaced by a single 'recalled' task — the recall
+// tombstone the offline-first diary consumes and acknowledges
+// (DIARY-DEV-outgoing-intent-correlation/B), not a silent disappearance.
 import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
@@ -44,7 +47,8 @@ void main() {
 
   test(
       'Call Back (ACT-QST-002) over the generic dispatcher tombstones the '
-      'instance: gone from questionnaire_instance view and from /user/tasks',
+      'instance: gone from questionnaire_instance view; the participant task '
+      'flips from sent to recalled on /user/tasks',
       () async {
     final db = await newDatabaseFactoryMemory().openDatabase('call-back.db');
     final boot = await bootstrapPortalServer(
@@ -159,10 +163,20 @@ void main() {
       reason: 'questionnaire_instance row to be tombstoned after Call Back',
     );
 
-    // 5) The participant's /user/tasks no longer returns the questionnaire.
+    // 5) On the participant's /user/tasks the assigned ('sent') task is replaced
+    //    by a single 'recalled' task for the same instance — the recall tombstone
+    //    the diary consumes and acknowledges (DIARY-DEV-outgoing-intent-
+    //    correlation/B), emitted by the async RecallReactor, so poll until it
+    //    settles.
     await eventually(
-      () async => (await readTasks()).isEmpty,
-      reason: '/user/tasks to drop the recalled questionnaire',
+      () async {
+        final tasks = await readTasks();
+        if (tasks.length != 1) return false;
+        final task = tasks.single;
+        return task['status'] == 'recalled' &&
+            task['questionnaire_instance_id'] == instanceId;
+      },
+      reason: '/user/tasks to replace the assigned task with a recalled one',
     );
   });
 }
