@@ -63,6 +63,7 @@ class QuestionnaireInstance {
     required this.studyEvent,
     required this.status,
     this.endEvent,
+    this.finalizedAt,
   });
 
   /// Instance id == the view row's aggregateId.
@@ -85,10 +86,20 @@ class QuestionnaireInstance {
   /// row. A non-null value means the type is permanently Closed.
   final String? endEvent;
 
+  /// When the instance's latest lifecycle event was folded onto the row (the
+  /// intrinsic `updatedAt` stamp). For a finalized (closed) instance this is
+  /// the moment of finalization — the modal surfaces it next to the "Last:"
+  /// cycle so a coordinator sees exactly when the questionnaire was finalized.
+  ///
+  /// Implements: REQ-CAL-p00023/T
+  final DateTime? finalizedAt;
+
   /// Builds a [QuestionnaireInstance] from a raw view row, defending against
   /// missing/null columns (mirrors the `_P.fromRow` mapper pattern).
   ///
   /// Implements: DIARY-PRD-questionnaire-system/B
+  /// Implements: REQ-CAL-p00023/T — reads the intrinsic `updatedAt` fold stamp
+  ///   so the after-finalize row can display the finalization date and time.
   static QuestionnaireInstance fromRow(Map<String, Object?> row) =>
       QuestionnaireInstance(
         instanceId: (row['aggregateId'] as String?) ?? '?',
@@ -97,5 +108,9 @@ class QuestionnaireInstance {
         studyEvent: row['study_event'] as String?,
         status: statusFromQuestionnaireEntryType(row['entryType'] as String?),
         endEvent: row['end_event'] as String?,
+        finalizedAt: switch (row['updatedAt']) {
+          final String s => DateTime.tryParse(s),
+          _ => null,
+        },
       );
 }
