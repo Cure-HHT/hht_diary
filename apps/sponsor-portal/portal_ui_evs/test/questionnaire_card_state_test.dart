@@ -12,6 +12,7 @@ QuestionnaireInstance _inst({
   required QuestionnaireInstanceStatus status,
   String? studyEvent,
   String? endEvent,
+  DateTime? finalizedAt,
   String type = 'nose_hht',
   String participantId = 'P-1',
 }) => QuestionnaireInstance(
@@ -21,6 +22,7 @@ QuestionnaireInstance _inst({
   studyEvent: studyEvent,
   status: status,
   endEvent: endEvent,
+  finalizedAt: finalizedAt,
 );
 
 void main() {
@@ -137,6 +139,58 @@ void main() {
       ]);
       expect(s.currentInstanceId, 'inst-open');
       expect(s.currentStudyEvent, 'Cycle 2 Day 1');
+    });
+
+    test(
+      'after-finalize surfaces finalizedAt + next cycle (assertion T)',
+      () {
+        // Verifies: REQ-CAL-p00023/T — the after-finalize card state carries the
+        //   finalization timestamp and the next cycle to send.
+        final finalizedAt = DateTime(2024, 10, 13, 17);
+        final s = resolveCardState(<QuestionnaireInstance>[
+          _inst(
+            instanceId: 'inst-1',
+            status: QuestionnaireInstanceStatus.closed,
+            studyEvent: 'Cycle 1 Day 1',
+            finalizedAt: finalizedAt,
+          ),
+        ]);
+
+        expect(s.status, QuestionnaireInstanceStatus.notSent);
+        expect(s.finalizedStudyEvent, 'Cycle 1 Day 1');
+        expect(s.finalizedAt, finalizedAt);
+        expect(s.nextStudyEvent, 'Cycle 2 Day 1');
+      },
+    );
+
+    test(
+      'terminal Closed surfaces finalizedAt but no next cycle (assertion T)',
+      () {
+        // Verifies: REQ-CAL-p00023/T — a terminal close still records the
+        //   finalization time; there is no next cycle to send.
+        final finalizedAt = DateTime(2024, 10, 13, 17);
+        final s = resolveCardState(<QuestionnaireInstance>[
+          _inst(
+            instanceId: 'inst-1',
+            status: QuestionnaireInstanceStatus.closed,
+            studyEvent: 'Cycle 3 Day 1',
+            endEvent: 'end_of_treatment',
+            finalizedAt: finalizedAt,
+          ),
+        ]);
+
+        expect(s.status, QuestionnaireInstanceStatus.closed);
+        expect(s.finalizedAt, finalizedAt);
+        expect(s.nextStudyEvent, isNull);
+      },
+    );
+
+    test('nextCycleStudyEvent increments a parseable cycle, else null', () {
+      // Verifies: REQ-CAL-p00023/T — the next-cycle helper.
+      expect(nextCycleStudyEvent('Cycle 1 Day 1'), 'Cycle 2 Day 1');
+      expect(nextCycleStudyEvent('Cycle 11 Day 1'), 'Cycle 12 Day 1');
+      expect(nextCycleStudyEvent(null), isNull);
+      expect(nextCycleStudyEvent('Screening'), isNull);
     });
 
     test('latest finalized cycle selected when multiple finalized', () {
