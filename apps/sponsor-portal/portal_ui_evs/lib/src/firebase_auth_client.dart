@@ -21,9 +21,16 @@ abstract interface class FirebaseAuthClient {
 }
 
 class RealFirebaseAuthClient implements FirebaseAuthClient {
-  RealFirebaseAuthClient([FirebaseAuth? auth])
-    : _auth = auth ?? FirebaseAuth.instance;
-  final FirebaseAuth _auth;
+  RealFirebaseAuthClient([this._injectedAuth]);
+
+  /// The injected instance for tests, or null to resolve [FirebaseAuth.instance]
+  /// lazily on first use. It MUST stay lazy: the boot-time restore constructs
+  /// this client BEFORE `Firebase.initializeApp()` runs (it is passed as a
+  /// callback into the bootstrap), and reading `FirebaseAuth.instance` before the
+  /// default app exists throws a `FirebaseException` (no `[DEFAULT]` app).
+  /// Resolving eagerly in the constructor crashed `_resolveAuthMode` on load.
+  final FirebaseAuth? _injectedAuth;
+  FirebaseAuth get _auth => _injectedAuth ?? FirebaseAuth.instance;
 
   @override
   Future<String> signInAndGetIdToken({
