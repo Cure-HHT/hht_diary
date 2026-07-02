@@ -18,7 +18,7 @@ jobs:
       id-token: 'write'  # Required to request the OIDC token
 
     steps:
-      - uses: 'actions/checkout@v4'
+      - uses: 'actions/checkout@v7'
 
       # Deferred to infra-move ticket (CUR-1451):
       #   REQ-o00044: GCP Authentication via Workload Identity Federation
