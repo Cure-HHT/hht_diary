@@ -2,6 +2,12 @@
 #
 # Creates Cloud Run services (diary-server and portal-server)
 #
+# DEPRECATED / UNINSTANTIATED (CUR-1478): no terraform root instantiates this
+# module (the sponsor-envs reference is commented out), and the diary-server
+# service it defines was decommissioned (CUR-1409/CUR-350). Kept as reference
+# for a future module-based Cloud Run definition; the deploy path today is the
+# GitHub Actions canary deploy (hht_workflows cloud-run-* composite actions).
+#
 # IMPLEMENTS REQUIREMENTS:
 #   REQ-o00056: IaC for portal deployment
 

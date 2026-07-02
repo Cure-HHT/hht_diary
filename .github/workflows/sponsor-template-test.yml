@@ -57,7 +57,9 @@ jobs:
       - name: Validate service name input
         run: |
           case "${{ inputs.service_name }}" in
-            portal-server|diary-server)
+            portal-server|portal-service)
+              # CUR-1478: diary-server removed - the event-sourced
+              # portal-service serves diary ingest since CUR-1409.
               echo "Service name is valid."
               ;;
             *)

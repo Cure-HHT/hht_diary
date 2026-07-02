@@ -306,7 +306,7 @@ end_group
 # coverage-based tested/verified/uat checks.
 #
 # Not enabled yet: needs (1) each test-running workflow
-# (diary-server-ci.yml, sponsor-portal-ci.yml, clinical_diary-ci.yml,
+# (sponsor-portal-ci.yml, clinical_diary-ci.yml,
 # trial_data_types-ci.yml, qa-automation.yml, ios-build.yml,
 # android-build.yml) to emit JUnit XML into build-reports/, and
 # (2) those workflows to upload build-reports/ as an artifact that this

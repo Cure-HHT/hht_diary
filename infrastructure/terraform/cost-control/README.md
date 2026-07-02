@@ -73,7 +73,7 @@ After services are stopped, to restore them:
 ### Option 2: gcloud CLI
 
 ```bash
-gcloud run services update diary-server \
+gcloud run services update portal-service \
   --min-instances=1 \
   --max-instances=5 \
   --region=europe-west9 \

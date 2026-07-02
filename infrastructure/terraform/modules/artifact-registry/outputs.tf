@@ -16,7 +16,9 @@ output "repository_url" {
 }
 
 output "diary_server_image_base" {
-  description = "Base image path for diary-server"
+  # DEPRECATED (CUR-1478): diary-server is decommissioned; module is
+  # uninstantiated. Kept only while the module itself remains as reference.
+  description = "Base image path for diary-server (RETIRED service)"
   value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.main.repository_id}/diary-server"
 }
 

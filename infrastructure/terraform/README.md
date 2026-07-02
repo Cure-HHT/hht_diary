@@ -2,6 +2,13 @@
 
 Infrastructure as Code (IaC) for the HHT Clinical Trial Diary Platform using Terraform.
 
+> **Historical note (CUR-1478, 2026-07):** every `diary-server` reference below
+> describes the RETIRED pre-event-sourcing stack. The `diary-server` Cloud Run
+> service, its Cloud Build trigger, and its build wiring were decommissioned
+> (CUR-1409 moved diary ingest into the event-sourced `portal-service`;
+> CUR-350/CUR-1478 removed the source and GCP resources). References are kept
+> for the audit trail only — do not (re)deploy from these sections.
+
 **Implements Requirements:**
 - REQ-o00056: IaC for portal deployment
 - REQ-p00008: Multi-sponsor deployment model
