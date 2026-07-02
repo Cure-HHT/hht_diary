@@ -17,7 +17,9 @@ Approach (dependency-aware, safe):
      forces a FULL run -- its blast radius can't be reasoned about per-package.
 
 Output (stdout), one of:
-  * ``__ALL__``            -> run every target (omit --targets: full regression)
+  * ``__ALL__``            -> run every target (full run: unsafe/unclassified change)
+  * ``__NONE__``           -> run NO target, carry all, just regenerate the matrix
+                             (matrix-only change, e.g. spec/**)
   * ``<name>\n<name>...``  -> the affected target names (the fresh set)
 
 Exit code is 0 on success; the script never partially-selects on error -- on
@@ -34,6 +36,31 @@ import tomllib
 from pathlib import Path
 
 ALL = "__ALL__"
+NONE = "__NONE__"
+
+# Non-package changes that regenerate the matrix but need NO test execution:
+# they touch requirements/journeys, not test code, so all results carry forward.
+_MATRIX_ONLY_PREFIXES = ("spec/",)
+
+# Non-package changes that can invalidate carried results -> force a full run:
+# the target set / matching config, the elspais pin, the runner image, or the
+# selection logic itself.
+_UNSAFE_EXACT = (".elspais.toml", ".github/versions.env")
+_UNSAFE_PREFIXES = (
+    ".github/workflows/traceability-matrix.yml",
+    ".github/workflows/traceability-baseline-promote.yml",
+    ".github/scripts/changed_test_targets.py",
+    "tools/dev-env/",
+    ".github/actions/start-ci-container/",
+)
+
+
+def _is_matrix_only(f: str) -> bool:
+    return f.startswith(_MATRIX_ONLY_PREFIXES)
+
+
+def _is_unsafe(f: str) -> bool:
+    return f in _UNSAFE_EXACT or f.startswith(_UNSAFE_PREFIXES)
 
 
 def _log(msg: str) -> None:
@@ -139,21 +166,36 @@ def compute(repo_root: Path, config_path: Path, files: list[str]) -> str:
     reverse = build_reverse_deps(repo_root, pkgs)
 
     changed_pkgs: set[str] = set()
+    saw_matrix_only = False
     for f in files:
         owner = owning_package(f, pkg_dirs)
-        if owner is None:
-            # A change we can't attribute to a package -> full run (safe).
-            _log(f"non-package change forces full run: {f}")
+        if owner is not None:
+            changed_pkgs.add(owner)
+            continue
+        # Non-package file: classify.
+        if _is_unsafe(f):
+            _log(f"unsafe change forces full run: {f}")
             return ALL
-        changed_pkgs.add(owner)
-
-    if not changed_pkgs:
-        # No changes at all (or empty diff) -> nothing to run selectively; be safe.
+        if _is_matrix_only(f):
+            saw_matrix_only = True
+            continue
+        # Unclassified non-package change (database/, other tools/, ...) -> full.
+        _log(f"unclassified non-package change forces full run: {f}")
         return ALL
 
-    affected = transitive_dependents(changed_pkgs, reverse)
-    affected_targets = sorted(affected & targets)
-    return "\n".join(affected_targets)
+    if changed_pkgs:
+        affected = transitive_dependents(changed_pkgs, reverse)
+        affected_targets = sorted(affected & targets)
+        # Package changes that reach no *target* (e.g. a helper package nothing
+        # depends on) mean nothing needs re-running -> matrix-only.
+        return "\n".join(affected_targets) if affected_targets else NONE
+
+    if saw_matrix_only:
+        # Only spec/journey (matrix-only) changes: run nothing, carry all.
+        return NONE
+
+    # No changes at all (or empty diff) -> be safe.
+    return ALL
 
 
 def main() -> int:

@@ -50,26 +50,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      # CUR-1557: derive the affected test targets from the PR diff (changed
-      # packages + their dependents, via .github/scripts/changed_test_targets.py).
-      # Non-PR events (workflow_dispatch, incl. the promote-refresh) and any
-      # cross-cutting change fall back to a FULL run. Fails safe to full.
+      # CUR-1557: classify the PR diff into a run mode via changed_test_targets.py:
+      #   full        -> __ALL__ : run every target (unsafe/unclassified change)
+      #   matrix_only -> __NONE__: run NO tests, carry all, just regenerate matrix
+      #                            (matrix-only change, e.g. spec/**)
+      #   selective   -> a target list: run those (changed packages + dependents)
+      # Non-PR events (workflow_dispatch, incl. the promote-refresh) -> full.
+      # Fails safe to full. Emits `mode` and (for selective) `targets`.
       - name: Compute changed test targets
         id: changed
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
             echo "non-PR event -> full run"
-            echo "selective=false" >> "$GITHUB_OUTPUT"; echo "targets=" >> "$GITHUB_OUTPUT"; exit 0
+            echo "mode=full" >> "$GITHUB_OUTPUT"; echo "targets=" >> "$GITHUB_OUTPUT"; exit 0
           fi
           git fetch --no-tags --depth=200 origin "${{ github.base_ref }}" || true
           python3 .github/scripts/changed_test_targets.py \
             --base "origin/${{ github.base_ref }}" > /tmp/affected.txt || echo "__ALL__" > /tmp/affected.txt
           if grep -qx "__ALL__" /tmp/affected.txt || [ ! -s /tmp/affected.txt ]; then
-            echo "selective=false" >> "$GITHUB_OUTPUT"; echo "targets=" >> "$GITHUB_OUTPUT"
-            echo "Full run (cross-cutting change / no attribution)."
+            echo "mode=full" >> "$GITHUB_OUTPUT"; echo "targets=" >> "$GITHUB_OUTPUT"
+            echo "Full run (unsafe / unclassified change)."
+          elif grep -qx "__NONE__" /tmp/affected.txt; then
+            echo "mode=matrix_only" >> "$GITHUB_OUTPUT"; echo "targets=" >> "$GITHUB_OUTPUT"
+            echo "Matrix-only: no tests run, regenerate matrix from carried baseline."
           else
             TARGETS="$(tr '\n' ' ' < /tmp/affected.txt | sed 's/  */ /g; s/^ //; s/ $//')"
-            echo "selective=true" >> "$GITHUB_OUTPUT"; echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
+            echo "mode=selective" >> "$GITHUB_OUTPUT"; echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
             echo "Selective run: $TARGETS"
           fi
 
@@ -104,7 +110,7 @@ jobs:
       # back to a FULL run.
       - name: Seed baseline coverage for carried targets
         id: seed
-        if: steps.changed.outputs.selective == 'true'
+        if: steps.changed.outputs.mode == 'selective' || steps.changed.outputs.mode == 'matrix_only'
         run: |
           set -e
           IMG="ghcr.io/cure-hht/sponsor-ci:traceability-main-latest"
@@ -136,18 +142,18 @@ jobs:
           fi
 
       # Bootstrap deps for the targets that will RUN — elspais --run-tests does
-      # not pub get. On a selective+seeded run only the affected targets run, so
-      # only they need deps; otherwise pub-get all 17 (full run).
+      # not pub get. selective -> only affected targets; matrix_only -> none (no
+      # tests run); full (incl. seed-miss demotion) -> all 17.
       - name: Bootstrap target dependencies
         working-directory: tools/dev-env
         env:
-          SEL: ${{ steps.changed.outputs.selective }}
+          MODE: ${{ steps.changed.outputs.mode }}
           SEEDED: ${{ steps.seed.outputs.seeded }}
           AFFECTED: ${{ steps.changed.outputs.targets }}
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
             -e PUB_CACHE=/workspace/src/.ci-pub-cache \
-            -e SEL="$SEL" -e SEEDED="$SEEDED" -e AFFECTED="$AFFECTED" ci bash -c '
+            -e MODE="$MODE" -e SEEDED="$SEEDED" -e AFFECTED="$AFFECTED" ci bash -c '
             set -e
             ALL="apps/common-dart/canonical_json_jcs apps/common-dart/comms \
               apps/common-dart/diary_shared_model apps/common-dart/otel_common \
@@ -158,7 +164,13 @@ jobs:
               apps/edc/rave-integration apps/sponsor-portal/portal_identity \
               apps/sponsor-portal/portal_server_evs apps/sponsor-portal/portal_service \
               apps/sponsor-portal/portal_ui_evs"
-            if [ "$SEL" = "true" ] && [ "$SEEDED" = "true" ] && [ -n "$AFFECTED" ]; then
+            # Demote to full if a seed-requiring mode had no baseline.
+            if { [ "$MODE" = "selective" ] || [ "$MODE" = "matrix_only" ]; } && [ "$SEEDED" != "true" ]; then
+              MODE=full; echo "no baseline seeded -> full"
+            fi
+            if [ "$MODE" = "matrix_only" ]; then
+              echo "bootstrap (matrix-only): none"; exit 0
+            elif [ "$MODE" = "selective" ] && [ -n "$AFFECTED" ]; then
               TARGETS="$AFFECTED"; echo "bootstrap (selective): $TARGETS"
             else
               TARGETS="$ALL"; echo "bootstrap (full)"
@@ -174,21 +186,29 @@ jobs:
       - name: Run test targets through elspais
         working-directory: tools/dev-env
         env:
-          SEL: ${{ steps.changed.outputs.selective }}
+          MODE: ${{ steps.changed.outputs.mode }}
           SEEDED: ${{ steps.seed.outputs.seeded }}
           AFFECTED: ${{ steps.changed.outputs.targets }}
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
             -e PUB_CACHE=/workspace/src/.ci-pub-cache \
-            -e SEL="$SEL" -e SEEDED="$SEEDED" -e TGT="$AFFECTED" ci bash -c '
+            -e MODE="$MODE" -e SEEDED="$SEEDED" -e TGT="$AFFECTED" ci bash -c '
             cd /workspace/src
             mkdir -p build-reports/combined/traceability
-            # CUR-1557: run only the affected targets when selective+seeded; the
-            # rest keep their seeded (baseline) coverage. Otherwise full run.
-            if [ "$SEL" = "true" ] && [ "$SEEDED" = "true" ] && [ -n "$TGT" ]; then
-              ELSPAIS_TARGETS="--targets $TGT"; echo "elspais selective: $ELSPAIS_TARGETS"
+            # Demote to full if a seed-requiring mode had no baseline.
+            if { [ "$MODE" = "selective" ] || [ "$MODE" = "matrix_only" ]; } && [ "$SEEDED" != "true" ]; then
+              MODE=full
+            fi
+            # CUR-1557 run modes:
+            #  selective   -> run only $TGT; the rest keep seeded (baseline) coverage
+            #  matrix_only -> run NOTHING (checks --tests ingests the seeded results)
+            #  full        -> run every target
+            if [ "$MODE" = "matrix_only" ]; then
+              ELSPAIS_CMD="elspais checks --tests"; echo "elspais matrix-only (no test execution)"
+            elif [ "$MODE" = "selective" ] && [ -n "$TGT" ]; then
+              ELSPAIS_CMD="elspais checks --run-tests --targets $TGT --tests"; echo "elspais selective: $TGT"
             else
-              ELSPAIS_TARGETS=""; echo "elspais full run"
+              ELSPAIS_CMD="elspais checks --run-tests --tests"; echo "elspais full run"
             fi
             set +e
             # Tee the checks output so the comment step can read the REQ-level
@@ -197,10 +217,10 @@ jobs:
             xvfb-run -a dbus-run-session -- bash -c "
               echo \"test\" | gnome-keyring-daemon --unlock
               cd /workspace/src
-              elspais checks --run-tests $ELSPAIS_TARGETS --tests
+              $ELSPAIS_CMD
             " 2>&1 | tee build-reports/combined/traceability/checks-tests.txt
             echo ${PIPESTATUS[0]} > /workspace/src/.elspais-tests-exit
-            echo "elspais checks --run-tests exit: $(cat /workspace/src/.elspais-tests-exit)"
+            echo "elspais checks exit: $(cat /workspace/src/.elspais-tests-exit)"
           '
 
       # Implements: DIARY-OPS-traceability-validation/B
@@ -208,7 +228,7 @@ jobs:
         if: always()
         working-directory: tools/dev-env
         env:
-          SEL: ${{ steps.changed.outputs.selective }}
+          MODE: ${{ steps.changed.outputs.mode }}
           SEEDED: ${{ steps.seed.outputs.seeded }}
           AFFECTED: ${{ steps.changed.outputs.targets }}
         run: |
@@ -221,20 +241,42 @@ jobs:
           # the image-cache state; it is a fast no-op once the image is current.
           EV=$(grep -E "^ELSPAIS_VERSION=" ../../.github/versions.env | cut -d= -f2 | tr -d "[:space:]")
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
-            -e EV="$EV" -e SEL="$SEL" -e SEEDED="$SEEDED" -e TGT="$AFFECTED" ci bash -c '
+            -e EV="$EV" -e MODE="$MODE" -e SEEDED="$SEEDED" -e TGT="$AFFECTED" ci bash -c '
             cd /workspace/src
             mkdir -p build-reports/combined/traceability
             pip3 install --no-cache-dir --break-system-packages "elspais[trace-view]==${EV}" >/dev/null 2>&1 || true
             echo "render elspais: $(elspais --version 2>/dev/null | head -1)"
-            # CUR-1557: mark the carried (unchanged) targets as (baseline) in the
-            # rendered matrix. Same fresh set the run used; full run -> no marker.
-            if [ "$SEL" = "true" ] && [ "$SEEDED" = "true" ] && [ -n "$TGT" ]; then
+            # Demote to full if a seed-requiring mode had no baseline.
+            if { [ "$MODE" = "selective" ] || [ "$MODE" = "matrix_only" ]; } && [ "$SEEDED" != "true" ]; then
+              MODE=full
+            fi
+            # CUR-1557 render provenance:
+            #  selective   -> --targets $TGT : $TGT fresh, the rest (baseline)
+            #  matrix_only -> --targets __matrix_only__ : a fresh set that matches
+            #                 no real target, so ALL render (baseline) + the
+            #                 "N/N test results from previous runs" footnote
+            #  full        -> no --targets : all fresh, no baseline markers
+            if [ "$MODE" = "matrix_only" ]; then
+              ELSPAIS_TARGETS="--targets __matrix_only__"
+            elif [ "$MODE" = "selective" ] && [ -n "$TGT" ]; then
               ELSPAIS_TARGETS="--targets $TGT"
             else
               ELSPAIS_TARGETS=""
             fi
-            elspais summary trace $ELSPAIS_TARGETS --format markdown \
-              -o build-reports/combined/traceability/traceability_matrix.md
+            # The matrix md is the `summary` section + the `trace` section. We
+            # run them SEPARATELY (not as the `summary trace` chain) and cat them:
+            # the chain does not accept `--targets` after `trace`, whereas each
+            # subcommand does, and cat(summary, trace) is byte-identical to the
+            # chain output. Both get $ELSPAIS_TARGETS so the summary footnote and
+            # the matrix (baseline) markers both reflect the fresh set.
+            elspais summary $ELSPAIS_TARGETS --format markdown \
+              -o build-reports/combined/traceability/_summary.md
+            elspais trace $ELSPAIS_TARGETS --format markdown \
+              -o build-reports/combined/traceability/_trace.md
+            cat build-reports/combined/traceability/_summary.md \
+                build-reports/combined/traceability/_trace.md \
+              > build-reports/combined/traceability/traceability_matrix.md
+            rm -f build-reports/combined/traceability/_summary.md build-reports/combined/traceability/_trace.md
             # Machine-readable matrix: per-requirement, assertion-level
             # tested/verified fractions + Status. Drives the comment headline
             # (Active focus) and is the parseable download artifact.
