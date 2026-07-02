@@ -16,3 +16,5 @@ export 'src/diary_projection.dart';
 export 'src/change_reasons.dart';
 export 'src/entry_restrictions.dart';
 export 'src/sponsor_ui_config.dart';
+
+// CUR-1557 test (c): shared-lib code change; expect selective run of diary_shared_model + dependents.
