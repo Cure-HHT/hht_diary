@@ -46,8 +46,47 @@
     "implemented": "0/3 (0%)",
     "tested": "0/3 (0%)",
     "verified": "0/3 (0%)",
-    "uat_coverage": "0.0/3 (2%)",
+    "uat_coverage": "0.1/3 (2%)",
     "uat_verified": "0/3 (0%)",
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
+  },
+  {
+    "id": "DIARY-BASE-data-encryption",
+    "title": "Data Encryption",
+    "level": "BASE",
+    "status": "Draft",
+    "implemented": "0/7 (0%)",
+    "tested": "0/7 (0%)",
+    "verified": "0/7 (0%)",
+    "uat_coverage": "0/7 (0%)",
+    "uat_verified": "0/7 (0%)",
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
+  },
+  {
+    "id": "DIARY-BASE-identity-clinical-separation",
+    "title": "Separation of Identity and Clinical Data",
+    "level": "BASE",
+    "status": "Draft",
+    "implemented": "0/6 (0%)",
+    "tested": "0/6 (0%)",
+    "verified": "0/6 (0%)",
+    "uat_coverage": "0/6 (0%)",
+    "uat_verified": "0/6 (0%)",
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
+  },
+  {
+    "id": "DIARY-BASE-linking-history",
+    "title": "Mobile Linking Status and History",
+    "level": "BASE",
+    "status": "Draft",
+    "implemented": "0/5 (0%)",
+    "tested": "0/5 (0%)",
+    "verified": "0/5 (0%)",
+    "uat_coverage": "0/5 (0%)",
+    "uat_verified": "0/5 (0%)",
     "code_tested": "n/a",
     "lcov_tested": "n/a"
   },
@@ -72,7 +111,7 @@
     "implemented": "0/2 (0%)",
     "tested": "0/2 (0%)",
     "verified": "0/2 (0%)",
-    "uat_coverage": "0/2 (0%)",
+    "uat_coverage": "0.1/2 (3%)",
     "uat_verified": "0/2 (0%)",
     "code_tested": "n/a",
     "lcov_tested": "n/a"
@@ -85,9 +124,35 @@
     "implemented": "0/2 (0%)",
     "tested": "0/2 (0%)",
     "verified": "0/2 (0%)",
-    "uat_coverage": "0/2 (0%)",
+    "uat_coverage": "0.0/2 (2%)",
     "uat_verified": "0/2 (0%)",
     "code_tested": "0/35 (0%)",
+    "lcov_tested": "n/a"
+  },
+  {
+    "id": "DIARY-BASE-open-source-licensing",
+    "title": "Open-Source Licensing",
+    "level": "BASE",
+    "status": "Draft",
+    "implemented": "0/3 (0%)",
+    "tested": "0/3 (0%)",
+    "verified": "0/3 (0%)",
+    "uat_coverage": "0/3 (0%)",
+    "uat_verified": "0/3 (0%)",
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
+  },
+  {
+    "id": "DIARY-BASE-license-display",
+    "title": "License Display",
+    "level": "BASE",
+    "status": "Draft",
+    "implemented": "0/4 (0%)",
+    "tested": "0/4 (0%)",
+    "verified": "0/4 (0%)",
+    "uat_coverage": "0/4 (0%)",
+    "uat_verified": "0/4 (0%)",
+    "code_tested": "n/a",
     "lcov_tested": "n/a"
   },
   {
@@ -111,10 +176,23 @@
     "implemented": "0/2 (0%)",
     "tested": "0/2 (0%)",
     "verified": "0/2 (0%)",
-    "uat_coverage": "0.6/2 (28%)",
+    "uat_coverage": "0.5/2 (23%)",
     "uat_verified": "0/2 (0%)",
     "code_tested": "0/10 (0%)",
     "lcov_tested": "lcov 90%"
+  },
+  {
+    "id": "DIARY-BASE-portal-data-acceptance",
+    "title": "Portal Data Acceptance and Rejection",
+    "level": "BASE",
+    "status": "Draft",
+    "implemented": "0/7 (0%)",
+    "tested": "0/7 (0%)",
+    "verified": "0/7 (0%)",
+    "uat_coverage": "0/7 (0%)",
+    "uat_verified": "0/7 (0%)",
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-BASE-questionnaire-coordinator-workflow",
@@ -189,7 +267,7 @@
     "implemented": "0/2 (0%)",
     "tested": "0/2 (0%)",
     "verified": "0/2 (0%)",
-    "uat_coverage": "0.2/2 (8%)",
+    "uat_coverage": "0.4/2 (18%)",
     "uat_verified": "0/2 (0%)",
     "code_tested": "n/a",
     "lcov_tested": "n/a"
@@ -247,6 +325,32 @@
     "lcov_tested": "n/a"
   },
   {
+    "id": "DIARY-DEV-client-minimum-version",
+    "title": "Client Minimum Version and Force Upgrade",
+    "level": "DEV",
+    "status": "Draft",
+    "implemented": "0/4 (0%)",
+    "tested": "0/4 (0%)",
+    "verified": "0/4 (0%)",
+    "uat_coverage": "0/4 (0%)",
+    "uat_verified": "0/4 (0%)",
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
+  },
+  {
+    "id": "DIARY-DEV-config-fail-fast",
+    "title": "Fail-Fast Configuration Validation",
+    "level": "DEV",
+    "status": "Draft",
+    "implemented": "0/5 (0%)",
+    "tested": "0/5 (0%)",
+    "verified": "0/5 (0%)",
+    "uat_coverage": "0/5 (0%)",
+    "uat_verified": "0/5 (0%)",
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
+  },
+  {
     "id": "DIARY-DEV-runtime-environment-resolution",
     "title": "Runtime Environment Resolution",
     "level": "DEV",
@@ -284,6 +388,19 @@
     "uat_verified": "0/5 (0%)",
     "code_tested": "0/218 (0%)",
     "lcov_tested": "lcov 93%"
+  },
+  {
+    "id": "DIARY-DEV-local-data-export",
+    "title": "Local Data Export and Import",
+    "level": "DEV",
+    "status": "Draft",
+    "implemented": "0/7 (0%)",
+    "tested": "0/7 (0%)",
+    "verified": "0/7 (0%)",
+    "uat_coverage": "0/7 (0%)",
+    "uat_verified": "0/7 (0%)",
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-evs-stack-adoption",
@@ -1248,6 +1365,19 @@
     "lcov_tested": "lcov 100%"
   },
   {
+    "id": "DIARY-BASE-ui-stability-during-interaction",
+    "title": "UI Stability During User Interaction",
+    "level": "BASE",
+    "status": "Draft",
+    "implemented": "0/5 (0%)",
+    "tested": "0/5 (0%)",
+    "verified": "0/5 (0%)",
+    "uat_coverage": "0/5 (0%)",
+    "uat_verified": "0/5 (0%)",
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
+  },
+  {
     "id": "DIARY-PRD-configuration-precedence",
     "title": "Configuration Precedence",
     "level": "PRD",
@@ -1372,7 +1502,7 @@
     "implemented": "0/7 (0%)",
     "tested": "0/7 (0%)",
     "verified": "0/7 (0%)",
-    "uat_coverage": "0/7 (0%)",
+    "uat_coverage": "5.1/7 (73%)",
     "uat_verified": "0/7 (0%)",
     "code_tested": "n/a",
     "lcov_tested": "n/a"
@@ -1385,7 +1515,7 @@
     "implemented": "0/14 (0%)",
     "tested": "0/14 (0%)",
     "verified": "0/14 (0%)",
-    "uat_coverage": "0/14 (0%)",
+    "uat_coverage": "6/14 (43%)",
     "uat_verified": "0/14 (0%)",
     "code_tested": "0/454 (0%)",
     "lcov_tested": "lcov 74%"
@@ -1411,7 +1541,7 @@
     "implemented": "0/4 (0%)",
     "tested": "0/4 (0%)",
     "verified": "0/4 (0%)",
-    "uat_coverage": "0/4 (0%)",
+    "uat_coverage": "3/4 (75%)",
     "uat_verified": "0/4 (0%)",
     "code_tested": "0/109 (0%)",
     "lcov_tested": "lcov 61%"
@@ -1554,7 +1684,7 @@
     "implemented": "0/6 (0%)",
     "tested": "0/6 (0%)",
     "verified": "0/6 (0%)",
-    "uat_coverage": "0/6 (0%)",
+    "uat_coverage": "0.0/6 (1%)",
     "uat_verified": "0/6 (0%)",
     "code_tested": "0/268 (0%)",
     "lcov_tested": "lcov 84%"
@@ -1723,7 +1853,7 @@
     "implemented": "0/14 (0%)",
     "tested": "0/14 (0%)",
     "verified": "0/14 (0%)",
-    "uat_coverage": "0/14 (0%)",
+    "uat_coverage": "4/14 (29%)",
     "uat_verified": "0/14 (0%)",
     "code_tested": "0/641 (0%)",
     "lcov_tested": "lcov 85%"
@@ -1788,7 +1918,7 @@
     "implemented": "0/4 (0%)",
     "tested": "0/4 (0%)",
     "verified": "0/4 (0%)",
-    "uat_coverage": "0/4 (0%)",
+    "uat_coverage": "1/4 (25%)",
     "uat_verified": "0/4 (0%)",
     "code_tested": "0/10 (0%)",
     "lcov_tested": "lcov 100%"
@@ -2152,7 +2282,7 @@
     "implemented": "0/6 (0%)",
     "tested": "0/6 (0%)",
     "verified": "0/6 (0%)",
-    "uat_coverage": "0/6 (0%)",
+    "uat_coverage": "2/6 (33%)",
     "uat_verified": "0/6 (0%)",
     "code_tested": "0/209 (0%)",
     "lcov_tested": "lcov 86%"
@@ -2165,7 +2295,7 @@
     "implemented": "0/6 (0%)",
     "tested": "0/6 (0%)",
     "verified": "0/6 (0%)",
-    "uat_coverage": "0/6 (0%)",
+    "uat_coverage": "2/6 (33%)",
     "uat_verified": "0/6 (0%)",
     "code_tested": "0/152 (0%)",
     "lcov_tested": "lcov 97%"
@@ -2178,7 +2308,7 @@
     "implemented": "0/15 (0%)",
     "tested": "0/15 (0%)",
     "verified": "0/15 (0%)",
-    "uat_coverage": "1/15 (7%)",
+    "uat_coverage": "12.1/15 (80%)",
     "uat_verified": "0/15 (0%)",
     "code_tested": "0/228 (0%)",
     "lcov_tested": "lcov 62%"
@@ -2191,7 +2321,7 @@
     "implemented": "0/19 (0%)",
     "tested": "0/19 (0%)",
     "verified": "0/19 (0%)",
-    "uat_coverage": "0/19 (0%)",
+    "uat_coverage": "10/19 (53%)",
     "uat_verified": "0/19 (0%)",
     "code_tested": "0/465 (0%)",
     "lcov_tested": "lcov 91%"
@@ -2204,7 +2334,7 @@
     "implemented": "0/10 (0%)",
     "tested": "0/10 (0%)",
     "verified": "0/10 (0%)",
-    "uat_coverage": "0/10 (0%)",
+    "uat_coverage": "3.3/10 (33%)",
     "uat_verified": "0/10 (0%)",
     "code_tested": "0/22 (0%)",
     "lcov_tested": "lcov 36%"
@@ -2217,7 +2347,7 @@
     "implemented": "0/7 (0%)",
     "tested": "0/7 (0%)",
     "verified": "0/7 (0%)",
-    "uat_coverage": "0/7 (0%)",
+    "uat_coverage": "3/7 (43%)",
     "uat_verified": "0/7 (0%)",
     "code_tested": "0/9 (0%)",
     "lcov_tested": "lcov 100%"
