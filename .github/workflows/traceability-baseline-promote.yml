@@ -30,18 +30,22 @@ jobs:
       - name: Promote merged PR coverage to baseline
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pass the (user-controlled) commit message via env, NOT direct
+          # ${{ }} interpolation into the script -- a rich squash-merge body
+          # (backticks, $, quotes) would otherwise break the shell and could
+          # inject commands.
+          HEAD_MSG: ${{ github.event.head_commit.message }}
         run: |
           set -e
           REPO="ghcr.io/cure-hht/sponsor-ci"
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          MSG=$(printf '%s' "${{ github.event.head_commit.message }}")
-          PR=$(printf '%s' "$MSG" | grep -oE '#[0-9]+' | head -1 | tr -d '#' || true)
+          PR=$(printf '%s' "$HEAD_MSG" | grep -oE '#[0-9]+' | head -1 | tr -d '#' || true)
           if [ -n "$PR" ] && docker pull "$REPO:traceability-pr-$PR" 2>/dev/null; then
             docker tag "$REPO:traceability-pr-$PR" "$REPO:traceability-main-latest"
             docker push "$REPO:traceability-main-latest"
             echo "promoted traceability-pr-$PR -> traceability-main-latest"
           else
-            echo "::warning::no PR coverage image (PR='$PR') for commit '$MSG' -> dispatching full baseline refresh"
+            echo "::warning::no PR coverage image (PR='$PR') -> dispatching full baseline refresh"
             gh workflow run traceability-matrix.yml --ref main -f full_baseline=true \
               -R "${{ github.repository }}"
           fi
