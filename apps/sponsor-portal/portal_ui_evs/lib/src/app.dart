@@ -31,6 +31,7 @@ import 'session_timeout_controller.dart';
 import 'stale_client.dart';
 import 'participants_screen_binding.dart';
 import 'rave_sync_screen_binding.dart';
+import 'sc_audit_log_binding.dart';
 import 'sites_screen_binding.dart';
 import 'study_settings_binding.dart';
 import 'update_available_banner.dart';
@@ -750,14 +751,26 @@ class _HomeShellState extends State<_HomeShell> {
       serverUrl: _serverUrl,
     ),
     'RAVE Sync' => const RaveSyncScreenBinding(),
-    'Audit Log' => AuditLogScreenBinding(
-      identityCredential: widget.identityCredential ?? '',
-      serverUrl: _serverUrl,
-      // Administrator audit tab: scope to Administrator actions (view=admin),
-      // excluding system/automation events. Search is kept.
-      // Implements: DIARY-DEV-audit-log-read/A
-      adminActionsOnly: true,
-    ),
+    // The Audit Log nav section is shared by roles holding portal.audit.view
+    // (Administrator, Study Coordinator, ...). The view is scoped by the
+    // ACTIVE role: a Study Coordinator gets their OWN participant/questionnaire
+    // actions with a Participant ID column + Participant ID search
+    // (view=mine); everyone else gets the Administrator scope (view=admin).
+    // Implements: DIARY-GUI-audit-log-study-coordinator/A+B
+    'Audit Log' => switch (widget.principal) {
+      UserPrincipal(activeRole: 'StudyCoordinator') => ScAuditLogBinding(
+        identityCredential: widget.identityCredential ?? '',
+        serverUrl: _serverUrl,
+      ),
+      _ => AuditLogScreenBinding(
+        identityCredential: widget.identityCredential ?? '',
+        serverUrl: _serverUrl,
+        // Administrator audit tab: scope to Administrator actions (view=admin),
+        // excluding system/automation events. Search is kept.
+        // Implements: DIARY-DEV-audit-log-read/A
+        adminActionsOnly: true,
+      ),
+    },
     _ => const SizedBox.shrink(),
   };
 

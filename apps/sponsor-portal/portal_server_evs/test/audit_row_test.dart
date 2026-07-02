@@ -143,6 +143,164 @@ void main() {
     });
   });
 
+  group('auditRowParticipantId / participant_id stamping', () {
+    StoredEvent ev({
+      required String aggregateType,
+      required String aggregateId,
+      Map<String, Object?> data = const {},
+      Initiator initiator = const UserInitiator('sc@x.com'),
+    }) =>
+        StoredEvent.synthetic(
+          eventId: 'e',
+          aggregateId: aggregateId,
+          aggregateType: aggregateType,
+          entryType: 'x',
+          eventType: 'x',
+          sequenceNumber: 1,
+          data: data,
+          metadata: const {},
+          initiator: initiator,
+          clientTimestamp: DateTime.utc(2026),
+          eventHash: 'h',
+        );
+
+    // Verifies: DIARY-GUI-audit-log-study-coordinator/A
+    test('participant aggregate: participant id IS the aggregate id', () {
+      final e = ev(aggregateType: 'participant', aggregateId: 'P-42');
+      expect(auditRowParticipantId(e), 'P-42');
+      expect(auditRowJson(e)['participant_id'], 'P-42');
+    });
+
+    // Verifies: DIARY-GUI-audit-log-study-coordinator/A
+    test('questionnaire_instance: prefers the event participant_id payload', () {
+      final e = ev(
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'inst-1',
+        data: const {'participant_id': 'P-7'},
+      );
+      expect(auditRowParticipantId(e), 'P-7');
+      expect(auditRowJson(e)['participant_id'], 'P-7');
+    });
+
+    // Verifies: DIARY-GUI-audit-log-study-coordinator/A
+    test('questionnaire_instance: falls back to the instance->participant join',
+        () {
+      // call-back / finalize / unlock events key on the instance id and carry
+      // no participant_id in their payload — resolved via the join map.
+      final e = ev(aggregateType: 'questionnaire_instance', aggregateId: 'i-9');
+      expect(auditRowParticipantId(e), isNull);
+      expect(
+        auditRowParticipantId(e, const {'i-9': 'P-9'}),
+        'P-9',
+      );
+      expect(
+        auditRowJson(e, participantByInstance: const {'i-9': 'P-9'})[
+            'participant_id'],
+        'P-9',
+      );
+    });
+
+    test('other aggregates carry no participant_id', () {
+      final e = ev(aggregateType: 'portal_user', aggregateId: 'u@x.com');
+      expect(auditRowParticipantId(e), isNull);
+      expect(auditRowJson(e).containsKey('participant_id'), isFalse);
+    });
+  });
+
+  group('auditEventIsOwnActivity (view=mine scope)', () {
+    StoredEvent ev(String aggregateType, Initiator initiator) =>
+        StoredEvent.synthetic(
+          eventId: 'e',
+          aggregateId: 'P-1',
+          aggregateType: aggregateType,
+          entryType: 'x',
+          eventType: 'x',
+          sequenceNumber: 1,
+          data: const {},
+          metadata: const {},
+          initiator: initiator,
+          clientTimestamp: DateTime.utc(2026),
+          eventHash: 'h',
+        );
+    const sc = UserInitiator('sc@x.com');
+
+    // Verifies: DIARY-DEV-audit-log-read/A — the Study Coordinator's own
+    //   participant/questionnaire actions, not peers' or automation's.
+    test('includes the coordinator\'s own participant/questionnaire actions',
+        () {
+      expect(auditEventIsOwnActivity(ev('participant', sc), 'sc@x.com'), isTrue);
+      expect(
+        auditEventIsOwnActivity(ev('questionnaire_instance', sc), 'sc@x.com'),
+        isTrue,
+      );
+    });
+
+    test('excludes a peer coordinator\'s actions (separation of duties)', () {
+      expect(
+        auditEventIsOwnActivity(
+            ev('participant', const UserInitiator('peer@x.com')), 'sc@x.com'),
+        isFalse,
+      );
+    });
+
+    test('excludes automation-initiated events', () {
+      expect(
+        auditEventIsOwnActivity(
+            ev('participant', const AutomationInitiator(service: 'edc')),
+            'sc@x.com'),
+        isFalse,
+      );
+    });
+
+    test('excludes aggregates outside the coordinator\'s scope', () {
+      expect(
+        auditEventIsOwnActivity(ev('portal_user', sc), 'sc@x.com'),
+        isFalse,
+      );
+    });
+  });
+
+  group('auditEventMatchesParticipant (participant search)', () {
+    StoredEvent ev(String aggregateId) => StoredEvent.synthetic(
+          eventId: 'e',
+          aggregateId: aggregateId,
+          aggregateType: 'participant',
+          entryType: 'x',
+          eventType: 'x',
+          sequenceNumber: 1,
+          data: const {},
+          metadata: const {},
+          initiator: const UserInitiator('sc@x.com'),
+          clientTimestamp: DateTime.utc(2026),
+          eventHash: 'h',
+        );
+
+    // Verifies: DIARY-GUI-audit-log-study-coordinator/B
+    test('case-insensitive substring match on participant id', () {
+      expect(auditEventMatchesParticipant(ev('P-100'), 'p-10', const {}),
+          isTrue);
+      expect(auditEventMatchesParticipant(ev('P-100'), 'P-999', const {}),
+          isFalse);
+    });
+
+    test('events with no participant never match', () {
+      final e = StoredEvent.synthetic(
+        eventId: 'e',
+        aggregateId: 'u@x.com',
+        aggregateType: 'portal_user',
+        entryType: 'x',
+        eventType: 'x',
+        sequenceNumber: 1,
+        data: const {},
+        metadata: const {},
+        initiator: const UserInitiator('sc@x.com'),
+        clientTimestamp: DateTime.utc(2026),
+        eventHash: 'h',
+      );
+      expect(auditEventMatchesParticipant(e, 'anything', const {}), isFalse);
+    });
+  });
+
   group('auditAccessAllowed', () {
     test('allows when the audit-view permission is present', () {
       expect(

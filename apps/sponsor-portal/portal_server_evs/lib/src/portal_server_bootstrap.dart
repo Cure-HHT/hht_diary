@@ -677,6 +677,12 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // Optional site filter (the Sites page drill-in): site events match by
     // aggregate, participant events join through participant_site_index.
     final siteFilter = (params['site'] ?? '').trim();
+    // Optional participant-id filter — the Participant ID search input of the
+    // Study Coordinator Audit Log View. Substring match on the row's
+    // participant id (participant aggregate id, or the questionnaire instance's
+    // participant).
+    // Implements: DIARY-GUI-audit-log-study-coordinator/B
+    final participantFilter = (params['participant'] ?? '').trim();
     // `view=admin` (the Administrator audit tab) scopes the log to Administrator
     // actions (ACT-USR-*/ACT-ADM-*), excluding system/automation events.
     // Omitted by the Sites drill-in, which needs site/participant events.
@@ -684,6 +690,14 @@ Future<PortalServerBoot> bootstrapPortalServer({
     // anchored to DIARY-DEV-audit-log-read rather than minting a new REQ.
     // Implements: DIARY-DEV-audit-log-read/A
     final adminView = params['view'] == 'admin';
+    // `view=mine` (the Study Coordinator audit view) scopes the log to the
+    // authenticated principal's OWN participant/questionnaire/site actions —
+    // the separation-of-duties scope from DIARY-GUI-audit-log-study-coordinator
+    // (Coordinators see only their own audit trail, not peers'). Anchored to
+    // DIARY-DEV-audit-log-read like the admin scope.
+    // Implements: DIARY-DEV-audit-log-read/A
+    final mineView = params['view'] == 'mine';
+    final principalUserId = principal is UserPrincipal ? principal.id : '';
 
     // Resolve email -> display name once per request from users_index, so the
     // log can show names (actor + affected account) instead of emails.
@@ -696,7 +710,11 @@ Future<PortalServerBoot> bootstrapPortalServer({
 
     final rows = <Map<String, Object?>>[];
     final int total;
-    final filtering = adminView || query.isNotEmpty || siteFilter.isNotEmpty;
+    final filtering = adminView ||
+        mineView ||
+        query.isNotEmpty ||
+        siteFilter.isNotEmpty ||
+        participantFilter.isNotEmpty;
     if (!filtering) {
       // The sequence counter is the store's contiguous local append counter,
       // so it doubles as the log size without scanning the log.
@@ -719,16 +737,35 @@ Future<PortalServerBoot> bootstrapPortalServer({
                 if (row['participant_id'] is String && row['site_id'] is String)
                   row['participant_id']! as String: row['site_id']! as String,
             };
+      // Instance->participant join, resolved ONCE per request, so the Study
+      // Coordinator view can stamp/filter a Participant ID on questionnaire
+      // events that key on the instance id (call-back / finalize / unlock).
+      final participantByInstance = (mineView || participantFilter.isNotEmpty)
+          ? <String, String>{
+              for (final row
+                  in await backend.findViewRows('questionnaire_instance'))
+                if (row['aggregateId'] is String &&
+                    row['participant_id'] is String)
+                  row['aggregateId']! as String:
+                      row['participant_id']! as String,
+            }
+          : const <String, String>{};
       bool matches(StoredEvent e) =>
           (!adminView || auditEventIsAdminAction(e)) &&
+          (!mineView || auditEventIsOwnActivity(e, principalUserId)) &&
           (query.isEmpty || auditEventMatchesQuery(e, query)) &&
           (siteFilter.isEmpty ||
-              auditEventMatchesSite(e, siteFilter, participantSite));
+              auditEventMatchesSite(e, siteFilter, participantSite)) &&
+          (participantFilter.isEmpty ||
+              auditEventMatchesParticipant(
+                  e, participantFilter, participantByInstance));
       var matched = 0;
       await for (final e in backend.readEventsReverse()) {
         if (!matches(e)) continue;
         if (matched >= offset && rows.length < limit) {
-          rows.add(auditRowJson(e, nameByEmail: nameByEmail));
+          rows.add(auditRowJson(e,
+              nameByEmail: nameByEmail,
+              participantByInstance: participantByInstance));
         }
         matched++;
       }
