@@ -5,6 +5,7 @@ import 'package:clinical_diary/actions/checkpoint_epistaxis_event_action.dart';
 import 'package:clinical_diary/actions/checkpoint_questionnaire_action.dart';
 import 'package:clinical_diary/actions/clear_questionnaire_recall_action.dart';
 import 'package:clinical_diary/actions/delete_entry_action.dart';
+import 'package:clinical_diary/actions/discard_questionnaire_draft_action.dart';
 import 'package:clinical_diary/actions/edit_epistaxis_event_action.dart';
 import 'package:clinical_diary/actions/inbound_system_actions.dart';
 import 'package:clinical_diary/actions/record_day_marker_action.dart';
@@ -27,6 +28,7 @@ ActionRegistry buildDiaryActionRegistry() {
     ..register(const DeleteEntryAction())
     ..register(const SubmitQuestionnaireAction())
     ..register(const CheckpointQuestionnaireAction())
+    ..register(const DiscardQuestionnaireDraftAction())
     ..register(const RecordFcmMessageReceivedAction())
     ..register(const RegisterFcmTokenAction())
     ..register(const SetUserSettingAction())

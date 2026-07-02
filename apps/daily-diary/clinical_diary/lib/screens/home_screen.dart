@@ -891,6 +891,36 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final definition = await _loadQuestionnaireDefinition(qType);
     if (definition == null || !mounted) return;
 
+    // CUR-1543: a resumable `checkpoint` draft is only honoured while its
+    // Session has not expired. An expired draft (now - last checkpoint >=
+    // sessionTimeoutMinutes) is discarded in the event log FIRST (the answers
+    // are gone whatever the participant chooses next), then the Session Expiry
+    // Dialog offers Start Again (fresh flow from the Preamble) or Not Now
+    // (stay on the home screen). Finalized submissions (`seed.isComplete`)
+    // never expire — post-submission editing has no time limit (rules/N).
+    // Implements: DIARY-GUI-questionnaire-session-expiry/B+D+E
+    // Implements: DIARY-PRD-questionnaire-session-timeout/C+D
+    var seed = submittedSurvey;
+    if (!isReadOnly &&
+        seed != null &&
+        !seed.isComplete &&
+        _isSessionExpired(definition, seed.completedAt)) {
+      await _discardExpiredDraft(
+        instanceId: aggregateId,
+        questionnaireType: definition.id,
+      );
+      final startAgain = await _showSessionExpiryDialog();
+      if (!startAgain) return; // Not Now → home screen (expiry/E)
+      seed = null; // Start Again → fresh flow from the Preamble (expiry/D)
+    }
+    if (!mounted) return;
+
+    // Whether a diary-local `checkpoint` draft exists for this instance (a
+    // draft seeded this open, or one written by onCheckpoint below). Gates the
+    // in-flow expiry discard so no draft_discarded is minted for an instance
+    // that never had a draft.
+    var draftPersisted = seed != null && !seed.isComplete;
+
     // CUR-1522: Suppress the home screen's general recall dialog for this
     // instance while the flow is open. The flow screen owns the recall
     // notification for its open instance via recallSignal + onRecalled.
@@ -907,7 +937,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             instanceId: aggregateId,
             // Prior answers seed the Review Screen (review/edit) or the read-only
             // view; null for a never-submitted instance (fresh flow).
-            initialResponses: submittedSurvey?.prefillResponses,
+            initialResponses: seed?.prefillResponses,
             isReadOnly: isReadOnly,
             onSubmit: (submission) async {
               try {
@@ -921,8 +951,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             // progress survives leaving the flow / killing the app. Stays local
             // (a `checkpoint` event, never synced) until the eventual submission.
             // Implements: DIARY-PRD-questionnaire-portal-sent-rules/H
-            onCheckpoint: (partial) =>
-                unawaited(_checkpointSurvey(submission: partial)),
+            onCheckpoint: (partial) {
+              draftPersisted = true;
+              unawaited(_checkpointSurvey(submission: partial));
+            },
+            // CUR-1543: in-flow expiry (the flow screen was OPEN as the
+            // inactivity timer crossed the threshold). The flow has already
+            // discarded its in-memory answers and reset to the start; here the
+            // host discards the persisted draft exactly like the on-open path
+            // above, then presents the same Session Expiry Dialog. `true`
+            // (Start Again) reveals the reset flow; `false` (Not Now) makes
+            // the flow call onComplete, popping back to the home screen.
+            // Implements: DIARY-GUI-questionnaire-session-expiry/B+D+E
+            // Implements: DIARY-PRD-questionnaire-session-timeout/C+D
+            onSessionExpired: () async {
+              if (draftPersisted) {
+                draftPersisted = false;
+                await _discardExpiredDraft(
+                  instanceId: aggregateId,
+                  questionnaireType: definition.id,
+                );
+              }
+              return _showSessionExpiryDialog();
+            },
             // CUR-1523: do NOT remove the task on completion. A submitted task
             // stays in the list (leaving "Needs your attention" via
             // categorization) and is removed only when `/user/tasks` drops it on
@@ -1119,6 +1170,69 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           'responses': responses,
         },
       ),
+    );
+  }
+
+  /// Whether a questionnaire Session anchored at [lastInteraction] (the last
+  /// checkpoint's `completedAt`, refreshed on every answer) has reached
+  /// Session Expiry per [definition]'s `sessionTimeoutMinutes`.
+  ///
+  /// Conservative default: a definition without a `sessionConfig` has no
+  /// timeout, so its drafts never expire and resume is always allowed
+  /// (DIARY-PRD-questionnaire-session-timeout/G).
+  // Implements: DIARY-GUI-questionnaire-session-expiry/B+G
+  // Implements: DIARY-PRD-questionnaire-session-timeout/A+C+G+H+I
+  bool _isSessionExpired(
+    QuestionnaireDefinition definition,
+    DateTime lastInteraction,
+  ) {
+    final timeoutMinutes = definition.sessionConfig?.sessionTimeoutMinutes;
+    if (timeoutMinutes == null) return false;
+    return DateTime.now().difference(lastInteraction) >=
+        Duration(minutes: timeoutMinutes);
+  }
+
+  /// Discards the diary-local `checkpoint` draft for [instanceId] by
+  /// dispatching `discard_questionnaire_draft`, which mints a diary-local
+  /// `draft_discarded` event on the `<id>_survey` aggregate — the
+  /// `diary_incomplete` projection removes the draft row so it can never be
+  /// resumed. Deliberately NOT a `tombstone`: checkpoints never reach the
+  /// portal, so their discard must not ship either (see
+  /// DiscardQuestionnaireDraftAction).
+  // Implements: DIARY-GUI-questionnaire-session-expiry/B
+  // Implements: DIARY-PRD-questionnaire-session-timeout/C
+  // Implements: DIARY-DEV-action-write-path/A
+  Future<void> _discardExpiredDraft({
+    required String instanceId,
+    required String questionnaireType,
+  }) async {
+    await ReActionScope.of(context).actionSubmitter.submit(
+      ActionSubmission(
+        actionName: 'discard_questionnaire_draft',
+        rawInput: <String, Object?>{
+          'instance_id': instanceId,
+          'questionnaire_type': questionnaireType,
+          'reason': 'session-expired',
+        },
+      ),
+    );
+  }
+
+  /// The Session Expiry Dialog: tells the participant their Session expired
+  /// and their previous answers were not saved, offering Start Again (returns
+  /// `true` → the caller opens the flow fresh from the Preamble) and Not Now
+  /// (returns `false` → the caller leaves the participant on / returns them
+  /// to the home screen).
+  // Implements: DIARY-GUI-questionnaire-session-expiry/B+C+D+E
+  Future<bool> _showSessionExpiryDialog() async {
+    if (!mounted) return false;
+    final l10n = AppLocalizations.of(context);
+    return AppDialog.confirmation(
+      context: context,
+      title: l10n.sessionExpiredTitle,
+      message: l10n.sessionExpiredMessage,
+      confirmLabel: l10n.startAgain,
+      cancelLabel: l10n.notNow,
     );
   }
 

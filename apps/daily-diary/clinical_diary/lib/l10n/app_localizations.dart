@@ -469,6 +469,12 @@ class AppLocalizations {
           'You are disconnected from the study. Your entries will be saved on this device and synced once reconnected. Please contact your site.',
       'participationStatusConnected': 'Connected',
       'studyParticipationEnded': 'Study Participation Ended',
+      // Questionnaire session expiry (CUR-1543)
+      'sessionExpiredTitle': 'Session expired',
+      'sessionExpiredMessage':
+          'Your session has expired and your previous answers were not saved.',
+      'startAgain': 'Start Again',
+      'notNow': 'Not Now',
     },
     'es': {
       // General
@@ -909,6 +915,13 @@ class AppLocalizations {
           'Esta desconectado del estudio. Sus entradas se guardaran en este dispositivo y se sincronizaran una vez reconectado. Por favor, contacte a su sitio.',
       'participationStatusConnected': 'Conectado',
       'studyParticipationEnded': 'Participacion en el Estudio Finalizada',
+      // Questionnaire session expiry (CUR-1543)
+      'sessionExpiredTitle': 'Sesion caducada',
+      'sessionExpiredMessage':
+          'Su sesion ha caducado y sus respuestas anteriores no se han '
+          'guardado.',
+      'startAgain': 'Empezar de nuevo',
+      'notNow': 'Ahora no',
     },
     'fr': {
       // General
@@ -1364,6 +1377,13 @@ class AppLocalizations {
           "Vous etes deconnecte de l'etude. Vos entrees seront enregistrees sur cet appareil et synchronisees une fois reconnectees. Veuillez contacter votre site.",
       'participationStatusConnected': 'Connecte',
       'studyParticipationEnded': "Participation a l'etude terminee",
+      // Questionnaire session expiry (CUR-1543)
+      'sessionExpiredTitle': 'Session expiree',
+      'sessionExpiredMessage':
+          "Votre session a expire et vos reponses precedentes n'ont pas ete "
+          'enregistrees.',
+      'startAgain': 'Recommencer',
+      'notNow': 'Pas maintenant',
     },
     'de': {
       // General
@@ -1811,6 +1831,13 @@ class AppLocalizations {
           'Sie sind von der Studie getrennt. Ihre Eintrage werden auf diesem Gerat gespeichert und nach der Wiederherstellung der Verbindung synchronisiert. Bitte kontaktieren Sie Ihre Studienstelle.',
       'participationStatusConnected': 'Verbunden',
       'studyParticipationEnded': 'Studienteilnahme beendet',
+      // Questionnaire session expiry (CUR-1543)
+      'sessionExpiredTitle': 'Sitzung abgelaufen',
+      'sessionExpiredMessage':
+          'Ihre Sitzung ist abgelaufen und Ihre vorherigen Antworten wurden '
+          'nicht gespeichert.',
+      'startAgain': 'Neu beginnen',
+      'notNow': 'Nicht jetzt',
     },
   };
 
@@ -2287,6 +2314,13 @@ class AppLocalizations {
   String get participationStatusConnected =>
       translate('participationStatusConnected');
   String get studyParticipationEnded => translate('studyParticipationEnded');
+
+  // Questionnaire session expiry (CUR-1543) — the Session Expiry Dialog copy.
+  // Implements: DIARY-GUI-questionnaire-session-expiry/B+C
+  String get sessionExpiredTitle => translate('sessionExpiredTitle');
+  String get sessionExpiredMessage => translate('sessionExpiredMessage');
+  String get startAgain => translate('startAgain');
+  String get notNow => translate('notNow');
 }
 
 class _AppLocalizationsDelegate

@@ -1038,20 +1038,21 @@ void main() {
     //   questionnaire whose instance has only an in-progress `checkpoint` draft
     //   (no finalized submission) restores the participant with their saved
     //   partial answers intact, so they resume rather than starting over.
-    // Verifies: DIARY-PRD-questionnaire-session-timeout/G
+    // Verifies: DIARY-PRD-questionnaire-session-timeout/G+H
     testWidgets(
       'opening a task with a checkpoint draft seeds the flow with saved answers',
       (tester) async {
         const instanceId = 'q-resume-1';
         addQuestionnaireTask(instanceId);
-        final now = DateTime.now();
         await pumpScreen(
           tester,
           // A checkpoint draft lives in the diary-LOCAL incomplete view, never
-          // the finalized canonical view.
+          // the finalized canonical view. CUR-1543: the draft must be RECENT
+          // (within the 30-min NOSE HHT session timeout) or the expiry gate
+          // discards it instead of seeding the flow.
           incomplete: [
             surveyRow(
-              DateTime(now.year, now.month, now.day, 9),
+              DateTime.now().subtract(const Duration(minutes: 1)),
               aggregateId: instanceId,
             ),
           ],
@@ -1061,10 +1062,127 @@ void main() {
         await tester.tap(find.text('NOSE HHT Survey'));
         await _settle(tester);
 
+        // No Session Expiry Dialog, no discard — the draft is fresh.
+        expect(find.text('Session expired'), findsNothing);
+        expect(
+          fake.submittedActions.where(
+            (s) => s.actionName == 'discard_questionnaire_draft',
+          ),
+          isEmpty,
+        );
+
         final flow = flowScreen(tester);
         expect(flow.isReadOnly, isFalse);
         expect(flow.initialResponses, isNotNull);
         expect(flow.initialResponses, isNotEmpty);
+      },
+    );
+
+    // ---- CUR-1543: questionnaire session expiry ------------------------------
+
+    // Verifies: DIARY-GUI-questionnaire-session-expiry/B+C+D — opening a
+    //   questionnaire whose checkpoint draft has passed sessionTimeoutMinutes
+    //   (30 for NOSE HHT) does NOT resume the draft: the draft is discarded in
+    //   the event log (diary-local draft_discarded) and the Session Expiry
+    //   Dialog is shown with Start Again / Not Now; Start Again dismisses the
+    //   dialog and opens the flow FRESH from the Preamble (no seed).
+    // Verifies: DIARY-PRD-questionnaire-session-timeout/C+D
+    testWidgets(
+      'an EXPIRED checkpoint draft is discarded and Start Again opens the '
+      'flow fresh from the Preamble',
+      (tester) async {
+        const instanceId = 'q-expired-1';
+        addQuestionnaireTask(instanceId);
+        await pumpScreen(
+          tester,
+          // Draft last touched 31 minutes ago — past the 30-minute timeout.
+          incomplete: [
+            surveyRow(
+              DateTime.now().subtract(const Duration(minutes: 31)),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
+
+        await tester.tap(find.text('NOSE HHT Survey'));
+        // The dialog is gated behind an awaited discard dispatch whose fake
+        // future resolves on the REAL event loop (queued in setUp, outside
+        // the fake-async zone) — flush it via runAsync, as the recall tests do.
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await _settle(tester);
+
+        // The Session Expiry Dialog is up instead of the resumed flow.
+        expect(find.text('Session expired'), findsOneWidget);
+        expect(
+          find.text(
+            'Your session has expired and your previous answers were not '
+            'saved.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Start Again'), findsOneWidget);
+        expect(find.text('Not Now'), findsOneWidget);
+        expect(find.byType(QuestionnaireFlowScreen), findsNothing);
+
+        // The expired draft was discarded (diary-local, reason recorded).
+        final discard = submissionFor('discard_questionnaire_draft');
+        expect(discard.rawInput['instance_id'], instanceId);
+        expect(discard.rawInput['questionnaire_type'], 'nose_hht');
+        expect(discard.rawInput['reason'], 'session-expired');
+
+        // Start Again → dialog dismissed, flow opens FRESH from the Preamble
+        // (readiness gate) with no seeded answers.
+        await tester.tap(find.text('Start Again'));
+        await _settle(tester);
+
+        final flow = flowScreen(tester);
+        expect(flow.initialResponses, isNull);
+        expect(flow.isReadOnly, isFalse);
+        expect(find.text("I'm ready"), findsOneWidget);
+      },
+    );
+
+    // Verifies: DIARY-GUI-questionnaire-session-expiry/B+E — Not Now on the
+    //   Session Expiry Dialog returns the participant to the home screen
+    //   without opening the questionnaire flow. The expired draft is still
+    //   discarded (the answers are gone regardless of the choice).
+    testWidgets(
+      'an EXPIRED checkpoint draft with Not Now returns to the home screen',
+      (tester) async {
+        const instanceId = 'q-expired-2';
+        addQuestionnaireTask(instanceId);
+        await pumpScreen(
+          tester,
+          incomplete: [
+            surveyRow(
+              DateTime.now().subtract(const Duration(minutes: 45)),
+              aggregateId: instanceId,
+            ),
+          ],
+        );
+
+        await tester.tap(find.text('NOSE HHT Survey'));
+        // Flush the awaited discard dispatch (real event loop; see above).
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await _settle(tester);
+
+        expect(find.text('Session expired'), findsOneWidget);
+        // The draft discard is unconditional on expiry.
+        expect(
+          submissionFor('discard_questionnaire_draft').rawInput['instance_id'],
+          instanceId,
+        );
+
+        await tester.tap(find.text('Not Now'));
+        await _settle(tester);
+
+        // Back on the home screen — no flow was pushed.
+        expect(find.byType(QuestionnaireFlowScreen), findsNothing);
+        expect(find.text('Record Nosebleed'), findsOneWidget);
       },
     );
 

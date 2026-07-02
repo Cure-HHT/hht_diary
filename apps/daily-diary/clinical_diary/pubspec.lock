@@ -373,7 +373,7 @@ packages:
       path: "../../common-flutter/eq"
       relative: true
     source: path
-    version: "0.0.10+18"
+    version: "0.0.11+19"
   equatable:
     dependency: transitive
     description:
