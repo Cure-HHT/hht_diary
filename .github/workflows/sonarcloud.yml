@@ -64,6 +64,6 @@ jobs:
 
       # Scan. SONAR_TOKEN is already in the environment (injected by the Doppler
       # step above); sonar-project.properties carries projectKey/org/sources.
-      - uses: SonarSource/sonarqube-scan-action@v5
+      - uses: SonarSource/sonarqube-scan-action@v8
         env:
           SONAR_HOST_URL: https://sonarcloud.io
