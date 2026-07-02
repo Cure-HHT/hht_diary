@@ -368,7 +368,7 @@ jobs:
 
       - name: Upload to Codecov
         if: hashFiles(format('cov/{0}.info', matrix.flag)) != ''
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           files: cov/${{ matrix.flag }}.info
           flags: ${{ matrix.flag }}
