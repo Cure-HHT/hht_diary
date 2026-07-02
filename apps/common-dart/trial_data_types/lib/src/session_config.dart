@@ -1,10 +1,7 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01073: Session Management
-
 /// Session configuration for a questionnaire.
 ///
-/// Controls the readiness gate and session timeout behavior
-/// per REQ-p01073.
+/// Controls the readiness gate and session timeout behavior.
+// Implements: DIARY-PRD-questionnaire-session-timeout/I — optional session-timeout configuration
 class SessionConfig {
   const SessionConfig({
     required this.readinessCheck,
@@ -24,18 +21,23 @@ class SessionConfig {
     );
   }
 
-  /// Whether to show the readiness check screen (REQ-p01073-A)
+  /// Whether to show the readiness check screen
+  // Implements: DIARY-PRD-questionnaire-portal-sent-rules/D — confirm readiness before proceeding
   final bool readinessCheck;
 
-  /// Message shown on the readiness screen (REQ-p01073-B)
+  /// Message shown on the readiness screen
+  // Implements: DIARY-PRD-questionnaire-portal-sent-rules/B — inform estimated time to complete
   final String readinessMessage;
 
   /// Estimated completion time (e.g., "10-12")
+  // Implements: DIARY-PRD-questionnaire-portal-sent-rules/B — estimated time to complete
   final String estimatedMinutes;
 
-  /// Session timeout in minutes (REQ-p01073-E)
+  /// Session timeout in minutes
+  // Implements: DIARY-PRD-questionnaire-session-timeout/I — configurable timeout duration
   final int sessionTimeoutMinutes;
 
   /// Warning before timeout in minutes
+  // Implements: DIARY-PRD-questionnaire-session-timeout/J — configurable warning threshold
   final int? timeoutWarningMinutes;
 }

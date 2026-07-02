@@ -1,8 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-// REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-// REQ-CAL-p00082: Participant Alert Delivery
-// REQ-p00049: Ancillary Platform Services (push notifications)
-//
 // FCM notification service for receiving push notifications on mobile.
 // Handles token management, permission requests, and message routing.
 
@@ -41,6 +36,9 @@ typedef OnFcmDataMessage = void Function(Map<String, dynamic> data);
 /// - FCM token retrieval and refresh
 /// - Foreground/background message handling
 /// - Deep-linking from notification taps
+// Implements: DIARY-BASE-mobile-notifications/A
+// Implements: DIARY-PRD-ancillary-platform-services/A
+// Implements: DIARY-PRD-questionnaire-portal-sent-rules
 class MobileNotificationService {
   MobileNotificationService({required this.onDataMessage, this.onTokenRefresh});
 
@@ -151,6 +149,7 @@ class MobileNotificationService {
   }
 
   /// Handle a notification tap that opened the app from background.
+  // Implements: DIARY-PRD-notification-behavior/A
   void _handleMessageOpenedApp(RemoteMessage message) {
     debugPrint('[FCM Opened] Message: ${message.messageId}');
     debugPrint('[FCM Opened] Data: ${message.data}');

@@ -1,13 +1,10 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01071: QoL Questionnaire UI
-
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
 /// Renders a question with rich text segments (bold, italic, underline).
 ///
-/// Used for QoL questions that have emphasis on key phrases
-/// per REQ-p01071-A.
+/// Used for QoL questions that have emphasis on key phrases.
+// Implements: DIARY-PRD-questionnaire-hht-qol/E
 class RichTextQuestion extends StatelessWidget {
   const RichTextQuestion({required this.segments, this.style, super.key});
 

@@ -1,14 +1,10 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01070: NOSE HHT Questionnaire UI
-//   REQ-p01071: QoL Questionnaire UI
-
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
 /// Preamble pages shown one at a time before the questions.
 ///
-/// Participant must acknowledge each page by tapping "Continue"
-/// per REQ-p01070-G,H,I / REQ-p01071-G,H,I.
+/// Participant must acknowledge each page by tapping "Continue".
+// Implements: DIARY-GUI-questionnaire-portal-sent-workflow/A
 class PreambleScreen extends StatelessWidget {
   const PreambleScreen({
     required this.preamble,

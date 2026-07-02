@@ -1,9 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01070: NOSE HHT Questionnaire UI
-//   REQ-p01071: QoL Questionnaire UI
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
@@ -19,6 +13,9 @@ import 'package:eq/src/widgets/rich_text_question.dart';
 /// perform the following tasks due to your nosebleeds?" — and per-item
 /// labels in `question.text`; QoL puts the full question in
 /// `question.text` with `category.stem == null`.
+// Implements: DIARY-GUI-questionnaire-portal-sent-workflow/D+F+G+H+J
+// Implements: DIARY-PRD-questionnaire-nose-hht/E
+// Implements: DIARY-PRD-questionnaire-hht-qol/E
 class QuestionScreen extends StatelessWidget {
   const QuestionScreen({
     required this.question,

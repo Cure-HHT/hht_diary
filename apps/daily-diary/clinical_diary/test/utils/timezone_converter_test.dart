@@ -1,7 +1,4 @@
 // CUR-583: Unit tests for timezone conversion utilities
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/utils/timezone_converter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,6 +6,7 @@ void main() {
   // Ensure timezone DB is initialized before tests
   setUpAll(TimezoneConverter.ensureInitialized);
 
+  // Verifies: DIARY-PRD-mobile-offline-first/A+B+C
   group('TimezoneConverter', () {
     // Use fixed device offset for deterministic tests
     // Simulating device in EST (UTC-5 = -300 minutes)

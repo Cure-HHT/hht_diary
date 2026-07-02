@@ -1,7 +1,3 @@
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00006: Mobile App Build and Release Process
-#   REQ-o00043: Automated Deployment Pipeline
-
 name: iOS Build & Store Artifact
 
 on:
@@ -422,6 +418,8 @@ jobs:
         id: install-doppler
         uses: dopplerhq/cli-action@v3
 
+      # Implements: DIARY-OPS-single-promotable-artifact/C
+      # Implements: DIARY-OPS-build-deploy-primitives/A+B
       - name: Build iOS ${{ needs.gate.outputs.flavor }} with Fastlane
         id: build-ios
         working-directory: apps/daily-diary/clinical_diary/ios

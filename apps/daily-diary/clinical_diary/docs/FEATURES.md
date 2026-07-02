@@ -282,9 +282,9 @@ sponsor to customize app behavior without code changes.
 | ---- | ------- | ----------- |
 | `useReviewScreen` | false | Show review screen before save |
 | `useAnimations` | true | Enable/disable all UI animations |
-| `requireOldEntryJustification` | false | REQ-CAL-p00001: Require reason |
-| `enableShortDurationConfirmation` | false | REQ-CAL-p00002: Confirm short |
-| `enableLongDurationConfirmation` | false | REQ-CAL-p00003: Confirm long |
+| `requireOldEntryJustification` | false | DIARY-PRD-entry-time-restrictions: Require reason |
+| `enableShortDurationConfirmation` | false | DIARY-PRD-entry-duration-check: Confirm short |
+| `enableLongDurationConfirmation` | false | DIARY-PRD-entry-duration-check: Confirm long |
 | `longDurationThresholdMinutes` | 60 | Configurable threshold (1-9 hrs) |
 
 #### Sponsor Configuration Flow
@@ -397,7 +397,7 @@ infrastructure:
 
 - **Append-only event sourcing** for FDA 21 CFR Part 11 compliance
 - **Cryptographic hash chain** for tamper detection via `append_only_datastore`
-- **Device UUID generation and persistence** (REQ-d00013)
+- **Device UUID generation and persistence**
 - **Record ID generation** using UUID v4
 
 #### Data Operations
@@ -638,9 +638,9 @@ class UserPreferences {
 
 - `useReviewScreen`: Show review before save
 - `useAnimations`: Enable UI animations
-- `requireOldEntryJustification`: REQ-CAL-p00001 compliance
-- `enableShortDurationConfirmation`: REQ-CAL-p00002 compliance
-- `enableLongDurationConfirmation`: REQ-CAL-p00003 compliance
+- `requireOldEntryJustification`: DIARY-PRD-entry-time-restrictions compliance
+- `enableShortDurationConfirmation`: DIARY-PRD-entry-duration-check compliance
+- `enableLongDurationConfirmation`: DIARY-PRD-entry-duration-check compliance
 - `longDurationThresholdMinutes`: Configurable threshold (60-1440 min)
 
 #### Sponsor Configuration
@@ -1214,18 +1214,18 @@ Options:
 
 ### 15.1 REQ-CAL Compliance Features
 
-#### REQ-CAL-p00001: Old Entry Justification
+#### DIARY-PRD-entry-time-restrictions: Old Entry Justification
 
 - Entries older than yesterday require justification
 - Dialog prompts for reason selection
 - Stored with audit trail
 
-#### REQ-CAL-p00002: Short Duration Confirmation
+#### DIARY-PRD-entry-duration-check: Short Duration Confirmation
 
 - Events <=1 minute trigger confirmation
 - Configurable via feature flag
 
-#### REQ-CAL-p00003: Long Duration Confirmation
+#### DIARY-PRD-entry-duration-check: Long Duration Confirmation
 
 - Events exceeding threshold trigger confirmation
 - Threshold configurable (1-24 hours)

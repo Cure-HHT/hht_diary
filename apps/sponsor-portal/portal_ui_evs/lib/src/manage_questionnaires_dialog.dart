@@ -73,7 +73,7 @@ String _endEventVerb(String endEvent) => switch (endEvent) {
 /// time on a 12-hour clock — no `intl` dependency in this package, so the
 /// format is hand-rolled (mirrors `usedOnLabel` in participants_screen_binding).
 ///
-/// Implements: REQ-CAL-p00023/T
+/// Implements: DIARY-BASE-questionnaire-finalization/D
 String _formatFinalizedAt(DateTime t) {
   const months = <String>[
     'Jan',
@@ -608,7 +608,7 @@ class _QuestionnaireCard extends StatelessWidget {
 
     // The formatted finalization stamp for the "Last:" line, when the row
     // carries one (after-finalize / Closed only).
-    // Implements: REQ-CAL-p00023/T
+    // Implements: DIARY-BASE-questionnaire-finalization/D
     final finalizedLabel = state.finalizedAt == null
         ? null
         : _formatFinalizedAt(state.finalizedAt!);
@@ -624,7 +624,7 @@ class _QuestionnaireCard extends StatelessWidget {
                 style: muted,
                 children: <InlineSpan>[
                   TextSpan(text: state.finalizedStudyEvent, style: emph),
-                  // Implements: REQ-CAL-p00023/T — the finalization date/time.
+                  // Implements: DIARY-BASE-questionnaire-finalization/D — the finalization date/time.
                   if (finalizedLabel != null)
                     TextSpan(text: '  •  $finalizedLabel', style: muted),
                 ],
@@ -668,7 +668,7 @@ class _QuestionnaireCard extends StatelessWidget {
     // "Next: Cycle N+1 Day 1" line carrying the Not-Sent pill (Figma). The
     // pill renders exactly once — on the Next line when a next cycle is known,
     // else inline with Last.
-    // Implements: REQ-CAL-p00023/T
+    // Implements: DIARY-BASE-questionnaire-finalization/D
     final cycle = state.finalizedStudyEvent;
     final next = state.nextStudyEvent;
     return Column(

@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +6,7 @@ import 'package:intl/intl.dart';
 /// Designed to be used within a form layout without requiring a separate screen
 /// Supports null/unset state displaying "--:--"
 /// Optionally displays a compact date picker next to the time
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class InlineTimePicker extends StatefulWidget {
   const InlineTimePicker({
     required this.onTimeChanged,

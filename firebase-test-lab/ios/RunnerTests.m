@@ -1,7 +1,5 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00006: Mobile App Build and Release Process
-//   REQ-o00043: Automated Deployment Pipeline
 @import XCTest;
 @import integration_test;
 
+// Verifies: DIARY-OPS-automated-test-execution/B
 INTEGRATION_TEST_IOS_RUNNER(RunnerTests)

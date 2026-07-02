@@ -1,7 +1,3 @@
-// VERIFIES REQUIREMENTS:
-//   REQ-d00169: GET /notifications?since= returns envelopes after the
-//               cursor and emits a next_cursor for the client to pin
-
 import 'dart:convert';
 
 import 'package:comms/comms.dart';
@@ -37,6 +33,7 @@ Handler _handler(
   );
 }
 
+// Verifies: DIARY-DEV-inbound-event-on-receipt/A — since query returns envelopes after cursor
 void main() {
   group('envelopeSinceHandler', () {
     test('returns envelopes created after `since`, sorted ascending', () async {

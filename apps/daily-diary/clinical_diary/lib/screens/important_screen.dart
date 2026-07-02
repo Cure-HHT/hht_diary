@@ -36,7 +36,7 @@ class ImportantAlert {
 /// home screen shows only the single most-urgent item inline; everything
 /// (including that top item) is listed here so the page is the complete view.
 //
-// Implements: DIARY-GUI-main-screen-layout-A+C — the overflow destination for
+// Implements: DIARY-GUI-main-screen-layout/A+C — the overflow destination for
 //   the Main Screen's important-items area: actionable items consolidated in
 //   one place, alerts above tasks, in priority order. NOTE: the consolidated /
 //   collapse model is not yet reflected in the requirement's assertions (which

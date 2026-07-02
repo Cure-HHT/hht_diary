@@ -3,10 +3,6 @@
 # Shared Project Definitions for Git Hooks
 # =====================================================
 #
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00018: Git Hook Implementation (trigger path definitions)
-#   REQ-o00043-A: Auto-trigger deployment on merge to main (scoped paths)
-#
 # Sourced by pre-commit, pre-push, and CI's validate-pr.sh.
 #
 # Entry format: name|pubspec_path|code_dirs|trigger_paths|version_mode
@@ -47,6 +43,7 @@
 # pubspec.yaml edit, so it must force a build (+N) bump — otherwise a
 # library upgrade would ship under an unchanged version (gate blind spot).
 
+# Implements: DIARY-OPS-change-appropriate-ci/A
 PROJECT_DEFS=(
     # Deployable apps
     "clinical_diary|apps/daily-diary/clinical_diary/pubspec.yaml|apps/daily-diary/clinical_diary/lib/ apps/daily-diary/clinical_diary/assets/|apps/daily-diary/clinical_diary/android/ apps/daily-diary/clinical_diary/ios/ apps/common-dart/trial_data_types/lib/ apps/common-dart/trial_data_types/assets/ apps/common-flutter/eq/lib/ .github/workflows/android-build.yml .github/workflows/ios-build.yml .github/versions.env|standard"

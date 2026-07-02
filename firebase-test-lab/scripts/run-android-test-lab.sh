@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00043: Automated Deployment Pipeline
 set -euo pipefail
 unset CLOUDSDK_CORE_PROJECT  # prevent auth step env override
 
@@ -40,6 +38,7 @@ if [[ "$ACTIVE_PROJECT" != "$PROJECT_ID" ]]; then
   exit 1
 fi
 
+# Implements: DIARY-OPS-automated-test-execution/B
 cmd=(
   gcloud firebase test android run
   --project="$PROJECT_ID"

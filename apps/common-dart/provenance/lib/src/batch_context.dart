@@ -10,7 +10,7 @@
 /// orders them, the size bounds the expected set, the wire-bytes hash pins
 /// the bytes the receiver hashed, and the wire format identifies the
 /// canonicalization procedure used.
-// Implements: REQ-d00115-J — batch-context schema.
+// Implements: EVS-PRD-provenance/A — batch-context schema.
 class BatchContext {
   const BatchContext({
     required this.batchId,

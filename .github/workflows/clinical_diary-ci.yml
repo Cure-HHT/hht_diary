@@ -1,8 +1,3 @@
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00081: Code Quality and Static Analysis (analyze step)
-#   REQ-o00082: Automated Test Execution (test-clinical-diary step)
-#   REQ-d00030: CI/CD Environment Parity
-#
 # CI workflow for clinical_diary Flutter desktop app.
 # Uses CI container with pre-installed Flutter, Firebase CLI, lcov,
 # xvfb, dbus, and gnome-keyring for secure storage tests.
@@ -69,6 +64,7 @@ jobs:
       # ---------------------------------------------------------------
       # Static analysis + formatting
       # ---------------------------------------------------------------
+      # Verifies: DIARY-OPS-code-quality-gate/B
       - name: Run Flutter format check
         working-directory: tools/dev-env
         run: |
@@ -78,6 +74,7 @@ jobs:
             dart format --output=none --set-exit-if-changed .
           "
 
+      # Verifies: DIARY-OPS-code-quality-gate/A
       - name: Run Flutter analyze
         working-directory: tools/dev-env
         run: |

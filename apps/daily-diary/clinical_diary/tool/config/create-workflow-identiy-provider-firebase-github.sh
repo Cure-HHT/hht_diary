@@ -1,6 +1,5 @@
 #!/bin/bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00043: Automated Deployment Pipeline
+# Implements: DIARY-OPS-build-deploy-primitives/A+B
 #
 # Create Firebase Service Account with Workload Identity Federation for GitHub Actions
 # This avoids service account keys (which may be blocked by org policy)

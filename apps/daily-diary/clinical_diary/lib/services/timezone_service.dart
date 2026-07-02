@@ -1,11 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 
 /// Service for detecting and providing the device's current IANA timezone.
 /// Detects timezone at startup and can be refreshed periodically.
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class TimezoneService {
   TimezoneService._();
 

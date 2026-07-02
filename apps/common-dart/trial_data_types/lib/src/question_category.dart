@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-
 import 'package:trial_data_types/src/question_definition.dart';
 import 'package:trial_data_types/src/response_scale_option.dart';
 
@@ -10,6 +6,8 @@ import 'package:trial_data_types/src/response_scale_option.dart';
 /// NOSE HHT has 3 categories (Physical, Functional, Emotional).
 /// QoL has 1 category (HHT Quality of Life).
 /// Each category has its own stem text and response labels.
+// Implements: DIARY-PRD-questionnaire-nose-hht/E — NOSE HHT questions organized into three categories
+// Implements: DIARY-PRD-questionnaire-hht-qol/A — HHT-QoL question content model
 class QuestionCategory {
   const QuestionCategory({
     required this.id,

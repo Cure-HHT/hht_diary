@@ -12,14 +12,14 @@ Shared OpenTelemetry instrumentation for HHT Diary platform servers. Pure Dart p
 
 ## Requirements Implemented
 
-| Requirement | Description                                         |
-|-------------|-----------------------------------------------------|
-| REQ-o00047  | Performance Monitoring -- OpenTelemetry integration |
-| REQ-o00047F | End-to-end distributed tracing                      |
-| REQ-o00047G | Database query tracing                              |
-| REQ-o00047I | HTTP request tracing with semantic conventions      |
-| REQ-o00045  | Error tracking with Cloud Error Reporting           |
-| REQ-o00045Q | PII/PHI scrubbing in traces and error messages      |
+All instrumentation in this package implements the platform operations
+monitoring requirement `DIARY-PRD-platform-operations-monitoring`:
+
+| Assertion                                       | Description                                         |
+|-------------------------------------------------|-----------------------------------------------------|
+| DIARY-PRD-platform-operations-monitoring/A      | Error tracking with Cloud Error Reporting           |
+| DIARY-PRD-platform-operations-monitoring/B      | Tracing, metrics, middleware, and DB instrumentation|
+| DIARY-PRD-platform-operations-monitoring/D      | Structured logging and PII/PHI scrubbing            |
 
 ## Quick Start
 

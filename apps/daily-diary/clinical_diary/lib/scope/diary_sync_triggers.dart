@@ -19,10 +19,6 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 
-// IMPLEMENTS REQUIREMENTS:
-// REQ-d00006: Mobile App Build and Release Process
-// REQ-o00043: Automated Deployment Pipeline
-//
 // When true (set via --dart-define in integration_test builds), the live
 // connectivity and FCM streams are replaced with empty streams so the widget
 // tree can reach quiescence for pumpAndSettle. Defaults to false, so production
@@ -127,6 +123,7 @@ class DiarySyncTriggerHandles {
 /// [fcmOnOpenedStreamFactory] are all omitted the FCM listeners still install
 /// against the real Firebase streams and fire the drain; the public default
 /// behavior is otherwise unchanged.
+// Implements: DIARY-DEV-native-outbound-sync
 Future<DiarySyncTriggerHandles> installDiarySyncTriggers({
   required Future<void> Function() onTrigger,
   Duration periodicInterval = const Duration(minutes: 15),

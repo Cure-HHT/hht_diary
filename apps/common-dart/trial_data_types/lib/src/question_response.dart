@@ -1,8 +1,6 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-
 /// A participant's response to a single question.
+// Implements: DIARY-PRD-questionnaire-nose-hht/A — NOSE HHT response content model
+// Implements: DIARY-PRD-questionnaire-hht-qol/A — HHT-QoL response content model
 class QuestionResponse {
   const QuestionResponse({
     required this.questionId,
@@ -43,6 +41,8 @@ class QuestionResponse {
 }
 
 /// Complete submission of a questionnaire with all responses.
+// Implements: DIARY-PRD-questionnaire-nose-hht/A — NOSE HHT submission content model
+// Implements: DIARY-PRD-questionnaire-hht-qol/A — HHT-QoL submission content model
 class QuestionnaireSubmission {
   const QuestionnaireSubmission({
     required this.instanceId,

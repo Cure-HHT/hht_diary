@@ -7,10 +7,6 @@
 #   1. SPONSOR_MANIFEST env var (Doppler - production/CI)
 #   2. This file (local development fallback)
 #
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00069: Doppler manifest system
-#   REQ-d00070: Sponsor integration automation
-#
 # See also: spec/dev-sponsor-repos.md for full specification
 
 sponsors:

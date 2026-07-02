@@ -1,15 +1,11 @@
 # Dependabot Configuration
 # Enables automated dependency updates for GitHub Actions, npm, and Docker
 #
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00052: Automated dependency management
-#   REQ-d00053: Development environment tooling
-#
 # Documentation: https://docs.github.com/en/code-security/dependabot
-# Last updated: 2026-05-23
 
 version: 2
 
+# Implements: DIARY-OPS-security-scanning/B
 updates:
   # GitHub Actions - Weekly updates on Mondays
   - package-ecosystem: "github-actions"

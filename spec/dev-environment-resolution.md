@@ -26,7 +26,8 @@ Moving the environment from a compile-time constant to a runtime-resolved bundle
 # DIARY-DEV-deployment-config-defaults: Deployment Configuration Defaults
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
-**Refines**: DIARY-PRD-configuration-precedence
+**Refines**: DIARY-BASE-mobile-diary-application
+**Satisfies**: DIARY-PRD-configuration-precedence
 
 ## Assertions
 

@@ -367,6 +367,33 @@ fi
 echo ""
 
 # =====================================================
+# 4.5 Requirement annotation sweep (CUR-1451)
+# =====================================================
+# elspais does not scan shell/yaml/ruby annotations, so this script is the
+# source of truth: no legacy REQ-{p|o|d}NNNNN ids, no forbidden file-header
+# requirement banners, and every // Implements: / // Verifies: resolves to a
+# live REQ + assertion. Deferred infra ids (inventory deferred=true) are allowlisted.
+
+printf '%b\n' "${BLUE}Checking requirement annotations (CUR-1451)...${NC}"
+echo ""
+
+if command -v python3 &> /dev/null; then
+    if ! python3 "$REPO_ROOT/tools/requirements/verify_annotations.py"; then
+        VALIDATION_FAILED=true
+        echo ""
+        printf '%b\n' "${RED}Annotation sweep failed: legacy REQ ids, forbidden header${NC}"
+        printf '%b\n' "${RED}banners, or dangling annotations remain. See tools/requirements/README.md.${NC}"
+        echo ""
+    else
+        printf '%b\n' "${GREEN}Requirement annotations OK!${NC}"
+    fi
+else
+    printf '%b\n' "${YELLOW}python3 not found - skipping annotation sweep check${NC}"
+fi
+
+echo ""
+
+# =====================================================
 # 5. Find app directories affected by changes
 # =====================================================
 # Only run pub get, format, and analyze on apps with changed files.

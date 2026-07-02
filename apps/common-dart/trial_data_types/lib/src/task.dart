@@ -3,11 +3,11 @@ import 'package:trial_data_types/src/task_type.dart';
 
 /// A participant task displayed at the top of the mobile app screen.
 ///
-// Implements: REQ-CAL-p00081/A — Tasks are actionable items that require
-//   participant attention. They are displayed in priority order (REQ-CAL-p00081/C)
-//   and each links directly to the relevant screen (REQ-CAL-p00081/D).
+// Implements: DIARY-GUI-participant-task-list/A+C+D — Tasks are actionable items
+//   that require participant attention, displayed in priority order, each linking
+//   directly to the relevant screen.
 class Task {
-  // Implements: REQ-CAL-p00081/A+C+D — task identity, priority, and navigation
+  // Implements: DIARY-GUI-participant-task-list/A+C+D — task identity, priority, and navigation
   const Task({
     required this.id,
     required this.taskType,
@@ -21,8 +21,8 @@ class Task {
   });
 
   /// Create from JSON map (REST API response or local storage)
-  // Implements: REQ-CAL-p00081/A+C+D — deserialise all task fields including
-  //   questionnaire association (REQ-CAL-p00080)
+  // Implements: DIARY-GUI-participant-task-list/A+C+D — deserialise all task fields
+  // Implements: DIARY-BASE-questionnaire-cycle-tracking/A — questionnaire/study-event association
   factory Task.fromJson(Map<String, dynamic> json) {
     final studyEvent = json['study_event'] as String?;
     return Task(
@@ -46,7 +46,7 @@ class Task {
   /// `questionnaire_type` may be null for entries whose lifecycle has ended
   /// (e.g. `status:'recalled'`) — the type is treated as unknown in that case
   /// and `questionnaireType` is left null rather than throwing.
-  // Implements: REQ-CAL-p00081/A — questionnaire task created from push notification
+  // Implements: DIARY-GUI-participant-task-list/A — questionnaire task created from push notification
   factory Task.fromFcmData(Map<String, dynamic> data) {
     final rawType = data['questionnaire_type'] as String?;
     final questionnaireType = rawType != null
@@ -70,11 +70,11 @@ class Task {
   }
 
   /// Unique task identifier
-  // Implements: REQ-CAL-p00081/A
+  // Implements: DIARY-GUI-participant-task-list/A
   final String id;
 
   /// Type of task (determines priority and behavior)
-  // Implements: REQ-CAL-p00081/C
+  // Implements: DIARY-GUI-participant-task-list/C
   final TaskType taskType;
 
   /// Display title (e.g., "NOSE HHT Questionnaire")
@@ -87,17 +87,17 @@ class Task {
   final DateTime createdAt;
 
   /// ID of the linked entity (e.g., questionnaire instance ID)
-  // Implements: REQ-CAL-p00081/D
+  // Implements: DIARY-GUI-participant-task-list/D
   final String? targetId;
 
   /// For questionnaire tasks: the questionnaire type
-  // Implements: REQ-CAL-p00080 — questionnaire-study-event association
+  // Implements: DIARY-BASE-questionnaire-cycle-tracking/A — questionnaire-study-event association
   final QuestionnaireType? questionnaireType;
 
-  /// CUR-856 (REQ-CAL-p00080): Study-event cycle label assigned by the
+  /// CUR-856 (DIARY-BASE-questionnaire-cycle-tracking): Study-event cycle label assigned by the
   /// portal coordinator (e.g., "Cycle 2 Day 1"). Round-trips through
   /// [toJson] so resumed and submitted surveys carry the cycle label.
-  // Implements: REQ-CAL-p00080
+  // Implements: DIARY-BASE-questionnaire-cycle-tracking/A
   final String? studyEvent;
 
   /// Portal-reported questionnaire lifecycle status.
@@ -106,12 +106,12 @@ class Task {
   //   (sent | ready_to_review | finalized | unlocked); null for non-questionnaire tasks.
   final String? status;
 
-  /// Display priority per REQ-CAL-p00081-C
-  // Implements: REQ-CAL-p00081/C
+  /// Display priority per DIARY-GUI-participant-task-list/C
+  // Implements: DIARY-GUI-participant-task-list/C
   int get priority => taskType.priority;
 
   /// Serialize to JSON map
-  // Implements: REQ-CAL-p00081/A+C+D — round-trips all task fields for local storage
+  // Implements: DIARY-GUI-participant-task-list/A+C+D — round-trips all task fields for local storage
   Map<String, dynamic> toJson() {
     return {
       'id': id,

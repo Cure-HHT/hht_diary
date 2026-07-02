@@ -303,9 +303,10 @@ Future<VerificationResult> _verifyEmulatorToken(String idToken) async {
     // returns the real email_verified claim from the parsed token.
     // Earlier (CUR-1280) we forced this to true to keep CUR-1272's
     // emailVerified gate from rejecting every freshly-minted emulator
-    // token. The gate's gone (REQ-d00167-C); the fake's not needed.
+    // token. The gate's gone (DIARY-DEV-portal-login-identity-verification/A);
+    // the fake's not needed.
     //
-    // Implements: REQ-d00167-C
+    // Implements: DIARY-DEV-portal-login-identity-verification/A
     final emailVerified = payload['email_verified'] as bool? ?? false;
 
     // Extract MFA info from firebase claim (emulator may or may not have this)

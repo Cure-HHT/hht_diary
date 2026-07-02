@@ -1,7 +1,3 @@
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00081: Code Quality and Static Analysis (portal_ui_evs analyze)
-#   REQ-o00082: Automated Test Execution (portal_server_evs e2e, portal_ui_evs)
-#
 # CI workflow for the sponsor-portal EVS stack:
 #   - portal_server_evs link/ingest e2e tests (hermetic, in-memory — no
 #     PostgreSQL, no Firebase emulator)
@@ -61,6 +57,7 @@ jobs:
             cd /workspace/src/apps/sponsor-portal/portal_ui_evs && flutter pub get
           "
 
+      # Verifies: DIARY-OPS-code-quality-gate/A
       - name: Analyze portal_ui_evs
         working-directory: tools/dev-env
         run: |

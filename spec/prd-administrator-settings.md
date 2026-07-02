@@ -5,6 +5,7 @@ This section defines the **Administrator Settings** surface, a read-only view av
 ## DIARY-PRD-administrator-settings: Administrator Settings Surface
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Overview
 

@@ -5,6 +5,7 @@ The **Mobile Application** foundation comprises the dual-mode (personal vs. link
 ## DIARY-PRD-mobile-application: Diary Mobile Application
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-diary-application
 
 ### Overview
 
@@ -73,6 +74,7 @@ E. For linked **Participants**, the System SHALL automatically synchronize unsyn
 ## DIARY-PRD-diary-start-day: Diary Start Day Definition
 
 **Level**: PRD | **Status**: Active | **Implements**: -
+**Refines**: DIARY-BASE-mobile-diary-application
 
 ### Overview
 
@@ -115,6 +117,7 @@ The **Diary Start Day** is the single boundary the **Mobile Application** uses t
 ## DIARY-PRD-privacy-policy: Clinical Trial Privacy Policy
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-diary-application
 
 ### Overview
 
@@ -144,6 +147,7 @@ Two privacy policies coexist in the **Mobile Application** because two distinct 
 ## DIARY-PRD-user-authentication: Diary User Authentication
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-access-control-identity
 
 ### Overview
 

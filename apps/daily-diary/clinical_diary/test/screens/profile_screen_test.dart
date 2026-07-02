@@ -1,9 +1,7 @@
 // Widget tests for the redesigned ProfileScreen (Figma node 441:6951).
 //
 // Per-test REQ traceability is carried by `// Verifies:` annotations on the
-// groups/tests below (REQ-CAL-p00076 Participation Status Badge,
-// GUI-p00076 Not Participating state, REQ-p01065 Deactivate sync and rules
-// on Not Participating, REQ-p00045 Clinical Trial Privacy Policy).
+// groups/tests below.
 
 import 'dart:convert';
 import 'dart:typed_data';
@@ -119,7 +117,7 @@ void main() {
       });
     });
 
-    // Verifies: REQ-CAL-p00076 (Participation Status Badge — not enrolled)
+    // Verifies: DIARY-GUI-participation-status-badge
     group('Participation Status Badge - Not Enrolled', () {
       testWidgets('does not show status card when not enrolled', (
         tester,
@@ -188,7 +186,7 @@ void main() {
       );
     });
 
-    // Verifies: REQ-CAL-p00076 (Participation Status Badge — active)
+    // Verifies: DIARY-GUI-participation-status-badge
     group('Participation Status Badge - Active', () {
       testWidgets('shows Connected status card when enrolled and connected', (
         tester,
@@ -276,21 +274,21 @@ void main() {
         expect(find.text('Enter New Linking Code'), findsNothing);
       });
 
-      testWidgets(
-        'shows Application Privacy Policy menu row when active (REQ-p00045)',
-        (tester) async {
-          await tester.pumpWidget(
-            buildProfileScreen(
-              isEnrolledInTrial: true,
-              isDisconnected: false,
-              enrollmentStatus: 'active',
-            ),
-          );
-          await tester.pumpAndSettle();
+      // Verifies: DIARY-PRD-privacy-policy
+      testWidgets('shows Application Privacy Policy menu row when active', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildProfileScreen(
+            isEnrolledInTrial: true,
+            isDisconnected: false,
+            enrollmentStatus: 'active',
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          expect(find.text('Application Privacy Policy'), findsOneWidget);
-        },
-      );
+        expect(find.text('Application Privacy Policy'), findsOneWidget);
+      });
 
       // CUR-1495: the Application Privacy Policy row launches the external URL.
       test('Application Privacy Policy URL is the CureHHT app policy', () {
@@ -365,7 +363,7 @@ void main() {
       );
     });
 
-    // Verifies: REQ-CAL-p00076 (Participation Status Badge — disconnected)
+    // Verifies: DIARY-GUI-participation-status-badge
     group('Participation Status Badge - Disconnected', () {
       testWidgets('shows Disconnected status card when disconnected', (
         tester,
@@ -423,7 +421,8 @@ void main() {
 
       // The redesigned menu list shows the Application Privacy Policy row in
       // every state — the old state-gated "View Clinical Trial Privacy
-      // Policy" link no longer exists (REQ-p00045 access is now permanent).
+      // Policy" link no longer exists (privacy-policy access is now permanent).
+      // Verifies: DIARY-PRD-privacy-policy
       testWidgets(
         'still shows Application Privacy Policy menu row when disconnected',
         (tester) async {
@@ -436,6 +435,7 @@ void main() {
         },
       );
 
+      // Verifies: DIARY-PRD-participant-disconnection
       testWidgets('does not show site name text in disconnected card', (
         tester,
       ) async {
@@ -448,7 +448,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Site name is not shown in the disconnected card (per REQ-CAL-p00020 UI)
+        // Site name is not shown in the disconnected card (per the
+        // disconnection UI)
         expect(find.textContaining('Test Clinic'), findsNothing);
       });
 
@@ -633,7 +634,7 @@ void main() {
       );
     });
 
-    // Verifies: REQ-CAL-p00076 (Participation Status Badge — tones)
+    // Verifies: DIARY-GUI-participation-status-badge
     group('Status Badge Styling', () {
       testWidgets('active status card uses the success tone', (tester) async {
         await tester.pumpWidget(
@@ -661,7 +662,8 @@ void main() {
     });
 
     // CUR-1165: Not Participating state tests
-    // Verifies: GUI-p00076 (Not Participating state), REQ-p01065-D
+    // Verifies: DIARY-GUI-participation-status-badge
+    // Verifies: DIARY-PRD-questionnaire-system
     group('Not Participating state', () {
       testWidgets('status card uses the neutral tone when not_participating', (
         tester,
@@ -762,7 +764,7 @@ void main() {
       });
     });
 
-    // Verifies: GUI-p00076 (sponsor branding on the status badge)
+    // Verifies: DIARY-GUI-participation-status-badge
     group('Sponsor Icon', () {
       testWidgets(
         'shows cache-backed sponsor logo when a builder is provided in active '

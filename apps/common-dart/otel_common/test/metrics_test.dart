@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047: Performance Monitoring — custom application metrics
-
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
@@ -62,6 +59,7 @@ Future<TestMetricReader> setUpOTelWithMetrics() async {
   return metricReader;
 }
 
+// Verifies: DIARY-PRD-platform-operations-monitoring/B
 void main() {
   group('HTTP middleware metrics', () {
     late TestMetricReader metricReader;

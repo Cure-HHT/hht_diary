@@ -5,6 +5,7 @@ This section defines per-*Role* visibility scope of *Audit Log* records and the 
 ## DIARY-GUI-audit-log-common: Audit Log View — Common Presentation
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-audit-trail
 
 ### Overview
 

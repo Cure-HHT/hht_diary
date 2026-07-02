@@ -1,11 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:flutter/material.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 /// A timezone entry with display formatting
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class TimezoneEntry {
   const TimezoneEntry({
     required this.ianaId,

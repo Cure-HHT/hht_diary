@@ -1,8 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047F: End-to-end distributed tracing
-//   REQ-o00047I: HTTP request tracing with semantic conventions
-//   REQ-o00047: Performance Monitoring — custom application metrics
-
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 import 'package:shelf/shelf.dart';
@@ -13,12 +8,13 @@ import 'package:shelf/shelf.dart';
 /// Metrics recorded:
 /// - `http_request_duration_seconds` (histogram) — request latency
 /// - `http_requests_total` (counter) — request count by status/method/path
+// Implements: DIARY-PRD-platform-operations-monitoring/B
 Middleware otelMiddleware({String tracerName = 'http.server'}) {
   // Create metric instruments once when the middleware is constructed.
   // This runs after initializeOTel() since middleware is wired at startup.
   final meter = OTel.meter('http.server');
 
-  // IMPLEMENTS: REQ-o00047
+  // Implements: DIARY-PRD-platform-operations-monitoring/B
   final httpDuration = meter.createHistogram<double>(
     name: 'http_request_duration_seconds',
     unit: 's',

@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01067: NOSE HHT Questionnaire Content
-
 import 'package:eq/eq.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +5,7 @@ import 'package:trial_data_types/trial_data_types.dart';
 
 import 'test_helpers.dart';
 
+// Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/K+L+M+N
 void main() {
   late QuestionnaireDefinition def;
   late Map<String, QuestionResponse> responses;

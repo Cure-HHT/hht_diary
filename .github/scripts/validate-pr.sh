@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00078: Change-Appropriate CI Validation (change detection, conditional checks)
-#   REQ-o00079: Commit and PR Traceability Enforcement (PR title, commit message checks)
-#   REQ-o00081: Code Quality and Static Analysis (code headers, migration headers, doc linting)
-#   REQ-d00014: Requirement Validation Tooling (elspais)
-#   REQ-o00052: CI/CD Pipeline for Requirement Traceability (elspais, traceability matrix)
-#
 # Fast-fail PR validation script. Runs checks sequentially, exits on first failure.
 # Replaces 10 parallel CI jobs with a single script for faster feedback.
 #
@@ -37,20 +30,11 @@ report_error() {
 source .github/versions.env
 
 # ============================================================================
-# Policy flags — control enforcement levels across all checks
-# Values come from versions.env; override here for local testing
-# ============================================================================
-
-# ENFORCE_CODE_HEADERS (from versions.env, default: off)
-#   off = skip check entirely (disabled)
-#   on  = scan files, write report, fail the build if headers are missing
-ENFORCE_CODE_HEADERS="${ENFORCE_CODE_HEADERS:-off}"
-
-# ============================================================================
 # Tier 0: Instant checks (< 5 seconds)
 # ============================================================================
 
 # --- 1. PR title must contain [CUR-XXX] (or [Dependabot] for bot PRs, CUR-1149) ---
+# Verifies: DIARY-OPS-pr-compliance-checks/A
 begin_group "PR Title Validation"
 echo "PR #${PR_NUMBER}: ${PR_TITLE}"
 echo ""
@@ -82,6 +66,7 @@ end_group
 # Tier 1: Detect what changed (lightweight, no external action needed)
 # ============================================================================
 
+# Implements: DIARY-OPS-change-appropriate-ci/A+B
 begin_group "Change Detection"
 
 SPEC_CHANGED=false
@@ -154,7 +139,7 @@ fi
 # alter elspais output. Such files can introduce or remove REQ-
 # references (in IMPLEMENTS / Verifies headers, prose, or test
 # annotations), so elspais must validate them on every PR — not just
-# spec-file edits. PR #539 (CUR-1164) added REQ-p05004 references in
+# spec-file edits. PR #539 (CUR-1164) added requirement references in
 # app code with no spec/ change, so elspais was silently skipped and
 # the broken reference landed on main (CUR-1246). DOCS_CHANGED is
 # broader than elspais's strict docs/ scan (it also matches bare .md
@@ -197,11 +182,8 @@ end_group
 # Tier 2: Version bump enforcement (always runs when trigger paths change)
 # ============================================================================
 
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00052-A: CI/CD validation on every PR to protected branches
-#   REQ-d00057-E: Build commands reproducible across local and CI environments
-#
 # --- 3. Verify version bumps match changed trigger paths ---
+# Verifies: DIARY-OPS-single-promotable-artifact/C
 begin_group "Version Bump Verification"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -277,6 +259,8 @@ end_group
 # point in the pipeline, so the tests.results check would always fail.
 # A separate report-phase invocation (full `elspais checks`) runs
 # after the CI test workflows write results into build-reports/.
+# Verifies: DIARY-OPS-traceability-validation/A
+# Implements: DIARY-OPS-traceability-validation/B
 begin_group "Requirement Validation - readiness (elspais v${ELSPAIS_VERSION})"
 
 if [ "$ELSPAIS_RELEVANT_CHANGED" = "true" ]; then
@@ -356,105 +340,11 @@ end_group
 # library (created at runtime, not via repo migrations). There are no SQL
 # migration files in this repo to header-validate.
 
-# --- 6. Code implementation headers (if code/database changed, gated by ENFORCE_CODE_HEADERS) ---
-# Scans all Dart/SQL source files for IMPLEMENTS REQUIREMENTS headers.
-# Writes a report to ci-reports/traceability_code_warnings.md.
-# Controlled by ENFORCE_CODE_HEADERS flag (see top of file).
-if [ "$ENFORCE_CODE_HEADERS" = "on" ] && { [ "$CODE_CHANGED" = "true" ] || [ "$DB_CHANGED" = "true" ]; }; then
-  begin_group "Code Header Validation (ENFORCE_CODE_HEADERS=${ENFORCE_CODE_HEADERS})"
-
-  MISSING_HEADERS=()
-  TOTAL_SCANNED=0
-
-  # Recursive SQL/Dart scans use `find -print0 | while read -d ''` rather
-  # than bash 4's `globstar`. Devs run validate-pr.sh on macOS where the
-  # default /bin/bash is 3.2 and `shopt -s globstar` is unavailable; under
-  # that shell, `database/**/*.sql` silently degrades to depth-2 matching
-  # and deeper files escape header validation without any error. The
-  # process-substitution form keeps the loop body in the same shell so
-  # MISSING_HEADERS+= and TOTAL_SCANNED= propagate.
-
-  # Check SQL files in database directory
-  if [ -d "database" ]; then
-    while IFS= read -r -d '' file; do
-      if [[ "$file" =~ /tests/ ]] || [[ "$file" =~ /migrations/ ]]; then
-        continue
-      fi
-      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-        MISSING_HEADERS+=("$file|sql")
-      fi
-    done < <(find database -type f -name '*.sql' -print0 2>/dev/null)
-  fi
-
-  # Check Dart files in packages directory
-  if [ -d "packages" ]; then
-    while IFS= read -r -d '' file; do
-      if [ "$(basename "$file")" = "main.dart" ]; then
-        continue
-      fi
-      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-        MISSING_HEADERS+=("$file|dart")
-      fi
-    done < <(find packages -type f -name '*.dart' -print0 2>/dev/null)
-  fi
-
-  # Check Dart files in apps directory
-  if [ -d "apps" ]; then
-    while IFS= read -r -d '' file; do
-      if [ "$(basename "$file")" = "main.dart" ]; then
-        continue
-      fi
-      TOTAL_SCANNED=$((TOTAL_SCANNED + 1))
-      if ! grep -q "IMPLEMENTS REQUIREMENTS:" "$file"; then
-        MISSING_HEADERS+=("$file|dart")
-      fi
-    done < <(find apps -type f -name '*.dart' -print0 2>/dev/null)
-  fi
-
-  # Write report to ci-reports/
-  mkdir -p ci-reports
-  REPORT="ci-reports/traceability_code_warnings.md"
-  {
-    echo "# Code Traceability Warnings"
-    echo ""
-    echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ) | PR: #${PR_NUMBER} | Files scanned: ${TOTAL_SCANNED}"
-    echo ""
-    if [ ${#MISSING_HEADERS[@]} -gt 0 ]; then
-      echo "## Files Missing \`IMPLEMENTS REQUIREMENTS\` Header"
-      echo ""
-      echo "| File | Type |"
-      echo "|------|------|"
-      for entry in "${MISSING_HEADERS[@]}"; do
-        IFS='|' read -r filepath filetype <<< "$entry"
-        echo "| ${filepath} | ${filetype} |"
-      done
-      echo ""
-      echo "**Total**: ${#MISSING_HEADERS[@]} files missing headers out of ${TOTAL_SCANNED} scanned"
-    else
-      echo "All ${TOTAL_SCANNED} implementation files have requirement headers."
-    fi
-  } > "$REPORT"
-
-  MISSING_COUNT=${#MISSING_HEADERS[@]}
-  echo "Scanned ${TOTAL_SCANNED} files, ${MISSING_COUNT} missing headers"
-  echo "Report written to ${REPORT}"
-
-  if [ "$MISSING_COUNT" -gt 0 ]; then
-    for entry in "${MISSING_HEADERS[@]}"; do
-      IFS='|' read -r filepath _ <<< "$entry"
-      echo "::error file=$filepath::Missing IMPLEMENTS REQUIREMENTS header"
-    done
-    echo ""
-    echo "CODE HEADER VALIDATION FAILED (ENFORCE_CODE_HEADERS=on)"
-    echo "See spec/requirements-format.md for the correct format."
-    end_group
-    exit 1
-  fi
-
-  end_group
-fi
+# --- 6. Code requirement traceability ---
+# Per-unit `Implements:`/`Verifies:` annotations are validated by elspais
+# (the readiness phase above) against the requirements graph. File-header
+# requirement blocks were retired in the URS-v1 migration (CUR-1451); the
+# unit of traceability is the assertion on each code unit, not a file header.
 
 # --- 7. Documentation linting (if docs/spec changed) ---
 if [ "$DOCS_CHANGED" = "true" ] || [ "$SPEC_CHANGED" = "true" ]; then

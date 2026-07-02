@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00193: FCM Dispatch via cure-hht-admin Project
-//
 // Authenticated HTTP client lifecycle for FCM. Uses Application Default
 // Credentials (Workload Identity Federation on Cloud Run; gcloud
 // `application-default login` locally). Caches the client and rotates
@@ -15,6 +12,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 
 /// Caches and rotates an ADC-authenticated HTTP client.
+// Implements: DIARY-OPS-fcm-project-routing/A — ADC resolves the FCM sender project
 class AdcClient {
   AdcClient({
     Future<http.Client> Function()? authFactory,

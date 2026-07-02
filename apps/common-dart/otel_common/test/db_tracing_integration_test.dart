@@ -1,13 +1,10 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047G: Database query tracing
-//   REQ-o00045Q: PII/PHI scrubbing in trace data
-
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:otel_common/otel_common.dart';
 import 'package:test/test.dart';
 
 import 'helpers/otel_test_helpers.dart';
 
+// Verifies: DIARY-PRD-platform-operations-monitoring/B
 void main() {
   late InMemorySpanExporter exporter;
 

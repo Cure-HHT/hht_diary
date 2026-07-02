@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:intl/intl.dart';
 
 /// Utility class for formatting and parsing ISO 8601 timestamps with timezone offsets.
@@ -10,6 +7,7 @@ import 'package:intl/intl.dart';
 ///
 /// This preserves the user's local timezone at the time of entry, which is important
 /// for clinical data to know when the event actually occurred in the user's context.
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class DateTimeFormatter {
   DateTimeFormatter._();
 

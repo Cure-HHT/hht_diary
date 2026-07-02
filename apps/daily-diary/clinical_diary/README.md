@@ -220,7 +220,7 @@ Firebase configuration is managed via:
 
 ## Push Notifications (FCM)
 
-The app uses Firebase Cloud Messaging (FCM) to receive push notifications from the portal server. This is used for the questionnaire task system (REQ-CAL-p00023, REQ-CAL-p00081).
+The app uses Firebase Cloud Messaging (FCM) to receive push notifications from the portal server. This is used for the questionnaire task system (DIARY-PRD-questionnaire-portal-sent-rules, DIARY-GUI-participant-task-list).
 
 ### Architecture
 

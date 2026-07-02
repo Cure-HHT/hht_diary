@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047: Performance Monitoring — OpenTelemetry integration (test infra)
-
 import 'dart:convert';
 import 'dart:io';
 
@@ -10,6 +7,7 @@ import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 ///
 /// Captures all exported spans in a list for assertions without
 /// requiring an external OTel Collector.
+// Verifies: DIARY-PRD-platform-operations-monitoring/A+B+D
 class InMemorySpanExporter implements SpanExporter {
   final List<Span> _spans = [];
   bool _isShutdown = false;

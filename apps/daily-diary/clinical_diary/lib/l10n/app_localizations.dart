@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:flutter/material.dart';
 
 /// Supported locales for the app
@@ -336,7 +333,7 @@ class AppLocalizations {
       'sharingNoteEnded':
           'Note: Data shared during clinical trial participation remains with researchers indefinitely for scientific analysis.',
 
-      // REQ-CAL-p00076: Participation Status Badge
+      // Implements: DIARY-GUI-participation-status-badge
       'profile': 'Profile',
       'participationStatus': 'Participation Status',
       'participationStatusActive': 'Active',
@@ -356,14 +353,14 @@ class AppLocalizations {
       'participationStatusNotParticipatingMessage':
           'Study participation: Ended',
 
-      // REQ-p00045: Clinical Trial Privacy Policy
+      // Implements: DIARY-PRD-privacy-policy
       'linkingConsentPrefix': 'I have read, understand, and consent to the ',
       'linkingConsentSuffix': ' for this clinical trial',
       'privacyPolicy': 'Privacy Policy',
       'clinicalTrialPrivacyPolicy': 'Clinical Trial Privacy Policy',
       'viewClinicalTrialPrivacyPolicy': 'View Clinical Trial Privacy Policy',
 
-      // REQ-CAL-p00001: Old Entry Justification
+      // Implements: DIARY-PRD-entry-time-restrictions
       'oldEntryJustificationTitle': 'Old Entry Modification',
       'gnuAgplTitle': 'GNU AGPL v3 License',
       'gnuAgplDescription': 'gnu.org official license text',
@@ -376,11 +373,11 @@ class AppLocalizations {
       'justificationEstimated': 'Estimated event',
       'confirm': 'Confirm',
 
-      // REQ-CAL-p00002: Short Duration Confirmation
+      // Implements: DIARY-PRD-entry-duration-check
       'shortDurationTitle': 'Short Duration',
       'shortDurationMessage': 'Duration is under 1 minute, is that correct?',
 
-      // REQ-CAL-p00003: Long Duration Confirmation
+      // Implements: DIARY-PRD-entry-duration-check
       'longDurationTitle': 'Long Duration',
       'longDurationMessage': 'Duration is over {0}, is that correct?',
       'durationMinutesShort': '{0}m',
@@ -448,7 +445,7 @@ class AppLocalizations {
       'whatsNew': "What's New",
       'licenses': 'Licenses',
 
-      // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
+      // Disconnection Banner - Implements: DIARY-PRD-notification-disconnection, DIARY-PRD-participant-reactivate
       'disconnectedFromStudy': 'Disconnected from Study',
       'contactYourSite': 'Please contact your study site.',
       'contactYourSiteWithName': 'Please contact {0}.',
@@ -773,7 +770,7 @@ class AppLocalizations {
       'sharingNoteEnded':
           'Nota: Los datos compartidos durante la participacion en el ensayo clinico permanecen con los investigadores indefinidamente para analisis cientifico.',
 
-      // REQ-CAL-p00076: Participation Status Badge
+      // Implements: DIARY-GUI-participation-status-badge
       'profile': 'Perfil',
       'participationStatus': 'Estado de Participacion',
       'participationStatusActive': 'Activo',
@@ -793,7 +790,7 @@ class AppLocalizations {
       'participationStatusNotParticipatingMessage':
           'Participacion en el estudio: Finalizada',
 
-      // REQ-p00045: Clinical Trial Privacy Policy
+      // Implements: DIARY-PRD-privacy-policy
       'linkingConsentPrefix': 'He leido, comprendo y acepto la ',
       'linkingConsentSuffix': ' de este ensayo clinico',
       'privacyPolicy': 'Politica de Privacidad',
@@ -801,7 +798,7 @@ class AppLocalizations {
       'viewClinicalTrialPrivacyPolicy':
           'Ver Politica de Privacidad del Ensayo Clinico',
 
-      // REQ-CAL-p00001: Old Entry Justification
+      // Implements: DIARY-PRD-entry-time-restrictions
       'oldEntryJustificationTitle': 'Modificacion de Entrada Antigua',
       'gnuAgplTitle': 'Licencia GNU AGPL v3',
       'gnuAgplDescription': 'Texto oficial de la licencia en gnu.org',
@@ -814,11 +811,11 @@ class AppLocalizations {
       'justificationEstimated': 'Evento estimado',
       'confirm': 'Confirmar',
 
-      // REQ-CAL-p00002: Short Duration Confirmation
+      // Implements: DIARY-PRD-entry-duration-check
       'shortDurationTitle': 'Duracion Corta',
       'shortDurationMessage': 'La duracion es menor a 1 minuto, es correcto?',
 
-      // REQ-CAL-p00003: Long Duration Confirmation
+      // Implements: DIARY-PRD-entry-duration-check
       'longDurationTitle': 'Duracion Larga',
       'longDurationMessage': 'La duracion es mayor a {0}, es correcto?',
       'durationMinutesShort': '{0}m',
@@ -888,7 +885,7 @@ class AppLocalizations {
       'whatsNew': 'Novedades',
       'licenses': 'Licencias',
 
-      // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
+      // Disconnection Banner - Implements: DIARY-PRD-notification-disconnection, DIARY-PRD-participant-reactivate
       'disconnectedFromStudy': 'Desconectado del Estudio',
       'contactYourSite': 'Por favor, contacte a su sitio de estudio.',
       'contactYourSiteWithName': 'Por favor, contacte a {0}.',
@@ -1223,7 +1220,7 @@ class AppLocalizations {
       'sharingNoteEnded':
           "Note: Les donnees partagees pendant la participation a l'essai clinique restent indefiniment avec les chercheurs pour analyse scientifique.",
 
-      // REQ-CAL-p00076: Participation Status Badge
+      // Implements: DIARY-GUI-participation-status-badge
       'profile': 'Profil',
       'participationStatus': 'Statut de Participation',
       'participationStatusActive': 'Actif',
@@ -1243,7 +1240,7 @@ class AppLocalizations {
       'participationStatusNotParticipatingMessage':
           "Participation a l'etude: Terminee",
 
-      // REQ-p00045: Clinical Trial Privacy Policy
+      // Implements: DIARY-PRD-privacy-policy
       'linkingConsentPrefix': "J'ai lu, compris et accepte la ",
       'linkingConsentSuffix': ' de cet essai clinique',
       'privacyPolicy': 'Politique de Confidentialite',
@@ -1252,7 +1249,7 @@ class AppLocalizations {
       'viewClinicalTrialPrivacyPolicy':
           "Voir la Politique de Confidentialite de l'Essai Clinique",
 
-      // REQ-CAL-p00001: Old Entry Justification
+      // Implements: DIARY-PRD-entry-time-restrictions
       'oldEntryJustificationTitle': "Modification d'une Ancienne Entree",
       'gnuAgplTitle': 'Licence GNU AGPL v3',
       'gnuAgplDescription': 'Texte officiel de la licence sur gnu.org',
@@ -1265,12 +1262,12 @@ class AppLocalizations {
       'justificationEstimated': 'Evenement estime',
       'confirm': 'Confirmer',
 
-      // REQ-CAL-p00002: Short Duration Confirmation
+      // Implements: DIARY-PRD-entry-duration-check
       'shortDurationTitle': 'Duree Courte',
       'shortDurationMessage':
           'La duree est inferieure a 1 minute, est-ce correct?',
 
-      // REQ-CAL-p00003: Long Duration Confirmation
+      // Implements: DIARY-PRD-entry-duration-check
       'longDurationTitle': 'Duree Longue',
       'longDurationMessage': 'La duree est superieure a {0}, est-ce correct?',
       'durationMinutesShort': '{0}m',
@@ -1340,7 +1337,7 @@ class AppLocalizations {
       'whatsNew': 'Nouveautes',
       'licenses': 'Licences',
 
-      // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
+      // Disconnection Banner - Implements: DIARY-PRD-notification-disconnection, DIARY-PRD-participant-reactivate
       'disconnectedFromStudy': "Deconnecte de l'Etude",
       'contactYourSite': "Veuillez contacter votre site d'etude.",
       'contactYourSiteWithName': 'Veuillez contacter {0}.',
@@ -1672,7 +1669,7 @@ class AppLocalizations {
       'sharingNoteEnded':
           'Hinweis: Wahrend der Teilnahme an der klinischen Studie geteilte Daten verbleiben unbefristet bei den Forschern fur wissenschaftliche Analysen.',
 
-      // REQ-CAL-p00076: Participation Status Badge
+      // Implements: DIARY-GUI-participation-status-badge
       'profile': 'Profil',
       'participationStatus': 'Teilnahmestatus',
       'participationStatusActive': 'Aktiv',
@@ -1691,7 +1688,7 @@ class AppLocalizations {
           'Sie wurden von der klinischen Studie getrennt. Bitte kontaktieren Sie Ihr Studienzentrum oder geben Sie einen neuen Verknupfungscode ein.',
       'participationStatusNotParticipatingMessage': 'Studienteilnahme: Beendet',
 
-      // REQ-p00045: Clinical Trial Privacy Policy
+      // Implements: DIARY-PRD-privacy-policy
       'linkingConsentPrefix': 'Ich habe die ',
       'linkingConsentSuffix':
           ' dieser klinischen Studie gelesen, verstanden und stimme ihr zu',
@@ -1701,7 +1698,7 @@ class AppLocalizations {
       'viewClinicalTrialPrivacyPolicy':
           'Datenschutzrichtlinie der klinischen Studie anzeigen',
 
-      // REQ-CAL-p00001: Old Entry Justification
+      // Implements: DIARY-PRD-entry-time-restrictions
       'oldEntryJustificationTitle': 'Alte Eintrag Anderung',
       'gnuAgplTitle': 'GNU AGPL v3 Lizenz',
       'gnuAgplDescription': 'Offizieller Lizenztext auf gnu.org',
@@ -1714,12 +1711,12 @@ class AppLocalizations {
       'justificationEstimated': 'Geschatztes Ereignis',
       'confirm': 'Bestatigen',
 
-      // REQ-CAL-p00002: Short Duration Confirmation
+      // Implements: DIARY-PRD-entry-duration-check
       'shortDurationTitle': 'Kurze Dauer',
       'shortDurationMessage':
           'Die Dauer betragt weniger als 1 Minute, ist das korrekt?',
 
-      // REQ-CAL-p00003: Long Duration Confirmation
+      // Implements: DIARY-PRD-entry-duration-check
       'longDurationTitle': 'Lange Dauer',
       'longDurationMessage': 'Die Dauer ist langer als {0}, ist das korrekt?',
       'durationMinutesShort': '{0}m',
@@ -1788,7 +1785,7 @@ class AppLocalizations {
       'whatsNew': 'Was ist neu',
       'licenses': 'Lizenzen',
 
-      // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
+      // Disconnection Banner - Implements: DIARY-PRD-notification-disconnection, DIARY-PRD-participant-reactivate
       'disconnectedFromStudy': 'Von der Studie getrennt',
       'contactYourSite': 'Bitte kontaktieren Sie Ihre Studienstelle.',
       'contactYourSiteWithName': 'Bitte kontaktieren Sie {0}.',
@@ -2231,7 +2228,7 @@ class AppLocalizations {
   String get whatsNew => translate('whatsNew');
   String get licenses => translate('licenses');
 
-  // Disconnection Banner (REQ-CAL-p00077, REQ-CAL-p00065)
+  // Disconnection Banner - Implements: DIARY-PRD-notification-disconnection, DIARY-PRD-participant-reactivate
   String get disconnectedFromStudy => translate('disconnectedFromStudy');
   String get contactYourSite => translate('contactYourSite');
   String contactYourSiteWithName(String siteName) =>
@@ -2239,7 +2236,7 @@ class AppLocalizations {
   String get siteContactInfo => translate('siteContactInfo');
   String get tapToCall => translate('tapToCall');
 
-  // REQ-CAL-p00076: Participation Status Badge
+  // Implements: DIARY-GUI-participation-status-badge
   String get profile => translate('profile');
   String get participationStatus => translate('participationStatus');
   String get participationStatusActive =>
@@ -2249,7 +2246,7 @@ class AppLocalizations {
   String get participationStatusNotParticipating =>
       translate('participationStatusNotParticipating');
   String joinedDate(String date) => translateWithParams('joinedDate', [date]);
-  // CUR-1165: End date shown on not_participating badge (GUI-p00076)
+  // CUR-1165: End date shown on not_participating badge (DIARY-GUI-participation-status-badge)
   String endedDate(String date) => translateWithParams('endedDate', [date]);
   String linkingCode(String code) => translateWithParams('linkingCode', [code]);
   String get enterNewLinkingCode => translate('enterNewLinkingCode');
@@ -2263,7 +2260,7 @@ class AppLocalizations {
   String get participationStatusNotParticipatingMessage =>
       translate('participationStatusNotParticipatingMessage');
 
-  // REQ-p00045: Clinical Trial Privacy Policy
+  // Implements: DIARY-PRD-privacy-policy
   String get linkingConsentPrefix => translate('linkingConsentPrefix');
   String get linkingConsentSuffix => translate('linkingConsentSuffix');
   String get privacyPolicy => translate('privacyPolicy');

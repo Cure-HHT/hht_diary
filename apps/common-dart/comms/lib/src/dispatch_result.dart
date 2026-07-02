@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00193: FCM Dispatch via cure-hht-admin Project (assertions C, D, H)
-//
 // Channel-agnostic dispatch outcome. Three terminal states the
 // `OutboxWriter` reacts to:
 //   - success(messageId): channel accepted the message, persisted id
@@ -11,6 +8,7 @@
 //     `participant_fcm_tokens` so subsequent sends do not re-route to a
 //     different participant on the same device.
 
+// Implements: DIARY-DEV-pluggable-push-transport/A — transport-neutral dispatch outcome
 class DispatchResult {
   /// Channel accepted the message.
   const DispatchResult.success(String this.messageId)
@@ -42,7 +40,7 @@ class DispatchResult {
   final bool unregistered;
 
   /// Tag value for the `comms.<channel>.dispatch` metric — exactly one
-  /// of `'success'`, `'failed'`, `'unregistered'`. See REQ-d00193-H.
+  /// of `'success'`, `'failed'`, `'unregistered'`. See DIARY-DEV-pluggable-push-transport.
   String get outcome {
     if (unregistered) return 'unregistered';
     if (success) return 'success';

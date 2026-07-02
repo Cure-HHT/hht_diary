@@ -5,6 +5,7 @@ The **Mobile Application** delivers a set of push notifications and reminders to
 ## DIARY-GUI-participant-task-list: Participant Task List
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-mobile-application
 
 ### Overview
 
@@ -79,6 +80,8 @@ The **Task List** surfaces the two categories of follow-up the platform must kee
 ## DIARY-PRD-notification-disconnection: Disconnection Notification
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
@@ -102,7 +105,7 @@ E. When no *Sponsor*-specific message content is configured, the **Disconnection
 
 ### Rationale
 
-Disconnection is an operational state with clinical-data consequences: data the *Participant* enters while disconnected does not reach the *Sponsor* and may sit unsynced for an indeterminate period. The *Participant* needs to know they are disconnected so they can either resolve it (contact their *Site* for a new *Linking Code*) or at minimum understand why their data is not visible to the *Sponsor*. Persistent + non-dismissible is the only display mode that survives the *Participant*'s natural impulse to clear unfamiliar notifications: a dismissible disconnection banner would be cleared within minutes by most participants, and the disconnection would then be invisible to them on every subsequent app open. The *Sponsor*-configurable message + default text lets each deployment customize the language (e.g. *Site* contact phone numbers, terminology consistent with the *Sponsor*'s other communications) while keeping a working default for deployments that don't configure it.
+Disconnection is an operational state with data consequences: data the *Participant* enters while disconnected does not reach the *Sponsor* and may sit unsynced for an indeterminate period. The *Participant* needs to know they are disconnected so they can either resolve it (contact their *Site* for a new *Linking Code*) or at minimum understand why their data is not visible to the *Sponsor*. Persistent + non-dismissible is the only display mode that survives the *Participant*'s natural impulse to clear unfamiliar notifications: a dismissible disconnection banner would be cleared within minutes by most participants, and the disconnection would then be invisible to them on every subsequent app open. The *Sponsor*-configurable message + default text lets each deployment customize the language (e.g. *Site* contact phone numbers, terminology consistent with the *Sponsor*'s other communications) while keeping a working default for deployments that don't configure it.
 
 ### Screen reference
 
@@ -194,6 +197,8 @@ The badge consolidates "where do I stand with this study" into a single visual t
 ## DIARY-PRD-notification-incomplete-record-lock: Incomplete Record Lock Warning Notification
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
@@ -232,6 +237,8 @@ The **Lock Threshold** produces an irreversible state — once exceeded, the **I
 ## DIARY-PRD-notification-portal-sent-questionnaire: Assigned Questionnaire Notification
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
@@ -266,6 +273,8 @@ See: ![Assigned *Questionnaire* Notification](./images/notification-assigned-que
 ## DIARY-PRD-notification-yesterday-entry: Yesterday Entry Reminder Notification
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
@@ -310,6 +319,8 @@ See: ![Yesterday Entry Reminder Notification](./images/notification-yesterday-en
 ## DIARY-PRD-notification-ongoing-epistaxis: Ongoing Epistaxis Event Reminder
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
@@ -364,6 +375,8 @@ See: ![Ongoing *Epistaxis Event* Reminder](./images/notification-ongoing-epistax
 ## DIARY-PRD-notification-historical-gap: Historical Gap Reminder
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-notifications
+**Satisfies**: DIARY-PRD-notification-behavior
 
 ### Overview
 
