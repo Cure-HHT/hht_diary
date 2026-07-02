@@ -39,6 +39,9 @@ class EnrollmentService {
   // Implements: DIARY-DEV-state-in-event-log/B
   static const _secureStorageOptions = IOSOptions(
     accessibility: KeychainAccessibility.first_unlock_this_device,
+    // Explicit rather than relying on the plugin default: iCloud Keychain
+    // sync would defeat the device-only guarantee above.
+    synchronizable: false,
   );
 
   /// The secure-storage instance in use. Exposed so tests can assert the
