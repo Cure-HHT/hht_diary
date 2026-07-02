@@ -33,6 +33,7 @@ export 'src/admin/user_lifecycle_dialogs.dart';
 export 'src/admin/user_row_actions.dart';
 // Phase 6: audit logs screen.
 export 'src/admin/audit_logs_screen.dart';
+export 'src/admin/sc_audit_log_screen.dart';
 export 'src/admin/participants_screen.dart';
 export 'src/admin/rave_sync_screen.dart';
 export 'src/admin/sites_screen.dart';

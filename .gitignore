@@ -75,6 +75,9 @@ build/
 .flutter-plugins-dependencies
 .packages
 .pub-cache/
+# CI traceability-matrix pub cache (actions/cache target; bind-mounted into the
+# container as PUB_CACHE). Repo-root so the container can see it; never committed.
+.ci-pub-cache/
 .pub/
 flutter_*.log
 # Local-only dependency overrides (e.g. sibling-clone paths for fast dev).

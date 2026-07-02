@@ -45,6 +45,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Cache the Dart/Flutter pub cache across runs so the bootstrap pub-get
+      # doesn't re-download every target's deps each time. Keyed by all
+      # pubspec.lock files (pub resolution is deterministic from the locks).
+      # Lives at the repo root under .ci-pub-cache, which is bind-mounted into
+      # the container at /workspace/src/.ci-pub-cache (the only host-visible path
+      # the container has, so actions/cache can save it). elspais scans only
+      # src/apps/packages, so .ci-pub-cache is never scanned. Scoped to THIS
+      # workflow — it does not touch the shared CI compose used by 5 other jobs.
+      - name: Restore pub cache
+        uses: actions/cache@v4
+        with:
+          path: .ci-pub-cache
+          key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            pub-${{ runner.os }}-
+      - name: Make pub cache writable by the container user
+        run: mkdir -p .ci-pub-cache && chmod -R 0777 .ci-pub-cache
+
       - name: Start CI container
         uses: ./.github/actions/start-ci-container
         with:
@@ -54,7 +72,8 @@ jobs:
       - name: Bootstrap target dependencies
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c '
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PUB_CACHE=/workspace/src/.ci-pub-cache ci bash -c '
             set -e
             for t in \
               apps/common-dart/canonical_json_jcs \
@@ -84,7 +103,8 @@ jobs:
       - name: Run all test targets through elspais
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c '
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e PUB_CACHE=/workspace/src/.ci-pub-cache ci bash -c '
             cd /workspace/src
             mkdir -p build-reports/combined/traceability
             set +e
@@ -105,15 +125,45 @@ jobs:
         if: always()
         working-directory: tools/dev-env
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T ci bash -c '
+          # Force the pinned elspais (+trace-view extra) at render time. The
+          # ci.Dockerfile installs it, but the image build has repeatedly served
+          # a STALE Docker cache layer (build step #22 reported CACHED even when
+          # the Dockerfile line changed), leaving the container on an older
+          # elspais without the extra. Reading the pin from versions.env (the
+          # SOLE source) and installing it here makes the render independent of
+          # the image-cache state; it is a fast no-op once the image is current.
+          EV=$(grep -E "^ELSPAIS_VERSION=" ../../.github/versions.env | cut -d= -f2 | tr -d "[:space:]")
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+            -e EV="$EV" ci bash -c '
             cd /workspace/src
             mkdir -p build-reports/combined/traceability
+            pip3 install --no-cache-dir --break-system-packages "elspais[trace-view]==${EV}" >/dev/null 2>&1 || true
+            echo "render elspais: $(elspais --version 2>/dev/null | head -1)"
             elspais summary trace --format markdown \
               -o build-reports/combined/traceability/traceability_matrix.md
-            # Per-requirement gap lists (untested/failing/...) for the
-            # Active-requirement coverage section in the comment.
+            # Machine-readable matrix: per-requirement, assertion-level
+            # tested/verified fractions + Status. Drives the comment headline
+            # (Active focus) and is the parseable download artifact.
+            elspais trace --format json \
+              -o build-reports/combined/traceability/traceability.json
+            # Per-requirement gap lists (uncovered/failing/...) for the
+            # Active-requirement worklist in the comment.
             elspais gaps --format json \
               -o build-reports/combined/traceability/gaps.json
+            # Static HTML viewer published to Pages (viewable in any browser
+            # incl. mobile). Generated AFTER the --run-tests pass so the verified
+            # dimension is embedded. Prefer the interactive tree (viewer
+            # --static); fall back to the static matrix (trace --format html) if
+            # the interactive generator hits the elspais 0.118.16 TreeRow
+            # /is_unsaved bug (reproduces only in the CI daemon, not locally).
+            # Both need the trace-view extra (ensured above). Non-fatal: a viewer
+            # failure never blocks the matrix render or the PR comment.
+            VH=build-reports/combined/traceability/viewer.html
+            if ! elspais viewer --static -o "$VH" 2>/tmp/viewer.err; then
+              echo "::warning::viewer --static failed ($(tail -1 /tmp/viewer.err 2>/dev/null)); falling back to trace --format html"
+              elspais trace --format html -o "$VH" \
+                || { echo "::warning::trace --format html also failed; skipping viewer.html"; rm -f "$VH"; }
+            fi
           '
 
       # REQ-independent line coverage: elspais surfaces no aggregate, so compute
@@ -223,70 +273,33 @@ jobs:
           SERVER_URL: ${{ github.server_url }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          MATRIX=build-reports/combined/traceability/traceability_matrix.md
-          CHECKS=build-reports/combined/traceability/checks-tests.txt
-          GAPS=build-reports/combined/traceability/gaps.json
-          # Per-Active-requirement coverage table (requirement-level). Files are
-          # bind-mounted, so readable on the host after the ownership restore.
-          : > /tmp/active-cov.md
-          if [ -f "$MATRIX" ] && [ -f "$GAPS" ]; then
-            python3 .github/scripts/active-coverage.py "$MATRIX" "$GAPS" > /tmp/active-cov.md || : > /tmp/active-cov.md
+          # The comment is the SUMMARY: strict Status:Active focus headline +
+          # collapsible detail. The full per-requirement matrix is artifact-only
+          # (traceability_matrix.md + traceability.json + viewer.html). All inputs
+          # are bind-mounted, so readable on the host after the ownership restore.
+          TRACE_DIR=build-reports/combined/traceability
+          # Deterministic GitHub Pages URL for this PR's viewer (published by the
+          # publish-viewer job below). owner must be lower-cased for the *.github.io host.
+          VIEWER_URL=""
+          if [ -n "$PR_NUMBER" ]; then
+            OWNER_LC=$(printf '%s' "${REPO%%/*}" | tr '[:upper:]' '[:lower:]')
+            VIEWER_URL="https://${OWNER_LC}.github.io/${REPO#*/}/pr-${PR_NUMBER}/viewer.html"
           fi
-          {
-            echo "$MARKER"
-            echo "## Verified-Coverage Traceability Matrix"
-            echo ""
-            # Requirement-level coverage from `elspais checks --tests` (Draft counts
-            # as active per .elspais.toml). Reported per requirement, not per
-            # assertion: the references credit requirements, so that is the natural
-            # unit. The full per-requirement table is artifact-only.
-            if [ -f "$CHECKS" ]; then
-              tested=$(grep -oE 'Tested: [0-9]+/[0-9]+ REQs \([0-9]+%\)' "$CHECKS" | head -1 | sed 's/Tested: //')
-              verified=$(grep -oE 'Verified: [0-9]+/[0-9]+ REQs \([0-9]+%\)' "$CHECKS" | head -1 | sed 's/Verified: //')
-              echo "### Requirement coverage (Legacy excluded)"
-              echo ""
-              echo "| Dimension | Requirements |"
-              echo "|-----------|--------------|"
-              echo "| Tested | ${tested:-n/a} |"
-              echo "| Verified | ${verified:-n/a} |"
-              echo ""
-            fi
-            [ -s /tmp/active-cov.md ] && { cat /tmp/active-cov.md; echo ""; }
-            if [ -f "$MATRIX" ]; then
-              # grep -c exits 1 on zero matches; under `set -eo pipefail` that
-              # would abort the comment builder, so keep both greps non-fatal.
-              REQ_COUNT=$(grep -cE '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX" || true)
-              # Status histogram of the requirements in scope (count + % of total).
-              # Generic over statuses: Active appears here automatically once any
-              # real requirement is promoted out of Draft.
-              STATUS_LINE=$(grep -E '^\| (DIARY|CAL|HHT|EVS)-' "$MATRIX" \
-                | awk -F'|' '{gsub(/ /,"",$5); print $5}' | sort | uniq -c | sort -rn \
-                | awk -v t="$REQ_COUNT" '{printf "%s%s %d (%d%%)", (NR>1?", ":""), $2, $1, (100*$1/t)}' || true)
-              echo ""
-              echo "Requirement status: ${STATUS_LINE} (total ${REQ_COUNT})"
-              echo ""
-              echo "_Per-requirement matrix (${REQ_COUNT} requirements) is in the build-reports artifact (link below)._"
-            else
-              echo "Matrix could not be generated this run — see job logs."
-            fi
-            echo ""
-            COV=build-reports/combined/coverage/per-package.tsv
-            if [ -f "$COV" ]; then
-              echo "## Code Coverage (lcov, line)"
-              echo ""
-              awk -F'\t' '$1=="TOTAL"{printf "**Overall: %s%% (%d of %d lines)**\n", $2, $3, $4}' "$COV"
-              echo ""
-              echo "| Package | Line % | Hit | Found |"
-              echo "|---------|-------:|----:|------:|"
-              awk -F'\t' '$1!="TOTAL"{print}' "$COV" | sort | \
-                awk -F'\t' '{printf "| %s | %s%% | %d | %d |\n", $1, $2, $3, $4}'
-              echo ""
-              echo "_Line coverage is measured independently of requirement status._"
-            fi
-            echo ""
-            echo "[Full matrix in artifacts](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})"
-          } > /tmp/matrix-comment.md
+          if ! python3 .github/scripts/traceability_comment.py \
+                --marker "$MARKER" \
+                --trace "$TRACE_DIR/traceability.json" \
+                --gaps "$TRACE_DIR/gaps.json" \
+                --coverage-tsv build-reports/combined/coverage/per-package.tsv \
+                --checks "$TRACE_DIR/checks-tests.txt" \
+                --run-url "${SERVER_URL}/${REPO}/actions/runs/${RUN_ID}" \
+                --viewer-url "$VIEWER_URL" \
+                > /tmp/matrix-comment.md; then
+            echo "::warning::traceability comment render failed; posting fallback"
+            printf '%s\n## Verified-Coverage Traceability Matrix\n\nMatrix render failed this run — see job logs and the build-reports artifact.\n' \
+              "$MARKER" > /tmp/matrix-comment.md
+          fi
           {
             echo "body<<MATRIX_COMMENT_EOF"
             cat /tmp/matrix-comment.md
@@ -361,3 +374,68 @@ jobs:
           flags: ${{ matrix.flag }}
           name: ${{ matrix.flag }}-coverage
           fail_ci_if_error: false
+
+  # Publish this PR's static viewer to the gh-pages branch (Pages source) so it
+  # is viewable at https://<owner>.github.io/<repo>/pr-<n>/viewer.html — a real
+  # URL that opens in any browser incl. the GitHub mobile app (Actions artifacts
+  # are zip-only and unviewable on mobile). Isolated from the matrix job (which
+  # runs PR test code): this job only copies a file, so contents:write is low-risk.
+  # Skipped for forks (their GITHUB_TOKEN is read-only).
+  publish-viewer:
+    name: Publish traceability viewer to Pages
+    needs: matrix
+    if: >-
+      always() && github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Serialize all gh-pages writes (this job across PRs + the cleanup workflow)
+    # so concurrent publishes don't clobber each other.
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+
+      - name: Download build-reports
+        uses: actions/download-artifact@v4
+        with:
+          name: build-reports-${{ github.sha }}
+          path: _dl
+        continue-on-error: true
+
+      - name: Publish per-PR viewer
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.sha }}
+        run: |
+          VIEWER=$(find _dl -name viewer.html | head -1)
+          if [ -z "$VIEWER" ]; then
+            echo "::warning::no viewer.html in build-reports artifact; skipping Pages publish"
+            exit 0
+          fi
+          dest="pr-${PR}"
+          mkdir -p "$dest"
+          cp "$VIEWER" "$dest/viewer.html"
+          TJ=$(find _dl -name traceability.json | head -1)
+          [ -n "$TJ" ] && cp "$TJ" "$dest/traceability.json" || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          if git diff --cached --quiet; then
+            echo "viewer unchanged; nothing to publish"
+            exit 0
+          fi
+          git commit -m "traceability viewer for PR #${PR} (${SHA})"
+          # Retry: another PR's publish may have advanced gh-pages between fetch and push.
+          for i in 1 2 3; do
+            if git push origin gh-pages; then exit 0; fi
+            git pull --rebase origin gh-pages || true
+          done
+          echo "::warning::could not push viewer to gh-pages after 3 attempts"
+          exit 0
