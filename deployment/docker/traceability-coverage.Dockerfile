@@ -16,6 +16,9 @@ ARG SPONSOR_CI_IMAGE=ghcr.io/cure-hht/sponsor-ci:main-latest
 FROM ${SPONSOR_CI_IMAGE} AS base
 
 FROM base AS collect
+# sponsor-ci runs as a non-root USER; COPY'd files are root-owned, so the prune
+# must run as root or it fails with "Permission denied".
+USER root
 COPY apps /tmp/traceability/apps
 RUN find /tmp/traceability/apps -type f \
       ! -name machine.jsonl ! -name lcov.info -delete \
