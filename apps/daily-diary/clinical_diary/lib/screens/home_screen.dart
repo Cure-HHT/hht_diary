@@ -452,14 +452,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     unawaited(_refreshResetGate());
   }
 
-  /// REQ-CAL-p00077: Check if participant is disconnected from the study.
+  /// Check if participant is disconnected from the study.
   /// Seeds [_isDisconnected] from SharedPreferences and syncs the notifier
   /// so the initial persisted state is reflected in the banner on startup.
+  // Implements: DIARY-PRD-notification-disconnection
+  // Implements: DIARY-PRD-participant-reactivate
   Future<void> _checkDisconnectionStatus() async {
     final isDisconnected = await widget.enrollmentService.isDisconnected();
     // Seed the notifier from the persisted value so it stays in sync
     widget.enrollmentService.disconnectedNotifier.value = isDisconnected;
-    // REQ-CAL-p00065: Get site contact info for disconnection banner
+    // Get site contact info for disconnection banner
     final enrollment = await widget.enrollmentService.getEnrollment();
     if (mounted) {
       setState(() {
@@ -743,7 +745,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  /// REQ-CAL-p00076: Navigate to profile screen with participation status badge
+  /// Navigate to profile screen with participation status badge.
+  // Implements: DIARY-GUI-participation-status-badge
   Future<void> _handleShowProfile() async {
     // Read all values fresh from the service to avoid stale cached state
     // (initState calls are async and may not have settled yet on first open).
@@ -814,7 +817,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _checkDisconnectionStatus();
   }
 
-  // REQ-p01067, REQ-p01068, REQ-p01070, REQ-p01071: Navigate to questionnaire.
+  // Navigate to questionnaire.
   //
   // The QuestionnaireDefinition is loaded from the bundled
   // packages/trial_data_types/assets/data/questionnaires.json asset (the same
@@ -830,6 +833,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   // never-submitted instance opens the fresh flow.
   // Implements: DIARY-GUI-questionnaire-portal-sent-workflow/R+S
   // Implements: DIARY-GUI-participant-task-list/K
+  // Implements: DIARY-PRD-questionnaire-nose-hht
+  // Implements: DIARY-PRD-questionnaire-hht-qol
   Future<void> _navigateToQuestionnaire(Task task, DiaryView view) async {
     final qType = task.questionnaireType;
 
@@ -1259,7 +1264,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // recorded "Don't remember" (or "No nosebleeds") renders its distinct
     // status instead of falling through to the bare "No records" empty state —
     // "nothing recorded" and "acknowledged uncertainty" are different clinical
-    // states (cf. REQ-CAL-d00012).
+    // states (cf. DIARY-PRD-day-disposition/A).
     final yesterdayEntries = <DiaryEntryView>[
       ...view.entriesOn(yesterdayStr).whereType<EpistaxisEntryView>(),
       ...view.entriesOn(yesterdayStr).whereType<SurveyEntryView>(),
@@ -1468,7 +1473,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ..._buildTopBanners(context),
-          // Implements: DIARY-GUI-main-screen-layout-A.
+          // Implements: DIARY-GUI-main-screen-layout/A.
           // Capped to ~38% of the available height so a busy "Needs your
           // attention" tile (many alerts/tasks) can't starve the events
           // area below — its inner scroll handles the overflow.
@@ -1524,9 +1529,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Inline banners that appear above the Task List section: disconnection
   /// (preserves the expand-to-show-contact behaviour via DisconnectionBanner),
   /// not-participating notice, and the sync-wedged warning.
+  // Implements: DIARY-PRD-notification-disconnection
   List<Widget> _buildTopBanners(BuildContext context) {
     final banners = <Widget>[];
-    // Disconnection (red, persistent, non-dismissible per REQ-p05004).
+    // Disconnection (red, persistent, non-dismissible).
     if (_isDisconnected) {
       banners.add(
         DisconnectionBanner(
@@ -1572,7 +1578,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// When there is nothing requiring attention (count == 0) the whole
   /// section — heading and tile — collapses to nothing rather than showing
   /// an empty "Needs your attention (0)" tile (CUR-1519).
-  // Implements: DIARY-GUI-main-screen-layout-A — the Task List zone renders
+  // Implements: DIARY-GUI-main-screen-layout/A — the Task List zone renders
   //   only when tasks are active; with zero items the zone is absent.
   Widget _buildTaskListSection(
     BuildContext context,

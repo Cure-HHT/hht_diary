@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Participant Task System
-//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//
 // Unit tests for TaskService.syncTasks()
 
 import 'dart:convert';
@@ -20,6 +16,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpTestFlavor();
 
+  // Verifies: DIARY-GUI-participant-task-list/A+C+D
+  // Verifies: DIARY-PRD-questionnaire-portal-sent-rules
   group('TaskService', () {
     late MockEnrollmentService mockEnrollment;
 

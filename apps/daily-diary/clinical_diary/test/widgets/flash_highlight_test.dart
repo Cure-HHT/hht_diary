@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/widgets/flash_highlight.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers/test_helpers.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-mobile-offline-first/A+B+C
   group('FlashHighlight', () {
     testWidgets('renders child widget', (tester) async {
       await tester.pumpWidget(

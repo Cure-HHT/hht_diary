@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00001: Old Entry Modification Justification
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/widgets/old_entry_justification_dialog.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-entry-time-restrictions/A
   group('OldEntryJustification', () {
     test('has enteredFromPaperRecords type', () {
       expect(OldEntryJustification.enteredFromPaperRecords, isNotNull);
@@ -39,6 +37,7 @@ void main() {
     });
   });
 
+  // Verifies: DIARY-PRD-entry-time-restrictions/A
   group('OldEntryJustificationDialog', () {
     /// Helper to build a test app that shows the dialog directly
     Widget buildDialogTestApp({

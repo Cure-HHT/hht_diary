@@ -186,7 +186,5 @@ The following lint errors in `functions/src/index.ts` were fixed:
 
 ## Requirement Traceability
 
-- REQ-d00004: Local-First Data Entry Implementation
-- REQ-d00005: Sponsor Configuration Detection Implementation
-- REQ-d00013: Application Instance UUID Generation
-- REQ-p00013: GDPR compliance - EU-only regions
+- DIARY-PRD-mobile-offline-first: Local-first diary data entry
+- DIARY-PRD-mobile-application: Single shared binary via runtime sponsor config

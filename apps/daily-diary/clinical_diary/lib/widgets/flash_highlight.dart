@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:flutter/material.dart';
 
@@ -13,6 +10,7 @@ import 'package:flutter/material.dart';
 ///
 /// If animations are disabled, the widget still calls onFlashComplete
 /// immediately so the caller knows the "flash" is done.
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class FlashHighlight extends StatefulWidget {
   const FlashHighlight({
     required this.builder,

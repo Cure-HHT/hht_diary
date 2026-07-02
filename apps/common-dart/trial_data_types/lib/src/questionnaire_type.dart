@@ -1,12 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00047: Hard-Coded Questionnaires
-//   REQ-p01065: Clinical Questionnaire System
-
 /// Types of questionnaires available in the system.
 ///
-/// Each type corresponds to a hard-coded questionnaire component
-/// per REQ-CAL-p00047-A: questionnaire definitions are embedded
-/// directly into the application code.
+/// Each type corresponds to a hard-coded questionnaire component:
+/// questionnaire definitions are embedded directly into the application code.
+// Implements: DIARY-PRD-questionnaire-system/A — each Questionnaire Type as an individual coded component
 enum QuestionnaireType {
   /// Epistaxis Questionnaire - sent once at trial start via Start Trial
   eq('eq', 'Epistaxis Questionnaire'),

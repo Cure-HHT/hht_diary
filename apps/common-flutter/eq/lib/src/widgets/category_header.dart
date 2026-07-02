@@ -1,11 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01070: NOSE HHT Questionnaire UI
-
 import 'package:flutter/material.dart';
 
 /// Displays a category name and optional stem text.
 ///
 /// Shown when the participant enters a new category section.
+// Implements: DIARY-PRD-questionnaire-nose-hht/E
 class CategoryHeader extends StatelessWidget {
   const CategoryHeader({required this.categoryName, this.stem, super.key});
 

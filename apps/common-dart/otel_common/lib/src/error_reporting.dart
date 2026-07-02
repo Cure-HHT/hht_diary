@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00045: Error tracking with Cloud Error Reporting
-//   REQ-o00045Q: PII scrubbing in error messages
-
 import 'dart:convert';
 import 'dart:io';
 
@@ -13,6 +9,7 @@ import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 /// to auto-detect error reports from Cloud Logging.
 ///
 /// Error messages are scrubbed to prevent PII/PHI leakage.
+// Implements: DIARY-PRD-platform-operations-monitoring/A+D
 void reportError(
   Object error, {
   StackTrace? stackTrace,
@@ -60,6 +57,7 @@ void reportError(
 }
 
 /// Record the error on the current OTel span (if one exists) and report it.
+// Implements: DIARY-PRD-platform-operations-monitoring/A+D
 void reportAndRecordError(
   Object error, {
   StackTrace? stackTrace,
@@ -95,7 +93,8 @@ void reportAndRecordError(
 ///
 /// Removes email addresses, JWTs, and potential phone numbers.
 /// This is a best-effort safety net — errors should not contain PII
-/// in the first place (REQ-o00045Q).
+/// in the first place (DIARY-PRD-platform-operations-monitoring).
+// Implements: DIARY-PRD-platform-operations-monitoring/A+D
 String scrubPii(String message) {
   var scrubbed = message;
 

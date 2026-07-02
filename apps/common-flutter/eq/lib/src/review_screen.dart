@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
@@ -9,13 +5,14 @@ import 'package:trial_data_types/trial_data_types.dart';
 ///
 /// Displays a scrollable list of all Q&A pairs.
 /// Items are tappable to jump back and edit.
-/// Per REQ-p01067-E / REQ-p01068-E.
 ///
 /// CUR-1292: When [isReadOnly] is true the screen renders the same
 /// list layout but suppresses the Submit button and the per-item edit
 /// affordance. This is the surface a participant sees after the portal
 /// coordinator has finalized the submission — answers are immutable;
 /// the participant just verifies what was submitted.
+// Implements: DIARY-GUI-questionnaire-portal-sent-workflow/K+L+M+N+S
+// Implements: DIARY-PRD-questionnaire-nose-hht/E
 class ReviewScreen extends StatelessWidget {
   const ReviewScreen({
     required this.definition,

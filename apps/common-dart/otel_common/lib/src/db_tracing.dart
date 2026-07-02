@@ -1,11 +1,6 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047G: Database query tracing
-//   REQ-o00047: Performance Monitoring — custom application metrics
-//   REQ-o00045Q: PII/PHI scrubbing in trace data
-
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 
-// IMPLEMENTS: REQ-o00047
+// Implements: DIARY-PRD-platform-operations-monitoring/B
 // Cached per-MeterProvider to survive OTel.reset() in tests while
 // remaining efficient in production (created once, reused).
 MeterProvider? _lastMeterProvider;
@@ -38,6 +33,7 @@ dynamic _getDbQueryDuration() {
 ///   () => pool.execute(Sql.named(query), parameters: {'id': userId}),
 /// );
 /// ```
+// Implements: DIARY-PRD-platform-operations-monitoring/B
 Future<T> tracedQuery<T>(
   String operation,
   String sql,
@@ -77,10 +73,12 @@ Future<T> tracedQuery<T>(
 
 /// Sanitize SQL by replacing literal values with placeholders.
 ///
-/// This prevents PII/PHI from leaking into trace spans (REQ-o00045Q).
+/// This prevents PII/PHI from leaking into trace spans
+/// (DIARY-PRD-platform-operations-monitoring).
 /// - Replaces quoted strings ('...') with '?'
 /// - Replaces numeric literals with ?
 /// - Preserves named parameters (@name) as-is since they don't contain values
+// Implements: DIARY-PRD-platform-operations-monitoring/B
 String sanitizeSql(String sql) {
   // Replace single-quoted string literals with '?'
   var sanitized = sql.replaceAll(RegExp(r"'[^']*'"), "'?'");

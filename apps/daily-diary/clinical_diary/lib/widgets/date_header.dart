@@ -1,10 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 /// Date header widget that allows selecting a date
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class DateHeader extends StatelessWidget {
   const DateHeader({
     required this.date,

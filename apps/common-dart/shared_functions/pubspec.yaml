@@ -1,8 +1,6 @@
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00102: Display full sponsor branding
-#
 # Shared server-side utilities for diary and portal functions.
 
+# Implements: DIARY-DEV-sponsor-branding-source/C
 name: shared_functions
 description: "Shared server-side utilities for diary and portal functions"
 version: 0.1.0

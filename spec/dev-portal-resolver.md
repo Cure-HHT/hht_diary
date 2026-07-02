@@ -2,8 +2,7 @@
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-participant-link-new
-
-<!-- satisfied-by: HHT-OPS-portal-resolver -->
+**Integrates**: HHT-OPS-portal-resolver
 
 ## Assertions
 

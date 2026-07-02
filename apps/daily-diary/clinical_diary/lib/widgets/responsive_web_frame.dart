@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Single App Architecture
-//   REQ-d00006: Mobile App Build and Release Process
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -11,6 +7,8 @@ import 'package:flutter/material.dart';
 /// On mobile platforms (iOS, Android), this widget passes through
 /// the child unchanged. On web, it centers the content and constrains
 /// it to a maximum width resembling a large phone screen.
+// Implements: DIARY-PRD-mobile-application/A+B
+// Implements: DIARY-OPS-single-promotable-artifact/A+C
 class ResponsiveWebFrame extends StatelessWidget {
   /// Creates a responsive web frame that constrains width on web.
   const ResponsiveWebFrame({

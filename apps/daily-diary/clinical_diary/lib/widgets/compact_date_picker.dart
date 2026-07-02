@@ -1,10 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 /// Compact inline date picker for use alongside time pickers
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class CompactDatePicker extends StatelessWidget {
   const CompactDatePicker({
     required this.date,

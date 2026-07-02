@@ -1,13 +1,10 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01073: Session Management
-
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
 /// Readiness gate screen shown before starting a questionnaire.
 ///
-/// Shows estimated completion time and "I'm ready" / "Not now" buttons
-/// per REQ-p01073-A,B.
+/// Shows estimated completion time and "I'm ready" / "Not now" buttons.
+// Implements: DIARY-GUI-questionnaire-portal-sent-workflow/A+B+C
 class ReadinessScreen extends StatelessWidget {
   const ReadinessScreen({
     required this.definition,

@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047F: End-to-end distributed tracing (log-trace correlation)
-//   REQ-o00045: Error tracking with structured logging
-
 import 'dart:convert';
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' show OTel;
@@ -11,6 +7,7 @@ import 'package:test/test.dart';
 
 import 'helpers/otel_test_helpers.dart';
 
+// Verifies: DIARY-PRD-platform-operations-monitoring/A+D
 void main() {
   setUp(() async {
     await setUpOTel();

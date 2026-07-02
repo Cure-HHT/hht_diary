@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-
 import 'package:clinical_diary/scope/sponsor_ui_config_scope.dart';
 import 'package:clinical_diary/settings/app_preferences_scope.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +5,7 @@ import 'package:flutter/material.dart';
 /// A custom page route that respects both the build-time `useAnimations`
 /// feature flag AND the user's `useAnimation` preference. When either disables
 /// animations, page transitions happen instantly.
+// Implements: DIARY-PRD-mobile-application/A
 class AppPageRoute<T> extends MaterialPageRoute<T> {
   AppPageRoute({
     required super.builder,

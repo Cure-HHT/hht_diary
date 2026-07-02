@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00195: Mobile Notifications Polling (client-side fetcher)
-//
 // Pure-Dart HTTP client for the envelope endpoints. Used by the mobile
 // diary app on cold start / resume to pull envelopes since the last
 // cursor, and by the FCM dispatcher to fetch a single envelope by id
@@ -29,6 +26,7 @@ class EnvelopeFetchException implements Exception {
       'EnvelopeFetchException: statusCode=$statusCode body=$body';
 }
 
+// Implements: DIARY-DEV-inbound-event-on-receipt/A — client fetches envelopes by id / since cursor
 class EnvelopeFetcher {
   EnvelopeFetcher({required this.httpClient, required this.baseUrl});
 

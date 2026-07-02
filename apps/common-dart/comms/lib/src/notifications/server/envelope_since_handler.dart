@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00195: Mobile Notifications Polling
-//     (cursor-based since query — primary reliability mechanism)
-//
 // Shelf handler factory for `GET /api/v1/notifications?since=<iso8601>&limit=<n>`.
 // Returns the participant's envelopes created strictly after `since`,
 // paginated by `limit` (server-enforced ceiling). Mobile uses this on
@@ -21,6 +17,7 @@ import 'package:shelf/shelf.dart';
 ///     persists locally. Server returns rows with `created_at > since`.
 ///   * `limit` — optional, default 50, server-clamped to a maximum so
 ///     a misbehaving client cannot pull the entire history in one call.
+// Implements: DIARY-DEV-inbound-event-on-receipt/A — cursor-based since query for receipt reconciliation
 Handler envelopeSinceHandler({
   required NotificationRepository repo,
   required Future<String?> Function(Request) participantResolver,

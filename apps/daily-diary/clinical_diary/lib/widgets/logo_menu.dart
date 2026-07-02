@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
-//   REQ-d00006: Mobile App Build and Release Process
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/license_screen.dart';
 import 'package:clinical_diary/widgets/branding_logo.dart';
@@ -9,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Logo menu widget with data management and clinical trial options
+// Implements: DIARY-PRD-mobile-application/A+B
+// Implements: DIARY-OPS-single-promotable-artifact/A+C
 class LogoMenu extends StatefulWidget {
   const LogoMenu({
     required this.onResetAllData,

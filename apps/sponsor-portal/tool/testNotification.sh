@@ -3,10 +3,6 @@
 # Test FCM Notification via Portal Server API
 # ============================================================================
 #
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-#   REQ-CAL-p00082: Patient Alert Delivery
-#
 # Tests the questionnaire notification flow by calling the portal server's
 # API endpoints. When running locally with FCM_CONSOLE_MODE=true, the
 # server logs the FCM payload to stdout instead of sending it.
@@ -208,6 +204,8 @@ case $MODE in
         echo "$STATUS_RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$STATUS_RESPONSE"
         ;;
 
+    # Verifies: DIARY-PRD-questionnaire-portal-sent-rules/H
+    # Verifies: DIARY-BASE-mobile-notifications/A
     send)
         log_info "Sending $QUESTIONNAIRE_TYPE questionnaire to participant $PARTICIPANT_ID..."
         log_info ""

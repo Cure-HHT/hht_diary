@@ -1,10 +1,7 @@
-// VERIFIES REQUIREMENTS:
-//   REQ-d00195: Envelope is the wire format consumed by the mobile
-//               client — toJson / fromJson must round-trip every field
-
 import 'package:comms/comms.dart';
 import 'package:test/test.dart';
 
+// Verifies: DIARY-DEV-inbound-event-on-receipt/A — Envelope wire format round-trips every field
 void main() {
   group('NotificationType', () {
     test('wire values match the spec vocabulary', () {

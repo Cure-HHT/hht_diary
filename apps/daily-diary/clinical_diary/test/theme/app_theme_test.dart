@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 // ignore_for_file: deprecated_member_use_from_same_package
 
 import 'package:clinical_diary/theme/app_theme.dart';
@@ -8,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-mobile-offline-first/A+B+C
   group('AppTheme', () {
     group('getLightThemeWithFont', () {
       test('returns light theme with default font for Roboto', () {

@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00001: Old Entry Modification Justification
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
@@ -14,8 +11,9 @@ enum OldEntryJustification {
 }
 
 /// Dialog for requiring justification when editing events older than one calendar day.
-/// REQ-CAL-p00001: The system SHALL require the user to select a justification reason
-/// before saving modifications to old entries.
+/// The system requires the user to select a justification reason before saving
+/// modifications to old entries.
+// Implements: DIARY-PRD-entry-time-restrictions/A
 class OldEntryJustificationDialog extends StatefulWidget {
   const OldEntryJustificationDialog({required this.onConfirm, super.key});
 

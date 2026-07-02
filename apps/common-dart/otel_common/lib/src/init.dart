@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047: Performance Monitoring — OpenTelemetry integration
-//   REQ-o00047F: End-to-end distributed tracing
-
 import 'dart:io';
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
@@ -31,6 +27,7 @@ const _signalEndpointVars = <String, String>{
 /// null (the default), returns whether *any* signal would export.
 /// `OTEL_SDK_DISABLED` (the standard OTel kill-switch) force-disables every
 /// signal regardless of endpoint.
+// Implements: DIARY-PRD-platform-operations-monitoring/B
 bool otelExportEnabled(Map<String, String> env, {String? signal}) {
   if (_isTruthy(env['OTEL_SDK_DISABLED'])) return false;
   if (signal == null) {
@@ -72,6 +69,7 @@ bool _isTruthy(String? value) {
 /// reaches the network — metrics/logs exporters are disabled and traces use a
 /// no-op span processor — so an unconfigured signal can't fall back to the
 /// localhost default and reintroduce the Connection-refused noise.
+// Implements: DIARY-PRD-platform-operations-monitoring/B
 Future<void> initializeOTel({
   required String serviceName,
   required String serviceVersion,
@@ -153,6 +151,7 @@ Sampler _buildSampler(String environment) {
 /// Gracefully shut down OTel — flushes pending spans, metrics, and logs.
 ///
 /// Call this in your SIGTERM/SIGINT handler before exiting.
+// Implements: DIARY-PRD-platform-operations-monitoring/B
 Future<void> shutdownOTel() async {
   // OTel.shutdown() flushes traces and metrics but not logs in 1.0.0-alpha.
   // Flush the LoggerProvider explicitly to ensure all log records are exported.

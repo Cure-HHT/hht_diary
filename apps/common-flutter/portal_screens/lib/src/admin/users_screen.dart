@@ -80,6 +80,32 @@ class _UsersScreenState extends State<UsersScreen> {
   int _page = 1;
   late int _pageSize = widget.pageSize;
 
+  // Single source of truth for the row kebab popovers. Each row owns its
+  // own MenuController, but only one menu may be open at a time — opening
+  // a second row's menu must close the first (two independent MenuAnchors
+  // do not dismiss each other, so without this coordination their
+  // popovers stack). No REQ assertion covers this popover behavior; it's
+  // a pure presentation-layer interaction fix (CUR-1595).
+  MenuController? _openRowMenu;
+
+  /// Closes any previously-open row menu and records [controller] as the
+  /// one now open. Purely imperative overlay bookkeeping — no rebuild is
+  /// needed (MenuAnchor manages its own popover visibility).
+  void _handleRowMenuOpened(MenuController controller) {
+    final previous = _openRowMenu;
+    if (previous != null && !identical(previous, controller) && previous.isOpen) {
+      previous.close();
+    }
+    _openRowMenu = controller;
+  }
+
+  /// Clears the "currently open" reference when the row that closed is the
+  /// one we were tracking (an item tap, an outside tap, or our own
+  /// coordinator-driven close all route here).
+  void _handleRowMenuClosed(MenuController controller) {
+    if (identical(_openRowMenu, controller)) _openRowMenu = null;
+  }
+
   @override
   void didUpdateWidget(covariant UsersScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -93,20 +119,29 @@ class _UsersScreenState extends State<UsersScreen> {
   // Filtering / sorting / paging
   // ---------------------------------------------------------------------------
 
-  /// Filters by [_search] (email substring, case-insensitive — Q14a) and
-  /// [_statusFilter] (Q13 mapping). Always sorted by email so the table is
-  /// stable across rebuilds.
+  /// Filters by [_search] (full-name OR email substring, case-insensitive)
+  /// and [_statusFilter] (Q13 mapping). Always sorted by email so the table
+  /// is stable across rebuilds.
+  // Implements: DIARY-GUI-user-management-tabs/H+I — single search input
+  // matches on Full Name or Email Address; results update in real time
+  // because the query is applied on every rebuild triggered by onChanged.
   List<PortalUserView> _filteredUsers() {
     final q = _search.trim().toLowerCase();
     final out = <PortalUserView>[];
     for (final u in widget.users) {
       if (!_matchesFilter(u)) continue;
-      if (q.isNotEmpty && !u.email.toLowerCase().contains(q)) continue;
+      if (q.isNotEmpty && !_matchesSearch(u, q)) continue;
       out.add(u);
     }
     out.sort((a, b) => a.email.compareTo(b.email));
     return out;
   }
+
+  /// True when [q] (already lower-cased) is a substring of the user's full
+  /// name OR email address.
+  // Implements: DIARY-GUI-user-management-tabs/H
+  bool _matchesSearch(PortalUserView u, String q) =>
+      u.name.toLowerCase().contains(q) || u.email.toLowerCase().contains(q);
 
   bool _matchesFilter(PortalUserView u) => switch (_statusFilter) {
     _StatusFilter.all => true,
@@ -177,7 +212,7 @@ class _UsersScreenState extends State<UsersScreen> {
               width: 360,
               child: AppTextField.search(
                 semanticId: 'users-search',
-                hintText: 'Search by email',
+                hintText: 'Search by name or email',
                 onChanged: (v) {
                   setState(() {
                     _search = v;
@@ -314,7 +349,12 @@ class _UsersScreenState extends State<UsersScreen> {
               ),
             );
           }
-          return UserRowMenu(user: u, config: config);
+          return UserRowMenu(
+            user: u,
+            config: config,
+            onMenuOpened: _handleRowMenuOpened,
+            onMenuClosed: _handleRowMenuClosed,
+          );
         },
       ),
     ];

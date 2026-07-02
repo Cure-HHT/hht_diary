@@ -1,14 +1,10 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01070: NOSE HHT Questionnaire UI
-//   REQ-p01071: QoL Questionnaire UI
-
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
 /// Vertical radio-style selector for a 5-point response scale.
 ///
 /// Displays each option as a tappable row with a radio indicator.
-/// Per REQ-p01070-A / REQ-p01071-A.
+// Implements: DIARY-GUI-questionnaire-portal-sent-workflow/H+I
 class ResponseScaleSelector extends StatelessWidget {
   const ResponseScaleSelector({
     required this.options,

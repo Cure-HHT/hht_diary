@@ -22,6 +22,7 @@
 - DIARY-DEV-role-permissions-seed
 - DIARY-DEV-view-action-permissions
 - DIARY-PRD-sla-corrective-preventive
+- DIARY-BASE-access-control-identity-A
 - DIARY-BASE-ops-action-inventory-A
 - DIARY-BASE-ops-action-inventory-C
 - DIARY-BASE-questionnaire-coordinator-workflow-C
@@ -33,6 +34,8 @@
 - DIARY-BASE-questionnaire-manage-modal-J
 - DIARY-BASE-questionnaire-manage-modal-O
 - DIARY-BASE-questionnaire-finalization-C
+- DIARY-BASE-state-change-communication-A
+- DIARY-DEV-config-fail-fast-A
 - DIARY-DEV-action-write-path-B
 - DIARY-DEV-inbound-event-on-receipt-B
 - DIARY-DEV-inbound-event-on-receipt-C
@@ -50,6 +53,8 @@
 - DIARY-GUI-audit-log-common-D
 - DIARY-GUI-audit-log-common-F
 - DIARY-GUI-audit-log-common-G
+- DIARY-BASE-ui-stability-during-interaction-C
+- DIARY-BASE-ui-stability-during-interaction-D
 - DIARY-GUI-join-study-screen-D
 - DIARY-GUI-entry-overlap-resolution-G
 - DIARY-GUI-entry-overlap-resolution-H
@@ -114,10 +119,12 @@
 - DIARY-GUI-user-information-modal-K
 - DIARY-GUI-user-information-modal-O
 - DIARY-GUI-administrator-dashboard-A
-- DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-audit-trail:section:0
+- DIARY-BASE-compliance-data-integrity:section:0
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-questionnaire-manage-modal:section:7
 - DIARY-BASE-questionnaire-finalization:section:3
+- DIARY-BASE-state-change-communication:section:0
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - rem:spec/dev-mobile-event-sourcing.md:3
@@ -142,6 +149,8 @@
 - DIARY-GUI-audit-log-common:section:6
 - rem:spec/prd-common-ui.md:7
 - rem:spec/prd-common-ui.md:42
+- DIARY-BASE-ui-stability-during-interaction:section:0
+- DIARY-BASE-ui-stability-during-interaction:section:1
 - DIARY-GUI-epistaxis-delete:section:3
 - DIARY-GUI-main-screen-layout:section:0
 - DIARY-GUI-main-screen-layout:section:5
@@ -187,6 +196,7 @@
 - JNY-AUDIT-03
 - JNY-AUTH-03
 - JNY-AUTH-05
+- JNY-ENROLL-01
 - JNY-PART-01
 - JNY-PART-02
 - JNY-PART-03
@@ -452,6 +462,9 @@
 - DIARY-PRD-notification-portal-sent-questionnaire:section:4
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:0
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:3
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:31
+- JNY-COMPLETE-01
 
 ## Assigned Sites
 
@@ -532,6 +545,7 @@
 **DIARY:**
 
 - DIARY-BASE-audit-trail
+- DIARY-BASE-portal-data-acceptance-C
 - DIARY-DEV-portal-second-factor-toggle-D
 - DIARY-DEV-audit-log-read-A
 - DIARY-DEV-audit-log-read-B
@@ -543,7 +557,7 @@
 - DIARY-PRD-user-account-deactivate-D
 - DIARY-PRD-user-account-deactivate-F
 - DIARY-PRD-user-account-reactivate-D
-- DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-audit-trail:section:0
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-portal-second-factor-toggle:section:0
@@ -631,6 +645,7 @@
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
 - DIARY-GUI-participation-status-badge:section:6
+- JNY-ENROLL-01
 
 ## Code Expiry
 
@@ -733,12 +748,20 @@
 - DIARY-PRD-notification-yesterday-entry:section:5
 - DIARY-PRD-notification-historical-gap:section:0
 - DIARY-PRD-notification-historical-gap:section:5
+- JNY-EDIARY-02
+- JNY-EDIARY-03
 
 ## Database
 
 **DIARY:**
 
 - DIARY-BASE-audit-trail-E
+- DIARY-BASE-data-encryption-A
+- DIARY-BASE-identity-clinical-separation-B
+- DIARY-BASE-identity-clinical-separation-C
+- DIARY-BASE-identity-clinical-separation-F
+- DIARY-BASE-portal-data-acceptance-B
+- DIARY-BASE-portal-data-acceptance-F
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-portal-durable-event-store-A
 - DIARY-DEV-schema-version-check-A
@@ -755,7 +778,8 @@
 - DIARY-PRD-sla-service-availability-E
 - DIARY-PRD-sla-incident-severity-F
 - DIARY-PRD-sla-disaster-recovery-C
-- DIARY-DEV-node-sync-topology:section:2
+- DIARY-BASE-identity-clinical-separation:section:0
+- DIARY-DEV-node-sync-topology:section:1
 - DIARY-DEV-schema-version-check:section:0
 - DIARY-OPS-automated-test-execution:section:0
 - DIARY-PRD-questionnaire-versioning:section:0
@@ -806,6 +830,7 @@
 **DIARY:**
 
 - DIARY-PRD-user-authentication-E
+- DIARY-BASE-access-control-identity:section:0
 - DIARY-BASE-user-authentication-pin:section:0
 - DIARY-PRD-user-authentication:section:0
 - DIARY-PRD-user-authentication:section:7
@@ -814,12 +839,18 @@
 
 **DIARY:**
 
+- DIARY-BASE-mobile-diary-application
 - DIARY-DEV-evs-stack-adoption
 - DIARY-DEV-participant-state-poll
 - DIARY-DEV-portal-resolver
 - DIARY-PRD-mobile-application
 - DIARY-BASE-audit-trail-E
+- DIARY-BASE-compliant-diary-platform-A
+- DIARY-BASE-compliant-diary-platform-D
+- DIARY-BASE-data-encryption-D
 - DIARY-BASE-local-data-reset-A
+- DIARY-BASE-mobile-diary-application-A
+- DIARY-BASE-mobile-notifications-A
 - DIARY-BASE-questionnaire-coordinator-workflow-F
 - DIARY-DEV-runtime-environment-resolution-D
 - DIARY-DEV-deployment-config-defaults-A
@@ -827,6 +858,7 @@
 - DIARY-DEV-deployment-config-defaults-D
 - DIARY-DEV-deployment-config-defaults-E
 - DIARY-DEV-deployment-config-defaults-F
+- DIARY-DEV-local-data-export-A
 - DIARY-DEV-evs-stack-adoption-A
 - DIARY-DEV-evs-stack-adoption-B
 - DIARY-DEV-evs-stack-adoption-C
@@ -881,8 +913,17 @@
 - DIARY-GUI-administrator-dashboard-C
 - DIARY-GUI-administrator-dashboard-E
 - DIARY-GUI-administrator-dashboard-F
-- DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-access-control-identity:section:0
+- DIARY-BASE-audit-trail:section:0
+- DIARY-BASE-compliance-data-integrity:section:0
+- DIARY-BASE-compliant-diary-platform:section:0
+- DIARY-BASE-compliant-diary-platform:section:1
+- DIARY-BASE-data-encryption:section:0
 - DIARY-BASE-local-data-reset:section:0
+- DIARY-BASE-mobile-diary-application:section:0
+- DIARY-BASE-mobile-notifications:section:0
+- rem:spec/base-open-source-licensing.md:3
+- DIARY-BASE-license-display:section:0
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-questionnaire-manage-modal:section:7
 - DIARY-BASE-questionnaire-lock-after-submission:section:1
@@ -890,8 +931,10 @@
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
 - rem:spec/base-user-authentication-pin.md:1
+- DIARY-DEV-client-minimum-version:section:1
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
+- DIARY-DEV-local-data-export:section:0
 - rem:spec/dev-mobile-event-sourcing.md:1
 - rem:spec/dev-mobile-event-sourcing.md:3
 - DIARY-DEV-evs-stack-adoption:section:0
@@ -908,14 +951,14 @@
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-local-participant-authorization:section:1
 - DIARY-DEV-inbound-event-on-receipt:section:0
+- DIARY-DEV-node-sync-topology:section:0
 - DIARY-DEV-node-sync-topology:section:1
-- DIARY-DEV-node-sync-topology:section:2
-- DIARY-DEV-outgoing-intent-correlation:section:1
-- DIARY-DEV-participant-ingest:section:1
+- DIARY-DEV-outgoing-intent-correlation:section:0
+- DIARY-DEV-participant-ingest:section:0
 - DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-DEV-pluggable-push-transport:section:1
-- DIARY-DEV-portal-resolver:section:1
+- DIARY-DEV-portal-resolver:section:0
 - DIARY-DEV-participant-status-projection:section:0
 - DIARY-DEV-participant-status-projection:section:1
 - DIARY-DEV-audit-log-read:section:1
@@ -968,7 +1011,6 @@
 - DIARY-PRD-participant-link-new:section:1
 - DIARY-PRD-participant-reconnection:section:1
 - DIARY-GUI-show-linking-code:section:2
-- DIARY-PRD-platform-operations-monitoring:section:0
 - DIARY-PRD-ancillary-platform-services:section:0
 - DIARY-PRD-questionnaire-system:section:4
 - DIARY-PRD-questionnaire-daily-epistaxis:section:1
@@ -977,8 +1019,15 @@
 - rem:spec/prd-requirements-management.md:3
 - rem:spec/prd-sla.md:3
 - rem:spec/prd-status-registry.md:19
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
+- rem:spec/user-journeys/epistaxis-diary-journeys.md:1
+- rem:spec/user-journeys/epistaxis-diary-journeys.md:3
+- rem:spec/user-journeys/nose-hht-assessment-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/quality-of-life-assessment-journeys.md:3
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-session-journeys.md:3
 - JNY-SET-01
 - JNY-AUDIT-01
 - JNY-AUDIT-02
@@ -988,6 +1037,12 @@
 - JNY-AUTH-03
 - JNY-AUTH-04
 - JNY-AUTH-05
+- JNY-ENROLL-01
+- JNY-EDIARY-01
+- JNY-EDIARY-02
+- JNY-EDIARY-03
+- JNY-EDIARY-04
+- JNY-NOSE-01
 - JNY-PART-01
 - JNY-PART-02
 - JNY-PART-03
@@ -996,10 +1051,14 @@
 - JNY-PART-06
 - JNY-PART-07
 - JNY-PART-08
+- JNY-QOL-01
+- JNY-COMPLETE-01
 - JNY-QNR-01
 - JNY-QNR-02
 - JNY-QNR-03
 - JNY-QNR-04
+- JNY-SESSION-01
+- JNY-SESSION-02
 - JNY-USER-01
 - JNY-USER-02
 - JNY-USER-03
@@ -1015,6 +1074,7 @@
 - DIARY-PRD-questionnaire-system-D
 - DIARY-PRD-questionnaire-system:section:4
 - rem:spec/prd-status-registry.md:19
+- JNY-ENROLL-01
 - JNY-PART-03
 
 ## Diary Entry
@@ -1024,6 +1084,10 @@
 - rem:spec/glossary-core.md:724
 
 ## Diary Platform
+
+**DIARY:**
+
+- DIARY-BASE-compliant-diary-platform
 
 ## Diary Start Day
 
@@ -1173,6 +1237,7 @@
 - DIARY-PRD-notification-ongoing-epistaxis:section:0
 - DIARY-PRD-notification-ongoing-epistaxis:section:5
 - DIARY-PRD-notification-ongoing-epistaxis:section:6
+- JNY-EDIARY-01
 
 ## eSource
 
@@ -1207,10 +1272,13 @@
 
 **DIARY:**
 
-- DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-compliance-data-integrity-A
+- DIARY-BASE-compliant-diary-platform-C
+- DIARY-BASE-audit-trail:section:0
+- DIARY-BASE-compliant-diary-platform:section:0
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-PRD-data-backup-and-archival:section:0
-- DIARY-PRD-evidence-timestamp-attestation:section:1
+- DIARY-PRD-evidence-timestamp-attestation:section:0
 - DIARY-PRD-evidence-bitcoin-timestamp:section:0
 - DIARY-PRD-evidence-timestamp-verification:section:0
 - DIARY-PRD-evidence-device-fingerprint:section:0
@@ -1220,7 +1288,7 @@
 - DIARY-OPS-rave-unwedge-authz:section:0
 - DIARY-PRD-action-inventory:section:2
 - rem:spec/prd-requirements-management.md:3
-- DIARY-PRD-system-validation-traceability:section:1
+- DIARY-PRD-system-validation-traceability:section:0
 - DIARY-PRD-sla-root-cause-analysis:section:0
 - DIARY-PRD-sla-regulatory-event-support:section:0
 - DIARY-PRD-user-account-deactivate:section:0
@@ -1260,6 +1328,9 @@
 - DIARY-PRD-questionnaire-portal-sent-rules:section:0
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:8
+- JNY-NOSE-01
+- JNY-QOL-01
+- JNY-COMPLETE-01
 
 ## Full Name
 
@@ -1308,6 +1379,7 @@
 - rem:spec/prd-score-calculation.md:3
 - DIARY-PRD-score-hht-qol:section:0
 - DIARY-PRD-score-nose-hht:section:0
+- JNY-QOL-01
 
 ## Historical Gap
 
@@ -1415,6 +1487,7 @@
 - rem:spec/prd-epistaxis.md:3
 - DIARY-PRD-epistaxis-capture-standard:section:1
 - DIARY-GUI-epistaxis-record:section:5
+- JNY-EDIARY-01
 
 ## Investigator
 
@@ -1459,6 +1532,8 @@
 - DIARY-PRD-linking-code-entry-errors
 - DIARY-PRD-linking-code-lifecycle
 - DIARY-GUI-show-linking-code
+- DIARY-BASE-linking-history-A
+- DIARY-BASE-linking-history-D
 - DIARY-DEV-linking-code-lifecycle-A
 - DIARY-DEV-linking-code-lifecycle-E
 - DIARY-DEV-participant-link-issuance-A
@@ -1472,8 +1547,9 @@
 - DIARY-GUI-participation-status-badge-E
 - DIARY-GUI-show-linking-code-A
 - DIARY-GUI-show-linking-code-C
+- DIARY-BASE-participant-lifecycle:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
-- DIARY-DEV-portal-resolver:section:1
+- DIARY-DEV-portal-resolver:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - DIARY-PRD-linking-code-entry-errors:section:0
 - DIARY-GUI-join-study-screen:section:1
@@ -1504,6 +1580,7 @@
 - DIARY-GUI-join-study-screen-D
 - DIARY-GUI-join-study-screen-E
 - DIARY-GUI-join-study-screen:section:1
+- JNY-ENROLL-01
 
 ## Lock Threshold
 
@@ -1570,6 +1647,12 @@
 - DIARY-PRD-notification-disconnection-A
 - DIARY-BASE-not-participating-notice-A
 - DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-disconnection::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-incomplete-record-lock::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-portal-sent-questionnaire::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-yesterday-entry::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-ongoing-epistaxis::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-historical-gap::DIARY-PRD-notification-behavior-A
 - DIARY-GUI-linking-confirmation:section:1
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-main-screen-layout:section:0
@@ -1584,6 +1667,7 @@
 **DIARY:**
 
 - DIARY-GUI-epistaxis-record:section:0
+- JNY-EDIARY-01
 
 ## Mobile Application
 
@@ -1591,10 +1675,26 @@
 
 - DIARY-PRD-mobile-application
 - DIARY-GUI-mobile-navigation
+- DIARY-BASE-access-control-identity-B
+- DIARY-BASE-compliant-diary-platform-D
+- DIARY-BASE-data-encryption-D
+- DIARY-BASE-linking-history-A
+- DIARY-BASE-linking-history-B
+- DIARY-BASE-mobile-diary-application-A
+- DIARY-BASE-mobile-diary-application-B
+- DIARY-BASE-mobile-notifications-A
 - DIARY-BASE-questionnaire-coordinator-workflow-B
+- DIARY-BASE-questionnaires-B
 - DIARY-BASE-user-authentication-pin-D
 - DIARY-BASE-user-authentication-pin-F
+- DIARY-DEV-client-minimum-version-A
+- DIARY-DEV-client-minimum-version-B
+- DIARY-DEV-client-minimum-version-C
+- DIARY-DEV-client-minimum-version-D
 - DIARY-DEV-runtime-environment-resolution-A
+- DIARY-DEV-local-data-export-A
+- DIARY-DEV-local-data-export-B
+- DIARY-DEV-local-data-export-G
 - DIARY-OPS-single-promotable-artifact-C
 - DIARY-PRD-mobile-application-A
 - DIARY-PRD-mobile-application-B
@@ -1624,9 +1724,27 @@
 - DIARY-PRD-participant-reconnection-F
 - DIARY-PRD-participant-mark-not-participating-D
 - DIARY-PRD-participant-reactivate-C
+- DIARY-PRD-notification-disconnection::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-disconnection::DIARY-PRD-notification-behavior-C
+- DIARY-PRD-notification-incomplete-record-lock::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-incomplete-record-lock::DIARY-PRD-notification-behavior-C
+- DIARY-PRD-notification-portal-sent-questionnaire::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-portal-sent-questionnaire::DIARY-PRD-notification-behavior-C
+- DIARY-PRD-notification-yesterday-entry::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-yesterday-entry::DIARY-PRD-notification-behavior-C
+- DIARY-PRD-notification-ongoing-epistaxis::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-ongoing-epistaxis::DIARY-PRD-notification-behavior-C
+- DIARY-PRD-notification-historical-gap::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-historical-gap::DIARY-PRD-notification-behavior-C
+- DIARY-BASE-access-control-identity:section:0
+- DIARY-BASE-linking-history:section:0
+- DIARY-BASE-mobile-diary-application:section:0
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
+- DIARY-BASE-questionnaires:section:0
 - DIARY-BASE-user-authentication-pin:section:0
 - DIARY-BASE-user-authentication-pin:section:6
+- DIARY-DEV-client-minimum-version:section:0
+- DIARY-DEV-push-payload-phi-safety:section:0
 - rem:spec/glossary-core.md:724
 - rem:spec/prd-common-ui.md:3
 - rem:spec/prd-mobile-app.md:1
@@ -1656,6 +1774,12 @@
 - rem:spec/prd-status-registry.md:3
 - rem:spec/prd-status-registry.md:19
 - rem:spec/prd-status-registry.md:50
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
+- rem:spec/user-journeys/epistaxis-diary-journeys.md:3
+- rem:spec/user-journeys/nose-hht-assessment-journeys.md:3
+- rem:spec/user-journeys/quality-of-life-assessment-journeys.md:3
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:3
+- rem:spec/user-journeys/questionnaire-session-journeys.md:3
 
 ## Mobile Linking Code
 
@@ -1688,11 +1812,17 @@
 - DIARY-PRD-participant-reconnection:section:0
 - DIARY-GUI-show-linking-code:section:2
 - DIARY-GUI-link-participant-flow:section:0
+- JNY-ENROLL-01
 - JNY-PART-01
 - JNY-PART-02
 - JNY-PART-05
 
 ## Multi-Sponsor Isolation
+
+**DIARY:**
+
+- DIARY-BASE-compliant-diary-platform:section:1
+- DIARY-BASE-data-encryption:section:1
 
 ## Needs your attention
 
@@ -1732,6 +1862,11 @@
 - rem:spec/prd-score-calculation.md:3
 - DIARY-PRD-questionnaire-score-calculation:section:1
 - DIARY-PRD-score-nose-hht:section:0
+- rem:spec/user-journeys/nose-hht-assessment-journeys.md:1
+- rem:spec/user-journeys/nose-hht-assessment-journeys.md:32
+- JNY-NOSE-01
+- JNY-SESSION-01
+- JNY-SESSION-02
 
 ## Not-Participating Notice
 
@@ -1747,6 +1882,9 @@
 **DIARY:**
 
 - DIARY-PRD-mobile-offline-first
+- DIARY-BASE-data-encryption:section:1
+- DIARY-BASE-mobile-diary-application:section:0
+- DIARY-BASE-mobile-diary-application:section:1
 - DIARY-DEV-sponsor-branding-assets:section:1
 - rem:spec/prd-mobile-app.md:3
 - DIARY-PRD-mobile-offline-first:section:0
@@ -1774,6 +1912,8 @@
 
 **DIARY:**
 
+- DIARY-BASE-mobile-diary-application
+- DIARY-BASE-participant-lifecycle
 - DIARY-DEV-local-participant-authorization
 - DIARY-DEV-participant-ingest
 - DIARY-DEV-participant-link-issuance
@@ -1787,7 +1927,23 @@
 - DIARY-PRD-participant-reactivate
 - DIARY-GUI-participant-dashboard
 - DIARY-BASE-audit-trail-E
+- DIARY-BASE-compliant-diary-platform-D
+- DIARY-BASE-identity-clinical-separation-A
+- DIARY-BASE-identity-clinical-separation-B
+- DIARY-BASE-identity-clinical-separation-C
+- DIARY-BASE-identity-clinical-separation-D
+- DIARY-BASE-identity-clinical-separation-E
+- DIARY-BASE-identity-clinical-separation-F
+- DIARY-BASE-linking-history-E
 - DIARY-BASE-local-data-reset-B
+- DIARY-BASE-mobile-diary-application-A
+- DIARY-BASE-mobile-diary-application-B
+- DIARY-BASE-mobile-notifications-A
+- DIARY-BASE-participant-lifecycle-A
+- DIARY-BASE-participant-lifecycle-B
+- DIARY-BASE-portal-data-acceptance-A
+- DIARY-BASE-portal-data-acceptance-C
+- DIARY-BASE-portal-data-acceptance-G
 - DIARY-BASE-questionnaire-coordinator-workflow-A
 - DIARY-BASE-questionnaire-coordinator-workflow-B
 - DIARY-BASE-questionnaire-coordinator-workflow-F
@@ -1837,6 +1993,7 @@
 - DIARY-DEV-rave-edc-ingest-A
 - DIARY-DEV-participant-status-projection-A
 - DIARY-DEV-participant-status-projection-B
+- DIARY-DEV-push-payload-phi-safety-A
 - DIARY-DEV-relink-device-gate-A
 - DIARY-DEV-relink-device-gate-B
 - DIARY-DEV-relink-device-gate-C
@@ -2045,9 +2202,28 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-OPS-rave-sync-cooldown-D
 - DIARY-OPS-rave-sync-hard-lockout-B
-- DIARY-BASE-audit-trail:section:1
+- DIARY-PRD-notification-disconnection::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-incomplete-record-lock::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-portal-sent-questionnaire::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-yesterday-entry::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-ongoing-epistaxis::DIARY-PRD-notification-behavior-A
+- DIARY-PRD-notification-historical-gap::DIARY-PRD-notification-behavior-A
+- DIARY-BASE-access-control-identity:section:0
+- DIARY-BASE-audit-trail:section:0
+- DIARY-BASE-compliant-diary-platform:section:1
+- DIARY-BASE-identity-clinical-separation:section:0
+- DIARY-BASE-identity-clinical-separation:section:1
+- DIARY-BASE-linking-history:section:0
+- DIARY-BASE-linking-history:section:1
 - DIARY-BASE-local-data-reset:section:0
 - DIARY-BASE-local-data-reset:section:1
+- DIARY-BASE-mobile-diary-application:section:0
+- DIARY-BASE-mobile-diary-application:section:1
+- DIARY-BASE-mobile-notifications:section:0
+- DIARY-BASE-mobile-notifications:section:1
+- DIARY-BASE-participant-lifecycle:section:0
+- DIARY-BASE-participant-lifecycle:section:1
+- DIARY-BASE-portal-data-acceptance:section:0
 - DIARY-BASE-questionnaire-coordinator-workflow:section:0
 - DIARY-BASE-questionnaire-coordinator-workflow:section:6
 - DIARY-BASE-questionnaire-manage-modal:section:7
@@ -2056,25 +2232,32 @@
 - DIARY-BASE-questionnaire-cycle-tracking:section:4
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:1
+- DIARY-BASE-questionnaires:section:0
+- DIARY-BASE-sponsor-portal:section:0
+- DIARY-BASE-sponsor-portal:section:1
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
+- DIARY-BASE-state-change-communication:section:0
+- DIARY-BASE-state-change-communication:section:1
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-BASE-user-authentication-pin:section:0
 - DIARY-BASE-user-authentication-pin:section:6
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
+- DIARY-DEV-local-data-export:section:0
+- DIARY-DEV-local-data-export:section:1
 - DIARY-DEV-native-outbound-sync:section:1
 - DIARY-DEV-participant-state-poll:section:0
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-local-participant-authorization:section:1
+- DIARY-DEV-node-sync-topology:section:0
 - DIARY-DEV-node-sync-topology:section:1
-- DIARY-DEV-node-sync-topology:section:2
-- DIARY-DEV-participant-ingest:section:1
+- DIARY-DEV-participant-ingest:section:0
 - DIARY-DEV-participant-link-issuance:section:0
 - DIARY-DEV-pluggable-push-transport:section:0
 - DIARY-DEV-portal-activation-code-lifecycle:section:1
-- DIARY-DEV-portal-resolver:section:1
+- DIARY-DEV-portal-resolver:section:0
 - DIARY-DEV-participant-site-index:section:0
 - DIARY-DEV-participant-site-index:section:1
 - DIARY-DEV-portal-reaction-server:section:1
@@ -2204,6 +2387,12 @@
 - rem:spec/prd-status-registry.md:29
 - rem:spec/prd-status-registry.md:33
 - rem:spec/prd-status-registry.md:50
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:1
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
+- rem:spec/user-journeys/epistaxis-diary-journeys.md:1
+- rem:spec/user-journeys/epistaxis-diary-journeys.md:3
+- rem:spec/user-journeys/nose-hht-assessment-journeys.md:1
+- rem:spec/user-journeys/nose-hht-assessment-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:1
 - rem:spec/user-journeys/participant-management-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:32
@@ -2213,9 +2402,21 @@
 - rem:spec/user-journeys/participant-management-journeys.md:130
 - rem:spec/user-journeys/participant-management-journeys.md:155
 - rem:spec/user-journeys/participant-management-journeys.md:180
+- rem:spec/user-journeys/quality-of-life-assessment-journeys.md:1
+- rem:spec/user-journeys/quality-of-life-assessment-journeys.md:3
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:1
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-session-journeys.md:1
+- rem:spec/user-journeys/questionnaire-session-journeys.md:3
 - JNY-AUDIT-02
 - JNY-AUDIT-03
+- JNY-ENROLL-01
+- JNY-EDIARY-01
+- JNY-EDIARY-02
+- JNY-EDIARY-03
+- JNY-EDIARY-04
+- JNY-NOSE-01
 - JNY-PART-01
 - JNY-PART-02
 - JNY-PART-03
@@ -2224,10 +2425,14 @@
 - JNY-PART-06
 - JNY-PART-07
 - JNY-PART-08
+- JNY-QOL-01
+- JNY-COMPLETE-01
 - JNY-QNR-01
 - JNY-QNR-02
 - JNY-QNR-03
 - JNY-QNR-04
+- JNY-SESSION-01
+- JNY-SESSION-02
 
 ## Participant Actions Modal
 
@@ -2351,6 +2556,7 @@
 **DIARY:**
 
 - DIARY-PRD-evidence-patient-authentication
+- DIARY-BASE-compliant-diary-platform-A
 - DIARY-DEV-sponsor-branding-source-E
 - DIARY-PRD-evidence-device-fingerprint-I
 - DIARY-PRD-evidence-patient-authentication-E
@@ -2370,6 +2576,7 @@
 - DIARY-PRD-questionnaire-localization-I
 - DIARY-PRD-questionnaire-localization-K
 - DIARY-PRD-sla-incident-severity-B
+- DIARY-BASE-compliant-diary-platform:section:0
 - DIARY-DEV-sponsor-branding-source:section:1
 - rem:spec/glossary-core.md:724
 - rem:spec/prd-evidence-records.md:3
@@ -2458,6 +2665,10 @@
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:9
 - DIARY-PRD-questionnaire-session-timeout:section:6
 - DIARY-GUI-questionnaire-session-expiry:section:5
+- JNY-NOSE-01
+- JNY-QOL-01
+- JNY-SESSION-01
+- JNY-SESSION-02
 
 ## Progress Indicator
 
@@ -2470,6 +2681,7 @@
 - DIARY-GUI-epistaxis-record:section:0
 - DIARY-GUI-epistaxis-record:section:5
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:0
+- JNY-NOSE-01
 
 ## Questionnaire
 
@@ -2527,7 +2739,10 @@
 - DIARY-BASE-questionnaire-lock-after-submission-C
 - DIARY-BASE-questionnaire-lock-after-submission-D
 - DIARY-BASE-questionnaire-lock-after-submission-E
+- DIARY-BASE-questionnaires-A
+- DIARY-BASE-questionnaires-B
 - DIARY-DEV-outgoing-intent-correlation-A
+- DIARY-DEV-push-payload-phi-safety-A
 - DIARY-DEV-view-action-permissions-B
 - DIARY-GUI-participant-task-list-A
 - DIARY-GUI-participant-task-list-H
@@ -2608,8 +2823,10 @@
 - DIARY-BASE-questionnaire-cycle-tracking:section:4
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:1
+- DIARY-BASE-questionnaires:section:0
+- DIARY-BASE-questionnaires:section:1
 - DIARY-DEV-inbound-event-on-receipt:section:1
-- DIARY-DEV-participant-ingest:section:1
+- DIARY-DEV-participant-ingest:section:0
 - DIARY-DEV-shared-events-catalog:section:0
 - rem:spec/prd-common-ui.md:7
 - DIARY-GUI-calendar-day-view:section:7
@@ -2651,18 +2868,32 @@
 - rem:spec/prd-status-registry.md:46
 - rem:spec/prd-status-registry.md:48
 - rem:spec/prd-status-registry.md:50
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
+- rem:spec/user-journeys/nose-hht-assessment-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/quality-of-life-assessment-journeys.md:3
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:1
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:1
 - rem:spec/user-journeys/questionnaire-management-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:32
 - rem:spec/user-journeys/questionnaire-management-journeys.md:56
 - rem:spec/user-journeys/questionnaire-management-journeys.md:82
 - rem:spec/user-journeys/questionnaire-management-journeys.md:106
+- rem:spec/user-journeys/questionnaire-session-journeys.md:1
+- rem:spec/user-journeys/questionnaire-session-journeys.md:3
+- rem:spec/user-journeys/questionnaire-session-journeys.md:29
+- JNY-ENROLL-01
+- JNY-NOSE-01
 - JNY-PART-03
+- JNY-QOL-01
+- JNY-COMPLETE-01
 - JNY-QNR-01
 - JNY-QNR-02
 - JNY-QNR-03
 - JNY-QNR-04
+- JNY-SESSION-01
+- JNY-SESSION-02
 
 ## Questionnaire Display Name
 
@@ -2681,6 +2912,10 @@
 - DIARY-GUI-participant-task-list-K
 - DIARY-GUI-participant-task-list-L
 - DIARY-GUI-participant-task-list:section:5
+- JNY-NOSE-01
+- JNY-QOL-01
+- JNY-COMPLETE-01
+- JNY-SESSION-01
 
 ## Questionnaire Type
 
@@ -2833,6 +3068,9 @@
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:0
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:8
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:9
+- JNY-NOSE-01
+- JNY-QOL-01
+- JNY-COMPLETE-01
 
 ## Role
 
@@ -2845,8 +3083,11 @@
 - DIARY-PRD-rbac-customizable
 - DIARY-PRD-role-definitions
 - DIARY-GUI-role-switching
+- DIARY-BASE-access-control-identity-A
+- DIARY-BASE-access-control-identity-B
 - DIARY-BASE-ops-action-inventory-A
 - DIARY-BASE-ops-action-inventory-C
+- DIARY-BASE-sponsor-portal-B
 - DIARY-BASE-system-operator-role-D
 - DIARY-DEV-portal-session-lifecycle-B
 - DIARY-DEV-portal-active-role-switch-A
@@ -2890,6 +3131,10 @@
 - DIARY-GUI-user-information-modal-F
 - DIARY-GUI-user-information-modal-H
 - DIARY-GUI-administrator-dashboard-A
+- DIARY-BASE-access-control-identity:section:0
+- DIARY-BASE-access-control-identity:section:1
+- DIARY-BASE-sponsor-portal:section:0
+- DIARY-BASE-sponsor-portal:section:1
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-portal-session-token:section:1
 - DIARY-DEV-portal-session-lifecycle:section:0
@@ -2946,8 +3191,14 @@
 - rem:spec/user-journeys/audit-log-journeys.md:3
 - rem:spec/user-journeys/authentication-journeys.md:3
 - rem:spec/user-journeys/authentication-journeys.md:109
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
+- rem:spec/user-journeys/epistaxis-diary-journeys.md:3
+- rem:spec/user-journeys/nose-hht-assessment-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/quality-of-life-assessment-journeys.md:3
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-session-journeys.md:3
 - rem:spec/user-journeys/user-management-journeys.md:3
 - JNY-AUDIT-03
 - JNY-AUTH-02
@@ -2998,6 +3249,7 @@
 - DIARY-DEV-portal-active-role-switch
 - DIARY-DEV-portal-reset-session-termination
 - DIARY-PRD-session-management
+- DIARY-BASE-portal-data-acceptance-D
 - DIARY-DEV-participant-state-poll-B
 - DIARY-DEV-portal-second-factor-toggle-A
 - DIARY-DEV-portal-second-factor-toggle-C
@@ -3029,6 +3281,7 @@
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-PRD-rbac-customizable-B
 - DIARY-GUI-administrator-dashboard-I
+- DIARY-BASE-portal-data-acceptance:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-portal-user-activated-binding:section:1
@@ -3067,9 +3320,12 @@
 - DIARY-PRD-user-account-edit:section:1
 - DIARY-PRD-user-account-deactivate:section:0
 - rem:spec/user-journeys/authentication-journeys.md:3
+- rem:spec/user-journeys/questionnaire-session-journeys.md:1
 - JNY-AUTH-02
 - JNY-AUTH-04
 - JNY-AUTH-05
+- JNY-SESSION-01
+- JNY-SESSION-02
 
 ## Session Expiry
 
@@ -3082,6 +3338,8 @@
 - DIARY-GUI-questionnaire-session-expiry-B
 - DIARY-GUI-questionnaire-session-expiry-G
 - DIARY-GUI-questionnaire-session-expiry:section:0
+- rem:spec/user-journeys/questionnaire-session-journeys.md:54
+- JNY-SESSION-02
 
 ## Session Expiry Dialog
 
@@ -3092,6 +3350,7 @@
 - DIARY-GUI-questionnaire-session-expiry-D
 - DIARY-GUI-questionnaire-session-expiry:section:0
 - DIARY-GUI-questionnaire-session-expiry:section:5
+- JNY-SESSION-02
 
 ## Session Expiry Notification
 
@@ -3127,6 +3386,7 @@
 - DIARY-PRD-questionnaire-session-timeout-I
 - DIARY-PRD-questionnaire-portal-sent-rules:section:5
 - DIARY-PRD-questionnaire-session-timeout:section:6
+- JNY-SESSION-02
 
 ## Session Timeout Warning
 
@@ -3151,6 +3411,7 @@
 
 - DIARY-DEV-participant-site-index
 - DIARY-PRD-user-account-site-assignment
+- DIARY-BASE-sponsor-portal-B
 - DIARY-DEV-participant-link-issuance-D
 - DIARY-DEV-portal-session-lifecycle-B
 - DIARY-DEV-participant-site-index-A
@@ -3179,6 +3440,8 @@
 - DIARY-GUI-user-information-modal-D
 - DIARY-GUI-user-information-modal-E
 - DIARY-GUI-user-information-modal-G
+- DIARY-BASE-sponsor-portal:section:0
+- DIARY-BASE-sponsor-portal:section:1
 - DIARY-DEV-linking-code-lifecycle:section:0
 - DIARY-DEV-portal-session-lifecycle:section:0
 - DIARY-DEV-portal-session-lifecycle:section:1
@@ -3210,6 +3473,7 @@
 - DIARY-GUI-user-information-modal:section:3
 - rem:spec/user-journeys/audit-log-journeys.md:80
 - JNY-AUDIT-03
+- JNY-ENROLL-01
 - JNY-USER-01
 - JNY-USER-02
 - JNY-USER-06
@@ -3223,7 +3487,12 @@
 - DIARY-OPS-neutral-baseline-branch
 - DIARY-PRD-questionnaire-sponsor-configuration
 - DIARY-PRD-questionnaire-sponsor-eligibility
+- DIARY-BASE-compliant-diary-platform-B
+- DIARY-BASE-data-encryption-E
+- DIARY-BASE-linking-history-C
+- DIARY-BASE-linking-history-E
 - DIARY-BASE-local-data-reset-C
+- DIARY-BASE-open-source-licensing-B
 - DIARY-BASE-ops-action-inventory-A
 - DIARY-BASE-sponsor-requested-settings-A
 - DIARY-BASE-sponsor-requested-settings-B
@@ -3336,14 +3605,33 @@
 - DIARY-PRD-sla-chronic-failure-escalation-J
 - DIARY-PRD-sla-regulatory-event-support-C
 - DIARY-PRD-sla-regulatory-event-support-E
-- DIARY-BASE-audit-trail:section:1
+- DIARY-DEV-deployment-config-defaults::DIARY-PRD-configuration-precedence-A
+- DIARY-DEV-deployment-config-defaults::DIARY-PRD-configuration-precedence-B
+- DIARY-DEV-deployment-config-defaults::DIARY-PRD-configuration-precedence-C
+- DIARY-DEV-deployment-config-defaults::DIARY-PRD-configuration-precedence-D
+- DIARY-DEV-deployment-config-defaults::DIARY-PRD-configuration-precedence-E
+- DIARY-DEV-deployment-config-defaults::DIARY-PRD-configuration-precedence-F
+- DIARY-BASE-audit-trail:section:0
+- DIARY-BASE-compliant-diary-platform:section:0
+- DIARY-BASE-compliant-diary-platform:section:1
+- DIARY-BASE-data-encryption:section:0
+- DIARY-BASE-data-encryption:section:1
+- DIARY-BASE-linking-history:section:0
+- DIARY-BASE-linking-history:section:1
+- DIARY-BASE-linking-history:section:2
 - DIARY-BASE-local-data-reset:section:0
 - DIARY-BASE-local-data-reset:section:1
+- rem:spec/base-open-source-licensing.md:3
+- DIARY-BASE-open-source-licensing:section:0
+- DIARY-BASE-open-source-licensing:section:1
 - DIARY-BASE-ops-action-inventory:section:0
+- DIARY-BASE-portal-data-acceptance:section:1
 - rem:spec/base-questionnaire-coordinator.md:3
 - DIARY-BASE-questionnaire-manage-modal:section:0
 - DIARY-BASE-questionnaire-cycle-tracking:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
+- DIARY-BASE-sponsor-portal:section:0
+- DIARY-BASE-sponsor-portal:section:1
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
 - DIARY-BASE-system-operator-role:section:0
@@ -3352,7 +3640,7 @@
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-participant-state-poll:section:1
 - DIARY-DEV-portal-session-config:section:1
-- DIARY-DEV-portal-resolver:section:1
+- DIARY-DEV-portal-resolver:section:0
 - DIARY-DEV-portal-seed-config:section:0
 - DIARY-DEV-portal-seed-config:section:1
 - DIARY-DEV-role-permissions-seed:section:0
@@ -3467,6 +3755,9 @@
 - DIARY-GUI-administrator-dashboard:section:4
 - rem:spec/user-journeys/participant-management-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:3
+- JNY-ENROLL-01
+- JNY-EDIARY-01
+- JNY-EDIARY-02
 - JNY-PART-03
 - JNY-PART-04
 - JNY-PART-05
@@ -3477,6 +3768,7 @@
 
 **DIARY:**
 
+- DIARY-BASE-sponsor-portal
 - DIARY-BASE-audit-trail-E
 - DIARY-DEV-node-sync-topology-A
 - DIARY-DEV-node-sync-topology-B
@@ -3510,14 +3802,14 @@
 - DIARY-GUI-dev-admin-rave-sync-card-C
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-I
-- DIARY-BASE-audit-trail:section:1
+- DIARY-BASE-audit-trail:section:0
 - rem:spec/base-questionnaire-coordinator.md:3
 - DIARY-DEV-native-outbound-sync:section:1
+- DIARY-DEV-node-sync-topology:section:0
 - DIARY-DEV-node-sync-topology:section:1
-- DIARY-DEV-node-sync-topology:section:2
-- DIARY-DEV-participant-ingest:section:1
+- DIARY-DEV-participant-ingest:section:0
 - DIARY-DEV-pluggable-push-transport:section:0
-- DIARY-DEV-portal-resolver:section:1
+- DIARY-DEV-portal-resolver:section:0
 - DIARY-PRD-administrator-settings:section:0
 - DIARY-BASE-portal-transport-status:section:0
 - DIARY-BASE-portal-stale-client-reload:section:0
@@ -3556,6 +3848,7 @@
 - rem:spec/user-journeys/audit-log-journeys.md:3
 - rem:spec/user-journeys/authentication-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:3
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:3
 - rem:spec/user-journeys/user-management-journeys.md:3
 - JNY-SET-01
@@ -3564,6 +3857,8 @@
 - JNY-AUTH-02
 - JNY-AUTH-03
 - JNY-AUTH-05
+- JNY-ENROLL-01
+- JNY-COMPLETE-01
 - JNY-USER-01
 - JNY-USER-02
 - JNY-USER-03
@@ -3625,6 +3920,7 @@
 - DIARY-BASE-questionnaire-manage-modal:section:7
 - DIARY-BASE-questionnaire-cycle-tracking:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
+- DIARY-BASE-state-change-communication:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-GUI-audit-log-cra:section:0
@@ -3652,6 +3948,7 @@
 - DIARY-GUI-user-information-modal:section:3
 - rem:spec/user-journeys/audit-log-journeys.md:3
 - rem:spec/user-journeys/audit-log-journeys.md:53
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:1
 - rem:spec/user-journeys/participant-management-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:1
@@ -3659,6 +3956,8 @@
 - JNY-AUDIT-02
 - JNY-AUDIT-03
 - JNY-AUTH-04
+- JNY-ENROLL-01
+- JNY-NOSE-01
 - JNY-PART-01
 - JNY-PART-02
 - JNY-PART-03
@@ -3667,6 +3966,8 @@
 - JNY-PART-06
 - JNY-PART-07
 - JNY-PART-08
+- JNY-QOL-01
+- JNY-COMPLETE-01
 - JNY-QNR-01
 - JNY-QNR-02
 - JNY-QNR-03
@@ -3706,6 +4007,13 @@
 - DIARY-GUI-questionnaire-portal-sent-workflow-Q
 - DIARY-PRD-sla-data-recovery-M
 - DIARY-PRD-reason-field-constraints-A
+- DIARY-BASE-questionnaire-manage-modal::DIARY-PRD-reason-field-constraints-A
+- DIARY-PRD-participant-reconnection::DIARY-PRD-reason-field-constraints-A
+- DIARY-PRD-participant-reactivate::DIARY-PRD-reason-field-constraints-A
+- DIARY-PRD-user-account-deactivate::DIARY-PRD-reason-field-constraints-A
+- DIARY-PRD-user-account-reactivate::DIARY-PRD-reason-field-constraints-A
+- DIARY-GUI-user-account-deactivate::DIARY-PRD-reason-field-constraints-A
+- DIARY-GUI-user-account-reactivate::DIARY-PRD-reason-field-constraints-A
 - rem:spec/base-questionnaire-coordinator.md:3
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:1
@@ -3725,6 +4033,7 @@
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:8
 - DIARY-GUI-questionnaire-portal-sent-workflow:section:9
 - DIARY-PRD-questionnaire-score-calculation:section:1
+- JNY-COMPLETE-01
 
 ## Task List
 
@@ -3758,6 +4067,7 @@
 - DIARY-GUI-epistaxis-record-E
 - DIARY-GUI-epistaxis-record-J
 - DIARY-GUI-epistaxis-record:section:5
+- JNY-EDIARY-01
 
 ## Timeout Warning Notification
 
@@ -3784,6 +4094,10 @@
 
 **DIARY:**
 
+- DIARY-BASE-compliant-diary-platform
+- DIARY-BASE-compliant-diary-platform-D
+- DIARY-BASE-compliant-diary-platform-E
+- DIARY-BASE-identity-clinical-separation-A
 - DIARY-BASE-local-data-reset-B
 - DIARY-DEV-state-in-event-log-A
 - DIARY-DEV-native-outbound-sync-C
@@ -3803,7 +4117,9 @@
 - DIARY-PRD-questionnaire-sponsor-eligibility-B
 - DIARY-PRD-questionnaire-sponsor-eligibility-C
 - DIARY-PRD-sla-service-availability-J
+- DIARY-BASE-compliant-diary-platform:section:1
 - DIARY-BASE-local-data-reset:section:0
+- DIARY-BASE-questionnaires:section:1
 - DIARY-DEV-state-in-event-log:section:0
 - DIARY-DEV-native-outbound-sync:section:0
 - DIARY-DEV-native-outbound-sync:section:1
@@ -3817,9 +4133,9 @@
 - DIARY-PRD-entry-time-restrictions:section:0
 - DIARY-PRD-entry-time-restrictions:section:4
 - rem:spec/prd-evidence-records.md:3
-- DIARY-PRD-evidence-timestamp-attestation:section:1
+- DIARY-PRD-evidence-timestamp-attestation:section:0
 - DIARY-PRD-evidence-bitcoin-timestamp:section:0
-- DIARY-PRD-evidence-timestamp-archival:section:1
+- DIARY-PRD-evidence-timestamp-archival:section:0
 - DIARY-PRD-evidence-device-fingerprint:section:0
 - DIARY-PRD-evidence-patient-authentication:section:0
 - DIARY-PRD-evidence-email-identity:section:0
@@ -3867,11 +4183,19 @@
 - rem:spec/prd-status-registry.md:19
 - rem:spec/prd-status-registry.md:33
 - DIARY-PRD-user-account-site-assignment:section:1
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:1
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:79
+- JNY-ENROLL-01
+- JNY-EDIARY-01
+- JNY-EDIARY-02
+- JNY-EDIARY-03
+- JNY-NOSE-01
 - JNY-PART-03
 - JNY-PART-06
 - JNY-PART-07
+- JNY-QOL-01
 - JNY-QNR-01
 
 ## Trial Start
@@ -3882,6 +4206,7 @@
 - DIARY-PRD-questionnaire-system-C
 - DIARY-PRD-questionnaire-system-E
 - DIARY-PRD-questionnaire-system:section:4
+- JNY-ENROLL-01
 - JNY-PART-03
 
 ## True Copy
@@ -3921,11 +4246,23 @@
 
 **DIARY:**
 
+- DIARY-BASE-state-change-communication
 - DIARY-DEV-portal-user-activated-binding
 - DIARY-DEV-portal-seed-config
 - DIARY-DEV-operator-tier-authz
+- DIARY-BASE-ui-stability-during-interaction
 - DIARY-GUI-user-management-tabs
+- DIARY-BASE-license-display-A
+- DIARY-BASE-state-change-communication-A
+- DIARY-BASE-state-change-communication-B
+- DIARY-BASE-state-change-communication-C
+- DIARY-BASE-state-change-communication-D
+- DIARY-DEV-client-minimum-version-B
+- DIARY-DEV-client-minimum-version-D
+- DIARY-DEV-config-fail-fast-A
 - DIARY-DEV-deployment-config-defaults-E
+- DIARY-DEV-local-data-export-A
+- DIARY-DEV-local-data-export-G
 - DIARY-DEV-portal-emulator-bootstrap-A
 - DIARY-DEV-portal-active-role-switch-A
 - DIARY-DEV-portal-active-role-switch-B
@@ -3947,6 +4284,11 @@
 - DIARY-BASE-portal-stale-client-reload-A
 - DIARY-BASE-portal-stale-client-reload-B
 - DIARY-BASE-portal-stale-client-reload-C
+- DIARY-BASE-ui-stability-during-interaction-A
+- DIARY-BASE-ui-stability-during-interaction-B
+- DIARY-BASE-ui-stability-during-interaction-D
+- DIARY-BASE-ui-stability-during-interaction-E
+- DIARY-BASE-ui-stability-during-interaction-F
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-help-resources-C
 - DIARY-PRD-help-resources-D
@@ -4010,7 +4352,13 @@
 - DIARY-GUI-user-information-modal-N
 - DIARY-GUI-administrator-dashboard-A
 - DIARY-GUI-administrator-dashboard-E
+- DIARY-BASE-license-display:section:0
+- DIARY-BASE-license-display:section:1
+- DIARY-BASE-sponsor-portal:section:0
+- DIARY-BASE-state-change-communication:section:0
+- DIARY-BASE-state-change-communication:section:1
 - rem:spec/base-user-authentication-pin.md:1
+- DIARY-DEV-client-minimum-version:section:1
 - DIARY-DEV-deployment-config-defaults:section:0
 - DIARY-DEV-local-participant-authorization:section:0
 - DIARY-DEV-portal-user-activated-binding:section:1
@@ -4023,7 +4371,7 @@
 - DIARY-DEV-portal-reset-password-update:section:0
 - DIARY-DEV-portal-reset-password-update:section:1
 - DIARY-DEV-portal-reset-session-termination:section:0
-- DIARY-DEV-portal-resolver:section:1
+- DIARY-DEV-portal-resolver:section:0
 - DIARY-DEV-portal-reaction-server:section:1
 - DIARY-DEV-user-account-projection:section:0
 - DIARY-DEV-user-account-projection:section:1
@@ -4046,6 +4394,8 @@
 - DIARY-BASE-portal-transport-status:section:1
 - DIARY-BASE-portal-stale-client-reload:section:0
 - DIARY-BASE-portal-stale-client-reload:section:1
+- DIARY-BASE-ui-stability-during-interaction:section:0
+- DIARY-BASE-ui-stability-during-interaction:section:1
 - rem:spec/prd-device-linking.md:3
 - DIARY-PRD-linking-code-entry-errors:section:4
 - DIARY-GUI-join-study-screen:section:0
@@ -4094,8 +4444,14 @@
 - rem:spec/user-journeys/audit-log-journeys.md:3
 - rem:spec/user-journeys/authentication-journeys.md:1
 - rem:spec/user-journeys/authentication-journeys.md:3
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:1
+- rem:spec/user-journeys/epistaxis-diary-journeys.md:1
+- rem:spec/user-journeys/nose-hht-assessment-journeys.md:1
 - rem:spec/user-journeys/participant-management-journeys.md:1
+- rem:spec/user-journeys/quality-of-life-assessment-journeys.md:1
+- rem:spec/user-journeys/questionnaire-completion-journeys.md:1
 - rem:spec/user-journeys/questionnaire-management-journeys.md:1
+- rem:spec/user-journeys/questionnaire-session-journeys.md:1
 - rem:spec/user-journeys/user-management-journeys.md:1
 - rem:spec/user-journeys/user-management-journeys.md:3
 - rem:spec/user-journeys/user-management-journeys.md:58
@@ -4256,6 +4612,7 @@
 - DIARY-GUI-user-profile-G
 - DIARY-GUI-user-profile-H
 - DIARY-GUI-user-profile-I
+- DIARY-BASE-license-display:section:0
 - DIARY-GUI-linking-confirmation:section:1
 - rem:spec/prd-mobile-navigation.md:3
 - DIARY-GUI-user-profile:section:0

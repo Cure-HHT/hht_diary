@@ -1,12 +1,12 @@
 # Evidence Records
 
-Data-provenance commitments establishing the **when**, **how**, and **who** of clinical *Trial* *Diary* entries through third-party timestamp attestation, device fingerprinting, *Patient* authentication, and identity verification. These obligations are *Sponsor*-visible (PRD-level audience) and provide the cryptographic basis for regulatory defensibility of long-retention clinical records.
+Data-provenance commitments establishing the **when**, **how**, and **who** of clinical *Trial* *Diary* entries through third-party timestamp attestation, device fingerprinting, *Patient* authentication, and identity verification. These obligations are *Sponsor*-visible (PRD-level audience) and provide the cryptographic basis for regulatory defensibility of long-retention records.
 
 ## DIARY-PRD-evidence-timestamp-attestation: Third-Party Timestamp Attestation Capability
 
 **Level**: PRD | **Status**: Legacy | **Implements**: -
+**Refines**: DIARY-BASE-compliance-data-integrity
 
-> **TODO (URS-Phase-3 reconciliation):** Original Refines target REQ-p01085 (Compliance Systems) is in URS-replaced prd-clinical-trials.md. Re-parent to the URS-derived compliance REQ when that lands.
 
 ### Assertions
 
@@ -113,7 +113,6 @@ Timestamp proofs provide cryptographic evidence of when data existed, but this e
 **Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-evidence-timestamp-attestation-G
 
-> **TODO (URS-Phase-3 reconciliation):** Additional Refines targets REQ-p00012-C, REQ-p00012-E, REQ-p00012-F (Clinical Data Retention Requirements) were in URS-replaced prd-clinical-trials.md. Re-parent to the URS-derived clinical-data-retention REQ when that lands.
 
 ### Assertions
 

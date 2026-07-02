@@ -5,6 +5,7 @@ The *Participant*-side linking flow comprises the platform-level rules for error
 ## DIARY-PRD-linking-code-entry-errors: Linking Code Entry Error Handling
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-participant-lifecycle
 
 ### Overview
 
